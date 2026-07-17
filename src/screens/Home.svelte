@@ -1,173 +1,463 @@
 <script>
-  // Task 2.3 — static Home console layout. ALL values below are hardcoded
-  // sample data for the aesthetic sign-off; live binding to openHAB items
-  // is the next task (Phase 3). Layout/typography/color are the things
-  // pending operator sign-off on the M9 tablet at 1340x800.
+  // Task 3.1 — LIVE dense Home console. Binds real openHAB items (Task 0.1-3.0
+  // infra), renders real icons via OhIcon, and makes weather/battery/solar/
+  // wind/rain/baro tiles clickable -> openChart(). Indoor added alongside
+  // Outdoor per operator request. No controls row (Home is data-only; toggles
+  // move to a separate Controls screen).
+  import { onMount } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import Arc from '../lib/ui/Arc.svelte';
   import Sparkline from '../lib/ui/Sparkline.svelte';
   import CompassRose from '../lib/ui/CompassRose.svelte';
+  import OhIcon from '../lib/ui/OhIcon.svelte';
   import { colors } from '../lib/ui/tokens.js';
-  import { socBands, runtimeText } from '../lib/openhab/values.js';
+  import { items, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
+  import { openChart } from '../lib/ui/chartStore.js';
 
-  // ---- Sample data (design doc "Home" tile list) ----
-  const outdoor = {
-    temp: 89,
-    feels: 86,
-    hi: 94,
-    hiTime: '3:12p',
-    lo: 61,
-    loTime: '5:47a',
-    condition: '☀', // sun glyph
-    aqi: 24,
-  };
+  // ---- History fetch helper for hero sparklines ----------------------------
+  // getClientOnce() can briefly be null right at boot (initOpenhab() in
+  // App.svelte's onMount hasn't resolved yet), so retry a few times instead
+  // of giving up on the first miss.
+  async function fetchHistorySafe(name, hours = 6) {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const client = getClientOnce();
+      if (client) {
+        const now = Date.now();
+        const starttime = new Date(now - hours * 3600 * 1000).toISOString();
+        const endtime = new Date(now).toISOString();
+        try {
+          return await client.getHistory(name, { starttime, endtime });
+        } catch {
+          return [];
+        }
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return [];
+  }
 
-  const battery = { soc: 55, current: -3.2, runtimeMin: 980, basis: 'bms' };
-  const socColor = socBands(battery.soc);
-  const battRuntime = runtimeText(battery.runtimeMin); // -> "16 h 20 m"
-  const battIndicator =
-    battery.current < 0
-      ? { glyph: '▼', text: 'discharging' }
-      : battery.current > 0
-        ? { glyph: '▲', text: 'charging' }
-        : { glyph: '●', text: 'idle' };
+  let outdoorSpark = $state([]);
+  let battSpark = $state([]);
+  let baroSpark = $state([]);
+  let windGustMaxToday = $state(null);
 
-  const wind = { degrees: 135, speed: 6, gust: 11, maxToday: 18 };
+  onMount(() => {
+    fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 6).then((d) => (outdoorSpark = d));
+    fetchHistorySafe('BMS_SOC', 6).then((d) => (battSpark = d));
+    fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6).then((d) => (baroSpark = d));
+    // No dedicated "max wind today" item exists, so derive it from a 24h
+    // gust history pull rather than inventing an item name.
+    fetchHistorySafe('AmbientWeatherWS2902A_WindGust', 24).then((d) => {
+      const vals = (d || []).map((p) => num(p.state)).filter((n) => n !== null);
+      windGustMaxToday = vals.length ? Math.max(...vals) : null;
+    });
+  });
 
-  const rain = { today: 0.61, event: 0.61, week: 0.61, month: 0.61, rate: 0 };
-  const rainFooter = `event ${rain.event}″ · wk ${rain.week}″ · mo ${rain.month}″ · rate ${rain.rate.toFixed(2)}″/hr`;
+  // ---- Small null-safe formatting helpers ----------------------------------
+  function hasItem(name) {
+    return Object.prototype.hasOwnProperty.call($items, name);
+  }
 
-  const solar = { pvToday: 4.2, predicted: 6.8, currentW: 310, curtailed: false };
+  function agoText(iso) {
+    if (!iso || iso === 'NULL' || iso === 'UNDEF') return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) return '—';
+    const min = diffMs / 60000;
+    if (min < 60) return `${Math.round(min)} m ago`;
+    const hr = min / 60;
+    if (hr < 24) return `${Math.round(hr)} h ago`;
+    return `${Math.round(hr / 24)} d ago`;
+  }
 
-  const zones = [
-    { label: 'Room', temp: 71, delta: 1 },
-    { label: 'N.Wall', temp: 70, delta: -1 },
-    { label: 'S.Glass', temp: 74, delta: 2 },
-  ];
+  function formatTime(iso) {
+    if (!iso || iso === 'NULL' || iso === 'UNDEF') return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
 
-  const baro = { inHg: '30.06', trend: 'steady' };
-  const baroSpark = Array.from({ length: 24 }, (_, i) => ({
-    time: `${i}`,
-    state: String(29.9 + 0.2 * Math.sin(i / 5)),
-  }));
+  function prettifyMoon(name) {
+    if (!name || name === 'NULL' || name === 'UNDEF') return '—';
+    return String(name)
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
 
-  const forecastToday = { label: 'Today', hi: 89, lo: 60, icon: '☀', pv: '6.9' };
-  const forecastTomorrow = { label: 'Tomorrow', hi: 90, lo: 62, icon: '⛅', pv: '6.7' };
-  const forecastDays = [
-    { label: 'Sun', hi: 91, lo: 63, icon: '☀', pv: '6.9' },
-    { label: 'Mon', hi: 88, lo: 61, icon: '⛅', pv: '6.2' },
-    { label: 'Tue', hi: 85, lo: 59, icon: '\u{1f326}', pv: '5.1' },
-    { label: 'Wed', hi: 87, lo: 60, icon: '☀', pv: '6.8' },
-    { label: 'Thu', hi: 92, lo: 64, icon: '☀', pv: '7.0' },
-  ];
+  function daylightText(riseIso, setIso) {
+    if (!riseIso || !setIso || riseIso === 'NULL' || setIso === 'NULL' || riseIso === 'UNDEF' || setIso === 'UNDEF')
+      return '—';
+    const r = new Date(riseIso);
+    const s = new Date(setIso);
+    if (Number.isNaN(r.getTime()) || Number.isNaN(s.getTime())) return '—';
+    const diffMs = s - r;
+    if (diffMs <= 0) return '—';
+    const h = Math.floor(diffMs / 3600000);
+    const m = Math.round((diffMs % 3600000) / 60000);
+    return `${h}h ${m}m`;
+  }
 
-  const sunMoon = { rise: '5:52a', set: '8:25p', moon: 'waxing crescent', daylight: '14h 30m' };
+  function wmoEmoji(code) {
+    const c = Number(code);
+    if (Number.isNaN(c)) return '—';
+    if (c === 0) return '☀️';
+    if (c === 1 || c === 2) return '⛅';
+    if (c === 3) return '☁️';
+    if (c === 45 || c === 48) return '🌫️';
+    if ([51, 53, 55, 56, 57].includes(c)) return '🌦️';
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(c)) return '🌧️';
+    if ([71, 73, 75, 77, 85, 86].includes(c)) return '🌨️';
+    if ([95, 96, 99].includes(c)) return '⛈️';
+    return '—';
+  }
 
-  const advisory = { active: true, text: 'Vent tonight — 90° tomorrow' };
+  function dayLabel(i, dStr) {
+    if (i === 0) return 'Today';
+    if (i === 1) return 'Tomorrow';
+    const dt = new Date(dStr);
+    if (Number.isNaN(dt.getTime())) return `D${i + 1}`;
+    return dt.toLocaleDateString(undefined, { weekday: 'short' });
+  }
 
-  const greywater = { state: 'Idle', lastAgo: '17 h ago' };
+  function roundOrDash(v) {
+    const n = num(v);
+    return n === null ? '—' : Math.round(n);
+  }
+
+  function pvText(v) {
+    const n = num(v);
+    return n === null ? '—' : n.toFixed(1);
+  }
+
+  function onKeyActivate(e, fn) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
+    }
+  }
+
+  // ---- Derived, per-tile values --------------------------------------------
+  const advisoryParts = $derived(String($items.Thermal_Advisory || '').split('|'));
+  const advisoryCode = $derived(advisoryParts[0] || 'none');
+  const advisoryText = $derived(advisoryParts.slice(1).join('|'));
+  const advisoryActive = $derived(
+    advisoryCode && advisoryCode !== 'none' && advisoryCode !== 'NULL' && advisoryCode !== 'UNDEF'
+  );
+
+  const gwRunning = $derived($items.SouthOutlet_Outlet2_Switch === 'ON');
+  const gwLastAgo = $derived(agoText($items.SouthOutlet_LastAutoRun));
+
+  const soc = $derived(num($items.BMS_SOC));
+  const socColor = $derived(socBands(soc));
+  const battIndicator = $derived.by(() => {
+    if ($items.BatteryChargingStatus === 'ON') return { glyph: '▲', text: 'charging' };
+    const c = num($items.DCData_Current);
+    if (c === null) return { glyph: '●', text: 'idle' };
+    if (c > 0) return { glyph: '▲', text: 'charging' };
+    if (c < 0) return { glyph: '▼', text: 'discharging' };
+    return { glyph: '●', text: 'idle' };
+  });
+  const battRuntime = $derived(runtimeText(num($items.BMS_TimeToDischarge_Smoothed)));
+  const battBasis = $derived(
+    $items.BMS_Runtime_Basis && $items.BMS_Runtime_Basis !== 'NULL' && $items.BMS_Runtime_Basis !== 'UNDEF'
+      ? $items.BMS_Runtime_Basis
+      : ''
+  );
+
+  const windDeg = $derived(num($items.AmbientWeatherWS2902A_WindDirection));
+  const windSpeedR = $derived.by(() => {
+    const n = num($items.AmbientWeatherWS2902A_WindSpeed);
+    return n === null ? null : Math.round(n);
+  });
+  const windGustR = $derived.by(() => {
+    const n = num($items.AmbientWeatherWS2902A_WindGust);
+    return n === null ? null : Math.round(n);
+  });
+
+  const rainFooter = $derived.by(() => {
+    const parts = [];
+    if (hasItem('AmbientWeatherWS2902A_RainFallEvent'))
+      parts.push(`event ${fmt($items.AmbientWeatherWS2902A_RainFallEvent, '″', 2)}`);
+    if (hasItem('AmbientWeatherWS2902A_RainFallWeek'))
+      parts.push(`wk ${fmt($items.AmbientWeatherWS2902A_RainFallWeek, '″', 2)}`);
+    if (hasItem('AmbientWeatherWS2902A_RainFallMonth'))
+      parts.push(`mo ${fmt($items.AmbientWeatherWS2902A_RainFallMonth, '″', 2)}`);
+    return parts.join(' · ');
+  });
+
+  const curtailHours = $derived(num($items.Predicted_Curtailment_Hours));
+  const curtailActive = $derived(curtailHours !== null && curtailHours > 0);
+  const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h predicted`);
+
+  const baroTrend = $derived.by(() => {
+    const t = $items.AmbientWeatherWS2902A_PressureTrend;
+    return t && t !== 'NULL' && t !== 'UNDEF' ? String(t).toLowerCase() : '—';
+  });
+
+  const zonesList = $derived.by(() => {
+    const room = num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature);
+    const mk = (label, name) => {
+      const t = num($items[name]);
+      const delta = t === null || room === null ? null : Math.round((t - room) * 10) / 10;
+      return { label, temp: t, delta };
+    };
+    return [
+      mk('Room', 'AmbientWeatherWS2902A_IndoorSensor_Temperature'),
+      mk('N.Wall', 'AmbientWeatherWS2902A_WH31E_193_Temperature'),
+      mk('S.Glass', 'Shelly_HT1_Indoor_Temperature'),
+    ];
+  });
+
+  const forecastDaily = $derived.by(() => {
+    try {
+      const raw = $items.Forecast_Daily_JSON;
+      if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const sunRiseText = $derived(formatTime($items.Sun_Rise_Start));
+  const sunSetText = $derived(formatTime($items.Sun_Set_End));
+  const moonText = $derived(prettifyMoon($items.Moon_MoonPhaseName));
+  const daylight = $derived(daylightText($items.Sun_Rise_Start, $items.Sun_Set_End));
+
+  // ---- Click-to-chart handlers ----------------------------------------------
+  function openOutdoorChart() {
+    openChart({
+      title: 'Outdoor Temp',
+      series: [
+        { name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', color: colors.temperature, label: 'Outdoor' },
+        { name: 'Forecast_Temp', color: colors.forecast, label: 'Forecast' },
+      ],
+      hours: 24,
+    });
+  }
+  function openIndoorChart() {
+    openChart({
+      title: 'Indoor Temp',
+      series: [{ name: 'AmbientWeatherWS2902A_IndoorSensor_Temperature', color: colors.temperature, label: 'Indoor' }],
+      hours: 24,
+    });
+  }
+  function openBatteryChart() {
+    openChart({ title: 'Battery SoC', series: [{ name: 'BMS_SOC', color: socColor, label: 'SoC' }], hours: 24 });
+  }
+  function openWindChart() {
+    openChart({
+      title: 'Wind',
+      series: [
+        { name: 'AmbientWeatherWS2902A_WindSpeed', color: colors.wind, label: 'Speed' },
+        { name: 'AmbientWeatherWS2902A_WindGust', color: colors.forecast, label: 'Gust' },
+      ],
+      hours: 24,
+    });
+  }
+  function openRainChart() {
+    openChart({
+      title: 'Rain',
+      series: [{ name: 'AmbientWeatherWS2902A_RainFallDay', color: colors.rain, label: 'Rain/day' }],
+      hours: 24,
+    });
+  }
+  function openSolarChart() {
+    openChart({
+      title: 'Solar PV',
+      series: [{ name: 'MPPT60_PV_Power', color: colors.solar, label: 'PV Power' }],
+      hours: 24,
+    });
+  }
+  function openBaroChart() {
+    openChart({
+      title: 'Pressure',
+      series: [
+        {
+          name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative',
+          color: colors.label,
+          label: 'Pressure',
+        },
+      ],
+      hours: 24,
+    });
+  }
 </script>
 
 <div class="home-grid">
-  <div class="cell advisory-cell">
-    <Tile label="Advisory" accent={colors.advisory}>
-      <div class="advisory-body">
-        <span class="advisory-dot"></span>
-        <span class="advisory-text">{advisory.text}</span>
-      </div>
-    </Tile>
-  </div>
+  {#if advisoryActive}
+    <div class="cell advisory-cell">
+      <Tile label="Advisory" accent={colors.advisory}>
+        <div class="advisory-body">
+          <span class="advisory-dot"></span>
+          <span class="advisory-text">{advisoryText || '—'}</span>
+        </div>
+      </Tile>
+    </div>
+  {/if}
 
   <div class="cell greywater-cell">
     <Tile label="Greywater" accent={colors.water}>
       <div class="greywater-body">
-        <span class="gw-dot"></span>
+        <span class="gw-dot" class:active={gwRunning}></span>
         <div class="gw-text">
-          <div class="gw-state">{greywater.state}</div>
-          <div class="gw-last">last {greywater.lastAgo}</div>
+          <div class="gw-state">{gwRunning ? 'Running' : 'Idle'}</div>
+          <div class="gw-last">last {gwLastAgo}</div>
         </div>
       </div>
     </Tile>
   </div>
 
-  <div class="cell outdoor-cell">
+  <div
+    class="cell outdoor-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openOutdoorChart}
+    onkeydown={(e) => onKeyActivate(e, openOutdoorChart)}
+  >
     <Tile label="Outdoor" accent={colors.temperature}>
       <div class="outdoor-body">
-        <div class="outdoor-main">
-          <span class="cond-icon">{outdoor.condition}</span>
-          <span class="big-temp">{outdoor.temp}&deg;</span>
-          <span class="aqi-chip">AQI {outdoor.aqi}</span>
+        <div class="outdoor-top">
+          <div class="outdoor-main">
+            <span class="cond-icon"><OhIcon icon={$items.SkyConditionIcon} size="2rem" /></span>
+            <span class="big-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
+            <span class="aqi-chip">AQI {fmt($items.Forecast_AQI)}</span>
+          </div>
+          <div class="outdoor-sub">
+            feels like {fmt($items.AmbientWeatherWS2902A_ApparentTemperature, '°')}
+            &middot; {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
+          </div>
+          <div class="outdoor-hilo">
+            H {fmt($items.OutdoorTemp_24h_High, '°')} &nbsp;/&nbsp; L {fmt($items.OutdoorTemp_24h_Low, '°')}
+          </div>
         </div>
-        <div class="outdoor-sub">feels like {outdoor.feels}&deg;</div>
-        <div class="outdoor-hilo">
-          H {outdoor.hi}&deg; <span class="time">{outdoor.hiTime}</span>
-          &nbsp;/&nbsp; L {outdoor.lo}&deg; <span class="time">{outdoor.loTime}</span>
+        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={colors.temperature} /></div>
+      </div>
+    </Tile>
+  </div>
+
+  <div
+    class="cell indoor-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openIndoorChart}
+    onkeydown={(e) => onKeyActivate(e, openIndoorChart)}
+  >
+    <Tile label="Indoor" accent={colors.temperature}>
+      <div class="indoor-body">
+        <div class="indoor-temp">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
+        <div class="indoor-meta">
+          <div class="indoor-hum">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity, '%')} RH</div>
+          <div class="indoor-hilo">H {fmt($items.IndoorTemp_24h_High, '°')} / L {fmt($items.IndoorTemp_24h_Low, '°')}</div>
         </div>
       </div>
     </Tile>
   </div>
 
-  <div class="cell battery-cell">
+  <div
+    class="cell battery-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openBatteryChart}
+    onkeydown={(e) => onKeyActivate(e, openBatteryChart)}
+  >
     <Tile label="Battery" accent={socColor}>
       <div class="battery-body">
-        <div class="battery-arc">
-          <Arc value={battery.soc} color={socColor} label="SoC" sublabel="{battery.current} A" />
+        <div class="battery-top">
+          <div class="battery-arc">
+            <Arc value={soc ?? 0} color={socColor} label="SoC" sublabel={fmt($items.DCData_Current, ' A', 1)} />
+          </div>
+          <div class="battery-meta">
+            <span class="batt-indicator" style="color: {socColor}">{battIndicator.glyph} {battIndicator.text}</span>
+            <span class="batt-runtime"
+              >{battRuntime}{#if battBasis}<em> ({battBasis})</em>{/if}</span
+            >
+          </div>
         </div>
-        <div class="battery-meta">
-          <span class="batt-indicator" style="color: {socColor}">{battIndicator.glyph} {battIndicator.text}</span>
-          <span class="batt-runtime">{battRuntime} <em>({battery.basis})</em></span>
-        </div>
+        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} /></div>
       </div>
     </Tile>
   </div>
 
-  <div class="cell wind-cell">
+  <div
+    class="cell wind-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openWindChart}
+    onkeydown={(e) => onKeyActivate(e, openWindChart)}
+  >
     <Tile label="Wind" accent={colors.wind}>
       <div class="wind-body">
         <div class="compass-cap">
-          <CompassRose degrees={wind.degrees} speed={wind.speed} gust={wind.gust} />
+          <CompassRose degrees={windDeg} speed={windSpeedR} gust={windGustR} />
         </div>
-        <div class="wind-max">max today {wind.maxToday} mph</div>
+        <div class="wind-max">max today {windGustMaxToday === null ? '—' : Math.round(windGustMaxToday)} mph</div>
       </div>
     </Tile>
   </div>
 
-  <div class="cell baro-cell">
+  <div
+    class="cell baro-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openBaroChart}
+    onkeydown={(e) => onKeyActivate(e, openBaroChart)}
+  >
     <Tile label="Baro" accent={colors.label}>
       <div class="baro-body">
-        <div class="baro-value">{baro.inHg} <span class="unit">inHg</span></div>
+        <div class="baro-value">
+          {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)} <span class="unit">inHg</span>
+        </div>
         <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} /></div>
-        <div class="baro-trend">{baro.trend}</div>
+        <div class="baro-trend">{baroTrend}</div>
       </div>
     </Tile>
   </div>
 
-  <div class="cell rain-cell">
-    <StatTile label="Rain" value={rain.today} unit="&#8243;" accent={colors.rain} footer={rainFooter} />
+  <div
+    class="cell rain-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openRainChart}
+    onkeydown={(e) => onKeyActivate(e, openRainChart)}
+  >
+    <StatTile
+      label="Rain"
+      value={fmt($items.AmbientWeatherWS2902A_RainFallDay, '', 2)}
+      unit="&#8243;"
+      accent={colors.rain}
+      footer={rainFooter}
+    />
   </div>
 
   <div class="cell sunmoon-cell">
     <Tile label="Sun &amp; Moon" accent={colors.label}>
       <div class="sunmoon-body">
-        <div class="sm-row">&uarr; {sunMoon.rise} &middot; &darr; {sunMoon.set}</div>
-        <div class="sm-row">{sunMoon.moon}</div>
-        <div class="sm-row">daylight {sunMoon.daylight}</div>
+        <div class="sm-row"><OhIcon icon={$items.SunPhaseIcon} size="1.1em" /> &uarr; {sunRiseText} &middot; &darr; {sunSetText}</div>
+        <div class="sm-row"><OhIcon icon={$items.MoonPhaseicon} size="1.1em" /> {moonText}</div>
+        <div class="sm-row">daylight {daylight}</div>
       </div>
     </Tile>
   </div>
 
-  <div class="cell solar-cell">
+  <div
+    class="cell solar-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openSolarChart}
+    onkeydown={(e) => onKeyActivate(e, openSolarChart)}
+  >
     <Tile label="Solar" accent={colors.solar}>
       <div class="solar-body">
-        <div class="solar-main">
-          <span class="solar-value">{solar.pvToday}</span><span class="unit"> kWh</span>
-        </div>
-        <div class="solar-sub">of {solar.predicted} predicted</div>
-        <div class="solar-current">{solar.currentW} W now</div>
+        <div class="solar-main">{fmt($items.MPPT60_EnergyFromPV_Today, '', 1)}<span class="unit"> kWh</span></div>
+        <div class="solar-sub">of {fmt($items.Predicted_PV_Today_kWh, '', 1)} predicted</div>
+        <div class="solar-current">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
         <div class="curtail-lamp">
-          <span class="lamp-dot" class:active={solar.curtailed}></span>
-          curtailment {solar.curtailed ? 'active' : 'idle'}
+          <span class="lamp-dot" class:active={curtailActive}></span>
+          curtailment {curtailText}
         </div>
       </div>
     </Tile>
@@ -176,12 +466,12 @@
   <div class="cell zones-cell">
     <Tile label="Zones" accent={colors.temperature}>
       <div class="zones-body">
-        {#each zones as z (z.label)}
+        {#each zonesList as z (z.label)}
           <div class="zone-row">
             <span class="zone-label">{z.label}</span>
-            <span class="zone-temp">{z.temp}&deg;</span>
+            <span class="zone-temp">{z.temp === null ? '—' : Math.round(z.temp) + '°'}</span>
             <span class="zone-delta" class:up={z.delta > 0} class:down={z.delta < 0}
-              >{z.delta > 0 ? '▲' : z.delta < 0 ? '▼' : '—'}</span
+              >{z.delta === null ? '—' : z.delta > 0 ? '▲' : z.delta < 0 ? '▼' : '—'}</span
             >
           </div>
         {/each}
@@ -192,26 +482,18 @@
   <div class="cell forecast-cell">
     <Tile label="Forecast" accent={colors.forecast}>
       <div class="forecast-body">
-        <div class="fc-day fc-emph">
-          <div class="fc-label">{forecastToday.label}</div>
-          <div class="fc-icon">{forecastToday.icon}</div>
-          <div class="fc-hilo">{forecastToday.hi}/{forecastToday.lo}</div>
-          <div class="fc-pv">PV ~{forecastToday.pv} kWh</div>
-        </div>
-        <div class="fc-day fc-emph">
-          <div class="fc-label">{forecastTomorrow.label}</div>
-          <div class="fc-icon">{forecastTomorrow.icon}</div>
-          <div class="fc-hilo">{forecastTomorrow.hi}/{forecastTomorrow.lo}</div>
-          <div class="fc-pv">PV ~{forecastTomorrow.pv} kWh</div>
-        </div>
-        {#each forecastDays as d (d.label)}
-          <div class="fc-day">
-            <div class="fc-label">{d.label}</div>
-            <div class="fc-icon">{d.icon}</div>
-            <div class="fc-hilo">{d.hi}/{d.lo}</div>
-            <div class="fc-pv">~{d.pv}</div>
-          </div>
-        {/each}
+        {#if forecastDaily.length === 0}
+          <div class="fc-empty">—</div>
+        {:else}
+          {#each forecastDaily.slice(0, 7) as d, i (i)}
+            <div class="fc-day" class:fc-emph={i < 2}>
+              <div class="fc-label">{dayLabel(i, d.d)}</div>
+              <div class="fc-icon">{wmoEmoji(d.w)}</div>
+              <div class="fc-hilo">{roundOrDash(d.hi)}&deg;/{roundOrDash(d.lo)}&deg;</div>
+              <div class="fc-pv">PV ~{pvText(d.pv)} kWh</div>
+            </div>
+          {/each}
+        {/if}
       </div>
     </Tile>
   </div>
@@ -228,7 +510,7 @@
       'topbar topbar topbar topbar topbar greywater'
       'outdoor outdoor battery battery wind baro'
       'outdoor outdoor battery battery rain sunmoon'
-      'outdoor outdoor battery battery solar zones'
+      'indoor indoor battery battery solar zones'
       'forecast forecast forecast forecast forecast forecast';
     gap: 0.75rem;
   }
@@ -239,6 +521,16 @@
   .cell :global(.tile) {
     height: 100%;
   }
+  .clickable {
+    cursor: pointer;
+  }
+  .clickable:hover :global(.tile) {
+    border-color: #333d4f;
+  }
+  .clickable:focus-visible :global(.tile) {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
 
   .advisory-cell {
     grid-area: topbar;
@@ -248,6 +540,9 @@
   }
   .outdoor-cell {
     grid-area: outdoor;
+  }
+  .indoor-cell {
+    grid-area: indoor;
   }
   .battery-cell {
     grid-area: battery;
@@ -306,8 +601,12 @@
     height: 0.55rem;
     border-radius: 50%;
     background: #3b82f6;
-    opacity: 0.5;
+    opacity: 0.4;
     flex-shrink: 0;
+  }
+  .gw-dot.active {
+    opacity: 1;
+    box-shadow: 0 0 0.4rem #3b82f6;
   }
   .gw-state {
     font-size: 0.85rem;
@@ -324,9 +623,14 @@
   .outdoor-body {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     height: 100%;
-    gap: 0.5rem;
+    gap: 0.4rem;
+  }
+  .outdoor-top {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 0 0 auto;
   }
   .outdoor-main {
     display: flex;
@@ -334,11 +638,12 @@
     gap: 0.6rem;
   }
   .cond-icon {
-    font-size: 2rem;
+    display: inline-flex;
+    align-items: center;
     line-height: 1;
   }
   .big-temp {
-    font-size: 4.2rem;
+    font-size: 4rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -355,28 +660,62 @@
     align-self: flex-start;
   }
   .outdoor-sub {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: #8b93a1;
   }
   .outdoor-hilo {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #c7cfd9;
   }
-  .outdoor-hilo .time {
-    color: #6b7280;
-    font-size: 0.8rem;
+  .outdoor-spark {
+    flex: 1;
+    min-height: 2.2rem;
+  }
+
+  /* ---- Indoor ---- */
+  .indoor-body {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 0.85rem;
+  }
+  .indoor-temp {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: #f59e0b;
+  }
+  .indoor-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.78rem;
+  }
+  .indoor-hum {
+    font-weight: 600;
+    color: #c7cfd9;
+  }
+  .indoor-hilo {
+    color: #8b93a1;
   }
 
   /* ---- Battery hero ---- */
   .battery-body {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     height: 100%;
+    gap: 0.5rem;
+  }
+  .battery-top {
+    display: flex;
+    align-items: center;
     gap: 1rem;
+    flex: 0 0 auto;
   }
   .battery-arc {
-    width: 60%;
-    max-width: 14rem;
+    width: 42%;
+    max-width: 9rem;
   }
   .battery-meta {
     display: flex;
@@ -394,6 +733,10 @@
     font-style: normal;
     color: #6b7280;
     font-size: 0.8rem;
+  }
+  .battery-spark {
+    flex: 1;
+    min-height: 2.2rem;
   }
 
   /* ---- Wind ---- */
@@ -450,6 +793,9 @@
     gap: 0.3rem;
   }
   .sm-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.82rem;
     color: #c7cfd9;
   }
@@ -539,6 +885,13 @@
     gap: 0.5rem;
     height: 100%;
     align-items: center;
+  }
+  .fc-empty {
+    grid-column: span 7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b93a1;
   }
   .fc-day {
     display: flex;
