@@ -1,0 +1,15 @@
+# secrets / runtime config — NEVER commit
+config.json
+*.env
+.env*
+
+# node
+node_modules/
+dist/
+.vite/
+*.local
+
+# editor / os
+.DS_Store
+.vscode/
+*.swp
