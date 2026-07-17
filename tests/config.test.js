@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parseConfig } from '../src/lib/config.js';
 describe('parseConfig', () => {
   it('accepts a valid config', () => {
@@ -11,5 +11,11 @@ describe('parseConfig', () => {
   });
   it('throws when openhabUrl missing', () => {
     expect(() => parseConfig({ apiToken: 't' })).toThrow(/openhabUrl/);
+  });
+  it('strips a trailing slash from openhabUrl', () => {
+    expect(parseConfig({ openhabUrl: 'http://x:8080/', apiToken: 't' }).openhabUrl).toBe('http://x:8080');
+  });
+  it('throws when apiToken missing', () => {
+    expect(() => parseConfig({ openhabUrl: 'http://x' })).toThrow(/apiToken/);
   });
 });
