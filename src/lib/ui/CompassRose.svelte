@@ -4,6 +4,9 @@
   let { degrees = 0, speed = null, gust = null } = $props();
 
   const heading = $derived(((Number(degrees) || 0) % 360 + 360) % 360);
+  const speedText = $derived(
+    speed === null || speed === undefined || Number.isNaN(speed) ? '—' : speed
+  );
   const ticks = [0, 45, 90, 135, 180, 225, 270, 315];
   const dirLabels = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
 
@@ -45,11 +48,11 @@
   </svg>
 
   <div class="compass-center">
-    <div class="compass-speed">{speed ?? '—'}</div>
+    <div class="compass-speed">{speedText}</div>
     <div class="compass-unit">mph</div>
   </div>
 
-  {#if gust !== null && gust !== undefined && gust !== '—'}
+  {#if gust !== null && gust !== undefined && gust !== '—' && !Number.isNaN(gust)}
     <div class="compass-gust">gust {gust}</div>
   {/if}
 </div>

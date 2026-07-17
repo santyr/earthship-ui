@@ -35,14 +35,14 @@
 
   onMount(() => {
     chart = echarts.init(el, null, { renderer: 'svg' });
-    chart.setOption(buildOption(data, color));
+    chart.setOption(buildOption(data ?? [], color));
     const onResize = () => chart?.resize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   });
 
   $effect(() => {
-    chart?.setOption(buildOption(data, color));
+    chart?.setOption(buildOption(data ?? [], color));
   });
 
   onDestroy(() => {

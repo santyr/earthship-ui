@@ -14,7 +14,7 @@
   } = $props();
 
   const display = $derived(
-    value === null || value === undefined || value === '—' ? '—' : `${value}${unit}`
+    value === null || value === undefined || value === '—' || Number.isNaN(value) ? '—' : `${value}${unit}`
   );
 </script>
 

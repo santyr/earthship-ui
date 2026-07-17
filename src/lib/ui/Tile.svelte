@@ -2,7 +2,7 @@
   // Base console tile chrome: rounded 1px border, small-caps label top-left.
   // All other tile primitives (StatTile, Arc, Sparkline, CompassRose) sit
   // inside one of these, or replicate this same chrome.
-  let { label = '', accent = '#8b93a1', span = 1, dim = false, children } = $props();
+  let { label = '', accent = '#6b7280', span = 1, dim = false, children } = $props();
 </script>
 
 <div
