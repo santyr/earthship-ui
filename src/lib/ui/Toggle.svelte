@@ -3,8 +3,8 @@
   // accident (leaning on the display, wiping dust off, etc) so a plain tap
   // does nothing — only a ~500ms hold fires the command, with a filling
   // progress bar as the visual "confirm" cue.
-  import { items } from '../openhab/index.js';
-  import { getClientOnce } from '../openhab/index.js';
+  import { onDestroy } from 'svelte';
+  import { items, getClientOnce } from '../openhab/index.js';
 
   let { item, label = '', onColor = '#22c55e' } = $props();
 
@@ -61,6 +61,8 @@
     const next = state === 'ON' ? 'OFF' : 'ON';
     client.sendCommand(item, next);
   }
+
+  onDestroy(cancelHold);
 </script>
 
 <button

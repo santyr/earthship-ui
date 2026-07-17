@@ -16,6 +16,10 @@
   let loading = $state(false);
   let noData = $state(false);
   let noClient = $state(false);
+  // Monotonic generation token: guards against a stale loadAndRender()
+  // call (superseded by a newer openChart()) overwriting current state
+  // once its awaited work finally resolves.
+  let loadGen = 0;
 
   function disposeChart() {
     chart?.dispose();
@@ -61,6 +65,7 @@
   }
 
   async function loadAndRender(state) {
+    const myGen = ++loadGen;
     noClient = false;
     noData = false;
     disposeChart();
@@ -92,6 +97,7 @@
     } catch {
       results = series.map(() => []);
     }
+    if (myGen !== loadGen) return;
     loading = false;
 
     const anyData = results.some((r) => Array.isArray(r) && r.length > 0);
@@ -101,6 +107,7 @@
     }
 
     await tick();
+    if (myGen !== loadGen) return;
     if (!el) return;
     chart = echarts.init(el, null, { renderer: 'svg' });
     chart.setOption(buildOption(series, results));
@@ -111,6 +118,9 @@
     if (state.open) {
       tick().then(() => loadAndRender(state));
     } else {
+      // Invalidate any in-flight load so its continuation bails instead
+      // of resurrecting loading/chart state after the modal has closed.
+      loadGen++;
       disposeChart();
     }
   });
