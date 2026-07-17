@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { items, connection, applyState, applySnapshot } from '../src/lib/openhab/store.js';
+import { items, connection, applyState, applySnapshot, getClientOnce } from '../src/lib/openhab/store.js';
 
 describe('store', () => {
   it('applySnapshot seeds many items', () => {
@@ -52,5 +52,9 @@ describe('store', () => {
     connection.set('live');
     expect(get(connection)).toBe('live');
     connection.set('connecting');
+  });
+
+  it('getClientOnce returns null before initOpenhab has run', () => {
+    expect(getClientOnce()).toBe(null);
   });
 });

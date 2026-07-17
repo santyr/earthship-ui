@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Shell from './lib/ui/Shell.svelte';
   import Home from './screens/Home.svelte';
+  import ChartModal from './lib/ui/ChartModal.svelte';
   import { currentRoute } from './routes.js';
   import { initOpenhab } from './lib/openhab/index.js';
   import { loadConfig } from './lib/config.js';
@@ -26,3 +27,5 @@
     <div>Earthship screen (Task 2.3+)</div>
   {/if}
 </Shell>
+
+<ChartModal />

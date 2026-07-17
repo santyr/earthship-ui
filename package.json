@@ -21,6 +21,9 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@iconify-json/bi": "^1.2.7",
+    "@iconify-json/mdi": "^1.2.3",
+    "@iconify/svelte": "^5.2.2",
     "echarts": "^6.1.0"
   }
 }
