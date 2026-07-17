@@ -4,6 +4,7 @@
   import Home from './screens/Home.svelte';
   import Energy from './screens/Energy.svelte';
   import Weather from './screens/Weather.svelte';
+  import Earthship from './screens/Earthship.svelte';
   import Controls from './screens/Controls.svelte';
   import ChartModal from './lib/ui/ChartModal.svelte';
   import { currentRoute } from './routes.js';
@@ -14,9 +15,8 @@
     initOpenhab(await loadConfig());
   });
 
-  // Home (Task 3.1), Energy (Task 4.1), and Weather (Task 5.1) are live.
-  // Earthship is filled in during a later phase and remains a router-driven
-  // placeholder for now. Controls (Task 3.2) is the live household switch
+  // Home (Task 3.1), Energy (Task 4.1), Weather (Task 5.1), and Earthship
+  // (Task 6.1) are live. Controls (Task 3.2) is the live household switch
   // board, moved off Home so Home stays a data-only dashboard.
 </script>
 
@@ -28,7 +28,7 @@
   {:else if $currentRoute === 'weather'}
     <Weather />
   {:else if $currentRoute === 'earthship'}
-    <div>Earthship screen (Task 2.3+)</div>
+    <Earthship />
   {:else if $currentRoute === 'controls'}
     <Controls />
   {/if}
