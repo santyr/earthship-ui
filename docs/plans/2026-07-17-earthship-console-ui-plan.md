@@ -760,3 +760,24 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Placeholder scan:** Visual tasks (Phase 2–6) intentionally specify files/interfaces/bindings/verification rather than full component source — this is a deliberate, documented choice because the design mandates on-device visual iteration (Rollout step 2) and pre-writing pixel code would be discarded. The unit-testable core (Phase 0–1, hold timer, wmo, rule) carries full TDD code. This is the honest boundary, not a placeholder gap.
 
 **Type consistency:** `num/fmt/socBands/runtimeText` signatures consistent across tasks; `items`/`connection` stores consistent; `getClientOnce()` introduced in 4.1 and reused in 7.2; `createSSE`/`createClient` factory shapes stable. `socBands` full-mode test literal flagged for correction in Task 1.2 Step 3.
+
+---
+
+## Phase 3 REVISED (operator feedback at 2.3 sign-off, 2026-07-17)
+
+Static Home look APPROVED. Operator wants the live Home enriched to match/exceed the existing openHAB overview page. New requirements folded into Phase 3:
+
+### Task 3.0: Shared interactive infra (before live Home)
+- **Icon rendering:** add `@iconify/svelte` + offline icon sets `@iconify-json/mdi` and `@iconify-json/bi` (openHAB icon strings use `iconify:mdi:*` and `iconify:bi:*` — must render OFFLINE, no internet dep for the wall display). Create `src/lib/ui/OhIcon.svelte` props `{ icon }` where `icon` is an openHAB icon string (e.g. `$items.MoonPhaseicon`); strips the `iconify:` prefix and renders. NULL-safe (renders nothing/placeholder on empty).
+- **Click-to-chart:** `src/lib/ui/ChartModal.svelte` — a full-screen overlay showing an ECharts history chart for one or more items, fetched via `getClientOnce().getHistory(...)` (add `getClientOnce()` export to store.js now). Includes future forecast rows where relevant. A `src/lib/ui/chartStore.js` writable holds `{open, title, items:[{name,color,label}], hours}`; tiles call `openChart({...})`; ChartModal subscribes and renders; tap-outside/close button dismisses. Reusable by all screens.
+- **Toggle control:** `src/lib/ui/Toggle.svelte` props `{ item, label, onColor }` — reads `$items[item]`, shows on/off state, `sendCommand(item, state==='ON'?'OFF':'ON')` on tap (press-and-hold 500ms confirm to avoid accidental taps on the wall). Uses `getClientOnce().sendCommand`. For `SouthOutlet_Outlet2_Switch` (safety-gated pump) it toggles directly like the overview (manual override; rule reasserts next cycle) — flagged for operator.
+
+### Task 3.1 REVISED: live + dense Home
+Bind every tile to live items (real SoC/temps/etc.). Additions vs the static version:
+- Real icons via OhIcon: Outdoor uses `SkyConditionIcon`; Sun&Moon uses `SunPhaseIcon` + `MoonPhaseicon`; Battery uses `BatteryIcon`.
+- BOTH indoor and outdoor: Outdoor tile (temp/feels/hi-lo/humidity, `...Ws2902a_*` + `OutdoorTemp_24h_*`) AND an Indoor readout (`...IndoorSensor_Temperature`/`_RelativeHumidity` + `IndoorTemp_24h_*`).
+- Every chartable tile is clickable → `openChart` with its item(s) (mirror overview: Inside, Outside, SoC, Solar, Wind, Pressure, Rain, BTC all chartable).
+- A Controls row of `Toggle`s mirroring the overview switches: `living_room_1_Switch`, `living_room_2_Switch`, `LED_living_room_1_Switch`, `LivingRoomCircadian_Enable`, `Goat_Plugs_Outlet1_Switch` (Goat Cam), `Dish_Washer_Power`, `ShurefloPump_Power`, `SouthOutlet_Outlet2_Switch` (Fountain/pump), `OverrideSwitch`.
+- Fill the sparse hero lower-halves with `Sparkline` trends (outdoor temp history in Outdoor; SoC history in Battery) — "more at a glance".
+- Still fit 1340×800 no-scroll; verify via headless chromium screenshot at 1340×800 before operator re-review.
+- Data-path: same-origin `/rest` proxy (CORS fix, commit d1475eb) — dev Vite proxy, prod nginx.
