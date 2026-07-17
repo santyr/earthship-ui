@@ -41,6 +41,52 @@
   let battSpark = $state([]);
   let baroSpark = $state([]);
   let windGustMaxToday = $state(null);
+  let loadToday = $state(null);
+
+  // Same retry pattern as fetchHistorySafe, but with explicit start/end
+  // (used for the "today so far" load-energy integration, which needs
+  // local-midnight-to-now rather than a rolling N-hour window).
+  async function fetchHistoryRange(name, starttime, endtime) {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const client = getClientOnce();
+      if (client) {
+        try {
+          return await client.getHistory(name, { starttime, endtime });
+        } catch {
+          return [];
+        }
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return [];
+  }
+
+  // Trapezoidal integration of a W-vs-time series -> kWh. No dedicated
+  // "load energy today" item exists on ConextGateway, so it's derived
+  // client-side from the ACPowerValue history rather than guessing at an
+  // unconfirmed item name.
+  function integrateKWh(points) {
+    if (!Array.isArray(points) || points.length === 0) return null;
+    const pts = points
+      .map((p) => ({ t: new Date(p.time).getTime(), w: num(p.state) }))
+      .filter((p) => Number.isFinite(p.t) && p.w !== null)
+      .sort((a, b) => a.t - b.t);
+    if (pts.length < 2) return pts.length === 1 ? 0 : null;
+    let wh = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const dtSec = (pts[i].t - pts[i - 1].t) / 1000;
+      if (dtSec <= 0) continue;
+      wh += ((pts[i].w + pts[i - 1].w) / 2) * (dtSec / 3600);
+    }
+    return wh / 1000;
+  }
+
+  async function refreshLoadToday() {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const data = await fetchHistoryRange('ConextGateway_ACPowerValue', midnight.toISOString(), now.toISOString());
+    loadToday = integrateKWh(data);
+  }
 
   // Refetched on mount AND on a 5-minute interval below, so the trend lines
   // on the always-on wall display stay current (tile numeric values already
@@ -62,6 +108,7 @@
     refreshOutdoorSpark();
     refreshBattSpark();
     refreshBaroSpark();
+    refreshLoadToday();
     // No dedicated "max wind today" item exists, so derive it from a 24h
     // gust history pull rather than inventing an item name.
     fetchHistorySafe('AmbientWeatherWS2902A_WindGust', 24).then((d) => {
@@ -73,6 +120,7 @@
       refreshOutdoorSpark();
       refreshBattSpark();
       refreshBaroSpark();
+      refreshLoadToday();
     }, SPARK_REFRESH_MS);
   });
 
@@ -183,6 +231,38 @@
 
   const gwRunning = $derived($items.SouthOutlet_Outlet2_Switch === 'ON');
   const gwLastAgo = $derived(agoText($items.SouthOutlet_LastAutoRun));
+
+  // ---- Power-flow strip (fills the topbar row when no advisory is active) --
+  const NET_POS_COLOR = '#22c55e'; // green — producing surplus / net charging
+  const NET_NEG_COLOR = '#f59e0b'; // amber — drawing down / net discharging
+
+  function numFmt(n, unit = '', digits = 0) {
+    return n === null || n === undefined ? '—' : n.toFixed(digits) + unit;
+  }
+  function signedFmt(n, unit = '', digits = 0) {
+    if (n === null || n === undefined) return '—';
+    const r = Number(Math.abs(n).toFixed(digits));
+    const sign = n >= 0 ? '+' : '−';
+    return `${sign}${r.toFixed(digits)}${unit}`;
+  }
+
+  const pvWatts = $derived(num($items.MPPT60_PV_Power));
+  const loadWatts = $derived(num($items.ConextGateway_ACPowerValue));
+  const battWatts = $derived.by(() => {
+    const native = num($items.DCData_Native_Power);
+    if (native !== null) return native;
+    const c = num($items.DCData_Current);
+    const v = num($items.DCData_Voltage);
+    return c === null || v === null ? null : c * v;
+  });
+  const battArrow = $derived(battWatts === null ? '' : battWatts >= 0 ? '▲' : '▼');
+  const battColor = $derived(battWatts === null ? colors.label : battWatts >= 0 ? NET_POS_COLOR : NET_NEG_COLOR);
+  const netWatts = $derived(pvWatts === null || loadWatts === null ? null : pvWatts - loadWatts);
+  const netColor = $derived(netWatts === null ? colors.label : netWatts >= 0 ? NET_POS_COLOR : NET_NEG_COLOR);
+
+  const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
+  const netToday = $derived(pvToday === null || loadToday === null ? null : pvToday - loadToday);
+  const netTodayColor = $derived(netToday === null ? colors.label : netToday >= 0 ? NET_POS_COLOR : NET_NEG_COLOR);
 
   const soc = $derived(num($items.BMS_SOC));
   const socColor = $derived(socBands(soc));
@@ -322,16 +402,38 @@
 </script>
 
 <div class="home-grid">
-  {#if advisoryActive}
-    <div class="cell advisory-cell">
+  <div class="cell advisory-cell">
+    {#if advisoryActive}
       <Tile label="Advisory" accent={colors.advisory}>
         <div class="advisory-body">
           <span class="advisory-dot"></span>
           <span class="advisory-text">{advisoryText || '—'}</span>
         </div>
       </Tile>
-    </div>
-  {/if}
+    {:else}
+      <Tile label="Power Flow" accent={colors.solar}>
+        <div class="powerflow-body">
+          <div class="pf-line1">
+            <span class="pf-seg" style="color: {colors.solar}">&#9728; {numFmt(pvWatts, ' W')}</span>
+            <span class="pf-arrow">&rarr;</span>
+            <span class="pf-seg" style="color: {battColor}"
+              >&#128267; {signedFmt(battWatts, ' W')} {battArrow}</span
+            >
+            <span class="pf-arrow">&rarr;</span>
+            <span class="pf-seg pf-load">&#127968; {numFmt(loadWatts, ' W')}</span>
+            <span class="pf-sep">&middot;</span>
+            <span class="pf-net" style="color: {netColor}">net {signedFmt(netWatts, ' W')}</span>
+          </div>
+          <div class="pf-line2">
+            Today: {numFmt(pvToday, ' kWh', 1)} in &middot; {loadToday === null
+              ? '—'
+              : numFmt(loadToday, ' kWh', 1)} used &middot;
+            <span style="color: {netTodayColor}">{signedFmt(netToday, ' kWh', 1)} net</span>
+          </div>
+        </div>
+      </Tile>
+    {/if}
+  </div>
 
   <div class="cell greywater-cell">
     <Tile label="Greywater" accent={colors.water}>
@@ -624,6 +726,53 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: #f97316;
+  }
+
+  /* ---- Power-flow strip (shown instead of the advisory banner when no
+     thermal advisory is active — same cell/grid-area, never both, never
+     empty) ---- */
+  .powerflow-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+  .pf-line1 {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    color: #e6edf3;
+  }
+  .pf-seg {
+    white-space: nowrap;
+  }
+  .pf-load {
+    color: #c7cfd9;
+  }
+  .pf-arrow {
+    color: #4b5563;
+    font-weight: 400;
+  }
+  .pf-sep {
+    color: #4b5563;
+  }
+  .pf-net {
+    font-weight: 700;
+  }
+  .pf-line2 {
+    font-size: 0.68rem;
+    color: #8b93a1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   /* ---- Greywater ---- */
