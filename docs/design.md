@@ -86,6 +86,12 @@ Tile grid (indicative 4×3 landscape arrangement):
   deep-cycling warning, amber; taps to relevant screen.
 - **Greywater lamp** (small): pump state + last-circulation age; green
   breathing dot while running.
+- **BTC ticker** (subtle, top status bar): price + 24h % change, small
+  mono figure, green/red by `BTC_Price_24h_PercentChange` sign, dimmer
+  than the operational tiles — a quiet nod, not a focal point. Items:
+  `BTC_USD_Price`, `BTC_Price_24h_PercentChange` (Strike feed, 30 s).
+  Sits in the header strip alongside the clock/date, never competing with
+  battery/weather for attention.
 
 ### 2. Energy
 
