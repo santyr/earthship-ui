@@ -7,6 +7,7 @@ describe('parseHash', () => {
     expect(parseHash('#/energy')).toBe('energy');
     expect(parseHash('#/weather')).toBe('weather');
     expect(parseHash('#/earthship')).toBe('earthship');
+    expect(parseHash('#/controls')).toBe('controls');
     expect(parseHash('#/home')).toBe('home');
   });
 
@@ -40,7 +41,12 @@ describe('navigate + currentRoute', () => {
     expect(get(currentRoute)).toBe('home');
   });
 
-  it('exposes the four expected routes', () => {
-    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship']);
+  it('exposes the five expected routes', () => {
+    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'controls']);
+  });
+
+  it('navigates to the controls route', () => {
+    navigate('controls');
+    expect(get(currentRoute)).toBe('controls');
   });
 });

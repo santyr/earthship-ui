@@ -12,6 +12,7 @@
     { name: 'energy', label: 'Energy', icon: '⚡' },
     { name: 'weather', label: 'Weather', icon: '☁' },
     { name: 'earthship', label: 'Earthship', icon: '◆' },
+    { name: 'controls', label: 'Controls', icon: '⏻' },
   ];
 </script>
 
