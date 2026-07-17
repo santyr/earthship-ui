@@ -28,3 +28,11 @@ it('sendCommand throws on non-ok', async () => {
   fetch.mockResolvedValue({ ok: false, status: 500 });
   await expect(createClient(cfg).sendCommand('Sw', 'ON')).rejects.toThrow(/500/);
 });
+it('getItem fetches a single item with auth header', async () => {
+  fetch.mockResolvedValue({ ok: true, json: async () => ({ name: 'BMS_SOC', state: '54' }) });
+  const it = await createClient(cfg).getItem('BMS_SOC');
+  expect(it.state).toBe('54');
+  const [url, opts] = fetch.mock.calls[0];
+  expect(url).toBe('http://oh:8080/rest/items/BMS_SOC');
+  expect(opts.headers.Authorization).toBe('Bearer TK');
+});
