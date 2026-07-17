@@ -4,7 +4,7 @@
   // wind/rain/baro tiles clickable -> openChart(). Indoor added alongside
   // Outdoor per operator request. No controls row (Home is data-only; toggles
   // move to a separate Controls screen).
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import Arc from '../lib/ui/Arc.svelte';
@@ -42,16 +42,42 @@
   let baroSpark = $state([]);
   let windGustMaxToday = $state(null);
 
+  // Refetched on mount AND on a 5-minute interval below, so the trend lines
+  // on the always-on wall display stay current (tile numeric values already
+  // update live via $items — this is only for the sparkline history).
+  async function refreshOutdoorSpark() {
+    outdoorSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 6);
+  }
+  async function refreshBattSpark() {
+    battSpark = await fetchHistorySafe('BMS_SOC', 6);
+  }
+  async function refreshBaroSpark() {
+    baroSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6);
+  }
+
+  const SPARK_REFRESH_MS = 300000; // 5 minutes
+  let sparkRefreshTimer;
+
   onMount(() => {
-    fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 6).then((d) => (outdoorSpark = d));
-    fetchHistorySafe('BMS_SOC', 6).then((d) => (battSpark = d));
-    fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6).then((d) => (baroSpark = d));
+    refreshOutdoorSpark();
+    refreshBattSpark();
+    refreshBaroSpark();
     // No dedicated "max wind today" item exists, so derive it from a 24h
     // gust history pull rather than inventing an item name.
     fetchHistorySafe('AmbientWeatherWS2902A_WindGust', 24).then((d) => {
       const vals = (d || []).map((p) => num(p.state)).filter((n) => n !== null);
       windGustMaxToday = vals.length ? Math.max(...vals) : null;
     });
+
+    sparkRefreshTimer = setInterval(() => {
+      refreshOutdoorSpark();
+      refreshBattSpark();
+      refreshBaroSpark();
+    }, SPARK_REFRESH_MS);
+  });
+
+  onDestroy(() => {
+    if (sparkRefreshTimer) clearInterval(sparkRefreshTimer);
   });
 
   // ---- Small null-safe formatting helpers ----------------------------------
@@ -77,6 +103,14 @@
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '—';
     return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  // Compact form for cramped tiles: "5:54 AM" -> "5:54a" (no space, single
+  // lowercase letter) so it doesn't wrap in the narrow Sun & Moon tile.
+  function formatTimeShort(iso) {
+    const t = formatTime(iso);
+    if (t === '—') return t;
+    return t.replace(/\s?([AP])M$/i, (_, p) => p.toLowerCase());
   }
 
   function prettifyMoon(name) {
@@ -190,7 +224,7 @@
 
   const curtailHours = $derived(num($items.Predicted_Curtailment_Hours));
   const curtailActive = $derived(curtailHours !== null && curtailHours > 0);
-  const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h predicted`);
+  const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
 
   const baroTrend = $derived.by(() => {
     const t = $items.AmbientWeatherWS2902A_PressureTrend;
@@ -205,7 +239,7 @@
       return { label, temp: t, delta };
     };
     return [
-      mk('Room', 'AmbientWeatherWS2902A_IndoorSensor_Temperature'),
+      mk('Hallway', 'AmbientWeatherWS2902A_IndoorSensor_Temperature'),
       mk('N.Wall', 'AmbientWeatherWS2902A_WH31E_193_Temperature'),
       mk('S.Glass', 'Shelly_HT1_Indoor_Temperature'),
     ];
@@ -222,8 +256,8 @@
     }
   });
 
-  const sunRiseText = $derived(formatTime($items.Sun_Rise_Start));
-  const sunSetText = $derived(formatTime($items.Sun_Set_End));
+  const sunRiseText = $derived(formatTimeShort($items.Sun_Rise_Start));
+  const sunSetText = $derived(formatTimeShort($items.Sun_Set_End));
   const moonText = $derived(prettifyMoon($items.Moon_MoonPhaseName));
   const daylight = $derived(daylightText($items.Sun_Rise_Start, $items.Sun_Set_End));
 
@@ -436,9 +470,12 @@
   <div class="cell sunmoon-cell">
     <Tile label="Sun &amp; Moon" accent={colors.label}>
       <div class="sunmoon-body">
-        <div class="sm-row"><OhIcon icon={$items.SunPhaseIcon} size="1.1em" /> &uarr; {sunRiseText} &middot; &darr; {sunSetText}</div>
-        <div class="sm-row"><OhIcon icon={$items.MoonPhaseicon} size="1.1em" /> {moonText}</div>
-        <div class="sm-row">daylight {daylight}</div>
+        <div class="sm-row">
+          <OhIcon icon={$items.SunPhaseIcon} size="1em" />
+          <span class="sm-times">&uarr;{sunRiseText} &darr;{sunSetText}</span>
+        </div>
+        <div class="sm-row"><OhIcon icon={$items.MoonPhaseicon} size="1em" /> {moonText}</div>
+        <div class="sm-row sm-daylight">daylight {daylight}</div>
       </div>
     </Tile>
   </div>
@@ -457,7 +494,7 @@
         <div class="solar-current">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
         <div class="curtail-lamp">
           <span class="lamp-dot" class:active={curtailActive}></span>
-          curtailment {curtailText}
+          curtail {curtailText}
         </div>
       </div>
     </Tile>
@@ -758,85 +795,114 @@
   }
 
   /* ---- Baro ---- */
+  /* Title/content overlap fix: the tile label (.tile-label, from Tile.svelte)
+     defaults to flex-shrink:1, so when this narrow column's row got too
+     short it could compress the label box until its text visually collided
+     with the value below. Pin the label to its own row and let the body
+     lay out top-down beneath it instead of vertically centering into the
+     same space. */
+  :global(.baro-cell .tile-label) {
+    flex-shrink: 0;
+  }
   .baro-body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: center;
-    gap: 0.25rem;
+    justify-content: flex-start;
+    gap: 0.2rem;
   }
   .baro-value {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #e6edf3;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .baro-value .unit {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #8b93a1;
   }
   .baro-spark {
-    height: 2.2rem;
+    flex: 1;
+    min-height: 1.4rem;
   }
   .baro-trend {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: #8b93a1;
     text-transform: capitalize;
+    line-height: 1;
   }
 
   /* ---- Sun & Moon ---- */
+  :global(.sunmoon-cell .tile-label) {
+    flex-shrink: 0;
+  }
   .sunmoon-body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: center;
-    gap: 0.3rem;
+    justify-content: flex-start;
+    gap: 0.28rem;
   }
   .sm-row {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.82rem;
+    gap: 0.3rem;
+    font-size: 0.74rem;
     color: #c7cfd9;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .sm-times {
+    white-space: nowrap;
+  }
+  .sm-daylight {
+    color: #8b93a1;
   }
 
   /* ---- Solar ---- */
+  :global(.solar-cell .tile-label) {
+    flex-shrink: 0;
+  }
   .solar-body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: center;
-    gap: 0.25rem;
+    justify-content: flex-start;
+    gap: 0.18rem;
   }
   .solar-main {
-    font-size: 1.7rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: #eab308;
     font-variant-numeric: tabular-nums;
     line-height: 1;
   }
   .solar-main .unit {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
     color: #8b93a1;
   }
   .solar-sub {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: #8b93a1;
+    line-height: 1.15;
   }
   .solar-current {
-    font-size: 0.82rem;
+    font-size: 0.74rem;
     color: #c7cfd9;
+    line-height: 1.15;
   }
   .curtail-lamp {
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.68rem;
+    gap: 0.3rem;
+    font-size: 0.62rem;
     color: #6b7280;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
   }
   .lamp-dot {
     width: 0.45rem;
