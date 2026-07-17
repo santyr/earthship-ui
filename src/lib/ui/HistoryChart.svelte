@@ -11,7 +11,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import * as echarts from 'echarts';
   import { echartsTheme, colors } from './tokens.js';
-  import { getClientOnce } from '../openhab/index.js';
+  import { getClientOnce, clientReady } from '../openhab/index.js';
   import { num } from '../openhab/values.js';
 
   // height: definite CSS pixel height for the chart container. ECharts
@@ -192,8 +192,26 @@
     chart?.resize();
   }
 
+  // Loads data once the openHAB client is ready, and re-loads whenever the
+  // client (re)connects, or the hours window / series list change. On a
+  // direct/reload page load, this component mounts before App.svelte's
+  // onMount has run initOpenhab(), so clientReady is still false and
+  // getClientOnce() would return null — waiting on $clientReady here (rather
+  // than only loading once on mount) is what lets the chart populate as
+  // soon as the client actually exists, instead of staying blank forever.
+  $effect(() => {
+    const ready = $clientReady;
+    // Establish reactive dependencies so a change to either re-triggers load.
+    void hours;
+    void series;
+    if (ready) {
+      load();
+    } else {
+      noClient = true;
+    }
+  });
+
   onMount(() => {
-    load();
     if (typeof window !== 'undefined') window.addEventListener('resize', onResize);
     refreshTimer = setInterval(load, REFRESH_MS);
   });

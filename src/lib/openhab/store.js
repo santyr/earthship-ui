@@ -4,6 +4,12 @@ import { createSSE } from './sse.js';
 
 export const items = writable({});
 export const connection = writable('connecting');
+// Flips true once initOpenhab() has created the client AND loaded the
+// initial item snapshot. Components that fetch via getClientOnce() on
+// mount (e.g. HistoryChart) can react to this instead of racing App.svelte's
+// onMount — critical for a direct/reload load of a chart route, where child
+// components mount before initOpenhab() has run.
+export const clientReady = writable(false);
 
 let _client = null;
 
@@ -25,6 +31,7 @@ export async function initOpenhab(config) {
   const client = createClient(config);
   _client = client;
   applySnapshot(await client.getAllItems());
+  clientReady.set(true);
   const sse = createSSE({
     ...config,
     staleSeconds: config.staleBannerSeconds,
