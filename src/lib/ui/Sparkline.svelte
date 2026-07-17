@@ -5,12 +5,15 @@
   import { num } from '../openhab/values.js';
 
   // Tiny trend line — no axes/grid, just the line. data: [{time, state}]
-  let { data = [], color = '#22c55e' } = $props();
+  // lineWidth is exposed (default 2px) so every sparkline instance across the
+  // dashboard (Outdoor, Battery, Baro, ...) can be pinned to the same literal
+  // stroke width instead of relying on each call site matching the default.
+  let { data = [], color = '#22c55e', lineWidth = 2 } = $props();
 
   let el;
   let chart;
 
-  function buildOption(points, lineColor) {
+  function buildOption(points, lineColor, width) {
     const xs = points.map((p) => p.time);
     const ys = points.map((p) => num(p.state));
     return {
@@ -24,7 +27,7 @@
           data: ys,
           showSymbol: false,
           smooth: true,
-          lineStyle: { width: 2, color: lineColor },
+          lineStyle: { width, color: lineColor },
           areaStyle: { color: lineColor, opacity: 0.12 },
         },
       ],
@@ -35,14 +38,14 @@
 
   onMount(() => {
     chart = echarts.init(el, null, { renderer: 'svg' });
-    chart.setOption(buildOption(data ?? [], color));
+    chart.setOption(buildOption(data ?? [], color, lineWidth));
     const onResize = () => chart?.resize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   });
 
   $effect(() => {
-    chart?.setOption(buildOption(data ?? [], color));
+    chart?.setOption(buildOption(data ?? [], color, lineWidth));
   });
 
   onDestroy(() => {

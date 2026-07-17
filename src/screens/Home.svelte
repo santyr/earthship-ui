@@ -196,12 +196,15 @@
     return '—';
   }
 
+  // Forecast_Daily_JSON already carries the correct label per entry (Today,
+  // Sat, Sun, Mon, ...) in the `d` field — use it directly instead of
+  // synthesizing "D3"/"D4" placeholders. Index 1 is shown as "Tomorrow" for
+  // readability; everything else (including index 0's "Today") comes
+  // straight from the feed.
   function dayLabel(i, dStr) {
-    if (i === 0) return 'Today';
     if (i === 1) return 'Tomorrow';
-    const dt = new Date(dStr);
-    if (Number.isNaN(dt.getTime())) return `D${i + 1}`;
-    return dt.toLocaleDateString(undefined, { weekday: 'short' });
+    if (!dStr || dStr === 'NULL' || dStr === 'UNDEF') return i === 0 ? 'Today' : `D${i + 1}`;
+    return String(dStr);
   }
 
   function roundOrDash(v) {
@@ -309,6 +312,17 @@
   const baroTrend = $derived.by(() => {
     const t = $items.AmbientWeatherWS2902A_PressureTrend;
     return t && t !== 'NULL' && t !== 'UNDEF' ? String(t).toLowerCase() : '—';
+  });
+
+  // Storm/rain alert for the Baro tile: swap the sparkline for a flashing
+  // rain-cloud icon when either a falling-pressure trend (storm indicator)
+  // or active rain is present. NULL-safe — missing items just fall back to
+  // the normal sparkline.
+  const baroStormActive = $derived.by(() => {
+    const trendFalling = baroTrend === 'falling';
+    const rainRate = num($items.AmbientWeatherWS2902A_RainFallHourlyRate);
+    const raining = rainRate !== null && rainRate > 0;
+    return trendFalling || raining;
   });
 
   const zonesList = $derived.by(() => {
@@ -470,7 +484,7 @@
             H {fmt($items.OutdoorTemp_24h_High, '°')} &nbsp;/&nbsp; L {fmt($items.OutdoorTemp_24h_Low, '°')}
           </div>
         </div>
-        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={colors.temperature} /></div>
+        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={colors.temperature} lineWidth={2} /></div>
       </div>
     </Tile>
   </div>
@@ -513,7 +527,7 @@
             >
           </div>
         </div>
-        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} /></div>
+        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} /></div>
       </div>
     </Tile>
   </div>
@@ -547,7 +561,13 @@
         <div class="baro-value">
           {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)} <span class="unit">inHg</span>
         </div>
-        <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} /></div>
+        {#if baroStormActive}
+          <div class="baro-spark baro-storm">
+            <OhIcon icon={'iconify:mdi:weather-pouring'} size="1.7rem" color={colors.rain} />
+          </div>
+        {:else}
+          <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} /></div>
+        {/if}
         <div class="baro-trend">{baroTrend}</div>
       </div>
     </Tile>
@@ -887,11 +907,19 @@
   }
 
   /* ---- Battery hero ---- */
+  /* The SoC sparkline's green area-fill was bleeding below the card's
+     rounded bottom edge. Clip to the card's own rounded bounds (matching
+     how the Outdoor card already stays inside its border) in addition to
+     the inner overflow:hidden on .battery-body/.battery-spark below. */
+  :global(.battery-cell .tile) {
+    overflow: hidden;
+  }
   .battery-body {
     display: flex;
     flex-direction: column;
     height: 100%;
     gap: 0.5rem;
+    overflow: hidden;
   }
   .battery-top {
     display: flex;
@@ -923,6 +951,7 @@
   .battery-spark {
     flex: 1;
     min-height: 2.2rem;
+    overflow: hidden;
   }
 
   /* ---- Wind ---- */
@@ -974,6 +1003,26 @@
   .baro-spark {
     flex: 1;
     min-height: 1.4rem;
+  }
+  /* Storm/rain alert: flashing rain-cloud icon swapped in for the sparkline.
+     Gentle opacity-only pulse — no blur/transform — to stay cheap on the
+     tablet's modest GPU. */
+  .baro-storm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .baro-storm :global(svg) {
+    animation: baro-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes baro-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
   }
   .baro-trend {
     font-size: 0.68rem;
