@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+:root { color-scheme: dark; }
+html, body { margin: 0; height: 100%; background: #0b0e11; color: #e6edf3;
+  font-family: Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
