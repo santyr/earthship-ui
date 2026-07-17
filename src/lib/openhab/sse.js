@@ -23,6 +23,7 @@ export function createSSE({ openhabUrl, apiToken, onState, onStatus, staleSecond
     offlineTimer = setTimeout(() => setStatus('offline'), 10 * 60 * 1000);
   }
   function connect() {
+    clearTimeout(reconnectTimer);
     if (stopped) return;
     if (es) { es.close(); }
     // EventSource cannot set an Authorization header, so openHAB's SSE auth is
@@ -43,7 +44,7 @@ export function createSSE({ openhabUrl, apiToken, onState, onStatus, staleSecond
     };
   }
   return {
-    start() { stopped = false; connect(); },
+    start() { stopped = false; backoff = 1000; connect(); },
     stop() {
       stopped = true;
       clearTimeout(staleTimer); clearTimeout(offlineTimer); clearTimeout(reconnectTimer);

@@ -108,22 +108,54 @@ describe('createSSE connection', () => {
     });
   }
 
-  it('Test A (Critical): stop() cancels a pending reconnect so no leaked EventSource fires after stop', () => {
+  it('Test A (Critical): a stale reconnect timer from before stop()+restart does not fire a spurious connection', () => {
     const sse = makeSSE();
     sse.start();
     expect(FakeES.instances.length).toBe(1);
     const first = FakeES.instances[0];
 
-    // Simulate a connection error, which schedules a reconnect via setTimeout.
+    // Simulate a connection error, which schedules a reconnect via setTimeout
+    // (this timer is now "stale" relative to the restart below) and closes instance0.
     first.onerror();
 
     sse.stop();
+
+    // Restart: stopped flips back to false, and a fresh instance is created.
+    sse.start();
+    expect(FakeES.instances.length).toBe(2);
+    const second = FakeES.instances[1];
+
+    // Advance well past any possible backoff (max cap is 30s). If the timer
+    // scheduled before stop()/restart wasn't cancelled, it would fire connect()
+    // again here (stopped is now false, so the old `if (stopped) return;` guard
+    // no longer protects us) and produce a 3rd, spurious EventSource, and/or
+    // close the freshly-restarted good connection.
+    vi.advanceTimersByTime(60000);
+    expect(FakeES.instances.length).toBe(2);
+    expect(second.close).not.toHaveBeenCalled();
+  });
+
+  it('Test E (residual race): calling start() again after an onerror-scheduled reconnect (without stop()) cancels the stale timer', () => {
+    const sse = makeSSE();
+    sse.start();
+    expect(FakeES.instances.length).toBe(1);
+    const first = FakeES.instances[0];
+
+    // Error schedules a reconnect timer via setTimeout(connect, backoff).
+    first.onerror();
+
+    // App code (or a racing caller) restarts manually, without stop() in between.
+    sse.start();
+    expect(FakeES.instances.length).toBe(2);
+    const second = FakeES.instances[1];
     expect(first.close).toHaveBeenCalled();
 
-    // Advance well past any possible backoff (max cap is 30s); if the
-    // reconnect timer wasn't cancelled, a second EventSource would appear.
+    // The pending reconnect timer from the onerror() above must have been
+    // cancelled by the second start()'s connect() call. If it wasn't, it
+    // fires here and either spawns a 3rd instance or closes the good one.
     vi.advanceTimersByTime(60000);
-    expect(FakeES.instances.length).toBe(1);
+    expect(FakeES.instances.length).toBe(2);
+    expect(second.close).not.toHaveBeenCalled();
   });
 
   it('Test B (Important #3): calling start() twice without stop() does not leave two live connections', () => {
