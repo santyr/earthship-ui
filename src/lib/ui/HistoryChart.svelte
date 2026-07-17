@@ -14,7 +14,13 @@
   import { getClientOnce } from '../openhab/index.js';
   import { num } from '../openhab/values.js';
 
-  let { series = [], hours = 24, height = '100%' } = $props();
+  // height: definite CSS pixel height for the chart container. ECharts
+  // needs a sized element at init time — a flex child with no explicit
+  // height (e.g. height:100% inside a flex column) can resolve to 0px
+  // depending on ancestor sizing/timing, which makes echarts.init() render
+  // nothing (0 canvas elements). So this is always applied as a literal
+  // `px` height on the outer container rather than a percentage.
+  let { series = [], hours = 24, height = 200 } = $props();
 
   let el = $state();
   let chart;
@@ -26,10 +32,13 @@
   // its awaited work finally resolves — same pattern as ChartModal.
   let loadGen = 0;
   let refreshTimer;
+  let resizeObserver;
 
   const REFRESH_MS = 300000; // 5 minutes
 
   function disposeChart() {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
     chart?.dispose();
     chart = null;
   }
@@ -166,8 +175,17 @@
     if (myGen !== loadGen) return;
     if (!el) return;
     disposeChart();
+    // el is guaranteed a definite pixel height (see `height` prop / style
+    // below) by the time this runs, so echarts.init() gets a real,
+    // non-zero-size element to measure.
     chart = echarts.init(el, null, { renderer: 'svg' });
     chart.setOption(buildOption(series, results));
+    chart.resize();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => chart?.resize());
+      resizeObserver.observe(el);
+    }
   }
 
   function onResize() {
@@ -188,7 +206,7 @@
   });
 </script>
 
-<div class="history-chart" style="height: {height}">
+<div class="history-chart" style="height: {height}px; width: 100%;">
   {#if noClient}
     <div class="hc-message"></div>
   {:else if loading}
@@ -203,7 +221,6 @@
 <style>
   .history-chart {
     width: 100%;
-    min-height: 0;
   }
   .hc-canvas {
     width: 100%;

@@ -77,8 +77,11 @@
   const battTemp = $derived(fmt($items.BMS_Temperature, '°'));
   const battCycles = $derived(fmt($items.BMS_Charge_Cycles));
   const battCapacity = $derived(fmt($items.BMS_Capacity_Remaining_Ah, ' Ah', 1));
-  const commsOk = $derived($items.BMS_Comms_Status === 'OK' || $items.BMS_Comms_Status === 'ON');
-  const devicePresent = $derived($items.BMS_DevicePresent === 'ON' || $items.BMS_DevicePresent === 'OK');
+  // BMS_DevicePresent is a Number/String item whose real "present" value is
+  // the string '1' — it is never 'ON' (that was a bad assumption that made
+  // this lamp show "Fault" even when the BMS was healthy).
+  const commsOk = $derived($items.BMS_Comms_Status === 'OK');
+  const devicePresent = $derived($items.BMS_DevicePresent === '1');
   const bmsHealthy = $derived(commsOk && devicePresent);
 </script>
 
@@ -86,7 +89,7 @@
   <div class="cell hero-cell">
     <Tile label="Battery — 24h + tonight's forecast" accent={socColor}>
       <div class="hero-body">
-        <div class="hero-chart"><HistoryChart series={socSeries} hours={24} height="100%" /></div>
+        <div class="hero-chart"><HistoryChart series={socSeries} hours={24} height={200} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
           <span class="hero-trough" style="color: {colors.forecast}">predicted trough tonight: {troughText}</span>
@@ -110,7 +113,7 @@
           <HistoryChart
             series={[{ name: 'MPPT60_PV_Power', color: colors.solar, label: 'PV Power' }]}
             hours={24}
-            height="100%"
+            height={160}
           />
         </div>
       </div>
