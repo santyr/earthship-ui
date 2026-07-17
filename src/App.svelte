@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Shell from './lib/ui/Shell.svelte';
+  import Home from './screens/Home.svelte';
   import { currentRoute } from './routes.js';
   import { initOpenhab } from './lib/openhab/index.js';
   import { loadConfig } from './lib/config.js';
@@ -9,13 +10,14 @@
     initOpenhab(await loadConfig());
   });
 
-  // Real screens (Home/Energy/Weather/Earthship) are filled in during
-  // Phases 2.3–6. These are router-driven placeholders only.
+  // Home is the static (sample-data) console layout built in Task 2.3; live
+  // binding is a later task. Energy/Weather/Earthship are filled in during
+  // Phases 3–6 and remain router-driven placeholders for now.
 </script>
 
 <Shell>
   {#if $currentRoute === 'home'}
-    <div>Home screen (Task 2.3)</div>
+    <Home />
   {:else if $currentRoute === 'energy'}
     <div>Energy screen (Task 2.3+)</div>
   {:else if $currentRoute === 'weather'}
