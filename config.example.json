@@ -1,5 +1,5 @@
 {
-  "openhabUrl": "http://ogsatoth:8080",
+  "openhabUrl": "",
   "apiToken": "REPLACE_WITH_OPENHAB_API_TOKEN",
   "staleBannerSeconds": 90
 }
