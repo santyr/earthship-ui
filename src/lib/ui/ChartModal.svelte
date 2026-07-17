@@ -21,6 +21,33 @@
   // once its awaited work finally resolves.
   let loadGen = 0;
 
+  // Period picker presets — 4h / 24h / 7d / 30d, mapped to hours. The modal
+  // reads chartStore's `hours` only as the initial value for whichever
+  // chart was just opened; from then on the picker owns the active window
+  // locally, same pattern as HistoryChart.
+  const PERIOD_PRESETS = [
+    { label: '4h', hours: 4 },
+    { label: '24h', hours: 24 },
+    { label: '7d', hours: 168 },
+    { label: '30d', hours: 720 },
+  ];
+
+  function snapToPreset(h) {
+    if (!Number.isFinite(h)) return 24;
+    let best = PERIOD_PRESETS[0];
+    let bestDiff = Math.abs(h - best.hours);
+    for (const p of PERIOD_PRESETS) {
+      const diff = Math.abs(h - p.hours);
+      if (diff < bestDiff) {
+        best = p;
+        bestDiff = diff;
+      }
+    }
+    return best.hours;
+  }
+
+  let activeHours = $state(24);
+
   function disposeChart() {
     chart?.dispose();
     chart = null;
@@ -64,7 +91,7 @@
     };
   }
 
-  async function loadAndRender(state) {
+  async function loadAndRender(seriesList, hoursVal) {
     const myGen = ++loadGen;
     noClient = false;
     noData = false;
@@ -75,7 +102,7 @@
       noClient = true;
       return;
     }
-    const series = state.series || [];
+    const series = seriesList || [];
     if (series.length === 0) {
       noData = true;
       return;
@@ -83,7 +110,7 @@
 
     loading = true;
     const now = Date.now();
-    const hours = state.hours || 24;
+    const hours = hoursVal || 24;
     const starttime = new Date(now - hours * 3600 * 1000).toISOString();
     // Pad a little into the future so forecast rows (e.g. tomorrow's
     // outlook) are included, not just the trailing history.
@@ -116,7 +143,12 @@
   $effect(() => {
     const state = $chartStore;
     if (state.open) {
-      tick().then(() => loadAndRender(state));
+      // A fresh openChart() call — snap the picker to that tile's initial
+      // window and (re)load with it.
+      activeHours = snapToPreset(state.hours || 24);
+      const seriesSnapshot = state.series || [];
+      const hoursSnapshot = activeHours;
+      tick().then(() => loadAndRender(seriesSnapshot, hoursSnapshot));
     } else {
       // Invalidate any in-flight load so its continuation bails instead
       // of resurrecting loading/chart state after the modal has closed.
@@ -124,6 +156,12 @@
       disposeChart();
     }
   });
+
+  function selectPeriod(h) {
+    if (!$chartStore.open || h === activeHours) return;
+    activeHours = h;
+    loadAndRender($chartStore.series || [], h);
+  }
 
   function onResize() {
     chart?.resize();
@@ -165,6 +203,16 @@
     >
       <div class="chart-header">
         <div class="chart-title">{$chartStore.title}</div>
+        <div class="chart-periods" role="group" aria-label="History period">
+          {#each PERIOD_PRESETS as p (p.hours)}
+            <button
+              type="button"
+              class="chart-period-btn"
+              class:active={activeHours === p.hours}
+              onclick={() => selectPeriod(p.hours)}
+            >{p.label}</button>
+          {/each}
+        </div>
         <button class="chart-close" onclick={closeChart} aria-label="Close chart">×</button>
       </div>
       <div class="chart-body">
@@ -208,12 +256,44 @@
   .chart-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.75rem;
     margin-bottom: 0.5rem;
   }
   .chart-title {
     font-size: 1rem;
     font-weight: 600;
+    color: #e5e7eb;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chart-periods {
+    display: flex;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+  }
+  .chart-period-btn {
+    background: #161b24;
+    border: 1px solid #1c2230;
+    color: #8b93a1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.35rem 0.75rem;
+    min-height: 1.9rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chart-period-btn.active {
+    background: #1c2230;
+    color: #e5e7eb;
+    border-color: #2a3242;
+  }
+  .chart-period-btn:hover {
     color: #e5e7eb;
   }
   .chart-close {
