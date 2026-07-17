@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseSSEMessage } from '../src/lib/openhab/sse.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { parseSSEMessage, createSSE } from '../src/lib/openhab/sse.js';
 
 describe('parseSSEMessage', () => {
   it('extracts item name and value from statechanged event', () => {
@@ -71,5 +71,110 @@ describe('parseSSEMessage', () => {
       type: 'ItemStateChangedEvent',
     });
     expect(parseSSEMessage(raw)).toEqual({ name: 'Solar_Panel_2_Voltage', value: '48.2' });
+  });
+});
+
+describe('createSSE connection', () => {
+  class FakeES {
+    constructor(url) {
+      this.url = url;
+      this.close = vi.fn();
+      this.onopen = null;
+      this.onmessage = null;
+      this.onerror = null;
+      FakeES.instances.push(this);
+    }
+  }
+  FakeES.instances = [];
+
+  beforeEach(() => {
+    FakeES.instances = [];
+    globalThis.EventSource = FakeES;
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete globalThis.EventSource;
+  });
+
+  function makeSSE(overrides = {}) {
+    return createSSE({
+      openhabUrl: 'http://openhab.local:8080',
+      apiToken: 'tok',
+      onState: vi.fn(),
+      onStatus: vi.fn(),
+      ...overrides,
+    });
+  }
+
+  it('Test A (Critical): stop() cancels a pending reconnect so no leaked EventSource fires after stop', () => {
+    const sse = makeSSE();
+    sse.start();
+    expect(FakeES.instances.length).toBe(1);
+    const first = FakeES.instances[0];
+
+    // Simulate a connection error, which schedules a reconnect via setTimeout.
+    first.onerror();
+
+    sse.stop();
+    expect(first.close).toHaveBeenCalled();
+
+    // Advance well past any possible backoff (max cap is 30s); if the
+    // reconnect timer wasn't cancelled, a second EventSource would appear.
+    vi.advanceTimersByTime(60000);
+    expect(FakeES.instances.length).toBe(1);
+  });
+
+  it('Test B (Important #3): calling start() twice without stop() does not leave two live connections', () => {
+    const sse = makeSSE();
+    sse.start();
+    expect(FakeES.instances.length).toBe(1);
+    const first = FakeES.instances[0];
+
+    sse.start();
+    expect(FakeES.instances.length).toBe(2);
+    const second = FakeES.instances[1];
+
+    // The first instance must have been closed by the second start/connect.
+    expect(first.close).toHaveBeenCalled();
+
+    // No more than one un-closed (live) instance should remain.
+    const liveCount = FakeES.instances.filter((i) => i.close.mock.calls.length === 0).length;
+    expect(liveCount).toBe(1);
+    expect(second.close).not.toHaveBeenCalled();
+  });
+
+  it('Test C (Important #2): first reconnect is scheduled at 1000ms, not 2000ms', () => {
+    const sse = makeSSE();
+    sse.start();
+    const first = FakeES.instances[0];
+
+    first.onerror();
+
+    vi.advanceTimersByTime(999);
+    expect(FakeES.instances.length).toBe(1);
+
+    vi.advanceTimersByTime(1);
+    expect(FakeES.instances.length).toBe(2);
+  });
+
+  it('Test D (Minor #4): onStatus fires "live" only on transition, not on every message', () => {
+    const onStatus = vi.fn();
+    const sse = makeSSE({ onStatus });
+    sse.start();
+    const first = FakeES.instances[0];
+
+    first.onopen();
+
+    const validPayload = JSON.stringify({
+      topic: 'openhab/items/BMS_SOC/statechanged',
+      payload: JSON.stringify({ value: '54' }),
+    });
+    first.onmessage({ data: validPayload });
+    first.onmessage({ data: validPayload });
+
+    const liveCalls = onStatus.mock.calls.filter((c) => c[0] === 'live');
+    expect(liveCalls.length).toBe(1);
   });
 });
