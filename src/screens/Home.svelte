@@ -40,6 +40,7 @@
   let outdoorSpark = $state([]);
   let battSpark = $state([]);
   let baroSpark = $state([]);
+  let btcSpark = $state([]);
   let windGustMaxToday = $state(null);
   let loadToday = $state(null);
 
@@ -100,6 +101,9 @@
   async function refreshBaroSpark() {
     baroSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6);
   }
+  async function refreshBtcSpark() {
+    btcSpark = await fetchHistorySafe('BTC_USD_Price', 6);
+  }
 
   const SPARK_REFRESH_MS = 300000; // 5 minutes
   let sparkRefreshTimer;
@@ -108,6 +112,7 @@
     refreshOutdoorSpark();
     refreshBattSpark();
     refreshBaroSpark();
+    refreshBtcSpark();
     refreshLoadToday();
     // No dedicated "max wind today" item exists, so derive it from a 24h
     // gust history pull rather than inventing an item name.
@@ -120,6 +125,7 @@
       refreshOutdoorSpark();
       refreshBattSpark();
       refreshBaroSpark();
+      refreshBtcSpark();
       refreshLoadToday();
     }, SPARK_REFRESH_MS);
   });
@@ -350,6 +356,14 @@
     }
   });
 
+  // ---- Bitcoin card (mirrors Indoor's slot under Battery) ------------------
+  const BTC_ACCENT = '#f7931a';
+  const btcPriceN = $derived(num($items.BTC_USD_Price));
+  const btcPriceText = $derived(btcPriceN === null ? '—' : `$${Math.round(btcPriceN).toLocaleString()}`);
+  const btcPct = $derived(num($items.BTC_Price_24h_PercentChange));
+  const btcPctText = $derived(btcPct === null ? '—' : `${btcPct >= 0 ? '+' : ''}${btcPct.toFixed(2)}%`);
+  const btcPctColor = $derived(btcPct === null ? colors.label : btcPct >= 0 ? '#22c55e' : '#ef4444');
+
   const sunRiseText = $derived(formatTimeShort($items.Sun_Rise_Start));
   const sunSetText = $derived(formatTimeShort($items.Sun_Set_End));
   const moonText = $derived(prettifyMoon($items.Moon_MoonPhaseName));
@@ -410,6 +424,13 @@
           label: 'Pressure',
         },
       ],
+      hours: 24,
+    });
+  }
+  function openBitcoinChart() {
+    openChart({
+      title: 'Bitcoin (USD)',
+      series: [{ name: 'BTC_USD_Price', color: BTC_ACCENT, label: 'BTC/USD' }],
       hours: 24,
     });
   }
@@ -528,6 +549,24 @@
           </div>
         </div>
         <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} /></div>
+      </div>
+    </Tile>
+  </div>
+
+  <div
+    class="cell bitcoin-cell clickable"
+    role="button"
+    tabindex="0"
+    onclick={openBitcoinChart}
+    onkeydown={(e) => onKeyActivate(e, openBitcoinChart)}
+  >
+    <Tile label="Bitcoin" accent={BTC_ACCENT}>
+      <div class="bitcoin-body">
+        <div class="btc-top">
+          <span class="btc-price">{btcPriceText}</span>
+          <span class="btc-pct" style="color: {btcPctColor}">{btcPctText}</span>
+        </div>
+        <div class="btc-spark"><Sparkline data={btcSpark} color={BTC_ACCENT} lineWidth={2} /></div>
       </div>
     </Tile>
   </div>
@@ -669,7 +708,7 @@
       'topbar topbar topbar topbar topbar greywater'
       'outdoor outdoor battery battery wind baro'
       'outdoor outdoor battery battery rain sunmoon'
-      'indoor indoor battery battery solar zones'
+      'indoor indoor bitcoin bitcoin solar zones'
       'forecast forecast forecast forecast forecast forecast';
     gap: 0.75rem;
   }
@@ -705,6 +744,9 @@
   }
   .battery-cell {
     grid-area: battery;
+  }
+  .bitcoin-cell {
+    grid-area: bitcoin;
   }
   .wind-cell {
     grid-area: wind;
@@ -924,18 +966,18 @@
   .battery-top {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.85rem;
     flex: 0 0 auto;
   }
   .battery-arc {
-    width: 42%;
-    max-width: 9rem;
+    width: 36%;
+    max-width: 8rem;
   }
   .battery-meta {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    font-size: 0.95rem;
+    gap: 0.3rem;
+    font-size: 0.85rem;
   }
   .batt-indicator {
     font-weight: 600;
@@ -946,30 +988,77 @@
   .batt-runtime em {
     font-style: normal;
     color: #6b7280;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
   .battery-spark {
     flex: 1;
-    min-height: 2.2rem;
+    min-height: 1.6rem;
+    overflow: hidden;
+  }
+
+  /* ---- Bitcoin (mirrors Indoor's slot under Battery) ---- */
+  :global(.bitcoin-cell .tile) {
+    overflow: hidden;
+  }
+  .bitcoin-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 0.3rem;
+    overflow: hidden;
+  }
+  .btc-top {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex: 0 0 auto;
+  }
+  .btc-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: #f7931a;
+  }
+  .btc-pct {
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .btc-spark {
+    flex: 1;
+    min-height: 1.4rem;
     overflow: hidden;
   }
 
   /* ---- Wind ---- */
+  /* The compass rose is a pure-SVG aspect-ratio:1/1 element sized by its
+     container's width; left unconstrained it grows wider than this card's
+     row is tall and spills past the tile border. Cap it well under the
+     card's shortest dimension and clip as a safety net. */
+  :global(.wind-cell .tile) {
+    overflow: hidden;
+  }
   .wind-body {
     display: flex;
     flex-direction: column;
     align-items: center;
     height: 100%;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.25rem;
+    overflow: hidden;
+    min-height: 0;
   }
   .compass-cap {
     width: 100%;
-    max-width: 7.5rem;
+    max-width: 4.6rem;
+    flex: 0 1 auto;
+    min-height: 0;
   }
   .wind-max {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: #8b93a1;
+    flex: 0 0 auto;
   }
 
   /* ---- Baro ---- */
