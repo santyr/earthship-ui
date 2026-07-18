@@ -10,7 +10,7 @@
   // (W/m^2), WMO code. Already-sliced to the desired window by the caller
   // (Weather.svelte passes the first 14 entries of Forecast_Hourly_JSON).
   import { onMount, onDestroy } from 'svelte';
-  import * as echarts from 'echarts';
+  import { getEcharts } from '../charts/loadEcharts.js';
   import { echartsTheme, colors } from './tokens.js';
   import { num } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
@@ -106,7 +106,7 @@
           type: 'line',
           yAxisIndex: 0,
           data: temps,
-          smooth: true,
+          smooth: false,
           showSymbol: false,
           lineStyle: { width: 2, color: colors.temperature },
           z: 2,
@@ -116,7 +116,9 @@
     };
   }
 
-  function render() {
+  async function render() {
+    if (!el) return;
+    const echarts = await getEcharts();
     if (!el) return;
     if (!chart) chart = echarts.init(el, null, { renderer: 'svg' });
     chart.setOption(buildOption(hours ?? []), true);

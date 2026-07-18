@@ -43,7 +43,7 @@ export const echartsTheme = {
     splitLine: { lineStyle: { color: '#1c2230' } },
   },
   line: {
-    smooth: true,
+    smooth: false,
     symbol: 'none',
     lineStyle: { width: 2 },
   },

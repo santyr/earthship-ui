@@ -35,12 +35,39 @@ export function createHistoryWindow(hours, {
     throw new TypeError('History forecast lookahead must be a non-negative number');
   }
 
+  const history = Object.freeze({
+    starttime: new Date(nowMs - hours * 60 * 60 * 1_000).toISOString(),
+    endtime: new Date(nowMs).toISOString(),
+  });
+  const forecast = Object.freeze({
+    starttime: new Date(nowMs).toISOString(),
+    endtime: new Date(nowMs + lookaheadMs).toISOString(),
+  });
+
   return Object.freeze({
     hours,
     nowMs,
-    starttime: new Date(nowMs - hours * 60 * 60 * 1_000).toISOString(),
-    historyEndtime: new Date(nowMs).toISOString(),
-    forecastStarttime: new Date(nowMs).toISOString(),
-    endtime: new Date(nowMs + lookaheadMs).toISOString(),
+    history,
+    forecast,
+    // Compatibility fields for non-series-aware callers. New chart requests
+    // must use getSeriesRequestWindow() below.
+    starttime: history.starttime,
+    historyEndtime: history.endtime,
+    forecastStarttime: forecast.starttime,
+    endtime: forecast.endtime,
   });
+}
+
+export function getSeriesRequestWindow(seriesOrPolicy, requestWindow) {
+  const domain = seriesOrPolicy?.domain
+    || (typeof seriesOrPolicy === 'object' && seriesOrPolicy?.name?.startsWith('Forecast_')
+      ? 'forecast'
+      : undefined);
+  // Importing the policy lazily is unnecessary here: the only forecast item
+  // not prefixed Forecast_ is the battery prediction, made explicit below.
+  const name = typeof seriesOrPolicy === 'string' ? seriesOrPolicy : seriesOrPolicy?.name;
+  const isForecast = domain === 'forecast'
+    || name === 'Predicted_SoC_Trough_Tomorrow'
+    || name?.startsWith('Forecast_');
+  return isForecast ? requestWindow.forecast : requestWindow.history;
 }

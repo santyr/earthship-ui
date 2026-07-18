@@ -19,13 +19,13 @@ it('sendCommand posts plain text body', async () => {
   expect(opts.body).toBe('ON');
   expect(opts.headers['Content-Type']).toBe('text/plain');
 });
-it('getHistory maps time/state to numbers', async () => {
-  fetch.mockResolvedValue({ ok: true, json: async () => ({ data: [{ time: 1000, state: '54' }, { time: 2000, state: '55.5' }] }) });
+it('getHistory preserves raw states for strict series-aware parsing', async () => {
+  fetch.mockResolvedValue({ ok: true, headers: new Headers(), json: async () => ({ data: [{ time: 1000, state: '54 %' }, { time: 2000, state: '55.5' }] }) });
   const h = await createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' });
-  expect(h).toEqual([{ time: 1000, state: 54 }, { time: 2000, state: 55.5 }]);
+  expect(h).toEqual([{ time: 1000, state: '54 %' }, { time: 2000, state: '55.5' }]);
 });
 it('getHistory forwards one cancellation signal to fetch', async () => {
-  fetch.mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
+  fetch.mockResolvedValue({ ok: true, headers: new Headers(), json: async () => ({ data: [] }) });
   const controller = new AbortController();
   await createClient(cfg).getHistory('BMS_SOC', {
     starttime: 'a',
@@ -37,6 +37,44 @@ it('getHistory forwards one cancellation signal to fetch', async () => {
     expect.stringContaining('/rest/persistence/items/BMS_SOC?'),
     expect.objectContaining({ signal: controller.signal }),
   );
+});
+it('getHistory rejects a declared response larger than 5 MiB before reading it', async () => {
+  const json = vi.fn();
+  fetch.mockResolvedValue({
+    ok: true,
+    headers: new Headers({ 'content-length': String(5 * 1024 * 1024 + 1) }),
+    json,
+  });
+
+  await expect(createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' }))
+    .rejects.toThrow(/response.*large/i);
+  expect(json).not.toHaveBeenCalled();
+});
+it('getHistory rejects chunked bodies that cross the 5 MiB limit', async () => {
+  const chunk = new Uint8Array(3 * 1024 * 1024);
+  const cancel = vi.fn();
+  const read = vi.fn()
+    .mockResolvedValueOnce({ done: false, value: chunk })
+    .mockResolvedValueOnce({ done: false, value: chunk });
+  fetch.mockResolvedValue({
+    ok: true,
+    headers: new Headers(),
+    body: { getReader: () => ({ read, cancel }) },
+  });
+
+  await expect(createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' }))
+    .rejects.toThrow(/response.*large/i);
+  expect(cancel).toHaveBeenCalled();
+});
+it('getHistory rejects more than 300,000 rows', async () => {
+  fetch.mockResolvedValue({
+    ok: true,
+    headers: new Headers(),
+    json: async () => ({ data: Array.from({ length: 300_001 }, () => null) }),
+  });
+
+  await expect(createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' }))
+    .rejects.toThrow(/too many.*rows/i);
 });
 it('sendCommand throws on non-ok', async () => {
   fetch.mockResolvedValue({ ok: false, status: 500 });

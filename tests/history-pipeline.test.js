@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizeHistory,
   prepareHistorySeries,
+  prepareSparklineSeries,
 } from '../src/lib/charts/historyPipeline.js';
 
 function rows(values, { start = 0, cadence = 1_000 } = {}) {
@@ -17,8 +18,6 @@ describe('bounded history pipeline', () => {
       { time: 2_000, state: '2' },
       { time: 1_000, state: '1' },
       { time: 2_000, state: '22' },
-      { time: 'invalid', state: '9' },
-      { time: 3_000, state: 'UNDEF' },
     ]);
 
     expect(result).toEqual([
@@ -27,10 +26,32 @@ describe('bounded history pipeline', () => {
     ]);
   });
 
-  it('keeps zero, one, and two points unchanged', () => {
+  it('rejects malformed timestamps, partial numeric states, and unapproved units', () => {
+    expect(() => normalizeHistory([{ time: 'invalid', state: '9' }]))
+      .toThrow(/timestamp/i);
+    expect(() => normalizeHistory([{ time: 1_000, state: '54 bananas' }], {
+      allowedUnits: ['', '°F'],
+    })).toThrow(/unit/i);
+    expect(() => normalizeHistory([{ time: 1_000, state: '54°F trailing' }], {
+      allowedUnits: ['', '°F'],
+    })).toThrow(/unit/i);
+    expect(() => normalizeHistory([{ time: 1_000, state: '54watts' }], {
+      allowedUnits: ['', 'W'],
+    })).toThrow(/unit/i);
+    expect(() => normalizeHistory([{ time: 1_000, state: 'UNDEF' }]))
+      .toThrow(/state/i);
+  });
+
+  it('accepts only an entire numeric state plus an explicitly allowed unit', () => {
+    expect(normalizeHistory([
+      { time: 1_000, state: '54.5 °F' },
+      { time: 2_000, state: '-2.0e1°F' },
+    ], { allowedUnits: ['', '°F'] }).map((point) => point.value)).toEqual([54.5, -20]);
+  });
+
+  it('keeps zero, one, and two main-chart points unchanged', () => {
     for (const values of [[], [7], [7, 11]]) {
       const result = prepareHistorySeries(rows(values), {
-        smoothing: 'median3-ema',
         expectedCadenceMs: 1_000,
         widthPx: 200,
       });
@@ -38,20 +59,18 @@ describe('bounded history pipeline', () => {
     }
   });
 
-  it('applies median-of-three then EMA alpha 0.25 while retaining raw tooltip values', () => {
+  it('never smooths modal or inline history values', () => {
     const result = prepareHistorySeries(rows([1, 100, 3, 4, 5]), {
-      smoothing: 'median3-ema',
-      alpha: 0.25,
       expectedCadenceMs: 1_000,
       widthPx: 200,
     });
 
     expect(result.displaySegments.flat().map((point) => point.value)).toEqual([
       1,
-      1.5,
-      2.125,
-      2.59375,
-      3.1953125,
+      100,
+      3,
+      4,
+      5,
     ]);
     expect(result.displaySegments.flat().map((point) => point.rawValue)).toEqual([
       1,
@@ -62,29 +81,27 @@ describe('bounded history pipeline', () => {
     ]);
   });
 
-  it('never smooths across a gap greater than three cadences', () => {
+  it('renders one continuous source line across telemetry gaps', () => {
     const input = [
       ...rows([10, 11, 12], { start: 0, cadence: 1_000 }),
       ...rows([30, 31, 32], { start: 10_000, cadence: 1_000 }),
     ];
     const result = prepareHistorySeries(input, {
-      smoothing: 'median3-ema',
       expectedCadenceMs: 1_000,
       widthPx: 200,
     });
 
-    expect(result.displaySegments).toHaveLength(2);
-    expect(result.displaySegments[1][0]).toMatchObject({
+    expect(result.displaySegments).toHaveLength(1);
+    expect(result.displaySegments[0][3]).toMatchObject({
       time: 10_000,
       value: 30,
       rawValue: 30,
     });
   });
 
-  it('leaves unsmoothed numeric step lines byte-for-byte unchanged', () => {
+  it('leaves numeric step lines byte-for-byte unchanged', () => {
     const input = rows([0, 0, 100, 100]);
     const result = prepareHistorySeries(input, {
-      smoothing: 'none',
       expectedCadenceMs: 1_000,
       widthPx: 200,
     });
@@ -94,7 +111,6 @@ describe('bounded history pipeline', () => {
 
   it('bounds one series to two samples per CSS pixel and retains raw data separately', () => {
     const result = prepareHistorySeries(rows(Array.from({ length: 1_000 }, (_, i) => i)), {
-      smoothing: 'none',
       expectedCadenceMs: 1_000,
       widthPx: 200,
     });
@@ -107,7 +123,6 @@ describe('bounded history pipeline', () => {
 
   it('retains normalized raw samples but renders nothing at zero width', () => {
     const result = prepareHistorySeries(rows([1, 2, 3]), {
-      smoothing: 'median3-ema',
       expectedCadenceMs: 1_000,
       widthPx: 0,
     });
@@ -116,17 +131,31 @@ describe('bounded history pipeline', () => {
     expect(result.displaySegments).toEqual([]);
   });
 
-  it('keeps the hard point cap even when gaps create more fragments than the budget', () => {
+  it('fails truthfully when discontinuities exceed the endpoint render budget', () => {
     const input = Array.from({ length: 20 }, (_, index) => ({
       time: index * 10_000,
       state: index,
     }));
-    const result = prepareHistorySeries(input, {
-      smoothing: 'none',
+    expect(() => prepareHistorySeries(input, {
       maxGapMs: 1_000,
       widthPx: 1,
-    });
+    })).toThrow(/data too fragmented for this range/i);
+  });
 
-    expect(result.displaySegments.flat().length).toBeLessThanOrEqual(2);
+  it('applies median-3 then EMA 0.25 only for compact sparklines, continuously', () => {
+    const input = [
+      ...rows([1, 100, 3], { start: 0, cadence: 1_000 }),
+      ...rows([4, 5], { start: 10_000, cadence: 1_000 }),
+    ];
+    const result = prepareSparklineSeries(input, { widthPx: 200 });
+
+    expect(result.map((point) => point.value)).toEqual([
+      1,
+      1.5,
+      2.125,
+      2.59375,
+      3.1953125,
+    ]);
+    expect(result.map((point) => point.rawValue)).toEqual([1, 100, 3, 4, 5]);
   });
 });

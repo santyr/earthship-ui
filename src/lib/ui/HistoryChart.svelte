@@ -1,58 +1,37 @@
 <script>
-  // Reusable inline history chart (ECharts line, dark console theme). Used
-  // by Energy (and any future screen) for multi-series history — unlike
-  // ChartModal, this renders inline on the page rather than as an overlay.
-  //
-  // series: [{ name, color, label, dashedFromNow? }] — name is the openHAB
-  // item queried via getClientOnce().getHistory(). dashedFromNow marks a
-  // series whose points AFTER "now" (forecast/prediction rows persisted
-  // ahead of time, e.g. Forecast_Daily_High) should render with a dashed
-  // line style instead of the normal solid one.
   import { onMount, onDestroy, tick, untrack } from 'svelte';
-  import * as echarts from 'echarts';
+  import { getEcharts } from '../charts/loadEcharts.js';
   import { buildHistoryOption } from '../charts/options.js';
-  import {
-    HISTORY_PERIOD_PRESETS,
-    createHistoryWindow,
-    snapHistoryPeriod,
-  } from '../charts/periods.js';
+  import { loadHistorySeries } from '../charts/historyRequest.js';
+  import { HISTORY_PERIOD_PRESETS, snapHistoryPeriod } from '../charts/periods.js';
   import { getClientOnce, clientReady } from '../openhab/index.js';
+  import { observeElementSize } from './observeElementSize.js';
 
-  // `hours` remains as a compatibility alias while callers migrate to the
-  // clearer one-shot `initialHours` name.
   let { series = [], initialHours, hours = 24 } = $props();
 
+  const REFRESH_MS = 5 * 60 * 1_000;
   let el = $state();
   let chart;
-  let loading = $state(false);
-  let noData = $state(false);
-  let noClient = $state(false);
-  // Currently-selected history window, in hours. Initialized from the
-  // `hours` prop (snapped to the nearest preset) and thereafter driven only
-  // by the period picker buttons — the load() function reads this instead
-  // of the raw `hours` prop.
+  let loadState = $state('idle');
+  let errorMessage = $state('');
+  let unavailableCount = $state(0);
   let activeHours = $state(untrack(() => snapHistoryPeriod(initialHours ?? hours)));
-  // Monotonic generation token: guards against a stale load() call
-  // (superseded by a newer mount/refresh) overwriting current state once
-  // its awaited work finally resolves — same pattern as ChartModal.
   let loadGen = 0;
   let refreshTimer;
-  let resizeObserver;
   let requestController;
+  let stopObserving = () => {};
   let latestResults = [];
+  let latestSeries = [];
   let latestNowMs = 0;
   let latestWidthPx = 0;
 
-  const REFRESH_MS = 300000; // 5 minutes
-
-  function selectPeriod(h) {
-    if (h === activeHours) return;
-    activeHours = h;
+  function selectPeriod(selectedHours) {
+    if (selectedHours !== activeHours) activeHours = selectedHours;
   }
 
   function disposeChart() {
-    resizeObserver?.disconnect();
-    resizeObserver = null;
+    stopObserving();
+    stopObserving = () => {};
     chart?.dispose();
     chart = null;
   }
@@ -63,150 +42,140 @@
   }
 
   function renderLatest(widthPx) {
-    if (!chart || !latestResults.length || widthPx <= 0) return;
+    if (!chart || widthPx <= 0) return;
     latestWidthPx = widthPx;
-    chart.setOption(buildHistoryOption({
-      series,
-      pointsPerSeries: latestResults,
-      widthPx,
-      nowMs: latestNowMs,
-    }), true);
-    chart.resize();
+    try {
+      chart.setOption(buildHistoryOption({
+        series: latestSeries,
+        pointsPerSeries: latestResults,
+        widthPx,
+        nowMs: latestNowMs,
+      }), true);
+      chart.resize();
+    } catch (error) {
+      errorMessage = error?.message || 'History could not be rendered';
+      loadState = 'error';
+      disposeChart();
+    }
   }
 
-  async function load() {
+  async function load(seriesList = series, hoursVal = activeHours) {
     cancelPending();
     const controller = new AbortController();
     requestController = controller;
     const myGen = ++loadGen;
-    noClient = false;
-    noData = false;
+    disposeChart();
+    unavailableCount = 0;
+    errorMessage = '';
+    loadState = 'loading';
 
     const client = getClientOnce();
     if (!client) {
-      loading = false;
-      noClient = true;
+      if (requestController === controller) requestController = null;
+      loadState = 'no-client';
       return;
     }
-    if (!series.length) {
-      loading = false;
-      noData = true;
+    if (!seriesList.length) {
+      if (requestController === controller) requestController = null;
+      loadState = 'empty';
       return;
     }
 
-    loading = true;
-    const now = Date.now();
-    const requestWindow = createHistoryWindow(activeHours, { nowMs: now });
-
-    let results;
+    const nowMs = Date.now();
+    let result;
     try {
-      results = await Promise.all(
-        series.map(async (source) => {
-          try {
-            return await client.getHistory(source.name, {
-              starttime: requestWindow.starttime,
-              endtime: requestWindow.endtime,
-              signal: controller.signal,
-            });
-          } catch (error) {
-            if (controller.signal.aborted) throw error;
-            return [];
-          }
-        }),
-      );
-    } catch {
+      result = await loadHistorySeries({
+        client,
+        series: seriesList,
+        hours: hoursVal,
+        nowMs,
+        signal: controller.signal,
+      });
+    } catch (error) {
       if (controller.signal.aborted || myGen !== loadGen) return;
-      results = series.map(() => []);
+      if (requestController === controller) requestController = null;
+      errorMessage = error?.message || 'History request failed';
+      loadState = 'error';
+      return;
     }
     if (controller.signal.aborted || myGen !== loadGen) return;
     if (requestController === controller) requestController = null;
-    loading = false;
 
-    const anyData = results.some((r) => Array.isArray(r) && r.length > 0);
-    if (!anyData) {
-      noData = true;
+    latestResults = result.pointsPerSeries;
+    latestSeries = seriesList;
+    latestNowMs = nowMs;
+    unavailableCount = result.errors.length;
+    loadState = result.state;
+    if (result.state === 'error') {
+      errorMessage = result.errors[0]?.error?.message || 'History request failed';
       return;
     }
+    if (result.state === 'empty') return;
 
     await tick();
-    if (controller.signal.aborted || myGen !== loadGen) return;
-    if (!el) return;
-    disposeChart();
+    if (controller.signal.aborted || myGen !== loadGen || !el) return;
+    const echarts = await getEcharts();
+    if (controller.signal.aborted || myGen !== loadGen || !el) return;
     chart = echarts.init(el, null, { renderer: 'svg' });
-    latestResults = results;
-    latestNowMs = now;
-    renderLatest(el.parentElement?.clientWidth || el.clientWidth || 320);
-
-    if (typeof ResizeObserver !== 'undefined' && el.parentElement) {
-      resizeObserver = new ResizeObserver((entries) => {
-        const width = entries[0]?.contentRect?.width
-          || el.parentElement?.clientWidth
-          || el.clientWidth;
-        if (width > 0 && Math.abs(width - latestWidthPx) >= 1) renderLatest(width);
+    const parent = el.parentElement;
+    renderLatest(parent?.clientWidth || el.clientWidth || 320);
+    if (chart && parent) {
+      stopObserving = observeElementSize(parent, ({ width }) => {
+        if (width > 0 && Math.abs(width - latestWidthPx) >= 8) renderLatest(width);
         else chart?.resize();
       });
-      resizeObserver.observe(el.parentElement);
     }
   }
 
-  function onResize() {
-    chart?.resize();
-  }
-
-  // Loads data once the openHAB client is ready, and re-loads whenever the
-  // client (re)connects, or the hours window / series list change. On a
-  // direct/reload page load, this component mounts before App.svelte's
-  // onMount has run initOpenhab(), so clientReady is still false and
-  // getClientOnce() would return null — waiting on $clientReady here (rather
-  // than only loading once on mount) is what lets the chart populate as
-  // soon as the client actually exists, instead of staying blank forever.
   $effect(() => {
     const ready = $clientReady;
-    // Establish reactive dependencies so a change to either re-triggers load.
-    void activeHours;
-    void series;
-    if (ready) {
-      load();
-    } else {
-      noClient = true;
-    }
+    const hoursSnapshot = activeHours;
+    const seriesSnapshot = series;
+    if (ready) untrack(() => load(seriesSnapshot, hoursSnapshot));
+    else loadState = 'no-client';
   });
 
   onMount(() => {
-    if (typeof window !== 'undefined') window.addEventListener('resize', onResize);
-    refreshTimer = setInterval(load, REFRESH_MS);
+    refreshTimer = setInterval(() => untrack(() => load(series, activeHours)), REFRESH_MS);
   });
 
   onDestroy(() => {
-    loadGen++; // invalidate any in-flight load
+    loadGen += 1;
     cancelPending();
     if (refreshTimer) clearInterval(refreshTimer);
-    if (typeof window !== 'undefined') window.removeEventListener('resize', onResize);
     disposeChart();
   });
 </script>
 
 <div class="history-chart">
   <div class="hc-periods" role="group" aria-label="History period">
-    {#each HISTORY_PERIOD_PRESETS as p (p.hours)}
+    {#each HISTORY_PERIOD_PRESETS as period (period.hours)}
       <button
         type="button"
         class="hc-period-btn"
-        class:active={activeHours === p.hours}
-        aria-pressed={activeHours === p.hours}
-        onclick={() => selectPeriod(p.hours)}
-      >{p.label}</button>
+        class:active={activeHours === period.hours}
+        aria-pressed={activeHours === period.hours}
+        onclick={() => selectPeriod(period.hours)}
+      >{period.label}</button>
     {/each}
   </div>
   <div class="hc-content">
-    {#if noClient}
-      <div class="hc-message"></div>
-    {:else if loading}
+    {#if loadState === 'loading' || loadState === 'idle'}
       <div class="hc-message">Loading…</div>
-    {:else if noData}
+    {:else if loadState === 'no-client' || loadState === 'error'}
+      <div class="hc-message hc-error">
+        <span>History unavailable</span>
+        {#if errorMessage}<small>{errorMessage}</small>{/if}
+      </div>
+    {:else if loadState === 'empty'}
       <div class="hc-message">No data</div>
     {:else}
-      <div bind:this={el} class="hc-canvas"></div>
+      {#if loadState === 'partial-error'}
+        <div class="hc-warning" role="status">
+          {unavailableCount} {unavailableCount === 1 ? 'series' : 'series'} unavailable
+        </div>
+      {/if}
+      <div bind:this={el} class="hc-canvas" role="img" aria-label="History chart"></div>
     {/if}
   </div>
 </div>
@@ -247,21 +216,31 @@
     color: #e6edf3;
     border-color: #2a3242;
   }
-  .hc-period-btn:hover {
-    color: #e6edf3;
-  }
+  .hc-period-btn:hover { color: #e6edf3; }
   .hc-content {
     flex: 1;
     min-height: 0;
     min-width: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   .hc-canvas {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+  .hc-warning {
+    flex: 0 0 auto;
+    padding: 0.15rem 0.4rem;
+    color: #f59e0b;
+    font-size: 0.72rem;
+    text-align: center;
   }
   .hc-message {
     display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
     align-items: center;
     justify-content: center;
     height: 100%;
@@ -269,4 +248,6 @@
     color: #8b93a1;
     font-size: 0.85rem;
   }
+  .hc-error { color: #fca5a5; }
+  .hc-error small { color: #8b93a1; }
 </style>

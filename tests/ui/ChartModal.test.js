@@ -20,7 +20,9 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('echarts', () => ({ init: mocks.init }));
+vi.mock('../../src/lib/charts/loadEcharts.js', () => ({
+  getEcharts: async () => ({ init: mocks.init }),
+}));
 vi.mock('../../src/lib/openhab/index.js', () => ({
   getClientOnce: () => ({ getHistory: mocks.getHistory }),
 }));
@@ -30,6 +32,10 @@ import { closeChart, openChart } from '../../src/lib/ui/chartStore.js';
 
 describe('ChartModal history periods', () => {
   beforeEach(() => {
+    global.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    };
     mocks.getHistory.mockReset();
     mocks.getHistory.mockResolvedValue([
       { time: Date.now() - 1_000, state: 10 },
@@ -73,7 +79,7 @@ describe('ChartModal history periods', () => {
 
     const request = mocks.getHistory.mock.calls[1][1];
     expect(Date.parse(request.endtime) - Date.parse(request.starttime))
-      .toBeGreaterThanOrEqual(168 * 60 * 60 * 1_000);
+      .toBe(168 * 60 * 60 * 1_000);
   });
 
   it('aborts the superseded request when a new period is chosen', async () => {
@@ -136,5 +142,66 @@ describe('ChartModal history periods', () => {
 
     await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(1));
     expect(mocks.getHistory.mock.calls[0][0]).toBe('new-series');
+  });
+
+  it('labels the dialog, focuses the active period, traps focus, closes on Escape, and restores focus', async () => {
+    const opener = document.createElement('button');
+    opener.textContent = 'Open chart';
+    document.body.append(opener);
+    opener.focus();
+    render(ChartModal);
+    openChart({
+      title: 'Outdoor',
+      series: [{ name: 'BMS_SOC', label: 'SoC' }],
+      hours: 24,
+    });
+
+    const dialog = await screen.findByRole('dialog', { name: 'Outdoor' });
+    expect(dialog.getAttribute('aria-describedby')).toBeTruthy();
+    await waitFor(() => expect(document.activeElement)
+      .toBe(screen.getByRole('button', { name: '24h' })));
+    const close = screen.getByRole('button', { name: 'Close chart' });
+    close.focus();
+    await fireEvent.keyDown(dialog, { key: 'Tab' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '4h' }));
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('refreshes an active modal every five minutes', async () => {
+    const interval = vi.spyOn(globalThis, 'setInterval');
+    render(ChartModal);
+    openChart({ title: 'Battery', series: [{ name: 'BMS_SOC', label: 'SoC' }], hours: 24 });
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(1));
+    expect(interval).toHaveBeenCalledWith(expect.any(Function), 300_000);
+    interval.mockRestore();
+  });
+
+  it('keeps successful series visible while announcing partial failures', async () => {
+    mocks.getHistory
+      .mockResolvedValueOnce([{ time: Date.now(), state: '54 %' }])
+      .mockRejectedValueOnce(new Error('offline'));
+    render(ChartModal);
+    openChart({
+      title: 'Energy',
+      series: [{ name: 'BMS_SOC', label: 'SoC' }, { name: 'MPPT60_PV_Power', label: 'PV' }],
+      hours: 24,
+    });
+
+    expect(await screen.findByText('1 series unavailable')).toBeTruthy();
+    await waitFor(() => expect(mocks.init).toHaveBeenCalled());
+  });
+
+  it('distinguishes a failed request from successful no-data', async () => {
+    mocks.getHistory.mockRejectedValueOnce(new Error('offline'));
+    render(ChartModal);
+    openChart({ title: 'Broken', series: [{ name: 'BMS_SOC', label: 'SoC' }] });
+    expect(await screen.findByText('History unavailable')).toBeTruthy();
+
+    closeChart();
+    mocks.getHistory.mockResolvedValueOnce([]);
+    openChart({ title: 'Empty', series: [{ name: 'BMS_SOC', label: 'SoC' }] });
+    expect(await screen.findByText('No data')).toBeTruthy();
   });
 });

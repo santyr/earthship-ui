@@ -19,7 +19,9 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('echarts', () => ({ init: mocks.init }));
+vi.mock('../../src/lib/charts/loadEcharts.js', () => ({
+  getEcharts: async () => ({ init: mocks.init }),
+}));
 vi.mock('../../src/lib/openhab/index.js', async () => {
   const { readable: makeReadable } = await import('svelte/store');
   return {
@@ -32,6 +34,10 @@ import HistoryChart from '../../src/lib/ui/HistoryChart.svelte';
 
 describe('HistoryChart', () => {
   beforeEach(() => {
+    global.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    };
     Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
       configurable: true,
       get: () => 320,
@@ -71,8 +77,23 @@ describe('HistoryChart', () => {
     await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
     const option = mocks.chart.setOption.mock.calls.at(-1)[0];
     expect(option.series[0].smooth).toBe(false);
+    expect(option.series[0].data[1][1]).toBe(100);
     expect(option.series[0].data[1][2]).toBe(100);
     expect(container.querySelector('.history-chart').getAttribute('style') || '')
       .not.toMatch(/height:\s*\d+px/i);
+  });
+
+  it('renders successful data and announces a partial series failure', async () => {
+    mocks.getHistory
+      .mockResolvedValueOnce([{ time: 0, state: '50 %' }])
+      .mockRejectedValueOnce(new Error('offline'));
+    render(HistoryChart, {
+      props: {
+        series: [{ name: 'BMS_SOC', label: 'SoC' }, { name: 'MPPT60_PV_Power', label: 'PV' }],
+      },
+    });
+
+    expect(await screen.findByText('1 series unavailable')).toBeTruthy();
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
   });
 });

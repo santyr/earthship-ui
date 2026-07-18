@@ -5,7 +5,7 @@ import {
 } from '../src/lib/charts/options.js';
 
 describe('history chart option adapter', () => {
-  it('renders prepared values without ECharts interpolation and exposes raw tooltip values', () => {
+  it('renders unsmoothed source values without ECharts interpolation or visible gap markers', () => {
     const option = buildHistoryOption({
       series: [{
         name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature',
@@ -24,8 +24,9 @@ describe('history chart option adapter', () => {
     });
 
     expect(option.series[0].smooth).toBe(false);
-    expect(option.series[0].data[1][1]).toBe(1.5);
+    expect(option.series[0].data[1][1]).toBe(100);
     expect(option.series[0].data[1][2]).toBe(100);
+    expect(option.series[0].data.some((point) => point[1] === null)).toBe(false);
     expect(formatHistoryTooltip([{
       seriesName: 'Outdoor',
       data: option.series[0].data[1],

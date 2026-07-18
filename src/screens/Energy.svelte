@@ -87,7 +87,7 @@
 
 <div class="energy-grid">
   <div class="cell hero-cell">
-    <Tile label="Battery — 24h + tonight's forecast" accent={socColor}>
+    <Tile label="Battery history + tonight's forecast" accent={socColor}>
       <div class="hero-body">
         <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} /></div>
         <div class="hero-footer">

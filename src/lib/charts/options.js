@@ -32,13 +32,9 @@ export function formatHistoryTooltip(params) {
 }
 
 function flattenSegments(segments) {
-  const data = [];
-  for (const segment of segments) {
-    if (!segment.length) continue;
-    if (data.length) data.push([segment[0].time - 1, null, null]);
-    data.push(...segment.map((point) => [point.time, point.value, point.rawValue]));
-  }
-  return data;
+  return segments.flatMap((segment) => (
+    segment.map((point) => [point.time, point.value, point.rawValue])
+  ));
 }
 
 function lineOption(source, data, { name, dashed = false } = {}) {

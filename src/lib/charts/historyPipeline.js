@@ -1,5 +1,21 @@
 const DEFAULT_ALPHA = 0.25;
 
+export class HistoryDataError extends TypeError {
+  constructor(message, code = 'invalid-history-data') {
+    super(message);
+    this.name = 'HistoryDataError';
+    this.code = code;
+  }
+}
+
+export class HistoryFragmentationError extends Error {
+  constructor() {
+    super('Data too fragmented for this range');
+    this.name = 'HistoryFragmentationError';
+    this.code = 'history-too-fragmented';
+  }
+}
+
 function parseState(state) {
   if (typeof state === 'number') {
     return Number.isFinite(state) ? { value: state, unit: '' } : null;
@@ -17,24 +33,37 @@ export function normalizeHistory(rows, { allowedUnits } = {}) {
   const units = allowedUnits ? new Set(allowedUnits) : null;
   const byTimestamp = new Map();
 
-  for (const row of rows || []) {
+  if (!Array.isArray(rows)) {
+    throw new HistoryDataError('History rows must be an array');
+  }
+
+  rows.forEach((row, index) => {
     const time = row?.time instanceof Date
       ? row.time.getTime()
       : typeof row?.time === 'number'
         ? row.time
         : new Date(row?.time).getTime();
     const parsed = parseState(row?.state);
-    if (!Number.isFinite(time) || !parsed) continue;
-    const unit = row?.unit == null ? parsed.unit : String(row.unit).trim();
-    if (units && unit && !units.has(unit)) {
-      throw new TypeError(`Unsupported history unit: ${unit}`);
+    if (!Number.isFinite(time)) {
+      throw new HistoryDataError(`Invalid history timestamp at row ${index}`);
+    }
+    if (!parsed) {
+      throw new HistoryDataError(`Invalid history state at row ${index}`);
+    }
+    const explicitUnit = row?.unit == null ? '' : String(row.unit).trim();
+    if (explicitUnit && parsed.unit && explicitUnit !== parsed.unit) {
+      throw new HistoryDataError(`Conflicting history unit at row ${index}`);
+    }
+    const unit = explicitUnit || parsed.unit;
+    if (units && !units.has(unit)) {
+      throw new HistoryDataError(`Unsupported history unit: ${unit || '(unitless)'}`);
     }
     byTimestamp.set(time, {
       time,
       value: parsed.value,
       rawValue: parsed.value,
     });
-  }
+  });
 
   return [...byTimestamp.values()].sort((left, right) => left.time - right.time);
 }
@@ -130,54 +159,9 @@ function downsampleSegment(points, budget) {
     .map((index) => points[index]);
 }
 
-export function downsampleSegments(segments, { pointBudget }) {
-  const nonEmpty = segments.filter((segment) => segment.length);
-  const total = nonEmpty.reduce((sum, segment) => sum + segment.length, 0);
-  const budget = Math.max(0, Math.floor(pointBudget));
-  if (budget <= 0 || total === 0) return [];
-  if (total <= budget) return nonEmpty;
-
-  // A chart can contain more real gaps than render slots. Preserve the first
-  // and last fragments (plus evenly spaced fragments between them) without
-  // violating the global cap or manufacturing lines across those gaps.
-  if (nonEmpty.length >= budget) {
-    if (budget === 1) return [[nonEmpty[0][0]]];
-    const selected = new Set();
-    for (let index = 0; index < budget; index += 1) {
-      selected.add(Math.round((index * (nonEmpty.length - 1)) / (budget - 1)));
-    }
-    return [...selected].map((index) => [nonEmpty[index][0]]);
-  }
-
-  const allocations = nonEmpty.map((segment) => Math.min(
-    segment.length,
-    Math.max(1, Math.floor((budget * segment.length) / total)),
-  ));
-  let allocated = allocations.reduce((sum, count) => sum + count, 0);
-
-  while (allocated < budget) {
-    const index = allocations.findIndex((count, i) => count < nonEmpty[i].length);
-    if (index < 0) break;
-    allocations[index] += 1;
-    allocated += 1;
-  }
-  while (allocated > budget) {
-    const index = allocations.findLastIndex((count) => count > 1);
-    if (index < 0) break;
-    allocations[index] -= 1;
-    allocated -= 1;
-  }
-
-  return nonEmpty
-    .map((segment, index) => downsampleSegment(segment, allocations[index]))
-    .filter((segment) => segment.length);
-}
-
 export function prepareHistorySeries(rows, {
   expectedCadenceMs,
   maxGapMs,
-  smoothing = 'none',
-  alpha = DEFAULT_ALPHA,
   allowedUnits,
   widthPx,
   pointBudget,
@@ -188,13 +172,37 @@ export function prepareHistorySeries(rows, {
   }
   const cadenceMs = inferCadence(raw, expectedCadenceMs);
   const gapMs = maxGapMs ?? 3 * cadenceMs;
-  const segments = splitAtGaps(raw, gapMs);
-  const filtered = smoothing === 'median3-ema'
-    ? segments.map((segment) => ema(medianThree(segment), alpha))
-    : segments;
   const renderBudget = Math.max(1, Math.floor(pointBudget ?? widthPx * 2));
+  const fragments = splitAtGaps(raw, gapMs);
+  if (fragments.length > renderBudget) throw new HistoryFragmentationError();
+  const display = downsampleSegment(raw, renderBudget);
   return {
     raw,
-    displaySegments: downsampleSegments(filtered, { pointBudget: renderBudget }),
+    // Main/modal/Energy charts intentionally remain one unsmoothed source
+    // line. Gap analysis above is a safety bound, not a visual segmentation.
+    displaySegments: display.length ? [display] : [],
   };
+}
+
+export function prepareSparklineSeries(rows, {
+  alpha = DEFAULT_ALPHA,
+  allowedUnits = ['', '°F', '°C', '%', 'inHg', 'hPa', 'mbar'],
+  widthPx = Number.POSITIVE_INFINITY,
+  pointBudget,
+} = {}) {
+  const safeRows = Array.isArray(rows)
+    ? rows.map((row, index) => ({
+      ...row,
+      // The Gallery demo uses category labels. Compact sparklines only need
+      // stable ordering, so use the row index when a label is not date-like.
+      time: Number.isFinite(row?.time) || Number.isFinite(new Date(row?.time).getTime())
+        ? row.time
+        : index,
+    }))
+    : rows;
+  const raw = normalizeHistory(safeRows, { allowedUnits });
+  const filtered = ema(medianThree(raw), alpha);
+  if (!Number.isFinite(widthPx) || widthPx <= 0) return [];
+  const budget = Math.max(1, Math.floor(pointBudget ?? widthPx * 2));
+  return downsampleSegment(filtered, budget);
 }

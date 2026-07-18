@@ -17,6 +17,7 @@ export const chartStore = writable({
   initialHours: 24,
   // Retain `hours` while callers migrate; ChartModal reads initialHours only.
   hours: 24,
+  opener: null,
 });
 
 export function openChart({ title = '', series = [], initialHours, hours = 24 } = {}) {
@@ -28,6 +29,9 @@ export function openChart({ title = '', series = [], initialHours, hours = 24 } 
     series,
     initialHours: seededHours,
     hours: seededHours,
+    opener: typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null,
   });
 }
 

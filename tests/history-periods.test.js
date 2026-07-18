@@ -3,6 +3,7 @@ import {
   HISTORY_PERIODS,
   HISTORY_PERIOD_PRESETS,
   createHistoryWindow,
+  getSeriesRequestWindow,
   snapHistoryPeriod,
 } from '../src/lib/charts/periods.js';
 
@@ -24,7 +25,7 @@ describe('history periods', () => {
     expect(() => createHistoryWindow(12, { nowMs: 1_000 })).toThrow(/period/i);
   });
 
-  it('captures one deterministic request window for every series', () => {
+  it('captures deterministic but non-overlapping history and forecast windows', () => {
     const nowMs = Date.UTC(2026, 6, 18, 12);
     const window = createHistoryWindow(168, {
       nowMs,
@@ -37,5 +38,21 @@ describe('history periods', () => {
     expect(Date.parse(window.endtime)).toBe(nowMs + 18 * 60 * 60 * 1_000);
     expect(window.hours).toBe(168);
     expect(window.nowMs).toBe(nowMs);
+    expect(window.history).toEqual({
+      starttime: new Date(nowMs - 168 * 60 * 60 * 1_000).toISOString(),
+      endtime: new Date(nowMs).toISOString(),
+    });
+    expect(window.forecast).toEqual({
+      starttime: new Date(nowMs).toISOString(),
+      endtime: new Date(nowMs + 18 * 60 * 60 * 1_000).toISOString(),
+    });
+  });
+
+  it('selects exact request bounds from the series domain', () => {
+    const nowMs = Date.UTC(2026, 6, 18, 12);
+    const window = createHistoryWindow(24, { nowMs, lookaheadMs: 60_000 });
+
+    expect(getSeriesRequestWindow({ name: 'BMS_SOC' }, window)).toEqual(window.history);
+    expect(getSeriesRequestWindow({ name: 'Forecast_Temp' }, window)).toEqual(window.forecast);
   });
 });

@@ -1,3 +1,54 @@
+export const MAX_HISTORY_RESPONSE_BYTES = 5 * 1024 * 1024;
+export const MAX_HISTORY_ROWS = 300_000;
+
+export class HistoryResponseError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = 'HistoryResponseError';
+    this.code = code;
+  }
+}
+
+async function readBoundedJson(response) {
+  const declared = Number(response.headers?.get?.('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_HISTORY_RESPONSE_BYTES) {
+    throw new HistoryResponseError('History response is too large', 'history-response-too-large');
+  }
+
+  if (response.body?.getReader) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let bytes = 0;
+    let text = '';
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value?.byteLength || 0;
+        if (bytes > MAX_HISTORY_RESPONSE_BYTES) {
+          await reader.cancel();
+          throw new HistoryResponseError('History response is too large', 'history-response-too-large');
+        }
+        text += decoder.decode(value, { stream: true });
+      }
+      text += decoder.decode();
+      return JSON.parse(text);
+    } finally {
+      reader.releaseLock?.();
+    }
+  }
+
+  // Mocked/legacy fetch responses may expose only json(). Real browser
+  // Responses take the streaming path above, where the cap is enforced while
+  // reading rather than after allocation.
+  const value = await response.json();
+  const encodedBytes = new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  if (encodedBytes > MAX_HISTORY_RESPONSE_BYTES) {
+    throw new HistoryResponseError('History response is too large', 'history-response-too-large');
+  }
+  return value;
+}
+
 export function createClient({ openhabUrl, apiToken }) {
   const h = { Authorization: `Bearer ${apiToken}` };
   const base = openhabUrl.replace(/\/$/, '');
@@ -24,8 +75,18 @@ export function createClient({ openhabUrl, apiToken }) {
         signal,
       });
       if (!r.ok) throw new Error(`getHistory ${name} ${r.status}`);
-      const d = await r.json();
-      return (d?.data || []).map((p) => ({ time: p.time, state: parseFloat(String(p.state)) }));
+      const d = await readBoundedJson(r);
+      if (!Array.isArray(d?.data)) {
+        throw new HistoryResponseError('Malformed history response data', 'invalid-history-response');
+      }
+      if (d.data.length > MAX_HISTORY_ROWS) {
+        throw new HistoryResponseError('History response has too many rows', 'history-row-limit');
+      }
+      return d.data.map((point) => ({
+        time: point?.time,
+        state: point?.state,
+        ...(point?.unit == null ? {} : { unit: point.unit }),
+      }));
     },
   };
 }
