@@ -82,6 +82,11 @@ export function createClient({ openhabUrl, apiToken }) {
       if (!r.ok) throw new Error(`getAllItems ${r.status}`);
       return r.json();
     },
+    async getAllThings() {
+      const r = await fetch(`${base}/rest/things`, { headers: h });
+      if (!r.ok) throw new Error(`getAllThings ${r.status}`);
+      return r.json();
+    },
     async getItem(name) {
       const r = await fetch(`${base}/rest/items/${encodeURIComponent(name)}`, { headers: h });
       if (!r.ok) throw new Error(`getItem ${name} ${r.status}`);

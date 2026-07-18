@@ -17,11 +17,12 @@ vi.mock('../../src/lib/openhab/index.js', async () => {
   return {
     items: writable({}),
     connection: writable('live'),
+    thingStatuses: writable({}),
     getClientOnce: () => ({ sendCommand: mocks.sendCommand }),
   };
 });
 
-import { items, connection } from '../../src/lib/openhab/index.js';
+import { items, thingStatuses, connection } from '../../src/lib/openhab/index.js';
 import { CONTROL_CATALOG } from '../../src/lib/controls/catalog.js';
 import Toggle from '../../src/lib/ui/Toggle.svelte';
 import Controls from '../../src/screens/Controls.svelte';
@@ -39,6 +40,7 @@ describe('typed controls UI', () => {
     mocks.sendCommand.mockResolvedValue(undefined);
     connection.set('live');
     items.set({});
+    thingStatuses.set({});
   });
 
   afterEach(() => {
@@ -61,12 +63,47 @@ describe('typed controls UI', () => {
     }
   });
 
+  it('renders provider OFFLINE explicitly and enables a recovered light in safe-compat', async () => {
+    const control = CONTROL_CATALOG.living1;
+    items.set({ [control.stateItem]: 'OFF' });
+    thingStatuses.set({
+      [control.providerThingUid]: {
+        status: 'OFFLINE',
+        statusDetail: 'COMMUNICATION_ERROR',
+        description: 'No route to host',
+      },
+    });
+    render(Controls, { props: { releaseMode: 'safe-compat' } });
+
+    const button = screen.getByRole('button', { name: /Living Room 1/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Provider OFFLINE');
+    expect(button).toHaveTextContent('No route to host');
+
+    thingStatuses.set({
+      [control.providerThingUid]: {
+        status: 'ONLINE',
+        statusDetail: 'NONE',
+        description: '',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(button).not.toBeDisabled();
+      expect(button).toHaveTextContent('OFF');
+    });
+    expect(mocks.sendCommand).not.toHaveBeenCalled();
+  });
+
   it('submits the virtual circadian policy once after a 600 ms hold', async () => {
     items.set({
       LivingRoomCircadian_Enable: 'OFF',
       LivingRoomCircadian_LastResult: 'ok',
     });
-    render(Toggle, { props: { control: CONTROL_CATALOG.circadian } });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.circadian,
+      releaseMode: 'safe-compat',
+    } });
 
     const button = screen.getByRole('button', { name: /Circadian/i });
     button.dispatchEvent(pointer('pointerdown'));
@@ -86,12 +123,54 @@ describe('typed controls UI', () => {
     });
   });
 
+  it('renders the default development release as maintenance and cannot submit', () => {
+    items.set({
+      LivingRoomCircadian_Enable: 'OFF',
+      LivingRoomCircadian_LastResult: 'ok',
+    });
+    render(Toggle, { props: { control: CONTROL_CATALOG.circadian } });
+
+    const button = screen.getByRole('button', { name: /Circadian/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Maintenance release');
+
+    button.dispatchEvent(pointer('pointerdown'));
+    vi.advanceTimersByTime(1_200);
+    expect(mocks.sendCommand).not.toHaveBeenCalled();
+  });
+
+  it('cancels a hold when live state changes the pending command contract', async () => {
+    items.set({
+      LivingRoomCircadian_Enable: 'OFF',
+      LivingRoomCircadian_LastResult: 'ok',
+    });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.circadian,
+      releaseMode: 'safe-compat',
+    } });
+
+    const button = screen.getByRole('button', { name: /Circadian/i });
+    button.dispatchEvent(pointer('pointerdown'));
+    vi.advanceTimersByTime(300);
+    items.set({
+      LivingRoomCircadian_Enable: 'ON',
+      LivingRoomCircadian_LastResult: 'ok',
+    });
+    await vi.waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'true'));
+    vi.advanceTimersByTime(400);
+
+    expect(mocks.sendCommand).not.toHaveBeenCalled();
+  });
+
   it('renders circadian execution health separately from desired policy', () => {
     items.set({
       LivingRoomCircadian_Enable: 'ON',
       LivingRoomCircadian_LastResult: 'skip-backoff for living room bulbs',
     });
-    render(Toggle, { props: { control: CONTROL_CATALOG.circadian } });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.circadian,
+      releaseMode: 'safe-compat',
+    } });
 
     const button = screen.getByRole('button', { name: /Circadian/i });
     expect(button).toHaveTextContent('ON');

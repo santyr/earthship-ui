@@ -74,6 +74,31 @@ describe('parseSSEMessage', () => {
   });
 });
 
+describe('parseThingStatusSSEMessage', () => {
+  it('extracts one structured Thing status event', async () => {
+    const { parseThingStatusSSEMessage } = await import('../src/lib/openhab/sse.js');
+    expect(parseThingStatusSSEMessage).toBeTypeOf('function');
+
+    const raw = JSON.stringify({
+      topic: 'openhab/things/tplinksmarthome:kl125:E7FA31/status',
+      payload: JSON.stringify({
+        status: 'ONLINE',
+        statusDetail: 'NONE',
+      }),
+      type: 'ThingStatusInfoEvent',
+    });
+
+    expect(parseThingStatusSSEMessage(raw)).toEqual({
+      uid: 'tplinksmarthome:kl125:E7FA31',
+      statusInfo: {
+        status: 'ONLINE',
+        statusDetail: 'NONE',
+        description: '',
+      },
+    });
+  });
+});
+
 describe('createSSE connection', () => {
   class FakeES {
     constructor(url) {
@@ -208,5 +233,31 @@ describe('createSSE connection', () => {
 
     const liveCalls = onStatus.mock.calls.filter((c) => c[0] === 'live');
     expect(liveCalls.length).toBe(1);
+  });
+
+  it('subscribes to and forwards Thing status without conflating it with item state', () => {
+    const onState = vi.fn();
+    const onThingStatus = vi.fn();
+    const sse = makeSSE({ onState, onThingStatus });
+    sse.start();
+    const first = FakeES.instances[0];
+
+    expect(decodeURIComponent(first.url)).toContain('openhab/things/*/status');
+
+    first.onmessage({
+      data: JSON.stringify({
+        topic: 'openhab/things/tplinksmarthome:kl125:E7FA31/status',
+        payload: JSON.stringify({
+          status: 'OFFLINE',
+          statusDetail: 'COMMUNICATION_ERROR',
+          description: 'No route to host',
+        }),
+      }),
+    });
+
+    expect(onState).not.toHaveBeenCalled();
+    expect(onThingStatus).toHaveBeenCalledWith('tplinksmarthome:kl125:E7FA31', {
+      status: 'OFFLINE', statusDetail: 'COMMUNICATION_ERROR', description: 'No route to host',
+    });
   });
 });

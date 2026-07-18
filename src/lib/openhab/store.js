@@ -3,6 +3,7 @@ import { createClient } from './client.js';
 import { createSSE } from './sse.js';
 
 export const items = writable({});
+export const thingStatuses = writable({});
 export const connection = writable('connecting');
 // Flips true once initOpenhab() has created the client AND loaded the
 // initial item snapshot. Components that fetch via getClientOnce() on
@@ -27,15 +28,48 @@ export function applyState(name, value) {
   items.update((m) => { m[name] = value; return { ...m }; });
 }
 
+function normalizeThingStatus(statusInfo = {}) {
+  return {
+    status: typeof statusInfo.status === 'string' ? statusInfo.status.trim().toUpperCase() : '',
+    statusDetail: typeof statusInfo.statusDetail === 'string'
+      ? statusInfo.statusDetail.trim().toUpperCase()
+      : '',
+    description: typeof statusInfo.description === 'string'
+      ? statusInfo.description.trim()
+      : '',
+  };
+}
+
+export function applyThingSnapshot(things = []) {
+  thingStatuses.update((current) => {
+    for (const thing of things) {
+      if (typeof thing?.UID !== 'string' || !thing.UID) continue;
+      current[thing.UID] = normalizeThingStatus(thing.statusInfo);
+    }
+    return { ...current };
+  });
+}
+
+export function applyThingStatus(uid, statusInfo) {
+  if (typeof uid !== 'string' || !uid) return;
+  thingStatuses.update((current) => ({ ...current, [uid]: normalizeThingStatus(statusInfo) }));
+}
+
 export async function initOpenhab(config) {
   const client = createClient(config);
   _client = client;
-  applySnapshot(await client.getAllItems());
+  const [itemSnapshot, thingSnapshot] = await Promise.all([
+    client.getAllItems(),
+    client.getAllThings().catch(() => []),
+  ]);
+  applySnapshot(itemSnapshot);
+  applyThingSnapshot(thingSnapshot);
   clientReady.set(true);
   const sse = createSSE({
     ...config,
     staleSeconds: config.staleBannerSeconds,
     onState: applyState,
+    onThingStatus: applyThingStatus,
     onStatus: (s) => connection.set(s),
   });
   sse.start();

@@ -13,6 +13,24 @@ it('getAllItems returns parsed array with auth header', async () => {
   expect(fetch).toHaveBeenCalledWith('http://oh:8080/rest/items?fields=name,state,type',
     expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer TK' }) }));
 });
+
+it('getAllThings returns provider statusInfo with auth header', async () => {
+  fetch.mockResolvedValue({
+    ok: true,
+    json: async () => [{
+      UID: 'tplinksmarthome:kl125:E7FA31',
+      statusInfo: { status: 'OFFLINE', statusDetail: 'COMMUNICATION_ERROR' },
+    }],
+  });
+
+  const things = await createClient(cfg).getAllThings();
+
+  expect(things[0].statusInfo.status).toBe('OFFLINE');
+  expect(fetch).toHaveBeenCalledWith(
+    'http://oh:8080/rest/things',
+    expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer TK' }) }),
+  );
+});
 it('sendCommand posts plain text body', async () => {
   fetch.mockResolvedValue({ ok: true });
   await createClient(cfg).sendCommand('Sw', 'ON');

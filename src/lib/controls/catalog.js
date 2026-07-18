@@ -1,3 +1,13 @@
+const PROVIDER_THINGS = Object.freeze({
+  living1: 'tplinksmarthome:kl125:E7FA31',
+  living2: 'tplinksmarthome:kl125:E62B6D',
+  living3: 'tplinksmarthome:kl125:E7CAD9',
+  dishwasher: 'tplinksmarthome:hs103:a34b4957dc',
+  shureflo: 'tplinksmarthome:hs103:08482dd378',
+  goat: 'tplinksmarthome:ep40:3cb500a208',
+  circulation: 'tplinksmarthome:kp200:7BD449',
+});
+
 const directBinary = (label, stateItem, extra = {}) => ({
   label,
   kind: 'binary',
@@ -20,9 +30,9 @@ const ownedBinary = (label, stateItem, device, extra = {}) => ({
 });
 
 export const CONTROL_CATALOG = Object.freeze({
-  living1: directBinary('Living Room 1', 'living_room_1_Switch'),
-  living2: directBinary('Living Room 2', 'living_room_2_Switch'),
-  living3: directBinary('Living Room 3', 'LED_living_room_1_Switch'),
+  living1: directBinary('Living Room 1', 'living_room_1_Switch', { providerThingUid: PROVIDER_THINGS.living1 }),
+  living2: directBinary('Living Room 2', 'living_room_2_Switch', { providerThingUid: PROVIDER_THINGS.living2 }),
+  living3: directBinary('Living Room 3', 'LED_living_room_1_Switch', { providerThingUid: PROVIDER_THINGS.living3 }),
   circadian: {
     label: 'Circadian',
     kind: 'binary-policy',
@@ -30,15 +40,21 @@ export const CONTROL_CATALOG = Object.freeze({
     commandItem: 'LivingRoomCircadian_Enable',
     healthItem: 'LivingRoomCircadian_LastResult',
   },
-  dishwasher: ownedBinary('Dishwasher', 'Dish_Washer_Power', 'dishwasher'),
-  shureflo: ownedBinary('Shureflo Pump', 'ShurefloPump_Power', 'shureflo'),
+  dishwasher: ownedBinary('Dishwasher', 'Dish_Washer_Power', 'dishwasher', {
+    providerThingUid: PROVIDER_THINGS.dishwasher,
+  }),
+  shureflo: ownedBinary('Shureflo Pump', 'ShurefloPump_Power', 'shureflo', {
+    providerThingUid: PROVIDER_THINGS.shureflo,
+  }),
   goatCam: ownedBinary('Goat Cam', 'Goat_Plugs_Outlet1_Switch', 'goat-cam', {
     couplingItem: 'FeederOverride',
+    providerThingUid: PROVIDER_THINGS.goat,
   }),
   feedOnce: {
     label: 'Feed once',
     kind: 'action',
     stateItem: 'Goat_Plugs_Outlet2_Switch',
+    providerThingUid: PROVIDER_THINGS.goat,
     requestItem: 'GoatFeeder_ManualRequest',
     resultItem: 'GoatFeeder_ManualResult',
     capability: 'feeder-request-v1',
@@ -47,6 +63,7 @@ export const CONTROL_CATALOG = Object.freeze({
     label: 'Request circulation',
     kind: 'safety-request',
     stateItem: 'SouthOutlet_Outlet2_Switch',
+    providerThingUid: PROVIDER_THINGS.circulation,
     requestItem: 'SouthOutlet_ManualRequest',
     resultItem: 'SouthOutlet_ManualResult',
     capability: 'greywater-request-v1',

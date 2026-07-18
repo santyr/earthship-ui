@@ -35,6 +35,7 @@ describe('holdAction', () => {
     submit = vi.fn().mockResolvedValue({ status: 'accepted' });
     phases = [];
     action = holdAction(node, {
+      contractKey: 'circadian:OFF:enabled',
       onSubmit: submit,
       onPhaseChange: (phase) => phases.push(phase),
     });
@@ -112,12 +113,57 @@ describe('holdAction', () => {
     expect(submit).not.toHaveBeenCalled();
   });
 
-  it('ignores a second pointer without replacing or duplicating the first hold', async () => {
+  it('cancels an unfinished hold when any second pointer arrives', async () => {
     node.dispatchEvent(pointer('pointerdown', 11));
     vi.advanceTimersByTime(250);
     node.dispatchEvent(pointer('pointerdown', 22));
     node.dispatchEvent(pointer('pointerup', 22));
     vi.advanceTimersByTime(350);
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(phases.at(-1)).toBe('confirmed');
+  });
+
+  it('cancels an unfinished hold when its semantic contract changes', () => {
+    node.dispatchEvent(pointer('pointerdown', 1));
+    vi.advanceTimersByTime(300);
+    action.update({
+      contractKey: 'circadian:ON:enabled',
+      onSubmit: submit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+    vi.advanceTimersByTime(400);
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(phases.at(-1)).toBe('confirmed');
+  });
+
+  it('cancels an unfinished hold when its submission callback changes', () => {
+    const replacementSubmit = vi.fn().mockResolvedValue({ status: 'accepted' });
+    node.dispatchEvent(pointer('pointerdown', 1));
+    vi.advanceTimersByTime(300);
+    action.update({
+      contractKey: 'circadian:OFF:enabled',
+      onSubmit: replacementSubmit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+    vi.advanceTimersByTime(400);
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(replacementSubmit).not.toHaveBeenCalled();
+    expect(phases.at(-1)).toBe('confirmed');
+  });
+
+  it('keeps an unfinished hold only for an exact same action contract update', async () => {
+    node.dispatchEvent(pointer('pointerdown', 1));
+    vi.advanceTimersByTime(300);
+    action.update({
+      contractKey: 'circadian:OFF:enabled',
+      onSubmit: submit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+    vi.advanceTimersByTime(300);
     await settle();
 
     expect(submit).toHaveBeenCalledTimes(1);

@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { items, connection, clientReady, applyState, applySnapshot, getClientOnce } from '../src/lib/openhab/store.js';
+import {
+  applySnapshot,
+  applyState,
+  applyThingSnapshot,
+  applyThingStatus,
+  clientReady,
+  connection,
+  getClientOnce,
+  items,
+  thingStatuses,
+} from '../src/lib/openhab/store.js';
 
 describe('store', () => {
   it('applySnapshot seeds many items', () => {
@@ -42,6 +52,31 @@ describe('store', () => {
     applySnapshot([{ name: 'A', state: '1' }]);
     applySnapshot([{ name: 'A', state: '7' }]);
     expect(get(items).A).toBe('7');
+  });
+
+  it('applyThingSnapshot retains structured provider status by UID', () => {
+    applyThingSnapshot([{
+      UID: 'tplinksmarthome:kl125:E7FA31',
+      statusInfo: {
+        status: 'OFFLINE',
+        statusDetail: 'COMMUNICATION_ERROR',
+        description: 'No route to host',
+      },
+    }]);
+
+    expect(get(thingStatuses)['tplinksmarthome:kl125:E7FA31']).toEqual({
+      status: 'OFFLINE',
+      statusDetail: 'COMMUNICATION_ERROR',
+      description: 'No route to host',
+    });
+  });
+
+  it('applyThingStatus updates a recovered provider reactively', () => {
+    applyThingStatus('tplinksmarthome:kl125:E7FA31', {
+      status: 'ONLINE', statusDetail: 'NONE', description: '',
+    });
+
+    expect(get(thingStatuses)['tplinksmarthome:kl125:E7FA31'].status).toBe('ONLINE');
   });
 
   it('connection defaults to connecting', () => {

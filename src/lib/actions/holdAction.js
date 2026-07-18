@@ -10,8 +10,19 @@ function isUnknownError(error) {
   return error?.outcomeUnknown === true || error?.code === 'OUTCOME_UNKNOWN';
 }
 
+function normalizeOptions(options = {}) {
+  return { holdMs: HOLD_DURATION_MS, disabled: false, ...options };
+}
+
+function sameActionContract(left, right) {
+  return left.disabled === right.disabled
+    && left.holdMs === right.holdMs
+    && left.contractKey === right.contractKey
+    && left.onSubmit === right.onSubmit;
+}
+
 export function holdAction(node, initialOptions = {}) {
-  let options = { holdMs: HOLD_DURATION_MS, disabled: false, ...initialOptions };
+  let options = normalizeOptions(initialOptions);
   let timer = null;
   let active = null;
   let submitting = false;
@@ -63,6 +74,11 @@ export function holdAction(node, initialOptions = {}) {
   }
 
   function onPointerDown(event) {
+    if (active && !submitting) {
+      clearHold();
+      event.preventDefault();
+      return;
+    }
     if (start({ type: 'pointer', id: event.pointerId })) {
       event.preventDefault();
     }
@@ -103,10 +119,15 @@ export function holdAction(node, initialOptions = {}) {
 
   return {
     update(nextOptions = {}) {
-      const wasDisabled = options.disabled;
-      options = { holdMs: HOLD_DURATION_MS, disabled: false, ...nextOptions };
-      if (options.disabled && !wasDisabled && !submitting) {
-        clearHold({ announce: false });
+      const previous = options;
+      const next = normalizeOptions(nextOptions);
+      const invalidatesActiveHold = active && !submitting
+        && !sameActionContract(previous, next);
+      options = next;
+
+      if (invalidatesActiveHold) {
+        clearHold();
+      } else if (options.disabled && !previous.disabled && !submitting) {
         emit('unavailable');
       }
     },

@@ -3,16 +3,24 @@
   import Tile from '../lib/ui/Tile.svelte';
   import { CONTROL_CATALOG } from '../lib/controls/catalog.js';
   import { colors } from '../lib/ui/tokens.js';
+  import { thingStatuses } from '../lib/openhab/index.js';
+  import { CURRENT_RELEASE_MODE } from '../lib/releaseMode.js';
+
+  let { releaseMode = CURRENT_RELEASE_MODE } = $props();
+
+  function providerFor(control) {
+    return control.providerThingUid ? $thingStatuses[control.providerThingUid] ?? null : null;
+  }
 </script>
 
 <div class="controls-grid" data-controls-layout>
   <section class="cell" aria-label="Lights">
     <Tile label="Lights" accent={colors.temperature}>
       <div class="control-stack four">
-        <Toggle control={CONTROL_CATALOG.living1} />
-        <Toggle control={CONTROL_CATALOG.living2} />
-        <Toggle control={CONTROL_CATALOG.living3} />
-        <Toggle control={CONTROL_CATALOG.circadian} />
+        <Toggle control={CONTROL_CATALOG.living1} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.living1)} />
+        <Toggle control={CONTROL_CATALOG.living2} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.living2)} />
+        <Toggle control={CONTROL_CATALOG.living3} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.living3)} />
+        <Toggle control={CONTROL_CATALOG.circadian} {releaseMode} />
       </div>
     </Tile>
   </section>
@@ -20,10 +28,10 @@
   <section class="cell" aria-label="Household loads">
     <Tile label="Household Loads" accent={colors.solar}>
       <div class="control-stack four">
-        <Toggle control={CONTROL_CATALOG.dishwasher} />
-        <Toggle control={CONTROL_CATALOG.shureflo} />
-        <Toggle control={CONTROL_CATALOG.goatCam} />
-        <Toggle control={CONTROL_CATALOG.feedOnce} onColor={colors.advisory} />
+        <Toggle control={CONTROL_CATALOG.dishwasher} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.dishwasher)} />
+        <Toggle control={CONTROL_CATALOG.shureflo} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.shureflo)} />
+        <Toggle control={CONTROL_CATALOG.goatCam} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.goatCam)} />
+        <Toggle control={CONTROL_CATALOG.feedOnce} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.feedOnce)} onColor={colors.advisory} />
       </div>
     </Tile>
   </section>
@@ -31,8 +39,8 @@
   <section class="cell" aria-label="Water and policy">
     <Tile label="Water &amp; Policy" accent={colors.water}>
       <div class="control-stack two">
-        <Toggle control={CONTROL_CATALOG.circulation} onColor={colors.water} />
-        <Toggle control={CONTROL_CATALOG.override} onColor={colors.advisory} />
+        <Toggle control={CONTROL_CATALOG.circulation} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.circulation)} onColor={colors.water} />
+        <Toggle control={CONTROL_CATALOG.override} {releaseMode} onColor={colors.advisory} />
       </div>
     </Tile>
   </section>

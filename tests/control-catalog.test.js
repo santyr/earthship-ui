@@ -28,6 +28,23 @@ describe('control catalog', () => {
     });
   });
 
+  it('records the verified provider Thing for every physical control state', () => {
+    expect(Object.fromEntries(
+      Object.entries(CONTROL_CATALOG)
+        .filter(([, control]) => control.providerThingUid)
+        .map(([id, control]) => [id, control.providerThingUid]),
+    )).toEqual({
+      living1: 'tplinksmarthome:kl125:E7FA31',
+      living2: 'tplinksmarthome:kl125:E62B6D',
+      living3: 'tplinksmarthome:kl125:E7CAD9',
+      dishwasher: 'tplinksmarthome:hs103:a34b4957dc',
+      shureflo: 'tplinksmarthome:hs103:08482dd378',
+      goatCam: 'tplinksmarthome:ep40:3cb500a208',
+      feedOnce: 'tplinksmarthome:ep40:3cb500a208',
+      circulation: 'tplinksmarthome:kp200:7BD449',
+    });
+  });
+
   it('keeps feeder, greywater, override, and owned-load actuators out of direct command paths', () => {
     expect(UNSAFE_DIRECT_COMMAND_ITEMS).toEqual(expect.arrayContaining([
       'Goat_Plugs_Outlet2_Switch',

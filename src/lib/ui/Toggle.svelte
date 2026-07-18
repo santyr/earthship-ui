@@ -6,11 +6,13 @@
     deriveControlState,
     outcomePresentation,
   } from '../controls/controlState.js';
+  import { CURRENT_RELEASE_MODE } from '../releaseMode.js';
 
   let {
     control,
     onColor = '#22c55e',
-    providerOnline = false,
+    releaseMode = CURRENT_RELEASE_MODE,
+    providerStatus = null,
     capabilities = {},
     ownerTransitioning = false,
     ownerBusy = false,
@@ -19,14 +21,15 @@
   let submissionPhase = $state('confirmed');
 
   const providerHealth = $derived(
-    providerOnline && control?.stateItem
-      ? { [control.stateItem]: true }
+    providerStatus && control?.stateItem
+      ? { [control.stateItem]: providerStatus }
       : {},
   );
 
   const view = $derived.by(() => deriveControlState(control, {
     items: $items,
     connection: $connection,
+    releaseMode,
     providerOnline: providerHealth,
     capabilities,
     ownerTransitioning,
@@ -37,6 +40,13 @@
   const activePhase = $derived(view.enabled ? submissionPhase : 'unavailable');
   const phaseView = $derived(outcomePresentation(activePhase));
   const isOn = $derived(view.value === 'ON');
+  const commandContract = $derived([
+    control?.kind || '',
+    commandTargetFor(control) || '',
+    view.value || '',
+    view.enabled ? 'enabled' : 'disabled',
+    releaseMode,
+  ].join('|'));
   const statusText = $derived.by(() => {
     if (view.valueLabel === 'Unavailable') return 'Unavailable';
     if (control.kind === 'action') return `Actuator ${view.valueLabel}`;
@@ -97,6 +107,7 @@
   title={[view.reason, view.detail].filter(Boolean).join(' · ')}
   use:holdAction={{
     disabled: buttonDisabled,
+    contractKey: commandContract,
     onSubmit: submit,
     onPhaseChange,
   }}

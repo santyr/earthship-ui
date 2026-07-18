@@ -9,9 +9,35 @@ export function parseSSEMessage(raw) {
   return { name: m[1], value: String(payload.value) };
 }
 
-export function createSSE({ openhabUrl, apiToken, onState, onStatus, staleSeconds = 90 }) {
+export function parseThingStatusSSEMessage(raw) {
+  let msg;
+  try { msg = JSON.parse(raw); } catch { return null; }
+  const match = /^openhab\/things\/(.+)\/status$/.exec(msg.topic || '');
+  if (!match) return null;
+
+  let payload;
+  try { payload = JSON.parse(msg.payload); } catch { return null; }
+  const rawStatus = payload?.status ?? payload?.value;
+  if (typeof rawStatus !== 'string' || !rawStatus.trim()) return null;
+
+  return {
+    uid: match[1],
+    statusInfo: {
+      status: rawStatus.trim().toUpperCase(),
+      statusDetail: typeof payload.statusDetail === 'string'
+        ? payload.statusDetail.trim().toUpperCase()
+        : '',
+      description: typeof payload.description === 'string'
+        ? payload.description.trim()
+        : '',
+    },
+  };
+}
+
+export function createSSE({ openhabUrl, apiToken, onState, onThingStatus = () => {}, onStatus, staleSeconds = 90 }) {
   const base = openhabUrl.replace(/\/$/, '');
-  const url = `${base}/rest/events?topics=openhab/items/*/statechanged`;
+  const topics = 'openhab/items/*/statechanged,openhab/things/*/status';
+  const url = `${base}/rest/events?topics=${encodeURIComponent(topics)}`;
   let es = null, backoff = 1000, staleTimer = null, offlineTimer = null, stopped = false;
   let reconnectTimer = null, lastStatus = null;
   function setStatus(s) {
@@ -33,8 +59,19 @@ export function createSSE({ openhabUrl, apiToken, onState, onStatus, staleSecond
     es = new EventSource(`${url}&accessToken=${encodeURIComponent(apiToken)}`);
     es.onopen = () => { backoff = 1000; setStatus('live'); armTimers(); };
     es.onmessage = (e) => {
-      const parsed = parseSSEMessage(e.data);
-      if (parsed) { onState(parsed.name, parsed.value); setStatus('live'); armTimers(); }
+      const itemState = parseSSEMessage(e.data);
+      if (itemState) {
+        onState(itemState.name, itemState.value);
+        setStatus('live');
+        armTimers();
+        return;
+      }
+      const thingStatus = parseThingStatusSSEMessage(e.data);
+      if (thingStatus) {
+        onThingStatus(thingStatus.uid, thingStatus.statusInfo);
+        setStatus('live');
+        armTimers();
+      }
     };
     es.onerror = () => {
       es.close();

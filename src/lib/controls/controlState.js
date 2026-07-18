@@ -1,3 +1,5 @@
+import { CURRENT_RELEASE_MODE, isDirectControlAllowed } from '../releaseMode.js';
+
 export const CONTROL_PHASES = Object.freeze([
   'confirmed',
   'unavailable',
@@ -15,6 +17,28 @@ export function binaryValue(value) {
   const normalized = String(value).trim().toUpperCase();
   if (INVALID_STATES.has(normalized)) return null;
   return normalized === 'ON' || normalized === 'OFF' ? normalized : null;
+}
+
+function providerAvailability(raw) {
+  const statusInfo = raw?.statusInfo ?? raw;
+  const status = typeof statusInfo?.status === 'string'
+    ? statusInfo.status.trim().toUpperCase()
+    : null;
+  const statusDetail = typeof statusInfo?.statusDetail === 'string'
+    ? statusInfo.statusDetail.trim()
+    : '';
+  const description = typeof statusInfo?.description === 'string'
+    ? statusInfo.description.trim()
+    : '';
+  const detail = description || (statusDetail !== 'NONE' ? statusDetail : '');
+
+  if (!status) {
+    return { online: false, reason: 'Provider Thing status unavailable — read-only', detail: '' };
+  }
+  if (status !== 'ONLINE') {
+    return { online: false, reason: `Provider ${status} — read-only`, detail };
+  }
+  return { online: true, reason: '', detail: '' };
 }
 
 function unavailable(reason, detail = '') {
@@ -70,6 +94,7 @@ export function deriveControlState(control, context = {}) {
   const {
     items = {},
     connection = 'connecting',
+    releaseMode = CURRENT_RELEASE_MODE,
     providerOnline = {},
     capabilities = {},
     ownerTransitioning = false,
@@ -80,17 +105,26 @@ export function deriveControlState(control, context = {}) {
   if (connection !== 'live') return unavailable('openHAB unavailable');
 
   const value = binaryValue(items[control.stateItem]);
+  if (control.kind === 'binary') {
+    const provider = providerAvailability(providerOnline[control.stateItem]);
+    if (!provider.online) {
+      return unavailable(provider.reason, provider.detail);
+    }
+    if (!value) return unavailable('State unavailable');
+    if (!isDirectControlAllowed(control, releaseMode)) {
+      return disabledStatus(value, 'Maintenance release — commands unavailable');
+    }
+    return enabledState(value);
+  }
+
   if (!value) return unavailable('State unavailable');
 
   if (control.kind === 'binary-policy') {
-    return enabledState(value, circadianHealth(items[control.healthItem]));
-  }
-
-  if (control.kind === 'binary') {
-    if (providerOnline[control.stateItem] !== true) {
-      return unavailable('Provider health unavailable');
+    const health = circadianHealth(items[control.healthItem]);
+    if (!isDirectControlAllowed(control, releaseMode)) {
+      return disabledStatus(value, 'Maintenance release — commands unavailable', health);
     }
-    return enabledState(value);
+    return enabledState(value, health);
   }
 
   if (control.kind === 'owned-binary') {
@@ -112,29 +146,30 @@ export function deriveControlState(control, context = {}) {
     if (capabilities[control.capability] !== true) {
       return disabledStatus(value, 'Owner request channel unavailable — status only', { detail });
     }
-    if (providerOnline[control.stateItem] !== true) {
-      return unavailable('Provider health unavailable', detail);
+    const provider = providerAvailability(providerOnline[control.stateItem]);
+    if (!provider.online) {
+      return unavailable(provider.reason, provider.detail || detail);
     }
-    return enabledState(value, { detail });
+    return disabledStatus(value, 'Owner request submission unavailable — status only', { detail });
   }
 
   if (control.kind === 'action') {
     const reason = capabilities[control.capability] === true
-      ? 'Ready'
+      ? 'Feeder request submission unavailable — actuator status only'
       : 'Feeder request channel unavailable — actuator status only';
     return disabledStatus(value, reason);
   }
 
   if (control.kind === 'safety-request') {
     const reason = capabilities[control.capability] === true
-      ? 'Ready'
+      ? 'Circulation request submission unavailable — actuator status only'
       : 'Circulation request channel unavailable — actuator status only';
     return disabledStatus(value, reason);
   }
 
   if (control.kind === 'policy-status') {
     const reason = capabilities[control.capability] === true
-      ? 'Ready'
+      ? 'Owner request submission unavailable — status only'
       : 'Owner request channel unavailable — status only';
     return disabledStatus(value, reason);
   }
