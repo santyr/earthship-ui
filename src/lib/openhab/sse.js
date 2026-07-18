@@ -53,10 +53,10 @@ export function createSSE({ openhabUrl, apiToken, onState, onThingStatus = () =>
     if (stopped) return;
     if (es) { es.close(); }
     // EventSource cannot set an Authorization header, so openHAB's SSE auth is
-    // done via an accessToken query param instead of a Bearer header. Verified
-    // live against openHAB (see task-1.3-report.md): the token-in-query
-    // approach is accepted (no 401), so this is not just a fallback guess.
-    es = new EventSource(`${url}&accessToken=${encodeURIComponent(apiToken)}`);
+    // delegated to the same-origin Vite proxy in household deployments. Keep
+    // token-in-query only for explicit direct-OpenHAB development configs.
+    const eventUrl = apiToken ? `${url}&accessToken=${encodeURIComponent(apiToken)}` : url;
+    es = new EventSource(eventUrl);
     es.onopen = () => { backoff = 1000; setStatus('live'); armTimers(); };
     es.onmessage = (e) => {
       const itemState = parseSSEMessage(e.data);

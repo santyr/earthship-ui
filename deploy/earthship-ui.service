@@ -8,6 +8,7 @@ Type=simple
 WorkingDirectory=/home/sat/earthship-ui
 Environment=PATH=/home/sat/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
 Environment=RELEASE_MODE=safe-compat
+EnvironmentFile=/home/sat/.config/hex/openhab.env
 ExecStart=/home/sat/.npm-global/bin/npm run dev -- --host 0.0.0.0 --port 5190 --strictPort
 Restart=on-failure
 RestartSec=3

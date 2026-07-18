@@ -1,5 +1,5 @@
 {
   "openhabUrl": "",
-  "apiToken": "REPLACE_WITH_OPENHAB_API_TOKEN",
+  "apiToken": "",
   "staleBannerSeconds": 90
 }

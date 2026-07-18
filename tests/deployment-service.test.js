@@ -12,6 +12,9 @@ describe('household UI user service', () => {
     expect(source).toMatch(/^WorkingDirectory=\/home\/sat\/earthship-ui$/m);
     expect(source).toMatch(/^Environment=RELEASE_MODE=safe-compat$/m);
     expect(source).toMatch(
+      /^EnvironmentFile=\/home\/sat\/\.config\/hex\/openhab\.env$/m,
+    );
+    expect(source).toMatch(
       /^ExecStart=\/home\/sat\/\.npm-global\/bin\/npm run dev -- --host 0\.0\.0\.0 --port 5190 --strictPort$/m,
     );
     expect(source).toMatch(/^Restart=(?:on-failure|always)$/m);

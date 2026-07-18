@@ -14,6 +14,17 @@ it('getAllItems returns parsed array with auth header', async () => {
     expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer TK' }) }));
 });
 
+it('omits browser Authorization when the same-origin Vite proxy owns auth', async () => {
+  fetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+  await createClient({ openhabUrl: '', apiToken: '' }).getAllItems();
+
+  expect(fetch).toHaveBeenCalledWith(
+    '/rest/items?fields=name,state,type',
+    expect.objectContaining({ headers: {} }),
+  );
+});
+
 it('getAllThings returns provider statusInfo with auth header', async () => {
   fetch.mockResolvedValue({
     ok: true,

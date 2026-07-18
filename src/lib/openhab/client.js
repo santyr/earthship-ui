@@ -74,7 +74,7 @@ async function readBoundedJson(response) {
 }
 
 export function createClient({ openhabUrl, apiToken }) {
-  const h = { Authorization: `Bearer ${apiToken}` };
+  const h = apiToken ? { Authorization: `Bearer ${apiToken}` } : {};
   const base = openhabUrl.replace(/\/$/, '');
   return {
     async getAllItems() {

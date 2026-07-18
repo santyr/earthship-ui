@@ -235,6 +235,17 @@ describe('createSSE connection', () => {
     expect(liveCalls.length).toBe(1);
   });
 
+  it('keeps the server-owned token out of the browser EventSource URL', () => {
+    const sse = makeSSE({ openhabUrl: '', apiToken: '' });
+    sse.start();
+
+    const first = FakeES.instances[0];
+    expect(first.url).toContain('/rest/events?topics=');
+    expect(first.url).not.toContain('accessToken');
+    expect(first.url).not.toContain('token');
+  });
+
+
   it('subscribes to and forwards Thing status without conflating it with item state', () => {
     const onState = vi.fn();
     const onThingStatus = vi.fn();
