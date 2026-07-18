@@ -1,7 +1,11 @@
 <script>
+  import { onMount } from 'svelte';
   // SVG compass rose: needle points at `degrees` (0=N, clockwise), `speed`
   // shown centered, `gust` labeled on the outer ring.
-  let { degrees = 0, speed = null, gust = null } = $props();
+  let { degrees = 0, speed = null, gust = null, showGust = true } = $props();
+
+  let roseHost;
+  let roseSize = $state(0);
 
   const heading = $derived(((Number(degrees) || 0) % 360 + 360) % 360);
   const speedText = $derived(
@@ -14,9 +18,35 @@
     const rad = ((deg - 90) * Math.PI) / 180;
     return { x: 50 + r * Math.cos(rad), y: 50 + r * Math.sin(rad) };
   }
+
+  function fitRose(width, height) {
+    roseSize = Math.max(0, Math.floor(Math.min(width, height)));
+  }
+
+  onMount(() => {
+    const measure = () => {
+      const { width, height } = roseHost.getBoundingClientRect();
+      fitRose(width, height);
+    };
+
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      fitRose(width, height);
+    });
+    observer.observe(roseHost);
+    return () => observer.disconnect();
+  });
 </script>
 
 <div class="compass-wrap">
+  <div class="rose-host" bind:this={roseHost}>
+    <div class="compass-square" style="width: {roseSize}px; height: {roseSize}px;">
   <svg viewBox="0 0 100 100" class="compass-svg">
     <circle cx="50" cy="50" r="46" fill="none" stroke="#1c2230" stroke-width="1.5" />
     <circle cx="50" cy="50" r="34" fill="none" stroke="#1c2230" stroke-width="1" />
@@ -51,20 +81,39 @@
     <div class="compass-speed">{speedText}</div>
     <div class="compass-unit">mph</div>
   </div>
+    </div>
+  </div>
 
-  {#if gust !== null && gust !== undefined && gust !== '—' && !Number.isNaN(gust)}
+  {#if showGust && gust !== null && gust !== undefined && gust !== '—' && !Number.isNaN(gust)}
     <div class="compass-gust">gust {gust}</div>
   {/if}
 </div>
 
 <style>
   .compass-wrap {
-    position: relative;
     width: 100%;
-    aspect-ratio: 1 / 1;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 0.15rem;
+    overflow: hidden;
+  }
+  .rose-host {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  .compass-square {
+    position: relative;
+    flex: 0 0 auto;
+    max-width: 100%;
+    max-height: 100%;
   }
   .compass-svg {
     width: 100%;
@@ -99,10 +148,7 @@
     letter-spacing: 0.06em;
   }
   .compass-gust {
-    position: absolute;
-    bottom: -0.1rem;
-    left: 50%;
-    transform: translateX(-50%);
+    text-align: center;
     font-size: 0.7rem;
     color: #22c55e;
     white-space: nowrap;

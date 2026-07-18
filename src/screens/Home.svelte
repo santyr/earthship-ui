@@ -40,7 +40,6 @@
   let outdoorSpark = $state([]);
   let battSpark = $state([]);
   let baroSpark = $state([]);
-  let btcSpark = $state([]);
   let windGustMaxToday = $state(null);
   let loadToday = $state(null);
 
@@ -101,9 +100,6 @@
   async function refreshBaroSpark() {
     baroSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6);
   }
-  async function refreshBtcSpark() {
-    btcSpark = await fetchHistorySafe('BTC_USD_Price', 6);
-  }
 
   const SPARK_REFRESH_MS = 300000; // 5 minutes
   let sparkRefreshTimer;
@@ -112,7 +108,6 @@
     refreshOutdoorSpark();
     refreshBattSpark();
     refreshBaroSpark();
-    refreshBtcSpark();
     refreshLoadToday();
     // No dedicated "max wind today" item exists, so derive it from a 24h
     // gust history pull rather than inventing an item name.
@@ -125,7 +120,6 @@
       refreshOutdoorSpark();
       refreshBattSpark();
       refreshBaroSpark();
-      refreshBtcSpark();
       refreshLoadToday();
     }, SPARK_REFRESH_MS);
   });
@@ -303,12 +297,12 @@
   const rainFooter = $derived.by(() => {
     const parts = [];
     if (hasItem('AmbientWeatherWS2902A_RainFallEvent'))
-      parts.push(`event ${fmt($items.AmbientWeatherWS2902A_RainFallEvent, '″', 2)}`);
+      parts.push(`evt ${fmt($items.AmbientWeatherWS2902A_RainFallEvent, '″', 2)}`);
     if (hasItem('AmbientWeatherWS2902A_RainFallWeek'))
       parts.push(`wk ${fmt($items.AmbientWeatherWS2902A_RainFallWeek, '″', 2)}`);
     if (hasItem('AmbientWeatherWS2902A_RainFallMonth'))
       parts.push(`mo ${fmt($items.AmbientWeatherWS2902A_RainFallMonth, '″', 2)}`);
-    return parts.join(' · ');
+    return parts.join('·');
   });
 
   const curtailHours = $derived(num($items.Predicted_Curtailment_Hours));
@@ -566,7 +560,6 @@
           <span class="btc-price">{btcPriceText}</span>
           <span class="btc-pct" style="color: {btcPctColor}">{btcPctText}</span>
         </div>
-        <div class="btc-spark"><Sparkline data={btcSpark} color={BTC_ACCENT} lineWidth={2} /></div>
       </div>
     </Tile>
   </div>
@@ -581,9 +574,12 @@
     <Tile label="Wind" accent={colors.wind}>
       <div class="wind-body">
         <div class="compass-cap">
-          <CompassRose degrees={windDeg} speed={windSpeedR} gust={windGustR} />
+          <CompassRose degrees={windDeg} speed={windSpeedR} gust={windGustR} showGust={false} />
         </div>
-        <div class="wind-max">max today {windGustMaxToday === null ? '—' : Math.round(windGustMaxToday)} mph</div>
+        <div class="wind-meta">
+          <span class="wind-gust">gust {windGustR === null ? '—' : windGustR} mph</span>
+          <span class="wind-max">max {windGustMaxToday === null ? '—' : Math.round(windGustMaxToday)} mph</span>
+        </div>
       </div>
     </Tile>
   </div>
@@ -895,7 +891,7 @@
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
-    color: #f59e0b;
+    color: #fff;
   }
   .aqi-chip {
     margin-left: auto;
@@ -918,6 +914,12 @@
   .outdoor-spark {
     flex: 1;
     min-height: 2.2rem;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  :global(.outdoor-cell .tile) {
+    overflow: hidden;
   }
 
   /* ---- Indoor ---- */
@@ -928,17 +930,17 @@
     gap: 0.85rem;
   }
   .indoor-temp {
-    font-size: 2rem;
+    font-size: 2.6rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
-    color: #f59e0b;
+    color: #fff;
   }
   .indoor-meta {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
   }
   .indoor-hum {
     font-weight: 600;
@@ -1004,7 +1006,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    gap: 0.3rem;
+    justify-content: center;
     overflow: hidden;
   }
   .btc-top {
@@ -1025,40 +1027,60 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
-  .btc-spark {
-    flex: 1;
-    min-height: 1.4rem;
-    overflow: hidden;
-  }
-
   /* ---- Wind ---- */
-  /* The compass rose is a pure-SVG aspect-ratio:1/1 element sized by its
-     container's width; left unconstrained it grows wider than this card's
-     row is tall and spills past the tile border. Cap it well under the
-     card's shortest dimension and clip as a safety net. */
+  /* The rose measures the remaining content box. Gust and daily maximum stay
+     in a dedicated row so they can never overlap the needle. */
   :global(.wind-cell .tile) {
     overflow: hidden;
+    padding: 0.55rem 0.65rem;
+  }
+  :global(.wind-cell .tile-label) {
+    margin-bottom: 0.2rem;
+    flex-shrink: 0;
   }
   .wind-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
     height: 100%;
-    justify-content: center;
     gap: 0.25rem;
     overflow: hidden;
     min-height: 0;
+    min-width: 0;
   }
   .compass-cap {
     width: 100%;
-    max-width: 4.6rem;
-    flex: 0 1 auto;
+    height: 100%;
     min-height: 0;
+    min-width: 0;
+  }
+  .wind-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.68rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .wind-gust {
+    color: #22c55e;
   }
   .wind-max {
-    font-size: 0.68rem;
     color: #8b93a1;
-    flex: 0 0 auto;
+  }
+
+  /* ---- Rain ---- */
+  .rain-cell :global(.value) {
+    font-size: 2.15rem;
+  }
+  .rain-cell :global(.footer) {
+    font-size: 0.72rem;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+  }
+  .rain-cell :global(.tile) {
+    overflow: hidden;
   }
 
   /* ---- Baro ---- */
@@ -1135,7 +1157,7 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.74rem;
+    font-size: 0.86rem;
     color: #c7cfd9;
     line-height: 1.15;
     white-space: nowrap;

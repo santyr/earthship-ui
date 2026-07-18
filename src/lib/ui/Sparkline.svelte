@@ -39,9 +39,24 @@
   onMount(() => {
     chart = echarts.init(el, null, { renderer: 'svg' });
     chart.setOption(buildOption(data ?? [], color, lineWidth));
-    const onResize = () => chart?.resize();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+
+    const resize = (width, height) => {
+      if (width > 0 && height > 0) chart?.resize({ width, height });
+    };
+
+    if (typeof ResizeObserver === 'undefined') {
+      const onResize = () => resize(el.clientWidth, el.clientHeight);
+      window.addEventListener('resize', onResize);
+      onResize();
+      return () => window.removeEventListener('resize', onResize);
+    }
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      resize(width, height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   });
 
   $effect(() => {
@@ -60,6 +75,9 @@
   .sparkline {
     width: 100%;
     height: 100%;
-    min-height: 2.5rem;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
   }
 </style>
