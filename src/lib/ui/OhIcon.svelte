@@ -4,7 +4,7 @@
   // strings look like 'iconify:mdi:moon-waxing-crescent' or
   // 'iconify:bi:cloud-sun-fill'; we strip the 'iconify:' prefix and hand
   // the rest ('mdi:name' / 'bi:name') straight to the offline Icon.
-  import { addCollection } from '@iconify/svelte/dist/OfflineIcon.svelte';
+  import { addCollection } from '@iconify/svelte/offline';
   import mdiIcons from '@iconify-json/mdi/icons.json';
   import biIcons from '@iconify-json/bi/icons.json';
 
@@ -13,7 +13,7 @@
 </script>
 
 <script>
-  import Icon from '@iconify/svelte/dist/OfflineIcon.svelte';
+  import Icon from '@iconify/svelte/offline';
 
   // icon: raw openHAB icon string, e.g. 'iconify:mdi:moon-waxing-crescent'.
   // NULL-safe: empty/NULL/UNDEF/missing -> render nothing.
