@@ -46,11 +46,17 @@ The helper returns compact northern-hemisphere wording:
 
 Sun & Moon renders this as a fourth centered, ellipsized row. Its existing rise/set, moon phase, and daylight lines remain.
 
+## Outdoor Temperature Sparkline
+
+The Outdoor sparkline consumes the same live temperature-band color value as the Outdoor condition icon. There is one shared threshold calculation, so the icon and line cannot drift apart as temperature changes. Every band color must retain at least 3:1 non-text contrast against the `#11151c` card background; the coldest purple is lightened only as much as needed to satisfy that floor.
+
+
 ## Testing
 
 Testing follows red-green-refactor:
 
 - Pure tests cover count formatting, invalid values, reducer initialization, duplicate states, unknown states, OFF-to-ON activation, seasonal ordering, year rollover, event-day wording, and DST-safe calendar-day differences.
+- Pure and source-contract tests prove all Outdoor temperature bands meet the contrast floor and the sparkline consumes the same derived color as the icon.
 - Component tests cover the steady card, initial snapshot suppression, visual activation/expiry, audio gesture gating, audio failure tolerance, reduced-motion markup, cleanup, and the absence of command behavior.
 - Source-contract tests pin the 4/1/1 grid and read-only item wiring.
 - Playwright runs both 1340×800 and 1280×720 fixtures, asserts no page/tile/content overflow, verifies Power Flow is not clipped, confirms no activation on initial `ON`, then drives `OFF` to `ON` and observes the goat icon.
