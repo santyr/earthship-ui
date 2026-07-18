@@ -15,7 +15,12 @@ import {
 } from './red-sentinel-inventory.mjs';
 
 const RUNNERS = new Set(['vitest', 'playwright']);
+const ALTERNATE_FILTER_FLAGS = Object.freeze({
+  vitest: Object.freeze(['--testNamePattern', '--test-name-pattern']),
+  playwright: Object.freeze(['-g', '--grep-invert']),
+});
 const TEST_SOURCE_RE = /(?:^|\/)tests\/.+\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/;
+const VITEST_REPORTER_PATH = fileURLToPath(new URL('./red-vitest-reporter.mjs', import.meta.url));
 const REPORTER_PATH = fileURLToPath(new URL('./red-playwright-reporter.mjs', import.meta.url));
 const MAX_DIAGNOSTIC_CHARS = 2_000;
 
@@ -49,6 +54,10 @@ function flagValue(command, flag) {
     }
   }
   return values;
+}
+
+function hasFlag(command, flag) {
+  return command.some((value) => value === flag || String(value).startsWith(`${flag}=`));
 }
 
 export function parseExpectedFailureArgs(argv) {
@@ -87,6 +96,9 @@ export function parseExpectedFailureArgs(argv) {
   if (filters.length !== 1 || filters[0] !== expectedFilter(sentinel)) {
     throw new Error(`runner requires one exact anchored ${filterFlag} filter for [${sentinel}]`);
   }
+  if (ALTERNATE_FILTER_FLAGS[runner].some((flag) => hasFlag(command, flag))) {
+    throw new Error(`alternate or conflicting ${runner} name filter is not allowed`);
+  }
   if (command.some((value) => String(value).startsWith('--reporter')
     || String(value).startsWith('--outputFile'))) {
     throw new Error('caller-supplied reporter output is not allowed');
@@ -101,31 +113,30 @@ function firstErrorLine(value) {
 }
 
 function normalizeVitestReport(report) {
-  if (!report || typeof report !== 'object' || !Array.isArray(report.testResults)) {
+  if (!report || report.schema !== 'earthship-red-vitest-report/v1'
+    || !Array.isArray(report.tests) || !Array.isArray(report.errors)) {
     throw new Error('malformed Vitest report structure');
   }
-  if (Array.isArray(report.unhandledErrors) && report.unhandledErrors.length > 0) {
-    throw new Error('Vitest runner error or unhandled error present');
+  if (report.errors.length > 0) {
+    const error = report.errors[0];
+    const phase = String(error?.phase ?? 'runner');
+    throw new Error(`Vitest ${phase} error: ${bounded(error?.message ?? error)}`);
   }
-  if (Number(report.numTotalTests) !== 1
-    || Number(report.numFailedTests) !== 1
-    || Number(report.numPassedTests) !== 0
-    || Number(report.numPendingTests ?? 0) !== 0) {
+  if (report.status !== 'failed'
+    || Number(report.declaredTests) !== 1
+    || report.tests.length !== 1) {
     throw new Error('expected exactly one executed and failed test');
   }
-  const assertions = report.testResults.flatMap((result) => (
-    Array.isArray(result.assertionResults) ? result.assertionResults : []
-  ));
-  if (assertions.length !== 1 || assertions[0]?.status !== 'failed') {
-    throw new Error('expected exactly one failed Vitest assertion');
+  const test = report.tests[0];
+  if (test?.status !== 'failed') {
+    throw new Error(`expected exactly one failed Vitest test; received ${test?.status ?? 'unknown'}`);
   }
-  const failures = assertions[0].failureMessages;
-  if (!Array.isArray(failures) || failures.length !== 1) {
-    throw new Error('expected exactly one Vitest assertion error');
+  if (!Array.isArray(test.errors) || test.errors.length !== 1) {
+    throw new Error('expected exactly one Vitest test error');
   }
   return {
-    title: String(assertions[0].title ?? ''),
-    error: firstErrorLine(failures[0]),
+    title: String(test.title ?? ''),
+    error: firstErrorLine(test.errors[0]),
   };
 }
 
@@ -173,7 +184,7 @@ export function validateExpectedFailureReport({
 
 function runnerCommand(parsed, reportPath) {
   if (parsed.runner === 'vitest') {
-    return [...parsed.command, '--reporter=json', `--outputFile=${reportPath}`];
+    return [...parsed.command, `--reporter=${VITEST_REPORTER_PATH}`];
   }
   return [...parsed.command, `--reporter=${REPORTER_PATH}`];
 }

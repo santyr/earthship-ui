@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const INVENTORY_URL = new URL('../tools/qa/red-sentinel-inventory.mjs', import.meta.url);
+const VITEST_REPORTER_URL = new URL('../tools/qa/red-vitest-reporter.mjs', import.meta.url);
 const PLAYWRIGHT_REPORTER_URL = new URL('../tools/qa/red-playwright-reporter.mjs', import.meta.url);
 const EXPECT_FAILURE_URL = new URL('../tools/qa/expect-failure.mjs', import.meta.url);
 
@@ -80,19 +81,15 @@ async function inventoryModule() {
 
 function vitestReport(sentinel, overrides = {}) {
   return {
-    numTotalTests: 1,
-    numPassedTests: 0,
-    numFailedTests: 1,
-    numPendingTests: 0,
-    testResults: [{
+    schema: 'earthship-red-vitest-report/v1',
+    status: 'failed',
+    declaredTests: 1,
+    tests: [{
+      title: `[${sentinel}] expected missing owner`,
       status: 'failed',
-      message: '',
-      assertionResults: [{
-        title: `[${sentinel}] expected missing owner`,
-        status: 'failed',
-        failureMessages: [`Error: [${sentinel}] expected missing contract`],
-      }],
+      errors: [`[${sentinel}] expected missing contract`],
     }],
+    errors: [],
     ...overrides,
   };
 }
@@ -345,6 +342,10 @@ describe('RED Playwright reporter contract', () => {
       status: 'failed',
       errors: [{ message: '[RED:T14A-1] expected missing contract' }],
     });
+    reporter.onStepEnd(test, {}, {
+      category: 'hook',
+      error: { message: '[RED:T14A-1] beforeEach failed' },
+    });
     reporter.onError({ message: 'collection problem' });
     await reporter.onEnd({ status: 'failed' });
 
@@ -359,7 +360,179 @@ describe('RED Playwright reporter contract', () => {
         status: 'failed',
         errors: ['[RED:T14A-1] expected missing contract'],
       }],
-      errors: ['collection problem'],
+      errors: [
+        { phase: 'hook', message: '[RED:T14A-1] beforeEach failed' },
+        { phase: 'runner', message: 'collection problem' },
+      ],
+    });
+  });
+
+  it('marks a Playwright timed-out test as a forbidden timeout phase', async () => {
+    const { default: Reporter } = await import(PLAYWRIGHT_REPORTER_URL);
+    const root = await fixture();
+    const outputFile = join(root, 'playwright-timeout.json');
+    const reporter = new Reporter({ outputFile });
+    const test = { title: '[RED:T7A-2] expected missing chart' };
+
+    reporter.onBegin({}, { allTests: () => [test] });
+    reporter.onTestEnd(test, {
+      status: 'timedOut',
+      errors: [{ message: 'Test timeout of 5ms exceeded' }],
+    });
+    await reporter.onEnd({ status: 'timedout' });
+
+    expect(JSON.parse(await readFile(outputFile, 'utf8')).errors).toEqual([
+      { phase: 'timeout', message: 'Test timeout of 5ms exceeded' },
+    ]);
+  });
+
+  it('counts only Playwright tests that reached a result', async () => {
+    const { default: Reporter } = await import(PLAYWRIGHT_REPORTER_URL);
+    const root = await fixture();
+    const outputFile = join(root, 'playwright-filtered.json');
+    const reporter = new Reporter({ outputFile });
+    const selected = { title: '[RED:T7A-2] expected missing chart' };
+    const filtered = { title: 'ordinary chart simulation' };
+
+    reporter.onBegin({}, { allTests: () => [selected, filtered] });
+    reporter.onTestEnd(selected, {
+      status: 'failed',
+      errors: [{ message: '[RED:T7A-2] expected missing contract' }],
+    });
+    await reporter.onEnd({ status: 'failed' });
+
+    expect(JSON.parse(await readFile(outputFile, 'utf8'))).toMatchObject({
+      declaredTests: 1,
+      tests: [{ title: '[RED:T7A-2] expected missing chart', status: 'failed' }],
+    });
+  });
+});
+
+describe('RED Vitest reporter contract', () => {
+  it('exports a dedicated reporter that requires an isolated output path', async () => {
+    let Reporter;
+    try {
+      ({ default: Reporter } = await import(VITEST_REPORTER_URL));
+    } catch (error) {
+      if (error?.code === 'ERR_MODULE_NOT_FOUND'
+        && error.message.includes(VITEST_REPORTER_URL.pathname)) {
+        expect.fail(`missing RED Vitest reporter module: ${VITEST_REPORTER_URL.pathname}`);
+      }
+      throw error;
+    }
+
+    expect(Reporter).toBeTypeOf('function');
+    expect(() => new Reporter()).toThrow(/output path/i);
+  });
+
+  it('records assertion, hook, suite, and runner failures in separate channels', async () => {
+    const { default: Reporter } = await import(VITEST_REPORTER_URL);
+    const root = await fixture();
+    const outputFile = join(root, 'vitest-report.json');
+    const reporter = new Reporter({ outputFile });
+    const assertionError = { message: '[RED:T14A-1] expected missing contract' };
+    const hookError = { message: '[RED:T14A-1] beforeEach failed' };
+    let testErrors = [assertionError];
+    const testCase = {
+      name: '[RED:T14A-1] expected missing owner',
+      fullName: '[RED:T14A-1] expected missing owner',
+      result: () => ({ state: 'failed', errors: testErrors }),
+    };
+    const module = {
+      children: { allTests: () => [testCase][Symbol.iterator]() },
+      errors: () => [{ message: 'import failed' }],
+    };
+
+    reporter.onTestModuleCollected(module);
+    reporter.onHookStart({ name: 'beforeEach', entity: testCase });
+    testErrors = [assertionError, hookError];
+    reporter.onHookEnd({ name: 'beforeEach', entity: testCase });
+    reporter.onTestCaseResult(testCase);
+    await reporter.onTestRunEnd(
+      [module],
+      [{ message: 'setup worker failed' }],
+      'failed',
+    );
+
+    expect(await readdir(root)).toEqual(['vitest-report.json']);
+    expect(JSON.parse(await readFile(outputFile, 'utf8'))).toEqual({
+      schema: 'earthship-red-vitest-report/v1',
+      status: 'failed',
+      declaredTests: 1,
+      tests: [{
+        title: '[RED:T14A-1] expected missing owner',
+        status: 'failed',
+        errors: [
+          '[RED:T14A-1] expected missing contract',
+          '[RED:T14A-1] beforeEach failed',
+        ],
+      }],
+      errors: [
+        { phase: 'hook', message: '[RED:T14A-1] beforeEach failed' },
+        { phase: 'suite', message: 'import failed' },
+        { phase: 'runner', message: 'setup worker failed' },
+      ],
+    });
+  });
+
+  it('marks a Vitest timed-out test as a forbidden timeout phase', async () => {
+    const { default: Reporter } = await import(VITEST_REPORTER_URL);
+    const root = await fixture();
+    const outputFile = join(root, 'vitest-timeout.json');
+    const reporter = new Reporter({ outputFile });
+    const testCase = {
+      name: '[RED:T14A-1] expected missing owner',
+      result: () => ({
+        state: 'failed',
+        errors: [{ name: 'Error', message: 'Test timed out in 5ms.' }],
+      }),
+    };
+    const module = {
+      children: { allTests: () => [testCase][Symbol.iterator]() },
+      errors: () => [],
+    };
+
+    reporter.onTestModuleCollected(module);
+    reporter.onTestCaseResult(testCase);
+    await reporter.onTestRunEnd([module], [], 'failed');
+
+    expect(JSON.parse(await readFile(outputFile, 'utf8')).errors).toEqual([
+      { phase: 'timeout', message: 'Test timed out in 5ms.' },
+    ]);
+  });
+
+  it('counts only executed tests after the exact name filter', async () => {
+    const { default: Reporter } = await import(VITEST_REPORTER_URL);
+    const root = await fixture();
+    const outputFile = join(root, 'vitest-filtered.json');
+    const reporter = new Reporter({ outputFile });
+    const failed = {
+      name: '[RED:T14A-1] expected missing owner',
+      result: () => ({
+        state: 'failed',
+        errors: [{ message: '[RED:T14A-1] expected missing contract' }],
+      }),
+    };
+    const skipped = {
+      name: 'ordinary feeder simulation',
+      result: () => ({ state: 'skipped', errors: undefined }),
+    };
+    const module = {
+      children: { allTests: () => [failed, skipped][Symbol.iterator]() },
+      errors: () => [],
+    };
+
+    reporter.onTestModuleCollected(module);
+    reporter.onTestCaseResult(skipped);
+    reporter.onTestCaseResult(failed);
+    await reporter.onTestRunEnd([module], [], 'failed');
+
+    expect(JSON.parse(await readFile(outputFile, 'utf8'))).toMatchObject({
+      declaredTests: 1,
+      tests: [{
+        title: '[RED:T14A-1] expected missing owner',
+        status: 'failed',
+      }],
     });
   });
 });
@@ -412,6 +585,29 @@ describe('structured RED wrapper contract', () => {
     ])).toThrow(/exactly one.*producer|selected file/i);
   });
 
+  it('rejects every alternate or conflicting runner name filter', async () => {
+    const { parseExpectedFailureArgs } = await import(EXPECT_FAILURE_URL);
+
+    for (const extra of [
+      ['--testNamePattern', '^wrong$'],
+      ['--testNamePattern=^wrong$'],
+      ['--test-name-pattern', '^wrong$'],
+    ]) {
+      expect(() => parseExpectedFailureArgs([...vitestArgs(), ...extra]))
+        .toThrow(/alternate|conflicting|filter/i);
+    }
+
+    for (const extra of [
+      ['-g', '^wrong$'],
+      ['-g=^wrong$'],
+      ['--grep-invert', '^wrong$'],
+      ['--grep-invert=^wrong$'],
+    ]) {
+      expect(() => parseExpectedFailureArgs([...playwrightArgs(), ...extra]))
+        .toThrow(/alternate|conflicting|filter/i);
+    }
+  });
+
   it('accepts only one sentinel-prefixed failed test from either report shape', async () => {
     const { validateExpectedFailureReport } = await import(EXPECT_FAILURE_URL);
 
@@ -448,24 +644,24 @@ describe('structured RED wrapper contract', () => {
     expect(() => validateExpectedFailureReport({
       ...base,
       report: vitestReport('RED:T14A-1', {
-        testResults: [{ status: 'failed', message: '', assertionResults: [{
+        tests: [{
           title: 'wrong title', status: 'failed',
-          failureMessages: ['Error: [RED:T14A-1] expected missing contract'],
-        }] }],
+          errors: ['[RED:T14A-1] expected missing contract'],
+        }],
       }),
     })).toThrow(/title.*sentinel/i);
     expect(() => validateExpectedFailureReport({
       ...base,
       report: vitestReport('RED:T14A-1', {
-        testResults: [{ status: 'failed', message: '', assertionResults: [{
+        tests: [{
           title: '[RED:T14A-1] expected missing owner', status: 'failed',
-          failureMessages: ['Error: timeout exceeded'],
-        }] }],
+          errors: ['timeout exceeded'],
+        }],
       }),
     })).toThrow(/error.*sentinel/i);
     expect(() => validateExpectedFailureReport({
       ...base,
-      report: vitestReport('RED:T14A-1', { numTotalTests: 2, numFailedTests: 2 }),
+      report: vitestReport('RED:T14A-1', { declaredTests: 2 }),
     })).toThrow(/exactly one.*test/i);
     expect(() => validateExpectedFailureReport({
       runner: 'playwright',
@@ -474,6 +670,50 @@ describe('structured RED wrapper contract', () => {
       exitCode: 1,
       signal: null,
     })).toThrow(/runner error|collection/i);
+  });
+
+  it('rejects every non-assertion phase, timeout, and additional same-test error', async () => {
+    const { validateExpectedFailureReport } = await import(EXPECT_FAILURE_URL);
+    const base = {
+      runner: 'vitest',
+      sentinel: 'RED:T14A-1',
+      exitCode: 1,
+      signal: null,
+    };
+
+    for (const phase of ['collection', 'import', 'setup', 'hook', 'suite']) {
+      expect(() => validateExpectedFailureReport({
+        ...base,
+        report: vitestReport('RED:T14A-1', {
+          errors: [{ phase, message: `${phase} failed` }],
+        }),
+      })).toThrow(new RegExp(`${phase}|runner error`, 'i'));
+    }
+
+    expect(() => validateExpectedFailureReport({
+      ...base,
+      report: vitestReport('RED:T14A-1', {
+        tests: [{
+          title: '[RED:T14A-1] expected missing owner',
+          status: 'timedout',
+          errors: ['[RED:T14A-1] timeout exceeded'],
+        }],
+      }),
+    })).toThrow(/timed?out|failed.*test/i);
+
+    expect(() => validateExpectedFailureReport({
+      ...base,
+      report: vitestReport('RED:T14A-1', {
+        tests: [{
+          title: '[RED:T14A-1] expected missing owner',
+          status: 'failed',
+          errors: [
+            '[RED:T14A-1] expected missing contract',
+            '[RED:T14A-1] afterEach also failed',
+          ],
+        }],
+      }),
+    })).toThrow(/exactly one.*error/i);
   });
 
   it('injects reporters, validates inventory, and always removes report artifacts', async () => {
@@ -486,7 +726,8 @@ describe('structured RED wrapper contract', () => {
     const { executeExpectedFailure } = await import(EXPECT_FAILURE_URL);
     let reportPath;
     const spawn = (_command, args, options) => {
-      reportPath = args.find((arg) => arg.startsWith('--outputFile='))?.split('=')[1];
+      reportPath = options.env.EARTHSHIP_RED_REPORT_PATH;
+      expect(args.some((arg) => arg.includes('red-vitest-reporter.mjs'))).toBe(true);
       writeFileSync(reportPath, JSON.stringify(vitestReport('RED:T14A-1')));
       return { status: 1, signal: null, stdout: 'untrusted output', stderr: '' };
     };
@@ -523,15 +764,15 @@ describe('structured RED wrapper contract', () => {
     const { executeExpectedFailure } = await import(EXPECT_FAILURE_URL);
     const attempts = [];
 
-    const missing = (_command, args) => {
-      attempts.push(args.find((arg) => arg.startsWith('--outputFile='))?.split('=')[1]);
+    const missing = (_command, _args, options) => {
+      attempts.push(options.env.EARTHSHIP_RED_REPORT_PATH);
       return { status: 1, signal: null, stdout: '', stderr: '' };
     };
     expect(() => executeExpectedFailure({ argv: vitestArgs(), cwd: rootDir, spawn: missing }))
       .toThrow(/missing report/i);
 
-    const malformed = (_command, args) => {
-      const path = args.find((arg) => arg.startsWith('--outputFile='))?.split('=')[1];
+    const malformed = (_command, _args, options) => {
+      const path = options.env.EARTHSHIP_RED_REPORT_PATH;
       attempts.push(path);
       writeFileSync(path, '{not-json');
       return { status: 1, signal: null, stdout: '', stderr: '' };
@@ -539,8 +780,8 @@ describe('structured RED wrapper contract', () => {
     expect(() => executeExpectedFailure({ argv: vitestArgs(), cwd: rootDir, spawn: malformed }))
       .toThrow(/malformed report/i);
 
-    const duplicate = (_command, args) => {
-      const path = args.find((arg) => arg.startsWith('--outputFile='))?.split('=')[1];
+    const duplicate = (_command, _args, options) => {
+      const path = options.env.EARTHSHIP_RED_REPORT_PATH;
       attempts.push(path);
       writeFileSync(path, JSON.stringify(vitestReport('RED:T14A-1')));
       writeFileSync(join(dirname(path), 'extra.json'), '{}');

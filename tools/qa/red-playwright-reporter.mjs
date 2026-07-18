@@ -19,11 +19,12 @@ export default class RedPlaywrightReporter {
     this.errors = [];
   }
 
-  onBegin(_config, suite) {
-    this.declaredTests = typeof suite?.allTests === 'function' ? suite.allTests().length : 0;
+  onBegin() {
+    // Executed tests are counted from results so grep-filtered tests do not count.
   }
 
   onTestEnd(test, result) {
+    this.declaredTests += 1;
     this.tests.push({
       title: String(test?.title ?? ''),
       titlePath: typeof test?.titlePath === 'function'
@@ -32,10 +33,24 @@ export default class RedPlaywrightReporter {
       status: String(result?.status ?? 'unknown'),
       errors: Array.isArray(result?.errors) ? result.errors.map(errorMessage) : [],
     });
+    if (result?.status === 'timedOut') {
+      this.errors.push({
+        phase: 'timeout',
+        message: errorMessage(result?.errors?.[0] ?? 'Playwright test timed out'),
+      });
+    }
+  }
+
+  onStepEnd(_test, _result, step) {
+    if (!step?.error || !['fixture', 'hook'].includes(step.category)) return;
+    this.errors.push({
+      phase: step.category === 'fixture' ? 'setup' : 'hook',
+      message: errorMessage(step.error),
+    });
   }
 
   onError(error) {
-    this.errors.push(errorMessage(error));
+    this.errors.push({ phase: 'runner', message: errorMessage(error) });
   }
 
   async onEnd(result) {
