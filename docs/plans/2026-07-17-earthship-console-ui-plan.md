@@ -1,5 +1,12 @@
 # Earthship Console UI Implementation Plan
 
+> **Archived and superseded:** This original scaffold plan is retained only as
+> implementation history. Do not follow its nginx, PWA, broad-resolution, or
+> browser-token instructions. The supported household deployment is the Vite
+> user service in `deploy/earthship-ui.service`; `config.json` uses an empty
+> `apiToken`, while the protected `OPENHAB_TOKEN` is loaded by systemd and
+> injected only by the server-side proxy.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A tablet-first, WS-2000-console-style household dashboard for the off-grid Earthship openHAB system (weather, battery/solar, passive-thermal, greywater, subtle BTC), rendering live data with safety-gated controls.
