@@ -201,6 +201,7 @@
       'outlook outlook outlook outlook outlook outlook'
       'vitals vitals vitals vitals vitals vitals';
     gap: 0.75rem;
+    overflow: hidden;
   }
   .cell {
     min-width: 0;
@@ -439,5 +440,12 @@
   }
   .lamp-dot.ok {
     background: #22c55e;
+  }
+
+  @media (min-width: 1280px) and (max-height: 720px) {
+    .energy-grid {
+      grid-template-rows: 13.75rem minmax(11.75rem, 1fr) 6.875rem 5.625rem;
+      gap: 0.65rem;
+    }
   }
 </style>
