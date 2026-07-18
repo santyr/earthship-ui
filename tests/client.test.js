@@ -24,6 +24,20 @@ it('getHistory maps time/state to numbers', async () => {
   const h = await createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' });
   expect(h).toEqual([{ time: 1000, state: 54 }, { time: 2000, state: 55.5 }]);
 });
+it('getHistory forwards one cancellation signal to fetch', async () => {
+  fetch.mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
+  const controller = new AbortController();
+  await createClient(cfg).getHistory('BMS_SOC', {
+    starttime: 'a',
+    endtime: 'b',
+    signal: controller.signal,
+  });
+
+  expect(fetch).toHaveBeenCalledWith(
+    expect.stringContaining('/rest/persistence/items/BMS_SOC?'),
+    expect.objectContaining({ signal: controller.signal }),
+  );
+});
 it('sendCommand throws on non-ok', async () => {
   fetch.mockResolvedValue({ ok: false, status: 500 });
   await expect(createClient(cfg).sendCommand('Sw', 'ON')).rejects.toThrow(/500/);

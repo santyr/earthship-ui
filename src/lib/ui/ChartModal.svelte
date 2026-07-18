@@ -7,9 +7,13 @@
   import { onDestroy, tick } from 'svelte';
   import * as echarts from 'echarts';
   import { chartStore, closeChart } from './chartStore.js';
-  import { echartsTheme, colors } from './tokens.js';
+  import { buildHistoryOption } from '../charts/options.js';
+  import {
+    HISTORY_PERIOD_PRESETS,
+    createHistoryWindow,
+    snapHistoryPeriod,
+  } from '../charts/periods.js';
   import { getClientOnce } from '../openhab/index.js';
-  import { num } from '../openhab/values.js';
 
   let el = $state();
   let chart;
@@ -20,78 +24,28 @@
   // call (superseded by a newer openChart()) overwriting current state
   // once its awaited work finally resolves.
   let loadGen = 0;
-
-  // Period picker presets — 4h / 24h / 7d / 30d, mapped to hours. The modal
-  // reads chartStore's `hours` only as the initial value for whichever
-  // chart was just opened; from then on the picker owns the active window
-  // locally, same pattern as HistoryChart.
-  const PERIOD_PRESETS = [
-    { label: '4h', hours: 4 },
-    { label: '24h', hours: 24 },
-    { label: '7d', hours: 168 },
-    { label: '30d', hours: 720 },
-  ];
-
-  function snapToPreset(h) {
-    if (!Number.isFinite(h)) return 24;
-    let best = PERIOD_PRESETS[0];
-    let bestDiff = Math.abs(h - best.hours);
-    for (const p of PERIOD_PRESETS) {
-      const diff = Math.abs(h - p.hours);
-      if (diff < bestDiff) {
-        best = p;
-        bestDiff = diff;
-      }
-    }
-    return best.hours;
-  }
-
+  let observedOpenId = 0;
+  let requestController;
+  let resizeObserver;
   let activeHours = $state(24);
 
   function disposeChart() {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
     chart?.dispose();
     chart = null;
   }
 
-  function buildOption(series, pointsPerSeries) {
-    return {
-      ...echartsTheme,
-      grid: { left: 52, right: 24, top: 56, bottom: 40 },
-      legend: {
-        data: series.map((s) => s.label || s.name),
-        textStyle: { color: colors.label },
-        top: 8,
-      },
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'time',
-        axisLine: echartsTheme.categoryAxis.axisLine,
-        axisLabel: echartsTheme.categoryAxis.axisLabel,
-        splitLine: { show: false },
-      },
-      yAxis: {
-        type: 'value',
-        scale: true,
-        axisLine: echartsTheme.valueAxis.axisLine,
-        axisLabel: echartsTheme.valueAxis.axisLabel,
-        splitLine: echartsTheme.valueAxis.splitLine,
-      },
-      series: series.map((s, i) => ({
-        name: s.label || s.name,
-        type: 'line',
-        showSymbol: false,
-        smooth: true,
-        lineStyle: { width: 2, color: s.color },
-        itemStyle: { color: s.color },
-        data: (pointsPerSeries[i] || [])
-          .map((p) => [new Date(p.time).getTime(), num(p.state)])
-          .filter((pt) => pt[1] !== null),
-      })),
-      animation: false,
-    };
+  function cancelPending() {
+    requestController?.abort();
+    requestController = null;
   }
 
-  async function loadAndRender(seriesList, hoursVal) {
+  async function loadAndRender(seriesList, hoursVal, expectedOpenId) {
+    if (!$chartStore.open || $chartStore.openId !== expectedOpenId) return;
+    cancelPending();
+    const controller = new AbortController();
+    requestController = controller;
     const myGen = ++loadGen;
     noClient = false;
     noData = false;
@@ -99,32 +53,43 @@
 
     const client = getClientOnce();
     if (!client) {
+      loading = false;
       noClient = true;
       return;
     }
     const series = seriesList || [];
     if (series.length === 0) {
+      loading = false;
       noData = true;
       return;
     }
 
     loading = true;
     const now = Date.now();
-    const hours = hoursVal || 24;
-    const starttime = new Date(now - hours * 3600 * 1000).toISOString();
-    // Pad a little into the future so forecast rows (e.g. tomorrow's
-    // outlook) are included, not just the trailing history.
-    const endtime = new Date(now + 30 * 60 * 1000).toISOString();
+    const requestWindow = createHistoryWindow(hoursVal, { nowMs: now });
 
     let results;
     try {
       results = await Promise.all(
-        series.map((s) => client.getHistory(s.name, { starttime, endtime }).catch(() => []))
+        series.map(async (source) => {
+          try {
+            return await client.getHistory(source.name, {
+              starttime: requestWindow.starttime,
+              endtime: requestWindow.endtime,
+              signal: controller.signal,
+            });
+          } catch (error) {
+            if (controller.signal.aborted) throw error;
+            return [];
+          }
+        }),
       );
     } catch {
+      if (controller.signal.aborted || myGen !== loadGen) return;
       results = series.map(() => []);
     }
-    if (myGen !== loadGen) return;
+    if (controller.signal.aborted || myGen !== loadGen) return;
+    if (requestController === controller) requestController = null;
     loading = false;
 
     const anyData = results.some((r) => Array.isArray(r) && r.length > 0);
@@ -134,25 +99,46 @@
     }
 
     await tick();
-    if (myGen !== loadGen) return;
+    if (controller.signal.aborted || myGen !== loadGen) return;
     if (!el) return;
     chart = echarts.init(el, null, { renderer: 'svg' });
-    chart.setOption(buildOption(series, results));
+    const widthPx = el.parentElement?.clientWidth || el.clientWidth || 800;
+    chart.setOption(buildHistoryOption({
+      series,
+      pointsPerSeries: results,
+      widthPx,
+      nowMs: now,
+      grid: { left: 52, right: 24, top: 56, bottom: 40 },
+      legendTop: 8,
+      legendFontSize: 12,
+    }));
+    chart.resize();
+    if (typeof ResizeObserver !== 'undefined' && el.parentElement) {
+      resizeObserver = new ResizeObserver(() => chart?.resize());
+      resizeObserver.observe(el.parentElement);
+    }
   }
 
   $effect(() => {
     const state = $chartStore;
-    if (state.open) {
-      // A fresh openChart() call — snap the picker to that tile's initial
-      // window and (re)load with it.
-      activeHours = snapToPreset(state.hours || 24);
+    if (state.open && state.openId !== observedOpenId) {
+      // Seed once per open identity. activeHours is intentionally not read in
+      // this effect, so a picker click cannot retrigger fresh-open setup.
+      observedOpenId = state.openId;
+      const openIdSnapshot = state.openId;
+      const hoursSnapshot = snapHistoryPeriod(state.initialHours ?? state.hours ?? 24);
+      activeHours = hoursSnapshot;
       const seriesSnapshot = state.series || [];
-      const hoursSnapshot = activeHours;
-      tick().then(() => loadAndRender(seriesSnapshot, hoursSnapshot));
-    } else {
+      tick().then(() => {
+        if (!$chartStore.open || $chartStore.openId !== openIdSnapshot) return;
+        loadAndRender(seriesSnapshot, hoursSnapshot, openIdSnapshot);
+      });
+    } else if (!state.open) {
       // Invalidate any in-flight load so its continuation bails instead
       // of resurrecting loading/chart state after the modal has closed.
       loadGen++;
+      cancelPending();
+      loading = false;
       disposeChart();
     }
   });
@@ -160,7 +146,7 @@
   function selectPeriod(h) {
     if (!$chartStore.open || h === activeHours) return;
     activeHours = h;
-    loadAndRender($chartStore.series || [], h);
+    loadAndRender($chartStore.series || [], h, $chartStore.openId);
   }
 
   function onResize() {
@@ -173,6 +159,8 @@
 
   onDestroy(() => {
     if (typeof window !== 'undefined') window.removeEventListener('resize', onResize);
+    loadGen++;
+    cancelPending();
     disposeChart();
   });
 
@@ -204,11 +192,12 @@
       <div class="chart-header">
         <div class="chart-title">{$chartStore.title}</div>
         <div class="chart-periods" role="group" aria-label="History period">
-          {#each PERIOD_PRESETS as p (p.hours)}
+          {#each HISTORY_PERIOD_PRESETS as p (p.hours)}
             <button
               type="button"
               class="chart-period-btn"
               class:active={activeHours === p.hours}
+              aria-pressed={activeHours === p.hours}
               onclick={() => selectPeriod(p.hours)}
             >{p.label}</button>
           {/each}
@@ -252,6 +241,8 @@
     flex-direction: column;
     box-sizing: border-box;
     padding: 1rem 1.25rem;
+    min-width: 0;
+    overflow: hidden;
   }
   .chart-header {
     display: flex;
@@ -282,7 +273,8 @@
     font-weight: 600;
     letter-spacing: 0.02em;
     padding: 0.35rem 0.75rem;
-    min-height: 1.9rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     border-radius: 999px;
     cursor: pointer;
     font-variant-numeric: tabular-nums;
@@ -311,6 +303,8 @@
   .chart-body {
     flex: 1;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
   .chart-canvas {
     width: 100%;

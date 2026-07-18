@@ -89,7 +89,7 @@
   <div class="cell hero-cell">
     <Tile label="Battery — 24h + tonight's forecast" accent={socColor}>
       <div class="hero-body">
-        <div class="hero-chart"><HistoryChart series={socSeries} hours={24} height={200} /></div>
+        <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
           <span class="hero-trough" style="color: {colors.forecast}">predicted trough tonight: {troughText}</span>
@@ -112,8 +112,7 @@
         <div class="pv-chart">
           <HistoryChart
             series={[{ name: 'MPPT60_PV_Power', color: colors.solar, label: 'PV Power' }]}
-            hours={24}
-            height={160}
+            initialHours={24}
           />
         </div>
       </div>
@@ -237,6 +236,8 @@
   .hero-chart {
     flex: 1;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
   .hero-footer {
     display: flex;
@@ -293,6 +294,8 @@
   .pv-chart {
     flex: 1;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
   /* ---- Runtime ---- */

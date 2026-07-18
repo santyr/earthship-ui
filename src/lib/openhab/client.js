@@ -17,9 +17,12 @@ export function createClient({ openhabUrl, apiToken }) {
         method: 'POST', headers: { ...h, 'Content-Type': 'text/plain' }, body: String(value) });
       if (!r.ok) throw new Error(`sendCommand ${name} ${r.status}`);
     },
-    async getHistory(name, { starttime, endtime }) {
+    async getHistory(name, { starttime, endtime, signal } = {}) {
       const q = new URLSearchParams({ starttime, endtime });
-      const r = await fetch(`${base}/rest/persistence/items/${encodeURIComponent(name)}?${q}`, { headers: h });
+      const r = await fetch(`${base}/rest/persistence/items/${encodeURIComponent(name)}?${q}`, {
+        headers: h,
+        signal,
+      });
       if (!r.ok) throw new Error(`getHistory ${name} ${r.status}`);
       const d = await r.json();
       return (d?.data || []).map((p) => ({ time: p.time, state: parseFloat(String(p.state)) }));
