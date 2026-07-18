@@ -264,7 +264,7 @@
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
       minmax(0, 0.75fr) minmax(0, 1.05fr)
-      minmax(0, 1.2fr) minmax(0, 0.55fr);
+      minmax(0, 1.2fr) minmax(0, 0.6fr);
     grid-template-areas:
       'current current current current aqi aqi'
       'hourly hourly hourly hourly hourly hourly'
