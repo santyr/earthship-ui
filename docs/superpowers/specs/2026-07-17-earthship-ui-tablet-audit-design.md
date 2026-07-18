@@ -9,8 +9,8 @@
 
 Audit and repair the complete Earthship household console so that all five
 routes are reliable, legible, safe, and fully visible without scrolling on the
-actual Lenovo Tab M9 landscape browser/PWA viewport and on full-screen laptops
-at or above 1280×720.
+actual Lenovo Tab M9 landscape browser viewport and on full-screen laptops at
+or above 1280×720.
 
 This is not only a CSS pass. The UI depends on openHAB item types, links, Thing
 configuration, and rules. Those integrations are part of the repair whenever
@@ -40,7 +40,7 @@ The finished console must:
 
 - `Home`, `Energy`, `Weather`, `Earthship`, and `Controls`.
 - Shared shell, header, navigation, tiles, charts, chart modal, compass, value
-  formatting, data stores, openHAB client, PWA/offline behavior, and dimming.
+  formatting, data stores, openHAB client, and dimming.
 - Related openHAB items, links, Thing settings, and rules needed for AQI,
   feeder, greywater/fountain, override policy, circadian status, and physical
   control confirmation.
@@ -52,6 +52,9 @@ The finished console must:
 - Phone-specific layouts.
 - Portrait tablet layouts.
 - Split-screen layouts.
+- PWA/service-worker and offline-snapshot packaging.
+- nginx, Caddy, HTTPS certificate management, immutable release directories,
+  or any second UI server.
 - A generic matrix of arbitrary mobile or tablet resolutions.
 - Remote access, authentication redesign, camera UI, voice control, and new
   analytics beyond the existing console charts.
@@ -62,21 +65,16 @@ The finished console must:
 
 The Tab M9 panel is nominally 1340×800, but hardware pixels must not be treated
 as CSS viewport pixels. Before geometry work begins, the installed browser and
-installed-PWA modes on the actual tablet will record:
+browser mode on the actual tablet will record:
 
 - `window.innerWidth`;
 - `window.innerHeight`;
 - `window.devicePixelRatio`;
-- browser versus standalone display mode; and
 - safe-area or browser-chrome deductions.
 
 Recording these values is a blocking first implementation step: no route-grid
 CSS is changed until the measurements are committed to the audit matrix.
-Browser and installed-PWA landscape modes are both canonical M9 acceptance
-targets because either can be the household fallback. Playwright mirrors both
-exact CSS dimensions and device scale factors; if the measurements are
-identical, one geometry project may cover both modes. These are two measured
-modes of the same real device, not a generic resolution matrix.
+Playwright mirrors the exact browser CSS dimensions and device scale factor.
 
 The laptop contract begins at 1280×720 CSS pixels in a full-screen browser.
 Automated laptop geometry tests run at that lower bound. Layout rules must
@@ -1085,8 +1083,8 @@ success.
 
 ### 15.7 Real-device sign-off
 
-The actual Tab M9 is the final visual authority. Both browser and installed-PWA
-landscape modes exercise:
+The actual Tab M9 browser in landscape is the final visual authority and
+exercises:
 
 - all five routes without scrolling or overlap;
 - required content inventory and long/offline/unavailable fixtures;
@@ -1097,7 +1095,6 @@ landscape modes exercise:
 - modal focus/close and touch targets;
 - wind compass scale;
 - 600 ms holds and cancellation without requiring a physical command;
-- PWA reload/offline aged snapshot;
 - dim mode; and
 - recovery after openHAB/SSE interruption.
 
@@ -1105,41 +1102,36 @@ Laptop sign-off uses a full-screen browser at the 1280×720 lower bound.
 
 ## 16. Rollout and Rollback
 
-Rollout is staged so an old unsafe control surface can never be the fallback:
+The Vite development server is the intentional production server for the few
+household LAN clients. It runs from `/home/sat/earthship-ui` on port 5190 under
+one versioned user-level `earthship-ui.service`. No nginx, immutable release
+server, HTTPS/PWA origin, or service-worker rollout is part of this design.
 
-1. Record both M9 runtime geometries; create the canonical matrix and fixtures.
-2. Build, verify, and deploy an immutable **safe compatibility release** that
-   removes/disables direct feeder and greywater actuator controls in Earthship
-   UI and household MainUI, understands the old schema, and keeps all new
-   request actions disabled.
+1. Record the M9 browser geometry; create the canonical matrix and fixtures.
+2. Remove/disable unsafe direct controls and verify explicit fail-closed
+   `RELEASE_MODE` handling in the same Vite runtime.
 3. Capture/rehearse openHAB restore manifests.
 4. Implement and verify truthful state, shared primitives, charts, route
    layouts, and typed controls against mocks.
 5. Apply/read back AQI items/links and correlated feeder/greywater/override rule
-   changes while the compatibility release remains live.
-6. Deploy the full versioned UI, activate its versioned service worker, and run
-   post-deploy read-only smoke checks.
+   changes while the UI remains in explicit maintenance mode.
+6. Install/enable the user unit, restart it into the verified intended mode,
+   and run post-deploy read-only smoke checks at the same LAN URL.
 7. Complete real M9 and laptop sign-off and close the audit matrix.
 
-The pre-audit build with raw actuator toggles is never a rollback target.
-Rollback from the full UI restores the safe compatibility release, not the old
-UI. Server-side rule safety and removal of household MainUI raw controls remain
-in force. If openHAB configuration must also roll back, restore in manifest
-dependency order and read back every checksum/state contract before enabling
-any control.
-
-UI releases are immutable and versioned. Service-worker rollback changes the
-cache/version key, activates the compatibility worker, removes superseded
-application caches, reloads controlled clients, and verifies that the tablet is
-not serving a mixed bundle. MainUI remains available for administration, with
-the household raw feeder/greywater controls still removed.
+The pre-audit build with raw actuator toggles is never a rollback target. UI
+rollback returns Git to the last verified safe commit and restarts the same user
+service. Server-side rule safety and removal of household MainUI raw controls
+remain in force. If openHAB configuration must also roll back, restore in
+manifest dependency order and read back every checksum/state contract before
+enabling any control. MainUI remains available for administration.
 
 ## 17. Definition of Done
 
 The work is complete only when:
 
 - every canonical audit-matrix row is closed with evidence;
-- both measured M9 landscape modes and the 1280×720 laptop floor show all five
+- the measured M9 landscape browser and the 1280×720 laptop floor show all five
   routes with no document/card scrolling, overlap, or omitted required content;
 - the Home Outdoor inline line is visible and contained, and all other charts
   remain inside their cards;
@@ -1168,6 +1160,8 @@ The work is complete only when:
 - openHAB configuration is backed up, checksummed, corrected, read back, and
   rollback-rehearsed;
 - automated tests, production build, and performance budgets pass;
-- actual M9 browser/PWA and laptop sign-off pass; and
-- the immutable safe compatibility release and service-worker rollback are
-  verified.
+- actual M9 browser and laptop sign-off pass;
+- the user-level Vite service starts at login, restarts cleanly, owns port 5190,
+  serves the LAN URL, and exposes only the explicitly selected safety mode; and
+- Git-plus-service-restart UI rollback is rehearsed without weakening OpenHAB
+  safety or reintroducing raw MainUI actuator controls.

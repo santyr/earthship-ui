@@ -7,27 +7,39 @@
 
 **Goal:** Repair the complete Earthship household console so all five routes are
 truthful, safe, readable, and fully contained without scrolling on the measured
-Lenovo Tab M9 (2023) landscape browser/PWA viewports and on laptops at
+Lenovo Tab M9 (2023) landscape browser viewport and on laptops at
 1280×720 or larger.
 
 **Architecture:** Keep Svelte as the presentation layer, but replace implicit
 state and one-off chart/control behavior with pure, testable domain modules.
 OpenHAB remains the safety and equipment authority; managed objects are changed
-only through authenticated REST with exact backups and readback. Release the UI
-through immutable compatibility, zero-write maintenance, and full stages so the
-old raw-actuator surface is never a rollback target.
+only through authenticated REST with exact backups and readback. The household
+production runtime is the repository's Vite development server, kept alive by
+one user-level systemd unit. An explicit runtime safety mode remains fail-closed
+and is independent of Vite's development flag.
 
 **Tech Stack:** Svelte 5, Vite 8, Vitest 4, Testing Library, Playwright,
-ECharts 6 modular imports, Web Workers, `vite-plugin-pwa`, verified-live
-openHAB 5.2.0 REST (re-check before mutation), and systemd user services for
-the local immutable preview.
+ECharts 6 modular imports, Web Workers, verified-live openHAB 5.2.0 REST
+(re-check before mutation), and one systemd user service for Vite.
 
 **Approved design:** `docs/superpowers/specs/2026-07-17-earthship-ui-tablet-audit-design.md`
 
-**Live browser validation URL:** `http://192.168.1.161:5190/`
+**Household production and live validation URL:** `http://192.168.1.161:5190/`
 
-**Secure installed-PWA URL (established in Task 2):**
-`https://192.168.1.161:5192/`
+### Deployment decision update — 2026-07-18
+
+- Run exactly `npm run dev -- --host 0.0.0.0 --port 5190 --strictPort` from
+  `/home/sat/earthship-ui` under `systemctl --user`.
+- Version `deploy/earthship-ui.service`; install it as
+  `~/.config/systemd/user/earthship-ui.service`; enable and start that unit.
+- The service sets an explicit `RELEASE_MODE`. Missing or unknown mode is
+  maintenance/read-only; running through Vite does not itself authorize writes.
+- Updates use the checked-out Git commit plus a service restart. Rollback checks
+  out the last verified commit and restarts the same unit.
+- Do not add nginx, Caddy, a second release server, immutable release
+  directories, TLS certificates, port 5192, or service-worker/PWA release
+  orchestration. Those older instructions elsewhere in this document are
+  superseded and must not be executed.
 
 ## Global execution constraints
 
@@ -668,7 +680,21 @@ in Task 2, after the builder exists.
 
 ---
 
-## Task 2: Ship the immutable safe-compatibility surface first
+## Task 2: Establish the safe household Vite service first
+
+**Revised execution:** implement the fail-closed control surface, MainUI safety
+patches, same-origin Vite proxy, explicit `src/lib/releaseMode.js`,
+`deploy/earthship-ui.service`, and `tests/deployment-service.test.js`. Verify
+with focused tests, the full build, and mocked browser requests. Do not create
+or run the old `tools/release/*`, TLS, second-service, immutable-directory, or
+PWA instructions retained below for historical audit context.
+
+Install/start the unit only after the current manual listener has been
+identified and stopped cleanly. Then run `systemctl --user daemon-reload`,
+`systemctl --user enable --now earthship-ui.service`, verify the active unit and
+its exact command, and read back HTTP 200 from
+`http://192.168.1.161:5190/`. MainUI/OpenHAB mutations retain their documented
+snapshot, readback, and rollback requirements.
 
 **Files:**
 
@@ -3517,6 +3543,12 @@ read-only, and existing automatic hydrology/safety behavior is unchanged.
 
 ## Task 16: Consolidate override orchestration, preserve Goat Cam coupling, and audit circadian readback
 
+**Deployment revision:** keep the OpenHAB backup, rule, ownership, correlation,
+readback, and rollback work in this task. Do not build or activate pre-graph or
+post-graph immutable releases and do not start HTTP/HTTPS release services.
+Place the one Vite service in explicit maintenance mode during graph mutation,
+then restore the verified intended mode and restart that same service.
+
 **Files:**
 
 - Create: `openhab/rules/night-load-override.js`
@@ -4164,7 +4196,13 @@ and the only rollback UI is zero-write.
 
 ---
 
-## Task 17: Add PWA shell caching, aged snapshots, and non-flapping dim mode
+## Task 17: Add non-flapping dim mode; defer PWA/offline packaging
+
+**Revised scope:** implement and verify the live auto-dim behavior only. PWA
+manifest generation, service-worker caching, offline snapshots, release cache
+keys, secure-origin setup, and PWA update orchestration are out of scope for the
+household Vite-server deployment and must not be implemented from the archived
+steps below.
 
 **Files:**
 
@@ -4370,7 +4408,20 @@ mode is stable and readable.
 
 ---
 
-## Task 18: Close the audit, meet performance budgets, and activate the full immutable release
+## Task 18: Close the audit, meet performance budgets, and activate the user Vite service
+
+**Revised deployment acceptance:** do not build, promote, or activate immutable
+releases and do not use the archived PWA rehearsal below. Instead:
+
+1. run the full unit, build, and responsive Playwright gates;
+2. install the versioned `deploy/earthship-ui.service` as the user unit;
+3. enable/restart it and verify its exact PID/command owns port 5190;
+4. verify HTTP, `/rest` proxy reads, SSE reconnection, and fail-closed mode;
+5. reboot or stop/start the user unit once to prove automatic recovery; and
+6. complete Tab M9 browser and laptop sign-off at the one LAN URL.
+
+Rollback means returning to the last verified Git commit and restarting this
+same unit. OpenHAB resources use their independent receipt-backed rollback.
 
 **Files:**
 
