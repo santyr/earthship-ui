@@ -1,0 +1,74 @@
+{
+  "schema": "earthship-openhab-managed-resources/v1",
+  "subsets": {
+    "feeder": {
+      "capability": "feeder-request-v1",
+      "items": [
+        {
+          "name": "GoatFeeder_ManualRequest",
+          "type": "String",
+          "label": "Goat feeder manual request",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "GoatFeeder_ManualResult",
+          "type": "String",
+          "label": "Goat feeder manual result",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        }
+      ],
+      "metadata": [
+        {
+          "item": "GoatFeeder_ManualRequest",
+          "namespace": "autoupdate",
+          "value": "false",
+          "config": {}
+        },
+        {
+          "item": "Goat_Plugs_Outlet2_Switch",
+          "namespace": "expire",
+          "value": "0h0m1s,command=OFF",
+          "config": {}
+        }
+      ],
+      "persistence": {
+        "serviceId": "jdbc",
+        "strategy": "everyChange",
+        "restoreOnStartup": true,
+        "items": [
+          "GoatFeeder_ManualRequest",
+          "GoatFeeder_ManualResult"
+        ]
+      },
+      "rule": {
+        "uid": "88bd9ec4de",
+        "name": "Feeder Timer",
+        "source": "openhab/rules/feeder-owner.js",
+        "triggers": [
+          {
+            "id": "earthship-feeder-manual-request",
+            "type": "core.ItemCommandTrigger",
+            "configuration": {
+              "itemName": "GoatFeeder_ManualRequest"
+            }
+          }
+        ],
+        "action": {
+          "id": "earthship-feeder-owner",
+          "type": "script.ScriptAction",
+          "configuration": {
+            "type": "application/javascript;version=ECMAScript-2021"
+          }
+        }
+      },
+      "protectedDependencies": [
+        "Goat_Plugs_Outlet2_Switch",
+        "GoatFeedings"
+      ]
+    }
+  }
+}
