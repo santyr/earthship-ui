@@ -148,8 +148,12 @@ Implementation follows test-driven development:
   restart, races, timeouts, denials, and cleanup;
 - live read-only verification proves items, rules, links, providers,
   persistence, and clean logs before capability activation;
-- physical actuation is performed one control at a time only with
-  contemporaneous user approval and an observer present;
+- Codex and implementation subagents do not actuate feeder, Goat Cam, Night
+  Load Override, or any other protected production control; the user performs
+  real switch operations from the UI while Codex observes request, result,
+  provider, rule, and log evidence;
+- any exceptional agent-operated physical actuation requires a new,
+  control-specific contemporaneous authorization and an observer present;
 - final Lenovo and laptop sign-off requires operator confirmation of tap/hold
   behavior, active-state color, readable feedback, and no scrolling.
 

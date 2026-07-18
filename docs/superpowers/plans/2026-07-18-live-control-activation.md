@@ -17,7 +17,9 @@
 - HTTP 2xx means transport acceptance, not equipment success.
 - No automatic retry follows a transport break, timeout, or outcome-unknown result.
 - Every protected actuation requires a persisted accepted request and matching correlated result.
-- Every live physical test requires contemporaneous user approval and an observer present.
+- Codex and subagents do not actuate feeder, Goat Cam, Night Load Override, or any other protected production control.
+- The user performs real switch tests from the UI; Codex observes request, result, provider, rule, and log evidence.
+- Any exceptional agent-operated actuation requires new control-specific contemporaneous authorization.
 - Preserve unrelated user changes and leave `test-results/` untracked.
 
 ---
@@ -361,7 +363,7 @@ git commit -m "feat: activate correlated household controls"
 
 ---
 
-### Task 6: Deploy, verify, and obtain operator sign-off
+### Task 6: Deploy, observe user-operated tests, and obtain sign-off
 
 **Files:**
 - Modify: `docs/qa/ui-audit-matrix.csv`
@@ -388,9 +390,11 @@ Verify all request/result items, rules IDLE/RUNNING, provider Things ONLINE,
 final item states, persistence, proxy denials, no browser token, and no new
 OpenHAB `ERROR` or `Exception` entries.
 
-- [ ] **Step 3: Run attended controls one at a time**
+- [ ] **Step 3: Expose the live UI for user-operated tests**
 
-With contemporaneous approval for each equipment class, verify:
+Do not issue commands for feeder, Goat Cam, Night Load Override, or any other
+protected production control. Ask the user to operate controls from the live
+UI one at a time. While the user operates them, observe:
 
 - a normal tap toggles and restores each living-room light;
 - a hold toggles and restores Circadian;
