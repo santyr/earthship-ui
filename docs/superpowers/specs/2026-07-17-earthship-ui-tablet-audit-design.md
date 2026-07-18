@@ -255,6 +255,29 @@ does not expand the card. The separate Thermal Mass companion is an analytic
 detail card, not part of the left-to-right physical diagram, and must be styled
 so its placement cannot be read as a fourth spatial node.
 
+### 4.5 Home distance-readability hierarchy
+
+Home uses a target-specific typography hierarchy for legibility across the
+room:
+
+- the primary Outdoor and Indoor temperature numerals are pure white
+  (`#ffffff`) against the near-black tile background; amber remains the
+  temperature tile accent and chart-line color;
+- Indoor's primary temperature is at least 2.4 rem on both M9 modes and
+  2.6 rem at the laptop floor, while its humidity/high-low metadata is at
+  least 0.85 rem;
+- only the Home Rain card receives a scoped reduction from the shared
+  `StatTile` sizing: its primary value is 2.15 rem and its footer is 0.72 rem,
+  so the value, unit, and full footer remain visible;
+- Sun & Moon rows target 0.82 rem on the M9 and 0.86 rem at the laptop floor.
+  If 0.82 rem fails canonical M9 geometry, spacing is reduced first; the
+  recorded fallback may not be smaller than 0.8 rem.
+
+These changes do not alter Weather/Earthship typography or the shared
+`StatTile` default. Automated checks assert the computed colors/font sizes and
+card containment. Real-M9 sign-off includes reading Outdoor, Indoor, Rain, and
+Sun & Moon from the normal household viewing distance.
+
 ## 5. Header and Alerts
 
 `BtcTicker` is removed from the shell and is not used as a fallback header
@@ -987,6 +1010,9 @@ Component tests cover:
 - exact North/Room/South DOM, legend, humidity, keyboard, and SVG order;
 - Bitcoin causing no history request on Home mount/refresh/return and causing
   its first request only on activation;
+- Home Outdoor/Indoor primary temperatures computing to `rgb(255, 255, 255)`,
+  Indoor/metadata meeting their minimum sizes, Rain using only its scoped
+  smaller sizes, and Sun & Moon meeting its target or recorded 0.8 rem floor;
 - all typed controls with pointer/keyboard holds, disconnect-after-POST, late
   acknowledgement, contradictory provider state, and no automatic retry;
 - circadian OFF eligibility during bulb degradation;
@@ -1064,6 +1090,8 @@ landscape modes exercise:
 
 - all five routes without scrolling or overlap;
 - required content inventory and long/offline/unavailable fixtures;
+- across-room readability of white Outdoor/Indoor temperatures, enlarged
+  Indoor text, contained Rain text, and enlarged Sun & Moon rows;
 - Outdoor inline-chart containment and visible line;
 - modal 4 h, 24 h, 7 d, and 30 d selection;
 - modal focus/close and touch targets;
@@ -1115,6 +1143,9 @@ The work is complete only when:
   routes with no document/card scrolling, overlap, or omitted required content;
 - the Home Outdoor inline line is visible and contained, and all other charts
   remain inside their cards;
+- Home Outdoor/Indoor primary temperatures are white, Indoor text is enlarged,
+  Rain text is scoped smaller without content loss, and Sun & Moon is enlarged
+  to its passing target/floor;
 - every chart period picker works in its inline or modal context, with exact
   request ranges and cancellation;
 - only the approved analog registry is smoothed and tooltips remain raw;
