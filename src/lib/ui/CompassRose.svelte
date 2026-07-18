@@ -2,14 +2,35 @@
   import { onMount } from 'svelte';
   // SVG compass rose: needle points at `degrees` (0=N, clockwise), `speed`
   // shown centered, `gust` labeled on the outer ring.
-  let { degrees = 0, speed = null, gust = null, showGust = true } = $props();
+  let { degrees = null, speed = null, gust = null, showGust = true, accent = '#22c55e' } = $props();
 
   let roseHost;
   let roseSize = $state(0);
 
-  const heading = $derived(((Number(degrees) || 0) % 360 + 360) % 360);
+  const hasHeading = $derived(
+    degrees !== null
+      && degrees !== undefined
+      && degrees !== ''
+      && degrees !== 'NULL'
+      && degrees !== 'UNDEF'
+      && Number.isFinite(Number(degrees))
+  );
+  const heading = $derived(hasHeading ? ((Number(degrees) % 360) + 360) % 360 : 0);
+  const hasSpeed = $derived(
+    speed !== null
+      && speed !== undefined
+      && speed !== ''
+      && speed !== 'NULL'
+      && speed !== 'UNDEF'
+      && Number.isFinite(Number(speed))
+  );
   const speedText = $derived(
-    speed === null || speed === undefined || Number.isNaN(speed) ? '—' : speed
+    hasSpeed ? speed : '—'
+  );
+  const compassLabel = $derived(
+    `${hasHeading ? `Wind direction ${Math.round(heading)} degrees` : 'Wind direction unavailable'}, ${
+      hasSpeed ? `speed ${speedText} mph` : 'speed unavailable'
+    }`
   );
   const ticks = [0, 45, 90, 135, 180, 225, 270, 315];
   const dirLabels = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
@@ -47,7 +68,7 @@
 <div class="compass-wrap">
   <div class="rose-host" bind:this={roseHost}>
     <div class="compass-square" style="width: {roseSize}px; height: {roseSize}px;">
-  <svg viewBox="0 0 100 100" class="compass-svg">
+  <svg viewBox="0 0 100 100" class="compass-svg" role="img" aria-label={compassLabel}>
     <circle cx="50" cy="50" r="46" fill="none" stroke="#1c2230" stroke-width="1.5" />
     <circle cx="50" cy="50" r="34" fill="none" stroke="#1c2230" stroke-width="1" />
 
@@ -70,11 +91,13 @@
       {/if}
     {/each}
 
-    <!-- needle -->
-    <g transform="rotate({heading} 50 50)">
-      <polygon points="50,14 45,52 50,46 55,52" fill="#22c55e" />
-    </g>
-    <circle cx="50" cy="50" r="3" fill="#22c55e" />
+    {#if hasHeading}
+      <!-- needle -->
+      <g transform="rotate({heading} 50 50)">
+        <polygon class="compass-needle" points="50,22 45,52 50,46 55,52" fill={accent} />
+      </g>
+      <circle class="compass-hub" cx="50" cy="50" r="3" fill={accent} />
+    {/if}
   </svg>
 
   <div class="compass-center">
@@ -120,9 +143,9 @@
     height: 100%;
   }
   .dir-label {
-    font-size: 7px;
+    font-size: 12px;
     fill: #8b93a1;
-    font-weight: 600;
+    font-weight: 800;
   }
   .compass-center {
     position: absolute;

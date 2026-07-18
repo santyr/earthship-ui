@@ -1,8 +1,14 @@
 <script>
   // Pure-SVG 270° sweep arc gauge. value is 0..100. No chart library.
-  let { value = 0, color = '#22c55e', label = '', sublabel = '' } = $props();
+  let { value = null, color = '#22c55e', label = '', sublabel = '' } = $props();
 
-  const clamped = $derived(Math.max(0, Math.min(100, Number(value) || 0)));
+  const numericValue = $derived.by(() => {
+    if (value === null || value === undefined || value === '' || value === 'NULL' || value === 'UNDEF') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  });
+  const available = $derived(numericValue !== null);
+  const clamped = $derived(available ? Math.max(0, Math.min(100, numericValue)) : 0);
 
   const R = 40;
   const CIRC = 2 * Math.PI * R;
@@ -26,20 +32,23 @@
       stroke-linecap="round"
       transform="rotate({START_ROTATE} 50 50)"
     />
-    <circle
-      cx="50"
-      cy="50"
-      r={R}
-      fill="none"
-      stroke={color}
-      stroke-width="8"
-      stroke-dasharray={valueDash}
-      stroke-linecap="round"
-      transform="rotate({START_ROTATE} 50 50)"
-    />
+    {#if available}
+      <circle
+        data-arc-value
+        cx="50"
+        cy="50"
+        r={R}
+        fill="none"
+        stroke={color}
+        stroke-width="8"
+        stroke-dasharray={valueDash}
+        stroke-linecap="round"
+        transform="rotate({START_ROTATE} 50 50)"
+      />
+    {/if}
   </svg>
   <div class="arc-center">
-    <div class="arc-value" style="color:{color}">{Math.round(clamped)}%</div>
+    <div class="arc-value" style="color:{color}">{available ? `${Math.round(clamped)}%` : '—'}</div>
     {#if label}<div class="arc-label">{label}</div>{/if}
     {#if sublabel}<div class="arc-sublabel">{sublabel}</div>{/if}
   </div>

@@ -22,7 +22,7 @@ The steady display uses the bundled feed icon and the text `N feedings today`. A
 
 A pure reducer owns motor-transition semantics. It normalizes only `OFF` and `ON` as known states. Its first known state initializes the tracker without activating, so an initial `ON` snapshot never produces feedback. Only a later observed `OFF` to `ON` transition activates; repeated `ON`, unknown values, and `ON` after an unknown state do not.
 
-Activation swaps the normal feed icon for the bundled goat icon for about 1.8 seconds. The icon remains visible without animation when reduced motion is requested; otherwise it may use a subtle pulse. A first pointer or key interaction best-effort creates and resumes a Web Audio context. A later activation plays one quiet synthesized sine chime lasting about 250 ms only when that context was armed. Unsupported, blocked, suspended, or failed audio never prevents visual feedback. Component teardown clears its timer, listeners, and audio context.
+Activation swaps the normal bundled feed icon for the exact Unicode goat glyph (`🐐`) for about 1.8 seconds because the installed MDI bundle has no goat icon. The glyph remains visible without animation when reduced motion is requested; otherwise it may use a subtle pulse. A first pointer or key interaction best-effort creates and resumes a Web Audio context. A later activation plays one quiet synthesized sine chime lasting about 250 ms only when that context was armed. Unsupported, blocked, suspended, or failed audio never prevents visual feedback. Component teardown clears its timer, listeners, and audio context.
 
 ## Layout
 

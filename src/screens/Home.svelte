@@ -10,8 +10,33 @@
   import Arc from '../lib/ui/Arc.svelte';
   import Sparkline from '../lib/ui/Sparkline.svelte';
   import CompassRose from '../lib/ui/CompassRose.svelte';
+  import GoatFeedingsCard from '../lib/ui/GoatFeedingsCard.svelte';
+  import SeasonCountdown from '../lib/ui/SeasonCountdown.svelte';
   import OhIcon from '../lib/ui/OhIcon.svelte';
   import { colors } from '../lib/ui/tokens.js';
+  import {
+    adaptCurrentAqi,
+    batteryPowerFlowPresentation,
+    batteryDirectionState,
+    batteryIcon as selectBatteryIcon,
+    bitcoinStateColor,
+    curtailmentColor,
+    greywaterState,
+    harvestedGallons,
+    indoorTemperatureIconColor,
+    localDayHistoryRange,
+    maxHistoryValue,
+    netStateColor,
+    outdoorConditionIcon as selectOutdoorConditionIcon,
+    outdoorTemperatureIconColor,
+    pressurePresentation,
+    rainRateChip,
+    relativeAgeText,
+    rainStateColor,
+    solarPvColor,
+    uvIndexColor,
+    windSpeedColor,
+  } from '../lib/ui/homeCardState.js';
   import { items, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
 
@@ -43,6 +68,7 @@
   let windGustMaxToday = $state(null);
   let loadToday = $state(null);
 
+  let wallClock = $state(Date.now());
   // Same retry pattern as fetchHistorySafe, but with explicit start/end
   // (used for the "today so far" load-energy integration, which needs
   // local-midnight-to-now rather than a rolling N-hour window).
@@ -82,9 +108,9 @@
   }
 
   async function refreshLoadToday() {
-    const now = new Date();
-    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const data = await fetchHistoryRange('ConextGateway_ACPowerValue', midnight.toISOString(), now.toISOString());
+    const range = localDayHistoryRange(new Date());
+    if (!range) return;
+    const data = await fetchHistoryRange('ConextGateway_ACPowerValue', range.starttime, range.endtime);
     loadToday = integrateKWh(data);
   }
 
@@ -101,50 +127,45 @@
     baroSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6);
   }
 
+  async function refreshWindGustMaxToday() {
+    const range = localDayHistoryRange(new Date());
+    const data = await fetchHistoryRange('AmbientWeatherWS2902A_WindGust', range.starttime, range.endtime);
+    windGustMaxToday = maxHistoryValue(data);
+  }
+
   const SPARK_REFRESH_MS = 300000; // 5 minutes
+  const WALL_CLOCK_REFRESH_MS = 60000; // one minute
   let sparkRefreshTimer;
+  let wallClockTimer;
 
   onMount(() => {
+    wallClock = Date.now();
     refreshOutdoorSpark();
     refreshBattSpark();
     refreshBaroSpark();
     refreshLoadToday();
-    // No dedicated "max wind today" item exists, so derive it from a 24h
-    // gust history pull rather than inventing an item name.
-    fetchHistorySafe('AmbientWeatherWS2902A_WindGust', 24).then((d) => {
-      const vals = (d || []).map((p) => num(p.state)).filter((n) => n !== null);
-      windGustMaxToday = vals.length ? Math.max(...vals) : null;
-    });
+    refreshWindGustMaxToday();
+
+    wallClockTimer = setInterval(() => {
+      wallClock = Date.now();
+    }, WALL_CLOCK_REFRESH_MS);
 
     sparkRefreshTimer = setInterval(() => {
       refreshOutdoorSpark();
       refreshBattSpark();
       refreshBaroSpark();
       refreshLoadToday();
+      refreshWindGustMaxToday();
     }, SPARK_REFRESH_MS);
   });
 
   onDestroy(() => {
     if (sparkRefreshTimer) clearInterval(sparkRefreshTimer);
+    if (wallClockTimer) clearInterval(wallClockTimer);
   });
 
   // ---- Small null-safe formatting helpers ----------------------------------
-  function hasItem(name) {
-    return Object.prototype.hasOwnProperty.call($items, name);
-  }
 
-  function agoText(iso) {
-    if (!iso || iso === 'NULL' || iso === 'UNDEF') return '—';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '—';
-    const diffMs = Date.now() - d.getTime();
-    if (diffMs < 0) return '—';
-    const min = diffMs / 60000;
-    if (min < 60) return `${Math.round(min)} m ago`;
-    const hr = min / 60;
-    if (hr < 24) return `${Math.round(hr)} h ago`;
-    return `${Math.round(hr / 24)} d ago`;
-  }
 
   function formatTime(iso) {
     if (!iso || iso === 'NULL' || iso === 'UNDEF') return '—';
@@ -224,20 +245,10 @@
     }
   }
 
-  // ---- Derived, per-tile values --------------------------------------------
-  const advisoryParts = $derived(String($items.Thermal_Advisory || '').split('|'));
-  const advisoryCode = $derived(advisoryParts[0] || 'none');
-  const advisoryText = $derived(advisoryParts.slice(1).join('|'));
-  const advisoryActive = $derived(
-    advisoryCode && advisoryCode !== 'none' && advisoryCode !== 'NULL' && advisoryCode !== 'UNDEF'
-  );
+  const gwStatus = $derived(greywaterState($items.SouthOutlet_Outlet2_Switch));
+  const gwAccessibleLabel = $derived(`Greywater status ${gwStatus.label.toLowerCase()}`);
+  const gwLastAgo = $derived(relativeAgeText($items.SouthOutlet_LastAutoRun, wallClock));
 
-  const gwRunning = $derived($items.SouthOutlet_Outlet2_Switch === 'ON');
-  const gwLastAgo = $derived(agoText($items.SouthOutlet_LastAutoRun));
-
-  // ---- Power-flow strip (fills the topbar row when no advisory is active) --
-  const NET_POS_COLOR = '#22c55e'; // green — producing surplus / net charging
-  const NET_NEG_COLOR = '#f59e0b'; // amber — drawing down / net discharging
 
   function numFmt(n, unit = '', digits = 0) {
     return n === null || n === undefined ? '—' : n.toFixed(digits) + unit;
@@ -258,31 +269,34 @@
     const v = num($items.DCData_Voltage);
     return c === null || v === null ? null : c * v;
   });
-  const battArrow = $derived(battWatts === null ? '' : battWatts >= 0 ? '▲' : '▼');
-  const battColor = $derived(battWatts === null ? colors.label : battWatts >= 0 ? NET_POS_COLOR : NET_NEG_COLOR);
+  const battFlow = $derived(batteryPowerFlowPresentation(battWatts));
   const netWatts = $derived(pvWatts === null || loadWatts === null ? null : pvWatts - loadWatts);
-  const netColor = $derived(netWatts === null ? colors.label : netWatts >= 0 ? NET_POS_COLOR : NET_NEG_COLOR);
+  const netColor = $derived(netStateColor(netWatts));
 
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
   const netToday = $derived(pvToday === null || loadToday === null ? null : pvToday - loadToday);
-  const netTodayColor = $derived(netToday === null ? colors.label : netToday >= 0 ? NET_POS_COLOR : NET_NEG_COLOR);
+  const netTodayColor = $derived(netStateColor(netToday));
+
+  const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
+  const outdoorConditionIcon = $derived(selectOutdoorConditionIcon($items.SkyConditionIcon));
+  const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
+  const currentAqi = $derived(adaptCurrentAqi($items.Current_US_AQI));
+  const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));
+  const uvColor = $derived(uvIndexColor(uvIndex));
+  const indoorTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
+  const indoorIconColor = $derived(indoorTemperatureIconColor(indoorTemp));
 
   const soc = $derived(num($items.BMS_SOC));
   const socColor = $derived(socBands(soc));
-  const battIndicator = $derived.by(() => {
-    if ($items.BatteryChargingStatus === 'ON') return { glyph: '▲', text: 'charging' };
-    const c = num($items.DCData_Current);
-    if (c === null) return { glyph: '●', text: 'idle' };
-    if (c > 0) return { glyph: '▲', text: 'charging' };
-    if (c < 0) return { glyph: '▼', text: 'discharging' };
-    return { glyph: '●', text: 'idle' };
-  });
-  const battRuntime = $derived(runtimeText(num($items.BMS_TimeToDischarge_Smoothed)));
-  const battBasis = $derived(
-    $items.BMS_Runtime_Basis && $items.BMS_Runtime_Basis !== 'NULL' && $items.BMS_Runtime_Basis !== 'UNDEF'
-      ? $items.BMS_Runtime_Basis
-      : ''
+  const batteryStatusIcon = $derived(selectBatteryIcon($items.BatteryIcon));
+  const batteryChartLabel = $derived(
+    soc === null ? 'Open Battery chart; current SoC unavailable' : `Open Battery chart; current SoC ${Math.round(soc)}%`
   );
+  const battIndicator = $derived(
+    batteryDirectionState($items.BatteryChargingStatus, $items.DCData_Current)
+  );
+  const battRuntimeEmpty = $derived(runtimeText(num($items.BMS_TimeToDischarge_Smoothed)));
+  const battRuntimeFull = $derived(runtimeText(num($items.BMS_TimeToFull_Smoothed)));
 
   const windDeg = $derived(num($items.AmbientWeatherWS2902A_WindDirection));
   const windSpeedR = $derived.by(() => {
@@ -293,37 +307,34 @@
     const n = num($items.AmbientWeatherWS2902A_WindGust);
     return n === null ? null : Math.round(n);
   });
+  const windGustColor = $derived(windSpeedColor(windGustR));
+  const windMaxColor = $derived(windSpeedColor(windGustMaxToday));
+  const windAccent = $derived(windSpeedColor(windSpeedR));
 
-  const rainFooter = $derived.by(() => {
-    const parts = [];
-    if (hasItem('AmbientWeatherWS2902A_RainFallEvent'))
-      parts.push(`evt ${fmt($items.AmbientWeatherWS2902A_RainFallEvent, '″', 2)}`);
-    if (hasItem('AmbientWeatherWS2902A_RainFallWeek'))
-      parts.push(`wk ${fmt($items.AmbientWeatherWS2902A_RainFallWeek, '″', 2)}`);
-    if (hasItem('AmbientWeatherWS2902A_RainFallMonth'))
-      parts.push(`mo ${fmt($items.AmbientWeatherWS2902A_RainFallMonth, '″', 2)}`);
-    return parts.join('·');
-  });
+  const rainDayInches = $derived(num($items.AmbientWeatherWS2902A_RainFallDay));
+  const rainWeekInches = $derived(num($items.AmbientWeatherWS2902A_RainFallWeek));
+  const rainDayGallons = $derived(harvestedGallons(rainDayInches));
+  const rainWeekGallons = $derived(harvestedGallons(rainWeekInches));
+  const rainIconColor = $derived(rainStateColor(rainDayInches));
+  const rainRateLabel = $derived(rainRateChip($items.AmbientWeatherWS2902A_RainFallHourlyRate));
+  const rainValue = $derived(
+    rainDayInches === null || rainDayGallons === null
+      ? '—'
+      : `${rainDayInches.toFixed(2)}″ / ${rainDayGallons.toLocaleString('en-US')} gal`
+  );
+  const rainFooter = $derived(
+    rainWeekInches === null || rainWeekGallons === null
+      ? 'Week —'
+      : `Week ${rainWeekInches.toFixed(2)}″ / ${rainWeekGallons.toLocaleString('en-US')} gal`
+  );
 
   const curtailHours = $derived(num($items.Predicted_Curtailment_Hours));
   const curtailActive = $derived(curtailHours !== null && curtailHours > 0);
   const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
+  const curtailColor = $derived(curtailmentColor(curtailHours));
+  const solarColor = $derived(solarPvColor(pvWatts));
 
-  const baroTrend = $derived.by(() => {
-    const t = $items.AmbientWeatherWS2902A_PressureTrend;
-    return t && t !== 'NULL' && t !== 'UNDEF' ? String(t).toLowerCase() : '—';
-  });
-
-  // Storm/rain alert for the Baro tile: swap the sparkline for a flashing
-  // rain-cloud icon when either a falling-pressure trend (storm indicator)
-  // or active rain is present. NULL-safe — missing items just fall back to
-  // the normal sparkline.
-  const baroStormActive = $derived.by(() => {
-    const trendFalling = baroTrend === 'falling';
-    const rainRate = num($items.AmbientWeatherWS2902A_RainFallHourlyRate);
-    const raining = rainRate !== null && rainRate > 0;
-    return trendFalling || raining;
-  });
+  const pressureStatus = $derived(pressurePresentation($items.AmbientWeatherWS2902A_PressureTrend));
 
   const zonesList = $derived.by(() => {
     const room = num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature);
@@ -356,7 +367,7 @@
   const btcPriceText = $derived(btcPriceN === null ? '—' : `$${Math.round(btcPriceN).toLocaleString()}`);
   const btcPct = $derived(num($items.BTC_Price_24h_PercentChange));
   const btcPctText = $derived(btcPct === null ? '—' : `${btcPct >= 0 ? '+' : ''}${btcPct.toFixed(2)}%`);
-  const btcPctColor = $derived(btcPct === null ? colors.label : btcPct >= 0 ? '#22c55e' : '#ef4444');
+  const btcPctColor = $derived(bitcoinStateColor(btcPct));
 
   const sunRiseText = $derived(formatTimeShort($items.Sun_Rise_Start));
   const sunSetText = $derived(formatTimeShort($items.Sun_Set_End));
@@ -431,22 +442,14 @@
 </script>
 
 <div class="home-grid">
-  <div class="cell advisory-cell">
-    {#if advisoryActive}
-      <Tile label="Advisory" accent={colors.advisory}>
-        <div class="advisory-body">
-          <span class="advisory-dot"></span>
-          <span class="advisory-text">{advisoryText || '—'}</span>
-        </div>
-      </Tile>
-    {:else}
-      <Tile label="Power Flow" accent={colors.solar}>
+  <div class="cell powerflow-cell">
+      <Tile label="Power Flow" accent={colors.solar} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
         <div class="powerflow-body">
           <div class="pf-line1">
             <span class="pf-seg" style="color: {colors.solar}">&#9728; {numFmt(pvWatts, ' W')}</span>
             <span class="pf-arrow">&rarr;</span>
-            <span class="pf-seg" style="color: {battColor}"
-              >&#128267; {signedFmt(battWatts, ' W')} {battArrow}</span
+            <span class="pf-seg" style="color: {battFlow.color}"
+              >&#128267; {battFlow.text} {battFlow.glyph}</span
             >
             <span class="pf-arrow">&rarr;</span>
             <span class="pf-seg pf-load">&#127968; {numFmt(loadWatts, ' W')}</span>
@@ -461,15 +464,23 @@
           </div>
         </div>
       </Tile>
-    {/if}
+  </div>
+
+  <div class="cell goat-cell">
+    <GoatFeedingsCard
+      feedings={$items.GoatFeedingsToday}
+      motorState={$items.Goat_Plugs_Outlet2_Switch}
+    />
   </div>
 
   <div class="cell greywater-cell">
-    <Tile label="Greywater" accent={colors.water}>
+    <Tile label="Greywater" accessibleLabel={gwAccessibleLabel} accent={colors.water} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
       <div class="greywater-body">
-        <span class="gw-dot" class:active={gwRunning}></span>
+        <span class="gw-icon" style="color: {gwStatus.color}">
+          <OhIcon icon="iconify:mdi:fountain" size="1.35rem" />
+        </span>
         <div class="gw-text">
-          <div class="gw-state">{gwRunning ? 'Running' : 'Idle'}</div>
+          <div class="gw-state" style="color: {gwStatus.color}">{gwStatus.label}</div>
           <div class="gw-last">last {gwLastAgo}</div>
         </div>
       </div>
@@ -480,16 +491,28 @@
     class="cell outdoor-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Outdoor temperature chart"
     onclick={openOutdoorChart}
     onkeydown={(e) => onKeyActivate(e, openOutdoorChart)}
   >
-    <Tile label="Outdoor" accent={colors.temperature}>
+    <Tile label="Outdoor" accent={colors.temperature} hideLabel fill clip centerBody padding="0.7rem">
       <div class="outdoor-body">
         <div class="outdoor-top">
           <div class="outdoor-main">
-            <span class="cond-icon"><OhIcon icon={$items.SkyConditionIcon} size="2rem" /></span>
+            <span class="cond-icon"><OhIcon icon={outdoorConditionIcon} size="2rem" color={outdoorIconColor} /></span>
             <span class="big-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
-            <span class="aqi-chip">AQI {fmt($items.Forecast_AQI)}</span>
+            <div class="outdoor-chips">
+              <span
+                class="aqi-chip"
+                class:unavailable={currentAqi.value === null}
+                style="color: {currentAqi.textColor}; border-color: {currentAqi.accent}"
+                >AQI {currentAqi.value ?? '—'}</span
+              >
+              <span class="uv-chip" style="color: {uvColor}">UV {fmt($items.AmbientWeatherWS2902A_UVIndex)}</span>
+              {#if rainRateLabel}
+                <span class="rain-rate-chip" style="color: {colors.rain}; border-color: {colors.rain}">{rainRateLabel}</span>
+              {/if}
+            </div>
           </div>
           <div class="outdoor-sub">
             feels like {fmt($items.AmbientWeatherWS2902A_ApparentTemperature, '°')}
@@ -499,7 +522,7 @@
             H {fmt($items.OutdoorTemp_24h_High, '°')} &nbsp;/&nbsp; L {fmt($items.OutdoorTemp_24h_Low, '°')}
           </div>
         </div>
-        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={colors.temperature} lineWidth={2} /></div>
+        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={outdoorIconColor} lineWidth={2} /></div>
       </div>
     </Tile>
   </div>
@@ -508,12 +531,18 @@
     class="cell indoor-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Indoor temperature chart"
     onclick={openIndoorChart}
     onkeydown={(e) => onKeyActivate(e, openIndoorChart)}
   >
-    <Tile label="Indoor" accent={colors.temperature}>
+    <Tile label="Indoor" accent={colors.temperature} hideLabel fill clip centerBody padding="0.65rem">
       <div class="indoor-body">
-        <div class="indoor-temp">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
+        <div class="indoor-reading">
+          <span class="indoor-icon" style="color: {indoorIconColor}">
+            <OhIcon icon="iconify:mdi:home-thermometer" size="2rem" />
+          </span>
+          <div class="indoor-temp">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
+        </div>
         <div class="indoor-meta">
           <div class="indoor-hum">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity, '%')} RH</div>
           <div class="indoor-hilo">H {fmt($items.IndoorTemp_24h_High, '°')} / L {fmt($items.IndoorTemp_24h_Low, '°')}</div>
@@ -526,20 +555,25 @@
     class="cell battery-cell clickable"
     role="button"
     tabindex="0"
+    aria-label={batteryChartLabel}
     onclick={openBatteryChart}
     onkeydown={(e) => onKeyActivate(e, openBatteryChart)}
   >
-    <Tile label="Battery" accent={socColor}>
+    <Tile label="Battery" accent={socColor} hideLabel fill clip centerBody padding="0.65rem">
       <div class="battery-body">
         <div class="battery-top">
           <div class="battery-arc">
-            <Arc value={soc ?? 0} color={socColor} label="SoC" sublabel={fmt($items.DCData_Current, ' A', 1)} />
+            <Arc value={soc} color={socColor} label="" sublabel={fmt($items.DCData_Current, ' A', 1)} />
           </div>
           <div class="battery-meta">
-            <span class="batt-indicator" style="color: {socColor}">{battIndicator.glyph} {battIndicator.text}</span>
-            <span class="batt-runtime"
-              >{battRuntime}{#if battBasis}<em> ({battBasis})</em>{/if}</span
-            >
+            <div class="batt-status">
+              <span class="batt-icon" class:charging={battIndicator.text === 'charging'} style="color: {socColor}">
+                <OhIcon icon={batteryStatusIcon} size="1.35rem" />
+              </span>
+              <span class="batt-indicator" style="color: {battIndicator.color}">{battIndicator.glyph} {battIndicator.text}</span>
+            </div>
+            <span class="batt-runtime batt-runtime-empty"><strong>Empty</strong> {battRuntimeEmpty}</span>
+            <span class="batt-runtime batt-runtime-full"><strong>Full</strong> {battRuntimeFull}</span>
           </div>
         </div>
         <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} /></div>
@@ -551,12 +585,16 @@
     class="cell bitcoin-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Bitcoin history chart"
     onclick={openBitcoinChart}
     onkeydown={(e) => onKeyActivate(e, openBitcoinChart)}
   >
-    <Tile label="Bitcoin" accent={BTC_ACCENT}>
+    <Tile label="Bitcoin" accent={BTC_ACCENT} hideLabel fill clip centerBody padding="0.65rem">
       <div class="bitcoin-body">
         <div class="btc-top">
+          <span class="btc-icon" style="color: {btcPctColor}">
+            <OhIcon icon="iconify:mdi:bitcoin" size="1.5rem" />
+          </span>
           <span class="btc-price">{btcPriceText}</span>
           <span class="btc-pct" style="color: {btcPctColor}">{btcPctText}</span>
         </div>
@@ -568,17 +606,18 @@
     class="cell wind-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Wind chart"
     onclick={openWindChart}
     onkeydown={(e) => onKeyActivate(e, openWindChart)}
   >
-    <Tile label="Wind" accent={colors.wind}>
+    <Tile label="Wind" accent={colors.wind} hideLabel fill clip centerBody padding="0.5rem 0.6rem">
       <div class="wind-body">
         <div class="compass-cap">
-          <CompassRose degrees={windDeg} speed={windSpeedR} gust={windGustR} showGust={false} />
+          <CompassRose degrees={windDeg} speed={windSpeedR} gust={windGustR} showGust={false} accent={windAccent} />
         </div>
         <div class="wind-meta">
-          <span class="wind-gust">gust {windGustR === null ? '—' : windGustR} mph</span>
-          <span class="wind-max">max {windGustMaxToday === null ? '—' : Math.round(windGustMaxToday)} mph</span>
+          <span class="wind-gust" style="color: {windGustColor}">gust {windGustR === null ? '—' : windGustR} mph</span>
+          <span class="wind-max" style="color: {windMaxColor}">max {windGustMaxToday === null ? '—' : Math.round(windGustMaxToday)} mph</span>
         </div>
       </div>
     </Tile>
@@ -588,22 +627,20 @@
     class="cell baro-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Barometric pressure chart"
     onclick={openBaroChart}
     onkeydown={(e) => onKeyActivate(e, openBaroChart)}
   >
-    <Tile label="Baro" accent={colors.label}>
+    <Tile label="Baro" accent={pressureStatus.color} hideLabel fill clip centerBody padding="0.65rem">
       <div class="baro-body">
-        <div class="baro-value">
-          {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)} <span class="unit">inHg</span>
-        </div>
-        {#if baroStormActive}
-          <div class="baro-spark baro-storm">
-            <OhIcon icon={'iconify:mdi:weather-pouring'} size="1.7rem" color={colors.rain} />
+        <div class="baro-head">
+          <span class="baro-status-icon" style="color: {pressureStatus.color}"><OhIcon icon={pressureStatus.icon} size="1.15rem" /></span>
+          <div class="baro-value">
+            {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)} <span class="unit">inHg</span>
           </div>
-        {:else}
-          <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} /></div>
-        {/if}
-        <div class="baro-trend">{baroTrend}</div>
+        </div>
+        <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} smoothingAlpha={0.12} /></div>
+        <div class="baro-trend" style="color: {pressureStatus.color}">{pressureStatus.label}</div>
       </div>
     </Tile>
   </div>
@@ -612,27 +649,41 @@
     class="cell rain-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Rain chart"
     onclick={openRainChart}
     onkeydown={(e) => onKeyActivate(e, openRainChart)}
   >
     <StatTile
       label="Rain"
-      value={fmt($items.AmbientWeatherWS2902A_RainFallDay, '', 2)}
-      unit="&#8243;"
+      value={rainValue}
+      unit=""
       accent={colors.rain}
+      iconName="iconify:mdi:weather-rainy"
+      iconColor={rainIconColor}
       footer={rainFooter}
+      valueSize="1rem"
+      footerSize="0.72rem"
+      footerNoWrap
+      stackValue
+      centerContent
+      hideLabel fill clip
+      padding="0.65rem"
     />
   </div>
 
   <div class="cell sunmoon-cell">
-    <Tile label="Sun &amp; Moon" accent={colors.label}>
+    <Tile label="Sun &amp; Moon" accent={colors.label} hideLabel fill clip centerBody padding="0.65rem">
       <div class="sunmoon-body">
         <div class="sm-row">
-          <OhIcon icon={$items.SunPhaseIcon} size="1em" />
+          <span class="sm-icon"><OhIcon icon={$items.SunPhaseIcon} size="1em" /></span>
           <span class="sm-times">&uarr;{sunRiseText} &darr;{sunSetText}</span>
         </div>
-        <div class="sm-row"><OhIcon icon={$items.MoonPhaseicon} size="1em" /> {moonText}</div>
+        <div class="sm-row">
+          <span class="sm-icon"><OhIcon icon={$items.MoonPhaseicon} size="1em" /></span>
+          <span class="sm-moon" title={moonText}>{moonText}</span>
+        </div>
         <div class="sm-row sm-daylight">daylight {daylight}</div>
+        <SeasonCountdown />
       </div>
     </Tile>
   </div>
@@ -641,15 +692,19 @@
     class="cell solar-cell clickable"
     role="button"
     tabindex="0"
+    aria-label="Open Solar chart"
     onclick={openSolarChart}
     onkeydown={(e) => onKeyActivate(e, openSolarChart)}
   >
-    <Tile label="Solar" accent={colors.solar}>
+    <Tile label="Solar" accent={colors.solar} hideLabel fill clip centerBody padding="0.65rem">
       <div class="solar-body">
-        <div class="solar-main">{fmt($items.MPPT60_EnergyFromPV_Today, '', 1)}<span class="unit"> kWh</span></div>
+        <div class="solar-head">
+          <span class="solar-icon" style="color: {solarColor}"><OhIcon icon="iconify:mdi:solar-power-variant" size="1.25rem" /></span>
+          <div class="solar-main">{fmt($items.MPPT60_EnergyFromPV_Today, '', 1)}<span class="unit"> kWh</span></div>
+        </div>
         <div class="solar-sub">of {fmt($items.Predicted_PV_Today_kWh, '', 1)} predicted</div>
-        <div class="solar-current">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
-        <div class="curtail-lamp">
+        <div class="solar-current" style="color: {solarColor}">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
+        <div class="curtail-lamp" style="color: {curtailColor}">
           <span class="lamp-dot" class:active={curtailActive}></span>
           curtail {curtailText}
         </div>
@@ -658,7 +713,7 @@
   </div>
 
   <div class="cell zones-cell">
-    <Tile label="Zones" accent={colors.temperature}>
+    <Tile label="Zones" accent={colors.temperature} hideLabel fill clip centerBody padding="0.65rem">
       <div class="zones-body">
         {#each zonesList as z (z.label)}
           <div class="zone-row">
@@ -674,7 +729,7 @@
   </div>
 
   <div class="cell forecast-cell">
-    <Tile label="Forecast" accent={colors.forecast}>
+    <Tile label="Forecast" accent={colors.forecast} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
       <div class="forecast-body">
         {#if forecastDaily.length === 0}
           <div class="fc-empty">—</div>
@@ -695,39 +750,47 @@
 
 <style>
   .home-grid {
+    width: 100%;
     height: 100%;
+    min-width: 0;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: auto repeat(3, minmax(0, 1fr)) auto;
+    grid-template-rows:
+      minmax(0, 0.38fr)
+      minmax(0, 1.2fr)
+      minmax(0, 1fr)
+      minmax(0, 0.9fr)
+      minmax(0, 0.72fr);
     grid-template-areas:
-      'topbar topbar topbar topbar topbar greywater'
+      'topbar topbar topbar topbar goat greywater'
       'outdoor outdoor battery battery wind baro'
       'outdoor outdoor battery battery rain sunmoon'
       'indoor indoor bitcoin bitcoin solar zones'
       'forecast forecast forecast forecast forecast forecast';
-    gap: 0.75rem;
+    gap: 0.55rem;
+    overflow: hidden;
   }
   .cell {
     min-width: 0;
     min-height: 0;
-  }
-  .cell :global(.tile) {
-    height: 100%;
+    overflow: hidden;
   }
   .clickable {
     cursor: pointer;
+    border-radius: 0.75rem;
   }
-  .clickable:hover :global(.tile) {
-    border-color: #333d4f;
-  }
-  .clickable:focus-visible :global(.tile) {
+  .clickable:hover { filter: brightness(1.07); }
+  .clickable:focus-visible {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
   }
 
-  .advisory-cell {
+  .powerflow-cell {
     grid-area: topbar;
+  }
+  .goat-cell {
+    grid-area: goat;
   }
   .greywater-cell {
     grid-area: greywater;
@@ -766,29 +829,7 @@
     grid-area: forecast;
   }
 
-  /* ---- Advisory ---- */
-  .advisory-body {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 100%;
-  }
-  .advisory-dot {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 50%;
-    background: #f97316;
-    flex-shrink: 0;
-  }
-  .advisory-text {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #f97316;
-  }
-
-  /* ---- Power-flow strip (shown instead of the advisory banner when no
-     thermal advisory is active — same cell/grid-area, never both, never
-     empty) ---- */
+  /* ---- Power-flow strip; advisories live only in the fixed header. ---- */
   .powerflow-body {
     display: flex;
     flex-direction: column;
@@ -840,17 +881,11 @@
     gap: 0.5rem;
     height: 100%;
   }
-  .gw-dot {
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 50%;
-    background: #3b82f6;
-    opacity: 0.4;
+  .gw-icon {
+    display: inline-flex;
+    align-items: center;
     flex-shrink: 0;
-  }
-  .gw-dot.active {
-    opacity: 1;
-    box-shadow: 0 0 0.4rem #3b82f6;
+    line-height: 1;
   }
   .gw-state {
     font-size: 0.85rem;
@@ -878,7 +913,7 @@
   }
   .outdoor-main {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     gap: 0.6rem;
   }
   .cond-icon {
@@ -887,21 +922,40 @@
     line-height: 1;
   }
   .big-temp {
-    font-size: 4rem;
+    font-size: 4.4rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
     color: #fff;
   }
-  .aqi-chip {
+  .outdoor-chips {
     margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+  }
+  .aqi-chip,
+  .uv-chip,
+  .rain-rate-chip {
     font-size: 0.7rem;
     letter-spacing: 0.04em;
-    background: #14351f;
-    color: #22c55e;
     border-radius: 999px;
+    border: 1px solid currentColor;
     padding: 0.2rem 0.6rem;
-    align-self: flex-start;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .aqi-chip {
+    background: #202631;
+  }
+  .aqi-chip.unavailable {
+    color: #8b93a1;
+  }
+  .uv-chip,
+  .rain-rate-chip {
+    background: #202631;
   }
   .outdoor-sub {
     font-size: 1.05rem;
@@ -918,9 +972,6 @@
     overflow: hidden;
     position: relative;
   }
-  :global(.outdoor-cell .tile) {
-    overflow: hidden;
-  }
 
   /* ---- Indoor ---- */
   .indoor-body {
@@ -929,8 +980,21 @@
     height: 100%;
     gap: 0.85rem;
   }
+  .indoor-reading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+  .indoor-icon {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    line-height: 1;
+  }
   .indoor-temp {
-    font-size: 2.6rem;
+    font-size: 4.4rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -940,24 +1004,19 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    font-size: 0.85rem;
+    min-width: 0;
   }
   .indoor-hum {
+    font-size: 1.05rem;
     font-weight: 600;
     color: #c7cfd9;
   }
   .indoor-hilo {
+    font-size: 0.95rem;
     color: #8b93a1;
   }
 
   /* ---- Battery hero ---- */
-  /* The SoC sparkline's green area-fill was bleeding below the card's
-     rounded bottom edge. Clip to the card's own rounded bounds (matching
-     how the Outdoor card already stays inside its border) in addition to
-     the inner overflow:hidden on .battery-body/.battery-spark below. */
-  :global(.battery-cell .tile) {
-    overflow: hidden;
-  }
   .battery-body {
     display: flex;
     flex-direction: column;
@@ -981,16 +1040,46 @@
     gap: 0.3rem;
     font-size: 0.85rem;
   }
+  .batt-status {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .batt-icon {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    line-height: 1;
+  }
+  .batt-icon.charging :global(svg) {
+    animation: batt-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes batt-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
   .batt-indicator {
     font-weight: 600;
   }
   .batt-runtime {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
     color: #c7cfd9;
+    font-size: 0.76rem;
+    line-height: 1;
+    white-space: nowrap;
   }
-  .batt-runtime em {
-    font-style: normal;
-    color: #6b7280;
-    font-size: 0.75rem;
+  .batt-runtime strong {
+    color: #8b93a1;
+    font-size: 0.68rem;
+    font-weight: 500;
+    min-width: 2.5rem;
   }
   .battery-spark {
     flex: 1;
@@ -999,9 +1088,6 @@
   }
 
   /* ---- Bitcoin (mirrors Indoor's slot under Battery) ---- */
-  :global(.bitcoin-cell .tile) {
-    overflow: hidden;
-  }
   .bitcoin-body {
     display: flex;
     flex-direction: column;
@@ -1011,9 +1097,14 @@
   }
   .btc-top {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.6rem;
     flex: 0 0 auto;
+  }
+  .btc-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    line-height: 1;
   }
   .btc-price {
     font-size: 1.5rem;
@@ -1030,14 +1121,6 @@
   /* ---- Wind ---- */
   /* The rose measures the remaining content box. Gust and daily maximum stay
      in a dedicated row so they can never overlap the needle. */
-  :global(.wind-cell .tile) {
-    overflow: hidden;
-    padding: 0.55rem 0.65rem;
-  }
-  :global(.wind-cell .tile-label) {
-    margin-bottom: 0.2rem;
-    flex-shrink: 0;
-  }
   .wind-body {
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto;
@@ -1062,43 +1145,25 @@
     line-height: 1;
     white-space: nowrap;
   }
-  .wind-gust {
-    color: #22c55e;
-  }
-  .wind-max {
-    color: #8b93a1;
-  }
-
-  /* ---- Rain ---- */
-  .rain-cell :global(.value) {
-    font-size: 2.15rem;
-  }
-  .rain-cell :global(.footer) {
-    font-size: 0.72rem;
-    line-height: 1.1;
-    letter-spacing: -0.025em;
-    white-space: nowrap;
-  }
-  .rain-cell :global(.tile) {
-    overflow: hidden;
-  }
 
   /* ---- Baro ---- */
-  /* Title/content overlap fix: the tile label (.tile-label, from Tile.svelte)
-     defaults to flex-shrink:1, so when this narrow column's row got too
-     short it could compress the label box until its text visually collided
-     with the value below. Pin the label to its own row and let the body
-     lay out top-down beneath it instead of vertically centering into the
-     same space. */
-  :global(.baro-cell .tile-label) {
-    flex-shrink: 0;
-  }
   .baro-body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.2rem;
+  }
+  .baro-head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .baro-status-icon {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    line-height: 1;
   }
   .baro-value {
     font-size: 1.1rem;
@@ -1114,26 +1179,7 @@
   .baro-spark {
     flex: 1;
     min-height: 1.4rem;
-  }
-  /* Storm/rain alert: flashing rain-cloud icon swapped in for the sparkline.
-     Gentle opacity-only pulse — no blur/transform — to stay cheap on the
-     tablet's modest GPU. */
-  .baro-storm {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .baro-storm :global(svg) {
-    animation: baro-pulse 1.2s ease-in-out infinite;
-  }
-  @keyframes baro-pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.35;
-    }
+    overflow: hidden;
   }
   .baro-trend {
     font-size: 0.68rem;
@@ -1143,15 +1189,14 @@
   }
 
   /* ---- Sun & Moon ---- */
-  :global(.sunmoon-cell .tile-label) {
-    flex-shrink: 0;
-  }
   .sunmoon-body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.28rem;
+    min-width: 0;
+    overflow: hidden;
   }
   .sm-row {
     display: flex;
@@ -1161,24 +1206,45 @@
     color: #c7cfd9;
     line-height: 1.15;
     white-space: nowrap;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
   }
-  .sm-times {
+  .sm-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    line-height: 1;
+  }
+
+  .sm-times,
+  .sm-moon {
     white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .sm-daylight {
     color: #8b93a1;
   }
 
   /* ---- Solar ---- */
-  :global(.solar-cell .tile-label) {
-    flex-shrink: 0;
-  }
   .solar-body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.18rem;
+  }
+  .solar-head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .solar-icon {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    line-height: 1;
   }
   .solar-main {
     font-size: 1.4rem;
@@ -1199,7 +1265,6 @@
   }
   .solar-current {
     font-size: 0.74rem;
-    color: #c7cfd9;
     line-height: 1.15;
   }
   .curtail-lamp {
@@ -1208,7 +1273,6 @@
     align-items: center;
     gap: 0.3rem;
     font-size: 0.62rem;
-    color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     white-space: nowrap;
@@ -1217,10 +1281,10 @@
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 50%;
-    background: #374151;
+    background: currentColor;
   }
   .lamp-dot.active {
-    background: #eab308;
+    box-shadow: 0 0 0.25rem currentColor;
   }
 
   /* ---- Zones ---- */
@@ -1299,5 +1363,11 @@
   .fc-pv {
     font-size: 0.65rem;
     color: #6b7280;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .batt-icon.charging :global(svg) {
+      animation: none;
+    }
   }
 </style>

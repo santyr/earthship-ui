@@ -5,17 +5,21 @@
   import { observeElementSize } from './observeElementSize.js';
   import { echartsTheme } from './tokens.js';
 
-  let { data = [], color = '#22c55e', lineWidth = 2 } = $props();
+  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25 } = $props();
 
   let el;
   let chart;
   let widthPx = $state(320);
   let stopObserving = () => {};
+  const appliedSmoothingAlpha = $derived.by(() => {
+    const alpha = Number(smoothingAlpha);
+    return Number.isFinite(alpha) && alpha > 0 && alpha <= 1 ? alpha : 0.25;
+  });
 
-  function buildOption(points, lineColor, width, renderWidth) {
+  function buildOption(points, lineColor, width, renderWidth, alpha) {
     let prepared = [];
     try {
-      prepared = prepareSparklineSeries(points, { widthPx: renderWidth });
+      prepared = prepareSparklineSeries(points, { widthPx: renderWidth, alpha });
     } catch {
       // The compact card remains available even if one malformed persisted
       // row is encountered; full charts surface that validation as an error.
@@ -47,7 +51,7 @@
 
   function update() {
     if (!chart) return;
-    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx), true);
+    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha), true);
   }
 
   onMount(() => {
@@ -70,6 +74,7 @@
     void data;
     void color;
     void lineWidth;
+    void appliedSmoothingAlpha;
     void widthPx;
     update();
   });

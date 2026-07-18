@@ -45,4 +45,34 @@ describe('Sparkline', () => {
     expect(option.series[0].data).toEqual([1, 1.5, 2.125, 2.59375, 3.1953125]);
     expect(option.series[0].data).not.toContain(null);
   });
+
+  it('supports a validated per-instance EMA alpha for a calmer compact card', async () => {
+    render(Sparkline, {
+      props: {
+        data: [1, 100, 3, 4, 5].map((state, index) => ({ time: index * 1_000, state })),
+        smoothingAlpha: 0.12,
+      },
+    });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    const expected = [1, 1.24, 1.5712, 1.862656, 2.23913728];
+    expect(option.series[0].data).toHaveLength(expected.length);
+    option.series[0].data.forEach((value, index) => {
+      expect(value).toBeCloseTo(expected[index], 8);
+    });
+    expect(option.series[0].connectNulls).toBe(true);
+    expect(option.series[0].data).not.toContain(null);
+  });
+
+  it.each([0, -0.1, 1.01, Number.NaN])('falls back to alpha 0.25 for invalid alpha %s', async (smoothingAlpha) => {
+    render(Sparkline, {
+      props: {
+        data: [1, 100, 3, 4, 5].map((state, index) => ({ time: index * 1_000, state })),
+        smoothingAlpha,
+      },
+    });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series[0].data).toEqual([1, 1.5, 2.125, 2.59375, 3.1953125]);
+  });
 });
