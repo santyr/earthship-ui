@@ -43,25 +43,30 @@
   }
 
   // ---- AQI (EPA bands) -------------------------------------------------
-  function aqiColor(v) {
-    const n = num(v);
-    if (n === null) return '#6b7280';
-    if (n <= 50) return '#22c55e';
-    if (n <= 100) return '#eab308';
-    if (n <= 150) return '#f97316';
-    return '#ef4444';
+  // Forecast_AQI is a categorical refresh/status surface. Current conditions
+  // must come only from the separately provisioned numeric Current_US_AQI item.
+  function currentAqi(raw) {
+    const text = typeof raw === 'number' ? String(raw) : String(raw ?? '').trim();
+    const unavailable = {
+      value: null,
+      color: '#6b7280',
+      band: 'Current sensor not configured',
+      status: 'unavailable',
+    };
+    if (!/^(?:\d+\.?\d*|\.\d+)$/.test(text)) return unavailable;
+    const value = Math.round(Number(text));
+    if (!Number.isFinite(value) || value < 0) return unavailable;
+    if (value <= 50) return { value, color: '#22c55e', band: 'Good', status: 'good' };
+    if (value <= 100) return { value, color: '#eab308', band: 'Moderate', status: 'moderate' };
+    if (value <= 150) {
+      return { value, color: '#f97316', band: 'Unhealthy for sensitive groups', status: 'unhealthy' };
+    }
+    if (value <= 200) return { value, color: '#ef4444', band: 'Unhealthy', status: 'unhealthy' };
+    if (value <= 300) return { value, color: '#a855f7', band: 'Very unhealthy', status: 'critical' };
+    if (value <= 500) return { value, color: '#991b1b', band: 'Hazardous', status: 'critical' };
+    return { value, color: '#ef4444', band: 'Beyond index', status: 'critical' };
   }
-  function aqiBand(v) {
-    const n = num(v);
-    if (n === null) return '—';
-    if (n <= 50) return 'Good';
-    if (n <= 100) return 'Moderate';
-    if (n <= 150) return 'Unhealthy (SG)';
-    return 'Unhealthy';
-  }
-  const aqiValue = $derived(num($items.Forecast_AQI));
-  const aqiColorV = $derived(aqiColor($items.Forecast_AQI));
-  const aqiBandV = $derived(aqiBand($items.Forecast_AQI));
+  const aqi = $derived(currentAqi($items.Current_US_AQI));
 
   // ---- Hourly (14h) ------------------------------------------------------
   const forecastHourly = $derived.by(() => {
@@ -161,10 +166,14 @@
   </div>
 
   <div class="cell aqi-cell">
-    <Tile label="Air Quality" accent={aqiColorV}>
-      <div class="aqi-body">
-        <div class="aqi-value" style="color: {aqiColorV}">{aqiValue === null ? '—' : Math.round(aqiValue)}</div>
-        <div class="aqi-band" style="color: {aqiColorV}">{aqiBandV}</div>
+    <Tile label="Modeled US AQI" accent={aqi.color}>
+      <div class="aqi-body" data-source-item="Current_US_AQI" data-aqi-status={aqi.status}>
+        {#if aqi.value === null}
+          <div class="aqi-unavailable">Unavailable</div>
+        {:else}
+          <div class="aqi-value" style="color: {aqi.color}">{aqi.value}</div>
+        {/if}
+        <div class="aqi-band" style="color: {aqi.color}">{aqi.band}</div>
       </div>
     </Tile>
   </div>
@@ -172,7 +181,7 @@
   <div class="cell hourly-cell">
     <Tile label="Next 14 Hours" accent={colors.forecast}>
       <div class="hourly-wrap">
-        <HourlyStrip hours={forecastHourly} height={150} />
+        <HourlyStrip hours={forecastHourly} height={0} />
       </div>
     </Tile>
   </div>
@@ -186,7 +195,7 @@
           {#each forecastDaily as d, i (i)}
             <div class="daily-row" class:daily-emph={i < 2}>
               <div class="daily-label">{dayLabel(i, d.d)}</div>
-              <div class="daily-icon"><OhIcon icon={wmoIcon(d.w)} size="1.5rem" /></div>
+              <div class="daily-icon"><OhIcon icon={wmoIcon(d.w)} size="1.25rem" /></div>
               <div class="daily-hilo">{roundOrDash(d.hi)}&deg; / {roundOrDash(d.lo)}&deg;</div>
               <div class="daily-precip">{roundOrDash(d.p)}%</div>
               <div class="daily-pv">PV ~{pvText(d.pv)} kWh</div>
@@ -248,22 +257,26 @@
 
 <style>
   .weather-grid {
-    height: 100%;
+    block-size: 100%;
+    min-width: 0;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: auto minmax(11rem, auto) minmax(13rem, auto) auto;
+    grid-template-rows:
+      minmax(0, 0.75fr) minmax(0, 1.05fr)
+      minmax(0, 1.2fr) minmax(0, 0.55fr);
     grid-template-areas:
       'current current current current aqi aqi'
       'hourly hourly hourly hourly hourly hourly'
       'daily daily daily daily daily daily'
       'wind wind rain rain pressure pressure';
     gap: 0.75rem;
-    overflow-y: auto;
+    overflow: hidden;
   }
   .cell {
     min-width: 0;
     min-height: 0;
+    overflow: hidden;
   }
   .cell :global(.tile) {
     height: 100%;
@@ -306,10 +319,15 @@
     display: flex;
     align-items: center;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
   }
   .cur-main {
     display: flex;
     align-items: center;
+    min-width: 0;
+    min-height: 0;
     gap: 0.9rem;
   }
   .cur-icon {
@@ -347,6 +365,12 @@
     height: 100%;
     gap: 0.15rem;
   }
+  .aqi-unavailable {
+    color: #8b93a1;
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.1;
+  }
   .aqi-value {
     font-size: 2.6rem;
     font-weight: 700;
@@ -358,12 +382,15 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    text-align: center;
   }
 
   /* ---- Hourly strip ---- */
   .hourly-wrap {
     height: 100%;
+    min-width: 0;
     min-height: 0;
+    overflow: hidden;
   }
 
   /* ---- 7-day forecast ---- */
@@ -372,7 +399,7 @@
     flex-direction: column;
     height: 100%;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.2rem;
   }
   .daily-empty {
     display: flex;
@@ -388,7 +415,7 @@
     gap: 0.6rem;
     font-size: 0.85rem;
     color: #e6edf3;
-    padding: 0.15rem 0;
+    padding: 0.05rem 0;
   }
   .daily-emph {
     color: #c4b5fd;

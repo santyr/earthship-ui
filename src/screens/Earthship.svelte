@@ -1,8 +1,8 @@
 <script>
   // Task 6.1 — Earthship console: the passive-thermal loop and greywater
-  // circulation, last of the five screens. South Glazing (Shelly_HT1, the
-  // solar-gain wall) -> Room Air (WS2902A indoor console) -> North Mass
-  // (WH31E ch-193, earth-bermed wall, the house's heat "state of charge").
+  // circulation, last of the five screens. North Mass (WH31E ch-193, the
+  // earth-bermed thermal store) -> Room Air (WS2902A indoor console) -> South
+  // Wall (Shelly H&T) -> Outdoor (WS2902A ambient sensor).
   // Mirrors the dark-console aesthetic (Tile chrome, tokens.colors,
   // click-to-chart via openChart) established on Home/Energy/Weather.
   import Tile from '../lib/ui/Tile.svelte';
@@ -18,18 +18,24 @@
     }
   }
 
-  // ---- Zone temps (South Glazing -> Room Air -> North Mass) ----------------
-  const glazingTemp = $derived(num($items.Shelly_HT1_Indoor_Temperature));
-  const roomTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
+  // ---- Zone temps (North Mass -> Room Air -> South Wall -> Outdoor) ---------
   const massTemp = $derived(num($items.AmbientWeatherWS2902A_WH31E_193_Temperature));
+  const roomTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
+  const wallTemp = $derived(num($items.Shelly_HT1_Indoor_Temperature));
+  const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
 
   function openZonesChart() {
     openChart({
       title: 'Thermal Loop — Zone Temps (24h)',
       series: [
-        { name: 'Shelly_HT1_Indoor_Temperature', color: '#f59e0b', label: 'South Glazing' },
-        { name: 'AmbientWeatherWS2902A_IndoorSensor_Temperature', color: '#e6edf3', label: 'Room Air' },
         { name: 'AmbientWeatherWS2902A_WH31E_193_Temperature', color: '#c2703d', label: 'North Mass' },
+        { name: 'AmbientWeatherWS2902A_IndoorSensor_Temperature', color: '#e6edf3', label: 'Room Air' },
+        { name: 'Shelly_HT1_Indoor_Temperature', color: '#f59e0b', label: 'South Wall' },
+        {
+          name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature',
+          color: '#38bdf8',
+          label: 'Outdoor',
+        },
       ],
       hours: 24,
     });
@@ -157,9 +163,9 @@
 
   // ---- Zone humidity ---------------------------------------------------------
   const humidityZones = $derived([
-    { label: 'South Glazing', value: $items.Shelly_HT1_Atmospheric_Humidity },
-    { label: 'Room Air', value: $items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity },
     { label: 'North Mass', value: $items.AmbientWeatherWS2902A_WH31E_193_RelativeHumidity },
+    { label: 'Room Air', value: $items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity },
+    { label: 'South Wall', value: $items.Shelly_HT1_Atmospheric_Humidity },
   ]);
 </script>
 
@@ -180,7 +186,13 @@
 
   <div class="cell loop-cell">
     <Tile label="Passive Thermal Loop" accent={colors.temperature}>
-      <ThermalLoop glazing={glazingTemp} room={roomTemp} mass={massTemp} onZoneClick={openZonesChart} />
+      <ThermalLoop
+        mass={massTemp}
+        room={roomTemp}
+        wall={wallTemp}
+        outdoor={outdoorTemp}
+        onZoneClick={openZonesChart}
+      />
     </Tile>
   </div>
 
@@ -243,21 +255,24 @@
 
 <style>
   .earthship-grid {
-    height: 100%;
+    block-size: 100%;
+    min-width: 0;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: auto minmax(14rem, 1fr) minmax(9rem, auto);
+    grid-template-rows:
+      minmax(0, 0.55fr) minmax(0, 1.65fr) minmax(0, 0.9fr);
     grid-template-areas:
       'advisory advisory advisory advisory advisory advisory'
       'loop loop loop loop mass buffering'
       'greywater greywater greywater humidity humidity humidity';
     gap: 0.75rem;
-    overflow-y: auto;
+    overflow: hidden;
   }
   .cell {
     min-width: 0;
     min-height: 0;
+    overflow: hidden;
   }
   .cell :global(.tile) {
     height: 100%;
@@ -303,6 +318,7 @@
   .advisory-main {
     display: flex;
     align-items: center;
+    min-width: 0;
     gap: 0.5rem;
   }
   .advisory-dot {
@@ -317,6 +333,10 @@
     box-shadow: 0 0 0.4rem #f97316;
   }
   .advisory-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 0.95rem;
     font-weight: 600;
     color: #8b93a1;
@@ -417,6 +437,10 @@
     line-height: 1.2;
   }
   .gw-status {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     font-size: 0.72rem;
     color: #8b93a1;
   }
