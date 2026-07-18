@@ -114,6 +114,8 @@ describe('RED sentinel inventory contract', () => {
     await writeSource(rootDir, owner, sentinelSource('RED:T14A-1'));
     const { validateSentinelInventory } = await inventoryModule();
 
+    expect(() => validateSentinelInventory({ rootDir }))
+      .toThrow(/requested sentinel/i);
     expect(() => validateSentinelInventory({
       rootDir,
       requestedSentinel: 'RED:UNKNOWN-1',
@@ -134,6 +136,36 @@ describe('RED sentinel inventory contract', () => {
       requestedSentinel: 'RED:T14A-1',
       selectedFiles: ['tests/another.test.js'],
     })).toThrow(/selected file.*owner/i);
+  });
+
+  it('requires the exact Error callee and rejects every bracketed unregistered ID', async () => {
+    const { validateSentinelInventory } = await inventoryModule();
+
+    const customErrorRoot = await fixture();
+    const owner = EXPECTED_OWNERS['RED:T14A-1'];
+    await writeSource(customErrorRoot, owner, [
+      "import { test } from 'vitest';",
+      "test('[RED:T14A-1] expected contract', () => {",
+      "  throw new CustomError('[RED:T14A-1] not the approved error marker');",
+      '});',
+    ].join('\n'));
+    expect(() => validateSentinelInventory({
+      rootDir: customErrorRoot,
+      requestedSentinel: 'RED:T14A-1',
+      selectedFiles: [owner],
+    })).toThrow(/exactly one error marker.*found 0/i);
+
+    const unregisteredRoot = await fixture();
+    await writeSource(
+      unregisteredRoot,
+      owner,
+      `${sentinelSource('RED:T14A-1')}\n${sentinelSource('RED:UNREGISTERED_1')}`,
+    );
+    expect(() => validateSentinelInventory({
+      rootDir: unregisteredRoot,
+      requestedSentinel: 'RED:T14A-1',
+      selectedFiles: [owner],
+    })).toThrow(/unregistered sentinel.*RED:UNREGISTERED_1/i);
   });
 
   it('rejects moved, duplicated, and unregistered sentinel markers', async () => {

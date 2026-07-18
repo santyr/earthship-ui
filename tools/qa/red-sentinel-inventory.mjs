@@ -36,7 +36,7 @@ export const RED_SENTINEL_OWNERS = Object.freeze({
 
 const TEST_SOURCE_RE = /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/;
 const SKIP_DIRECTORIES = new Set(['.git', '.superpowers', 'dist', 'node_modules', 'test-results']);
-const SENTINEL_PREFIX_RE = /^\[(RED:[A-Za-z0-9-]+)\]/;
+const SENTINEL_PREFIX_RE = /^\[(RED:[^\]\r\n]*)\]/;
 
 function posixPath(path) {
   return path.split(sep).join('/').replace(/^\.\//, '');
@@ -132,7 +132,7 @@ function scanStringTokens(source) {
     let kind = null;
     if (/(?:^|[^\w$.])(?:it|test)(?:\.(?:only|skip|todo))?\s*\(\s*$/.test(prefix)) {
       kind = 'title';
-    } else if (/(?:new\s+)?(?:Error|TypeError|RangeError)\s*\(\s*$/.test(prefix)
+    } else if (/(?<![\w$.])(?:new\s+)?(?:Error|TypeError|RangeError)\s*\(\s*$/.test(prefix)
       || /expect\.fail\s*\(\s*$/.test(prefix)) {
       kind = 'error';
     }
@@ -176,6 +176,9 @@ export function validateSentinelInventory({
     throw new Error(`unknown sentinel inventory mode: ${mode}`);
   }
   if (!Array.isArray(selectedFiles)) throw new TypeError('selectedFiles must be an array');
+  if (mode === 'incomplete' && requestedSentinel === undefined) {
+    throw new Error('incomplete mode requires a requested sentinel');
+  }
 
   const normalizedRoot = resolve(rootDir);
   let ownerFile = null;
