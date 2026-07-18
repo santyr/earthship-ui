@@ -123,6 +123,28 @@ describe('typed controls UI', () => {
     });
   });
 
+  it('submits Living Room 1 OFF after one click', async () => {
+    const control = CONTROL_CATALOG.living1;
+    items.set({ [control.stateItem]: 'ON' });
+    render(Toggle, { props: {
+      control,
+      providerStatus: { status: 'ONLINE' },
+      releaseMode: 'safe-compat',
+    } });
+
+    const button = screen.getByRole('button', { name: /Living Room 1/i });
+    expect(button).toHaveTextContent('Tap to toggle');
+    await fireEvent.click(button);
+
+    await vi.waitFor(() => {
+      expect(mocks.sendCommand).toHaveBeenCalledWith(
+        'living_room_1_Switch',
+        'OFF',
+      );
+    });
+    expect(mocks.sendCommand).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the default development release as maintenance and cannot submit', () => {
     items.set({
       LivingRoomCircadian_Enable: 'OFF',
@@ -194,6 +216,23 @@ describe('typed controls UI', () => {
     expect(button).toBeDisabled();
     expect(button).toHaveTextContent('Owned by Night Load Override');
     expect(button).toHaveTextContent('Feeder policy override ON');
+  });
+
+  it('retains the active class for a disabled ON Dishwasher control', () => {
+    items.set({
+      Dish_Washer_Power: 'ON',
+      OverrideSwitch: 'ON',
+    });
+    render(Toggle, { props: { control: CONTROL_CATALOG.dishwasher } });
+
+    const button = screen.getByRole('button', { name: /Dishwasher/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    expect(button).toHaveClass('on');
+    const source = fs.readFileSync('src/lib/ui/Toggle.svelte', 'utf8');
+    expect(source).toMatch(/\.control\.on\s+\.pill/);
+    expect(source).toMatch(/\.control\.on:disabled\s+\.pill/);
+    expect(source).not.toMatch(/\.control\.on:not\(:disabled\)\s+\.pill/);
   });
 
   it('presents feeder and circulation as disabled actions with actuator status', () => {

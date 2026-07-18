@@ -35,6 +35,7 @@ describe('holdAction', () => {
     submit = vi.fn().mockResolvedValue({ status: 'accepted' });
     phases = [];
     action = holdAction(node, {
+      mode: 'hold',
       contractKey: 'circadian:OFF:enabled',
       onSubmit: submit,
       onPhaseChange: (phase) => phases.push(phase),
@@ -61,6 +62,58 @@ describe('holdAction', () => {
     node.dispatchEvent(pointer('pointerup', 1));
     vi.advanceTimersByTime(600);
     expect(submit).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits tap mode exactly once on click', async () => {
+    action.destroy();
+    action = holdAction(node, {
+      mode: 'tap',
+      onSubmit: submit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+
+    node.click();
+    await settle();
+
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(phases.at(-1)).toBe('accepted');
+  });
+
+  it('does nothing when tap mode is disabled', async () => {
+    action.destroy();
+    action = holdAction(node, {
+      mode: 'tap',
+      disabled: true,
+      onSubmit: submit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+
+    node.click();
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(phases.at(-1)).toBe('unavailable');
+  });
+
+  it('blocks a second tap while the first submission is pending', async () => {
+    let resolve;
+    submit.mockReturnValue(new Promise((done) => { resolve = done; }));
+    action.destroy();
+    action = holdAction(node, {
+      mode: 'tap',
+      onSubmit: submit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+
+    node.click();
+    node.click();
+
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(phases.at(-1)).toBe('pending');
+
+    resolve({ status: 'accepted' });
+    await settle();
+    expect(phases.at(-1)).toBe('accepted');
   });
 
   it.each([
@@ -137,6 +190,25 @@ describe('holdAction', () => {
 
     expect(submit).not.toHaveBeenCalled();
     expect(phases.at(-1)).toBe('confirmed');
+  });
+
+  it('cancels an unfinished hold and rewires listeners when mode changes', async () => {
+    node.dispatchEvent(pointer('pointerdown', 1));
+    vi.advanceTimersByTime(300);
+    action.update({
+      mode: 'tap',
+      contractKey: 'circadian:OFF:enabled',
+      onSubmit: submit,
+      onPhaseChange: (phase) => phases.push(phase),
+    });
+    vi.advanceTimersByTime(400);
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(phases.at(-1)).toBe('confirmed');
+
+    node.click();
+    await settle();
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 
   it('cancels an unfinished hold when its submission callback changes', () => {

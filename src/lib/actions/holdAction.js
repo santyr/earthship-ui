@@ -11,11 +11,17 @@ function isUnknownError(error) {
 }
 
 function normalizeOptions(options = {}) {
-  return { holdMs: HOLD_DURATION_MS, disabled: false, ...options };
+  return {
+    mode: 'hold',
+    holdMs: HOLD_DURATION_MS,
+    disabled: false,
+    ...options,
+  };
 }
 
 function sameActionContract(left, right) {
   return left.disabled === right.disabled
+    && left.mode === right.mode
     && left.holdMs === right.holdMs
     && left.contractKey === right.contractKey
     && left.onSubmit === right.onSubmit;
@@ -108,13 +114,41 @@ export function holdAction(node, initialOptions = {}) {
     if (!submitting) clearHold();
   }
 
-  node.addEventListener('pointerdown', onPointerDown);
-  node.addEventListener('pointerup', stopPointer);
-  node.addEventListener('pointercancel', stopPointer);
-  node.addEventListener('pointerleave', stopPointer);
-  node.addEventListener('keydown', onKeyDown);
-  node.addEventListener('keyup', onKeyUp);
-  node.addEventListener('blur', onBlur);
+  function onClick() {
+    if (destroyed || options.disabled || submitting || active) return;
+    active = { type: 'tap' };
+    submitOnce();
+  }
+
+  function addModeListeners(mode) {
+    if (mode === 'tap') {
+      node.addEventListener('click', onClick);
+      return;
+    }
+    node.addEventListener('pointerdown', onPointerDown);
+    node.addEventListener('pointerup', stopPointer);
+    node.addEventListener('pointercancel', stopPointer);
+    node.addEventListener('pointerleave', stopPointer);
+    node.addEventListener('keydown', onKeyDown);
+    node.addEventListener('keyup', onKeyUp);
+    node.addEventListener('blur', onBlur);
+  }
+
+  function removeModeListeners(mode) {
+    if (mode === 'tap') {
+      node.removeEventListener('click', onClick);
+      return;
+    }
+    node.removeEventListener('pointerdown', onPointerDown);
+    node.removeEventListener('pointerup', stopPointer);
+    node.removeEventListener('pointercancel', stopPointer);
+    node.removeEventListener('pointerleave', stopPointer);
+    node.removeEventListener('keydown', onKeyDown);
+    node.removeEventListener('keyup', onKeyUp);
+    node.removeEventListener('blur', onBlur);
+  }
+
+  addModeListeners(options.mode);
   emit(restingPhase());
 
   return {
@@ -123,6 +157,7 @@ export function holdAction(node, initialOptions = {}) {
       const next = normalizeOptions(nextOptions);
       const invalidatesActiveHold = active && !submitting
         && !sameActionContract(previous, next);
+      const modeChanged = previous.mode !== next.mode;
       options = next;
 
       if (invalidatesActiveHold) {
@@ -130,17 +165,15 @@ export function holdAction(node, initialOptions = {}) {
       } else if (options.disabled && !previous.disabled && !submitting) {
         emit('unavailable');
       }
+      if (modeChanged) {
+        removeModeListeners(previous.mode);
+        addModeListeners(options.mode);
+      }
     },
     destroy() {
       destroyed = true;
       clearHold({ announce: false });
-      node.removeEventListener('pointerdown', onPointerDown);
-      node.removeEventListener('pointerup', stopPointer);
-      node.removeEventListener('pointercancel', stopPointer);
-      node.removeEventListener('pointerleave', stopPointer);
-      node.removeEventListener('keydown', onKeyDown);
-      node.removeEventListener('keyup', onKeyUp);
-      node.removeEventListener('blur', onBlur);
+      removeModeListeners(options.mode);
     },
   };
 }

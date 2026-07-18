@@ -1,7 +1,10 @@
 <script>
   import { items, connection, getClientOnce } from '../openhab/index.js';
   import { holdAction } from '../actions/holdAction.js';
-  import { commandTargetFor } from '../controls/catalog.js';
+  import {
+    activationModeFor,
+    commandTargetFor,
+  } from '../controls/catalog.js';
   import {
     deriveControlState,
     outcomePresentation,
@@ -40,6 +43,7 @@
   const activePhase = $derived(view.enabled ? submissionPhase : 'unavailable');
   const phaseView = $derived(outcomePresentation(activePhase));
   const isOn = $derived(view.value === 'ON');
+  const activationMode = $derived(activationModeFor(control));
   const commandContract = $derived([
     control?.kind || '',
     commandTargetFor(control) || '',
@@ -106,6 +110,7 @@
   aria-describedby={descriptionId}
   title={[view.reason, view.detail].filter(Boolean).join(' · ')}
   use:holdAction={{
+    mode: activationMode,
     disabled: buttonDisabled,
     contractKey: commandContract,
     onSubmit: submit,
@@ -138,7 +143,9 @@
     {#if view.enabled && activePhase !== 'confirmed'}
       <span class="submission" data-tone={phaseView.tone}>{phaseView.label}</span>
     {:else if view.enabled}
-      <span class="hint">Hold 600 ms</span>
+      <span class="hint">
+        {activationMode === 'tap' ? 'Tap to toggle' : 'Hold 600 ms'}
+      </span>
     {/if}
   </span>
 
@@ -217,10 +224,15 @@
     white-space: nowrap;
   }
 
-  .control.on:not(:disabled) .pill {
+  .control.on .pill {
     border-color: var(--active-color);
     background: var(--active-color);
     color: #07100a;
+  }
+
+  .control.on:disabled .pill {
+    border-color: color-mix(in srgb, var(--active-color) 65%, #4b5563);
+    filter: saturate(0.72);
   }
 
   .pill.unavailable {

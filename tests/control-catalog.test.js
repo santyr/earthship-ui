@@ -3,6 +3,7 @@ import {
   CONTROL_CATALOG,
   DIRECT_COMMAND_ITEMS,
   UNSAFE_DIRECT_COMMAND_ITEMS,
+  activationModeFor,
   commandTargetFor,
   validateControlCatalog,
 } from '../src/lib/controls/catalog.js';
@@ -42,6 +43,28 @@ describe('control catalog', () => {
       goatCam: 'tplinksmarthome:ep40:3cb500a208',
       feedOnce: 'tplinksmarthome:ep40:3cb500a208',
       circulation: 'tplinksmarthome:kp200:7BD449',
+    });
+  });
+
+  it('uses tap activation only for direct living-room lights', () => {
+    expect(CONTROL_CATALOG.living1.activationMode).toBe('tap');
+    expect(CONTROL_CATALOG.living2.activationMode).toBe('tap');
+    expect(CONTROL_CATALOG.living3.activationMode).toBe('tap');
+
+    expect(Object.fromEntries(
+      Object.entries(CONTROL_CATALOG)
+        .map(([id, control]) => [id, activationModeFor(control)]),
+    )).toEqual({
+      living1: 'tap',
+      living2: 'tap',
+      living3: 'tap',
+      circadian: 'hold',
+      dishwasher: 'hold',
+      shureflo: 'hold',
+      goatCam: 'hold',
+      feedOnce: 'hold',
+      circulation: 'hold',
+      override: 'hold',
     });
   });
 

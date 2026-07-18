@@ -11,6 +11,7 @@ const PROVIDER_THINGS = Object.freeze({
 const directBinary = (label, stateItem, extra = {}) => ({
   label,
   kind: 'binary',
+  activationMode: 'tap',
   stateItem,
   commandItem: stateItem,
   requiresProviderHealth: true,
@@ -99,6 +100,10 @@ export const DIRECT_COMMAND_ITEMS = Object.freeze(
     .map(commandTargetFor)
     .filter(Boolean),
 );
+
+export function activationModeFor(control) {
+  return control?.activationMode === 'tap' ? 'tap' : 'hold';
+}
 
 export function validateControlCatalog() {
   const errors = [];

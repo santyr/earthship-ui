@@ -12,7 +12,7 @@ const ITEMS = [
   ['LED_living_room_1_Switch', 'ON'],
   ['LivingRoomCircadian_Enable', 'ON'],
   ['LivingRoomCircadian_LastResult', 'ok'],
-  ['Dish_Washer_Power', 'OFF'],
+  ['Dish_Washer_Power', 'ON'],
   ['ShurefloPump_Power', 'OFF'],
   ['Goat_Plugs_Outlet1_Switch', 'OFF'],
   ['Goat_Plugs_Outlet2_Switch', 'OFF'],
@@ -142,7 +142,12 @@ for (const target of TARGETS) {
 
     await expect(page.getByRole('button', { name: /Living Room 2/i })).toBeDisabled();
     await expect(page.getByRole('button', { name: /Living Room 2/i })).toContainText('Provider OFFLINE');
+    await expect(page.getByRole('button', { name: /Living Room 1/i })).toContainText('Tap to toggle');
     await expect(page.getByRole('button', { name: /Circadian/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /Circadian/i })).toContainText('Hold 600 ms');
+    const dishwasher = page.getByRole('button', { name: /Dishwasher/i });
+    await expect(dishwasher).toHaveClass(/on/);
+    await expect(dishwasher.locator('.pill')).toHaveCSS('background-color', 'rgb(34, 197, 94)');
     for (const label of [
       /Dishwasher/i, /Shureflo Pump/i, /Goat Cam/i, /Feed once/i,
       /Request circulation/i, /^Night Load Override/i,
