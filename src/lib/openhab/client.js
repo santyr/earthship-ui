@@ -38,15 +38,39 @@ async function readBoundedJson(response) {
     }
   }
 
-  // Mocked/legacy fetch responses may expose only json(). Real browser
-  // Responses take the streaming path above, where the cap is enforced while
-  // reading rather than after allocation.
-  const value = await response.json();
-  const encodedBytes = new TextEncoder().encode(JSON.stringify(value)).byteLength;
-  if (encodedBytes > MAX_HISTORY_RESPONSE_BYTES) {
-    throw new HistoryResponseError('History response is too large', 'history-response-too-large');
+  if (typeof response.arrayBuffer === 'function') {
+    const buffer = await response.arrayBuffer();
+    if (!(buffer instanceof ArrayBuffer)) {
+      throw new HistoryResponseError(
+        'History response body cannot be bounded safely',
+        'history-response-unbounded',
+      );
+    }
+    if (buffer.byteLength > MAX_HISTORY_RESPONSE_BYTES) {
+      throw new HistoryResponseError('History response is too large', 'history-response-too-large');
+    }
+    return JSON.parse(new TextDecoder().decode(buffer));
   }
-  return value;
+
+  if (typeof response.text === 'function') {
+    const text = await response.text();
+    if (typeof text !== 'string') {
+      throw new HistoryResponseError(
+        'History response body cannot be bounded safely',
+        'history-response-unbounded',
+      );
+    }
+    const encodedBytes = new TextEncoder().encode(text).byteLength;
+    if (encodedBytes > MAX_HISTORY_RESPONSE_BYTES) {
+      throw new HistoryResponseError('History response is too large', 'history-response-too-large');
+    }
+    return JSON.parse(text);
+  }
+
+  throw new HistoryResponseError(
+    'History response body cannot be bounded safely',
+    'history-response-unbounded',
+  );
 }
 
 export function createClient({ openhabUrl, apiToken }) {

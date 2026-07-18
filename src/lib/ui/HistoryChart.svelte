@@ -15,6 +15,7 @@
   let loadState = $state('idle');
   let errorMessage = $state('');
   let unavailableCount = $state(0);
+  let timedOutCount = $state(0);
   let activeHours = $state(untrack(() => snapHistoryPeriod(initialHours ?? hours)));
   let loadGen = 0;
   let refreshTimer;
@@ -66,6 +67,7 @@
     const myGen = ++loadGen;
     disposeChart();
     unavailableCount = 0;
+    timedOutCount = 0;
     errorMessage = '';
     loadState = 'loading';
 
@@ -105,6 +107,9 @@
     latestSeries = seriesList;
     latestNowMs = nowMs;
     unavailableCount = result.errors.length;
+    timedOutCount = result.errors.filter(
+      ({ error }) => error?.code === 'history-request-timeout',
+    ).length;
     loadState = result.state;
     if (result.state === 'error') {
       errorMessage = result.errors[0]?.error?.message || 'History request failed';
@@ -172,7 +177,15 @@
     {:else}
       {#if loadState === 'partial-error'}
         <div class="hc-warning" role="status">
-          {unavailableCount} {unavailableCount === 1 ? 'series' : 'series'} unavailable
+          {#if timedOutCount > 0}
+            <span>{timedOutCount} series timed out</span>
+          {/if}
+          {#if timedOutCount > 0 && unavailableCount > timedOutCount}
+            <span aria-hidden="true"> · </span>
+          {/if}
+          {#if unavailableCount > timedOutCount}
+            <span>{unavailableCount - timedOutCount} series unavailable</span>
+          {/if}
         </div>
       {/if}
       <div bind:this={el} class="hc-canvas" role="img" aria-label="History chart"></div>

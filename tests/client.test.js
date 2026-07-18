@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createClient } from '../src/lib/openhab/client.js';
+import {
+  createClient,
+  MAX_HISTORY_RESPONSE_BYTES,
+} from '../src/lib/openhab/client.js';
 const cfg = { openhabUrl: 'http://oh:8080', apiToken: 'TK' };
 beforeEach(() => { global.fetch = vi.fn(); });
 
@@ -19,13 +22,29 @@ it('sendCommand posts plain text body', async () => {
   expect(opts.body).toBe('ON');
   expect(opts.headers['Content-Type']).toBe('text/plain');
 });
-it('getHistory preserves raw states for strict series-aware parsing', async () => {
-  fetch.mockResolvedValue({ ok: true, headers: new Headers(), json: async () => ({ data: [{ time: 1000, state: '54 %' }, { time: 2000, state: '55.5' }] }) });
+it('getHistory bounds and parses a non-streaming arrayBuffer before preserving raw states', async () => {
+  const payload = { data: [{ time: 1000, state: '54 %' }, { time: 2000, state: '55.5' }] };
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  const arrayBuffer = vi.fn().mockResolvedValue(bytes.buffer);
+  const json = vi.fn();
+  fetch.mockResolvedValue({
+    ok: true,
+    headers: new Headers(),
+    body: null,
+    arrayBuffer,
+    json,
+  });
+
   const h = await createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' });
+
   expect(h).toEqual([{ time: 1000, state: '54 %' }, { time: 2000, state: '55.5' }]);
+  expect(arrayBuffer).toHaveBeenCalledOnce();
+  expect(json).not.toHaveBeenCalled();
 });
-it('getHistory forwards one cancellation signal to fetch', async () => {
-  fetch.mockResolvedValue({ ok: true, headers: new Headers(), json: async () => ({ data: [] }) });
+it('getHistory forwards one cancellation signal to fetch and safely reads text fallback', async () => {
+  const text = vi.fn().mockResolvedValue(JSON.stringify({ data: [] }));
+  const json = vi.fn();
+  fetch.mockResolvedValue({ ok: true, headers: new Headers(), body: null, text, json });
   const controller = new AbortController();
   await createClient(cfg).getHistory('BMS_SOC', {
     starttime: 'a',
@@ -37,6 +56,8 @@ it('getHistory forwards one cancellation signal to fetch', async () => {
     expect.stringContaining('/rest/persistence/items/BMS_SOC?'),
     expect.objectContaining({ signal: controller.signal }),
   );
+  expect(text).toHaveBeenCalledOnce();
+  expect(json).not.toHaveBeenCalled();
 });
 it('getHistory rejects a declared response larger than 5 MiB before reading it', async () => {
   const json = vi.fn();
@@ -66,15 +87,54 @@ it('getHistory rejects chunked bodies that cross the 5 MiB limit', async () => {
     .rejects.toThrow(/response.*large/i);
   expect(cancel).toHaveBeenCalled();
 });
-it('getHistory rejects more than 300,000 rows', async () => {
+it('getHistory rejects an oversized non-streaming arrayBuffer before parsing', async () => {
+  const arrayBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(MAX_HISTORY_RESPONSE_BYTES + 1));
+  const json = vi.fn();
+  const parse = vi.spyOn(JSON, 'parse');
   fetch.mockResolvedValue({
     ok: true,
     headers: new Headers(),
-    json: async () => ({ data: Array.from({ length: 300_001 }, () => null) }),
+    body: null,
+    arrayBuffer,
+    json,
+  });
+
+  await expect(createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' }))
+    .rejects.toMatchObject({ code: 'history-response-too-large' });
+  expect(arrayBuffer).toHaveBeenCalledOnce();
+  expect(parse).not.toHaveBeenCalled();
+  expect(json).not.toHaveBeenCalled();
+  parse.mockRestore();
+});
+it('getHistory fails closed when only an unbounded json() reader exists', async () => {
+  const json = vi.fn().mockResolvedValue({ data: [] });
+  fetch.mockResolvedValue({
+    ok: true,
+    headers: new Headers(),
+    body: null,
+    json,
+  });
+
+  await expect(createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' }))
+    .rejects.toMatchObject({ code: 'history-response-unbounded' });
+  expect(json).not.toHaveBeenCalled();
+});
+it('getHistory rejects more than 300,000 rows after a bounded text read', async () => {
+  const text = vi.fn().mockResolvedValue(JSON.stringify({
+    data: Array.from({ length: 300_001 }, () => null),
+  }));
+  const json = vi.fn();
+  fetch.mockResolvedValue({
+    ok: true,
+    headers: new Headers(),
+    body: null,
+    text,
+    json,
   });
 
   await expect(createClient(cfg).getHistory('BMS_SOC', { starttime: 'a', endtime: 'b' }))
     .rejects.toThrow(/too many.*rows/i);
+  expect(json).not.toHaveBeenCalled();
 });
 it('sendCommand throws on non-ok', async () => {
   fetch.mockResolvedValue({ ok: false, status: 500 });

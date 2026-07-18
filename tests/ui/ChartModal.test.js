@@ -204,4 +204,46 @@ describe('ChartModal history periods', () => {
     openChart({ title: 'Empty', series: [{ name: 'BMS_SOC', label: 'SoC' }] });
     expect(await screen.findByText('No data')).toBeTruthy();
   });
+
+  it('names timed-out series instead of calling them generically unavailable', async () => {
+    const timeout = Object.assign(
+      new Error('History request timed out after 15 seconds'),
+      { code: 'history-request-timeout' },
+    );
+    mocks.getHistory
+      .mockResolvedValueOnce([{ time: Date.now(), state: '54 %' }])
+      .mockRejectedValueOnce(timeout)
+      .mockRejectedValueOnce(timeout);
+    render(ChartModal);
+    openChart({
+      title: 'Energy',
+      series: [
+        { name: 'BMS_SOC', label: 'SoC' },
+        { name: 'MPPT60_PV_Power', label: 'PV' },
+        { name: 'Forecast_Temp', label: 'Forecast' },
+      ],
+      hours: 24,
+    });
+
+    expect(await screen.findByText('2 series timed out')).toBeTruthy();
+    expect(screen.queryByText('2 series unavailable')).toBeNull();
+    await waitFor(() => expect(mocks.init).toHaveBeenCalled());
+  });
+
+  it('surfaces the full timeout reason', async () => {
+    mocks.getHistory.mockRejectedValueOnce(Object.assign(
+      new Error('History request timed out after 15 seconds'),
+      { code: 'history-request-timeout' },
+    ));
+    render(ChartModal);
+    openChart({ title: 'Slow', series: [{ name: 'BMS_SOC', label: 'SoC' }] });
+
+    expect(await screen.findByText(
+      /history request timed out after 15 seconds/i,
+      { selector: 'small' },
+    )).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Slow' });
+    const description = document.getElementById(dialog.getAttribute('aria-describedby'));
+    expect(description.textContent).toMatch(/history request timed out after 15 seconds/i);
+  });
 });

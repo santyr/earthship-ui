@@ -20,6 +20,7 @@
   let activeHours = $state(24);
   let pointsPerSeries = $state([]);
   let unavailableCount = $state(0);
+  let timedOutCount = $state(0);
   let latestNowMs = 0;
   let latestSeries = [];
   let latestWidthPx = 0;
@@ -35,12 +36,17 @@
       || 'No series';
     const period = HISTORY_PERIOD_PRESETS.find((preset) => preset.hours === activeHours)?.label
       || `${activeHours} hours`;
+    const otherUnavailableCount = unavailableCount - timedOutCount;
+    const partialFailureText = [
+      timedOutCount > 0 ? timedOutCount + ' series timed out' : '',
+      otherUnavailableCount > 0 ? otherUnavailableCount + ' series unavailable' : '',
+    ].filter(Boolean).join(', ');
     const stateText = {
       idle: 'Waiting to load',
       loading: 'Loading history',
       ready: 'History loaded',
-      'partial-error': `${unavailableCount} ${unavailableCount === 1 ? 'series' : 'series'} unavailable`,
-      error: 'History unavailable',
+      'partial-error': partialFailureText,
+      error: errorMessage || 'History unavailable',
       empty: 'No data',
       'no-client': 'History client unavailable',
     }[loadState] || loadState;
@@ -110,6 +116,7 @@
     disposeChart();
     pointsPerSeries = [];
     unavailableCount = 0;
+    timedOutCount = 0;
     errorMessage = '';
     loadState = 'loading';
 
@@ -148,6 +155,9 @@
 
     pointsPerSeries = result.pointsPerSeries;
     unavailableCount = result.errors.length;
+    timedOutCount = result.errors.filter(
+      ({ error }) => error?.code === 'history-request-timeout',
+    ).length;
     latestSeries = series;
     latestNowMs = nowMs;
     loadState = result.state;
@@ -287,7 +297,15 @@
         {:else}
           {#if loadState === 'partial-error'}
             <div class="chart-warning" role="status">
-              {unavailableCount} {unavailableCount === 1 ? 'series' : 'series'} unavailable
+              {#if timedOutCount > 0}
+                <span>{timedOutCount} series timed out</span>
+              {/if}
+              {#if timedOutCount > 0 && unavailableCount > timedOutCount}
+                <span aria-hidden="true"> · </span>
+              {/if}
+              {#if unavailableCount > timedOutCount}
+                <span>{unavailableCount - timedOutCount} series unavailable</span>
+              {/if}
             </div>
           {/if}
           <div bind:this={el} class="chart-canvas"></div>

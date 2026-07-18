@@ -96,4 +96,40 @@ describe('HistoryChart', () => {
     expect(await screen.findByText('1 series unavailable')).toBeTruthy();
     await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
   });
+
+  it('names timed-out series instead of calling them generically unavailable', async () => {
+    const timeout = Object.assign(
+      new Error('History request timed out after 15 seconds'),
+      { code: 'history-request-timeout' },
+    );
+    mocks.getHistory
+      .mockResolvedValueOnce([{ time: 0, state: '50 %' }])
+      .mockRejectedValueOnce(timeout)
+      .mockRejectedValueOnce(timeout);
+    render(HistoryChart, {
+      props: {
+        series: [
+          { name: 'BMS_SOC', label: 'SoC' },
+          { name: 'MPPT60_PV_Power', label: 'PV' },
+          { name: 'Forecast_Temp', label: 'Forecast' },
+        ],
+      },
+    });
+
+    expect(await screen.findByText('2 series timed out')).toBeTruthy();
+    expect(screen.queryByText('2 series unavailable')).toBeNull();
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+  });
+
+  it('surfaces the full timeout reason', async () => {
+    mocks.getHistory.mockRejectedValueOnce(Object.assign(
+      new Error('History request timed out after 15 seconds'),
+      { code: 'history-request-timeout' },
+    ));
+    render(HistoryChart, {
+      props: { series: [{ name: 'BMS_SOC', label: 'SoC' }] },
+    });
+
+    expect(await screen.findByText(/history request timed out after 15 seconds/i)).toBeTruthy();
+  });
 });
