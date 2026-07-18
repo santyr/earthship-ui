@@ -99,11 +99,17 @@ for (const target of TARGETS) {
         grid: box(document.querySelector('.energy-grid')),
         heroPlot: box(document.querySelector('.hero-chart svg')),
         pvPlot: box(document.querySelector('.pv-chart svg')),
+        overflowingCells: [...document.querySelectorAll('.energy-grid > .cell')]
+          .filter((cell) => (
+            cell.scrollWidth > cell.clientWidth || cell.scrollHeight > cell.clientHeight
+          ))
+          .map((cell) => cell.className),
       };
     });
 
     expect(geometry.heroPlot.height).toBeGreaterThanOrEqual(64);
     expect(geometry.pvPlot.height).toBeGreaterThanOrEqual(64);
+    expect(geometry.overflowingCells).toEqual([]);
     for (const plot of [geometry.heroPlot, geometry.pvPlot]) {
       expect(plot.left).toBeGreaterThanOrEqual(geometry.grid.left);
       expect(plot.top).toBeGreaterThanOrEqual(geometry.grid.top);

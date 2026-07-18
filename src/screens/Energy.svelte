@@ -444,7 +444,7 @@
 
   @media (min-width: 1280px) and (max-height: 720px) {
     .energy-grid {
-      grid-template-rows: 13.75rem minmax(11.75rem, 1fr) 6.875rem 5.625rem;
+      grid-template-rows: 12.5rem minmax(11.75rem, 1fr) 8.125rem 5.625rem;
       gap: 0.65rem;
     }
   }
