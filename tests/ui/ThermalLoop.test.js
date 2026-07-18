@@ -35,17 +35,23 @@ describe('ThermalLoop north-to-outdoor layout', () => {
     expect(arrows[2].getAttribute('marker-end')).toBe('url(#tl-head-blue)');
   });
 
-  it('points outdoor heat inward when Outdoor is warmer than South Wall', () => {
+  it('reverses all three arrows when room, wall, and Outdoor are progressively warmer', () => {
     const { container } = render(ThermalLoop, {
-      mass: 70,
+      mass: 60,
       room: 70,
-      wall: 50,
-      outdoor: 80,
+      wall: 80,
+      outdoor: 90,
     });
-    const envelopeArrow = [...container.querySelectorAll('.loop-svg > line')][2];
+    const arrows = [...container.querySelectorAll('.loop-svg > line')];
 
-    expect([envelopeArrow.getAttribute('x1'), envelopeArrow.getAttribute('x2')])
+    expect([arrows[0].getAttribute('x1'), arrows[0].getAttribute('x2')])
+      .toEqual(['218', '158']);
+    expect(arrows[0].getAttribute('marker-end')).toBe('url(#tl-head-blue)');
+    expect([arrows[1].getAttribute('x1'), arrows[1].getAttribute('x2')])
+      .toEqual(['428', '368']);
+    expect(arrows[1].getAttribute('marker-end')).toBe('url(#tl-head-amber)');
+    expect([arrows[2].getAttribute('x1'), arrows[2].getAttribute('x2')])
       .toEqual(['638', '578']);
-    expect(envelopeArrow.getAttribute('marker-end')).toBe('url(#tl-head-amber)');
+    expect(arrows[2].getAttribute('marker-end')).toBe('url(#tl-head-amber)');
   });
 });

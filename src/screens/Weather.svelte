@@ -181,7 +181,7 @@
   <div class="cell hourly-cell">
     <Tile label="Next 14 Hours" accent={colors.forecast}>
       <div class="hourly-wrap">
-        <HourlyStrip hours={forecastHourly} height={0} />
+        <HourlyStrip hours={forecastHourly} height={96} />
       </div>
     </Tile>
   </div>

@@ -179,6 +179,40 @@ for (const target of TARGETS) {
     await expect(page.getByText('Modeled US AQI')).toBeVisible();
     await expect(page.getByText('Unavailable')).toBeVisible();
     await expectRouteBounded(page, 'weather');
+    await expect(page.locator('.hs-chart svg, .hs-chart canvas')).toBeVisible();
+
+    const hourlyBounds = await page.evaluate(() => {
+      const bounds = (element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+      };
+      const chart = document.querySelector('.hs-chart');
+      const rendered = chart.querySelector('svg');
+      const visibleCount = (selector) => [...rendered.querySelectorAll(selector)].filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      }).length;
+      return {
+        cell: bounds(document.querySelector('.hourly-cell')),
+        chart: bounds(chart),
+        rendered: bounds(rendered),
+        inlineFallbackHeight: Number.parseFloat(chart.style.height),
+        iconColumns: document.querySelectorAll('.hs-icons .hs-icon-col').length,
+        visibleLabels: visibleCount('text'),
+        visiblePaths: visibleCount('path'),
+      };
+    });
+    expect(hourlyBounds.inlineFallbackHeight).toBeGreaterThan(0);
+    expect(hourlyBounds.iconColumns).toBe(14);
+    expect(hourlyBounds.visibleLabels).toBeGreaterThanOrEqual(14);
+    expect(hourlyBounds.visiblePaths).toBeGreaterThanOrEqual(14);
+    expect(hourlyBounds.chart.height).toBeGreaterThan(64);
+    expect(hourlyBounds.rendered.width).toBeGreaterThan(100);
+    expect(hourlyBounds.rendered.height).toBeGreaterThan(64);
+    expect(hourlyBounds.chart.left).toBeGreaterThanOrEqual(hourlyBounds.cell.left);
+    expect(hourlyBounds.chart.top).toBeGreaterThanOrEqual(hourlyBounds.cell.top);
+    expect(hourlyBounds.chart.right).toBeLessThanOrEqual(hourlyBounds.cell.right);
+    expect(hourlyBounds.chart.bottom).toBeLessThanOrEqual(hourlyBounds.cell.bottom);
 
     const currentBounds = await page.evaluate(() => {
       const cell = document.querySelector('.current-cell').getBoundingClientRect();
