@@ -4,7 +4,7 @@
 
 Weather and Earthship only, at the exact tablet/laptop targets 1340x800 and 1280x720. Phone layouts, Home, Header, Shell, alerts, chart internals, controls, OpenHAB integration, and external systems were excluded.
 
-Implementation commits: `db5d9e3f91363a376f5fc1e8ac85f5ae68b3e92c` and scoped footer follow-up `ed86851e69f05f044ebdec9601c48b118b81168a` (base `219d15006644e04cbf63548297c3abbae9d58f11`). Review follow-up commit: pending exact SHA.
+Implementation commits: `db5d9e3f91363a376f5fc1e8ac85f5ae68b3e92c` and scoped footer follow-up `ed86851e69f05f044ebdec9601c48b118b81168a` (base `219d15006644e04cbf63548297c3abbae9d58f11`). Review follow-up commit: `5b25792b8ea0815232a624f6e0648efc5d4f6c3c`.
 
 ## Root causes
 
