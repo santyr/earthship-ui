@@ -13,6 +13,7 @@
 - Target only Lenovo Tab M9 at 1340x800 landscape and laptops at 1280x720 or larger.
 - The browser never receives or stores the OpenHAB token.
 - Never edit OpenHAB JSONDB or configuration files directly; use supported REST APIs.
+- Before creating any OpenHAB Item or rule, inventory related Items, metadata, links, persistence, rules, and MainUI references and reuse existing capabilities.
 - Never command feeder or greywater actuator items directly from a household UI.
 - HTTP 2xx means transport acceptance, not equipment success.
 - No automatic retry follows a transport break, timeout, or outcome-unknown result.
@@ -20,6 +21,8 @@
 - Codex and subagents do not actuate feeder, Goat Cam, Night Load Override, or any other protected production control.
 - The user performs real switch tests from the UI; Codex observes request, result, provider, rule, and log evidence.
 - Any exceptional agent-operated actuation requires new control-specific contemporaneous authorization.
+- South outlet sunny eligibility is existing Item `SkyCondition == CLEAR` with SoC >=90%; every other state requires SoC >=98%.
+- Every South outlet cycle is exactly five minutes with the existing 230-minute minimum start-to-start gap.
 - Preserve unrelated user changes and leave `test-results/` untracked.
 
 ---
@@ -162,7 +165,10 @@ git commit -m "fix: make living room controls tablet-native"
 
 - [ ] **Step 1: Execute Task 14 RED exactly**
 
-Write the sentinel tests and exact-source simulations specified by the
+First inventory the live feeder-related Items, metadata, links, persistence,
+rules, and MainUI references. Extend canonical rule UID `88bd9ec4de`; do not
+create a second feeder owner or duplicate an equivalent request capability.
+Then write the sentinel tests and exact-source simulations specified by the
 canonical Task 14. Run its `expect-failure.mjs` RED commands and require only
 the named missing-owner sentinel failures.
 
@@ -221,15 +227,22 @@ git commit -m "feat: add correlated feeder requests"
 
 - [ ] **Step 1: Run Task 15 RED**
 
-Add the exact gate, migration, restart, duplicate, race, and OFF-cleanup
+First inventory all live South outlet Items, metadata, links, persistence,
+rules, and MainUI references and reuse any equivalent implemented capability.
+Then add the exact gate, migration, restart, duplicate, race, and OFF-cleanup
 sentinels and verify they fail only because the candidate rule is absent.
 
 - [ ] **Step 2: Implement the canonical rule**
 
-Preserve the live ten-minute run, 230-minute start-to-start gap, 24-hour
-fallback, BMS/freshness chain, curtailment thresholds, and automatic schedule.
-Add correlated manual requests through the same evaluator and keep
-`SouthOutlet_Outlet2_Switch` denied by the household proxy.
+Set `cycleMs` to `5 * 60 * 1000` and preserve the 230-minute start-to-start
+gap, BMS/freshness chain, voltage sanity checks, and automatic schedule. Use
+existing Item `SkyCondition` rather than creating a duplicate sunny Item.
+Require SoC >=90% only when `SkyCondition == CLEAR`; require SoC >=98% for
+every other or unavailable SkyCondition value. Remove charger-`Float` and
+curtailment-only requirements. The former 24-hour aerobic fallback must never
+bypass the charged-system threshold. Add correlated manual requests through
+the same evaluator and keep `SouthOutlet_Outlet2_Switch` denied by the
+household proxy.
 
 - [ ] **Step 3: Run Task 15 GREEN**
 
@@ -277,7 +290,10 @@ git commit -m "feat: add safety-gated greywater requests"
 
 - [ ] **Step 1: Run Task 16 RED**
 
-Add exact ownership, matrix, race, restart, provider-receipt, Goat Cam coupling,
+First inventory all live override, Dishwasher, Shureflo, and Goat Cam Items,
+metadata, links, persistence, rules, and MainUI references. Consolidate existing
+owners by UID and do not deploy a duplicate owner capability. Then add exact
+ownership, matrix, race, restart, provider-receipt, Goat Cam coupling,
 schedule, proxy, and MainUI sentinels. Require only expected missing-owner
 failures.
 

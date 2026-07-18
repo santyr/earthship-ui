@@ -73,8 +73,14 @@ The household UI never commands `Goat_Plugs_Outlet2_Switch`.
 Create `SouthOutlet_ManualRequest` and `SouthOutlet_ManualResult` as unlinked
 String items. Extend `hex_southoutlet_cycle` with a received-command trigger.
 Manual requests pass the same BMS communication, data validity, low-SoC,
-cooldown, hydrology, curtailment, run-duration, and force-off gates as
-automatic cycles.
+cooldown, hydrology, charged-system, run-duration, and force-off gates as
+automatic cycles. Existing Item `SkyCondition` is the sunshine authority;
+`CLEAR` requires SoC at or above 90%, while every other value (including
+`PARTLY_CLOUDY`, `OVERCAST`, `NIGHT`, `TWILIGHT`, `STALE`, `UNKNOWN`, `NULL`,
+and `UNDEF`) requires SoC at or above 98%. Charger `Float` and curtailment
+state are not start requirements. Every cycle is exactly five minutes with
+the existing 230-minute minimum start-to-start gap. The former 24-hour aerobic
+fallback cannot bypass the charged-system threshold.
 
 The household UI never commands `SouthOutlet_Outlet2_Switch`.
 
@@ -117,6 +123,12 @@ failure is automatically retried.
 
 All OpenHAB changes use supported REST APIs. Live JSONDB and configuration
 files are never edited directly.
+
+Before defining or creating any OpenHAB resource, perform a read-only semantic
+inventory of related Items, metadata, links, persistence, rules, and MainUI
+references. Extend the existing canonical owner by UID when an equivalent
+capability already exists. Create a new Item or rule only when the inventory
+proves no equivalent resource is already implemented.
 
 Each subsystem is deployed as a separate receipt-bound transaction:
 
