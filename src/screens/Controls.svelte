@@ -1,76 +1,100 @@
 <script>
-  // Task 3.2 — Controls screen: the household switch board, moved off Home
-  // (Home stays a data-only dashboard) onto its own 5th nav tab. Pure
-  // composition of the existing Toggle primitive (press-and-hold confirm +
-  // NULL-safe binding already live in Toggle.svelte) grouped into labeled
-  // sections via Tile.
   import Toggle from '../lib/ui/Toggle.svelte';
   import Tile from '../lib/ui/Tile.svelte';
+  import { CONTROL_CATALOG } from '../lib/controls/catalog.js';
   import { colors } from '../lib/ui/tokens.js';
 </script>
 
-<div class="controls-grid">
-  <div class="cell">
+<div class="controls-grid" data-controls-layout>
+  <section class="cell" aria-label="Lights">
     <Tile label="Lights" accent={colors.temperature}>
-      <div class="toggle-stack">
-        <Toggle item="living_room_1_Switch" label="Living Room 1" />
-        <Toggle item="living_room_2_Switch" label="Living Room 2" />
-        <Toggle item="LED_living_room_1_Switch" label="LED Strip" />
-        <Toggle item="LivingRoomCircadian_Enable" label="Circadian" />
+      <div class="control-stack four">
+        <Toggle control={CONTROL_CATALOG.living1} />
+        <Toggle control={CONTROL_CATALOG.living2} />
+        <Toggle control={CONTROL_CATALOG.living3} />
+        <Toggle control={CONTROL_CATALOG.circadian} />
       </div>
     </Tile>
-  </div>
+  </section>
 
-  <div class="cell">
-    <Tile label="Appliances &amp; Outlets" accent={colors.solar}>
-      <div class="toggle-stack">
-        <Toggle item="Dish_Washer_Power" label="Dishwasher" />
-        <Toggle item="ShurefloPump_Power" label="Shureflo Pump" />
-        <Toggle item="Goat_Plugs_Outlet1_Switch" label="Goat Cam" />
-        <Toggle item="Goat_Plugs_Outlet2_Switch" label="Goat Feeder" />
+  <section class="cell" aria-label="Household loads">
+    <Tile label="Household Loads" accent={colors.solar}>
+      <div class="control-stack four">
+        <Toggle control={CONTROL_CATALOG.dishwasher} />
+        <Toggle control={CONTROL_CATALOG.shureflo} />
+        <Toggle control={CONTROL_CATALOG.goatCam} />
+        <Toggle control={CONTROL_CATALOG.feedOnce} onColor={colors.advisory} />
       </div>
     </Tile>
-  </div>
+  </section>
 
-  <div class="cell">
-    <Tile label="Water &amp; Overrides" accent={colors.water}>
-      <div class="toggle-stack">
-        <div class="toggle-with-caption">
-          <Toggle item="SouthOutlet_Outlet2_Switch" label="Fountain / Greywater Pump" onColor={colors.water} />
-          <div class="caption">manual override &middot; auto-managed</div>
-        </div>
-        <Toggle item="OverrideSwitch" label="Override" onColor={colors.advisory} />
+  <section class="cell" aria-label="Water and policy">
+    <Tile label="Water &amp; Policy" accent={colors.water}>
+      <div class="control-stack two">
+        <Toggle control={CONTROL_CATALOG.circulation} onColor={colors.water} />
+        <Toggle control={CONTROL_CATALOG.override} onColor={colors.advisory} />
       </div>
     </Tile>
-  </div>
+  </section>
 </div>
 
 <style>
   .controls-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    align-content: start;
-    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.72rem;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
   }
+
   .cell {
     min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
   }
+
   .cell :global(.tile) {
     height: 100%;
+    overflow: hidden;
   }
-  .toggle-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
+
+  .cell :global(.tile-body) {
+    overflow: hidden;
   }
-  .toggle-with-caption {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+
+  .control-stack {
+    display: grid;
+    gap: 0.52rem;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
   }
-  .caption {
-    font-size: 0.68rem;
-    color: #8b93a1;
-    padding: 0 0.1rem;
+
+  .control-stack.four {
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+  }
+
+  .control-stack.two {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1280px) and (max-height: 720px) {
+    .controls-grid {
+      gap: 0.6rem;
+    }
+
+    .control-stack {
+      gap: 0.42rem;
+    }
+
+    .cell :global(.tile) {
+      padding: 0.72rem;
+    }
   }
 </style>
