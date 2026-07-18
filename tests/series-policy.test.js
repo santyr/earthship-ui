@@ -30,7 +30,7 @@ describe('chart series policy', () => {
   it('defines exact history versus forecast domains', () => {
     expect(getSeriesPolicy('BMS_SOC').domain).toBe('history');
     expect(getSeriesPolicy('Forecast_Temp').domain).toBe('forecast');
-    expect(getSeriesPolicy('Predicted_SoC_Trough_Tomorrow').domain).toBe('forecast');
+    expect(getSeriesPolicy('Predicted_SoC_Trough_Tomorrow').domain).toBe('history');
   });
 
   it('defines strict unit allowlists for every supported numeric family', () => {

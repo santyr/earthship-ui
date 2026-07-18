@@ -63,11 +63,8 @@ export function getSeriesRequestWindow(seriesOrPolicy, requestWindow) {
     || (typeof seriesOrPolicy === 'object' && seriesOrPolicy?.name?.startsWith('Forecast_')
       ? 'forecast'
       : undefined);
-  // Importing the policy lazily is unnecessary here: the only forecast item
-  // not prefixed Forecast_ is the battery prediction, made explicit below.
   const name = typeof seriesOrPolicy === 'string' ? seriesOrPolicy : seriesOrPolicy?.name;
   const isForecast = domain === 'forecast'
-    || name === 'Predicted_SoC_Trough_Tomorrow'
     || name?.startsWith('Forecast_');
   return isForecast ? requestWindow.forecast : requestWindow.history;
 }

@@ -22,6 +22,8 @@
       color: colors.forecast,
       label: 'Predicted trough',
       dashedFromNow: true,
+      projectionValue: trough,
+      projectionHours: 18,
     },
   ]);
 

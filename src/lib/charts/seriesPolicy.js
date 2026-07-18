@@ -16,7 +16,7 @@ const SERIES = new Map([
   ['AmbientWeatherWS2902A_RainFallDay', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'in', '″', 'mm'] }],
   ['MPPT60_PV_Power', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'W', 'kW'] }],
   ['BMS_SOC', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS }],
-  ['Predicted_SoC_Trough_Tomorrow', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS, domain: 'forecast' }],
+  ['Predicted_SoC_Trough_Tomorrow', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS }],
   ['BTC_USD_Price', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'USD', '$'] }],
 ]);
 

@@ -53,6 +53,9 @@ describe('history periods', () => {
     const window = createHistoryWindow(24, { nowMs, lookaheadMs: 60_000 });
 
     expect(getSeriesRequestWindow({ name: 'BMS_SOC' }, window)).toEqual(window.history);
+    expect(getSeriesRequestWindow(
+      { name: 'Predicted_SoC_Trough_Tomorrow' }, window,
+    )).toEqual(window.history);
     expect(getSeriesRequestWindow({ name: 'Forecast_Temp' }, window)).toEqual(window.forecast);
   });
 });

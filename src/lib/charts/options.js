@@ -68,6 +68,16 @@ function splitForecastSegments(segments, nowMs) {
   return { solid, future };
 }
 
+function scalarProjection(source, nowMs) {
+  if (source.projectionValue == null) return [];
+  const value = Number(source.projectionValue);
+  const hours = Number(source.projectionHours);
+  if (!Number.isFinite(value) || !Number.isFinite(hours) || hours <= 0) return [];
+  const endMs = nowMs + hours * 60 * 60 * 1_000;
+  if (!Number.isFinite(endMs)) return [];
+  return [[nowMs, value, value], [endMs, value, value]];
+}
+
 export function buildHistoryOption({
   series = [],
   pointsPerSeries = [],
@@ -94,11 +104,14 @@ export function buildHistoryOption({
     });
     if (source.dashedFromNow) {
       const split = splitForecastSegments(prepared.displaySegments, nowMs);
+      const persistedFuture = flattenSegments(split.future);
+      const projectedFuture = scalarProjection(source, nowMs);
+      const futureData = persistedFuture.length ? persistedFuture : projectedFuture;
       renderedSeries.push(lineOption(source, flattenSegments(split.solid)));
-      if (split.future.length) {
+      if (futureData.length) {
         renderedSeries.push(lineOption(
           source,
-          flattenSegments(split.future),
+          futureData,
           { name: `${source.label || source.name} (forecast)`, dashed: true },
         ));
       }
