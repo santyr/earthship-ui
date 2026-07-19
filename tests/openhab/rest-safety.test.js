@@ -80,8 +80,9 @@ describe('feeder OpenHAB REST safety', () => {
     expect(rule.triggers).toEqual(manifest.subsets.feeder.rule.triggers);
     expect(rule.actions).toHaveLength(1);
     expect(rule.actions[0].configuration.script).toBe(source);
-    expect(rule.actions[0].configuration.type)
-      .toBe('application/javascript;version=ECMAScript-2021');
+    // Live openHAB 5.2.0 registers only 'application/javascript' (all 24 live
+    // rules use it); the versioned MIME is not a registered script type.
+    expect(rule.actions[0].configuration.type).toBe('application/javascript');
   });
 
   it('verifies the exact unlinked Items, persistence, metadata, source, and OFF precondition', async () => {

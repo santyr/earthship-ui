@@ -61,7 +61,7 @@
           "id": "earthship-feeder-owner",
           "type": "script.ScriptAction",
           "configuration": {
-            "type": "application/javascript;version=ECMAScript-2021"
+            "type": "application/javascript"
           }
         }
       },
@@ -111,6 +111,12 @@
           "item": "SouthOutlet_ManualRequest",
           "namespace": "autoupdate",
           "value": "false",
+          "config": {}
+        },
+        {
+          "item": "SouthOutlet_Outlet2_Switch",
+          "namespace": "expire",
+          "value": "10m,command=OFF",
           "config": {}
         }
       ],
@@ -163,7 +169,7 @@
           "id": "earthship-southoutlet-owner",
           "type": "script.ScriptAction",
           "configuration": {
-            "type": "application/javascript;version=ECMAScript-2021"
+            "type": "application/javascript"
           }
         }
       },
@@ -285,7 +291,7 @@
           "id": "earthship-night-load-owner",
           "type": "script.ScriptAction",
           "configuration": {
-            "type": "application/javascript;version=ECMAScript-2021"
+            "type": "application/javascript"
           }
         }
       },

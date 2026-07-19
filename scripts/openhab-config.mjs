@@ -317,6 +317,217 @@ export function buildFeederRollbackPlan(original) {
   return operations;
 }
 
+// ---------------------------------------------------------------------------
+// Manifest-driven planning for any subset (feeder, greywater, night-load).
+//
+// These are PURE functions over openhab/managed-resources.json — no live REST
+// calls. They generalize the feeder-specific builders so the same transaction
+// machinery can (a) create String AND DateTime Items with metadata and declare
+// their persistence coverage, (b) replace an existing rule's script by UID,
+// (c) create a brand-new rule, (d) retire duplicate child rules by DISABLE (with
+// a receipt-bound backup for reversal — never DELETE), and (e) leave schedules /
+// coupling rules untouched while verifying their hashes are unchanged.
+// ---------------------------------------------------------------------------
+
+export const SUBSET_VERSION_TOKENS = Object.freeze({
+  feeder: 'EARTHSHIP_FEEDER_OWNER_VERSION',
+  greywater: 'EARTHSHIP_SOUTHOUTLET_VERSION',
+  'night-load': 'EARTHSHIP_NIGHT_LOAD_OWNER_VERSION',
+});
+
+export function getSubset(manifest, subsetName) {
+  const subset = manifest?.subsets?.[subsetName];
+  if (!subset) throw new Error(`unknown managed-resources subset: ${subsetName}`);
+  return subset;
+}
+
+// Full rule DTO for a subset. When originalRule is supplied it is a
+// replace-in-place (existing UID); when it is empty it is a fresh create. The
+// versioned owner source must carry the subset's version token.
+export function buildSubsetRuleDto({ subset, subsetName, source, originalRule = {} }) {
+  if (!subset?.rule?.uid) throw new Error(`subset ${subsetName} declares no rule uid`);
+  const token = SUBSET_VERSION_TOKENS[subsetName];
+  if (!token || typeof source !== 'string' || !source.includes(token)) {
+    throw new Error(`versioned ${subsetName} owner source is required`);
+  }
+  return {
+    uid: subset.rule.uid,
+    name: subset.rule.name,
+    description: originalRule.description ?? `Canonical ${subsetName} owner`,
+    tags: Array.isArray(originalRule.tags) ? clone(originalRule.tags) : [],
+    visibility: originalRule.visibility ?? 'VISIBLE',
+    configuration: clone(originalRule.configuration ?? {}),
+    triggers: clone(subset.rule.triggers),
+    conditions: clone(originalRule.conditions ?? []),
+    actions: [{
+      id: subset.rule.action.id,
+      type: subset.rule.action.type,
+      configuration: {
+        ...clone(subset.rule.action.configuration),
+        script: source,
+      },
+    }],
+  };
+}
+
+function metadataPath(item, namespace) {
+  return `/rest/items/${item}/metadata/${namespace}`;
+}
+
+// Retirement is DISABLE, never DELETE. Each retired child rule is disabled so
+// the transaction is reversible from the receipt-bound backup.
+export function buildRetirementPlan(subset) {
+  return (subset.graph?.retiredRules ?? []).map((retired) => ({
+    method: 'POST',
+    path: `/rest/rules/${retired.uid}/enable`,
+    body: 'false',
+    kind: 'retire-disable',
+    uid: retired.uid,
+  }));
+}
+
+export function buildRetirementRollback(subset, retiredBackup = {}) {
+  // Reverse a retirement only for rules that were enabled before we disabled
+  // them (recorded in the receipt-bound backup). Default to re-enable.
+  return (subset.graph?.retiredRules ?? []).map((retired) => ({
+    method: 'POST',
+    path: `/rest/rules/${retired.uid}/enable`,
+    body: retiredBackup?.[retired.uid]?.enabled === false ? 'false' : 'true',
+    kind: 'retire-reverse',
+    uid: retired.uid,
+  }));
+}
+
+export function buildSubsetApplyPlan({
+  manifest, subsetName, source, original = {},
+}) {
+  const subset = getSubset(manifest, subsetName);
+  const ruleUid = subset.rule.uid;
+  const isNewRule = !original.rule; // create (c) vs replace-in-place (b)
+  const operations = [];
+
+  // (d) Retire duplicate child rules first (DISABLE, receipt-backed).
+  operations.push(...buildRetirementPlan(subset));
+
+  // (b) Disable the target rule before replacing its script; a brand-new rule
+  // has nothing to disable.
+  if (!isNewRule) {
+    operations.push({
+      method: 'POST', path: `/rest/rules/${ruleUid}/enable`, body: 'false', kind: 'disable-target',
+    });
+  }
+
+  // (a) Items — String AND DateTime, from the manifest declaration.
+  for (const item of subset.items ?? []) {
+    operations.push({
+      method: 'PUT', path: `/rest/items/${item.name}`, body: itemPutDto(item), kind: 'item',
+    });
+  }
+
+  // (a) Item metadata — autoupdate=false, expire backstops, etc.
+  for (const meta of subset.metadata ?? []) {
+    operations.push({
+      method: 'PUT',
+      path: metadataPath(meta.item, meta.namespace),
+      body: { value: meta.value, config: clone(meta.config ?? {}) },
+      kind: 'metadata',
+    });
+  }
+
+  // (b)/(c) Replace or create the owner rule.
+  operations.push({
+    method: 'PUT',
+    path: `/rest/rules/${ruleUid}`,
+    body: buildSubsetRuleDto({
+      subset, subsetName, source, originalRule: original.rule ?? {},
+    }),
+    kind: isNewRule ? 'rule-create' : 'rule-replace',
+  });
+
+  return operations;
+}
+
+export function buildSubsetRollbackPlan({ manifest, subsetName, original = {} }) {
+  const subset = getSubset(manifest, subsetName);
+  const ruleUid = subset.rule.uid;
+  const isNewRule = !original.rule;
+  const operations = [
+    { method: 'POST', path: `/rest/rules/${ruleUid}/enable`, body: 'false', kind: 'disable-target' },
+  ];
+
+  // Restore the prior rule DTO, or delete a rule that this transaction created.
+  operations.push(isNewRule
+    ? { method: 'DELETE', path: `/rest/rules/${ruleUid}`, kind: 'rule-delete' }
+    : { method: 'PUT', path: `/rest/rules/${ruleUid}`, body: rulePutDto(original.rule), kind: 'rule-restore' });
+
+  // Restore each metadata namespace to its captured value, or delete if it did
+  // not exist before.
+  for (const meta of subset.metadata ?? []) {
+    const captured = original.metadata?.[meta.item]?.[meta.namespace];
+    operations.push(captured
+      ? {
+          method: 'PUT', path: metadataPath(meta.item, meta.namespace), body: clone(captured), kind: 'metadata-restore',
+        }
+      : { method: 'DELETE', path: metadataPath(meta.item, meta.namespace), kind: 'metadata-delete' });
+  }
+
+  // Restore or delete each managed Item (reverse declaration order).
+  for (const item of [...(subset.items ?? [])].reverse()) {
+    const captured = original.items?.[item.name];
+    operations.push(captured
+      ? { method: 'PUT', path: `/rest/items/${item.name}`, body: itemPutDto(captured), kind: 'item-restore' }
+      : { method: 'DELETE', path: `/rest/items/${item.name}`, kind: 'item-delete' });
+  }
+
+  // (d) Reverse retirement — re-enable the retired child rules.
+  operations.push(...buildRetirementRollback(subset, original.retiredRules));
+
+  return operations;
+}
+
+// (a) The persistence coverage the subset declares. Persistence is provisioned
+// out of band (the jdbc .persist config), exactly as the feeder path verifies
+// rather than writes; this is the coverage the verify step must confirm.
+export function expectedPersistenceCoverage(subset) {
+  const persistence = subset.persistence ?? {};
+  return {
+    serviceId: persistence.serviceId ?? null,
+    strategy: persistence.strategy ?? null,
+    restoreOnStartup: persistence.restoreOnStartup === true,
+    items: clone(persistence.items ?? []),
+  };
+}
+
+// (e) The UIDs of rules the transaction must leave byte-for-byte untouched:
+// preserved coupling rules and schedules.
+export function graphImmutableUids(subset) {
+  const graph = subset.graph ?? {};
+  return [
+    ...(graph.couplingDependencies ?? []).map((rule) => rule.uid),
+    ...(graph.schedules ?? []).map((rule) => rule.uid),
+  ];
+}
+
+export function ruleHash(rule) {
+  return checksum(canonicalValue(rule));
+}
+
+// (e) Verify every untouched schedule/coupling rule's hash is unchanged between
+// the captured snapshot and the current live state.
+export function assertUnchangedGraphHashes(subset, capturedHashes, liveHashes) {
+  const reasons = [];
+  for (const uid of graphImmutableUids(subset)) {
+    const before = capturedHashes?.[uid];
+    const after = liveHashes?.[uid];
+    if (before === undefined || after === undefined) {
+      reasons.push(`missing hash for untouched rule ${uid}`);
+    } else if (before !== after) {
+      reasons.push(`untouched rule ${uid} was modified`);
+    }
+  }
+  return { ok: reasons.length === 0, reasons };
+}
+
 function metadataValue(metadata, item, namespace) {
   return metadata?.[item]?.[namespace]?.value;
 }

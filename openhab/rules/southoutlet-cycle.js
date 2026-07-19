@@ -420,7 +420,9 @@ function forceOff(reason, fields = {}) {
   try {
     if (state(CFG.outletItem) !== 'OFF') command(CFG.outletItem, 'OFF');
   } catch {
-    // Redundant OFF backstop lives in the next evaluation and expire metadata.
+    // Redundant OFF backstop lives in the next evaluation and in the outlet's
+    // expire metadata (10m,command=OFF — exceeds the 5-min cycle so a normal
+    // run is never cut short, but a stuck pump is force-commanded OFF).
   }
   status(reason, fields);
 }
