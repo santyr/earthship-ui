@@ -92,19 +92,96 @@ describe('submitControlRequest', () => {
     await expect(promise).resolves.toEqual({ phase: 'error', reason: 'execution_error' });
   });
 
-  it('stays pending on a non-terminal accepted result', async () => {
+  it('resolves accepted (sent-unconfirmed) as terminal when the rule posts accepted', async () => {
+    const { sendCommand, itemsStore, dep } = deps();
+    const promise = submitControlRequest(OWNED, {}, dep);
+    const { requestId } = JSON.parse(sendCommand.mock.calls[0][1]);
+
+    itemsStore.set({
+      [OWNED.resultItem]: JSON.stringify({ requestId, status: 'accepted', reason: 'accepted', at: '' }),
+    });
+
+    await expect(promise).resolves.toEqual({ phase: 'accepted', reason: 'accepted' });
+  });
+
+  it('resolves accepted on a running result too', async () => {
+    const { sendCommand, itemsStore, dep } = deps();
+    const promise = submitControlRequest(OWNED, {}, dep);
+    const { requestId } = JSON.parse(sendCommand.mock.calls[0][1]);
+
+    itemsStore.set({
+      [OWNED.resultItem]: JSON.stringify({ requestId, status: 'running', reason: 'commanded', at: '' }),
+    });
+
+    await expect(promise).resolves.toEqual({ phase: 'accepted', reason: 'commanded' });
+  });
+
+  it('upgrades the recorded outcome to confirmed after an accepted resolution, without a second POST', async () => {
+    const recordOutcome = vi.fn();
+    const { sendCommand, itemsStore, dep } = deps({ dep: { recordOutcome, now: () => 1000 } });
+    const promise = submitControlRequest(OWNED, {}, dep);
+    const { requestId } = JSON.parse(sendCommand.mock.calls[0][1]);
+
+    itemsStore.set({
+      [OWNED.resultItem]: JSON.stringify({ requestId, status: 'accepted', reason: 'accepted', at: '' }),
+    });
+    await expect(promise).resolves.toEqual({ phase: 'accepted', reason: 'accepted' });
+
+    // ~5 minutes later the rule posts the terminal result; the background
+    // listener records the upgraded outcome (a later transitionAt wins).
+    itemsStore.set({
+      [OWNED.resultItem]: JSON.stringify({ requestId, status: 'completed', reason: 'completed', at: '' }),
+    });
+
+    expect(recordOutcome).toHaveBeenCalledTimes(1);
+    expect(recordOutcome).toHaveBeenCalledWith(expect.objectContaining({
+      phase: 'confirmed', reason: 'completed', transitionAt: 1000,
+    }));
+    expect(sendCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it('upgrades the recorded outcome to error when the terminal result is a failure', async () => {
+    const recordOutcome = vi.fn();
+    const { sendCommand, itemsStore, dep } = deps({ dep: { recordOutcome } });
+    const promise = submitControlRequest(OWNED, {}, dep);
+    const { requestId } = JSON.parse(sendCommand.mock.calls[0][1]);
+
+    itemsStore.set({
+      [OWNED.resultItem]: JSON.stringify({ requestId, status: 'accepted', reason: 'accepted', at: '' }),
+    });
+    await promise;
+    itemsStore.set({
+      [OWNED.resultItem]: JSON.stringify({ requestId, status: 'failed', reason: 'provider_mismatch', at: '' }),
+    });
+
+    expect(recordOutcome).toHaveBeenCalledWith(expect.objectContaining({
+      phase: 'error', reason: 'provider_mismatch',
+    }));
+  });
+
+  it('stops the background listener after the bounded window and records no upgrade', async () => {
     vi.useFakeTimers();
     try {
-      const { sendCommand, itemsStore, dep } = deps({ dep: { timeoutMs: 30_000 } });
+      const recordOutcome = vi.fn();
+      const { sendCommand, itemsStore, dep } = deps({
+        dep: { recordOutcome, backgroundTimeoutMs: 6 * 60_000 },
+      });
       const promise = submitControlRequest(OWNED, {}, dep);
       const { requestId } = JSON.parse(sendCommand.mock.calls[0][1]);
 
       itemsStore.set({
         [OWNED.resultItem]: JSON.stringify({ requestId, status: 'accepted', reason: 'accepted', at: '' }),
       });
-      await vi.advanceTimersByTimeAsync(30_000);
+      await promise;
+      await vi.advanceTimersByTimeAsync(6 * 60_000);
 
-      await expect(promise).resolves.toEqual({ phase: 'unknown', reason: 'Outcome unknown' });
+      // A terminal result that arrives after the window is ignored.
+      itemsStore.set({
+        [OWNED.resultItem]: JSON.stringify({ requestId, status: 'completed', reason: 'completed', at: '' }),
+      });
+
+      expect(recordOutcome).not.toHaveBeenCalled();
+      expect(sendCommand).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }

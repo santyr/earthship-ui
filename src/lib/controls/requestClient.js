@@ -1,31 +1,45 @@
 import { items as liveItems, getClientOnce } from '../openhab/index.js';
-import { REQUEST_POST_ITEMS } from './catalog.js';
-
-// Re-exported so proxyPolicy.js can source the POST allowlist from the request
-// client surface (the canonical list lives in catalog.js — no svelte-store
-// import is pulled into the Vite config graph through this path).
-export { REQUEST_POST_ITEMS };
+import { controlIdFor } from './catalog.js';
+import { recordControlOutcome } from './outcomeStore.js';
 
 // The correlated request client never retries and never re-POSTs. A single
-// request is posted, the matching result item is awaited, and the outcome is
-// resolved once — confirmed on a terminal success, error on a rule rejection,
-// unknown on timeout or a transport break that may have reached openHAB.
+// request is posted and the matching result item is awaited. The submission
+// resolves once, at the first terminal phase for the UI:
+//   - 'confirmed' when the rule posts a terminal success (complete/completed)
+//   - 'error' when the rule rejects (denied/failed)
+//   - 'accepted' when the rule posts accepted/running — the request is sent and
+//     owned by the rule but not yet confirmed. An approved greywater cycle
+//     completes at ~5 min, far past the pre-accept window, so treating accepted
+//     as terminal is what keeps a successful submission from surfacing as
+//     "Outcome unknown".
+//   - 'unknown' on the pre-accept timeout or a transport break that may have
+//     reached openHAB.
+// After an 'accepted' resolution a bounded background listener keeps watching
+// the result item and upgrades the recorded outcome to confirmed/error when the
+// terminal result finally lands (via the outcomeStore record path — a later
+// transitionAt wins). It never issues a second POST.
 export const REQUEST_TIMEOUT_MS = 30_000;
+export const BACKGROUND_TIMEOUT_MS = 6 * 60_000;
 
 // Feeder posts 'complete'; greywater and night-load post 'completed'. Both are
 // terminal success. 'denied'/'failed' are terminal rejections. 'accepted' and
-// 'running' are non-terminal and keep the request pending.
+// 'running' resolve the submission as sent-unconfirmed (phase 'accepted').
 const SUCCESS_STATUSES = new Set(['complete', 'completed']);
 const FAILURE_STATUSES = new Set(['denied', 'failed']);
+const ACCEPTED_STATUSES = new Set(['accepted', 'running']);
 
 // A non-2xx POST is an explicit rejection (openHAB refused the request); the
 // client.sendCommand contract throws `sendCommand <item> <status>`.
 const EXPLICIT_REJECTION_RE = /sendCommand\s+\S+\s+\d{3}/;
 
-function terminalPhaseFor(status) {
+// Classifies a result status into a UI phase and whether it is terminal for the
+// background listener (confirmed/error tear the listener down; accepted keeps it
+// alive for a possible upgrade).
+function classifyStatus(status) {
   const normalized = String(status ?? '').trim().toLowerCase();
-  if (SUCCESS_STATUSES.has(normalized)) return 'confirmed';
-  if (FAILURE_STATUSES.has(normalized)) return 'error';
+  if (SUCCESS_STATUSES.has(normalized)) return { phase: 'confirmed', terminal: true };
+  if (FAILURE_STATUSES.has(normalized)) return { phase: 'error', terminal: true };
+  if (ACCEPTED_STATUSES.has(normalized)) return { phase: 'accepted', terminal: false };
   return null;
 }
 
@@ -61,52 +75,98 @@ export function submitControlRequest(control, payloadExtras = {}, deps = {}) {
     client = getClientOnce(),
     items = liveItems,
     timeoutMs = REQUEST_TIMEOUT_MS,
+    backgroundTimeoutMs = BACKGROUND_TIMEOUT_MS,
     setTimer = setTimeout,
     clearTimer = clearTimeout,
+    recordOutcome = recordControlOutcome,
+    now = Date.now,
   } = deps;
 
   const payload = buildRequestPayload(payloadExtras);
   const body = JSON.stringify(payload);
 
   return new Promise((resolve) => {
-    let settled = false;
+    let settled = false; // the submission promise has resolved
+    let finished = false; // the subscription/timers have been torn down
     let unsubscribe = () => {};
     let timer = null;
 
-    const finish = (result) => {
-      if (settled) return;
-      settled = true;
+    const teardown = () => {
+      if (finished) return;
+      finished = true;
       if (timer !== null) clearTimer(timer);
       unsubscribe();
+    };
+
+    const settle = (result) => {
+      if (settled) return;
+      settled = true;
       resolve(result);
+    };
+
+    const recordUpgrade = (phase, reason) => {
+      if (typeof recordOutcome !== 'function') return;
+      try {
+        recordOutcome({
+          controlId: controlIdFor(control),
+          controlLabel: control.label ?? controlIdFor(control),
+          phase,
+          reason,
+          transitionAt: now(),
+        });
+      } catch {
+        // The outcome store is best-effort; the submission already resolved.
+      }
     };
 
     // Subscribe before POSTing so a fast result is never missed. A fresh
     // requestId guarantees the synchronous initial emit cannot match.
     unsubscribe = items.subscribe((snapshot) => {
-      if (settled) return;
+      if (finished) return;
       const parsed = parseResult(snapshot?.[control.resultItem]);
       if (!parsed || parsed.requestId !== payload.requestId) return;
-      const phase = terminalPhaseFor(parsed.status);
-      if (!phase) return; // accepted/running — keep waiting
-      finish({ phase, reason: String(parsed.reason ?? '') });
+      const classified = classifyStatus(parsed.status);
+      if (!classified) return;
+      const reason = String(parsed.reason ?? '');
+
+      if (classified.terminal) {
+        // confirmed/error is terminal for both the promise and the background.
+        if (settled) recordUpgrade(classified.phase, reason);
+        else settle({ phase: classified.phase, reason });
+        teardown();
+        return;
+      }
+
+      // accepted/running — resolve the submission now, then keep a bounded
+      // background listener alive for a confirmed/error upgrade.
+      if (!settled) {
+        settle({ phase: 'accepted', reason });
+        if (timer !== null) clearTimer(timer);
+        timer = setTimer(teardown, backgroundTimeoutMs);
+      }
     });
 
-    timer = setTimer(() => finish({ phase: 'unknown', reason: 'Outcome unknown' }), timeoutMs);
+    timer = setTimer(() => {
+      settle({ phase: 'unknown', reason: 'Outcome unknown' });
+      teardown();
+    }, timeoutMs);
 
     if (!client?.sendCommand) {
-      finish({ phase: 'unknown', reason: 'Outcome unknown' });
+      settle({ phase: 'unknown', reason: 'Outcome unknown' });
+      teardown();
       return;
     }
 
     const handlePostError = (error) => {
+      if (settled) return; // a break after the result landed changes nothing
       if (EXPLICIT_REJECTION_RE.test(String(error?.message ?? ''))) {
-        finish({ phase: 'error', reason: 'request_rejected' });
+        settle({ phase: 'error', reason: 'request_rejected' });
       } else {
         // A transport break after POST may still have reached openHAB, so it is
         // deliberately uncertain and never retried.
-        finish({ phase: 'unknown', reason: 'Outcome unknown' });
+        settle({ phase: 'unknown', reason: 'Outcome unknown' });
       }
+      teardown();
     };
 
     try {
