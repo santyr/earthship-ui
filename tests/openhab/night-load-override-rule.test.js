@@ -180,7 +180,7 @@ describe('override ON matrix', () => {
       { item: 'ShurefloPump_Power', value: 'OFF' },
       { item: 'Goat_Plugs_Outlet1_Switch', value: 'OFF' },
     ]);
-    h.runNextTimer();
+    h.runTimersUntilIdle();
 
     expect(overrideResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'coupling_pending' });
     expect(overrideResults(h).some((r) => r.status === 'completed')).toBe(false);
@@ -265,7 +265,7 @@ describe('override OFF matrix', () => {
       itemName: 'NightLoadOverride_Request',
       receivedCommand: overrideRequest('nl-20260718-off-fail', 'OFF'),
     });
-    h.runNextTimer();
+    h.runTimersUntilIdle();
 
     expect(overrideResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'provider_mismatch' });
     expect(h.state('OverrideSwitch')).toBe('ON'); // ownership retained
@@ -341,7 +341,7 @@ describe('device requests', () => {
       itemName: 'NightLoadDevice_Request',
       receivedCommand: deviceRequest('nl-20260718-mismatch', 'shureflo', 'ON'),
     });
-    h.runNextTimer();
+    h.runTimersUntilIdle();
     expect(deviceResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'provider_mismatch' });
   });
 });
@@ -373,7 +373,7 @@ describe('goat cam coupling preserved', () => {
       receivedCommand: deviceRequest('nl-20260718-cam-nocouple', 'goat-cam', 'ON'),
     });
     // FeederOverride stays ON (coupling never fired) -> completion is withheld.
-    h.runNextTimer();
+    h.runTimersUntilIdle();
     expect(deviceResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'coupling_pending' });
     expect(commandsFor(h, 'FeederOverride')).toEqual([]);
   });
@@ -469,5 +469,68 @@ describe('schedule / external OverrideSwitch commands', () => {
     expect(overrideLedgerState(h).entries[0]).toMatchObject({ status: 'completed' });
     // Owner never echoes a command back to OverrideSwitch.
     expect(commandsFor(h, 'OverrideSwitch')).toEqual([]);
+  });
+});
+
+// --- I7: bounded provider / coupling verification re-poll ------------------
+
+describe('bounded provider/coupling verification re-poll', () => {
+  it('completes a slow-but-correct device transition once the readback finally lands', () => {
+    const h = harness({ Dish_Washer_Power: 'OFF' });
+    // The command is issued but the TP-Link readback lags several polls.
+    h.holdProvider('Dish_Washer_Power');
+    h.execute({
+      itemName: 'NightLoadDevice_Request',
+      receivedCommand: deviceRequest('nl-slow-dish-on', 'dishwasher', 'ON'),
+    });
+
+    h.runNextTimer();
+    h.runNextTimer();
+    h.runNextTimer();
+    // Still re-polling: not yet completed, not yet failed, one timer pending.
+    expect(deviceResults(h).at(-1)).toMatchObject({ status: 'running' });
+    expect(h.pendingTimers()).toBe(1);
+
+    // The provider finally reflects the command; the next poll completes.
+    h.releaseProvider('Dish_Washer_Power');
+    h.setState('Dish_Washer_Power', 'ON');
+    h.runTimersUntilIdle();
+    expect(deviceResults(h).at(-1)).toMatchObject({ status: 'completed' });
+    expect(h.pendingTimers()).toBe(0);
+  });
+
+  it('completes an override ON once a slow FeederOverride coupling settles', () => {
+    const h = harness({
+      Dish_Washer_Power: 'ON', ShurefloPump_Power: 'ON', Goat_Plugs_Outlet1_Switch: 'ON', FeederOverride: 'OFF',
+    });
+    h.execute({
+      itemName: 'NightLoadOverride_Request',
+      receivedCommand: overrideRequest('nl-slow-couple-on', 'ON'),
+    });
+
+    // Provider matrix is satisfied immediately, but the GoatCamOff coupling
+    // (FeederOverride -> ON) lags.
+    h.runNextTimer();
+    h.runNextTimer();
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'running' });
+    expect(h.pendingTimers()).toBe(1);
+
+    h.setState('FeederOverride', 'ON');
+    h.runTimersUntilIdle();
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'completed' });
+  });
+
+  it('still fails a never-correct provider after the bounded re-poll window', () => {
+    const h = harness({ ShurefloPump_Power: 'OFF' });
+    h.holdProvider('ShurefloPump_Power'); // readback never follows the command
+    h.execute({
+      itemName: 'NightLoadDevice_Request',
+      receivedCommand: deviceRequest('nl-never-shureflo-on', 'shureflo', 'ON'),
+    });
+
+    const ran = h.runTimersUntilIdle();
+    expect(ran).toBe(20); // VERIFY_ATTEMPTS bounded, then fail-closed
+    expect(deviceResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'provider_mismatch' });
+    expect(h.pendingTimers()).toBe(0);
   });
 });

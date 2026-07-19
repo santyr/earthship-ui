@@ -88,6 +88,12 @@ const MAX_LEDGER_ENTRIES = 32;
 const LEDGER_READBACK_ATTEMPTS = 20;
 const LEDGER_READBACK_POLL_MS = 50;
 const SWITCH_READBACK_ATTEMPTS = 20;
+// Bounded provider/coupling verification re-poll. Slow TP-Link/coupling latency
+// must not be read as a false mismatch on the single +1s check; re-poll up to
+// VERIFY_ATTEMPTS x VERIFY_POLL_MS (mirroring the ledger readback loop) before
+// declaring a mismatch. Fail-closed: a never-correct transition still fails.
+const VERIFY_ATTEMPTS = 20;
+const VERIFY_POLL_MS = 250;
 // Request-staleness window, values verbatim from feeder-owner.js.
 const MAX_REQUEST_AGE_MS = 2 * 60 * 1000;
 const MAX_REQUEST_FUTURE_SKEW_MS = 30 * 1000;
@@ -114,6 +120,38 @@ function nowInstantText() {
 
 function nowMillis() {
   return epochMillis(now());
+}
+
+// A ZonedDateTime `ms` in the future. Prefers plusNanos (sub-second, real
+// js-joda) and falls back to fractional plusSeconds for the harness.
+function afterMs(ms) {
+  const base = now();
+  if (typeof base.plusNanos === 'function') return base.plusNanos(Math.round(ms * 1e6));
+  return base.plusSeconds(ms / 1000);
+}
+
+// Bounded re-poll mirroring the ledger readback loop. `probe()` returns
+// { ready: true } once the provider/coupling state is satisfied, else
+// { ready: false, reason }. onReady() runs on the first satisfied poll; onFail()
+// runs with the last blocking reason after VERIFY_ATTEMPTS exhaust (fail-closed).
+function pollVerify(probe, onReady, onFail, attempt = 1) {
+  actions.ScriptExecution.createTimer(afterMs(VERIFY_POLL_MS), () => {
+    let outcome;
+    try {
+      outcome = probe();
+    } catch {
+      outcome = { ready: false, reason: 'execution_error' };
+    }
+    if (outcome && outcome.ready) {
+      onReady();
+      return;
+    }
+    if (attempt >= VERIFY_ATTEMPTS) {
+      onFail((outcome && outcome.reason) || 'provider_mismatch');
+      return;
+    }
+    pollVerify(probe, onReady, onFail, attempt + 1);
+  });
 }
 
 // Real time.ZonedDateTime.now().toString() ends in a bracketed zone id
@@ -434,26 +472,55 @@ function reconcile() {
 // ---- override transition --------------------------------------------------
 
 function scheduleOverrideVerify(request, initialLedger, token) {
-  actions.ScriptExecution.createTimer(now().plusSeconds(1), () => {
-    let ledger = initialLedger;
+  let ledger = initialLedger;
+
+  const fail = (rawReason) => {
+    const reason = ['provider_mismatch', 'coupling_pending'].includes(rawReason)
+      ? rawReason
+      : 'execution_error';
     try {
-      if (request.command === 'ON') {
-        const mismatch = ON_MATRIX.some(([item, value]) => state(item) !== value);
-        if (mismatch) throw new Error('provider_mismatch');
-        // Downstream coupling for the Goat Cam leg of the ON matrix: commanding
-        // Goat Cam OFF must drive FeederOverride ON (GoatCamOff rule). Completion
-        // waits for that side effect exactly as the device goat-cam leg does. The
-        // owner still never writes FeederOverride -- it only observes it.
-        if (state(FEEDER_OVERRIDE) !== 'ON') throw new Error('coupling_pending');
+      ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
+      writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'failed');
+    } catch {
+      // The failed result remains the only safe receipt without persistence.
+    }
+    safeResult(OVERRIDE_RESULT, request.requestId, 'failed', reason, { command: request.command });
+    releaseBusy(token);
+  };
+
+  if (request.command === 'ON') {
+    // Re-poll the ON matrix and its Goat Cam coupling side effect. Commanding
+    // Goat Cam OFF must drive FeederOverride ON (GoatCamOff rule); completion
+    // waits for that exactly as the device goat-cam leg does. The owner still
+    // never writes FeederOverride -- it only observes it.
+    const probe = () => {
+      if (ON_MATRIX.some(([item, value]) => state(item) !== value)) {
+        return { ready: false, reason: 'provider_mismatch' };
+      }
+      if (state(FEEDER_OVERRIDE) !== 'ON') return { ready: false, reason: 'coupling_pending' };
+      return { ready: true };
+    };
+    pollVerify(probe, () => {
+      try {
         ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowInstantText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'completed');
         postResult(OVERRIDE_RESULT, {
           requestId: request.requestId, command: 'ON', status: 'completed', reason: 'completed', at: nowInstantText(),
         });
-      } else {
-        // OFF: Shureflo must be provider-confirmed ON before the OverrideSwitch
-        // OFF commit. Retain ownership ON until that is proven.
-        if (state('ShurefloPump_Power') !== 'ON') throw new Error('provider_mismatch');
+        releaseBusy(token);
+      } catch (error) {
+        fail(error.message);
+      }
+    }, fail);
+  } else {
+    // OFF: Shureflo must be provider-confirmed ON before the OverrideSwitch OFF
+    // commit. Retain ownership ON until that is proven; re-poll for a slow
+    // provider before declaring a mismatch.
+    const probe = () => (state('ShurefloPump_Power') === 'ON'
+      ? { ready: true }
+      : { ready: false, reason: 'provider_mismatch' });
+    pollVerify(probe, () => {
+      try {
         ledger = updateLedger(ledger, request.requestId, 'running', 'release-ready', nowInstantText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'running');
         postResult(OVERRIDE_RESULT, {
@@ -465,22 +532,12 @@ function scheduleOverrideVerify(request, initialLedger, token) {
         postResult(OVERRIDE_RESULT, {
           requestId: request.requestId, command: 'OFF', status: 'completed', reason: 'completed', at: nowInstantText(),
         });
+        releaseBusy(token);
+      } catch (error) {
+        fail(error.message);
       }
-    } catch (error) {
-      const reason = ['provider_mismatch', 'coupling_pending'].includes(error.message)
-        ? error.message
-        : 'execution_error';
-      try {
-        ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
-        writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'failed');
-      } catch {
-        // The failed result remains the only safe receipt without persistence.
-      }
-      safeResult(OVERRIDE_RESULT, request.requestId, 'failed', reason, { command: request.command });
-    } finally {
-      releaseBusy(token);
-    }
-  });
+    }, fail);
+  }
 }
 
 function beginOverrideTransition(request, ledger, token) {
@@ -596,39 +653,48 @@ function handleOverride(triggerEvent, syntheticId) {
 
 function scheduleDeviceVerify(request, initialLedger, token) {
   const providerItem = DEVICE_ITEMS[request.device];
-  actions.ScriptExecution.createTimer(now().plusSeconds(1), () => {
-    let ledger = initialLedger;
+  let ledger = initialLedger;
+
+  const fail = (rawReason) => {
+    const reason = ['provider_mismatch', 'coupling_pending'].includes(rawReason)
+      ? rawReason
+      : 'execution_error';
     try {
-      if (state(providerItem) !== request.command) throw new Error('provider_mismatch');
-      if (request.device === 'goat-cam') {
-        // Downstream coupling: Goat Cam ON clears FeederOverride (-> OFF);
-        // Goat Cam OFF sets it (-> ON). Completion waits for that side effect.
-        const expected = request.command === 'ON' ? 'OFF' : 'ON';
-        if (state(FEEDER_OVERRIDE) !== expected) throw new Error('coupling_pending');
-      }
+      ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
+      writeLedger(items.getItem(DEVICE_REQUEST), ledger, request.requestId, 'failed');
+    } catch {
+      // The failed result remains the only safe receipt without persistence.
+    }
+    safeResult(DEVICE_RESULT, request.requestId, 'failed', reason, {
+      device: request.device, command: request.command,
+    });
+    releaseBusy(token);
+  };
+
+  // Re-poll the provider generation (and, for the goat cam, its FeederOverride
+  // coupling) before declaring a mismatch. Goat Cam ON clears FeederOverride
+  // (-> OFF); Goat Cam OFF sets it (-> ON). Completion waits for that side effect.
+  const probe = () => {
+    if (state(providerItem) !== request.command) return { ready: false, reason: 'provider_mismatch' };
+    if (request.device === 'goat-cam') {
+      const expected = request.command === 'ON' ? 'OFF' : 'ON';
+      if (state(FEEDER_OVERRIDE) !== expected) return { ready: false, reason: 'coupling_pending' };
+    }
+    return { ready: true };
+  };
+  pollVerify(probe, () => {
+    try {
       ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowInstantText());
       writeLedger(items.getItem(DEVICE_REQUEST), ledger, request.requestId, 'completed');
       postResult(DEVICE_RESULT, {
         requestId: request.requestId, device: request.device, command: request.command,
         status: 'completed', reason: 'completed', at: nowInstantText(),
       });
-    } catch (error) {
-      const reason = ['provider_mismatch', 'coupling_pending'].includes(error.message)
-        ? error.message
-        : 'execution_error';
-      try {
-        ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
-        writeLedger(items.getItem(DEVICE_REQUEST), ledger, request.requestId, 'failed');
-      } catch {
-        // The failed result remains the only safe receipt without persistence.
-      }
-      safeResult(DEVICE_RESULT, request.requestId, 'failed', reason, {
-        device: request.device, command: request.command,
-      });
-    } finally {
       releaseBusy(token);
+    } catch (error) {
+      fail(error.message);
     }
-  });
+  }, fail);
 }
 
 function handleDevice(triggerEvent) {

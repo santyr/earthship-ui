@@ -39,6 +39,9 @@ function zonedDateTime(epochMs) {
     plusSeconds(seconds) {
       return zonedDateTime(epochMs + (Number(seconds) * 1000));
     },
+    plusNanos(nanos) {
+      return zonedDateTime(epochMs + Math.round(Number(nanos) / 1e6));
+    },
     // Production ZonedDateTime.now().toString() ends in a bracketed zone id
     // (e.g. 2026-07-18T06:00:00.000-06:00[America/Denver]). Strict
     // Instant.parse() cannot parse this; the rules must normalize first.
@@ -289,10 +292,23 @@ export function createRuleHarness({
     timer.callback();
   }
 
+  // Drains timers to quiescence, including timers that reschedule themselves
+  // (the bounded provider/coupling verification re-poll). Bounded to avoid
+  // spinning forever on a genuine bug.
+  function runTimersUntilIdle(max = 64) {
+    let ran = 0;
+    while (timers.length > 0 && ran < max) {
+      runNextTimer();
+      ran += 1;
+    }
+    return ran;
+  }
+
   return {
     events,
     execute,
     runNextTimer,
+    runTimersUntilIdle,
     pendingTimers: () => timers.length,
     state: (name) => itemStates.get(name),
     history: (name) => [...(persisted.get(name) ?? [])],
