@@ -10,6 +10,16 @@ export const CONTROL_PHASES = Object.freeze([
   'unknown',
 ]);
 
+// Live-verification gate for the correlated owner request channels. Every id is
+// false until a later reviewed commit flips the verified ones in one step, after
+// the owner rules are deployed and confirmed live. Controls.svelte threads this
+// straight through to each Toggle.
+export const VERIFIED_CAPABILITIES = Object.freeze({
+  'feeder-request-v1': false,
+  'greywater-request-v1': false,
+  'night-load-owner-v1': false,
+});
+
 const INVALID_STATES = new Set(['', 'NULL', 'UNDEF']);
 
 export function binaryValue(value) {
@@ -150,28 +160,42 @@ export function deriveControlState(control, context = {}) {
     if (!provider.online) {
       return unavailable(provider.reason, provider.detail || detail);
     }
-    return disabledStatus(value, 'Owner request submission unavailable — status only', { detail });
+    return enabledState(value, { detail });
   }
 
   if (control.kind === 'action') {
-    const reason = capabilities[control.capability] === true
-      ? 'Feeder request submission unavailable — actuator status only'
-      : 'Feeder request channel unavailable — actuator status only';
-    return disabledStatus(value, reason);
+    if (capabilities[control.capability] !== true) {
+      return disabledStatus(value, 'Feeder request channel unavailable — actuator status only');
+    }
+    // Physical loads keep their provider gates.
+    const provider = providerAvailability(providerOnline[control.stateItem]);
+    if (!provider.online) return unavailable(provider.reason, provider.detail);
+    return enabledState(value);
   }
 
   if (control.kind === 'safety-request') {
-    const reason = capabilities[control.capability] === true
-      ? 'Circulation request submission unavailable — actuator status only'
-      : 'Circulation request channel unavailable — actuator status only';
-    return disabledStatus(value, reason);
+    if (capabilities[control.capability] !== true) {
+      return disabledStatus(value, 'Circulation request channel unavailable — actuator status only');
+    }
+    // Physical loads keep their provider gates.
+    const provider = providerAvailability(providerOnline[control.stateItem]);
+    if (!provider.online) return unavailable(provider.reason, provider.detail);
+    return enabledState(value);
   }
 
   if (control.kind === 'policy-status') {
-    const reason = capabilities[control.capability] === true
-      ? 'Owner request submission unavailable — status only'
-      : 'Owner request channel unavailable — status only';
-    return disabledStatus(value, reason);
+    if (capabilities[control.capability] !== true) {
+      return disabledStatus(value, 'Owner request channel unavailable — status only');
+    }
+    // OverrideSwitch is a logical policy switch — it has no provider Thing and
+    // is never gated on provider health. During its own transition it serializes.
+    if (ownerTransitioning) {
+      return disabledStatus(value, 'Night Load Override transition in progress');
+    }
+    if (ownerBusy) {
+      return disabledStatus(value, 'Night Load Override owner busy');
+    }
+    return enabledState(value);
   }
 
   return unavailable('Control kind unavailable');

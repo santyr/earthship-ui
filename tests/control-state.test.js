@@ -203,7 +203,7 @@ describe('deriveControlState', () => {
     });
   });
 
-  it('does not enable an owned load when only a future capability flag is true', () => {
+  it('enables an owned load once the owner capability is verified, provider is ONLINE, and the owner is idle', () => {
     const state = deriveControlState(CONTROL_CATALOG.shureflo, {
       ...live,
       releaseMode: 'full',
@@ -215,28 +215,74 @@ describe('deriveControlState', () => {
       providerOnline: { ShurefloPump_Power: { status: 'ONLINE' } },
     });
 
-    expect(state.enabled).toBe(false);
-    expect(state.reason).toMatch(/submission unavailable.*status only/i);
-    expect(state.reason).not.toBe('Ready');
+    expect(state).toMatchObject({ enabled: true, value: 'OFF', valueLabel: 'OFF' });
   });
 
-  it.each([
-    ['feedOnce', 'feeder'],
-    ['circulation', 'circulation'],
-    ['override', 'owner'],
-  ])('does not label %s Ready when no correlated submission adapter exists', (id, domain) => {
-    const control = CONTROL_CATALOG[id];
-    const state = deriveControlState(control, {
+  it('keeps an owned load status-only while the owner is busy even with the capability verified', () => {
+    const state = deriveControlState(CONTROL_CATALOG.shureflo, {
       ...live,
       releaseMode: 'full',
-      capabilities: { [control.capability]: true },
-      items: { [control.stateItem]: 'OFF' },
+      capabilities: { 'night-load-owner-v1': true },
+      items: {
+        ShurefloPump_Power: 'OFF',
+        OverrideSwitch: 'OFF',
+      },
+      providerOnline: { ShurefloPump_Power: { status: 'ONLINE' } },
+      ownerBusy: true,
     });
 
     expect(state.enabled).toBe(false);
-    expect(state.reason).toMatch(new RegExp(domain, 'i'));
-    expect(state.reason).toMatch(/submission unavailable.*status only/i);
-    expect(state.reason).not.toBe('Ready');
+    expect(state.reason).toMatch(/owner busy/i);
+  });
+
+  it('enables the feeder action when verified with the actuator provider ONLINE', () => {
+    const state = deriveControlState(CONTROL_CATALOG.feedOnce, {
+      ...live,
+      releaseMode: 'full',
+      capabilities: { 'feeder-request-v1': true },
+      items: { Goat_Plugs_Outlet2_Switch: 'OFF' },
+      providerOnline: { Goat_Plugs_Outlet2_Switch: { status: 'ONLINE' } },
+    });
+
+    expect(state).toMatchObject({ enabled: true, value: 'OFF' });
+  });
+
+  it('enables the greywater request when verified with the pump provider ONLINE', () => {
+    const state = deriveControlState(CONTROL_CATALOG.circulation, {
+      ...live,
+      releaseMode: 'full',
+      capabilities: { 'greywater-request-v1': true },
+      items: { SouthOutlet_Outlet2_Switch: 'OFF' },
+      providerOnline: { SouthOutlet_Outlet2_Switch: { status: 'ONLINE' } },
+    });
+
+    expect(state).toMatchObject({ enabled: true, value: 'OFF' });
+  });
+
+  it('enables the override policy without any provider Thing gate', () => {
+    const state = deriveControlState(CONTROL_CATALOG.override, {
+      ...live,
+      releaseMode: 'full',
+      capabilities: { 'night-load-owner-v1': true },
+      items: { OverrideSwitch: 'OFF' },
+    });
+
+    expect(state).toMatchObject({ enabled: true, value: 'OFF' });
+  });
+
+  it('keeps the feeder action status-only when its actuator provider is not ONLINE', () => {
+    const state = deriveControlState(CONTROL_CATALOG.feedOnce, {
+      ...live,
+      releaseMode: 'full',
+      capabilities: { 'feeder-request-v1': true },
+      items: { Goat_Plugs_Outlet2_Switch: 'OFF' },
+      providerOnline: {
+        Goat_Plugs_Outlet2_Switch: { status: 'OFFLINE', statusDetail: 'COMMUNICATION_ERROR' },
+      },
+    });
+
+    expect(state.enabled).toBe(false);
+    expect(state.reason).toMatch(/provider offline/i);
   });
 
   it('shows Goat Cam and FeederOverride coupling', () => {

@@ -268,4 +268,120 @@ describe('typed controls UI', () => {
 
     expect(mocks.sendCommand).not.toHaveBeenCalled();
   });
+
+  it('renders the override policy enabled with a hold hint once verified', () => {
+    items.set({ OverrideSwitch: 'OFF' });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.override,
+      capabilities: { 'night-load-owner-v1': true },
+      releaseMode: 'full',
+    } });
+
+    const button = screen.getByRole('button', { name: /Night Load Override/i });
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveTextContent('Hold 600 ms');
+    expect(button).toHaveTextContent('Policy OFF');
+  });
+
+  it('submits one correlated owner request on hold and surfaces a denied reason', async () => {
+    items.set({ Dish_Washer_Power: 'OFF', OverrideSwitch: 'OFF' });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.dishwasher,
+      capabilities: { 'night-load-owner-v1': true },
+      providerStatus: { status: 'ONLINE' },
+      releaseMode: 'full',
+    } });
+
+    const button = screen.getByRole('button', { name: /Dishwasher/i });
+    expect(button).not.toBeDisabled();
+
+    button.dispatchEvent(pointer('pointerdown'));
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(mocks.sendCommand).toHaveBeenCalledTimes(1);
+    const [requestItem, body] = mocks.sendCommand.mock.calls[0];
+    expect(requestItem).toBe('NightLoadDevice_Request');
+    const payload = JSON.parse(body);
+    expect(payload).toMatchObject({ device: 'dishwasher', command: 'ON' });
+
+    items.set({
+      Dish_Washer_Power: 'OFF',
+      OverrideSwitch: 'OFF',
+      NightLoadDevice_Result: JSON.stringify({
+        requestId: payload.requestId,
+        device: 'dishwasher',
+        command: 'ON',
+        status: 'denied',
+        reason: 'busy',
+        at: '',
+      }),
+    });
+
+    await vi.waitFor(() => {
+      expect(button).toHaveTextContent('Failed');
+      expect(button).toHaveTextContent('busy');
+    });
+    expect(mocks.sendCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits the feeder request on hold like any other correlated control', async () => {
+    items.set({ Goat_Plugs_Outlet2_Switch: 'OFF' });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.feedOnce,
+      capabilities: { 'feeder-request-v1': true },
+      providerStatus: { status: 'ONLINE' },
+      releaseMode: 'full',
+    } });
+
+    const button = screen.getByRole('button', { name: /Feed once/i });
+    expect(button).not.toBeDisabled();
+
+    button.dispatchEvent(pointer('pointerdown'));
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(mocks.sendCommand).toHaveBeenCalledTimes(1);
+    const [requestItem, body] = mocks.sendCommand.mock.calls[0];
+    expect(requestItem).toBe('GoatFeeder_ManualRequest');
+    const payload = JSON.parse(body);
+    expect(payload.requestId).toMatch(/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/);
+
+    items.set({
+      Goat_Plugs_Outlet2_Switch: 'OFF',
+      GoatFeeder_ManualResult: JSON.stringify({
+        requestId: payload.requestId, status: 'complete', reason: 'complete', at: '',
+      }),
+    });
+
+    await vi.waitFor(() => expect(button).not.toHaveTextContent('Failed'));
+  });
+
+  it('disables a verified owned load while the owner is transitioning', () => {
+    items.set({ Dish_Washer_Power: 'OFF', OverrideSwitch: 'OFF' });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.dishwasher,
+      capabilities: { 'night-load-owner-v1': true },
+      providerStatus: { status: 'ONLINE' },
+      releaseMode: 'full',
+      ownerTransitioning: true,
+    } });
+
+    const button = screen.getByRole('button', { name: /Dishwasher/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent(/transition/i);
+  });
+
+  it('keeps correlated controls read-only by default in Controls until capabilities are verified', () => {
+    items.set({
+      OverrideSwitch: 'OFF',
+      Dish_Washer_Power: 'OFF',
+      Goat_Plugs_Outlet2_Switch: 'OFF',
+      SouthOutlet_Outlet2_Switch: 'OFF',
+    });
+    thingStatuses.set({});
+    render(Controls, { props: { releaseMode: 'full' } });
+
+    expect(screen.getByRole('button', { name: /Night Load Override/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Feed once/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Request circulation/i })).toBeDisabled();
+  });
 });

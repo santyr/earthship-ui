@@ -3,14 +3,31 @@
   import Tile from '../lib/ui/Tile.svelte';
   import { CONTROL_CATALOG } from '../lib/controls/catalog.js';
   import { colors } from '../lib/ui/tokens.js';
-  import { thingStatuses } from '../lib/openhab/index.js';
+  import { items, thingStatuses } from '../lib/openhab/index.js';
+  import { VERIFIED_CAPABILITIES } from '../lib/controls/controlState.js';
   import { CURRENT_RELEASE_MODE } from '../lib/releaseMode.js';
 
-  let { releaseMode = CURRENT_RELEASE_MODE } = $props();
+  let { releaseMode = CURRENT_RELEASE_MODE, capabilities = VERIFIED_CAPABILITIES } = $props();
 
   function providerFor(control) {
     return control.providerThingUid ? $thingStatuses[control.providerThingUid] ?? null : null;
   }
+
+  // Owner busy/transition, derived honestly from the NightLoadOverride_Result
+  // item: an accepted/running result with no terminal yet means a transition is
+  // in flight, so the owned loads and the override policy must not be commanded.
+  // If the item can't prove a transition, don't block — the owner rule itself
+  // serializes and denies 'busy', which the client surfaces verbatim.
+  const ownerTransitioning = $derived.by(() => {
+    const raw = $items.NightLoadOverride_Result;
+    if (typeof raw !== 'string' || !raw) return false;
+    try {
+      const status = String(JSON.parse(raw)?.status ?? '').toLowerCase();
+      return status === 'accepted' || status === 'running';
+    } catch {
+      return false;
+    }
+  });
 </script>
 
 <div class="controls-grid" data-controls-layout>
@@ -28,10 +45,10 @@
   <section class="cell" aria-label="Household loads">
     <Tile label="Household Loads" accent={colors.solar}>
       <div class="control-stack four">
-        <Toggle control={CONTROL_CATALOG.dishwasher} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.dishwasher)} />
-        <Toggle control={CONTROL_CATALOG.shureflo} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.shureflo)} />
-        <Toggle control={CONTROL_CATALOG.goatCam} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.goatCam)} />
-        <Toggle control={CONTROL_CATALOG.feedOnce} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.feedOnce)} onColor={colors.advisory} />
+        <Toggle control={CONTROL_CATALOG.dishwasher} {releaseMode} {capabilities} {ownerTransitioning} providerStatus={providerFor(CONTROL_CATALOG.dishwasher)} />
+        <Toggle control={CONTROL_CATALOG.shureflo} {releaseMode} {capabilities} {ownerTransitioning} providerStatus={providerFor(CONTROL_CATALOG.shureflo)} />
+        <Toggle control={CONTROL_CATALOG.goatCam} {releaseMode} {capabilities} {ownerTransitioning} providerStatus={providerFor(CONTROL_CATALOG.goatCam)} />
+        <Toggle control={CONTROL_CATALOG.feedOnce} {releaseMode} {capabilities} providerStatus={providerFor(CONTROL_CATALOG.feedOnce)} onColor={colors.advisory} />
       </div>
     </Tile>
   </section>
@@ -39,8 +56,8 @@
   <section class="cell" aria-label="Water and policy">
     <Tile label="Water &amp; Policy" accent={colors.water}>
       <div class="control-stack two">
-        <Toggle control={CONTROL_CATALOG.circulation} {releaseMode} providerStatus={providerFor(CONTROL_CATALOG.circulation)} onColor={colors.water} />
-        <Toggle control={CONTROL_CATALOG.override} {releaseMode} onColor={colors.advisory} />
+        <Toggle control={CONTROL_CATALOG.circulation} {releaseMode} {capabilities} providerStatus={providerFor(CONTROL_CATALOG.circulation)} onColor={colors.water} />
+        <Toggle control={CONTROL_CATALOG.override} {releaseMode} {capabilities} {ownerTransitioning} onColor={colors.advisory} />
       </div>
     </Tile>
   </section>

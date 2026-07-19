@@ -83,8 +83,17 @@ describe('rest-safety static scan: no browser write path to the owner actuators'
     }
   });
 
-  it('never exposes the request items to a browser write path', () => {
+  it('exposes only the validated owner request channels — never the actuators — to the browser', () => {
+    // Task 5 wires the correlated request client: the two owner request items
+    // become POST-able so the browser can submit a request the owner rule
+    // validates and serializes. The owner actuators (asserted above) and the
+    // *_Result items stay closed in every release mode.
     for (const item of ['NightLoadOverride_Request', 'NightLoadDevice_Request']) {
+      expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'safe-compat')).toBe(true);
+      expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'full')).toBe(true);
+      expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'maintenance')).toBe(false);
+    }
+    for (const item of ['NightLoadOverride_Result', 'NightLoadDevice_Result']) {
       expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'full')).toBe(false);
     }
   });

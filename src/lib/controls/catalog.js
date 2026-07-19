@@ -101,6 +101,36 @@ export const DIRECT_COMMAND_ITEMS = Object.freeze(
     .filter(Boolean),
 );
 
+export const CORRELATED_KINDS = Object.freeze([
+  'owned-binary',
+  'action',
+  'safety-request',
+  'policy-status',
+]);
+
+// The String request items a correlated control POSTs to. Exactly the four
+// owner request channels — never a *_Result or actuator item. proxyPolicy.js
+// (and requestClient.js) consume this to widen the same-origin POST allowlist.
+export const REQUEST_POST_ITEMS = Object.freeze([
+  ...new Set(
+    Object.values(CONTROL_CATALOG)
+      .filter((control) => CORRELATED_KINDS.includes(control.kind) && control.requestItem)
+      .map((control) => control.requestItem),
+  ),
+]);
+
+export function controlIdFor(control) {
+  if (!control) return null;
+  for (const [id, entry] of Object.entries(CONTROL_CATALOG)) {
+    if (entry === control) return id;
+  }
+  return control.stateItem ?? null;
+}
+
+export function isCorrelatedControl(control) {
+  return Boolean(control && CORRELATED_KINDS.includes(control.kind) && control.requestItem);
+}
+
 export function activationModeFor(control) {
   return control?.activationMode === 'tap' ? 'tap' : 'hold';
 }

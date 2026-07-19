@@ -3,6 +3,9 @@ export const HOLD_DURATION_MS = 600;
 const HOLD_KEYS = new Set(['Enter', ' ', 'Spacebar']);
 
 function terminalPhase(result) {
+  // A correlated request resolves an explicit phase (confirmed/error/unknown/
+  // accepted); a direct command only reports a coarse status.
+  if (result && typeof result.phase === 'string') return result.phase;
   return result?.status === 'unknown' ? 'unknown' : 'accepted';
 }
 

@@ -30,18 +30,47 @@ describe('household Vite OpenHAB proxy policy', () => {
     }
   });
 
-  it('denies unsafe actuators, unrelated writes, state injection, and rule execution', () => {
+  it('allows POST to exactly the four correlated request items', () => {
+    for (const item of [
+      'GoatFeeder_ManualRequest',
+      'SouthOutlet_ManualRequest',
+      'NightLoadDevice_Request',
+      'NightLoadOverride_Request',
+    ]) {
+      expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'safe-compat')).toBe(true);
+      expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'full')).toBe(true);
+    }
+  });
+
+  it('denies unsafe actuators, unrelated writes, state injection, rule execution, and result items', () => {
     for (const [method, path] of [
       ['POST', '/rest/items/Goat_Plugs_Outlet2_Switch'],
       ['POST', '/rest/items/SouthOutlet_Outlet2_Switch'],
       ['POST', '/rest/items/OverrideSwitch'],
       ['POST', '/rest/items/Dish_Washer_Power'],
+      ['POST', '/rest/items/ShurefloPump_Power'],
+      ['POST', '/rest/items/Goat_Plugs_Outlet1_Switch'],
+      ['POST', '/rest/items/GoatFeeder_ManualResult'],
+      ['POST', '/rest/items/SouthOutlet_ManualResult'],
+      ['POST', '/rest/items/NightLoadDevice_Result'],
+      ['POST', '/rest/items/NightLoadOverride_Result'],
       ['PUT', '/rest/items/Current_US_AQI/state'],
       ['POST', '/rest/rules/example/runnow'],
       ['DELETE', '/rest/items/BMS_SOC'],
       ['PATCH', '/rest/things/example'],
     ]) {
       expect(isAllowedProxyRequest(method, path, 'safe-compat')).toBe(false);
+    }
+  });
+
+  it('fails the request items closed in maintenance mode', () => {
+    for (const item of [
+      'GoatFeeder_ManualRequest',
+      'SouthOutlet_ManualRequest',
+      'NightLoadDevice_Request',
+      'NightLoadOverride_Request',
+    ]) {
+      expect(isAllowedProxyRequest('POST', `/rest/items/${item}`, 'maintenance')).toBe(false);
     }
   });
 

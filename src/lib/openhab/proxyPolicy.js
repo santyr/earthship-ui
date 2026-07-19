@@ -1,9 +1,17 @@
-import { DIRECT_COMMAND_ITEMS } from '../controls/catalog.js';
+import { DIRECT_COMMAND_ITEMS, REQUEST_POST_ITEMS } from '../controls/catalog.js';
 import { resolveReleaseMode } from '../releaseMode.js';
 
 const DIRECT_POST_PATHS = new Set(
   DIRECT_COMMAND_ITEMS.map((item) => `/rest/items/${encodeURIComponent(item)}`),
 );
+
+// The four correlated owner request channels. POSTing here submits a JSON
+// request the owner rule validates and serializes; it never actuates directly.
+const REQUEST_POST_PATHS = new Set(
+  REQUEST_POST_ITEMS.map((item) => `/rest/items/${encodeURIComponent(item)}`),
+);
+
+const ALLOWED_POST_PATHS = new Set([...DIRECT_POST_PATHS, ...REQUEST_POST_PATHS]);
 
 function requestPath(rawUrl) {
   try {
@@ -21,7 +29,7 @@ export function isAllowedProxyRequest(method, rawUrl, releaseMode = 'maintenance
   if (!['safe-compat', 'full'].includes(resolveReleaseMode(releaseMode))) {
     return false;
   }
-  return verb === 'POST' && DIRECT_POST_PATHS.has(path);
+  return verb === 'POST' && ALLOWED_POST_PATHS.has(path);
 }
 
 export function openhabProxyAuthorization(token) {

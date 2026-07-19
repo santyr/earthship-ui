@@ -213,17 +213,22 @@ describe('feeder OpenHAB REST safety', () => {
       .toEqual({ ok: true, reasons: [] });
   });
 
-  it('keeps both provider and request commands out of the browser proxy until the live gate closes', () => {
-    expect(isAllowedProxyRequest(
-      'POST',
-      '/rest/items/Goat_Plugs_Outlet2_Switch',
-      'full',
-    )).toBe(false);
-    expect(isAllowedProxyRequest(
-      'POST',
-      '/rest/items/GoatFeeder_ManualRequest',
-      'full',
-    )).toBe(false);
+  it('keeps the feeder actuator out of the browser proxy while opening the validated request channel', () => {
+    // The actuator is never directly writable from the browser in any mode.
+    for (const mode of ['maintenance', 'safe-compat', 'full']) {
+      expect(isAllowedProxyRequest(
+        'POST',
+        '/rest/items/Goat_Plugs_Outlet2_Switch',
+        mode,
+      )).toBe(false);
+    }
+    // Task 5 opens the correlated feeder request channel (validated + serialized
+    // by the owner rule) for safe-compat/full, and keeps it closed in maintenance.
+    expect(isAllowedProxyRequest('POST', '/rest/items/GoatFeeder_ManualRequest', 'full')).toBe(true);
+    expect(isAllowedProxyRequest('POST', '/rest/items/GoatFeeder_ManualRequest', 'safe-compat')).toBe(true);
+    expect(isAllowedProxyRequest('POST', '/rest/items/GoatFeeder_ManualRequest', 'maintenance')).toBe(false);
+    // The result item is never a browser write path.
+    expect(isAllowedProxyRequest('POST', '/rest/items/GoatFeeder_ManualResult', 'full')).toBe(false);
   });
 
   it('classifies feeder activity on the continuous event cursor as unsafe', () => {

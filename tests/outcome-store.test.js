@@ -45,6 +45,22 @@ describe('control outcome store', () => {
     ]);
   });
 
+  it('preserves a confirmed correlated outcome verbatim so it never raises a console alert', async () => {
+    const { createOutcomeStore } = await loadSubject();
+    const store = createOutcomeStore({ now: () => 5_000 });
+
+    store.record({
+      controlId: 'dishwasher',
+      controlLabel: 'Dishwasher',
+      phase: 'confirmed',
+      reason: 'completed',
+    });
+
+    expect(get(store)).toEqual([
+      expect.objectContaining({ controlId: 'dishwasher', phase: 'confirmed', reason: 'completed' }),
+    ]);
+  });
+
   it('normalizes error/unknown phases and expires each record 15 minutes after transitionAt', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);

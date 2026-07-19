@@ -4,11 +4,15 @@
   import {
     activationModeFor,
     commandTargetFor,
+    controlIdFor,
+    isCorrelatedControl,
   } from '../controls/catalog.js';
   import {
     deriveControlState,
     outcomePresentation,
   } from '../controls/controlState.js';
+  import { submitControlRequest } from '../controls/requestClient.js';
+  import { recordControlOutcome } from '../controls/outcomeStore.js';
   import { CURRENT_RELEASE_MODE } from '../releaseMode.js';
 
   let {
@@ -22,6 +26,7 @@
   } = $props();
 
   let submissionPhase = $state('confirmed');
+  let submissionReason = $state('');
 
   const providerHealth = $derived(
     providerStatus && control?.stateItem
@@ -71,29 +76,60 @@
   });
 
   function onPhaseChange(phase) {
+    if (phase === 'holding' || phase === 'pending') submissionReason = '';
     submissionPhase = phase;
   }
 
-  async function submit() {
-    const target = commandTargetFor(control);
-    const client = getClientOnce();
-    if (!target || !client) return { status: 'unknown' };
+  function requestExtrasFor(currentValue) {
+    const next = currentValue === 'ON' ? 'OFF' : 'ON';
+    if (control.kind === 'owned-binary') return { device: control.device, command: next };
+    if (control.kind === 'policy-status') return { command: next };
+    // Feeder (action) and greywater (safety-request) are correlated pulses with
+    // no target/command in the request payload.
+    return {};
+  }
 
-    const next = view.value === 'ON' ? 'OFF' : 'ON';
-    try {
-      await client.sendCommand(target, next);
-      return { status: 'accepted' };
-    } catch (error) {
-      // An explicit non-2xx response is a rejection. A transport break after
-      // POST may still have reached openHAB, so it is deliberately uncertain
-      // and is never retried.
-      if (/sendCommand\s+\S+\s+\d{3}/.test(String(error?.message || ''))) {
-        throw error;
+  async function submitCorrelated(client) {
+    const result = await submitControlRequest(control, requestExtrasFor(view.value), { client });
+    submissionReason = result.reason || '';
+    recordControlOutcome({
+      controlId: controlIdFor(control),
+      controlLabel: control.label,
+      phase: result.phase,
+      reason: result.reason || '',
+    });
+    return result;
+  }
+
+  async function submit() {
+    const client = getClientOnce();
+    const target = commandTargetFor(control);
+
+    if (target) {
+      if (!client) return { status: 'unknown' };
+      const next = view.value === 'ON' ? 'OFF' : 'ON';
+      try {
+        await client.sendCommand(target, next);
+        return { status: 'accepted' };
+      } catch (error) {
+        // An explicit non-2xx response is a rejection. A transport break after
+        // POST may still have reached openHAB, so it is deliberately uncertain
+        // and is never retried.
+        if (/sendCommand\s+\S+\s+\d{3}/.test(String(error?.message || ''))) {
+          throw error;
+        }
+        const unknown = new Error('Command outcome unknown');
+        unknown.outcomeUnknown = true;
+        throw unknown;
       }
-      const unknown = new Error('Command outcome unknown');
-      unknown.outcomeUnknown = true;
-      throw unknown;
     }
+
+    if (isCorrelatedControl(control)) {
+      if (!client) return { phase: 'unknown', reason: 'Outcome unknown' };
+      return submitCorrelated(client);
+    }
+
+    return { status: 'unknown' };
   }
 </script>
 
@@ -142,6 +178,9 @@
     {/if}
     {#if view.enabled && activePhase !== 'confirmed'}
       <span class="submission" data-tone={phaseView.tone}>{phaseView.label}</span>
+      {#if submissionReason && (activePhase === 'error' || activePhase === 'unknown')}
+        <span class="submission-reason" data-tone={phaseView.tone}>{submissionReason}</span>
+      {/if}
     {:else if view.enabled}
       <span class="hint">
         {activationMode === 'tap' ? 'Tap to toggle' : 'Hold 600 ms'}
@@ -271,11 +310,13 @@
   }
 
   .degraded,
-  .submission[data-tone='warning'] {
+  .submission[data-tone='warning'],
+  .submission-reason[data-tone='warning'] {
     color: #f59e0b;
   }
 
-  .submission[data-tone='error'] {
+  .submission[data-tone='error'],
+  .submission-reason[data-tone='error'] {
     color: #ef4444;
   }
 
