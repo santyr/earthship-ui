@@ -178,6 +178,178 @@
         "SkyCondition",
         "Sun_Position_Elevation"
       ]
+    },
+    "night-load": {
+      "capability": "night-load-owner-v1",
+      "items": [
+        {
+          "name": "NightLoadOverride_Request",
+          "type": "String",
+          "label": "Night load override request",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "NightLoadOverride_Result",
+          "type": "String",
+          "label": "Night load override result",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "NightLoadDevice_Request",
+          "type": "String",
+          "label": "Night load device request",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "NightLoadDevice_Result",
+          "type": "String",
+          "label": "Night load device result",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        }
+      ],
+      "metadata": [
+        {
+          "item": "NightLoadOverride_Request",
+          "namespace": "autoupdate",
+          "value": "false",
+          "config": {}
+        },
+        {
+          "item": "NightLoadDevice_Request",
+          "namespace": "autoupdate",
+          "value": "false",
+          "config": {}
+        },
+        {
+          "item": "OverrideSwitch",
+          "namespace": "autoupdate",
+          "value": "false",
+          "config": {}
+        }
+      ],
+      "persistence": {
+        "serviceId": "jdbc",
+        "strategy": "everyChange",
+        "restoreOnStartup": true,
+        "items": [
+          "NightLoadOverride_Request",
+          "NightLoadOverride_Result",
+          "NightLoadDevice_Request",
+          "NightLoadDevice_Result",
+          "OverrideSwitch"
+        ]
+      },
+      "rule": {
+        "uid": "hex_night_load_override",
+        "name": "Night Load Override Owner",
+        "source": "openhab/rules/night-load-owner.js",
+        "triggers": [
+          {
+            "id": "earthship-night-load-override-request",
+            "type": "core.ItemCommandTrigger",
+            "configuration": {
+              "itemName": "NightLoadOverride_Request"
+            }
+          },
+          {
+            "id": "earthship-night-load-device-request",
+            "type": "core.ItemCommandTrigger",
+            "configuration": {
+              "itemName": "NightLoadDevice_Request"
+            }
+          },
+          {
+            "id": "earthship-night-load-override-switch",
+            "type": "core.ItemCommandTrigger",
+            "configuration": {
+              "itemName": "OverrideSwitch"
+            }
+          },
+          {
+            "id": "earthship-night-load-reconcile",
+            "type": "timer.GenericCronTrigger",
+            "configuration": {
+              "cronExpression": "0 */5 * * * ?"
+            }
+          }
+        ],
+        "action": {
+          "id": "earthship-night-load-owner",
+          "type": "script.ScriptAction",
+          "configuration": {
+            "type": "application/javascript;version=ECMAScript-2021"
+          }
+        }
+      },
+      "graph": {
+        "reversible": true,
+        "retiredRules": [
+          {
+            "uid": "ab8a59e1da",
+            "name": "Dishwasher Off",
+            "reason": "consolidated-into-night-load-owner",
+            "backedUp": true,
+            "transactional": true
+          },
+          {
+            "uid": "4e234eabea",
+            "name": "Shureflo OFF",
+            "reason": "consolidated-into-night-load-owner",
+            "backedUp": true,
+            "transactional": true
+          },
+          {
+            "uid": "e647476610",
+            "name": "Shureflo ON",
+            "reason": "consolidated-into-night-load-owner",
+            "backedUp": true,
+            "transactional": true
+          }
+        ],
+        "couplingDependencies": [
+          {
+            "uid": "3e8f265498",
+            "name": "Goat Cam ON",
+            "direction": "goat-cam-on-clears-feederoverride",
+            "mutable": false,
+            "retired": false
+          },
+          {
+            "uid": "GoatCamOff",
+            "name": "Goat Cam Off",
+            "direction": "goat-cam-off-sets-feederoverride",
+            "mutable": false,
+            "retired": false
+          }
+        ],
+        "schedules": [
+          {
+            "uid": "1f692c798b",
+            "name": "Override ON",
+            "commands": "OverrideSwitch"
+          },
+          {
+            "uid": "b1501047a9",
+            "name": "Override OFF",
+            "commands": "OverrideSwitch"
+          }
+        ]
+      },
+      "protectedDependencies": [
+        "OverrideSwitch",
+        "Dish_Washer_Power",
+        "ShurefloPump_Power",
+        "Goat_Plugs_Outlet1_Switch",
+        "FeederOverride"
+      ]
     }
   }
 }

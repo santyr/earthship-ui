@@ -62,6 +62,7 @@ export function createRuleHarness({
   let pendingPersist = null;
   let suppressRequestReadback = false;
   const commandFailures = [];
+  const heldProviders = new Set();
   const events = [];
   const timers = [];
   const shared = new Map();
@@ -101,7 +102,10 @@ export function createRuleHarness({
           throw failure.error;
         }
         events.push({ type: 'command', item: name, value: next });
-        itemStates.set(name, next);
+        // A held provider records the command but does not reflect it into
+        // state, simulating a device whose physical readback never followed
+        // the command (provider-generation mismatch).
+        if (!heldProviders.has(name)) itemStates.set(name, next);
       },
       persistence: {
         persist(serviceId) {
@@ -269,6 +273,12 @@ export function createRuleHarness({
     },
     failNextCommand(itemName, value, error = new Error('injected command failure')) {
       commandFailures.push({ item: itemName, value: String(value), error });
+    },
+    holdProvider(itemName) {
+      heldProviders.add(itemName);
+    },
+    releaseProvider(itemName) {
+      heldProviders.delete(itemName);
     },
     resultPayloads() {
       return events
