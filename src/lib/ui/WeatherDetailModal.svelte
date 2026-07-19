@@ -254,7 +254,7 @@
               <span>
                 {metric(selectedDay.summary.precipPct, '%')} precip
                 {#if rainAmountText(selectedDay.summary.precipSumIn)}
-                  <span data-testid="day-rain-amount" style="color: {colors.rain}">{rainAmountText(selectedDay.summary.precipSumIn)}</span>
+                  <span data-testid="modal-day-rain-amount" style="color: {colors.rain}">{rainAmountText(selectedDay.summary.precipSumIn)}</span>
                 {/if}
               </span>
               <span>PV {metric(selectedDay.summary.pvKwh, ' kWh')}</span>
@@ -299,7 +299,7 @@
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
                 <span class="hour-precip">{metric(hour.precipPct, '%')}</span>
                 {#if rainAmountText(hour.precipIn)}
-                  <span class="hour-rain" data-testid="hour-rain-amount" style="color: {colors.rain}">{rainAmountText(hour.precipIn)}</span>
+                  <span class="hour-rain" data-testid="modal-hour-rain-amount" style="color: {colors.rain}">{rainAmountText(hour.precipIn)}</span>
                 {/if}
                 <span class="hour-radiation">{metric(hour.radiationWm2, ' W/m²')}</span>
                 <span class="hour-wind">{metric(hour.windMph, ' mph')}</span>

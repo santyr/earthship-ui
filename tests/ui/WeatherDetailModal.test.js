@@ -210,11 +210,11 @@ describe('WeatherDetailModal', () => {
       const { container } = render(WeatherDetailModal);
       await openTomorrow();
 
-      const summaryAmount = screen.getByTestId('day-rain-amount');
+      const summaryAmount = screen.getByTestId('modal-day-rain-amount');
       expect(summaryAmount.textContent).toBe('0.24″');
       expect(summaryAmount.getAttribute('style')).toContain('rgb(59, 130, 246)');
 
-      const hourAmounts = container.querySelectorAll('[data-testid="hour-rain-amount"]');
+      const hourAmounts = container.querySelectorAll('[data-testid="modal-hour-rain-amount"]');
       expect(hourAmounts).toHaveLength(1);
       expect(hourAmounts[0].textContent).toBe('0.05″');
     } finally {
@@ -231,8 +231,8 @@ describe('WeatherDetailModal', () => {
       const { container } = render(WeatherDetailModal);
       await openTomorrow();
 
-      expect(container.querySelectorAll('[data-testid="day-rain-amount"]')).toHaveLength(0);
-      expect(container.querySelectorAll('[data-testid="hour-rain-amount"]')).toHaveLength(0);
+      expect(container.querySelectorAll('[data-testid="modal-day-rain-amount"]')).toHaveLength(0);
+      expect(container.querySelectorAll('[data-testid="modal-hour-rain-amount"]')).toHaveLength(0);
       expect(container.textContent).not.toContain('″');
     } finally {
       vi.useRealTimers();
