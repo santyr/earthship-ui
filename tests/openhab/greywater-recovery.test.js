@@ -145,4 +145,111 @@ describe('greywater restart recovery', () => {
     expect(onCount(h)).toBe(0);
     expect(results(h).at(-1)).toMatchObject({ status: 'denied', reason: 'ledger_invalid' });
   });
+
+  it('forces an orphaned pump OFF in the same evaluation as ledger recovery', () => {
+    // Restart with the outlet still ON and an 'accepted' ledger entry: the
+    // recovery pass must de-energize the pump in this same evaluation instead
+    // of returning early and leaving it ON until the next cron.
+    const requestId = 'gw-20260718-orphan-restart';
+    const h = createRuleHarness({
+      source: ruleSource,
+      states: baseStates({
+        SouthOutlet_Outlet2_Switch: 'ON',
+        SouthOutlet_ManualRequest: gwLedger([{
+          requestId,
+          status: 'accepted',
+          reason: 'accepted',
+          at: '2026-07-18T11:00:00.000Z',
+        }]),
+      }),
+    });
+    h.clearVolatileCache(); // no live timer survives the restart
+    h.execute(); // automatic evaluation
+
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(onCount(h)).toBe(0);
+    const offCommands = h.events.filter(
+      (e) => e.type === 'command' && e.item === 'SouthOutlet_Outlet2_Switch' && e.value === 'OFF',
+    );
+    expect(offCommands.length).toBeGreaterThanOrEqual(1);
+    // Ledger is still recovered to restart-uncertain in the same pass.
+    expect(ledger(h).entries[0]).toMatchObject({
+      requestId,
+      status: 'failed',
+      reason: 'restart_uncertain',
+    });
+  });
+});
+
+describe('greywater persist / readback failure branches', () => {
+  it('ends OFF and posts failed/ledger_persist_failed when the accepted persist throws', () => {
+    const h = createRuleHarness({ source: ruleSource, states: baseStates() });
+    h.setPersistFailure(new Error('jdbc offline'));
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest('gw-20260718-persist-fail'),
+    });
+
+    expect(onCount(h)).toBe(0);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(results(h).at(-1)).toMatchObject({ status: 'failed', reason: 'ledger_persist_failed' });
+  });
+
+  it('ends OFF and posts failed/ledger_readback_failed when the accept never reads back', () => {
+    const h = createRuleHarness({ source: ruleSource, states: baseStates() });
+    h.delayNextPersistVisibility(25); // never visible within the bounded readback loop
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest('gw-20260718-readback-fail'),
+    });
+
+    expect(onCount(h)).toBe(0);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(results(h).at(-1)).toMatchObject({ status: 'failed', reason: 'ledger_readback_failed' });
+  });
+
+  it('denies with ledger_restore_missing when a persisted ledger fails to restore', () => {
+    const h = createRuleHarness({
+      source: ruleSource,
+      states: baseStates({ SouthOutlet_ManualRequest: 'NULL' }),
+      histories: {
+        SouthOutlet_ManualRequest: [gwLedger([{
+          requestId: 'gw-20260718-prior',
+          status: 'completed',
+          reason: 'completed',
+          at: '2026-07-18T10:00:00.000Z',
+        }])],
+      },
+    });
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest('gw-20260718-restore-miss'),
+    });
+
+    expect(onCount(h)).toBe(0);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(results(h).at(-1)).toMatchObject({ status: 'denied', reason: 'ledger_restore_missing' });
+  });
+
+  it('ends OFF and posts failed/execution_error when the timer-callback OFF throws', () => {
+    const h = createRuleHarness({ source: ruleSource, states: baseStates() });
+    const requestId = 'gw-20260718-timer-fail';
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest(requestId),
+    });
+    expect(onCount(h)).toBe(1);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('ON');
+
+    h.failNextCommand('SouthOutlet_Outlet2_Switch', 'OFF');
+    h.runNextTimer();
+
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF'); // safeOff backstop
+    expect(results(h).at(-1)).toMatchObject({ requestId, status: 'failed', reason: 'execution_error' });
+    expect(ledger(h).entries[0]).toMatchObject({
+      requestId,
+      status: 'failed',
+      reason: 'execution_error',
+    });
+  });
 });

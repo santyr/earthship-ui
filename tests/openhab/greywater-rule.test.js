@@ -359,4 +359,53 @@ describe('manual correlated requests', () => {
     expect(onCount(h)).toBe(0);
     expect(results(h).at(-1)).toMatchObject({ status: 'denied', reason: 'low_soc' });
   });
+
+  it('denies a stale queued request (requestedAt older than the window) with request_stale', () => {
+    // now is NOON; a request stamped 10 minutes earlier is older than the
+    // 2-minute staleness window and must not actuate even with a fresh id.
+    const staleAt = new Date(NOON - (10 * 60 * 1000)).toISOString();
+    const h = createRuleHarness({ source: ruleSource, states: baseStates() });
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest('gw-20260718-stale', staleAt),
+    });
+    expect(onCount(h)).toBe(0);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(results(h).at(-1)).toMatchObject({ status: 'denied', reason: 'request_stale' });
+  });
+
+  it('still completes an otherwise-identical fresh request', () => {
+    const h = createRuleHarness({ source: ruleSource, states: baseStates() });
+    const requestId = 'gw-20260718-fresh';
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest(requestId), // requestedAt == now
+    });
+    expect(results(h).map((r) => r.status)).toEqual(['accepted']);
+    expect(onCount(h)).toBe(1);
+
+    h.runNextTimer();
+    expect(results(h).map((r) => r.status)).toEqual(['accepted', 'completed']);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(ledger(h).entries[0]).toMatchObject({ requestId, status: 'completed' });
+  });
+
+  it('seeds the cooldown clock and denies on a virgin system (no LastCycleStart/LastAutoRun)', () => {
+    const h = createRuleHarness({
+      source: ruleSource,
+      states: baseStates({
+        SouthOutlet_LastCycleStart: 'NULL',
+        SouthOutlet_LastAutoRun: 'NULL',
+      }),
+    });
+    h.execute({
+      itemName: 'SouthOutlet_ManualRequest',
+      receivedCommand: gwRequest('gw-20260718-virgin'),
+    });
+    expect(onCount(h)).toBe(0);
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(results(h).at(-1)).toMatchObject({ status: 'denied', reason: 'cooldown_initializing' });
+    // Cooldown clock is now seeded so the 230-minute gap authority is armed.
+    expect(h.state('SouthOutlet_LastCycleStart')).not.toBe('NULL');
+  });
 });

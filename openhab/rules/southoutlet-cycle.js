@@ -63,11 +63,13 @@ const CFG = {
 };
 
 const BUSY_KEY = 'earthship.southoutlet.busy';
-const LAST_START_KEY = 'earthship.southoutlet.last-start-ms';
 const MAX_LEDGER_BYTES = 8192;
 const MAX_LEDGER_ENTRIES = 32;
 const LEDGER_READBACK_ATTEMPTS = 20;
 const LEDGER_READBACK_POLL_MS = 50;
+// Request-staleness window, values verbatim from feeder-owner.js.
+const MAX_REQUEST_AGE_MS = 2 * 60 * 1000;
+const MAX_REQUEST_FUTURE_SKEW_MS = 30 * 1000;
 const NULL_STATES = new Set(['NULL', 'UNDEF']);
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'denied']);
 
@@ -404,7 +406,6 @@ function beginCycle({ isManual, request, ledger, voltage, soc, mode, invocationT
   const startAt = nowText();
   post(CFG.lastCycleStartItem, startAt);
   if (!isManual) post(CFG.lastRunItem, startAt); // automatic-only compatibility
-  cache.shared.put(LAST_START_KEY, String(nowMillis()));
   command(CFG.outletItem, 'ON');
   status('cycle_started', {
     voltage: voltage.toFixed(2),
@@ -448,7 +449,11 @@ function beginCycle({ isManual, request, ledger, voltage, soc, mode, invocationT
 function runAutomatic() {
   // Best-effort ledger recovery: a restart between accept and completion leaves
   // an 'accepted' entry that must never be replayed. Non-fatal so ledger
-  // corruption can never block the safety force-off chain below.
+  // corruption can never block the safety force-off chain below. Recovery does
+  // NOT short-circuit the orphan-outlet force-off: an evaluation that both
+  // recovers the ledger AND observes the pump still energized with no live timer
+  // must de-energize it in this same evaluation, never wait for the next cron.
+  let recoveredRequestId = null;
   try {
     const requestItem = items.getItem(CFG.requestItem);
     const ledger = parseLedger(requestItem);
@@ -458,8 +463,7 @@ function runAutomatic() {
     ) {
       const recovered = recoverInterruptedLedger(ledger, nowText());
       writeLedger(requestItem, recovered, recovered.entries[0].requestId, recovered.entries[0].status);
-      status('ledger_recovered', { requestId: recovered.entries[0].requestId });
-      return; // spend this evaluation on recovery
+      recoveredRequestId = recovered.entries[0].requestId;
     }
   } catch {
     // Ledger unreadable on the automatic path: fall through to the safety chain.
@@ -480,8 +484,15 @@ function runAutomatic() {
       status('cycle_active', { voltage: voltage.toFixed(2), soc: soc.toFixed(1) });
       return;
     }
+    // Orphaned pump with no live timer -> force OFF in this same evaluation,
+    // including the ledger-recovery path (recoveredRequestId set above).
     forceOff('orphan_outlet_off', { voltage: voltage.toFixed(2), soc: soc.toFixed(1) });
     return;
+  }
+
+  if (recoveredRequestId !== null) {
+    status('ledger_recovered', { requestId: recoveredRequestId });
+    return; // spent this evaluation on recovery; never start in the same pass
   }
 
   const elig = socEligible(soc);
@@ -534,6 +545,21 @@ function runManual(triggerEvent) {
     return;
   }
 
+  // Bounded request-staleness gate (mirrors feeder-owner.js, same window values):
+  // a queued request from a reconnecting tablet that is older than the staleness
+  // window — or implausibly far in the future — must not actuate the pump even
+  // with a fresh requestId.
+  if (
+    Number.isFinite(request.requestedAtMs)
+    && (
+      currentMs - request.requestedAtMs > MAX_REQUEST_AGE_MS
+      || request.requestedAtMs - currentMs > MAX_REQUEST_FUTURE_SKEW_MS
+    )
+  ) {
+    safeResult(request.requestId, 'denied', 'request_stale');
+    return;
+  }
+
   let ledger;
   try {
     ledger = parseLedger(requestItem);
@@ -582,8 +608,16 @@ function runManual(triggerEvent) {
   }
 
   const last = lastStartMs();
+  if (!Number.isFinite(last)) {
+    // Virgin system (no LastCycleStart, no LastAutoRun): align with the auto
+    // path — seed the cooldown clock and deny rather than starting immediately.
+    post(CFG.lastCycleStartItem, nowText());
+    releaseBusy(token);
+    safeResult(request.requestId, 'denied', 'cooldown_initializing');
+    return;
+  }
   const elapsed = currentMs - last;
-  if (Number.isFinite(last) && elapsed < CFG.requiredGapMs) {
+  if (elapsed < CFG.requiredGapMs) {
     releaseBusy(token);
     safeResult(request.requestId, 'denied', 'cooldown');
     return;
