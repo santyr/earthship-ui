@@ -496,11 +496,21 @@ async function processStartTicks(pid) {
 }
 
 async function processIdentity(pid) {
-  const startBefore = await processStartTicks(pid);
-  const cwdBefore = await processCwd(pid);
-  const argv = await processArgv(pid);
-  const cwdAfter = await processCwd(pid);
-  const startAfter = await processStartTicks(pid);
+  let startBefore; let cwdBefore; let argv; let cwdAfter; let startAfter;
+  try {
+    startBefore = await processStartTicks(pid);
+    cwdBefore = await processCwd(pid);
+    argv = await processArgv(pid);
+    cwdAfter = await processCwd(pid);
+    startAfter = await processStartTicks(pid);
+  } catch (error) {
+    // A process that exits mid-scan is not an ingress path; skip it rather
+    // than failing the whole quiescence check.
+    if (['ESRCH', 'ENOENT', 'EACCES'].includes(error?.code)) {
+      return { pid, startTicks: null, commandHash: null, isKnownFeederCaller: false, exemptReason: null };
+    }
+    throw error;
+  }
   const stable = startBefore === startAfter && cwdBefore === cwdAfter;
   const cwd = stable ? cwdAfter : null;
   return {
@@ -607,6 +617,10 @@ export function classifyIngressObservation({ units, sockets, processes }) {
       addUnknown(null, `ownerless OpenHAB connection on ${OPENHAB_PORT}`);
       continue;
     }
+    // The transaction CLI itself holds a monitored SSE connection to openHAB
+    // for the duration of every mutation command — that connection is part of
+    // the transaction, not an ingress path.
+    if (pid === process.pid) continue;
     if (knownPids.has(pid)) continue;
     const identity = identities.get(pid);
     if (

@@ -142,7 +142,8 @@ describe('buildSubsetApplyPlan — night-load (create + retirement)', () => {
   it('creates (not replaces) the new owner rule and does not pre-disable it', () => {
     expect(plan.some((op) => op.kind === 'disable-target')).toBe(false);
     const last = plan.at(-1);
-    expect(last).toMatchObject({ method: 'PUT', path: '/rest/rules/hex_night_load_override', kind: 'rule-create' });
+    expect(last).toMatchObject({ method: 'POST', path: '/rest/rules', kind: 'rule-create' });
+    expect(last.body.uid).toBe('hex_night_load_override');
   });
 
   it('leaves schedules and coupling rules entirely out of the plan', () => {

@@ -453,3 +453,19 @@ describe('feeder ingress transaction', () => {
     }, 'restored')).toThrow(/phase/i);
   });
 });
+
+describe('transaction self-connection exemption', () => {
+  it('ignores the CLI process own OpenHAB monitor connection', async () => {
+    const { classifyIngressObservation } = await import('../../scripts/feeder-ingress.mjs');
+    const observed = classifyIngressObservation({
+      units: [],
+      sockets: {
+        listeners: [],
+        connections: [{ pid: process.pid, remotePort: 8080 }],
+      },
+      processes: [],
+    });
+    expect(observed.unknownProcesses).toEqual([]);
+    expect(observed.exemptProcesses).toEqual([]);
+  });
+});

@@ -227,6 +227,9 @@ export function buildFeederRuleDto(manifest, ruleSource, originalRule = {}) {
     triggers: clone(feeder.rule.triggers),
     conditions: clone(originalRule.conditions ?? []),
     actions: [{
+      // openHAB GET always renders `inputs: {}` on actions; include it so the
+      // built DTO compares canonically equal to the applied rule.
+      inputs: {},
       id: feeder.rule.action.id,
       type: feeder.rule.action.type,
       configuration: {
@@ -360,6 +363,9 @@ export function buildSubsetRuleDto({ subset, subsetName, source, originalRule = 
     triggers: clone(subset.rule.triggers),
     conditions: clone(originalRule.conditions ?? []),
     actions: [{
+      // Same canonical-compare contract as buildFeederRuleDto: openHAB GET
+      // renders `inputs: {}` on every action.
+      inputs: {},
       id: subset.rule.action.id,
       type: subset.rule.action.type,
       configuration: {
@@ -434,10 +440,12 @@ export function buildSubsetApplyPlan({
     });
   }
 
-  // (b)/(c) Replace or create the owner rule.
+  // (b)/(c) Replace or create the owner rule. openHAB creates rules with
+  // POST /rest/rules (PUT on a missing UID is 404, learned live 2026-07-19);
+  // replace-in-place stays a PUT on the existing UID.
   operations.push({
-    method: 'PUT',
-    path: `/rest/rules/${ruleUid}`,
+    method: isNewRule ? 'POST' : 'PUT',
+    path: isNewRule ? '/rest/rules' : `/rest/rules/${ruleUid}`,
     body: buildSubsetRuleDto({
       subset, subsetName, source, originalRule: original.rule ?? {},
     }),
@@ -761,13 +769,15 @@ async function liveFeederState(request) {
     FEEDER_ACTUATOR_ITEM,
     FEEDER_COUNTER_ITEM,
   ];
-  const [root, itemDtos, requestMetadata, expireMetadata, links, jdbc, history, rule] = await Promise.all([
+  const [root, itemDtos, requestItemMeta, actuatorItemMeta, links, jdbc, history, rule] = await Promise.all([
     request('GET', '/rest/'),
     Promise.all(itemNames.map((name) => request('GET', `/rest/items/${name}`, {
       allowMissing: [FEEDER_REQUEST_ITEM, FEEDER_RESULT_ITEM].includes(name),
     }))),
-    request('GET', `/rest/items/${FEEDER_REQUEST_ITEM}/metadata/autoupdate`, { allowMissing: true }),
-    request('GET', `/rest/items/${FEEDER_ACTUATOR_ITEM}/metadata/expire`),
+    // openHAB 5.2 has no GET on /metadata/{namespace} (405) — read namespaces
+    // through the item DTO instead.
+    request('GET', `/rest/items/${FEEDER_REQUEST_ITEM}?metadata=autoupdate`, { allowMissing: true }),
+    request('GET', `/rest/items/${FEEDER_ACTUATOR_ITEM}?metadata=expire`),
     request('GET', '/rest/links'),
     request('GET', '/rest/persistence/jdbc'),
     request(
@@ -779,12 +789,17 @@ async function liveFeederState(request) {
   ]);
   const itemsByName = Object.fromEntries(itemNames.map((name, index) => [name, itemDtos[index]]));
   const ruleStatus = clone(rule.status ?? { status: 'UNKNOWN', statusDetail: 'NONE' });
+  const namespaceOf = (dto, namespace) => {
+    const entry = dto?.metadata?.[namespace];
+    if (!entry) return null;
+    return { value: entry.value, config: clone(entry.config ?? {}) };
+  };
   return {
     runtimeInfo: clone(root.runtimeInfo),
     items: itemsByName,
     metadata: {
-      [FEEDER_REQUEST_ITEM]: { autoupdate: requestMetadata },
-      [FEEDER_ACTUATOR_ITEM]: { expire: expireMetadata },
+      [FEEDER_REQUEST_ITEM]: { autoupdate: namespaceOf(requestItemMeta, 'autoupdate') },
+      [FEEDER_ACTUATOR_ITEM]: { expire: namespaceOf(actuatorItemMeta, 'expire') },
     },
     links: clone(links.filter(({ itemName }) => [
       FEEDER_REQUEST_ITEM,
@@ -998,7 +1013,22 @@ async function executeOperations(
 }
 
 function stableLive(value) {
-  return canonicalValue(value);
+  // Compare only intentionally-managed fields: a live system continuously
+  // refreshes item state timestamps (lastStateUpdate/lastStateChange), so a
+  // raw deep-compare of GET DTOs false-drifts on every binding poll.
+  return canonicalValue({
+    runtimeInfo: value.runtimeInfo,
+    items: Object.fromEntries(Object.entries(value.items ?? {}).map(([name, dto]) => [
+      name,
+      dto ? { ...itemPutDto(dto), state: dto.state } : null,
+    ])),
+    metadata: value.metadata,
+    links: value.links,
+    persistenceCoverage: value.persistenceCoverage,
+    requestHistoryCount: value.requestHistoryCount,
+    rule: value.rule,
+    ruleEnabled: value.ruleEnabled,
+  });
 }
 
 async function waitForDisabledSafety(request, counterState) {
