@@ -92,7 +92,7 @@ describe('canonical UI audit matrix', () => {
       'DEPLOY-USER-SERVICE',
       'SECURITY-TOKEN-ROTATION',
       'DEVICE-M9-SIGNOFF',
-      'FUTURE-FORECAST-MODAL',
+      'WEATHER-DETAIL-MODAL',
     ])));
   });
 });
