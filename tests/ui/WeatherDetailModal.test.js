@@ -89,6 +89,7 @@ describe('WeatherDetailModal', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     closeWeatherDetail();
     currentRoute.set('home');
     items.set({});
@@ -98,6 +99,11 @@ describe('WeatherDetailModal', () => {
   });
 
   it('renders a complete ten-hour icon/value strip and SVG chart', async () => {
+    // The fixture's 2026-07-19 hours are "Tomorrow" relative to a pinned
+    // 07-18 clock; unpinned, these tests fail whenever the wall-clock date
+    // catches up to the fixture. shouldAdvanceTime keeps waitFor polling.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
     addOpener();
     render(WeatherDetailModal);
     await openTomorrow();
@@ -114,6 +120,8 @@ describe('WeatherDetailModal', () => {
   });
 
   it('announces stale and partial forecast coverage', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
     items.set({ Forecast_10Day_JSON: payload({ count: 7, stale: true }) });
     addOpener();
     render(WeatherDetailModal);
