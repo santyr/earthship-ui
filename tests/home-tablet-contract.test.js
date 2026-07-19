@@ -14,6 +14,14 @@ const statTile = read('src/lib/ui/StatTile.svelte');
 const tile = read('src/lib/ui/Tile.svelte');
 
 describe('Home tablet presentation contract', () => {
+  it('uses the shared additive ten-day forecast controls', () => {
+    expect(home).toContain("import DailyForecast from '../lib/ui/DailyForecast.svelte'");
+    expect(home).toContain('Forecast_10Day_JSON');
+    expect(home).toContain('<DailyForecast');
+    expect(home).toContain('variant="home"');
+    expect(home).not.toMatch(/forecastDaily\.slice\(0,\s*7\)/);
+  });
+
   it('uses the header ticker slot for a bounded accessible alert summary', () => {
     expect(header).not.toMatch(/BtcTicker|BTC_USD|Bitcoin/i);
     expect(header).toMatch(/<HeaderAlerts\s*\/>/);

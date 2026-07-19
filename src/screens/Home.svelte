@@ -13,6 +13,7 @@
   import GoatFeedingsCard from '../lib/ui/GoatFeedingsCard.svelte';
   import SeasonCountdown from '../lib/ui/SeasonCountdown.svelte';
   import OhIcon from '../lib/ui/OhIcon.svelte';
+  import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import {
     adaptCurrentAqi,
@@ -39,6 +40,11 @@
   } from '../lib/ui/homeCardState.js';
   import { items, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
+  import { openWeatherDetail } from '../lib/weather/detailStore.js';
+  import {
+    parseForecast10Day,
+    parseLegacyDailyForecast,
+  } from '../lib/weather/forecastDetail.js';
 
   // ---- History fetch helper for hero sparklines ----------------------------
   // getClientOnce() can briefly be null right at boot (initOpenhab() in
@@ -203,41 +209,6 @@
     return `${h}h ${m}m`;
   }
 
-  function wmoEmoji(code) {
-    const c = Number(code);
-    if (Number.isNaN(c)) return '—';
-    if (c === 0) return '☀️';
-    if (c === 1 || c === 2) return '⛅';
-    if (c === 3) return '☁️';
-    if (c === 45 || c === 48) return '🌫️';
-    if ([51, 53, 55, 56, 57].includes(c)) return '🌦️';
-    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(c)) return '🌧️';
-    if ([71, 73, 75, 77, 85, 86].includes(c)) return '🌨️';
-    if ([95, 96, 99].includes(c)) return '⛈️';
-    return '—';
-  }
-
-  // Forecast_Daily_JSON already carries the correct label per entry (Today,
-  // Sat, Sun, Mon, ...) in the `d` field — use it directly instead of
-  // synthesizing "D3"/"D4" placeholders. Index 1 is shown as "Tomorrow" for
-  // readability; everything else (including index 0's "Today") comes
-  // straight from the feed.
-  function dayLabel(i, dStr) {
-    if (i === 1) return 'Tomorrow';
-    if (!dStr || dStr === 'NULL' || dStr === 'UNDEF') return i === 0 ? 'Today' : `D${i + 1}`;
-    return String(dStr);
-  }
-
-  function roundOrDash(v) {
-    const n = num(v);
-    return n === null ? '—' : Math.round(n);
-  }
-
-  function pvText(v) {
-    const n = num(v);
-    return n === null ? '—' : n.toFixed(1);
-  }
-
   function onKeyActivate(e, fn) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -350,16 +321,15 @@
     ];
   });
 
-  const forecastDaily = $derived.by(() => {
-    try {
-      const raw = $items.Forecast_Daily_JSON;
-      if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-  });
+  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON));
+  const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
+  const forecastDays = $derived(
+    forecastDetail.days.length > 0 ? forecastDetail.days : legacyForecast
+  );
+
+  function selectForecastDay(day) {
+    openWeatherDetail({ date: day.date, label: day.label });
+  }
 
   // ---- Bitcoin card (mirrors Indoor's slot under Battery) ------------------
   const BTC_ACCENT = '#f7931a';
@@ -730,20 +700,7 @@
 
   <div class="cell forecast-cell">
     <Tile label="Forecast" accent={colors.forecast} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
-      <div class="forecast-body">
-        {#if forecastDaily.length === 0}
-          <div class="fc-empty">—</div>
-        {:else}
-          {#each forecastDaily.slice(0, 7) as d, i (i)}
-            <div class="fc-day" class:fc-emph={i < 2}>
-              <div class="fc-label">{dayLabel(i, d.d)}</div>
-              <div class="fc-icon">{wmoEmoji(d.w)}</div>
-              <div class="fc-hilo">{roundOrDash(d.hi)}&deg;/{roundOrDash(d.lo)}&deg;</div>
-              <div class="fc-pv">PV ~{pvText(d.pv)} kWh</div>
-            </div>
-          {/each}
-        {/if}
-      </div>
+      <DailyForecast days={forecastDays} variant="home" onselect={selectForecastDay} />
     </Tile>
   </div>
 </div>
@@ -1315,54 +1272,6 @@
   }
   .zone-delta.down {
     color: #3b82f6;
-  }
-
-  /* ---- Forecast strip ---- */
-  .forecast-body {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.5rem;
-    height: 100%;
-    align-items: center;
-  }
-  .fc-empty {
-    grid-column: span 7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #8b93a1;
-  }
-  .fc-day {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.15rem;
-  }
-  .fc-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-variant-caps: small-caps;
-    color: #8b93a1;
-  }
-  .fc-icon {
-    font-size: 1.2rem;
-    line-height: 1;
-  }
-  .fc-hilo {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #e6edf3;
-    font-variant-numeric: tabular-nums;
-  }
-  .fc-emph .fc-hilo {
-    font-size: 1rem;
-    color: #c4b5fd;
-  }
-  .fc-pv {
-    font-size: 0.65rem;
-    color: #6b7280;
   }
 
   @media (prefers-reduced-motion: reduce) {

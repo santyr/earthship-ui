@@ -23,6 +23,29 @@ const BASE_ITEMS = {
   Forecast_Daily_JSON: '[]',
 };
 
+function forecastDetail() {
+  return JSON.stringify({
+    version: 1,
+    generatedAt: '2026-07-18T12:00:00-06:00',
+    timezone: 'America/Denver',
+    days: Array.from({ length: 10 }, (_, index) => {
+      const date = `2026-07-${String(18 + index).padStart(2, '0')}`;
+      return {
+        date,
+        label: index === 0 ? 'Today' : `Day ${index + 1}`,
+        summary: {
+          highF: 80 + index,
+          lowF: 50 + index,
+          precipPct: index * 5,
+          weatherCode: 1,
+          pvKwh: 6.4,
+        },
+        hours: [],
+      };
+    }),
+  });
+}
+
 describe('Weather current AQI', () => {
   beforeEach(() => {
     items.set({ ...BASE_ITEMS });
@@ -56,5 +79,17 @@ describe('Weather current AQI', () => {
     expect(screen.getByText('501')).toBeTruthy();
     expect(body?.getAttribute('data-aqi-status')).toBe('critical');
     expect(body?.textContent).not.toContain('Good');
+  });
+
+  it('renders all ten additive forecast days with the shared weather layout', () => {
+    items.set({
+      ...BASE_ITEMS,
+      Forecast_10Day_JSON: forecastDetail(),
+    });
+
+    const { container } = render(Weather);
+
+    expect(container.querySelector('[data-forecast-variant="weather"]')).toBeTruthy();
+    expect(container.querySelectorAll('[data-forecast-day]')).toHaveLength(10);
   });
 });

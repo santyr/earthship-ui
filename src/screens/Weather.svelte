@@ -1,5 +1,5 @@
 <script>
-  // Task 5.1 — Weather console: current conditions, 14h hourly strip, 7-day
+  // Task 5.1 — Weather console: current conditions, 14h hourly strip, 10-day
   // forecast, and measured wind/rain/pressure tiles. Mirrors Home's
   // dark-console aesthetic (Tile/StatTile chrome, tokens.colors,
   // click-to-chart via openChart) but is forecast/observation-focused
@@ -8,10 +8,15 @@
   import StatTile from '../lib/ui/StatTile.svelte';
   import OhIcon from '../lib/ui/OhIcon.svelte';
   import HourlyStrip from '../lib/ui/HourlyStrip.svelte';
+  import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
-  import { wmoIcon } from '../lib/ui/wmo.js';
+  import { openWeatherDetail } from '../lib/weather/detailStore.js';
+  import {
+    parseForecast10Day,
+    parseLegacyDailyForecast,
+  } from '../lib/weather/forecastDetail.js';
 
   function hasItem(name) {
     return Object.prototype.hasOwnProperty.call($items, name);
@@ -22,24 +27,6 @@
       e.preventDefault();
       fn();
     }
-  }
-
-  function roundOrDash(v) {
-    const n = num(v);
-    return n === null ? '—' : Math.round(n);
-  }
-
-  function pvText(v) {
-    const n = num(v);
-    return n === null ? '—' : n.toFixed(1);
-  }
-
-  // Forecast_Daily_JSON already carries the correct label per entry (Today,
-  // Sat, Sun, ...) in the `d` field — used directly, same as Home.
-  function dayLabel(i, dStr) {
-    if (i === 1) return 'Tomorrow';
-    if (!dStr || dStr === 'NULL' || dStr === 'UNDEF') return i === 0 ? 'Today' : `D${i + 1}`;
-    return String(dStr);
   }
 
   // ---- AQI (EPA bands) -------------------------------------------------
@@ -80,17 +67,16 @@
     }
   });
 
-  // ---- 7-day --------------------------------------------------------------
-  const forecastDaily = $derived.by(() => {
-    try {
-      const raw = $items.Forecast_Daily_JSON;
-      if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr.slice(0, 7) : [];
-    } catch {
-      return [];
-    }
-  });
+  // ---- 10-day controls with null-safe legacy fallback ---------------------
+  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON));
+  const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
+  const forecastDays = $derived(
+    forecastDetail.days.length > 0 ? forecastDetail.days : legacyForecast
+  );
+
+  function selectForecastDay(day) {
+    openWeatherDetail({ date: day.date, label: day.label });
+  }
 
   // ---- Rain footer (mirrors Home's Rain tile) ------------------------------
   const rainFooter = $derived.by(() => {
@@ -187,22 +173,8 @@
   </div>
 
   <div class="cell daily-cell">
-    <Tile label="7-Day Forecast" accent={colors.forecast}>
-      <div class="daily-body">
-        {#if forecastDaily.length === 0}
-          <div class="daily-empty">—</div>
-        {:else}
-          {#each forecastDaily as d, i (i)}
-            <div class="daily-row" class:daily-emph={i < 2}>
-              <div class="daily-label">{dayLabel(i, d.d)}</div>
-              <div class="daily-icon"><OhIcon icon={wmoIcon(d.w)} size="1.25rem" /></div>
-              <div class="daily-hilo">{roundOrDash(d.hi)}&deg; / {roundOrDash(d.lo)}&deg;</div>
-              <div class="daily-precip">{roundOrDash(d.p)}%</div>
-              <div class="daily-pv">PV ~{pvText(d.pv)} kWh</div>
-            </div>
-          {/each}
-        {/if}
-      </div>
+    <Tile label="10-Day Forecast" accent={colors.forecast}>
+      <DailyForecast days={forecastDays} variant="weather" onselect={selectForecastDay} />
     </Tile>
   </div>
 
@@ -393,58 +365,4 @@
     overflow: hidden;
   }
 
-  /* ---- 7-day forecast ---- */
-  .daily-body {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    justify-content: center;
-    gap: 0.2rem;
-  }
-  .daily-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #8b93a1;
-  }
-  .daily-row {
-    display: grid;
-    grid-template-columns: 4.5rem 2.2rem 6rem 3rem 1fr;
-    align-items: center;
-    gap: 0.6rem;
-    font-size: 0.85rem;
-    color: #e6edf3;
-    padding: 0.05rem 0;
-  }
-  .daily-emph {
-    color: #c4b5fd;
-    font-weight: 600;
-  }
-  .daily-label {
-    color: #8b93a1;
-    font-variant-caps: small-caps;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    font-size: 0.72rem;
-  }
-  .daily-emph .daily-label {
-    color: #c4b5fd;
-  }
-  .daily-icon {
-    display: flex;
-    align-items: center;
-  }
-  .daily-hilo {
-    font-variant-numeric: tabular-nums;
-  }
-  .daily-precip {
-    color: #3b82f6;
-    font-variant-numeric: tabular-nums;
-  }
-  .daily-pv {
-    color: #6b7280;
-    font-size: 0.72rem;
-    text-align: right;
-  }
 </style>
