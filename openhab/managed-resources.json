@@ -69,6 +69,115 @@
         "Goat_Plugs_Outlet2_Switch",
         "GoatFeedings"
       ]
+    },
+    "greywater": {
+      "capability": "greywater-request-v1",
+      "items": [
+        {
+          "name": "SouthOutlet_ManualRequest",
+          "type": "String",
+          "label": "South outlet manual request",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "SouthOutlet_ManualResult",
+          "type": "String",
+          "label": "South outlet manual result",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "SouthOutlet_LastCycleStart",
+          "type": "DateTime",
+          "label": "South outlet last cycle start",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        },
+        {
+          "name": "SouthOutlet_LastCycle",
+          "type": "String",
+          "label": "South outlet last completed cycle",
+          "category": "",
+          "tags": [],
+          "groupNames": []
+        }
+      ],
+      "metadata": [
+        {
+          "item": "SouthOutlet_ManualRequest",
+          "namespace": "autoupdate",
+          "value": "false",
+          "config": {}
+        }
+      ],
+      "persistence": {
+        "serviceId": "jdbc",
+        "strategy": "everyChange",
+        "restoreOnStartup": true,
+        "items": [
+          "SouthOutlet_ManualRequest",
+          "SouthOutlet_ManualResult",
+          "SouthOutlet_LastCycleStart",
+          "SouthOutlet_LastCycle"
+        ]
+      },
+      "rule": {
+        "uid": "hex_southoutlet_cycle",
+        "name": "SouthOutlet SOC-Gated Cycle",
+        "source": "openhab/rules/southoutlet-cycle.js",
+        "triggers": [
+          {
+            "id": "1",
+            "type": "core.ItemStateChangeTrigger",
+            "configuration": {
+              "itemName": "DCData_Voltage"
+            }
+          },
+          {
+            "id": "2",
+            "type": "core.ItemStateChangeTrigger",
+            "configuration": {
+              "itemName": "BMS_SOC"
+            }
+          },
+          {
+            "id": "cron",
+            "type": "timer.GenericCronTrigger",
+            "configuration": {
+              "cronExpression": "0 */5 * * * ?"
+            }
+          },
+          {
+            "id": "earthship-southoutlet-manual-request",
+            "type": "core.ItemCommandTrigger",
+            "configuration": {
+              "itemName": "SouthOutlet_ManualRequest"
+            }
+          }
+        ],
+        "action": {
+          "id": "earthship-southoutlet-owner",
+          "type": "script.ScriptAction",
+          "configuration": {
+            "type": "application/javascript;version=ECMAScript-2021"
+          }
+        }
+      },
+      "protectedDependencies": [
+        "SouthOutlet_Outlet2_Switch",
+        "SouthOutlet_LastAutoRun",
+        "SouthOutlet_AutoStatus",
+        "SouthOutlet_LowSocCutoff",
+        "BMS_SOC",
+        "BMS_Comms_Status",
+        "DCData_Voltage",
+        "SkyCondition",
+        "Sun_Position_Elevation"
+      ]
     }
   }
 }
