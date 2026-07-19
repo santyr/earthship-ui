@@ -393,7 +393,7 @@ git commit -m "docs: add console screenshots and restart guide"
 Expected:
 
 - both identities are `santyr <shane@mr-technical.com>`;
-- the staged-name list contains exactly eight intended files;
+- the staged-name list contains exactly seven intended files;
 - `test-results/` is not staged; and
 - the commit succeeds.
 
