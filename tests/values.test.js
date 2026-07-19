@@ -40,39 +40,42 @@ describe('fmt', () => {
   });
 });
 
-describe('socBands - interim mode (bands [60,40,12])', () => {
+describe('socBands - interim mode (bands [60,40,12], explicit full=false)', () => {
+  it('returns red at or below 12', () => {
+    expect(socBands(12, false)).toBe('#ef4444');
+  });
+  it('returns orange above 12 up to 40', () => {
+    expect(socBands(25, false)).toBe('#f97316');
+  });
+  it('returns yellow above 40 up to 60', () => {
+    expect(socBands(45, false)).toBe('#eab308');
+  });
+  it('returns green above 60', () => {
+    expect(socBands(70, false)).toBe('#22c55e');
+  });
+  it('returns gray for null', () => {
+    expect(socBands(null, false)).toBe('#6b7280');
+  });
+});
+
+describe('socBands - full mode (bands [50,30,12], the default since 400Ah bank)', () => {
   it('returns red at or below 12', () => {
     expect(socBands(12)).toBe('#ef4444');
   });
-  it('returns orange above 12 up to 40', () => {
-    expect(socBands(25)).toBe('#f97316');
+  it('returns orange above 12 up to 30', () => {
+    expect(socBands(20)).toBe('#f97316');
   });
-  it('returns yellow above 40 up to 60', () => {
+  it('returns yellow above 30 up to 50', () => {
     expect(socBands(45)).toBe('#eab308');
   });
-  it('returns green above 60', () => {
+  it('returns green above 50', () => {
     expect(socBands(70)).toBe('#22c55e');
   });
   it('returns gray for null', () => {
     expect(socBands(null)).toBe('#6b7280');
   });
-});
-
-describe('socBands - full mode (bands [50,30,12])', () => {
-  it('returns red at or below 12', () => {
-    expect(socBands(12, true)).toBe('#ef4444');
-  });
-  it('returns orange above 12 up to 30', () => {
-    expect(socBands(20, true)).toBe('#f97316');
-  });
-  it('returns yellow above 30 up to 50', () => {
-    expect(socBands(45, true)).toBe('#eab308');
-  });
-  it('returns green above 50', () => {
-    expect(socBands(70, true)).toBe('#22c55e');
-  });
-  it('returns gray for null', () => {
-    expect(socBands(null, true)).toBe('#6b7280');
+  it('matches explicit full=true', () => {
+    expect(socBands(45)).toBe(socBands(45, true));
   });
 });
 

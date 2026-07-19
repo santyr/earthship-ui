@@ -11,7 +11,9 @@ export function fmt(state, unit = '', digits = 0) {
   return n === null ? '—' : n.toFixed(digits) + unit;
 }
 
-export function socBands(soc, full = false) {
+// Default = full-bank thresholds (4P 400 Ah since 2026-07-18); pass
+// full=false only for the retired interim single-module bands.
+export function socBands(soc, full = true) {
   const n = num(soc);
   if (n === null) return '#6b7280';
   const [g, y, o] = full ? [50, 30, 12] : [60, 40, 12];
