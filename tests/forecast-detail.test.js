@@ -34,6 +34,13 @@ function day(date, label, start = 0, end = 23) {
   };
 }
 
+function dayWithRain(date, label, precipSumIn, hourPrecipIn) {
+  const base = day(date, label, 0, 0);
+  base.summary.precipSumIn = precipSumIn;
+  base.hours[0].precipIn = hourPrecipIn;
+  return base;
+}
+
 function payload(days, generatedAt = '2026-07-18T12:00:00-06:00') {
   return JSON.stringify({
     version: 1,
@@ -163,5 +170,38 @@ describe('ten-day forecast contract', () => {
         pvKwh: 6.4,
       }),
     })]);
+  });
+
+  it('parses precipSumIn and precipIn rain amounts when present', () => {
+    const result = parseForecast10Day(payload([
+      dayWithRain('2026-07-18', 'Today', 0.24, 0.05),
+    ]), { nowMs: Date.parse('2026-07-18T12:00:00-06:00') });
+
+    expect(result.days[0].summary.precipSumIn).toBe(0.24);
+    expect(result.days[0].hours[0].precipIn).toBe(0.05);
+  });
+
+  it('parses rain amounts as null without throwing when absent from older payloads', () => {
+    const result = parseForecast10Day(payload([
+      day('2026-07-18', 'Today', 0, 0),
+    ]), { nowMs: Date.parse('2026-07-18T12:00:00-06:00') });
+
+    expect(result.status).toBe('ready');
+    expect(result.days[0].summary.precipSumIn).toBeNull();
+    expect(result.days[0].hours[0].precipIn).toBeNull();
+  });
+
+  it('maps legacy daily "a" to precipSumIn, defaulting to null when absent', () => {
+    expect(parseLegacyDailyForecast(JSON.stringify([
+      { d: 'Today', hi: 80, lo: 50, p: 20, w: 1, pv: 6.4, a: 0.31 },
+      { d: 'Tomorrow', hi: 80, lo: 50, p: 20, w: 1, pv: 6.4 },
+    ]))).toEqual([
+      expect.objectContaining({
+        summary: expect.objectContaining({ precipSumIn: 0.31 }),
+      }),
+      expect.objectContaining({
+        summary: expect.objectContaining({ precipSumIn: null }),
+      }),
+    ]);
   });
 });

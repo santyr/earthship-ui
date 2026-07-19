@@ -31,7 +31,7 @@ import {
 } from '../../src/lib/weather/detailStore.js';
 import { currentRoute } from '../../src/routes.js';
 
-function payload({ count = 10, stale = false } = {}) {
+function payload({ count = 10, stale = false, precipSumIn, hourPrecipIn } = {}) {
   return JSON.stringify({
     version: 1,
     generatedAt: new Date(Date.now() - (stale ? 5 * 60 * 60 * 1_000 : 0)).toISOString(),
@@ -43,6 +43,7 @@ function payload({ count = 10, stale = false } = {}) {
         highF: 78,
         lowF: 52,
         precipPct: 20,
+        ...(precipSumIn !== undefined ? { precipSumIn } : {}),
         weatherCode: 1,
         pvKwh: 6.4,
       },
@@ -50,6 +51,7 @@ function payload({ count = 10, stale = false } = {}) {
         at: `2026-07-19T${String(index + 8).padStart(2, '0')}:00:00-06:00`,
         tempF: 60 + index,
         precipPct: index * 5,
+        ...(hourPrecipIn !== undefined ? { precipIn: hourPrecipIn(index) } : {}),
         radiationWm2: index * 80,
         windMph: 5 + index,
         weatherCode: 1,
@@ -187,5 +189,53 @@ describe('WeatherDetailModal', () => {
     view.unmount();
     expect(document.body.style.overflow).toBe('scroll');
     expect(mocks.chart.dispose).toHaveBeenCalled();
+  });
+
+  // These two use fake timers pinned well before the fixture's forecast date
+  // so selectForecastWindow always resolves 'daytime' mode (all 10 hours from
+  // index 0) regardless of the real wall-clock date the suite runs on — the
+  // same real-time coupling that makes the two pre-existing tests above
+  // flaky depending on time of day/date.
+  it('shows the day summary rain amount and per-hour amounts when positive', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    try {
+      items.set({
+        Forecast_10Day_JSON: payload({
+          precipSumIn: 0.24,
+          hourPrecipIn: (index) => (index === 0 ? 0.05 : 0),
+        }),
+      });
+      addOpener();
+      const { container } = render(WeatherDetailModal);
+      await openTomorrow();
+
+      const summaryAmount = screen.getByTestId('day-rain-amount');
+      expect(summaryAmount.textContent).toBe('0.24″');
+      expect(summaryAmount.getAttribute('style')).toContain('rgb(59, 130, 246)');
+
+      const hourAmounts = container.querySelectorAll('[data-testid="hour-rain-amount"]');
+      expect(hourAmounts).toHaveLength(1);
+      expect(hourAmounts[0].textContent).toBe('0.05″');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows no rain amounts when precip amounts are zero, null, or missing', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    try {
+      items.set({ Forecast_10Day_JSON: payload() });
+      addOpener();
+      const { container } = render(WeatherDetailModal);
+      await openTomorrow();
+
+      expect(container.querySelectorAll('[data-testid="day-rain-amount"]')).toHaveLength(0);
+      expect(container.querySelectorAll('[data-testid="hour-rain-amount"]')).toHaveLength(0);
+      expect(container.textContent).not.toContain('″');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

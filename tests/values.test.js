@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { num, fmt, socBands, runtimeText } from '../src/lib/openhab/values.js';
+import { num, fmt, socBands, runtimeText, rainAmountText } from '../src/lib/openhab/values.js';
 
 describe('num', () => {
   it('strips units and parses a numeric state', () => {
@@ -100,5 +100,24 @@ describe('runtimeText', () => {
   });
   it('returns em-dash for null', () => {
     expect(runtimeText(null)).toBe('—');
+  });
+});
+
+describe('rainAmountText', () => {
+  it('formats a positive amount to two decimals with a typographic double-prime', () => {
+    expect(rainAmountText(0.2)).toBe('0.20″');
+    expect(rainAmountText(1.236)).toBe('1.24″');
+  });
+  it('returns null for zero', () => {
+    expect(rainAmountText(0)).toBeNull();
+  });
+  it('returns null for negative values', () => {
+    expect(rainAmountText(-0.1)).toBeNull();
+  });
+  it('returns null for null', () => {
+    expect(rainAmountText(null)).toBeNull();
+  });
+  it('returns null for undefined', () => {
+    expect(rainAmountText(undefined)).toBeNull();
   });
 });

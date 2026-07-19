@@ -11,6 +11,14 @@ export function fmt(state, unit = '', digits = 0) {
   return n === null ? '—' : n.toFixed(digits) + unit;
 }
 
+// Forecast rain amounts (inches) render only when strictly positive — dry
+// days/hours stay clean with no "0.00″" clutter. Two decimals + typographic
+// double-prime, e.g. "0.24″".
+export function rainAmountText(value) {
+  const n = num(value);
+  return n !== null && n > 0 ? `${n.toFixed(2)}″` : null;
+}
+
 // Default = full-bank thresholds (4P 400 Ah since 2026-07-18); pass
 // full=false only for the retired interim single-module bands.
 export function socBands(soc, full = true) {

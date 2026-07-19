@@ -12,8 +12,10 @@
     closeWeatherDetail,
     weatherDetailStore,
   } from '../weather/detailStore.js';
+  import { rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
   import { observeElementSize } from './observeElementSize.js';
+  import { colors } from './tokens.js';
   import { wmoIcon, wmoLabel, wmoColor } from './wmo.js';
 
   const TITLE_ID = 'weather-detail-modal-title';
@@ -249,7 +251,12 @@
               />
               <span>{wmoLabel(selectedDay.summary.weatherCode)}</span>
               <span>{metric(selectedDay.summary.highF, '°')} / {metric(selectedDay.summary.lowF, '°')}</span>
-              <span>{metric(selectedDay.summary.precipPct, '%')} precip</span>
+              <span>
+                {metric(selectedDay.summary.precipPct, '%')} precip
+                {#if rainAmountText(selectedDay.summary.precipSumIn)}
+                  <span data-testid="day-rain-amount" style="color: {colors.rain}">{rainAmountText(selectedDay.summary.precipSumIn)}</span>
+                {/if}
+              </span>
               <span>PV {metric(selectedDay.summary.pvKwh, ' kWh')}</span>
             </p>
           {/if}
@@ -291,6 +298,9 @@
                 />
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
                 <span class="hour-precip">{metric(hour.precipPct, '%')}</span>
+                {#if rainAmountText(hour.precipIn)}
+                  <span class="hour-rain" data-testid="hour-rain-amount" style="color: {colors.rain}">{rainAmountText(hour.precipIn)}</span>
+                {/if}
                 <span class="hour-radiation">{metric(hour.radiationWm2, ' W/m²')}</span>
                 <span class="hour-wind">{metric(hour.windMph, ' mph')}</span>
               </div>
@@ -434,6 +444,7 @@
 
   .hour-temp { color: #f59e0b; }
   .hour-precip { color: #38bdf8; }
+  .hour-rain { font-size: 0.6rem; }
   .hour-radiation { color: #fbbf24; }
   .hour-wind { color: #22d3ee; }
 

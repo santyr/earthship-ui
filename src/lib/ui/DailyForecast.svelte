@@ -1,5 +1,7 @@
 <script>
   import OhIcon from './OhIcon.svelte';
+  import { colors } from './tokens.js';
+  import { rainAmountText } from '../openhab/values.js';
   import { wmoIcon, wmoLabel, wmoColor } from './wmo.js';
 
   let { days = [], variant = 'home', onselect = () => {} } = $props();
@@ -34,6 +36,9 @@
       </span>
       <span class="day-meta">
         <span>{value(day.summary.precipPct, '%')}</span>
+        {#if rainAmountText(day.summary.precipSumIn)}
+          <span data-testid="day-rain-amount" style="color: {colors.rain}">{rainAmountText(day.summary.precipSumIn)}</span>
+        {/if}
         <span aria-hidden="true"> · </span>
         <span>PV {value(day.summary.pvKwh, ' kWh')}</span>
       </span>

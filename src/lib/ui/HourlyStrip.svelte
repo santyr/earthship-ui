@@ -12,7 +12,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { getEcharts } from '../charts/loadEcharts.js';
   import { echartsTheme, colors } from './tokens.js';
-  import { num } from '../openhab/values.js';
+  import { num, rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
   import { wmoIcon, wmoColor } from './wmo.js';
 
@@ -151,6 +151,9 @@
       {#each hours as row, i (i)}
         <div class="hs-icon-col">
           <OhIcon icon={wmoIcon(row.w)} size="1.1rem" color={wmoColor(row.w) ?? 'currentColor'} />
+          {#if rainAmountText(row.a)}
+            <span class="hs-rain" data-testid="hour-rain-amount" style="color: {colors.rain}">{rainAmountText(row.a)}</span>
+          {/if}
         </div>
       {/each}
     </div>
@@ -180,9 +183,17 @@
   .hs-icon-col {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.05rem;
     color: #c7cfd9;
+  }
+  .hs-rain {
+    font-size: 0.6rem;
+    line-height: 1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .hs-chart {
     flex: 1;

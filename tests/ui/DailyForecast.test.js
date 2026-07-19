@@ -55,4 +55,26 @@ describe('DailyForecast', () => {
       name: /Today.*sunny.*high 80 degrees.*low 50 degrees.*precipitation 0 percent/i,
     })).toBeTruthy();
   });
+
+  it('renders the rain amount when precipSumIn is positive, in the rain color', () => {
+    const wet = [{ ...days[0], summary: { ...days[0].summary, precipSumIn: 0.24 } }];
+    const { container } = render(DailyForecast, { props: { days: wet, variant: 'home' } });
+
+    const amount = screen.getByTestId('day-rain-amount');
+    expect(amount.textContent).toBe('0.24″');
+    expect(amount.getAttribute('style')).toContain('rgb(59, 130, 246)');
+    expect(container.querySelectorAll('[data-testid="day-rain-amount"]')).toHaveLength(1);
+  });
+
+  it('renders no rain amount when precipSumIn is zero, null, or missing', () => {
+    const dry = [
+      { ...days[0], summary: { ...days[0].summary, precipSumIn: 0 } },
+      { ...days[1], summary: { ...days[1].summary, precipSumIn: null } },
+      { ...days[2] },
+    ];
+    const { container } = render(DailyForecast, { props: { days: dry, variant: 'home' } });
+
+    expect(container.querySelectorAll('[data-testid="day-rain-amount"]')).toHaveLength(0);
+    expect(container.textContent).not.toContain('″');
+  });
 });
