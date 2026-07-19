@@ -105,16 +105,39 @@ function nowText() {
   return now().toString();
 }
 
+// UTC instant string (ends in 'Z'); strict-parseable by real Instant.parse().
+// All durable ledger and result timestamps are written in this form so a
+// production readback never re-parses a bracketed ZonedDateTime rendering.
+function nowInstantText() {
+  return now().toInstant().toString();
+}
+
 function nowMillis() {
   return epochMillis(now());
 }
 
+// Real time.ZonedDateTime.now().toString() ends in a bracketed zone id
+// (e.g. ...-06:00[America/Denver]) and openHAB renders DateTime item states
+// with colon-less offsets (e.g. ...-0600); real time.toInstant()/Instant.parse()
+// is strict and accepts only 'Z' instants. Normalize both non-Z forms so any
+// historical, bracketed, or item-state timestamp still parses. Belt-and-braces
+// to the instant-form writes above.
+function normalizeTimestamp(value) {
+  return String(value)
+    .replace(/\[[^\]]+\]$/, '')
+    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+}
+
 function epochMillis(value) {
-  try {
-    return Number(time.toInstant(value).toEpochMilli());
-  } catch {
-    return Number.NaN;
+  if (value && typeof value.toInstant === 'function') {
+    try {
+      return Number(time.toInstant(value).toEpochMilli());
+    } catch {
+      return Number.NaN;
+    }
   }
+  const ms = Date.parse(normalizeTimestamp(value));
+  return Number.isFinite(ms) ? ms : Number.NaN;
 }
 
 function state(name) {
@@ -155,7 +178,7 @@ function postResult(resultItem, payload) {
 function safeResult(resultItem, requestId, status, reason, extra = {}) {
   try {
     postResult(resultItem, {
-      requestId, status, reason, at: nowText(), ...extra,
+      requestId, status, reason, at: nowInstantText(), ...extra,
     });
   } catch {
     // The durable request ledger remains the authoritative receipt.
@@ -394,7 +417,7 @@ function recoverLedgerItem(itemName) {
       cache.shared.get(BUSY_KEY) === null
       && ledger.entries.some((entry) => ['accepted', 'running'].includes(entry.status))
     ) {
-      const recovered = recoverInterruptedLedger(ledger, nowText());
+      const recovered = recoverInterruptedLedger(ledger, nowInstantText());
       writeLedger(requestItem, recovered, recovered.entries[0].requestId, recovered.entries[0].status);
     }
   } catch {
@@ -422,25 +445,25 @@ function scheduleOverrideVerify(request, initialLedger, token) {
         // waits for that side effect exactly as the device goat-cam leg does. The
         // owner still never writes FeederOverride -- it only observes it.
         if (state(FEEDER_OVERRIDE) !== 'ON') throw new Error('coupling_pending');
-        ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowText());
+        ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowInstantText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'completed');
         postResult(OVERRIDE_RESULT, {
-          requestId: request.requestId, command: 'ON', status: 'completed', reason: 'completed', at: nowText(),
+          requestId: request.requestId, command: 'ON', status: 'completed', reason: 'completed', at: nowInstantText(),
         });
       } else {
         // OFF: Shureflo must be provider-confirmed ON before the OverrideSwitch
         // OFF commit. Retain ownership ON until that is proven.
         if (state('ShurefloPump_Power') !== 'ON') throw new Error('provider_mismatch');
-        ledger = updateLedger(ledger, request.requestId, 'running', 'release-ready', nowText());
+        ledger = updateLedger(ledger, request.requestId, 'running', 'release-ready', nowInstantText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'running');
         postResult(OVERRIDE_RESULT, {
-          requestId: request.requestId, command: 'OFF', status: 'running', reason: 'release-ready', at: nowText(),
+          requestId: request.requestId, command: 'OFF', status: 'running', reason: 'release-ready', at: nowInstantText(),
         });
         commitOverrideSwitch('OFF');
-        ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowText());
+        ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowInstantText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'completed');
         postResult(OVERRIDE_RESULT, {
-          requestId: request.requestId, command: 'OFF', status: 'completed', reason: 'completed', at: nowText(),
+          requestId: request.requestId, command: 'OFF', status: 'completed', reason: 'completed', at: nowInstantText(),
         });
       }
     } catch (error) {
@@ -448,7 +471,7 @@ function scheduleOverrideVerify(request, initialLedger, token) {
         ? error.message
         : 'execution_error';
       try {
-        ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowText());
+        ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'failed');
       } catch {
         // The failed result remains the only safe receipt without persistence.
@@ -487,7 +510,7 @@ function handleOverride(triggerEvent, syntheticId) {
     const command = String(triggerEvent.receivedCommand).toUpperCase();
     if (!COMMANDS.has(command)) return; // ignore junk external commands
     request = {
-      requestId: syntheticId, requestedAt: nowText(), requestedAtMs: currentMs, command,
+      requestId: syntheticId, requestedAt: nowInstantText(), requestedAtMs: currentMs, command,
     };
   } else {
     try {
@@ -515,7 +538,7 @@ function handleOverride(triggerEvent, syntheticId) {
     cache.shared.get(BUSY_KEY) === null
     && ledger.entries.some((entry) => ['accepted', 'running'].includes(entry.status))
   ) {
-    ledger = recoverInterruptedLedger(ledger, nowText());
+    ledger = recoverInterruptedLedger(ledger, nowInstantText());
     try {
       writeLedger(requestItem, ledger, ledger.entries[0].requestId, ledger.entries[0].status);
     } catch {
@@ -536,7 +559,7 @@ function handleOverride(triggerEvent, syntheticId) {
     return;
   }
 
-  ledger = acceptedLedger(ledger, request.requestId, nowText());
+  ledger = acceptedLedger(ledger, request.requestId, nowInstantText());
   try {
     writeLedger(requestItem, ledger, request.requestId, 'accepted');
   } catch (error) {
@@ -550,16 +573,16 @@ function handleOverride(triggerEvent, syntheticId) {
 
   try {
     postResult(OVERRIDE_RESULT, {
-      requestId: request.requestId, command: request.command, status: 'accepted', reason: 'accepted', at: nowText(),
+      requestId: request.requestId, command: request.command, status: 'accepted', reason: 'accepted', at: nowInstantText(),
     });
     postResult(OVERRIDE_RESULT, {
-      requestId: request.requestId, command: request.command, status: 'running', reason: 'transitioning', at: nowText(),
+      requestId: request.requestId, command: request.command, status: 'running', reason: 'transitioning', at: nowInstantText(),
     });
     beginOverrideTransition(request, ledger, token);
   } catch (error) {
     const reason = error.message === 'override_commit_failed' ? 'override_commit_failed' : 'execution_error';
     try {
-      ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowText());
+      ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
       writeLedger(requestItem, ledger, request.requestId, 'failed');
     } catch {
       // The failed result remains the only safe receipt without persistence.
@@ -583,18 +606,18 @@ function scheduleDeviceVerify(request, initialLedger, token) {
         const expected = request.command === 'ON' ? 'OFF' : 'ON';
         if (state(FEEDER_OVERRIDE) !== expected) throw new Error('coupling_pending');
       }
-      ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowText());
+      ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowInstantText());
       writeLedger(items.getItem(DEVICE_REQUEST), ledger, request.requestId, 'completed');
       postResult(DEVICE_RESULT, {
         requestId: request.requestId, device: request.device, command: request.command,
-        status: 'completed', reason: 'completed', at: nowText(),
+        status: 'completed', reason: 'completed', at: nowInstantText(),
       });
     } catch (error) {
       const reason = ['provider_mismatch', 'coupling_pending'].includes(error.message)
         ? error.message
         : 'execution_error';
       try {
-        ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowText());
+        ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowInstantText());
         writeLedger(items.getItem(DEVICE_REQUEST), ledger, request.requestId, 'failed');
       } catch {
         // The failed result remains the only safe receipt without persistence.
@@ -640,7 +663,7 @@ function handleDevice(triggerEvent) {
     cache.shared.get(BUSY_KEY) === null
     && ledger.entries.some((entry) => ['accepted', 'running'].includes(entry.status))
   ) {
-    ledger = recoverInterruptedLedger(ledger, nowText());
+    ledger = recoverInterruptedLedger(ledger, nowInstantText());
     try {
       writeLedger(requestItem, ledger, ledger.entries[0].requestId, ledger.entries[0].status);
     } catch {
@@ -680,7 +703,7 @@ function handleDevice(triggerEvent) {
     return;
   }
 
-  ledger = acceptedLedger(ledger, request.requestId, nowText());
+  ledger = acceptedLedger(ledger, request.requestId, nowInstantText());
   try {
     writeLedger(requestItem, ledger, request.requestId, 'accepted');
   } catch (error) {
@@ -696,17 +719,17 @@ function handleDevice(triggerEvent) {
   try {
     postResult(DEVICE_RESULT, {
       requestId: request.requestId, device: request.device, command: request.command,
-      status: 'accepted', reason: 'accepted', at: nowText(),
+      status: 'accepted', reason: 'accepted', at: nowInstantText(),
     });
     postResult(DEVICE_RESULT, {
       requestId: request.requestId, device: request.device, command: request.command,
-      status: 'running', reason: 'commanded', at: nowText(),
+      status: 'running', reason: 'commanded', at: nowInstantText(),
     });
     items.getItem(DEVICE_ITEMS[request.device]).sendCommand(request.command);
     scheduleDeviceVerify(request, ledger, token);
   } catch (error) {
     try {
-      ledger = updateLedger(ledger, request.requestId, 'failed', 'execution_error', nowText());
+      ledger = updateLedger(ledger, request.requestId, 'failed', 'execution_error', nowInstantText());
       writeLedger(requestItem, ledger, request.requestId, 'failed');
     } catch {
       // The failed result remains the only safe receipt without persistence.
@@ -736,7 +759,7 @@ function runNightLoadOwner(triggerEvent) {
   }
   if (itemName === OVERRIDE_SWITCH && typeof triggerEvent.receivedCommand === 'string') {
     const command = String(triggerEvent.receivedCommand).toUpperCase();
-    handleOverride(triggerEvent, `override-switch:${command}:${nowText()}:${nextSeq()}`);
+    handleOverride(triggerEvent, `override-switch:${command}:${nowMillis()}:${nextSeq()}`);
     return;
   }
   reconcile();

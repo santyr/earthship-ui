@@ -10,6 +10,26 @@ function stringState(value) {
   };
 }
 
+// Emulates a real openHAB local zone so ZonedDateTime.toString() renders the
+// bracketed zone id form that production produces. The exact offset is
+// arbitrary; the point is a non-'Z' rendering that strict Instant.parse rejects.
+const HARNESS_ZONE_OFFSET_MINUTES = -360; // -06:00, America/Denver-like
+const HARNESS_ZONE_ID = 'America/Denver';
+
+function offsetLabel(offsetMinutes, { colon = true } = {}) {
+  const sign = offsetMinutes < 0 ? '-' : '+';
+  const abs = Math.abs(offsetMinutes);
+  const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+  const mm = String(abs % 60).padStart(2, '0');
+  return `${sign}${hh}${colon ? ':' : ''}${mm}`;
+}
+
+function localWallClock(epochMs) {
+  return new Date(epochMs + (HARNESS_ZONE_OFFSET_MINUTES * 60_000))
+    .toISOString()
+    .replace('Z', '');
+}
+
 function zonedDateTime(epochMs) {
   return {
     epochMs,
@@ -19,8 +39,11 @@ function zonedDateTime(epochMs) {
     plusSeconds(seconds) {
       return zonedDateTime(epochMs + (Number(seconds) * 1000));
     },
+    // Production ZonedDateTime.now().toString() ends in a bracketed zone id
+    // (e.g. 2026-07-18T06:00:00.000-06:00[America/Denver]). Strict
+    // Instant.parse() cannot parse this; the rules must normalize first.
     toString() {
-      return new Date(epochMs).toISOString();
+      return `${localWallClock(epochMs)}${offsetLabel(HARNESS_ZONE_OFFSET_MINUTES)}[${HARNESS_ZONE_ID}]`;
     },
   };
 }
@@ -30,7 +53,20 @@ function instant(epochMs) {
     toEpochMilli() {
       return epochMs;
     },
+    // Instant.toString() renders a UTC instant ending in 'Z'.
+    toString() {
+      return new Date(epochMs).toISOString();
+    },
   };
+}
+
+// Renders a string exactly as an openHAB DateTime item state does: a colon-less
+// numeric offset (confirmed live: 2026-07-19T07:09:25.359-0600). Tests use this
+// to simulate an item-state round-trip through persistence/readback.
+export function openhabDateTimeState(input, { offsetMinutes = HARNESS_ZONE_OFFSET_MINUTES } = {}) {
+  const epochMs = typeof input === 'number' ? input : Date.parse(String(input));
+  const local = new Date(epochMs + (offsetMinutes * 60_000)).toISOString().replace('Z', '');
+  return `${local}${offsetLabel(offsetMinutes, { colon: false })}`;
 }
 
 export function feederRequest(requestId, requestedAt = '2026-07-18T12:00:00.000Z') {
@@ -46,6 +82,7 @@ export function feederLedger(entries = []) {
 
 export function createRuleHarness({
   source,
+  filename = 'openhab/rules/feeder-owner.js',
   now = Date.parse('2026-07-18T12:00:00.000Z'),
   states = {},
   histories = {},
@@ -181,9 +218,18 @@ export function createRuleHarness({
       },
     },
     time: {
+      // Emulates real time.toInstant / Instant.parse strictness: a
+      // ZonedDateTime object resolves via its own toInstant(); a STRING is
+      // accepted only when it is an ISO-8601 UTC instant ending in 'Z'.
+      // Offset, colon-less-offset, and bracketed-zone forms throw exactly as
+      // production does, so the rules' tolerant timestamp parser is exercised.
       toInstant(value) {
         if (typeof value?.toInstant === 'function') return value.toInstant();
-        const parsed = Date.parse(String(value).replace(/\[[^\]]+\]$/, ''));
+        const text = String(value);
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(text)) {
+          throw new Error(`invalid instant: ${value}`);
+        }
+        const parsed = Date.parse(text);
         if (!Number.isFinite(parsed)) throw new Error(`invalid instant: ${value}`);
         return instant(parsed);
       },
@@ -231,8 +277,8 @@ export function createRuleHarness({
         },
       } : undefined,
     });
-    new vm.Script(`(function earthshipFeederRule() {\n${source}\n}());`, {
-      filename: 'openhab/rules/feeder-owner.js',
+    new vm.Script(`(function earthshipRule() {\n${source}\n}());`, {
+      filename,
     }).runInContext(context);
   }
 

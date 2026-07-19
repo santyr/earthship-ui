@@ -28,24 +28,47 @@ function nowText() {
   return now().toString();
 }
 
+// UTC instant string (ends in 'Z'); strict-parseable by real Instant.parse().
+// All durable ledger and result timestamps are written in this form so that a
+// production readback never re-parses a bracketed ZonedDateTime rendering.
+function nowInstantText() {
+  return now().toInstant().toString();
+}
+
 function nowMillis() {
   return epochMillis(now());
 }
 
-function epochMillis(value) {
-  try {
-    return Number(time.toInstant(value).toEpochMilli());
-  } catch {
-    return Number.NaN;
-  }
+// Real time.ZonedDateTime.now().toString() ends in a bracketed zone id
+// (e.g. ...-06:00[America/Denver]) and openHAB renders DateTime item states
+// with colon-less offsets (e.g. ...-0600); real time.toInstant()/Instant.parse()
+// is strict and accepts only 'Z' instants. Normalize both non-Z forms so any
+// historical, bracketed, or item-state timestamp still parses. Belt-and-braces
+// to the instant-form writes above.
+function normalizeTimestamp(value) {
+  return String(value)
+    .replace(/\[[^\]]+\]$/, '')
+    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
 }
 
-function postResult(requestId, status, reason, at = now()) {
+function epochMillis(value) {
+  if (value && typeof value.toInstant === 'function') {
+    try {
+      return Number(time.toInstant(value).toEpochMilli());
+    } catch {
+      return Number.NaN;
+    }
+  }
+  const ms = Date.parse(normalizeTimestamp(value));
+  return Number.isFinite(ms) ? ms : Number.NaN;
+}
+
+function postResult(requestId, status, reason, at = nowInstantText()) {
   items.getItem(RESULT_ITEM).postUpdate(JSON.stringify({
     requestId,
     status,
     reason,
-    at: at.toString(),
+    at,
   }));
 }
 
@@ -286,7 +309,7 @@ function runFeederOwner(triggerEvent) {
     cache.shared.get(BUSY_KEY) === null
     && ledger.entries.some((entry) => ['accepted', 'running'].includes(entry.status))
   ) {
-    ledger = recoverInterruptedLedger(ledger, nowText());
+    ledger = recoverInterruptedLedger(ledger, nowInstantText());
     try {
       writeLedger(
         requestItem,
@@ -329,7 +352,7 @@ function runFeederOwner(triggerEvent) {
   }
 
   if (isManual) {
-    const acceptedAt = nowText();
+    const acceptedAt = nowInstantText();
     ledger = acceptedLedger(ledger, request.requestId, acceptedAt);
     try {
       writeLedger(requestItem, ledger, request.requestId, 'accepted');
@@ -370,7 +393,7 @@ function runFeederOwner(triggerEvent) {
         }
 
         if (isManual) {
-          ledger = terminalLedger(ledger, request.requestId, 'complete', 'complete', nowText());
+          ledger = terminalLedger(ledger, request.requestId, 'complete', 'complete', nowInstantText());
           writeLedger(requestItem, ledger, request.requestId, 'complete');
           postResult(request.requestId, 'complete', 'complete');
         }
@@ -382,7 +405,7 @@ function runFeederOwner(triggerEvent) {
               request.requestId,
               'failed',
               'execution_error',
-              nowText(),
+              nowInstantText(),
             );
             writeLedger(requestItem, ledger, request.requestId, 'failed');
           } catch {
@@ -399,7 +422,7 @@ function runFeederOwner(triggerEvent) {
     safeOff(actuator);
     if (isManual) {
       try {
-        ledger = terminalLedger(ledger, request.requestId, 'failed', 'execution_error', nowText());
+        ledger = terminalLedger(ledger, request.requestId, 'failed', 'execution_error', nowInstantText());
         writeLedger(requestItem, ledger, request.requestId, 'failed');
       } catch {
         // The matching failed result remains the only safe receipt if persistence is unavailable.

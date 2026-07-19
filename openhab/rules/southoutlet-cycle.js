@@ -83,16 +83,41 @@ function nowText() {
   return now().toString();
 }
 
+// UTC instant string (ends in 'Z'); strict-parseable by real Instant.parse().
+// All durable ledger, result, and DateTime-authority timestamps are written in
+// this form so a production readback never re-parses a bracketed rendering.
+function nowInstantText() {
+  return now().toInstant().toString();
+}
+
 function nowMillis() {
   return epochMillis(now());
 }
 
+// Real time.ZonedDateTime.now().toString() ends in a bracketed zone id
+// (e.g. ...-06:00[America/Denver]) and openHAB renders DateTime item states
+// with colon-less offsets (confirmed live: 2026-07-19T07:09:25.359-0600); real
+// time.toInstant()/Instant.parse() is strict and accepts only 'Z' instants.
+// Normalize both non-Z forms — this restores the old live rule's colon-less
+// offset handling (`([+-]\d{2})(\d{2})$` -> `$1:$2`) plus bracket stripping —
+// so LastCycleStart/LastAutoRun item states and historical ledger timestamps
+// still parse. Belt-and-braces to the instant-form writes above.
+function normalizeTimestamp(value) {
+  return String(value)
+    .replace(/\[[^\]]+\]$/, '')
+    .replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+}
+
 function epochMillis(value) {
-  try {
-    return Number(time.toInstant(value).toEpochMilli());
-  } catch {
-    return Number.NaN;
+  if (value && typeof value.toInstant === 'function') {
+    try {
+      return Number(time.toInstant(value).toEpochMilli());
+    } catch {
+      return Number.NaN;
+    }
   }
+  const ms = Date.parse(normalizeTimestamp(value));
+  return Number.isFinite(ms) ? ms : Number.NaN;
 }
 
 function state(name, fallback = 'NULL') {
@@ -130,12 +155,12 @@ function status(reason, fields = {}) {
   post(CFG.statusItem, parts.join(','));
 }
 
-function postResult(requestId, resultStatus, reason, at = now()) {
+function postResult(requestId, resultStatus, reason, at = nowInstantText()) {
   items.getItem(CFG.resultItem).postUpdate(JSON.stringify({
     requestId,
     status: resultStatus,
     reason,
-    at: at.toString(),
+    at,
   }));
 }
 
@@ -403,7 +428,7 @@ function forceOff(reason, fields = {}) {
 // ---- cycle actuation ------------------------------------------------------
 
 function beginCycle({ isManual, request, ledger, voltage, soc, mode, invocationToken }) {
-  const startAt = nowText();
+  const startAt = nowInstantText();
   post(CFG.lastCycleStartItem, startAt);
   if (!isManual) post(CFG.lastRunItem, startAt); // automatic-only compatibility
   command(CFG.outletItem, 'ON');
@@ -418,10 +443,10 @@ function beginCycle({ isManual, request, ledger, voltage, soc, mode, invocationT
     const actuator = items.getItem(CFG.outletItem);
     try {
       actuator.sendCommand('OFF');
-      post(CFG.lastCycleItem, nowText());
+      post(CFG.lastCycleItem, nowInstantText());
       status('cycle_completed', { origin: isManual ? 'manual' : 'auto' });
       if (isManual) {
-        const done = terminalLedger(ledger, request.requestId, 'completed', 'completed', nowText());
+        const done = terminalLedger(ledger, request.requestId, 'completed', 'completed', nowInstantText());
         writeLedger(items.getItem(CFG.requestItem), done, request.requestId, 'completed');
         postResult(request.requestId, 'completed', 'completed');
       }
@@ -429,7 +454,7 @@ function beginCycle({ isManual, request, ledger, voltage, soc, mode, invocationT
       if (isManual) {
         try {
           const failed = terminalLedger(
-            ledger, request.requestId, 'failed', 'execution_error', nowText(),
+            ledger, request.requestId, 'failed', 'execution_error', nowInstantText(),
           );
           writeLedger(items.getItem(CFG.requestItem), failed, request.requestId, 'failed');
         } catch {
@@ -461,7 +486,7 @@ function runAutomatic() {
       cache.shared.get(BUSY_KEY) === null
       && ledger.entries.some((entry) => entry.status === 'accepted')
     ) {
-      const recovered = recoverInterruptedLedger(ledger, nowText());
+      const recovered = recoverInterruptedLedger(ledger, nowInstantText());
       writeLedger(requestItem, recovered, recovered.entries[0].requestId, recovered.entries[0].status);
       recoveredRequestId = recovered.entries[0].requestId;
     }
@@ -503,7 +528,7 @@ function runAutomatic() {
 
   const last = lastStartMs();
   if (!Number.isFinite(last)) {
-    post(CFG.lastCycleStartItem, nowText());
+    post(CFG.lastCycleStartItem, nowInstantText());
     status('cooldown_initialized', { voltage: voltage.toFixed(2), soc: soc.toFixed(1) });
     return;
   }
@@ -572,7 +597,7 @@ function runManual(triggerEvent) {
     cache.shared.get(BUSY_KEY) === null
     && ledger.entries.some((entry) => entry.status === 'accepted')
   ) {
-    ledger = recoverInterruptedLedger(ledger, nowText());
+    ledger = recoverInterruptedLedger(ledger, nowInstantText());
     try {
       writeLedger(requestItem, ledger, ledger.entries[0].requestId, ledger.entries[0].status);
     } catch {
@@ -611,7 +636,7 @@ function runManual(triggerEvent) {
   if (!Number.isFinite(last)) {
     // Virgin system (no LastCycleStart, no LastAutoRun): align with the auto
     // path — seed the cooldown clock and deny rather than starting immediately.
-    post(CFG.lastCycleStartItem, nowText());
+    post(CFG.lastCycleStartItem, nowInstantText());
     releaseBusy(token);
     safeResult(request.requestId, 'denied', 'cooldown_initializing');
     return;
@@ -623,7 +648,7 @@ function runManual(triggerEvent) {
     return;
   }
 
-  ledger = acceptedLedger(ledger, request.requestId, nowText());
+  ledger = acceptedLedger(ledger, request.requestId, nowInstantText());
   try {
     writeLedger(requestItem, ledger, request.requestId, 'accepted');
   } catch (error) {
@@ -645,7 +670,7 @@ function runManual(triggerEvent) {
   } catch {
     safeOff(items.getItem(CFG.outletItem));
     try {
-      const failed = terminalLedger(ledger, request.requestId, 'failed', 'execution_error', nowText());
+      const failed = terminalLedger(ledger, request.requestId, 'failed', 'execution_error', nowInstantText());
       writeLedger(requestItem, failed, request.requestId, 'failed');
     } catch {
       // The failed result remains the only safe receipt without persistence.
