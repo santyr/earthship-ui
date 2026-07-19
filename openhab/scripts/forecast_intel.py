@@ -88,6 +88,51 @@ def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
+# --- Kalman bias filters (ML v3a, 2026-07-19) -------------------------------
+# Scalar random-walk bias per quantity: state b = (forecast - measured) bias,
+# P = its variance. Q (drift/day) and R (daily error variance) from the
+# 364-day backfill analysis. Radiation deliberately has NO filter: its bias is
+# proportional (measured/forecast ~ 0.66, stable) and k_res already learns
+# that ratio — an additive filter here would double-correct.
+KALMAN_CFG = {
+    "hi": {"Q": 0.05, "R": 6.0},
+    "lo": {"Q": 0.10, "R": 32.0},
+}
+BACKFILL_CSV = os.path.expanduser("~/.local/state/forecast-intel/backfill/dataset.csv")
+
+
+def kalman_seed():
+    """Seed biases from the last 60 backfilled days; fall back to the
+    year-long constants from the 2026-07-19 analysis if the csv is absent."""
+    seeds = {"hi": -2.5, "lo": 9.0}
+    try:
+        import csv as _csv
+        rows = list(_csv.DictReader(open(BACKFILL_CSV)))[-60:]
+        for key, fc_col, m_col in (("hi", "fc_hi", "m_hi"), ("lo", "fc_lo", "m_lo")):
+            errs = []
+            for row in rows:
+                try:
+                    errs.append(float(row[fc_col]) - float(row[m_col]))
+                except (KeyError, TypeError, ValueError):
+                    continue
+            if errs:
+                seeds[key] = round(sum(errs) / len(errs), 2)
+    except OSError:
+        pass
+    return {key: {"b": seeds[key], "P": 1.0} for key in KALMAN_CFG}
+
+
+def kalman_update(filt, key, err):
+    """One innovation step: err = raw_forecast - measured for the scored day."""
+    cfg = KALMAN_CFG[key]
+    state = filt[key]
+    P = state["P"] + cfg["Q"]
+    K = P / (P + cfg["R"])
+    state["b"] = round(state["b"] + K * (err - state["b"]), 3)
+    state["P"] = round((1 - K) * P, 4)
+    return state["b"]
+
+
 def measured_trough(for_night_ending_today):
     """min(BMS_SOC) 20:00 previous day -> 11:00 given day, local time."""
     d0 = for_night_ending_today
@@ -316,17 +361,20 @@ def main():
             st["precip_errors"] = (st.get("precip_errors", []) + [abs(perr)])[-7:]
             oh_put_state("Forecast_Precip_Error_7d", round(sum(st["precip_errors"]) / len(st["precip_errors"]), 2))
             log.append(f"precip scored: pred {yp['precip_in']:.2f} vs actual {rain_actual:.2f} in (err {perr:+.2f})")
+        kalman = st.setdefault("kalman", kalman_seed())
         if hi_actual is not None and yp.get("hi") is not None:
-            herr = yp["hi"] - hi_actual
+            herr = yp["hi"] - hi_actual   # raw-forecast error: the filter learns truth
             st["temp_hi_errors"] = (st.get("temp_hi_errors", []) + [herr])[-7:]   # signed: feeds bias
             oh_put_state("Forecast_TempHigh_Error_7d", round(sum(abs(e) for e in st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
             oh_put_state("Forecast_TempHigh_Bias_7d", round(sum(st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
-            log.append(f"temp-hi scored: pred {yp['hi']:.0f} vs actual {hi_actual:.0f} (err {herr:+.1f}F)")
+            b = kalman_update(kalman, "hi", herr)
+            log.append(f"temp-hi scored: pred {yp['hi']:.0f} vs actual {hi_actual:.0f} (err {herr:+.1f}F, kalman bias {b:+.2f})")
         if lo_actual is not None and yp.get("lo") is not None:
             lerr = yp["lo"] - lo_actual
             st["temp_lo_errors"] = (st.get("temp_lo_errors", []) + [abs(lerr)])[-7:]
             oh_put_state("Forecast_TempLow_Error_7d", round(sum(st["temp_lo_errors"]) / len(st["temp_lo_errors"]), 1))
-            log.append(f"temp-lo scored: pred {yp['lo']:.0f} vs actual {lo_actual:.0f} (err {lerr:+.1f}F)")
+            b = kalman_update(kalman, "lo", lerr)
+            log.append(f"temp-lo scored: pred {yp['lo']:.0f} vs actual {lo_actual:.0f} (err {lerr:+.1f}F, kalman bias {b:+.2f})")
 
     # ---- Phase 1c: day-3 horizon skill (how trustworthy is 3-day planning) ----
     horizon = st.setdefault("horizon", {})
@@ -394,9 +442,16 @@ def main():
         drop_pct += 2   # cloudy tomorrow morning -> later charge crossover
     trough_pred = round(clamp(dusk_soc - drop_pct, 12, 99))
 
-    # thermal advisory (thresholds from 45-day indoor/outdoor analysis)
-    t_high = highs[1]
-    streak3 = sum(highs[1:4]) / 3
+    # thermal advisory (thresholds from 45-day indoor/outdoor analysis).
+    # ML v3a: advisory decisions and the Tomorrow items use Kalman
+    # bias-corrected temps (corrected = raw - learned bias); scoring and the
+    # predictions store keep RAW forecasts so the filters keep learning truth.
+    kalman = st.setdefault("kalman", kalman_seed())
+    b_hi, b_lo = kalman["hi"]["b"], kalman["lo"]["b"]
+    oh_put_state("Forecast_HighCorrection_F", round(-b_hi, 1))
+    oh_put_state("Forecast_LowCorrection_F", round(-b_lo, 1))
+    t_high = highs[1] - b_hi
+    streak3 = sum(highs[1:4]) / 3 - b_hi
     if t_high >= 95 or streak3 >= 92:
         advisory = f"close_up_tomorrow|Close up tomorrow — {t_high:.0f}° forecast" + (f", {streak3:.0f}° 3-day streak" if streak3 >= 92 else "")
     elif t_high >= 90:
@@ -406,7 +461,7 @@ def main():
 
     for item, val in [("Predicted_PV_Today_kWh", pv_pred), ("Predicted_Curtailment_Hours", curtail),
                       ("Predicted_SoC_Trough_Tomorrow", trough_pred), ("Thermal_Advisory", advisory),
-                      ("Forecast_Tomorrow_High", round(highs[1], 1)), ("Forecast_Tomorrow_Low", round(lows[1], 1)),
+                      ("Forecast_Tomorrow_High", round(highs[1] - b_hi, 1)), ("Forecast_Tomorrow_Low", round(lows[1] - b_lo, 1)),
                       ("Forecast_Tomorrow_PrecipProb", precip_prob[1] if precip_prob[1] is not None else 0)]:
         oh_put_state(item, val)
 
