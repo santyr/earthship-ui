@@ -417,6 +417,11 @@ function scheduleOverrideVerify(request, initialLedger, token) {
       if (request.command === 'ON') {
         const mismatch = ON_MATRIX.some(([item, value]) => state(item) !== value);
         if (mismatch) throw new Error('provider_mismatch');
+        // Downstream coupling for the Goat Cam leg of the ON matrix: commanding
+        // Goat Cam OFF must drive FeederOverride ON (GoatCamOff rule). Completion
+        // waits for that side effect exactly as the device goat-cam leg does. The
+        // owner still never writes FeederOverride -- it only observes it.
+        if (state(FEEDER_OVERRIDE) !== 'ON') throw new Error('coupling_pending');
         ledger = updateLedger(ledger, request.requestId, 'completed', 'completed', nowText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'completed');
         postResult(OVERRIDE_RESULT, {
@@ -439,7 +444,9 @@ function scheduleOverrideVerify(request, initialLedger, token) {
         });
       }
     } catch (error) {
-      const reason = error.message === 'provider_mismatch' ? 'provider_mismatch' : 'execution_error';
+      const reason = ['provider_mismatch', 'coupling_pending'].includes(error.message)
+        ? error.message
+        : 'execution_error';
       try {
         ledger = updateLedger(ledger, request.requestId, 'failed', reason, nowText());
         writeLedger(items.getItem(OVERRIDE_REQUEST), ledger, request.requestId, 'failed');

@@ -151,11 +151,45 @@ describe('override ON matrix', () => {
     expect(overrideResults(h).map((r) => r.status)).toEqual(['accepted', 'running']);
     expect(h.pendingTimers()).toBe(1);
 
+    // Downstream coupling (Goat Cam OFF -> FeederOverride ON) fires
+    // asynchronously via the preserved GoatCamOff rule before verification.
+    h.setState('FeederOverride', 'ON');
     h.runNextTimer();
     expect(overrideResults(h).map((r) => r.status)).toEqual(['accepted', 'running', 'completed']);
     expect(overrideLedgerState(h).entries[0]).toMatchObject({
       requestId: 'nl-20260718-on', status: 'completed',
     });
+    // The owner never wrote FeederOverride; it only observed the coupling.
+    expect(commandsFor(h, 'FeederOverride')).toEqual([]);
+    expect(h.events.some((e) => e.item === 'FeederOverride' && e.type === 'update')).toBe(false);
+  });
+
+  it('withholds completion and fails coupling_pending when FeederOverride never flips', () => {
+    // Simulates a broken/disabled GoatCamOff coupling rule: the goat cam is
+    // commanded OFF by the ON matrix but FeederOverride never becomes ON.
+    const h = harness({ FeederOverride: 'OFF' });
+    h.execute({
+      itemName: 'NightLoadOverride_Request',
+      receivedCommand: overrideRequest('nl-20260718-on-nocouple', 'ON'),
+    });
+
+    // Provider matrix is satisfied (all three commanded OFF reflect), but the
+    // FeederOverride side effect is absent, so completion must be withheld.
+    expect(allDeviceCommands(h)).toEqual([
+      { item: 'Dish_Washer_Power', value: 'OFF' },
+      { item: 'ShurefloPump_Power', value: 'OFF' },
+      { item: 'Goat_Plugs_Outlet1_Switch', value: 'OFF' },
+    ]);
+    h.runNextTimer();
+
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'coupling_pending' });
+    expect(overrideResults(h).some((r) => r.status === 'completed')).toBe(false);
+    expect(overrideLedgerState(h).entries[0]).toMatchObject({
+      requestId: 'nl-20260718-on-nocouple', status: 'failed', reason: 'coupling_pending',
+    });
+    // The owner still never writes FeederOverride, even on the failure path.
+    expect(commandsFor(h, 'FeederOverride')).toEqual([]);
+    expect(h.events.some((e) => e.item === 'FeederOverride' && e.type === 'update')).toBe(false);
   });
 
   it('persists the accepted ledger and commits OverrideSwitch before any load command', () => {
@@ -429,6 +463,8 @@ describe('schedule / external OverrideSwitch commands', () => {
     expect(entry.requestId).toMatch(/^override-switch:ON:/);
     expect(entry.status).toBe('accepted');
 
+    // Preserved GoatCamOff coupling drives FeederOverride ON after the cam OFF.
+    h.setState('FeederOverride', 'ON');
     h.runNextTimer();
     expect(overrideLedgerState(h).entries[0]).toMatchObject({ status: 'completed' });
     // Owner never echoes a command back to OverrideSwitch.
