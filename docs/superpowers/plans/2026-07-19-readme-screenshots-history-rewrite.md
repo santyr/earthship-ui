@@ -148,7 +148,7 @@ Create `/tmp/capture-earthship-readme-screenshots.mjs` with:
 import { chromium } from '/home/sat/earthship-ui/node_modules/playwright/index.mjs';
 
 const routes = ['home', 'energy', 'weather', 'earthship', 'controls'];
-const outputDirectory = '/home/sat/earthship-ui/docs/screenshots';
+const outputDirectory = '/tmp/earthship-ui-readme-screenshots-history/docs/screenshots';
 const browser = await chromium.launch({ headless: true });
 const results = [];
 
@@ -396,6 +396,17 @@ Expected:
 - the staged-name list contains exactly eight intended files;
 - `test-results/` is not staged; and
 - the commit succeeds.
+
+---
+
+### Controller Integration Checkpoint
+
+After Task 1's implementer and reviewer both approve the deliverable, the
+primary agent fast-forwards `main` to `docs/readme-screenshots-history` from
+the live checkout. Verify that only documentation, test, and screenshot files
+change, that `test-results/` remains untouched, and that the live service stays
+healthy. Task 2 begins only after `main` contains the reviewed documentation
+commit.
 
 ---
 
