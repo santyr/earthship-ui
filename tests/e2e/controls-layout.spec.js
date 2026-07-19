@@ -148,11 +148,16 @@ for (const target of TARGETS) {
     const dishwasher = page.getByRole('button', { name: /Dishwasher/i });
     await expect(dishwasher).toHaveClass(/on/);
     await expect(dishwasher.locator('.pill')).toHaveCSS('background-color', 'rgb(34, 197, 94)');
-    for (const label of [
-      /Dishwasher/i, /Shureflo Pump/i, /Goat Cam/i, /Feed once/i,
-      /Request circulation/i, /^Night Load Override/i,
-    ]) {
+    // Override is ON in the fixture, so the three owned loads stay disabled
+    // ("Owned by Night Load Override"); the verified correlated controls
+    // (capabilities flipped 2026-07-19) are live with hold interaction.
+    for (const label of [/Dishwasher/i, /Shureflo Pump/i, /Goat Cam/i]) {
       await expect(page.getByRole('button', { name: label })).toBeDisabled();
+    }
+    for (const label of [/Feed once/i, /Request circulation/i, /^Night Load Override/i]) {
+      const control = page.getByRole('button', { name: label });
+      await expect(control).toBeEnabled();
+      await expect(control).toContainText('Hold 600 ms');
     }
 
     const geometry = await controlsGeometry(page);

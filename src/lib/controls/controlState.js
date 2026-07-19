@@ -11,13 +11,15 @@ export const CONTROL_PHASES = Object.freeze([
 ]);
 
 // Live-verification gate for the correlated owner request channels. Every id is
-// false until a later reviewed commit flips the verified ones in one step, after
-// the owner rules are deployed and confirmed live. Controls.svelte threads this
-// straight through to each Toggle.
+// Flipped true 2026-07-19 after the attended Task 6 deployment: all three
+// owner rules live with closed, receipt-bound transactions (greywater
+// hex_southoutlet_cycle replace, night-load hex_night_load_override create,
+// feeder 88bd9ec4de canonical replace). Controls.svelte threads this straight
+// through to each Toggle.
 export const VERIFIED_CAPABILITIES = Object.freeze({
-  'feeder-request-v1': false,
-  'greywater-request-v1': false,
-  'night-load-owner-v1': false,
+  'feeder-request-v1': true,
+  'greywater-request-v1': true,
+  'night-load-owner-v1': true,
 });
 
 const INVALID_STATES = new Set(['', 'NULL', 'UNDEF']);

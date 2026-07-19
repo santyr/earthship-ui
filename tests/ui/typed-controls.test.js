@@ -235,22 +235,25 @@ describe('typed controls UI', () => {
     expect(source).not.toMatch(/\.control\.on:not\(:disabled\)\s+\.pill/);
   });
 
-  it('presents feeder and circulation as disabled actions with actuator status', () => {
+  it('keeps verified feeder and circulation disabled with status while their provider is unknown', () => {
+    // Capabilities are verified live (2026-07-19 flip), but without provider
+    // Thing health the actions must still fail closed with truthful status.
     items.set({
       Goat_Plugs_Outlet2_Switch: 'OFF',
       SouthOutlet_Outlet2_Switch: 'OFF',
     });
+    thingStatuses.set({});
     render(Controls);
 
     const feed = screen.getByRole('button', { name: /Feed once/i });
     const circulation = screen.getByRole('button', { name: /Request circulation/i });
 
     expect(feed).toBeDisabled();
-    expect(feed).toHaveTextContent('Actuator OFF');
-    expect(feed).toHaveTextContent('status only');
+    expect(feed).toHaveTextContent('Unavailable');
+    expect(feed).toHaveTextContent(/read-only/i);
     expect(circulation).toBeDisabled();
-    expect(circulation).toHaveTextContent('Pump OFF');
-    expect(circulation).toHaveTextContent('status only');
+    expect(circulation).toHaveTextContent('Unavailable');
+    expect(circulation).toHaveTextContent(/read-only/i);
     expect(screen.getByText('Living Room 3')).toBeInTheDocument();
   });
 
@@ -370,7 +373,10 @@ describe('typed controls UI', () => {
     expect(button).toHaveTextContent(/transition/i);
   });
 
-  it('keeps correlated controls read-only by default in Controls until capabilities are verified', () => {
+  it('keeps correlated controls read-only when capabilities are explicitly unverified', () => {
+    // The capability gate must hold even when everything else (release mode,
+    // item states) would allow submission — this is the pre-flip contract,
+    // now exercised via the explicit capabilities prop.
     items.set({
       OverrideSwitch: 'OFF',
       Dish_Washer_Power: 'OFF',
@@ -378,7 +384,16 @@ describe('typed controls UI', () => {
       SouthOutlet_Outlet2_Switch: 'OFF',
     });
     thingStatuses.set({});
-    render(Controls, { props: { releaseMode: 'full' } });
+    render(Controls, {
+      props: {
+        releaseMode: 'full',
+        capabilities: {
+          'feeder-request-v1': false,
+          'greywater-request-v1': false,
+          'night-load-owner-v1': false,
+        },
+      },
+    });
 
     expect(screen.getByRole('button', { name: /Night Load Override/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Feed once/i })).toBeDisabled();
