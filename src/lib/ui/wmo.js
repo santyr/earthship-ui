@@ -7,17 +7,31 @@
 // (it only strips a leading 'iconify:' prefix if present, so a raw
 // 'mdi:xxx' string passes through untouched).
 
+// Condition colors (spec 2026-07-19). Anchored to tokens.js accents where
+// one exists; all ≥3:1 contrast on the #11151c tile background.
+export const CONDITION_COLORS = Object.freeze({
+  sunny: '#eab308',
+  clearNight: '#cbd5e1',
+  partly: '#cbd5e1',
+  cloudy: '#94a3b8',
+  fog: '#8b93a1',
+  rain: '#3b82f6',
+  pouring: '#2563eb',
+  snow: '#bfdbfe',
+  thunder: '#8b5cf6',
+});
+
 const BANDS = [
-  { max: 1, icon: 'mdi:weather-sunny', label: 'Sunny' },
-  { max: 2, icon: 'mdi:weather-partly-cloudy', label: 'Partly Cloudy' },
-  { max: 3, icon: 'mdi:weather-cloudy', label: 'Cloudy' },
-  { max: 48, min: 45, icon: 'mdi:weather-fog', label: 'Fog' },
-  { max: 57, min: 51, icon: 'mdi:weather-rainy', label: 'Drizzle' },
-  { max: 67, min: 61, icon: 'mdi:weather-pouring', label: 'Rain' },
-  { max: 77, min: 71, icon: 'mdi:weather-snowy', label: 'Snow' },
-  { max: 82, min: 80, icon: 'mdi:weather-pouring', label: 'Showers' },
-  { max: 86, min: 85, icon: 'mdi:weather-snowy-heavy', label: 'Snow Showers' },
-  { max: 99, min: 95, icon: 'mdi:weather-lightning', label: 'Thunderstorm' },
+  { max: 1, icon: 'mdi:weather-sunny', label: 'Sunny', colorKey: 'sunny' },
+  { max: 2, icon: 'mdi:weather-partly-cloudy', label: 'Partly Cloudy', colorKey: 'partly' },
+  { max: 3, icon: 'mdi:weather-cloudy', label: 'Cloudy', colorKey: 'cloudy' },
+  { max: 48, min: 45, icon: 'mdi:weather-fog', label: 'Fog', colorKey: 'fog' },
+  { max: 57, min: 51, icon: 'mdi:weather-rainy', label: 'Drizzle', colorKey: 'rain' },
+  { max: 67, min: 61, icon: 'mdi:weather-pouring', label: 'Rain', colorKey: 'pouring' },
+  { max: 77, min: 71, icon: 'mdi:weather-snowy', label: 'Snow', colorKey: 'snow' },
+  { max: 82, min: 80, icon: 'mdi:weather-pouring', label: 'Showers', colorKey: 'pouring' },
+  { max: 86, min: 85, icon: 'mdi:weather-snowy-heavy', label: 'Snow Showers', colorKey: 'snow' },
+  { max: 99, min: 95, icon: 'mdi:weather-lightning', label: 'Thunderstorm', colorKey: 'thunder' },
 ];
 
 function findBand(code) {
@@ -27,7 +41,7 @@ function findBand(code) {
   // Finer-grained split within the 51-67 drizzle/rain range so a single
   // "heavy" code (63/65) reads as pouring rather than a light drizzle icon.
   if (c === 63 || c === 65 || c === 66 || c === 67) {
-    return { icon: 'mdi:weather-pouring', label: 'Rain' };
+    return { icon: 'mdi:weather-pouring', label: 'Rain', colorKey: 'pouring' };
   }
   return BANDS.find((b) => c <= b.max && (b.min === undefined || c >= b.min)) || null;
 }
@@ -38,4 +52,29 @@ export function wmoIcon(code) {
 
 export function wmoLabel(code) {
   return findBand(code)?.label ?? '—';
+}
+
+export function wmoColor(code) {
+  const key = findBand(code)?.colorKey;
+  return key ? CONDITION_COLORS[key] : null;
+}
+
+const SKY_ICON_RULES = [
+  [/night-partly|cloud-sun|partly/, 'partly'],
+  [/weather-night|moon/, 'clearNight'],
+  [/sunny|weather-sunset/, 'sunny'],
+  [/fog|hazy/, 'fog'],
+  [/pouring/, 'pouring'],
+  [/rainy|drizzle|showers/, 'rain'],
+  [/snowy|snow/, 'snow'],
+  [/lightning|thunder/, 'thunder'],
+  [/cloudy|cloud/, 'cloudy'],
+];
+
+export function skyIconColor(iconName) {
+  if (!iconName || iconName === 'NULL' || iconName === 'UNDEF') return null;
+  const name = String(iconName).replace(/^iconify:/, '');
+  if (!/^(mdi|bi):/.test(name) || !/weather|cloud|moon|sun/.test(name)) return null;
+  const rule = SKY_ICON_RULES.find(([re]) => re.test(name));
+  return rule ? CONDITION_COLORS[rule[1]] : null;
 }
