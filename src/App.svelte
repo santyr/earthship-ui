@@ -7,6 +7,7 @@
   import Earthship from './screens/Earthship.svelte';
   import Controls from './screens/Controls.svelte';
   import ChartModal from './lib/ui/ChartModal.svelte';
+  import WeatherDetailModal from './lib/ui/WeatherDetailModal.svelte';
   import { currentRoute } from './routes.js';
   import { initOpenhab } from './lib/openhab/index.js';
   import { loadConfig } from './lib/config.js';
@@ -35,3 +36,4 @@
 </Shell>
 
 <ChartModal />
+<WeatherDetailModal />
