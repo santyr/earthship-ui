@@ -45,3 +45,19 @@ describe('skyIconColor', () => {
     }
   });
 });
+
+describe('CONDITION_COLORS palette', () => {
+  it('pins the exact spec palette', () => {
+    expect(CONDITION_COLORS).toEqual({
+      sunny: '#eab308',
+      clearNight: '#cbd5e1',
+      partly: '#cbd5e1',
+      cloudy: '#94a3b8',
+      fog: '#8b93a1',
+      rain: '#3b82f6',
+      pouring: '#2563eb',
+      snow: '#bfdbfe',
+      thunder: '#8b5cf6',
+    });
+  });
+});
