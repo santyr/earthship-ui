@@ -1,6 +1,6 @@
 <script>
   import OhIcon from './OhIcon.svelte';
-  import { wmoIcon, wmoLabel } from './wmo.js';
+  import { wmoIcon, wmoLabel, wmoColor } from './wmo.js';
 
   let { days = [], variant = 'home', onselect = () => {} } = $props();
 
@@ -28,7 +28,7 @@
       onclick={() => onselect(day)}
     >
       <span class="day-label">{day.label}</span>
-      <span class="day-icon"><OhIcon icon={wmoIcon(day.summary.weatherCode)} size="1.2rem" /></span>
+      <span class="day-icon"><OhIcon icon={wmoIcon(day.summary.weatherCode)} size="1.2rem" color={wmoColor(day.summary.weatherCode) ?? 'currentColor'} /></span>
       <span class="day-hilo">
         {value(day.summary.highF, '°')} / {value(day.summary.lowF, '°')}
       </span>

@@ -14,7 +14,7 @@
   } from '../weather/detailStore.js';
   import OhIcon from './OhIcon.svelte';
   import { observeElementSize } from './observeElementSize.js';
-  import { wmoIcon, wmoLabel } from './wmo.js';
+  import { wmoIcon, wmoLabel, wmoColor } from './wmo.js';
 
   const TITLE_ID = 'weather-detail-modal-title';
   const DESCRIPTION_ID = 'weather-detail-modal-description';
@@ -242,7 +242,11 @@
           <h2 id={TITLE_ID}>{$weatherDetailStore.label || 'Selected day'} Forecast</h2>
           {#if selectedDay}
             <p class="weather-detail-summary">
-              <OhIcon icon={wmoIcon(selectedDay.summary.weatherCode)} size="1.15rem" />
+              <OhIcon
+                icon={wmoIcon(selectedDay.summary.weatherCode)}
+                size="1.15rem"
+                color={wmoColor(selectedDay.summary.weatherCode) ?? 'currentColor'}
+              />
               <span>{wmoLabel(selectedDay.summary.weatherCode)}</span>
               <span>{metric(selectedDay.summary.highF, '°')} / {metric(selectedDay.summary.lowF, '°')}</span>
               <span>{metric(selectedDay.summary.precipPct, '%')} precip</span>
@@ -280,7 +284,11 @@
                 aria-label={`${hourLabel(hour.at)}, ${wmoLabel(hour.weatherCode)}`}
               >
                 <span class="hour-time">{hourLabel(hour.at)}</span>
-                <OhIcon icon={wmoIcon(hour.weatherCode)} size="1.2rem" />
+                <OhIcon
+                  icon={wmoIcon(hour.weatherCode)}
+                  size="1.2rem"
+                  color={wmoColor(hour.weatherCode) ?? 'currentColor'}
+                />
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
                 <span class="hour-precip">{metric(hour.precipPct, '%')}</span>
                 <span class="hour-radiation">{metric(hour.radiationWm2, ' W/m²')}</span>

@@ -14,7 +14,7 @@
   import { echartsTheme, colors } from './tokens.js';
   import { num } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
-  import { wmoIcon } from './wmo.js';
+  import { wmoIcon, wmoColor } from './wmo.js';
 
   let { hours = [], height = 180 } = $props();
 
@@ -150,7 +150,7 @@
     <div class="hs-icons">
       {#each hours as row, i (i)}
         <div class="hs-icon-col">
-          <OhIcon icon={wmoIcon(row.w)} size="1.1rem" />
+          <OhIcon icon={wmoIcon(row.w)} size="1.1rem" color={wmoColor(row.w) ?? 'currentColor'} />
         </div>
       {/each}
     </div>

@@ -10,6 +10,7 @@
   import HourlyStrip from '../lib/ui/HourlyStrip.svelte';
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
+  import { skyIconColor } from '../lib/ui/wmo.js';
   import { items, num, fmt } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
@@ -133,7 +134,13 @@
     <Tile label="Current Conditions" accent={colors.temperature}>
       <div class="current-body">
         <div class="cur-main">
-          <span class="cur-icon"><OhIcon icon={$items.SkyConditionIcon} size="2.4rem" /></span>
+          <span class="cur-icon">
+            <OhIcon
+              icon={$items.SkyConditionIcon}
+              size="2.4rem"
+              color={skyIconColor($items.SkyConditionIcon) ?? 'currentColor'}
+            />
+          </span>
           <span class="cur-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
           <div class="cur-meta">
             <div class="cur-feels">
