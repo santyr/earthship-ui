@@ -5,7 +5,7 @@ import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
-  '/home/sat/earthship-ui/node_modules/svelte/src/index-client.js'
+  '../../node_modules/svelte/src/index-client.js'
 ));
 
 import SeasonCountdown from '../../src/lib/ui/SeasonCountdown.svelte';

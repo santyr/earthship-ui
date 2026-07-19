@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
-  '/home/sat/earthship-ui/node_modules/svelte/src/index-client.js'
+  '../../node_modules/svelte/src/index-client.js'
 ));
 
 const mocks = vi.hoisted(() => ({
