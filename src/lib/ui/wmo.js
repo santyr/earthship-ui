@@ -38,11 +38,8 @@ function findBand(code) {
   if (code === null || code === undefined || code === 'NULL' || code === 'UNDEF' || code === '') return null;
   const c = Number(code);
   if (!Number.isFinite(c)) return null;
-  // Finer-grained split within the 51-67 drizzle/rain range so a single
-  // "heavy" code (63/65) reads as pouring rather than a light drizzle icon.
-  if (c === 63 || c === 65 || c === 66 || c === 67) {
-    return { icon: 'mdi:weather-pouring', label: 'Rain', colorKey: 'pouring' };
-  }
+  // The 61-67 rain band already renders the pouring icon/label/colorKey, so
+  // codes 63/65/66/67 need no special case.
   return BANDS.find((b) => c <= b.max && (b.min === undefined || c >= b.min)) || null;
 }
 
