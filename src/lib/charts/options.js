@@ -1,3 +1,4 @@
+import { buildExtremaMarkPoint, formatHistoryValue } from './extremaMarkers.js';
 import { prepareHistorySeries } from './historyPipeline.js';
 import { getSeriesPolicy } from './seriesPolicy.js';
 import { colors, echartsTheme } from '../ui/tokens.js';
@@ -11,11 +12,6 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function formatRawValue(value) {
-  if (!Number.isFinite(value)) return '—';
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(3)));
-}
-
 export function formatHistoryTooltip(params) {
   const entries = Array.isArray(params) ? params : [params];
   const firstTime = entries.find((entry) => Number.isFinite(entry?.data?.[0]))?.data?.[0];
@@ -26,7 +22,7 @@ export function formatHistoryTooltip(params) {
     .filter((entry) => Number.isFinite(entry?.data?.[2]))
     .map((entry) => (
       `<div>${entry.marker || ''}${escapeHtml(entry.seriesName)}: `
-      + `${escapeHtml(formatRawValue(entry.data[2]))}</div>`
+      + `${escapeHtml(formatHistoryValue(entry.data[2]))}</div>`
     ))
     .join('');
 }
@@ -37,7 +33,11 @@ function flattenSegments(segments) {
   ));
 }
 
-function lineOption(source, data, { name, dashed = false } = {}) {
+function lineOption(source, data, {
+  name,
+  dashed = false,
+  markPoint,
+} = {}) {
   return {
     name: name || source.label || source.name,
     type: 'line',
@@ -52,6 +52,7 @@ function lineOption(source, data, { name, dashed = false } = {}) {
       ...(dashed ? { type: 'dashed' } : {}),
     },
     itemStyle: { color: source.color },
+    ...(markPoint ? { markPoint } : {}),
     data,
   };
 }
@@ -102,12 +103,21 @@ export function buildHistoryOption({
       widthPx,
       pointBudget: perSeriesBudget,
     });
+    const markPoint = buildExtremaMarkPoint(prepared.raw, {
+      markers: source.markers,
+      unit: source.markerUnit,
+      color: source.color,
+    });
     if (source.dashedFromNow) {
       const split = splitForecastSegments(prepared.displaySegments, nowMs);
       const persistedFuture = flattenSegments(split.future);
       const projectedFuture = scalarProjection(source, nowMs);
       const futureData = persistedFuture.length ? persistedFuture : projectedFuture;
-      renderedSeries.push(lineOption(source, flattenSegments(split.solid)));
+      renderedSeries.push(lineOption(
+        source,
+        flattenSegments(split.solid),
+        { markPoint },
+      ));
       if (futureData.length) {
         renderedSeries.push(lineOption(
           source,
@@ -116,7 +126,11 @@ export function buildHistoryOption({
         ));
       }
     } else {
-      renderedSeries.push(lineOption(source, flattenSegments(prepared.displaySegments)));
+      renderedSeries.push(lineOption(
+        source,
+        flattenSegments(prepared.displaySegments),
+        { markPoint },
+      ));
     }
   });
 

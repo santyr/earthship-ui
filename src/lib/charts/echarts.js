@@ -1,6 +1,11 @@
 import * as echarts from 'echarts/core';
 import { BarChart, LineChart } from 'echarts/charts';
-import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
+import {
+  GridComponent,
+  LegendComponent,
+  MarkPointComponent,
+  TooltipComponent,
+} from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 echarts.use([
@@ -8,6 +13,7 @@ echarts.use([
   BarChart,
   GridComponent,
   LegendComponent,
+  MarkPointComponent,
   TooltipComponent,
   SVGRenderer,
 ]);

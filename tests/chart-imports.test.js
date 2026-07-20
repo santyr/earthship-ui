@@ -14,6 +14,7 @@ describe('modular ECharts bundle', () => {
     expect(adapter).toMatch(/echarts\/core/);
     expect(adapter).toMatch(/LineChart/);
     expect(adapter).toMatch(/BarChart/);
+    expect(adapter).toMatch(/MarkPointComponent/);
 
     for (const path of COMPONENTS) {
       const source = await readFile(path, 'utf8');

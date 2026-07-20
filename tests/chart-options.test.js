@@ -102,6 +102,39 @@ describe('history chart option adapter', () => {
     );
     expect(total).toBeLessThanOrEqual(800);
   });
+
+  it('adds selected-window extrema only to an opted-in series', () => {
+    const option = buildHistoryOption({
+      series: [
+        {
+          name: 'Outdoor',
+          label: 'Outdoor',
+          color: '#f59e0b',
+          markers: ['min', 'max'],
+          markerUnit: '°',
+        },
+        { name: 'Forecast', label: 'Forecast', color: '#8b5cf6' },
+      ],
+      pointsPerSeries: [
+        [
+          { time: 100, state: 54 },
+          { time: 200, state: 82.5 },
+          { time: 300, state: 41 },
+        ],
+        [
+          { time: 100, state: 50 },
+          { time: 200, state: 90 },
+        ],
+      ],
+      widthPx: 800,
+    });
+
+    expect(option.series[0].markPoint.data).toEqual([
+      { name: 'High', coord: [200, 82.5], value: 82.5, markerUnit: '°' },
+      { name: 'Low', coord: [300, 41], value: 41, markerUnit: '°' },
+    ]);
+    expect(option.series[1]).not.toHaveProperty('markPoint');
+  });
 });
 
 function rows(count) {
