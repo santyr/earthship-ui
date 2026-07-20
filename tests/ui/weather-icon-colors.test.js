@@ -142,6 +142,8 @@ describe('condition icon colors', () => {
     }
 
     beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-07-19T12:00:00-06:00'));
       global.ResizeObserver = class {
         observe() {}
         disconnect() {}
@@ -157,6 +159,7 @@ describe('condition icon colors', () => {
       items.set({});
       document.body.innerHTML = '';
       document.body.style.overflow = '';
+      vi.useRealTimers();
     });
 
     it('colors the selected-day summary icon and an hourly icon by condition', async () => {
