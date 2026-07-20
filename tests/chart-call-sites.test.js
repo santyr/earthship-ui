@@ -17,3 +17,22 @@ describe('Energy chart containment', () => {
     expect(source).toContain("Battery history + tonight's forecast");
   });
 });
+
+describe('Home extrema marker call sites', () => {
+  it('marks measured Outdoor and Battery SoC without marking Forecast', async () => {
+    const source = await readFile('src/screens/Home.svelte', 'utf8');
+    const outdoor = source.slice(
+      source.indexOf('function openOutdoorChart()'),
+      source.indexOf('function openIndoorChart()'),
+    );
+    const battery = source.slice(
+      source.indexOf('function openBatteryChart()'),
+      source.indexOf('function openWindChart()'),
+    );
+
+    expect(outdoor.match(/markers:\s*\['min', 'max'\]/g)).toHaveLength(1);
+    expect(outdoor).toContain("markerUnit: '°'");
+    expect(battery).toContain("markers: ['min', 'max']");
+    expect(battery).toContain("markerUnit: '%'");
+  });
+});

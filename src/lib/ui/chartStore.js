@@ -5,8 +5,8 @@ import { snapHistoryPeriod } from '../charts/periods.js';
 // pop the full-screen ChartModal (mounted once in App.svelte) with one or
 // more overlaid history series.
 //
-// series: [{ name, color, label }] — `name` is the openHAB item name used
-// for getHistory(); `label`/`color` are for the legend/line.
+// series: [{ name, color, label, markers?, markerUnit? }]
+// `markers` supports reusable per-series extrema such as ['min', 'max'].
 let nextOpenId = 0;
 
 export const chartStore = writable({

@@ -512,6 +512,22 @@ for (const target of TARGETS) {
     await expect(page.getByRole('dialog').getByRole('heading', { name: 'Bitcoin (USD)' })).toBeVisible();
     await page.getByRole('button', { name: 'Close chart' }).click();
 
+    await page.getByRole('button', { name: 'Open Outdoor temperature chart' }).click();
+    let dialog = page.getByRole('dialog', { name: 'Outdoor Temp' });
+    await expect(dialog.locator('svg')).toBeVisible();
+    await expect(dialog.locator('text').filter({ hasText: 'High' })).toHaveCount(1);
+    await expect(dialog.locator('text').filter({ hasText: 'Low' })).toHaveCount(1);
+    await page.screenshot({ path: testInfo.outputPath('outdoor-extrema.png') });
+    await page.getByRole('button', { name: 'Close chart' }).click();
+
+    await page.getByRole('button', { name: /Open Battery chart/ }).click();
+    dialog = page.getByRole('dialog', { name: 'Battery SoC' });
+    await expect(dialog.locator('svg')).toBeVisible();
+    await expect(dialog.locator('text').filter({ hasText: 'High' })).toHaveCount(1);
+    await expect(dialog.locator('text').filter({ hasText: 'Low' })).toHaveCount(1);
+    await page.screenshot({ path: testInfo.outputPath('battery-extrema.png') });
+    await page.getByRole('button', { name: 'Close chart' }).click();
+
     expect(runtime.pageErrors).toEqual([]);
     expect(runtime.unexpectedExternalRequests).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath('home-settled.png') });

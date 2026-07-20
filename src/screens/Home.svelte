@@ -349,7 +349,13 @@
     openChart({
       title: 'Outdoor Temp',
       series: [
-        { name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', color: colors.temperature, label: 'Outdoor' },
+        {
+          name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature',
+          color: colors.temperature,
+          label: 'Outdoor',
+          markers: ['min', 'max'],
+          markerUnit: '°',
+        },
         { name: 'Forecast_Temp', color: colors.forecast, label: 'Forecast' },
       ],
       hours: 24,
@@ -363,7 +369,17 @@
     });
   }
   function openBatteryChart() {
-    openChart({ title: 'Battery SoC', series: [{ name: 'BMS_SOC', color: socColor, label: 'SoC' }], hours: 24 });
+    openChart({
+      title: 'Battery SoC',
+      series: [{
+        name: 'BMS_SOC',
+        color: socColor,
+        label: 'SoC',
+        markers: ['min', 'max'],
+        markerUnit: '%',
+      }],
+      hours: 24,
+    });
   }
   function openWindChart() {
     openChart({
