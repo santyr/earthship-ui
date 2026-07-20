@@ -2,6 +2,7 @@
   import { onDestroy, tick } from 'svelte';
   import { getEcharts } from '../charts/loadEcharts.js';
   import { buildHistoryOption } from '../charts/options.js';
+  import { describeExtremaMarkers } from '../charts/extremaMarkers.js';
   import { loadHistorySeries } from '../charts/historyRequest.js';
   import { HISTORY_PERIOD_PRESETS, snapHistoryPeriod } from '../charts/periods.js';
   import { getClientOnce } from '../openhab/index.js';
@@ -17,6 +18,7 @@
   let chart;
   let loadState = $state('idle');
   let errorMessage = $state('');
+  let extremaDescription = $state('');
   let activeHours = $state(24);
   let pointsPerSeries = $state([]);
   let unavailableCount = $state(0);
@@ -58,7 +60,8 @@
       latest = `Most recent ${label}: ${String(point.state)}`;
       break;
     }
-    return `${labels}. ${period} selected. ${stateText}. ${latest}.`;
+    const extrema = extremaDescription ? `${extremaDescription} ` : '';
+    return `${labels}. ${period} selected. ${stateText}. ${extrema}${latest}.`;
   });
 
   function stopRefresh() {
@@ -90,7 +93,7 @@
     if (!chart || widthPx <= 0) return;
     latestWidthPx = widthPx;
     try {
-      chart.setOption(buildHistoryOption({
+      const option = buildHistoryOption({
         series: latestSeries,
         pointsPerSeries,
         widthPx,
@@ -98,7 +101,9 @@
         grid: { left: 52, right: 24, top: 56, bottom: 40 },
         legendTop: 8,
         legendFontSize: 12,
-      }), true);
+      });
+      extremaDescription = describeExtremaMarkers(option.series);
+      chart.setOption(option, true);
       chart.resize();
     } catch (error) {
       errorMessage = error?.message || 'History could not be rendered';
@@ -118,6 +123,7 @@
     unavailableCount = 0;
     timedOutCount = 0;
     errorMessage = '';
+    extremaDescription = '';
     loadState = 'loading';
 
     const client = getClientOnce();

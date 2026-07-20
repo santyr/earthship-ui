@@ -246,4 +246,45 @@ describe('ChartModal history periods', () => {
     const description = document.getElementById(dialog.getAttribute('aria-describedby'));
     expect(description.textContent).toMatch(/history request timed out after 15 seconds/i);
   });
+
+  it('recomputes and announces extrema when the selected period changes', async () => {
+    mocks.getHistory
+      .mockResolvedValueOnce([
+        { time: 100, state: '62 %' },
+        { time: 200, state: '71 %' },
+      ])
+      .mockResolvedValueOnce([
+        { time: 100, state: '41 %' },
+        { time: 200, state: '88 %' },
+      ]);
+
+    render(ChartModal);
+    openChart({
+      title: 'Battery SoC',
+      series: [{
+        name: 'BMS_SOC',
+        label: 'SoC',
+        color: '#22c55e',
+        markers: ['min', 'max'],
+        markerUnit: '%',
+      }],
+      hours: 24,
+    });
+
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+    let option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series[0].markPoint.data.map((marker) => marker.value))
+      .toEqual([71, 62]);
+
+    const dialog = screen.getByRole('dialog', { name: 'Battery SoC' });
+    const description = document.getElementById(dialog.getAttribute('aria-describedby'));
+    expect(description.textContent).toMatch(/SoC: High 71%, Low 62%/);
+
+    await fireEvent.click(screen.getByRole('button', { name: '7d' }));
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(2));
+    option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series[0].markPoint.data.map((marker) => marker.value))
+      .toEqual([88, 41]);
+    expect(description.textContent).toMatch(/SoC: High 88%, Low 41%/);
+  });
 });
