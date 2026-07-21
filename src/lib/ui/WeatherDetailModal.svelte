@@ -250,7 +250,7 @@
                 color={wmoColor(selectedDay.summary.weatherCode) ?? 'currentColor'}
               />
               <span>{wmoLabel(selectedDay.summary.weatherCode)}</span>
-              <span class="day-highlow">{metric(selectedDay.summary.highF, '°')} / {metric(selectedDay.summary.lowF, '°')}</span>
+              <span>{metric(selectedDay.summary.highF, '°')} / {metric(selectedDay.summary.lowF, '°')}</span>
               <span>
                 {metric(selectedDay.summary.precipPct, '%')} precip
                 {#if rainAmountText(selectedDay.summary.precipSumIn)}
@@ -374,10 +374,6 @@
     color: #9ca3af;
     font-size: 0.78rem;
     font-variant-numeric: tabular-nums;
-  }
-
-  .day-highlow {
-    color: #000;
   }
 
   .weather-detail-close {

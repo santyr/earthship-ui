@@ -52,6 +52,8 @@ describe('history extrema markers', () => {
       { name: 'Low', coord: [300, 41.25], value: 41.25, markerUnit: '%' },
     ]);
     expect(markPoint.itemStyle.color).toBe('#22c55e');
+    // Balloon label is black for contrast against the bright pin fill.
+    expect(markPoint.label.color).toBe('#000');
     expect(markPoint.label.formatter({
       name: 'High',
       value: 87.5555,

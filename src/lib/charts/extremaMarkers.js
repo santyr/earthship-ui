@@ -76,7 +76,7 @@ export function buildExtremaMarkPoint(points = [], {
     symbolSize: 52,
     ...(color ? { itemStyle: { color } } : {}),
     label: {
-      color: '#f8fafc',
+      color: '#000',
       fontSize: 10,
       lineHeight: 12,
       formatter: ({ data: marker, name, value }) => (
