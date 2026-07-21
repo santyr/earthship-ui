@@ -1,6 +1,5 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
-  import OhIcon from './OhIcon.svelte';
   import Tile from './Tile.svelte';
   import {
     advanceGoatFeederTracker,
@@ -113,9 +112,7 @@
     {#if active}
       <span class="goat-activation-icon" role="img" aria-label="Goat feeder activated">🐐</span>
     {:else}
-      <span class="goat-feed-icon" aria-hidden="true">
-        <OhIcon icon="iconify:mdi:food-apple-outline" size="1.35rem" />
-      </span>
+      <span class="goat-feed-icon" aria-hidden="true">🐐</span>
     {/if}
     <span class="goat-feeding-text" title={feedingText}>{feedingText}</span>
   </div>
@@ -138,13 +135,11 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    color: #8b5cf6;
     line-height: 1;
-  }
-  .goat-activation-icon {
-    color: #f59e0b;
     font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
     font-size: 1.35rem;
+  }
+  .goat-activation-icon {
     animation: goat-pulse 600ms ease-in-out infinite alternate;
   }
   .goat-feeding-text {

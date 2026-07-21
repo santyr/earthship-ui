@@ -66,7 +66,7 @@ describe('GoatFeedingsCard', () => {
     expect(screen.getByRole('group', {
       name: 'Goat feedings: 2 feedings today',
     })).toBeInTheDocument();
-    expect(container.querySelector('.goat-feed-icon svg')).toBeInTheDocument();
+    expect(container.querySelector('.goat-feed-icon')).toHaveTextContent('🐐');
     expect(container.querySelector('.goat-activation-icon')).toBeNull();
     expect(container.querySelector('button')).toBeNull();
     expect(source).not.toMatch(/sendCommand|getClientOnce/);
@@ -95,7 +95,7 @@ describe('GoatFeedingsCard', () => {
     vi.advanceTimersByTime(1800);
     await tick();
     expect(view.container.querySelector('.goat-activation-icon')).toBeNull();
-    expect(view.container.querySelector('.goat-feed-icon svg')).toBeInTheDocument();
+    expect(view.container.querySelector('.goat-feed-icon')).toHaveTextContent('🐐');
   });
 
   it('does not attempt audio before a browser interaction', async () => {
