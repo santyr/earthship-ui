@@ -88,6 +88,17 @@ def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
+def should_score_day(state, ykey):
+    """True if yesterday (ykey) has not already been scored.
+
+    Scoring appends to the rolling error arrays, so it must run at most once per
+    calendar day; without this guard, repeated same-day invocations (e.g. the
+    2026-07-19 dev session that fired the service 5x) duplicate a single day's
+    error and corrupt downstream conformal quantiles.
+    """
+    return state.get("last_scored_day") != ykey
+
+
 # --- Kalman bias filters (ML v3a, 2026-07-19) -------------------------------
 # Scalar random-walk bias per quantity: state b = (forecast - measured) bias,
 # P = its variance. Q (drift/day) and R (daily error variance) from the
@@ -324,7 +335,7 @@ def main():
     ykey = (today - timedelta(days=1)).isoformat()
     yp = st["predictions"].get(ykey)
     rain_actual, hi_actual, lo_actual = measured_day_weather(today - timedelta(days=1))
-    if yp:
+    if yp and should_score_day(st, ykey):
         utc_off = timedelta(hours=6)
         y0 = datetime.combine(today - timedelta(days=1), datetime.min.time())
         pv_pts = series("MPPT60_EnergyFromPV_Today", y0 + utc_off, y0 + timedelta(hours=24) + utc_off)
@@ -375,6 +386,7 @@ def main():
             oh_put_state("Forecast_TempLow_Error_7d", round(sum(st["temp_lo_errors"]) / len(st["temp_lo_errors"]), 1))
             b = kalman_update(kalman, "lo", lerr)
             log.append(f"temp-lo scored: pred {yp['lo']:.0f} vs actual {lo_actual:.0f} (err {lerr:+.1f}F, kalman bias {b:+.2f})")
+        st["last_scored_day"] = ykey   # scored once; re-runs today are now no-ops
 
     # ---- Phase 1c: day-3 horizon skill (how trustworthy is 3-day planning) ----
     horizon = st.setdefault("horizon", {})
