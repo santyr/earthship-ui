@@ -86,6 +86,11 @@
     text-align: center;
   }
 
+  /* Slightly larger forecast text on the home console for readability. */
+  .daily-forecast[data-forecast-variant='home'] .day-label { font-size: 0.74rem; }
+  .daily-forecast[data-forecast-variant='home'] .day-hilo { font-size: 0.9rem; }
+  .daily-forecast[data-forecast-variant='home'] .day-meta { font-size: 0.64rem; }
+
   .daily-forecast[data-forecast-variant='weather'] .forecast-day {
     display: grid;
     grid-template-columns:
@@ -108,7 +113,7 @@
   .day-label {
     min-width: 0;
     overflow: hidden;
-    color: #8b93a1;
+    color: #aab4c2;
     font-size: 0.68rem;
     font-variant-caps: small-caps;
     letter-spacing: 0.04em;
@@ -136,7 +141,7 @@
   }
 
   .day-meta {
-    color: #6b7280;
+    color: #94a3b8;
     font-size: 0.58rem;
     white-space: nowrap;
   }

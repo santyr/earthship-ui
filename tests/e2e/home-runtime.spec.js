@@ -524,7 +524,7 @@ for (const target of TARGETS) {
     expect(geometry.fonts.outdoor).toBeCloseTo(70.4, 1);
     expect(geometry.fonts.indoor).toBeCloseTo(70.4, 1);
     expect(geometry.fonts.indoorHumidity).toBeCloseTo(16.8, 1);
-    expect(geometry.fonts.indoorHilo).toBeCloseTo(15.2, 1);
+    expect(geometry.fonts.indoorHilo).toBeCloseTo(16.8, 1);
     expect(geometry.fonts.rainValue).toBeCloseTo(16, 1);
     expect(geometry.fonts.rainFooter).toBeCloseTo(11.52, 1);
     expect(geometry.fonts.sunMoon).toBeGreaterThanOrEqual(13.5);

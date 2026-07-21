@@ -830,18 +830,18 @@
     color: #c7cfd9;
   }
   .pf-arrow {
-    color: #4b5563;
+    color: #94a3b8;
     font-weight: 400;
   }
   .pf-sep {
-    color: #4b5563;
+    color: #94a3b8;
   }
   .pf-net {
     font-weight: 700;
   }
   .pf-line2 {
     font-size: 0.68rem;
-    color: #8b93a1;
+    color: #aab4c2;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     overflow: hidden;
@@ -868,7 +868,7 @@
   }
   .gw-last {
     font-size: 0.68rem;
-    color: #8b93a1;
+    color: #aab4c2;
   }
 
   /* ---- Outdoor hero ---- */
@@ -924,7 +924,7 @@
     background: #202631;
   }
   .aqi-chip.unavailable {
-    color: #8b93a1;
+    color: #aab4c2;
   }
   .uv-chip,
   .rain-rate-chip {
@@ -932,11 +932,11 @@
   }
   .outdoor-sub {
     font-size: 1.05rem;
-    color: #8b93a1;
+    color: #aab4c2;
   }
   .outdoor-hilo {
-    font-size: 0.95rem;
-    color: #c7cfd9;
+    font-size: 1.05rem;
+    color: #d7dee6;
   }
   .outdoor-spark {
     flex: 1;
@@ -985,8 +985,8 @@
     color: #c7cfd9;
   }
   .indoor-hilo {
-    font-size: 0.95rem;
-    color: #8b93a1;
+    font-size: 1.05rem;
+    color: #d7dee6;
   }
 
   /* ---- Battery hero ---- */
@@ -1049,7 +1049,7 @@
     white-space: nowrap;
   }
   .batt-runtime strong {
-    color: #8b93a1;
+    color: #aab4c2;
     font-size: 0.68rem;
     font-weight: 500;
     min-width: 2.5rem;
@@ -1147,7 +1147,7 @@
   }
   .baro-value .unit {
     font-size: 0.65rem;
-    color: #8b93a1;
+    color: #aab4c2;
   }
   .baro-spark {
     flex: 1;
@@ -1156,7 +1156,7 @@
   }
   .baro-trend {
     font-size: 0.68rem;
-    color: #8b93a1;
+    color: #aab4c2;
     text-transform: capitalize;
     line-height: 1;
   }
@@ -1197,7 +1197,7 @@
     text-overflow: ellipsis;
   }
   .sm-daylight {
-    color: #8b93a1;
+    color: #aab4c2;
   }
 
   /* ---- Solar ---- */
@@ -1229,11 +1229,11 @@
   .solar-main .unit {
     font-size: 0.8rem;
     font-weight: 500;
-    color: #8b93a1;
+    color: #aab4c2;
   }
   .solar-sub {
     font-size: 0.68rem;
-    color: #8b93a1;
+    color: #aab4c2;
     line-height: 1.15;
   }
   .solar-current {
@@ -1275,7 +1275,7 @@
     font-size: 0.82rem;
   }
   .zone-label {
-    color: #8b93a1;
+    color: #aab4c2;
     flex: 1;
   }
   .zone-temp {
