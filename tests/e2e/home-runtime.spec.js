@@ -418,14 +418,67 @@ function expectHomeCardSeparation(geometry) {
 async function expectExtremaMarkerGeometry(dialog) {
   const tolerance = 1;
   const chartBox = await dialog.locator('.chart-canvas').boundingBox();
-  const markerGroupBox = async (name) => {
+  const markerPresentationBox = async (name) => {
     const markerText = dialog.locator('text').filter({ hasText: name });
-    const markerGroup = markerText.locator('xpath=parent::*');
-    await expect(markerGroup.locator('path')).toHaveCount(1);
-    return markerGroup.boundingBox();
+    await expect(markerText).toHaveCount(1);
+    const geometry = await markerText.evaluate((text) => {
+      const rectOf = (element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        };
+      };
+      const textBox = rectOf(text);
+      const textCenter = {
+        x: textBox.x + textBox.width / 2,
+        y: textBox.y + textBox.height / 2,
+      };
+      const symbols = [...text.closest('svg').querySelectorAll('path')]
+        .map((path) => {
+          const box = rectOf(path);
+          const center = {
+            x: box.x + box.width / 2,
+            y: box.y + box.height / 2,
+          };
+          return {
+            box,
+            fill: path.getAttribute('fill'),
+            centerDistance: Math.hypot(center.x - textCenter.x, center.y - textCenter.y),
+            containsTextCenter: textCenter.x >= box.x
+              && textCenter.x <= box.x + box.width
+              && textCenter.y >= box.y
+              && textCenter.y <= box.y + box.height,
+          };
+        })
+        .filter(({ box, fill, containsTextCenter }) => (
+          fill && fill !== 'none'
+          && box.width > 0 && box.width <= 64
+          && box.height > 0 && box.height <= 64
+          && containsTextCenter
+        ));
+      return { textBox, symbols };
+    });
+
+    expect(geometry.symbols, `${name} marker symbol candidates`).toHaveLength(1);
+    const symbol = geometry.symbols[0];
+    expect(symbol.centerDistance, `${name} marker symbol distance`).toBeLessThanOrEqual(16);
+    const x = Math.min(geometry.textBox.x, symbol.box.x);
+    const y = Math.min(geometry.textBox.y, symbol.box.y);
+    const right = Math.max(
+      geometry.textBox.x + geometry.textBox.width,
+      symbol.box.x + symbol.box.width,
+    );
+    const bottom = Math.max(
+      geometry.textBox.y + geometry.textBox.height,
+      symbol.box.y + symbol.box.height,
+    );
+    return { x, y, width: right - x, height: bottom - y };
   };
-  const highBox = await markerGroupBox('High');
-  const lowBox = await markerGroupBox('Low');
+  const highBox = await markerPresentationBox('High');
+  const lowBox = await markerPresentationBox('Low');
 
   expect(chartBox).not.toBeNull();
   expect(highBox).not.toBeNull();
