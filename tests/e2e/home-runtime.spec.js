@@ -409,6 +409,40 @@ function expectHomeCardSeparation(geometry) {
   expect(solar.current.bottom).toBeLessThanOrEqual(solar.curtail.top + 0.5);
   expect(greywater.icon.right).toBeLessThanOrEqual(greywater.text.left + 0.5);
 }
+
+async function expectExtremaMarkerGeometry(dialog) {
+  const tolerance = 1;
+  const chartBox = await dialog.locator('.chart-canvas').boundingBox();
+  const highBox = await dialog.locator('text').filter({ hasText: 'High' }).boundingBox();
+  const lowBox = await dialog.locator('text').filter({ hasText: 'Low' }).boundingBox();
+
+  expect(chartBox).not.toBeNull();
+  expect(highBox).not.toBeNull();
+  expect(lowBox).not.toBeNull();
+
+  for (const [name, markerBox] of [['High', highBox], ['Low', lowBox]]) {
+    expect(markerBox.x, `${name} left edge`).toBeGreaterThanOrEqual(chartBox.x - tolerance);
+    expect(markerBox.y, `${name} top edge`).toBeGreaterThanOrEqual(chartBox.y - tolerance);
+    expect(markerBox.x + markerBox.width, `${name} right edge`)
+      .toBeLessThanOrEqual(chartBox.x + chartBox.width + tolerance);
+    expect(markerBox.y + markerBox.height, `${name} bottom edge`)
+      .toBeLessThanOrEqual(chartBox.y + chartBox.height + tolerance);
+  }
+
+  const overlapWidth = Math.min(
+    highBox.x + highBox.width,
+    lowBox.x + lowBox.width,
+  ) - Math.max(highBox.x, lowBox.x);
+  const overlapHeight = Math.min(
+    highBox.y + highBox.height,
+    lowBox.y + lowBox.height,
+  ) - Math.max(highBox.y, lowBox.y);
+  expect(
+    overlapWidth > tolerance && overlapHeight > tolerance,
+    `High/Low labels overlap by ${overlapWidth} x ${overlapHeight}px`,
+  ).toBe(false);
+}
+
 for (const target of TARGETS) {
   test(`Home settled layout is bounded and usable at ${target.name}`, async ({ page }, testInfo) => {
     const runtime = await openHomeFixture(page, target);
@@ -517,6 +551,7 @@ for (const target of TARGETS) {
     await expect(dialog.locator('svg')).toBeVisible();
     await expect(dialog.locator('text').filter({ hasText: 'High' })).toHaveCount(1);
     await expect(dialog.locator('text').filter({ hasText: 'Low' })).toHaveCount(1);
+    await expectExtremaMarkerGeometry(dialog);
     await page.screenshot({ path: testInfo.outputPath('outdoor-extrema.png') });
     await page.getByRole('button', { name: 'Close chart' }).click();
 
@@ -525,6 +560,7 @@ for (const target of TARGETS) {
     await expect(dialog.locator('svg')).toBeVisible();
     await expect(dialog.locator('text').filter({ hasText: 'High' })).toHaveCount(1);
     await expect(dialog.locator('text').filter({ hasText: 'Low' })).toHaveCount(1);
+    await expectExtremaMarkerGeometry(dialog);
     await page.screenshot({ path: testInfo.outputPath('battery-extrema.png') });
     await page.getByRole('button', { name: 'Close chart' }).click();
 

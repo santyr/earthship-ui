@@ -61,6 +61,68 @@ describe('history extrema markers', () => {
       .toBe('SoC: High 87.556%, Low 41.25%.');
   });
 
+  it('separates High and Low pins for a flat series without changing either record', () => {
+    const markPoint = buildExtremaMarkPoint([
+      { time: 100, value: 62, rawValue: 62 },
+      { time: 200, value: 62, rawValue: 62 },
+    ], {
+      markers: ['min', 'max'],
+      unit: '%',
+    });
+
+    expect(markPoint.data).toEqual([
+      {
+        name: 'High',
+        coord: [100, 62],
+        value: 62,
+        markerUnit: '%',
+        symbolOffset: [-28, 0],
+      },
+      {
+        name: 'Low',
+        coord: [100, 62],
+        value: 62,
+        markerUnit: '%',
+        symbolOffset: [28, 0],
+      },
+    ]);
+    expect(describeExtremaMarkers([{ name: 'SoC', markPoint }]))
+      .toBe('SoC: High 62%, Low 62%.');
+  });
+
+  it('separates both extrema pins for a single-point series', () => {
+    const markPoint = buildExtremaMarkPoint([
+      { time: 100, value: 71.25, rawValue: 71.25 },
+    ], {
+      markers: ['min', 'max'],
+      unit: '°',
+    });
+
+    expect(markPoint.data).toHaveLength(2);
+    expect(markPoint.data.map(({ name, coord, value, markerUnit, symbolOffset }) => ({
+      name,
+      coord,
+      value,
+      markerUnit,
+      symbolOffset,
+    }))).toEqual([
+      {
+        name: 'High',
+        coord: [100, 71.25],
+        value: 71.25,
+        markerUnit: '°',
+        symbolOffset: [-28, 0],
+      },
+      {
+        name: 'Low',
+        coord: [100, 71.25],
+        value: 71.25,
+        markerUnit: '°',
+        symbolOffset: [28, 0],
+      },
+    ]);
+  });
+
   it('supports either marker independently', () => {
     const points = [
       { time: 100, value: 10, rawValue: 10 },

@@ -102,10 +102,12 @@
         legendTop: 8,
         legendFontSize: 12,
       });
-      extremaDescription = describeExtremaMarkers(option.series);
+      const nextExtremaDescription = describeExtremaMarkers(option.series);
       chart.setOption(option, true);
+      extremaDescription = nextExtremaDescription;
       chart.resize();
     } catch (error) {
+      extremaDescription = '';
       errorMessage = error?.message || 'History could not be rendered';
       loadState = 'error';
       disposeChart();
@@ -197,6 +199,7 @@
     if (state.open && state.openId !== observedOpenId) {
       observedOpenId = state.openId;
       activeHours = snapHistoryPeriod(state.initialHours ?? state.hours ?? 24);
+      extremaDescription = '';
       loadState = 'loading';
       startRefresh(state.openId);
       const openId = state.openId;

@@ -63,6 +63,14 @@ export function buildExtremaMarkPoint(points = [], {
     data.push(markerRecord('Low', extrema.min, unit));
   }
   if (!data.length) return undefined;
+  if (
+    data.length === 2
+    && data[0].coord[0] === data[1].coord[0]
+    && data[0].coord[1] === data[1].coord[1]
+  ) {
+    data[0].symbolOffset = [-28, 0];
+    data[1].symbolOffset = [28, 0];
+  }
   return {
     symbol: 'pin',
     symbolSize: 52,

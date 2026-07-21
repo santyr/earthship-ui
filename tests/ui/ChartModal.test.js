@@ -247,6 +247,73 @@ describe('ChartModal history periods', () => {
     expect(description.textContent).toMatch(/history request timed out after 15 seconds/i);
   });
 
+  it('clears stale extrema immediately while a reopened modal is loading', async () => {
+    mocks.getHistory.mockResolvedValueOnce([
+      { time: 100, state: '62 %' },
+      { time: 200, state: '71 %' },
+    ]);
+
+    render(ChartModal);
+    const chartConfig = {
+      title: 'Battery SoC',
+      series: [{
+        name: 'BMS_SOC',
+        label: 'SoC',
+        color: '#22c55e',
+        markers: ['min', 'max'],
+        markerUnit: '%',
+      }],
+      hours: 24,
+    };
+    openChart(chartConfig);
+
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+    let dialog = screen.getByRole('dialog', { name: 'Battery SoC' });
+    let description = document.getElementById(dialog.getAttribute('aria-describedby'));
+    expect(description.textContent).toMatch(/SoC: High 71%, Low 62%/);
+
+    closeChart();
+    flushSync();
+    mocks.getHistory.mockImplementationOnce(() => new Promise(() => {}));
+    openChart(chartConfig);
+    flushSync();
+
+    dialog = screen.getByRole('dialog', { name: 'Battery SoC' });
+    description = document.getElementById(dialog.getAttribute('aria-describedby'));
+    expect(description.textContent).toMatch(/Loading history/);
+    expect(description.textContent).not.toMatch(/SoC: High 71%, Low 62%/);
+  });
+
+  it('does not announce extrema when the chart option fails to render', async () => {
+    mocks.getHistory.mockResolvedValueOnce([
+      { time: 100, state: '41 %' },
+      { time: 200, state: '88 %' },
+    ]);
+    mocks.chart.setOption.mockImplementationOnce(() => {
+      throw new Error('render failed');
+    });
+
+    render(ChartModal);
+    openChart({
+      title: 'Battery SoC',
+      series: [{
+        name: 'BMS_SOC',
+        label: 'SoC',
+        color: '#22c55e',
+        markers: ['min', 'max'],
+        markerUnit: '%',
+      }],
+      hours: 24,
+    });
+
+    expect(await screen.findByText('History unavailable')).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Battery SoC' });
+    const description = document.getElementById(dialog.getAttribute('aria-describedby'));
+    expect(mocks.chart.setOption).toHaveBeenCalledWith(expect.any(Object), true);
+    expect(description.textContent).toMatch(/render failed/);
+    expect(description.textContent).not.toMatch(/SoC: High 88%, Low 41%/);
+  });
+
   it('recomputes and announces extrema when the selected period changes', async () => {
     mocks.getHistory
       .mockResolvedValueOnce([
