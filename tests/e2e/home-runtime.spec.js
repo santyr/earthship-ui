@@ -135,11 +135,16 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
     const name = decodeURIComponent(url.pathname.split('/').at(-1));
     historyRequests.push(name);
     const now = Date.now();
+    const stateForHistory = (index) => {
+      if (name === 'BMS_SOC') return 62;
+      if (name === 'Forecast_Temp') return 64 + index / 4;
+      return 50 + index / 2;
+    };
     return route.fulfill({
       json: {
         data: Array.from({ length: 24 }, (_, index) => ({
           time: now - (23 - index) * 15 * 60_000,
-          state: String(50 + index / 2),
+          state: String(stateForHistory(index)),
         })),
       },
     });
@@ -413,19 +418,27 @@ function expectHomeCardSeparation(geometry) {
 async function expectExtremaMarkerGeometry(dialog) {
   const tolerance = 1;
   const chartBox = await dialog.locator('.chart-canvas').boundingBox();
-  const highBox = await dialog.locator('text').filter({ hasText: 'High' }).boundingBox();
-  const lowBox = await dialog.locator('text').filter({ hasText: 'Low' }).boundingBox();
+  const markerGroupBox = async (name) => {
+    const markerText = dialog.locator('text').filter({ hasText: name });
+    const markerGroup = markerText.locator('xpath=parent::*');
+    await expect(markerGroup.locator('path')).toHaveCount(1);
+    return markerGroup.boundingBox();
+  };
+  const highBox = await markerGroupBox('High');
+  const lowBox = await markerGroupBox('Low');
 
   expect(chartBox).not.toBeNull();
   expect(highBox).not.toBeNull();
   expect(lowBox).not.toBeNull();
 
   for (const [name, markerBox] of [['High', highBox], ['Low', lowBox]]) {
-    expect(markerBox.x, `${name} left edge`).toBeGreaterThanOrEqual(chartBox.x - tolerance);
-    expect(markerBox.y, `${name} top edge`).toBeGreaterThanOrEqual(chartBox.y - tolerance);
-    expect(markerBox.x + markerBox.width, `${name} right edge`)
+    expect(markerBox.x, `${name} complete marker left edge`)
+      .toBeGreaterThanOrEqual(chartBox.x - tolerance);
+    expect(markerBox.y, `${name} complete marker top edge`)
+      .toBeGreaterThanOrEqual(chartBox.y - tolerance);
+    expect(markerBox.x + markerBox.width, `${name} complete marker right edge`)
       .toBeLessThanOrEqual(chartBox.x + chartBox.width + tolerance);
-    expect(markerBox.y + markerBox.height, `${name} bottom edge`)
+    expect(markerBox.y + markerBox.height, `${name} complete marker bottom edge`)
       .toBeLessThanOrEqual(chartBox.y + chartBox.height + tolerance);
   }
 
@@ -439,7 +452,7 @@ async function expectExtremaMarkerGeometry(dialog) {
   ) - Math.max(highBox.y, lowBox.y);
   expect(
     overlapWidth > tolerance && overlapHeight > tolerance,
-    `High/Low labels overlap by ${overlapWidth} x ${overlapHeight}px`,
+    `High/Low marker groups overlap by ${overlapWidth} x ${overlapHeight}px`,
   ).toBe(false);
 }
 

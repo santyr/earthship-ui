@@ -68,8 +68,8 @@ export function buildExtremaMarkPoint(points = [], {
     && data[0].coord[0] === data[1].coord[0]
     && data[0].coord[1] === data[1].coord[1]
   ) {
-    data[0].symbolOffset = [-28, 0];
-    data[1].symbolOffset = [28, 0];
+    data[0].symbolOffset = [0, -28];
+    data[1].symbolOffset = [0, 28];
   }
   return {
     symbol: 'pin',

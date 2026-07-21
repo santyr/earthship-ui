@@ -76,14 +76,14 @@ describe('history extrema markers', () => {
         coord: [100, 62],
         value: 62,
         markerUnit: '%',
-        symbolOffset: [-28, 0],
+        symbolOffset: [0, -28],
       },
       {
         name: 'Low',
         coord: [100, 62],
         value: 62,
         markerUnit: '%',
-        symbolOffset: [28, 0],
+        symbolOffset: [0, 28],
       },
     ]);
     expect(describeExtremaMarkers([{ name: 'SoC', markPoint }]))
@@ -111,14 +111,14 @@ describe('history extrema markers', () => {
         coord: [100, 71.25],
         value: 71.25,
         markerUnit: '°',
-        symbolOffset: [-28, 0],
+        symbolOffset: [0, -28],
       },
       {
         name: 'Low',
         coord: [100, 71.25],
         value: 71.25,
         markerUnit: '°',
-        symbolOffset: [28, 0],
+        symbolOffset: [0, 28],
       },
     ]);
   });
