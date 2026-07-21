@@ -38,6 +38,23 @@ landscape viewport (1340×800).
 
 [![Controls page](docs/screenshots/controls.png)](docs/screenshots/controls.png)
 
+### Detail modals
+
+Tapping a tile opens its full history chart (with high/low extrema markers);
+tapping a forecast day opens an hourly breakdown.
+
+#### Outdoor temperature chart
+
+[![Outdoor temperature chart modal](docs/screenshots/modal-outdoor-chart.png)](docs/screenshots/modal-outdoor-chart.png)
+
+#### Battery SoC chart
+
+[![Battery SoC chart modal](docs/screenshots/modal-battery-chart.png)](docs/screenshots/modal-battery-chart.png)
+
+#### Weather day detail
+
+[![Weather day detail modal](docs/screenshots/modal-weather-detail.png)](docs/screenshots/modal-weather-detail.png)
+
 ## Service operations
 
 The household runtime is the user-level `earthship-ui.service`, which serves
