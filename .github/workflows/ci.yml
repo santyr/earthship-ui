@@ -1,0 +1,25 @@
+# Minimal CI for the household console: unit suite (~4s), production build,
+# and the Python forecast-pipeline tests. Playwright e2e specs are excluded
+# from unit runs (vite.config.js test.exclude) and self-host a Vite server,
+# so they stay local-only for now.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run
+      - run: npm run build
+      - run: pip install pytest
+      - run: python3 -m pytest openhab/scripts/ -q
