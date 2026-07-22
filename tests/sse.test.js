@@ -246,6 +246,52 @@ describe('createSSE connection', () => {
   });
 
 
+  it('does not fire onReconnect on the very first open (no double-fetch storm at boot)', () => {
+    const onReconnect = vi.fn();
+    const sse = makeSSE({ onReconnect });
+    sse.start();
+    FakeES.instances[0].onopen();
+
+    expect(onReconnect).not.toHaveBeenCalled();
+  });
+
+  it('fires onReconnect once per re-open after a dropped connection', () => {
+    const onReconnect = vi.fn();
+    const sse = makeSSE({ onReconnect });
+    sse.start();
+    const first = FakeES.instances[0];
+    first.onopen();
+    expect(onReconnect).not.toHaveBeenCalled();
+
+    // Connection drops; backoff reconnect creates a second EventSource.
+    first.onerror();
+    vi.advanceTimersByTime(1000);
+    expect(FakeES.instances.length).toBe(2);
+    const second = FakeES.instances[1];
+
+    second.onopen();
+    expect(onReconnect).toHaveBeenCalledTimes(1);
+
+    // A second drop/re-open cycle resyncs again.
+    second.onerror();
+    vi.advanceTimersByTime(2000);
+    FakeES.instances[2].onopen();
+    expect(onReconnect).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats the first open after stop()+start() as a fresh boot, not a reconnect', () => {
+    const onReconnect = vi.fn();
+    const sse = makeSSE({ onReconnect });
+    sse.start();
+    FakeES.instances[0].onopen();
+    sse.stop();
+
+    sse.start();
+    FakeES.instances[1].onopen();
+
+    expect(onReconnect).not.toHaveBeenCalled();
+  });
+
   it('subscribes to and forwards Thing status without conflating it with item state', () => {
     const onState = vi.fn();
     const onThingStatus = vi.fn();

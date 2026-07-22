@@ -38,7 +38,7 @@
     uvIndexColor,
     windSpeedColor,
   } from '../lib/ui/homeCardState.js';
-  import { items, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
+  import { items, num, fmt, socBands, runtimeText, splitRoundedMinutes, getClientOnce } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
   import {
@@ -204,8 +204,8 @@
     if (Number.isNaN(r.getTime()) || Number.isNaN(s.getTime())) return '—';
     const diffMs = s - r;
     if (diffMs <= 0) return '—';
-    const h = Math.floor(diffMs / 3600000);
-    const m = Math.round((diffMs % 3600000) / 60000);
+    // Round to whole minutes first, then carry into hours (never "14h 60m").
+    const { hours: h, minutes: m } = splitRoundedMinutes(diffMs / 60000);
     return `${h}h ${m}m`;
   }
 

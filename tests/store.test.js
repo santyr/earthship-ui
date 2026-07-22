@@ -8,6 +8,7 @@ import {
   clientReady,
   connection,
   getClientOnce,
+  getItemLastUpdated,
   items,
   thingStatuses,
 } from '../src/lib/openhab/store.js';
@@ -77,6 +78,19 @@ describe('store', () => {
     });
 
     expect(get(thingStatuses)['tplinksmarthome:kl125:E7FA31'].status).toBe('ONLINE');
+  });
+
+  it('records a lastUpdated timestamp per item on snapshot and statechanged', () => {
+    const before = Date.now();
+    applySnapshot([{ name: 'TS_A', state: '1' }]);
+    applyState('TS_B', '2');
+    const after = Date.now();
+
+    const seen = getItemLastUpdated();
+    expect(seen.TS_A).toBeGreaterThanOrEqual(before);
+    expect(seen.TS_A).toBeLessThanOrEqual(after);
+    expect(seen.TS_B).toBeGreaterThanOrEqual(before);
+    expect(seen.TS_B).toBeLessThanOrEqual(after);
   });
 
   it('connection defaults to connecting', () => {

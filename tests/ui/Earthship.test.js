@@ -24,7 +24,12 @@ afterEach(() => {
   cleanup();
   closeChart();
   items.set({});
+  vi.useRealTimers();
 });
+
+function setItems(extra = {}) {
+  items.update((current) => ({ ...current, ...extra }));
+}
 
 describe('Earthship four-zone thermal contract', () => {
   it('opens history in physical left-to-right order using the four live items', async () => {
@@ -45,5 +50,59 @@ describe('Earthship four-zone thermal contract', () => {
       'Shelly_HT1_Indoor_Temperature',
       'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature',
     ]);
+  });
+});
+
+describe('Earthship greywater honesty', () => {
+  it('renders Unavailable when the switch state is missing, matching Home semantics', () => {
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-state').textContent).toBe('Unavailable');
+  });
+
+  it.each([
+    ['NULL', 'Unavailable'],
+    ['UNDEF', 'Unavailable'],
+    ['OFF', 'Idle'],
+    ['ON', 'Running'],
+  ])('renders switch state %s as %s', (state, label) => {
+    setItems({ SouthOutlet_Outlet2_Switch: state });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-state').textContent).toBe(label);
+  });
+
+  it('lights the running dot only for ON', () => {
+    setItems({ SouthOutlet_Outlet2_Switch: 'ON' });
+    const running = render(Earthship);
+    expect(running.container.querySelector('.gw-dot.active')).not.toBeNull();
+    cleanup();
+
+    setItems({ SouthOutlet_Outlet2_Switch: 'NULL' });
+    const unavailable = render(Earthship);
+    expect(unavailable.container.querySelector('.gw-dot.active')).toBeNull();
+  });
+
+  it('carries fallback minutes into hours without a "1h 60m" boundary', () => {
+    setItems({ SouthOutlet_AutoStatus: 'reason=waiting_for_solar,fallbackInMin=119.6' });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-status').textContent)
+      .toBe('waiting for solar · fallback in 2h 0m');
+  });
+});
+
+describe('Earthship last-run wall clock', () => {
+  it('advances the "last run" label on a quiet stream via the minute tick', async () => {
+    vi.useFakeTimers();
+    const { tick } = await import('../../node_modules/svelte/src/index-client.js');
+    setItems({
+      SouthOutlet_LastAutoRun: new Date(Date.now() - 2 * 60_000).toISOString(),
+    });
+    const { container } = render(Earthship);
+    const footer = () => container.querySelector('.gw-footer span').textContent;
+    expect(footer()).toBe('last run 2 m ago');
+
+    // No item changes at all — only wall-clock time passes.
+    vi.advanceTimersByTime(10 * 60_000);
+    await tick();
+    expect(footer()).toBe('last run 12 m ago');
   });
 });

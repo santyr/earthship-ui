@@ -21,10 +21,25 @@ export function getClientOnce() {
   return _client;
 }
 
+// Per-item wall-clock of the last snapshot/statechanged write. Feeds the
+// item-staleness alerts (src/lib/alerts/staleness.js): a dead sensor stops
+// producing statechanged events, so "last written" is the honest freshness
+// signal the UI has.
+const itemLastUpdated = {};
+
+export function getItemLastUpdated() {
+  return { ...itemLastUpdated };
+}
+
 export function applySnapshot(arr) {
-  items.update((m) => { for (const it of arr) m[it.name] = it.state; return { ...m }; });
+  const at = Date.now();
+  items.update((m) => {
+    for (const it of arr) { m[it.name] = it.state; itemLastUpdated[it.name] = at; }
+    return { ...m };
+  });
 }
 export function applyState(name, value) {
+  itemLastUpdated[name] = Date.now();
   items.update((m) => { m[name] = value; return { ...m }; });
 }
 
@@ -55,22 +70,64 @@ export function applyThingStatus(uid, statusInfo) {
   thingStatuses.update((current) => ({ ...current, [uid]: normalizeThingStatus(statusInfo) }));
 }
 
-export async function initOpenhab(config) {
-  const client = createClient(config);
-  _client = client;
+// Initial-snapshot retry: this display reboots together with openHAB, so the
+// first getAllItems() regularly races openHAB's startup. Retry forever with
+// capped doubling backoff — the wall display must self-heal, never sit dead
+// behind an unhandled rejection until someone reloads it.
+const INITIAL_SNAPSHOT_RETRY_BASE_MS = 2_000;
+const INITIAL_SNAPSHOT_RETRY_MAX_MS = 30_000;
+
+async function fetchSnapshots(client) {
   const [itemSnapshot, thingSnapshot] = await Promise.all([
     client.getAllItems(),
     client.getAllThings().catch(() => []),
   ]);
   applySnapshot(itemSnapshot);
   applyThingSnapshot(thingSnapshot);
+}
+
+// Re-fetch after an SSE reconnect: statechanged events that happened during
+// the outage never replay, so without this the display stays stale forever
+// under a green "live" badge. A failed resync is swallowed — if openHAB drops
+// again the SSE loop reconnects and fires this hook once more.
+async function resyncSnapshots(client) {
+  try {
+    await fetchSnapshots(client);
+  } catch {
+    /* next reconnect retries */
+  }
+}
+
+export async function initOpenhab(config, {
+  clientFactory = createClient,
+  sseFactory = createSSE,
+  retryBaseMs = INITIAL_SNAPSHOT_RETRY_BASE_MS,
+  retryMaxMs = INITIAL_SNAPSHOT_RETRY_MAX_MS,
+} = {}) {
+  const client = clientFactory(config);
+  _client = client;
+  let delay = retryBaseMs;
+  for (;;) {
+    try {
+      await fetchSnapshots(client);
+      break;
+    } catch {
+      connection.set('connecting');
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 2, retryMaxMs);
+    }
+  }
   clientReady.set(true);
-  const sse = createSSE({
+  // SSE starts only once the first snapshot has landed (ordering preserved):
+  // statechanged deltas without a base snapshot would render a misleading
+  // partial picture.
+  const sse = sseFactory({
     ...config,
     staleSeconds: config.staleBannerSeconds,
     onState: applyState,
     onThingStatus: applyThingStatus,
     onStatus: (s) => connection.set(s),
+    onReconnect: () => resyncSnapshots(client),
   });
   sse.start();
   return client;

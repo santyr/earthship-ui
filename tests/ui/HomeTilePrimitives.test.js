@@ -9,6 +9,7 @@ vi.mock('svelte', async () => import(
 
 import StatTile from '../../src/lib/ui/StatTile.svelte';
 import Tile from '../../src/lib/ui/Tile.svelte';
+import { iconCollectionsReady } from '../../src/lib/ui/OhIcon.svelte';
 
 afterEach(cleanup);
 
@@ -28,7 +29,7 @@ describe('Home tile primitive APIs', () => {
     expect(screen.queryByText('Outdoor')).toBeNull();
   });
 
-  it('owns optional value/footer size variables on the StatTile root', () => {
+  it('owns optional value/footer size variables on the StatTile root', async () => {
     const { container } = render(StatTile, {
       props: {
         label: 'Rain',
@@ -53,6 +54,7 @@ describe('Home tile primitive APIs', () => {
     expect(container.querySelector('[data-stat-content-centered]')).toBeInTheDocument();
     expect(root).toHaveAttribute('data-tile-center-body');
     expect(container.querySelector('.stat.stacked')).toBeInTheDocument();
+    await iconCollectionsReady;
     expect(container.querySelector('.state-icon svg')).toBeInTheDocument();
     expect(container.querySelector('.state-icon')).toHaveStyle({ color: '#3b82f6' });
     expect(container.querySelector('.value')).toHaveTextContent('0.42″ / 733 gal');

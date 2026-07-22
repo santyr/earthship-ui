@@ -1,9 +1,35 @@
 import { describe, it, expect } from 'vitest';
-import { num, fmt, socBands, runtimeText, rainAmountText } from '../src/lib/openhab/values.js';
+import {
+  num,
+  fmt,
+  socBands,
+  runtimeText,
+  rainAmountText,
+  splitRoundedMinutes,
+} from '../src/lib/openhab/values.js';
 
 describe('num', () => {
   it('strips units and parses a numeric state', () => {
     expect(num('53.42 V')).toBe(53.42);
+  });
+  it('parses common QuantityType unit suffixes', () => {
+    expect(num('12.3 mph')).toBe(12.3);
+    expect(num('-4.2 A')).toBe(-4.2);
+    expect(num('88.9 °F')).toBe(88.9);
+  });
+  it('preserves scientific notation instead of corrupting the exponent', () => {
+    expect(num('1.0E-4 in')).toBe(1e-4);
+    expect(num('1.0E-4')).toBe(1e-4);
+    expect(num('2.5e3 W')).toBe(2500);
+  });
+  it('parses plain numbers unchanged', () => {
+    expect(num(42)).toBe(42);
+    expect(num('-12.6')).toBe(-12.6);
+    expect(num(0)).toBe(0);
+  });
+  it('returns null for non-numeric-leading strings', () => {
+    expect(num('abc123')).toBeNull();
+    expect(num('ON')).toBeNull();
   });
   it('returns null for NULL', () => {
     expect(num('NULL')).toBeNull();
@@ -100,6 +126,24 @@ describe('runtimeText', () => {
   });
   it('returns em-dash for null', () => {
     expect(runtimeText(null)).toBe('—');
+  });
+  it('rounds to whole minutes before carrying into hours (no "1 h 60 m")', () => {
+    expect(runtimeText(119.6)).toBe('2 h 0 m');
+    expect(runtimeText(59.6)).toBe('1 h 0 m');
+    expect(runtimeText(1439.7)).toBe('24 h 0 m');
+  });
+  it('carries whole hours into days (no "2 d 24 h")', () => {
+    expect(runtimeText(4289.9)).toBe('3 d 0 h');
+    expect(runtimeText(2879.7)).toBe('2 d 0 h');
+  });
+});
+
+describe('splitRoundedMinutes', () => {
+  it('rounds to whole minutes first, then splits into hours and minutes', () => {
+    expect(splitRoundedMinutes(119.6)).toEqual({ total: 120, hours: 2, minutes: 0 });
+    expect(splitRoundedMinutes(320)).toEqual({ total: 320, hours: 5, minutes: 20 });
+    expect(splitRoundedMinutes(59.4)).toEqual({ total: 59, hours: 0, minutes: 59 });
+    expect(splitRoundedMinutes(59.6)).toEqual({ total: 60, hours: 1, minutes: 0 });
   });
 });
 

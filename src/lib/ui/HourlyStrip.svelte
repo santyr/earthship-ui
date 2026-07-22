@@ -11,6 +11,7 @@
   // (Weather.svelte passes the first 14 entries of Forecast_Hourly_JSON).
   import { onMount, onDestroy } from 'svelte';
   import { getEcharts } from '../charts/loadEcharts.js';
+  import { escapeHtml } from '../charts/options.js';
   import { echartsTheme, colors } from './tokens.js';
   import { num, rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
@@ -73,8 +74,11 @@
           const t = num(row.t);
           const p = num(row.p);
           const r = num(row.r);
+          // row.h comes un-validated from JSON.parse of an item state and
+          // ECharts renders this string as HTML — escape it so a malformed
+          // or compromised item can never script the display origin.
           return [
-            `<b>${row.h ?? ''}</b>`,
+            `<b>${escapeHtml(row.h ?? '')}</b>`,
             `temp: ${t === null ? '—' : Math.round(t) + '°'}`,
             `precip: ${p === null ? '—' : Math.round(p) + '%'}`,
             `radiation: ${r === null ? '—' : Math.round(r) + ' W/m²'}`,
@@ -116,10 +120,26 @@
     };
   }
 
+  function disposeChart() {
+    chart?.dispose();
+    chart = null;
+  }
+
   async function render() {
-    if (!el) return;
+    // When `hours` empties (transient NULL forecast item) the chart div
+    // unmounts; the instance must be disposed so the next refill re-inits
+    // on the NEW element instead of painting a detached node (which left
+    // the panel permanently blank and leaked the instance).
+    if (!el) {
+      disposeChart();
+      return;
+    }
     const echarts = await getEcharts();
-    if (!el) return;
+    if (!el) {
+      disposeChart();
+      return;
+    }
+    if (chart && chart.getDom?.() !== el) disposeChart();
     if (!chart) chart = echarts.init(el, null, { renderer: 'svg' });
     chart.setOption(buildOption(hours ?? []), true);
     chart.resize();
@@ -134,13 +154,11 @@
 
   $effect(() => {
     void hours;
+    void el;
     render();
   });
 
-  onDestroy(() => {
-    chart?.dispose();
-    chart = null;
-  });
+  onDestroy(disposeChart);
 </script>
 
 <div class="hourly-strip">

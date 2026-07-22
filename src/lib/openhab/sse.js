@@ -34,12 +34,15 @@ export function parseThingStatusSSEMessage(raw) {
   };
 }
 
-export function createSSE({ openhabUrl, apiToken, onState, onThingStatus = () => {}, onStatus, staleSeconds = 90 }) {
+export function createSSE({
+  openhabUrl, apiToken, onState, onThingStatus = () => {}, onStatus,
+  onReconnect = () => {}, staleSeconds = 90,
+}) {
   const base = openhabUrl.replace(/\/$/, '');
   const topics = 'openhab/items/*/statechanged,openhab/things/*/status';
   const url = `${base}/rest/events?topics=${encodeURIComponent(topics)}`;
   let es = null, backoff = 1000, staleTimer = null, offlineTimer = null, stopped = false;
-  let reconnectTimer = null, lastStatus = null;
+  let reconnectTimer = null, lastStatus = null, hasOpened = false;
   function setStatus(s) {
     if (s !== lastStatus) { lastStatus = s; onStatus(s); }
   }
@@ -57,7 +60,18 @@ export function createSSE({ openhabUrl, apiToken, onState, onThingStatus = () =>
     // token-in-query only for explicit direct-OpenHAB development configs.
     const eventUrl = apiToken ? `${url}&accessToken=${encodeURIComponent(apiToken)}` : url;
     es = new EventSource(eventUrl);
-    es.onopen = () => { backoff = 1000; setStatus('live'); armTimers(); };
+    es.onopen = () => {
+      backoff = 1000;
+      // Items that changed while the stream was down never replay as
+      // statechanged events, so every open AFTER the first one triggers a
+      // snapshot resync. The very first open is skipped: the caller has just
+      // fetched the boot snapshot (no double-fetch storm at startup).
+      const isReconnect = hasOpened;
+      hasOpened = true;
+      setStatus('live');
+      armTimers();
+      if (isReconnect) onReconnect();
+    };
     es.onmessage = (e) => {
       const itemState = parseSSEMessage(e.data);
       if (itemState) {
@@ -81,7 +95,7 @@ export function createSSE({ openhabUrl, apiToken, onState, onThingStatus = () =>
     };
   }
   return {
-    start() { stopped = false; backoff = 1000; connect(); },
+    start() { stopped = false; backoff = 1000; hasOpened = false; connect(); },
     stop() {
       stopped = true;
       clearTimeout(staleTimer); clearTimeout(offlineTimer); clearTimeout(reconnectTimer);

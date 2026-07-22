@@ -10,10 +10,14 @@
   import WeatherDetailModal from './lib/ui/WeatherDetailModal.svelte';
   import { currentRoute } from './routes.js';
   import { initOpenhab } from './lib/openhab/index.js';
+  import { startStalenessMonitor } from './lib/alerts/alertStore.js';
   import { loadConfig } from './lib/config.js';
 
-  onMount(async () => {
-    initOpenhab(await loadConfig());
+  onMount(() => {
+    loadConfig().then((config) => initOpenhab(config));
+    // Item-staleness alerts: periodic check that essential telemetry is
+    // still flowing; the returned stop() is onMount's cleanup.
+    return startStalenessMonitor();
   });
 
   // Home (Task 3.1), Energy (Task 4.1), Weather (Task 5.1), and Earthship

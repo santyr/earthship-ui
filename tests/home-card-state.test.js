@@ -163,6 +163,14 @@ describe('Home signed card state colors', () => {
     expect(maxHistoryValue(null)).toBeNull();
   });
 
+  it('reads unit-carrying wind gust history rows instead of discarding them', () => {
+    expect(maxHistoryValue([
+      { state: '8.5 mph' },
+      { state: '17.2 mph' },
+      { state: 'UNDEF' },
+    ])).toBe(17.2);
+  });
+
   it.each([
     [1, HOME_STATE_COLORS.positive],
     [-1, HOME_STATE_COLORS.negative],
@@ -359,6 +367,18 @@ describe('Home signed card state colors', () => {
     expect(batteryDirectionState(status, current)).toEqual({ text, glyph, color });
   });
 
+  it('reads unit-suffixed QuantityType battery current honestly', () => {
+    expect(batteryDirectionState('OFF', '-4.2 A')).toEqual({
+      text: 'discharging', glyph: '▼', color: '#f59e0b',
+    });
+    expect(batteryDirectionState('OFF', '4.2 A')).toEqual({
+      text: 'charging', glyph: '▲', color: HOME_STATE_COLORS.positive,
+    });
+    expect(batteryDirectionState('OFF', '0 A')).toEqual({
+      text: 'idle', glyph: '●', color: HOME_STATE_COLORS.neutral,
+    });
+  });
+
   it.each([
     ['iconify:mdi:battery-60', 'iconify:mdi:battery-60'],
     [null, 'iconify:mdi:battery'],
@@ -489,6 +509,12 @@ describe('Home signed card state colors', () => {
     expect(home).not.toMatch(/\.rain-cell\s+:global/);
     expect(home).toMatch(/\{#if rainRateLabel\}[\s\S]*class="rain-rate-chip"/);
     expect(home).toMatch(/\.sunmoon-body\s*\{[^}]*justify-content:\s*center/is);
+  });
+
+  it('rounds daylight to whole minutes before carrying into hours', () => {
+    // Boundary bug: 14 h 59.7 m must render "15h 0m", never "14h 60m".
+    expect(home).toContain('splitRoundedMinutes');
+    expect(home).not.toContain('Math.round((diffMs % 3600000) / 60000)');
   });
 
   it('uses stronger smoothing only for the compact Baro sparkline', () => {

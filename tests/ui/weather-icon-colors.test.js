@@ -35,6 +35,7 @@ vi.mock('../../src/lib/charts/loadEcharts.js', () => ({
 import DailyForecast from '../../src/lib/ui/DailyForecast.svelte';
 import HourlyStrip from '../../src/lib/ui/HourlyStrip.svelte';
 import WeatherDetailModal from '../../src/lib/ui/WeatherDetailModal.svelte';
+import { iconCollectionsReady } from '../../src/lib/ui/OhIcon.svelte';
 import { CONDITION_COLORS } from '../../src/lib/ui/wmo.js';
 import { items } from '../../src/lib/openhab/store.js';
 import {
@@ -65,6 +66,10 @@ const unmappedDay = {
   summary: { weatherCode: 44, highF: 80, lowF: 55, precipPct: 10, pvKwh: 3 },
   hours: [],
 };
+
+// Icon collections are split async chunks now; await them once so every
+// render below produces its <svg> synchronously.
+beforeEach(() => iconCollectionsReady);
 
 afterEach(cleanup);
 

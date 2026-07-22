@@ -5,11 +5,30 @@
   // Wall (Shelly H&T) -> Outdoor (WS2902A ambient sensor).
   // Mirrors the dark-console aesthetic (Tile chrome, tokens.colors,
   // click-to-chart via openChart) established on Home/Energy/Weather.
+  import { onMount, onDestroy } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import ThermalLoop from '../lib/ui/ThermalLoop.svelte';
   import { colors } from '../lib/ui/tokens.js';
-  import { items, num, fmt } from '../lib/openhab';
+  import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
+  import { items, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
+
+  // Minute wall clock (mirrors Home.svelte): "last run … ago" must keep
+  // advancing on a quiet stream, not only when $items identity changes.
+  const WALL_CLOCK_REFRESH_MS = 60000; // one minute
+  let wallClock = $state(Date.now());
+  let wallClockTimer;
+
+  onMount(() => {
+    wallClock = Date.now();
+    wallClockTimer = setInterval(() => {
+      wallClock = Date.now();
+    }, WALL_CLOCK_REFRESH_MS);
+  });
+
+  onDestroy(() => {
+    if (wallClockTimer) clearInterval(wallClockTimer);
+  });
 
   function onKeyActivate(e, fn) {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -112,7 +131,10 @@
   );
 
   // ---- Greywater — South planter aerobic circulation -------------------------
-  const gwRunning = $derived($items.SouthOutlet_Outlet2_Switch === 'ON');
+  // Shared with Home: ON -> Running, OFF -> Idle, NULL/UNDEF/missing ->
+  // Unavailable (an unknown switch state must not masquerade as "Idle").
+  const gwState = $derived(greywaterState($items.SouthOutlet_Outlet2_Switch));
+  const gwRunning = $derived(gwState.label === 'Running');
 
   function parseKV(raw) {
     if (!raw || raw === 'NULL' || raw === 'UNDEF') return {};
@@ -133,10 +155,10 @@
   function minsToText(v) {
     const n = num(v);
     if (n === null || n < 0) return null;
-    if (n < 60) return `${Math.round(n)}m`;
-    const h = Math.floor(n / 60);
-    const m = Math.round(n % 60);
-    return `${h}h ${m}m`;
+    // Round to whole minutes first, then carry into hours (never "1h 60m").
+    const { total, hours, minutes } = splitRoundedMinutes(n);
+    if (total < 60) return `${total}m`;
+    return `${hours}h ${minutes}m`;
   }
   const gwStatusText = $derived.by(() => {
     const kv = parseKV($items.SouthOutlet_AutoStatus);
@@ -147,19 +169,7 @@
     return text;
   });
 
-  function agoText(iso) {
-    if (!iso || iso === 'NULL' || iso === 'UNDEF') return '—';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '—';
-    const diffMs = Date.now() - d.getTime();
-    if (diffMs < 0) return '—';
-    const min = diffMs / 60000;
-    if (min < 60) return `${Math.round(min)} m ago`;
-    const hr = min / 60;
-    if (hr < 24) return `${Math.round(hr)} h ago`;
-    return `${Math.round(hr / 24)} d ago`;
-  }
-  const gwLastAgo = $derived(agoText($items.SouthOutlet_LastAutoRun));
+  const gwLastAgo = $derived(relativeAgeText($items.SouthOutlet_LastAutoRun, wallClock));
 
   // ---- Zone humidity ---------------------------------------------------------
   const humidityZones = $derived([
@@ -227,7 +237,7 @@
         <div class="gw-top">
           <span class="gw-dot" class:active={gwRunning}></span>
           <div class="gw-text">
-            <div class="gw-state">{gwRunning ? 'Running' : 'Idle'}</div>
+            <div class="gw-state">{gwState.label}</div>
             <div class="gw-status">{gwStatusText}</div>
           </div>
         </div>

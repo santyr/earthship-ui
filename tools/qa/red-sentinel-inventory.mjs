@@ -1,37 +1,26 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 
+// Mirrors the REAL current suite (stale entries for long-deleted test files
+// were dropped 2026-07; e2e owners point at the specs that superseded the
+// originals). Must stay identical to EXPECTED_OWNERS in
+// tests/expect-failure.test.js.
 export const RED_SENTINEL_OWNERS = Object.freeze({
-  'RED:T1A-1': 'tests/viewport-pwa.test.js',
-  'RED:T1B-1': 'tests/device-profile.test.js',
   'RED:T2A-1': 'tests/safe-controls.test.js',
-  'RED:T3A-1': 'tests/item-value.test.js',
-  'RED:T4A-1': 'tests/reconcile.test.js',
+  'RED:T4A-1': 'tests/openhab/night-load-override-rule.test.js',
   'RED:T5A-1': 'tests/history-periods.test.js',
   'RED:T6A-1': 'tests/history-request.test.js',
   'RED:T7A-1': 'tests/chart-options.test.js',
-  'RED:T7A-2': 'tests/e2e/chart-activation.spec.js',
+  'RED:T7A-2': 'tests/e2e/weather-detail-modal.spec.js',
   'RED:T8A-1': 'tests/console-alerts.test.js',
-  'RED:T8A-2': 'tests/e2e/header-alerts.spec.js',
-  'RED:T9A-1': 'tests/e2e/home.spec.js',
-  'RED:T10A-1': 'tests/weather-aqi-wiring.test.js',
-  'RED:T10A-2': 'tests/e2e/energy.spec.js',
-  'RED:T11A-1': 'tests/thermal-loop-order.test.js',
-  'RED:T11A-2': 'tests/e2e/earthship.spec.js',
-  'RED:T12A-1': 'tests/control-machine.test.js',
-  'RED:T12A-2': 'tests/e2e/control-states.spec.js',
-  'RED:T13A-1': 'tests/openhab/rest-manifest.test.js',
+  'RED:T9A-1': 'tests/e2e/home-runtime.spec.js',
+  'RED:T10A-2': 'tests/e2e/energy-layout.spec.js',
+  'RED:T11A-2': 'tests/e2e/weather-earthship-layout.spec.js',
+  'RED:T12A-2': 'tests/e2e/controls-layout.spec.js',
+  'RED:T13A-1': 'tests/openhab/rest-safety.test.js',
   'RED:T14A-1': 'tests/openhab/feeder-rule.test.js',
   'RED:T15A-1': 'tests/openhab/greywater-rule.test.js',
   'RED:T16A-1': 'tests/openhab/night-load-override-rule.test.js',
-  'RED:T17A-1': 'tests/pwa-cache-policy.test.js',
-  'RED:T17A-2': 'tests/e2e/offline-pwa.spec.js',
-  'RED:T17A-3': 'tests/e2e-fixture-contract.test.js',
-  'RED:T17A-4': 'tests/e2e/dim-mode.spec.js',
-  'RED:T18A-1': 'tests/tablet-metrics-schema.test.js',
-  'RED:T18A-2': 'tests/e2e/geometry.spec.js',
-  'RED:T18A-3': 'tests/qa-gates.test.js',
-  'RED:T18A-4': 'tests/qa-gates.test.js',
 });
 
 const TEST_SOURCE_RE = /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/;

@@ -1,3 +1,5 @@
+import { num } from '../openhab/values.js';
+
 export const HOME_STATE_COLORS = Object.freeze({
   positive: '#22c55e',
   negative: '#ef4444',
@@ -34,12 +36,14 @@ export const HOME_UV_COLORS = Object.freeze({
   purple: '#9c27b0',
 });
 
+// Shared unit-tolerant state parsing (openhab/values.js num()): accepts
+// unit-suffixed QuantityType states ("12.3 mph", "-4.2 A") and scientific
+// notation, returns null for NULL/UNDEF/'' and non-numeric-leading strings.
+// Home previously used Number() here, which silently dropped unit-carrying
+// states (wind gust history max showed "—", "-4.2 A" battery current showed
+// "idle" while discharging).
 function finiteNumber(value) {
-  if (value === null || value === undefined || value === '' || value === 'NULL' || value === 'UNDEF') {
-    return null;
-  }
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
+  return num(value);
 }
 
 export function batteryPowerFlowPresentation(raw) {

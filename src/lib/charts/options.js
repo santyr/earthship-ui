@@ -3,7 +3,10 @@ import { prepareHistorySeries } from './historyPipeline.js';
 import { getSeriesPolicy } from './seriesPolicy.js';
 import { colors, echartsTheme } from '../ui/tokens.js';
 
-function escapeHtml(value) {
+// Shared HTML escaping for ECharts tooltip formatters (ECharts renders
+// formatter strings as HTML, so any item-derived text must pass through
+// here before interpolation).
+export function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')

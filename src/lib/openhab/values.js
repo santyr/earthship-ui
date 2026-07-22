@@ -1,8 +1,13 @@
+// Parse an openHAB item state into a finite number, or null.
+// parseFloat handles unit-suffixed QuantityType states ("12.3 mph" -> 12.3,
+// "-4.2 A" -> -4.2) AND preserves scientific notation ("1.0E-4 in" -> 1e-4),
+// which the old regex-strip approach corrupted (it deleted the "E").
+// NULL/UNDEF/'' and non-numeric-leading strings ("ON", "abc123") -> null.
 export function num(state) {
   if (state === undefined || state === null) return null;
-  const s = String(state);
+  const s = String(state).trim();
   if (s === 'NULL' || s === 'UNDEF' || s === '') return null;
-  const n = parseFloat(s.replace(/[^0-9.+-]/g, ''));
+  const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -31,11 +36,25 @@ export function socBands(soc, full = true) {
   return '#22c55e';
 }
 
+// Round a fractional minute count to whole minutes FIRST, then split into
+// hours/minutes so boundary values can never render as "1 h 60 m"
+// (e.g. 119.6 min -> { total: 120, hours: 2, minutes: 0 }).
+export function splitRoundedMinutes(minutesFloat) {
+  const total = Math.round(minutesFloat);
+  return { total, hours: Math.floor(total / 60), minutes: total % 60 };
+}
+
 export function runtimeText(minutes) {
   const n = num(minutes);
   if (n === null || n <= 0) return '—';
-  if (n >= 10080) return '> 7 d';
-  if (n >= 2880) return `${Math.floor(n / 1440)} d ${Math.round((n % 1440) / 60)} h`;
-  if (n >= 60) return `${Math.floor(n / 60)} h ${Math.round(n % 60)} m`;
-  return `${Math.round(n)} min`;
+  const { total, hours, minutes: mins } = splitRoundedMinutes(n);
+  if (total >= 10080) return '> 7 d';
+  if (total >= 2880) {
+    // Same carry discipline one unit up: round to whole hours, then split
+    // into days/hours so 4289.9 min can never render as "2 d 24 h".
+    const totalHours = Math.round(total / 60);
+    return `${Math.floor(totalHours / 24)} d ${totalHours % 24} h`;
+  }
+  if (total >= 60) return `${hours} h ${mins} m`;
+  return `${total} min`;
 }
