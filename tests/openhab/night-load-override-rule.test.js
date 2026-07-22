@@ -142,18 +142,17 @@ describe('override ON matrix', () => {
 
     // OverrideSwitch is committed ON via postUpdate (owner policy state).
     expect(h.state('OverrideSwitch')).toBe('ON');
-    // Exact matrix: all three owned devices commanded OFF.
+    // Exact matrix: dishwasher + shureflo OFF. The goat cam is decoupled from
+    // the night-load override (operator instruction 2026-07-22): the 20:00
+    // policy never commands it, so no FeederOverride side effect is expected.
     expect(allDeviceCommands(h)).toEqual([
       { item: 'Dish_Washer_Power', value: 'OFF' },
       { item: 'ShurefloPump_Power', value: 'OFF' },
-      { item: 'Goat_Plugs_Outlet1_Switch', value: 'OFF' },
     ]);
     expect(overrideResults(h).map((r) => r.status)).toEqual(['accepted', 'running']);
     expect(h.pendingTimers()).toBe(1);
 
-    // Downstream coupling (Goat Cam OFF -> FeederOverride ON) fires
-    // asynchronously via the preserved GoatCamOff rule before verification.
-    h.setState('FeederOverride', 'ON');
+    // Completion no longer waits on the Goat Cam <-> FeederOverride coupling.
     h.runNextTimer();
     expect(overrideResults(h).map((r) => r.status)).toEqual(['accepted', 'running', 'completed']);
     expect(overrideLedgerState(h).entries[0]).toMatchObject({
@@ -164,30 +163,23 @@ describe('override ON matrix', () => {
     expect(h.events.some((e) => e.item === 'FeederOverride' && e.type === 'update')).toBe(false);
   });
 
-  it('withholds completion and fails coupling_pending when FeederOverride never flips', () => {
-    // Simulates a broken/disabled GoatCamOff coupling rule: the goat cam is
-    // commanded OFF by the ON matrix but FeederOverride never becomes ON.
-    const h = harness({ FeederOverride: 'OFF' });
+  it('never commands the goat cam and completes regardless of FeederOverride', () => {
+    // Decoupling contract (operator instruction 2026-07-22): the override ON
+    // transition must not touch Goat_Plugs_Outlet1_Switch, and its completion
+    // must not observe FeederOverride at all — the cam keeps whatever state it
+    // had, and the feeder-policy coupling reacts only to manual cam toggles.
+    const h = harness({ FeederOverride: 'OFF', Goat_Plugs_Outlet1_Switch: 'ON' });
     h.execute({
       itemName: 'NightLoadOverride_Request',
-      receivedCommand: overrideRequest('nl-20260718-on-nocouple', 'ON'),
+      receivedCommand: overrideRequest('nl-20260718-on-decoupled', 'ON'),
     });
 
-    // Provider matrix is satisfied (all three commanded OFF reflect), but the
-    // FeederOverride side effect is absent, so completion must be withheld.
-    expect(allDeviceCommands(h)).toEqual([
-      { item: 'Dish_Washer_Power', value: 'OFF' },
-      { item: 'ShurefloPump_Power', value: 'OFF' },
-      { item: 'Goat_Plugs_Outlet1_Switch', value: 'OFF' },
-    ]);
+    expect(commandsFor(h, 'Goat_Plugs_Outlet1_Switch')).toEqual([]);
     h.runTimersUntilIdle();
 
-    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'coupling_pending' });
-    expect(overrideResults(h).some((r) => r.status === 'completed')).toBe(false);
-    expect(overrideLedgerState(h).entries[0]).toMatchObject({
-      requestId: 'nl-20260718-on-nocouple', status: 'failed', reason: 'coupling_pending',
-    });
-    // The owner still never writes FeederOverride, even on the failure path.
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'completed' });
+    expect(h.state('Goat_Plugs_Outlet1_Switch')).toBe('ON');   // cam untouched
+    expect(h.state('FeederOverride')).toBe('OFF');             // never observed or written
     expect(commandsFor(h, 'FeederOverride')).toEqual([]);
     expect(h.events.some((e) => e.item === 'FeederOverride' && e.type === 'update')).toBe(false);
   });
@@ -207,7 +199,7 @@ describe('override ON matrix', () => {
     );
     const firstLoad = h.events.findIndex(
       (e) => e.type === 'command'
-        && ['Dish_Washer_Power', 'ShurefloPump_Power', 'Goat_Plugs_Outlet1_Switch'].includes(e.item),
+        && ['Dish_Washer_Power', 'ShurefloPump_Power'].includes(e.item),
     );
     expect(acceptedPersist).toBeGreaterThanOrEqual(0);
     expect(switchUpdate).toBeGreaterThan(acceptedPersist);
@@ -288,7 +280,7 @@ describe('serialized owner', () => {
     });
     expect(deviceResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'busy' });
     // Only the first transition actuated.
-    expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF', 'OFF']);
+    expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF']);
   });
 
   it('denies a concurrent second override request as busy', () => {
@@ -416,7 +408,7 @@ describe('malformed, duplicate, and stale requests', () => {
       receivedCommand: overrideRequest('nl-20260718-dup', 'ON', '2026-07-18T12:00:01.000Z'),
     });
     expect(overrideResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'duplicate' });
-    expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF', 'OFF']);
+    expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF']);
   });
 
   it('denies a stale queued request with request_stale before actuation', () => {
@@ -458,7 +450,7 @@ describe('schedule / external OverrideSwitch commands', () => {
     h.execute({ itemName: 'OverrideSwitch', receivedCommand: 'ON' });
 
     expect(h.state('OverrideSwitch')).toBe('ON');
-    expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF', 'OFF']);
+    expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF']);
     const entry = overrideLedgerState(h).entries[0];
     expect(entry.requestId).toMatch(/^override-switch:ON:/);
     expect(entry.status).toBe('accepted');
@@ -499,23 +491,25 @@ describe('bounded provider/coupling verification re-poll', () => {
     expect(h.pendingTimers()).toBe(0);
   });
 
-  it('completes an override ON once a slow FeederOverride coupling settles', () => {
-    const h = harness({
-      Dish_Washer_Power: 'ON', ShurefloPump_Power: 'ON', Goat_Plugs_Outlet1_Switch: 'ON', FeederOverride: 'OFF',
-    });
+  it('completes an override ON once a slow provider matrix settles', () => {
+    // The override leg's bounded re-poll covers only the provider matrix now
+    // (goat cam decoupled from the override 2026-07-22, so there is no
+    // FeederOverride coupling to wait on — a lagging TP-Link readback is the
+    // remaining slow path).
+    const h = harness({ Dish_Washer_Power: 'ON', ShurefloPump_Power: 'ON' });
+    h.holdProvider('Dish_Washer_Power'); // readback lags the OFF command
     h.execute({
       itemName: 'NightLoadOverride_Request',
-      receivedCommand: overrideRequest('nl-slow-couple-on', 'ON'),
+      receivedCommand: overrideRequest('nl-slow-matrix-on', 'ON'),
     });
 
-    // Provider matrix is satisfied immediately, but the GoatCamOff coupling
-    // (FeederOverride -> ON) lags.
     h.runNextTimer();
     h.runNextTimer();
     expect(overrideResults(h).at(-1)).toMatchObject({ status: 'running' });
     expect(h.pendingTimers()).toBe(1);
 
-    h.setState('FeederOverride', 'ON');
+    h.releaseProvider('Dish_Washer_Power');
+    h.setState('Dish_Washer_Power', 'OFF');
     h.runTimersUntilIdle();
     expect(overrideResults(h).at(-1)).toMatchObject({ status: 'completed' });
   });

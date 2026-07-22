@@ -30,9 +30,11 @@
  *   *_Result : { requestId, status, reason, at, ... }
  *   status in { accepted, running, completed, denied, failed }.
  *
- * Exact matrices (canonical Task 16 contract):
- *   override ON  -> Dish_Washer_Power OFF, ShurefloPump_Power OFF,
- *                   Goat_Plugs_Outlet1_Switch OFF
+ * Exact matrices (canonical Task 16 contract; goat cam decoupled from the
+ * override by operator instruction 2026-07-22 — the override transitions
+ * never command Goat_Plugs_Outlet1_Switch; manual goat-cam requests via
+ * NightLoadDevice_Request are unchanged):
+ *   override ON  -> Dish_Washer_Power OFF, ShurefloPump_Power OFF
  *   override OFF -> ShurefloPump_Power ON   (dishwasher & goat cam untouched)
  *
  * Serialized: one in-flight request at a time via a single cache.shared lock;
@@ -41,16 +43,19 @@
  * command, and OverrideSwitch policy is committed (postUpdate + persist +
  * read-verify) before the owned loads are commanded. Provider-generation
  * matching: a transition is `completed` only once every commanded provider Item
- * reflects the commanded state (goat cam additionally requires the downstream
- * FeederOverride coupling side effect); mismatch -> `failed`. Restart-uncertain
+ * reflects the commanded state (a MANUAL goat-cam device request additionally
+ * requires the downstream FeederOverride coupling side effect; the override
+ * path does not touch the cam and never observes FeederOverride); mismatch ->
+ * `failed`. Restart-uncertain
  * recovery marks any restored accepted/running ledger entry `failed`
  * (`restart_uncertain`) and never re-actuates.
  *
  * The owner never branches on the requesting client/source: every accepted
  * request is treated identically (operator constraint 2026-07-19).
  *
- * NOT DEPLOYED by this task -- a later operator-gated maintenance transaction
- * applies it. Simulations only.
+ * DEPLOYED as REST-managed rule `hex_night_load_override` (script embedded in
+ * the rule action; openhab/managed-resources.json is the manifest). Keep this
+ * file and the live rule script in lockstep when editing.
  */
 
 const { actions, cache, items, time } = require('openhab');
@@ -75,7 +80,6 @@ const DEVICE_ITEMS = {
 const ON_MATRIX = [
   ['Dish_Washer_Power', 'OFF'],
   ['ShurefloPump_Power', 'OFF'],
-  ['Goat_Plugs_Outlet1_Switch', 'OFF'],
 ];
 const OFF_MATRIX = [
   ['ShurefloPump_Power', 'ON'],
@@ -489,15 +493,14 @@ function scheduleOverrideVerify(request, initialLedger, token) {
   };
 
   if (request.command === 'ON') {
-    // Re-poll the ON matrix and its Goat Cam coupling side effect. Commanding
-    // Goat Cam OFF must drive FeederOverride ON (GoatCamOff rule); completion
-    // waits for that exactly as the device goat-cam leg does. The owner still
-    // never writes FeederOverride -- it only observes it.
+    // Re-poll the ON matrix. The goat cam is decoupled from the night-load
+    // override (operator instruction 2026-07-22): the override never commands
+    // it, so the override path neither drives nor observes FeederOverride.
+    // The manual device goat-cam leg still verifies the coupling side effect.
     const probe = () => {
       if (ON_MATRIX.some(([item, value]) => state(item) !== value)) {
         return { ready: false, reason: 'provider_mismatch' };
       }
-      if (state(FEEDER_OVERRIDE) !== 'ON') return { ready: false, reason: 'coupling_pending' };
       return { ready: true };
     };
     pollVerify(probe, () => {

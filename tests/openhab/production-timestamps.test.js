@@ -201,8 +201,8 @@ describe('C3 scheduled-override synthetic id', () => {
     expect(entry.requestId).not.toMatch(/[[\]/]/); // no bracket/slash from a ZDT rendering
     expect(entry.at.endsWith('Z')).toBe(true);
 
-    // Complete the ON transition (preserved GoatCamOff coupling sets FeederOverride ON).
-    h.setState('FeederOverride', 'ON');
+    // Complete the ON transition (goat cam decoupled 2026-07-22: completion
+    // needs only the dishwasher/shureflo provider matrix, not FeederOverride).
     h.runNextTimer();
     expect(JSON.parse(h.state('NightLoadOverride_Request')).entries[0]).toMatchObject({ status: 'completed' });
 
