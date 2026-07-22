@@ -218,6 +218,15 @@ describe('household Vite OpenHAB proxy policy', () => {
     expect(proxyRequest.setHeader).toHaveBeenCalledWith(
       'Authorization', openhabProxyAuthorization('fixture-token'));
   });
+  it('allows the household hostnames without opening arbitrary-host rebinding', () => {
+    const config = viteConfig({ command: 'serve', mode: 'development' });
+    // Kiosk clients (tablet, Shield) load the console by hostname; Vite 403s
+    // non-IP hosts unless listed. A literal list (never `true`) preserves the
+    // DNS-rebinding protection for names we do not own.
+    expect(config.server.allowedHosts).toEqual(['ogsatoth', 'ogsatoth.local', 'ogsatoth.lan']);
+    expect(config.server.allowedHosts).not.toBe(true);
+  });
+
   it('builds one server-side Basic header and rejects a missing token', () => {
     expect(openhabProxyAuthorization('fixture-token'))
       .toBe(`Basic ${Buffer.from('fixture-token:').toString('base64')}`);

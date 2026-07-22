@@ -82,6 +82,11 @@ export default defineConfig(() => {
       exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/.worktrees/**'],
     },
     server: {
+      // Vite's DNS-rebinding protection only admits localhost + literal IPs
+      // by default; household clients (tablet, Shield) reach the console by
+      // hostname, so allow this machine's real names explicitly. Keep this a
+      // literal list — never `true` — so arbitrary rebound names stay blocked.
+      allowedHosts: ['ogsatoth', 'ogsatoth.local', 'ogsatoth.lan'],
       proxy: {
         '/rest': {
           target: OPENHAB,
