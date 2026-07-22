@@ -3,10 +3,15 @@ import viteConfig from '../vite.config.js';
 import {
   isAllowedProxyRequest,
   openhabProxyAuthorization,
+  sanitizeThingDto,
+  sanitizeThingsResponse,
 } from '../src/lib/openhab/proxyPolicy.js';
 
 describe('household Vite OpenHAB proxy policy', () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
 
   it('allows read-only REST and SSE requests', () => {
     for (const path of [
@@ -17,6 +22,99 @@ describe('household Vite OpenHAB proxy policy', () => {
     ]) {
       expect(isAllowedProxyRequest('GET', path)).toBe(true);
     }
+  });
+
+  it('denies GET outside the four read surfaces the UI uses', () => {
+    for (const path of [
+      '/rest/',
+      '/rest/rules',
+      '/rest/rules/example',
+      '/rest/services/org.openhab.core.example/config',
+      '/rest/addons',
+      '/rest/bindings',
+      '/rest/config-descriptions',
+      '/rest/systeminfo',
+      '/rest/persistence',
+      '/rest/itemsandmore',
+    ]) {
+      expect(isAllowedProxyRequest('GET', path)).toBe(false);
+    }
+  });
+
+  it('projects Thing DTOs down to UID, label, and status fields only', () => {
+    const raw = {
+      UID: 'tplinksmarthome:kl125:E7FA31',
+      label: 'Living Room 1',
+      statusInfo: { status: 'ONLINE', statusDetail: 'NONE', description: '', extra: 'x' },
+      configuration: { username: 'admin', password: 'hunter2', ipAddress: '192.168.1.130' },
+      properties: { macAddress: 'aa:bb' },
+      channels: [{ uid: 'x' }],
+    };
+    expect(sanitizeThingDto(raw)).toEqual({
+      UID: 'tplinksmarthome:kl125:E7FA31',
+      label: 'Living Room 1',
+      statusInfo: { status: 'ONLINE', statusDetail: 'NONE', description: '' },
+    });
+    expect(sanitizeThingDto(null)).toBeNull();
+    expect(sanitizeThingsResponse([raw, null, 'junk'])).toEqual([sanitizeThingDto(raw)]);
+    expect(sanitizeThingsResponse(raw)).toEqual(sanitizeThingDto(raw));
+  });
+
+  it('intercepts GET /rest/things and serves the sanitized projection', async () => {
+    vi.stubEnv('RELEASE_MODE', 'safe-compat');
+    vi.stubEnv('OPENHAB_TOKEN', 'fixture-token');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{
+        UID: 'a:b:c',
+        label: 'L',
+        statusInfo: { status: 'ONLINE' },
+        configuration: { password: 's3cret' },
+      }],
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const config = viteConfig({ command: 'serve', mode: 'development' });
+    const guard = config.plugins.find((plugin) => plugin.name === 'earthship-openhab-proxy-guard');
+    let middleware;
+    guard.configureServer({ middlewares: { use: (fn) => { middleware = fn; } } });
+
+    const response = { setHeader: vi.fn(), end: vi.fn() };
+    const next = vi.fn();
+    middleware({ method: 'GET', url: '/rest/things' }, response, next);
+    await vi.waitFor(() => expect(response.end).toHaveBeenCalled());
+
+    expect(next).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/rest/things'),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: openhabProxyAuthorization('fixture-token'),
+        }),
+      }),
+    );
+    const body = JSON.parse(response.end.mock.calls[0][0]);
+    expect(body).toEqual([{ UID: 'a:b:c', label: 'L', statusInfo: { status: 'ONLINE' } }]);
+    expect(response.end.mock.calls[0][0]).not.toContain('s3cret');
+  });
+
+  it('returns 502 without leaking upstream detail when the things fetch fails', async () => {
+    vi.stubEnv('RELEASE_MODE', 'safe-compat');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED 192.168.1.5')));
+
+    const config = viteConfig({ command: 'serve', mode: 'development' });
+    const guard = config.plugins.find((plugin) => plugin.name === 'earthship-openhab-proxy-guard');
+    let middleware;
+    guard.configureServer({ middlewares: { use: (fn) => { middleware = fn; } } });
+
+    const response = { setHeader: vi.fn(), end: vi.fn() };
+    const next = vi.fn();
+    middleware({ method: 'GET', url: '/rest/things' }, response, next);
+    await vi.waitFor(() => expect(response.end).toHaveBeenCalled());
+
+    expect(next).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(502);
+    expect(response.end.mock.calls[0][0]).not.toContain('ECONNREFUSED');
   });
 
   it('allows POST only to the four implemented direct controls', () => {
