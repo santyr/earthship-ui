@@ -79,7 +79,7 @@ export default defineConfig(() => {
       __EARTHSHIP_RELEASE_MODE__: JSON.stringify(releaseMode),
     },
     test: {
-      exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+      exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/.worktrees/**'],
     },
     server: {
       proxy: {
