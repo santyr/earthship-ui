@@ -14,29 +14,91 @@ Model (validated against 30 days of history, 2026-07-17):
   D_direct seeded 4.0 [2.5, 6.0]  — calibrated on demand-limited (curtailing) days
 DM policy: ONLY predicted trough < 30% (full 4P 400 Ah bank, 20.48 kWh, since 2026-07-18).
 """
-import json, os, subprocess, sys, time, urllib.request
+import json, os, subprocess, sys, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone, date
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 BASE = "http://127.0.0.1:8080/rest"
 ENV_FILE = os.path.expanduser("~/.config/hex/openhab.env")
 NOTIFY = "/etc/openhab/scripts/nostr_notify.sh"
 STATE_DIR = os.path.expanduser("~/.local/state/forecast-intel")
 STATE_FILE = os.path.join(STATE_DIR, "state.json")
-LAT, LON = 38.3739919, -105.7744931
 BANK_KWH, RESERVE_SOC, ETA_RT = 20.48, 10, 0.95  # full 4P 400Ah bank (2026-07-19; was 5.12 single-module interim)
 K_RES_BOUNDS, D_DIRECT_BOUNDS, ALPHA = (0.5, 1.3), (2.5, 6.0), 0.2
 TROUGH_DM_THRESHOLD = 30  # full-bank policy (was 42 on the single 100 Ah bank)
-OM_URL = (f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}"
-          "&hourly=temperature_2m,precipitation_probability,precipitation,"
-          "shortwave_radiation,wind_speed_10m,weather_code"
-          "&daily=temperature_2m_max,temperature_2m_min,shortwave_radiation_sum,"
-          "precipitation_probability_max,precipitation_sum,cloud_cover_mean,weather_code"
-          "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
-          "&timezone=America%2FDenver&forecast_days=10")
-MOUNTAIN = ZoneInfo("America/Denver")
 DETAIL_MAX_BYTES = 64 * 1024
 _TOKEN = None
+
+# ---- Site settings -------------------------------------------------------
+# openHAB is authoritative for where and in which zone this site sits
+# (Settings > Regional). These literals are only the fallback used before
+# load_site_settings() runs and whenever that read fails — the pipeline must
+# never die because a config fetch flaked. They matched openHAB as of
+# 2026-07-26 (the previous longitude literal had drifted 2.8 m).
+I18N_CONFIG_PATH = "/services/org.openhab.i18n/config"
+FALLBACK_LAT, FALLBACK_LON = 38.3739919, -105.7744609
+FALLBACK_TZ_NAME = "America/Denver"
+
+
+def open_meteo_url(lat, lon, tz_name):
+    return (f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+            "&hourly=temperature_2m,precipitation_probability,precipitation,"
+            "shortwave_radiation,wind_speed_10m,weather_code"
+            "&daily=temperature_2m_max,temperature_2m_min,shortwave_radiation_sum,"
+            "precipitation_probability_max,precipitation_sum,cloud_cover_mean,weather_code"
+            "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
+            f"&timezone={urllib.parse.quote(tz_name, safe='')}&forecast_days=10")
+
+
+# Rebound by load_site_settings(). MOUNTAIN keeps its name: it is the site's
+# local zone, referenced at ~18 call sites and imported by forecast_backfill.
+LAT, LON = FALLBACK_LAT, FALLBACK_LON
+SITE_TZ_NAME = FALLBACK_TZ_NAME
+MOUNTAIN = ZoneInfo(FALLBACK_TZ_NAME)
+OM_URL = open_meteo_url(LAT, LON, SITE_TZ_NAME)
+
+
+def _parse_site_config(config):
+    """Validate openHAB's regional config, or return None to keep fallbacks.
+
+    All-or-nothing on purpose: a half-adopted config (real coordinates, junk
+    zone) would score days against the wrong window, which is worse than
+    uniformly using the known-good literals.
+    """
+    if not isinstance(config, dict):
+        return None
+    lat_lon = str(config.get("location", "")).split(",")
+    if len(lat_lon) != 2:
+        return None
+    try:
+        lat, lon = float(lat_lon[0]), float(lat_lon[1])
+    except ValueError:
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    tz_name = str(config.get("timezone", ""))
+    try:
+        zone = ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+    return lat, lon, tz_name, zone
+
+
+def load_site_settings():
+    """Adopt openHAB's location/timezone once at startup; never raise."""
+    global LAT, LON, SITE_TZ_NAME, MOUNTAIN, OM_URL
+    try:
+        parsed = _parse_site_config(oh_get(I18N_CONFIG_PATH))
+    except Exception as e:
+        print(f"site settings: openHAB read failed ({e}); using fallbacks", file=sys.stderr)
+        parsed = None
+    if parsed is None:
+        LAT, LON = FALLBACK_LAT, FALLBACK_LON
+        SITE_TZ_NAME = FALLBACK_TZ_NAME
+    else:
+        LAT, LON, SITE_TZ_NAME, _zone = parsed
+    MOUNTAIN = ZoneInfo(SITE_TZ_NAME)
+    OM_URL = open_meteo_url(LAT, LON, SITE_TZ_NAME)
 
 
 def token():
@@ -84,8 +146,11 @@ def safe_put(item, value, failures=None):
         return False
 
 
-def fetch_forecast(url=OM_URL, attempts=3, delays=(10, 30), opener=None, sleep=None):
+def fetch_forecast(url=None, attempts=3, delays=(10, 30), opener=None, sleep=None):
     """Fetch the Open-Meteo snapshot with a small retry (transient net flaps)."""
+    # Resolved at call time, not as a default arg: a `url=OM_URL` default binds
+    # at import and would silently ignore whatever load_site_settings adopted.
+    url = url or OM_URL
     opener = opener or (lambda u: urllib.request.urlopen(u, timeout=20))
     sleep = sleep or time.sleep
     last = None
@@ -418,7 +483,7 @@ def build_forecast_payloads(snapshot, pv_per_day, now):
     detail = {
         "version": 1,
         "generatedAt": now_local.isoformat(timespec="seconds"),
-        "timezone": "America/Denver",
+        "timezone": SITE_TZ_NAME,
         "days": detail_days,
     }
     return legacy_hourly, legacy_daily, detail
@@ -704,6 +769,7 @@ def main():
 
 
 if __name__ == "__main__":
+    load_site_settings()
     if len(sys.argv) > 1 and sys.argv[1] == "json":
         build_json_items()
         print(datetime.now().isoformat(timespec="seconds") + " json refresh")

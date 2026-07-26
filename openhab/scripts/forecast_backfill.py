@@ -20,12 +20,17 @@ import csv
 import json
 import os
 import sys
+import urllib.parse
 import urllib.request
 from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # reuse auth'd persistence reader + DST-exact local-day windows
-from forecast_intel import series, local_day_window_utc, MOUNTAIN, LAT, LON
+from forecast_intel import series, local_day_window_utc
+# Site location/zone are resolved from openHAB at startup, so they must be read
+# off the module at call time — a `from ... import LAT` would snapshot the
+# pre-resolution fallback and quietly query the wrong site forever.
+import forecast_intel
 
 OUT_DIR = os.path.expanduser("~/.local/state/forecast-intel/backfill")
 START = date(2025, 7, 20)
@@ -37,23 +42,38 @@ RAIN_TOTAL_ITEM = "AmbientWeatherWS2902A_RainFallTotal"
 PV_ITEM = "MPPT60_EnergyFromPV_Today"
 SOC_ITEM = "BMS_SOC"
 
-HIST_URL = (
-    "https://historical-forecast-api.open-meteo.com/v1/forecast"
-    f"?latitude={LAT}&longitude={LON}"
-    "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,"
-    "shortwave_radiation_sum,cloud_cover_mean"
-    "&temperature_unit=fahrenheit&precipitation_unit=inch"
-    "&timezone=America%2FDenver&start_date={start}&end_date={end}"
-)
+def site_zone():
+    return forecast_intel.MOUNTAIN
+
+
+def _site_query():
+    return (f"?latitude={forecast_intel.LAT}&longitude={forecast_intel.LON}",
+            urllib.parse.quote(forecast_intel.SITE_TZ_NAME, safe=""))
+
+
+def hist_url(start, end):
+    where, tz = _site_query()
+    return (
+        "https://historical-forecast-api.open-meteo.com/v1/forecast"
+        f"{where}"
+        "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,"
+        "shortwave_radiation_sum,cloud_cover_mean"
+        "&temperature_unit=fahrenheit&precipitation_unit=inch"
+        f"&timezone={tz}&start_date={start}&end_date={end}"
+    )
+
+
 # Previous Runs API: hourly variables with _previous_day3 suffix; aggregated
 # locally to daily max/min/sum for the lead-3 columns.
-PREV_URL = (
-    "https://previous-runs-api.open-meteo.com/v1/forecast"
-    f"?latitude={LAT}&longitude={LON}"
-    "&hourly=temperature_2m_previous_day3,precipitation_previous_day3"
-    "&temperature_unit=fahrenheit&precipitation_unit=inch"
-    "&timezone=America%2FDenver&start_date={start}&end_date={end}"
-)
+def prev_url(start, end):
+    where, tz = _site_query()
+    return (
+        "https://previous-runs-api.open-meteo.com/v1/forecast"
+        f"{where}"
+        "&hourly=temperature_2m_previous_day3,precipitation_previous_day3"
+        "&temperature_unit=fahrenheit&precipitation_unit=inch"
+        f"&timezone={tz}&start_date={start}&end_date={end}"
+    )
 
 
 def fetch_json(url):
@@ -72,7 +92,7 @@ def date_chunks(start, end, days):
 def fetch_issued():
     rows = {}
     for c0, c1 in date_chunks(START, END, 92):
-        data = fetch_json(HIST_URL.format(start=c0.isoformat(), end=c1.isoformat()))
+        data = fetch_json(hist_url(c0.isoformat(), c1.isoformat()))
         daily = data["daily"]
         for i, day in enumerate(daily["time"]):
             rows[day] = {
@@ -89,7 +109,7 @@ def fetch_issued():
 def fetch_lead3():
     rows = {}
     for c0, c1 in date_chunks(START, END, 92):
-        data = fetch_json(PREV_URL.format(start=c0.isoformat(), end=c1.isoformat()))
+        data = fetch_json(prev_url(c0.isoformat(), c1.isoformat()))
         hourly = data["hourly"]
         per_day = {}
         for i, ts in enumerate(hourly["time"]):
@@ -134,7 +154,7 @@ def bucket_daily(points):
     """
     days = {}
     for ts, value in points:
-        local = ts.astimezone(MOUNTAIN)
+        local = ts.astimezone(site_zone())
         days.setdefault(local.date().isoformat(), []).append((ts, value))
     return days
 
@@ -203,6 +223,7 @@ def mean(values):
 
 
 def main():
+    forecast_intel.load_site_settings()
     os.makedirs(OUT_DIR, exist_ok=True)
     issued = fetch_issued()
     print(f"issued forecasts: {len(issued)} days", flush=True)

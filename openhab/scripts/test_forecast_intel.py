@@ -402,3 +402,122 @@ def test_put_failures_collected_not_fatal(monkeypatch, tmp_path):
     log_text = (tmp_path / "log").read_text()
     assert "PUT FAILED:" in log_text
     assert "Forecast_PV_Error_7d" in log_text
+
+
+# ---------------------------------------------- openHAB-fed site settings
+
+I18N_PATH = "/services/org.openhab.i18n/config"
+
+
+@pytest.fixture
+def site_globals(monkeypatch):
+    """Restore the module-level site globals load_site_settings rebinds."""
+    saved = (fi.LAT, fi.LON, fi.MOUNTAIN, fi.OM_URL, fi.SITE_TZ_NAME)
+    yield
+    (fi.LAT, fi.LON, fi.MOUNTAIN, fi.OM_URL, fi.SITE_TZ_NAME) = saved
+
+
+def _i18n(monkeypatch, payload):
+    def fake_oh_get(path):
+        assert path == I18N_PATH, f"unexpected path {path}"
+        return payload
+    monkeypatch.setattr(fi, "oh_get", fake_oh_get)
+
+
+def test_site_settings_adopt_openhab_location(site_globals, monkeypatch):
+    # openHAB is authoritative for site location; its value must win over the
+    # hardcoded fallback (which had drifted 2.8 m in longitude).
+    _i18n(monkeypatch, {"location": "38.3739919,-105.7744609",
+                        "timezone": "America/Denver"})
+    fi.load_site_settings()
+    assert (fi.LAT, fi.LON) == (38.3739919, -105.7744609)
+    assert "latitude=38.3739919&longitude=-105.7744609" in fi.OM_URL
+
+
+def test_site_settings_adopt_openhab_timezone(site_globals, monkeypatch):
+    # A non-Denver zone proves the value is really read, not coincidence.
+    _i18n(monkeypatch, {"location": "33.4,-112.0", "timezone": "America/Phoenix"})
+    fi.load_site_settings()
+    assert fi.SITE_TZ_NAME == "America/Phoenix"
+    assert datetime(2026, 7, 1, tzinfo=fi.MOUNTAIN).utcoffset() == timedelta(hours=-7)
+    assert "timezone=America%2FPhoenix" in fi.OM_URL
+
+
+def test_site_settings_fall_back_when_openhab_unreachable(site_globals, monkeypatch):
+    # The daily pipeline must never die because the config read failed.
+    def boom(path):
+        raise OSError("openhab down")
+    monkeypatch.setattr(fi, "oh_get", boom)
+    fi.load_site_settings()   # must not raise
+    assert (fi.LAT, fi.LON) == (fi.FALLBACK_LAT, fi.FALLBACK_LON)
+    assert fi.SITE_TZ_NAME == fi.FALLBACK_TZ_NAME
+
+
+@pytest.mark.parametrize("payload", [
+    {"location": "not-a-location", "timezone": "America/Denver"},
+    {"location": "38.4", "timezone": "America/Denver"},
+    {"location": "91.0,-105.0", "timezone": "America/Denver"},
+    {"location": "38.4,-181.0", "timezone": "America/Denver"},
+    {"location": "38.4,-105.0", "timezone": "Not/AZone"},
+    {},
+])
+def test_site_settings_reject_malformed_config(site_globals, monkeypatch, payload):
+    # Garbage from openHAB must not poison the Open-Meteo query.
+    _i18n(monkeypatch, payload)
+    fi.load_site_settings()
+    assert (fi.LAT, fi.LON) == (fi.FALLBACK_LAT, fi.FALLBACK_LON)
+    assert fi.SITE_TZ_NAME == fi.FALLBACK_TZ_NAME
+
+
+def test_fetch_forecast_uses_current_om_url(site_globals, monkeypatch):
+    # Regression guard: url=OM_URL as a default arg would bind at import time,
+    # silently ignoring whatever load_site_settings resolved.
+    _i18n(monkeypatch, {"location": "33.4,-112.0", "timezone": "America/Phoenix"})
+    fi.load_site_settings()
+    seen = []
+
+    def opener(url):
+        seen.append(url)
+        return contextlib.closing(io.StringIO("{}"))
+
+    fi.fetch_forecast(opener=opener, sleep=lambda _s: None)
+    assert seen == [fi.OM_URL]
+    assert "latitude=33.4" in seen[0]
+
+
+def test_detail_payload_stamps_resolved_timezone(site_globals, monkeypatch):
+    # The UI validates forecast.json's timezone, so it must be the zone the
+    # pipeline actually computed in, not a second hardcoded literal.
+    _i18n(monkeypatch, {"location": "33.4,-112.0", "timezone": "America/Phoenix"})
+    fi.load_site_settings()
+    _, _, detail = fi.build_forecast_payloads(_snapshot(), [], datetime(2026, 7, 20, 6, 40))
+    assert detail["timezone"] == "America/Phoenix"
+
+
+# ---------------------------------------------- backfill shares site settings
+
+def _backfill_module(monkeypatch):
+    """Import forecast_backfill against THIS forecast_intel instance."""
+    import sys
+    monkeypatch.setitem(sys.modules, "forecast_intel", fi)
+    monkeypatch.syspath_prepend(os.path.dirname(os.path.abspath(fi.__file__)))
+    sys.modules.pop("forecast_backfill", None)
+    import forecast_backfill
+    monkeypatch.setitem(sys.modules, "forecast_backfill", forecast_backfill)
+    return forecast_backfill
+
+
+def test_backfill_urls_follow_resolved_site_settings(site_globals, monkeypatch):
+    # A `from forecast_intel import LAT, LON, MOUNTAIN` snapshots the values at
+    # import, so the backfill would keep querying the fallback site forever.
+    bf = _backfill_module(monkeypatch)
+    _i18n(monkeypatch, {"location": "33.4,-112.0", "timezone": "America/Phoenix"})
+    fi.load_site_settings()
+
+    hist = bf.hist_url("2026-01-01", "2026-01-02")
+    prev = bf.prev_url("2026-01-01", "2026-01-02")
+    for url in (hist, prev):
+        assert "latitude=33.4&longitude=-112.0" in url
+        assert "timezone=America%2FPhoenix" in url
+    assert "start_date=2026-01-01&end_date=2026-01-02" in hist
+    assert bf.site_zone() is fi.MOUNTAIN
