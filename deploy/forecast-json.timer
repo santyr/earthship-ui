@@ -1,0 +1,9 @@
+# Installed at ~/.config/systemd/user/forecast-json.timer (user unit; enable with systemctl --user).
+# Deploy: cp deploy/forecast-json.timer ~/.config/systemd/user/ && systemctl --user daemon-reload
+[Unit]
+Description=Refresh forecast JSON strip every 2 hours
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=2h
+[Install]
+WantedBy=timers.target

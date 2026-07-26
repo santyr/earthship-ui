@@ -1,0 +1,11 @@
+# Installed at ~/.config/systemd/user/forecast-intel.timer (user unit; enable with systemctl --user).
+# Deploy: cp deploy/forecast-intel.timer ~/.config/systemd/user/ && systemctl --user daemon-reload
+[Unit]
+Description=Daily forecast intelligence at 06:40
+
+[Timer]
+OnCalendar=*-*-* 06:40:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

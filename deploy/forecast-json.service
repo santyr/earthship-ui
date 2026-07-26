@@ -1,0 +1,8 @@
+# Installed at ~/.config/systemd/user/forecast-json.service (user unit; enable with systemctl --user).
+# Deploy: cp deploy/forecast-json.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+[Unit]
+Description=Forecast JSON strip refresh
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/forecast_intel.py json
+TimeoutStartSec=120

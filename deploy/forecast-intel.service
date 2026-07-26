@@ -1,0 +1,9 @@
+# Installed at ~/.config/systemd/user/forecast-intel.service (user unit; enable with systemctl --user).
+# Deploy: cp deploy/forecast-intel.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+[Unit]
+Description=Earthship forecast intelligence (predict, score, calibrate)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/forecast_intel.py
+TimeoutStartSec=180
