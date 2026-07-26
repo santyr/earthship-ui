@@ -148,12 +148,18 @@ for (const target of TARGETS) {
     const dishwasher = page.getByRole('button', { name: /Dishwasher/i });
     await expect(dishwasher).toHaveClass(/on/);
     await expect(dishwasher.locator('.pill')).toHaveCSS('background-color', 'rgb(34, 197, 94)');
-    // Override is ON in the fixture, so the three owned loads stay disabled
+    // Override is ON in the fixture, so the owned loads stay disabled
     // ("Owned by Night Load Override"); the verified correlated controls
     // (capabilities flipped 2026-07-19) are live with hold interaction.
-    for (const label of [/Dishwasher/i, /Shureflo Pump/i, /Goat Cam/i]) {
+    for (const label of [/Dishwasher/i, /Shureflo Pump/i]) {
       await expect(page.getByRole('button', { name: label })).toBeDisabled();
     }
+    // Goat Cam is override-INDEPENDENT (operator instruction 2026-07-26): the
+    // override must not lock the cam tile, though its feeder coupling shows.
+    const goatCam = page.getByRole('button', { name: /Goat Cam/i });
+    await expect(goatCam).toBeEnabled();
+    await expect(goatCam).not.toContainText('Owned by Night Load Override');
+    await expect(goatCam).toContainText('Feeder policy override ON');
     for (const label of [/Feed once/i, /Request circulation/i, /^Night Load Override/i]) {
       const control = page.getByRole('button', { name: label });
       await expect(control).toBeEnabled();
