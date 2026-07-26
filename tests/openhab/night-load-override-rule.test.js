@@ -326,6 +326,29 @@ describe('device requests', () => {
     expect(deviceResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'override_active' });
   });
 
+  it('completes a goat-cam request while the override is ON (override-independent)', () => {
+    // Operator instruction 2026-07-26: the goat cam operates independent of
+    // the night-load override. The override stopped commanding the cam on
+    // 2026-07-22, so there is no ownership race left — a manual cam toggle
+    // must work at night. The FeederOverride coupling verification still
+    // applies exactly as during the day.
+    const h = harness({
+      OverrideSwitch: 'ON', Goat_Plugs_Outlet1_Switch: 'OFF', FeederOverride: 'ON',
+    });
+    h.execute({
+      itemName: 'NightLoadDevice_Request',
+      receivedCommand: deviceRequest('nl-20260726-cam-night', 'goat-cam', 'ON'),
+    });
+
+    expect(commandsFor(h, 'Goat_Plugs_Outlet1_Switch')).toEqual(['ON']);
+    // Coupling side effect: cam ON -> FeederOverride OFF (rule 3e8f265498).
+    h.setState('FeederOverride', 'OFF');
+    h.runTimersUntilIdle();
+    expect(deviceResults(h).at(-1)).toMatchObject({
+      requestId: 'nl-20260726-cam-night', status: 'completed',
+    });
+  });
+
   it('fails a device request when the provider readback does not match the command', () => {
     const h = harness({ ShurefloPump_Power: 'OFF' });
     h.holdProvider('ShurefloPump_Power');

@@ -143,11 +143,16 @@ export function deriveControlState(control, context = {}) {
     const detail = control.couplingItem ? couplingDetail(items[control.couplingItem]) : '';
     const override = binaryValue(items.OverrideSwitch);
 
-    if (override === 'ON') {
-      return disabledStatus(value, 'Owned by Night Load Override', { detail });
-    }
-    if (!override) {
-      return disabledStatus(value, 'Override status unavailable — read-only', { detail });
+    // Override-independent loads (goat cam) are not owned by the night-load
+    // override, so OverrideSwitch state neither locks nor gates them. The
+    // transient owner-serialization gates below still apply.
+    if (!control.overrideIndependent) {
+      if (override === 'ON') {
+        return disabledStatus(value, 'Owned by Night Load Override', { detail });
+      }
+      if (!override) {
+        return disabledStatus(value, 'Override status unavailable — read-only', { detail });
+      }
     }
     if (ownerTransitioning) {
       return disabledStatus(value, 'Night Load Override transition in progress', { detail });

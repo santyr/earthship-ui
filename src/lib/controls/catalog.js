@@ -50,6 +50,11 @@ export const CONTROL_CATALOG = Object.freeze({
   goatCam: ownedBinary('Goat Cam', 'Goat_Plugs_Outlet1_Switch', 'goat-cam', {
     couplingItem: 'FeederOverride',
     providerThingUid: PROVIDER_THINGS.goat,
+    // Operator instruction 2026-07-26: the cam operates independent of the
+    // night-load override. The override stopped commanding it 2026-07-22, so
+    // OverrideSwitch state must not gate this tile (rule-side exemption in
+    // openhab/rules/night-load-owner.js is the enforcing counterpart).
+    overrideIndependent: true,
   }),
   feedOnce: {
     label: 'Feed once',

@@ -204,17 +204,24 @@ describe('typed controls UI', () => {
     expect(source).toMatch(/\.degraded\s*\{[^}]*flex-shrink:\s*0/s);
   });
 
-  it('renders owned load ownership and Goat Cam feeder coupling as read-only', () => {
+  it('keeps Goat Cam operable at night with its feeder coupling visible', () => {
+    // Override-independent (operator instruction 2026-07-26): OverrideSwitch
+    // ON must not lock the cam tile the way it locks dishwasher/shureflo.
     items.set({
       Goat_Plugs_Outlet1_Switch: 'OFF',
       OverrideSwitch: 'ON',
       FeederOverride: 'ON',
     });
-    render(Toggle, { props: { control: CONTROL_CATALOG.goatCam } });
+    render(Toggle, { props: {
+      control: CONTROL_CATALOG.goatCam,
+      capabilities: { 'night-load-owner-v1': true },
+      providerStatus: { status: 'ONLINE' },
+      releaseMode: 'full',
+    } });
 
     const button = screen.getByRole('button', { name: /Goat Cam/i });
-    expect(button).toBeDisabled();
-    expect(button).toHaveTextContent('Owned by Night Load Override');
+    expect(button).not.toBeDisabled();
+    expect(button).not.toHaveTextContent('Owned by Night Load Override');
     expect(button).toHaveTextContent('Feeder policy override ON');
   });
 

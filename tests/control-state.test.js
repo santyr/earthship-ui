@@ -285,9 +285,14 @@ describe('deriveControlState', () => {
     expect(state.reason).toMatch(/provider offline/i);
   });
 
-  it('shows Goat Cam and FeederOverride coupling', () => {
+  it('keeps Goat Cam operable while the override is ON (override-independent)', () => {
+    // Operator instruction 2026-07-26: the goat cam operates independent of
+    // the night-load override. The override no longer owns it (matrices
+    // decoupled 2026-07-22), so its tile must not lock at night; the
+    // FeederOverride coupling detail still shows.
     const state = deriveControlState(CONTROL_CATALOG.goatCam, {
       ...live,
+      capabilities: { 'night-load-owner-v1': true },
       items: {
         Goat_Plugs_Outlet1_Switch: 'OFF',
         FeederOverride: 'ON',
@@ -297,7 +302,23 @@ describe('deriveControlState', () => {
     });
 
     expect(state.detail).toBe('Feeder policy override ON');
-    expect(state.reason).toBe('Owned by Night Load Override');
+    expect(state.enabled).toBe(true);
+  });
+
+  it('keeps Goat Cam operable even when override status is unavailable', () => {
+    const state = deriveControlState(CONTROL_CATALOG.goatCam, {
+      ...live,
+      capabilities: { 'night-load-owner-v1': true },
+      items: {
+        Goat_Plugs_Outlet1_Switch: 'ON',
+        FeederOverride: 'OFF',
+        OverrideSwitch: 'NULL',
+      },
+      providerOnline: { Goat_Plugs_Outlet1_Switch: { status: 'ONLINE' } },
+    });
+
+    expect(state.enabled).toBe(true);
+    expect(state.detail).toBe('Feeder policy override OFF');
   });
 
   it.each([

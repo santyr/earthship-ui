@@ -76,6 +76,11 @@ const DEVICE_ITEMS = {
   'goat-cam': 'Goat_Plugs_Outlet1_Switch',
 };
 
+// Devices whose manual requests are valid regardless of OverrideSwitch state.
+// The override matrices never command these (goat cam decoupled 2026-07-22),
+// so the override holds no ownership over them to protect.
+const OVERRIDE_INDEPENDENT_DEVICES = new Set(['goat-cam']);
+
 // Exact owned-load matrices.
 const ON_MATRIX = [
   ['Dish_Washer_Power', 'OFF'],
@@ -754,8 +759,12 @@ function handleDevice(triggerEvent) {
   }
 
   // A device request may command only when the override policy is exactly OFF
-  // (NULL/UNDEF/ON all deny). Ownership by the override is never raced.
-  if (state(OVERRIDE_SWITCH) !== 'OFF') {
+  // (NULL/UNDEF/ON all deny) — EXCEPT override-independent devices. The goat
+  // cam was decoupled from the override matrices 2026-07-22 and made fully
+  // override-independent 2026-07-26 (operator instruction): the override never
+  // commands it, so there is no ownership to race and its manual requests are
+  // valid at any OverrideSwitch state. Busy-lock serialization still applies.
+  if (!OVERRIDE_INDEPENDENT_DEVICES.has(request.device) && state(OVERRIDE_SWITCH) !== 'OFF') {
     releaseBusy(token);
     safeResult(DEVICE_RESULT, request.requestId, 'denied', 'override_active', {
       device: request.device, command: request.command,
