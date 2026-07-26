@@ -16,6 +16,10 @@ import { validateControlCatalog } from './src/lib/controls/catalog.js'
 // uses this same Vite process and proxy. SSE (/rest/events) is forwarded too.
 const OPENHAB = process.env.OPENHAB_PROXY_TARGET || 'http://ogsatoth:8080'
 
+// Timezone the console is deployed in. Tests assert local-calendar output, so
+// they must run in this zone regardless of the host's own timezone.
+const HOUSEHOLD_TZ = 'America/Denver'
+
 function decodedPath(rawUrl) {
   try {
     return decodeURIComponent(new URL(rawUrl, 'http://earthship-ui.local').pathname)
@@ -80,6 +84,12 @@ export default defineConfig(() => {
     },
     test: {
       exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/.worktrees/**'],
+      // The console renders local-calendar semantics (season countdown, local
+      // day history ranges, wall-clock rule tests), so assertions are written
+      // against the household timezone. Pin it: CI runners are UTC, and the
+      // 2026 autumn equinox lands 00:13 UTC on Sep 23 but 18:13 local on Sep
+      // 22 — an unpinned run flips the day count and reds the suite.
+      env: { TZ: HOUSEHOLD_TZ },
     },
     server: {
       // Vite's DNS-rebinding protection only admits localhost + literal IPs
