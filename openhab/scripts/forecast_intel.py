@@ -14,7 +14,7 @@ Model (validated against 30 days of history, 2026-07-17):
   D_direct seeded 4.0 [2.5, 6.0]  — calibrated on demand-limited (curtailing) days
 DM policy: ONLY predicted trough < 30% (full 4P 400 Ah bank, 20.48 kWh, since 2026-07-18).
 """
-import json, os, subprocess, sys, urllib.request
+import json, os, subprocess, sys, time, urllib.request
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
 
@@ -68,35 +68,171 @@ def oh_put_state(item, value):
     urllib.request.urlopen(req, timeout=15)
 
 
+def safe_put(item, value, failures=None):
+    """PUT one item, never raise: one openHAB flap must not abort the run.
+
+    Failed item names are appended to `failures` so the caller can log them.
+    Returns True on success.
+    """
+    try:
+        oh_put_state(item, value)
+        return True
+    except Exception as e:
+        print(f"PUT failed for {item}: {e}", file=sys.stderr)
+        if failures is not None:
+            failures.append(item)
+        return False
+
+
+def fetch_forecast(url=OM_URL, attempts=3, delays=(10, 30), opener=None, sleep=None):
+    """Fetch the Open-Meteo snapshot with a small retry (transient net flaps)."""
+    opener = opener or (lambda u: urllib.request.urlopen(u, timeout=20))
+    sleep = sleep or time.sleep
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with opener(url) as r:
+                return json.load(r)
+        except Exception as e:
+            last = e
+            print(f"open-meteo fetch attempt {attempt}/{attempts} failed: {e}", file=sys.stderr)
+            if attempt < attempts:
+                sleep(delays[min(attempt - 1, len(delays) - 1)])
+    raise last
+
+
 def series(item, start, end):
+    """Persistence points for [start, end).
+
+    Aware datetimes are converted to true UTC for the REST query (openHAB
+    expects "...Z"); naive datetimes are assumed to already be UTC wall time
+    (legacy callers). Returned timestamps are aware UTC. Unparseable persisted
+    states (UNDEF/NULL/garbage) are skipped instead of raising.
+    """
     fmt = "%Y-%m-%dT%H:%M:%SZ"
-    d = oh_get(f"/persistence/items/{item}?starttime={start.strftime(fmt)}&endtime={end.strftime(fmt)}")
-    return [(datetime.fromtimestamp(p["time"] / 1000), float(str(p["state"]).split()[0]))
-            for p in d.get("data", [])]
+
+    def as_utc(dt):
+        return dt if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+    d = oh_get(f"/persistence/items/{item}?starttime={as_utc(start).strftime(fmt)}"
+               f"&endtime={as_utc(end).strftime(fmt)}")
+    pts = []
+    for p in d.get("data", []):
+        try:
+            pts.append((datetime.fromtimestamp(p["time"] / 1000, tz=timezone.utc),
+                        float(str(p["state"]).split()[0])))
+        except (KeyError, TypeError, ValueError, IndexError):
+            continue
+    return pts
+
+
+def local_day_window_utc(day):
+    """UTC (start, end) covering one local America/Denver calendar day.
+
+    Exact across DST: boundaries are true local midnights converted to UTC,
+    so the window is 23/24/25 h as appropriate. This replaces the old fixed
+    utc_off=6h shift which, in winter (MST = UTC-7), started the window one
+    hour early and leaked the previous day's 23:00 point of midnight-reset
+    accumulators (PV today, RainFallDay) into the next day's max().
+    """
+    start = datetime.combine(day, datetime.min.time(), tzinfo=MOUNTAIN)
+    end = datetime.combine(day + timedelta(days=1), datetime.min.time(), tzinfo=MOUNTAIN)
+    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+DEFAULT_STATE = {"k_res": 1.0, "d_direct": 4.0, "predictions": {},
+                 "pv_errors": [], "trough_errors": [], "dm_sent": {}}
+
+
+def _quarantine_state():
+    quarantine = STATE_FILE + ".corrupt-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    try:
+        os.replace(STATE_FILE, quarantine)
+        print(f"CORRUPT STATE: {STATE_FILE} failed to parse; quarantined to "
+              f"{quarantine}; starting from defaults", file=sys.stderr)
+    except OSError as e:
+        print(f"CORRUPT STATE: {STATE_FILE} failed to parse and quarantine "
+              f"failed ({e}); starting from defaults", file=sys.stderr)
 
 
 def load_state():
+    """Load state, merged over defaults so missing keys never KeyError.
+
+    A file that exists but does not parse is precious evidence (learned k_res,
+    kalman biases) — it is quarantined to state.json.corrupt-<ts>, loudly
+    logged, and defaults are returned, instead of being silently shadowed and
+    later overwritten by save_state.
+    """
+    defaults = json.loads(json.dumps(DEFAULT_STATE))   # deep copy
     try:
         with open(STATE_FILE) as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {"k_res": 1.0, "d_direct": 4.0, "predictions": {},
-                "pv_errors": [], "trough_errors": [], "dm_sent": {}}
+            loaded = json.load(f)
+    except OSError:
+        return defaults          # first run: no file yet
+    except ValueError:
+        _quarantine_state()
+        return defaults
+    if not isinstance(loaded, dict):
+        _quarantine_state()
+        return defaults
+    defaults.update(loaded)      # schema-tolerant: old files lacking new keys
+    return defaults
+
+
+def save_state(st):
+    """Atomic write: temp file in the same dir, fsync, os.replace.
+
+    A crash or full disk mid-write must never leave a truncated state.json —
+    the learned calibration in it is irreplaceable.
+    """
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = STATE_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(st, f, indent=1)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, STATE_FILE)
 
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
-def should_score_day(state, ykey):
-    """True if yesterday (ykey) has not already been scored.
+SCORE_QUANTITIES = ("pv", "trough", "precip", "hi", "lo")
 
-    Scoring appends to the rolling error arrays, so it must run at most once per
-    calendar day; without this guard, repeated same-day invocations (e.g. the
-    2026-07-19 dev session that fired the service 5x) duplicate a single day's
-    error and corrupt downstream conformal quantiles.
+
+def _migrate_scored(state):
+    """Honor a legacy whole-day last_scored_day marker on first run after
+    upgrade: treat every quantity as scored for that day, then the
+    per-quantity structure takes over."""
+    legacy = state.pop("last_scored_day", None)
+    if legacy:
+        state.setdefault("scored", {}).setdefault(legacy, list(SCORE_QUANTITIES))
+
+
+def should_score(state, ykey, quantity):
+    """True if `quantity` has not yet been scored for day ykey.
+
+    Scoring appends to rolling error arrays, so each quantity must score at
+    most once per day (the 2026-07-19 dev session fired the service 5x and
+    duplicated errors). Markers are PER QUANTITY because a whole-day flag
+    marked days scored even when some series had no data yet — live evidence:
+    precip_errors stayed stuck while temps scored. A same-day re-run may now
+    pick up quantities that were missing earlier without double-appending the
+    ones that already scored.
     """
-    return state.get("last_scored_day") != ykey
+    _migrate_scored(state)
+    return quantity not in state.get("scored", {}).get(ykey, [])
+
+
+def mark_scored(state, ykey, quantity):
+    """Mark one quantity scored for ykey; prune markers to the last 3 days."""
+    _migrate_scored(state)
+    day = state.setdefault("scored", {}).setdefault(ykey, [])
+    if quantity not in day:
+        day.append(quantity)
+    for stale in sorted(state["scored"])[:-3]:
+        state["scored"].pop(stale, None)
 
 
 # --- Kalman bias filters (ML v3a, 2026-07-19) -------------------------------
@@ -116,9 +252,10 @@ def kalman_seed():
     """Seed biases from the last 60 backfilled days; fall back to the
     year-long constants from the 2026-07-19 analysis if the csv is absent."""
     seeds = {"hi": -2.5, "lo": 9.0}
+    import csv as _csv
     try:
-        import csv as _csv
-        rows = list(_csv.DictReader(open(BACKFILL_CSV)))[-60:]
+        with open(BACKFILL_CSV, newline="") as f:
+            rows = list(_csv.DictReader(f))[-60:]
         for key, fc_col, m_col in (("hi", "fc_hi", "m_hi"), ("lo", "fc_lo", "m_lo")):
             errs = []
             for row in rows:
@@ -128,8 +265,8 @@ def kalman_seed():
                     continue
             if errs:
                 seeds[key] = round(sum(errs) / len(errs), 2)
-    except OSError:
-        pass
+    except (OSError, _csv.Error, UnicodeDecodeError, ValueError) as e:
+        print(f"kalman_seed: falling back to year-long constants ({e})", file=sys.stderr)
     return {key: {"b": seeds[key], "P": 1.0} for key in KALMAN_CFG}
 
 
@@ -147,10 +284,9 @@ def kalman_update(filt, key, err):
 def measured_trough(for_night_ending_today):
     """min(BMS_SOC) 20:00 previous day -> 11:00 given day, local time."""
     d0 = for_night_ending_today
-    start = datetime.combine(d0 - timedelta(days=1), datetime.min.time()).replace(hour=20)
-    end = datetime.combine(d0, datetime.min.time()).replace(hour=11)
-    utc_off = timedelta(hours=6)  # MDT; coarse is fine for windowing
-    pts = series("BMS_SOC", start + utc_off, end + utc_off)
+    start = datetime.combine(d0 - timedelta(days=1), datetime.min.time(), tzinfo=MOUNTAIN).replace(hour=20)
+    end = datetime.combine(d0, datetime.min.time(), tzinfo=MOUNTAIN).replace(hour=11)
+    pts = series("BMS_SOC", start.astimezone(timezone.utc), end.astimezone(timezone.utc))
     return min((v for _, v in pts), default=None)
 
 
@@ -162,11 +298,10 @@ def measured_day_weather(day):
     """(rain_total_in, temp_hi_f, temp_lo_f) for one local calendar day.
 
     Rain uses max(RainFallDay) — the gauge's daily accumulator resets at
-    midnight, so the day's maximum is its total.
+    midnight, so the day's maximum is its total. The window is the exact
+    local calendar day (see local_day_window_utc) in both MST and MDT.
     """
-    utc_off = timedelta(hours=6)
-    d0 = datetime.combine(day, datetime.min.time())
-    window = (d0 + utc_off, d0 + timedelta(hours=24) + utc_off)
+    window = local_day_window_utc(day)
     rain = max((v for _, v in series(RAIN_DAY_ITEM, *window)), default=None)
     temps = [v for _, v in series(OUTDOOR_TEMP_ITEM, *window)]
     return rain, (max(temps) if temps else None), (min(temps) if temps else None)
@@ -310,14 +445,42 @@ def publish_forecast_payloads(payloads, put_state=oh_put_state):
         raise
 
 
+def align_pv_days(pv_days, stored_date, today):
+    """Realign the stored per-day PV list to today's forecast days.
+
+    pv_days is computed by the 06:40 run with index 0 = that day; the 2-hourly
+    json refresh between 00:00 and 06:40 would otherwise pair yesterday's list
+    day-misaligned against today's daily forecast. stored_date None = legacy
+    state written before pv_days_date existed: pass through unchanged
+    (pre-upgrade behavior; the next morning run stamps the date).
+    """
+    if not pv_days:
+        return None
+    if stored_date is None:
+        return list(pv_days)
+    try:
+        offset = (today - date.fromisoformat(str(stored_date))).days
+    except ValueError:
+        return None
+    if offset == 0:
+        return list(pv_days)
+    if 0 < offset < len(pv_days):
+        return list(pv_days)[offset:]
+    return None   # future-dated or entirely stale: unusable
+
+
 def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None):
     """Materialize legacy JSON items plus additive ten-day detail from one fetch."""
+    now_local = now or datetime.now(MOUNTAIN)
+    if now_local.tzinfo is None:
+        now_local = now_local.replace(tzinfo=MOUNTAIN)
     if snapshot is None:
-        with urllib.request.urlopen(OM_URL, timeout=20) as response:
-            snapshot = json.load(response)
+        snapshot = fetch_forecast()
     if pv_per_day is None:   # standalone JSON refresh: reuse the morning's PV estimates
         try:
-            pv_per_day = load_state().get("pv_days")
+            st = load_state()
+            pv_per_day = align_pv_days(st.get("pv_days"), st.get("pv_days_date"),
+                                       now_local.astimezone(MOUNTAIN).date())
         except Exception:
             pv_per_day = None
     payloads = build_forecast_payloads(snapshot, pv_per_day, now or datetime.now(MOUNTAIN))
@@ -330,84 +493,102 @@ def main():
     now = datetime.now()
     today = date.today()
     log = []
+    put_failed = []
 
-    # ---- Phase 1: score yesterday ----
+    def put(item, value):
+        safe_put(item, value, put_failed)
+
+    # ---- Phase 1: score yesterday, per quantity — a quantity whose series
+    # had no data on an earlier run today may still score on a re-run,
+    # without double-appending the ones that already scored ----
     ykey = (today - timedelta(days=1)).isoformat()
     yp = st["predictions"].get(ykey)
     rain_actual, hi_actual, lo_actual = measured_day_weather(today - timedelta(days=1))
-    if yp and should_score_day(st, ykey):
-        utc_off = timedelta(hours=6)
-        y0 = datetime.combine(today - timedelta(days=1), datetime.min.time())
-        pv_pts = series("MPPT60_EnergyFromPV_Today", y0 + utc_off, y0 + timedelta(hours=24) + utc_off)
-        pv_actual = max((v for _, v in pv_pts), default=None)
-        if pv_actual and yp.get("pv"):
-            err = (yp["pv"] - pv_actual) / pv_actual * 100
-            st["pv_errors"] = (st["pv_errors"] + [abs(err)])[-7:]
-            oh_put_state("Forecast_PV_Error_7d", round(sum(st["pv_errors"]) / len(st["pv_errors"]), 1))
-            log.append(f"PV scored: pred {yp['pv']:.2f} vs actual {pv_actual:.2f} kWh (err {err:+.0f}%)")
-            # ---- Phase 2: calibrate ----
-            demand_y = yp.get("demand")
-            radsum_y = yp.get("radsum")
-            if demand_y and radsum_y:
-                if pv_actual < 0.9 * demand_y and radsum_y > 0.5:   # resource-limited day
-                    k_imp = pv_actual / radsum_y
-                    st["k_res"] = clamp(st["k_res"] * (1 - ALPHA) + k_imp * ALPHA, *K_RES_BOUNDS)
-                    log.append(f"calibrated k_res -> {st['k_res']:.3f} (resource-limited day)")
-                else:                                               # demand-limited day
-                    deficit = yp.get("deficit_kwh", 0)
-                    d_imp = pv_actual - deficit
-                    st["d_direct"] = clamp(st["d_direct"] * (1 - ALPHA) + d_imp * ALPHA, *D_DIRECT_BOUNDS)
-                    log.append(f"calibrated d_direct -> {st['d_direct']:.2f} (demand-limited day)")
-        tr_actual = measured_trough(today)
-        if tr_actual is not None and yp.get("trough") is not None:
-            terr = yp["trough"] - tr_actual
-            st["trough_errors"] = (st["trough_errors"] + [abs(terr)])[-7:]
-            oh_put_state("Forecast_Trough_Error_7d", round(sum(st["trough_errors"]) / len(st["trough_errors"]), 1))
-            log.append(f"trough scored: pred {yp['trough']:.0f} vs actual {tr_actual:.0f} (err {terr:+.1f} pts)")
+    if yp:
+        if should_score(st, ykey, "pv"):
+            pv_pts = series("MPPT60_EnergyFromPV_Today", *local_day_window_utc(today - timedelta(days=1)))
+            pv_actual = max((v for _, v in pv_pts), default=None)
+            if pv_actual is not None and yp.get("pv") is not None:
+                if pv_actual < 1e-9:
+                    log.append(f"PV scoring skipped: measured {pv_actual:.2f} kWh (zero-production day, no %-error defined)")
+                    mark_scored(st, ykey, "pv")
+                else:
+                    err = (yp["pv"] - pv_actual) / pv_actual * 100
+                    st["pv_errors"] = (st["pv_errors"] + [abs(err)])[-7:]
+                    put("Forecast_PV_Error_7d", round(sum(st["pv_errors"]) / len(st["pv_errors"]), 1))
+                    log.append(f"PV scored: pred {yp['pv']:.2f} vs actual {pv_actual:.2f} kWh (err {err:+.0f}%)")
+                    # ---- Phase 2: calibrate ----
+                    demand_y = yp.get("demand")
+                    radsum_y = yp.get("radsum")
+                    if demand_y and radsum_y:
+                        if pv_actual < 0.9 * demand_y and radsum_y > 0.5:   # resource-limited day
+                            k_imp = pv_actual / radsum_y
+                            st["k_res"] = clamp(st["k_res"] * (1 - ALPHA) + k_imp * ALPHA, *K_RES_BOUNDS)
+                            log.append(f"calibrated k_res -> {st['k_res']:.3f} (resource-limited day)")
+                        else:                                               # demand-limited day
+                            deficit = yp.get("deficit_kwh", 0)
+                            d_imp = pv_actual - deficit
+                            st["d_direct"] = clamp(st["d_direct"] * (1 - ALPHA) + d_imp * ALPHA, *D_DIRECT_BOUNDS)
+                            log.append(f"calibrated d_direct -> {st['d_direct']:.2f} (demand-limited day)")
+                    mark_scored(st, ykey, "pv")
+        if should_score(st, ykey, "trough"):
+            tr_actual = measured_trough(today)
+            if tr_actual is not None and yp.get("trough") is not None:
+                terr = yp["trough"] - tr_actual
+                st["trough_errors"] = (st["trough_errors"] + [abs(terr)])[-7:]
+                put("Forecast_Trough_Error_7d", round(sum(st["trough_errors"]) / len(st["trough_errors"]), 1))
+                log.append(f"trough scored: pred {yp['trough']:.0f} vs actual {tr_actual:.0f} (err {terr:+.1f} pts)")
+                mark_scored(st, ykey, "trough")
 
         # ---- Phase 1b: forecast-vs-measured divergence (goal: learn where
         # Open-Meteo diverges from THIS site and adjust over time) ----
-        if rain_actual is not None and yp.get("precip_in") is not None:
+        if should_score(st, ykey, "precip") and rain_actual is not None and yp.get("precip_in") is not None:
             perr = yp["precip_in"] - rain_actual
             st["precip_errors"] = (st.get("precip_errors", []) + [abs(perr)])[-7:]
-            oh_put_state("Forecast_Precip_Error_7d", round(sum(st["precip_errors"]) / len(st["precip_errors"]), 2))
+            put("Forecast_Precip_Error_7d", round(sum(st["precip_errors"]) / len(st["precip_errors"]), 2))
             log.append(f"precip scored: pred {yp['precip_in']:.2f} vs actual {rain_actual:.2f} in (err {perr:+.2f})")
+            mark_scored(st, ykey, "precip")
         kalman = st.setdefault("kalman", kalman_seed())
-        if hi_actual is not None and yp.get("hi") is not None:
+        if should_score(st, ykey, "hi") and hi_actual is not None and yp.get("hi") is not None:
             herr = yp["hi"] - hi_actual   # raw-forecast error: the filter learns truth
             st["temp_hi_errors"] = (st.get("temp_hi_errors", []) + [herr])[-7:]   # signed: feeds bias
-            oh_put_state("Forecast_TempHigh_Error_7d", round(sum(abs(e) for e in st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
-            oh_put_state("Forecast_TempHigh_Bias_7d", round(sum(st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
+            put("Forecast_TempHigh_Error_7d", round(sum(abs(e) for e in st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
+            put("Forecast_TempHigh_Bias_7d", round(sum(st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
             b = kalman_update(kalman, "hi", herr)
             log.append(f"temp-hi scored: pred {yp['hi']:.0f} vs actual {hi_actual:.0f} (err {herr:+.1f}F, kalman bias {b:+.2f})")
-        if lo_actual is not None and yp.get("lo") is not None:
+            mark_scored(st, ykey, "hi")
+        if should_score(st, ykey, "lo") and lo_actual is not None and yp.get("lo") is not None:
             lerr = yp["lo"] - lo_actual
             st["temp_lo_errors"] = (st.get("temp_lo_errors", []) + [abs(lerr)])[-7:]
-            oh_put_state("Forecast_TempLow_Error_7d", round(sum(st["temp_lo_errors"]) / len(st["temp_lo_errors"]), 1))
+            put("Forecast_TempLow_Error_7d", round(sum(st["temp_lo_errors"]) / len(st["temp_lo_errors"]), 1))
             b = kalman_update(kalman, "lo", lerr)
             log.append(f"temp-lo scored: pred {yp['lo']:.0f} vs actual {lo_actual:.0f} (err {lerr:+.1f}F, kalman bias {b:+.2f})")
-        st["last_scored_day"] = ykey   # scored once; re-runs today are now no-ops
+            mark_scored(st, ykey, "lo")
 
     # ---- Phase 1c: day-3 horizon skill (how trustworthy is 3-day planning) ----
+    # Consume-on-success only: a field is popped from the record when it was
+    # actually scored, so a missing actual (e.g. empty rain series) leaves the
+    # day-3 record intact for a later same-day re-run instead of destroying it.
     horizon = st.setdefault("horizon", {})
-    h3 = horizon.pop(ykey, None)
+    h3 = horizon.get(ykey)
     if h3:
         if hi_actual is not None and h3.get("hi") is not None:
-            e3 = h3["hi"] - hi_actual
+            e3 = h3.pop("hi") - hi_actual
             st["day3_hi_errors"] = (st.get("day3_hi_errors", []) + [abs(e3)])[-7:]
-            oh_put_state("Forecast_Day3_High_Error_7d", round(sum(st["day3_hi_errors"]) / len(st["day3_hi_errors"]), 1))
-            log.append(f"day3-hi scored: pred {h3['hi']:.0f} vs actual {hi_actual:.0f} (err {e3:+.1f}F)")
+            put("Forecast_Day3_High_Error_7d", round(sum(st["day3_hi_errors"]) / len(st["day3_hi_errors"]), 1))
+            log.append(f"day3-hi scored: pred {e3 + hi_actual:.0f} vs actual {hi_actual:.0f} (err {e3:+.1f}F)")
         if rain_actual is not None and h3.get("precip_in") is not None:
-            e3p = h3["precip_in"] - rain_actual
+            e3p = h3.pop("precip_in") - rain_actual
             st["day3_precip_errors"] = (st.get("day3_precip_errors", []) + [abs(e3p)])[-7:]
-            oh_put_state("Forecast_Day3_Precip_Error_7d", round(sum(st["day3_precip_errors"]) / len(st["day3_precip_errors"]), 2))
-            log.append(f"day3-precip scored: pred {h3['precip_in']:.2f} vs actual {rain_actual:.2f} in (err {e3p:+.2f})")
+            put("Forecast_Day3_Precip_Error_7d", round(sum(st["day3_precip_errors"]) / len(st["day3_precip_errors"]), 2))
+            log.append(f"day3-precip scored: pred {e3p + rain_actual:.2f} vs actual {rain_actual:.2f} in (err {e3p:+.2f})")
+        if h3.get("hi") is None and h3.get("precip_in") is None:
+            horizon.pop(ykey, None)
     for stale_key in [k for k in horizon if k < (today - timedelta(days=7)).isoformat()]:
         horizon.pop(stale_key, None)
 
     # ---- Phase 3: fetch forecast, predict today ----
-    with urllib.request.urlopen(OM_URL, timeout=20) as r:
-        snapshot = json.load(r)
+    snapshot = fetch_forecast()
     om = snapshot["daily"]
     highs, lows = om["temperature_2m_max"], om["temperature_2m_min"]
     radsum_kwh = om["shortwave_radiation_sum"][0] / 3.6   # MJ/m² -> kWh/m²
@@ -460,8 +641,8 @@ def main():
     # predictions store keep RAW forecasts so the filters keep learning truth.
     kalman = st.setdefault("kalman", kalman_seed())
     b_hi, b_lo = kalman["hi"]["b"], kalman["lo"]["b"]
-    oh_put_state("Forecast_HighCorrection_F", round(-b_hi, 1))
-    oh_put_state("Forecast_LowCorrection_F", round(-b_lo, 1))
+    put("Forecast_HighCorrection_F", round(-b_hi, 1))
+    put("Forecast_LowCorrection_F", round(-b_lo, 1))
     t_high = highs[1] - b_hi
     streak3 = sum(highs[1:4]) / 3 - b_hi
     if t_high >= 95 or streak3 >= 92:
@@ -475,7 +656,7 @@ def main():
                       ("Predicted_SoC_Trough_Tomorrow", trough_pred), ("Thermal_Advisory", advisory),
                       ("Forecast_Tomorrow_High", round(highs[1] - b_hi, 1)), ("Forecast_Tomorrow_Low", round(lows[1] - b_lo, 1)),
                       ("Forecast_Tomorrow_PrecipProb", precip_prob[1] if precip_prob[1] is not None else 0)]:
-        oh_put_state(item, val)
+        put(item, val)
 
     st["predictions"][today.isoformat()] = {
         "pv": pv_pred, "trough": trough_pred, "curtail": curtail, "advisory": advisory.split("|")[0],
@@ -506,15 +687,17 @@ def main():
     try:
         pv_days = [round(min(st["k_res"] * (r or 0) / 3.6, 6.9), 1) for r in om["shortwave_radiation_sum"]]
         st["pv_days"] = pv_days
-        build_json_items(snapshot=snapshot, pv_per_day=pv_days, now=now)
+        st["pv_days_date"] = today.isoformat()   # lets the 2-hourly json refresh realign after midnight
+        build_json_items(snapshot=snapshot, pv_per_day=pv_days, now=now, put_state=put)
     except Exception as e:
         log.append(f"json build failed: {e}")
 
-    os.makedirs(STATE_DIR, exist_ok=True)
-    with open(STATE_FILE, "w") as f:
-        json.dump(st, f, indent=1)
+    save_state(st)
+    if put_failed:
+        log.append("PUT FAILED: " + ",".join(put_failed))
     line = (f"{now.isoformat(timespec='seconds')} pv={pv_pred} curtail={curtail} trough={trough_pred} "
             f"adv={advisory.split('|')[0]} k={st['k_res']:.3f} D={st['d_direct']:.2f} | " + "; ".join(log or ["first run, nothing to score"]))
+    os.makedirs(STATE_DIR, exist_ok=True)
     with open(os.path.join(STATE_DIR, "log"), "a") as f:
         f.write(line + "\n")
     print(line)

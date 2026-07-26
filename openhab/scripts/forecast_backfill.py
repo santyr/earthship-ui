@@ -21,15 +21,15 @@ import json
 import os
 import sys
 import urllib.request
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from forecast_intel import series, LAT, LON  # reuse auth'd persistence reader
+# reuse auth'd persistence reader + DST-exact local-day windows
+from forecast_intel import series, local_day_window_utc, MOUNTAIN, LAT, LON
 
 OUT_DIR = os.path.expanduser("~/.local/state/forecast-intel/backfill")
 START = date(2025, 7, 20)
 END = date.today() - timedelta(days=1)
-UTC_OFF = timedelta(hours=6)  # coarse MDT windowing, matches forecast_intel
 
 TEMP_ITEM = "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature"
 RAD_ITEM = "AmbientWeatherWS2902A_SolarRadiation"
@@ -110,8 +110,8 @@ def fetch_lead3():
 
 
 def day_window(day):
-    d0 = datetime.combine(day, datetime.min.time())
-    return d0 + UTC_OFF, d0 + timedelta(hours=24) + UTC_OFF
+    """True UTC window for one local America/Denver calendar day (DST-exact)."""
+    return local_day_window_utc(day)
 
 
 def month_series(item, start, end):
@@ -125,9 +125,16 @@ def month_series(item, start, end):
 
 
 def bucket_daily(points):
+    """Bucket aware-UTC (ts, value) points by local Mountain calendar day.
+
+    series() now returns aware UTC timestamps; converting via astimezone
+    gives true local midnight boundaries across DST (the old code parsed
+    epoch-ms to LOCAL naive datetimes and then subtracted UTC_OFF again —
+    a double shift that smeared points across day boundaries).
+    """
     days = {}
     for ts, value in points:
-        local = ts - UTC_OFF if ts.tzinfo is None else ts.astimezone(None) - UTC_OFF
+        local = ts.astimezone(MOUNTAIN)
         days.setdefault(local.date().isoformat(), []).append((ts, value))
     return days
 
