@@ -184,6 +184,93 @@ def test_correction_preserves_history_and_effective_read_returns_leaf(journal, e
             assert cursor.fetchall() == [("correction", "original"), ("original", None)]
 
 
+def test_action_correction_must_preserve_action_kind(journal, ephemeral_postgres):
+    vent = _action(event_id="same-kind-vent", key="same-kind-vent-receipt")
+    assert journal.append(vent)
+    cross_kind = _action(
+        event_id="cross-kind-kiva",
+        key="cross-kind-kiva-receipt",
+        action="kiva",
+        state="on",
+        supersedes=vent.event_id,
+    )
+    with pytest.raises(psycopg2.errors.ForeignKeyViolation):
+        journal.append(cross_kind)
+
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT (SELECT count(*) FROM thermal_intel.message_receipts "
+                "WHERE idempotency_key = %s), "
+                "(SELECT count(*) FROM thermal_intel.action_events WHERE event_id = %s)",
+                (cross_kind.idempotency_key, cross_kind.event_id),
+            )
+            assert cursor.fetchone() == (0, 0)
+
+
+@pytest.mark.parametrize(
+    "key, links",
+    [
+        (
+            "cycle-two-receipt",
+            (("cycle-two-a", "cycle-two-b"), ("cycle-two-b", "cycle-two-a")),
+        ),
+        (
+            "cycle-three-receipt",
+            (
+                ("cycle-three-a", "cycle-three-b"),
+                ("cycle-three-b", "cycle-three-c"),
+                ("cycle-three-c", "cycle-three-a"),
+            ),
+        ),
+    ],
+)
+def test_action_correction_cycles_are_rejected_at_commit(
+    journal, ephemeral_postgres, key, links
+):
+    events = tuple(
+        _action(event_id=event_id, key=key, supersedes=supersedes)
+        for event_id, supersedes in links
+    )
+    with pytest.raises(psycopg2.errors.CheckViolation, match="cycle"):
+        journal.append_batch(events, (), payload=key.encode("ascii"))
+
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT (SELECT count(*) FROM thermal_intel.message_receipts "
+                "WHERE idempotency_key = %s), "
+                "(SELECT count(*) FROM thermal_intel.action_events "
+                "WHERE idempotency_key = %s)",
+                (key, key),
+            )
+            assert cursor.fetchone() == (0, 0)
+
+
+def test_legitimate_action_correction_chain_remains_effective(journal):
+    start = datetime(2026, 8, 25, 20, tzinfo=timezone.utc)
+    first = _action(
+        event_id="chain-first", key="chain-first-receipt", effective_at=start
+    )
+    second = _action(
+        event_id="chain-second",
+        key="chain-second-receipt",
+        state="closed",
+        effective_at=start + timedelta(minutes=10),
+        supersedes=first.event_id,
+    )
+    third = _action(
+        event_id="chain-third",
+        key="chain-third-receipt",
+        effective_at=start + timedelta(minutes=20),
+        supersedes=second.event_id,
+    )
+    for event in (first, second, third):
+        assert journal.append(event)
+
+    assert journal.effective_events(start, start + timedelta(hours=1)) == (third,)
+
+
 def test_mode_query_includes_last_effective_mode_before_start_and_excludes_superseded(journal):
     start = datetime(2026, 9, 1, tzinfo=timezone.utc)
     old = _mode(
@@ -241,8 +328,14 @@ def test_mixed_batch_rolls_back_receipt_and_rows_on_foreign_key_failure(journal,
 
 
 def test_runtime_role_is_least_privilege_and_database_guards_are_append_only(
-    ephemeral_postgres,
+    journal, ephemeral_postgres,
 ):
+    guarded = _action(
+        event_id="append-only-guard-row",
+        key="append-only-guard-receipt",
+        effective_at=datetime(2026, 8, 30, tzinfo=timezone.utc),
+    )
+    assert journal.append(guarded)
     with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -259,7 +352,8 @@ def test_runtime_role_is_least_privilege_and_database_guards_are_append_only(
             with pytest.raises(psycopg2.errors.InsufficientPrivilege):
                 cursor.execute(
                     "UPDATE thermal_intel.action_events SET note = 'mutated' "
-                    "WHERE event_id = 'original'"
+                    "WHERE event_id = %s",
+                    (guarded.event_id,),
                 )
             connection.rollback()
 
@@ -267,7 +361,8 @@ def test_runtime_role_is_least_privilege_and_database_guards_are_append_only(
         with connection.cursor() as cursor:
             with pytest.raises(psycopg2.DatabaseError, match="append-only"):
                 cursor.execute(
-                    "DELETE FROM thermal_intel.action_events WHERE event_id = 'original'"
+                    "DELETE FROM thermal_intel.action_events WHERE event_id = %s",
+                    (guarded.event_id,),
                 )
             connection.rollback()
 

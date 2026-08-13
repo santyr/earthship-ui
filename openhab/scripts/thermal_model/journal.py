@@ -75,8 +75,12 @@ def migrate(dsn, runtime_role=None):
                             CHECK (confidence >= 0.0 AND confidence <= 1.0),
                         interval_id TEXT,
                         note TEXT NOT NULL DEFAULT '',
-                        supersedes TEXT UNIQUE
-                            REFERENCES {schema}.action_events(event_id)
+                        supersedes TEXT UNIQUE,
+                        CONSTRAINT action_events_event_id_action_key
+                            UNIQUE (event_id, action),
+                        CONSTRAINT action_events_supersedes_action_fkey
+                            FOREIGN KEY (supersedes, action)
+                            REFERENCES {schema}.action_events(event_id, action)
                             DEFERRABLE INITIALLY DEFERRED,
                         CHECK (supersedes IS NULL OR supersedes <> event_id)
                     );
@@ -103,6 +107,115 @@ def migrate(dsn, runtime_role=None):
                     actions=_check_values(ACTION_KINDS),
                     sources=_check_values(SOURCE_WEIGHTS),
                 )
+            )
+            cursor.execute(
+                """
+                DO $migration$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conrelid = 'thermal_intel.action_events'::regclass
+                          AND conname = 'action_events_supersedes_fkey'
+                    ) THEN
+                        ALTER TABLE thermal_intel.action_events
+                            DROP CONSTRAINT action_events_supersedes_fkey;
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conrelid = 'thermal_intel.action_events'::regclass
+                          AND conname = 'action_events_event_id_action_key'
+                    ) THEN
+                        ALTER TABLE thermal_intel.action_events
+                            ADD CONSTRAINT action_events_event_id_action_key
+                            UNIQUE (event_id, action);
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conrelid = 'thermal_intel.action_events'::regclass
+                          AND conname = 'action_events_supersedes_action_fkey'
+                    ) THEN
+                        ALTER TABLE thermal_intel.action_events
+                            ADD CONSTRAINT action_events_supersedes_action_fkey
+                            FOREIGN KEY (supersedes, action)
+                            REFERENCES thermal_intel.action_events(event_id, action)
+                            DEFERRABLE INITIALLY DEFERRED;
+                    END IF;
+                END;
+                $migration$;
+                """
+            )
+            cursor.execute(
+                sql.SQL(
+                    """
+                    CREATE OR REPLACE FUNCTION {schema}.reject_action_correction_cycle()
+                    RETURNS trigger
+                    LANGUAGE plpgsql
+                    AS $function$
+                    DECLARE
+                        has_cycle BOOLEAN;
+                    BEGIN
+                        IF NEW.supersedes IS NULL THEN
+                            RETURN NEW;
+                        END IF;
+                        WITH RECURSIVE ancestors(event_id, supersedes, path, cycle) AS (
+                            SELECT event_id, supersedes, ARRAY[event_id], FALSE
+                            FROM {schema}.action_events
+                            WHERE event_id = NEW.supersedes
+                            UNION ALL
+                            SELECT parent.event_id,
+                                   parent.supersedes,
+                                   ancestors.path || parent.event_id,
+                                   parent.event_id = ANY(ancestors.path)
+                            FROM {schema}.action_events parent
+                            JOIN ancestors ON parent.event_id = ancestors.supersedes
+                            WHERE NOT ancestors.cycle
+                        )
+                        SELECT COALESCE(bool_or(event_id = NEW.event_id), FALSE)
+                        INTO has_cycle
+                        FROM ancestors;
+                        IF has_cycle THEN
+                            RAISE EXCEPTION 'thermal_intel action correction cycle'
+                                USING ERRCODE = '23514';
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $function$;
+
+                    CREATE OR REPLACE FUNCTION {schema}.reject_mode_correction_cycle()
+                    RETURNS trigger
+                    LANGUAGE plpgsql
+                    AS $function$
+                    DECLARE
+                        has_cycle BOOLEAN;
+                    BEGIN
+                        IF NEW.supersedes IS NULL THEN
+                            RETURN NEW;
+                        END IF;
+                        WITH RECURSIVE ancestors(event_id, supersedes, path, cycle) AS (
+                            SELECT event_id, supersedes, ARRAY[event_id], FALSE
+                            FROM {schema}.mode_events
+                            WHERE event_id = NEW.supersedes
+                            UNION ALL
+                            SELECT parent.event_id,
+                                   parent.supersedes,
+                                   ancestors.path || parent.event_id,
+                                   parent.event_id = ANY(ancestors.path)
+                            FROM {schema}.mode_events parent
+                            JOIN ancestors ON parent.event_id = ancestors.supersedes
+                            WHERE NOT ancestors.cycle
+                        )
+                        SELECT COALESCE(bool_or(event_id = NEW.event_id), FALSE)
+                        INTO has_cycle
+                        FROM ancestors;
+                        IF has_cycle THEN
+                            RAISE EXCEPTION 'thermal_intel mode correction cycle'
+                                USING ERRCODE = '23514';
+                        END IF;
+                        RETURN NEW;
+                    END;
+                    $function$;
+                    """
+                ).format(schema=sql.Identifier(SCHEMA))
             )
             cursor.execute(
                 sql.SQL(
@@ -135,6 +248,27 @@ def migrate(dsn, runtime_role=None):
                         sql.Identifier(SCHEMA),
                     )
                 )
+            for table, function in (
+                ("action_events", "reject_action_correction_cycle"),
+                ("mode_events", "reject_mode_correction_cycle"),
+            ):
+                cursor.execute(
+                    sql.SQL("DROP TRIGGER IF EXISTS reject_correction_cycle ON {}.{}").format(
+                        sql.Identifier(SCHEMA), sql.Identifier(table)
+                    )
+                )
+                cursor.execute(
+                    sql.SQL(
+                        "CREATE CONSTRAINT TRIGGER reject_correction_cycle "
+                        "AFTER INSERT ON {}.{} DEFERRABLE INITIALLY DEFERRED "
+                        "FOR EACH ROW EXECUTE FUNCTION {}.{}()"
+                    ).format(
+                        sql.Identifier(SCHEMA),
+                        sql.Identifier(table),
+                        sql.Identifier(SCHEMA),
+                        sql.Identifier(function),
+                    )
+                )
             cursor.execute(
                 sql.SQL("REVOKE ALL ON SCHEMA {} FROM PUBLIC").format(
                     sql.Identifier(SCHEMA)
@@ -145,11 +279,16 @@ def migrate(dsn, runtime_role=None):
                     sql.Identifier(SCHEMA)
                 )
             )
-            cursor.execute(
-                sql.SQL("REVOKE ALL ON FUNCTION {}.reject_journal_mutation() FROM PUBLIC").format(
-                    sql.Identifier(SCHEMA)
+            for function in (
+                "reject_journal_mutation",
+                "reject_action_correction_cycle",
+                "reject_mode_correction_cycle",
+            ):
+                cursor.execute(
+                    sql.SQL("REVOKE ALL ON FUNCTION {}.{}() FROM PUBLIC").format(
+                        sql.Identifier(SCHEMA), sql.Identifier(function)
+                    )
                 )
-            )
             if runtime_role:
                 role = sql.Identifier(runtime_role)
                 cursor.execute(
