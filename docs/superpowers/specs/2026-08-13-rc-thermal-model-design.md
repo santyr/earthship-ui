@@ -22,7 +22,8 @@ The household's current manual thermal policy is:
 - Spring, summer, and fall: vent every night, close indoor shades during sunny
   days, and open indoor shades at night.
 - Winter: do not vent, leave indoor shades open during the day for passive solar
-  gain, and close them at night.
+  gain, and close them at night. On cloudy cold days indoor shades remain closed
+  to retain heat.
 - During fall transition, remove outdoor shades and increasingly leave indoor
   shades open to charge the thermal mass ahead of winter.
 - Winter heating is effectively passive solar plus ordinary internal gains.
@@ -421,6 +422,69 @@ advisory cutover.
   fail-safe state model, manual override, capability boundary, and operator
   approval. A high-confidence prediction does not itself authorize action.
 
+## Future in-house household model
+
+The histories produced by this project should also support a future small,
+locally hosted household model, such as a suitable Gemma-family checkpoint.
+The durable interface is model-agnostic so a particular model name, size, or
+runtime can be replaced without changing the thermal or control contracts.
+Initial planning assumes parameter-efficient adaptation or supervised fine-tuning
+of an existing small open-weight model, not training a foundation model from
+scratch. Checkpoint selection happens later against actual household hardware,
+privacy, licensing, latency, and evaluation requirements.
+
+The future model may:
+
+- Learn and explain seasonal household strategy from curated sensor, action,
+  forecast, and outcome histories.
+- Predict likely human vent and shade transitions as an additional behavior
+  model candidate.
+- Propose a typed schedule containing action, target, proposed time, confidence,
+  reasons, and the evidence window used.
+- Answer household questions and summarize why the physical model expects a
+  particular thermal outcome.
+
+It must not:
+
+- Replace the constrained RC model as the numerical source of thermal-state
+  forecasts or counterfactual effects.
+- Train directly on uncurated raw messages, credentials, private keys, or other
+  unrelated household data.
+- Produce free-form tool calls or actuator commands.
+- Bypass deterministic state validation, weather/sensor freshness checks,
+  physical limits, seasonal policy constraints, manual overrides, or the
+  separately authorized control owner.
+- Treat a plausible natural-language explanation as proof that an action is
+  safe.
+
+Training examples are derived reproducibly from the authoritative JDBC history,
+thermal-action journal, forecasts, RC-model outputs, and measured outcomes.
+Every example retains timestamps, provenance, confidence, and whether the action
+was confirmed, reconstructed, inferred, or merely proposed. Training,
+validation, and evaluation splits are chronological and include complete
+seasonal holdouts. A model artifact records its base-model identity, license,
+data-manifest digest, training code revision, evaluation results, and resource
+requirements.
+
+Initial evaluation is offline and shadow-only. It must compare against the
+explicit behavior model and simple seasonal rules, including transition timing,
+calibration, abstention on unfamiliar conditions, explanation faithfulness, and
+structured-output validity. The model is useful only if it adds measurable
+value beyond those smaller deterministic/statistical components.
+
+Any later use in automation follows a proposal/validation/execution split:
+
+```text
+local model proposal
+        -> schema validation
+        -> RC counterfactual simulation
+        -> deterministic safety and authority owner
+        -> optional actuator command
+```
+
+The final step is outside this project and remains impossible until a separate
+automation design grants narrow authority and proves fail-safe behavior.
+
 ## Testing strategy
 
 The implementation plan must cover:
@@ -453,6 +517,8 @@ The implementation plan must cover:
 - Bandit/Thompson tuning of action thresholds before outcome measurement and
   model validation exist.
 - Winter advisory graduation before a later cold-season evidence review.
+- Training, deploying, or granting tool access to an in-house language model;
+  this specification only preserves the future data and interface boundary.
 
 ## Completion boundary for Task 17
 
