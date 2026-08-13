@@ -111,7 +111,9 @@ Inputs and modifiers are:
 - Outdoor temperature.
 - Measured or forecast solar radiation.
 - Cloud/sunny state and solar position where useful.
-- Vent state, which changes effective outdoor-air exchange.
+- Effective ventilation level, normalized to closed `0.0`, baseline open
+  `1.0`, or door-assisted boosted `2.0`. Values outside `[0.0, 2.0]` are
+  invalid rather than extrapolated beyond the operator-approved envelope.
 - Indoor- and outdoor-shade state, which changes transmitted solar gain.
 - Wind, which may modify ventilation effectiveness when vents are open.
 - Kiva state, represented only as an exceptional exogenous heat episode.
@@ -119,14 +121,23 @@ Inputs and modifiers are:
   heat that is not separately instrumented.
 
 All fitted coefficients have physically plausible sign and magnitude bounds.
-A candidate fit with implausible dynamics, unstable free response, or worse
-held-out performance than the accepted baselines is rejected.
+For each supported ventilation level, the discrete two-state transition matrix
+must have spectral radius below `1 - 1e-9`; neutral and unstable modes are
+rejected before a separate 72-hour finite/range simulation. A candidate fit
+with implausible dynamics, unstable free response, or worse held-out
+performance than the accepted baselines is rejected.
+
+Each explicit forcing row represents the end of its five-minute interval.
+Training pairs use the left row for the starting air/mass state and the right
+row for end forcing, action confidence, and targets. Prediction and simulation
+result rows therefore contain end-of-step air, mass, and optional glazing.
 
 ### South-glazing auxiliary observation
 
 The south-glazing temperature does not add a third physical state to the first
-model. A small observation equation predicts it from room air, outdoor air,
-radiation, solar position, and shade state. This signal provides:
+model. A small observation equation predicts it from co-temporal end-of-step
+room air, outdoor air, radiation, solar position, and shade state. It is never
+recursive. This signal provides:
 
 - Direct evidence of solar-zone response.
 - A validation target for transmitted-gain behavior.

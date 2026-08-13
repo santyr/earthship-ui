@@ -590,7 +590,9 @@ Expected: import failure for `thermal_model.dynamics`.
 
 - [ ] **Step 3: Implement weighted bounded least squares**
 
-For each consecutive five-minute pair, build these regressions:
+For each consecutive five-minute pair, treat the left row as the starting
+air/mass state and the right row as the end-of-step forcing, action-confidence,
+and target row. Build these regressions:
 
 ```text
 unshaded = (1-indoor_shade_closed)*(1-outdoor_shade_present)
@@ -633,19 +635,26 @@ MASS_BOUNDS = (
 
 Skip regression rows whose vent, indoor-shade, or outdoor-shade input is
 unknown; report those exclusions and widen artifact uncertainty according to
-the remaining action-label coverage. Fit the glazing equation only where that
-auxiliary observation is present.
+the remaining action-label coverage. Fit the glazing equation only where the
+right/end auxiliary observation is present, using co-temporal right/end air,
+outdoor, radiation, and shade features.
 
-Reject a model unless unshaded solar gain is at least both shaded gains,
-all exchange coefficients are nonnegative, and a 72-hour constant-forcing
-simulation stays within `[-40, 140] F` without divergence.
+Normalize effective ventilation forcing to closed `0.0`, baseline `1.0`,
+and door-assisted boosted `2.0`; reject values outside `[0.0, 2.0]`.
+Reject a model unless unshaded solar gain is at least both shaded gains and all
+exchange coefficients are nonnegative. For closed, baseline, and boosted
+ventilation, require the two-state transition matrix spectral radius to be
+strictly below `1 - 1e-9`, then separately require a 72-hour
+constant-forcing simulation to stay within `[-40, 140] F` without divergence.
 
 - [ ] **Step 4: Implement deterministic simulation**
 
-`predict_step()` applies the fitted equations once and returns `(air, mass,
-glazing)`. `simulate()` must accept explicit five-minute forcing rows and never
-read wall-clock time, files, network, or OpenHAB. Clamp nothing during normal
-simulation; non-finite or out-of-range results raise `ValueError` so an unstable
+`predict_step()` applies the fitted equations once and returns end-of-step
+`(air, mass, glazing)`; glazing uses returned air plus the same end forcing and
+is never recursive. `simulate()` must accept explicit end-of-step five-minute
+forcing rows and never read wall-clock time, files, network, or OpenHAB.
+Clamp nothing during normal simulation; non-finite or out-of-range results
+raise `ValueError` so an unstable
 artifact cannot appear plausible.
 
 - [ ] **Step 5: Run dynamics and dataset tests**

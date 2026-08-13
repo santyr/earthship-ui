@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import thermal_model.dynamics as dynamics
 from thermal_model.dynamics import (
     AIR_BOUNDS,
     MASS_BOUNDS,
@@ -40,6 +41,55 @@ def _sample(at, air, mass, glazing, outdoor, radiation, vent, indoor, outdoor_sh
     )
 
 
+TRUE_AIR_COEFFICIENTS = {
+    "outside_exchange": 0.018,
+    "mass_exchange": 0.040,
+    "solar_unshaded": 0.00015,
+    "solar_indoor_closed": 0.00006,
+    "solar_outdoor": 0.00003,
+    "vent_exchange": 0.070,
+    "bias": 0.002,
+}
+TRUE_MASS_COEFFICIENTS = {
+    "air_exchange": 0.008,
+    "solar_unshaded": 0.000035,
+    "solar_indoor_closed": 0.000014,
+    "solar_outdoor": 0.000007,
+}
+TRUE_GLAZING_COEFFICIENTS = {
+    "intercept": 4.0,
+    "air": 0.72,
+    "outdoor": 0.20,
+    "solar_unshaded": 0.0030,
+    "solar_indoor_closed": 0.0013,
+    "solar_outdoor": 0.0008,
+}
+
+
+def _synthetic_forcing(index):
+    minute = index % 288
+    day = index // 288
+    angle = 2.0 * math.pi * minute / 288.0
+    return {
+        "outdoor": 61.0 + 18.0 * math.sin(angle - math.pi / 2.0),
+        "radiation": max(0.0, 760.0 * math.sin(angle - math.pi / 2.0)),
+        "vent": float(minute >= 225 or minute < 72),
+        "indoor": float(105 <= minute < 210 and day % 3 != 0),
+        "outdoor_shade": float(day % 4 in (1, 2)),
+    }
+
+
+def _synthetic_solar(forcing):
+    indoor = forcing["indoor"]
+    outdoor_shade = forcing["outdoor_shade"]
+    radiation = forcing["radiation"]
+    return (
+        radiation * (1.0 - indoor) * (1.0 - outdoor_shade),
+        radiation * indoor,
+        radiation * (1.0 - indoor) * outdoor_shade,
+    )
+
+
 def synthetic_2r2c_days(days, seed):
     rng = random.Random(seed)
     at = datetime(2026, 5, 1, tzinfo=UTC)
@@ -47,23 +97,15 @@ def synthetic_2r2c_days(days, seed):
     mass = 67.0
     rows = []
     for index in range(days * 288):
-        minute = index % 288
-        day = index // 288
-        angle = 2.0 * math.pi * minute / 288.0
-        radiation = max(0.0, 760.0 * math.sin(angle - math.pi / 2.0))
-        outdoor = 61.0 + 18.0 * math.sin(angle - math.pi / 2.0)
-        vent = float(minute >= 225 or minute < 72)
-        indoor = float(105 <= minute < 210 and day % 3 != 0)
-        outdoor_shade = float(day % 4 in (1, 2))
-        unshaded = (1.0 - indoor) * (1.0 - outdoor_shade)
-        outdoor_shaded = (1.0 - indoor) * outdoor_shade
+        forcing = _synthetic_forcing(index)
+        solar = _synthetic_solar(forcing)
         glazing = (
-            4.0
-            + 0.72 * air
-            + 0.20 * outdoor
-            + 0.0030 * radiation * unshaded
-            + 0.0013 * radiation * indoor
-            + 0.0008 * radiation * outdoor_shaded
+            TRUE_GLAZING_COEFFICIENTS["intercept"]
+            + TRUE_GLAZING_COEFFICIENTS["air"] * air
+            + TRUE_GLAZING_COEFFICIENTS["outdoor"] * forcing["outdoor"]
+            + TRUE_GLAZING_COEFFICIENTS["solar_unshaded"] * solar[0]
+            + TRUE_GLAZING_COEFFICIENTS["solar_indoor_closed"] * solar[1]
+            + TRUE_GLAZING_COEFFICIENTS["solar_outdoor"] * solar[2]
             + rng.uniform(-0.02, 0.02)
         )
         rows.append(
@@ -72,28 +114,38 @@ def synthetic_2r2c_days(days, seed):
                 air,
                 mass,
                 glazing,
-                outdoor,
-                radiation,
-                vent,
-                indoor,
-                outdoor_shade,
+                forcing["outdoor"],
+                forcing["radiation"],
+                forcing["vent"],
+                forcing["indoor"],
+                forcing["outdoor_shade"],
             )
         )
-        air += (
-            0.018 * (outdoor - air)
-            + 0.040 * (mass - air)
-            + 0.00015 * radiation * unshaded
-            + 0.00006 * radiation * indoor
-            + 0.00003 * radiation * outdoor_shaded
-            + 0.070 * vent * (outdoor - air)
-            + 0.002
+
+        end_forcing = _synthetic_forcing(index + 1)
+        end_solar = _synthetic_solar(end_forcing)
+        pre_air = air
+        pre_mass = mass
+        air = (
+            pre_air
+            + TRUE_AIR_COEFFICIENTS["outside_exchange"]
+            * (end_forcing["outdoor"] - pre_air)
+            + TRUE_AIR_COEFFICIENTS["mass_exchange"] * (pre_mass - pre_air)
+            + TRUE_AIR_COEFFICIENTS["solar_unshaded"] * end_solar[0]
+            + TRUE_AIR_COEFFICIENTS["solar_indoor_closed"] * end_solar[1]
+            + TRUE_AIR_COEFFICIENTS["solar_outdoor"] * end_solar[2]
+            + TRUE_AIR_COEFFICIENTS["vent_exchange"]
+            * end_forcing["vent"]
+            * (end_forcing["outdoor"] - pre_air)
+            + TRUE_AIR_COEFFICIENTS["bias"]
             + rng.uniform(-0.003, 0.003)
         )
-        mass += (
-            0.008 * (air - mass)
-            + 0.000035 * radiation * unshaded
-            + 0.000014 * radiation * indoor
-            + 0.000007 * radiation * outdoor_shaded
+        mass = (
+            pre_mass
+            + TRUE_MASS_COEFFICIENTS["air_exchange"] * (pre_air - pre_mass)
+            + TRUE_MASS_COEFFICIENTS["solar_unshaded"] * end_solar[0]
+            + TRUE_MASS_COEFFICIENTS["solar_indoor_closed"] * end_solar[1]
+            + TRUE_MASS_COEFFICIENTS["solar_outdoor"] * end_solar[2]
             + rng.uniform(-0.001, 0.001)
         )
         at += STEP
@@ -102,7 +154,7 @@ def synthetic_2r2c_days(days, seed):
 
 
 def _forcing_rows(samples):
-    return samples[:-1]
+    return samples[1:]
 
 
 def _mae(actual, expected):
@@ -128,17 +180,41 @@ def test_fit_recovers_stable_synthetic_2r2c():
         _mae([row["mass_f"] for row in predicted], [s.mass_f for s in holdout[1:]])
         < 0.25
     )
-    assert model.air_coefficients["outside_exchange"] >= 0
-    assert model.air_coefficients["mass_exchange"] >= 0
-    assert model.mass_coefficients["air_exchange"] >= 0
-    assert set(model.glazing_observation_coefficients) == {
-        "intercept",
-        "air",
-        "outdoor",
-        "solar_unshaded",
-        "solar_indoor_closed",
-        "solar_outdoor",
+    air_tolerances = {
+        "outside_exchange": 0.00002,
+        "mass_exchange": 0.00002,
+        "solar_unshaded": 0.0000005,
+        "solar_indoor_closed": 0.0000005,
+        "solar_outdoor": 0.0000005,
+        "vent_exchange": 0.00001,
+        "bias": 0.0001,
     }
+    for name, expected in TRUE_AIR_COEFFICIENTS.items():
+        assert model.air_coefficients[name] == pytest.approx(
+            expected, abs=air_tolerances[name]
+        )
+    mass_tolerances = {
+        "air_exchange": 0.00002,
+        "solar_unshaded": 0.000001,
+        "solar_indoor_closed": 0.000001,
+        "solar_outdoor": 0.000001,
+    }
+    for name, expected in TRUE_MASS_COEFFICIENTS.items():
+        assert model.mass_coefficients[name] == pytest.approx(
+            expected, abs=mass_tolerances[name]
+        )
+    glazing_tolerances = {
+        "intercept": 0.01,
+        "air": 0.001,
+        "outdoor": 0.001,
+        "solar_unshaded": 0.00001,
+        "solar_indoor_closed": 0.00001,
+        "solar_outdoor": 0.00001,
+    }
+    for name, expected in TRUE_GLAZING_COEFFICIENTS.items():
+        assert model.glazing_observation_coefficients[name] == pytest.approx(
+            expected, abs=glazing_tolerances[name]
+        )
 
 
 def test_fit_rejects_shaded_gain_above_unshaded_gain():
@@ -222,10 +298,10 @@ def test_boosted_ventilation_forcing_scales_effective_outdoor_exchange():
     }
 
     baseline_air, _, _ = predict_step(model, forcing)
-    boosted_air, _, _ = predict_step(model, forcing | {"vent_open": 1.5})
+    boosted_air, _, _ = predict_step(model, forcing | {"vent_open": 2.0})
 
     assert baseline_air == pytest.approx(78.0)
-    assert boosted_air == pytest.approx(77.0)
+    assert boosted_air == pytest.approx(76.0)
 
 
 def test_invalid_glazing_row_skips_only_auxiliary_fit():
@@ -336,7 +412,7 @@ def test_validation_rejects_unstable_72_hour_unforced_response():
         version=1,
         step_minutes=5,
         air_coefficients={
-            "outside_exchange": 0.0,
+            "outside_exchange": 0.001,
             "mass_exchange": 0.0,
             "solar_unshaded": 0.001,
             "solar_indoor_closed": 0.0005,
@@ -345,7 +421,7 @@ def test_validation_rejects_unstable_72_hour_unforced_response():
             "bias": 0.2,
         },
         mass_coefficients={
-            "air_exchange": 0.0,
+            "air_exchange": 0.01,
             "solar_unshaded": 0.0002,
             "solar_indoor_closed": 0.0001,
             "solar_outdoor": 0.00005,
@@ -457,8 +533,8 @@ def test_sqrt_confidence_weighting_suppresses_low_confidence_measurement_noise()
             air_f=confidence_weighted[index].air_f + noise,
             action_confidence=0.01,
         )
-        confidence_weighted[index - 1] = replace(
-            confidence_weighted[index - 1], action_confidence=0.01
+        confidence_weighted[index + 1] = replace(
+            confidence_weighted[index + 1], action_confidence=0.01
         )
 
     unweighted_model = fit_dynamics(fully_weighted)
@@ -511,3 +587,165 @@ def test_simulation_is_repeatable_and_never_clamps_out_of_range_output():
     )
     with pytest.raises(ValueError, match="out of range"):
         simulate(model, {"air_f": 139.9, "mass_f": 65.0}, [forcing])
+
+
+def test_stability_rejects_slow_neutral_bias_drift_inside_72_hour_range():
+    model = DynamicsModel(
+        version=1,
+        step_minutes=5,
+        air_coefficients={
+            "outside_exchange": 0.0,
+            "mass_exchange": 0.0,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+            "vent_exchange": 0.0,
+            "bias": 0.01,
+        },
+        mass_coefficients={
+            "air_exchange": 0.0,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+        },
+        glazing_observation_coefficients={},
+    )
+
+    with pytest.raises(ValueError, match="transition stability.*closed"):
+        validate_physics(model)
+
+
+def test_stability_rejects_oscillatory_boosted_transition():
+    model = DynamicsModel(
+        version=1,
+        step_minutes=5,
+        air_coefficients={
+            "outside_exchange": 0.5,
+            "mass_exchange": 0.5,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+            "vent_exchange": 0.8,
+            "bias": 0.0,
+        },
+        mass_coefficients={
+            "air_exchange": 0.2,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+        },
+        glazing_observation_coefficients={},
+    )
+
+    with pytest.raises(ValueError, match="transition stability.*boosted"):
+        validate_physics(model)
+
+
+def test_ventilation_forcing_is_bounded_at_operator_approved_boost():
+    assert dynamics.MAX_VENT_FORCING == 2.0
+    assert dynamics.STABILITY_TOLERANCE == 1e-9
+    forcing = {
+        "air_f": 70.0,
+        "mass_f": 65.0,
+        "outdoor_f": 60.0,
+        "radiation_wm2": 0.0,
+        "vent_open": 2.01,
+        "indoor_shade_closed": 0.0,
+        "outdoor_shade_present": 0.0,
+    }
+    model = DynamicsModel(
+        version=1,
+        step_minutes=5,
+        air_coefficients={
+            "outside_exchange": 0.02,
+            "mass_exchange": 0.03,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+            "vent_exchange": 0.1,
+            "bias": 0.0,
+        },
+        mass_coefficients={
+            "air_exchange": 0.01,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+        },
+        glazing_observation_coefficients={},
+    )
+
+    with pytest.raises(ValueError, match="vent forcing.*2.0"):
+        predict_step(model, forcing)
+
+
+def test_glazing_prediction_is_aligned_with_end_of_step_air_state():
+    model = DynamicsModel(
+        version=1,
+        step_minutes=5,
+        air_coefficients={
+            "outside_exchange": 0.5,
+            "mass_exchange": 0.0,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+            "vent_exchange": 0.0,
+            "bias": 0.0,
+        },
+        mass_coefficients={
+            "air_exchange": 0.0,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+        },
+        glazing_observation_coefficients={
+            "intercept": 0.0,
+            "air": 1.0,
+            "outdoor": 0.0,
+            "solar_unshaded": 0.0,
+            "solar_indoor_closed": 0.0,
+            "solar_outdoor": 0.0,
+        },
+    )
+    forcing = {
+        "air_f": 70.0,
+        "mass_f": 65.0,
+        "outdoor_f": 90.0,
+        "radiation_wm2": 0.0,
+        "vent_open": 0.0,
+        "indoor_shade_closed": 0.0,
+        "outdoor_shade_present": 0.0,
+    }
+
+    air, _, glazing = predict_step(model, forcing)
+
+    assert air == pytest.approx(80.0)
+    assert glazing == pytest.approx(80.0)
+
+
+def test_glazing_fit_and_diagnostics_use_end_of_step_observation_rows():
+    training, _ = synthetic_2r2c_days(days=5, seed=37)
+    training[-1] = replace(training[-1], glazing_f=None)
+
+    fit_dynamics(training)
+    diagnostics = fit_diagnostics(training)
+
+    assert diagnostics["auxiliary_glazing_fitted_rows"] == len(training) - 2
+    assert diagnostics["auxiliary_glazing_skipped_rows"] == 1
+
+
+def test_synthetic_fixture_recovers_known_mass_coefficients():
+    training, _ = synthetic_2r2c_days(days=21, seed=7)
+    model = fit_dynamics(training)
+
+    assert model.mass_coefficients["air_exchange"] == pytest.approx(
+        0.008, abs=0.00002
+    )
+    assert model.mass_coefficients["solar_unshaded"] == pytest.approx(
+        0.000035, abs=0.000001
+    )
+    assert model.mass_coefficients["solar_indoor_closed"] == pytest.approx(
+        0.000014, abs=0.000001
+    )
+    assert model.mass_coefficients["solar_outdoor"] == pytest.approx(
+        0.000007, abs=0.000001
+    )

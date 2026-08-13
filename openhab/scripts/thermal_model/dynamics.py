@@ -43,6 +43,14 @@ MASS_BOUNDS = (
     [0.20, 0.008, 0.004, 0.006],
 )
 OUTPUT_RANGE_F = (-40.0, 140.0)
+MAX_VENT_FORCING = 2.0
+VENT_FORCING_LEVELS = (
+    ("closed", 0.0),
+    ("baseline", 1.0),
+    ("boosted", MAX_VENT_FORCING),
+)
+# Reject eigenvalues numerically indistinguishable from the unit circle.
+STABILITY_TOLERANCE = 1e-9
 
 
 def _value(row, name):
@@ -58,6 +66,8 @@ def _vent_forcing(row):
     value = float(value)
     if not math.isfinite(value) or value < 0.0:
         raise ValueError("vent forcing must be finite and nonnegative")
+    if value > MAX_VENT_FORCING:
+        raise ValueError(f"vent forcing must not exceed {MAX_VENT_FORCING}")
     return value
 
 
@@ -92,15 +102,15 @@ def _weight(sample):
 def _glazing_rows(pairs):
     design = []
     target = []
-    for left, _ in pairs:
-        if not _valid_glazing(left):
+    for _, right in pairs:
+        if not _valid_glazing(right):
             continue
-        solar = _solar_terms(left)
-        weight = _weight(left)
+        solar = _solar_terms(right)
+        weight = _weight(right)
         design.append(
-            np.asarray((1.0, left.air_f, left.outdoor_f, *solar)) * weight
+            np.asarray((1.0, right.air_f, right.outdoor_f, *solar)) * weight
         )
-        target.append(left.glazing_f * weight)
+        target.append(right.glazing_f * weight)
     return design, target
 
 
@@ -125,9 +135,9 @@ def _selection(samples):
             excluded_passive += 1
             continue
         actions = (
-            left.vent_open,
-            left.indoor_shade_closed,
-            left.outdoor_shade_present,
+            right.vent_open,
+            right.indoor_shade_closed,
+            right.outdoor_shade_present,
         )
         if any(value is None for value in actions):
             excluded_unknown += 1
@@ -174,7 +184,7 @@ def _fit(design, target, bounds, names):
 
 
 def fit_dynamics(samples):
-    """Fit a bounded 2R2C model from valid consecutive five-minute samples."""
+    """Fit start-state deltas against co-temporal end forcing and targets."""
     pairs = _selected_pairs(samples)
     air_design = []
     air_target = []
@@ -183,15 +193,15 @@ def fit_dynamics(samples):
     glazing_design, glazing_target = _glazing_rows(pairs)
 
     for left, right in pairs:
-        solar = _solar_terms(left)
-        weight = _weight(left)
+        solar = _solar_terms(right)
+        weight = _weight(right)
         air_design.append(
             np.asarray(
                 (
-                    left.outdoor_f - left.air_f,
+                    right.outdoor_f - left.air_f,
                     left.mass_f - left.air_f,
                     *solar,
-                    _vent_forcing(left) * (left.outdoor_f - left.air_f),
+                    _vent_forcing(right) * (right.outdoor_f - left.air_f),
                     1.0,
                 )
             )
@@ -234,7 +244,7 @@ def _checked_output(value, name):
 
 
 def predict_step(model, sample):
-    """Apply one five-minute model step without consulting external state."""
+    """Return end state/observation using one explicit end-forcing row."""
     air = float(_value(sample, "air_f"))
     mass = float(_value(sample, "mass_f"))
     outdoor = float(_value(sample, "outdoor_f"))
@@ -262,7 +272,7 @@ def predict_step(model, sample):
     if glazing_c:
         glazing = (
             glazing_c["intercept"]
-            + glazing_c["air"] * air
+            + glazing_c["air"] * next_air
             + glazing_c["outdoor"] * outdoor
             + glazing_c["solar_unshaded"] * solar[0]
             + glazing_c["solar_indoor_closed"] * solar[1]
@@ -276,7 +286,7 @@ def predict_step(model, sample):
 
 
 def simulate(model, initial, forcings):
-    """Simulate explicit forcing rows from an explicit two-state initial value."""
+    """Simulate explicit end-forcing rows from an explicit two-state initial value."""
     air = float(_value(initial, "air_f"))
     mass = float(_value(initial, "mass_f"))
     _checked_output(air, "initial air")
@@ -315,8 +325,41 @@ def _validate_gain_relationship(coefficients):
         raise ValueError("shade gain exceeds unshaded gain")
 
 
+def _transition_matrix(model, vent_forcing):
+    air = model.air_coefficients
+    mass = model.mass_coefficients
+    return np.asarray(
+        (
+            (
+                1.0
+                - air["outside_exchange"]
+                - air["mass_exchange"]
+                - air["vent_exchange"] * vent_forcing,
+                air["mass_exchange"],
+            ),
+            (mass["air_exchange"], 1.0 - mass["air_exchange"]),
+        ),
+        dtype=float,
+    )
+
+
+def _validate_transition_stability(model):
+    for name, vent_forcing in VENT_FORCING_LEVELS:
+        eigenvalues = np.linalg.eigvals(_transition_matrix(model, vent_forcing))
+        spectral_radius = float(np.max(np.abs(eigenvalues)))
+        if (
+            not math.isfinite(spectral_radius)
+            or spectral_radius >= 1.0 - STABILITY_TOLERANCE
+        ):
+            raise ValueError(
+                "transition stability failed for "
+                f"{name} ventilation: spectral radius {spectral_radius:.12g} "
+                f"must be below {1.0 - STABILITY_TOLERANCE:.12g}"
+            )
+
+
 def validate_physics(model):
-    """Reject sign, gain-order, and 72-hour free-response violations."""
+    """Reject sign, gain-order, spectral, and 72-hour violations."""
     if model.version != 1 or model.step_minutes != 5:
         raise ValueError("dynamics model must be version 1 at five-minute steps")
     for coefficients, names in (
@@ -348,16 +391,18 @@ def validate_physics(model):
     ):
         _validate_gain_relationship(coefficients)
 
-    forcing = {
-        "outdoor_f": 70.0,
-        "radiation_wm2": 0.0,
-        "vent_open": 0.0,
-        "indoor_shade_closed": 0.0,
-        "outdoor_shade_present": 0.0,
-    }
-    simulate(
-        model,
-        {"air_f": 90.0, "mass_f": 50.0},
-        [forcing] * (72 * 12),
-    )
+    _validate_transition_stability(model)
+    for _, vent_forcing in VENT_FORCING_LEVELS:
+        forcing = {
+            "outdoor_f": 70.0,
+            "radiation_wm2": 0.0,
+            "vent_open": vent_forcing,
+            "indoor_shade_closed": 0.0,
+            "outdoor_shade_present": 0.0,
+        }
+        simulate(
+            model,
+            {"air_f": 90.0, "mass_f": 50.0},
+            [forcing] * (72 * 12),
+        )
     return model
