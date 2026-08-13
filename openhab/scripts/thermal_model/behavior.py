@@ -220,32 +220,46 @@ def _action_confidence(row, action):
     )
 
 
+def _action_for_field(field):
+    return {
+        "vent_open": "vent",
+        "indoor_shade_closed": "indoor_shade",
+        "outdoor_shade_present": "outdoor_shade",
+    }[field]
+
+
+def _eligible_action_endpoint(row, action):
+    confidence = _action_confidence(row, action)
+    if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+        raise ValueError(f"{action} confidence must be finite and within [0, 1]")
+    return confidence >= MIN_TRAINING_CONFIDENCE
+
+
 def _observed_boosted_windows(rows, mode):
     ordered = sorted(rows, key=lambda row: _aware(_value(row, "at")))
     windows = set()
     started = None
-    previous_at = None
-    previous_mode = None
-    for row in ordered:
-        at = _value(row, "at")
-        row_mode = _sample_mode(row)
-        consecutive = previous_at is not None and at - previous_at == STEP
-        level = (
-            _airflow_level(_value(row, "vent_open"))
-            if row_mode == mode
-            and _action_confidence(row, "vent") >= MIN_TRAINING_CONFIDENCE
-            else None
-        )
+    for left, right in zip(ordered, ordered[1:]):
         if (
-            level == "boosted"
-            and (started is None or not consecutive or previous_mode != mode)
+            _value(right, "at") - _value(left, "at") != STEP
+            or _sample_mode(left) != mode
+            or _sample_mode(right) != mode
+            or not _eligible_action_endpoint(left, "vent")
+            or not _eligible_action_endpoint(right, "vent")
         ):
-            started = int(_minute_of_day(at))
-        elif level != "boosted" and started is not None:
-            windows.add((started, int(_minute_of_day(at))))
             started = None
-        previous_at = at
-        previous_mode = row_mode
+            continue
+        left_level = _airflow_level(_value(left, "vent_open"))
+        right_level = _airflow_level(_value(right, "vent_open"))
+        if left_level != "boosted" and right_level == "boosted":
+            started = int(_minute_of_day(_value(right, "at")))
+        elif (
+            started is not None
+            and left_level == "boosted"
+            and right_level != "boosted"
+        ):
+            windows.add((started, int(_minute_of_day(_value(right, "at")))))
+            started = None
     return tuple(sorted(windows))
 
 
@@ -290,15 +304,10 @@ def _seasonal_vocabulary(samples):
                 field, source, target = _TRANSITION_STATES[transition]
                 left_state = _binary(_value(left, field))
                 right_state = _binary(_value(right, field))
-                action = (
-                    "vent"
-                    if field == "vent_open"
-                    else "indoor_shade"
-                    if field == "indoor_shade_closed"
-                    else "outdoor_shade"
-                )
+                action = _action_for_field(field)
                 if (
-                    _action_confidence(right, action) >= MIN_TRAINING_CONFIDENCE
+                    _eligible_action_endpoint(left, action)
+                    and _eligible_action_endpoint(right, action)
                     and left_state == source
                     and right_state == target
                 ):
@@ -346,11 +355,17 @@ def _transition_rows(samples, transition):
             or left_state != at_risk_state
         ):
             continue
+        action = _action_for_field(field)
+        if not (
+            _eligible_action_endpoint(left, action)
+            and _eligible_action_endpoint(right, action)
+        ):
+            continue
         confidence = float(_value(right, "action_confidence"))
         if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
             raise ValueError("action confidence must be finite and within [0, 1]")
-        # Same-fold model-inferred labels are intentionally excluded.  Historical
-        # reconstruction (0.35) is the lowest accepted source in this task.
+        # The aggregate right-row confidence remains the likelihood weight after
+        # both relevant action endpoints have independently passed eligibility.
         if confidence < MIN_TRAINING_CONFIDENCE:
             continue
         design.append(feature_vector(left))
@@ -480,10 +495,16 @@ def _learned_minute(model, transition, rows, default):
 
 
 def _seasonal_outdoor_shade(rows, mode):
-    state = _value(rows[0], "outdoor_shade_present", None)
-    if state is None:
-        return "present" if mode == "warm" else "absent"
-    return "present" if _binary(state) else "absent"
+    for row in rows:
+        state = _value(row, "outdoor_shade_present", None)
+        if state is not None:
+            return (
+                "present" if _binary(state) else "absent",
+                "forecast_state",
+                "observed",
+            )
+    fallback = "present" if mode == "warm" else "absent"
+    return fallback, "protocol_fallback", INSUFFICIENT_DATA
 
 
 def _time_at_or_after(rows, minute, after=None):
@@ -574,11 +595,14 @@ def baseline_schedule(model, forecast):
     """Return a learned schedule or an explicitly marked protocol fallback."""
     rows = _forecast_rows(forecast)
     mode = _mode(rows)
-    outdoor_shade = _seasonal_outdoor_shade(rows, mode)
+    outdoor_shade, outdoor_source, outdoor_status = _seasonal_outdoor_shade(
+        rows, mode
+    )
     common = {
         "mode": mode,
         "outdoorShade": outdoor_shade,
-        "outdoorShadeSource": "forecast_state",
+        "outdoorShadeSource": outdoor_source,
+        "outdoorShadeStatus": outdoor_status,
         "supportedAirflow": dict(AIRFLOW_LEVELS),
     }
     if mode == "winter":
@@ -912,7 +936,7 @@ def _difference(baseline_score, candidate_score, selection_reason):
     improvement = float(baseline_score - candidate_score)
     return {
         "kind": "modeled_counterfactual",
-        "description": "Simulation comparison between the learned baseline and bounded candidate.",
+        "description": "Simulation comparison between the baseline schedule and bounded candidate.",
         "baselineScore": float(baseline_score),
         "candidateScore": float(candidate_score),
         "scoreImprovement": improvement,

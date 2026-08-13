@@ -42,9 +42,10 @@ coverage in `openhab/scripts/test_thermal_behavior.py`.
   classes. Otherwise stores an empty coefficient tuple and returns the explicit
   `insufficient_data` sentinel.
 - Uses the left sample for every feature and the right sample only for the label
-  and label confidence. Unknown states are skipped. Confidence below historical
-  reconstruction (`0.35`) is excluded, so same-fold `model_inferred` labels do not
-  contaminate Task 5.
+  after the relevant action confidence passes the historical-reconstruction (`0.35`)
+  threshold at both endpoints. The right aggregate `action_confidence` remains the
+  likelihood weight. Unknown states and same-fold `model_inferred` endpoints are
+  excluded from both behavior fitting and transition vocabulary.
 - Optimizer success and finite coefficients are mandatory; failure rejects the fit.
 
 ## Implemented schedule protocol
@@ -66,7 +67,7 @@ coverage in `openhab/scripts/test_thermal_behavior.py`.
 - A candidate replaces baseline only with at least `0.25` modeled score improvement,
   except that an unsafe baseline may only be replaced by a physically valid bounded
   candidate.
-- Results always report learned baseline, selected candidate, modeled comparison,
+- Results report a provenance-tagged baseline schedule, selected candidate, modeled comparison,
   and deterministic rejection counts. Wording is explicitly a modeled
   counterfactual/simulation comparison, never a causal claim.
 
@@ -162,3 +163,58 @@ closed in this correction.
 - The layer remains pure and shadow-only: no residual-label inference, causal
   claim, Kiva recommendation, OpenHAB/database write, command, advice graduation,
   or actuation path was added.
+
+
+## Re-review correction round 2
+
+The second Task 5 re-review found one Major and two Moderate issues. All three
+are closed through a fresh RED/GREEN cycle.
+
+### Exact RED/GREEN evidence
+
+1. **Both transition endpoints require relevant action confidence**
+   - RED:
+     `pytest -q openhab/scripts/test_thermal_behavior.py -k 'inferred_left or reconstructed_left or empty_model_counterfactual or unknown_outdoor_shade or outdoor_shades_are_fixed'`
+     -> `5 failed, 1 passed, 29 deselected in 2.16s`. One inferred-left pair
+     incorrectly produced `[1.0]`; ten such pairs produced ten positives and an
+     observed transition.
+   - GREEN selection, also covering boosted-window endpoint handling:
+     `pytest -q openhab/scripts/test_thermal_behavior.py -k 'inferred_left or reconstructed_left or empty_model_counterfactual or unknown_outdoor_shade or outdoor_shades_are_fixed or boosted'`
+     -> `9 passed, 26 deselected in 2.85s`.
+   - The reconstructed-left regression deliberately sets aggregate left
+     confidence to `0.15` but relevant `vent_confidence` to `0.35`; it remains
+     eligible and its confirmed right aggregate confidence supplies weight `1.0`.
+2. **Neutral modeled-comparison language**
+   - RED in the selection above: the empty model produced `Simulation comparison
+     between the learned baseline...`.
+   - GREEN: every result now says `baseline schedule`; protocol fallbacks are
+     never described as learned.
+3. **Unknown outdoor-shade provenance**
+   - RED in the selection above: an all-unknown warm forecast was silently marked
+     `forecast_state`, and known schedules lacked a typed status.
+   - GREEN: explicit forecast state is `forecast_state` / `observed`; all-unknown
+     state uses the approved seasonal configuration as `protocol_fallback` /
+     `insufficient_data`. Outdoor shades remain outside daily search.
+4. **Final verification**
+   - Focused behavior/dynamics/schema: `64 passed in 11.41s`.
+   - Full OpenHAB Python baseline: `153 passed in 14.24s`.
+   - `pyflakes`, `python3 -m py_compile`, and `git diff --check`: clean.
+   - Static boundary scan found only the module non-actuation statement, the
+     no-command/advice API docstring, and the test excluding causal language.
+
+### Corrected invariants
+
+- Risk-set and vocabulary transitions require trusted, relevant per-action state
+  confidence at both endpoints. This uniformly covers vent, indoor shade, and
+  outdoor shade. Individual observed state vocabulary likewise excludes the
+  low-confidence source state; boosted windows require trusted consecutive
+  endpoints.
+- Historical reconstruction at `0.35` remains eligible. Same-fold
+  `model_inferred` at `0.15` cannot create a risk-set row, positive label,
+  transition vocabulary, source-state vocabulary, or boosted window.
+- Counterfactual descriptions are neutral about baseline provenance. Timing and
+  outdoor-shade fields independently preserve `learned`, `forecast_state`, or
+  `protocol_fallback` source and explicit fitted/observed/insufficient status.
+- Task 4 simulation reuse, deterministic bounded search, mandatory warm venting,
+  winter protocol, no-valid-candidate handling, and the shadow-only/no-authority
+  boundary remain unchanged.

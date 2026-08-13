@@ -334,6 +334,67 @@ def test_model_inferred_confidence_does_not_supply_positive_labels():
     assert all(coefficients == () for coefficients in model.transitions.values())
 
 
+def _isolated_vent_transition_pairs(count, left_vent_confidence):
+    start = datetime(2026, 7, 1, 20, 0, tzinfo=DENVER)
+    rows = []
+    for day in range(count):
+        at = start + timedelta(days=day)
+        left = _sample(
+            at,
+            vent=0.0,
+            indoor=1.0,
+            outdoor_shade=1.0,
+        )
+        left = replace(
+            left,
+            vent_confidence=left_vent_confidence,
+            action_confidence=0.15,
+        )
+        right = replace(
+            left,
+            at=at + STEP,
+            vent_open=1.0,
+            vent_confidence=1.0,
+            action_confidence=1.0,
+        )
+        rows.extend((left, right))
+    return rows
+
+
+def test_inferred_left_state_cannot_enter_transition_risk_set():
+    rows = _isolated_vent_transition_pairs(1, left_vent_confidence=0.15)
+
+    _, labels, _ = behavior._transition_rows(rows, "vent_open")
+
+    assert labels.tolist() == []
+
+
+def test_ten_inferred_left_pairs_create_no_positive_or_source_vocabulary():
+    rows = _isolated_vent_transition_pairs(10, left_vent_confidence=0.15)
+
+    _, labels, _ = behavior._transition_rows(rows, "vent_open")
+    model = fit_behavior(rows)
+    vocabulary = {item.mode: item for item in model.seasonal_vocabulary}["warm"]
+
+    assert labels.tolist() == []
+    assert model.transitions["vent_open"] == ()
+    assert "vent_open" not in vocabulary.transitions
+    assert "closed" not in dict(vocabulary.action_states)["vent"]
+
+
+def test_reconstructed_left_and_confirmed_right_are_eligible_by_action_confidence():
+    rows = _isolated_vent_transition_pairs(1, left_vent_confidence=0.35)
+
+    _, labels, weights = behavior._transition_rows(rows, "vent_open")
+    model = fit_behavior(rows)
+    vocabulary = {item.mode: item for item in model.seasonal_vocabulary}["warm"]
+
+    assert labels.tolist() == [1.0]
+    assert weights.tolist() == [1.0]
+    assert "vent_open" in vocabulary.transitions
+    assert dict(vocabulary.action_states)["vent"] == ("closed", "open")
+
+
 def test_features_for_a_transition_do_not_use_the_future_sample_values():
     start = datetime(2026, 6, 1, tzinfo=DENVER)
     original = []
@@ -448,6 +509,25 @@ def test_search_reports_modeled_comparison_and_rejection_reasons_deterministical
     assert isinstance(first.rejected_candidate_counts, dict)
 
 
+def test_empty_model_counterfactual_does_not_describe_fallback_as_learned():
+    empty = BehaviorModel(
+        version=1,
+        feature_names=FEATURE_NAMES,
+        transitions={transition: () for transition in behavior.TRANSITIONS},
+        seasonal_vocabulary=(),
+    )
+
+    result = search_candidate_schedule(
+        behavior=empty,
+        dynamics=stable_model(),
+        forecast=warm_forecast(),
+    )
+
+    description = result.modeled_difference["description"].lower()
+    assert "learned" not in description
+    assert "baseline schedule" in description
+
+
 def test_outdoor_shades_are_fixed_seasonal_configuration_not_search_variable():
     forecast = warm_forecast()
     baseline = baseline_schedule(warm_behavior(), forecast)
@@ -455,7 +535,28 @@ def test_outdoor_shades_are_fixed_seasonal_configuration_not_search_variable():
         behavior=warm_behavior(), dynamics=stable_model(), forecast=forecast
     )
     assert baseline["outdoorShade"] == "present"
+    assert baseline["outdoorShadeSource"] == "forecast_state"
+    assert baseline["outdoorShadeStatus"] == "observed"
     assert result.candidate["outdoorShade"] == baseline["outdoorShade"]
+
+
+def test_unknown_outdoor_shade_forecast_is_explicit_protocol_fallback():
+    empty = BehaviorModel(
+        version=1,
+        feature_names=FEATURE_NAMES,
+        transitions={transition: () for transition in behavior.TRANSITIONS},
+        seasonal_vocabulary=(),
+    )
+    forecast = [
+        replace(row, outdoor_shade_present=None)
+        for row in warm_forecast()
+    ]
+
+    schedule = baseline_schedule(empty, forecast)
+
+    assert schedule["outdoorShade"] == "present"
+    assert schedule["outdoorShadeSource"] == "protocol_fallback"
+    assert schedule["outdoorShadeStatus"] == INSUFFICIENT_DATA
 
 
 def test_winter_cold_cloudy_schedule_keeps_shades_and_vents_closed():

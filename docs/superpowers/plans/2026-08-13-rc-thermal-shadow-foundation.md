@@ -752,9 +752,12 @@ explicit `insufficient_data` baseline for that transition.
 Each hazard uses only its source-state risk set: open/install hazards admit a
 known closed/absent left state, and close/remove hazards admit a known
 open/present left state. Positive rows transition to the target state; persistence
-rows are negative. The feature vector comes only from the left row. The right row
-supplies only the transition label and `action_confidence`. Unknown action states
-and same-fold `model_inferred` labels are excluded.
+rows are negative. The relevant per-action confidence must be at least historical-
+reconstruction confidence at both endpoints before a pair may enter a risk set or
+transition vocabulary. The feature vector comes only from the left row. The right
+row supplies the transition label and aggregate `action_confidence` likelihood
+weight after endpoint eligibility. Unknown action states and same-fold
+`model_inferred` labels are excluded.
 
 `fit_behavior()` also derives immutable, serializable per-mode action vocabulary
 from labeled samples: observed action states, observed transitions, airflow levels,
@@ -788,6 +791,9 @@ same 15-minute, plus/minus-two-hour grid, reject nighttime or cold/cloudy openin
 simulate surviving schedules with the Task 4 simulator, and apply the winter
 objective. Winter ventilation remains closed in every baseline and candidate.
 Outdoor shades remain slow seasonal state and are never a daily search variable.
+An explicit forecast state is marked `forecast_state`; an all-unknown forecast
+uses the approved seasonal state only as `protocol_fallback` with
+`insufficient_data`, never as forecast evidence.
 
 Airflow segments carry `closed=0`, `baseline=1`, or `boosted=2`. Preserve and
 simulate morning/evening boosted segments only when the mode vocabulary contains
