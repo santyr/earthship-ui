@@ -105,3 +105,12 @@ graduation threshold.
 - Focused artifact/evaluation/dynamics/behavior: `127 passed in 15.58s`.
 - Full Python baseline: `221 passed in 18.07s`.
 - No PostgreSQL/OpenHAB/raw-store writes, publishing, advice graduation, commands, or actuation were added.
+
+## Exact manifest vocabulary closure (2026-08-13)
+
+- Producer verification: Task 3 emits core reasons `missing_required`, `source_gap`, `range`, and `jump`; `_glazing_value` emits the `glazing_` prefix plus `range`, `jump`, `source_gap`, `non_finite`, or `missing`. Plain sample-list manifests legitimately emit empty maps.
+- RED: `pytest -q openhab/scripts/test_thermal_artifacts.py -k 'count_vocabularies or manifest_rejects_invented or count_reason_is_quarantined or count_maps_allow or count_map_values'` -> `5 failed, 7 passed, 58 deselected in 0.38s`. Exported constants were absent and invented reasons passed candidate and accepted validation.
+- GREEN: the producer exports closed frozensets; candidate and raw pre-reconstruction validation accept only subsets, including empty maps, and require nonnegative integer non-boolean values. The same probe is `12 passed, 58 deselected in 0.28s`.
+- Focused artifact/evaluation: `80 passed in 4.31s`.
+- Full Python baseline: `233 passed in 18.02s`.
+- All prior shadow-only, atomicity, quarantine, chronological evaluation, and no-authority-expansion gates remain unchanged.

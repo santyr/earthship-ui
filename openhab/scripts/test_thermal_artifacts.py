@@ -879,3 +879,97 @@ def test_unknown_threshold_baseline_leaf_is_rejected(tmp_path):
         ArtifactRegistry(tmp_path).save_candidate(
             valid_artifact(metrics=metrics)
         )
+
+
+
+def test_manifest_count_vocabularies_are_exported_from_producer_strings():
+    assert artifacts_module.CORE_REJECTED_COUNT_KEYS == frozenset(
+        {"missing_required", "source_gap", "range", "jump"}
+    )
+    assert artifacts_module.AUXILIARY_EXCLUSION_COUNT_KEYS == frozenset(
+        {
+            "glazing_range",
+            "glazing_jump",
+            "glazing_source_gap",
+            "glazing_non_finite",
+            "glazing_missing",
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "field", ["rejected_counts", "auxiliary_exclusion_counts"]
+)
+def test_candidate_manifest_rejects_invented_count_reason(tmp_path, field):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    manifest[field]["invented_reason"] = 1
+
+    with pytest.raises(ArtifactValidationError, match="unknown"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
+@pytest.mark.parametrize(
+    "field", ["rejected_counts", "auxiliary_exclusion_counts"]
+)
+def test_tampered_accepted_manifest_count_reason_is_quarantined(tmp_path, field):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact())
+    registry.promote_candidate()
+    payload = json.loads(registry.accepted_path.read_text(encoding="utf-8"))
+    payload["data_manifest"][field]["invented_reason"] = 1
+    registry.accepted_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ArtifactUnavailable, match="quarantined"):
+        registry.load_accepted()
+    assert len(list(tmp_path.glob("accepted.json.corrupt-*"))) == 1
+
+
+@pytest.mark.parametrize(
+    ("rejected", "auxiliary"),
+    [
+        ({}, {}),
+        ({"jump": 2}, {"glazing_non_finite": 1}),
+        (
+            {"missing_required": 1, "source_gap": 2, "range": 3, "jump": 4},
+            {
+                "glazing_range": 1,
+                "glazing_jump": 2,
+                "glazing_source_gap": 3,
+                "glazing_non_finite": 4,
+                "glazing_missing": 5,
+            },
+        ),
+    ],
+)
+def test_manifest_count_maps_allow_only_valid_subsets(
+    tmp_path, rejected, auxiliary
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    manifest["rejected_counts"] = rejected
+    manifest["auxiliary_exclusion_counts"] = auxiliary
+
+    ArtifactRegistry(tmp_path).save_candidate(
+        valid_artifact(data_manifest=manifest)
+    )
+
+
+@pytest.mark.parametrize("value", [True, -1])
+@pytest.mark.parametrize(
+    ("field", "reason"),
+    [
+        ("rejected_counts", "jump"),
+        ("auxiliary_exclusion_counts", "glazing_jump"),
+    ],
+)
+def test_manifest_count_map_values_are_nonnegative_non_bool(
+    tmp_path, field, reason, value
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    manifest[field] = {reason: value}
+
+    with pytest.raises(ArtifactValidationError):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )

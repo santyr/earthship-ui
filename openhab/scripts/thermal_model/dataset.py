@@ -16,6 +16,18 @@ STEP = timedelta(minutes=5)
 REQUIRED_ROLES = ("air", "mass", "outdoor", "radiation")
 TEMPERATURE_ROLES = ("air", "mass", "glazing", "outdoor")
 CONFIRMED_SOURCES = frozenset(("nostr_confirmed", "manual_dm"))
+CORE_REJECTED_COUNT_KEYS = frozenset(
+    {"missing_required", "source_gap", "range", "jump"}
+)
+AUXILIARY_EXCLUSION_COUNT_KEYS = frozenset(
+    {
+        "glazing_range",
+        "glazing_jump",
+        "glazing_source_gap",
+        "glazing_non_finite",
+        "glazing_missing",
+    }
+)
 SITE_LATITUDE = 38.3739919
 SITE_LONGITUDE = -105.7744609
 

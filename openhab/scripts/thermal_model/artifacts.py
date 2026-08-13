@@ -12,6 +12,10 @@ import re
 import tempfile
 
 from .behavior import AIRFLOW_LEVELS, FEATURE_NAMES, TRANSITIONS
+from .dataset import (
+    AUXILIARY_EXCLUSION_COUNT_KEYS,
+    CORE_REJECTED_COUNT_KEYS,
+)
 from .dynamics import (
     AIR_BOUNDS,
     AIR_NAMES,
@@ -335,9 +339,14 @@ def _validate_behavior(model):
         )
 
 
-def _validate_count_map(value, path):
+def _validate_count_map(value, path, allowed_keys=None):
     if not isinstance(value, dict):
         raise ArtifactValidationError(f"{path} must be an object")
+    if allowed_keys is not None and not set(value) <= set(allowed_keys):
+        unknown = sorted(set(value) - set(allowed_keys))
+        raise ArtifactValidationError(
+            f"{path} contains unknown reasons: {', '.join(unknown)}"
+        )
     for name, count in value.items():
         if not isinstance(name, str) or not name:
             raise ArtifactValidationError(f"{path} keys must be nonempty strings")
@@ -443,9 +452,15 @@ def _validate_manifest(artifact):
             "artifact training range must match the data manifest"
         )
     _integer(manifest["sample_count"], "data manifest sample_count", minimum=1)
-    _validate_count_map(manifest["rejected_counts"], "rejected counts")
     _validate_count_map(
-        manifest["auxiliary_exclusion_counts"], "auxiliary exclusion counts"
+        manifest["rejected_counts"],
+        "rejected counts",
+        CORE_REJECTED_COUNT_KEYS,
+    )
+    _validate_count_map(
+        manifest["auxiliary_exclusion_counts"],
+        "auxiliary exclusion counts",
+        AUXILIARY_EXCLUSION_COUNT_KEYS,
     )
     counts = manifest["event_counts_by_source"]
     _validate_count_map(counts, "action provenance")
@@ -904,6 +919,16 @@ def _validate_payload_shape(payload):
     _exact_payload_keys(manifest, _MANIFEST_KEYS, "data manifest")
     _exact_payload_keys(manifest["items"], THERMAL_ITEMS, "sensor items")
     _exact_payload_keys(manifest["units"], THERMAL_UNITS, "sensor units")
+    _validate_count_map(
+        manifest["rejected_counts"],
+        "rejected count payload",
+        CORE_REJECTED_COUNT_KEYS,
+    )
+    _validate_count_map(
+        manifest["auxiliary_exclusion_counts"],
+        "auxiliary exclusion count payload",
+        AUXILIARY_EXCLUSION_COUNT_KEYS,
+    )
     _exact_payload_keys(
         manifest["fit_diagnostics"], _DIAGNOSTIC_KEYS, "fit diagnostics"
     )
