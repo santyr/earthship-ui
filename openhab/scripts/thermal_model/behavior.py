@@ -15,7 +15,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from .dynamics import simulate
-from .schema import BehaviorModel, SOURCE_WEIGHTS
+from .schema import BehaviorModel, SOURCE_WEIGHTS, SeasonalActionVocabulary
 
 
 STEP = timedelta(minutes=5)
@@ -167,6 +167,168 @@ def _binary(value):
     return numeric > 0.0
 
 
+
+def _sample_mode(row):
+    mode = _value(row, "mode", None)
+    if mode is None:
+        return None
+    mode = str(mode)
+    if mode not in {"spring", "warm", "fall_charge", "winter"}:
+        raise ValueError(f"unknown sample mode: {mode}")
+    return mode
+
+
+def _airflow_level(value):
+    if value is None:
+        return None
+    numeric = float(value)
+    if not math.isfinite(numeric) or not 0.0 <= numeric <= AIRFLOW_LEVELS["boosted"]:
+        raise ValueError("observed airflow must be within [0, 2]")
+    if numeric == 0.0:
+        return "closed"
+    if numeric <= AIRFLOW_LEVELS["baseline"]:
+        return "baseline"
+    return "boosted"
+
+
+def _action_state(row, action):
+    field = {
+        "vent": "vent_open",
+        "indoor_shade": "indoor_shade_closed",
+        "outdoor_shade": "outdoor_shade_present",
+    }[action]
+    state = _binary(_value(row, field))
+    if state is None:
+        return None
+    if action == "vent":
+        return "open" if state else "closed"
+    if action == "indoor_shade":
+        return "closed" if state else "open"
+    return "present" if state else "absent"
+
+
+def _action_confidence(row, action):
+    return float(
+        _value(
+            row,
+            {
+                "vent": "vent_confidence",
+                "indoor_shade": "indoor_shade_confidence",
+                "outdoor_shade": "outdoor_shade_confidence",
+            }[action],
+        )
+    )
+
+
+def _observed_boosted_windows(rows, mode):
+    ordered = sorted(rows, key=lambda row: _aware(_value(row, "at")))
+    windows = set()
+    started = None
+    previous_at = None
+    previous_mode = None
+    for row in ordered:
+        at = _value(row, "at")
+        row_mode = _sample_mode(row)
+        consecutive = previous_at is not None and at - previous_at == STEP
+        level = (
+            _airflow_level(_value(row, "vent_open"))
+            if row_mode == mode
+            and _action_confidence(row, "vent") >= MIN_TRAINING_CONFIDENCE
+            else None
+        )
+        if (
+            level == "boosted"
+            and (started is None or not consecutive or previous_mode != mode)
+        ):
+            started = int(_minute_of_day(at))
+        elif level != "boosted" and started is not None:
+            windows.add((started, int(_minute_of_day(at))))
+            started = None
+        previous_at = at
+        previous_mode = row_mode
+    return tuple(sorted(windows))
+
+
+def _seasonal_vocabulary(samples):
+    rows = tuple(samples)
+    modes = sorted({_sample_mode(row) for row in rows} - {None})
+    result = []
+    for mode in modes:
+        mode_rows = [row for row in rows if _sample_mode(row) == mode]
+        states = {}
+        airflow = set()
+        for action in ("vent", "indoor_shade", "outdoor_shade"):
+            observed = {
+                _action_state(row, action)
+                for row in mode_rows
+                if _action_confidence(row, action) >= MIN_TRAINING_CONFIDENCE
+                and _action_state(row, action) is not None
+            }
+            if observed:
+                order = {
+                    "vent": ("closed", "open"),
+                    "indoor_shade": ("closed", "open"),
+                    "outdoor_shade": ("absent", "present"),
+                }[action]
+                states[action] = tuple(value for value in order if value in observed)
+        for row in mode_rows:
+            if _action_confidence(row, "vent") >= MIN_TRAINING_CONFIDENCE:
+                level = _airflow_level(_value(row, "vent_open"))
+                if level is not None:
+                    airflow.add(level)
+
+        observed_transitions = set()
+        ordered = sorted(rows, key=lambda row: _aware(_value(row, "at")))
+        for left, right in zip(ordered, ordered[1:]):
+            if (
+                _value(right, "at") - _value(left, "at") != STEP
+                or _sample_mode(left) != mode
+                or _sample_mode(right) != mode
+            ):
+                continue
+            for transition in TRANSITIONS:
+                field, source, target = _TRANSITION_STATES[transition]
+                left_state = _binary(_value(left, field))
+                right_state = _binary(_value(right, field))
+                action = (
+                    "vent"
+                    if field == "vent_open"
+                    else "indoor_shade"
+                    if field == "indoor_shade_closed"
+                    else "outdoor_shade"
+                )
+                if (
+                    _action_confidence(right, action) >= MIN_TRAINING_CONFIDENCE
+                    and left_state == source
+                    and right_state == target
+                ):
+                    observed_transitions.add(transition)
+        result.append(
+            SeasonalActionVocabulary(
+                mode=mode,
+                action_states=tuple(sorted(states.items())),
+                transitions=tuple(
+                    transition
+                    for transition in TRANSITIONS
+                    if transition in observed_transitions
+                ),
+                airflow_levels=tuple(
+                    level for level in AIRFLOW_LEVELS if level in airflow
+                ),
+                boosted_windows=_observed_boosted_windows(rows, mode),
+            )
+        )
+    return tuple(result)
+
+
+def _vocabulary_for(model, mode):
+    return next(
+        (item for item in model.seasonal_vocabulary if item.mode == mode),
+        None,
+    )
+
+
+
 def _transition_rows(samples, transition):
     field, at_risk_state, target_state = _TRANSITION_STATES[transition]
     ordered = sorted(samples, key=lambda row: _aware(_value(row, "at")))
@@ -178,7 +340,11 @@ def _transition_rows(samples, transition):
             continue
         left_state = _binary(_value(left, field))
         right_state = _binary(_value(right, field))
-        if left_state is None or right_state is None:
+        if (
+            left_state is None
+            or right_state is None
+            or left_state != at_risk_state
+        ):
             continue
         confidence = float(_value(right, "action_confidence"))
         if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
@@ -188,7 +354,7 @@ def _transition_rows(samples, transition):
         if confidence < MIN_TRAINING_CONFIDENCE:
             continue
         design.append(feature_vector(left))
-        labels.append(float(left_state == at_risk_state and right_state == target_state))
+        labels.append(float(right_state == target_state))
         weights.append(confidence)
     return (
         np.asarray(design, dtype=float),
@@ -247,6 +413,7 @@ def fit_behavior(samples):
         version=1,
         feature_names=FEATURE_NAMES,
         transitions=transitions,
+        seasonal_vocabulary=_seasonal_vocabulary(rows),
     )
 
 
@@ -293,24 +460,23 @@ def _round_quarter(minute):
 def _learned_minute(model, transition, rows, default):
     if not model.transitions.get(transition):
         return default
-    scored = []
+    survival = 1.0
+    event_times = []
     for row in rows:
         minute = int(_minute_of_day(_value(row, "at")))
-        if transition == "vent_open" and minute < 12 * 60:
+        if transition in {"vent_open", "indoor_shade_close"} and minute < 12 * 60:
             continue
-        if transition == "vent_close" and minute >= 12 * 60:
+        if transition in {"vent_close", "indoor_shade_open"} and minute >= 12 * 60:
             continue
-        probability = transition_probability(model, transition, feature_vector(row))
-        scored.append((float(probability), minute))
-    if not scored:
+        probability = float(
+            transition_probability(model, transition, feature_vector(row))
+        )
+        event_times.append((survival * probability, minute))
+        survival *= 1.0 - probability
+    if not event_times:
         return default
-    total_probability = sum(probability for probability, _ in scored)
-    if total_probability <= 0.0:
-        return default
-    expected_minute = sum(
-        probability * minute for probability, minute in scored
-    ) / total_probability
-    return int(round(expected_minute)) % 1440
+    _, minute = max(event_times, key=lambda item: (item[0], -item[1]))
+    return minute
 
 
 def _seasonal_outdoor_shade(rows, mode):
@@ -345,26 +511,129 @@ def _vent_times(rows, open_minute, close_minute):
     return opened, closed
 
 
+def _has_learned_timing(model, mode, transitions):
+    vocabulary = _vocabulary_for(model, mode)
+    return (
+        vocabulary is not None
+        and all(transition in vocabulary.transitions for transition in transitions)
+        and all(model.transitions.get(transition) for transition in transitions)
+    )
+
+
+def _useful_winter_rows(rows):
+    return tuple(
+        row
+        for row in rows
+        if _solar_elevation_sin(_value(row, "at")) > 0.0
+        and float(_value(row, "radiation_wm2")) >= SUNNY_RADIATION_WM2
+    )
+
+
+def _shade_times(rows, open_minute, close_minute):
+    opened = _time_at_or_after(rows, open_minute)
+    if opened is None:
+        return None, None
+    closed = _time_at_or_after(rows, close_minute, after=opened)
+    return opened, closed
+
+
+def _observed_boosted_segments(model, mode, rows):
+    vocabulary = _vocabulary_for(model, mode)
+    if vocabulary is None or "boosted" not in vocabulary.airflow_levels:
+        return ()
+    segments = []
+    for start_minute, end_minute in vocabulary.boosted_windows:
+        started, ended = _vent_times(rows, start_minute, end_minute)
+        if started is not None and ended is not None:
+            segments.append(
+                {"startAt": started, "endAt": ended, "level": "boosted"}
+            )
+    return tuple(segments)
+
+
+
+def _nonwinter_shade_state(model, mode, rows):
+    vocabulary = _vocabulary_for(model, mode)
+    observed = (
+        dict(vocabulary.action_states).get("indoor_shade", ())
+        if vocabulary is not None
+        else ()
+    )
+    preferred = "closed" if mode == "warm" else "open"
+    if preferred in observed:
+        return preferred, "observed_vocabulary"
+    for row in rows:
+        state = _value(row, "indoor_shade_closed", None)
+        if state is not None:
+            return ("closed" if _binary(state) else "open"), "forecast_state"
+    raise ValueError("indoor shade state is absent from vocabulary and forecast")
+
+
+
 def baseline_schedule(model, forecast):
-    """Return the learned household baseline constrained by seasonal protocol."""
+    """Return a learned schedule or an explicitly marked protocol fallback."""
     rows = _forecast_rows(forecast)
     mode = _mode(rows)
     outdoor_shade = _seasonal_outdoor_shade(rows, mode)
     common = {
         "mode": mode,
         "outdoorShade": outdoor_shade,
+        "outdoorShadeSource": "forecast_state",
         "supportedAirflow": dict(AIRFLOW_LEVELS),
     }
     if mode == "winter":
-        daylight = [row for row in rows if _solar_elevation_sin(_value(row, "at")) > 0.0]
-        sunny = bool(daylight) and max(float(_value(row, "radiation_wm2")) for row in daylight) >= SUNNY_RADIATION_WM2
+        useful = _useful_winter_rows(rows)
+        sunny = bool(useful)
+        learned = sunny and _has_learned_timing(
+            model,
+            mode,
+            ("indoor_shade_open", "indoor_shade_close"),
+        )
         if sunny:
-            useful = [row for row in daylight if float(_value(row, "radiation_wm2")) >= SUNNY_RADIATION_WM2]
-            shade_open = _value(useful[0], "at") if useful else None
-            shade_close = _value(useful[-1], "at") + STEP if useful else None
+            fallback_open = int(_minute_of_day(_value(useful[0], "at")))
+            fallback_close = int(
+                _minute_of_day(_value(useful[-1], "at") + STEP)
+            )
+            if learned:
+                open_minute = _round_quarter(
+                    _learned_minute(
+                        model,
+                        "indoor_shade_open",
+                        rows,
+                        fallback_open,
+                    )
+                )
+                close_minute = _round_quarter(
+                    _learned_minute(
+                        model,
+                        "indoor_shade_close",
+                        rows,
+                        fallback_close,
+                    )
+                )
+                timing_source = "learned"
+                timing_status = "fitted"
+            else:
+                open_minute = _round_quarter(fallback_open)
+                close_minute = _round_quarter(fallback_close)
+                timing_source = "protocol_fallback"
+                timing_status = INSUFFICIENT_DATA
+            shade_open, shade_close = _shade_times(
+                rows, open_minute, close_minute
+            )
+            first_useful = _value(useful[0], "at")
+            last_useful = _value(useful[-1], "at") + STEP
+            shade_open = max(shade_open, first_useful)
+            shade_close = min(shade_close, last_useful)
+            open_minute = int(_minute_of_day(shade_open))
+            close_minute = int(_minute_of_day(shade_close))
         else:
+            open_minute = None
+            close_minute = None
             shade_open = None
             shade_close = None
+            timing_source = "protocol_fallback"
+            timing_status = "protocol_constraint"
         return {
             **common,
             "vent": "closed",
@@ -377,18 +646,46 @@ def baseline_schedule(model, forecast):
             "airflowSegments": (),
             "indoorShadeDay": "open" if sunny else "closed",
             "indoorShadeNight": "closed",
+            "indoorShadeSource": (
+                "learned_vocabulary" if learned else "protocol_fallback"
+            ),
+            "shadeOpenMinute": open_minute,
+            "shadeCloseMinute": close_minute,
             "shadeOpenAt": shade_open,
             "shadeCloseAt": shade_close,
+            "shadeTimingSource": timing_source,
+            "shadeTimingStatus": timing_status,
+            "timingSource": timing_source,
+            "timingStatus": timing_status,
         }
 
-    open_minute = _round_quarter(_learned_minute(model, "vent_open", rows, 1230))
-    close_minute = _round_quarter(_learned_minute(model, "vent_close", rows, 420))
+    indoor_shade_day, indoor_shade_source = _nonwinter_shade_state(
+        model, mode, rows
+    )
+    learned = _has_learned_timing(
+        model, mode, ("vent_open", "vent_close")
+    )
+    if learned:
+        open_minute = _round_quarter(
+            _learned_minute(model, "vent_open", rows, 1230)
+        )
+        close_minute = _round_quarter(
+            _learned_minute(model, "vent_close", rows, 420)
+        )
+        timing_source = "learned"
+        timing_status = "fitted"
+    else:
+        open_minute = 1230
+        close_minute = 420
+        timing_source = "protocol_fallback"
+        timing_status = INSUFFICIENT_DATA
     opened, closed = _vent_times(rows, open_minute, close_minute)
     if opened is None or closed is None:
-        raise ValueError("forecast must span a complete learned overnight vent window")
-    # Warm-season nightly venting is household baseline behavior, not an on/off
-    # optimization.  Shoulder schedules use the same representational vocabulary.
-    airflow = ({"startAt": opened, "endAt": closed, "level": "baseline"},)
+        raise ValueError("forecast must span a complete overnight vent window")
+    airflow = (
+        {"startAt": opened, "endAt": closed, "level": "baseline"},
+        *_observed_boosted_segments(model, mode, rows),
+    )
     return {
         **common,
         "vent": "open",
@@ -399,27 +696,34 @@ def baseline_schedule(model, forecast):
         "ventOpenAt": opened,
         "ventCloseAt": closed,
         "airflowSegments": airflow,
-        "indoorShadeDay": "closed" if mode == "warm" else "open",
+        "indoorShadeDay": indoor_shade_day,
         "indoorShadeNight": "closed",
+        "indoorShadeSource": indoor_shade_source,
+        "shadeOpenMinute": None,
+        "shadeCloseMinute": None,
         "shadeOpenAt": None,
         "shadeCloseAt": None,
+        "ventTimingSource": timing_source,
+        "ventTimingStatus": timing_status,
+        "timingSource": timing_source,
+        "timingStatus": timing_status,
     }
 
 
 @dataclass(frozen=True)
 class ScheduleSearchResult(Mapping):
     baseline: dict
-    candidate: dict
+    candidate: dict | None
     modeled_difference: dict
     rejected_candidate_counts: dict
 
     @property
     def vent_open_at(self):
-        return self.candidate.get("ventOpenAt")
+        return self.candidate.get("ventOpenAt") if self.candidate else None
 
     @property
     def vent_close_at(self):
-        return self.candidate.get("ventCloseAt")
+        return self.candidate.get("ventCloseAt") if self.candidate else None
 
     def __getitem__(self, key):
         return {
@@ -449,6 +753,11 @@ def _candidate_schedule(baseline, rows, open_minute, close_minute):
             "ventCloseAt": closed,
             "airflowSegments": (
                 {"startAt": opened, "endAt": closed, "level": "baseline"},
+                *(
+                    segment
+                    for segment in baseline["airflowSegments"]
+                    if segment["level"] == "boosted"
+                ),
             ),
         }
     )
@@ -461,6 +770,18 @@ def _window_rows(rows, schedule):
     if opened is None or closed is None:
         return ()
     return tuple(row for row in rows if opened <= _value(row, "at") < closed)
+
+
+def _active_airflow_rows(rows, schedule):
+    segments = schedule.get("airflowSegments", ())
+    return tuple(
+        row
+        for row in rows
+        if any(
+            segment["startAt"] <= _value(row, "at") < segment["endAt"]
+            for segment in segments
+        )
+    )
 
 
 def _physical_rejection(rows, schedule):
@@ -477,26 +798,25 @@ def _physical_rejection(rows, schedule):
     if any(
         float(_value(row, "outdoor_f"))
         >= float(_first_value(row, ("air_baseline_f", "air_f")))
-        for row in window
+        for row in _active_airflow_rows(rows, schedule)
     ):
         return "warmer_outdoor_air"
     return None
 
 
 def _forcing_rows(rows, schedule):
-    opened = schedule.get("ventOpenAt")
-    closed = schedule.get("ventCloseAt")
     winter = schedule["mode"] == "winter"
     sunny_winter = winter and schedule["indoorShadeDay"] == "open"
     outdoor_present = float(schedule["outdoorShade"] == "present")
     forcings = []
     for row in rows[1:]:
         at = _value(row, "at")
-        vent = (
-            AIRFLOW_LEVELS[schedule["ventFlow"]]
-            if opened is not None and closed is not None and opened <= at < closed
-            else AIRFLOW_LEVELS["closed"]
-        )
+        active_levels = [
+            AIRFLOW_LEVELS[segment["level"]]
+            for segment in schedule.get("airflowSegments", ())
+            if segment["startAt"] <= at < segment["endAt"]
+        ]
+        vent = max(active_levels, default=AIRFLOW_LEVELS["closed"])
         if sunny_winter:
             indoor_closed = float(
                 not (
@@ -506,8 +826,10 @@ def _forcing_rows(rows, schedule):
             )
         elif winter or schedule["indoorShadeDay"] == "closed":
             indoor_closed = 1.0
+        elif schedule["indoorShadeDay"] == "open":
+            indoor_closed = 0.0
         else:
-            indoor_closed = float(_value(row, "indoor_shade_closed", 0.0))
+            indoor_closed = float(_value(row, "indoor_shade_closed"))
         forcings.append(
             {
                 "outdoor_f": float(_value(row, "outdoor_f")),
@@ -551,7 +873,42 @@ def _score(mode, rows, predicted):
     return discomfort - 0.5 * mass
 
 
-def _difference(baseline_score, candidate_score):
+def _candidate_shade_schedule(baseline, rows, open_minute, close_minute):
+    opened, closed = _shade_times(rows, open_minute, close_minute)
+    if opened is None or closed is None:
+        return None
+    candidate = dict(baseline)
+    candidate.update(
+        {
+            "indoorShadeDay": "open",
+            "indoorShadeNight": "closed",
+            "shadeOpenMinute": open_minute,
+            "shadeCloseMinute": close_minute,
+            "shadeOpenAt": opened,
+            "shadeCloseAt": closed,
+        }
+    )
+    return candidate
+
+
+def _winter_shade_rejection(rows, schedule):
+    opened = schedule.get("shadeOpenAt")
+    closed = schedule.get("shadeCloseAt")
+    if opened is None or closed is None or closed <= opened:
+        return "outside_forecast_horizon"
+    active = tuple(
+        row for row in rows if opened <= _value(row, "at") < closed
+    )
+    if not active:
+        return "outside_forecast_horizon"
+    if any(
+        _solar_elevation_sin(_value(row, "at")) <= 0.0 for row in active
+    ):
+        return "winter_night_closed"
+    return None
+
+
+def _difference(baseline_score, candidate_score, selection_reason):
     improvement = float(baseline_score - candidate_score)
     return {
         "kind": "modeled_counterfactual",
@@ -559,7 +916,74 @@ def _difference(baseline_score, candidate_score):
         "baselineScore": float(baseline_score),
         "candidateScore": float(candidate_score),
         "scoreImprovement": improvement,
+        "selectionReason": selection_reason,
     }
+
+
+def _search_winter(rows, baseline, dynamics):
+    baseline_score = _score(
+        "winter", rows, _simulation(dynamics, rows, baseline)
+    )
+    if baseline["indoorShadeDay"] == "closed":
+        return ScheduleSearchResult(
+            baseline=baseline,
+            candidate=dict(baseline),
+            modeled_difference=_difference(
+                baseline_score, baseline_score, "protocol_constraint"
+            ),
+            rejected_candidate_counts={"cold_cloudy_protocol": 1},
+        )
+
+    rejected = Counter()
+    surviving = []
+    open_center = _round_quarter(baseline["shadeOpenMinute"])
+    close_center = _round_quarter(baseline["shadeCloseMinute"])
+    for open_offset in range(-120, 121, 15):
+        for close_offset in range(-120, 121, 15):
+            open_minute = (open_center + open_offset) % 1440
+            close_minute = (close_center + close_offset) % 1440
+            candidate = _candidate_shade_schedule(
+                baseline, rows, open_minute, close_minute
+            )
+            if candidate is None:
+                rejected["outside_forecast_horizon"] += 1
+                continue
+            reason = _winter_shade_rejection(rows, candidate)
+            if reason is not None:
+                rejected[reason] += 1
+                continue
+            try:
+                score = _score(
+                    "winter", rows, _simulation(dynamics, rows, candidate)
+                )
+            except ValueError:
+                rejected["simulation_invalid"] += 1
+                continue
+            surviving.append((score, open_minute, close_minute, candidate))
+
+    if surviving:
+        best_score, _, _, best = min(
+            surviving, key=lambda item: (item[0], item[1], item[2])
+        )
+    else:
+        best_score = baseline_score
+        best = baseline
+    if baseline_score - best_score >= MINIMUM_IMPROVEMENT:
+        selected = best
+        selected_score = best_score
+        reason = "bounded_candidate_improved"
+    else:
+        selected = baseline
+        selected_score = baseline_score
+        reason = "minimum_improvement_not_met"
+    return ScheduleSearchResult(
+        baseline=baseline,
+        candidate=selected,
+        modeled_difference=_difference(
+            baseline_score, selected_score, reason
+        ),
+        rejected_candidate_counts=dict(sorted(rejected.items())),
+    )
 
 
 def search_candidate_schedule(*, behavior, dynamics, forecast):
@@ -568,16 +992,11 @@ def search_candidate_schedule(*, behavior, dynamics, forecast):
     baseline = baseline_schedule(behavior, rows)
     mode = baseline["mode"]
     if mode == "winter":
-        score = _score(mode, rows, _simulation(dynamics, rows, baseline))
-        return ScheduleSearchResult(
-            baseline=baseline,
-            candidate=dict(baseline),
-            modeled_difference=_difference(score, score),
-            rejected_candidate_counts={},
-        )
+        return _search_winter(rows, baseline, dynamics)
 
-    baseline_prediction = _simulation(dynamics, rows, baseline)
-    baseline_score = _score(mode, rows, baseline_prediction)
+    baseline_score = _score(
+        mode, rows, _simulation(dynamics, rows, baseline)
+    )
     rejected = Counter()
     surviving = []
     open_center = _round_quarter(baseline["ventOpenMinute"])
@@ -591,39 +1010,54 @@ def search_candidate_schedule(*, behavior, dynamics, forecast):
             if key in seen:
                 continue
             seen.add(key)
-            candidate = _candidate_schedule(baseline, rows, open_minute, close_minute)
+            candidate = _candidate_schedule(
+                baseline, rows, open_minute, close_minute
+            )
             if candidate is None:
                 rejected["outside_forecast_horizon"] += 1
                 continue
-            reason = _physical_rejection(rows, candidate)
-            if reason is not None:
-                rejected[reason] += 1
+            rejection = _physical_rejection(rows, candidate)
+            if rejection is not None:
+                rejected[rejection] += 1
                 continue
             try:
-                score = _score(mode, rows, _simulation(dynamics, rows, candidate))
+                score = _score(
+                    mode, rows, _simulation(dynamics, rows, candidate)
+                )
             except ValueError:
                 rejected["simulation_invalid"] += 1
                 continue
             surviving.append((score, open_minute, close_minute, candidate))
 
-    baseline_reason = _physical_rejection(rows, baseline)
-    if not surviving:
-        selected = baseline
+    baseline_rejection = _physical_rejection(rows, baseline)
+    if not surviving and baseline_rejection is not None:
+        selected = None
         selected_score = baseline_score
-    else:
+        selection_reason = "no_valid_candidate"
+    elif surviving:
         best_score, _, _, best = min(
-            surviving,
-            key=lambda item: (item[0], item[1], item[2]),
+            surviving, key=lambda item: (item[0], item[1], item[2])
         )
-        if baseline_reason is not None or baseline_score - best_score >= MINIMUM_IMPROVEMENT:
+        if (
+            baseline_rejection is not None
+            or baseline_score - best_score >= MINIMUM_IMPROVEMENT
+        ):
             selected = best
             selected_score = best_score
+            selection_reason = "bounded_candidate_improved"
         else:
             selected = baseline
             selected_score = baseline_score
+            selection_reason = "minimum_improvement_not_met"
+    else:
+        selected = baseline
+        selected_score = baseline_score
+        selection_reason = "minimum_improvement_not_met"
     return ScheduleSearchResult(
         baseline=baseline,
         candidate=selected,
-        modeled_difference=_difference(baseline_score, selected_score),
+        modeled_difference=_difference(
+            baseline_score, selected_score, selection_reason
+        ),
         rejected_candidate_counts=dict(sorted(rejected.items())),
     )

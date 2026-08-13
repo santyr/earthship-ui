@@ -230,6 +230,7 @@ class ThermalSample:
     outdoor_shade_confidence: float
     action_confidence: float
     passive_fit_allowed: bool
+    mode: Literal["spring", "warm", "fall_charge", "winter"] | None = None
 
 
 @dataclass(frozen=True)
@@ -242,10 +243,20 @@ class DynamicsModel:
 
 
 @dataclass(frozen=True)
+class SeasonalActionVocabulary:
+    mode: Literal["spring", "warm", "fall_charge", "winter"]
+    action_states: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    transitions: tuple[str, ...] = ()
+    airflow_levels: tuple[str, ...] = ()
+    boosted_windows: tuple[tuple[int, int], ...] = ()
+
+
+@dataclass(frozen=True)
 class BehaviorModel:
     version: int
     feature_names: tuple[str, ...]
     transitions: dict[str, tuple[float, ...]]
+    seasonal_vocabulary: tuple[SeasonalActionVocabulary, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -738,6 +749,18 @@ with `lambda=1.0`. If a transition has fewer than 10 positive confirmed-or-
 reconstructed examples or only one class, omit its coefficients and return an
 explicit `insufficient_data` baseline for that transition.
 
+Each hazard uses only its source-state risk set: open/install hazards admit a
+known closed/absent left state, and close/remove hazards admit a known
+open/present left state. Positive rows transition to the target state; persistence
+rows are negative. The feature vector comes only from the left row. The right row
+supplies only the transition label and `action_confidence`. Unknown action states
+and same-fold `model_inferred` labels are excluded.
+
+`fit_behavior()` also derives immutable, serializable per-mode action vocabulary
+from labeled samples: observed action states, observed transitions, airflow levels,
+and confirmed boosted-airflow windows. `ThermalSample.mode` comes from the
+reconstructed mode interval; schedule generation must not infer a mode from date.
+
 - [ ] **Step 4: Implement constrained schedule search**
 
 Generate candidate transitions at 15-minute increments within plus/minus two
@@ -750,6 +773,25 @@ hours of the learned baseline. Apply these hard filters before simulation:
 - Cold/cloudy winter daytime indoor shades stay closed.
 - Sunny winter daytime shades may open for mass charging and close by sunset.
 - Candidate transitions remain within the observed seasonal action vocabulary.
+
+Baseline timing comes from the applicable fitted hazards only when that mode's
+vocabulary contains the transition evidence. Otherwise the approved warm-night
+vent or winter-shade protocol is an explicit `protocol_fallback` with
+`insufficient_data`; it is never presented as learned evidence. Warm, spring, and
+fall nightly venting remains mandatory baseline behavior. If every bounded warm
+candidate fails the physical filters, retain the learned/protocol baseline under
+`baseline` but return an explicit `candidate=None` / `no_valid_candidate` outcome.
+Never relabel an unsafe baseline as a candidate.
+
+For sunny winter forecasts, enumerate indoor-shade open/close transitions on the
+same 15-minute, plus/minus-two-hour grid, reject nighttime or cold/cloudy openings,
+simulate surviving schedules with the Task 4 simulator, and apply the winter
+objective. Winter ventilation remains closed in every baseline and candidate.
+Outdoor shades remain slow seasonal state and are never a daily search variable.
+
+Airflow segments carry `closed=0`, `baseline=1`, or `boosted=2`. Preserve and
+simulate morning/evening boosted segments only when the mode vocabulary contains
+observed boosted evidence; never manufacture boosted history from residuals.
 
 Score surviving simulations with transparent seasonal objectives:
 

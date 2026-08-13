@@ -1,4 +1,4 @@
-from dataclasses import fields
+from dataclasses import FrozenInstanceError, asdict, fields
 from datetime import datetime, timezone
 import pytest
 
@@ -9,6 +9,8 @@ from thermal_model.schema import (
     ShadowOutput,
     validate_shadow_output,
     DynamicsModel,
+    BehaviorModel,
+    SeasonalActionVocabulary,
     ThermalSample,
 )
 
@@ -26,6 +28,28 @@ def test_thermal_sample_preserves_each_action_confidence():
         "indoor_shade_confidence",
         "outdoor_shade_confidence",
     } <= names
+
+
+def test_behavior_model_persists_immutable_serializable_seasonal_vocabulary():
+    vocabulary = SeasonalActionVocabulary(
+        mode="warm",
+        action_states=(("vent", ("closed", "open")),),
+        transitions=("vent_open", "vent_close"),
+        airflow_levels=("closed", "baseline", "boosted"),
+        boosted_windows=((390, 420),),
+    )
+    model = BehaviorModel(
+        version=1,
+        feature_names=("intercept",),
+        transitions={"vent_open": (0.0,)},
+        seasonal_vocabulary=(vocabulary,),
+    )
+
+    assert asdict(model)["seasonal_vocabulary"][0]["mode"] == "warm"
+    assert model.seasonal_vocabulary[0].boosted_windows == ((390, 420),)
+    with pytest.raises(FrozenInstanceError):
+        vocabulary.mode = "winter"
+
 
 
 def test_exact_sensor_contract_and_source_precedence():

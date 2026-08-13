@@ -397,6 +397,7 @@ def build_samples(series_by_role, events, modes, start, end):
                 ),
                 action_confidence=confidence,
                 passive_fit_allowed=passive,
+                mode=_regime_at(regimes, cursor),
             )
         )
         cursor += STEP

@@ -162,7 +162,11 @@ thermal trajectory.
 The behavior model initially learns household practice. It does not independently
 invent action types or emit actuator commands. Its output is a shadow action
 schedule with probability, confidence, and the observations that most strongly
-support it.
+support it. Each binary hazard is fit only on its source-state risk set. The
+artifact persists immutable per-mode evidence for observed action states,
+transitions, airflow levels, and boosted windows. Protocol behavior is allowed
+only as explicit `protocol_fallback` provenance when mode/action evidence is
+insufficient; it is never presented as learned history.
 
 ## Thermal-action journal
 
@@ -326,11 +330,17 @@ confirmed household practice:
   and mass-charging needs.
 - Outdoor-shade installation/removal as a slow seasonal configuration, not a
   daily optimization variable.
+- Sunny-winter indoor-shade timing within daylight; winter vents and all winter
+  nighttime shade states remain closed.
+- Observed morning/evening boosted airflow segments at forcing level `2.0`;
+  unobserved boosted segments are never invented.
 
 The search reports the expected difference between the learned baseline and a
 candidate schedule. It must not call that difference causal certainty. The
 claim is a model counterfactual with an uncertainty interval and data-quality
-grade.
+grade. If no physically valid bounded candidate exists, the learned/protocol
+baseline remains visible but the candidate is explicitly absent; an unsafe
+baseline is never relabeled as a candidate.
 
 Seasonal objectives are:
 

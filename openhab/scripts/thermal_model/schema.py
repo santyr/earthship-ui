@@ -67,6 +67,7 @@ class ThermalSample:
     outdoor_shade_confidence: float
     action_confidence: float
     passive_fit_allowed: bool
+    mode: Literal["spring", "warm", "fall_charge", "winter"] | None = None
 
 
 @dataclass(frozen=True)
@@ -79,10 +80,20 @@ class DynamicsModel:
 
 
 @dataclass(frozen=True)
+class SeasonalActionVocabulary:
+    mode: Literal["spring", "warm", "fall_charge", "winter"]
+    action_states: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    transitions: tuple[str, ...] = ()
+    airflow_levels: tuple[str, ...] = ()
+    boosted_windows: tuple[tuple[int, int], ...] = ()
+
+
+@dataclass(frozen=True)
 class BehaviorModel:
     version: int
     feature_names: tuple[str, ...]
     transitions: dict[str, tuple[float, ...]]
+    seasonal_vocabulary: tuple[SeasonalActionVocabulary, ...] = ()
 
 
 @dataclass(frozen=True)

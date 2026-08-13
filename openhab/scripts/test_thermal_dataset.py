@@ -416,6 +416,20 @@ def test_timestamps_are_normalized_to_aware_utc_without_future_rows():
     assert all(START <= sample.at < END for sample in samples)
 
 
+
+def test_samples_preserve_reconstructed_mode_for_behavior_vocabulary():
+    samples = build_samples(
+        fixture_series(),
+        fully_labeled_events(),
+        [mode_event("warm", START)],
+        START,
+        END,
+    )
+    assert samples
+    assert {sample.mode for sample in samples} == {"warm"}
+
+
+
 def test_naive_boundaries_or_points_are_rejected():
     with pytest.raises(ValueError, match="start.*timezone"):
         build_samples(fixture_series(), [], [], START.replace(tzinfo=None), END)
