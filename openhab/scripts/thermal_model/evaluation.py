@@ -155,19 +155,22 @@ def _quantile(values, probability):
 
 
 def _interval_coverage(records):
-    prior_errors = defaultdict(list)
     results = defaultdict(lambda: {"count": 0, "covered": 0})
     for record in records:
         for state in ("air", "mass"):
             key = (state, record["horizon"])
             error = record["model"][state]
-            history = prior_errors[key]
+            history = [
+                prior["model"][state]
+                for prior in records
+                if prior["horizon"] == record["horizon"]
+                and prior["target_at"] <= record["origin_at"]
+            ]
             if history:
                 low = _quantile(history, 0.05)
                 high = _quantile(history, 0.95)
                 results[key]["count"] += 1
                 results[key]["covered"] += int(low <= error <= high)
-            history.append(error)
     return {
         state: {
             str(hours): {
@@ -421,6 +424,8 @@ def walk_forward_evaluate(samples, fit):
             target = future[-1]
             prediction = predictions[hours * 12 - 1]
             record = {
+                "origin_at": origin.at,
+                "target_at": target.at,
                 "horizon": hours,
                 "regime": _regime(target.mode),
                 "provenance": _provenance(target),
@@ -581,5 +586,22 @@ def walk_forward_evaluate(samples, fit):
             "end": _iso_utc(ordered[-1].at + STEP),
         },
         "folds": folds,
+        "prediction_records": [
+            {
+                "origin_at": _iso_utc(record["origin_at"]),
+                "target_at": _iso_utc(record["target_at"]),
+                "horizon": record["horizon"],
+                "regime": record["regime"],
+                "provenance": record["provenance"],
+                "model": record["model"],
+                "persistence": record["persistence"],
+                **(
+                    {"recent_cycle": record["recent_cycle"]}
+                    if "recent_cycle" in record
+                    else {}
+                ),
+            }
+            for record in records
+        ],
         "metrics": metrics,
     }

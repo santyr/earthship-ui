@@ -220,3 +220,25 @@ def test_unphysical_fold_models_fail_the_shadow_promotion_gate():
 
     assert report["metrics"]["promotion"]["eligible"] is False
     assert report["metrics"]["promotion"]["gates"]["physics_valid"] is False
+
+
+
+def test_overlapping_long_horizons_calibrate_only_after_targets_are_observed():
+    report = walk_forward_evaluate(
+        samples_45_days(), fit=lambda train: fixed_model()
+    )
+    metrics = report["metrics"]
+    records = report["prediction_records"]
+
+    assert records
+    assert all(
+        datetime.fromisoformat(record["origin_at"].replace("Z", "+00:00"))
+        < datetime.fromisoformat(record["target_at"].replace("Z", "+00:00"))
+        for record in records
+    )
+    for hours, unavailable_origins in ((48, 2), (72, 3)):
+        scored = metrics["overall"]["model"]["air"][str(hours)]["count"]
+        calibrated = metrics["prediction_interval_coverage"]["air"][
+            str(hours)
+        ]["count"]
+        assert calibrated == scored - unavailable_origins

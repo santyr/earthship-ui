@@ -63,3 +63,27 @@ and the canonical dataset digest before `save_candidate`; validation will
 refuse incomplete evidence. Prediction-interval coverage is explicitly
 calibrated only from earlier fold errors and remains evaluation evidence, not a
 graduation threshold.
+
+## Blocking-review hardening wave (2026-08-13)
+
+### Exact RED evidence
+
+- Review probe collection: `pytest -q openhab/scripts/test_thermal_artifacts.py openhab/scripts/test_thermal_evaluation.py` -> `24 failed, 24 passed in 4.13s`. Failures covered semantic metric bounds/types, explicit `shadow_only`, exact Task 4/5 contracts, accepted-artifact revalidation, invalid UTF-8, unique atomic-write races, corrupt-reader/promoter locking, and target-aware interval history.
+- Quarantine reservation probe: `pytest -q openhab/scripts/test_thermal_artifacts.py -k quarantine_destination_is_reserved_with_o_excl` -> `1 failed, 38 deselected in 0.16s`; no `O_EXCL` reservation was observed.
+- Seasonal ordering probe: `pytest -q openhab/scripts/test_thermal_artifacts.py -k behavior_seasonal_modes_use_canonical_order` -> `1 failed, 39 deselected in 0.17s`; reversed canonical modes were accepted.
+
+### GREEN implementation and evidence
+
+- Promotion and accepted loading now independently revalidate schema, recursive finite/type semantics, exact item/unit/digest/revision/ranges, complete Task 4 diagnostics and named constraints, Task 4 physics/stability, exact Task 5 features/transitions and canonical seasonal vocabulary, explicit `shadow_only=true`, and recomputed provisional gates. Negative error magnitudes, out-of-range coverage, boolean numerics, negative/non-integer counts, and negative timing errors fail closed.
+- Unique sibling `mkstemp` files are file-fsynced, atomically replaced, and followed by directory fsync. A per-registry advisory lock covers accepted read/diagnose/quarantine and promotion. Quarantine uses a unique `O_EXCL` sibling, copies from an inode-verified descriptor, fsyncs it, rechecks the accepted inode, then unlinks and fsyncs the directory. Invalid UTF-8 and JSON/schema/semantic corruption retain exact evidence and raise `ArtifactUnavailable`.
+- Every scored error record now retains `origin_at` and `target_at`. Interval calibration at an origin includes only same-horizon errors with `target_at <= origin_at`, so overlapping 48/72-hour daily origins cannot use outcomes that have not occurred.
+- Focused artifact/evaluation: `50 passed in 3.82s`.
+- Focused artifact/evaluation/dynamics/behavior: `107 passed in 15.20s` before the two final hardening probes; rerun below records the final total.
+- Static checks (`pyflakes`, `py_compile`, `git diff --check`) are clean before the final baseline run.
+
+### Final verification after hardening
+
+- Nested semantic-type probe: `pytest -q openhab/scripts/test_thermal_artifacts.py -k "metric_semantics and not numeric_types"` -> `1 failed, 6 passed, 34 deselected in 0.23s` before the scalar-key fix; the string interval fraction was incorrectly accepted.
+- `pytest -q openhab/scripts/test_thermal_artifacts.py openhab/scripts/test_thermal_evaluation.py openhab/scripts/test_thermal_dynamics.py openhab/scripts/test_thermal_behavior.py` -> `110 passed in 15.11s`.
+- `pytest -q openhab/scripts` -> `204 passed in 17.98s`.
+- No PostgreSQL/OpenHAB/raw-store writes, advice graduation, commands, publishing, or actuation were added.
