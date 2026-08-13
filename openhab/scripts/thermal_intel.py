@@ -14,6 +14,7 @@ from thermal_model.artifacts import ArtifactRegistry, DEFAULT_STATE_DIRECTORY
 from thermal_model.journal import ActionJournal
 from thermal_model.pipeline import (
     TrainingRefused,
+    build_unavailable_shadow,
     run_backtest,
     run_shadow,
     run_training,
@@ -254,20 +255,32 @@ def _current_states(now, series_reader=None):
 
 
 def _shadow(args, now):
-    forecast_intel.load_site_settings()
-    current = _current_states(now)
-    snapshot = forecast_intel.fetch_forecast()
-    rows = _forecast_rows(snapshot, now.astimezone(forecast_intel.MOUNTAIN))
-    output = run_shadow(
-        registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
-        current=current,
-        forecast=rows,
-        now=now,
-        site_timezone=forecast_intel.MOUNTAIN,
-    )
+    current = None
+    try:
+        forecast_intel.load_site_settings()
+        current = _current_states(now)
+        snapshot = forecast_intel.fetch_forecast()
+        rows = _forecast_rows(
+            snapshot, now.astimezone(forecast_intel.MOUNTAIN)
+        )
+        output = run_shadow(
+            registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
+            current=current,
+            forecast=rows,
+            now=now,
+            site_timezone=forecast_intel.MOUNTAIN,
+        )
+    except (
+        KeyError, OSError, RuntimeError, TypeError, ValueError
+    ) as exc:
+        output = build_unavailable_shadow(
+            now=now, reasons=(str(exc),), current=current
+        )
     write_shadow_output(args.output, output)
-    print(json.dumps(output, sort_keys=True, separators=(",", ":")))
-    return 0
+    encoded = json.dumps(output, sort_keys=True, separators=(",", ":"))
+    unavailable = output["confidence"]["grade"] == "unavailable"
+    print(encoded, file=sys.stderr if unavailable else sys.stdout)
+    return int(unavailable)
 
 
 def main(argv=None):

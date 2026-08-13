@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from thermal_model.artifacts import ArtifactPromotionRefused, ArtifactUnavailable
-from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS
+from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS, baseline_schedule
 from thermal_model.pipeline import (
     TrainingRefused,
     build_shadow_output,
@@ -25,6 +25,7 @@ from thermal_model.schema import (
     SeasonalActionVocabulary,
     THERMAL_ITEMS,
     ThermalSample,
+    validate_shadow_output,
 )
 
 
@@ -78,10 +79,14 @@ def warm_behavior():
     )
 
 
-def accepted_artifact(*, confirmed_training=False, confirmed_evaluation=False):
+def accepted_artifact(
+    *, confirmed_training=False, confirmed_evaluation=False, disjoint_confirmed=None
+):
     training_counts = {"historical_reconstruction": 20}
-    if confirmed_training:
+    if confirmed_training or confirmed_evaluation:
         training_counts["nostr_confirmed"] = 4
+    if disjoint_confirmed is None:
+        disjoint_confirmed = confirmed_training and confirmed_evaluation
     evaluation_split = "confirmed" if confirmed_evaluation else "reconstructed"
     summary = {
         "count": 3,
@@ -99,6 +104,13 @@ def accepted_artifact(*, confirmed_training=False, confirmed_evaluation=False):
             "overall": {"model": {"air": {"24": summary}}},
             "by_provenance": {
                 evaluation_split: {"air": {"24": summary}},
+            },
+            "action_evidence": {
+                "confirmed": {
+                    "training_rows": 4 if confirmed_training else 0,
+                    "evaluation_targets": 3 if confirmed_evaluation else 0,
+                    "disjoint_fold_count": 1 if disjoint_confirmed else 0,
+                }
             },
             "prediction_interval_coverage": {
                 "air": {
@@ -303,6 +315,77 @@ def test_build_shadow_output_is_an_alias_for_validated_shadow_construction():
     assert output["status"] == "shadow"
 
 
+def test_shadow_emits_no_candidate_for_actual_minimum_improvement_result():
+    artifact = accepted_artifact()
+    artifact.dynamics.air_coefficients["vent_exchange"] = 0.0
+
+    output = run_shadow(
+        registry=AcceptedRegistry(artifact),
+        current=current_states(),
+        forecast=forecast_hours(24),
+        now=NOW,
+    )
+
+    assert output["schedule"]["candidate"] is None
+    assert output["schedule"]["effect"] == {
+        "morningMassDeltaF": 0.0, "hallwayPeakDeltaF": 0.0
+    }
+    assert "minimum modeled improvement" in output["reasons"][0]
+
+
+def test_shadow_emits_no_candidate_for_winter_protocol_constraint():
+    forecast = forecast_hours(24)
+    for row in forecast:
+        row.update(
+            {"mode": "winter", "tempF": 25.0, "radiationWm2": 25.0}
+        )
+
+    output = run_shadow(
+        registry=AcceptedRegistry(),
+        current=current_states(),
+        forecast=forecast,
+        now=NOW,
+    )
+
+    assert output["schedule"]["candidate"] is None
+    assert output["schedule"]["effect"] == {
+        "morningMassDeltaF": 0.0, "hallwayPeakDeltaF": 0.0
+    }
+    assert "protocol constraint" in output["reasons"][0]
+
+
+def test_shadow_omits_structurally_equal_nonimproving_candidate(monkeypatch):
+    def equal_search(*, behavior, dynamics, forecast):
+        del dynamics
+        baseline = baseline_schedule(behavior, forecast)
+        return SimpleNamespace(
+            baseline=baseline,
+            candidate=dict(baseline),
+            modeled_difference={
+                "selectionReason": "minimum_improvement_not_met",
+                "scoreImprovement": 0.0,
+            },
+        )
+
+    monkeypatch.setattr(
+        "thermal_model.pipeline.search_candidate_schedule", equal_search
+    )
+
+    output = run_shadow(
+        registry=AcceptedRegistry(),
+        current=current_states(),
+        forecast=forecast_hours(24),
+        now=NOW,
+    )
+
+    assert output["schedule"]["candidate"] is None
+    assert output["schedule"]["effect"] == {
+        "morningMassDeltaF": 0.0,
+        "hallwayPeakDeltaF": 0.0,
+    }
+    assert "minimum modeled improvement" in output["reasons"][0]
+
+
 @pytest.mark.parametrize("role", ["air", "mass", "outdoor", "radiation"])
 def test_stale_critical_input_emits_unavailable_without_candidate_schedule(role):
     output = run_shadow(
@@ -397,29 +480,33 @@ def test_missing_invalid_or_short_inputs_fail_soft_without_schedule():
         assert output["reasons"]
 
 
-def test_action_label_confidence_requires_confirmed_training_and_evaluation():
-    reconstructed = run_shadow(
+@pytest.mark.parametrize(
+    ("confirmed_training", "confirmed_evaluation", "disjoint_folds", "expected"),
+    [
+        (False, True, 0, "reconstructed"),
+        (True, False, 0, "reconstructed"),
+        (True, True, 1, "confirmed"),
+        (True, True, 0, "reconstructed"),
+    ],
+)
+def test_action_label_requires_disjoint_confirmed_training_and_evaluation(
+    confirmed_training, confirmed_evaluation, disjoint_folds, expected
+):
+    output = run_shadow(
         registry=AcceptedRegistry(
-            accepted_artifact(confirmed_training=True, confirmed_evaluation=False)
-        ),
-        current=current_states(),
-        forecast=forecast_hours(24),
-        now=NOW,
-    )
-    confirmed = run_shadow(
-        registry=AcceptedRegistry(
-            accepted_artifact(confirmed_training=True, confirmed_evaluation=True)
+            accepted_artifact(
+                confirmed_training=confirmed_training,
+                confirmed_evaluation=confirmed_evaluation,
+                disjoint_confirmed=bool(disjoint_folds),
+            )
         ),
         current=current_states(),
         forecast=forecast_hours(24),
         now=NOW,
     )
 
-    assert reconstructed["confidence"] == {
-        "grade": "low", "actionLabels": "reconstructed"
-    }
-    assert confirmed["confidence"] == {
-        "grade": "low", "actionLabels": "confirmed"
+    assert output["confidence"] == {
+        "grade": "low", "actionLabels": expected
     }
 
 
@@ -690,6 +777,52 @@ def test_cli_jdbc_reader_selects_the_jdbc_persistence_service(monkeypatch):
 
     assert thermal_intel._jdbc_series("Hallway", NOW - STEP, NOW) == [(NOW - timedelta(minutes=1), 74.5)]
     assert "serviceId=jdbc" in paths[0]
+
+
+@pytest.mark.parametrize("failure", ["current", "forecast", "artifact"])
+def test_cli_shadow_reader_failures_replace_stale_output_with_unavailable(
+    tmp_path, monkeypatch, failure
+):
+    import thermal_intel
+
+    destination = tmp_path / "shadow.json"
+    destination.write_text("stale-prior-output", encoding="utf-8")
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
+    monkeypatch.setattr(
+        thermal_intel, "_forecast_rows", lambda snapshot, now: forecast_hours(24)
+    )
+    monkeypatch.setattr(
+        thermal_intel, "ArtifactRegistry", lambda path: AcceptedRegistry()
+    )
+    if failure == "current":
+        monkeypatch.setattr(
+            thermal_intel, "_current_states",
+            lambda now: (_ for _ in ()).throw(OSError("jdbc unavailable")),
+        )
+    elif failure == "forecast":
+        monkeypatch.setattr(
+            thermal_intel.forecast_intel, "fetch_forecast",
+            lambda: (_ for _ in ()).throw(RuntimeError("forecast unavailable")),
+        )
+    else:
+        monkeypatch.setattr(
+            thermal_intel, "ArtifactRegistry",
+            lambda path: AcceptedRegistry(
+                error=ArtifactUnavailable("accepted artifact unavailable")
+            ),
+        )
+
+    status = thermal_intel._shadow(SimpleNamespace(output=destination), NOW)
+
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    assert status == 1
+    assert validate_shadow_output(payload) is payload
+    assert payload["confidence"]["grade"] == "unavailable"
+    assert payload["schedule"] == {}
+    assert payload["reasons"]
+    assert "publish" not in json.dumps(payload).lower()
 
 
 def test_cli_exposes_only_offline_commands_and_no_publish_flag():

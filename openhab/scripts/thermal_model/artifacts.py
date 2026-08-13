@@ -109,6 +109,7 @@ _METRIC_PAYLOAD_KEYS = {
     "by_regime",
     "by_horizon",
     "by_provenance",
+    "action_evidence",
     "daily",
     "prediction_interval_coverage",
     "behavior",
@@ -552,6 +553,34 @@ def _validate_metrics_structure(metrics, path="metrics"):
         for name, summary in split.items():
             _split_summary_shape(
                 summary, f"{path}.{split_name}.{name}", split_pattern
+            )
+
+    action_evidence = metrics.get("action_evidence")
+    if action_evidence is not None:
+        if not isinstance(action_evidence, dict) or set(action_evidence) != {"confirmed"}:
+            raise ArtifactValidationError(
+                f"{path}.action_evidence fields are unknown or incomplete"
+            )
+        confirmed = action_evidence["confirmed"]
+        expected = {"training_rows", "evaluation_targets", "disjoint_fold_count"}
+        if not isinstance(confirmed, dict) or set(confirmed) != expected:
+            raise ArtifactValidationError(
+                f"{path}.action_evidence.confirmed fields are unknown or incomplete"
+            )
+        for name in expected:
+            _integer(
+                confirmed[name], f"{path}.action_evidence.confirmed.{name}"
+            )
+        if confirmed["disjoint_fold_count"] > metrics["scored_fold_count"]:
+            raise ArtifactValidationError(
+                f"{path}.action_evidence confirmed fold count exceeds scored folds"
+            )
+        if confirmed["disjoint_fold_count"] > 0 and (
+            confirmed["training_rows"] == 0
+            or confirmed["evaluation_targets"] == 0
+        ):
+            raise ArtifactValidationError(
+                f"{path}.action_evidence disjoint evidence requires both sides"
             )
 
     by_horizon = metrics["by_horizon"]
@@ -1058,6 +1087,9 @@ def _validate_backtest_report(report):
     folds = report.get("folds")
     if not isinstance(folds, list):
         raise ArtifactValidationError("backtest folds must be a list")
+    confirmed_training_rows = 0
+    confirmed_evaluation_targets = 0
+    confirmed_disjoint_folds = 0
     for fold in folds:
         if not isinstance(fold, dict):
             raise ArtifactValidationError("backtest fold must be an object")
@@ -1073,6 +1105,37 @@ def _validate_backtest_report(report):
             raise ArtifactValidationError(
                 "backtest fold ranges must be strictly chronological"
             )
+        action_provenance = fold.get("action_provenance")
+        if action_provenance is None:
+            raise ArtifactValidationError(
+                "backtest fold action provenance is required"
+            )
+        if action_provenance is not None:
+            if (
+                not isinstance(action_provenance, dict)
+                or set(action_provenance) != {"training", "evaluation_targets"}
+            ):
+                raise ArtifactValidationError(
+                    "backtest fold action provenance fields are invalid"
+                )
+            provenance_labels = {
+                "confirmed", "photosensor", "reconstructed",
+                "model_inferred", "unknown",
+            }
+            for split_name, counts in action_provenance.items():
+                if not isinstance(counts, dict) or set(counts) != provenance_labels:
+                    raise ArtifactValidationError(
+                        f"backtest fold {split_name} provenance fields are invalid"
+                    )
+                for label, count in counts.items():
+                    _integer(count, f"backtest fold {split_name}.{label}")
+            if "model_error" not in fold:
+                training_confirmed = action_provenance["training"]["confirmed"]
+                evaluation_confirmed = action_provenance["evaluation_targets"]["confirmed"]
+                confirmed_training_rows += training_confirmed
+                confirmed_evaluation_targets += evaluation_confirmed
+                if training_confirmed > 0 and evaluation_confirmed > 0:
+                    confirmed_disjoint_folds += 1
         horizons = fold.get("horizons_hours")
         if (
             not isinstance(horizons, list)
@@ -1083,6 +1146,18 @@ def _validate_backtest_report(report):
     metrics = report.get("metrics")
     if not isinstance(metrics, dict):
         raise ArtifactValidationError("backtest metrics must be an object")
+    action_evidence = metrics.get("action_evidence")
+    expected_action_evidence = {
+        "confirmed": {
+            "training_rows": confirmed_training_rows,
+            "evaluation_targets": confirmed_evaluation_targets,
+            "disjoint_fold_count": confirmed_disjoint_folds,
+        }
+    }
+    if action_evidence != expected_action_evidence:
+        raise ArtifactValidationError(
+            "backtest action evidence does not match fold receipts"
+        )
     _validate_finite(report, "backtest")
     promotion = metrics.get("promotion")
     metrics_without_promotion = {

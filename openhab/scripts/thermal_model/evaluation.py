@@ -19,6 +19,9 @@ from .dynamics import simulate, validate_physics
 STEP = timedelta(minutes=5)
 SITE_TIMEZONE = ZoneInfo("America/Denver")
 HORIZONS_HOURS = (1, 6, 12, 24, 48, 72)
+PROVENANCE_LABELS = (
+    "confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"
+)
 MIN_TRAINING_DAYS = 14
 INTERVAL_NOMINAL_COVERAGE = 0.90
 _TRANSITION_STATES = {
@@ -361,6 +364,9 @@ def _numbers_finite(value):
 
 def walk_forward_evaluate(samples, fit):
     """Fit daily origins and score only fully observed, strictly future horizons."""
+    confirmed_action_rows = frozenset(
+        getattr(samples, "confirmed_action_rows", ())
+    )
     ordered = tuple(sorted(samples, key=lambda sample: sample.at))
     if not ordered:
         raise ValueError("walk-forward evaluation requires samples")
@@ -384,6 +390,9 @@ def walk_forward_evaluate(samples, fit):
     behavior_timing = []
     physics_valid = True
     scored_folds = 0
+    confirmed_training_rows = 0
+    confirmed_evaluation_targets = 0
+    confirmed_disjoint_folds = 0
 
     for local_day, origin in sorted(origins.items()):
         if (local_day - first_local_day).days < MIN_TRAINING_DAYS:
@@ -399,6 +408,19 @@ def walk_forward_evaluate(samples, fit):
         if not train or not available:
             continue
 
+        def action_provenance(sample):
+            label = _provenance(sample)
+            if label == "confirmed" and sample.at not in confirmed_action_rows:
+                return "unknown"
+            return label
+
+        training_provenance = Counter(
+            action_provenance(sample) for sample in train
+        )
+        evaluation_targets = available[max(available)]
+        evaluation_provenance = Counter(
+            action_provenance(sample) for sample in evaluation_targets
+        )
         fold = {
             "train_start": _iso_utc(train[0].at),
             "train_end": _iso_utc(train[-1].at),
@@ -407,6 +429,16 @@ def walk_forward_evaluate(samples, fit):
                 origin.at + timedelta(hours=max(available))
             ),
             "horizons_hours": list(available),
+            "action_provenance": {
+                "training": {
+                    label: training_provenance.get(label, 0)
+                    for label in PROVENANCE_LABELS
+                },
+                "evaluation_targets": {
+                    label: evaluation_provenance.get(label, 0)
+                    for label in PROVENANCE_LABELS
+                },
+            },
         }
         fitted = fit(train)
         try:
@@ -420,6 +452,12 @@ def walk_forward_evaluate(samples, fit):
             continue
 
         scored_folds += 1
+        training_confirmed = training_provenance.get("confirmed", 0)
+        evaluation_confirmed = evaluation_provenance.get("confirmed", 0)
+        confirmed_training_rows += training_confirmed
+        confirmed_evaluation_targets += evaluation_confirmed
+        if training_confirmed > 0 and evaluation_confirmed > 0:
+            confirmed_disjoint_folds += 1
         folds.append(fold)
         for hours, future in available.items():
             target = future[-1]
@@ -519,9 +557,7 @@ def walk_forward_evaluate(samples, fit):
         )
         for regime in ("warm", "winter", "shoulder")
     }
-    provenances = (
-        "confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"
-    )
+    provenances = PROVENANCE_LABELS
     by_provenance = {
         provenance: _model_summary(
             [
@@ -550,6 +586,13 @@ def walk_forward_evaluate(samples, fit):
         "by_regime": by_regime,
         "by_horizon": by_horizon,
         "by_provenance": by_provenance,
+        "action_evidence": {
+            "confirmed": {
+                "training_rows": confirmed_training_rows,
+                "evaluation_targets": confirmed_evaluation_targets,
+                "disjoint_fold_count": confirmed_disjoint_folds,
+            }
+        },
         "daily": _daily_metrics(daily_records),
         "prediction_interval_coverage": _interval_coverage(records),
         "behavior": _behavior_metrics(

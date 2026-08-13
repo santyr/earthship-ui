@@ -8,6 +8,7 @@ import pytest
 from zoneinfo import ZoneInfo
 
 from thermal_model.dynamics import predict_step
+from thermal_model.dataset import ThermalDataset
 from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS
 from thermal_model.evaluation import threshold_advisory, walk_forward_evaluate
 from thermal_model.schema import BehaviorModel, DynamicsModel, ThermalSample
@@ -102,10 +103,79 @@ def test_walk_forward_never_trains_on_or_after_prediction_day():
         datetime.fromisoformat(fold["train_end"].replace("Z", "+00:00"))
         for fold in report["folds"]
     ]
+    assert all(
+        set(fold["action_provenance"]) == {"training", "evaluation_targets"}
+        and fold["action_provenance"]["training"]["confirmed"] == 0
+        and fold["action_provenance"]["evaluation_targets"]["confirmed"] == 0
+        for fold in report["folds"]
+    )
+    assert (
+        report["metrics"]["action_evidence"]["confirmed"]["disjoint_fold_count"]
+        == 0
+    )
     assert report["folds"][0]["horizons_hours"] == [1, 6, 12, 24, 48, 72]
     assert 72 not in report["folds"][-1]["horizons_hours"]
 
 
+
+
+
+def dataset_with_confirmed_rows(rows, confirmed_rows):
+    return ThermalDataset(
+        rows,
+        start=rows[0].at,
+        end=rows[-1].at + STEP,
+        rejected_counts={},
+        auxiliary_exclusion_counts={},
+        confirmed_action_rows=confirmed_rows,
+    )
+
+
+def test_persistent_confirmed_state_does_not_reuse_one_event_across_fold_origin():
+    split = 14 * 24 * 12
+    rows = samples_45_days()[: 15 * 24 * 12]
+    dataset = dataset_with_confirmed_rows(rows, (rows[split - 1].at,))
+
+    report = walk_forward_evaluate(dataset, fit=lambda train: fixed_model())
+    evidence = report["metrics"]["action_evidence"]["confirmed"]
+
+    assert evidence["training_rows"] > 0
+    assert evidence["evaluation_targets"] == 0
+    assert evidence["disjoint_fold_count"] == 0
+
+@pytest.mark.parametrize(
+    ("scenario", "training_expected", "evaluation_expected", "folds_expected"),
+    [
+        ("training_only", True, False, 0),
+        ("heldout_only", False, True, 0),
+        ("both_disjoint", True, True, 1),
+    ],
+)
+def test_action_evidence_separates_training_from_heldout_targets(
+    scenario, training_expected, evaluation_expected, folds_expected
+):
+    split = 14 * 24 * 12
+    rows = samples_45_days()[: 15 * 24 * 12]
+    adjusted = []
+    for index, row in enumerate(rows):
+        confirmed = (
+            (scenario in {"training_only", "both_disjoint"} and index < split)
+            or (scenario in {"heldout_only", "both_disjoint"} and index >= split)
+        )
+        adjusted.append(replace(row, action_confidence=1.0 if confirmed else 0.35))
+
+    confirmed_rows = [
+        row.at for row in adjusted if row.action_confidence == 1.0
+    ]
+    report = walk_forward_evaluate(
+        dataset_with_confirmed_rows(adjusted, confirmed_rows),
+        fit=lambda train: fixed_model(),
+    )
+    evidence = report["metrics"]["action_evidence"]["confirmed"]
+
+    assert (evidence["training_rows"] > 0) is training_expected
+    assert (evidence["evaluation_targets"] > 0) is evaluation_expected
+    assert evidence["disjoint_fold_count"] == folds_expected
 
 
 def test_report_contains_required_metrics_baselines_splits_and_shadow_gates():

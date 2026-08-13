@@ -84,3 +84,105 @@ were reviewed against the Task 7 brief. No live artifact was trained and no live
 shadow was generated because that would require site histories, journal state,
 and forecast/runtime dependencies; this task's deterministic tests exercise those
 boundaries without mutating them.
+
+## Blocking review remediation wave (2026-08-13)
+
+### Findings closed
+
+- Candidate semantics are now null unless Task 5 returns a structurally
+  different, physically valid schedule whose modeled improvement reaches
+  `MINIMUM_IMPROVEMENT`. `protocol_constraint`,
+  `minimum_improvement_not_met`, `no_valid_candidate`, structural equality,
+  and post-expansion physical rejection retain the baseline with a null
+  candidate and exactly zero effect.
+- `validate_shadow_output` now validates the complete exact v1 tree: top-level
+  and nested key sets; strict non-boolean finite numerics; aware chronological
+  timestamps; model/current/forecast/schedule/confidence/provenance/reason
+  vocabularies; 73-point trajectory and 25-point observation bounds; monotonic
+  rows; exact local-hour trajectory timestamps; closed action markers; ordered
+  uncertainty intervals; candidate-null/effect invariants; confidence/source
+  agreement; unavailable/available invariants; and compact JSON below 16 KiB.
+  Both construction and atomic writing invoke this validator.
+- CLI shadow input failures from site/current JDBC reads, forecast retrieval or
+  parsing, and accepted-artifact loading now atomically replace any prior output
+  with a valid unavailable v1 payload, empty schedule, and explicit reason.
+  They print the unavailable payload to stderr and return nonzero. The default
+  invocation still writes the standard local shadow path and has no publish
+  option.
+- Walk-forward evaluation now records exact action-provenance counts separately
+  for every fold's training rows and held-out horizon targets. Metrics summarize
+  confirmed training rows, confirmed evaluation targets, and folds where both
+  are strictly separated by the origin. Shadow labels become `confirmed` only
+  when that disjoint-fold evidence is present; whole-dataset manifest counts can
+  no longer satisfy confirmation.
+- Task 6 artifact/report validation accepts only the exact action-evidence shape
+  and requires the per-fold provenance split for newly persisted v1 reports.
+
+### Exact RED evidence
+
+- Candidate-null regressions: `3 failed, 60 deselected in 1.48s`; cold-cloudy
+  protocol, minimum improvement, and structurally equal search results all
+  incorrectly exposed the baseline as a candidate.
+- Provenance regressions: `3 failed, 2 passed, 35 deselected in 2.42s`; folds
+  lacked separate provenance evidence and heldout-only/overlapping evidence
+  incorrectly produced `confirmed`.
+- Task 6 evidence contract: `1 failed, 70 deselected in 0.21s`; the exact new
+  `action_evidence` field was rejected as unknown before validation support was
+  added.
+- Deep shadow schema: `15 failed, 1 passed, 5 deselected in 0.06s`; every
+  malformed nested payload was accepted by the former top-level-only validator.
+- CLI fail-soft replacement: `3 failed, 30 deselected in 0.21s`; current and
+  forecast failures escaped without writing, while artifact unavailability
+  wrote a payload but incorrectly returned success.
+
+### GREEN evidence before final commit
+
+- Candidate-null focused set: `3 passed, 60 deselected in 1.37s`; direct Task 7
+  minimum-improvement, winter-protocol, and structural-equality output checks:
+  `3 passed, 32 deselected in 0.62s`.
+- Disjoint provenance focused set: `5 passed, 35 deselected in 2.38s`; real
+  evaluator training-only, heldout-only, and both-disjoint cases:
+  `3 passed, 10 deselected in 0.41s`.
+- Deep schema plus pipeline: `51 passed in 5.36s`, then `54 passed in 5.32s`
+  after strict chronology/list and confidence/provenance alignment hardening.
+- CLI current/forecast/artifact replacement: `3 passed, 30 deselected in 0.16s`.
+- Combined pipeline/schema/evaluation/behavior/artifact contract suite:
+  `174 passed in 22.06s`.
+- Complete thermal plus forecast baseline before the two final direct candidate
+  regressions: `287 passed in 27.31s`; the final post-report run is recorded in
+  the commit handoff.
+- `pyflakes`, warning-as-error `py_compile`, `git diff --check`, CLI help, and
+  the tracked `forecast_intel.py` invariant were clean. Production scans found
+  no OpenHAB write, `sendCommand`, publish flag, command item, advisory item, or
+  causal-claim sink.
+
+### Remaining concern
+
+No live OpenHAB, PostgreSQL, forecast service, model registry, or actuator was
+mutated. Runtime failure behavior is proven through injected CLI tests that
+start with stale local output and verify its atomic replacement; live transport
+smoke remains intentionally out of scope for this read-only/offline task.
+
+### Final event-identity hardening and verification
+
+- Same-event persistence RED: after adding the explicit dataset metadata seam,
+  `test_persistent_confirmed_state_does_not_reuse_one_event_across_fold_origin`
+  failed because one pre-origin confidence-1 state produced three supposed
+  evaluation confirmations. `ThermalDataset` now retains only five-minute rows
+  containing actual `nostr_confirmed` or `manual_dm` events; evaluation relabels
+  persistent confirmed state without such an event row as unknown action
+  evidence. The persistence plus training-only/heldout-only/both-disjoint set is
+  `5 passed, 9 deselected in 0.91s`.
+- Dataset source binding: the actual-event metadata regression is
+  `1 passed, 24 deselected in 0.05s`; photosensor events do not enter the
+  confirmed row set.
+- Persisted report consistency RED: a mismatched fold summary was accepted
+  (`1 failed, 70 deselected in 0.18s`). The registry now recomputes confirmed
+  training rows, held-out targets, and disjoint folds from exact fold receipts;
+  the corrected probe is `1 passed, 70 deselected in 0.15s`.
+- Final expanded focused suite (pipeline, schema, evaluation, behavior,
+  artifacts, and dataset): `202 passed in 22.32s`.
+- Final complete thermal and forecast baseline: `291 passed in 25.20s`.
+- Final warning-as-error compile and `pyflakes`: clean.
+- Final CLI help, `git diff --check`, byte-identical `forecast_intel.py`, and
+  prohibited OpenHAB write/command/publish/advisory symbol scans: clean.

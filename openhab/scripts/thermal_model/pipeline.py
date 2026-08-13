@@ -30,7 +30,13 @@ from .artifacts import (
     ArtifactValidationError,
     validate_artifact,
 )
-from .behavior import AIRFLOW_LEVELS, baseline_schedule, fit_behavior, search_candidate_schedule
+from .behavior import (
+    AIRFLOW_LEVELS,
+    MINIMUM_IMPROVEMENT,
+    baseline_schedule,
+    fit_behavior,
+    search_candidate_schedule,
+)
 from .dataset import build_samples, dataset_manifest
 from .dynamics import AIR_NAMES, MASS_NAMES, fit_diagnostics, fit_dynamics, simulate
 from .evaluation import walk_forward_evaluate
@@ -603,9 +609,19 @@ def _contains_positive_count(value):
 def _action_label(artifact):
     counts = artifact.data_manifest.get("event_counts_by_source", {})
     evaluation = artifact.metrics.get("by_provenance", {})
-    confirmed_training = any(counts.get(source, 0) > 0 for source in ("nostr_confirmed", "manual_dm"))
-    confirmed_evaluation = _contains_positive_count(evaluation.get("confirmed", {}))
-    if confirmed_training and confirmed_evaluation:
+    confirmed = artifact.metrics.get("action_evidence", {}).get("confirmed", {})
+    if (
+        isinstance(confirmed, dict)
+        and isinstance(confirmed.get("training_rows"), int)
+        and not isinstance(confirmed.get("training_rows"), bool)
+        and confirmed["training_rows"] > 0
+        and isinstance(confirmed.get("evaluation_targets"), int)
+        and not isinstance(confirmed.get("evaluation_targets"), bool)
+        and confirmed["evaluation_targets"] > 0
+        and isinstance(confirmed.get("disjoint_fold_count"), int)
+        and not isinstance(confirmed.get("disjoint_fold_count"), bool)
+        and confirmed["disjoint_fold_count"] > 0
+    ):
         return "confirmed", "operator_confirmed"
     for label, sources in (
         ("photosensor", ("photosensor",)),
@@ -704,14 +720,17 @@ def _unavailable(now, reasons, *, artifact=None, current=None):
         except (AttributeError, TypeError, ValueError):
             model = {}
     current_payload = {"hallwayF": None, "massF": None, "glazingF": None}
-    ages = {}
+    ages = {role: None for role in THERMAL_ITEMS}
     if isinstance(current, dict):
-        for role, field in (("air", "hallwayF"), ("mass", "massF"), ("glazing", "glazingF")):
+        for role, field in (("air", "hallwayF"), ("mass", "massF"), ("glazing", "glazingF"), ("outdoor", None), ("radiation", None)):
             entry = current.get(role)
             if isinstance(entry, dict):
                 value = entry.get("value")
                 try:
-                    current_payload[field] = None if value is None else _finite(value, field)
+                    if field is not None:
+                        current_payload[field] = (
+                            None if value is None else _finite(value, field)
+                        )
                     at = _parse_time(entry.get("at"), f"{field} timestamp")
                     ages[role] = round(max(0.0, (now - at).total_seconds() / 60.0), 3)
                 except (TypeError, ValueError):
@@ -785,13 +804,25 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
         dynamics=artifact.dynamics,
         forecast=decorated,
     )
+    selection_reason = search.modeled_difference.get("selectionReason")
+    improvement = _finite(
+        search.modeled_difference.get("scoreImprovement", 0.0),
+        "candidate score improvement",
+    )
     candidate = (
         _expand_nightly_venting(search.candidate, rows, site_timezone)
         if search.candidate is not None
         else None
     )
-    if candidate is not None and not _vent_schedule_is_valid(decorated, candidate):
+    if (
+        selection_reason != "bounded_candidate_improved"
+        or improvement < MINIMUM_IMPROVEMENT
+        or candidate == baseline
+    ):
         candidate = None
+    elif not _vent_schedule_is_valid(decorated, candidate):
+        candidate = None
+        selection_reason = "no_valid_candidate"
     selected = candidate or baseline
     predictions = (
         _simulate_schedule(artifact.dynamics, rows, selected, initial)
@@ -815,8 +846,13 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
     if timedelta(hours=model_age) > DAILY_TRAINING_CADENCE:
         reasons.append("accepted model daily training cadence missed")
     if candidate is None:
-        reasons.append("no physically valid bounded candidate")
-    elif search.modeled_difference.get("selectionReason") == "bounded_candidate_improved":
+        reasons.append(
+            {
+                "minimum_improvement_not_met": "minimum modeled improvement not met; no candidate emitted",
+                "protocol_constraint": "protocol constraint retained baseline; no candidate emitted",
+            }.get(selection_reason, "no physically valid bounded candidate")
+        )
+    elif selection_reason == "bounded_candidate_improved":
         reasons.append("bounded candidate improved in model simulation")
     else:
         reasons.append("minimum modeled improvement not met; baseline retained")
@@ -870,6 +906,13 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
     if len(encoded) >= MAX_SHADOW_BYTES:
         raise ValueError("shadow output exceeds the 16 KiB bound")
     return payload
+
+
+def build_unavailable_shadow(*, now, reasons, artifact=None, current=None):
+    """Build one exact fail-soft shadow payload without reading any authority."""
+    return _unavailable(
+        _aware(now, "now"), reasons, artifact=artifact, current=current
+    )
 
 
 def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE):

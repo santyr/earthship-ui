@@ -1,6 +1,70 @@
+from copy import deepcopy
 from dataclasses import FrozenInstanceError, asdict, fields
 from datetime import datetime, timezone
 import pytest
+
+
+def valid_shadow_payload():
+    return {
+        "version": 1,
+        "status": "shadow",
+        "generatedAt": "2026-08-13T12:00:00+00:00",
+        "model": {
+            "createdAt": "2026-08-13T10:00:00+00:00",
+            "trainedThrough": "2026-08-13T09:00:00+00:00",
+            "codeRevision": "0123456789abcdef",
+        },
+        "current": {"hallwayF": 74.0, "massF": 72.0, "glazingF": None},
+        "forecast": {
+            "availableHours": 24,
+            "hallwayHighF": 80.0,
+            "hallwayHighAt": "2026-08-13T18:00:00-06:00",
+            "hallwayLowF": 68.0,
+            "hallwayLowAt": "2026-08-14T06:00:00-06:00",
+            "morningMassF": 70.0,
+            "intervalLowF": 66.0,
+            "intervalHighF": 82.0,
+            "trajectory": [
+                {
+                    "at": "2026-08-13T06:00:00-06:00",
+                    "hallwayF": 74.0, "massF": 72.0,
+                    "lowF": 72.0, "highF": 76.0, "actions": [],
+                },
+                {
+                    "at": "2026-08-13T07:00:00-06:00",
+                    "hallwayF": 75.0, "massF": 72.2,
+                    "lowF": 73.0, "highF": 77.0,
+                    "actions": ["vent_close"],
+                },
+            ],
+            "observed": [
+                {
+                    "at": "2026-08-13T11:55:00+00:00",
+                    "hallwayF": 73.9, "massF": 71.9,
+                }
+            ],
+        },
+        "schedule": {
+            "baseline": {
+                "ventOpenAt": "2026-08-14T02:30:00+00:00",
+                "ventCloseAt": "2026-08-14T13:00:00+00:00",
+            },
+            "candidate": None,
+            "effect": {"morningMassDeltaF": 0.0, "hallwayPeakDeltaF": 0.0},
+        },
+        "confidence": {"grade": "low", "actionLabels": "reconstructed"},
+        "provenance": {
+            "sensorItems": dict(THERMAL_ITEMS),
+            "actions": "historical_reconstruction",
+            "currentAgeMinutes": {
+                "air": 2.0, "mass": 2.0, "glazing": None,
+                "outdoor": 2.0, "radiation": 2.0,
+            },
+            "modelAgeHours": 2.0,
+            "trainingDataAgeHours": 3.0,
+        },
+        "reasons": ["minimum modeled improvement not met; no candidate emitted"],
+    }
 
 from thermal_model.schema import (
     ACTION_KINDS,
@@ -64,6 +128,60 @@ def test_exact_sensor_contract_and_source_precedence():
     assert SOURCE_WEIGHTS["nostr_confirmed"] > SOURCE_WEIGHTS["photosensor"]
     assert SOURCE_WEIGHTS["photosensor"] > SOURCE_WEIGHTS["historical_reconstruction"]
     assert SOURCE_WEIGHTS["historical_reconstruction"] > SOURCE_WEIGHTS["model_inferred"]
+
+
+def test_deep_shadow_schema_accepts_exact_available_payload():
+    assert validate_shadow_output(valid_shadow_payload())["status"] == "shadow"
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "missing_top", "unknown_model", "missing_forecast", "bool_numeric",
+        "naive_time", "command_marker", "too_many_trajectory",
+        "too_many_observed", "nonmonotonic_trajectory", "invalid_confidence",
+        "invalid_provenance", "null_candidate_nonzero_effect",
+        "reversed_interval", "unknown_observed", "oversize",
+    ],
+)
+def test_deep_shadow_schema_rejects_malformed_nested_payloads(case):
+    payload = deepcopy(valid_shadow_payload())
+    if case == "missing_top":
+        del payload["current"]
+    elif case == "unknown_model":
+        payload["model"]["extra"] = 1
+    elif case == "missing_forecast":
+        del payload["forecast"]["availableHours"]
+    elif case == "bool_numeric":
+        payload["current"]["hallwayF"] = True
+    elif case == "naive_time":
+        payload["generatedAt"] = "2026-08-13T12:00:00"
+    elif case == "command_marker":
+        payload["forecast"]["trajectory"][0]["actions"] = ["COMMAND"]
+    elif case == "too_many_trajectory":
+        payload["forecast"]["trajectory"] = [
+            {**payload["forecast"]["trajectory"][0], "at": f"2026-08-{day:02d}T06:00:00-06:00"}
+            for day in range(1, 75)
+        ]
+    elif case == "too_many_observed":
+        payload["forecast"]["observed"] *= 26
+    elif case == "nonmonotonic_trajectory":
+        payload["forecast"]["trajectory"].reverse()
+    elif case == "invalid_confidence":
+        payload["confidence"]["grade"] = "high"
+    elif case == "invalid_provenance":
+        payload["provenance"]["actions"] = "invented"
+    elif case == "null_candidate_nonzero_effect":
+        payload["schedule"]["effect"]["hallwayPeakDeltaF"] = -1.0
+    elif case == "reversed_interval":
+        payload["forecast"]["intervalLowF"] = 90.0
+    elif case == "unknown_observed":
+        payload["forecast"]["observed"][0]["commands"] = []
+    elif case == "oversize":
+        payload["reasons"] = ["x" * (16 * 1024)]
+
+    with pytest.raises(ValueError):
+        validate_shadow_output(payload)
 
 
 def test_shadow_output_rejects_live_or_actuator_fields():

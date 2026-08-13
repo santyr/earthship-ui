@@ -36,13 +36,15 @@ class ThermalDataset(list):
     """A list carrying the quality-gate evidence needed by its manifest."""
 
     def __init__(
-        self, values, *, start, end, rejected_counts, auxiliary_exclusion_counts
+        self, values, *, start, end, rejected_counts, auxiliary_exclusion_counts,
+        confirmed_action_rows=(),
     ):
         super().__init__(values)
         self.start = start
         self.end = end
         self.rejected_counts = dict(rejected_counts)
         self.auxiliary_exclusion_counts = dict(auxiliary_exclusion_counts)
+        self.confirmed_action_rows = tuple(confirmed_action_rows)
 
 
 def _utc(value, name):
@@ -413,12 +415,24 @@ def build_samples(series_by_role, events, modes, start, end):
             )
         )
         cursor += STEP
+    sample_times = {sample.at for sample in samples}
+    confirmed_action_rows = tuple(
+        sorted(
+            {
+                _floor_five(event.effective_at)
+                for event in events
+                if event.source in CONFIRMED_SOURCES
+                and _floor_five(event.effective_at) in sample_times
+            }
+        )
+    )
     return ThermalDataset(
         samples,
         start=start_utc,
         end=end_utc,
         rejected_counts=rejected,
         auxiliary_exclusion_counts=auxiliary_exclusions,
+        confirmed_action_rows=confirmed_action_rows,
     )
 
 

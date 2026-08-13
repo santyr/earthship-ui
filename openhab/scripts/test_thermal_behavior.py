@@ -569,8 +569,9 @@ def test_winter_cold_cloudy_schedule_keeps_shades_and_vents_closed():
         dynamics=stable_model(),
         forecast=winter_forecast(sunny=False),
     )
-    assert result.candidate["vent"] == "closed"
-    assert result.candidate["indoorShadeDay"] == "closed"
+    assert result.baseline["vent"] == "closed"
+    assert result.baseline["indoorShadeDay"] == "closed"
+    assert result.candidate is None
 
 
 def test_sunny_winter_day_may_charge_mass_but_closes_by_sunset():
@@ -690,9 +691,27 @@ def test_cold_cloudy_winter_rejects_open_shade_candidates():
         forecast=winter_forecast(sunny=False),
     )
 
-    assert result.candidate["indoorShadeDay"] == "closed"
-    assert result.candidate["indoorShadeNight"] == "closed"
+    assert result.baseline["indoorShadeDay"] == "closed"
+    assert result.baseline["indoorShadeNight"] == "closed"
+    assert result.candidate is None
+    assert result.modeled_difference["selectionReason"] == "protocol_constraint"
+    assert result.modeled_difference["scoreImprovement"] == 0.0
     assert result.rejected_candidate_counts["cold_cloudy_protocol"] > 0
+
+
+def test_minimum_improvement_retains_baseline_without_candidate():
+    dynamics = stable_model()
+    dynamics.air_coefficients["vent_exchange"] = 0.0
+
+    result = search_candidate_schedule(
+        behavior=warm_behavior(),
+        dynamics=dynamics,
+        forecast=warm_forecast(),
+    )
+
+    assert result.modeled_difference["selectionReason"] == "minimum_improvement_not_met"
+    assert result.modeled_difference["scoreImprovement"] == 0.0
+    assert result.candidate is None
 
 
 def test_always_hot_forecast_reports_no_valid_candidate_not_unsafe_baseline():

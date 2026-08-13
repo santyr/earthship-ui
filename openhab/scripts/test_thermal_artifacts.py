@@ -193,6 +193,22 @@ def valid_artifact(**changes):
     return replace(artifact, **changes)
 
 
+def test_artifact_accepts_exact_disjoint_action_evidence(tmp_path):
+    metrics = deepcopy(valid_artifact().metrics)
+    metrics["action_evidence"] = {
+        "confirmed": {
+            "training_rows": 8,
+            "evaluation_targets": 2,
+            "disjoint_fold_count": 1,
+        }
+    }
+    registry = ArtifactRegistry(tmp_path)
+
+    registry.save_candidate(valid_artifact(metrics=metrics))
+
+    assert registry.candidate_path.exists()
+
+
 def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
     registry = ArtifactRegistry(tmp_path)
     registry.save_candidate(valid_artifact())
@@ -295,9 +311,30 @@ def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
                 "prediction_start": "2026-06-15T00:00:00Z",
                 "prediction_end": "2026-06-18T00:00:00Z",
                 "horizons_hours": [1, 6, 12, 24, 48, 72],
+                "action_provenance": {
+                    "training": {
+                        "confirmed": 1, "photosensor": 0,
+                        "reconstructed": 0, "model_inferred": 0,
+                        "unknown": 0,
+                    },
+                    "evaluation_targets": {
+                        "confirmed": 1, "photosensor": 0,
+                        "reconstructed": 0, "model_inferred": 0,
+                        "unknown": 0,
+                    },
+                },
             }
         ],
-        "metrics": {"mae": 0.5},
+        "metrics": {
+            "mae": 0.5,
+            "action_evidence": {
+                "confirmed": {
+                    "training_rows": 1,
+                    "evaluation_targets": 1,
+                    "disjoint_fold_count": 1,
+                }
+            },
+        },
     }
     registry.save_backtest_report(report)
     first = registry.backtest_report_path.read_bytes()
@@ -312,6 +349,14 @@ def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
     invalid["metrics"]["mae"] = float("inf")
     with pytest.raises(ArtifactValidationError, match="finite"):
         registry.save_backtest_report(invalid)
+    assert registry.backtest_report_path.read_bytes() == first
+
+    mismatched = deepcopy(report)
+    mismatched["metrics"]["action_evidence"]["confirmed"][
+        "disjoint_fold_count"
+    ] = 0
+    with pytest.raises(ArtifactValidationError, match="action evidence"):
+        registry.save_backtest_report(mismatched)
     assert registry.backtest_report_path.read_bytes() == first
 
 

@@ -951,7 +951,7 @@ def _search_winter(rows, baseline, dynamics):
     if baseline["indoorShadeDay"] == "closed":
         return ScheduleSearchResult(
             baseline=baseline,
-            candidate=dict(baseline),
+            candidate=None,
             modeled_difference=_difference(
                 baseline_score, baseline_score, "protocol_constraint"
             ),
@@ -997,7 +997,7 @@ def _search_winter(rows, baseline, dynamics):
         selected_score = best_score
         reason = "bounded_candidate_improved"
     else:
-        selected = baseline
+        selected = None
         selected_score = baseline_score
         reason = "minimum_improvement_not_met"
     return ScheduleSearchResult(
@@ -1062,19 +1062,16 @@ def search_candidate_schedule(*, behavior, dynamics, forecast):
         best_score, _, _, best = min(
             surviving, key=lambda item: (item[0], item[1], item[2])
         )
-        if (
-            baseline_rejection is not None
-            or baseline_score - best_score >= MINIMUM_IMPROVEMENT
-        ):
+        if baseline_score - best_score >= MINIMUM_IMPROVEMENT:
             selected = best
             selected_score = best_score
             selection_reason = "bounded_candidate_improved"
         else:
-            selected = baseline
+            selected = None
             selected_score = baseline_score
             selection_reason = "minimum_improvement_not_met"
     else:
-        selected = baseline
+        selected = None
         selected_score = baseline_score
         selection_reason = "minimum_improvement_not_met"
     return ScheduleSearchResult(
