@@ -44,6 +44,20 @@ class ParsedThermalMessage:
     modes: tuple[ModeEvent, ...]
 
 
+@dataclass(frozen=True)
+class RegimeInterval:
+    """One evidence-backed seasonal regime interval, normalized to UTC."""
+
+    start: datetime
+    end: datetime
+    regime: str
+    source: str
+    confidence: float
+    mode_source: str
+    mode_confidence: float
+    mode_event_id: str
+
+
 def _require_aware(value, field):
     if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field} must include timezone information")
@@ -206,3 +220,107 @@ def parse_thermal_message(text, received_at, idempotency_key):
     if not actions and not modes:
         raise ValueError("THERMAL message must contain an action or mode")
     return ParsedThermalMessage(idempotency_key, tuple(actions), tuple(modes))
+
+
+def reconstruct_state(regime, *, is_daylight, sunny, cold_cloudy):
+    """Return the approved low-confidence seasonal action baseline.
+
+    These labels describe historical household behavior.  They are not control
+    rules and never create an action outside an evidence-backed mode interval.
+    """
+    if regime == "winter":
+        return {
+            "vent_open": 0.0,
+            "indoor_shade_closed": float((not is_daylight) or cold_cloudy),
+        }
+    if regime == "fall_charge":
+        return {
+            "vent_open": float(not is_daylight),
+            "indoor_shade_closed": None,
+        }
+    if regime in {"spring", "warm"}:
+        return {
+            "vent_open": float(not is_daylight),
+            "indoor_shade_closed": float(is_daylight and sunny),
+        }
+    raise ValueError(f"unknown thermal regime: {regime}")
+
+
+def reconstruct_events(start, end, modes):
+    """Convert effective mode records into clipped, evidence-backed intervals.
+
+    No interval is emitted before the first supplied effective mode.  Callers
+    should pass ``ActionJournal.effective_modes`` output, which includes the
+    last effective mode before ``start`` when one exists.  If raw correction
+    records are supplied defensively, the superseded mode is removed and any
+    period between its old effective time and the correction is left unknown.
+    """
+    _require_aware(start, "start")
+    _require_aware(end, "end")
+    if end <= start:
+        raise ValueError("end must be after start")
+    start_utc = start.astimezone(timezone.utc)
+    end_utc = end.astimezone(timezone.utc)
+    records = tuple(modes)
+    if not all(isinstance(mode, ModeEvent) for mode in records):
+        raise TypeError("modes must contain only ModeEvent records")
+    for mode in records:
+        _require_aware(mode.received_at, "mode received_at")
+        _require_aware(mode.effective_at, "mode effective_at")
+
+    by_id = {mode.event_id: mode for mode in records}
+    superseded = {mode.supersedes for mode in records if mode.supersedes}
+    effective = [mode for mode in records if mode.event_id not in superseded]
+    effective.sort(
+        key=lambda mode: (
+            mode.effective_at.astimezone(timezone.utc),
+            mode.received_at.astimezone(timezone.utc),
+            mode.event_id,
+        )
+    )
+
+    correction_gaps = []
+    for correction in effective:
+        original = by_id.get(correction.supersedes)
+        if original is None:
+            continue
+        old_at = original.effective_at.astimezone(timezone.utc)
+        new_at = correction.effective_at.astimezone(timezone.utc)
+        if old_at < new_at:
+            correction_gaps.append((old_at, new_at))
+
+    intervals = []
+    for index, mode in enumerate(effective):
+        mode_start = max(start_utc, mode.effective_at.astimezone(timezone.utc))
+        next_start = (
+            effective[index + 1].effective_at.astimezone(timezone.utc)
+            if index + 1 < len(effective)
+            else end_utc
+        )
+        mode_end = min(end_utc, next_start)
+        pieces = [(mode_start, mode_end)] if mode_start < mode_end else []
+        for gap_start, gap_end in correction_gaps:
+            remaining = []
+            for piece_start, piece_end in pieces:
+                if gap_end <= piece_start or gap_start >= piece_end:
+                    remaining.append((piece_start, piece_end))
+                    continue
+                if piece_start < gap_start:
+                    remaining.append((piece_start, gap_start))
+                if gap_end < piece_end:
+                    remaining.append((gap_end, piece_end))
+            pieces = remaining
+        for piece_start, piece_end in pieces:
+            intervals.append(
+                RegimeInterval(
+                    start=piece_start,
+                    end=piece_end,
+                    regime=mode.mode,
+                    source="historical_reconstruction",
+                    confidence=SOURCE_WEIGHTS["historical_reconstruction"],
+                    mode_source=mode.source,
+                    mode_confidence=mode.confidence,
+                    mode_event_id=mode.event_id,
+                )
+            )
+    return intervals
