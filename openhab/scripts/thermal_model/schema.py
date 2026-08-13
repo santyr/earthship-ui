@@ -72,7 +72,7 @@ class DynamicsModel:
     step_minutes: int
     air_coefficients: dict[str, float]
     mass_coefficients: dict[str, float]
-    glazing_coefficients: dict[str, float]
+    glazing_observation_coefficients: dict[str, float]
 
 
 @dataclass(frozen=True)

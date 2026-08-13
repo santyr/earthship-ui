@@ -1,5 +1,5 @@
+from dataclasses import fields
 from datetime import datetime, timezone
-
 import pytest
 
 from thermal_model.schema import (
@@ -8,7 +8,14 @@ from thermal_model.schema import (
     THERMAL_ITEMS,
     ShadowOutput,
     validate_shadow_output,
+    DynamicsModel,
 )
+
+
+def test_glazing_coefficients_are_observation_contract():
+    names = {item.name for item in fields(DynamicsModel)}
+    assert "glazing_observation_coefficients" in names
+    assert "glazing_coefficients" not in names
 
 
 def test_exact_sensor_contract_and_source_precedence():

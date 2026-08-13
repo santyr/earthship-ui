@@ -14,6 +14,7 @@
 - The physical core has exactly two states: hallway room air and north-wall thermal mass. South-glazing temperature is an auxiliary observation, not a third state.
 - Exact physical items: `AmbientWeatherWS2902A_IndoorSensor_Temperature`, `AmbientWeatherWS2902A_WH31E_193_Temperature`, `Shelly_HT1_Indoor_Temperature`, `AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature`, and `AmbientWeatherWS2902A_SolarRadiation`.
 - OpenHAB JDBC and the append-only action journal are authoritative. Derived datasets and artifacts must be reproducible.
+- Prefer OpenHAB-backed persistence whenever it can preserve the required semantics; justify any local store.
 - Historical action reconstruction is lower-confidence evidence. Confirmed records override photosensor observations, which override reconstruction and inference.
 - Kiva or unexplained heat-input intervals are excluded from passive fitting.
 - All evaluation splits are chronological. No future observations may affect an earlier prediction.
@@ -223,7 +224,7 @@ class DynamicsModel:
     step_minutes: int
     air_coefficients: dict[str, float]
     mass_coefficients: dict[str, float]
-    glazing_coefficients: dict[str, float]
+    glazing_observation_coefficients: dict[str, float]
 
 
 @dataclass(frozen=True)

@@ -27,3 +27,22 @@ Reviewed scope, exact constants and weights, frozen dataclass declarations, shad
 ## Concerns
 
 No concerns within Task 1 scope. Validation intentionally enforces the currently specified top-level schema only; deeper payload semantics belong to later tasks.
+
+
+## Review fix: glazing observation naming and persistence preference
+
+Renamed `DynamicsModel.glazing_coefficients` to `glazing_observation_coefficients` in the production schema and mirrored plan contract, making clear that south glazing is an auxiliary observation rather than a third thermal state. Added the approved Global Constraints note: prefer OpenHAB-backed persistence whenever it preserves required semantics; justify any local store. No storage implementation was changed.
+
+### Fix TDD RED
+
+Command: `pytest -q openhab/scripts/test_thermal_schema.py`
+
+Result: `1 failed, 2 passed`; the new test failed because the old field remained and `glazing_observation_coefficients` was absent.
+
+### Fix GREEN
+
+Commands: `pytest -q openhab/scripts/test_thermal_schema.py` -> `3 passed in 0.01s`; `pytest -q openhab/scripts` -> `38 passed in 0.06s`.
+
+Files changed: `openhab/scripts/test_thermal_schema.py`, `openhab/scripts/thermal_model/schema.py`, `docs/superpowers/plans/2026-08-13-rc-thermal-shadow-foundation.md`, and this report.
+
+Self-review: verified the old field is absent from the dataclass, the new name is present, the plan wording is limited to a persistence preference, no Task 2 storage work was introduced, and focused/baseline tests pass. No concerns.
