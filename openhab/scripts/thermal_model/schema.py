@@ -60,8 +60,11 @@ class ThermalSample:
     outdoor_f: float
     radiation_wm2: float
     vent_open: float | None
+    vent_confidence: float
     indoor_shade_closed: float | None
+    indoor_shade_confidence: float
     outdoor_shade_present: float | None
+    outdoor_shade_confidence: float
     action_confidence: float
     passive_fit_allowed: bool
 

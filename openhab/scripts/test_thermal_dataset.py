@@ -118,6 +118,48 @@ def test_bucket_uses_median_finite_value_and_glazing_is_optional():
     assert samples[0].glazing_f is None
 
 
+@pytest.mark.parametrize(
+    ("case", "target_step", "reason"),
+    [
+        ("missing", 2, "missing"),
+        ("non_finite", 3, "non_finite"),
+        ("range", 4, "range"),
+        ("jump", 5, "jump"),
+        ("source_gap", 7, "source_gap"),
+    ],
+)
+def test_glazing_quality_failure_retains_core_sample_and_reports_exclusion(
+    case, target_step, reason
+):
+    rows = fixture_series()
+    if case == "missing":
+        rows["glazing"].pop(target_step)
+    elif case == "non_finite":
+        at, _ = rows["glazing"][target_step]
+        rows["glazing"][target_step] = (at, math.nan)
+    elif case == "range":
+        at, _ = rows["glazing"][target_step]
+        rows["glazing"][target_step] = (at, 150.0)
+    elif case == "jump":
+        at, _ = rows["glazing"][target_step]
+        rows["glazing"][target_step] = (at, 100.0)
+    else:
+        rows["glazing"] = [
+            point
+            for step, point in enumerate(rows["glazing"])
+            if not 6 <= step <= 11
+        ]
+
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+    target_at = START + timedelta(minutes=5 * target_step)
+    target = next(sample for sample in samples if sample.at == target_at)
+    manifest = dataset_manifest(samples, fully_labeled_events(), [])
+
+    assert target.glazing_f is None
+    assert len(samples) == 24
+    assert manifest["auxiliary_exclusion_counts"][f"glazing_{reason}"] >= 1
+
+
 def test_range_jump_and_missing_required_inputs_are_rejected_and_counted():
     rows = fixture_series()
     rows["mass"] = [(at, value) for at, value in rows["mass"] if at >= START + timedelta(minutes=5)]
@@ -212,6 +254,21 @@ def test_confirmed_actions_override_same_time_reconstruction():
     assert samples[0].action_confidence == 1.0
 
 
+def test_confirmed_vent_keeps_own_confidence_beside_reconstructed_shade():
+    sample = build_samples(
+        fixture_series(),
+        [action("confirmed-vent", "vent", "closed", START)],
+        [mode_event("warm", START)],
+        START,
+        END,
+    )[0]
+    assert sample.vent_open == 0.0
+    assert sample.vent_confidence == 1.0
+    assert sample.indoor_shade_confidence == 0.35
+    assert sample.outdoor_shade_confidence == 0.0
+    assert sample.action_confidence == 0.35
+
+
 def test_action_confidence_is_minimum_of_joined_winning_states():
     events = [
         action("vent", "vent", "open", START, "manual_dm", 1.0),
@@ -247,7 +304,10 @@ def test_explicit_unknown_transition_does_not_fall_back_to_reconstruction():
     )
     unknown = next(sample for sample in samples if sample.at == START + timedelta(minutes=5))
     assert unknown.indoor_shade_closed is None
-    assert unknown.action_confidence == 0.0
+    assert unknown.indoor_shade_confidence == 0.0
+    assert unknown.vent_open is not None
+    assert unknown.vent_confidence == 0.35
+    assert unknown.action_confidence == 0.35
 
 
 def test_winter_samples_never_vent_and_follow_sunny_cold_cloudy_night_shades():
@@ -314,6 +374,27 @@ def test_unconfirmed_kiva_stop_does_not_create_cooldown():
         for sample in build_samples(fixture_series(), events, [], START, END)
     }
     assert by_at[START + timedelta(minutes=10)].passive_fit_allowed is True
+
+
+def test_lower_precedence_colliding_kiva_on_cannot_fabricate_cooldown():
+    collision = START + HOUR
+    events = fully_labeled_events() + [
+        action(
+            "inferred-kiva-on",
+            "kiva",
+            "on",
+            collision,
+            "model_inferred",
+            0.15,
+        ),
+        action("confirmed-kiva-off", "kiva", "off", collision),
+    ]
+    by_at = {
+        sample.at: sample
+        for sample in build_samples(fixture_series(), events, [], START, END)
+    }
+    assert by_at[collision].passive_fit_allowed is True
+    assert by_at[collision + timedelta(minutes=30)].passive_fit_allowed is True
 
 
 def test_timestamps_are_normalized_to_aware_utc_without_future_rows():

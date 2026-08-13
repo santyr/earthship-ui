@@ -100,6 +100,7 @@ OpenHAB command or actuator target.
 Create `openhab/scripts/test_thermal_schema.py`:
 
 ```python
+from dataclasses import fields
 from datetime import datetime, timezone
 
 import pytest
@@ -109,6 +110,7 @@ from thermal_model.schema import (
     SOURCE_WEIGHTS,
     THERMAL_ITEMS,
     ShadowOutput,
+    ThermalSample,
     validate_shadow_output,
 )
 
@@ -125,6 +127,15 @@ def test_exact_sensor_contract_and_source_precedence():
     assert SOURCE_WEIGHTS["nostr_confirmed"] > SOURCE_WEIGHTS["photosensor"]
     assert SOURCE_WEIGHTS["photosensor"] > SOURCE_WEIGHTS["historical_reconstruction"]
     assert SOURCE_WEIGHTS["historical_reconstruction"] > SOURCE_WEIGHTS["model_inferred"]
+
+
+def test_thermal_sample_preserves_each_action_confidence():
+    names = {item.name for item in fields(ThermalSample)}
+    assert {
+        "vent_confidence",
+        "indoor_shade_confidence",
+        "outdoor_shade_confidence",
+    } <= names
 
 
 def test_shadow_output_rejects_live_or_actuator_fields():
@@ -212,8 +223,11 @@ class ThermalSample:
     outdoor_f: float
     radiation_wm2: float
     vent_open: float | None
+    vent_confidence: float
     indoor_shade_closed: float | None
+    indoor_shade_confidence: float
     outdoor_shade_present: float | None
+    outdoor_shade_confidence: float
     action_confidence: float
     passive_fit_allowed: bool
 
@@ -434,7 +448,9 @@ def test_confirmed_actions_override_reconstruction_and_kiva_excludes_passive_fit
         fixture_series(), events, [mode_event("warm", START)], START, END
     )
     assert samples[0].vent_open == 0.0
-    assert samples[0].action_confidence == 1.0
+    assert samples[0].vent_confidence == 1.0
+    assert samples[0].indoor_shade_confidence == 0.35
+    assert samples[0].action_confidence == 0.35
     assert next(sample for sample in samples if sample.at == START + HOUR).passive_fit_allowed is False
 ```
 
@@ -487,19 +503,28 @@ below 40 F. These are reconstruction labels only, stored with source
 
 - Convert all timestamps to aware UTC.
 - Bucket by floor-to-five-minute timestamp and retain the median finite value.
-- Require air, mass, outdoor, and radiation within each bucket. Preserve
-  glazing as `None` when absent; only the auxiliary observation fit skips it.
-- Reject temperatures outside `[-40, 140] F`, radiation outside `[0, 1600] W/m2`, temperature jumps above `10 F` per five minutes, and source gaps above 20 minutes.
+- Require air, mass, outdoor, and radiation within each bucket. Glazing remains
+  optional: missing, non-finite, out-of-range, excessive-jump, and gap-invalid
+  glazing becomes `None` for that bucket and is counted by auxiliary exclusion
+  reason without rejecting an otherwise valid core sample.
+- Reject required temperatures outside `[-40, 140] F`, radiation outside
+  `[0, 1600] W/m2`, required-temperature jumps above `10 F` per five minutes,
+  and required-source gaps above 20 minutes.
 - Project action intervals using source precedence and use the minimum joined
-  action confidence as `action_confidence`. Keep missing vent/shade state as
-  `None` with zero confidence; do not manufacture a transition.
+  confidence among action states whose value is non-`None` as
+  `action_confidence`. Preserve `vent_confidence`, `indoor_shade_confidence`,
+  and `outdoor_shade_confidence` separately. An explicit unknown state remains
+  `None` with per-action confidence zero but does not reduce the aggregate for
+  other known states; when every action state is unknown, the aggregate is zero.
 - Set `passive_fit_allowed=False` while Kiva is on and for two hours after its
   confirmed stop; also exclude intervals tagged `exceptional_heat_unknown`.
+  Derive Kiva transitions and cooldowns from precedence-resolved effective
+  state so a losing same-time event cannot fabricate an interval.
 - Emit no interpolated sample across a rejected gap.
 
 The manifest includes UTC start/end, sample count, rejected counts by reason,
-event counts by source, exact item names, and a SHA-256 digest over canonical
-JSON rows.
+auxiliary exclusion counts by reason, event counts by source, exact item names,
+and a SHA-256 digest over canonical JSON rows.
 
 - [ ] **Step 5: Run dataset and existing timezone tests**
 

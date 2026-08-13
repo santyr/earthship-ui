@@ -9,6 +9,7 @@ from thermal_model.schema import (
     ShadowOutput,
     validate_shadow_output,
     DynamicsModel,
+    ThermalSample,
 )
 
 
@@ -16,6 +17,15 @@ def test_glazing_coefficients_are_observation_contract():
     names = {item.name for item in fields(DynamicsModel)}
     assert "glazing_observation_coefficients" in names
     assert "glazing_coefficients" not in names
+
+
+def test_thermal_sample_preserves_each_action_confidence():
+    names = {item.name for item in fields(ThermalSample)}
+    assert {
+        "vent_confidence",
+        "indoor_shade_confidence",
+        "outdoor_shade_confidence",
+    } <= names
 
 
 def test_exact_sensor_contract_and_source_precedence():

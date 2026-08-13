@@ -23,11 +23,14 @@ SITE_LONGITUDE = -105.7744609
 class ThermalDataset(list):
     """A list carrying the quality-gate evidence needed by its manifest."""
 
-    def __init__(self, values, *, start, end, rejected_counts):
+    def __init__(
+        self, values, *, start, end, rejected_counts, auxiliary_exclusion_counts
+    ):
         super().__init__(values)
         self.start = start
         self.end = end
         self.rejected_counts = dict(rejected_counts)
+        self.auxiliary_exclusion_counts = dict(auxiliary_exclusion_counts)
 
 
 def _utc(value, name):
@@ -47,8 +50,10 @@ def _iso_utc(value):
 
 def _bucket_series(series_by_role, start, end):
     buckets = {}
+    non_finite_only = {}
     for role in THERMAL_ITEMS:
         grouped = defaultdict(list)
+        non_finite = set()
         for point in series_by_role.get(role, ()):
             if not isinstance(point, (tuple, list)) or len(point) != 2:
                 raise TypeError(f"series {role} points must be (timestamp, value) pairs")
@@ -60,29 +65,36 @@ def _bucket_series(series_by_role, start, end):
                 value = float(raw_value)
             except (TypeError, ValueError):
                 continue
+            bucket = _floor_five(at)
             if math.isfinite(value):
-                grouped[_floor_five(at)].append(value)
+                grouped[bucket].append(value)
+            else:
+                non_finite.add(bucket)
         buckets[role] = {
             at: float(median(values)) for at, values in grouped.items() if values
         }
-    return buckets
+        non_finite_only[role] = non_finite - set(buckets[role])
+    return buckets, non_finite_only
 
 
-def _range_failures(buckets):
+def _range_failures(
+    buckets, temperature_roles=TEMPERATURE_ROLES, *, include_radiation=True
+):
     failed = set()
-    for role in TEMPERATURE_ROLES:
+    for role in temperature_roles:
         for at, value in buckets[role].items():
             if not -40.0 <= value <= 140.0:
                 failed.add(at)
-    for at, value in buckets["radiation"].items():
-        if not 0.0 <= value <= 1600.0:
-            failed.add(at)
+    if include_radiation:
+        for at, value in buckets["radiation"].items():
+            if not 0.0 <= value <= 1600.0:
+                failed.add(at)
     return failed
 
 
-def _jump_failures(buckets):
+def _jump_failures(buckets, roles=TEMPERATURE_ROLES):
     failed = set()
-    for role in TEMPERATURE_ROLES:
+    for role in roles:
         previous = None
         for at, value in sorted(buckets[role].items()):
             if previous is not None:
@@ -94,9 +106,9 @@ def _jump_failures(buckets):
     return failed
 
 
-def _large_gap_buckets(buckets, start, end):
+def _large_gap_buckets(buckets, start, end, roles=REQUIRED_ROLES):
     failed = set()
-    for role in REQUIRED_ROLES:
+    for role in roles:
         points = sorted(buckets[role])
         for left, right in zip(points, points[1:]):
             if right - left <= timedelta(minutes=20):
@@ -106,6 +118,32 @@ def _large_gap_buckets(buckets, start, end):
                 failed.add(cursor)
                 cursor += STEP
     return failed
+
+
+def _glazing_value(
+    at,
+    buckets,
+    non_finite,
+    range_failures,
+    jump_failures,
+    gap_failures,
+    exclusion_counts,
+):
+    reason = None
+    if at in range_failures:
+        reason = "range"
+    elif at in jump_failures:
+        reason = "jump"
+    elif at in gap_failures:
+        reason = "source_gap"
+    elif at in non_finite:
+        reason = "non_finite"
+    elif at not in buckets:
+        reason = "missing"
+    if reason is not None:
+        exclusion_counts[f"glazing_{reason}"] += 1
+        return None
+    return buckets[at]
 
 
 def _source_rank(source):
@@ -181,15 +219,21 @@ def _regime_at(intervals, at):
 
 
 def _confirmed_kiva_cooldowns(events):
-    kiva = sorted(
-        (event for event in events if event.action == "kiva"),
-        key=lambda event: (
-            event.effective_at.astimezone(timezone.utc),
-            _source_rank(event.source),
-            event.received_at.astimezone(timezone.utc),
-            event.event_id,
-        ),
-    )
+    by_effective_at = defaultdict(list)
+    for event in events:
+        if event.action == "kiva":
+            by_effective_at[event.effective_at.astimezone(timezone.utc)].append(event)
+    kiva = [
+        max(
+            colliding,
+            key=lambda event: (
+                _source_rank(event.source),
+                event.received_at.astimezone(timezone.utc),
+                event.event_id,
+            ),
+        )
+        for _, colliding in sorted(by_effective_at.items())
+    ]
     cooldowns = []
     last_state = None
     for event in kiva:
@@ -246,7 +290,11 @@ def _project_actions(at, radiation, outdoor, events, regimes, cooldowns):
             values[field] = None
             confidences[field] = 0.0
 
-    joined = list(confidences.values())
+    joined = [
+        confidences[field]
+        for field, value in values.items()
+        if value is not None
+    ]
     action_confidence = min(joined) if joined else 0.0
 
     kiva = _effective_action(events, "kiva", at)
@@ -255,7 +303,7 @@ def _project_actions(at, radiation, outdoor, events, regimes, cooldowns):
         or "exceptional_heat_unknown" in kiva.note
     )
     in_cooldown = any(cooldown_start <= at < cooldown_end for cooldown_start, cooldown_end in cooldowns)
-    return values, action_confidence, not (exceptional or in_cooldown)
+    return values, confidences, action_confidence, not (exceptional or in_cooldown)
 
 
 def build_samples(series_by_role, events, modes, start, end):
@@ -274,13 +322,23 @@ def build_samples(series_by_role, events, modes, start, end):
         _utc(event.received_at, "event received_at")
         _utc(event.effective_at, "event effective_at")
 
-    buckets = _bucket_series(series_by_role, start_utc, end_utc)
-    range_failures = _range_failures(buckets)
-    jump_failures = _jump_failures(buckets)
+    buckets, non_finite = _bucket_series(series_by_role, start_utc, end_utc)
+    range_failures = _range_failures(
+        buckets, ("air", "mass", "outdoor"), include_radiation=True
+    )
+    jump_failures = _jump_failures(buckets, ("air", "mass", "outdoor"))
     gap_failures = _large_gap_buckets(buckets, start_utc, end_utc)
+    glazing_range_failures = _range_failures(
+        buckets, ("glazing",), include_radiation=False
+    )
+    glazing_jump_failures = _jump_failures(buckets, ("glazing",))
+    glazing_gap_failures = _large_gap_buckets(
+        buckets, start_utc, end_utc, ("glazing",)
+    )
     regimes = reconstruct_events(start_utc, end_utc, modes)
     cooldowns = _confirmed_kiva_cooldowns(events)
     rejected = Counter()
+    auxiliary_exclusions = Counter()
     samples = []
 
     cursor = _floor_five(start_utc)
@@ -303,7 +361,7 @@ def build_samples(series_by_role, events, modes, start, end):
             cursor += STEP
             continue
 
-        values, confidence, passive = _project_actions(
+        values, confidences, confidence, passive = _project_actions(
             cursor,
             buckets["radiation"][cursor],
             buckets["outdoor"][cursor],
@@ -316,19 +374,38 @@ def build_samples(series_by_role, events, modes, start, end):
                 at=cursor,
                 air_f=buckets["air"][cursor],
                 mass_f=buckets["mass"][cursor],
-                glazing_f=buckets["glazing"].get(cursor),
+                glazing_f=_glazing_value(
+                    cursor,
+                    buckets["glazing"],
+                    non_finite["glazing"],
+                    glazing_range_failures,
+                    glazing_jump_failures,
+                    glazing_gap_failures,
+                    auxiliary_exclusions,
+                ),
                 outdoor_f=buckets["outdoor"][cursor],
                 radiation_wm2=buckets["radiation"][cursor],
                 vent_open=values["vent_open"],
+                vent_confidence=confidences.get("vent_open", 0.0),
                 indoor_shade_closed=values["indoor_shade_closed"],
+                indoor_shade_confidence=confidences.get(
+                    "indoor_shade_closed", 0.0
+                ),
                 outdoor_shade_present=values["outdoor_shade_present"],
+                outdoor_shade_confidence=confidences.get(
+                    "outdoor_shade_present", 0.0
+                ),
                 action_confidence=confidence,
                 passive_fit_allowed=passive,
             )
         )
         cursor += STEP
     return ThermalDataset(
-        samples, start=start_utc, end=end_utc, rejected_counts=rejected
+        samples,
+        start=start_utc,
+        end=end_utc,
+        rejected_counts=rejected,
+        auxiliary_exclusion_counts=auxiliary_exclusions,
     )
 
 
@@ -350,13 +427,16 @@ def dataset_manifest(samples, events, modes):
         start = samples.start
         end = samples.end
         rejected_counts = samples.rejected_counts
+        auxiliary_exclusion_counts = samples.auxiliary_exclusion_counts
     elif ordered:
         start = ordered[0].at.astimezone(timezone.utc)
         end = ordered[-1].at.astimezone(timezone.utc) + STEP
         rejected_counts = {}
+        auxiliary_exclusion_counts = {}
     else:
         start = end = None
         rejected_counts = {}
+        auxiliary_exclusion_counts = {}
 
     counts = Counter(record.source for record in tuple(events) + tuple(modes))
     return {
@@ -364,6 +444,9 @@ def dataset_manifest(samples, events, modes):
         "end": _iso_utc(end) if end is not None else None,
         "sample_count": len(ordered),
         "rejected_counts": dict(sorted(rejected_counts.items())),
+        "auxiliary_exclusion_counts": dict(
+            sorted(auxiliary_exclusion_counts.items())
+        ),
         "event_counts_by_source": dict(sorted(counts.items())),
         "items": dict(THERMAL_ITEMS),
         "canonical_rows_sha256": sha256(canonical_json).hexdigest(),
