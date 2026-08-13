@@ -4,9 +4,9 @@
 
 **Goal:** Build the first reproducible, journal-backed Earthship thermal intelligence system: constrained 2R2C dynamics, a learned human-behavior baseline, 48–72 hour shadow forecasts, and an honest Earthship UI card.
 
-**Architecture:** A focused Python package reads OpenHAB JDBC history plus an append-only SQLite action journal, constructs confidence-weighted five-minute samples, fits constrained dynamics and behavior models, and atomically publishes versioned artifacts. A separate shadow runner consumes the accepted artifact and current weather, publishes one bounded observational JSON item, and never changes `Thermal_Advisory` or commands an actuator. Svelte parses and renders that JSON as a shadow-only card.
+**Architecture:** A focused Python package reads OpenHAB JDBC history plus an append-only PostgreSQL action journal in the `thermal_intel` schema of the existing OpenHAB `openhab` database, constructs confidence-weighted five-minute samples, fits constrained dynamics and behavior models, and atomically publishes versioned artifacts. A separate shadow runner consumes the accepted artifact and current weather, publishes one bounded observational JSON item, and never changes `Thermal_Advisory` or commands an actuator. Svelte parses and renders that JSON as a shadow-only card.
 
-**Tech Stack:** Python 3.12 standard library, NumPy 1.26, SciPy 1.11, pytest, SQLite, OpenHAB 5.2 REST/JDBC persistence, user-level systemd, Svelte 5, Vitest/jsdom, Playwright.
+**Tech Stack:** Python 3.12 standard library, NumPy 1.26, SciPy 1.11, pytest, psycopg2, PostgreSQL 16, OpenHAB 5.2 REST/JDBC persistence, user-level systemd, Svelte 5, Vitest/jsdom, Playwright.
 
 ## Global Constraints
 
@@ -69,7 +69,7 @@ test file; none is a hidden production dependency:
 Create one importable package under `openhab/scripts/thermal_model/`:
 
 - `schema.py`: immutable records, item names, artifact/output schemas, and validation.
-- `journal.py`: append-only SQLite schema and correction-aware reads.
+- `journal.py`: append-only PostgreSQL schema and correction-aware reads.
 - `actions.py`: `THERMAL` grammar, seasonal reconstruction, and interval projection.
 - `dataset.py`: JDBC history alignment, quality gates, and five-minute samples.
 - `dynamics.py`: constrained 2R2C fitting and simulation.
@@ -294,7 +294,7 @@ git commit -m "feat: define thermal model data contracts"
 
 ---
 
-### Task 2: Add the append-only action journal and local `THERMAL` ingestion
+### Task 2: Add the append-only PostgreSQL action journal and local `THERMAL` ingestion
 
 **Files:**
 - Create: `openhab/scripts/thermal_model/journal.py`
@@ -307,208 +307,84 @@ git commit -m "feat: define thermal model data contracts"
 - Consumes: `ActionEvent`, `ModeEvent`, `ACTION_KINDS`, and `SOURCE_WEIGHTS` from Task 1.
 - Produces: `ActionJournal.append(event)`, `ActionJournal.append_batch(actions, modes)`, `ActionJournal.effective_events(start, end)`, `ActionJournal.effective_modes(start, end)`, `parse_thermal_message(text, received_at, idempotency_key)`, and CLI `thermal_intel.py journal --message-file PATH --idempotency-key KEY`.
 
+Storage contract: use Python `psycopg2` against PostgreSQL 16, with DSN from
+`THERMAL_DATABASE_URL`; never hardcode or print credentials. The application
+owns only a dedicated `thermal_intel` schema in the existing OpenHAB `openhab`
+database and must not modify OpenHAB-generated persistence tables. Use a
+least-privilege runtime role. Deployment-time schema/role setup is deferred to the later explicit live-approval gate. Development and CI tests use an
+ephemeral PostgreSQL instance/schema and never write production.
+
+OpenHAB Item time-series persistence cannot provide atomic multi-event batches,
+receipt-key idempotency, or foreign-key correction/supersession links. That is
+why the journal is application-owned PostgreSQL while OpenHAB remains the
+authority for sensor history; this keeps the journal inside the existing
+storage and backup ecosystem without coupling its schema to generated tables.
+
 - [ ] **Step 1: Write failing journal and parser tests**
 
-Create tests that exercise the real SQLite and parser boundaries:
+Create tests against an ephemeral PostgreSQL 16 schema and never the production database. The tests must verify transactional batch insertion,
+unique receipt keys, correction foreign keys, `TIMESTAMPTZ` round trips,
+append-only guards, and correction-aware reads. A representative event uses
+`event_id`, `idempotency_key`, timezone-aware received/effective timestamps,
+`action="vent"`, `source="manual_dm"`, and confidence `1.0`; appending it twice
+must return true then false, while a superseding correction preserves both rows
+and only the correction appears in effective reads. Parser tests retain the
+exact `THERMAL` grammar and receipt behavior below.
 
-```python
-# openhab/scripts/test_thermal_journal.py
-from datetime import datetime, timezone
-
-from thermal_model.journal import ActionJournal
-from thermal_model.schema import ActionEvent
-
-UTC = timezone.utc
-
-
-def event(event_id, state, *, supersedes=None):
-    return ActionEvent(
-        event_id=event_id,
-        idempotency_key=event_id,
-        received_at=datetime(2026, 8, 13, 3, tzinfo=UTC),
-        effective_at=datetime(2026, 8, 13, 2, tzinfo=UTC),
-        action="vent",
-        state=state,
-        source="manual_dm",
-        confidence=1.0,
-        supersedes=supersedes,
-    )
-
-
-def test_append_is_idempotent_and_corrections_preserve_history(tmp_path):
-    journal = ActionJournal(tmp_path / "thermal-actions.sqlite3")
-    assert journal.append(event("a", "open")) is True
-    assert journal.append(event("a", "open")) is False
-    assert journal.append(event("b", "closed", supersedes="a")) is True
-    assert [row.event_id for row in journal.all_events()] == ["a", "b"]
-    assert [row.event_id for row in journal.effective_events()] == ["b"]
-```
-
-```python
-# openhab/scripts/test_thermal_actions.py
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-import pytest
-
-from thermal_model.actions import parse_thermal_message
-
-MOUNTAIN = ZoneInfo("America/Denver")
-
-
-def test_parse_thermal_template_with_overnight_interval():
-    received = datetime(2026, 8, 13, 20, 45, tzinfo=MOUNTAIN)
-    parsed = parse_thermal_message(
-        "THERMAL\neffective: now\nmode: warm\nvent: 20:30-07:00\n"
-        "indoor_shades: open-night\nkiva: off",
-        received,
-        "nostr-event-1",
-    )
-    vent = [event for event in parsed.actions if event.action == "vent"]
-    assert [(event.state, event.effective_at.isoformat()) for event in vent] == [
-        ("open", "2026-08-13T20:30:00-06:00"),
-        ("closed", "2026-08-14T07:00:00-06:00"),
-    ]
-    assert [(event.mode, event.effective_at.isoformat()) for event in parsed.modes] == [
-        ("warm", "2026-08-13T20:45:00-06:00"),
-    ]
-
-
-def test_parser_rejects_unknown_fields_and_ambiguous_times():
-    received = datetime(2026, 8, 13, 20, 45, tzinfo=MOUNTAIN)
-    with pytest.raises(ValueError, match="unknown field"):
-        parse_thermal_message("THERMAL\ncommand: turn_it_on", received, "x")
-    with pytest.raises(ValueError, match="HH:MM-HH:MM"):
-        parse_thermal_message("THERMAL\nvent: tonight", received, "y")
-```
-
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [ ] **Step 2: Run focused tests and verify RED**
 
 Run: `pytest -q openhab/scripts/test_thermal_journal.py openhab/scripts/test_thermal_actions.py`
 
 Expected: import failures for `journal` and `actions`.
 
-- [ ] **Step 3: Implement the journal schema and correction-aware reads**
+- [ ] **Step 3: Implement the PostgreSQL journal schema and correction-aware reads**
 
-In `journal.py`, use one transaction for schema creation and one for each
-append. Store timestamps as ISO-8601 strings with offsets. Enforce
-`UNIQUE(idempotency_key)` and validate that `supersedes`, when present, names an
-existing row in the same stream. `append_batch()` first inserts one
-`message_receipts` row, then all action/mode rows in the same transaction. A
-replay with the same key and payload digest is an idempotent no-op; reuse of the
-key for different bytes is rejected. `effective_events()` and
-`effective_modes()` exclude superseded IDs, never delete originals, and return
-records ordered by `(effective_at, received_at, event_id)`. A bounded mode query
-also returns the last effective mode before `start` so the first sample has
-explicit seasonal context.
+`journal.py` must create the dedicated `thermal_intel` schema and application
+ tables through an explicit migration/setup path, then use one PostgreSQL
+ transaction for schema creation and one for each append. `append_batch()`
+ inserts one `message_receipts` row and all action/mode rows in one transaction;
+ a replay with the same key and payload digest is an idempotent no-op, while
+ reuse with different bytes is rejected. `effective_events()` and
+ `effective_modes()` exclude superseded IDs, never delete originals, and order
+ by `(effective_at, received_at, event_id)`. A bounded mode query also returns
+ the last effective mode before `start`.
 
-Use these exact tables. A separate mode stream keeps seasonal context durable
-without pretending it is one of the four physical action types:
-
-```sql
-CREATE TABLE IF NOT EXISTS action_events (
-  event_id TEXT PRIMARY KEY,
-  idempotency_key TEXT NOT NULL,
-  received_at TEXT NOT NULL,
-  effective_at TEXT NOT NULL,
-  action TEXT NOT NULL CHECK(action IN ('vent','indoor_shade','outdoor_shade','kiva')),
-  state TEXT NOT NULL,
-  interval_id TEXT,
-  source TEXT NOT NULL,
-  confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
-  note TEXT NOT NULL DEFAULT '',
-  supersedes TEXT REFERENCES action_events(event_id),
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS action_events_effective_at
-ON action_events(effective_at);
-
-CREATE TABLE IF NOT EXISTS mode_events (
-  event_id TEXT PRIMARY KEY,
-  idempotency_key TEXT NOT NULL,
-  received_at TEXT NOT NULL,
-  effective_at TEXT NOT NULL,
-  mode TEXT NOT NULL CHECK(mode IN ('spring','warm','fall_charge','winter')),
-  source TEXT NOT NULL,
-  confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
-  note TEXT NOT NULL DEFAULT '',
-  supersedes TEXT REFERENCES mode_events(event_id),
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS mode_events_effective_at
-ON mode_events(effective_at);
-
-CREATE TABLE IF NOT EXISTS message_receipts (
-  idempotency_key TEXT PRIMARY KEY,
-  payload_sha256 TEXT NOT NULL,
-  received_at TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-```
+Use `TIMESTAMPTZ` columns, unique receipt constraints, stream-specific
+supersession foreign keys, and database privileges/triggers that reject UPDATE
+and DELETE on journal rows. Keep message batches transactional and preserve
+correction links as relational foreign keys.
 
 - [ ] **Step 4: Implement the closed `THERMAL` grammar**
 
 In `actions.py`, accept only the header `THERMAL` and fields `effective`,
-`mode`, `vent`, `indoor_shades`, `outdoor_shades`, `kiva`, and `note`.
-Normalize these states:
-
-```python
-ALLOWED_FIELDS = {
-    "effective", "mode", "vent", "indoor_shades", "outdoor_shades", "kiva", "note",
-}
-STATE_MAP = {
-    "indoor_shades": {"open": "open", "open-day": "open", "open-night": "open", "closed": "closed"},
-    "outdoor_shades": {"installed": "installed", "removed": "removed"},
-    "kiva": {"on": "on", "off": "off"},
-}
-```
-
-`vent` accepts only `open`, `closed`, or `HH:MM-HH:MM`. Resolve local times
-against the received date in `America/Denver`; if the stop is not later than
-the start, move it to the next local day. Create deterministic event IDs as
+`mode`, `vent`, `indoor_shades`, `outdoor_shades`, `kiva`, and `note`. Normalize
+`fall-charge` to `fall_charge`; accept `spring`, `warm`, and `winter`. `vent`
+accepts only `open`, `closed`, or `HH:MM-HH:MM`; resolve local times against the
+received date in `America/Denver`, moving a non-later stop to the next local
+day. Create deterministic event IDs as
 `sha256(f"{idempotency_key}:{action}:{state}:{effective_at.isoformat()}")[:24]`.
 Reject duplicate fields, unknown fields/states, missing timezone information,
-and messages larger than 4096 UTF-8 bytes.
+and messages larger than 4096 UTF-8 bytes. Return a frozen
+`ParsedThermalMessage` with action/mode tuples. A mode-only message is valid.
+Both events from an overnight interval share a deterministic `interval_id`;
+standalone transitions leave it `None`. `ActionJournal.append_batch()` stores
+both tuples atomically.
 
-Normalize `mode: fall-charge` to `fall_charge`; the other accepted mode values
-are `spring`, `warm`, and `winter`. Return a frozen `ParsedThermalMessage` with
-`actions: tuple[ActionEvent, ...]` and `modes: tuple[ModeEvent, ...]`. A mode-only
-message is valid and must create one durable `ModeEvent`. `ActionJournal.append_batch()`
-stores both tuples in one transaction so a partially written DM is impossible.
-Both events created from an overnight vent interval share one deterministic
-`interval_id`; standalone transitions leave it `None`. `append(event)` is a
-single-event convenience wrapper used by tests and manual imports.
+- [ ] **Step 5: Add the journal CLI without transport logic**
 
-- [ ] **Step 5: Add the local journal CLI without transport logic**
+`thermal_intel.py journal` reads the entire `--message-file`, parses it, appends
+all events in one PostgreSQL transaction, reads them back, and prints a compact
+JSON receipt. The default DSN comes only from `THERMAL_DATABASE_URL`; tests may
+use a separate ephemeral test-only DSN/environment override. Required arguments
+are `--message-file` and `--idempotency-key`; optional `--received-at` is an ISO
+timestamp for deterministic tests. Do not add relay, Nostr-key, shell-command,
+or OpenHAB-command arguments.
 
-`thermal_intel.py journal` reads the entire `--message-file`, calls
-`parse_thermal_message`, appends all events in one SQLite transaction, reads
-them back, and prints a compact JSON receipt. Defaults:
+- [ ] **Step 6: Run tests and a receipt smoke test**
 
-```python
-STATE_DIR = os.path.expanduser("~/.local/state/thermal-intel")
-JOURNAL_FILE = os.path.join(STATE_DIR, "thermal-actions.sqlite3")
-```
-
-Required arguments are `--message-file` and `--idempotency-key`; optional
-`--received-at` is an ISO timestamp for deterministic tests. Do not add relay,
-Nostr-key, shell-command, or OpenHAB-command arguments.
-
-- [ ] **Step 6: Run tests and a local receipt smoke test**
-
-Run:
-
-```bash
-pytest -q openhab/scripts/test_thermal_schema.py \
-  openhab/scripts/test_thermal_journal.py openhab/scripts/test_thermal_actions.py
-```
-
-Expected: all focused tests pass.
-
-Run the CLI against a temporary database using its test-only
-`THERMAL_JOURNAL_FILE` environment override and a temporary message file.
-Expected receipt fields: `version`, `idempotencyKey`, `inserted`, and exact
-stored `events`; a repeated command reports `inserted: 0`.
+Run the focused schema/journal/actions tests against an ephemeral PostgreSQL
+instance and a CLI smoke test with a temporary schema. A repeated command must
+report `inserted: 0`; no test may connect to the production DSN.
 
 - [ ] **Step 7: Commit the journal slice**
 
@@ -520,8 +396,6 @@ git add openhab/scripts/thermal_model/journal.py \
   openhab/scripts/test_thermal_actions.py
 git commit -m "feat: add append-only thermal action journal"
 ```
-
----
 
 ### Task 3: Build quality-gated five-minute training samples
 
@@ -1437,7 +1311,7 @@ git add deploy/thermal-model-train.service deploy/thermal-model-train.timer \
 git commit -m "chore: stage thermal shadow services and runbook"
 ```
 
-Do not commit private receipts, tokens, raw household histories, SQLite state,
+Do not commit private receipts, tokens, raw household histories, journal state,
 or learned artifacts.
 
 ---

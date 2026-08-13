@@ -46,3 +46,19 @@ Commands: `pytest -q openhab/scripts/test_thermal_schema.py` -> `3 passed in 0.0
 Files changed: `openhab/scripts/test_thermal_schema.py`, `openhab/scripts/thermal_model/schema.py`, `docs/superpowers/plans/2026-08-13-rc-thermal-shadow-foundation.md`, and this report.
 
 Self-review: verified the old field is absent from the dataclass, the new name is present, the plan wording is limited to a persistence preference, no Task 2 storage work was introduced, and focused/baseline tests pass. No concerns.
+
+
+## Review fix: PostgreSQL thermal-action journal decision
+
+Updated the authoritative thermal-model spec and implementation plan to replace the planned SQLite action journal with append-only PostgreSQL tables in a dedicated `thermal_intel` schema inside the existing local OpenHAB `openhab` database. The documentation now binds Python `psycopg2`, PostgreSQL 16, `THERMAL_DATABASE_URL`, a least-privilege runtime role, `TIMESTAMPTZ`, transactional batches, unique receipt keys, correction/supersession foreign keys, append-only privileges/guards, ephemeral PostgreSQL integration tests, and deployment-time schema/role setup only at the later explicit live-approval gate. OpenHAB-generated persistence tables remain untouched; local model artifacts/backtest reports remain reproducible service artifacts. The rationale records why OpenHAB Item time-series persistence alone cannot enforce atomic batches, idempotency, or correction links.
+
+Files changed: `docs/superpowers/specs/2026-08-13-rc-thermal-model-design.md`, `docs/superpowers/plans/2026-08-13-rc-thermal-shadow-foundation.md`, and this report. No production code changed.
+
+Checks:
+
+- `pytest -q openhab/scripts/test_thermal_schema.py` -> `3 passed in 0.01s`.
+- `rg -n -i 'sqlite|thermal-actions\.sqlite' docs/superpowers/specs/2026-08-13-rc-thermal-model-design.md docs/superpowers/plans/2026-08-13-rc-thermal-shadow-foundation.md` -> no matches.
+- `rg -n 'PostgreSQL 16|psycopg2|THERMAL_DATABASE_URL|thermal_intel|TIMESTAMPTZ|ephemeral PostgreSQL|atomic multi-event' ...` confirmed all required bindings in spec/plan.
+- `git diff --check` -> clean.
+
+Self-review: all affected Task 2 SQL/CLI/default-storage references were replaced, no SQLite action-journal contract remains, no storage implementation was introduced, and the OpenHAB authority/safety boundaries remain intact. No concerns.

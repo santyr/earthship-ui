@@ -155,21 +155,36 @@ support it.
 
 ## Thermal-action journal
 
-Routine action data must not be stored as raw Hexmem memories. Create a narrow,
-append-only SQLite thermal-action journal under the forecast system's state
-directory. OpenHAB JDBC remains authoritative for sensor measurements.
+Routine action data must not be stored as raw Hexmem memories. Store it in
+append-only PostgreSQL tables in a dedicated `thermal_intel` schema in the
+existing local OpenHAB `openhab` database. OpenHAB JDBC remains authoritative
+for sensor measurements; the journal is application-owned and must not modify
+or couple to OpenHAB-generated persistence tables.
+
+The runtime uses a dedicated least-privilege role and an environment-supplied
+`THERMAL_DATABASE_URL` DSN. Credentials are never hardcoded or printed. The
+journal schema provides transactional message batches, unique receipt keys,
+correction/supersession foreign keys, `TIMESTAMPTZ` timestamps, and
+append-only privileges and guards. Development tests use an ephemeral
+PostgreSQL 16 instance/schema and never write the production database.
+
+OpenHAB Item time-series persistence alone cannot enforce atomic multi-event
+message batches, idempotency keyed by receipt/payload, or relational
+correction/supersession links, so it remains the sensor-history authority while
+this application-owned journal supplies those semantics within the same
+PostgreSQL storage and backup ecosystem.
 
 Each journal record contains:
 
 - Event ID and idempotency key.
-- Received timestamp and effective timestamp in the site timezone.
+- Received timestamp and effective timestamp as `TIMESTAMPTZ`.
 - Action type: `vent`, `indoor_shade`, `outdoor_shade`, or `kiva`.
 - State or transition.
 - Optional interval linkage between start and stop records.
 - Source: `nostr_confirmed`, `manual_dm`, `photosensor`,
   `historical_reconstruction`, or `model_inferred`.
 - Confidence and optional operator note.
-- Supersession/correction link; original records are never destroyed.
+- Supersession/correction foreign key; original records are never destroyed.
 
 Confirmed operator records outrank photosensor observations, which outrank
 historical reconstruction and model inference. Missing confirmation produces
