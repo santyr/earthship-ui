@@ -700,3 +700,182 @@ def test_behavior_seasonal_modes_use_canonical_order(tmp_path):
         ArtifactRegistry(tmp_path).save_candidate(
             valid_artifact(behavior=malformed)
         )
+
+
+
+def test_promotion_requires_positive_model_and_persistence_24h_counts(tmp_path):
+    for method in ("model", "persistence"):
+        metrics = deepcopy(valid_artifact().metrics)
+        metrics["overall"][method]["air"]["24"]["count"] = 0
+        registry = ArtifactRegistry(tmp_path / method)
+
+        with pytest.raises(ArtifactPromotionRefused, match="evidence|gate"):
+            registry.save_candidate(valid_artifact(metrics=metrics))
+        assert not registry.candidate_path.exists()
+
+
+def test_bool_24h_evidence_count_is_rejected_without_coercion(tmp_path):
+    metrics = deepcopy(valid_artifact().metrics)
+    metrics["overall"]["persistence"]["air"]["24"]["count"] = True
+
+    with pytest.raises(ArtifactPromotionRefused, match="numeric types"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(metrics=metrics)
+        )
+
+
+def test_positive_24h_evidence_still_promotes(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact())
+
+    promoted = registry.promote_candidate()
+
+    assert promoted.metrics["overall"]["model"]["air"]["24"]["count"] == 2
+    assert registry.load_accepted() == promoted
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("code_revision", 1234567),
+        ("canonical_rows_sha256", int("1" * 64)),
+    ],
+)
+def test_revision_and_digest_require_exact_string_types(tmp_path, field, value):
+    changes = {}
+    if field == "code_revision":
+        changes[field] = value
+    else:
+        manifest = deepcopy(valid_artifact().data_manifest)
+        manifest[field] = value
+        changes["data_manifest"] = manifest
+
+    with pytest.raises(ArtifactValidationError, match="string"):
+        ArtifactRegistry(tmp_path).save_candidate(valid_artifact(**changes))
+
+
+def test_valid_revision_and_digest_strings_round_trip(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    artifact = valid_artifact()
+    registry.save_candidate(artifact)
+    registry.promote_candidate()
+
+    loaded = registry.load_accepted()
+    assert loaded.code_revision == artifact.code_revision
+    assert loaded.data_manifest["canonical_rows_sha256"] == "a" * 64
+
+
+def _add_unknown_payload_key(payload, probe):
+    if probe == "dynamics_container":
+        payload["dynamics"]["invented"] = 1
+    elif probe == "air_coefficient":
+        payload["dynamics"]["air_coefficients"]["invented"] = 0.01
+    elif probe == "behavior_container":
+        payload["behavior"]["invented"] = 1
+    elif probe == "behavior_transition":
+        payload["behavior"]["transitions"]["invented"] = []
+    elif probe == "seasonal_vocabulary":
+        payload["behavior"]["seasonal_vocabulary"][0]["invented"] = 1
+    elif probe == "metrics":
+        payload["metrics"]["invented"] = 1
+    else:
+        raise AssertionError(probe)
+
+
+@pytest.mark.parametrize(
+    "probe",
+    [
+        "dynamics_container",
+        "air_coefficient",
+        "behavior_container",
+        "behavior_transition",
+        "seasonal_vocabulary",
+        "metrics",
+    ],
+)
+def test_unknown_nested_accepted_payload_keys_are_quarantined(tmp_path, probe):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact())
+    registry.promote_candidate()
+    payload = json.loads(registry.accepted_path.read_text(encoding="utf-8"))
+    _add_unknown_payload_key(payload, probe)
+    registry.accepted_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ArtifactUnavailable, match="quarantined"):
+        registry.load_accepted()
+    assert len(list(tmp_path.glob("accepted.json.corrupt-*"))) == 1
+
+
+@pytest.mark.parametrize("probe", ["air_coefficient", "behavior_transition"])
+def test_unknown_candidate_model_keys_are_rejected(tmp_path, probe):
+    artifact = valid_artifact()
+    if probe == "air_coefficient":
+        coefficients = dict(artifact.dynamics.air_coefficients)
+        coefficients["invented"] = 0.01
+        artifact = replace(
+            artifact,
+            dynamics=replace(
+                artifact.dynamics, air_coefficients=coefficients
+            ),
+        )
+    else:
+        transitions = dict(artifact.behavior.transitions)
+        transitions["invented"] = ()
+        artifact = replace(
+            artifact,
+            behavior=replace(artifact.behavior, transitions=transitions),
+        )
+
+    with pytest.raises(ArtifactValidationError):
+        ArtifactRegistry(tmp_path).save_candidate(artifact)
+
+
+
+def test_unknown_nested_metric_split_is_rejected_for_candidate(tmp_path):
+    metrics = deepcopy(valid_artifact().metrics)
+    metrics["by_regime"]["warm"]["invented"] = 1.0
+
+    with pytest.raises(ArtifactValidationError, match="metric"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(metrics=metrics)
+        )
+
+
+def test_unknown_nested_metric_split_is_quarantined_before_load(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact())
+    registry.promote_candidate()
+    payload = json.loads(registry.accepted_path.read_text(encoding="utf-8"))
+    payload["metrics"]["by_regime"]["warm"]["invented"] = 1.0
+    registry.accepted_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ArtifactUnavailable, match="quarantined"):
+        registry.load_accepted()
+
+
+
+def test_unknown_threshold_baseline_leaf_is_rejected(tmp_path):
+    metrics = deepcopy(valid_artifact().metrics)
+    metrics["threshold_baseline"] = {
+        "definition": {
+            "close_up_tomorrow": "close",
+            "vent_tonight": "vent",
+            "none": "none",
+        },
+        "input": "held_out_outdoor_high_proxy",
+        "class_counts": {
+            "none": 1,
+            "vent_tonight": 0,
+            "close_up_tomorrow": 0,
+            "invented": 0,
+        },
+        "comparison_target": "held_out_hallway_high_f >= 82",
+        "precision": None,
+        "recall": None,
+        "count": 1,
+    }
+
+    with pytest.raises(ArtifactValidationError, match="threshold"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(metrics=metrics)
+        )

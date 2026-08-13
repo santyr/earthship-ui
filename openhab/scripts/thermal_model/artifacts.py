@@ -78,6 +78,49 @@ _ACTION_STATES = {
     "outdoor_shade": ("absent", "present"),
 }
 _SEASONAL_MODES = {"spring", "warm", "fall_charge", "winter"}
+_DYNAMICS_PAYLOAD_KEYS = {
+    "version",
+    "step_minutes",
+    "air_coefficients",
+    "mass_coefficients",
+    "glazing_observation_coefficients",
+}
+_BEHAVIOR_PAYLOAD_KEYS = {
+    "version",
+    "feature_names",
+    "transitions",
+    "seasonal_vocabulary",
+}
+_VOCABULARY_PAYLOAD_KEYS = {
+    "mode",
+    "action_states",
+    "transitions",
+    "airflow_levels",
+    "boosted_windows",
+}
+_METRIC_PAYLOAD_KEYS = {
+    "fold_count",
+    "scored_fold_count",
+    "overall",
+    "by_regime",
+    "by_horizon",
+    "by_provenance",
+    "daily",
+    "prediction_interval_coverage",
+    "behavior",
+    "threshold_baseline",
+    "recent_cycle_definition",
+    "promotion",
+}
+_REQUIRED_METRIC_PAYLOAD_KEYS = {
+    "fold_count",
+    "scored_fold_count",
+    "overall",
+    "by_regime",
+    "by_horizon",
+    "by_provenance",
+    "promotion",
+}
 
 
 class ArtifactUnavailable(RuntimeError):
@@ -383,7 +426,10 @@ def _validate_manifest(artifact):
         raise ArtifactValidationError(
             "artifact sensor units do not match the contract"
         )
-    if not _DIGEST_RE.fullmatch(str(manifest["canonical_rows_sha256"])):
+    digest = manifest["canonical_rows_sha256"]
+    if not isinstance(digest, str):
+        raise ArtifactValidationError("dataset digest must be an exact string")
+    if not _DIGEST_RE.fullmatch(digest):
         raise ArtifactValidationError("dataset digest must be lowercase SHA-256")
     start = _iso_utc(manifest["start"], "data manifest start")
     end = _iso_utc(manifest["end"], "data manifest end")
@@ -427,6 +473,143 @@ def _validate_manifest(artifact):
         raise ArtifactValidationError(
             "constraints glazing coefficient ordering differs from artifact"
         )
+
+
+def _metric_summary_shape(value, path):
+    if not isinstance(value, dict) or set(value) != {"count", "mae", "rmse", "bias"}:
+        raise ArtifactValidationError(f"{path} metric fields are unknown or incomplete")
+
+
+def _method_summary_shape(value, path):
+    if not isinstance(value, dict) or not set(value) <= {"air", "mass"}:
+        raise ArtifactValidationError(f"{path} state metric fields are unknown")
+    for state, horizons in value.items():
+        if not isinstance(horizons, dict) or not set(horizons) <= {
+            "1", "6", "12", "24", "48", "72"
+        }:
+            raise ArtifactValidationError(f"{path}.{state} horizon fields are unknown")
+        for horizon, summary in horizons.items():
+            _metric_summary_shape(summary, f"{path}.{state}.{horizon}")
+
+
+def _split_summary_shape(value, path, shorthand_pattern):
+    if not isinstance(value, dict):
+        raise ArtifactValidationError(f"{path} metric split must be an object")
+    if not value:
+        return
+    if set(value) <= {"air", "mass"}:
+        _method_summary_shape(value, path)
+        return
+    if any(not shorthand_pattern.fullmatch(key) for key in value):
+        raise ArtifactValidationError(f"{path} metric fields are unknown")
+
+
+def _validate_metrics_structure(metrics, path="metrics"):
+    if (
+        not isinstance(metrics, dict)
+        or not _REQUIRED_METRIC_PAYLOAD_KEYS <= set(metrics)
+        or not set(metrics) <= _METRIC_PAYLOAD_KEYS
+    ):
+        raise ArtifactValidationError(f"{path} fields are incomplete or unknown")
+    overall = metrics["overall"]
+    if (
+        not isinstance(overall, dict)
+        or not {"model", "persistence"} <= set(overall)
+        or not set(overall) <= {"model", "persistence", "recent_cycle"}
+    ):
+        raise ArtifactValidationError(f"{path}.overall method fields are unknown")
+    for method, summary in overall.items():
+        _method_summary_shape(summary, f"{path}.overall.{method}")
+
+    split_pattern = re.compile(
+        r"(?:air|mass)_(?:1|6|12|24|48|72)h_(?:count|mae|rmse|bias)\Z"
+    )
+    for split_name, allowed in (
+        ("by_regime", {"warm", "winter", "shoulder"}),
+        (
+            "by_provenance",
+            {"confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"},
+        ),
+    ):
+        split = metrics[split_name]
+        if not isinstance(split, dict) or not set(split) <= allowed:
+            raise ArtifactValidationError(f"{path}.{split_name} fields are unknown")
+        for name, summary in split.items():
+            _split_summary_shape(
+                summary, f"{path}.{split_name}.{name}", split_pattern
+            )
+
+    by_horizon = metrics["by_horizon"]
+    horizons = {"1", "6", "12", "24", "48", "72"}
+    if not isinstance(by_horizon, dict) or not set(by_horizon) <= horizons:
+        raise ArtifactValidationError(f"{path}.by_horizon fields are unknown")
+    horizon_pattern = re.compile(r"(?:air|mass)_(?:count|mae|rmse|bias)\Z")
+    for horizon, summary in by_horizon.items():
+        if not isinstance(summary, dict):
+            raise ArtifactValidationError(
+                f"{path}.by_horizon.{horizon} must be an object"
+            )
+        if set(summary) <= {"air", "mass"}:
+            for state, metric in summary.items():
+                _metric_summary_shape(
+                    metric, f"{path}.by_horizon.{horizon}.{state}"
+                )
+        elif any(not horizon_pattern.fullmatch(key) for key in summary):
+            raise ArtifactValidationError(
+                f"{path}.by_horizon.{horizon} metric fields are unknown"
+            )
+
+    coverage = metrics.get("prediction_interval_coverage")
+    if coverage is not None:
+        if not isinstance(coverage, dict) or not set(coverage) <= {"air", "mass"}:
+            raise ArtifactValidationError(f"{path}.prediction_interval_coverage fields are unknown")
+        for state, state_horizons in coverage.items():
+            if not isinstance(state_horizons, dict) or not set(state_horizons) <= horizons:
+                raise ArtifactValidationError(f"{path}.prediction_interval_coverage.{state} fields are unknown")
+            for horizon, evidence in state_horizons.items():
+                required = {"nominal", "count", "covered", "fraction"}
+                allowed = required | {"calibration"}
+                if not isinstance(evidence, dict) or not required <= set(evidence) or not set(evidence) <= allowed:
+                    raise ArtifactValidationError(f"{path}.prediction_interval_coverage.{state}.{horizon} fields are unknown or incomplete")
+
+    behavior = metrics.get("behavior")
+    if behavior is not None:
+        expected = {
+            "available", "label_count", "precision", "recall",
+            "median_timing_error_minutes", "classification_probability",
+        }
+        if not isinstance(behavior, dict) or set(behavior) != expected:
+            raise ArtifactValidationError(f"{path}.behavior fields are unknown or incomplete")
+
+    daily = metrics.get("daily")
+    if daily is not None:
+        expected = {"hallway_high_f", "hallway_low_f", "peak_time_minutes", "morning_mass_f"}
+        if not isinstance(daily, dict) or set(daily) != expected:
+            raise ArtifactValidationError(f"{path}.daily fields are unknown or incomplete")
+        for name, summary in daily.items():
+            _metric_summary_shape(summary, f"{path}.daily.{name}")
+
+    threshold = metrics.get("threshold_baseline")
+    if threshold is not None:
+        expected = {
+            "definition", "input", "class_counts", "comparison_target",
+            "precision", "recall", "count",
+        }
+        if not isinstance(threshold, dict) or set(threshold) != expected:
+            raise ArtifactValidationError(
+                f"{path}.threshold_baseline fields are unknown or incomplete"
+            )
+        definition = threshold["definition"]
+        classes = {"none", "vent_tonight", "close_up_tomorrow"}
+        if not isinstance(definition, dict) or set(definition) != classes:
+            raise ArtifactValidationError(
+                f"{path}.threshold_baseline definition fields are unknown"
+            )
+        class_counts = threshold["class_counts"]
+        if not isinstance(class_counts, dict) or set(class_counts) != classes:
+            raise ArtifactValidationError(
+                f"{path}.threshold_baseline class fields are unknown"
+            )
 
 
 def _validate_metric_semantics(value, path="metrics", key=None):
@@ -546,6 +729,22 @@ def _summary(metrics, method):
     return summary
 
 
+def provisional_promotion_gates(
+    *, physics_valid, finite_metrics, scored_fold_count, model_24, persistence_24
+):
+    """Return the only provisional shadow gates from explicit evidence."""
+    return {
+        "physics_valid": physics_valid is True,
+        "finite_metrics": finite_metrics is True,
+        "at_least_two_folds": scored_fold_count >= 2,
+        "air_24h_beats_persistence": (
+            model_24["count"] > 0
+            and persistence_24["count"] > 0
+            and model_24["mae"] < persistence_24["mae"]
+        ),
+    }
+
+
 def _promotion_evidence(metrics):
     promotion, gates = _promotion_shape(metrics)
     try:
@@ -568,12 +767,13 @@ def _promotion_evidence(metrics):
         )
     model = _summary(metrics, "model")
     persistence = _summary(metrics, "persistence")
-    actual = {
-        "physics_valid": True,
-        "finite_metrics": True,
-        "at_least_two_folds": scored_folds >= 2,
-        "air_24h_beats_persistence": model["mae"] < persistence["mae"],
-    }
+    actual = provisional_promotion_gates(
+        physics_valid=True,
+        finite_metrics=True,
+        scored_fold_count=scored_folds,
+        model_24=model,
+        persistence_24=persistence,
+    )
     mismatched = sorted(
         name for name in _PROMOTION_GATES if gates[name] is not actual[name]
     )
@@ -614,7 +814,9 @@ def validate_artifact(artifact, *, require_eligible=False):
         raise ArtifactValidationError(
             "artifact creation must not precede training completion"
         )
-    if not _SHA_RE.fullmatch(str(artifact.code_revision)):
+    if not isinstance(artifact.code_revision, str):
+        raise ArtifactValidationError("code revision must be an exact string")
+    if not _SHA_RE.fullmatch(artifact.code_revision):
         raise ArtifactValidationError(
             "code revision must be a hexadecimal revision"
         )
@@ -633,6 +835,7 @@ def validate_artifact(artifact, *, require_eligible=False):
         raise ArtifactValidationError(
             "artifact metrics are missing required evidence splits"
         )
+    _validate_metrics_structure(artifact.metrics)
     _validate_finite(asdict(artifact))
     _promotion_shape(artifact.metrics)
     _promotion_evidence(artifact.metrics)
@@ -651,10 +854,16 @@ def _artifact_payload(artifact):
     return asdict(artifact)
 
 
-def _artifact_from_payload(payload):
-    if not isinstance(payload, dict):
-        raise ArtifactValidationError("artifact JSON root must be an object")
-    expected = {
+def _exact_payload_keys(value, expected, path):
+    if not isinstance(value, dict) or set(value) != set(expected):
+        raise ArtifactValidationError(
+            f"{path} fields do not exactly match the schema"
+        )
+
+
+def _validate_payload_shape(payload):
+    """Reject unknown or missing JSON keys before any normalization."""
+    root_keys = {
         "schema",
         "created_at",
         "trained_from",
@@ -665,10 +874,48 @@ def _artifact_from_payload(payload):
         "metrics",
         "data_manifest",
     }
-    if set(payload) != expected:
+    _exact_payload_keys(payload, root_keys, "artifact JSON")
+    dynamics = payload["dynamics"]
+    behavior = payload["behavior"]
+    _exact_payload_keys(dynamics, _DYNAMICS_PAYLOAD_KEYS, "dynamics")
+    _exact_payload_keys(
+        dynamics["air_coefficients"], AIR_NAMES, "air coefficients"
+    )
+    _exact_payload_keys(
+        dynamics["mass_coefficients"], MASS_NAMES, "mass coefficients"
+    )
+    glazing = dynamics["glazing_observation_coefficients"]
+    if not isinstance(glazing, dict) or (glazing and set(glazing) != set(GLAZING_NAMES)):
         raise ArtifactValidationError(
-            "artifact JSON fields do not match the schema"
+            "glazing observation coefficient fields do not exactly match the schema"
         )
+    _exact_payload_keys(behavior, _BEHAVIOR_PAYLOAD_KEYS, "behavior")
+    _exact_payload_keys(behavior["transitions"], TRANSITIONS, "behavior transitions")
+    vocabulary = behavior["seasonal_vocabulary"]
+    if not isinstance(vocabulary, list):
+        raise ArtifactValidationError("seasonal vocabulary must be a list")
+    for index, item in enumerate(vocabulary):
+        _exact_payload_keys(
+            item, _VOCABULARY_PAYLOAD_KEYS, f"seasonal vocabulary[{index}]"
+        )
+    metrics = payload["metrics"]
+    _validate_metrics_structure(metrics, "metric payload")
+    manifest = payload["data_manifest"]
+    _exact_payload_keys(manifest, _MANIFEST_KEYS, "data manifest")
+    _exact_payload_keys(manifest["items"], THERMAL_ITEMS, "sensor items")
+    _exact_payload_keys(manifest["units"], THERMAL_UNITS, "sensor units")
+    _exact_payload_keys(
+        manifest["fit_diagnostics"], _DIAGNOSTIC_KEYS, "fit diagnostics"
+    )
+    _exact_payload_keys(
+        manifest["constraints"], _expected_constraints(), "constraints"
+    )
+
+
+def _artifact_from_payload(payload):
+    if not isinstance(payload, dict):
+        raise ArtifactValidationError("artifact JSON root must be an object")
+    _validate_payload_shape(payload)
     dynamics = payload["dynamics"]
     behavior = payload["behavior"]
     if not isinstance(dynamics, dict) or not isinstance(behavior, dict):

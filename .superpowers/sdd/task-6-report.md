@@ -87,3 +87,21 @@ graduation threshold.
 - `pytest -q openhab/scripts/test_thermal_artifacts.py openhab/scripts/test_thermal_evaluation.py openhab/scripts/test_thermal_dynamics.py openhab/scripts/test_thermal_behavior.py` -> `110 passed in 15.11s`.
 - `pytest -q openhab/scripts` -> `204 passed in 17.98s`.
 - No PostgreSQL/OpenHAB/raw-store writes, advice graduation, commands, publishing, or actuation were added.
+
+## Final re-review hardening wave (2026-08-13)
+
+### Exact RED evidence
+
+- Primary review probes: `pytest -q openhab/scripts/test_thermal_artifacts.py -k 'positive_model_and_persistence or bool_24h or positive_24h or exact_string_types or valid_revision_and_digest or unknown_nested or unknown_candidate'` -> `9 failed, 5 passed, 41 deselected in 0.62s`. Zero-count 24-hour summaries still passed their MAE gate, integer revisions/digests were string-coerced, and unknown accepted JSON keys in dynamics, coefficients, behavior, transitions, vocabulary, and metrics were normalized away.
+- Recursive split probe: `pytest -q openhab/scripts/test_thermal_artifacts.py -k unknown_nested_metric_split` -> `2 failed, 55 deselected in 0.23s`; invented regime metrics survived candidate validation and accepted loading.
+- Threshold leaf probe: `pytest -q openhab/scripts/test_thermal_artifacts.py -k unknown_threshold_baseline_leaf` -> `1 failed, 57 deselected in 0.18s`; an invented class-count key survived validation.
+
+### GREEN implementation and evidence
+
+- Evaluator and artifact validation now use one `provisional_promotion_gates` helper. The 24-hour comparison short-circuits unless both already type-validated model and persistence counts are positive; boolean counts remain invalid, while positive evidence still promotes.
+- Code revision and canonical-row SHA-256 digest require exact `str` instances before regex validation; numeric and boolean coercion is rejected.
+- Accepted JSON is exact-key validated before dataclass reconstruction for the root, dynamics and all coefficient mappings, behavior and transition mappings, seasonal vocabulary entries, metric containers/splits/leaves, and manifest identities, diagnostics, and constraints. Unknown candidate model keys still fail typed validation; accepted tampering is quarantined and unavailable.
+- Exact requested controls: `14 passed, 41 deselected in 0.45s`; deeper metric controls: `2 passed, 55 deselected in 0.18s`; threshold control: `1 passed, 57 deselected in 0.15s`.
+- Focused artifact/evaluation/dynamics/behavior: `127 passed in 15.58s`.
+- Full Python baseline: `221 passed in 18.07s`.
+- No PostgreSQL/OpenHAB/raw-store writes, publishing, advice graduation, commands, or actuation were added.

@@ -13,6 +13,7 @@ from .behavior import (
     feature_vector,
     transition_probability,
 )
+from .artifacts import provisional_promotion_gates
 from .dynamics import simulate, validate_physics
 
 STEP = timedelta(minutes=5)
@@ -562,16 +563,13 @@ def walk_forward_evaluate(samples, fit):
     }
     model_24 = overall["model"]["air"]["24"]
     persistence_24 = overall["persistence"]["air"]["24"]
-    gates = {
-        "physics_valid": physics_valid,
-        "finite_metrics": _numbers_finite(metrics),
-        "at_least_two_folds": scored_folds >= 2,
-        "air_24h_beats_persistence": (
-            model_24["count"] > 0
-            and persistence_24["count"] > 0
-            and model_24["mae"] < persistence_24["mae"]
-        ),
-    }
+    gates = provisional_promotion_gates(
+        physics_valid=physics_valid,
+        finite_metrics=_numbers_finite(metrics),
+        scored_fold_count=scored_folds,
+        model_24=model_24,
+        persistence_24=persistence_24,
+    )
     metrics["promotion"] = {
         "eligible": all(gates.values()),
         "shadow_only": True,
