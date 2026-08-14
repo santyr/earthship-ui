@@ -18,9 +18,9 @@ def valid_shadow_payload():
         "forecast": {
             "availableHours": 24,
             "hallwayHighF": 80.0,
-            "hallwayHighAt": "2026-08-13T18:00:00-06:00",
+            "hallwayHighAt": "2026-08-13T07:00:00-06:00",
             "hallwayLowF": 68.0,
-            "hallwayLowAt": "2026-08-14T06:00:00-06:00",
+            "hallwayLowAt": "2026-08-13T06:00:00-06:00",
             "morningMassF": 70.0,
             "intervalLowF": 66.0,
             "intervalHighF": 82.0,
@@ -47,7 +47,7 @@ def valid_shadow_payload():
         "schedule": {
             "baseline": {
                 "ventOpenAt": "2026-08-14T02:30:00+00:00",
-                "ventCloseAt": "2026-08-14T13:00:00+00:00",
+                "ventCloseAt": "2026-08-14T11:00:00+00:00",
             },
             "candidate": None,
             "effect": {"morningMassDeltaF": 0.0, "hallwayPeakDeltaF": 0.0},
@@ -141,7 +141,13 @@ def test_deep_shadow_schema_accepts_exact_available_payload():
         "naive_time", "command_marker", "too_many_trajectory",
         "too_many_observed", "nonmonotonic_trajectory", "invalid_confidence",
         "invalid_provenance", "null_candidate_nonzero_effect",
-        "reversed_interval", "unknown_observed", "oversize",
+        "identical_candidate_fake_effect", "reversed_schedule_window",
+        "available_null_high", "incomplete_schedule_window",
+        "summary_excludes_trajectory",
+        "stale_available_age", "future_observation", "high_outside_horizon",
+        "trajectory_outside_horizon", "control_reason", "too_many_reasons",
+        "reversed_interval", "unknown_observed",
+        "oversize",
     ],
 )
 def test_deep_shadow_schema_rejects_malformed_nested_payloads(case):
@@ -173,6 +179,35 @@ def test_deep_shadow_schema_rejects_malformed_nested_payloads(case):
         payload["provenance"]["actions"] = "invented"
     elif case == "null_candidate_nonzero_effect":
         payload["schedule"]["effect"]["hallwayPeakDeltaF"] = -1.0
+    elif case == "identical_candidate_fake_effect":
+        payload["schedule"]["candidate"] = deepcopy(
+            payload["schedule"]["baseline"]
+        )
+        payload["schedule"]["effect"]["hallwayPeakDeltaF"] = -2.0
+    elif case == "reversed_schedule_window":
+        payload["schedule"]["baseline"]["ventOpenAt"] = (
+            payload["schedule"]["baseline"]["ventCloseAt"]
+        )
+    elif case == "available_null_high":
+        payload["forecast"]["hallwayHighF"] = None
+    elif case == "incomplete_schedule_window":
+        payload["schedule"]["baseline"]["ventCloseAt"] = None
+    elif case == "summary_excludes_trajectory":
+        payload["forecast"]["hallwayHighF"] = 74.5
+    elif case == "stale_available_age":
+        payload["provenance"]["currentAgeMinutes"]["radiation"] = 21.0
+    elif case == "future_observation":
+        payload["forecast"]["observed"][0]["at"] = "2026-08-13T12:01:00+00:00"
+    elif case == "high_outside_horizon":
+        payload["forecast"]["hallwayHighAt"] = "2026-08-14T12:01:00+00:00"
+    elif case == "trajectory_outside_horizon":
+        payload["forecast"]["trajectory"][-1]["at"] = (
+            "2026-08-14T07:00:00-06:00"
+        )
+    elif case == "control_reason":
+        payload["reasons"] = ["jdbc failed\nsecret"]
+    elif case == "too_many_reasons":
+        payload["reasons"] = [str(index) for index in range(9)]
     elif case == "reversed_interval":
         payload["forecast"]["intervalLowF"] = 90.0
     elif case == "unknown_observed":

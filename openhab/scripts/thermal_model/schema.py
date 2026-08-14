@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import math
 from typing import Literal
@@ -190,6 +190,8 @@ _ACTION_PROVENANCE = {
     "operator_confirmed",
 }
 _MAX_SHADOW_BYTES = 16 * 1024
+_MAX_REASON_BYTES = 256
+_MAX_REASONS = 8
 
 
 def _exact_object(value, fields, path):
@@ -242,8 +244,17 @@ def _validate_times(rows, path, fields, limit, *, local_hour=False):
 
 def _validate_schedule_time(value, path):
     if value is None:
-        return
-    _aware_timestamp(value, path)
+        return None
+    return _aware_timestamp(value, path)
+
+
+def _validate_schedule_window(value, path, horizon_start, horizon_end):
+    opened = _validate_schedule_time(value["ventOpenAt"], f"{path}.ventOpenAt")
+    closed = _validate_schedule_time(value["ventCloseAt"], f"{path}.ventCloseAt")
+    if (opened is None) != (closed is None):
+        raise ValueError(f"{path} vent window must be complete")
+    if opened is not None and not horizon_start <= opened < closed <= horizon_end:
+        raise ValueError(f"{path} vent window must be ordered within the forecast horizon")
 
 
 def validate_shadow_output(payload):
@@ -282,15 +293,23 @@ def validate_shadow_output(payload):
     hours = forecast["availableHours"]
     if type(hours) is not int or not 0 <= hours <= 72:
         raise ValueError("forecast.availableHours must be an integer within [0, 72]")
+    horizon_start = generated_at.replace(
+        minute=(generated_at.minute // 5) * 5, second=0, microsecond=0
+    )
+    horizon_end = horizon_start + timedelta(hours=hours)
     numeric_forecast = (
         "hallwayHighF", "hallwayLowF", "morningMassF", "intervalLowF",
         "intervalHighF",
     )
     for field_name in numeric_forecast:
         _optional_number(forecast[field_name], f"forecast.{field_name}")
+    summary_times = {}
     for field_name in ("hallwayHighAt", "hallwayLowAt"):
-        if forecast[field_name] is not None:
-            _aware_timestamp(forecast[field_name], f"forecast.{field_name}")
+        summary_times[field_name] = (
+            None
+            if forecast[field_name] is None
+            else _aware_timestamp(forecast[field_name], f"forecast.{field_name}")
+        )
     low = forecast["intervalLowF"]
     high = forecast["intervalHighF"]
     if (low is None) != (high is None) or (
@@ -309,6 +328,9 @@ def validate_shadow_output(payload):
         row_high = _number(row["highF"], f"forecast.trajectory[{index}].highF")
         if not row_low <= hallway <= row_high:
             raise ValueError("trajectory interval must contain hallway temperature")
+        at = _aware_timestamp(row["at"], f"forecast.trajectory[{index}].at")
+        if not horizon_start <= at <= horizon_end:
+            raise ValueError("forecast trajectory must stay within the modeled horizon")
         actions = row["actions"]
         if (
             not isinstance(actions, list)
@@ -323,6 +345,8 @@ def validate_shadow_output(payload):
     for index, row in enumerate(observed):
         _number(row["hallwayF"], f"forecast.observed[{index}].hallwayF")
         _number(row["massF"], f"forecast.observed[{index}].massF")
+        if _aware_timestamp(row["at"], f"forecast.observed[{index}].at") > generated_at:
+            raise ValueError("observed timestamps cannot be in the future")
 
     schedule = payload["schedule"]
     if schedule:
@@ -330,17 +354,15 @@ def validate_shadow_output(payload):
         baseline = _exact_object(
             schedule["baseline"], _SCHEDULE_TIME_FIELDS, "schedule.baseline"
         )
-        for field_name in _SCHEDULE_TIME_FIELDS:
-            _validate_schedule_time(
-                baseline[field_name], f"schedule.baseline.{field_name}"
-            )
+        _validate_schedule_window(
+            baseline, "schedule.baseline", horizon_start, horizon_end
+        )
         candidate = schedule["candidate"]
         if candidate is not None:
             _exact_object(candidate, _SCHEDULE_TIME_FIELDS, "schedule.candidate")
-            for field_name in _SCHEDULE_TIME_FIELDS:
-                _validate_schedule_time(
-                    candidate[field_name], f"schedule.candidate.{field_name}"
-                )
+            _validate_schedule_window(
+                candidate, "schedule.candidate", horizon_start, horizon_end
+            )
         effect = _exact_object(schedule["effect"], _EFFECT_FIELDS, "schedule.effect")
         effects = [
             _number(effect[field_name], f"schedule.effect.{field_name}")
@@ -348,7 +370,7 @@ def validate_shadow_output(payload):
         ]
         if candidate is None and any(value != 0.0 for value in effects):
             raise ValueError("null candidate requires zero modeled effect")
-        if candidate is not None and candidate == baseline and all(value == 0.0 for value in effects):
+        if candidate is not None and candidate == baseline:
             raise ValueError("candidate must differ from the baseline")
     elif schedule != {}:
         raise ValueError("schedule must be an exact object")
@@ -358,6 +380,7 @@ def validate_shadow_output(payload):
         raise ValueError("confidence grade must be low or unavailable")
     if confidence["actionLabels"] not in _ACTION_LABELS:
         raise ValueError("confidence action labels are invalid")
+    unavailable = confidence["grade"] == "unavailable"
 
     provenance = _exact_object(payload["provenance"], _PROVENANCE_FIELDS, "provenance")
     if provenance["sensorItems"] != THERMAL_ITEMS:
@@ -378,7 +401,15 @@ def validate_shadow_output(payload):
         "provenance.currentAgeMinutes",
     )
     for role, age in ages.items():
-        _optional_number(age, f"provenance.currentAgeMinutes.{role}", minimum=0.0)
+        parsed_age = _optional_number(
+            age, f"provenance.currentAgeMinutes.{role}", minimum=0.0
+        )
+        if (
+            not unavailable
+            and role in {"air", "mass", "outdoor", "radiation"}
+            and (parsed_age is None or parsed_age > 20.0)
+        ):
+            raise ValueError("available shadow requires fresh critical current inputs")
     _optional_number(provenance["modelAgeHours"], "provenance.modelAgeHours", minimum=0.0)
     _optional_number(
         provenance["trainingDataAgeHours"],
@@ -386,12 +417,25 @@ def validate_shadow_output(payload):
     )
 
     reasons = payload["reasons"]
-    if not isinstance(reasons, list) or not reasons or any(
-        not isinstance(reason, str) or not reason for reason in reasons
+    if (
+        not isinstance(reasons, list)
+        or not reasons
+        or len(reasons) > _MAX_REASONS
+        or any(
+            not isinstance(reason, str)
+            or not reason
+            or len(reason.encode("utf-8")) > _MAX_REASON_BYTES
+            or reason != " ".join(
+                "".join(
+                    character if character.isprintable() else " "
+                    for character in reason
+                ).split()
+            )
+            for reason in reasons
+        )
     ):
-        raise ValueError("reasons must contain nonempty strings")
+        raise ValueError("reasons must be bounded nonempty single-line strings")
 
-    unavailable = confidence["grade"] == "unavailable"
     if unavailable and confidence["actionLabels"] != "unknown":
         raise ValueError("unavailable shadow action labels must be unknown")
     if unavailable and (schedule != {} or hours != 0 or trajectory):
@@ -399,9 +443,34 @@ def validate_shadow_output(payload):
     if unavailable and any(forecast[field_name] is not None for field_name in numeric_forecast):
         raise ValueError("unavailable shadow forecast summaries must be null")
     if not unavailable and (
+        any(forecast[field_name] is None for field_name in numeric_forecast)
+        or any(at is None for at in summary_times.values())
+    ):
+        raise ValueError("available shadow requires complete forecast summaries")
+    if not unavailable:
+        if forecast["hallwayLowF"] > forecast["hallwayHighF"]:
+            raise ValueError("forecast hallway low cannot exceed hallway high")
+        hallway_points = [float(row["hallwayF"]) for row in trajectory]
+        if (
+            hallway_points
+            and (
+                forecast["hallwayLowF"] > min(hallway_points)
+                or forecast["hallwayHighF"] < max(hallway_points)
+            )
+        ):
+            raise ValueError("forecast extrema must contain the emitted trajectory")
+        if not forecast["intervalLowF"] <= forecast["hallwayLowF"] <= forecast["hallwayHighF"] <= forecast["intervalHighF"]:
+            raise ValueError("forecast extrema must fall within the uncertainty interval")
+        if any(
+            at is None or not horizon_start <= at <= horizon_end
+            for at in summary_times.values()
+        ):
+            raise ValueError("forecast extrema timestamps must stay within the modeled horizon")
+    if not unavailable and (
         not model
         or not 24 <= hours <= 72
         or schedule == {}
+        or not trajectory
         or current["hallwayF"] is None
         or current["massF"] is None
         or any(forecast[field_name] is None for field_name in numeric_forecast)

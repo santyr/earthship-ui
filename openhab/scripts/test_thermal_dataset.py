@@ -93,6 +93,10 @@ def fully_labeled_events(at=START):
 def test_dataset_retains_only_actual_confirmed_action_event_rows():
     events = [
         action(
+            "exact", "vent", "closed", START + timedelta(minutes=5),
+            "manual_dm", 1.0,
+        ),
+        action(
             "confirmed", "vent", "open", START + timedelta(minutes=7),
             "manual_dm", 1.0,
         ),
@@ -100,11 +104,18 @@ def test_dataset_retains_only_actual_confirmed_action_event_rows():
             "photo", "indoor_shade", "closed", START + timedelta(minutes=15),
             "photosensor", 0.8,
         ),
+        action(
+            "after-final", "vent", "closed", END + timedelta(minutes=1),
+            "manual_dm", 1.0,
+        ),
     ]
 
     samples = build_samples(fixture_series(), events, [], START, END)
 
-    assert samples.confirmed_action_rows == (START + timedelta(minutes=5),)
+    assert samples.confirmed_action_rows == (
+        START + timedelta(minutes=5),
+        START + timedelta(minutes=10),
+    )
 
 
 def test_five_minute_alignment_does_not_bridge_large_gaps():

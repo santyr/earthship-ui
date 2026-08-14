@@ -50,6 +50,8 @@ MAX_FORECAST_HOURS = 72
 MAX_TRAJECTORY_POINTS = 73
 MAX_OBSERVED_POINTS = 25
 MAX_SHADOW_BYTES = 16 * 1024
+MAX_REASON_BYTES = 256
+MAX_REASONS = 8
 DAILY_TRAINING_CADENCE = timedelta(hours=26)
 TEMPERATURE_RANGE_F = (-40.0, 140.0)
 RADIATION_RANGE_WM2 = (0.0, 1600.0)
@@ -70,6 +72,35 @@ _CURRENT_LABELS = {
     "outdoor": "outdoor temperature",
     "radiation": "solar radiation",
 }
+
+
+def _bounded_reasons(reasons, fallback):
+    """Return stable, single-line reasons bounded by UTF-8 bytes."""
+    if isinstance(reasons, (str, bytes)):
+        reasons = (reasons,)
+    bounded = []
+    for reason in reasons or ():
+        text = str(reason)
+        text = " ".join(
+            "".join(character if character.isprintable() else " " for character in text).split()
+        )
+        encoded = text.encode("utf-8")[:MAX_REASON_BYTES]
+        text = encoded.decode("utf-8", errors="ignore").strip()
+        if text and text not in bounded:
+            bounded.append(text)
+        if len(bounded) >= MAX_REASONS:
+            break
+    if not bounded:
+        safe_fallback = " ".join(
+            "".join(
+                character if character.isprintable() else " "
+                for character in str(fallback)
+            ).split()
+        )
+        encoded = safe_fallback.encode("utf-8")[:MAX_REASON_BYTES]
+        safe_fallback = encoded.decode("utf-8", errors="ignore").strip()
+        bounded.append(safe_fallback or "shadow input unavailable")
+    return bounded
 
 
 class TrainingRefused(RuntimeError):
@@ -486,6 +517,8 @@ def _expand_nightly_venting(schedule, rows, timezone_value):
         return dict(schedule)
     first = rows[0]["at"].astimezone(timezone_value)
     last = rows[-1]["at"].astimezone(timezone_value)
+    first_utc = first.astimezone(timezone.utc)
+    last_utc = last.astimezone(timezone.utc)
     day = first.date() - timedelta(days=1)
     segments = []
     while day <= last.date():
@@ -494,17 +527,104 @@ def _expand_nightly_venting(schedule, rows, timezone_value):
             days=int(schedule["ventCloseMinute"] <= schedule["ventOpenMinute"])
         )
         closed = _local_minute(close_day, schedule["ventCloseMinute"], timezone_value)
-        if closed > first and opened <= last:
-            segments.append({"startAt": opened, "endAt": closed, "level": "baseline"})
+        if (
+            closed.astimezone(timezone.utc) > first_utc
+            and opened.astimezone(timezone.utc) < last_utc
+        ):
+            segments.append(
+                {
+                    "startAt": max(opened, first),
+                    "endAt": min(closed, last),
+                    "level": "baseline",
+                }
+            )
         day += timedelta(days=1)
-    boosted = tuple(
-        segment
+    segments.extend(
+        dict(segment)
         for segment in schedule.get("airflowSegments", ())
         if segment.get("level") == "boosted"
     )
+    clipped = []
+    for segment in segments:
+        start = segment["startAt"]
+        end = segment["endAt"]
+        if end.astimezone(timezone.utc) <= first_utc or start.astimezone(timezone.utc) >= last_utc:
+            continue
+        clipped.append(
+            {
+                **segment,
+                "startAt": first if start.astimezone(timezone.utc) < first_utc else start,
+                "endAt": last if end.astimezone(timezone.utc) > last_utc else end,
+            }
+        )
+    clipped.sort(
+        key=lambda segment: (
+            segment["startAt"].astimezone(timezone.utc),
+            0 if segment["level"] == "baseline" else 1,
+        )
+    )
     expanded = dict(schedule)
-    expanded["airflowSegments"] = (*segments, *boosted)
+    expanded["airflowSegments"] = tuple(clipped)
     return expanded
+
+
+def _validate_internal_schedule(schedule, *, horizon_start, horizon_end):
+    """Validate the richer modeled schedule before simulation and projection."""
+    if not isinstance(schedule, dict):
+        raise ValueError("modeled schedule must be an object")
+    start_limit = _aware(horizon_start, "schedule horizon start").astimezone(timezone.utc)
+    end_limit = _aware(horizon_end, "schedule horizon end").astimezone(timezone.utc)
+    if start_limit >= end_limit:
+        raise ValueError("schedule horizon must be ordered")
+
+    for prefix in ("vent", "shade"):
+        opened = schedule.get(f"{prefix}OpenAt")
+        closed = schedule.get(f"{prefix}CloseAt")
+        if (opened is None) != (closed is None):
+            raise ValueError(f"modeled {prefix} window must be complete")
+        if opened is None:
+            continue
+        opened_utc = _aware(opened, f"modeled {prefix} open").astimezone(timezone.utc)
+        closed_utc = _aware(closed, f"modeled {prefix} close").astimezone(timezone.utc)
+        if not start_limit <= opened_utc < closed_utc <= end_limit:
+            raise ValueError(f"modeled {prefix} window must be ordered within the horizon")
+
+    raw_segments = schedule.get("airflowSegments", ())
+    if not isinstance(raw_segments, (tuple, list)):
+        raise ValueError("modeled airflow segments must be a sequence")
+    segments = []
+    for index, segment in enumerate(raw_segments):
+        if not isinstance(segment, dict) or set(segment) != {"startAt", "endAt", "level"}:
+            raise ValueError(f"modeled airflow segment {index} has invalid fields")
+        level = segment["level"]
+        if level not in AIRFLOW_LEVELS:
+            raise ValueError(f"modeled airflow segment {index} has invalid level")
+        started = _aware(segment["startAt"], "airflow start").astimezone(timezone.utc)
+        ended = _aware(segment["endAt"], "airflow end").astimezone(timezone.utc)
+        if not start_limit <= started < ended <= end_limit:
+            raise ValueError("modeled airflow segment must be ordered within the horizon")
+        segments.append((started, ended, level))
+
+    baseline_windows = [item for item in segments if item[2] == "baseline"]
+    for started, ended, level in segments:
+        if level == "boosted" and not any(
+            owner_start <= started and ended <= owner_end
+            for owner_start, owner_end, _ in baseline_windows
+        ):
+            raise ValueError("boosted airflow segment must be nested within a vent window")
+
+    for level in AIRFLOW_LEVELS:
+        prior_start = None
+        prior_end = None
+        for started, ended, segment_level in segments:
+            if segment_level != level:
+                continue
+            if prior_start is not None and started < prior_start:
+                raise ValueError(f"{level} airflow segments must be sorted")
+            if prior_end is not None and started < prior_end:
+                raise ValueError(f"{level} airflow segments must not overlap")
+            prior_start, prior_end = started, ended
+    return schedule
 
 
 def _vent_schedule_is_valid(rows, schedule):
@@ -710,7 +830,10 @@ def _morning_mass(rows, predictions, timezone_value):
     return float(predictions[-1]["mass_f"])
 
 
-def _unavailable(now, reasons, *, artifact=None, current=None):
+def _unavailable(
+    now, reasons, *, artifact=None, current=None,
+    fallback_reason="shadow input unavailable",
+):
     model = {}
     model_age = None
     data_age = None
@@ -762,7 +885,7 @@ def _unavailable(now, reasons, *, artifact=None, current=None):
             "modelAgeHours": model_age,
             "trainingDataAgeHours": data_age,
         },
-        "reasons": list(dict.fromkeys(str(reason) for reason in reasons if str(reason))),
+        "reasons": _bounded_reasons(reasons, fallback_reason),
     }
     validate_shadow_output(payload)
     return payload
@@ -786,6 +909,9 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
 
     baseline = _expand_nightly_venting(
         baseline_schedule(artifact.behavior, rows), rows, site_timezone
+    )
+    _validate_internal_schedule(
+        baseline, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
     )
     baseline_predictions = _simulate_schedule(artifact.dynamics, rows, baseline, initial)
     decorated = [dict(rows[0])]
@@ -820,7 +946,15 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
         or candidate == baseline
     ):
         candidate = None
-    elif not _vent_schedule_is_valid(decorated, candidate):
+    elif candidate is not None:
+        try:
+            _validate_internal_schedule(
+                candidate, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+            )
+        except ValueError:
+            candidate = None
+            selection_reason = "no_valid_candidate"
+    if candidate is not None and not _vent_schedule_is_valid(decorated, candidate):
         candidate = None
         selection_reason = "no_valid_candidate"
     selected = candidate or baseline
@@ -908,10 +1042,14 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
     return payload
 
 
-def build_unavailable_shadow(*, now, reasons, artifact=None, current=None):
+def build_unavailable_shadow(
+    *, now, reasons, artifact=None, current=None,
+    fallback_reason="shadow input unavailable",
+):
     """Build one exact fail-soft shadow payload without reading any authority."""
     return _unavailable(
-        _aware(now, "now"), reasons, artifact=artifact, current=current
+        _aware(now, "now"), reasons, artifact=artifact, current=current,
+        fallback_reason=fallback_reason,
     )
 
 
@@ -919,8 +1057,10 @@ def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE)
     """Return a bounded shadow result; invalid dependencies fail soft."""
     now = _aware(now, "now")
     artifact = None
+    failed_input = "accepted artifact input"
     try:
         artifact = registry.load_accepted()
+        failed_input = "shadow input"
         return _build_available_shadow(
             artifact=artifact,
             current=current,
@@ -937,7 +1077,10 @@ def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE)
         ArtifactUnavailable,
         OSError,
     ) as exc:
-        return _unavailable(now, (str(exc),), artifact=artifact, current=current)
+        return _unavailable(
+            now, (str(exc),), artifact=artifact, current=current,
+            fallback_reason=f"{failed_input} unavailable",
+        )
 
 
 def build_shadow_output(**kwargs):

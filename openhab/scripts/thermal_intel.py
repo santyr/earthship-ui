@@ -256,13 +256,17 @@ def _current_states(now, series_reader=None):
 
 def _shadow(args, now):
     current = None
+    failed_input = "site settings input"
     try:
         forecast_intel.load_site_settings()
+        failed_input = "current state input"
         current = _current_states(now)
+        failed_input = "forecast input"
         snapshot = forecast_intel.fetch_forecast()
         rows = _forecast_rows(
             snapshot, now.astimezone(forecast_intel.MOUNTAIN)
         )
+        failed_input = "accepted artifact input"
         output = run_shadow(
             registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
             current=current,
@@ -274,7 +278,8 @@ def _shadow(args, now):
         KeyError, OSError, RuntimeError, TypeError, ValueError
     ) as exc:
         output = build_unavailable_shadow(
-            now=now, reasons=(str(exc),), current=current
+            now=now, reasons=(str(exc),), current=current,
+            fallback_reason=f"{failed_input} unavailable",
         )
     write_shadow_output(args.output, output)
     encoded = json.dumps(output, sort_keys=True, separators=(",", ":"))

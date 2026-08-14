@@ -17,6 +17,7 @@ from thermal_model.pipeline import (
     run_training,
     write_shadow_output,
 )
+import thermal_model.pipeline as thermal_pipeline
 from thermal_model.schema import (
     ActionEvent,
     BehaviorModel,
@@ -823,6 +824,87 @@ def test_cli_shadow_reader_failures_replace_stale_output_with_unavailable(
     assert payload["schedule"] == {}
     assert payload["reasons"]
     assert "publish" not in json.dumps(payload).lower()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        OSError(),
+        OSError(("secret\n\x00\t" + "🌡" * 8192) + "\rtrailing"),
+    ],
+)
+def test_cli_shadow_sanitizes_reader_failures_and_always_replaces_stale_output(
+    tmp_path, monkeypatch, error
+):
+    import thermal_intel
+
+    destination = tmp_path / "shadow.json"
+    destination.write_text("stale-prior-output", encoding="utf-8")
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
+    monkeypatch.setattr(
+        thermal_intel,
+        "_current_states",
+        lambda now: (_ for _ in ()).throw(error),
+    )
+
+    status = thermal_intel._shadow(SimpleNamespace(output=destination), NOW)
+
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    assert status == 1
+    assert validate_shadow_output(payload) is payload
+    assert payload["confidence"]["grade"] == "unavailable"
+    assert payload["schedule"] == {}
+    assert payload["reasons"]
+    assert len(destination.read_bytes()) < 16 * 1024
+    assert all(
+        "\n" not in reason and "\r" not in reason and "\x00" not in reason
+        for reason in payload["reasons"]
+    )
+    if not str(error):
+        assert payload["reasons"] == ["current state input unavailable"]
+    assert "publish" not in json.dumps(payload).lower()
+
+
+def test_empty_artifact_reader_failure_names_the_failed_input_class():
+    output = run_shadow(
+        registry=AcceptedRegistry(error=ArtifactUnavailable()),
+        current=current_states(),
+        forecast=forecast_hours(24),
+        now=NOW,
+    )
+
+    assert output["confidence"]["grade"] == "unavailable"
+    assert output["schedule"] == {}
+    assert output["reasons"] == ["accepted artifact input unavailable"]
+
+
+def test_internal_schedule_rejects_boosted_segment_outside_owning_vent_window():
+    horizon_start = NOW
+    horizon_end = NOW + timedelta(hours=24)
+    schedule = {
+        "mode": "warm",
+        "ventOpenAt": NOW + timedelta(hours=8),
+        "ventCloseAt": NOW + timedelta(hours=14),
+        "shadeOpenAt": None,
+        "shadeCloseAt": None,
+        "airflowSegments": (
+            {
+                "startAt": NOW + timedelta(hours=8),
+                "endAt": NOW + timedelta(hours=14),
+                "level": "baseline",
+            },
+            {
+                "startAt": NOW + timedelta(hours=7),
+                "endAt": NOW + timedelta(hours=9),
+                "level": "boosted",
+            },
+        ),
+    }
+
+    with pytest.raises(ValueError, match="boosted.*vent"):
+        thermal_pipeline._validate_internal_schedule(
+            schedule, horizon_start=horizon_start, horizon_end=horizon_end
+        )
 
 
 def test_cli_exposes_only_offline_commands_and_no_publish_flag():

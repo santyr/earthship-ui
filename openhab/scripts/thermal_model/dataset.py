@@ -58,6 +58,12 @@ def _floor_five(value):
     return value.replace(minute=(value.minute // 5) * 5, second=0, microsecond=0)
 
 
+def _ceil_five(value):
+    value = _utc(value, "action effective_at")
+    aligned = _floor_five(value)
+    return aligned if aligned == value else aligned + STEP
+
+
 def _iso_utc(value):
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -419,10 +425,10 @@ def build_samples(series_by_role, events, modes, start, end):
     confirmed_action_rows = tuple(
         sorted(
             {
-                _floor_five(event.effective_at)
+                _ceil_five(event.effective_at)
                 for event in events
                 if event.source in CONFIRMED_SOURCES
-                and _floor_five(event.effective_at) in sample_times
+                and _ceil_five(event.effective_at) in sample_times
             }
         )
     )

@@ -186,3 +186,61 @@ smoke remains intentionally out of scope for this read-only/offline task.
 - Final warning-as-error compile and `pyflakes`: clean.
 - Final CLI help, `git diff --check`, byte-identical `forecast_intel.py`, and
   prohibited OpenHAB write/command/publish/advisory symbol scans: clean.
+
+
+## Re-review hardening wave (2026-08-13)
+
+### Findings closed
+
+- Reader failure reasons now pass through one bounded normalizer: controls and
+  newlines collapse to a single line, each reason is truncated on a UTF-8
+  boundary at 256 bytes, at most eight distinct reasons survive, and an empty
+  exception gets a stable reason naming the failed site/current/forecast/artifact
+  input class. `_unavailable()` guarantees at least one reason, so atomic writing
+  can always replace stale output with a valid sub-16-KiB unavailable payload.
+- The exact public v1 validator now rejects identical candidates regardless of
+  claimed effect; incomplete, reversed, or out-of-horizon vent windows; available
+  critical ages above 20 minutes; missing summaries; extrema that exclude the
+  emitted trajectory; future observations; and forecast/trajectory/extrema times
+  outside the modeled horizon. Reason strings are also exact, bounded, and
+  control-free.
+- Rich internal schedules are validated before simulation: vent and shade windows
+  are paired and ordered within the horizon; airflow levels are closed-vocabulary;
+  same-level segments are sorted and nonoverlapping; and boosted segments must be
+  nested in a baseline vent window. Invalid candidates become null with zero
+  effect, while an invalid baseline fails soft to unavailable.
+- Confirmed action evidence now uses ceiling alignment: an event at 00:07 belongs
+  to the 00:10 sample, an event exactly at 00:05 remains at 00:05, and an event
+  beyond the final dataset sample is excluded. Walk-forward train/evaluation
+  membership continues to use these effective sample identities.
+
+### Strict TDD evidence
+
+- Initial combined RED: `10 failed, 15 passed`; malformed cross-field payloads,
+  pre-event floor alignment, empty/oversized reader errors, and the missing
+  internal schedule validator all reproduced the review findings.
+- Bounded CLI reader GREEN: `5 passed`; both `OSError()` and a 16-KiB-plus Unicode
+  control-bearing exception replace stale output, validate as unavailable with an
+  empty schedule, stay below 16 KiB, return nonzero, and expose no publish field.
+- Public schema and construction GREEN: `29 passed`; internal schedule plus
+  preserved candidate-null/winter behavior: `5 passed`.
+- Event ceiling and confirmed disjoint-evidence GREEN: `5 passed, 10 deselected`.
+- Additional RED/GREEN edges: empty artifact context failed then passed with
+  `accepted artifact input unavailable`; null summary and summary/trajectory
+  containment failed then passed; control-bearing and excessive reason lists
+  failed then passed (`2 passed, 24 deselected`).
+
+### Final verification
+
+- Focused pipeline/schema/dataset/evaluation suite: `110 passed in 9.04s`.
+- Complete thermal and forecast baseline: `306 passed in 26.02s`.
+- `compileall`, `pyflakes`, `git diff --check`, CLI main/shadow help, and
+  byte-identical `forecast_intel.py`: clean.
+- Prohibited OpenHAB write, command, publish-flag, and mutating HTTP helper scan:
+  no matches. The CLI remains exactly journal/train/backtest/shadow and local-only.
+
+### Remaining concern
+
+No live OpenHAB, PostgreSQL, forecast service, accepted registry, or actuator was
+mutated. Transport failure behavior is covered through injected CLI-level tests;
+intentional live-service smoke remains outside this read-only/offline task.
