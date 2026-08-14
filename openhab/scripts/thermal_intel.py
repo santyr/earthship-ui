@@ -8,10 +8,12 @@ import os
 from pathlib import Path
 import sys
 
+import psycopg2
+
 import forecast_intel
 from thermal_model.actions import parse_thermal_message
 from thermal_model.artifacts import ArtifactRegistry, DEFAULT_STATE_DIRECTORY
-from thermal_model.journal import ActionJournal, audit_schema
+from thermal_model.journal import ActionJournal, JournalUnavailable, audit_schema
 from thermal_model.pipeline import (
     TrainingRefused,
     build_unavailable_shadow,
@@ -113,17 +115,23 @@ def _jdbc_series(item, start, end):
 
 
 def _schema_audit_command(parser):
-    dsn = (
-        os.environ.get("THERMAL_DATABASE_ADMIN_URL")
-        or os.environ.get("THERMAL_DATABASE_URL")
-    )
+    admin_dsn = os.environ.get("THERMAL_DATABASE_ADMIN_URL")
+    dsn = admin_dsn or os.environ.get("THERMAL_DATABASE_URL")
     if not dsn:
         parser.error(
             "THERMAL_DATABASE_ADMIN_URL or THERMAL_DATABASE_URL is required"
         )
+    runtime_role = os.environ.get("THERMAL_DATABASE_RUNTIME_ROLE")
+    expected_owner = os.environ.get("THERMAL_DATABASE_EXPECTED_OWNER")
+    if not runtime_role:
+        parser.error("THERMAL_DATABASE_RUNTIME_ROLE is required")
+    if not expected_owner:
+        parser.error("THERMAL_DATABASE_EXPECTED_OWNER is required")
     result = audit_schema(
         dsn,
-        runtime_role=os.environ.get("THERMAL_DATABASE_RUNTIME_ROLE"),
+        runtime_role=runtime_role,
+        expected_owner=expected_owner,
+        require_current_user_owner=admin_dsn is not None,
     )
     print(
         json.dumps(
@@ -449,6 +457,13 @@ def _shadow(args, now, put_state=None, journal=None):
             now=now,
             site_timezone=forecast_intel.MOUNTAIN,
         )
+    except (JournalUnavailable, psycopg2.Error):
+        output = build_unavailable_shadow(
+            now=now,
+            reasons=("action journal unavailable",),
+            current=current,
+            fallback_reason="action journal unavailable",
+        )
     except (
         KeyError, OSError, RuntimeError, TypeError, ValueError
     ) as exc:
@@ -459,7 +474,7 @@ def _shadow(args, now, put_state=None, journal=None):
     write_shadow_output(args.output, output)
     encoded = json.dumps(output, sort_keys=True, separators=(",", ":"))
     unavailable = output["confidence"]["grade"] == "unavailable"
-    if getattr(args, "publish", False):
+    if getattr(args, "publish", False) and not unavailable:
         publish_shadow_output(output, put_state=put_state)
     print(encoded, file=sys.stderr if unavailable else sys.stdout)
     return int(unavailable)

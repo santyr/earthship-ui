@@ -15,7 +15,9 @@ import pytest
 
 from thermal_model.journal import (
     ActionJournal,
+    EXPECTED_SCHEMA_FINGERPRINT,
     IdempotencyConflict,
+    JournalUnavailable,
     SchemaMismatch,
     audit_schema,
     migrate,
@@ -28,6 +30,7 @@ class EphemeralPostgres:
     admin_dsn: str
     runtime_dsn: str
     runtime_role: str
+    expected_owner: str
 
 
 @pytest.fixture(scope="module")
@@ -82,10 +85,14 @@ def ephemeral_postgres():
             f"postgresql://{runtime_role}:{quote(runtime_password)}"
             f"@127.0.0.1:{port}/postgres"
         )
-        migrate(admin_dsn, runtime_role=runtime_role)
+        migrate(
+            admin_dsn, runtime_role=runtime_role, expected_owner="postgres"
+        )
         # The setup path is intentionally repeatable.
-        migrate(admin_dsn, runtime_role=runtime_role)
-        yield EphemeralPostgres(admin_dsn, runtime_dsn, runtime_role)
+        migrate(
+            admin_dsn, runtime_role=runtime_role, expected_owner="postgres"
+        )
+        yield EphemeralPostgres(admin_dsn, runtime_dsn, runtime_role, "postgres")
     finally:
         subprocess.run(
             ["docker", "rm", "--force", container],
@@ -266,6 +273,7 @@ def test_schema_audit_proves_exact_shape_and_privileges(ephemeral_postgres):
     result = audit_schema(
         ephemeral_postgres.admin_dsn,
         runtime_role=ephemeral_postgres.runtime_role,
+        expected_owner=ephemeral_postgres.expected_owner,
     )
 
     assert result["schema"] == "thermal_intel"
@@ -287,7 +295,418 @@ def test_schema_audit_proves_exact_shape_and_privileges(ephemeral_postgres):
         "mode_events.reject_mutation",
     ]
     assert len(result["fingerprint"]) == 64
-    assert result["fingerprint"] == "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa"
+    assert result["fingerprint"] == "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb"
+
+
+def test_schema_audit_can_bind_expected_owner_to_connection_user(
+    ephemeral_postgres,
+):
+    audit_schema(
+        ephemeral_postgres.admin_dsn,
+        runtime_role=ephemeral_postgres.runtime_role,
+        expected_owner=ephemeral_postgres.expected_owner,
+        require_current_user_owner=True,
+    )
+    with pytest.raises(SchemaMismatch, match="owner binding"):
+        audit_schema(
+            ephemeral_postgres.runtime_dsn,
+            runtime_role=ephemeral_postgres.runtime_role,
+            expected_owner=ephemeral_postgres.expected_owner,
+            require_current_user_owner=True,
+        )
+
+
+def _new_role(cursor, prefix):
+    role = f"{prefix}_{uuid4().hex}"
+    cursor.execute(sql.SQL("CREATE ROLE {}").format(sql.Identifier(role)))
+    return role
+
+
+def test_schema_audit_rejects_unexpected_schema_and_table_grantee(
+    ephemeral_postgres,
+):
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            role = _new_role(cursor, "thermal_extra_acl")
+            cursor.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA thermal_intel TO {}").format(
+                    sql.Identifier(role)
+                )
+            )
+            cursor.execute(
+                sql.SQL(
+                    "GRANT SELECT ON thermal_intel.action_events TO {}"
+                ).format(sql.Identifier(role))
+            )
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    sql.SQL("REVOKE ALL ON thermal_intel.action_events FROM {}").format(
+                        sql.Identifier(role)
+                    )
+                )
+                cursor.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA thermal_intel FROM {}").format(
+                        sql.Identifier(role)
+                    )
+                )
+                cursor.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(role)))
+
+
+def test_schema_audit_rejects_column_only_grant(ephemeral_postgres):
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            role = _new_role(cursor, "thermal_column_acl")
+            cursor.execute(
+                sql.SQL(
+                    "GRANT SELECT(event_id) ON thermal_intel.action_events TO {}"
+                ).format(sql.Identifier(role))
+            )
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    sql.SQL(
+                        "REVOKE SELECT(event_id) ON thermal_intel.action_events FROM {}"
+                    ).format(sql.Identifier(role))
+                )
+                cursor.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(role)))
+
+
+def test_schema_audit_rejects_runtime_with_grant_option(ephemeral_postgres):
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql.SQL(
+                    "GRANT SELECT ON thermal_intel.action_events TO {} WITH GRANT OPTION"
+                ).format(sql.Identifier(ephemeral_postgres.runtime_role))
+            )
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    sql.SQL(
+                        "REVOKE GRANT OPTION FOR SELECT ON "
+                        "thermal_intel.action_events FROM {} CASCADE"
+                    ).format(sql.Identifier(ephemeral_postgres.runtime_role))
+                )
+
+
+def test_schema_audit_rejects_unexpected_function_grantor_and_grantee(
+    ephemeral_postgres,
+):
+    function = "thermal_intel.reject_journal_mutation()"
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            grantor = _new_role(cursor, "thermal_function_grantor")
+            grantee = _new_role(cursor, "thermal_function_grantee")
+            cursor.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA thermal_intel TO {}").format(
+                    sql.Identifier(grantor)
+                )
+            )
+            cursor.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {} WITH GRANT OPTION").format(
+                    sql.SQL(function), sql.Identifier(grantor)
+                )
+            )
+            cursor.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(grantor)))
+            cursor.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(function), sql.Identifier(grantee)
+                )
+            )
+            cursor.execute("RESET ROLE")
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    sql.SQL("REVOKE EXECUTE ON FUNCTION {} FROM {} CASCADE").format(
+                        sql.SQL(function), sql.Identifier(grantee)
+                    )
+                )
+                cursor.execute(
+                    sql.SQL("REVOKE EXECUTE ON FUNCTION {} FROM {} CASCADE").format(
+                        sql.SQL(function), sql.Identifier(grantor)
+                    )
+                )
+                cursor.execute(
+                    sql.SQL("REVOKE ALL ON SCHEMA thermal_intel FROM {}").format(
+                        sql.Identifier(grantor)
+                    )
+                )
+                cursor.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(grantee)))
+                cursor.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(grantor)))
+
+
+@pytest.mark.parametrize(
+    "drift", ("owner", "persistence", "rls", "replica_identity")
+)
+def test_schema_audit_rejects_ownership_and_relation_property_drift(
+    ephemeral_postgres, drift
+):
+    role = None
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            if drift == "owner":
+                role = _new_role(cursor, "thermal_unexpected_owner")
+                cursor.execute(
+                    sql.SQL(
+                        "ALTER TABLE thermal_intel.action_events OWNER TO {}"
+                    ).format(sql.Identifier(role))
+                )
+            elif drift == "persistence":
+                cursor.execute("ALTER TABLE thermal_intel.mode_events SET UNLOGGED")
+            elif drift == "rls":
+                cursor.execute(
+                    "ALTER TABLE thermal_intel.mode_events ENABLE ROW LEVEL SECURITY"
+                )
+            else:
+                cursor.execute(
+                    "ALTER TABLE thermal_intel.mode_events REPLICA IDENTITY FULL"
+                )
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                if drift == "owner":
+                    cursor.execute(
+                        "ALTER TABLE thermal_intel.action_events OWNER TO postgres"
+                    )
+                    cursor.execute(
+                        sql.SQL("DROP ROLE {}").format(sql.Identifier(role))
+                    )
+                elif drift == "persistence":
+                    cursor.execute("ALTER TABLE thermal_intel.mode_events SET LOGGED")
+                elif drift == "rls":
+                    cursor.execute(
+                        "ALTER TABLE thermal_intel.mode_events DISABLE ROW LEVEL SECURITY"
+                    )
+                else:
+                    cursor.execute(
+                        "ALTER TABLE thermal_intel.mode_events REPLICA IDENTITY DEFAULT"
+                    )
+
+
+def test_schema_audit_rejects_expected_owner_default_acl_drift(
+    ephemeral_postgres,
+):
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            role = _new_role(cursor, "thermal_default_acl")
+            cursor.execute(
+                sql.SQL(
+                    "ALTER DEFAULT PRIVILEGES FOR ROLE postgres "
+                    "IN SCHEMA thermal_intel GRANT SELECT ON TABLES TO {}"
+                ).format(sql.Identifier(role))
+            )
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    sql.SQL(
+                        "ALTER DEFAULT PRIVILEGES FOR ROLE postgres "
+                        "IN SCHEMA thermal_intel REVOKE SELECT ON TABLES FROM {}"
+                    ).format(sql.Identifier(role))
+                )
+                cursor.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(role)))
+
+
+def _rebind_journal_ownership(
+    cursor, current_owner, current_runtime, new_owner, new_runtime
+):
+    cursor.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(current_owner)))
+    cursor.execute(
+        sql.SQL("REVOKE ALL ON SCHEMA thermal_intel FROM {}").format(
+            sql.Identifier(current_runtime)
+        )
+    )
+    cursor.execute(
+        sql.SQL(
+            "REVOKE ALL ON ALL TABLES IN SCHEMA thermal_intel FROM {}"
+        ).format(sql.Identifier(current_runtime))
+    )
+    cursor.execute("RESET ROLE")
+    cursor.execute(
+        sql.SQL("ALTER SCHEMA thermal_intel OWNER TO {}").format(
+            sql.Identifier(new_owner)
+        )
+    )
+    for table in ("action_events", "message_receipts", "mode_events"):
+        cursor.execute(
+            sql.SQL("ALTER TABLE thermal_intel.{} OWNER TO {}").format(
+                sql.Identifier(table), sql.Identifier(new_owner)
+            )
+        )
+    for function in (
+        "reject_action_correction_cycle",
+        "reject_journal_mutation",
+        "reject_mode_correction_cycle",
+    ):
+        cursor.execute(
+            sql.SQL("ALTER FUNCTION thermal_intel.{}() OWNER TO {}").format(
+                sql.Identifier(function), sql.Identifier(new_owner)
+            )
+        )
+    cursor.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(new_owner)))
+    cursor.execute(
+        sql.SQL("GRANT USAGE ON SCHEMA thermal_intel TO {}").format(
+            sql.Identifier(new_runtime)
+        )
+    )
+    cursor.execute(
+        sql.SQL(
+            "GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA thermal_intel TO {}"
+        ).format(sql.Identifier(new_runtime))
+    )
+    cursor.execute("RESET ROLE")
+
+
+def test_schema_fingerprint_normalizes_expected_owner_and_runtime_role_names(
+    ephemeral_postgres,
+):
+    owner_a = owner_b = runtime_a = runtime_b = None
+    owner_a_password = uuid4().hex
+    owner_b_password = uuid4().hex
+    current_owner = ephemeral_postgres.expected_owner
+    current_runtime = ephemeral_postgres.runtime_role
+    try:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                owner_a = _new_role(cursor, "thermal_admin_a")
+                runtime_a = _new_role(cursor, "thermal_runtime_a")
+                owner_b = _new_role(cursor, "thermal_admin_b")
+                runtime_b = _new_role(cursor, "thermal_runtime_b")
+                cursor.execute(
+                    sql.SQL("ALTER ROLE {} LOGIN PASSWORD %s").format(
+                        sql.Identifier(owner_a)
+                    ),
+                    (owner_a_password,),
+                )
+                cursor.execute(
+                    sql.SQL("ALTER ROLE {} LOGIN PASSWORD %s").format(
+                        sql.Identifier(owner_b)
+                    ),
+                    (owner_b_password,),
+                )
+                _rebind_journal_ownership(
+                    cursor,
+                    current_owner,
+                    current_runtime,
+                    owner_a,
+                    runtime_a,
+                )
+        current_owner, current_runtime = owner_a, runtime_a
+        owner_a_dsn = psycopg2.extensions.make_dsn(
+            ephemeral_postgres.admin_dsn,
+            user=owner_a,
+            password=owner_a_password,
+        )
+        first = audit_schema(
+            owner_a_dsn,
+            runtime_role=runtime_a,
+            expected_owner=owner_a,
+            require_current_user_owner=True,
+        )
+
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                _rebind_journal_ownership(
+                    cursor,
+                    current_owner,
+                    current_runtime,
+                    owner_b,
+                    runtime_b,
+                )
+        current_owner, current_runtime = owner_b, runtime_b
+        owner_b_dsn = psycopg2.extensions.make_dsn(
+            ephemeral_postgres.admin_dsn,
+            user=owner_b,
+            password=owner_b_password,
+        )
+        second = audit_schema(
+            owner_b_dsn,
+            runtime_role=runtime_b,
+            expected_owner=owner_b,
+            require_current_user_owner=True,
+        )
+
+        assert first["fingerprint"] == EXPECTED_SCHEMA_FINGERPRINT
+        assert second["fingerprint"] == first["fingerprint"]
+    finally:
+        if owner_a is not None:
+            with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+                with connection.cursor() as cursor:
+                    _rebind_journal_ownership(
+                        cursor,
+                        current_owner,
+                        current_runtime,
+                        ephemeral_postgres.expected_owner,
+                        ephemeral_postgres.runtime_role,
+                    )
+                    for role in (runtime_b, owner_b, runtime_a, owner_a):
+                        if role is not None:
+                            cursor.execute(
+                                sql.SQL("DROP ROLE {}").format(sql.Identifier(role))
+                            )
+
+
+def test_action_journal_sanitizes_psycopg_query_failures(monkeypatch):
+    def unavailable(*args, **kwargs):
+        del args, kwargs
+        raise psycopg2.OperationalError("password=secret host=private-db")
+
+    monkeypatch.setattr(psycopg2, "connect", unavailable)
+    journal = ActionJournal("postgresql://not-returned")
+    start = datetime(2026, 8, 13, tzinfo=timezone.utc)
+    with pytest.raises(JournalUnavailable) as raised:
+        journal.effective_modes(start, start + timedelta(hours=1))
+
+    assert str(raised.value) == "action journal unavailable"
+    assert "secret" not in str(raised.value)
+    assert "private-db" not in str(raised.value)
 
 
 def test_migrate_refuses_partial_schema_before_mutating_it(ephemeral_postgres):
@@ -306,6 +725,7 @@ def test_migrate_refuses_partial_schema_before_mutating_it(ephemeral_postgres):
             migrate(
                 ephemeral_postgres.admin_dsn,
                 runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
             )
         with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
             with connection.cursor() as cursor:
@@ -337,11 +757,13 @@ def test_schema_audit_and_migrate_reject_extra_index_drift(ephemeral_postgres):
             audit_schema(
                 ephemeral_postgres.admin_dsn,
                 runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
             )
         with pytest.raises(SchemaMismatch, match="exact schema audit"):
             migrate(
                 ephemeral_postgres.admin_dsn,
                 runtime_role=ephemeral_postgres.runtime_role,
+                expected_owner=ephemeral_postgres.expected_owner,
             )
     finally:
         with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
@@ -658,6 +1080,7 @@ def test_cli_schema_audit_is_read_only_and_never_prints_dsn(ephemeral_postgres):
     environment = os.environ.copy()
     environment["THERMAL_DATABASE_ADMIN_URL"] = ephemeral_postgres.admin_dsn
     environment["THERMAL_DATABASE_RUNTIME_ROLE"] = ephemeral_postgres.runtime_role
+    environment["THERMAL_DATABASE_EXPECTED_OWNER"] = ephemeral_postgres.expected_owner
 
     result = subprocess.run(
         command,
@@ -669,11 +1092,48 @@ def test_cli_schema_audit_is_read_only_and_never_prints_dsn(ephemeral_postgres):
     payload = json.loads(result.stdout)
 
     assert payload == {
-        "fingerprint": "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa",
+        "fingerprint": "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb",
         "schema": "thermal_intel",
         "status": "exact",
     }
     assert ephemeral_postgres.admin_dsn not in result.stdout + result.stderr
+
+
+def test_cli_runtime_schema_audit_requires_protected_expected_owner(
+    ephemeral_postgres,
+):
+    command = [
+        sys.executable,
+        str(Path(__file__).with_name("thermal_intel.py")),
+        "schema-audit",
+    ]
+    environment = os.environ.copy()
+    environment.pop("THERMAL_DATABASE_ADMIN_URL", None)
+    environment["THERMAL_DATABASE_URL"] = ephemeral_postgres.runtime_dsn
+    environment["THERMAL_DATABASE_RUNTIME_ROLE"] = ephemeral_postgres.runtime_role
+    environment.pop("THERMAL_DATABASE_EXPECTED_OWNER", None)
+
+    missing = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+    assert missing.returncode != 0
+    assert "THERMAL_DATABASE_EXPECTED_OWNER is required" in missing.stderr
+    assert ephemeral_postgres.runtime_dsn not in missing.stdout + missing.stderr
+
+    environment["THERMAL_DATABASE_EXPECTED_OWNER"] = ephemeral_postgres.expected_owner
+    exact = subprocess.run(
+        command,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+    assert json.loads(exact.stdout)["fingerprint"] == EXPECTED_SCHEMA_FINGERPRINT
+    assert ephemeral_postgres.runtime_dsn not in exact.stdout + exact.stderr
 
 
 def test_cli_has_no_transport_command_or_actuation_arguments():

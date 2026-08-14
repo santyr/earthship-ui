@@ -4,6 +4,7 @@ import math
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+import psycopg2
 import pytest
 
 from thermal_model.artifacts import ArtifactPromotionRefused, ArtifactUnavailable
@@ -955,6 +956,74 @@ def test_cli_shadow_queries_journal_for_effective_mode_timeline(tmp_path, monkey
     assert status == 0
     assert payload["confidence"]["grade"] != "unavailable"
     assert journal.calls == [(NOW, rows[-1]["at"] + timedelta(microseconds=1))]
+
+
+def test_cli_shadow_journal_operational_error_is_sanitized_and_never_published(
+    tmp_path, monkeypatch
+):
+    import thermal_intel
+
+    class BrokenJournal:
+        def effective_modes(self, start, end):
+            del start, end
+            raise psycopg2.OperationalError(
+                "connection to server at secret-db.internal failed for password=secret"
+            )
+
+    destination = tmp_path / "shadow.json"
+    destination.write_text("stale-prior-output", encoding="utf-8")
+    rows = [
+        {key: value for key, value in row.items() if key != "mode"}
+        for row in forecast_hours(24)
+    ]
+    published = []
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows", lambda snapshot, now: rows)
+    monkeypatch.setattr(thermal_intel, "ArtifactRegistry", lambda path: AcceptedRegistry())
+
+    status = thermal_intel._shadow(
+        SimpleNamespace(output=destination, publish=True),
+        NOW,
+        put_state=lambda *args: published.append(args),
+        journal=BrokenJournal(),
+    )
+
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    assert status == 1
+    assert validate_shadow_output(payload) is payload
+    assert payload["confidence"]["grade"] == "unavailable"
+    assert payload["schedule"] == {}
+    assert payload["reasons"] == ["action journal unavailable"]
+    assert published == []
+    assert "secret-db" not in destination.read_text(encoding="utf-8")
+    assert "password" not in destination.read_text(encoding="utf-8")
+
+
+def test_cli_shadow_does_not_swallow_journal_programmer_error(tmp_path, monkeypatch):
+    import thermal_intel
+
+    class BrokenJournal:
+        def effective_modes(self, start, end):
+            del start, end
+            raise AssertionError("programmer defect")
+
+    rows = [
+        {key: value for key, value in row.items() if key != "mode"}
+        for row in forecast_hours(24)
+    ]
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows", lambda snapshot, now: rows)
+
+    with pytest.raises(AssertionError, match="programmer defect"):
+        thermal_intel._shadow(
+            SimpleNamespace(output=tmp_path / "shadow.json", publish=False),
+            NOW,
+            journal=BrokenJournal(),
+        )
 
 
 def test_cli_shadow_missing_effective_mode_fails_soft_without_candidate(tmp_path, monkeypatch):

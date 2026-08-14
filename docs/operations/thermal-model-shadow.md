@@ -421,10 +421,15 @@ SELECT/INSERT only. The deterministic catalog fingerprint additionally covers
 columns, types, type modifiers, nullability, defaults, identity and generated
 attributes, collations, exact constraint and index definitions (including key
 order, INCLUDE fields, expressions, and predicates), trigger/function bodies,
-and effective PUBLIC/runtime privileges. Migration computes this exact
-fingerprint before any DDL when the schema is nonempty; only an absent or empty
-schema may proceed without a match. The post-migration and runtime audit command
-returns only schema, status, and fingerprint JSON and never prints either DSN.
+relation persistence, RLS/forced-RLS, replica identity, partition and access
+method properties, object owner, explicit ACL grantor/grantee identities, grantability,
+column and function ACLs, relevant expected-owner default ACLs, role-membership edges,
+and effective PUBLIC/runtime/owner privileges. Only the receipt-bound admin owner and
+runtime role are normalized to stable tokens; every unexpected identity remains literal
+and changes the fingerprint. Migration computes this exact fingerprint before any DDL
+when the schema is nonempty; only an absent or empty schema may proceed without a match.
+The post-migration and runtime audit command returns only schema, status, and fingerprint
+JSON and never prints either DSN.
 
 **GATE A MUTATION — secret-safe pre-audit, migration, and exact post-audit:**
 
@@ -432,13 +437,35 @@ returns only schema, status, and fingerprint JSON and never prints either DSN.
 set -euo pipefail
 (
   set -euo pipefail
+  umask 077
+  : "${EVIDENCE_ROOT:?}"
   read -r -s -p 'THERMAL_DATABASE_ADMIN_URL: ' THERMAL_DATABASE_ADMIN_URL
   printf '\n'
   test -n "$THERMAL_DATABASE_ADMIN_URL"
   export THERMAL_DATABASE_ADMIN_URL
   THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime
   export THERMAL_DATABASE_RUNTIME_ROLE
-  trap 'unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE' EXIT HUP INT TERM
+  THERMAL_DATABASE_EXPECTED_OWNER="$(psql "$THERMAL_DATABASE_ADMIN_URL" \
+    -X --set ON_ERROR_STOP=1 --tuples-only --no-align --quiet \
+    --command 'SELECT current_user')"
+  test -n "$THERMAL_DATABASE_EXPECTED_OWNER"
+  case "$THERMAL_DATABASE_EXPECTED_OWNER" in
+    *$'\n'*) exit 1 ;;
+  esac
+  export THERMAL_DATABASE_EXPECTED_OWNER
+  EXPECTED_OWNER_RECEIPT="$EVIDENCE_ROOT/database-expected-owner"
+  test ! -e "$EXPECTED_OWNER_RECEIPT"
+  test ! -L "$EXPECTED_OWNER_RECEIPT"
+  EXPECTED_OWNER_TMP="$(mktemp "$EVIDENCE_ROOT/.database-expected-owner.XXXXXX")"
+  printf '%s\n' "$THERMAL_DATABASE_EXPECTED_OWNER" >"$EXPECTED_OWNER_TMP"
+  chmod 600 "$EXPECTED_OWNER_TMP"
+  ln -- "$EXPECTED_OWNER_TMP" "$EXPECTED_OWNER_RECEIPT"
+  sync -f "$EXPECTED_OWNER_RECEIPT"
+  unlink -- "$EXPECTED_OWNER_TMP"
+  sync -f "$EVIDENCE_ROOT"
+  EXPECTED_OWNER_MODE="$(stat -c %a "$EXPECTED_OWNER_RECEIPT")"
+  test "$EXPECTED_OWNER_MODE" = 600
+  trap 'unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
 
   psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
@@ -613,9 +640,9 @@ END $audit$;
 SQL
 
   cd /home/sat/openhab/scripts
-  /usr/bin/python3 -c 'import os; from thermal_model.journal import migrate; migrate(os.environ["THERMAL_DATABASE_ADMIN_URL"], runtime_role="thermal_intel_runtime")'
+  /usr/bin/python3 -c 'import os; from thermal_model.journal import migrate; migrate(os.environ["THERMAL_DATABASE_ADMIN_URL"], runtime_role=os.environ["THERMAL_DATABASE_RUNTIME_ROLE"], expected_owner=os.environ["THERMAL_DATABASE_EXPECTED_OWNER"])'
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py schema-audit \
-    | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa")' >/dev/null
+    | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb")' >/dev/null
 
   psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
@@ -788,10 +815,10 @@ BEGIN
 END $audit$;
 SQL
 
-  unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE
+  unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
   trap - EXIT HUP INT TERM
 )
-unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE
+unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
 ```
 
 The audit is refusal-only outside the dedicated migration. It never modifies
@@ -830,7 +857,17 @@ set -euo pipefail
   export THERMAL_DATABASE_URL
   THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime
   export THERMAL_DATABASE_RUNTIME_ROLE
-  trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE' EXIT HUP INT TERM
+  EXPECTED_OWNER_RECEIPT="$EVIDENCE_ROOT/database-expected-owner"
+  test -f "$EXPECTED_OWNER_RECEIPT"
+  test ! -L "$EXPECTED_OWNER_RECEIPT"
+  EXPECTED_OWNER_MODE="$(stat -c %a "$EXPECTED_OWNER_RECEIPT")"
+  test "$EXPECTED_OWNER_MODE" = 600
+  EXPECTED_OWNER_LINES="$(wc -l <"$EXPECTED_OWNER_RECEIPT")"
+  test "$EXPECTED_OWNER_LINES" -eq 1
+  IFS= read -r THERMAL_DATABASE_EXPECTED_OWNER <"$EXPECTED_OWNER_RECEIPT"
+  test -n "$THERMAL_DATABASE_EXPECTED_OWNER"
+  export THERMAL_DATABASE_EXPECTED_OWNER
+  trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
 
   psql "$THERMAL_DATABASE_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
@@ -974,7 +1011,7 @@ END $audit$;
 SQL
 
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py schema-audit \
-    | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa")' >/dev/null
+    | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb")' >/dev/null
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow \
@@ -982,10 +1019,10 @@ SQL
   LOCAL_SHADOW_MODE="$(stat -c %a "$STATE_ROOT/review/shadow-local.json")"
   test "$LOCAL_SHADOW_MODE" = 600
 
-  unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE
+  unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
   trap - EXIT HUP INT TERM
 )
-unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE
+unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
 ```
 
 The runtime DSN is neither printed nor inherited after this fence. The exact

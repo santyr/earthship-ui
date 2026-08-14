@@ -179,7 +179,7 @@ describe('thermal model attended runbook safety', () => {
     );
     expect(runbook).toContain('immediate catch-up publication');
     expect(runbook).toContain(
-      "trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE' EXIT HUP INT TERM",
+      "trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM",
     );
   });
 
@@ -271,11 +271,19 @@ describe('thermal model attended runbook safety', () => {
 
   it('uses the deterministic exact schema fingerprint after migration and under runtime credentials', () => {
     const command = '/home/sat/openhab/scripts/thermal_intel.py schema-audit';
-    const fingerprint = '600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa';
+    const fingerprint = '786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb';
     expect(runbook.split(command).length - 1).toBeGreaterThanOrEqual(2);
     expect(runbook.split(fingerprint).length - 1).toBeGreaterThanOrEqual(2);
     expect(runbook.split('THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime').length - 1)
       .toBeGreaterThanOrEqual(2);
+    expect(runbook).toContain('THERMAL_DATABASE_EXPECTED_OWNER="$(psql');
+    expect(runbook).toContain("--command 'SELECT current_user'");
+    expect(runbook.split('database-expected-owner').length - 1)
+      .toBeGreaterThanOrEqual(2);
+    expect(runbook.split('export THERMAL_DATABASE_EXPECTED_OWNER').length - 1)
+      .toBeGreaterThanOrEqual(2);
+    expect(runbook).toContain('test "$EXPECTED_OWNER_MODE" = 600');
+    expect(runbook).toContain('owner, explicit ACL grantor/grantee identities, grantability');
     expect(runbook).toContain('columns, types, type modifiers, nullability, defaults, identity');
     expect(runbook).toContain('constraint and index definitions');
     expect(runbook).toContain('never prints either DSN');

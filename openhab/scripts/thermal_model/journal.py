@@ -44,6 +44,12 @@ class SchemaMismatch(RuntimeError):
     pass
 
 
+class JournalUnavailable(RuntimeError):
+    """Sanitized action-journal transport or query failure."""
+
+    pass
+
+
 _SCHEMA_TABLES = ("action_events", "message_receipts", "mode_events")
 _SCHEMA_FUNCTIONS = (
     "reject_action_correction_cycle",
@@ -57,10 +63,229 @@ _SCHEMA_TRIGGERS = (
     "mode_events.reject_correction_cycle",
     "mode_events.reject_mutation",
 )
-EXPECTED_SCHEMA_FINGERPRINT = "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa"
+EXPECTED_SCHEMA_FINGERPRINT = "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb"
 
 
-def _schema_shape(cursor, runtime_role=None):
+_EXPECTED_OWNER_TOKEN = "<expected-owner>"
+_RUNTIME_ROLE_TOKEN = "<runtime-role>"
+
+
+def _normalized_role(role, expected_owner, runtime_role):
+    if role == expected_owner:
+        return _EXPECTED_OWNER_TOKEN
+    if role == runtime_role:
+        return _RUNTIME_ROLE_TOKEN
+    return role
+
+
+def _acl_and_ownership_shape(cursor, runtime_role, expected_owner):
+    if not expected_owner:
+        raise ValueError("expected_owner is required for exact schema audit")
+    if not runtime_role:
+        raise ValueError("runtime_role is required for exact schema audit")
+    if expected_owner == runtime_role:
+        raise ValueError("expected_owner and runtime_role must be different roles")
+
+    cursor.execute(
+        """SELECT r.rolname, n.nspacl IS NULL
+             FROM pg_catalog.pg_namespace n
+             JOIN pg_catalog.pg_roles r ON r.oid = n.nspowner
+            WHERE n.nspname = %s""",
+        (SCHEMA,),
+    )
+    schema_row = cursor.fetchone()
+    schema = None if schema_row is None else [
+        _normalized_role(schema_row[0], expected_owner, runtime_role),
+        schema_row[1],
+    ]
+
+    cursor.execute(
+        """SELECT c.relname, c.relkind, c.relpersistence,
+                  c.relispartition, c.relrowsecurity, c.relforcerowsecurity,
+                  c.relreplident, c.relhasrules, c.relhastriggers,
+                  c.relispopulated, c.relchecks, c.relhasindex,
+                  COALESCE(am.amname, ''), COALESCE(ts.spcname, ''),
+                  COALESCE(c.reloptions, ARRAY[]::text[]),
+                  COALESCE(pg_catalog.pg_get_expr(c.relpartbound, c.oid, true), ''),
+                  r.rolname, c.relacl IS NULL
+             FROM pg_catalog.pg_class c
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             JOIN pg_catalog.pg_roles r ON r.oid = c.relowner
+             LEFT JOIN pg_catalog.pg_am am ON am.oid = c.relam
+             LEFT JOIN pg_catalog.pg_tablespace ts ON ts.oid = c.reltablespace
+            WHERE n.nspname = %s
+              AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+            ORDER BY c.relname""",
+        (SCHEMA,),
+    )
+    relations = []
+    for row in cursor.fetchall():
+        values = list(row)
+        values[16] = _normalized_role(values[16], expected_owner, runtime_role)
+        relations.append(values)
+
+    cursor.execute(
+        """SELECT c.relname, a.attnum, a.attname, a.attacl IS NULL
+             FROM pg_catalog.pg_class c
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
+            WHERE n.nspname = %s AND c.relkind IN ('r', 'p')
+              AND a.attnum > 0 AND NOT a.attisdropped
+            ORDER BY c.relname, a.attnum""",
+        (SCHEMA,),
+    )
+    column_acl_state = [list(row) for row in cursor.fetchall()]
+
+    acl_queries = {
+        "schema": """SELECT n.nspname,
+                         COALESCE(grantor.rolname, '#' || acl.grantor::text),
+                         CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+                              ELSE COALESCE(grantee.rolname, '#' || acl.grantee::text) END,
+                         acl.privilege_type, acl.is_grantable
+                    FROM pg_catalog.pg_namespace n
+                    CROSS JOIN LATERAL aclexplode(n.nspacl) acl
+                    LEFT JOIN pg_catalog.pg_roles grantor ON grantor.oid = acl.grantor
+                    LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = acl.grantee
+                   WHERE n.nspname = %s
+                   ORDER BY 1, 2, 3, 4, 5""",
+        "relations": """SELECT c.relname,
+                           COALESCE(grantor.rolname, '#' || acl.grantor::text),
+                           CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+                                ELSE COALESCE(grantee.rolname, '#' || acl.grantee::text) END,
+                           acl.privilege_type, acl.is_grantable
+                      FROM pg_catalog.pg_class c
+                      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                      CROSS JOIN LATERAL aclexplode(c.relacl) acl
+                      LEFT JOIN pg_catalog.pg_roles grantor ON grantor.oid = acl.grantor
+                      LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = acl.grantee
+                     WHERE n.nspname = %s
+                       AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+                     ORDER BY 1, 2, 3, 4, 5""",
+        "columns": """SELECT c.relname, a.attnum, a.attname,
+                         COALESCE(grantor.rolname, '#' || acl.grantor::text),
+                         CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+                              ELSE COALESCE(grantee.rolname, '#' || acl.grantee::text) END,
+                         acl.privilege_type, acl.is_grantable
+                    FROM pg_catalog.pg_class c
+                    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                    JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
+                    CROSS JOIN LATERAL aclexplode(a.attacl) acl
+                    LEFT JOIN pg_catalog.pg_roles grantor ON grantor.oid = acl.grantor
+                    LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = acl.grantee
+                   WHERE n.nspname = %s AND c.relkind IN ('r', 'p')
+                     AND a.attnum > 0 AND NOT a.attisdropped
+                   ORDER BY 1, 2, 3, 4, 5, 6, 7""",
+        "functions": """SELECT p.proname,
+                           pg_catalog.pg_get_function_identity_arguments(p.oid),
+                           COALESCE(grantor.rolname, '#' || acl.grantor::text),
+                           CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+                                ELSE COALESCE(grantee.rolname, '#' || acl.grantee::text) END,
+                           acl.privilege_type, acl.is_grantable
+                      FROM pg_catalog.pg_proc p
+                      JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+                      CROSS JOIN LATERAL aclexplode(p.proacl) acl
+                      LEFT JOIN pg_catalog.pg_roles grantor ON grantor.oid = acl.grantor
+                      LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = acl.grantee
+                     WHERE n.nspname = %s
+                     ORDER BY 1, 2, 3, 4, 5, 6""",
+    }
+    acl = {}
+    identity_indexes = {
+        "schema": (1, 2),
+        "relations": (1, 2),
+        "columns": (3, 4),
+        "functions": (2, 3),
+    }
+    for kind, query in acl_queries.items():
+        cursor.execute(query, (SCHEMA,))
+        entries = []
+        for row in cursor.fetchall():
+            values = list(row)
+            for index in identity_indexes[kind]:
+                values[index] = _normalized_role(
+                    values[index], expected_owner, runtime_role
+                )
+            entries.append(values)
+        acl[kind] = entries
+
+    cursor.execute(
+        """SELECT p.proname,
+                  pg_catalog.pg_get_function_identity_arguments(p.oid),
+                  r.rolname, p.proacl IS NULL
+             FROM pg_catalog.pg_proc p
+             JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+             JOIN pg_catalog.pg_roles r ON r.oid = p.proowner
+            WHERE n.nspname = %s
+            ORDER BY p.proname,
+                     pg_catalog.pg_get_function_identity_arguments(p.oid)""",
+        (SCHEMA,),
+    )
+    function_security = []
+    for row in cursor.fetchall():
+        values = list(row)
+        values[2] = _normalized_role(values[2], expected_owner, runtime_role)
+        function_security.append(values)
+
+    cursor.execute(
+        """SELECT CASE WHEN d.defaclnamespace = 0 THEN '<global>' ELSE n.nspname END,
+                  d.defaclobjtype, owner.rolname,
+                  COALESCE(grantor.rolname, '#' || acl.grantor::text),
+                  CASE WHEN acl.grantee = 0 THEN 'PUBLIC'
+                       ELSE COALESCE(grantee.rolname, '#' || acl.grantee::text) END,
+                  acl.privilege_type, acl.is_grantable
+             FROM pg_catalog.pg_default_acl d
+             JOIN pg_catalog.pg_roles owner ON owner.oid = d.defaclrole
+             LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace
+             CROSS JOIN LATERAL aclexplode(d.defaclacl) acl
+             LEFT JOIN pg_catalog.pg_roles grantor ON grantor.oid = acl.grantor
+             LEFT JOIN pg_catalog.pg_roles grantee ON grantee.oid = acl.grantee
+            WHERE d.defaclrole = (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = %s)
+              AND (d.defaclnamespace = 0 OR n.nspname = %s)
+            ORDER BY 1, 2, 3, 4, 5, 6, 7""",
+        (expected_owner, SCHEMA),
+    )
+    default_acl = []
+    for row in cursor.fetchall():
+        values = list(row)
+        for index in (2, 3, 4):
+            values[index] = _normalized_role(
+                values[index], expected_owner, runtime_role
+            )
+        default_acl.append(values)
+
+    cursor.execute(
+        """SELECT role.rolname, member.rolname,
+                  COALESCE(grantor.rolname, '#' || membership.grantor::text),
+                  membership.admin_option, membership.inherit_option,
+                  membership.set_option
+             FROM pg_catalog.pg_auth_members membership
+             JOIN pg_catalog.pg_roles role ON role.oid = membership.roleid
+             JOIN pg_catalog.pg_roles member ON member.oid = membership.member
+             LEFT JOIN pg_catalog.pg_roles grantor ON grantor.oid = membership.grantor
+            WHERE role.rolname IN (%s, %s) OR member.rolname IN (%s, %s)
+            ORDER BY 1, 2, 3, 4, 5, 6""",
+        (expected_owner, runtime_role, expected_owner, runtime_role),
+    )
+    memberships = []
+    for row in cursor.fetchall():
+        memberships.append([
+            _normalized_role(value, expected_owner, runtime_role)
+            if index < 3 else value
+            for index, value in enumerate(row)
+        ])
+
+    return {
+        "schema": schema,
+        "relations": relations,
+        "column_acl_state": column_acl_state,
+        "function_security": function_security,
+        "acl": acl,
+        "default_acl": default_acl,
+        "role_memberships": memberships,
+    }
+
+
+def _schema_shape(cursor, runtime_role=None, expected_owner=None):
     cursor.execute(
         """SELECT c.relname
              FROM pg_catalog.pg_class c
@@ -189,6 +414,8 @@ def _schema_shape(cursor, runtime_role=None):
     roles = [("public", "PUBLIC")]
     if runtime_role:
         roles.append(("runtime", runtime_role))
+    if expected_owner:
+        roles.append(("owner", expected_owner))
     privileges = {}
     for label, role in roles:
         if label == "public":
@@ -243,6 +470,53 @@ def _schema_shape(cursor, runtime_role=None):
                     (role, qualified) * 7,
                 )
             table_privileges.append([table, *cursor.fetchone()])
+        column_privileges = []
+        cursor.execute(
+            """SELECT c.relname, a.attnum, a.attname
+                 FROM pg_catalog.pg_class c
+                 JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                 JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
+                WHERE n.nspname = %s AND c.relkind IN ('r', 'p')
+                  AND a.attnum > 0 AND NOT a.attisdropped
+                ORDER BY c.relname, a.attnum""",
+            (SCHEMA,),
+        )
+        for table, attnum, column in cursor.fetchall():
+            qualified = f"{SCHEMA}.{table}"
+            if label == "public":
+                cursor.execute(
+                    """SELECT
+                           COALESCE(bool_or(privilege_type = 'SELECT'), false),
+                           COALESCE(bool_or(privilege_type = 'INSERT'), false),
+                           COALESCE(bool_or(privilege_type = 'UPDATE'), false),
+                           COALESCE(bool_or(privilege_type = 'REFERENCES'), false)
+                       FROM (
+                           SELECT acl.privilege_type
+                             FROM pg_catalog.pg_class c
+                             CROSS JOIN LATERAL aclexplode(
+                                 COALESCE(c.relacl, acldefault('r', c.relowner))
+                             ) acl
+                            WHERE c.oid = %s::regclass AND acl.grantee = 0
+                           UNION ALL
+                           SELECT acl.privilege_type
+                             FROM pg_catalog.pg_attribute a
+                             CROSS JOIN LATERAL aclexplode(a.attacl) acl
+                            WHERE a.attrelid = %s::regclass AND a.attnum = %s
+                              AND acl.grantee = 0
+                       ) effective""",
+                    (qualified, qualified, attnum),
+                )
+            else:
+                cursor.execute(
+                    """SELECT has_column_privilege(%s, %s, %s, 'SELECT'),
+                              has_column_privilege(%s, %s, %s, 'INSERT'),
+                              has_column_privilege(%s, %s, %s, 'UPDATE'),
+                              has_column_privilege(%s, %s, %s, 'REFERENCES')""",
+                    (role, qualified, column) * 4,
+                )
+            column_privileges.append(
+                [table, attnum, column, *cursor.fetchone()]
+            )
         function_privileges = []
         for function in _SCHEMA_FUNCTIONS:
             qualified = f"{SCHEMA}.{function}()"
@@ -267,6 +541,7 @@ def _schema_shape(cursor, runtime_role=None):
         privileges[label] = {
             "schema": schema_privileges,
             "tables": table_privileges,
+            "columns": column_privileges,
             "functions": function_privileges,
         }
 
@@ -278,6 +553,9 @@ def _schema_shape(cursor, runtime_role=None):
         "triggers": triggers,
         "functions": functions,
         "privileges": privileges,
+        "security": _acl_and_ownership_shape(
+            cursor, runtime_role=runtime_role, expected_owner=expected_owner
+        ),
     }
 
 
@@ -288,9 +566,11 @@ def _shape_fingerprint(shape):
     return sha256(encoded).hexdigest()
 
 
-def _audit_cursor(cursor, runtime_role=None):
+def _audit_cursor(cursor, runtime_role=None, expected_owner=None):
     try:
-        shape = _schema_shape(cursor, runtime_role=runtime_role)
+        shape = _schema_shape(
+            cursor, runtime_role=runtime_role, expected_owner=expected_owner
+        )
     except psycopg2.Error as exc:
         raise SchemaMismatch(
             "thermal_intel exact schema audit failed (missing or partial objects)"
@@ -310,18 +590,33 @@ def _audit_cursor(cursor, runtime_role=None):
     }
 
 
-def audit_schema(dsn, runtime_role=None):
+def audit_schema(
+    dsn,
+    runtime_role=None,
+    expected_owner=None,
+    require_current_user_owner=False,
+):
     """Read-only exact catalog audit; never prints or returns a DSN."""
     with psycopg2.connect(dsn) as connection:
         with connection.cursor() as cursor:
-            return _audit_cursor(cursor, runtime_role=runtime_role)
+            if require_current_user_owner:
+                cursor.execute("SELECT current_user = %s", (expected_owner,))
+                if not cursor.fetchone()[0]:
+                    raise SchemaMismatch(
+                        "thermal_intel expected owner binding failed"
+                    )
+            return _audit_cursor(
+                cursor,
+                runtime_role=runtime_role,
+                expected_owner=expected_owner,
+            )
 
 
 def _check_values(values):
     return sql.SQL(", ").join(sql.Literal(value) for value in values)
 
 
-def _preflight_existing_schema(cursor, runtime_role=None):
+def _preflight_existing_schema(cursor, runtime_role=None, expected_owner=None):
     cursor.execute(
         "SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = %s",
         (SCHEMA,),
@@ -339,14 +634,25 @@ def _preflight_existing_schema(cursor, runtime_role=None):
         (namespace_oid, namespace_oid),
     )
     if cursor.fetchone()[0]:
-        _audit_cursor(cursor, runtime_role=runtime_role)
+        _audit_cursor(
+            cursor,
+            runtime_role=runtime_role,
+            expected_owner=expected_owner,
+        )
 
 
-def migrate(dsn, runtime_role=None):
+def migrate(dsn, runtime_role=None, expected_owner=None):
     """Create only a new/empty schema or re-assert an already exact schema."""
     with psycopg2.connect(dsn) as connection:
         with connection.cursor() as cursor:
-            _preflight_existing_schema(cursor, runtime_role=runtime_role)
+            if expected_owner is None:
+                cursor.execute("SELECT current_user")
+                expected_owner = cursor.fetchone()[0]
+            _preflight_existing_schema(
+                cursor,
+                runtime_role=runtime_role,
+                expected_owner=expected_owner,
+            )
             cursor.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}") .format(
                 sql.Identifier(SCHEMA)
             ))
@@ -606,7 +912,11 @@ def migrate(dsn, runtime_role=None):
                         "ON ALL TABLES IN SCHEMA {} FROM {}"
                     ).format(sql.Identifier(SCHEMA), role)
                 )
-            _audit_cursor(cursor, runtime_role=runtime_role)
+            _audit_cursor(
+                cursor,
+                runtime_role=runtime_role,
+                expected_owner=expected_owner,
+            )
 
 
 def _aware(value, name):
@@ -775,32 +1085,35 @@ class ActionJournal:
         _aware(end, "end")
         if end <= start:
             raise ValueError("end must be after start")
-        with psycopg2.connect(self._dsn) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """WITH effective AS (
-                           SELECT m.*
-                           FROM thermal_intel.mode_events m
-                           WHERE NOT EXISTS (
-                               SELECT 1 FROM thermal_intel.mode_events correction
-                               WHERE correction.supersedes = m.event_id
+        try:
+            with psycopg2.connect(self._dsn) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """WITH effective AS (
+                               SELECT m.*
+                               FROM thermal_intel.mode_events m
+                               WHERE NOT EXISTS (
+                                   SELECT 1 FROM thermal_intel.mode_events correction
+                                   WHERE correction.supersedes = m.event_id
+                               )
+                           ), prior AS (
+                               SELECT event_id FROM effective
+                               WHERE effective_at < %s
+                               ORDER BY effective_at DESC, received_at DESC, event_id DESC
+                               LIMIT 1
                            )
-                       ), prior AS (
-                           SELECT event_id FROM effective
-                           WHERE effective_at < %s
-                           ORDER BY effective_at DESC, received_at DESC, event_id DESC
-                           LIMIT 1
-                       )
-                       SELECT m.event_id, m.idempotency_key, m.received_at,
-                              m.effective_at, m.mode, m.source, m.confidence,
-                              m.note, m.supersedes
-                       FROM effective m
-                       WHERE (m.effective_at >= %s AND m.effective_at < %s)
-                          OR m.event_id IN (SELECT event_id FROM prior)
-                       ORDER BY m.effective_at, m.received_at, m.event_id""",
-                    (start, start, end),
-                )
-                return tuple(ModeEvent(*row) for row in cursor.fetchall())
+                           SELECT m.event_id, m.idempotency_key, m.received_at,
+                                  m.effective_at, m.mode, m.source, m.confidence,
+                                  m.note, m.supersedes
+                           FROM effective m
+                           WHERE (m.effective_at >= %s AND m.effective_at < %s)
+                              OR m.event_id IN (SELECT event_id FROM prior)
+                           ORDER BY m.effective_at, m.received_at, m.event_id""",
+                        (start, start, end),
+                    )
+                    return tuple(ModeEvent(*row) for row in cursor.fetchall())
+        except psycopg2.Error as exc:
+            raise JournalUnavailable("action journal unavailable") from exc
 
     def events_for_receipt(self, idempotency_key):
         with psycopg2.connect(self._dsn) as connection:
