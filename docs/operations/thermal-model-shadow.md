@@ -29,14 +29,20 @@ temporary file, receipt, and verification read. Each new directory is followed
 by an immediate parent `fsync` and new-directory `fsync`.
 
 For each phase, the helper prevalidates every source and live target, persists
-`phase-state.json`, writes and fsyncs an intent before each replacement, writes
-a unique sibling temporary file, fsyncs it, verifies its SHA-256 and mode, uses
-`os.replace` within the pinned parent, fsyncs the parent, and then persists
-completion. Ordinary failure automatically restores completed replacements.
-A crash requires explicit `thermal-model-files.py recover` before any next
-helper operation; recovery reconciles exact original and desired digests across
-a crash before or after rename. Restore accepts only receipt-owned deployed
-state or already-restored original/absence and refuses `unowned target drift`.
+`phase-state.json`, and writes and fsyncs an intent containing a unique sibling
+exchange name before touching that target. It stages, fsyncs, and verifies exact
+SHA-256 and mode through pinned directory descriptors. An expected-present
+replacement uses Linux `renameat2(RENAME_EXCHANGE)`, verifies the atomically
+displaced former target against the receipt, and exchanges back before refusing
+any raced `unowned target drift`. An expected-absent create or capture uses
+`renameat2(RENAME_NOREPLACE)`. Missing kernel/filesystem capability fails closed;
+there is no unsafe replacement fallback. Parent directories are fsynced before
+completion is persisted. Ordinary failure automatically restores completed
+replacements. A crash requires explicit `thermal-model-files.py recover` before
+any next helper operation; recovery reconciles target and journal-owned staged
+or displaced sibling names on either side of each exchange. Restore accepts
+only receipt-owned deployed state or already-restored original/absence and
+never overwrites or deletes unowned drift.
 
 | Phase | Tracked source | Exact live target |
 | --- | --- | --- |
@@ -164,9 +170,12 @@ active, enabled, mixed, or unqueryable state aborts this runbook.
 ## 2. Preliminary authorization: private receipt facts only
 
 Pause. Obtain preliminary authorization for only secure 0700 private directory
-creation, one read-only Item snapshot with local receipt, and read-only capture
-of exact live file targets into durable private backups. It authorizes no live
-file replacement, database change, model run, Item write, or systemd mutation.
+creation, one read-only Item snapshot with local receipt, read-only capture of
+exact live file targets into durable private backups, and one isolated offline
+receipt rehearsal whose in-memory transport is seeded only by that snapshot and
+the reviewed desired manifest. It authorizes no network call during rehearsal,
+live file replacement, database change, model run, Item write, or systemd
+mutation.
 
 **SESSION-ONLY — bind exact private paths:**
 
@@ -248,6 +257,33 @@ node scripts/thermal-model-config.mjs plan --receipt-dir "$ITEM_RECEIPT" \
   | jq -e 'select(.apply|length == 1) | select(.rollback|length == 1)'
 ```
 
+**PRELIMINARY PRIVATE MUTATION — isolated offline apply/verify/rollback/verify/close rehearsal:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${ITEM_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-model-config.mjs rehearse --receipt-dir "$ITEM_RECEIPT" \
+  | jq -e 'select(.itemName == "Thermal_Model_JSON")
+    | select(.transitions == ["applying","applied","desired","rolling-back","rolled-back","closed:rolled-back"])
+    | select(.terminal == {state:"closed",phase:"rolled-back",closedPhase:"rolled-back"})
+    | select(.writeCounts.total == 2)
+    | select(([.operations[] | select(.method != "GET")] | length) == 2)
+    | select(all(.operations[];
+        .path == "/rest/items/Thermal_Model_JSON"
+        and (.method == "GET" or .method == "PUT" or .method == "DELETE")
+        and (.bodyDigest == null or ((.bodyDigest | type) == "string" and (.bodyDigest | length) == 64))))'
+```
+
+This command does not load the OpenHAB credential file and cannot construct a
+REST client. It copies only the checksum-verified receipt and snapshot into a
+private isolated directory, exercises the production transaction state machine
+against an in-memory exact-Item transport, reports every exact path/body digest,
+transition, and write count, verifies the real receipt bytes did not change,
+and removes only the isolated copy.
+
 **READ-ONLY — durable file receipt facts and explicit absent markers:**
 
 ```bash
@@ -284,9 +320,12 @@ REVISION_MAP_MODE="$(stat -c %a "$EVIDENCE_ROOT/revision-map.txt")"
 test "$REVISION_MAP_MODE" = 600
 ```
 
-Present the Item snapshot digest, apply/rollback plan, exact backup receipt,
-explicit absent markers, reviewed Git commit, runtime-manifest SHA-256,
-first-install quiescence, inventory, and repository totals before Gate A.
+Present the Item snapshot digest, apply/rollback plan, closed offline rehearsal
+evidence, exact backup receipt, explicit absent markers, reviewed Git commit,
+runtime-manifest SHA-256, first-install quiescence, inventory, and repository
+totals before Gate A. The attended operator must re-run the rehearsal and review
+its exact packet before Gate B if any tracked desired manifest or receipt fact
+changes.
 
 ## 3. Gate A: code, database, and private model evidence
 
@@ -360,7 +399,12 @@ Built-in system catalog visibility is allowed; application authority is not.
 The audit refuses effective privileges outside `thermal_intel`.
 
 The exact schema inventory after migration is three ordinary tables only:
-`action_events`, `message_receipts`, and `mode_events`. The only functions are
+`action_events`, `message_receipts`, and `mode_events`. The exact non-internal
+trigger graph is three enabled `reject_mutation` BEFORE UPDATE/DELETE row
+triggers (`tgtype=27`) plus two enabled, deferrable, initially-deferred
+`reject_correction_cycle` AFTER INSERT row triggers (`tgtype=5`), with exact
+target tables, function schema/name, zero arguments, and no WHEN clauses. The
+only functions are
 the three non-security-definer trigger functions
 `reject_action_correction_cycle`, `reject_journal_mutation`, and
 `reject_mode_correction_cycle`. There are no views, materialized views,
@@ -386,6 +430,7 @@ DECLARE r pg_roles%ROWTYPE;
 DECLARE schema_oid oid;
 DECLARE actual_tables text[];
 DECLARE actual_functions text[];
+DECLARE actual_triggers text[];
 BEGIN
   SELECT * INTO r FROM pg_roles WHERE rolname='thermal_intel_runtime';
   IF NOT FOUND THEN RAISE EXCEPTION 'runtime role must pre-exist'; END IF;
@@ -422,6 +467,35 @@ BEGIN
       WHERE pronamespace=schema_oid
         AND (prosecdef OR prokind <> 'f' OR pronargs <> 0 OR pg_get_function_result(oid) <> 'trigger')
     ) THEN RAISE EXCEPTION 'pre-migration trigger attributes are not exact'; END IF;
+  SELECT COALESCE(array_agg(
+      concat_ws('|',
+      c.relname,
+      t.tgname,
+      fnn.nspname,
+      p.proname,
+      t.tgenabled,
+      t.tgtype::integer::text,
+      CASE WHEN t.tgdeferrable THEN '1' ELSE '0' END,
+      CASE WHEN t.tginitdeferred THEN '1' ELSE '0' END,
+      t.tgnargs::integer::text,
+      CASE WHEN t.tgqual IS NULL THEN '1' ELSE '0' END,
+      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END
+    ) ORDER BY c.relname,t.tgname
+  ),ARRAY[]::text[]) INTO actual_triggers
+  FROM pg_trigger t
+  JOIN pg_class c ON c.oid=t.tgrelid
+  JOIN pg_proc p ON p.oid=t.tgfoid
+  JOIN pg_namespace fnn ON fnn.oid=p.pronamespace
+  WHERE c.relnamespace=schema_oid AND NOT t.tgisinternal;
+  IF actual_triggers IS DISTINCT FROM ARRAY[
+    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
+    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
+    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0'
+  ]::text[] THEN
+    RAISE EXCEPTION 'thermal trigger graph is not exact: %',actual_triggers;
+  END IF;
     IF NOT has_schema_privilege(r.oid,schema_oid,'USAGE')
        OR has_schema_privilege(r.oid,schema_oid,'CREATE') THEN
       RAISE EXCEPTION 'pre-migration schema privileges are not exact';
@@ -510,6 +584,7 @@ DECLARE r pg_roles%ROWTYPE;
 DECLARE schema_oid oid;
 DECLARE actual_tables text[];
 DECLARE actual_functions text[];
+DECLARE actual_triggers text[];
 BEGIN
   SELECT * INTO r FROM pg_roles WHERE rolname='thermal_intel_runtime';
   IF NOT FOUND OR NOT r.rolcanlogin OR r.rolinherit OR r.rolsuper
@@ -576,6 +651,35 @@ BEGIN
     WHERE pronamespace=schema_oid
       AND (prosecdef OR prokind <> 'f' OR pronargs <> 0 OR pg_get_function_result(oid) <> 'trigger')
   ) THEN RAISE EXCEPTION 'thermal trigger function attributes are not exact'; END IF;
+  SELECT COALESCE(array_agg(
+    concat_ws('|',
+      c.relname,
+      t.tgname,
+      fnn.nspname,
+      p.proname,
+      t.tgenabled,
+      t.tgtype::integer::text,
+      CASE WHEN t.tgdeferrable THEN '1' ELSE '0' END,
+      CASE WHEN t.tginitdeferred THEN '1' ELSE '0' END,
+      t.tgnargs::integer::text,
+      CASE WHEN t.tgqual IS NULL THEN '1' ELSE '0' END,
+      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END
+    ) ORDER BY c.relname,t.tgname
+  ),ARRAY[]::text[]) INTO actual_triggers
+  FROM pg_trigger t
+  JOIN pg_class c ON c.oid=t.tgrelid
+  JOIN pg_proc p ON p.oid=t.tgfoid
+  JOIN pg_namespace fnn ON fnn.oid=p.pronamespace
+  WHERE c.relnamespace=schema_oid AND NOT t.tgisinternal;
+  IF actual_triggers IS DISTINCT FROM ARRAY[
+    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
+    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
+    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0'
+  ]::text[] THEN
+    RAISE EXCEPTION 'thermal trigger graph is not exact: %',actual_triggers;
+  END IF;
   IF NOT has_schema_privilege(r.oid,schema_oid,'USAGE')
      OR has_schema_privilege(r.oid,schema_oid,'CREATE') THEN
     RAISE EXCEPTION 'thermal schema privileges are not exact';
@@ -672,6 +776,7 @@ DECLARE r pg_roles%ROWTYPE;
 DECLARE schema_oid oid;
 DECLARE actual_tables text[];
 DECLARE actual_functions text[];
+DECLARE actual_triggers text[];
 BEGIN
   IF current_user <> 'thermal_intel_runtime' THEN
     RAISE EXCEPTION 'current_user is not thermal_intel_runtime';
@@ -729,6 +834,35 @@ BEGIN
        'reject_mode_correction_cycle/0/f'
      ]::text[] THEN
     RAISE EXCEPTION 'runtime object inventory is not exact';
+  END IF;
+  SELECT COALESCE(array_agg(
+    concat_ws('|',
+      c.relname,
+      t.tgname,
+      fnn.nspname,
+      p.proname,
+      t.tgenabled,
+      t.tgtype::integer::text,
+      CASE WHEN t.tgdeferrable THEN '1' ELSE '0' END,
+      CASE WHEN t.tginitdeferred THEN '1' ELSE '0' END,
+      t.tgnargs::integer::text,
+      CASE WHEN t.tgqual IS NULL THEN '1' ELSE '0' END,
+      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END
+    ) ORDER BY c.relname,t.tgname
+  ),ARRAY[]::text[]) INTO actual_triggers
+  FROM pg_trigger t
+  JOIN pg_class c ON c.oid=t.tgrelid
+  JOIN pg_proc p ON p.oid=t.tgfoid
+  JOIN pg_namespace fnn ON fnn.oid=p.pronamespace
+  WHERE c.relnamespace=schema_oid AND NOT t.tgisinternal;
+  IF actual_triggers IS DISTINCT FROM ARRAY[
+    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
+    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
+    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0'
+  ]::text[] THEN
+    RAISE EXCEPTION 'thermal trigger graph is not exact: %',actual_triggers;
   END IF;
   IF NOT has_schema_privilege(r.oid,schema_oid,'USAGE')
      OR has_schema_privilege(r.oid,schema_oid,'CREATE')
@@ -867,11 +1001,30 @@ if test "$PHASE" = applying; then
   node scripts/thermal-model-config.mjs settle --receipt-dir "$ITEM_RECEIPT"
 fi
 node scripts/thermal-model-config.mjs verify --receipt-dir "$ITEM_RECEIPT" \
-  | jq -e 'select(.ok == true and .expected == "desired")'
+  | jq -e 'select(.ok == true and .expected == "desired" and .phase == "desired")'
 ```
 
 If apply returned ambiguously, never retry the write. Settle only after exact
-receipt-aware readback.
+receipt-aware readback. The exact terminal phase must be `desired` before
+closure.
+
+**GATE B LOCAL RECEIPT MUTATION — GET-only close after exact desired readback:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${ITEM_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-model-config.mjs close --receipt-dir "$ITEM_RECEIPT"
+jq -e 'select(.state == "closed" and .phase == "desired"
+  and .closedPhase == "desired" and .writeCount == 1
+  and (.closedAt | type) == "string")' "$ITEM_RECEIPT/receipt.json"
+```
+
+`close` performs only the exact Item GET/readback and a durable private receipt
+write. It cannot PUT or DELETE an Item. Closing preserves the snapshot and all
+rollback/closure evidence; a later audited rollback from closed `desired`
+explicitly reopens to `rolling-back` before its sole restore-or-delete write.
 
 **GATE B MUTATION — one manual valid shadow state publish:**
 
@@ -1157,7 +1310,21 @@ if test "$PHASE" = rolling-back; then
   node scripts/thermal-model-config.mjs settle --receipt-dir "$ITEM_RECEIPT"
 fi
 node scripts/thermal-model-config.mjs verify --receipt-dir "$ITEM_RECEIPT" \
-  | jq -e 'select(.ok == true and .expected == "original")'
+  | jq -e 'select(.ok == true and .expected == "original" and .phase == "rolled-back")'
+```
+
+The exact terminal phase must be `rolled-back` before closure.
+
+**ROLLBACK LOCAL RECEIPT MUTATION — GET-only close after exact original readback:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${ITEM_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-model-config.mjs close --receipt-dir "$ITEM_RECEIPT"
+jq -e 'select(.state == "closed" and .phase == "rolled-back"
+  and .closedPhase == "rolled-back" and (.closedAt | type) == "string")'   "$ITEM_RECEIPT/receipt.json"
 ```
 
 **ROLLBACK MUTATION — recover interrupted phase, then restore exact files:**

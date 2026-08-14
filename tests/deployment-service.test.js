@@ -206,6 +206,30 @@ describe('thermal model attended runbook safety', () => {
     expect(runbook).toContain('system catalog visibility');
   });
 
+  it('audits the exact five-trigger graph before, after, and at runtime', () => {
+    const expected = [
+      'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
+      'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+      'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+      'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
+      'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+    ];
+    expect(runbook.match(/DECLARE actual_triggers text\[\];/g)?.length)
+      .toBeGreaterThanOrEqual(3);
+    for (const row of expected) {
+      expect(runbook.match(new RegExp(row.replaceAll('|', '\\\\|'), 'g'))?.length)
+        .toBeGreaterThanOrEqual(3);
+    }
+    for (const marker of [
+      'pg_trigger', 'tgisinternal', 'tgenabled', 'tgtype', 'tgdeferrable',
+      'tginitdeferred', 'tgnargs', 'tgqual IS NULL',
+      'thermal trigger graph is not exact',
+    ]) {
+      expect(runbook.match(new RegExp(marker.replaceAll('|', '\\\\|'), 'g'))?.length)
+        .toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('audits an existing schema before migration and revalidates private paths', () => {
     const migration = runbook.indexOf('from thermal_model.journal import migrate');
     const preInventory = runbook.indexOf('pre-migration thermal_intel inventory is not exact');
@@ -238,12 +262,14 @@ describe('thermal model attended runbook safety', () => {
       'Preliminary authorization: private receipt facts only',
       'thermal-model-config.mjs snapshot',
       'thermal-model-config.mjs plan',
+      'thermal-model-config.mjs rehearse',
       'Gate A: code, database, and private model evidence',
       'thermal-model-files.py install-code',
       'thermal_intel.py train',
       'Review artifact and backtest evidence',
       'Gate B: sole observational Item and state writes',
       'thermal-model-config.mjs apply',
+      'thermal-model-config.mjs close',
       'thermal_intel.py shadow --publish',
       'Gate C: service and timer activation',
       'thermal-model-files.py install-units',
@@ -254,6 +280,27 @@ describe('thermal model attended runbook safety', () => {
       expect(current, marker).toBeGreaterThan(previous);
       previous = current;
     }
+  });
+
+  it('requires offline rehearsal and exact receipt closure around Gate B and rollback', () => {
+    const rehearsal = runbook.indexOf('thermal-model-config.mjs rehearse');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    const apply = runbook.indexOf('thermal-model-config.mjs apply', gateB);
+    const closeDesired = runbook.indexOf('thermal-model-config.mjs close', apply);
+    const publish = runbook.indexOf('thermal_intel.py shadow --publish', closeDesired);
+    expect(rehearsal).toBeGreaterThan(-1);
+    expect(rehearsal).toBeLessThan(gateB);
+    expect(closeDesired).toBeGreaterThan(apply);
+    expect(closeDesired).toBeLessThan(publish);
+    expect(runbook).toContain('closed:rolled-back');
+    expect(runbook).toMatch(/cannot construct a\s+REST client/);
+
+    const rollback = runbook.indexOf('thermal-model-config.mjs rollback');
+    const verifyOriginal = runbook.indexOf('.phase == "rolled-back"', rollback);
+    const closeRolledBack = runbook.indexOf('thermal-model-config.mjs close', verifyOriginal);
+    const fileRestore = runbook.indexOf('thermal-model-files.py restore', closeRolledBack);
+    expect(closeRolledBack).toBeGreaterThan(verifyOriginal);
+    expect(fileRestore).toBeGreaterThan(closeRolledBack);
   });
 
   it('stops timers and both services before receipt or file rollback', () => {
@@ -273,7 +320,7 @@ describe('thermal model attended runbook safety', () => {
   });
 
   it('requires atomic manifests, exact role authority, provenance, and private modes', () => {
-    expect(runbook).toMatch(/sibling.*temporary.*fsync.*SHA-256.*os\.replace.*parent/si);
+    expect(runbook).toMatch(/sibling.*fsync.*SHA-256.*renameat2\(RENAME_EXCHANGE\).*parent/si);
     expect(runbook).toContain('explicit absent markers');
     expect(runbook).toContain('rolsuper');
     expect(runbook).toContain('rolcreaterole');

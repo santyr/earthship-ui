@@ -2,6 +2,7 @@
 """Durable, receipt-bound deployment of the fixed thermal runtime manifest."""
 
 import argparse
+import ctypes
 import errno
 from hashlib import sha256
 import json
@@ -95,6 +96,13 @@ _WRITE_FLAGS = (
 )
 _RECOVERY_STATUSES = {"applying", "recovering", "recovery-required"}
 _ATTENDED_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+_RENAME_NOREPLACE = 1
+_RENAME_EXCHANGE = 2
+_LIBC = ctypes.CDLL(None, use_errno=True)
+
+
+class UnownedTargetDrift(RuntimeError):
+    """The live target changed outside the receipt-owned state machine."""
 
 
 class MissingPath(FileNotFoundError):
@@ -256,7 +264,8 @@ def _hit(fault, event, index):
         fault(event, index)
 
 
-def _atomic_write(path, data, mode, *, parent_mode=0o755, fault=None, index=-2):
+def _atomic_write_private(path, data, mode, *, parent_mode=0o755, fault=None, index=-2):
+    """Write only private receipt/backup artifacts, never a live manifest target."""
     path = Path(path)
     parent_fd, name = _open_parent(path, create=True, create_mode=parent_mode)
     temporary_name = f".{name}.thermal-stage-{secrets.token_hex(12)}"
@@ -338,7 +347,7 @@ def _read_json(path, label, *, allow_missing=False):
 
 
 def _write_json(path, value):
-    _atomic_write(
+    _atomic_write_private(
         path,
         _canonical(_with_checksum(value)) + b"\n",
         0o600,
@@ -419,7 +428,7 @@ def capture_backup(repo_root, receipt_dir, *, manifest=MANIFEST):
             continue
         if target_state is not None:
             backup_name = f"{index:02d}.bin"
-            _atomic_write(
+            _atomic_write_private(
                 backups / backup_name,
                 target_state[0],
                 0o600,
@@ -428,7 +437,7 @@ def capture_backup(repo_root, receipt_dir, *, manifest=MANIFEST):
             record["backup"] = backup_name
         else:
             marker = f"{index:02d}.absent"
-            _atomic_write(
+            _atomic_write_private(
                 backups / marker,
                 (record["target"] + "\n").encode(),
                 0o600,
@@ -438,7 +447,7 @@ def capture_backup(repo_root, receipt_dir, *, manifest=MANIFEST):
         records.append(record)
 
     receipt = _with_checksum({"schema": RECEIPT_SCHEMA, "entries": records})
-    _atomic_write(
+    _atomic_write_private(
         receipt_dir / RECEIPT_NAME,
         _canonical(receipt) + b"\n",
         0o600,
@@ -592,7 +601,7 @@ def _owned_state(record, allowed):
     for state_name in allowed:
         if _target_matches(record, state_name):
             return state_name
-    raise RuntimeError(f"unowned target drift: {record['target']}")
+    raise UnownedTargetDrift(f"unowned target drift: {record['target']}")
 
 
 def _validated_sources(repo_root, receipt, phase):
@@ -634,28 +643,298 @@ def _state_bytes(repo_root, receipt_dir, record, state_name):
     raise ValueError(f"unknown target state: {state_name}")
 
 
-def _apply_state(
+def _renameat2(old_dir_fd, old_name, new_dir_fd, new_name, flags):
+    try:
+        function = _LIBC.renameat2
+    except AttributeError as exc:
+        raise RuntimeError("renameat2 capability unavailable") from exc
+    function.argtypes = (
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    )
+    function.restype = ctypes.c_int
+    result = function(
+        old_dir_fd,
+        os.fsencode(old_name),
+        new_dir_fd,
+        os.fsencode(new_name),
+        flags,
+    )
+    if result == 0:
+        return
+    error = ctypes.get_errno()
+    if error in {errno.ENOSYS, errno.EINVAL, errno.EOPNOTSUPP}:
+        raise RuntimeError("renameat2 capability unavailable")
+    raise OSError(error, os.strerror(error), old_name, new_name)
+
+
+def _matches_at(parent_fd, name, path, record, state_name):
+    expected = _expected_metadata(record, state_name)
+    current = _read_regular_at(
+        parent_fd, name, path, "live target", allow_missing=True
+    )
+    if expected is None:
+        return current is None
+    return (
+        current is not None
+        and _digest(current[0]) == expected[0]
+        and current[1] == expected[1]
+    )
+
+
+def _stage_at(parent_fd, name, path, data, mode):
+    descriptor = os.open(name, _WRITE_FLAGS, mode, dir_fd=parent_fd)
+    try:
+        os.fchmod(descriptor, mode)
+        view = memoryview(data)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError("short write")
+            view = view[written:]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    staged = _read_regular_at(parent_fd, name, path, "staged file")
+    if staged is None or _digest(staged[0]) != _digest(data) or staged[1] != mode:
+        raise RuntimeError(f"staged digest or mode mismatch: {path}")
+
+
+def _remove_owned_at(parent_fd, name, path, record, allowed_states):
+    current = _read_regular_at(
+        parent_fd, name, path, "exchange file", allow_missing=True
+    )
+    if current is None:
+        return
+    if not any(_matches_at(parent_fd, name, path, record, state) for state in allowed_states):
+        raise RuntimeError(f"unowned exchange drift: {path}")
+    os.unlink(name, dir_fd=parent_fd)
+    os.fsync(parent_fd)
+
+
+def _reverse_mismatched_exchange(
+    parent_fd, target_name, exchange_name, target_path, record, after,
+):
+    if not _matches_at(parent_fd, target_name, target_path, record, after):
+        raise RuntimeError(
+            f"unowned target drift after exchange; recovery required: {target_path}"
+        )
+    _renameat2(
+        parent_fd, exchange_name, parent_fd, target_name, _RENAME_EXCHANGE
+    )
+    os.fsync(parent_fd)
+    _remove_owned_at(
+        parent_fd,
+        exchange_name,
+        target_path.parent / exchange_name,
+        record,
+        (after,),
+    )
+
+
+def _cas_apply(
     repo_root,
     receipt_dir,
     record,
-    state_name,
+    before,
+    after,
+    exchange_name,
     *,
     fault=None,
     index=-2,
 ):
-    payload = _state_bytes(repo_root, receipt_dir, record, state_name)
+    payload = _state_bytes(repo_root, receipt_dir, record, after)
     target = Path(record["target"])
-    if payload is None:
-        _unlink(target)
-    else:
-        _atomic_write(
-            target,
-            payload[0],
-            payload[1],
-            parent_mode=0o755,
-            fault=fault,
-            index=index,
+    parent_fd, target_name = _open_parent(target, create=True, create_mode=0o755)
+    exchange_path = target.parent / exchange_name
+    staged = False
+    try:
+        if not _matches_at(parent_fd, target_name, target, record, before):
+            raise UnownedTargetDrift(f"unowned target drift: {target}")
+        exchange_current = _read_regular_at(
+            parent_fd,
+            exchange_name,
+            exchange_path,
+            "exchange file",
+            allow_missing=True,
         )
+        if exchange_current is not None:
+            raise RuntimeError(f"explicit recovery required: {exchange_path}")
+        if payload is not None:
+            _stage_at(parent_fd, exchange_name, exchange_path, payload[0], payload[1])
+            staged = True
+
+        _hit(fault, "before-replace", index)
+        _hit(fault, "before-exchange", index)
+        try:
+            if payload is None:
+                _renameat2(
+                    parent_fd,
+                    target_name,
+                    parent_fd,
+                    exchange_name,
+                    _RENAME_NOREPLACE,
+                )
+            elif _expected_metadata(record, before) is None:
+                _renameat2(
+                    parent_fd,
+                    exchange_name,
+                    parent_fd,
+                    target_name,
+                    _RENAME_NOREPLACE,
+                )
+                staged = False
+            else:
+                _renameat2(
+                    parent_fd,
+                    exchange_name,
+                    parent_fd,
+                    target_name,
+                    _RENAME_EXCHANGE,
+                )
+        except FileExistsError as exc:
+            if staged:
+                _remove_owned_at(
+                    parent_fd, exchange_name, exchange_path, record, (after,)
+                )
+                staged = False
+            raise UnownedTargetDrift(f"unowned target drift: {target}") from exc
+
+        _hit(fault, "after-replace", index)
+        _hit(fault, "after-exchange", index)
+
+        if not _matches_at(parent_fd, target_name, target, record, after):
+            raise RuntimeError(f"incomplete atomic target transition: {target}")
+        if _expected_metadata(record, before) is not None:
+            if not _matches_at(
+                parent_fd, exchange_name, exchange_path, record, before
+            ):
+                if payload is not None:
+                    _reverse_mismatched_exchange(
+                        parent_fd,
+                        target_name,
+                        exchange_name,
+                        target,
+                        record,
+                        after,
+                    )
+                    staged = False
+                else:
+                    if _read_regular_at(
+                        parent_fd,
+                        target_name,
+                        target,
+                        "live target",
+                        allow_missing=True,
+                    ) is not None:
+                        raise RuntimeError(
+                            f"unowned target drift after capture; recovery required: {target}"
+                        )
+                    _renameat2(
+                        parent_fd,
+                        exchange_name,
+                        parent_fd,
+                        target_name,
+                        _RENAME_NOREPLACE,
+                    )
+                    os.fsync(parent_fd)
+                raise UnownedTargetDrift(f"unowned target drift: {target}")
+        _hit(fault, "before-parent-fsync", index)
+        os.fsync(parent_fd)
+    except Exception:
+        if staged:
+            try:
+                _remove_owned_at(
+                    parent_fd, exchange_name, exchange_path, record, (after,)
+                )
+            except Exception:
+                pass
+        raise
+    finally:
+        os.close(parent_fd)
+
+
+def _cleanup_exchange(record, entry, *, allowed_states):
+    target = Path(record["target"])
+    parent_fd, _ = _open_parent(target)
+    try:
+        _remove_owned_at(
+            parent_fd,
+            entry["exchange_name"],
+            target.parent / entry["exchange_name"],
+            record,
+            allowed_states,
+        )
+    finally:
+        os.close(parent_fd)
+
+
+def _restore_entry_before(repo_root, receipt_dir, record, entry):
+    before = entry["before"]
+    after = entry["after"]
+    target = Path(record["target"])
+    parent_fd, target_name = _open_parent(target, create=True, create_mode=0o755)
+    exchange_name = entry["exchange_name"]
+    exchange_path = target.parent / exchange_name
+    try:
+        if _matches_at(parent_fd, target_name, target, record, before):
+            _remove_owned_at(
+                parent_fd, exchange_name, exchange_path, record, (after, before)
+            )
+            return
+        if not _matches_at(parent_fd, target_name, target, record, after):
+            raise UnownedTargetDrift(f"unowned target drift: {target}")
+        exchange = _read_regular_at(
+            parent_fd,
+            exchange_name,
+            exchange_path,
+            "exchange file",
+            allow_missing=True,
+        )
+        before_expected = _expected_metadata(record, before)
+        after_expected = _expected_metadata(record, after)
+        if exchange is not None:
+            if before_expected is None:
+                raise RuntimeError(f"unowned exchange drift: {exchange_path}")
+            if not _matches_at(parent_fd, exchange_name, exchange_path, record, before):
+                raise RuntimeError(f"unowned exchange drift: {exchange_path}")
+            if after_expected is None:
+                _renameat2(
+                    parent_fd,
+                    exchange_name,
+                    parent_fd,
+                    target_name,
+                    _RENAME_NOREPLACE,
+                )
+            else:
+                _renameat2(
+                    parent_fd,
+                    exchange_name,
+                    parent_fd,
+                    target_name,
+                    _RENAME_EXCHANGE,
+                )
+            os.fsync(parent_fd)
+            _remove_owned_at(
+                parent_fd, exchange_name, exchange_path, record, (after,)
+            )
+            return
+    finally:
+        os.close(parent_fd)
+
+    recovery_name = entry["exchange_name"]
+    _cas_apply(
+        repo_root,
+        receipt_dir,
+        record,
+        after,
+        before,
+        recovery_name,
+    )
+    _cleanup_exchange(record, entry, allowed_states=(after, before))
 
 
 def _new_phase_state(receipt, operation, entries):
@@ -681,12 +960,13 @@ def _rollback_transaction(repo_root, receipt_dir, receipt, state_value):
     try:
         for entry in reversed(state_value["entries"]):
             record = _record_for_target(receipt, entry["target"])
-            current = _owned_state(record, (entry["before"], entry["after"]))
-            if current == entry["after"] and entry["before"] != entry["after"]:
-                _apply_state(
-                    repo_root, receipt_dir, record, entry["before"]
-                )
+            if entry.get("status") == "refused-unowned-drift":
+                entry["status"] = "rolled-back-unowned-preserved"
+                _write_phase_state(receipt_dir, state_value)
+                continue
+            _restore_entry_before(repo_root, receipt_dir, record, entry)
             entry["status"] = "rolled-back"
+            entry["exchange_cleaned"] = True
             _write_phase_state(receipt_dir, state_value)
         state_value["status"] = "rolled-back"
         _write_phase_state(receipt_dir, state_value)
@@ -711,6 +991,10 @@ def _execute_transaction(
             "target": record["target"],
             "before": before,
             "after": after,
+            "exchange_name": (
+                f".{Path(record['target']).name}.thermal-exchange-"
+                f"{secrets.token_hex(12)}"
+            ),
             "status": "pending",
         }
         for record, before, after in transitions
@@ -721,19 +1005,38 @@ def _execute_transaction(
     try:
         for index, entry in enumerate(state_value["entries"]):
             record = _record_for_target(receipt, entry["target"])
-            if _owned_state(record, (entry["before"],)) != entry["before"]:
-                raise RuntimeError(f"unowned target drift: {entry['target']}")
+            try:
+                if _owned_state(record, (entry["before"],)) != entry["before"]:
+                    raise UnownedTargetDrift(
+                        f"unowned target drift: {entry['target']}"
+                    )
+            except UnownedTargetDrift:
+                entry["status"] = "refused-unowned-drift"
+                _write_phase_state(receipt_dir, state_value)
+                raise
             entry["status"] = "intent"
             _write_phase_state(receipt_dir, state_value)
-            _apply_state(
-                repo_root,
-                receipt_dir,
-                record,
-                entry["after"],
-                fault=fault,
-                index=index,
-            )
+            try:
+                _cas_apply(
+                    repo_root,
+                    receipt_dir,
+                    record,
+                    entry["before"],
+                    entry["after"],
+                    entry["exchange_name"],
+                    fault=fault,
+                    index=index,
+                )
+            except UnownedTargetDrift:
+                entry["status"] = "refused-unowned-drift"
+                _write_phase_state(receipt_dir, state_value)
+                raise
             entry["status"] = "completed"
+            _write_phase_state(receipt_dir, state_value)
+            _cleanup_exchange(
+                record, entry, allowed_states=(entry["before"], entry["after"])
+            )
+            entry["exchange_cleaned"] = True
             _write_phase_state(receipt_dir, state_value)
         _hit(fault, "before-final-verify", -1)
         if not final_verify():
@@ -825,7 +1128,7 @@ def restore(repo_root, receipt_dir=None, *, manifest=MANIFEST, fault=None):
     for record in receipt["entries"]:
         if record["phase"] == "verify":
             if not _verify_dependency_matches(record):
-                raise RuntimeError(f"unowned target drift: {record['target']}")
+                raise UnownedTargetDrift(f"unowned target drift: {record['target']}")
             continue
         current = _owned_state(record, ("original", "desired"))
         transitions.append((record, current, "original"))

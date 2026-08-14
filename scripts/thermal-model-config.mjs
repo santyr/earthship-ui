@@ -5,13 +5,15 @@ import { createHash, randomUUID } from 'node:crypto';
 import {
   chmod,
   mkdir,
+  mkdtemp,
   open,
   readFile,
   rename,
+  rm,
   stat,
   unlink,
 } from 'node:fs/promises';
-import { hostname } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -162,6 +164,9 @@ export function authorizeThermalOutputRequest(method, path, {
     throw new Error('Denied OpenHAB item mutation without receipt context');
   }
   assertReceiptIntegrity(transaction.receipt, transaction.snapshot);
+  if (transaction.receipt.state !== 'open') {
+    throw new Error('Denied OpenHAB item mutation from closed receipt state');
+  }
   if (key === `PUT ${ITEM_PATH}`) {
     assertExactItemBody(body);
     if (transaction.operation === 'apply' && equal(body, THERMAL_ITEM)) return;
@@ -201,6 +206,7 @@ export function buildReceipt(original, {
     snapshotDigest: digest(snapshot),
     writeCount: 0,
     transitions: [],
+    closures: [],
   });
   return { receipt, snapshot };
 }
@@ -209,9 +215,37 @@ export function assertReceiptIntegrity(receipt, snapshot) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) {
     throw new Error('Thermal config receipt is required');
   }
-  if (receipt.schema !== RECEIPT_SCHEMA || receipt.state !== 'open'
+  if (receipt.schema !== RECEIPT_SCHEMA
+      || !['open', 'closed'].includes(receipt.state)
       || receipt.itemName !== ITEM_NAME) {
     throw new Error('Thermal config receipt identity mismatch');
+  }
+  if (!Array.isArray(receipt.closures ?? [])
+      || (receipt.closures ?? []).some((entry) => (
+        !entry || typeof entry !== 'object'
+        || !['desired', 'rolled-back'].includes(entry.phase)
+        || typeof entry.at !== 'string'
+      ))) {
+    throw new Error('Thermal config receipt closure evidence mismatch');
+  }
+  const openPhases = [
+    'snapshot', 'applying', 'applied', 'desired', 'rolling-back', 'rolled-back',
+  ];
+  if (receipt.state === 'open'
+      && (!openPhases.includes(receipt.phase)
+        || Object.hasOwn(receipt, 'closedAt')
+        || Object.hasOwn(receipt, 'closedPhase'))) {
+    throw new Error('Thermal config receipt open state mismatch');
+  }
+  if (receipt.state === 'closed') {
+    const closures = receipt.closures ?? [];
+    const last = closures.at(-1);
+    if (!['desired', 'rolled-back'].includes(receipt.phase)
+        || receipt.closedPhase !== receipt.phase
+        || typeof receipt.closedAt !== 'string'
+        || !last || last.phase !== receipt.closedPhase || last.at !== receipt.closedAt) {
+      throw new Error('Thermal config receipt closed terminal mismatch');
+    }
   }
   if (!/^[a-f0-9]{64}$/.test(receipt.checksum ?? '')) {
     throw new Error('Thermal config receipt checksum is missing');
@@ -376,16 +410,38 @@ async function readTransaction(receiptDir) {
   return { receipt, receiptPath, snapshot, snapshotPath };
 }
 
-async function writeReceipt(receiptPath, receipt, { now, phase, writeCount } = {}) {
+async function writeReceipt(receiptPath, receipt, {
+  now, phase, writeCount, state,
+} = {}) {
   const at = instant(now);
+  const base = clone(receipt);
+  if (state === 'open') {
+    delete base.closedAt;
+    delete base.closedPhase;
+  }
   const next = withChecksum({
-    ...clone(receipt),
+    ...base,
+    state: state ?? receipt.state,
     phase: phase ?? receipt.phase,
     updatedAt: at,
     writeCount: writeCount ?? receipt.writeCount,
     transitions: phase === undefined
       ? clone(receipt.transitions)
       : [...receipt.transitions, { at, phase }],
+  });
+  await atomicWriteJson(receiptPath, next);
+  return next;
+}
+
+async function writeClosedReceipt(receiptPath, receipt, { now } = {}) {
+  const at = instant(now);
+  const next = withChecksum({
+    ...clone(receipt),
+    state: 'closed',
+    closedAt: at,
+    closedPhase: receipt.phase,
+    updatedAt: at,
+    closures: [...(receipt.closures ?? []), { at, phase: receipt.phase }],
   });
   await atomicWriteJson(receiptPath, next);
   return next;
@@ -431,6 +487,9 @@ async function planTransactionUnlocked({ receiptDir } = {}) {
 }
 
 function assertOpenPhase(receipt, command, allowed) {
+  if (receipt.state !== 'open') {
+    throw new Error(`Cannot ${command} thermal item from receipt state ${receipt.state}`);
+  }
   if (!allowed.includes(receipt.phase)) {
     throw new Error(`Cannot ${command} thermal item from receipt phase ${receipt.phase}`);
   }
@@ -497,11 +556,27 @@ async function rollbackTransactionUnlocked({ request, receiptDir, now } = {}) {
   if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
   const transaction = await readTransaction(receiptDir);
   let { receipt } = transaction;
-  assertOpenPhase(receipt, 'rollback', [
-    'snapshot', 'applying', 'applied', 'desired', 'rolled-back',
-  ]);
+  let live;
+  if (receipt.state === 'closed') {
+    if (receipt.phase !== 'desired') {
+      throw new Error(`Cannot rollback thermal item from closed phase ${receipt.phase}`);
+    }
+    live = await readLiveItem(request);
+    if (!equal(live, THERMAL_ITEM)) {
+      throw new Error('Live Thermal_Model_JSON configuration drifted from closed desired state');
+    }
+    receipt = await writeReceipt(transaction.receiptPath, receipt, {
+      now,
+      state: 'open',
+      phase: 'rolling-back',
+    });
+  } else {
+    assertOpenPhase(receipt, 'rollback', [
+      'snapshot', 'applying', 'applied', 'desired', 'rolled-back',
+    ]);
+    live = await readLiveItem(request);
+  }
 
-  const live = await readLiveItem(request);
   if (equal(live, transaction.snapshot.item)) {
     if (receipt.phase === 'rolled-back') return receipt;
     return writeReceipt(transaction.receiptPath, receipt, { now, phase: 'rolled-back' });
@@ -543,7 +618,7 @@ async function settleTransactionUnlocked({ request, receiptDir, now } = {}) {
     }
     return writeReceipt(transaction.receiptPath, receipt, {
       now,
-      phase: 'applied',
+      phase: 'desired',
       writeCount: receipt.writeCount + 1,
     });
   }
@@ -555,6 +630,93 @@ async function settleTransactionUnlocked({ request, receiptDir, now } = {}) {
     phase: 'rolled-back',
     writeCount: receipt.writeCount + 1,
   });
+}
+
+async function closeTransactionUnlocked({ request, receiptDir, now } = {}) {
+  if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
+  const transaction = await readTransaction(receiptDir);
+  const { receipt, snapshot } = transaction;
+  assertOpenPhase(receipt, 'close', ['desired', 'rolled-back']);
+  const expected = receipt.phase === 'desired' ? THERMAL_ITEM : snapshot.item;
+  const live = await readLiveItem(request);
+  if (!equal(live, expected)) {
+    throw new Error('Cannot close receipt: exact terminal readback mismatch');
+  }
+  return writeClosedReceipt(transaction.receiptPath, receipt, { now });
+}
+
+async function rehearseTransactionUnlocked({ receiptDir, now } = {}) {
+  const realPaths = transactionPaths(receiptDir);
+  const beforeReceipt = await readFile(realPaths.receiptPath);
+  const beforeSnapshot = await readFile(realPaths.snapshotPath);
+  const transaction = await readTransaction(receiptDir);
+  assertOpenPhase(transaction.receipt, 'rehearse', ['snapshot']);
+
+  const isolated = await mkdtemp(join(tmpdir(), 'thermal-model-rehearse-'));
+  await chmod(isolated, 0o700);
+  const operations = [];
+  let item = clone(transaction.snapshot.item);
+  const request = async (method, path, options = {}) => {
+    if (path !== ITEM_PATH) throw new Error(`Offline rehearsal path escaped: ${path}`);
+    const hasBody = Object.hasOwn(options, 'body');
+    operations.push({
+      method,
+      path,
+      bodyDigest: hasBody ? digest(options.body) : null,
+    });
+    if (method === 'GET') return clone(item);
+    if (method === 'PUT') {
+      item = clone(options.body);
+      return null;
+    }
+    if (method === 'DELETE') {
+      item = null;
+      return null;
+    }
+    throw new Error(`Offline rehearsal method escaped: ${method}`);
+  };
+
+  try {
+    const isolatedPaths = transactionPaths(isolated);
+    await atomicWriteJson(isolatedPaths.snapshotPath, transaction.snapshot);
+    await atomicWriteJson(isolatedPaths.receiptPath, transaction.receipt);
+    await applyTransactionUnlocked({ request, receiptDir: isolated, now });
+    const desired = await verifyTransactionUnlocked({ request, receiptDir: isolated });
+    if (!desired.ok || desired.expected !== 'desired' || desired.phase !== 'desired') {
+      throw new Error('Offline rehearsal desired verification failed');
+    }
+    await rollbackTransactionUnlocked({ request, receiptDir: isolated, now });
+    const original = await verifyTransactionUnlocked({ request, receiptDir: isolated });
+    if (!original.ok || original.expected !== 'original' || original.phase !== 'rolled-back') {
+      throw new Error('Offline rehearsal rollback verification failed');
+    }
+    const closed = await closeTransactionUnlocked({ request, receiptDir: isolated, now });
+    const puts = operations.filter(({ method }) => method === 'PUT').length;
+    const deletes = operations.filter(({ method }) => method === 'DELETE').length;
+    const result = {
+      itemName: ITEM_NAME,
+      receiptChecksum: transaction.receipt.checksum,
+      snapshotDigest: transaction.receipt.snapshotDigest,
+      operations,
+      writeCounts: { put: puts, delete: deletes, total: puts + deletes },
+      transitions: [
+        ...closed.transitions.map(({ phase }) => phase),
+        `closed:${closed.closedPhase}`,
+      ],
+      terminal: {
+        state: closed.state,
+        phase: closed.phase,
+        closedPhase: closed.closedPhase,
+      },
+    };
+    if (!(await readFile(realPaths.receiptPath)).equals(beforeReceipt)
+        || !(await readFile(realPaths.snapshotPath)).equals(beforeSnapshot)) {
+      throw new Error('Offline rehearsal changed the real receipt');
+    }
+    return result;
+  } finally {
+    await rm(isolated, { recursive: true, force: true });
+  }
 }
 
 export function snapshotTransaction(args = {}) {
@@ -590,6 +752,18 @@ export function rollbackTransaction(args = {}) {
 export function settleTransaction(args = {}) {
   return withReceiptLock(args.receiptDir, 'settle', args.now, () => (
     settleTransactionUnlocked(args)
+  ));
+}
+
+export function closeTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'close', args.now, () => (
+    closeTransactionUnlocked(args)
+  ));
+}
+
+export function rehearseTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'rehearse', args.now, () => (
+    rehearseTransactionUnlocked(args)
   ));
 }
 
@@ -697,13 +871,13 @@ export function createRestClient({
 }
 
 function usage() {
-  return 'Usage: thermal-model-config.mjs snapshot|plan|apply|verify|rollback|settle|inspect-lock --receipt-dir PATH';
+  return 'Usage: thermal-model-config.mjs snapshot|plan|rehearse|apply|verify|rollback|settle|close|inspect-lock --receipt-dir PATH';
 }
 
 function parseCli(argv) {
   if (argv.includes('--help') || argv.includes('-h')) return { help: true };
   const command = argv[0];
-  if (!['snapshot', 'plan', 'apply', 'verify', 'rollback', 'settle', 'inspect-lock'].includes(command)) {
+  if (!['snapshot', 'plan', 'rehearse', 'apply', 'verify', 'rollback', 'settle', 'close', 'inspect-lock'].includes(command)) {
     throw new Error(usage());
   }
   const receiptIndex = argv.indexOf('--receipt-dir');
@@ -719,12 +893,14 @@ export async function main(argv = process.argv.slice(2), dependencies = {}) {
   if (args.help) return { help: usage() };
   if (args.command === 'inspect-lock') return inspectReceiptLock(args.receiptDir);
   if (args.command === 'plan') return planTransaction(args);
+  if (args.command === 'rehearse') return rehearseTransaction(args);
   const request = dependencies.request
     ?? createRestClient({ ...(await loadAuth()), fetchImpl: dependencies.fetchImpl });
   if (args.command === 'snapshot') return snapshotTransaction({ ...args, request });
   if (args.command === 'apply') return applyTransaction({ ...args, request });
   if (args.command === 'verify') return verifyTransaction({ ...args, request });
   if (args.command === 'settle') return settleTransaction({ ...args, request });
+  if (args.command === 'close') return closeTransaction({ ...args, request });
   return rollbackTransaction({ ...args, request });
 }
 

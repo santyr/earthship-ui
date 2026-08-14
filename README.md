@@ -96,7 +96,7 @@ observational: it publishes only `Thermal_Model_JSON`, does not change
 Use the attended, approval-gated
 [thermal model shadow runbook](docs/operations/thermal-model-shadow.md) for the
 exact tracked-to-live manifest, least-privilege PostgreSQL setup,
-receipt-bound Item apply/rollback, manual evidence review, service/timer
+receipt-bound offline rehearsal, apply/closure/rollback, manual evidence review, service/timer
 staging, durable transaction recovery, and rollback. The procedure is
 first-install-only; if any thermal unit is already present, stop and use a
 separately reviewed upgrade procedure. Completing implementation or collecting

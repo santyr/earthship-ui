@@ -7,6 +7,7 @@ import {
   stat,
   writeFile,
 } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -22,10 +23,12 @@ import {
   THERMAL_ITEM,
   applyTransaction,
   authorizeThermalOutputRequest,
+  closeTransaction,
   buildReceipt,
   createRestClient,
   inspectReceiptLock,
   main,
+  rehearseTransaction,
   rollbackTransaction,
   settleTransaction,
   snapshotTransaction,
@@ -323,7 +326,7 @@ describe('explicit ambiguity settlement', () => {
       request: ambiguous.request,
       receiptDir: directory,
     });
-    expect(settled.phase).toBe('applied');
+    expect(settled.phase).toBe('desired');
     await expect(verifyTransaction({
       request: ambiguous.request,
       receiptDir: directory,
@@ -504,5 +507,206 @@ describe('durable exclusive receipts', () => {
     await expect(main(['inspect-lock', '--receipt-dir', directory]))
       .resolves.toMatchObject({ lock });
     await expect(access(lockPath)).resolves.toBeUndefined();
+  });
+});
+
+
+describe('closed receipt lifecycle and offline rehearsal', () => {
+  function canonicalDigest(value) {
+    const canonical = (input) => {
+      if (Array.isArray(input)) return input.map(canonical);
+      if (!input || typeof input !== 'object') return input;
+      return Object.fromEntries(Object.keys(input).sort().map((key) => [key, canonical(input[key])]));
+    };
+    return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+  }
+
+  it.each([ORIGINAL, null])(
+    'rehearses the full lifecycle offline without touching the real receipt: %s',
+    async (original) => {
+      const directory = await receiptDirectory();
+      await snapshotTransaction({
+        request: mutableTransport(original).request,
+        receiptDir: directory,
+        now: () => new Date('2026-08-13T20:00:00.000Z'),
+      });
+      const beforeReceipt = await readFile(join(directory, RECEIPT_FILENAME));
+      const beforeSnapshot = await readFile(join(directory, SNAPSHOT_FILENAME));
+      let externalCalls = 0;
+
+      const result = await rehearseTransaction({
+        receiptDir: directory,
+        request: async () => { externalCalls += 1; throw new Error('network forbidden'); },
+        now: () => new Date('2026-08-13T20:01:00.000Z'),
+      });
+
+      expect(externalCalls).toBe(0);
+      expect(await readFile(join(directory, RECEIPT_FILENAME))).toEqual(beforeReceipt);
+      expect(await readFile(join(directory, SNAPSHOT_FILENAME))).toEqual(beforeSnapshot);
+      expect(result).toMatchObject({
+        itemName: 'Thermal_Model_JSON',
+        receiptChecksum: expect.stringMatching(/^[a-f0-9]{64}$/),
+        snapshotDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+        terminal: { state: 'closed', phase: 'rolled-back', closedPhase: 'rolled-back' },
+        writeCounts: original === null
+          ? { put: 1, delete: 1, total: 2 }
+          : { put: 2, delete: 0, total: 2 },
+      });
+      expect(result.transitions).toEqual([
+        'applying', 'applied', 'desired', 'rolling-back', 'rolled-back',
+        'closed:rolled-back',
+      ]);
+      expect(result.operations.every(({ path }) => path === ITEM_PATH)).toBe(true);
+      const mutations = result.operations.filter(({ method }) => method !== 'GET');
+      expect(mutations[0]).toMatchObject({
+        method: 'PUT', path: ITEM_PATH, bodyDigest: canonicalDigest(THERMAL_ITEM),
+      });
+      expect(mutations[1]).toMatchObject(original === null
+        ? { method: 'DELETE', path: ITEM_PATH, bodyDigest: null }
+        : { method: 'PUT', path: ITEM_PATH, bodyDigest: canonicalDigest(ORIGINAL) });
+    },
+  );
+
+  it('CLI rehearse never loads auth or invokes a supplied fetch transport', async () => {
+    const directory = await receiptDirectory();
+    await snapshotTransaction({ request: mutableTransport(null).request, receiptDir: directory });
+    let fetchCalls = 0;
+    const result = await main(['rehearse', '--receipt-dir', directory], {
+      fetchImpl: async () => { fetchCalls += 1; throw new Error('network forbidden'); },
+    });
+    expect(result.terminal).toEqual({
+      state: 'closed', phase: 'rolled-back', closedPhase: 'rolled-back',
+    });
+    expect(fetchCalls).toBe(0);
+  });
+
+  it('closes desired only after exact GET readback and blocks later apply/settle', async () => {
+    const directory = await receiptDirectory();
+    const transport = mutableTransport(null);
+    await snapshotTransaction({ request: transport.request, receiptDir: directory });
+    await applyTransaction({ request: transport.request, receiptDir: directory });
+    transport.calls.length = 0;
+
+    const closed = await closeTransaction({
+      request: transport.request,
+      receiptDir: directory,
+      now: () => new Date('2026-08-13T20:02:00.000Z'),
+    });
+    expect(transport.calls.map(({ method }) => method)).toEqual(['GET']);
+    expect(closed).toMatchObject({
+      state: 'closed', phase: 'desired', closedPhase: 'desired',
+      closedAt: '2026-08-13T20:02:00.000Z',
+    });
+    expect(closed.closures).toEqual([{
+      at: '2026-08-13T20:02:00.000Z', phase: 'desired',
+    }]);
+    await expect(applyTransaction({ request: transport.request, receiptDir: directory }))
+      .rejects.toThrow(/closed|state/i);
+    await expect(settleTransaction({ request: transport.request, receiptDir: directory }))
+      .rejects.toThrow(/closed|state/i);
+  });
+
+  it('serializes concurrent close and durably leaves one exact closed receipt', async () => {
+    const directory = await receiptDirectory();
+    const applied = mutableTransport(null);
+    await snapshotTransaction({ request: applied.request, receiptDir: directory });
+    await applyTransaction({ request: applied.request, receiptDir: directory });
+    let releaseRead;
+    let announceRead;
+    const readStarted = new Promise((resolve) => { announceRead = resolve; });
+    const readReleased = new Promise((resolve) => { releaseRead = resolve; });
+    let reads = 0;
+    const request = async (method) => {
+      expect(method).toBe('GET');
+      reads += 1;
+      announceRead();
+      await readReleased;
+      return structuredClone(THERMAL_ITEM);
+    };
+
+    const first = closeTransaction({ request, receiptDir: directory });
+    await readStarted;
+    await expect(closeTransaction({ request, receiptDir: directory }))
+      .rejects.toThrow(/busy|lock/i);
+    releaseRead();
+    await expect(first).resolves.toMatchObject({ state: 'closed', phase: 'desired' });
+
+    expect(reads).toBe(1);
+    expect((await stat(join(directory, RECEIPT_FILENAME))).mode & 0o777).toBe(0o600);
+    await assertNoLockOrTemps(directory);
+  });
+
+  it('refuses close on drift and leaves the open desired receipt unchanged', async () => {
+    const directory = await receiptDirectory();
+    const applied = mutableTransport(null);
+    await snapshotTransaction({ request: applied.request, receiptDir: directory });
+    await applyTransaction({ request: applied.request, receiptDir: directory });
+    const before = await readFile(join(directory, RECEIPT_FILENAME));
+    const drift = mutableTransport({ ...THERMAL_ITEM, label: 'outside drift' });
+
+    await expect(closeTransaction({ request: drift.request, receiptDir: directory }))
+      .rejects.toThrow(/terminal|readback|drift/i);
+    expect(drift.calls.map(({ method }) => method)).toEqual(['GET']);
+    expect(await readFile(join(directory, RECEIPT_FILENAME))).toEqual(before);
+  });
+
+  it('denies direct Item mutation authority for a closed receipt', async () => {
+    const directory = await receiptDirectory();
+    const transport = mutableTransport(ORIGINAL);
+    await snapshotTransaction({ request: transport.request, receiptDir: directory });
+    await applyTransaction({ request: transport.request, receiptDir: directory });
+    const receipt = await closeTransaction({ request: transport.request, receiptDir: directory });
+    const snapshot = JSON.parse(await readFile(join(directory, SNAPSHOT_FILENAME), 'utf8'));
+
+    expect(() => authorizeThermalOutputRequest('PUT', ITEM_PATH, {
+      body: ORIGINAL,
+      transaction: { operation: 'rollback', receipt, snapshot },
+    })).toThrow(/closed|state|denied/i);
+    expect(() => authorizeThermalOutputRequest('DELETE', ITEM_PATH, {
+      transaction: { operation: 'rollback', receipt, snapshot },
+    })).toThrow(/closed|state|denied/i);
+  });
+
+  it('audits rollback from closed desired by reopening, restoring, and closing again', async () => {
+    const directory = await receiptDirectory();
+    const transport = mutableTransport(ORIGINAL);
+    await snapshotTransaction({ request: transport.request, receiptDir: directory });
+    await applyTransaction({ request: transport.request, receiptDir: directory });
+    await closeTransaction({ request: transport.request, receiptDir: directory });
+    transport.calls.length = 0;
+
+    const restored = await rollbackTransaction({
+      request: transport.request,
+      receiptDir: directory,
+      now: () => new Date('2026-08-13T20:03:00.000Z'),
+    });
+    expect(restored).toMatchObject({ state: 'open', phase: 'rolled-back', writeCount: 2 });
+    expect(restored.transitions.slice(-2).map(({ phase }) => phase))
+      .toEqual(['rolling-back', 'rolled-back']);
+    expect(transport.calls.filter(({ method }) => method === 'PUT')).toHaveLength(1);
+
+    const closedAgain = await closeTransaction({
+      request: transport.request,
+      receiptDir: directory,
+      now: () => new Date('2026-08-13T20:04:00.000Z'),
+    });
+    expect(closedAgain).toMatchObject({
+      state: 'closed', phase: 'rolled-back', closedPhase: 'rolled-back',
+    });
+    expect(closedAgain.closures.map(({ phase }) => phase)).toEqual(['desired', 'rolled-back']);
+  });
+
+  it('settles an ambiguous landed apply directly to the desired terminal phase', async () => {
+    const directory = await receiptDirectory();
+    await snapshotTransaction({ request: mutableTransport(null).request, receiptDir: directory });
+    const ambiguous = mutableTransport(null, { putMode: 'land-then-throw' });
+    await expect(applyTransaction({ request: ambiguous.request, receiptDir: directory }))
+      .rejects.toThrow(/unknown/i);
+    const settled = await settleTransaction({
+      request: ambiguous.request,
+      receiptDir: directory,
+    });
+    expect(settled.phase).toBe('desired');
+    expect(settled.writeCount).toBe(1);
   });
 });

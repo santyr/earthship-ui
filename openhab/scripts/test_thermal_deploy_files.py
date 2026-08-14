@@ -311,20 +311,20 @@ def test_snapshot_rejects_symlink_sources_ancestors_and_targets(
 
 
 
-def test_later_real_replace_failure_automatically_rolls_back(tmp_path, monkeypatch):
+def test_later_real_exchange_failure_automatically_rolls_back(tmp_path, monkeypatch):
     repo = prepare(tmp_path)
     receipt = tmp_path / "private/files"
     manifest = fixture_manifest(tmp_path)
     thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
-    real_replace = os.replace
+    real_renameat2 = thermal_model_files._renameat2
 
-    def failing_replace(source, destination, **kwargs):
-        if destination == "two.py" and str(source).startswith(".two.py.thermal-stage-"):
-            raise OSError("injected later replace")
-        return real_replace(source, destination, **kwargs)
+    def failing_exchange(old_fd, old_name, new_fd, new_name, flags):
+        if new_name == "two.py":
+            raise OSError("injected later exchange")
+        return real_renameat2(old_fd, old_name, new_fd, new_name, flags)
 
-    monkeypatch.setattr(thermal_model_files.os, "replace", failing_replace)
-    with pytest.raises(OSError, match="injected later replace"):
+    monkeypatch.setattr(thermal_model_files, "_renameat2", failing_exchange)
+    with pytest.raises(OSError, match="injected later exchange"):
         thermal_model_files.install_phase(repo, receipt, "code", manifest=manifest)
 
     assert (tmp_path / "live/one.py").read_bytes() == b"one-old"
@@ -338,13 +338,13 @@ def test_later_real_parent_fsync_failure_automatically_rolls_back(tmp_path, monk
     receipt = tmp_path / "private/files"
     manifest = fixture_manifest(tmp_path)
     thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
-    real_replace = os.replace
+    real_renameat2 = thermal_model_files._renameat2
     real_fsync = os.fsync
     fail_next_target_parent_fsync = {"value": False}
 
-    def recording_replace(source, destination, **kwargs):
-        result = real_replace(source, destination, **kwargs)
-        if destination == "two.py" and str(source).startswith(".two.py.thermal-stage-"):
+    def recording_exchange(old_fd, old_name, new_fd, new_name, flags):
+        result = real_renameat2(old_fd, old_name, new_fd, new_name, flags)
+        if new_name == "two.py":
             fail_next_target_parent_fsync["value"] = True
         return result
 
@@ -354,7 +354,7 @@ def test_later_real_parent_fsync_failure_automatically_rolls_back(tmp_path, monk
             raise OSError("injected later parent fsync")
         return real_fsync(descriptor)
 
-    monkeypatch.setattr(thermal_model_files.os, "replace", recording_replace)
+    monkeypatch.setattr(thermal_model_files, "_renameat2", recording_exchange)
     monkeypatch.setattr(thermal_model_files.os, "fsync", failing_fsync)
     with pytest.raises(OSError, match="injected later parent fsync"):
         thermal_model_files.install_phase(repo, receipt, "code", manifest=manifest)
@@ -387,6 +387,125 @@ def test_source_swap_to_symlink_after_prevalidation_is_refused(tmp_path, monkeyp
 
     assert (tmp_path / "live/one.py").read_bytes() == b"one-old"
     assert not (tmp_path / "live/pkg/two.py").exists()
+
+
+def test_exchange_cas_refuses_existing_target_race_without_losing_drift(tmp_path):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / "live/one.py"
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+
+    def race(event, index):
+        if event == "before-exchange" and index == 0:
+            target.write_bytes(b"unowned-race")
+            target.chmod(0o600)
+
+    with pytest.raises(RuntimeError, match="unowned target drift"):
+        thermal_model_files.install_phase(
+            repo, receipt, "code", manifest=manifest, fault=race,
+        )
+
+    assert target.read_bytes() == b"unowned-race"
+    assert mode(target) == 0o600
+
+
+def test_noreplace_cas_refuses_absent_target_race_without_losing_drift(tmp_path):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / "live/pkg/two.py"
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+
+    def race(event, index):
+        if event == "before-exchange" and index == 1:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"unowned-created-race")
+            target.chmod(0o600)
+
+    with pytest.raises(RuntimeError, match="unowned target drift"):
+        thermal_model_files.install_phase(
+            repo, receipt, "code", manifest=manifest, fault=race,
+        )
+
+    assert target.read_bytes() == b"unowned-created-race"
+    assert mode(target) == 0o600
+    assert (tmp_path / "live/one.py").read_bytes() == b"one-old"
+
+
+@pytest.mark.parametrize(
+    ("target_relative", "failure_index"),
+    (("live/one.py", 0), ("live/pkg/two.py", 1)),
+)
+def test_restore_cas_refuses_replace_or_delete_race_without_losing_drift(
+    tmp_path, target_relative, failure_index,
+):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / target_relative
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+    thermal_model_files.install_phase(repo, receipt, "code", manifest=manifest)
+
+    def race(event, index):
+        if event == "before-exchange" and index == failure_index:
+            target.write_bytes(b"unowned-restore-race")
+            target.chmod(0o600)
+
+    with pytest.raises(RuntimeError, match="unowned target drift"):
+        thermal_model_files.restore(
+            repo, receipt, manifest=manifest, fault=race,
+        )
+
+    assert target.read_bytes() == b"unowned-restore-race"
+    assert mode(target) == 0o600
+
+
+@pytest.mark.parametrize("crash_event", ("before-exchange", "after-exchange"))
+def test_exchange_crash_journal_recovers_without_losing_original(
+    tmp_path, crash_event,
+):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / "live/one.py"
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+
+    def crash(event, index):
+        if event == crash_event and index == 0:
+            raise SimulatedCrash(event)
+
+    with pytest.raises(SimulatedCrash):
+        thermal_model_files.install_phase(
+            repo, receipt, "code", manifest=manifest, fault=crash,
+        )
+
+    phase = json.loads((receipt / thermal_model_files.PHASE_STATE_NAME).read_text())
+    assert phase["entries"][0]["status"] == "intent"
+    assert phase["entries"][0]["exchange_name"].startswith(
+        ".one.py.thermal-exchange-"
+    )
+    assert thermal_model_files.recover(repo, receipt, manifest=manifest)
+    assert target.read_bytes() == b"one-old"
+    assert mode(target) == 0o640
+    assert not list((tmp_path / "live").rglob("*.thermal-exchange-*"))
+
+
+def test_install_fails_closed_when_renameat2_is_unavailable(tmp_path, monkeypatch):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / "live/one.py"
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+
+    def unavailable(*args, **kwargs):
+        raise RuntimeError("renameat2 capability unavailable")
+
+    monkeypatch.setattr(thermal_model_files, "_renameat2", unavailable, raising=False)
+    with pytest.raises(RuntimeError, match="renameat2 capability unavailable"):
+        thermal_model_files.install_phase(repo, receipt, "code", manifest=manifest)
+    assert target.read_bytes() == b"one-old"
+    assert mode(target) == 0o640
 
 def test_cli_paths_are_fixed_to_reviewed_repo_and_private_receipt_root(tmp_path):
     valid_receipt = (
