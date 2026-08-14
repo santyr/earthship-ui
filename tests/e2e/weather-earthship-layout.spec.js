@@ -1,10 +1,39 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'vite';
+import { readFileSync } from 'node:fs';
+
+const validShadow = JSON.parse(readFileSync(new URL('../fixtures/thermal-shadow-v1-available.json', import.meta.url), 'utf8'));
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
   { name: 'laptop-1280x720', width: 1280, height: 720 },
 ];
+
+const HOUR_MS = 60 * 60_000;
+
+function thermalShadowFixture(nowMs = Date.now()) {
+  const payload = structuredClone(validShadow);
+  const generatedAtMs = Math.floor(nowMs / HOUR_MS) * HOUR_MS;
+  payload.generatedAt = new Date(generatedAtMs).toISOString();
+  payload.model.createdAt = new Date(generatedAtMs - HOUR_MS).toISOString();
+  payload.model.trainedThrough = new Date(generatedAtMs - 2 * HOUR_MS).toISOString();
+  payload.forecast.hallwayLowAt = new Date(generatedAtMs).toISOString();
+  payload.forecast.hallwayHighAt = new Date(generatedAtMs + HOUR_MS).toISOString();
+  payload.forecast.trajectory[0].at = new Date(generatedAtMs).toISOString();
+  payload.forecast.trajectory[1].at = new Date(generatedAtMs + HOUR_MS).toISOString();
+  payload.forecast.observed[0].at = new Date(generatedAtMs - 5 * 60_000).toISOString();
+  payload.schedule.baseline = {
+    ventOpenAt: new Date(generatedAtMs + 8 * HOUR_MS).toISOString(),
+    ventCloseAt: new Date(generatedAtMs + 16 * HOUR_MS).toISOString(),
+  };
+  payload.schedule.candidate = {
+    ventOpenAt: new Date(generatedAtMs + 9 * HOUR_MS).toISOString(),
+    ventCloseAt: new Date(generatedAtMs + 15 * HOUR_MS).toISOString(),
+  };
+  payload.schedule.effect = { morningMassDeltaF: -1.2, hallwayPeakDeltaF: -0.8 };
+  payload.reasons = ['candidate evaluated against the learned baseline'];
+  return payload;
+}
 
 const ITEMS = [
   { name: 'Current_US_AQI', state: 'NULL', type: 'Number' },
@@ -57,6 +86,7 @@ const ITEMS = [
   { name: 'IndoorTemp_24h_High', state: '71', type: 'Number' },
   { name: 'IndoorTemp_24h_Low', state: '68', type: 'Number' },
   { name: 'Thermal_Advisory', state: 'vent|Open south windows before the afternoon peak', type: 'String' },
+  { name: 'Thermal_Model_JSON', state: JSON.stringify(thermalShadowFixture()), type: 'String' },
   { name: 'Forecast_Tomorrow_High', state: '76', type: 'Number' },
   { name: 'Forecast_Tomorrow_Low', state: '45', type: 'Number' },
   { name: 'SouthOutlet_Outlet2_Switch', state: 'OFF', type: 'Switch' },
@@ -151,6 +181,25 @@ async function expectRouteBounded(page, route) {
         scrollWidth: cell.scrollWidth,
         scrollHeight: cell.scrollHeight,
       })),
+      tiles: [...grid.querySelectorAll('.tile')].map((tile) => ({
+        label: tile.querySelector('.tile-label')?.textContent || '',
+        ...bounds(tile),
+        clientWidth: tile.clientWidth,
+        clientHeight: tile.clientHeight,
+        scrollWidth: tile.scrollWidth,
+        scrollHeight: tile.scrollHeight,
+      })),
+      navigation: (() => {
+        const nav = document.querySelector('nav.rail');
+        return {
+          ...bounds(nav),
+          clientWidth: nav.clientWidth,
+          clientHeight: nav.clientHeight,
+          scrollWidth: nav.scrollWidth,
+          scrollHeight: nav.scrollHeight,
+          items: [...nav.querySelectorAll('.rail-item')].map(bounds),
+        };
+      })(),
     };
   }, route);
 
@@ -170,6 +219,26 @@ async function expectRouteBounded(page, route) {
     expect(cell.bottom).toBeLessThanOrEqual(result.grid.bottom + 0.5);
     expect(cell.scrollWidth, cell.classes).toBeLessThanOrEqual(cell.clientWidth);
     expect(cell.scrollHeight, cell.classes).toBeLessThanOrEqual(cell.clientHeight);
+  }
+
+  for (const tile of result.tiles) {
+    expect(tile.left, tile.label).toBeGreaterThanOrEqual(result.grid.left - 0.5);
+    expect(tile.top, tile.label).toBeGreaterThanOrEqual(result.grid.top - 0.5);
+    expect(tile.right, tile.label).toBeLessThanOrEqual(result.grid.right + 0.5);
+    expect(tile.bottom, tile.label).toBeLessThanOrEqual(result.grid.bottom + 0.5);
+    expect(tile.scrollWidth, tile.label).toBeLessThanOrEqual(tile.clientWidth);
+    expect(tile.scrollHeight, tile.label).toBeLessThanOrEqual(tile.clientHeight);
+  }
+
+  expect(result.navigation.left).toBeGreaterThanOrEqual(0);
+  expect(result.navigation.top).toBeGreaterThanOrEqual(0);
+  expect(result.navigation.right).toBeLessThanOrEqual(result.document.clientWidth);
+  expect(result.navigation.bottom).toBeLessThanOrEqual(result.document.clientHeight);
+  for (const item of result.navigation.items) {
+    expect(item.left).toBeGreaterThanOrEqual(result.navigation.left - 0.5);
+    expect(item.top).toBeGreaterThanOrEqual(result.navigation.top - 0.5);
+    expect(item.right).toBeLessThanOrEqual(result.navigation.right + 0.5);
+    expect(item.bottom).toBeLessThanOrEqual(result.navigation.bottom + 0.5);
   }
 }
 
@@ -226,6 +295,46 @@ for (const target of TARGETS) {
   test(`Earthship is bounded and ordered north-to-south at ${target.name}`, async ({ page }, testInfo) => {
     await openFixture(page, 'earthship', target);
     await expectRouteBounded(page, 'earthship');
+    await expect(page.locator('.earthship-grid .tile-label')).toHaveText([
+      'Thermal Advisory',
+      'Thermal Model',
+      'Passive Thermal Loop',
+      'Thermal Mass',
+      'Thermal Buffering',
+      'Greywater Circulation',
+      'Zone Humidity',
+    ]);
+    await expect(page.getByText('SHADOW')).toBeVisible();
+    await expect(page.getByText('Candidate vent window')).toBeVisible();
+    await expect(page.locator('nav.rail')).toBeVisible();
+    await expect(page.locator('nav.rail .label')).toHaveText([
+      'Home', 'Energy', 'Weather', 'Earthship', 'Controls',
+    ]);
+    await page.locator('.thermal-model-cell summary').click();
+    await expect(page.locator('.thermal-model-cell .thermal-model-plot')).toBeVisible();
+    const modelBounds = await page.evaluate(() => {
+      const box = (element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      };
+      const cell = document.querySelector('.thermal-model-cell');
+      const tile = cell.querySelector('.tile');
+      const plot = cell.querySelector('.thermal-model-plot');
+      return {
+        cell: box(cell),
+        plot: box(plot),
+        tileScrollWidth: tile.scrollWidth,
+        tileClientWidth: tile.clientWidth,
+        tileScrollHeight: tile.scrollHeight,
+        tileClientHeight: tile.clientHeight,
+      };
+    });
+    expect(modelBounds.plot.left).toBeGreaterThanOrEqual(modelBounds.cell.left);
+    expect(modelBounds.plot.top).toBeGreaterThanOrEqual(modelBounds.cell.top);
+    expect(modelBounds.plot.right).toBeLessThanOrEqual(modelBounds.cell.right);
+    expect(modelBounds.plot.bottom).toBeLessThanOrEqual(modelBounds.cell.bottom);
+    expect(modelBounds.tileScrollWidth).toBeLessThanOrEqual(modelBounds.tileClientWidth);
+    expect(modelBounds.tileScrollHeight).toBeLessThanOrEqual(modelBounds.tileClientHeight);
     await expect(page.locator('.loop-svg .zone-label')).toHaveText([
       'North Mass',
       'Room Air',

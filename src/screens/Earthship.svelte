@@ -8,8 +8,10 @@
   import { onMount, onDestroy } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import ThermalLoop from '../lib/ui/ThermalLoop.svelte';
+  import ThermalModelCard from '../lib/ui/ThermalModelCard.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
+  import { parseThermalModelResult } from '../lib/thermal/modelResult.js';
   import { items, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
 
@@ -129,6 +131,9 @@
   const tomorrowHiLo = $derived(
     `H ${fmt($items.Forecast_Tomorrow_High, '°')} / L ${fmt($items.Forecast_Tomorrow_Low, '°')}`
   );
+  const thermalModelResult = $derived(
+    parseThermalModelResult($items.Thermal_Model_JSON, wallClock)
+  );
 
   // ---- Greywater — South planter aerobic circulation -------------------------
   // Shared with Home: ON -> Running, OFF -> Idle, NULL/UNDEF/missing ->
@@ -192,6 +197,10 @@
         <div class="advisory-footer">Tomorrow {tomorrowHiLo}</div>
       </div>
     </Tile>
+  </div>
+
+  <div class="cell thermal-model-cell">
+    <ThermalModelCard result={thermalModelResult} nowMs={wallClock} />
   </div>
 
   <div class="cell loop-cell">
@@ -271,9 +280,9 @@
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
-      minmax(0, 0.55fr) minmax(0, 1.65fr) minmax(0, 0.9fr);
+      minmax(0, 1.05fr) minmax(0, 1.6fr) minmax(0, 0.9fr);
     grid-template-areas:
-      'advisory advisory advisory advisory advisory advisory'
+      'advisory advisory model model model model'
       'loop loop loop loop mass buffering'
       'greywater greywater greywater humidity humidity humidity';
     gap: 0.75rem;
@@ -300,6 +309,9 @@
 
   .advisory-cell {
     grid-area: advisory;
+  }
+  .thermal-model-cell {
+    grid-area: model;
   }
   .loop-cell {
     grid-area: loop;

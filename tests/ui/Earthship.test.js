@@ -10,6 +10,7 @@ vi.mock('svelte', async () => import(
 import Earthship from '../../src/screens/Earthship.svelte';
 import { items } from '../../src/lib/openhab/store.js';
 import { chartStore, closeChart } from '../../src/lib/ui/chartStore.js';
+import validShadow from '../fixtures/thermal-shadow-v1-available.json';
 
 beforeEach(() => {
   items.set({
@@ -50,6 +51,28 @@ describe('Earthship four-zone thermal contract', () => {
       'Shelly_HT1_Indoor_Temperature',
       'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature',
     ]);
+  });
+});
+
+describe('Earthship thermal model integration', () => {
+  it('adds the shadow model beside existing displays without changing advisory or zone order', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse(validShadow.generatedAt) + 10 * 60_000);
+    setItems({
+      Thermal_Model_JSON: JSON.stringify(validShadow),
+      Thermal_Advisory: 'vent|Existing thermal advisory remains authoritative',
+      Forecast_Tomorrow_High: '81',
+      Forecast_Tomorrow_Low: '54',
+    });
+
+    const { container, getByText } = render(Earthship);
+
+    expect(container.querySelector('.thermal-model-cell')).not.toBeNull();
+    expect(getByText('SHADOW')).toBeTruthy();
+    expect(getByText('Existing thermal advisory remains authoritative')).toBeTruthy();
+    expect([...container.querySelectorAll('.zone-label')].map((node) => node.textContent))
+      .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor']);
+    expect(container.querySelector('.thermal-model-cell button')).toBeNull();
   });
 });
 
