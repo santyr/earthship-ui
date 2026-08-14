@@ -2,6 +2,10 @@ const HOUR_MS = 60 * 60 * 1000;
 const FRESH_MS = 3 * HOUR_MS;
 const UNAVAILABLE_MS = 26 * HOUR_MS;
 const MAX_BYTES = 16 * 1024;
+const MICROSECONDS_PER_MILLISECOND = 1000n;
+const MICROSECONDS_PER_SECOND = 1_000_000n;
+const FRESH_US = BigInt(FRESH_MS) * MICROSECONDS_PER_MILLISECOND;
+const UNAVAILABLE_US = BigInt(UNAVAILABLE_MS) * MICROSECONDS_PER_MILLISECOND;
 
 const TOP_LEVEL_FIELDS = new Set([
   'version', 'status', 'generatedAt', 'model', 'current', 'forecast',
@@ -85,7 +89,7 @@ function finiteNumber(value, { optional = false, minimum = -Infinity } = {}) {
   return value;
 }
 
-function timestampMs(value) {
+function timestamp(value) {
   const match = typeof value === 'string' ? ISO_WITH_ZONE.exec(value) : null;
   if (!match) throw new TypeError('expected aware ISO-8601 timestamp');
 
@@ -113,20 +117,33 @@ function timestampMs(value) {
     throw new TypeError('invalid timestamp');
   }
 
-  const milliseconds = Number(fraction.padEnd(3, '0').slice(0, 3));
+  const fractionMicros = BigInt(fraction.padEnd(6, '0').slice(0, 6));
   const local = new Date(0);
   local.setUTCFullYear(year, month - 1, day);
-  local.setUTCHours(hour, minute, second, milliseconds);
+  local.setUTCHours(hour, minute, second, 0);
   const offsetMinutes = zone === 'Z'
     ? 0
     : (offsetSign === '+' ? 1 : -1) * (offsetHour * 60 + offsetMinute);
-  const parsed = local.getTime() - offsetMinutes * 60_000;
-  if (!Number.isFinite(parsed)) throw new TypeError('invalid timestamp');
-  return parsed;
+  const wholeSecondMs = local.getTime() - offsetMinutes * 60_000;
+  const epochMicros = BigInt(wholeSecondMs) * MICROSECONDS_PER_MILLISECOND + fractionMicros;
+  const epochMs = wholeSecondMs + Number(fractionMicros / MICROSECONDS_PER_MILLISECOND);
+  if (!Number.isFinite(epochMs)) throw new TypeError('invalid timestamp');
+
+  const sinceLocalFiveMinute = BigInt((minute % 5) * 60 + second) * MICROSECONDS_PER_SECOND
+    + fractionMicros;
+  return {
+    epochMicros,
+    epochMs,
+    fiveMinuteStartMicros: epochMicros - sinceLocalFiveMinute,
+  };
 }
 
-function optionalTimestampMs(value) {
-  return value === null ? null : timestampMs(value);
+function optionalTimestamp(value) {
+  return value === null ? null : timestamp(value);
+}
+
+function millisecondsToMicros(value) {
+  return BigInt(Math.trunc(value)) * MICROSECONDS_PER_MILLISECOND;
 }
 
 function sameExactObject(left, right) {
@@ -141,13 +158,20 @@ function sameExactObject(left, right) {
 
 function validateScheduleWindow(value, horizonStart, horizonEnd) {
   exactObject(value, SCHEDULE_TIME_FIELDS);
-  const opened = optionalTimestampMs(value.ventOpenAt);
-  const closed = optionalTimestampMs(value.ventCloseAt);
+  const opened = optionalTimestamp(value.ventOpenAt);
+  const closed = optionalTimestamp(value.ventCloseAt);
   if ((opened === null) !== (closed === null)) throw new TypeError('incomplete vent window');
-  if (opened !== null && !(horizonStart <= opened && opened < closed && closed <= horizonEnd)) {
+  if (opened !== null && !(
+    horizonStart <= opened.epochMicros
+    && opened.epochMicros < closed.epochMicros
+    && closed.epochMicros <= horizonEnd
+  )) {
     throw new TypeError('vent window outside horizon');
   }
-  return { opened, closed };
+  return {
+    opened: opened?.epochMs ?? null,
+    closed: closed?.epochMs ?? null,
+  };
 }
 
 function validateRows(rows, fields, limit, { localHour = false } = {}) {
@@ -156,10 +180,10 @@ function validateRows(rows, fields, limit, { localHour = false } = {}) {
   return rows.map((row) => {
     exactObject(row, fields);
     if (localHour && !LOCAL_HOUR.test(row.at)) throw new TypeError('forecast row is not hourly');
-    const atMs = timestampMs(row.at);
-    if (prior !== null && atMs <= prior) throw new TypeError('rows are not ordered');
-    prior = atMs;
-    return { row, atMs };
+    const at = timestamp(row.at);
+    if (prior !== null && at.epochMicros <= prior) throw new TypeError('rows are not ordered');
+    prior = at.epochMicros;
+    return { row, atMs: at.epochMs, atMicros: at.epochMicros };
   });
 }
 
@@ -195,14 +219,17 @@ function validatePayload(payload) {
   if (payload.version !== 1 || !Number.isInteger(payload.version) || payload.status !== 'shadow') {
     throw new TypeError('unsupported thermal result');
   }
-  const generatedAtMs = timestampMs(payload.generatedAt);
+  const generatedAt = timestamp(payload.generatedAt);
 
   const model = payload.model;
   if (Object.keys(exactObject(model, new Set(Object.keys(model)))).length > 0) {
     exactObject(model, MODEL_FIELDS);
-    const createdAt = timestampMs(model.createdAt);
-    const trainedThrough = timestampMs(model.trainedThrough);
-    if (!(trainedThrough <= createdAt && createdAt <= generatedAtMs)) {
+    const createdAt = timestamp(model.createdAt);
+    const trainedThrough = timestamp(model.trainedThrough);
+    if (!(
+      trainedThrough.epochMicros <= createdAt.epochMicros
+      && createdAt.epochMicros <= generatedAt.epochMicros
+    )) {
       throw new TypeError('invalid model chronology');
     }
     if (typeof model.codeRevision !== 'string' || !/^[0-9a-f]{7,64}$/.test(model.codeRevision)) {
@@ -217,14 +244,15 @@ function validatePayload(payload) {
   if (!Number.isInteger(forecast.availableHours) || forecast.availableHours < 0 || forecast.availableHours > 72) {
     throw new TypeError('invalid forecast horizon');
   }
-  const horizonStart = Math.floor(generatedAtMs / (5 * 60_000)) * 5 * 60_000;
-  const horizonEnd = horizonStart + forecast.availableHours * HOUR_MS;
+  const horizonStart = generatedAt.fiveMinuteStartMicros;
+  const horizonEnd = horizonStart
+    + BigInt(forecast.availableHours * HOUR_MS) * MICROSECONDS_PER_MILLISECOND;
   const summaryNumbers = [
     'hallwayHighF', 'hallwayLowF', 'morningMassF', 'intervalLowF', 'intervalHighF',
   ];
   for (const field of summaryNumbers) finiteNumber(forecast[field], { optional: true });
-  const hallwayHighAt = optionalTimestampMs(forecast.hallwayHighAt);
-  const hallwayLowAt = optionalTimestampMs(forecast.hallwayLowAt);
+  const hallwayHighAt = optionalTimestamp(forecast.hallwayHighAt);
+  const hallwayLowAt = optionalTimestamp(forecast.hallwayLowAt);
   if ((forecast.intervalLowF === null) !== (forecast.intervalHighF === null)) {
     throw new TypeError('incomplete interval');
   }
@@ -233,13 +261,13 @@ function validatePayload(payload) {
   }
 
   const trajectoryRows = validateRows(forecast.trajectory, TRAJECTORY_FIELDS, 73, { localHour: true });
-  const trajectory = trajectoryRows.map(({ row, atMs }) => {
+  const trajectory = trajectoryRows.map(({ row, atMs, atMicros }) => {
     const hallwayF = finiteNumber(row.hallwayF);
     const massF = finiteNumber(row.massF);
     const lowF = finiteNumber(row.lowF);
     const highF = finiteNumber(row.highF);
     if (!(lowF <= hallwayF && hallwayF <= highF)) throw new TypeError('invalid row interval');
-    if (!(horizonStart <= atMs && atMs <= horizonEnd)) throw new TypeError('row outside horizon');
+    if (!(horizonStart <= atMicros && atMicros <= horizonEnd)) throw new TypeError('row outside horizon');
     if (
       !Array.isArray(row.actions)
       || row.actions.some((action) => typeof action !== 'string' || !ACTION_MARKERS.has(action))
@@ -250,8 +278,8 @@ function validatePayload(payload) {
     return { atMs, hallwayF, massF, lowF, highF, actions: [...row.actions] };
   });
 
-  const observed = validateRows(forecast.observed, OBSERVED_FIELDS, 25).map(({ row, atMs }) => {
-    if (atMs > generatedAtMs) throw new TypeError('future observation');
+  const observed = validateRows(forecast.observed, OBSERVED_FIELDS, 25).map(({ row, atMs, atMicros }) => {
+    if (atMicros > generatedAt.epochMicros) throw new TypeError('future observation');
     return { atMs, hallwayF: finiteNumber(row.hallwayF), massF: finiteNumber(row.massF) };
   });
 
@@ -332,13 +360,14 @@ function validatePayload(payload) {
       && forecast.hallwayHighF <= forecast.intervalHighF
     )) throw new TypeError('extrema outside interval');
     if (
-      hallwayHighAt < horizonStart || hallwayHighAt > horizonEnd
-      || hallwayLowAt < horizonStart || hallwayLowAt > horizonEnd
+      hallwayHighAt.epochMicros < horizonStart || hallwayHighAt.epochMicros > horizonEnd
+      || hallwayLowAt.epochMicros < horizonStart || hallwayLowAt.epochMicros > horizonEnd
     ) throw new TypeError('extrema times outside horizon');
   }
 
   return {
-    generatedAtMs,
+    generatedAtMs: generatedAt.epochMs,
+    generatedAtMicros: generatedAt.epochMicros,
     forecast,
     trajectory,
     observed,
@@ -356,14 +385,14 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
   if (!trimmed || ['NULL', 'UNDEF'].includes(trimmed)) return unavailableResult();
 
   try {
-    const parsed = validatePayload(JSON.parse(trimmed));
-    const ageMs = nowMs - parsed.generatedAtMs;
-    if (ageMs < 0) return unavailableResult();
+    const parsed = validatePayload(JSON.parse(raw));
+    const ageMicros = millisecondsToMicros(nowMs) - parsed.generatedAtMicros;
+    if (ageMicros < 0n) return unavailableResult();
     if (parsed.confidence === 'unavailable') return unavailableResult(parsed.reasons);
-    if (ageMs > UNAVAILABLE_MS) return unavailableResult();
+    if (ageMicros > UNAVAILABLE_US) return unavailableResult();
 
     return {
-      state: ageMs > FRESH_MS ? 'stale' : 'ready',
+      state: ageMicros > FRESH_US ? 'stale' : 'ready',
       badge: 'SHADOW',
       generatedAtMs: parsed.generatedAtMs,
       hallwayHigh: parsed.forecast.hallwayHighF,

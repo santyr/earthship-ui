@@ -213,6 +213,87 @@ describe('parseThermalModelResult', () => {
       .toBe('unavailable');
   });
 
+  it('rejects model chronology hidden below millisecond precision across offsets', () => {
+    const payload = fixture((value) => {
+      value.model.createdAt = '2026-08-13T11:00:00.000100+01:00';
+      value.model.trainedThrough = '2026-08-13T10:00:00.000900Z';
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it('accepts strictly ordered submillisecond observations across offsets', () => {
+    const payload = fixture((value) => {
+      value.forecast.observed = [
+        { at: '2026-08-13T11:55:00.000100Z', hallwayF: 73.8, massF: 71.8 },
+        { at: '2026-08-13T12:55:00.000900+01:00', hallwayF: 73.9, massF: 71.9 },
+      ];
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('ready');
+  });
+
+  it('accepts a complete submillisecond schedule window', () => {
+    const payload = fixture((value) => {
+      value.schedule.baseline = {
+        ventOpenAt: '2026-08-14T02:30:00.000100Z',
+        ventCloseAt: '2026-08-14T02:30:00.000900Z',
+      };
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('ready');
+  });
+
+  it('rejects a submillisecond future observation expressed with another offset', () => {
+    const payload = fixture((value) => {
+      value.forecast.observed[0].at = '2026-08-13T13:00:00.000100+01:00';
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it('rejects a submillisecond forecast time beyond the exact horizon boundary', () => {
+    const payload = fixture((value) => {
+      value.forecast.hallwayHighAt = '2026-08-14T12:00:00.000100Z';
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it('rejects a generated instant microscopically ahead of the millisecond clock', () => {
+    const payload = fixture((value) => {
+      value.generatedAt = '2026-08-13T12:00:00.000100Z';
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it('uses the generated offset when computing the exact local horizon boundary', () => {
+    const payload = fixture((value) => {
+      value.generatedAt = '2026-08-13T12:02:00+00:02';
+      value.forecast.hallwayHighAt = '2026-08-14T11:59:00Z';
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it('matches Python microsecond truncation for longer fractional seconds', () => {
+    const payload = fixture((value) => {
+      value.model.createdAt = '2026-08-13T10:00:00.0001001Z';
+      value.model.trainedThrough = '2026-08-13T10:00:00.0001009Z';
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('ready');
+  });
+
   it.each([
     ['zero-width format', '\u200b'],
     ['private-use', '\ue000'],
@@ -233,6 +314,16 @@ describe('parseThermalModelResult', () => {
     expect(new TextEncoder().encode(raw)).toHaveLength(16 * 1024);
 
     expect(parseThermalModelResult(raw, GENERATED_AT_MS).state).toBe('unavailable');
+  });
+
+  it.each([
+    ['a leading BOM', (json) => '\uFEFF' + json],
+    ['a trailing BOM', (json) => json + '\uFEFF'],
+    ['leading non-breaking space', (json) => '\u00A0' + json],
+    ['trailing line separator', (json) => json + '\u2028'],
+  ])('rejects valid JSON wrapped in %s', (_label, wrap) => {
+    expect(parseThermalModelResult(wrap(JSON.stringify(validShadow)), GENERATED_AT_MS).state)
+      .toBe('unavailable');
   });
 
   it('accepts surrounding JSON whitespace when the complete raw state stays below 16 KiB', () => {
