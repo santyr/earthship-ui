@@ -6,5 +6,6 @@ Description=Publish Earthship thermal model shadow observation
 Type=oneshot
 WorkingDirectory=/home/sat/openhab/scripts
 EnvironmentFile=/home/sat/.config/hex/openhab.env
+UMask=0077
 ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow --publish
 TimeoutStartSec=180

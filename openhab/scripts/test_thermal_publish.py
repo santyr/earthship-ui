@@ -2,6 +2,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import shutil
 from types import SimpleNamespace
 
 import pytest
@@ -131,3 +132,63 @@ def test_shadow_publish_flag_is_explicit_and_defaults_off():
 
     assert parser.parse_args(["shadow"]).publish is False
     assert parser.parse_args(["shadow", "--publish"]).publish is True
+
+
+
+def _copy_runtime_manifest(destination):
+    source_root = Path(thermal_intel.__file__).resolve().parent
+    for relative in thermal_intel.RUNTIME_REVISION_PATHS:
+        source = source_root / relative
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+
+
+def test_runtime_revision_manifest_is_exact_and_complete():
+    assert thermal_intel.RUNTIME_REVISION_PATHS == (
+        "thermal_intel.py",
+        "forecast_intel.py",
+        "thermal_model/__init__.py",
+        "thermal_model/actions.py",
+        "thermal_model/artifacts.py",
+        "thermal_model/behavior.py",
+        "thermal_model/dataset.py",
+        "thermal_model/dynamics.py",
+        "thermal_model/evaluation.py",
+        "thermal_model/journal.py",
+        "thermal_model/pipeline.py",
+        "thermal_model/schema.py",
+    )
+
+
+def test_runtime_revision_changes_for_entrypoint_and_shared_helper(tmp_path):
+    _copy_runtime_manifest(tmp_path)
+    original = thermal_intel._runtime_manifest_revision(tmp_path)
+    assert len(original) == 64
+
+    entrypoint = tmp_path / "thermal_intel.py"
+    entrypoint.write_bytes(entrypoint.read_bytes() + b"\n# reviewed entrypoint change\n")
+    assert thermal_intel._runtime_manifest_revision(tmp_path) != original
+
+    _copy_runtime_manifest(tmp_path)
+    shared = tmp_path / "forecast_intel.py"
+    shared.write_bytes(shared.read_bytes() + b"\n# reviewed helper change\n")
+    assert thermal_intel._runtime_manifest_revision(tmp_path) != original
+
+
+def test_runtime_revision_ignores_unrelated_git_discovery(tmp_path):
+    _copy_runtime_manifest(tmp_path)
+    expected = thermal_intel._runtime_manifest_revision(tmp_path)
+    git = tmp_path / ".git"
+    git.mkdir()
+    (git / "HEAD").write_text("ref: refs/heads/unrelated\n")
+    assert thermal_intel._runtime_manifest_revision(tmp_path) == expected
+    (git / "HEAD").write_text("deadbeef\n")
+    assert thermal_intel._runtime_manifest_revision(tmp_path) == expected
+
+
+def test_runtime_revision_fails_closed_when_manifest_file_is_missing(tmp_path):
+    _copy_runtime_manifest(tmp_path)
+    (tmp_path / "forecast_intel.py").unlink()
+    with pytest.raises(RuntimeError, match="runtime revision file unavailable"):
+        thermal_intel._runtime_manifest_revision(tmp_path)

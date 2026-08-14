@@ -5,7 +5,6 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
 
 import forecast_intel
@@ -27,6 +26,20 @@ DEFAULT_SHADOW_PATH = DEFAULT_STATE_DIRECTORY.parent / "shadow.json"
 DEFAULT_TRAINING_DAYS = 90
 THERMAL_MODEL_ITEM = "Thermal_Model_JSON"
 MAX_SHADOW_BYTES = 16 * 1024
+RUNTIME_REVISION_PATHS = (
+    "thermal_intel.py",
+    "forecast_intel.py",
+    "thermal_model/__init__.py",
+    "thermal_model/actions.py",
+    "thermal_model/artifacts.py",
+    "thermal_model/behavior.py",
+    "thermal_model/dataset.py",
+    "thermal_model/dynamics.py",
+    "thermal_model/evaluation.py",
+    "thermal_model/journal.py",
+    "thermal_model/pipeline.py",
+    "thermal_model/schema.py",
+)
 
 
 def _aware_iso(value):
@@ -125,29 +138,26 @@ def _date_range(args, now):
     return start, end
 
 
-def _code_revision():
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=Path(__file__).resolve().parent,
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        revision = result.stdout.strip().lower()
-        if 7 <= len(revision) <= 64 and all(
-            character in "0123456789abcdef" for character in revision
-        ):
-            return revision
-    except (OSError, subprocess.SubprocessError):
-        pass
+def _runtime_manifest_revision(root):
+    root = Path(root)
     digest = sha256()
-    package = Path(__file__).resolve().parent / "thermal_model"
-    for path in sorted(package.glob("*.py")):
-        digest.update(path.name.encode("utf-8"))
-        digest.update(path.read_bytes())
+    for relative in RUNTIME_REVISION_PATHS:
+        encoded_name = relative.encode("utf-8")
+        try:
+            content = (root / relative).read_bytes()
+        except OSError as exc:
+            raise RuntimeError(
+                f"runtime revision file unavailable: {relative}"
+            ) from exc
+        digest.update(len(encoded_name).to_bytes(4, "big"))
+        digest.update(encoded_name)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
     return digest.hexdigest()
+
+
+def _code_revision():
+    return _runtime_manifest_revision(Path(__file__).resolve().parent)
 
 
 def _offline_journal(parser):
