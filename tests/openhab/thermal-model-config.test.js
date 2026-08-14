@@ -1,4 +1,9 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -43,7 +48,9 @@ function mutableItemTransport(initial, { ambiguousPut = false } = {}) {
   let item = structuredClone(initial);
   const calls = [];
   const request = async (method, path, options = {}) => {
-    calls.push({ method, path, options: structuredClone(options) });
+    const recordedOptions = structuredClone(options);
+    delete recordedOptions.transaction;
+    calls.push({ method, path, options: recordedOptions });
     expect(path).toBe(ITEM_PATH);
     if (method === 'GET') return structuredClone(item);
     if (method === 'PUT') {
@@ -78,33 +85,24 @@ describe('thermal observational resources', () => {
     expect(JSON.stringify(manifest)).not.toMatch(/Switch|command|rule|actuator/i);
   });
 
-  it('separates exact item configuration and runtime state PUTs and denies every command/path', () => {
+  it('separates exact item configuration and runtime state paths and denies every command/path', () => {
     expect(() => assertThermalOutputRequest('GET', ITEM_PATH)).not.toThrow();
-    expect(() => assertThermalOutputRequest('PUT', ITEM_PATH, THERMAL_ITEM)).not.toThrow();
+    expect(() => assertThermalOutputRequest('PUT', ITEM_PATH)).not.toThrow();
     expect(() => assertThermalOutputRequest('DELETE', ITEM_PATH)).not.toThrow();
     expect(() => assertThermalOutputRequest('PUT', STATE_PATH)).not.toThrow();
-    expect(() => assertThermalOutputRequest(
-      'PUT', STATE_PATH, '{"version":1,"status":"shadow"}',
-    )).not.toThrow();
 
     expect(() => assertThermalOutputRequest('POST', ITEM_PATH)).toThrow(/denied/i);
-    expect(() => assertThermalOutputRequest('POST', STATE_PATH, 'ON')).toThrow(/denied/i);
+    expect(() => assertThermalOutputRequest('POST', STATE_PATH)).toThrow(/denied/i);
     expect(() => assertThermalOutputRequest(
-      'PUT', '/rest/items/SouthOutlet_Outlet2_Switch/state', 'ON',
+      'PUT', '/rest/items/SouthOutlet_Outlet2_Switch/state',
     )).toThrow(/denied/i);
-    expect(() => assertThermalOutputRequest('PUT', `${ITEM_PATH}?x=1`, THERMAL_ITEM))
+    expect(() => assertThermalOutputRequest('PUT', `${ITEM_PATH}?x=1`))
       .toThrow(/denied/i);
-    expect(() => assertThermalOutputRequest('PUT', '/rest/items/%54hermal_Model_JSON', THERMAL_ITEM))
+    expect(() => assertThermalOutputRequest('PUT', '/rest/items/%54hermal_Model_JSON'))
       .toThrow(/denied/i);
-    expect(() => assertThermalOutputRequest('PUT', ITEM_PATH, {
-      ...THERMAL_ITEM,
-      state: 'forbidden-runtime-state',
-    })).toThrow(/body/i);
-    expect(() => assertThermalOutputRequest('PUT', STATE_PATH, { status: 'shadow' }))
-      .toThrow(/body/i);
-    expect(() => assertThermalOutputRequest('PUT', STATE_PATH, 'ON')).toThrow(/body/i);
-    expect(() => assertThermalOutputRequest('DELETE', ITEM_PATH, 'unexpected'))
-      .toThrow(/body/i);
+    expect(() => assertThermalOutputRequest('GET', `${ITEM_PATH}/`)).toThrow(/denied/i);
+    expect(() => assertThermalOutputRequest('GET', `//evil.invalid${ITEM_PATH}`))
+      .toThrow(/denied/i);
   });
 
   it('builds one-item apply and exact restore-or-delete rollback plans', () => {

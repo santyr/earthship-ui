@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -8,9 +9,21 @@ import pytest
 import thermal_intel
 from test_thermal_schema import valid_shadow_payload
 from thermal_model.pipeline import build_unavailable_shadow
+from thermal_model.schema import validate_shadow_output
 
 
 NOW = datetime(2026, 8, 13, 12, 0, tzinfo=timezone.utc)
+GOLDEN_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "tests/fixtures/thermal-shadow-v1-available.json"
+)
+
+
+def test_shared_cross_language_available_v1_golden_is_canonical():
+    payload = json.loads(GOLDEN_PATH.read_text())
+
+    assert validate_shadow_output(payload) is payload
+    assert payload == valid_shadow_payload()
 
 
 def test_publish_validates_and_puts_exactly_one_compact_shadow_state():

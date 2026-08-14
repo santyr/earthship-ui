@@ -1,21 +1,26 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
 import {
+  chmod,
   mkdir,
+  open,
   readFile,
   rename,
   stat,
-  writeFile,
+  unlink,
 } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const ITEM_NAME = 'Thermal_Model_JSON';
 export const ITEM_PATH = `/rest/items/${encodeURIComponent(ITEM_NAME)}`;
 export const STATE_PATH = `${ITEM_PATH}/state`;
 export const RECEIPT_FILENAME = 'receipt.json';
 export const SNAPSHOT_FILENAME = 'pre-state.json';
+export const LOCK_FILENAME = 'transaction.lock';
 
 export const THERMAL_ITEM = Object.freeze({
   name: ITEM_NAME,
@@ -27,9 +32,13 @@ export const THERMAL_ITEM = Object.freeze({
 });
 
 const RECEIPT_SCHEMA = 'earthship-thermal-model-config-receipt/v1';
+const LOCK_SCHEMA = 'earthship-thermal-model-config-lock/v1';
 const MAX_STATE_BYTES = 16_384;
 const AUTH_FILE = '/home/sat/.config/hex/openhab.env';
 const DEFAULT_BASE_URL = 'http://192.168.1.161:8080';
+const STATE_VALIDATOR = fileURLToPath(new URL(
+  '../openhab/scripts/validate_thermal_shadow.py', import.meta.url,
+));
 const ITEM_KEYS = Object.freeze([
   'category', 'groupNames', 'label', 'name', 'tags', 'type',
 ]);
@@ -111,32 +120,59 @@ function assertExactItemBody(body) {
   }
 }
 
-function assertShadowStateBody(body) {
+function validateCanonicalStateBody(body, spawnSyncImpl = spawnSync) {
   if (typeof body !== 'string' || Buffer.byteLength(body, 'utf8') >= MAX_STATE_BYTES) {
-    throw new Error('Denied OpenHAB thermal state body');
+    throw new Error('Denied OpenHAB thermal state body: must be below 16 KiB');
   }
-  let payload;
-  try {
-    payload = JSON.parse(body);
-  } catch {
-    throw new Error('Denied OpenHAB thermal state body');
-  }
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)
-      || payload.version !== 1 || payload.status !== 'shadow') {
-    throw new Error('Denied OpenHAB thermal state body');
+  const result = spawnSyncImpl('python3', [STATE_VALIDATOR], {
+    input: body,
+    encoding: 'utf8',
+    maxBuffer: MAX_STATE_BYTES,
+    timeout: 10_000,
+    windowsHide: true,
+  });
+  if (result.error || result.status !== 0) {
+    throw new Error('Denied OpenHAB thermal state body: canonical validator rejected it');
   }
 }
 
-export function assertThermalOutputRequest(method, path, body) {
+export function assertThermalOutputRequest(method, path) {
   const key = `${String(method).toUpperCase()} ${String(path)}`;
   if (!ALLOWED_REQUESTS.has(key)) throw new Error(`Denied OpenHAB request: ${key}`);
-  if (arguments.length < 3) return;
+}
+
+export function authorizeThermalOutputRequest(method, path, {
+  body,
+  transaction,
+} = {}) {
+  assertThermalOutputRequest(method, path);
+  const key = `${String(method).toUpperCase()} ${String(path)}`;
+  if (key === `GET ${ITEM_PATH}`) {
+    if (body !== undefined) throw new Error('Denied OpenHAB GET body');
+    return;
+  }
+  if (key === `PUT ${STATE_PATH}`) {
+    if (transaction?.operation !== 'publish') {
+      throw new Error('Denied OpenHAB state PUT without publish context');
+    }
+    validateCanonicalStateBody(body);
+    return;
+  }
+  if (!transaction?.receipt || !transaction?.snapshot) {
+    throw new Error('Denied OpenHAB item mutation without receipt context');
+  }
+  assertReceiptIntegrity(transaction.receipt, transaction.snapshot);
   if (key === `PUT ${ITEM_PATH}`) {
     assertExactItemBody(body);
-  } else if (key === `PUT ${STATE_PATH}`) {
-    assertShadowStateBody(body);
-  } else if (body !== undefined) {
-    throw new Error(`Denied OpenHAB request body: ${key}`);
+    if (transaction.operation === 'apply' && equal(body, THERMAL_ITEM)) return;
+    if (transaction.operation === 'rollback'
+        && transaction.snapshot.item !== null
+        && equal(body, transaction.snapshot.item)) return;
+    throw new Error('Denied OpenHAB item PUT body for transaction');
+  }
+  if (body !== undefined) throw new Error('Denied OpenHAB DELETE body');
+  if (transaction.operation !== 'rollback' || transaction.snapshot.item !== null) {
+    throw new Error('Denied OpenHAB item DELETE without absent original receipt');
   }
 }
 
@@ -212,11 +248,38 @@ async function exists(path) {
   }
 }
 
+async function fsyncDirectory(path) {
+  const handle = await open(path, 'r');
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
 async function atomicWriteJson(path, value) {
-  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-  const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
-  await rename(temporary, path);
+  const parent = dirname(path);
+  await mkdir(parent, { recursive: true, mode: 0o700 });
+  await chmod(parent, 0o700);
+  const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
+  let handle;
+  let renamed = false;
+  try {
+    handle = await open(temporary, 'wx', 0o600);
+    await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`, 'utf8');
+    await handle.chmod(0o600);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    await rename(temporary, path);
+    renamed = true;
+    await fsyncDirectory(parent);
+  } finally {
+    if (handle) await handle.close().catch(() => {});
+    if (!renamed) await unlink(temporary).catch((error) => {
+      if (error?.code !== 'ENOENT') throw error;
+    });
+  }
 }
 
 function transactionPaths(receiptDir) {
@@ -224,9 +287,77 @@ function transactionPaths(receiptDir) {
     throw new Error('A receipt directory is required');
   }
   return {
+    lockPath: join(receiptDir, LOCK_FILENAME),
     receiptPath: join(receiptDir, RECEIPT_FILENAME),
     snapshotPath: join(receiptDir, SNAPSHOT_FILENAME),
   };
+}
+
+export async function inspectReceiptLock(receiptDir) {
+  const { lockPath } = transactionPaths(receiptDir);
+  const encoded = await readFile(lockPath, 'utf8');
+  return {
+    lock: JSON.parse(encoded),
+    digest: createHash('sha256').update(encoded).digest('hex'),
+  };
+}
+
+async function acquireReceiptLock(receiptDir, operation, now) {
+  const { lockPath } = transactionPaths(receiptDir);
+  await mkdir(receiptDir, { recursive: true, mode: 0o700 });
+  await chmod(receiptDir, 0o700);
+  let handle;
+  try {
+    handle = await open(lockPath, 'wx', 0o600);
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      let detail = 'unreadable';
+      try {
+        detail = (await inspectReceiptLock(receiptDir)).digest;
+      } catch {}
+      throw new Error(
+        `Thermal config receipt is busy; inspect stale lock ${LOCK_FILENAME} digest ${detail}`,
+      );
+    }
+    throw error;
+  }
+  const lock = {
+    schema: LOCK_SCHEMA,
+    pid: process.pid,
+    hostname: hostname(),
+    createdAt: instant(now),
+    operation,
+    nonce: randomUUID(),
+  };
+  try {
+    await handle.writeFile(`${JSON.stringify(lock)}\n`, 'utf8');
+    await handle.chmod(0o600);
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    await fsyncDirectory(receiptDir);
+  } catch (error) {
+    if (handle) await handle.close().catch(() => {});
+    await unlink(lockPath).catch(() => {});
+    throw error;
+  }
+  return async () => {
+    const current = JSON.parse(await readFile(lockPath, 'utf8'));
+    if (current.schema !== LOCK_SCHEMA || current.nonce !== lock.nonce) {
+      throw new Error('Thermal config lock ownership changed; refusing blind deletion');
+    }
+    await unlink(lockPath);
+    await fsyncDirectory(receiptDir);
+  };
+}
+
+async function withReceiptLock(receiptDir, operation, now, callback) {
+  const release = await acquireReceiptLock(receiptDir, operation, now);
+  try {
+    return await callback();
+  } finally {
+    await release();
+  }
 }
 
 async function readTransaction(receiptDir) {
@@ -264,15 +395,19 @@ async function readLiveItem(request) {
   return itemConfiguration(await request('GET', ITEM_PATH, { allowMissing: true }));
 }
 
-async function executeOperation(request, operation) {
+async function executeOperation(request, operation, transaction) {
   const options = {};
   if (Object.hasOwn(operation, 'body')) options.body = clone(operation.body);
   if (operation.method === 'DELETE') options.allowMissing = true;
-  assertThermalOutputRequest(operation.method, operation.path, options.body);
+  authorizeThermalOutputRequest(operation.method, operation.path, {
+    body: options.body,
+    transaction,
+  });
+  options.transaction = transaction;
   return request(operation.method, operation.path, options);
 }
 
-export async function snapshotTransaction({ request, receiptDir, now } = {}) {
+async function snapshotTransactionUnlocked({ request, receiptDir, now } = {}) {
   if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
   const { receiptPath, snapshotPath } = transactionPaths(receiptDir);
   if (await exists(receiptPath) || await exists(snapshotPath)) {
@@ -286,7 +421,7 @@ export async function snapshotTransaction({ request, receiptDir, now } = {}) {
   return transaction;
 }
 
-export async function planTransaction({ receiptDir } = {}) {
+async function planTransactionUnlocked({ receiptDir } = {}) {
   const { receipt, snapshot } = await readTransaction(receiptDir);
   return {
     receipt: clone(receipt),
@@ -301,7 +436,7 @@ function assertOpenPhase(receipt, command, allowed) {
   }
 }
 
-export async function applyTransaction({ request, receiptDir, now } = {}) {
+async function applyTransactionUnlocked({ request, receiptDir, now } = {}) {
   if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
   const transaction = await readTransaction(receiptDir);
   let { receipt } = transaction;
@@ -314,7 +449,9 @@ export async function applyTransaction({ request, receiptDir, now } = {}) {
 
   receipt = await writeReceipt(transaction.receiptPath, receipt, { now, phase: 'applying' });
   const [operation] = buildApplyPlan(transaction.snapshot.item);
-  await executeOperation(request, operation);
+  await executeOperation(request, operation, {
+    operation: 'apply', receipt, snapshot: transaction.snapshot,
+  });
   receipt = await writeReceipt(transaction.receiptPath, receipt, {
     now,
     phase: 'applied',
@@ -328,7 +465,7 @@ export async function applyTransaction({ request, receiptDir, now } = {}) {
   return writeReceipt(transaction.receiptPath, receipt, { now, phase: 'desired' });
 }
 
-export async function verifyTransaction({ request, receiptDir } = {}) {
+async function verifyTransactionUnlocked({ request, receiptDir } = {}) {
   if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
   const { receipt, snapshot } = await readTransaction(receiptDir);
   const live = await readLiveItem(request);
@@ -348,20 +485,20 @@ export async function verifyTransaction({ request, receiptDir } = {}) {
   }
   if (['applying', 'rolling-back'].includes(receipt.phase)) {
     return {
-      ok: equal(live, snapshot.item) || equal(live, THERMAL_ITEM),
-      expected: 'original-or-desired',
+      ok: false,
+      expected: 'unresolved; run settle after exact readback',
       phase: receipt.phase,
     };
   }
   throw new Error(`Cannot verify thermal item from receipt phase ${receipt.phase}`);
 }
 
-export async function rollbackTransaction({ request, receiptDir, now } = {}) {
+async function rollbackTransactionUnlocked({ request, receiptDir, now } = {}) {
   if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
   const transaction = await readTransaction(receiptDir);
   let { receipt } = transaction;
   assertOpenPhase(receipt, 'rollback', [
-    'snapshot', 'applying', 'applied', 'desired', 'rolling-back', 'rolled-back',
+    'snapshot', 'applying', 'applied', 'desired', 'rolled-back',
   ]);
 
   const live = await readLiveItem(request);
@@ -380,7 +517,9 @@ export async function rollbackTransaction({ request, receiptDir, now } = {}) {
     });
   }
   const [operation] = buildRollbackPlan(transaction.snapshot.item);
-  await executeOperation(request, operation);
+  await executeOperation(request, operation, {
+    operation: 'rollback', receipt, snapshot: transaction.snapshot,
+  });
   receipt = await writeReceipt(transaction.receiptPath, receipt, {
     now,
     writeCount: receipt.writeCount + 1,
@@ -390,6 +529,68 @@ export async function rollbackTransaction({ request, receiptDir, now } = {}) {
     throw new Error('Thermal_Model_JSON rollback verification failed');
   }
   return writeReceipt(transaction.receiptPath, receipt, { now, phase: 'rolled-back' });
+}
+
+async function settleTransactionUnlocked({ request, receiptDir, now } = {}) {
+  if (typeof request !== 'function') throw new Error('OpenHAB request transport is required');
+  const transaction = await readTransaction(receiptDir);
+  const { receipt, snapshot } = transaction;
+  assertOpenPhase(receipt, 'settle', ['applying', 'rolling-back']);
+  const live = await readLiveItem(request);
+  if (receipt.phase === 'applying') {
+    if (!equal(live, THERMAL_ITEM)) {
+      throw new Error('Cannot settle apply: intended write did not land exactly');
+    }
+    return writeReceipt(transaction.receiptPath, receipt, {
+      now,
+      phase: 'applied',
+      writeCount: receipt.writeCount + 1,
+    });
+  }
+  if (!equal(live, snapshot.item)) {
+    throw new Error('Cannot settle rollback: exact original was not restored');
+  }
+  return writeReceipt(transaction.receiptPath, receipt, {
+    now,
+    phase: 'rolled-back',
+    writeCount: receipt.writeCount + 1,
+  });
+}
+
+export function snapshotTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'snapshot', args.now, () => (
+    snapshotTransactionUnlocked(args)
+  ));
+}
+
+export function planTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'plan', args.now, () => (
+    planTransactionUnlocked(args)
+  ));
+}
+
+export function applyTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'apply', args.now, () => (
+    applyTransactionUnlocked(args)
+  ));
+}
+
+export function verifyTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'verify', args.now, () => (
+    verifyTransactionUnlocked(args)
+  ));
+}
+
+export function rollbackTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'rollback', args.now, () => (
+    rollbackTransactionUnlocked(args)
+  ));
+}
+
+export function settleTransaction(args = {}) {
+  return withReceiptLock(args.receiptDir, 'settle', args.now, () => (
+    settleTransactionUnlocked(args)
+  ));
 }
 
 function parseEnv(text) {
@@ -418,15 +619,54 @@ async function loadAuth() {
     throw new Error('Ambient OPENHAB_TOKEN conflicts with the protected token file');
   }
   return {
-    baseUrl: (values.OPENHAB_URL || DEFAULT_BASE_URL).replace(/\/$/, ''),
+    baseUrl: values.OPENHAB_URL || DEFAULT_BASE_URL,
     authorization: `Basic ${Buffer.from(`${token}:`).toString('base64')}`,
   };
 }
 
-export function createRestClient({ baseUrl, authorization, fetchImpl = fetch }) {
+function confinedBaseUrl(baseUrl) {
+  const raw = String(baseUrl ?? '');
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error('Invalid OpenHAB base URL');
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)
+      || parsed.username || parsed.password
+      || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+    throw new Error('Denied OpenHAB base URL destination');
+  }
+  const exactRoot = `${parsed.protocol}//${parsed.host}`;
+  if (raw !== exactRoot && raw !== `${exactRoot}/`) {
+    throw new Error('Denied non-root OpenHAB base URL');
+  }
+  return new URL(`${exactRoot}/`);
+}
+
+function confinedRequestUrl(base, path) {
+  const destination = new URL(path, base);
+  if (destination.origin !== base.origin
+      || destination.pathname !== path
+      || destination.search || destination.hash) {
+    throw new Error('Denied OpenHAB request destination');
+  }
+  return destination.href;
+}
+
+export function createRestClient({
+  baseUrl,
+  authorization,
+  fetchImpl = fetch,
+}) {
+  const base = confinedBaseUrl(baseUrl);
   return async function request(method, path, options = {}) {
     const hasBody = Object.hasOwn(options, 'body');
-    assertThermalOutputRequest(method, path, hasBody ? options.body : undefined);
+    authorizeThermalOutputRequest(method, path, {
+      body: hasBody ? options.body : undefined,
+      transaction: options.transaction,
+    });
+    const url = confinedRequestUrl(base, path);
     const headers = { Accept: 'application/json', Authorization: authorization };
     let body;
     if (hasBody) {
@@ -438,12 +678,14 @@ export function createRestClient({ baseUrl, authorization, fetchImpl = fetch }) 
         body = JSON.stringify(options.body);
       }
     }
-    const response = await fetchImpl(`${baseUrl}${path}`, {
+    const response = await fetchImpl(url, {
       method,
       headers,
       body,
+      redirect: 'error',
       signal: AbortSignal.timeout(15_000),
     });
+    if (response.redirected) throw new Error('OpenHAB redirect denied');
     if (options.allowMissing && response.status === 404) return null;
     if (!response.ok) {
       throw new Error(`OpenHAB ${method} ${path} failed with HTTP ${response.status}`);
@@ -455,13 +697,13 @@ export function createRestClient({ baseUrl, authorization, fetchImpl = fetch }) 
 }
 
 function usage() {
-  return 'Usage: thermal-model-config.mjs snapshot|plan|apply|verify|rollback --receipt-dir PATH';
+  return 'Usage: thermal-model-config.mjs snapshot|plan|apply|verify|rollback|settle|inspect-lock --receipt-dir PATH';
 }
 
 function parseCli(argv) {
   if (argv.includes('--help') || argv.includes('-h')) return { help: true };
   const command = argv[0];
-  if (!['snapshot', 'plan', 'apply', 'verify', 'rollback'].includes(command)) {
+  if (!['snapshot', 'plan', 'apply', 'verify', 'rollback', 'settle', 'inspect-lock'].includes(command)) {
     throw new Error(usage());
   }
   const receiptIndex = argv.indexOf('--receipt-dir');
@@ -475,12 +717,14 @@ function parseCli(argv) {
 export async function main(argv = process.argv.slice(2), dependencies = {}) {
   const args = parseCli(argv);
   if (args.help) return { help: usage() };
+  if (args.command === 'inspect-lock') return inspectReceiptLock(args.receiptDir);
   if (args.command === 'plan') return planTransaction(args);
   const request = dependencies.request
     ?? createRestClient({ ...(await loadAuth()), fetchImpl: dependencies.fetchImpl });
   if (args.command === 'snapshot') return snapshotTransaction({ ...args, request });
   if (args.command === 'apply') return applyTransaction({ ...args, request });
   if (args.command === 'verify') return verifyTransaction({ ...args, request });
+  if (args.command === 'settle') return settleTransaction({ ...args, request });
   return rollbackTransaction({ ...args, request });
 }
 

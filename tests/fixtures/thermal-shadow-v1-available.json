@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "status": "shadow",
+  "generatedAt": "2026-08-13T12:00:00+00:00",
+  "model": {
+    "createdAt": "2026-08-13T10:00:00+00:00",
+    "trainedThrough": "2026-08-13T09:00:00+00:00",
+    "codeRevision": "0123456789abcdef"
+  },
+  "current": {
+    "hallwayF": 74.0,
+    "massF": 72.0,
+    "glazingF": null
+  },
+  "forecast": {
+    "availableHours": 24,
+    "hallwayHighF": 80.0,
+    "hallwayHighAt": "2026-08-13T07:00:00-06:00",
+    "hallwayLowF": 68.0,
+    "hallwayLowAt": "2026-08-13T06:00:00-06:00",
+    "morningMassF": 70.0,
+    "intervalLowF": 66.0,
+    "intervalHighF": 82.0,
+    "trajectory": [
+      {
+        "at": "2026-08-13T06:00:00-06:00",
+        "hallwayF": 74.0,
+        "massF": 72.0,
+        "lowF": 72.0,
+        "highF": 76.0,
+        "actions": []
+      },
+      {
+        "at": "2026-08-13T07:00:00-06:00",
+        "hallwayF": 75.0,
+        "massF": 72.2,
+        "lowF": 73.0,
+        "highF": 77.0,
+        "actions": ["vent_close"]
+      }
+    ],
+    "observed": [
+      {
+        "at": "2026-08-13T11:55:00+00:00",
+        "hallwayF": 73.9,
+        "massF": 71.9
+      }
+    ]
+  },
+  "schedule": {
+    "baseline": {
+      "ventOpenAt": "2026-08-14T02:30:00+00:00",
+      "ventCloseAt": "2026-08-14T11:00:00+00:00"
+    },
+    "candidate": null,
+    "effect": {
+      "morningMassDeltaF": 0.0,
+      "hallwayPeakDeltaF": 0.0
+    }
+  },
+  "confidence": {
+    "grade": "low",
+    "actionLabels": "reconstructed"
+  },
+  "provenance": {
+    "sensorItems": {
+      "air": "AmbientWeatherWS2902A_IndoorSensor_Temperature",
+      "mass": "AmbientWeatherWS2902A_WH31E_193_Temperature",
+      "glazing": "Shelly_HT1_Indoor_Temperature",
+      "outdoor": "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature",
+      "radiation": "AmbientWeatherWS2902A_SolarRadiation"
+    },
+    "actions": "historical_reconstruction",
+    "currentAgeMinutes": {
+      "air": 2.0,
+      "mass": 2.0,
+      "glazing": null,
+      "outdoor": 2.0,
+      "radiation": 2.0
+    },
+    "modelAgeHours": 2.0,
+    "trainingDataAgeHours": 3.0
+  },
+  "reasons": ["minimum modeled improvement not met; no candidate emitted"]
+}
