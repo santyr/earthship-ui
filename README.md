@@ -85,6 +85,21 @@ Restart and verify the service after
 branch switches, fast-forwards, or other tree-wide checkout changes. Vite hot
 reload is not a deployment substitute for those operations.
 
+### Thermal model shadow operations
+
+The repository stages user-level daily training and two-hour shadow-publishing
+units in `deploy/thermal-model-{train,shadow}.{service,timer}`. They are not
+installed or enabled by implementation. The thermal output remains
+observational: it publishes only `Thermal_Model_JSON`, does not change
+`Thermal_Advisory`, and has no actuator authority.
+
+Use the attended, approval-gated
+[thermal model shadow runbook](docs/operations/thermal-model-shadow.md) for the
+exact tracked-to-live manifest, least-privilege PostgreSQL setup,
+receipt-bound Item apply/rollback, manual evidence review, service/timer
+staging, and rollback. Completing implementation or collecting shadow evidence
+does not graduate the model to advice.
+
 ## Config (not committed)
 
 Runtime config lives in `config.json` (openHAB base URL + API token),

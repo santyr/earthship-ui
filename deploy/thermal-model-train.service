@@ -1,0 +1,10 @@
+# Installed at ~/.config/systemd/user/thermal-model-train.service (user unit).
+[Unit]
+Description=Earthship thermal model daily training
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/sat/openhab/scripts
+EnvironmentFile=/home/sat/.config/hex/openhab.env
+ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
+TimeoutStartSec=900

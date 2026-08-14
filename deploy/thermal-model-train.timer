@@ -1,0 +1,10 @@
+# Installed at ~/.config/systemd/user/thermal-model-train.timer (user unit).
+[Unit]
+Description=Train Earthship thermal model daily after forecast refresh
+
+[Timer]
+OnCalendar=*-*-* 06:50:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

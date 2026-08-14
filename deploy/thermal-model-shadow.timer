@@ -1,0 +1,11 @@
+# Installed at ~/.config/systemd/user/thermal-model-shadow.timer (user unit).
+[Unit]
+Description=Publish Earthship thermal model shadow observation every two hours
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
