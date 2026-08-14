@@ -1,0 +1,13 @@
+{
+  "schema": "earthship-thermal-observations/v1",
+  "items": [
+    {
+      "name": "Thermal_Model_JSON",
+      "type": "String",
+      "label": "Thermal model shadow output",
+      "category": "",
+      "tags": [],
+      "groupNames": []
+    }
+  ]
+}

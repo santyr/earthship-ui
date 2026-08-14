@@ -20,11 +20,13 @@ from thermal_model.pipeline import (
     run_training,
     write_shadow_output,
 )
-from thermal_model.schema import THERMAL_ITEMS
+from thermal_model.schema import THERMAL_ITEMS, validate_shadow_output
 
 
 DEFAULT_SHADOW_PATH = DEFAULT_STATE_DIRECTORY.parent / "shadow.json"
 DEFAULT_TRAINING_DAYS = 90
+THERMAL_MODEL_ITEM = "Thermal_Model_JSON"
+MAX_SHADOW_BYTES = 16 * 1024
 
 
 def _aware_iso(value):
@@ -58,9 +60,14 @@ def _build_parser():
         )
 
     shadow = subparsers.add_parser(
-        "shadow", help="write one bounded local-only shadow prediction"
+        "shadow", help="write one bounded shadow prediction"
     )
     shadow.add_argument("--output", type=Path, default=DEFAULT_SHADOW_PATH)
+    shadow.add_argument(
+        "--publish",
+        action="store_true",
+        help="publish the validated shadow JSON to Thermal_Model_JSON",
+    )
     return parser
 
 
@@ -254,7 +261,20 @@ def _current_states(now, series_reader=None):
     return current
 
 
-def _shadow(args, now):
+def publish_shadow_output(payload, put_state=None):
+    """Validate and publish exactly one observational thermal shadow state."""
+    validate_shadow_output(payload)
+    if payload["confidence"]["grade"] == "unavailable":
+        raise ValueError("unavailable thermal shadow output cannot be published")
+    encoded = json.dumps(payload, separators=(",", ":"))
+    if len(encoded.encode("utf-8")) >= MAX_SHADOW_BYTES:
+        raise ValueError("shadow output exceeds the 16 KiB publication bound")
+    transport = forecast_intel.oh_put_state if put_state is None else put_state
+    transport(THERMAL_MODEL_ITEM, encoded)
+    return encoded
+
+
+def _shadow(args, now, put_state=None):
     current = None
     failed_input = "site settings input"
     try:
@@ -284,6 +304,8 @@ def _shadow(args, now):
     write_shadow_output(args.output, output)
     encoded = json.dumps(output, sort_keys=True, separators=(",", ":"))
     unavailable = output["confidence"]["grade"] == "unavailable"
+    if getattr(args, "publish", False):
+        publish_shadow_output(output, put_state=put_state)
     print(encoded, file=sys.stderr if unavailable else sys.stdout)
     return int(unavailable)
 

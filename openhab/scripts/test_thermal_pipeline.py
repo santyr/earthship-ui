@@ -907,12 +907,11 @@ def test_internal_schedule_rejects_boosted_segment_outside_owning_vent_window():
         )
 
 
-def test_cli_exposes_only_offline_commands_and_no_publish_flag():
+def test_cli_keeps_only_the_existing_commands_and_adds_explicit_shadow_publish():
     import thermal_intel
 
     parser = thermal_intel._build_parser()
     help_text = parser.format_help()
     assert all(name in help_text for name in ("journal", "train", "backtest", "shadow"))
-    assert "publish" not in help_text.lower()
-    with pytest.raises(SystemExit):
-        parser.parse_args(["shadow", "--publish"])
+    assert parser.parse_args(["shadow"]).publish is False
+    assert parser.parse_args(["shadow", "--publish"]).publish is True
