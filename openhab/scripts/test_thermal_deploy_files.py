@@ -491,6 +491,71 @@ def test_exchange_crash_journal_recovers_without_losing_original(
     assert not list((tmp_path / "live").rglob("*.thermal-exchange-*"))
 
 
+def test_install_external_delete_before_exchange_is_preserved_as_unowned_drift(
+    tmp_path,
+):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / "live/one.py"
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+
+    def delete_target(event, index):
+        if event == "before-exchange" and index == 0:
+            target.unlink()
+
+    with pytest.raises(thermal_model_files.UnownedTargetDrift):
+        thermal_model_files.install_phase(
+            repo, receipt, "code", manifest=manifest, fault=delete_target,
+        )
+
+    assert not target.exists()
+    phase = json.loads((receipt / thermal_model_files.PHASE_STATE_NAME).read_text())
+    assert phase["status"] == "recovery-required"
+    assert phase["entries"][0]["status"] == "refused-unowned-drift"
+    assert not thermal_model_files.recover(repo, receipt, manifest=manifest)
+    assert not target.exists()
+
+
+@pytest.mark.parametrize(
+    ("target_relative", "failure_index"),
+    (("live/one.py", 0), ("live/pkg/two.py", 1)),
+)
+def test_restore_external_delete_before_exchange_never_recreates_absence(
+    tmp_path, target_relative, failure_index,
+):
+    repo = prepare(tmp_path)
+    receipt = tmp_path / "private/files"
+    manifest = fixture_manifest(tmp_path)
+    target = tmp_path / target_relative
+    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
+    thermal_model_files.install_phase(repo, receipt, "code", manifest=manifest)
+
+    def delete_target(event, index):
+        if event == "before-exchange" and index == failure_index:
+            target.unlink()
+
+    with pytest.raises(thermal_model_files.UnownedTargetDrift):
+        thermal_model_files.restore(
+            repo, receipt, manifest=manifest, fault=delete_target,
+        )
+
+    assert not target.exists()
+    phase = json.loads((receipt / thermal_model_files.PHASE_STATE_NAME).read_text())
+    assert phase["status"] == "recovery-required"
+    refused = phase["entries"][failure_index]
+    assert refused["status"] == "refused-unowned-drift"
+    assert not thermal_model_files.recover(repo, receipt, manifest=manifest)
+    assert not target.exists()
+    if failure_index == 1:
+        assert (tmp_path / "live/one.py").read_bytes() == b"one-new"
+        assert mode(tmp_path / "live/one.py") == 0o755
+        recovered_phase = json.loads(
+            (receipt / thermal_model_files.PHASE_STATE_NAME).read_text()
+        )
+        assert recovered_phase["entries"][0]["status"] == "rolled-back"
+
+
 def test_install_fails_closed_when_renameat2_is_unavailable(tmp_path, monkeypatch):
     repo = prepare(tmp_path)
     receipt = tmp_path / "private/files"

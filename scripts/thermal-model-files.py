@@ -795,6 +795,24 @@ def _cas_apply(
                     target_name,
                     _RENAME_EXCHANGE,
                 )
+        except FileNotFoundError as exc:
+            current_target = _read_regular_at(
+                parent_fd,
+                target_name,
+                target,
+                "live target",
+                allow_missing=True,
+            )
+            if (
+                _expected_metadata(record, before) is not None
+                and current_target is None
+            ):
+                raise UnownedTargetDrift(
+                    f"unowned target drift: externally absent {target}"
+                ) from exc
+            raise RuntimeError(
+                f"exchange input disappeared before atomic transition: {target}"
+            ) from exc
         except FileExistsError as exc:
             if staged:
                 _remove_owned_at(
@@ -957,19 +975,27 @@ def _record_for_target(receipt, target):
 def _rollback_transaction(repo_root, receipt_dir, receipt, state_value):
     state_value["status"] = "recovering"
     _write_phase_state(receipt_dir, state_value)
+    preserved_unowned = False
     try:
         for entry in reversed(state_value["entries"]):
             record = _record_for_target(receipt, entry["target"])
-            if entry.get("status") == "refused-unowned-drift":
-                entry["status"] = "rolled-back-unowned-preserved"
+            if entry.get("status") in {
+                "refused-unowned-drift",
+                "rolled-back-unowned-preserved",
+            }:
+                entry["status"] = "refused-unowned-drift"
+                preserved_unowned = True
                 _write_phase_state(receipt_dir, state_value)
                 continue
             _restore_entry_before(repo_root, receipt_dir, record, entry)
             entry["status"] = "rolled-back"
             entry["exchange_cleaned"] = True
             _write_phase_state(receipt_dir, state_value)
-        state_value["status"] = "rolled-back"
+        state_value["status"] = (
+            "recovery-required" if preserved_unowned else "rolled-back"
+        )
         _write_phase_state(receipt_dir, state_value)
+        return not preserved_unowned
     except Exception:
         state_value["status"] = "recovery-required"
         _write_phase_state(receipt_dir, state_value)
@@ -1154,8 +1180,7 @@ def recover(repo_root, receipt_dir, *, manifest=MANIFEST):
     state_value = _load_phase_state(receipt_dir, receipt, allow_missing=False)
     if state_value.get("status") not in _RECOVERY_STATUSES:
         return state_value.get("status") in {"complete", "rolled-back"}
-    _rollback_transaction(repo_root, receipt_dir, receipt, state_value)
-    return True
+    return _rollback_transaction(repo_root, receipt_dir, receipt, state_value)
 
 
 def validate_cli_paths(repo_root, receipt_dir):
@@ -1244,7 +1269,8 @@ def main(argv=None):
     elif args.command == "restore":
         restore(args.repo_root, args.receipt_dir)
     else:
-        recover(args.repo_root, args.receipt_dir)
+        if not recover(args.repo_root, args.receipt_dir):
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

@@ -208,11 +208,11 @@ describe('thermal model attended runbook safety', () => {
 
   it('audits the exact five-trigger graph before, after, and at runtime', () => {
     const expected = [
-      'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
-      'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-      'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-      'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
-      'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
+      'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0|-',
+      'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+      'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+      'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0|-',
+      'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
     ];
     expect(runbook.match(/DECLARE actual_triggers text\[\];/g)?.length)
       .toBeGreaterThanOrEqual(3);
@@ -222,12 +222,49 @@ describe('thermal model attended runbook safety', () => {
     }
     for (const marker of [
       'pg_trigger', 'tgisinternal', 'tgenabled', 'tgtype', 'tgdeferrable',
-      'tginitdeferred', 'tgnargs', 'tgqual IS NULL',
+      'tginitdeferred', 'tgnargs', 'tgqual IS NULL', 'tgattr',
       'thermal trigger graph is not exact',
     ]) {
       expect(runbook.match(new RegExp(marker.replaceAll('|', '\\\\|'), 'g'))?.length)
         .toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it('binds all three exact ordinary persistent nonpartitioned non-RLS table OIDs', () => {
+    const exactRelations = [
+      'action_events|r|p|0|0|0',
+      'message_receipts|r|p|0|0|0',
+      'mode_events|r|p|0|0|0',
+    ];
+    expect(runbook.match(/DECLARE table_oids oid\[\];/g)?.length)
+      .toBeGreaterThanOrEqual(3);
+    for (const row of exactRelations) {
+      expect(runbook.match(new RegExp(row.replaceAll('|', '\\\\|'), 'g'))?.length)
+        .toBeGreaterThanOrEqual(3);
+    }
+    for (const marker of [
+      'relkind', 'relpersistence', 'relispartition',
+      'relrowsecurity', 'relforcerowsecurity', 'c.oid = ANY(table_oids)',
+    ]) {
+      expect(runbook.split(marker).length - 1).toBeGreaterThanOrEqual(3);
+    }
+    expect(runbook.match(/relkind NOT IN \('i','I'\)/g)?.length).toBe(3);
+    expect(runbook).not.toContain("c.relnamespace=schema_oid AND c.relkind='r'");
+    for (const rejectedKind of [
+      /partitioned\s+table/, /view/, /materialized\s+view/, /sequence/, /foreign\s+table/,
+    ]) {
+      expect(runbook).toMatch(rejectedKind);
+    }
+  });
+
+  it('requires empty trigger tgattr so UPDATE OF subsets cannot match', () => {
+    expect(runbook.match(/COALESCE\(NULLIF\(t\.tgattr::text,''\), '-'\)/g)?.length)
+      .toBeGreaterThanOrEqual(3);
+    const wholeRow = 'reject_journal_mutation|O|27|0|0|0|1|0|-';
+    const updateSubset = 'reject_journal_mutation|O|27|0|0|0|1|0|2';
+    expect(wholeRow).not.toBe(updateSubset);
+    expect(runbook).toContain(wholeRow);
+    expect(runbook).not.toContain(updateSubset);
   });
 
   it('audits an existing schema before migration and revalidates private paths', () => {

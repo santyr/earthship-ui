@@ -42,7 +42,11 @@ replacements. A crash requires explicit `thermal-model-files.py recover` before
 any next helper operation; recovery reconciles target and journal-owned staged
 or displaced sibling names on either side of each exchange. Restore accepts
 only receipt-owned deployed state or already-restored original/absence and
-never overwrites or deletes unowned drift.
+never overwrites or deletes unowned drift. If an expected-present target is
+externally deleted immediately before exchange/capture, ENOENT is journaled as
+refused unowned drift; automatic rollback restores only earlier helper-owned
+transitions, leaves the external absence untouched, and keeps the phase
+`recovery-required`.
 
 | Phase | Tracked source | Exact live target |
 | --- | --- | --- |
@@ -403,8 +407,11 @@ The exact schema inventory after migration is three ordinary tables only:
 trigger graph is three enabled `reject_mutation` BEFORE UPDATE/DELETE row
 triggers (`tgtype=27`) plus two enabled, deferrable, initially-deferred
 `reject_correction_cycle` AFTER INSERT row triggers (`tgtype=5`), with exact
-target tables, function schema/name, zero arguments, and no WHEN clauses. The
-only functions are
+target-table OIDs, function schema/name, zero arguments, no WHEN clauses, and
+empty `tgattr` (never an `UPDATE OF` subset). Each expected relation must be an
+ordinary persistent, nonpartitioned, non-RLS table; a same-name partitioned
+table, view, materialized view, sequence, foreign table, or any extra non-index
+relation is refused. The only functions are
 the three non-security-definer trigger functions
 `reject_action_correction_cycle`, `reject_journal_mutation`, and
 `reject_mode_correction_cycle`. There are no views, materialized views,
@@ -429,6 +436,7 @@ DO $audit$
 DECLARE r pg_roles%ROWTYPE;
 DECLARE schema_oid oid;
 DECLARE actual_tables text[];
+DECLARE table_oids oid[];
 DECLARE actual_functions text[];
 DECLARE actual_triggers text[];
 BEGIN
@@ -449,12 +457,31 @@ BEGIN
   END IF;
   SELECT oid INTO schema_oid FROM pg_namespace WHERE nspname='thermal_intel';
   IF schema_oid IS NOT NULL THEN
-    SELECT COALESCE(array_agg(relname ORDER BY relname),ARRAY[]::text[])
+    SELECT COALESCE(array_agg(concat_ws('|',
+      relname,
+      relkind,
+      relpersistence,
+      CASE WHEN relispartition THEN '1' ELSE '0' END,
+      CASE WHEN relrowsecurity THEN '1' ELSE '0' END,
+      CASE WHEN relforcerowsecurity THEN '1' ELSE '0' END
+    ) ORDER BY relname),ARRAY[]::text[])
       INTO actual_tables FROM pg_class
-      WHERE relnamespace=schema_oid AND relkind IN ('r','p','v','m','S','f');
+      WHERE relnamespace=schema_oid AND relkind NOT IN ('i','I');
+    SELECT COALESCE(array_agg(oid ORDER BY relname),ARRAY[]::oid[])
+      INTO table_oids FROM pg_class
+      WHERE relnamespace=schema_oid
+        AND relname IN ('action_events','message_receipts','mode_events')
+        AND relkind='r' AND relpersistence='p'
+        AND NOT relispartition AND NOT relrowsecurity
+        AND NOT relforcerowsecurity;
     SELECT COALESCE(array_agg(proname||'/'||pronargs||'/'||prokind ORDER BY proname),ARRAY[]::text[])
       INTO actual_functions FROM pg_proc WHERE pronamespace=schema_oid;
-    IF actual_tables IS DISTINCT FROM ARRAY['action_events','message_receipts','mode_events']::text[]
+    IF actual_tables IS DISTINCT FROM ARRAY[
+         'action_events|r|p|0|0|0',
+         'message_receipts|r|p|0|0|0',
+         'mode_events|r|p|0|0|0'
+       ]::text[]
+       OR cardinality(table_oids) <> 3
        OR actual_functions IS DISTINCT FROM ARRAY[
          'reject_action_correction_cycle/0/f',
          'reject_journal_mutation/0/f',
@@ -479,20 +506,21 @@ BEGIN
       CASE WHEN t.tginitdeferred THEN '1' ELSE '0' END,
       t.tgnargs::integer::text,
       CASE WHEN t.tgqual IS NULL THEN '1' ELSE '0' END,
-      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END
+      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END,
+      COALESCE(NULLIF(t.tgattr::text,''), '-')
     ) ORDER BY c.relname,t.tgname
   ),ARRAY[]::text[]) INTO actual_triggers
   FROM pg_trigger t
   JOIN pg_class c ON c.oid=t.tgrelid
   JOIN pg_proc p ON p.oid=t.tgfoid
   JOIN pg_namespace fnn ON fnn.oid=p.pronamespace
-  WHERE c.relnamespace=schema_oid AND NOT t.tgisinternal;
+  WHERE c.oid = ANY(table_oids) AND NOT t.tgisinternal;
   IF actual_triggers IS DISTINCT FROM ARRAY[
-    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
-    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
-    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0'
+    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0|-',
+    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0|-',
+    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-'
   ]::text[] THEN
     RAISE EXCEPTION 'thermal trigger graph is not exact: %',actual_triggers;
   END IF;
@@ -509,7 +537,7 @@ BEGIN
     ) THEN RAISE EXCEPTION 'pre-migration schema ACL has unexpected grants'; END IF;
     IF EXISTS (
       SELECT 1 FROM pg_class c
-      WHERE c.relnamespace=schema_oid AND c.relkind='r'
+      WHERE c.oid = ANY(table_oids)
         AND NOT (
           has_table_privilege(r.oid,c.oid,'SELECT')
           AND has_table_privilege(r.oid,c.oid,'INSERT')
@@ -522,13 +550,13 @@ BEGIN
     ) THEN RAISE EXCEPTION 'pre-migration table privileges are not exact'; END IF;
     IF EXISTS (
       SELECT 1 FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid
-      WHERE c.relnamespace=schema_oid AND c.relkind='r'
+      WHERE c.oid = ANY(table_oids)
         AND a.attnum > 0 AND NOT a.attisdropped AND a.attacl IS NOT NULL
     ) THEN RAISE EXCEPTION 'pre-migration column ACLs are not allowed'; END IF;
     IF EXISTS (
       SELECT 1 FROM pg_class c,
         LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) a
-      WHERE c.relnamespace=schema_oid AND c.relkind='r'
+      WHERE c.oid = ANY(table_oids)
         AND (a.grantee NOT IN (c.relowner,r.oid)
           OR (a.grantee=r.oid AND (a.privilege_type NOT IN ('SELECT','INSERT') OR a.is_grantable)))
     ) THEN RAISE EXCEPTION 'pre-migration table ACL has unexpected grants'; END IF;
@@ -583,6 +611,7 @@ DO $audit$
 DECLARE r pg_roles%ROWTYPE;
 DECLARE schema_oid oid;
 DECLARE actual_tables text[];
+DECLARE table_oids oid[];
 DECLARE actual_functions text[];
 DECLARE actual_triggers text[];
 BEGIN
@@ -631,10 +660,29 @@ BEGIN
 
   SELECT oid INTO schema_oid FROM pg_namespace WHERE nspname='thermal_intel';
   IF schema_oid IS NULL THEN RAISE EXCEPTION 'thermal_intel schema absent'; END IF;
-  SELECT COALESCE(array_agg(relname ORDER BY relname),ARRAY[]::text[])
+  SELECT COALESCE(array_agg(concat_ws('|',
+    relname,
+    relkind,
+    relpersistence,
+    CASE WHEN relispartition THEN '1' ELSE '0' END,
+    CASE WHEN relrowsecurity THEN '1' ELSE '0' END,
+    CASE WHEN relforcerowsecurity THEN '1' ELSE '0' END
+  ) ORDER BY relname),ARRAY[]::text[])
     INTO actual_tables FROM pg_class
-    WHERE relnamespace=schema_oid AND relkind IN ('r','p','v','m','S','f');
-  IF actual_tables IS DISTINCT FROM ARRAY['action_events','message_receipts','mode_events']::text[] THEN
+    WHERE relnamespace=schema_oid AND relkind NOT IN ('i','I');
+  SELECT COALESCE(array_agg(oid ORDER BY relname),ARRAY[]::oid[])
+    INTO table_oids FROM pg_class
+    WHERE relnamespace=schema_oid
+      AND relname IN ('action_events','message_receipts','mode_events')
+      AND relkind='r' AND relpersistence='p'
+      AND NOT relispartition AND NOT relrowsecurity
+      AND NOT relforcerowsecurity;
+  IF actual_tables IS DISTINCT FROM ARRAY[
+    'action_events|r|p|0|0|0',
+    'message_receipts|r|p|0|0|0',
+    'mode_events|r|p|0|0|0'
+  ]::text[]
+     OR cardinality(table_oids) <> 3 THEN
     RAISE EXCEPTION 'thermal relation inventory is not exact: %',actual_tables;
   END IF;
   SELECT COALESCE(array_agg(proname||'/'||pronargs||'/'||prokind ORDER BY proname),ARRAY[]::text[])
@@ -663,20 +711,21 @@ BEGIN
       CASE WHEN t.tginitdeferred THEN '1' ELSE '0' END,
       t.tgnargs::integer::text,
       CASE WHEN t.tgqual IS NULL THEN '1' ELSE '0' END,
-      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END
+      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END,
+      COALESCE(NULLIF(t.tgattr::text,''), '-')
     ) ORDER BY c.relname,t.tgname
   ),ARRAY[]::text[]) INTO actual_triggers
   FROM pg_trigger t
   JOIN pg_class c ON c.oid=t.tgrelid
   JOIN pg_proc p ON p.oid=t.tgfoid
   JOIN pg_namespace fnn ON fnn.oid=p.pronamespace
-  WHERE c.relnamespace=schema_oid AND NOT t.tgisinternal;
+  WHERE c.oid = ANY(table_oids) AND NOT t.tgisinternal;
   IF actual_triggers IS DISTINCT FROM ARRAY[
-    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
-    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
-    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0'
+    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0|-',
+    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0|-',
+    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-'
   ]::text[] THEN
     RAISE EXCEPTION 'thermal trigger graph is not exact: %',actual_triggers;
   END IF;
@@ -693,7 +742,7 @@ BEGIN
   ) THEN RAISE EXCEPTION 'thermal schema ACL has unexpected grants'; END IF;
   IF EXISTS (
     SELECT 1 FROM pg_class c
-    WHERE c.relnamespace=schema_oid AND c.relkind='r'
+    WHERE c.oid = ANY(table_oids)
       AND NOT (
         has_table_privilege(r.oid,c.oid,'SELECT')
         AND has_table_privilege(r.oid,c.oid,'INSERT')
@@ -706,13 +755,13 @@ BEGIN
   ) THEN RAISE EXCEPTION 'thermal table effective privileges are not exact'; END IF;
   IF EXISTS (
     SELECT 1 FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid
-    WHERE c.relnamespace=schema_oid AND c.relkind='r'
+    WHERE c.oid = ANY(table_oids)
       AND a.attnum > 0 AND NOT a.attisdropped AND a.attacl IS NOT NULL
   ) THEN RAISE EXCEPTION 'thermal column ACLs are not allowed'; END IF;
   IF EXISTS (
     SELECT 1 FROM pg_class c,
       LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) a
-    WHERE c.relnamespace=schema_oid AND c.relkind='r'
+    WHERE c.oid = ANY(table_oids)
       AND (a.grantee NOT IN (c.relowner,r.oid)
         OR (a.grantee=r.oid AND (a.privilege_type NOT IN ('SELECT','INSERT') OR a.is_grantable)))
   ) THEN RAISE EXCEPTION 'thermal table ACL has unexpected grants'; END IF;
@@ -775,6 +824,7 @@ DO $audit$
 DECLARE r pg_roles%ROWTYPE;
 DECLARE schema_oid oid;
 DECLARE actual_tables text[];
+DECLARE table_oids oid[];
 DECLARE actual_functions text[];
 DECLARE actual_triggers text[];
 BEGIN
@@ -822,12 +872,31 @@ BEGIN
       AND has_function_privilege(r.oid,p.oid,'EXECUTE')
   ) THEN RAISE EXCEPTION 'runtime has authority outside thermal_intel'; END IF;
   SELECT oid INTO schema_oid FROM pg_namespace WHERE nspname='thermal_intel';
-  SELECT COALESCE(array_agg(relname ORDER BY relname),ARRAY[]::text[])
+  SELECT COALESCE(array_agg(concat_ws('|',
+    relname,
+    relkind,
+    relpersistence,
+    CASE WHEN relispartition THEN '1' ELSE '0' END,
+    CASE WHEN relrowsecurity THEN '1' ELSE '0' END,
+    CASE WHEN relforcerowsecurity THEN '1' ELSE '0' END
+  ) ORDER BY relname),ARRAY[]::text[])
     INTO actual_tables FROM pg_class
-    WHERE relnamespace=schema_oid AND relkind IN ('r','p','v','m','S','f');
+    WHERE relnamespace=schema_oid AND relkind NOT IN ('i','I');
+  SELECT COALESCE(array_agg(oid ORDER BY relname),ARRAY[]::oid[])
+    INTO table_oids FROM pg_class
+    WHERE relnamespace=schema_oid
+      AND relname IN ('action_events','message_receipts','mode_events')
+      AND relkind='r' AND relpersistence='p'
+      AND NOT relispartition AND NOT relrowsecurity
+      AND NOT relforcerowsecurity;
   SELECT COALESCE(array_agg(proname||'/'||pronargs||'/'||prokind ORDER BY proname),ARRAY[]::text[])
     INTO actual_functions FROM pg_proc WHERE pronamespace=schema_oid;
-  IF actual_tables IS DISTINCT FROM ARRAY['action_events','message_receipts','mode_events']::text[]
+  IF actual_tables IS DISTINCT FROM ARRAY[
+    'action_events|r|p|0|0|0',
+    'message_receipts|r|p|0|0|0',
+    'mode_events|r|p|0|0|0'
+  ]::text[]
+     OR cardinality(table_oids) <> 3
      OR actual_functions IS DISTINCT FROM ARRAY[
        'reject_action_correction_cycle/0/f',
        'reject_journal_mutation/0/f',
@@ -847,20 +916,21 @@ BEGIN
       CASE WHEN t.tginitdeferred THEN '1' ELSE '0' END,
       t.tgnargs::integer::text,
       CASE WHEN t.tgqual IS NULL THEN '1' ELSE '0' END,
-      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END
+      CASE WHEN t.tgisinternal THEN '1' ELSE '0' END,
+      COALESCE(NULLIF(t.tgattr::text,''), '-')
     ) ORDER BY c.relname,t.tgname
   ),ARRAY[]::text[]) INTO actual_triggers
   FROM pg_trigger t
   JOIN pg_class c ON c.oid=t.tgrelid
   JOIN pg_proc p ON p.oid=t.tgfoid
   JOIN pg_namespace fnn ON fnn.oid=p.pronamespace
-  WHERE c.relnamespace=schema_oid AND NOT t.tgisinternal;
+  WHERE c.oid = ANY(table_oids) AND NOT t.tgisinternal;
   IF actual_triggers IS DISTINCT FROM ARRAY[
-    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0',
-    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0',
-    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0',
-    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0'
+    'action_events|reject_correction_cycle|thermal_intel|reject_action_correction_cycle|O|5|1|1|0|1|0|-',
+    'action_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+    'message_receipts|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-',
+    'mode_events|reject_correction_cycle|thermal_intel|reject_mode_correction_cycle|O|5|1|1|0|1|0|-',
+    'mode_events|reject_mutation|thermal_intel|reject_journal_mutation|O|27|0|0|0|1|0|-'
   ]::text[] THEN
     RAISE EXCEPTION 'thermal trigger graph is not exact: %',actual_triggers;
   END IF;
@@ -868,7 +938,7 @@ BEGIN
      OR has_schema_privilege(r.oid,schema_oid,'CREATE')
      OR EXISTS (
        SELECT 1 FROM pg_class c
-       WHERE c.relnamespace=schema_oid AND c.relkind='r'
+       WHERE c.oid = ANY(table_oids)
          AND NOT (
            has_table_privilege(r.oid,c.oid,'SELECT')
            AND has_table_privilege(r.oid,c.oid,'INSERT')
