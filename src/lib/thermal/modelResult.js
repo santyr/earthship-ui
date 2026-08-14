@@ -56,6 +56,10 @@ function unavailableResult(reasons = []) {
     state: 'unavailable',
     badge: 'SHADOW',
     generatedAtMs: null,
+    modelCreatedAtMs: null,
+    trainedThroughMs: null,
+    modelAgeHours: null,
+    trainingDataAgeHours: null,
     hallwayHigh: null,
     hallwayLow: null,
     morningMass: null,
@@ -222,13 +226,15 @@ function validatePayload(payload) {
   const generatedAt = timestamp(payload.generatedAt);
 
   const model = payload.model;
+  let modelCreatedAt = null;
+  let trainedThrough = null;
   if (Object.keys(exactObject(model, new Set(Object.keys(model)))).length > 0) {
     exactObject(model, MODEL_FIELDS);
-    const createdAt = timestamp(model.createdAt);
-    const trainedThrough = timestamp(model.trainedThrough);
+    modelCreatedAt = timestamp(model.createdAt);
+    trainedThrough = timestamp(model.trainedThrough);
     if (!(
-      trainedThrough.epochMicros <= createdAt.epochMicros
-      && createdAt.epochMicros <= generatedAt.epochMicros
+      trainedThrough.epochMicros <= modelCreatedAt.epochMicros
+      && modelCreatedAt.epochMicros <= generatedAt.epochMicros
     )) {
       throw new TypeError('invalid model chronology');
     }
@@ -322,8 +328,12 @@ function validatePayload(payload) {
       throw new TypeError('stale critical input');
     }
   }
-  finiteNumber(provenance.modelAgeHours, { optional: true, minimum: 0 });
-  finiteNumber(provenance.trainingDataAgeHours, { optional: true, minimum: 0 });
+  const modelAgeHours = finiteNumber(
+    provenance.modelAgeHours, { optional: true, minimum: 0 },
+  );
+  const trainingDataAgeHours = finiteNumber(
+    provenance.trainingDataAgeHours, { optional: true, minimum: 0 },
+  );
   const reasons = validateReasons(payload.reasons);
 
   if (unavailable) {
@@ -368,6 +378,10 @@ function validatePayload(payload) {
   return {
     generatedAtMs: generatedAt.epochMs,
     generatedAtMicros: generatedAt.epochMicros,
+    modelCreatedAtMs: modelCreatedAt?.epochMs ?? null,
+    trainedThroughMs: trainedThrough?.epochMs ?? null,
+    modelAgeHours,
+    trainingDataAgeHours,
     forecast,
     trajectory,
     observed,
@@ -395,6 +409,10 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
       state: ageMicros > FRESH_US ? 'stale' : 'ready',
       badge: 'SHADOW',
       generatedAtMs: parsed.generatedAtMs,
+      modelCreatedAtMs: parsed.modelCreatedAtMs,
+      trainedThroughMs: parsed.trainedThroughMs,
+      modelAgeHours: parsed.modelAgeHours,
+      trainingDataAgeHours: parsed.trainingDataAgeHours,
       hallwayHigh: parsed.forecast.hallwayHighF,
       hallwayLow: parsed.forecast.hallwayLowF,
       morningMass: parsed.forecast.morningMassF,

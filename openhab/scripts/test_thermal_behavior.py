@@ -586,6 +586,133 @@ def test_sunny_winter_day_may_charge_mass_but_closes_by_sunset():
 
 
 
+def _nonwinter_forecast(mode, *, with_solar=True):
+    rows = warm_forecast(hours=36, hot=True)
+    return [
+        replace(
+            row,
+            mode=mode,
+            radiation_wm2=row.radiation_wm2 if with_solar else 0.0,
+            indoor_shade_closed=None,
+            outdoor_shade_present=0.0 if mode == "fall_charge" else 1.0,
+        )
+        for row in rows
+    ]
+
+
+@pytest.mark.parametrize("mode", ["warm", "spring"])
+def test_warm_and_spring_shades_close_in_sunny_day_and_open_at_night(mode):
+    forecast = _nonwinter_forecast(mode)
+    model = warm_behavior() if mode == "warm" else BehaviorModel(
+        version=1,
+        feature_names=FEATURE_NAMES,
+        transitions={transition: () for transition in behavior.TRANSITIONS},
+        seasonal_vocabulary=(),
+    )
+
+    schedule = baseline_schedule(model, forecast)
+    forcings = behavior._forcing_rows(forecast, schedule)
+    by_at = {row.at: forcing for row, forcing in zip(forecast[1:], forcings)}
+    daytime = next(row for row in forecast[1:] if row.at.hour == 12)
+    nighttime = next(row for row in forecast[1:] if row.at.hour == 23)
+
+    assert by_at[daytime.at]["indoor_shade_closed"] == 1.0
+    assert by_at[nighttime.at]["indoor_shade_closed"] == 0.0
+    assert schedule["indoorShadeDay"] == "closed"
+    assert schedule["indoorShadeNight"] == "open"
+    assert {item["state"] for item in schedule["shadeTransitions"]} == {
+        "closed",
+        "open",
+    }
+    assert schedule["shadeTimingSource"] == (
+        "learned" if mode == "warm" else "forecast_radiation_fallback"
+    )
+
+
+def test_fall_charge_keeps_indoor_shades_open_for_mass_charging_and_at_night():
+    forecast = _nonwinter_forecast("fall_charge")
+    empty = BehaviorModel(
+        version=1,
+        feature_names=FEATURE_NAMES,
+        transitions={transition: () for transition in behavior.TRANSITIONS},
+        seasonal_vocabulary=(),
+    )
+
+    schedule = baseline_schedule(empty, forecast)
+    forcings = behavior._forcing_rows(forecast, schedule)
+
+    assert schedule["indoorShadeDay"] == "open"
+    assert schedule["indoorShadeNight"] == "open"
+    assert schedule["shadeTransitions"] == ()
+    assert schedule["shadeTimingSource"] == "mass_charging_protocol"
+    assert all(row["indoor_shade_closed"] == 0.0 for row in forcings)
+
+
+def test_nonwinter_candidate_and_baseline_share_time_varying_shade_forcing():
+    forecast = _nonwinter_forecast("warm")
+    result = search_candidate_schedule(
+        behavior=warm_behavior(),
+        dynamics=stable_model(),
+        forecast=forecast,
+    )
+    assert result.candidate is not None
+
+    for schedule in (result.baseline, result.candidate):
+        forcings = behavior._forcing_rows(forecast, schedule)
+        by_hour = {
+            row.at.hour: forcing["indoor_shade_closed"]
+            for row, forcing in zip(forecast[1:24 * 12 + 1], forcings)
+        }
+        assert by_hour[12] == 1.0
+        assert by_hour[23] == 0.0
+
+
+def test_explicit_horizon_mode_transition_retains_baseline_without_candidate():
+    forecast = warm_forecast(hours=36, hot=True)
+    transition_at = forecast[18 * 12].at
+    forecast = [
+        replace(row, mode="fall_charge") if row.at >= transition_at else row
+        for row in forecast
+    ]
+
+    result = search_candidate_schedule(
+        behavior=warm_behavior(), dynamics=stable_model(), forecast=forecast
+    )
+    forcings = behavior._forcing_rows(forecast, result.baseline)
+    before = next(
+        forcing["indoor_shade_closed"]
+        for row, forcing in zip(forecast[1:], forcings)
+        if row.at == transition_at - STEP
+    )
+    after = next(
+        forcing["indoor_shade_closed"]
+        for row, forcing in zip(forecast[1:], forcings)
+        if row.at == transition_at
+    )
+
+    assert before == 1.0
+    assert after == 0.0
+    assert result.candidate is None
+    assert result.modeled_difference["selectionReason"] == "explicit_mode_transition"
+    assert result.rejected_candidate_counts == {"explicit_mode_transition": 1}
+
+
+def test_nonwinter_shade_transition_is_not_invented_without_solar_or_learned_evidence():
+    forecast = _nonwinter_forecast("spring", with_solar=False)
+    empty = BehaviorModel(
+        version=1,
+        feature_names=FEATURE_NAMES,
+        transitions={transition: () for transition in behavior.TRANSITIONS},
+        seasonal_vocabulary=(),
+    )
+
+    schedule = baseline_schedule(empty, forecast)
+
+    assert schedule["shadeTransitions"] == ()
+    assert schedule["shadeTimingSource"] == "forecast_radiation_fallback"
+    assert schedule["shadeTimingStatus"] == INSUFFICIENT_DATA
+
+
 def test_fit_persists_observed_seasonal_action_vocabulary_and_boosted_windows():
     model = fit_behavior(warm_samples_with_boosted_doors())
     vocabulary = {item.mode: item for item in model.seasonal_vocabulary}["warm"]

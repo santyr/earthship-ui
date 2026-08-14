@@ -3,6 +3,7 @@ import argparse
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -10,7 +11,7 @@ import sys
 import forecast_intel
 from thermal_model.actions import parse_thermal_message
 from thermal_model.artifacts import ArtifactRegistry, DEFAULT_STATE_DIRECTORY
-from thermal_model.journal import ActionJournal
+from thermal_model.journal import ActionJournal, audit_schema
 from thermal_model.pipeline import (
     TrainingRefused,
     build_unavailable_shadow,
@@ -19,7 +20,7 @@ from thermal_model.pipeline import (
     run_training,
     write_shadow_output,
 )
-from thermal_model.schema import THERMAL_ITEMS, validate_shadow_output
+from thermal_model.schema import ModeEvent, THERMAL_ITEMS, validate_shadow_output
 
 
 DEFAULT_SHADOW_PATH = DEFAULT_STATE_DIRECTORY.parent / "shadow.json"
@@ -55,6 +56,11 @@ def _aware_iso(value):
 def _build_parser():
     parser = argparse.ArgumentParser(description="Local thermal intelligence tooling")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
+
+    subparsers.add_parser(
+        "schema-audit",
+        help="read-only exact thermal_intel PostgreSQL schema audit",
+    )
 
     journal = subparsers.add_parser("journal", help="append one local THERMAL message")
     journal.add_argument("--message-file", required=True, type=Path)
@@ -104,6 +110,32 @@ def _jdbc_series(item, start, end):
         if start_utc <= at < end_utc:
             points.append((at, value))
     return points
+
+
+def _schema_audit_command(parser):
+    dsn = (
+        os.environ.get("THERMAL_DATABASE_ADMIN_URL")
+        or os.environ.get("THERMAL_DATABASE_URL")
+    )
+    if not dsn:
+        parser.error(
+            "THERMAL_DATABASE_ADMIN_URL or THERMAL_DATABASE_URL is required"
+        )
+    result = audit_schema(
+        dsn,
+        runtime_role=os.environ.get("THERMAL_DATABASE_RUNTIME_ROLE"),
+    )
+    print(
+        json.dumps(
+            {
+                "fingerprint": result["fingerprint"],
+                "schema": result["schema"],
+                "status": "exact",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
 
 
 def _journal(args, parser):
@@ -225,15 +257,66 @@ def _backtest(args, parser, now):
     return 0
 
 
-def _season_mode(at):
-    month = at.month
-    if month in (12, 1, 2):
-        return "winter"
-    if month in (3, 4):
-        return "spring"
-    if month in (5, 6, 7, 8, 9):
-        return "warm"
-    return "fall_charge"
+_MODE_TIMELINE_FIELD = "_modeTimeline"
+_VALID_MODES = {"spring", "warm", "fall_charge", "winter"}
+
+
+def _mode_at(timeline, at):
+    at_utc = at.astimezone(timezone.utc)
+    active = [
+        event
+        for event in timeline
+        if event.effective_at.astimezone(timezone.utc) <= at_utc
+    ]
+    if not active:
+        return None
+    return max(
+        active,
+        key=lambda event: (
+            event.effective_at.astimezone(timezone.utc),
+            event.received_at.astimezone(timezone.utc),
+            event.event_id,
+        ),
+    ).mode
+
+
+def _apply_mode_timeline(rows, modes, now):
+    """Project only correction-aware journal modes; never infer from calendar."""
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("mode timeline origin must include timezone information")
+    rows = tuple(rows)
+    modes = tuple(modes)
+    if not all(isinstance(event, ModeEvent) for event in modes):
+        raise TypeError("mode timeline must contain only ModeEvent records")
+    ordered = tuple(
+        sorted(
+            modes,
+            key=lambda event: (
+                event.effective_at.astimezone(timezone.utc),
+                event.received_at.astimezone(timezone.utc),
+                event.event_id,
+            ),
+        )
+    )
+    active = _mode_at(ordered, now)
+    if active not in _VALID_MODES:
+        raise ValueError("no evidence-backed active thermal mode")
+    timeline = tuple(
+        (event.effective_at.astimezone(timezone.utc), event.mode)
+        for event in ordered
+    )
+    projected = []
+    for row in rows:
+        at = row.get("at")
+        if isinstance(at, str):
+            at = datetime.fromisoformat(at)
+        if not isinstance(at, datetime) or at.tzinfo is None or at.utcoffset() is None:
+            raise ValueError("forecast timestamp must include timezone information")
+        mode = _mode_at(ordered, at)
+        if mode not in _VALID_MODES:
+            raise ValueError("forecast precedes evidence-backed active thermal mode")
+        projected.append({**row, "at": at, "mode": mode, _MODE_TIMELINE_FIELD: timeline})
+    return projected
 
 
 def _forecast_rows(snapshot, now):
@@ -241,9 +324,53 @@ def _forecast_rows(snapshot, now):
     rows = []
     for day in detail["days"]:
         for row in day["hours"]:
-            at = datetime.fromisoformat(row["at"])
-            rows.append({**row, "mode": _season_mode(at)})
+            rows.append({**row, "at": datetime.fromisoformat(row["at"])})
     return rows
+
+
+def _five_minute_bucket(at):
+    at_utc = at.astimezone(timezone.utc)
+    return at_utc.replace(
+        minute=at_utc.minute - at_utc.minute % 5,
+        second=0,
+        microsecond=0,
+    )
+
+
+def _aligned_observed_history(histories):
+    """Join independent Item histories by UTC five-minute bucket.
+
+    Each Item/bucket uses its chronologically latest finite reading; an exact
+    timestamp tie uses the larger numeric value so input ordering cannot alter
+    the representative. Buckets missing either hallway or mass are omitted.
+    """
+    bucketed = {}
+    for role in ("air", "mass"):
+        representatives = {}
+        for at, raw_value in histories.get(role, ()):
+            if not isinstance(at, datetime) or at.tzinfo is None or at.utcoffset() is None:
+                continue
+            try:
+                value = float(raw_value)
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(value):
+                continue
+            bucket = _five_minute_bucket(at)
+            candidate = (at.astimezone(timezone.utc), value)
+            if bucket not in representatives or candidate > representatives[bucket]:
+                representatives[bucket] = candidate
+        bucketed[role] = {
+            bucket: candidate[1] for bucket, candidate in representatives.items()
+        }
+    return [
+        {
+            "at": bucket,
+            "hallwayF": bucketed["air"][bucket],
+            "massF": bucketed["mass"][bucket],
+        }
+        for bucket in sorted(set(bucketed["air"]) & set(bucketed["mass"]))[-25:]
+    ]
 
 
 def _current_states(now, series_reader=None):
@@ -262,12 +389,7 @@ def _current_states(now, series_reader=None):
         elif role != "glazing":
             current[role] = None
 
-    air = {at: value for at, value in histories["air"]}
-    mass = {at: value for at, value in histories["mass"]}
-    current["observed"] = [
-        {"at": at, "hallwayF": air[at], "massF": mass[at]}
-        for at in sorted(set(air) & set(mass))[-25:]
-    ]
+    current["observed"] = _aligned_observed_history(histories)
     return current
 
 
@@ -284,7 +406,7 @@ def publish_shadow_output(payload, put_state=None):
     return encoded
 
 
-def _shadow(args, now, put_state=None):
+def _shadow(args, now, put_state=None, journal=None):
     current = None
     failed_input = "site settings input"
     try:
@@ -296,6 +418,29 @@ def _shadow(args, now, put_state=None):
         rows = _forecast_rows(
             snapshot, now.astimezone(forecast_intel.MOUNTAIN)
         )
+        if journal is not None or not all(
+            row.get("mode") in _VALID_MODES for row in rows
+        ):
+            failed_input = "mode journal input"
+            if journal is None:
+                dsn = os.environ.get("THERMAL_DATABASE_URL")
+                if not dsn:
+                    raise ValueError("THERMAL_DATABASE_URL is required for thermal mode evidence")
+                journal = ActionJournal(dsn)
+            if not rows:
+                raise ValueError("forecast input contains no rows")
+            horizon_end = max(
+                (
+                    datetime.fromisoformat(row["at"])
+                    if isinstance(row.get("at"), str)
+                    else row["at"]
+                )
+                for row in rows
+            )
+            modes = journal.effective_modes(
+                now, horizon_end + timedelta(microseconds=1)
+            )
+            rows = _apply_mode_timeline(rows, modes, now)
         failed_input = "accepted artifact input"
         output = run_shadow(
             registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
@@ -325,6 +470,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     now = datetime.now(timezone.utc)
     try:
+        if args.subcommand == "schema-audit":
+            _schema_audit_command(parser)
+            return 0
         if args.subcommand == "journal":
             _journal(args, parser)
             return 0

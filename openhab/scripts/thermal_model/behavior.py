@@ -4,7 +4,7 @@ This module is deliberately non-actuating.  It consumes already-labelled samples
 uses the existing dynamics simulator, and returns modeled schedule comparisons.
 """
 
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -477,12 +477,23 @@ def _learned_minute(model, transition, rows, default):
         return default
     survival = 1.0
     event_times = []
+    mode = _mode(rows)
     for row in rows:
         minute = int(_minute_of_day(_value(row, "at")))
-        if transition in {"vent_open", "indoor_shade_close"} and minute < 12 * 60:
+        if transition == "vent_open" and minute < 12 * 60:
             continue
-        if transition in {"vent_close", "indoor_shade_open"} and minute >= 12 * 60:
+        if transition == "vent_close" and minute >= 12 * 60:
             continue
+        if mode == "winter":
+            if transition == "indoor_shade_close" and minute < 12 * 60:
+                continue
+            if transition == "indoor_shade_open" and minute >= 12 * 60:
+                continue
+        else:
+            if transition == "indoor_shade_close" and minute >= 12 * 60:
+                continue
+            if transition == "indoor_shade_open" and minute < 12 * 60:
+                continue
         probability = float(
             transition_probability(model, transition, feature_vector(row))
         )
@@ -573,22 +584,172 @@ def _observed_boosted_segments(model, mode, rows):
 
 
 
-def _nonwinter_shade_state(model, mode, rows):
-    vocabulary = _vocabulary_for(model, mode)
-    observed = (
-        dict(vocabulary.action_states).get("indoor_shade", ())
-        if vocabulary is not None
-        else ()
-    )
-    preferred = "closed" if mode == "warm" else "open"
-    if preferred in observed:
-        return preferred, "observed_vocabulary"
-    for row in rows:
-        state = _value(row, "indoor_shade_closed", None)
-        if state is not None:
-            return ("closed" if _binary(state) else "open"), "forecast_state"
-    raise ValueError("indoor shade state is absent from vocabulary and forecast")
+def _transition_record(at, state, source, status):
+    return {"at": at, "state": state, "source": source, "status": status}
 
+
+def _daily_minute_times(rows, minute):
+    by_day = defaultdict(list)
+    for row in rows:
+        at = _value(row, "at")
+        by_day[at.date()].append(at)
+    result = []
+    for day_rows in by_day.values():
+        exact = [
+            at for at in day_rows
+            if int(_minute_of_day(at)) == int(minute)
+        ]
+        if exact:
+            result.append(exact[0])
+    return tuple(result)
+
+
+def _explicit_shade_transitions(rows):
+    if not rows or any(_value(row, "indoor_shade_closed", None) is None for row in rows):
+        return None
+    initial = "closed" if _binary(_value(rows[0], "indoor_shade_closed")) else "open"
+    state = initial
+    transitions = []
+    for row in rows[1:]:
+        next_state = (
+            "closed" if _binary(_value(row, "indoor_shade_closed")) else "open"
+        )
+        if next_state != state:
+            transitions.append(
+                _transition_record(
+                    _value(row, "at"), next_state, "forecast_state", "observed"
+                )
+            )
+            state = next_state
+    return initial, tuple(transitions)
+
+
+def _radiation_shade_transitions(rows):
+    by_day = defaultdict(list)
+    for row in rows:
+        at = _value(row, "at")
+        if (
+            _solar_elevation_sin(at) > 0.0
+            and float(_value(row, "radiation_wm2")) >= SUNNY_RADIATION_WM2
+        ):
+            by_day[at.date()].append(at)
+    transitions = []
+    horizon_end = _value(rows[-1], "at")
+    for useful in by_day.values():
+        closed_at = useful[0]
+        opened_at = useful[-1] + STEP
+        transitions.append(
+            _transition_record(
+                closed_at,
+                "closed",
+                "forecast_radiation_fallback",
+                "forecast_state",
+            )
+        )
+        if opened_at <= horizon_end:
+            transitions.append(
+                _transition_record(
+                    opened_at,
+                    "open",
+                    "forecast_radiation_fallback",
+                    "forecast_state",
+                )
+            )
+    return tuple(sorted(transitions, key=lambda item: item["at"]))
+
+
+def _nonwinter_shade_schedule(model, mode, rows):
+    if mode == "fall_charge":
+        return {
+            "indoorShadeDay": "open",
+            "indoorShadeNight": "open",
+            "indoorShadeInitial": "open",
+            "indoorShadeSource": "mass_charging_protocol",
+            "shadeTransitions": (),
+            "shadeOpenMinute": None,
+            "shadeCloseMinute": None,
+            "shadeOpenAt": None,
+            "shadeCloseAt": None,
+            "shadeTimingSource": "mass_charging_protocol",
+            "shadeTimingStatus": "protocol_constraint",
+        }
+
+    learned = _has_learned_timing(
+        model, mode, ("indoor_shade_open", "indoor_shade_close")
+    )
+    if learned:
+        close_minute = _round_quarter(
+            _learned_minute(model, "indoor_shade_close", rows, 600)
+        )
+        open_minute = _round_quarter(
+            _learned_minute(model, "indoor_shade_open", rows, 1140)
+        )
+        transitions = [
+            *(
+                _transition_record(at, "closed", "learned", "fitted")
+                for at in _daily_minute_times(rows, close_minute)
+            ),
+            *(
+                _transition_record(at, "open", "learned", "fitted")
+                for at in _daily_minute_times(rows, open_minute)
+            ),
+        ]
+        transitions = tuple(sorted(transitions, key=lambda item: item["at"]))
+        source = "learned"
+        status = "fitted"
+    else:
+        explicit = _explicit_shade_transitions(rows)
+        if explicit is not None:
+            initial, transitions = explicit
+            source = "forecast_state"
+            status = "observed"
+        else:
+            initial = "open"
+            transitions = _radiation_shade_transitions(rows)
+            source = "forecast_radiation_fallback"
+            status = "forecast_state" if transitions else INSUFFICIENT_DATA
+        if explicit is not None:
+            first_state = initial
+        else:
+            first_state = "open"
+    if learned:
+        first_state = "open"
+
+    open_events = [item for item in transitions if item["state"] == "open"]
+    close_events = [item for item in transitions if item["state"] == "closed"]
+    if source == "forecast_state":
+        daylight_states = [
+            _binary(_value(row, "indoor_shade_closed"))
+            for row in rows
+            if _solar_elevation_sin(_value(row, "at")) > 0.0
+        ]
+        night_states = [
+            _binary(_value(row, "indoor_shade_closed"))
+            for row in rows
+            if _solar_elevation_sin(_value(row, "at")) <= 0.0
+        ]
+        day_state = "closed" if any(daylight_states) else "open"
+        night_state = "closed" if night_states and all(night_states) else "open"
+    else:
+        day_state = "closed"
+        night_state = "open"
+    return {
+        "indoorShadeDay": day_state,
+        "indoorShadeNight": night_state,
+        "indoorShadeInitial": first_state,
+        "indoorShadeSource": source,
+        "shadeTransitions": transitions,
+        "shadeOpenMinute": (
+            int(_minute_of_day(open_events[0]["at"])) if open_events else None
+        ),
+        "shadeCloseMinute": (
+            int(_minute_of_day(close_events[0]["at"])) if close_events else None
+        ),
+        "shadeOpenAt": open_events[0]["at"] if open_events else None,
+        "shadeCloseAt": close_events[0]["at"] if close_events else None,
+        "shadeTimingSource": source,
+        "shadeTimingStatus": status,
+    }
 
 
 def baseline_schedule(model, forecast):
@@ -683,9 +844,7 @@ def baseline_schedule(model, forecast):
             "timingStatus": timing_status,
         }
 
-    indoor_shade_day, indoor_shade_source = _nonwinter_shade_state(
-        model, mode, rows
-    )
+    shade_schedule = _nonwinter_shade_schedule(model, mode, rows)
     learned = _has_learned_timing(
         model, mode, ("vent_open", "vent_close")
     )
@@ -720,13 +879,7 @@ def baseline_schedule(model, forecast):
         "ventOpenAt": opened,
         "ventCloseAt": closed,
         "airflowSegments": airflow,
-        "indoorShadeDay": indoor_shade_day,
-        "indoorShadeNight": "closed",
-        "indoorShadeSource": indoor_shade_source,
-        "shadeOpenMinute": None,
-        "shadeCloseMinute": None,
-        "shadeOpenAt": None,
-        "shadeCloseAt": None,
+        **shade_schedule,
         "ventTimingSource": timing_source,
         "ventTimingStatus": timing_status,
         "timingSource": timing_source,
@@ -828,32 +981,47 @@ def _physical_rejection(rows, schedule):
     return None
 
 
+def _shade_state_at(schedule, at):
+    state = schedule.get("indoorShadeInitial")
+    if state is None:
+        state = "closed" if schedule.get("indoorShadeNight") == "closed" else "open"
+    for transition in schedule.get("shadeTransitions", ()):
+        if transition["at"] <= at:
+            state = transition["state"]
+    if state not in {"open", "closed"}:
+        raise ValueError("modeled indoor shade state is invalid")
+    return state
+
+
 def _forcing_rows(rows, schedule):
-    winter = schedule["mode"] == "winter"
-    sunny_winter = winter and schedule["indoorShadeDay"] == "open"
+    winter_schedule = schedule["mode"] == "winter"
+    sunny_winter = winter_schedule and schedule["indoorShadeDay"] == "open"
     outdoor_present = float(schedule["outdoorShade"] == "present")
     forcings = []
     for row in rows[1:]:
         at = _value(row, "at")
+        row_mode = str(_first_value(row, ("mode", "season"), default=schedule["mode"]))
         active_levels = [
             AIRFLOW_LEVELS[segment["level"]]
             for segment in schedule.get("airflowSegments", ())
             if segment["startAt"] <= at < segment["endAt"]
         ]
         vent = max(active_levels, default=AIRFLOW_LEVELS["closed"])
-        if sunny_winter:
-            indoor_closed = float(
-                not (
-                    schedule["shadeOpenAt"] is not None
-                    and schedule["shadeOpenAt"] <= at < schedule["shadeCloseAt"]
+        if row_mode == "winter":
+            vent = AIRFLOW_LEVELS["closed"]
+            if winter_schedule and sunny_winter:
+                indoor_closed = float(
+                    not (
+                        schedule["shadeOpenAt"] is not None
+                        and schedule["shadeOpenAt"] <= at < schedule["shadeCloseAt"]
+                    )
                 )
-            )
-        elif winter or schedule["indoorShadeDay"] == "closed":
-            indoor_closed = 1.0
-        elif schedule["indoorShadeDay"] == "open":
+            else:
+                indoor_closed = 1.0
+        elif row_mode == "fall_charge":
             indoor_closed = 0.0
         else:
-            indoor_closed = float(_value(row, "indoor_shade_closed"))
+            indoor_closed = float(_shade_state_at(schedule, at) == "closed")
         forcings.append(
             {
                 "outdoor_f": float(_value(row, "outdoor_f")),
@@ -1015,12 +1183,25 @@ def search_candidate_schedule(*, behavior, dynamics, forecast):
     rows = _forecast_rows(forecast)
     baseline = baseline_schedule(behavior, rows)
     mode = baseline["mode"]
-    if mode == "winter":
-        return _search_winter(rows, baseline, dynamics)
-
     baseline_score = _score(
         mode, rows, _simulation(dynamics, rows, baseline)
     )
+    horizon_modes = {
+        str(_first_value(row, ("mode", "season"), default=""))
+        for row in rows
+    }
+    if len(horizon_modes) > 1:
+        return ScheduleSearchResult(
+            baseline=baseline,
+            candidate=None,
+            modeled_difference=_difference(
+                baseline_score, baseline_score, "explicit_mode_transition"
+            ),
+            rejected_candidate_counts={"explicit_mode_transition": 1},
+        )
+    if mode == "winter":
+        return _search_winter(rows, baseline, dynamics)
+
     rejected = Counter()
     surviving = []
     open_center = _round_quarter(baseline["ventOpenMinute"])

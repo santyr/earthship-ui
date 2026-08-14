@@ -1188,8 +1188,11 @@ class ArtifactRegistry:
         self.directory = Path(directory).expanduser()
         self.candidate_path = self.directory / "candidate.json"
         self.accepted_path = self.directory / "accepted.json"
+        self.previous_path = self.directory / "previous.json"
         self.backtest_report_path = self.directory / "backtest-report.json"
         self.lock_path = self.directory / ".registry.lock"
+        self.last_load_source = None
+        self.last_load_reason = None
 
     @contextmanager
     def _locked(self):
@@ -1280,26 +1283,67 @@ class ArtifactRegistry:
                 f"candidate artifact is corrupt: {exc}"
             ) from exc
 
+    @staticmethod
+    def _artifact_errors():
+        return (
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            ArtifactValidationError,
+            KeyError,
+            TypeError,
+            ValueError,
+            OverflowError,
+            RecursionError,
+        )
+
+    def _decode_validated(self, data, label):
+        try:
+            artifact = _artifact_from_payload(self._decode(data))
+            validate_artifact(artifact, require_eligible=True)
+            return artifact
+        except self._artifact_errors() as exc:
+            if isinstance(exc, ArtifactValidationError):
+                raise
+            raise ArtifactValidationError(
+                f"{label} artifact is corrupt: {exc}"
+            ) from exc
+
     def promote_candidate(self):
         with self._locked():
+            # The candidate is fully validated before current or previous moves.
             candidate = self._load_candidate()
             validate_artifact(candidate, require_eligible=True)
+
+            try:
+                os.lstat(self.accepted_path)
+            except FileNotFoundError:
+                pass
+            else:
+                data, stat_result = self._read_bytes(self.accepted_path)
+                try:
+                    accepted = self._decode_validated(data, "accepted")
+                except ArtifactValidationError:
+                    # Preserve an already verified previous slot; a corrupt current
+                    # generation is never rotated into it.
+                    self._quarantine_accepted(stat_result)
+                else:
+                    _atomic_json_write(self.previous_path, asdict(accepted))
             _atomic_json_write(self.accepted_path, asdict(candidate))
         return candidate
 
-    def _quarantine_accepted(self, expected_stat=None):
+    def _quarantine_path(self, path, label, expected_stat=None):
         try:
-            current = os.lstat(self.accepted_path)
+            current = os.lstat(path)
         except FileNotFoundError as exc:
             raise ArtifactUnavailable(
-                "accepted artifact disappeared during diagnosis"
+                f"{label} artifact disappeared during diagnosis"
             ) from exc
         if expected_stat is not None and (
             current.st_dev != expected_stat.st_dev
             or current.st_ino != expected_stat.st_ino
         ):
             raise ArtifactUnavailable(
-                "accepted artifact changed during corruption diagnosis"
+                f"{label} artifact changed during corruption diagnosis"
             )
         suffix = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         target = None
@@ -1313,7 +1357,7 @@ class ArtifactRegistry:
         )
         for counter in range(10000):
             candidate = self.directory / (
-                f"accepted.json.corrupt-{suffix}-{os.getpid()}-{counter:04d}"
+                f"{path.name}.corrupt-{suffix}-{os.getpid()}-{counter:04d}"
             )
             try:
                 target_descriptor = os.open(candidate, flags, 0o600)
@@ -1323,25 +1367,25 @@ class ArtifactRegistry:
                 continue
             except OSError as exc:
                 raise ArtifactUnavailable(
-                    "accepted artifact could not reserve quarantine safely"
+                    f"{label} artifact could not reserve quarantine safely"
                 ) from exc
         if target is None:
             raise ArtifactUnavailable(
-                "accepted artifact quarantine namespace is exhausted"
+                f"{label} artifact quarantine namespace is exhausted"
             )
         source_descriptor = None
         try:
             source_flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
                 os, "O_NOFOLLOW", 0
             )
-            source_descriptor = os.open(self.accepted_path, source_flags)
+            source_descriptor = os.open(path, source_flags)
             source_stat = os.fstat(source_descriptor)
             if expected_stat is not None and (
                 source_stat.st_dev != expected_stat.st_dev
                 or source_stat.st_ino != expected_stat.st_ino
             ):
                 raise ArtifactUnavailable(
-                    "accepted artifact changed during corruption quarantine"
+                    f"{label} artifact changed during corruption quarantine"
                 )
             while True:
                 chunk = os.read(source_descriptor, 1024 * 1024)
@@ -1354,15 +1398,15 @@ class ArtifactRegistry:
             os.fsync(target_descriptor)
             os.close(target_descriptor)
             target_descriptor = None
-            current = os.lstat(self.accepted_path)
+            current = os.lstat(path)
             if expected_stat is not None and (
                 current.st_dev != expected_stat.st_dev
                 or current.st_ino != expected_stat.st_ino
             ):
                 raise ArtifactUnavailable(
-                    "accepted artifact changed during corruption quarantine"
+                    f"{label} artifact changed during corruption quarantine"
                 )
-            os.unlink(self.accepted_path)
+            os.unlink(path)
             _fsync_directory(self.directory)
             return target
         except Exception:
@@ -1382,25 +1426,50 @@ class ArtifactRegistry:
             if target_descriptor is not None:
                 os.close(target_descriptor)
 
+    def _quarantine_accepted(self, expected_stat=None):
+        return self._quarantine_path(
+            self.accepted_path, "accepted", expected_stat
+        )
+
+    def _quarantine_previous(self, expected_stat=None):
+        return self._quarantine_path(
+            self.previous_path, "previous", expected_stat
+        )
+
     def load_accepted(self):
         with self._locked():
+            self.last_load_source = None
+            self.last_load_reason = None
             data, stat_result = self._read_bytes(self.accepted_path)
             try:
-                artifact = _artifact_from_payload(self._decode(data))
-                validate_artifact(artifact, require_eligible=True)
-                return artifact
-            except (
-                UnicodeDecodeError,
-                json.JSONDecodeError,
-                ArtifactValidationError,
-                KeyError,
-                TypeError,
-                ValueError,
-                OverflowError,
-                RecursionError,
-            ) as exc:
+                artifact = self._decode_validated(data, "accepted")
+            except ArtifactValidationError:
                 quarantined = self._quarantine_accepted(stat_result)
-                raise ArtifactUnavailable(
-                    "accepted artifact was corrupt and quarantined as "
-                    f"{quarantined.name}"
-                ) from exc
+                try:
+                    previous_data, previous_stat = self._read_bytes(
+                        self.previous_path
+                    )
+                except ArtifactUnavailable as previous_exc:
+                    raise ArtifactUnavailable(
+                        "accepted artifact was corrupt and quarantined as "
+                        f"{quarantined.name}; no verified previous generation is available"
+                    ) from previous_exc
+                try:
+                    previous = self._decode_validated(
+                        previous_data, "previous"
+                    )
+                except ArtifactValidationError as previous_exc:
+                    previous_quarantine = self._quarantine_previous(previous_stat)
+                    raise ArtifactUnavailable(
+                        "accepted artifact was corrupt and quarantined as "
+                        f"{quarantined.name}; previous artifact was invalid and "
+                        f"quarantined as {previous_quarantine.name}"
+                    ) from previous_exc
+                _atomic_json_write(self.accepted_path, asdict(previous))
+                self.last_load_source = "previous_restored"
+                self.last_load_reason = (
+                    "accepted model recovered from verified prior accepted generation"
+                )
+                return previous
+            self.last_load_source = "accepted"
+            return artifact

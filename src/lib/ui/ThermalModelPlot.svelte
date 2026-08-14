@@ -7,17 +7,18 @@
   const RIGHT = 12;
   const TOP = 20;
   const BOTTOM = 28;
-  const GAP_MS = 90 * 60_000;
+  const OBSERVED_GAP_MS = 10 * 60_000;
+  const FORECAST_GAP_MS = 2 * 60 * 60_000;
   const ACTIONS = new Set([
     'vent_open', 'vent_close', 'indoor_shade_open', 'indoor_shade_close',
     'outdoor_shade_installed', 'outdoor_shade_removed',
   ]);
 
-  function splitGaps(rows) {
+  function splitGaps(rows, gapMs) {
     const segments = [];
     for (const row of rows) {
       const current = segments.at(-1);
-      if (!current || row.atMs - current.at(-1).atMs > GAP_MS) segments.push([row]);
+      if (!current || row.atMs - current.at(-1).atMs >= gapMs) segments.push([row]);
       else current.push(row);
     }
     return segments;
@@ -56,8 +57,8 @@
     const tempSpan = Math.max(1, maxTemp - minTemp);
     const x = (atMs) => LEFT + ((atMs - minTime) / timeSpan) * (WIDTH - LEFT - RIGHT);
     const y = (temp) => TOP + ((maxTemp - temp) / tempSpan) * (HEIGHT - TOP - BOTTOM);
-    const forecastSegments = splitGaps(forecastRows);
-    const observedSegments = splitGaps(observedRows);
+    const forecastSegments = splitGaps(forecastRows, FORECAST_GAP_MS);
+    const observedSegments = splitGaps(observedRows, OBSERVED_GAP_MS);
 
     return {
       x,

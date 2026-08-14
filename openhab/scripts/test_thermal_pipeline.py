@@ -511,6 +511,29 @@ def test_action_label_requires_disjoint_confirmed_training_and_evaluation(
     }
 
 
+def test_shadow_discloses_verified_prior_accepted_generation_fallback():
+    class FallbackRegistry(AcceptedRegistry):
+        def load_accepted(self):
+            artifact = super().load_accepted()
+            self.last_load_source = "previous_restored"
+            self.last_load_reason = (
+                "accepted model recovered from verified prior accepted generation"
+            )
+            return artifact
+
+    output = run_shadow(
+        registry=FallbackRegistry(),
+        current=current_states(),
+        forecast=forecast_hours(24),
+        now=NOW,
+    )
+
+    assert (
+        "accepted model recovered from verified prior accepted generation"
+        in output["reasons"]
+    )
+
+
 def test_older_valid_artifact_remains_shadow_and_discloses_ages():
     artifact = accepted_artifact()
     artifact.created_at = "2026-08-10T12:00:00Z"
@@ -780,6 +803,184 @@ def test_cli_jdbc_reader_selects_the_jdbc_persistence_service(monkeypatch):
     assert "serviceId=jdbc" in paths[0]
 
 
+def test_cli_forecast_mode_is_evidence_backed_across_calendar_boundary():
+    import thermal_intel
+
+    start = datetime(2026, 8, 31, 23, 0, tzinfo=UTC)
+    rows = [
+        {
+            "at": start + timedelta(hours=index),
+            "tempF": 70.0,
+            "radiationWm2": 0.0,
+            "weatherCode": 0,
+            "windMph": 2.0,
+        }
+        for index in range(4)
+    ]
+    prior = ModeEvent(
+        event_id="mode-warm-prior",
+        idempotency_key="mode-warm-prior-receipt",
+        received_at=start - timedelta(days=10),
+        effective_at=start - timedelta(days=10),
+        mode="warm",
+        source="manual_dm",
+        confidence=1.0,
+    )
+
+    projected = thermal_intel._apply_mode_timeline(rows, (prior,), start)
+
+    assert [row["mode"] for row in projected] == ["warm"] * 4
+
+
+def test_cli_forecast_mode_projects_only_explicit_journal_transition():
+    import thermal_intel
+
+    start = datetime(2026, 10, 31, 23, 0, tzinfo=UTC)
+    transition_at = start + timedelta(hours=1, minutes=30)
+    rows = [
+        {
+            "at": start + timedelta(hours=index),
+            "tempF": 70.0,
+            "radiationWm2": 0.0,
+            "weatherCode": 0,
+            "windMph": 2.0,
+        }
+        for index in range(4)
+    ]
+    modes = (
+        ModeEvent(
+            event_id="mode-fall-prior",
+            idempotency_key="mode-fall-prior-receipt",
+            received_at=start - timedelta(days=1),
+            effective_at=start - timedelta(days=1),
+            mode="fall_charge",
+            source="manual_dm",
+            confidence=1.0,
+        ),
+        ModeEvent(
+            event_id="mode-winter-transition",
+            idempotency_key="mode-winter-transition-receipt",
+            received_at=transition_at,
+            effective_at=transition_at,
+            mode="winter",
+            source="manual_dm",
+            confidence=1.0,
+        ),
+    )
+
+    projected = thermal_intel._apply_mode_timeline(rows, modes, start)
+    interpolated = interpolate_hourly_forecast(
+        projected, start=start, end=start + timedelta(hours=3)
+    )
+
+    assert next(row for row in interpolated if row["at"] == transition_at)["mode"] == "winter"
+    assert next(
+        row for row in interpolated if row["at"] == transition_at - STEP
+    )["mode"] == "fall_charge"
+
+
+def test_cli_forecast_mode_is_unavailable_without_active_journal_evidence():
+    import thermal_intel
+
+    start = datetime(2026, 8, 31, 23, 0, tzinfo=UTC)
+    rows = [{"at": start, "tempF": 70.0, "radiationWm2": 0.0, "weatherCode": 0, "windMph": 2.0}]
+
+    with pytest.raises(ValueError, match="evidence-backed active thermal mode"):
+        thermal_intel._apply_mode_timeline(rows, (), start)
+
+
+def test_cli_observed_history_buckets_independent_item_updates_without_invention():
+    import thermal_intel
+
+    base = datetime(2026, 8, 13, 11, 0, tzinfo=UTC)
+    histories = {
+        "air": (
+            (base + timedelta(seconds=2, milliseconds=100), 70.0),
+            (base + timedelta(minutes=4, seconds=59), 71.0),
+            (base + timedelta(minutes=4, seconds=59), 70.5),
+            (base + timedelta(minutes=10, seconds=2), 72.0),
+        ),
+        "mass": (
+            (base + timedelta(seconds=47, milliseconds=900), 68.0),
+            (base + timedelta(minutes=5, seconds=31), 68.5),
+            (base + timedelta(minutes=10, seconds=59), 69.0),
+        ),
+    }
+
+    observed = thermal_intel._aligned_observed_history(histories)
+
+    assert observed == [
+        {"at": base, "hallwayF": 71.0, "massF": 68.0},
+        {"at": base + timedelta(minutes=10), "hallwayF": 72.0, "massF": 69.0},
+    ]
+    assert base + timedelta(minutes=5) not in {row["at"] for row in observed}
+
+
+class _ModeJournal:
+    def __init__(self, modes):
+        self.modes = tuple(modes)
+        self.calls = []
+
+    def effective_modes(self, start, end):
+        self.calls.append((start, end))
+        return self.modes
+
+
+def test_cli_shadow_queries_journal_for_effective_mode_timeline(tmp_path, monkeypatch):
+    import thermal_intel
+
+    destination = tmp_path / "shadow.json"
+    rows = [{key: value for key, value in row.items() if key != "mode"} for row in forecast_hours(24)]
+    prior = ModeEvent(
+        event_id="shadow-mode-warm",
+        idempotency_key="shadow-mode-warm-receipt",
+        received_at=NOW - timedelta(days=1),
+        effective_at=NOW - timedelta(days=1),
+        mode="warm",
+        source="manual_dm",
+        confidence=1.0,
+    )
+    journal = _ModeJournal((prior,))
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows", lambda snapshot, now: rows)
+    monkeypatch.setattr(thermal_intel, "ArtifactRegistry", lambda path: AcceptedRegistry())
+
+    status = thermal_intel._shadow(
+        SimpleNamespace(output=destination, publish=False), NOW, journal=journal
+    )
+
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    assert status == 0
+    assert payload["confidence"]["grade"] != "unavailable"
+    assert journal.calls == [(NOW, rows[-1]["at"] + timedelta(microseconds=1))]
+
+
+def test_cli_shadow_missing_effective_mode_fails_soft_without_candidate(tmp_path, monkeypatch):
+    import thermal_intel
+
+    destination = tmp_path / "shadow.json"
+    rows = [{key: value for key, value in row.items() if key != "mode"} for row in forecast_hours(24)]
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows", lambda snapshot, now: rows)
+    monkeypatch.setattr(thermal_intel, "ArtifactRegistry", lambda path: AcceptedRegistry())
+
+    status = thermal_intel._shadow(
+        SimpleNamespace(output=destination, publish=False),
+        NOW,
+        journal=_ModeJournal(()),
+    )
+
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    assert status == 1
+    assert payload["confidence"]["grade"] == "unavailable"
+    assert payload["schedule"] == {}
+    assert any("evidence-backed active thermal mode" in reason for reason in payload["reasons"])
+
+
 @pytest.mark.parametrize("failure", ["current", "forecast", "artifact"])
 def test_cli_shadow_reader_failures_replace_stale_output_with_unavailable(
     tmp_path, monkeypatch, failure
@@ -876,6 +1077,52 @@ def test_empty_artifact_reader_failure_names_the_failed_input_class():
     assert output["confidence"]["grade"] == "unavailable"
     assert output["schedule"] == {}
     assert output["reasons"] == ["accepted artifact input unavailable"]
+
+
+def test_pipeline_applies_nonwinter_shade_transitions_and_emits_matching_markers():
+    hourly = forecast_hours(30)
+    rows = interpolate_hourly_forecast(
+        hourly, start=hourly[0]["at"], end=hourly[-1]["at"]
+    )
+    schedule = baseline_schedule(warm_behavior(), rows)
+
+    thermal_pipeline._validate_internal_schedule(
+        schedule, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+    )
+    forcings = thermal_pipeline._schedule_forcings(rows, schedule)
+    by_local_hour = {
+        row["at"].astimezone(LOCAL).hour: forcing["indoor_shade_closed"]
+        for row, forcing in zip(rows[1:24 * 12 + 1], forcings)
+    }
+    assert by_local_hour[12] == 1.0
+    assert by_local_hour[23] == 0.0
+
+    expected = [
+        (item["at"], f'indoor_shade_{"open" if item["state"] == "open" else "close"}')
+        for item in schedule["shadeTransitions"]
+    ]
+    actual = [
+        item for item in thermal_pipeline._action_events(schedule)
+        if item[1].startswith("indoor_shade_")
+    ]
+    assert actual == expected
+
+
+def test_pipeline_fall_charge_forcing_keeps_shades_open_without_markers():
+    hourly = [{**row, "mode": "fall_charge"} for row in forecast_hours(30)]
+    rows = interpolate_hourly_forecast(
+        hourly, start=hourly[0]["at"], end=hourly[-1]["at"]
+    )
+    schedule = baseline_schedule(warm_behavior(), rows)
+
+    assert all(
+        forcing["indoor_shade_closed"] == 0.0
+        for forcing in thermal_pipeline._schedule_forcings(rows, schedule)
+    )
+    assert not any(
+        marker.startswith("indoor_shade_")
+        for _, marker in thermal_pipeline._action_events(schedule)
+    )
 
 
 def test_internal_schedule_rejects_boosted_segment_outside_owning_vent_window():

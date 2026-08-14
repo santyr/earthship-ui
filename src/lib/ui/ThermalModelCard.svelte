@@ -26,10 +26,12 @@
   }
 
   const unavailable = $derived(!result || result.state === 'unavailable');
-  const age = $derived(unavailable ? null : ageText(result.generatedAtMs, nowMs));
+  const outputAge = $derived(unavailable ? null : ageText(result.generatedAtMs, nowMs));
+  const modelAge = $derived(unavailable ? null : ageText(result.modelCreatedAtMs, nowMs));
+  const trainingAge = $derived(unavailable ? null : ageText(result.trainedThroughMs, nowMs));
   const freshness = $derived(unavailable
-    ? 'Unavailable'
-    : `${result.state === 'stale' ? 'Stale' : 'Current'}${age ? ` · ${age}` : ''}`);
+    ? 'Output unavailable'
+    : `Output ${result.state === 'stale' ? 'stale' : 'current'}${outputAge ? ` · ${outputAge}` : ''}`);
   const confidence = $derived(unavailable
     ? 'Confidence unavailable'
     : `${result.confidence.slice(0, 1).toUpperCase()}${result.confidence.slice(1)} confidence`);
@@ -47,6 +49,10 @@
       {#if unavailable}
         <div class="unavailable">Thermal model unavailable</div>
       {:else}
+        <div class="model-ages" aria-label="Shadow model evidence ages">
+          <span>Model created · {modelAge ?? 'age unavailable'}</span>
+          <span>Training data through · {trainingAge ?? 'age unavailable'}</span>
+        </div>
         <div class="metrics">
           <div class="metric">
             <span>Next hallway high</span>
@@ -80,6 +86,14 @@
         </div>
       {/if}
 
+      {#if Array.isArray(result?.reasons) && result.reasons.length > 0}
+        <ul class="reasons" aria-label="Shadow model status details">
+          {#each result.reasons as reason}
+            <li class:warning={/cadence|stale|unavailable|recovered/i.test(reason)}>{reason}</li>
+          {/each}
+        </ul>
+      {/if}
+
       <details>
         <summary>Model details</summary>
         <ThermalModelPlot
@@ -104,7 +118,7 @@
     height: 100%;
     min-width: 0;
     min-height: 0;
-    gap: 0.4rem;
+    gap: 0.2rem;
   }
   .status-row {
     display: flex;
@@ -130,6 +144,26 @@
   .confidence {
     margin-left: auto;
     white-space: nowrap;
+  }
+  .model-ages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.65rem;
+    color: #8b93a1;
+    font-size: 0.61rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .reasons {
+    display: grid;
+    gap: 0.1rem;
+    margin: 0;
+    padding-left: 1rem;
+    color: #8b93a1;
+    font-size: 0.61rem;
+    line-height: 1.25;
+  }
+  .reasons li.warning {
+    color: #f59e0b;
   }
   .metrics {
     display: grid;

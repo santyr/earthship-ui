@@ -609,6 +609,90 @@ def test_tampered_accepted_artifact_is_revalidated_and_quarantined(
     assert not registry.accepted_path.exists()
 
 
+def test_corrupt_current_restores_fully_validated_previous_generation(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    previous = valid_artifact(code_revision="a" * 40)
+    current = valid_artifact(code_revision="b" * 40)
+    registry.save_candidate(previous)
+    registry.promote_candidate()
+    registry.save_candidate(current)
+    registry.promote_candidate()
+    corrupt = b"{broken-current"
+    registry.accepted_path.write_bytes(corrupt)
+
+    loaded = registry.load_accepted()
+
+    assert loaded.code_revision == "a" * 40
+    assert registry.last_load_source == "previous_restored"
+    assert "prior accepted generation" in registry.last_load_reason
+    assert registry.load_accepted().code_revision == "a" * 40
+    assert list(tmp_path.glob("accepted.json.corrupt-*"))[0].read_bytes() == corrupt
+
+
+@pytest.mark.parametrize("probe", ["utf8", "type", "semantic"])
+def test_invalid_previous_is_quarantined_and_cannot_mask_current_corruption(
+    tmp_path, probe
+):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact(code_revision="a" * 40))
+    registry.promote_candidate()
+    registry.save_candidate(valid_artifact(code_revision="b" * 40))
+    registry.promote_candidate()
+    if probe == "utf8":
+        registry.previous_path.write_bytes(b"\xff\xfeinvalid")
+    elif probe == "type":
+        registry.previous_path.write_text("[]", encoding="utf-8")
+    else:
+        payload = json.loads(registry.previous_path.read_text(encoding="utf-8"))
+        payload["schema"] = "earthship-thermal-model/v0"
+        registry.previous_path.write_text(json.dumps(payload), encoding="utf-8")
+    registry.accepted_path.write_bytes(b"{broken-current")
+
+    with pytest.raises(ArtifactUnavailable, match="previous"):
+        registry.load_accepted()
+
+    assert not registry.accepted_path.exists()
+    assert not registry.previous_path.exists()
+    assert len(list(tmp_path.glob("accepted.json.corrupt-*"))) == 1
+    assert len(list(tmp_path.glob("previous.json.corrupt-*"))) == 1
+
+
+def test_failed_candidate_promotion_never_rotates_current_or_previous(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact(code_revision="a" * 40))
+    registry.promote_candidate()
+    registry.save_candidate(valid_artifact(code_revision="b" * 40))
+    registry.promote_candidate()
+    prior_bytes = registry.previous_path.read_bytes()
+
+    metrics = deepcopy(valid_artifact().metrics)
+    metrics["overall"]["model"]["air"]["24"]["mae"] = 2.0
+    metrics["promotion"]["eligible"] = False
+    metrics["promotion"]["gates"]["air_24h_beats_persistence"] = False
+    registry.save_candidate(
+        valid_artifact(code_revision="c" * 40, metrics=metrics)
+    )
+    with pytest.raises(ArtifactPromotionRefused):
+        registry.promote_candidate()
+
+    assert registry.load_accepted().code_revision == "b" * 40
+    assert registry.previous_path.read_bytes() == prior_bytes
+
+
+def test_candidate_is_never_used_as_corruption_fallback(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact(code_revision="a" * 40))
+    registry.promote_candidate()
+    registry.save_candidate(valid_artifact(code_revision="b" * 40))
+    registry.accepted_path.write_bytes(b"{broken-current")
+
+    with pytest.raises(ArtifactUnavailable, match="quarantined"):
+        registry.load_accepted()
+
+    assert registry.candidate_path.exists()
+    assert not registry.accepted_path.exists()
+
+
 def test_accepted_artifact_remains_loadable_after_later_candidate_regresses(tmp_path):
     registry = ArtifactRegistry(tmp_path)
     accepted = valid_artifact(code_revision="a" * 40)
@@ -661,10 +745,17 @@ def test_two_concurrent_candidate_promoters_leave_one_complete_valid_artifact(
         for future in futures:
             future.result(timeout=15)
 
-    accepted = ArtifactRegistry(tmp_path).load_accepted()
+    registry = ArtifactRegistry(tmp_path)
+    accepted = registry.load_accepted()
     assert accepted.code_revision in {"a" * 40, "b" * 40}
+    assert registry.previous_path.exists()
+    registry.accepted_path.write_bytes(b"{broken-after-concurrent-promotion")
+    recovered = registry.load_accepted()
+    assert recovered.code_revision in {"a" * 40, "b" * 40}
+    assert registry.last_load_source == "previous_restored"
     assert not list(tmp_path.glob(".candidate.json.tmp-*"))
     assert not list(tmp_path.glob(".accepted.json.tmp-*"))
+    assert not list(tmp_path.glob(".previous.json.tmp-*"))
 
 
 def test_corrupt_reader_cannot_quarantine_newly_promoted_inode(

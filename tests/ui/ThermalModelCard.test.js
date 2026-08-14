@@ -17,6 +17,10 @@ function readyResult(overrides = {}) {
     state: 'ready',
     badge: 'SHADOW',
     generatedAtMs: NOW - 30 * 60_000,
+    modelCreatedAtMs: NOW - 2 * 60 * 60_000,
+    trainedThroughMs: NOW - 3 * 60 * 60_000,
+    modelAgeHours: 1.5,
+    trainingDataAgeHours: 2.5,
     hallwayHigh: 80,
     hallwayLow: 68,
     morningMass: 70,
@@ -59,6 +63,51 @@ describe('ThermalModelCard shadow-only presentation', () => {
     const copy = container.textContent.toLowerCase();
     expect(copy).not.toMatch(/\bsaved\b|\bwill\b|\brecommend(?:ed|ation)?\b|\bautom(?:ate|ation)\b|\bactuat(?:e|or)\b|\bcommand\b/);
     expect(container.querySelector('button, form, input, select, textarea, a[href]')).toBeNull();
+  });
+
+  it('separates fresh shadow-output age from old model and training-data ages', () => {
+    const { getByText } = render(ThermalModelCard, {
+      result: readyResult({
+        generatedAtMs: NOW - 5 * 60_000,
+        modelCreatedAtMs: NOW - 72 * 60 * 60_000,
+        trainedThroughMs: NOW - 96 * 60 * 60_000,
+        modelAgeHours: 72,
+        trainingDataAgeHours: 96,
+        reasons: ['accepted model daily training cadence missed'],
+      }),
+      nowMs: NOW,
+    });
+
+    expect(getByText(/Output current · 5m old/i)).toBeTruthy();
+    expect(getByText(/Model created · 72h old/i)).toBeTruthy();
+    expect(getByText(/Training data through · 96h old/i)).toBeTruthy();
+    expect(getByText('accepted model daily training cadence missed')).toBeTruthy();
+  });
+
+  it('renders bounded shadow reasons even when the model output is unavailable', () => {
+    const { getByText } = render(ThermalModelCard, {
+      result: readyResult({
+        state: 'unavailable',
+        generatedAtMs: null,
+        modelCreatedAtMs: null,
+        trainedThroughMs: null,
+        modelAgeHours: null,
+        trainingDataAgeHours: null,
+        hallwayHigh: null,
+        hallwayLow: null,
+        morningMass: null,
+        ventWindow: null,
+        effect: { morningMassDeltaF: null, hallwayPeakDeltaF: null },
+        confidence: 'unavailable',
+        trajectory: [],
+        observed: [],
+        reasons: ['stale hallway temperature'],
+      }),
+      nowMs: NOW,
+    });
+
+    expect(getByText('stale hallway temperature')).toBeTruthy();
+    expect(getByText(/Confidence unavailable/i)).toBeTruthy();
   });
 
   it('renders stale age explicitly while retaining the shadow badge', () => {

@@ -67,6 +67,24 @@ describe('ThermalModelPlot bounded SVG', () => {
     expect(container.querySelector('[data-action="not_a_marker"]')).toBeNull();
   });
 
+  it('breaks one missing five-minute observation and one missing forecast hour', () => {
+    const trajectory = [
+      { atMs: START, hallwayF: 74, massF: 72, lowF: 73, highF: 75, actions: [] },
+      { atMs: START + 2 * HOUR, hallwayF: 76, massF: 73, lowF: 75, highF: 77, actions: [] },
+    ];
+    const observed = [
+      { atMs: START - 15 * 60_000, hallwayF: 73.5, massF: 71.5 },
+      { atMs: START - 5 * 60_000, hallwayF: 73.8, massF: 71.8 },
+    ];
+
+    const { container } = render(ThermalModelPlot, { trajectory, observed });
+
+    expect(container.querySelectorAll('[data-series="forecast-hallway"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-series="forecast-interval"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-series="observed-hallway"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-series="observed-mass"]')).toHaveLength(2);
+  });
+
   it('renders an accessible empty state without an SVG when no series exists', () => {
     const { container, getByText } = render(ThermalModelPlot, {
       trajectory: [],

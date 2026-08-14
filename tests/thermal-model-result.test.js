@@ -66,6 +66,43 @@ describe('parseThermalModelResult', () => {
     expect(result.observed).toHaveLength(1);
   });
 
+  it('preserves model timestamps and finite zero ages in the normalized view model', () => {
+    const payload = fixture((value) => {
+      value.model.createdAt = value.generatedAt;
+      value.model.trainedThrough = value.generatedAt;
+      value.provenance.modelAgeHours = 0;
+      value.provenance.trainingDataAgeHours = 0;
+    });
+
+    const result = parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS);
+
+    expect(result).toMatchObject({
+      modelCreatedAtMs: GENERATED_AT_MS,
+      trainedThroughMs: GENERATED_AT_MS,
+      modelAgeHours: 0,
+      trainingDataAgeHours: 0,
+    });
+  });
+
+  it('preserves stale model and training ages independently of fresh output age', () => {
+    const payload = fixture((value) => {
+      value.model.createdAt = '2026-08-10T12:00:00Z';
+      value.model.trainedThrough = '2026-08-09T12:00:00Z';
+      value.provenance.modelAgeHours = 72;
+      value.provenance.trainingDataAgeHours = 96;
+      value.reasons = ['accepted model daily training cadence missed'];
+    });
+
+    const result = parseThermalModelResult(
+      JSON.stringify(payload), GENERATED_AT_MS + 10 * 60_000,
+    );
+
+    expect(result.state).toBe('ready');
+    expect(result.modelAgeHours).toBe(72);
+    expect(result.trainingDataAgeHours).toBe(96);
+    expect(result.reasons).toEqual(['accepted model daily training cadence missed']);
+  });
+
   it('formats a complete candidate vent window in the configured local timezone', () => {
     const payload = fixture((value) => {
       value.schedule.candidate = {

@@ -40,14 +40,313 @@ class IdempotencyConflict(ValueError):
     pass
 
 
+class SchemaMismatch(RuntimeError):
+    pass
+
+
+_SCHEMA_TABLES = ("action_events", "message_receipts", "mode_events")
+_SCHEMA_FUNCTIONS = (
+    "reject_action_correction_cycle",
+    "reject_journal_mutation",
+    "reject_mode_correction_cycle",
+)
+_SCHEMA_TRIGGERS = (
+    "action_events.reject_correction_cycle",
+    "action_events.reject_mutation",
+    "message_receipts.reject_mutation",
+    "mode_events.reject_correction_cycle",
+    "mode_events.reject_mutation",
+)
+EXPECTED_SCHEMA_FINGERPRINT = "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa"
+
+
+def _schema_shape(cursor, runtime_role=None):
+    cursor.execute(
+        """SELECT c.relname
+             FROM pg_catalog.pg_class c
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = %s
+              AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+            ORDER BY c.relname""",
+        (SCHEMA,),
+    )
+    tables = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute(
+        """SELECT c.relname, a.attnum, a.attname,
+                  pg_catalog.format_type(a.atttypid, a.atttypmod),
+                  a.atttypmod, a.attnotnull,
+                  COALESCE(pg_catalog.pg_get_expr(d.adbin, d.adrelid), ''),
+                  a.attidentity, a.attgenerated,
+                  CASE WHEN a.attcollation = 0 THEN ''
+                       ELSE cn.nspname || '.' || co.collname END
+             FROM pg_catalog.pg_class c
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid
+             LEFT JOIN pg_catalog.pg_attrdef d
+                    ON d.adrelid = c.oid AND d.adnum = a.attnum
+             LEFT JOIN pg_catalog.pg_collation co ON co.oid = a.attcollation
+             LEFT JOIN pg_catalog.pg_namespace cn ON cn.oid = co.collnamespace
+            WHERE n.nspname = %s
+              AND c.relkind IN ('r', 'p')
+              AND a.attnum > 0
+              AND NOT a.attisdropped
+            ORDER BY c.relname, a.attnum""",
+        (SCHEMA,),
+    )
+    columns = [list(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """SELECT c.relname, con.conname, con.contype,
+                  con.condeferrable, con.condeferred, con.convalidated,
+                  con.confupdtype, con.confdeltype, con.confmatchtype,
+                  pg_catalog.pg_get_constraintdef(con.oid, true),
+                  COALESCE(rn.nspname, ''), COALESCE(rc.relname, ''),
+                  ARRAY(
+                      SELECT a.attname
+                        FROM unnest(con.conkey) WITH ORDINALITY AS key(attnum, ord)
+                        JOIN pg_catalog.pg_attribute a
+                          ON a.attrelid = con.conrelid AND a.attnum = key.attnum
+                       ORDER BY key.ord
+                  ),
+                  ARRAY(
+                      SELECT a.attname
+                        FROM unnest(con.confkey) WITH ORDINALITY AS key(attnum, ord)
+                        JOIN pg_catalog.pg_attribute a
+                          ON a.attrelid = con.confrelid AND a.attnum = key.attnum
+                       ORDER BY key.ord
+                  )
+             FROM pg_catalog.pg_constraint con
+             JOIN pg_catalog.pg_class c ON c.oid = con.conrelid
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             LEFT JOIN pg_catalog.pg_class rc ON rc.oid = con.confrelid
+             LEFT JOIN pg_catalog.pg_namespace rn ON rn.oid = rc.relnamespace
+            WHERE n.nspname = %s
+            ORDER BY c.relname, con.conname""",
+        (SCHEMA,),
+    )
+    constraints = [list(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """SELECT c.relname, ic.relname, am.amname,
+                  i.indisunique, i.indisprimary, i.indisvalid, i.indisready,
+                  i.indislive, i.indisreplident, i.indnkeyatts, i.indnatts,
+                  ARRAY(
+                      SELECT pg_catalog.pg_get_indexdef(i.indexrelid, key, true)
+                        FROM generate_series(1, i.indnatts) AS key
+                       ORDER BY key
+                  ),
+                  COALESCE(pg_catalog.pg_get_expr(i.indpred, i.indrelid, true), ''),
+                  pg_catalog.pg_get_indexdef(i.indexrelid)
+             FROM pg_catalog.pg_index i
+             JOIN pg_catalog.pg_class c ON c.oid = i.indrelid
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             JOIN pg_catalog.pg_class ic ON ic.oid = i.indexrelid
+             JOIN pg_catalog.pg_am am ON am.oid = ic.relam
+            WHERE n.nspname = %s
+            ORDER BY c.relname, ic.relname""",
+        (SCHEMA,),
+    )
+    indexes = [list(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """SELECT c.relname, t.tgname, t.tgtype, t.tgenabled,
+                  t.tgdeferrable, t.tginitdeferred,
+                  pg_catalog.pg_get_triggerdef(t.oid, true),
+                  p.proname
+             FROM pg_catalog.pg_trigger t
+             JOIN pg_catalog.pg_class c ON c.oid = t.tgrelid
+             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+             JOIN pg_catalog.pg_proc p ON p.oid = t.tgfoid
+            WHERE n.nspname = %s AND NOT t.tgisinternal
+            ORDER BY c.relname, t.tgname""",
+        (SCHEMA,),
+    )
+    triggers = [list(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """SELECT p.proname,
+                  pg_catalog.pg_get_function_identity_arguments(p.oid),
+                  pg_catalog.pg_get_function_result(p.oid),
+                  l.lanname, p.provolatile, p.proparallel, p.prosecdef,
+                  p.proleakproof, p.proisstrict, p.prokind,
+                  p.prosrc,
+                  COALESCE(p.proconfig, ARRAY[]::text[])
+             FROM pg_catalog.pg_proc p
+             JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+             JOIN pg_catalog.pg_language l ON l.oid = p.prolang
+            WHERE n.nspname = %s
+            ORDER BY p.proname,
+                     pg_catalog.pg_get_function_identity_arguments(p.oid)""",
+        (SCHEMA,),
+    )
+    functions = []
+    for row in cursor.fetchall():
+        values = list(row)
+        values[10] = sha256(values[10].encode("utf-8")).hexdigest()
+        functions.append(values)
+
+    roles = [("public", "PUBLIC")]
+    if runtime_role:
+        roles.append(("runtime", runtime_role))
+    privileges = {}
+    for label, role in roles:
+        if label == "public":
+            cursor.execute(
+                """SELECT COALESCE(bool_or(privilege_type = 'USAGE'), false),
+                          COALESCE(bool_or(privilege_type = 'CREATE'), false)
+                     FROM pg_catalog.pg_namespace n
+                     LEFT JOIN LATERAL aclexplode(
+                         COALESCE(n.nspacl, acldefault('n', n.nspowner))
+                     ) acl ON true
+                    WHERE n.nspname = %s AND acl.grantee = 0""",
+                (SCHEMA,),
+            )
+        else:
+            cursor.execute(
+                """SELECT has_schema_privilege(%s, %s, 'USAGE'),
+                          has_schema_privilege(%s, %s, 'CREATE')""",
+                (role, SCHEMA, role, SCHEMA),
+            )
+        schema_privileges = list(cursor.fetchone())
+        table_privileges = []
+        for table in _SCHEMA_TABLES:
+            qualified = f"{SCHEMA}.{table}"
+            if label == "public":
+                cursor.execute(
+                    """SELECT
+                           COALESCE(bool_or(privilege_type = 'SELECT'), false),
+                           COALESCE(bool_or(privilege_type = 'INSERT'), false),
+                           COALESCE(bool_or(privilege_type = 'UPDATE'), false),
+                           COALESCE(bool_or(privilege_type = 'DELETE'), false),
+                           COALESCE(bool_or(privilege_type = 'TRUNCATE'), false),
+                           COALESCE(bool_or(privilege_type = 'REFERENCES'), false),
+                           COALESCE(bool_or(privilege_type = 'TRIGGER'), false)
+                       FROM pg_catalog.pg_class c
+                       JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                       LEFT JOIN LATERAL aclexplode(
+                           COALESCE(c.relacl, acldefault('r', c.relowner))
+                       ) acl ON true
+                      WHERE n.nspname = %s AND c.relname = %s
+                        AND acl.grantee = 0""",
+                    (SCHEMA, table),
+                )
+            else:
+                cursor.execute(
+                    """SELECT has_table_privilege(%s, %s, 'SELECT'),
+                              has_table_privilege(%s, %s, 'INSERT'),
+                              has_table_privilege(%s, %s, 'UPDATE'),
+                              has_table_privilege(%s, %s, 'DELETE'),
+                              has_table_privilege(%s, %s, 'TRUNCATE'),
+                              has_table_privilege(%s, %s, 'REFERENCES'),
+                              has_table_privilege(%s, %s, 'TRIGGER')""",
+                    (role, qualified) * 7,
+                )
+            table_privileges.append([table, *cursor.fetchone()])
+        function_privileges = []
+        for function in _SCHEMA_FUNCTIONS:
+            qualified = f"{SCHEMA}.{function}()"
+            if label == "public":
+                cursor.execute(
+                    """SELECT COALESCE(bool_or(privilege_type = 'EXECUTE'), false)
+                         FROM pg_catalog.pg_proc p
+                         JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+                         LEFT JOIN LATERAL aclexplode(
+                             COALESCE(p.proacl, acldefault('f', p.proowner))
+                         ) acl ON true
+                        WHERE n.nspname = %s AND p.proname = %s
+                          AND acl.grantee = 0""",
+                    (SCHEMA, function),
+                )
+            else:
+                cursor.execute(
+                    "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
+                    (role, qualified),
+                )
+            function_privileges.append([function, cursor.fetchone()[0]])
+        privileges[label] = {
+            "schema": schema_privileges,
+            "tables": table_privileges,
+            "functions": function_privileges,
+        }
+
+    return {
+        "tables": tables,
+        "columns": columns,
+        "constraints": constraints,
+        "indexes": indexes,
+        "triggers": triggers,
+        "functions": functions,
+        "privileges": privileges,
+    }
+
+
+def _shape_fingerprint(shape):
+    encoded = json.dumps(
+        shape, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode("ascii")
+    return sha256(encoded).hexdigest()
+
+
+def _audit_cursor(cursor, runtime_role=None):
+    try:
+        shape = _schema_shape(cursor, runtime_role=runtime_role)
+    except psycopg2.Error as exc:
+        raise SchemaMismatch(
+            "thermal_intel exact schema audit failed (missing or partial objects)"
+        ) from exc
+    fingerprint = _shape_fingerprint(shape)
+    if EXPECTED_SCHEMA_FINGERPRINT is not None and fingerprint != EXPECTED_SCHEMA_FINGERPRINT:
+        raise SchemaMismatch(
+            "thermal_intel exact schema audit failed "
+            f"(expected {EXPECTED_SCHEMA_FINGERPRINT}, observed {fingerprint})"
+        )
+    return {
+        "schema": SCHEMA,
+        "tables": shape["tables"],
+        "functions": [row[0] for row in shape["functions"]],
+        "triggers": [f"{row[0]}.{row[1]}" for row in shape["triggers"]],
+        "fingerprint": fingerprint,
+    }
+
+
+def audit_schema(dsn, runtime_role=None):
+    """Read-only exact catalog audit; never prints or returns a DSN."""
+    with psycopg2.connect(dsn) as connection:
+        with connection.cursor() as cursor:
+            return _audit_cursor(cursor, runtime_role=runtime_role)
+
+
 def _check_values(values):
     return sql.SQL(", ").join(sql.Literal(value) for value in values)
 
 
+def _preflight_existing_schema(cursor, runtime_role=None):
+    cursor.execute(
+        "SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = %s",
+        (SCHEMA,),
+    )
+    schema_row = cursor.fetchone()
+    if schema_row is None:
+        return
+    namespace_oid = schema_row[0]
+    cursor.execute(
+        """SELECT EXISTS (
+               SELECT 1 FROM pg_catalog.pg_class WHERE relnamespace = %s
+           ) OR EXISTS (
+               SELECT 1 FROM pg_catalog.pg_proc WHERE pronamespace = %s
+           )""",
+        (namespace_oid, namespace_oid),
+    )
+    if cursor.fetchone()[0]:
+        _audit_cursor(cursor, runtime_role=runtime_role)
+
+
 def migrate(dsn, runtime_role=None):
-    """Create only the application-owned schema and append-only journal tables."""
+    """Create only a new/empty schema or re-assert an already exact schema."""
     with psycopg2.connect(dsn) as connection:
         with connection.cursor() as cursor:
+            _preflight_existing_schema(cursor, runtime_role=runtime_role)
             cursor.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}") .format(
                 sql.Identifier(SCHEMA)
             ))
@@ -307,6 +606,7 @@ def migrate(dsn, runtime_role=None):
                         "ON ALL TABLES IN SCHEMA {} FROM {}"
                     ).format(sql.Identifier(SCHEMA), role)
                 )
+            _audit_cursor(cursor, runtime_role=runtime_role)
 
 
 def _aware(value, name):
@@ -421,17 +721,52 @@ class ActionJournal:
         with psycopg2.connect(self._dsn) as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    """SELECT e.event_id, e.idempotency_key, e.received_at,
+                    """WITH effective AS (
+                           SELECT e.*
+                           FROM thermal_intel.action_events e
+                           WHERE NOT EXISTS (
+                               SELECT 1
+                               FROM thermal_intel.action_events correction
+                               WHERE correction.supersedes = e.event_id
+                           )
+                       ), prior_by_action AS (
+                           SELECT event_id
+                           FROM (
+                               SELECT event_id,
+                                      row_number() OVER (
+                                          PARTITION BY action
+                                          ORDER BY effective_at DESC,
+                                                   received_at DESC,
+                                                   event_id DESC
+                                      ) AS rank
+                               FROM effective
+                               WHERE effective_at < %s
+                           ) ranked
+                           WHERE rank = 1
+                       ), kiva_recent AS (
+                           SELECT event_id
+                           FROM effective
+                           WHERE action = 'kiva'
+                             AND effective_at >= %s - interval '2 hours'
+                             AND effective_at < %s
+                       ), kiva_context AS (
+                           SELECT event_id
+                           FROM effective
+                           WHERE action = 'kiva'
+                             AND effective_at < %s - interval '2 hours'
+                           ORDER BY effective_at DESC, received_at DESC, event_id DESC
+                           LIMIT 1
+                       )
+                       SELECT e.event_id, e.idempotency_key, e.received_at,
                               e.effective_at, e.action, e.state, e.source,
                               e.confidence, e.interval_id, e.note, e.supersedes
-                       FROM thermal_intel.action_events e
-                       WHERE e.effective_at >= %s AND e.effective_at < %s
-                         AND NOT EXISTS (
-                             SELECT 1 FROM thermal_intel.action_events correction
-                             WHERE correction.supersedes = e.event_id
-                         )
+                       FROM effective e
+                       WHERE (e.effective_at >= %s AND e.effective_at < %s)
+                          OR e.event_id IN (SELECT event_id FROM prior_by_action)
+                          OR e.event_id IN (SELECT event_id FROM kiva_recent)
+                          OR e.event_id IN (SELECT event_id FROM kiva_context)
                        ORDER BY e.effective_at, e.received_at, e.event_id""",
-                    (start, end),
+                    (start, start, start, start, start, end),
                 )
                 return tuple(ActionEvent(*row) for row in cursor.fetchall())
 

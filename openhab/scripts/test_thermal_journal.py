@@ -13,7 +13,13 @@ import psycopg2
 from psycopg2 import sql
 import pytest
 
-from thermal_model.journal import ActionJournal, IdempotencyConflict, migrate
+from thermal_model.journal import (
+    ActionJournal,
+    IdempotencyConflict,
+    SchemaMismatch,
+    audit_schema,
+    migrate,
+)
 from thermal_model.schema import ActionEvent, ModeEvent
 
 
@@ -121,6 +127,230 @@ def _mode(event_id="mode-warm", key="mode-receipt", **changes):
     return replace(base, **changes)
 
 
+
+def test_effective_action_read_includes_persistent_carry_in_and_kiva_context(
+    journal,
+):
+    start = datetime(2025, 6, 1, 12, tzinfo=timezone.utc)
+    end = start + timedelta(hours=2)
+    events = (
+        _action(
+            event_id="carry-outdoor",
+            key="carry-outdoor-receipt",
+            action="outdoor_shade",
+            state="installed",
+            effective_at=start - timedelta(days=3),
+        ),
+        _action(
+            event_id="carry-indoor",
+            key="carry-indoor-receipt",
+            action="indoor_shade",
+            state="closed",
+            effective_at=start - timedelta(days=2),
+        ),
+        _action(
+            event_id="carry-vent",
+            key="carry-vent-receipt",
+            state="open",
+            effective_at=start - timedelta(days=1),
+        ),
+        _action(
+            event_id="carry-kiva-on",
+            key="carry-kiva-on-receipt",
+            action="kiva",
+            state="on",
+            effective_at=start - timedelta(hours=3),
+        ),
+        _action(
+            event_id="carry-kiva-off",
+            key="carry-kiva-off-receipt",
+            action="kiva",
+            state="off",
+            effective_at=start - timedelta(hours=1),
+        ),
+        _action(
+            event_id="carry-vent-close",
+            key="carry-vent-close-receipt",
+            state="closed",
+            effective_at=start + timedelta(hours=1),
+        ),
+    )
+    for event in events:
+        assert journal.append(event)
+
+    effective = journal.effective_events(start, end)
+
+    assert [event.event_id for event in effective] == [
+        "carry-outdoor",
+        "carry-indoor",
+        "carry-vent",
+        "carry-kiva-on",
+        "carry-kiva-off",
+        "carry-vent-close",
+    ]
+    assert len({event.event_id for event in effective}) == len(effective)
+
+
+def test_carry_in_kiva_state_and_cross_boundary_cooldown_exclude_passive_samples(
+    journal,
+):
+    from thermal_model.dataset import build_samples
+
+    start = datetime(2025, 7, 1, 12, tzinfo=timezone.utc)
+    end = start + timedelta(hours=3)
+    events = (
+        _action(
+            event_id="cross-kiva-on",
+            key="cross-kiva-on-receipt",
+            action="kiva",
+            state="on",
+            effective_at=start - timedelta(hours=3),
+        ),
+        _action(
+            event_id="cross-kiva-off",
+            key="cross-kiva-off-receipt",
+            action="kiva",
+            state="off",
+            effective_at=start - timedelta(minutes=30),
+        ),
+        _action(
+            event_id="cross-vent",
+            key="cross-vent-receipt",
+            state="open",
+            effective_at=start - timedelta(days=1),
+        ),
+        _action(
+            event_id="cross-indoor",
+            key="cross-indoor-receipt",
+            action="indoor_shade",
+            state="open",
+            effective_at=start - timedelta(days=1),
+        ),
+        _action(
+            event_id="cross-outdoor",
+            key="cross-outdoor-receipt",
+            action="outdoor_shade",
+            state="removed",
+            effective_at=start - timedelta(days=1),
+        ),
+    )
+    for event in events:
+        assert journal.append(event)
+
+    rows = {role: [] for role in ("air", "mass", "glazing", "outdoor", "radiation")}
+    cursor = start
+    while cursor < end:
+        for role, value in (
+            ("air", 70.0),
+            ("mass", 68.0),
+            ("glazing", 72.0),
+            ("outdoor", 60.0),
+            ("radiation", 0.0),
+        ):
+            rows[role].append((cursor, value))
+        cursor += timedelta(minutes=5)
+
+    effective = journal.effective_events(start, end)
+    samples = build_samples(rows, effective, (), start, end)
+    by_at = {sample.at: sample for sample in samples}
+
+    assert by_at[start].vent_open == 1.0
+    assert by_at[start].indoor_shade_closed == 0.0
+    assert by_at[start].outdoor_shade_present == 0.0
+    assert by_at[start].passive_fit_allowed is False
+    assert by_at[start + timedelta(hours=1, minutes=25)].passive_fit_allowed is False
+    assert by_at[start + timedelta(hours=1, minutes=30)].passive_fit_allowed is True
+
+
+def test_schema_audit_proves_exact_shape_and_privileges(ephemeral_postgres):
+    result = audit_schema(
+        ephemeral_postgres.admin_dsn,
+        runtime_role=ephemeral_postgres.runtime_role,
+    )
+
+    assert result["schema"] == "thermal_intel"
+    assert result["tables"] == [
+        "action_events",
+        "message_receipts",
+        "mode_events",
+    ]
+    assert result["functions"] == [
+        "reject_action_correction_cycle",
+        "reject_journal_mutation",
+        "reject_mode_correction_cycle",
+    ]
+    assert result["triggers"] == [
+        "action_events.reject_correction_cycle",
+        "action_events.reject_mutation",
+        "message_receipts.reject_mutation",
+        "mode_events.reject_correction_cycle",
+        "mode_events.reject_mutation",
+    ]
+    assert len(result["fingerprint"]) == 64
+    assert result["fingerprint"] == "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa"
+
+
+def test_migrate_refuses_partial_schema_before_mutating_it(ephemeral_postgres):
+    backup = f"thermal_intel_exact_{uuid4().hex}"
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql.SQL("ALTER SCHEMA thermal_intel RENAME TO {}").format(
+                    sql.Identifier(backup)
+                )
+            )
+            cursor.execute("CREATE SCHEMA thermal_intel")
+            cursor.execute("CREATE TABLE thermal_intel.partial_marker (id integer)")
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            migrate(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+            )
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = 'thermal_intel' ORDER BY table_name"
+                )
+                assert cursor.fetchall() == [("partial_marker",)]
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("DROP SCHEMA thermal_intel CASCADE")
+                cursor.execute(
+                    sql.SQL("ALTER SCHEMA {} RENAME TO thermal_intel").format(
+                        sql.Identifier(backup)
+                    )
+                )
+
+
+def test_schema_audit_and_migrate_reject_extra_index_drift(ephemeral_postgres):
+    with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "CREATE INDEX action_events_unapproved_idx "
+                "ON thermal_intel.action_events (effective_at)"
+            )
+    try:
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            audit_schema(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+            )
+        with pytest.raises(SchemaMismatch, match="exact schema audit"):
+            migrate(
+                ephemeral_postgres.admin_dsn,
+                runtime_role=ephemeral_postgres.runtime_role,
+            )
+    finally:
+        with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "DROP INDEX IF EXISTS thermal_intel.action_events_unapproved_idx"
+                )
+
+
 def test_append_is_idempotent_and_timestamptz_round_trips(journal, ephemeral_postgres):
     event = _action()
     assert journal.append(event) is True
@@ -130,7 +360,10 @@ def test_append_is_idempotent_and_timestamptz_round_trips(journal, ephemeral_pos
         event.effective_at - timedelta(minutes=1),
         event.effective_at + timedelta(minutes=1),
     )
-    assert stored == (event,)
+    assert tuple(
+        item for item in stored
+        if event.effective_at - timedelta(minutes=1) <= item.effective_at
+    ) == (event,)
     with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -174,7 +407,9 @@ def test_correction_preserves_history_and_effective_read_returns_leaf(journal, e
         original.effective_at - timedelta(hours=1),
         correction.effective_at + timedelta(hours=1),
     )
-    assert effective == (correction,)
+    assert tuple(
+        event for event in effective if event.effective_at >= original.effective_at
+    ) == (correction,)
     with psycopg2.connect(ephemeral_postgres.admin_dsn) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -268,7 +503,11 @@ def test_legitimate_action_correction_chain_remains_effective(journal):
     for event in (first, second, third):
         assert journal.append(event)
 
-    assert journal.effective_events(start, start + timedelta(hours=1)) == (third,)
+    assert tuple(
+        event
+        for event in journal.effective_events(start, start + timedelta(hours=1))
+        if event.effective_at >= start
+    ) == (third,)
 
 
 def test_mode_query_includes_last_effective_mode_before_start_and_excludes_superseded(journal):
@@ -408,6 +647,33 @@ def test_cli_journals_one_atomic_message_and_replay_reports_zero(
     assert second_receipt["action_event_ids"] == first_receipt["action_event_ids"]
     assert second_receipt["mode_event_ids"] == first_receipt["mode_event_ids"]
     assert ephemeral_postgres.runtime_dsn not in first.stdout + first.stderr
+
+
+def test_cli_schema_audit_is_read_only_and_never_prints_dsn(ephemeral_postgres):
+    command = [
+        sys.executable,
+        str(Path(__file__).with_name("thermal_intel.py")),
+        "schema-audit",
+    ]
+    environment = os.environ.copy()
+    environment["THERMAL_DATABASE_ADMIN_URL"] = ephemeral_postgres.admin_dsn
+    environment["THERMAL_DATABASE_RUNTIME_ROLE"] = ephemeral_postgres.runtime_role
+
+    result = subprocess.run(
+        command,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+    payload = json.loads(result.stdout)
+
+    assert payload == {
+        "fingerprint": "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa",
+        "schema": "thermal_intel",
+        "status": "exact",
+    }
+    assert ephemeral_postgres.admin_dsn not in result.stdout + result.stderr
 
 
 def test_cli_has_no_transport_command_or_actuation_arguments():

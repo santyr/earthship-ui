@@ -417,7 +417,14 @@ the three non-security-definer trigger functions
 `reject_mode_correction_cycle`. There are no views, materialized views,
 foreign tables, partitions, sequences, procedures, overloaded extras, or
 unexpected ACL grantees. Runtime authority is schema USAGE and table
-SELECT/INSERT only.
+SELECT/INSERT only. The deterministic catalog fingerprint additionally covers
+columns, types, type modifiers, nullability, defaults, identity and generated
+attributes, collations, exact constraint and index definitions (including key
+order, INCLUDE fields, expressions, and predicates), trigger/function bodies,
+and effective PUBLIC/runtime privileges. Migration computes this exact
+fingerprint before any DDL when the schema is nonempty; only an absent or empty
+schema may proceed without a match. The post-migration and runtime audit command
+returns only schema, status, and fingerprint JSON and never prints either DSN.
 
 **GATE A MUTATION — secret-safe pre-audit, migration, and exact post-audit:**
 
@@ -429,7 +436,9 @@ set -euo pipefail
   printf '\n'
   test -n "$THERMAL_DATABASE_ADMIN_URL"
   export THERMAL_DATABASE_ADMIN_URL
-  trap 'unset THERMAL_DATABASE_ADMIN_URL' EXIT HUP INT TERM
+  THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime
+  export THERMAL_DATABASE_RUNTIME_ROLE
+  trap 'unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE' EXIT HUP INT TERM
 
   psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
@@ -605,6 +614,8 @@ SQL
 
   cd /home/sat/openhab/scripts
   /usr/bin/python3 -c 'import os; from thermal_model.journal import migrate; migrate(os.environ["THERMAL_DATABASE_ADMIN_URL"], runtime_role="thermal_intel_runtime")'
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py schema-audit \
+    | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa")' >/dev/null
 
   psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
@@ -777,10 +788,10 @@ BEGIN
 END $audit$;
 SQL
 
-  unset THERMAL_DATABASE_ADMIN_URL
+  unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE
   trap - EXIT HUP INT TERM
 )
-unset THERMAL_DATABASE_ADMIN_URL
+unset THERMAL_DATABASE_ADMIN_URL THERMAL_DATABASE_RUNTIME_ROLE
 ```
 
 The audit is refusal-only outside the dedicated migration. It never modifies
@@ -817,7 +828,9 @@ set -euo pipefail
   printf '\n'
   test -n "$THERMAL_DATABASE_URL"
   export THERMAL_DATABASE_URL
-  trap 'unset THERMAL_DATABASE_URL' EXIT HUP INT TERM
+  THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime
+  export THERMAL_DATABASE_RUNTIME_ROLE
+  trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE' EXIT HUP INT TERM
 
   psql "$THERMAL_DATABASE_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
@@ -960,6 +973,8 @@ BEGIN
 END $audit$;
 SQL
 
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py schema-audit \
+    | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa")' >/dev/null
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow \
@@ -967,13 +982,14 @@ SQL
   LOCAL_SHADOW_MODE="$(stat -c %a "$STATE_ROOT/review/shadow-local.json")"
   test "$LOCAL_SHADOW_MODE" = 600
 
-  unset THERMAL_DATABASE_URL
+  unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE
   trap - EXIT HUP INT TERM
 )
-unset THERMAL_DATABASE_URL
+unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE
 ```
 
-The runtime DSN is neither printed nor inherited after this fence.
+The runtime DSN is neither printed nor inherited after this fence. The exact
+fingerprint receipt contains no connection string or credentials.
 
 ## 4. Review artifact and backtest evidence
 

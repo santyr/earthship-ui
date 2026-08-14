@@ -178,7 +178,9 @@ describe('thermal model attended runbook safety', () => {
       'future timer-driven private training, backtest, and artifact replacement',
     );
     expect(runbook).toContain('immediate catch-up publication');
-    expect(runbook).toContain("trap 'unset THERMAL_DATABASE_URL' EXIT HUP INT TERM");
+    expect(runbook).toContain(
+      "trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE' EXIT HUP INT TERM",
+    );
   });
 
   it('documents recoverable transactions, secure directories, and exact database objects', () => {
@@ -265,6 +267,18 @@ describe('thermal model attended runbook safety', () => {
     expect(wholeRow).not.toBe(updateSubset);
     expect(runbook).toContain(wholeRow);
     expect(runbook).not.toContain(updateSubset);
+  });
+
+  it('uses the deterministic exact schema fingerprint after migration and under runtime credentials', () => {
+    const command = '/home/sat/openhab/scripts/thermal_intel.py schema-audit';
+    const fingerprint = '600061f21cf0d3f3ea7b19748e4b2bea96ce7e6c2cbfbecd56c533651b5432fa';
+    expect(runbook.split(command).length - 1).toBeGreaterThanOrEqual(2);
+    expect(runbook.split(fingerprint).length - 1).toBeGreaterThanOrEqual(2);
+    expect(runbook.split('THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime').length - 1)
+      .toBeGreaterThanOrEqual(2);
+    expect(runbook).toContain('columns, types, type modifiers, nullability, defaults, identity');
+    expect(runbook).toContain('constraint and index definitions');
+    expect(runbook).toContain('never prints either DSN');
   });
 
   it('audits an existing schema before migration and revalidates private paths', () => {

@@ -33,6 +33,7 @@ from .artifacts import (
 from .behavior import (
     AIRFLOW_LEVELS,
     MINIMUM_IMPROVEMENT,
+    _forcing_rows as _behavior_forcing_rows,
     baseline_schedule,
     fit_behavior,
     search_candidate_schedule,
@@ -327,6 +328,35 @@ def _row_value(row, names, label):
 
 
 def _normalize_hourly_rows(rows):
+    rows = tuple(rows)
+    raw_timelines = [
+        raw.get("_modeTimeline")
+        for raw in rows
+        if isinstance(raw, dict) and raw.get("_modeTimeline") is not None
+    ]
+    timeline = ()
+    if raw_timelines:
+        timeline = tuple(
+            (
+                _parse_time(effective_at, "mode transition timestamp"),
+                str(mode),
+            )
+            for effective_at, mode in raw_timelines[0]
+        )
+        if any(mode not in {"spring", "warm", "fall_charge", "winter"} for _, mode in timeline):
+            raise ValueError("mode transition is invalid")
+        if any(
+            tuple(
+                (
+                    _parse_time(effective_at, "mode transition timestamp"),
+                    str(mode),
+                )
+                for effective_at, mode in candidate
+            )
+            != timeline
+            for candidate in raw_timelines[1:]
+        ):
+            raise ValueError("forecast mode timelines disagree")
     normalized = []
     for raw in rows:
         if not isinstance(raw, dict):
@@ -368,6 +398,7 @@ def _normalize_hourly_rows(rows):
                 "weather_code": weather,
                 "wind_mph": wind,
                 "mode": mode,
+                "_modeTimeline": timeline,
             }
         )
     normalized.sort(key=lambda row: row["at"].astimezone(timezone.utc))
@@ -428,7 +459,19 @@ def interpolate_hourly_forecast(rows, *, start, end):
                 ),
                 "weather_code": left["weather_code"] if fraction < 1.0 else right["weather_code"],
                 "wind_mph": left["wind_mph"] if fraction < 1.0 else right["wind_mph"],
-                "mode": left["mode"] if fraction < 1.0 else right["mode"],
+                "mode": (
+                    max(
+                        (
+                            (effective_at, mode)
+                            for effective_at, mode in left["_modeTimeline"]
+                            if effective_at.astimezone(timezone.utc) <= cursor_utc
+                        ),
+                        key=lambda item: item[0].astimezone(timezone.utc),
+                    )[1]
+                    if left["_modeTimeline"]
+                    else left["mode"] if fraction < 1.0 else right["mode"]
+                ),
+                "_modeTimeline": left["_modeTimeline"],
             }
         )
         cursor_utc += STEP
@@ -577,17 +620,63 @@ def _validate_internal_schedule(schedule, *, horizon_start, horizon_end):
     if start_limit >= end_limit:
         raise ValueError("schedule horizon must be ordered")
 
-    for prefix in ("vent", "shade"):
-        opened = schedule.get(f"{prefix}OpenAt")
-        closed = schedule.get(f"{prefix}CloseAt")
-        if (opened is None) != (closed is None):
-            raise ValueError(f"modeled {prefix} window must be complete")
-        if opened is None:
-            continue
-        opened_utc = _aware(opened, f"modeled {prefix} open").astimezone(timezone.utc)
-        closed_utc = _aware(closed, f"modeled {prefix} close").astimezone(timezone.utc)
+    opened = schedule.get("ventOpenAt")
+    closed = schedule.get("ventCloseAt")
+    if (opened is None) != (closed is None):
+        raise ValueError("modeled vent window must be complete")
+    if opened is not None:
+        opened_utc = _aware(opened, "modeled vent open").astimezone(timezone.utc)
+        closed_utc = _aware(closed, "modeled vent close").astimezone(timezone.utc)
         if not start_limit <= opened_utc < closed_utc <= end_limit:
-            raise ValueError(f"modeled {prefix} window must be ordered within the horizon")
+            raise ValueError("modeled vent window must be ordered within the horizon")
+
+    raw_transitions = schedule.get("shadeTransitions", ())
+    if not isinstance(raw_transitions, (tuple, list)):
+        raise ValueError("modeled shade transitions must be a sequence")
+    shade_transitions = []
+    for index, transition in enumerate(raw_transitions):
+        if not isinstance(transition, dict) or set(transition) != {
+            "at", "state", "source", "status"
+        }:
+            raise ValueError(f"modeled shade transition {index} has invalid fields")
+        at = _aware(transition["at"], "modeled shade transition").astimezone(timezone.utc)
+        if not start_limit <= at <= end_limit:
+            raise ValueError("modeled shade transition must be within the horizon")
+        if transition["state"] not in {"open", "closed"}:
+            raise ValueError("modeled shade transition state is invalid")
+        for field in ("source", "status"):
+            value = transition[field]
+            if not isinstance(value, str) or not value or len(value.encode("utf-8")) > 64:
+                raise ValueError(f"modeled shade transition {field} is invalid")
+        shade_transitions.append((at, transition["state"]))
+    for prior, current_transition in zip(shade_transitions, shade_transitions[1:]):
+        if current_transition[0] <= prior[0]:
+            raise ValueError("modeled shade transitions must be strictly ordered")
+        if current_transition[1] == prior[1]:
+            raise ValueError("modeled shade transitions must change state")
+
+    shade_open = schedule.get("shadeOpenAt")
+    shade_close = schedule.get("shadeCloseAt")
+    if shade_transitions:
+        first_open = next((at for at, state in shade_transitions if state == "open"), None)
+        first_close = next((at for at, state in shade_transitions if state == "closed"), None)
+        for legacy, expected, label in (
+            (shade_open, first_open, "open"),
+            (shade_close, first_close, "close"),
+        ):
+            if (legacy is None) != (expected is None) or (
+                legacy is not None
+                and _aware(legacy, f"modeled shade {label}").astimezone(timezone.utc) != expected
+            ):
+                raise ValueError("modeled shade legacy times must match typed transitions")
+    else:
+        if (shade_open is None) != (shade_close is None):
+            raise ValueError("modeled shade window must be complete")
+        if shade_open is not None:
+            shade_open_utc = _aware(shade_open, "modeled shade open").astimezone(timezone.utc)
+            shade_close_utc = _aware(shade_close, "modeled shade close").astimezone(timezone.utc)
+            if not start_limit <= shade_open_utc < shade_close_utc <= end_limit:
+                raise ValueError("modeled shade window must be ordered within the horizon")
 
     raw_segments = schedule.get("airflowSegments", ())
     if not isinstance(raw_segments, (tuple, list)):
@@ -656,39 +745,8 @@ def _vent_schedule_is_valid(rows, schedule):
 
 
 def _schedule_forcings(rows, schedule):
-    winter = schedule["mode"] == "winter"
-    sunny_winter = winter and schedule["indoorShadeDay"] == "open"
-    outdoor_present = float(schedule["outdoorShade"] == "present")
-    forcings = []
-    for row in rows[1:]:
-        at = row["at"]
-        levels = [
-            AIRFLOW_LEVELS[segment["level"]]
-            for segment in schedule.get("airflowSegments", ())
-            if segment["startAt"] <= at < segment["endAt"]
-        ]
-        vent = max(levels, default=AIRFLOW_LEVELS["closed"])
-        if sunny_winter:
-            indoor_closed = float(
-                not (
-                    schedule.get("shadeOpenAt") is not None
-                    and schedule["shadeOpenAt"] <= at < schedule["shadeCloseAt"]
-                )
-            )
-        elif winter or schedule["indoorShadeDay"] == "closed":
-            indoor_closed = 1.0
-        else:
-            indoor_closed = 0.0
-        forcings.append(
-            {
-                "outdoor_f": row["outdoor_f"],
-                "radiation_wm2": row["radiation_wm2"],
-                "vent_open": vent,
-                "indoor_shade_closed": indoor_closed,
-                "outdoor_shade_present": outdoor_present,
-            }
-        )
-    return forcings
+    """Use the behavior engine's per-timestep forcing semantics verbatim."""
+    return _behavior_forcing_rows(rows, schedule)
 
 
 def _simulate_schedule(dynamics, rows, schedule, initial):
@@ -775,14 +833,21 @@ def _action_events(schedule):
         for segment in schedule.get("airflowSegments", ())
         if segment.get("level") == "baseline"
     )
-    events.extend(
-        (schedule[field], marker)
-        for field, marker in (
-            ("shadeOpenAt", "indoor_shade_open"),
-            ("shadeCloseAt", "indoor_shade_close"),
+    shade_transitions = schedule.get("shadeTransitions", ())
+    if shade_transitions:
+        events.extend(
+            (transition["at"], f'indoor_shade_{"open" if transition["state"] == "open" else "close"}')
+            for transition in shade_transitions
         )
-        if schedule.get(field) is not None
-    )
+    else:
+        events.extend(
+            (schedule[field], marker)
+            for field, marker in (
+                ("shadeOpenAt", "indoor_shade_open"),
+                ("shadeCloseAt", "indoor_shade_close"),
+            )
+            if schedule.get(field) is not None
+        )
     events = tuple(dict.fromkeys(events))
     if any(marker not in ACTION_MARKERS for _, marker in events):
         raise ValueError("action marker is outside the closed vocabulary")
@@ -891,7 +956,9 @@ def _unavailable(
     return payload
 
 
-def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
+def _build_available_shadow(
+    *, artifact, current, forecast, now, site_timezone, registry_reason=None
+):
     model, model_age, data_age = _artifact_context(artifact, now)
     values, current_ages = _current_values(current, now)
     origin = now.replace(second=0, microsecond=0) - timedelta(minutes=now.minute % 5)
@@ -977,6 +1044,8 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
     selected_morning = _morning_mass(rows, predictions, site_timezone)
     action_label, action_source = _action_label(artifact)
     reasons = []
+    if registry_reason is not None:
+        reasons.append(registry_reason)
     if timedelta(hours=model_age) > DAILY_TRAINING_CADENCE:
         reasons.append("accepted model daily training cadence missed")
     if candidate is None:
@@ -984,6 +1053,7 @@ def _build_available_shadow(*, artifact, current, forecast, now, site_timezone):
             {
                 "minimum_improvement_not_met": "minimum modeled improvement not met; no candidate emitted",
                 "protocol_constraint": "protocol constraint retained baseline; no candidate emitted",
+                "explicit_mode_transition": "explicit journal mode transition retained evidence-backed baseline; no candidate emitted",
             }.get(selection_reason, "no physically valid bounded candidate")
         )
     elif selection_reason == "bounded_candidate_improved":
@@ -1060,6 +1130,11 @@ def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE)
     failed_input = "accepted artifact input"
     try:
         artifact = registry.load_accepted()
+        registry_reason = (
+            "accepted model recovered from verified prior accepted generation"
+            if getattr(registry, "last_load_source", None) == "previous_restored"
+            else None
+        )
         failed_input = "shadow input"
         return _build_available_shadow(
             artifact=artifact,
@@ -1067,6 +1142,7 @@ def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE)
             forecast=forecast,
             now=now,
             site_timezone=site_timezone,
+            registry_reason=registry_reason,
         )
     except (
         AttributeError,
