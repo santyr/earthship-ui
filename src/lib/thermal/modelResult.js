@@ -43,7 +43,8 @@ const ACTION_SOURCES = Object.freeze({
   photosensor: 'photosensor',
   confirmed: 'operator_confirmed',
 });
-const ISO_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO_WITH_ZONE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|([+-])(\d{2}):(\d{2}))$/;
+const PYTHON_UNPRINTABLE = /[\p{C}\p{Z}]/u;
 const LOCAL_HOUR = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00(?:\.0+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function unavailableResult(reasons = []) {
@@ -85,10 +86,41 @@ function finiteNumber(value, { optional = false, minimum = -Infinity } = {}) {
 }
 
 function timestampMs(value) {
-  if (typeof value !== 'string' || !ISO_WITH_ZONE.test(value)) {
-    throw new TypeError('expected aware ISO-8601 timestamp');
+  const match = typeof value === 'string' ? ISO_WITH_ZONE.exec(value) : null;
+  if (!match) throw new TypeError('expected aware ISO-8601 timestamp');
+
+  const [
+    , yearText, monthText, dayText, hourText, minuteText, secondText,
+    fraction = '', zone, offsetSign = '+', offsetHourText = '0', offsetMinuteText = '0',
+  ] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const offsetHour = Number(offsetHourText);
+  const offsetMinute = Number(offsetMinuteText);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (
+    year < 1
+    || month < 1 || month > 12
+    || day < 1 || day > daysInMonth[month - 1]
+    || hour > 23 || minute > 59 || second > 59
+    || offsetHour > 23 || offsetMinute > 59
+  ) {
+    throw new TypeError('invalid timestamp');
   }
-  const parsed = Date.parse(value);
+
+  const milliseconds = Number(fraction.padEnd(3, '0').slice(0, 3));
+  const local = new Date(0);
+  local.setUTCFullYear(year, month - 1, day);
+  local.setUTCHours(hour, minute, second, milliseconds);
+  const offsetMinutes = zone === 'Z'
+    ? 0
+    : (offsetSign === '+' ? 1 : -1) * (offsetHour * 60 + offsetMinute);
+  const parsed = local.getTime() - offsetMinutes * 60_000;
   if (!Number.isFinite(parsed)) throw new TypeError('invalid timestamp');
   return parsed;
 }
@@ -145,7 +177,12 @@ function validateReasons(value) {
       typeof reason !== 'string'
       || reason.length === 0
       || encoder.encode(reason).length > 256
-      || reason !== reason.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').trim().replace(/\s+/g, ' ')
+      || reason !== [...reason]
+        .map((character) => character === ' ' || !PYTHON_UNPRINTABLE.test(character) ? character : ' ')
+        .join('')
+        .split(' ')
+        .filter(Boolean)
+        .join(' ')
     ) {
       throw new TypeError('invalid reason');
     }
@@ -314,10 +351,9 @@ function validatePayload(payload) {
 
 export function parseThermalModelResult(raw, nowMs = Date.now()) {
   if (typeof raw !== 'string' || !Number.isFinite(nowMs)) return unavailableResult();
+  if (new TextEncoder().encode(raw).length >= MAX_BYTES) return unavailableResult();
   const trimmed = raw.trim();
-  if (!trimmed || ['NULL', 'UNDEF'].includes(trimmed) || new TextEncoder().encode(trimmed).length >= MAX_BYTES) {
-    return unavailableResult();
-  }
+  if (!trimmed || ['NULL', 'UNDEF'].includes(trimmed)) return unavailableResult();
 
   try {
     const parsed = validatePayload(JSON.parse(trimmed));

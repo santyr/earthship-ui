@@ -234,6 +234,8 @@ async function expectRouteBounded(page, route) {
   expect(result.navigation.top).toBeGreaterThanOrEqual(0);
   expect(result.navigation.right).toBeLessThanOrEqual(result.document.clientWidth);
   expect(result.navigation.bottom).toBeLessThanOrEqual(result.document.clientHeight);
+  expect(result.navigation.scrollWidth).toBeLessThanOrEqual(result.navigation.clientWidth);
+  expect(result.navigation.scrollHeight).toBeLessThanOrEqual(result.navigation.clientHeight);
   for (const item of result.navigation.items) {
     expect(item.left).toBeGreaterThanOrEqual(result.navigation.left - 0.5);
     expect(item.top).toBeGreaterThanOrEqual(result.navigation.top - 0.5);
@@ -318,23 +320,42 @@ for (const target of TARGETS) {
         return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
       };
       const cell = document.querySelector('.thermal-model-cell');
+      const card = cell.querySelector('.thermal-model-card');
       const tile = cell.querySelector('.tile');
+      const details = cell.querySelector('details');
       const plot = cell.querySelector('.thermal-model-plot');
       return {
         cell: box(cell),
+        card: box(card),
+        details: box(details),
         plot: box(plot),
+        cardScrollWidth: card.scrollWidth,
+        cardClientWidth: card.clientWidth,
+        cardScrollHeight: card.scrollHeight,
+        cardClientHeight: card.clientHeight,
+        detailsScrollWidth: details.scrollWidth,
+        detailsClientWidth: details.clientWidth,
+        detailsScrollHeight: details.scrollHeight,
+        detailsClientHeight: details.clientHeight,
         tileScrollWidth: tile.scrollWidth,
         tileClientWidth: tile.clientWidth,
         tileScrollHeight: tile.scrollHeight,
         tileClientHeight: tile.clientHeight,
       };
     });
-    expect(modelBounds.plot.left).toBeGreaterThanOrEqual(modelBounds.cell.left);
-    expect(modelBounds.plot.top).toBeGreaterThanOrEqual(modelBounds.cell.top);
-    expect(modelBounds.plot.right).toBeLessThanOrEqual(modelBounds.cell.right);
-    expect(modelBounds.plot.bottom).toBeLessThanOrEqual(modelBounds.cell.bottom);
+    for (const element of [modelBounds.card, modelBounds.details, modelBounds.plot]) {
+      expect(element.left).toBeGreaterThanOrEqual(modelBounds.cell.left);
+      expect(element.top).toBeGreaterThanOrEqual(modelBounds.cell.top);
+      expect(element.right).toBeLessThanOrEqual(modelBounds.cell.right);
+      expect(element.bottom).toBeLessThanOrEqual(modelBounds.cell.bottom);
+    }
+    expect(modelBounds.cardScrollWidth).toBeLessThanOrEqual(modelBounds.cardClientWidth);
+    expect(modelBounds.cardScrollHeight).toBeLessThanOrEqual(modelBounds.cardClientHeight);
+    expect(modelBounds.detailsScrollWidth).toBeLessThanOrEqual(modelBounds.detailsClientWidth);
+    expect(modelBounds.detailsScrollHeight).toBeLessThanOrEqual(modelBounds.detailsClientHeight);
     expect(modelBounds.tileScrollWidth).toBeLessThanOrEqual(modelBounds.tileClientWidth);
     expect(modelBounds.tileScrollHeight).toBeLessThanOrEqual(modelBounds.tileClientHeight);
+    await expectRouteBounded(page, 'earthship');
     await expect(page.locator('.loop-svg .zone-label')).toHaveText([
       'North Mass',
       'Room Air',

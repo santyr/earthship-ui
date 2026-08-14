@@ -51,7 +51,7 @@
 
 <style>
   .shell {
-    --rail-size: 52px;
+    --rail-size: 60px;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 44px minmax(0, 1fr) 52px;

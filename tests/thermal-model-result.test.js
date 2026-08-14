@@ -192,6 +192,55 @@ describe('parseThermalModelResult', () => {
       .toEqual(['modeled spread is 2°F']);
   });
 
+  it('rejects impossible calendar dates instead of accepting Date.parse normalization', () => {
+    const raw = JSON.stringify(validShadow)
+      .replaceAll('2026-08-13', '2026-02-30')
+      .replaceAll('2026-08-14', '2026-03-03');
+    const normalizedNow = Date.parse('2026-03-02T12:10:00Z');
+
+    expect(parseThermalModelResult(raw, normalizedNow).state).toBe('unavailable');
+  });
+
+  it.each([
+    ['a normalized 24:00 hour', '2026-08-13T24:00:00+00:00'],
+    ['an out-of-range timezone offset', '2026-08-13T18:00:00+24:00'],
+  ])('rejects %s in every timestamp field', (_label, timestamp) => {
+    const payload = fixture((value) => {
+      value.forecast.hallwayHighAt = timestamp;
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it.each([
+    ['zero-width format', '\u200b'],
+    ['private-use', '\ue000'],
+    ['non-breaking separator', '\u00a0'],
+  ])('rejects canonical non-printable %s characters in reasons', (_label, character) => {
+    const payload = fixture((value) => {
+      value.reasons = [`modeled${character}spread`];
+    });
+
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).state)
+      .toBe('unavailable');
+  });
+
+  it('counts raw UTF-8 bytes before trimming surrounding JSON whitespace', () => {
+    const json = JSON.stringify(validShadow);
+    const padding = ' '.repeat(16 * 1024 - new TextEncoder().encode(json).length);
+    const raw = `${padding}${json}`;
+    expect(new TextEncoder().encode(raw)).toHaveLength(16 * 1024);
+
+    expect(parseThermalModelResult(raw, GENERATED_AT_MS).state).toBe('unavailable');
+  });
+
+  it('accepts surrounding JSON whitespace when the complete raw state stays below 16 KiB', () => {
+    const raw = ' \n' + JSON.stringify(validShadow) + '\t ';
+
+    expect(parseThermalModelResult(raw, GENERATED_AT_MS).state).toBe('ready');
+  });
+
   it('rejects future-generated results and invalid clocks', () => {
     expect(parseThermalModelResult(
       JSON.stringify(validShadow),
