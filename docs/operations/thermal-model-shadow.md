@@ -1,30 +1,42 @@
-# Thermal model shadow attended rollout and rollback
+# Thermal model shadow attended first-install and rollback
 
 This runbook stages one observational `Thermal_Model_JSON` Item and two user
-services. It never changes `Thermal_Advisory`, rules, notifications, or an
-actuator. Implementation, artifact acceptance, and shadow evidence do **not**
-graduate advice.
+services. It is **first-install-only**. If any thermal unit is already installed,
+loaded, active, or enabled, stop and use a separately reviewed upgrade procedure.
+It never changes `Thermal_Advisory`, notifications, rules, or an actuator.
+Implementation, artifact acceptance, and shadow evidence do **not** graduate
+advice.
 
-Every Bash fence is independently fail-closed: its first command is
-`set -euo pipefail`. Run fences in one attended shell and in document order.
-A missing exported variable stops the fence rather than selecting a default.
-Expected missing resources and expected nonzero status are handled explicitly.
-All `jq` checks use `-e`, so `curl`, validation, size, hash, and systemd failures
-cannot be hidden by a later command.
+Every Bash fence is independently fail-closed and begins with
+`set -euo pipefail`. Run the fences in document order in one attended shell.
+Assignments that execute a command stand alone so their exit status cannot be
+masked by `test`, `printf`, `chmod`, `wc`, a hash, or a later command. All jq
+checks use `-e` and every curl uses `--fail --silent --show-error`. Exact
+systemd probes reject user-manager, D-Bus, transport, mixed-state, and unknown
+state failures.
 
-Private receipts, inventories, histories, DSNs, journal rows, artifacts,
-reports, logs, and household state stay outside Git. Never print or commit
-secrets or private evidence. Directories below must have mode `0700`; private
-files must have mode `0600`. No artifact or journal content is committed.
+Private receipts, inventory, DSNs, histories, journal rows, artifacts, reports,
+logs, and household state stay outside Git. Never print or commit secrets or
+private evidence. Private directories have mode `0700` and private files have mode `0600`.
+No artifact or journal content is committed.
 
-## Exact source-to-target manifest
+## Exact source-to-target manifest and transaction contract
 
-The checked-in `scripts/thermal-model-files.py` owns this fixed manifest. It
-creates durable verified backups with explicit absent markers. For each write,
-it prevalidates the complete phase, writes a unique sibling temporary file,
-sets its safe mode, performs file `fsync`, verifies SHA-256, calls
-`os.replace`, then `fsync`s the parent directory. Nothing may execute until the
-complete live phase equals the reviewed manifest.
+The checked-in `scripts/thermal-model-files.py` owns the fixed CLI repository,
+private receipt root, and manifest. Its component walker uses pinned directory
+file descriptors, `O_NOFOLLOW` and `fstat` for every source, target, backup,
+temporary file, receipt, and verification read. Each new directory is followed
+by an immediate parent `fsync` and new-directory `fsync`.
+
+For each phase, the helper prevalidates every source and live target, persists
+`phase-state.json`, writes and fsyncs an intent before each replacement, writes
+a unique sibling temporary file, fsyncs it, verifies its SHA-256 and mode, uses
+`os.replace` within the pinned parent, fsyncs the parent, and then persists
+completion. Ordinary failure automatically restores completed replacements.
+A crash requires explicit `thermal-model-files.py recover` before any next
+helper operation; recovery reconciles exact original and desired digests across
+a crash before or after rename. Restore accepts only receipt-owned deployed
+state or already-restored original/absence and refuses `unowned target drift`.
 
 | Phase | Tracked source | Exact live target |
 | --- | --- | --- |
@@ -46,9 +58,9 @@ complete live phase equals the reviewed manifest.
 | unit | `deploy/thermal-model-shadow.timer` | `/home/sat/.config/systemd/user/thermal-model-shadow.timer` |
 
 `openhab/thermal-model-items.json`, `scripts/thermal-model-config.mjs`,
-`scripts/thermal-model-files.py`, and
-`openhab/scripts/validate_thermal_shadow.py` are repository-side deployment
-tools, not service runtime files.
+`scripts/thermal-model-files.py`, `scripts/thermal-systemd-state.py`, and
+`openhab/scripts/validate_thermal_shadow.py` are deployment/review tools, not
+service runtime files.
 
 ## 1. Read-only preflight
 
@@ -58,7 +70,8 @@ tools, not service runtime files.
 set -euo pipefail
 cd /home/sat/earthship-ui
 git rev-parse HEAD
-test -z "$(git status --short)"
+WORKTREE_STATUS="$(git status --short)"
+test -z "$WORKTREE_STATUS"
 git diff --check
 ```
 
@@ -73,8 +86,8 @@ printf '%s\n' "$TRACKED_RUNTIME_REVISION"
 export TRACKED_RUNTIME_REVISION
 ```
 
-This digest length-prefixes each exact relative path and file body in the
-service runtime manifest. It is independent of unrelated Git discovery.
+The digest length-prefixes every exact relative path and file body in the
+complete service runtime manifest and is independent of Git discovery.
 
 **READ-ONLY — inspect proposed Item presence without an expected 404:**
 
@@ -136,21 +149,24 @@ do
 done
 ```
 
-**READ-ONLY — prior unit-file inventory with missing units allowed:**
+**READ-ONLY — first-install systemd quiescence:**
 
 ```bash
 set -euo pipefail
-systemctl --user list-unit-files --no-pager \
-  | awk '$1 ~ /^thermal-model-(train|shadow)\.(service|timer)$/ {print}'
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py first-install
 ```
+
+This requires all four units to report exactly `LoadState=not-found`,
+`ActiveState=inactive`, and empty `UnitFileState`. Any installed, loaded,
+active, enabled, mixed, or unqueryable state aborts this runbook.
 
 ## 2. Preliminary authorization: private receipt facts only
 
-Pause. Obtain narrow preliminary authorization for only: creating private
-receipt/evidence directories, one read-only Item snapshot plus local receipt,
-and read-only capture of exact live file targets into durable private backups.
-It authorizes no live file write, database change, model run, Item write, or
-systemd change.
+Pause. Obtain preliminary authorization for only secure 0700 private directory
+creation, one read-only Item snapshot with local receipt, and read-only capture
+of exact live file targets into durable private backups. It authorizes no live
+file replacement, database change, model run, Item write, or systemd mutation.
 
 **SESSION-ONLY — bind exact private paths:**
 
@@ -167,16 +183,26 @@ test "$STATE_ROOT" = /home/sat/.local/state/thermal-intel
 export REPO_ROOT EVIDENCE_ROOT ITEM_RECEIPT FILE_RECEIPT STATE_ROOT
 ```
 
-**PRELIMINARY MUTATION — create only the private evidence root:**
+**PRELIMINARY MUTATION — securely prepare exact private directories:**
 
 ```bash
 set -euo pipefail
 umask 077
-: "${EVIDENCE_ROOT:?set exact evidence root}"
-test ! -e "$EVIDENCE_ROOT"
-install -d -m 0700 "$EVIDENCE_ROOT"
-test "$(stat -c %a "$EVIDENCE_ROOT")" = 700
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py prepare \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+for DIR in "$STATE_ROOT" "$STATE_ROOT/models" "$STATE_ROOT/review" \
+  "$STATE_ROOT/evidence" "$EVIDENCE_ROOT" "$ITEM_RECEIPT" "$FILE_RECEIPT"
+do
+  DIR_MODE="$(stat -c %a "$DIR")"
+  test "$DIR_MODE" = 700
+done
 ```
+
+The helper validates every component without following symlinks and fsyncs
+each newly created parent and directory.
 
 **PRELIMINARY MUTATION — receipt-bound Item snapshot:**
 
@@ -187,9 +213,12 @@ umask 077
 : "${ITEM_RECEIPT:?}"
 cd "$REPO_ROOT"
 node scripts/thermal-model-config.mjs snapshot --receipt-dir "$ITEM_RECEIPT"
-test "$(stat -c %a "$ITEM_RECEIPT")" = 700
-test "$(stat -c %a "$ITEM_RECEIPT/receipt.json")" = 600
-test "$(stat -c %a "$ITEM_RECEIPT/pre-state.json")" = 600
+ITEM_RECEIPT_MODE="$(stat -c %a "$ITEM_RECEIPT")"
+ITEM_STATE_MODE="$(stat -c %a "$ITEM_RECEIPT/receipt.json")"
+ITEM_SNAPSHOT_MODE="$(stat -c %a "$ITEM_RECEIPT/pre-state.json")"
+test "$ITEM_RECEIPT_MODE" = 700
+test "$ITEM_STATE_MODE" = 600
+test "$ITEM_SNAPSHOT_MODE" = 600
 ```
 
 **PRELIMINARY MUTATION — durable backup of every code and unit target:**
@@ -202,8 +231,10 @@ umask 077
 cd "$REPO_ROOT"
 /usr/bin/python3 scripts/thermal-model-files.py snapshot \
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
-test "$(stat -c %a "$FILE_RECEIPT")" = 700
-test "$(stat -c %a "$FILE_RECEIPT/file-manifest.json")" = 600
+FILE_RECEIPT_MODE="$(stat -c %a "$FILE_RECEIPT")"
+FILE_MANIFEST_MODE="$(stat -c %a "$FILE_RECEIPT/file-manifest.json")"
+test "$FILE_RECEIPT_MODE" = 700
+test "$FILE_MANIFEST_MODE" = 600
 ```
 
 **READ-ONLY — exact apply plan and rollback facts:**
@@ -217,7 +248,7 @@ node scripts/thermal-model-config.mjs plan --receipt-dir "$ITEM_RECEIPT" \
   | jq -e 'select(.apply|length == 1) | select(.rollback|length == 1)'
 ```
 
-**READ-ONLY — durable backup receipt facts and explicit absent markers:**
+**READ-ONLY — durable file receipt facts and explicit absent markers:**
 
 ```bash
 set -euo pipefail
@@ -227,12 +258,14 @@ jq -e 'select(.schema == "earthship-thermal-file-deploy/v1")
   | select((.entries | length) == 16)
   | {schema,checksum,entries:[.entries[]|{source,target,phase,source_sha256,prior,prior_sha256,backup,marker}]}' \
   "$FILE_RECEIPT/file-manifest.json"
-test "$(find "$FILE_RECEIPT/backups" -maxdepth 1 -type f -printf . | wc -c)" -eq 15
-test -z "$(find "$FILE_RECEIPT/backups" -maxdepth 1 -type f ! -perm 0600 -print -quit)"
+BACKUP_COUNT="$(find "$FILE_RECEIPT/backups" -maxdepth 1 -type f -printf . | wc -c)"
+WEAK_BACKUP="$(find "$FILE_RECEIPT/backups" -maxdepth 1 -type f ! -perm 0600 -print -quit)"
+test "$BACKUP_COUNT" -eq 15
+test -z "$WEAK_BACKUP"
 find "$FILE_RECEIPT/backups" -maxdepth 1 -type f -printf '%f %m\n' | sort
 ```
 
-**PRELIMINARY MUTATION — durable mapping from reviewed Git commit to digest:**
+**PRELIMINARY MUTATION — durable reviewed-commit-to-runtime mapping:**
 
 ```bash
 set -euo pipefail
@@ -247,21 +280,30 @@ printf 'git=%s\nruntime_sha256=%s\n' "$REVIEWED_GIT_REVISION" "$TRACKED_RUNTIME_
 sync -f "$MAP_TMP"
 mv -- "$MAP_TMP" "$EVIDENCE_ROOT/revision-map.txt"
 sync -f "$EVIDENCE_ROOT"
-test "$(stat -c %a "$EVIDENCE_ROOT/revision-map.txt")" = 600
+REVISION_MAP_MODE="$(stat -c %a "$EVIDENCE_ROOT/revision-map.txt")"
+test "$REVISION_MAP_MODE" = 600
 ```
 
-Present the Item snapshot digest, apply/rollback plan, file backup receipt,
-explicit absent markers, reviewed Git commit, runtime-manifest SHA-256, current
-inventory, and repository test totals before Gate A.
+Present the Item snapshot digest, apply/rollback plan, exact backup receipt,
+explicit absent markers, reviewed Git commit, runtime-manifest SHA-256,
+first-install quiescence, inventory, and repository totals before Gate A.
 
 ## 3. Gate A: code, database, and private model evidence
 
-Gate A authorizes only atomic live code installation, dedicated journal schema
-migration/grants after exact role audit, and private state, training, backtest,
-artifact, and local-only shadow creation. It does not authorize Item
-apply/state publication, credential provisioning, or systemd mutation.
+Gate A authorizes only atomic live code installation, exact role/schema
+audit and `thermal_intel` migration/grants, and private training, backtest,
+artifact, and local-only shadow creation. It authorizes no Item write,
+publication, credential provisioning, unit installation, or systemd mutation.
 
-**GATE A MUTATION — atomic code phase installation:**
+**READ-ONLY — repeat quiescence immediately before code replacement:**
+
+```bash
+set -euo pipefail
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py first-install
+```
+
+**GATE A MUTATION — transactional code phase installation:**
 
 ```bash
 set -euo pipefail
@@ -273,11 +315,29 @@ cd "$REPO_ROOT"
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
 /usr/bin/python3 scripts/thermal-model-files.py verify-code \
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+jq -e 'select(.schema == "earthship-thermal-file-phase/v1" and .operation == "install-code" and .status == "complete")' \
+  "$FILE_RECEIPT/phase-state.json"
 ```
 
-No live Python command may run before both helper commands exit zero.
+If the helper reports explicit recovery required, stop. Do not run Python from
+the live target. Under Gate A, the only permitted recovery command is:
 
-**READ-ONLY — verify live runtime provenance equals reviewed provenance:**
+**GATE A RECOVERY MUTATION — reconcile and restore the interrupted code phase:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py recover \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+jq -e 'select(.status == "rolled-back")' "$FILE_RECEIPT/phase-state.json"
+```
+
+After recovery, return to the Gate A approval boundary before retrying.
+
+**READ-ONLY — live runtime provenance equals reviewed provenance:**
 
 ```bash
 set -euo pipefail
@@ -289,231 +349,431 @@ printf '%s\n' "$LIVE_RUNTIME_REVISION"
 export LIVE_RUNTIME_REVISION
 ```
 
-### Exact runtime-role authority
+### Exact PostgreSQL authority and migration
 
-`thermal_intel_runtime` and its credentials must pre-exist through the separate
-operator/DBA secret-provisioning process. This runbook never creates, alters,
-or normalizes the role. If the same-name role is absent or elevated, stop and
-return to that process. Credentials are provisioned out-of-band and never
-printed.
+`thermal_intel_runtime` and its credentials must pre-exist through a separate
+operator/DBA process. This runbook never creates, alters, normalizes, or prints
+that role or its credentials. The database policy is exact: `CONNECT=true`,
+`TEMP=true` (the database's existing PUBLIC default, explicitly accepted but
+unused), and `CREATE=false`. The runbook does not broadly revoke PUBLIC.
+Built-in system catalog visibility is allowed; application authority is not.
+The audit refuses effective privileges outside `thermal_intel`.
 
-The audit requires LOGIN, `NOINHERIT`, no superuser/create-role/create-db/
-replication/bypass-RLS flags, no role memberships, no database or schema
-ownership, no database or schema `CREATE`, and no effective privileges on any
-non-system relation outside `thermal_intel`. PostgreSQL's built-in
-`pg_catalog`/information-schema visibility is not application table authority.
-The post-migration audit again refuses effective privileges outside `thermal_intel`
-on every non-system relation.
+The exact schema inventory after migration is three ordinary tables only:
+`action_events`, `message_receipts`, and `mode_events`. The only functions are
+the three non-security-definer trigger functions
+`reject_action_correction_cycle`, `reject_journal_mutation`, and
+`reject_mode_correction_cycle`. There are no views, materialized views,
+foreign tables, partitions, sequences, procedures, overloaded extras, or
+unexpected ACL grantees. Runtime authority is schema USAGE and table
+SELECT/INSERT only.
 
-**SESSION-ONLY — enter admin DSN without echo:**
-
-```bash
-set -euo pipefail
-read -r -s -p 'THERMAL_DATABASE_ADMIN_URL: ' THERMAL_DATABASE_ADMIN_URL
-printf '\n'
-test -n "$THERMAL_DATABASE_ADMIN_URL"
-export THERMAL_DATABASE_ADMIN_URL
-```
-
-**READ-ONLY — fail closed on role attributes, role memberships, and ownership:**
+**GATE A MUTATION — secret-safe pre-audit, migration, and exact post-audit:**
 
 ```bash
 set -euo pipefail
-: "${THERMAL_DATABASE_ADMIN_URL:?}"
-psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
+(
+  set -euo pipefail
+  read -r -s -p 'THERMAL_DATABASE_ADMIN_URL: ' THERMAL_DATABASE_ADMIN_URL
+  printf '\n'
+  test -n "$THERMAL_DATABASE_ADMIN_URL"
+  export THERMAL_DATABASE_ADMIN_URL
+  trap 'unset THERMAL_DATABASE_ADMIN_URL' EXIT HUP INT TERM
+
+  psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
 DO $audit$
 DECLARE r pg_roles%ROWTYPE;
+DECLARE schema_oid oid;
+DECLARE actual_tables text[];
+DECLARE actual_functions text[];
 BEGIN
   SELECT * INTO r FROM pg_roles WHERE rolname='thermal_intel_runtime';
-  IF NOT FOUND THEN RAISE EXCEPTION 'thermal_intel_runtime must pre-exist'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'runtime role must pre-exist'; END IF;
   IF NOT r.rolcanlogin OR r.rolinherit OR r.rolsuper OR r.rolcreaterole
      OR r.rolcreatedb OR r.rolreplication OR r.rolbypassrls THEN
-    RAISE EXCEPTION 'thermal_intel_runtime attributes are not exact';
+    RAISE EXCEPTION 'runtime role attributes are not exact';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_auth_members WHERE member=r.oid) THEN
-    RAISE EXCEPTION 'thermal_intel_runtime has role memberships';
+    RAISE EXCEPTION 'runtime role has role memberships';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_database WHERE datdba=r.oid)
-     OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner=r.oid) THEN
-    RAISE EXCEPTION 'thermal_intel_runtime owns database or schema';
+     OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_class WHERE relowner=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_proc WHERE proowner=r.oid) THEN
+    RAISE EXCEPTION 'runtime role owns database or application objects';
   END IF;
-END $audit$;
-SQL
-```
-
-**READ-ONLY — fail closed on database/schema/outside-table authority:**
-
-```bash
-set -euo pipefail
-: "${THERMAL_DATABASE_ADMIN_URL:?}"
-psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
-DO $audit$
-DECLARE role_oid oid := (SELECT oid FROM pg_roles WHERE rolname='thermal_intel_runtime');
-BEGIN
-  IF role_oid IS NULL THEN RAISE EXCEPTION 'runtime role absent'; END IF;
-  IF has_database_privilege(role_oid,current_database(),'CREATE') THEN
-    RAISE EXCEPTION 'runtime role has database create';
+  SELECT oid INTO schema_oid FROM pg_namespace WHERE nspname='thermal_intel';
+  IF schema_oid IS NOT NULL THEN
+    SELECT COALESCE(array_agg(relname ORDER BY relname),ARRAY[]::text[])
+      INTO actual_tables FROM pg_class
+      WHERE relnamespace=schema_oid AND relkind IN ('r','p','v','m','S','f');
+    SELECT COALESCE(array_agg(proname||'/'||pronargs||'/'||prokind ORDER BY proname),ARRAY[]::text[])
+      INTO actual_functions FROM pg_proc WHERE pronamespace=schema_oid;
+    IF actual_tables IS DISTINCT FROM ARRAY['action_events','message_receipts','mode_events']::text[]
+       OR actual_functions IS DISTINCT FROM ARRAY[
+         'reject_action_correction_cycle/0/f',
+         'reject_journal_mutation/0/f',
+         'reject_mode_correction_cycle/0/f'
+       ]::text[] THEN
+      RAISE EXCEPTION 'pre-migration thermal_intel inventory is not exact';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_proc
+      WHERE pronamespace=schema_oid
+        AND (prosecdef OR prokind <> 'f' OR pronargs <> 0 OR pg_get_function_result(oid) <> 'trigger')
+    ) THEN RAISE EXCEPTION 'pre-migration trigger attributes are not exact'; END IF;
+    IF NOT has_schema_privilege(r.oid,schema_oid,'USAGE')
+       OR has_schema_privilege(r.oid,schema_oid,'CREATE') THEN
+      RAISE EXCEPTION 'pre-migration schema privileges are not exact';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_namespace n,
+        LATERAL aclexplode(COALESCE(n.nspacl,acldefault('n',n.nspowner))) a
+      WHERE n.oid=schema_oid
+        AND (a.grantee NOT IN (n.nspowner,r.oid)
+          OR (a.grantee=r.oid AND (a.privilege_type <> 'USAGE' OR a.is_grantable)))
+    ) THEN RAISE EXCEPTION 'pre-migration schema ACL has unexpected grants'; END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_class c
+      WHERE c.relnamespace=schema_oid AND c.relkind='r'
+        AND NOT (
+          has_table_privilege(r.oid,c.oid,'SELECT')
+          AND has_table_privilege(r.oid,c.oid,'INSERT')
+          AND NOT has_table_privilege(r.oid,c.oid,'UPDATE')
+          AND NOT has_table_privilege(r.oid,c.oid,'DELETE')
+          AND NOT has_table_privilege(r.oid,c.oid,'TRUNCATE')
+          AND NOT has_table_privilege(r.oid,c.oid,'REFERENCES')
+          AND NOT has_table_privilege(r.oid,c.oid,'TRIGGER')
+        )
+    ) THEN RAISE EXCEPTION 'pre-migration table privileges are not exact'; END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid
+      WHERE c.relnamespace=schema_oid AND c.relkind='r'
+        AND a.attnum > 0 AND NOT a.attisdropped AND a.attacl IS NOT NULL
+    ) THEN RAISE EXCEPTION 'pre-migration column ACLs are not allowed'; END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_class c,
+        LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) a
+      WHERE c.relnamespace=schema_oid AND c.relkind='r'
+        AND (a.grantee NOT IN (c.relowner,r.oid)
+          OR (a.grantee=r.oid AND (a.privilege_type NOT IN ('SELECT','INSERT') OR a.is_grantable)))
+    ) THEN RAISE EXCEPTION 'pre-migration table ACL has unexpected grants'; END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_proc p,
+        LATERAL aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) a
+      WHERE p.pronamespace=schema_oid AND a.grantee <> p.proowner
+    ) OR EXISTS (
+      SELECT 1 FROM pg_proc p
+      WHERE p.pronamespace=schema_oid
+        AND has_function_privilege(r.oid,p.oid,'EXECUTE')
+    ) THEN RAISE EXCEPTION 'pre-migration function ACL has unexpected grants'; END IF;
   END IF;
-  IF EXISTS (SELECT 1 FROM pg_namespace n WHERE has_schema_privilege(role_oid,n.oid,'CREATE')) THEN
-    RAISE EXCEPTION 'runtime role has schema CREATE';
+  IF NOT has_database_privilege(r.oid,current_database(),'CONNECT')
+     OR NOT has_database_privilege(r.oid,current_database(),'TEMP')
+     OR has_database_privilege(r.oid,current_database(),'CREATE') THEN
+    RAISE EXCEPTION 'database CONNECT TEMP CREATE policy is not exact';
   END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_namespace n
+    WHERE n.nspname !~ '^pg_(temp|toast_temp)_'
+      AND has_schema_privilege(r.oid,n.oid,'CREATE')
+  ) THEN RAISE EXCEPTION 'runtime role has schema CREATE'; END IF;
   IF EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname <> 'thermal_intel'
       AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
-      AND c.relkind IN ('r','p','v','m','S','f')
-      AND has_table_privilege(role_oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
-  ) THEN RAISE EXCEPTION 'runtime role has effective table privileges outside thermal_intel';
-  END IF;
-END $audit$;
-SQL
-```
-
-**GATE A MUTATION — migrate only the application schema and grants:**
-
-```bash
-set -euo pipefail
-: "${THERMAL_DATABASE_ADMIN_URL:?}"
-cd /home/sat/openhab/scripts
-/usr/bin/python3 -c 'import os; from thermal_model.journal import migrate; migrate(os.environ["THERMAL_DATABASE_ADMIN_URL"], runtime_role="thermal_intel_runtime")'
-```
-
-The migration targets only `thermal_intel`; OpenHAB-generated persistence
-tables are never modified.
-
-**READ-ONLY — exact post-migration role, schema, and table authority:**
-
-```bash
-set -euo pipefail
-: "${THERMAL_DATABASE_ADMIN_URL:?}"
-psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
-DO $audit$
-DECLARE r pg_roles%ROWTYPE;
-DECLARE bad_count integer;
-BEGIN
-  SELECT * INTO r FROM pg_roles WHERE rolname='thermal_intel_runtime';
-  IF NOT FOUND THEN RAISE EXCEPTION 'runtime role absent'; END IF;
-  IF NOT r.rolcanlogin OR r.rolinherit OR r.rolsuper OR r.rolcreaterole
-     OR r.rolcreatedb OR r.rolreplication OR r.rolbypassrls THEN
-    RAISE EXCEPTION 'runtime role attributes changed during migration';
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_auth_members WHERE member=r.oid) THEN
-    RAISE EXCEPTION 'runtime role memberships changed during migration';
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_database WHERE datdba=r.oid)
-     OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner=r.oid) THEN
-    RAISE EXCEPTION 'runtime role gained database or schema ownership';
-  END IF;
-  IF has_database_privilege(r.oid,current_database(),'CREATE') THEN
-    RAISE EXCEPTION 'runtime role has database create';
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_namespace n WHERE has_schema_privilege(r.oid,n.oid,'CREATE')) THEN
-    RAISE EXCEPTION 'runtime role has schema CREATE';
-  END IF;
-  IF EXISTS (
-    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname <> 'thermal_intel'
-      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
-      AND c.relkind IN ('r','p','v','m','S','f')
+      AND c.relkind IN ('r','p','v','m','f')
       AND has_table_privilege(r.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
-  ) THEN
-    RAISE EXCEPTION 'runtime role has effective table privileges outside thermal_intel';
+  ) THEN RAISE EXCEPTION 'effective privileges outside thermal_intel'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND c.relkind='S'
+      AND has_sequence_privilege(r.oid,c.oid,'USAGE,SELECT,UPDATE')
+  ) THEN RAISE EXCEPTION 'effective sequence privileges outside thermal_intel'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND has_function_privilege(r.oid,p.oid,'EXECUTE')
+  ) THEN RAISE EXCEPTION 'effective function or procedure privileges outside thermal_intel'; END IF;
+END $audit$;
+SQL
+
+  cd /home/sat/openhab/scripts
+  /usr/bin/python3 -c 'import os; from thermal_model.journal import migrate; migrate(os.environ["THERMAL_DATABASE_ADMIN_URL"], runtime_role="thermal_intel_runtime")'
+
+  psql "$THERMAL_DATABASE_ADMIN_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
+DO $audit$
+DECLARE r pg_roles%ROWTYPE;
+DECLARE schema_oid oid;
+DECLARE actual_tables text[];
+DECLARE actual_functions text[];
+BEGIN
+  SELECT * INTO r FROM pg_roles WHERE rolname='thermal_intel_runtime';
+  IF NOT FOUND OR NOT r.rolcanlogin OR r.rolinherit OR r.rolsuper
+     OR r.rolcreaterole OR r.rolcreatedb OR r.rolreplication OR r.rolbypassrls THEN
+    RAISE EXCEPTION 'runtime role attributes changed';
   END IF;
-  IF NOT has_schema_privilege(r.oid,'thermal_intel','USAGE')
-     OR has_schema_privilege(r.oid,'thermal_intel','CREATE') THEN
+  IF EXISTS (SELECT 1 FROM pg_auth_members WHERE member=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_database WHERE datdba=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_class WHERE relowner=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_proc WHERE proowner=r.oid) THEN
+    RAISE EXCEPTION 'runtime role membership or ownership changed';
+  END IF;
+  IF NOT has_database_privilege(r.oid,current_database(),'CONNECT')
+     OR NOT has_database_privilege(r.oid,current_database(),'TEMP')
+     OR has_database_privilege(r.oid,current_database(),'CREATE') THEN
+    RAISE EXCEPTION 'database CONNECT TEMP CREATE policy changed';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_namespace n
+    WHERE n.nspname !~ '^pg_(temp|toast_temp)_'
+      AND has_schema_privilege(r.oid,n.oid,'CREATE')
+  ) THEN RAISE EXCEPTION 'runtime role has schema CREATE'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND c.relkind IN ('r','p','v','m','f')
+      AND has_table_privilege(r.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+  ) THEN RAISE EXCEPTION 'effective privileges outside thermal_intel'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND c.relkind='S'
+      AND has_sequence_privilege(r.oid,c.oid,'USAGE,SELECT,UPDATE')
+  ) THEN RAISE EXCEPTION 'effective sequence privileges outside thermal_intel'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND has_function_privilege(r.oid,p.oid,'EXECUTE')
+  ) THEN RAISE EXCEPTION 'effective function or procedure privileges outside thermal_intel'; END IF;
+
+  SELECT oid INTO schema_oid FROM pg_namespace WHERE nspname='thermal_intel';
+  IF schema_oid IS NULL THEN RAISE EXCEPTION 'thermal_intel schema absent'; END IF;
+  SELECT COALESCE(array_agg(relname ORDER BY relname),ARRAY[]::text[])
+    INTO actual_tables FROM pg_class
+    WHERE relnamespace=schema_oid AND relkind IN ('r','p','v','m','S','f');
+  IF actual_tables IS DISTINCT FROM ARRAY['action_events','message_receipts','mode_events']::text[] THEN
+    RAISE EXCEPTION 'thermal relation inventory is not exact: %',actual_tables;
+  END IF;
+  SELECT COALESCE(array_agg(proname||'/'||pronargs||'/'||prokind ORDER BY proname),ARRAY[]::text[])
+    INTO actual_functions FROM pg_proc WHERE pronamespace=schema_oid;
+  IF actual_functions IS DISTINCT FROM ARRAY[
+    'reject_action_correction_cycle/0/f',
+    'reject_journal_mutation/0/f',
+    'reject_mode_correction_cycle/0/f'
+  ]::text[] THEN
+    RAISE EXCEPTION 'thermal function inventory is not exact: %',actual_functions;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc
+    WHERE pronamespace=schema_oid
+      AND (prosecdef OR prokind <> 'f' OR pronargs <> 0 OR pg_get_function_result(oid) <> 'trigger')
+  ) THEN RAISE EXCEPTION 'thermal trigger function attributes are not exact'; END IF;
+  IF NOT has_schema_privilege(r.oid,schema_oid,'USAGE')
+     OR has_schema_privilege(r.oid,schema_oid,'CREATE') THEN
     RAISE EXCEPTION 'thermal schema privileges are not exact';
   END IF;
-  SELECT count(*) INTO bad_count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-   WHERE n.nspname='thermal_intel' AND c.relkind IN ('r','p')
-     AND NOT (has_table_privilege(r.oid,c.oid,'SELECT')
-       AND has_table_privilege(r.oid,c.oid,'INSERT')
-       AND NOT has_table_privilege(r.oid,c.oid,'UPDATE')
-       AND NOT has_table_privilege(r.oid,c.oid,'DELETE')
-       AND NOT has_table_privilege(r.oid,c.oid,'TRUNCATE')
-       AND NOT has_table_privilege(r.oid,c.oid,'REFERENCES')
-       AND NOT has_table_privilege(r.oid,c.oid,'TRIGGER'));
-  IF bad_count <> 0 OR (SELECT count(*) FROM pg_tables WHERE schemaname='thermal_intel') <> 3 THEN
-    RAISE EXCEPTION 'thermal table privileges or inventory are not exact';
-  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_namespace n,
+      LATERAL aclexplode(COALESCE(n.nspacl,acldefault('n',n.nspowner))) a
+    WHERE n.oid=schema_oid
+      AND (a.grantee NOT IN (n.nspowner,r.oid)
+        OR (a.grantee=r.oid AND (a.privilege_type <> 'USAGE' OR a.is_grantable)))
+  ) THEN RAISE EXCEPTION 'thermal schema ACL has unexpected grants'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c
+    WHERE c.relnamespace=schema_oid AND c.relkind='r'
+      AND NOT (
+        has_table_privilege(r.oid,c.oid,'SELECT')
+        AND has_table_privilege(r.oid,c.oid,'INSERT')
+        AND NOT has_table_privilege(r.oid,c.oid,'UPDATE')
+        AND NOT has_table_privilege(r.oid,c.oid,'DELETE')
+        AND NOT has_table_privilege(r.oid,c.oid,'TRUNCATE')
+        AND NOT has_table_privilege(r.oid,c.oid,'REFERENCES')
+        AND NOT has_table_privilege(r.oid,c.oid,'TRIGGER')
+      )
+  ) THEN RAISE EXCEPTION 'thermal table effective privileges are not exact'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid
+    WHERE c.relnamespace=schema_oid AND c.relkind='r'
+      AND a.attnum > 0 AND NOT a.attisdropped AND a.attacl IS NOT NULL
+  ) THEN RAISE EXCEPTION 'thermal column ACLs are not allowed'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c,
+      LATERAL aclexplode(COALESCE(c.relacl,acldefault('r',c.relowner))) a
+    WHERE c.relnamespace=schema_oid AND c.relkind='r'
+      AND (a.grantee NOT IN (c.relowner,r.oid)
+        OR (a.grantee=r.oid AND (a.privilege_type NOT IN ('SELECT','INSERT') OR a.is_grantable)))
+  ) THEN RAISE EXCEPTION 'thermal table ACL has unexpected grants'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p,
+      LATERAL aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) a
+    WHERE p.pronamespace=schema_oid AND a.grantee <> p.proowner
+  ) OR EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.pronamespace=schema_oid
+      AND has_function_privilege(r.oid,p.oid,'EXECUTE')
+  ) THEN RAISE EXCEPTION 'thermal function ACL has unexpected grants'; END IF;
 END $audit$;
 SQL
+
+  unset THERMAL_DATABASE_ADMIN_URL
+  trap - EXIT HUP INT TERM
+)
+unset THERMAL_DATABASE_ADMIN_URL
 ```
 
-**READ-ONLY — confirm the out-of-band runtime credential file without reading it:**
+The audit is refusal-only outside the dedicated migration. It never modifies
+OpenHAB-generated persistence tables and never changes database-wide PUBLIC
+grants. If the existing database cannot meet this exact contract, stop and use
+a separately reviewed storage plan.
+
+**READ-ONLY — out-of-band service credential file without reading it:**
 
 ```bash
 set -euo pipefail
 test -f /home/sat/.config/hex/openhab.env
 test ! -L /home/sat/.config/hex/openhab.env
-test "$(stat -c %a /home/sat/.config/hex/openhab.env)" = 600
-unset THERMAL_DATABASE_ADMIN_URL
+ENV_MODE="$(stat -c %a /home/sat/.config/hex/openhab.env)"
+test "$ENV_MODE" = 600
 ```
 
-Never display the file. Its runtime-role credentials are provisioned
-out-of-band; no gate in this runbook authorizes creating or editing it.
+`EnvironmentFile` applies only to systemd. It does not configure the attended
+operator shell.
 
-### Private state before model execution
-
-**GATE A MUTATION — create and harden exact private directories:**
+**GATE A MUTATION — secret-safe runtime audit, train, backtest, and local shadow:**
 
 ```bash
 set -euo pipefail
-umask 077
-: "${STATE_ROOT:?}"
-test "$STATE_ROOT" = /home/sat/.local/state/thermal-intel
-install -d -m 0700 "$STATE_ROOT" "$STATE_ROOT/models" "$STATE_ROOT/review" "$STATE_ROOT/evidence"
-for DIR in "$STATE_ROOT" "$STATE_ROOT/models" "$STATE_ROOT/review" "$STATE_ROOT/evidence"
-do
-  test "$(stat -c %a "$DIR")" = 700
-done
+(
+  set -euo pipefail
+  umask 077
+  : "${REPO_ROOT:?}"
+  : "${FILE_RECEIPT:?}"
+  cd "$REPO_ROOT"
+  /usr/bin/python3 scripts/thermal-model-files.py prepare \
+    --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+  read -r -s -p 'THERMAL_DATABASE_URL: ' THERMAL_DATABASE_URL
+  printf '\n'
+  test -n "$THERMAL_DATABASE_URL"
+  export THERMAL_DATABASE_URL
+  trap 'unset THERMAL_DATABASE_URL' EXIT HUP INT TERM
+
+  psql "$THERMAL_DATABASE_URL" -X --set ON_ERROR_STOP=1 <<'SQL'
+DO $audit$
+DECLARE r pg_roles%ROWTYPE;
+DECLARE schema_oid oid;
+DECLARE actual_tables text[];
+DECLARE actual_functions text[];
+BEGIN
+  IF current_user <> 'thermal_intel_runtime' THEN
+    RAISE EXCEPTION 'current_user is not thermal_intel_runtime';
+  END IF;
+  SELECT * INTO r FROM pg_roles WHERE rolname=current_user;
+  IF NOT r.rolcanlogin OR r.rolinherit OR r.rolsuper OR r.rolcreaterole
+     OR r.rolcreatedb OR r.rolreplication OR r.rolbypassrls
+     OR EXISTS (SELECT 1 FROM pg_auth_members WHERE member=r.oid) THEN
+    RAISE EXCEPTION 'runtime role attributes or memberships are not exact';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_database WHERE datdba=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_class WHERE relowner=r.oid)
+     OR EXISTS (SELECT 1 FROM pg_proc WHERE proowner=r.oid) THEN
+    RAISE EXCEPTION 'runtime role owns database or application objects';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_namespace n
+    WHERE n.nspname !~ '^pg_(temp|toast_temp)_'
+      AND has_schema_privilege(r.oid,n.oid,'CREATE')
+  ) THEN RAISE EXCEPTION 'runtime role has schema CREATE'; END IF;
+  IF NOT has_database_privilege(r.oid,current_database(),'CONNECT')
+     OR NOT has_database_privilege(r.oid,current_database(),'TEMP')
+     OR has_database_privilege(r.oid,current_database(),'CREATE') THEN
+    RAISE EXCEPTION 'database CONNECT TEMP CREATE policy is not exact';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND c.relkind IN ('r','p','v','m','f')
+      AND has_table_privilege(r.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+  ) OR EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND c.relkind='S'
+      AND has_sequence_privilege(r.oid,c.oid,'USAGE,SELECT,UPDATE')
+  ) OR EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname <> 'thermal_intel'
+      AND n.nspname <> 'information_schema' AND n.nspname !~ '^pg_'
+      AND has_function_privilege(r.oid,p.oid,'EXECUTE')
+  ) THEN RAISE EXCEPTION 'runtime has authority outside thermal_intel'; END IF;
+  SELECT oid INTO schema_oid FROM pg_namespace WHERE nspname='thermal_intel';
+  SELECT COALESCE(array_agg(relname ORDER BY relname),ARRAY[]::text[])
+    INTO actual_tables FROM pg_class
+    WHERE relnamespace=schema_oid AND relkind IN ('r','p','v','m','S','f');
+  SELECT COALESCE(array_agg(proname||'/'||pronargs||'/'||prokind ORDER BY proname),ARRAY[]::text[])
+    INTO actual_functions FROM pg_proc WHERE pronamespace=schema_oid;
+  IF actual_tables IS DISTINCT FROM ARRAY['action_events','message_receipts','mode_events']::text[]
+     OR actual_functions IS DISTINCT FROM ARRAY[
+       'reject_action_correction_cycle/0/f',
+       'reject_journal_mutation/0/f',
+       'reject_mode_correction_cycle/0/f'
+     ]::text[] THEN
+    RAISE EXCEPTION 'runtime object inventory is not exact';
+  END IF;
+  IF NOT has_schema_privilege(r.oid,schema_oid,'USAGE')
+     OR has_schema_privilege(r.oid,schema_oid,'CREATE')
+     OR EXISTS (
+       SELECT 1 FROM pg_class c
+       WHERE c.relnamespace=schema_oid AND c.relkind='r'
+         AND NOT (
+           has_table_privilege(r.oid,c.oid,'SELECT')
+           AND has_table_privilege(r.oid,c.oid,'INSERT')
+           AND NOT has_table_privilege(r.oid,c.oid,'UPDATE')
+           AND NOT has_table_privilege(r.oid,c.oid,'DELETE')
+           AND NOT has_table_privilege(r.oid,c.oid,'TRUNCATE')
+           AND NOT has_table_privilege(r.oid,c.oid,'REFERENCES')
+           AND NOT has_table_privilege(r.oid,c.oid,'TRIGGER')
+         )
+     )
+     OR EXISTS (
+       SELECT 1 FROM pg_proc p
+       WHERE p.pronamespace=schema_oid
+         AND (p.prosecdef OR p.prokind <> 'f'
+           OR has_function_privilege(r.oid,p.oid,'EXECUTE'))
+     ) THEN
+    RAISE EXCEPTION 'runtime thermal_intel authority is not exact';
+  END IF;
+END $audit$;
+SQL
+
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow \
+    --output "$STATE_ROOT/review/shadow-local.json"
+  LOCAL_SHADOW_MODE="$(stat -c %a "$STATE_ROOT/review/shadow-local.json")"
+  test "$LOCAL_SHADOW_MODE" = 600
+
+  unset THERMAL_DATABASE_URL
+  trap - EXIT HUP INT TERM
+)
+unset THERMAL_DATABASE_URL
 ```
 
-**GATE A MUTATION — harden only known existing private files:**
-
-```bash
-set -euo pipefail
-umask 077
-: "${STATE_ROOT:?}"
-for FILE in "$STATE_ROOT/models/candidate.json" "$STATE_ROOT/models/accepted.json" \
-  "$STATE_ROOT/models/backtest-report.json" "$STATE_ROOT/shadow.json" \
-  "$STATE_ROOT/review/shadow-local.json" "$STATE_ROOT/review/shadow-published.json"
-do
-  if test -e "$FILE"; then chmod 0600 "$FILE"; test "$(stat -c %a "$FILE")" = 600; fi
-done
-```
-
-Both services set `UMask=0077`, so systemd cannot weaken these defaults.
-
-**GATE A MUTATION — one manual training run:**
-
-```bash
-set -euo pipefail
-umask 077
-/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
-```
-
-**GATE A MUTATION — one manual chronological backtest:**
-
-```bash
-set -euo pipefail
-umask 077
-/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest
-```
-
-**GATE A MUTATION — one local-only shadow, never publish:**
-
-```bash
-set -euo pipefail
-umask 077
-: "${STATE_ROOT:?}"
-/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow \
-  --output "$STATE_ROOT/review/shadow-local.json"
-test "$(stat -c %a "$STATE_ROOT/review/shadow-local.json")" = 600
-```
+The runtime DSN is neither printed nor inherited after this fence.
 
 ## 4. Review artifact and backtest evidence
 
-**READ-ONLY — parameters, code/data ranges, exclusions, and provenance:**
+**READ-ONLY — parameters, ranges, exclusions, and provenance:**
 
 ```bash
 set -euo pipefail
@@ -548,11 +808,14 @@ set -euo pipefail
 : "${STATE_ROOT:?}"
 /usr/bin/python3 /home/sat/earthship-ui/openhab/scripts/validate_thermal_shadow.py \
   < "$STATE_ROOT/review/shadow-local.json"
-BYTES="$(wc -c < "$STATE_ROOT/review/shadow-local.json")"
-test "$BYTES" -lt 16384
-for FILE in "$STATE_ROOT/models/accepted.json" "$STATE_ROOT/models/backtest-report.json" "$STATE_ROOT/review/shadow-local.json"
+LOCAL_BYTES="$(wc -c < "$STATE_ROOT/review/shadow-local.json")"
+test "$LOCAL_BYTES" -lt 16384
+for FILE in "$STATE_ROOT/models/accepted.json" \
+  "$STATE_ROOT/models/backtest-report.json" \
+  "$STATE_ROOT/review/shadow-local.json"
 do
-  test "$(stat -c %a "$FILE")" = 600
+  FILE_MODE="$(stat -c %a "$FILE")"
+  test "$FILE_MODE" = 600
 done
 ```
 
@@ -562,9 +825,9 @@ mode. Present exact evidence before Gate B.
 
 ## 5. Gate B: sole observational Item and state writes
 
-Gate B authorizes exactly one receipt-bound Item configuration apply and one
-manual valid state publish/readback/UI/log review. It authorizes no systemd or
-other OpenHAB mutation.
+Gate B authorizes exactly one receipt-bound `Thermal_Model_JSON` configuration
+apply and one manual valid state publication/readback/UI/log review. It
+authorizes no systemd change and no other OpenHAB mutation.
 
 **GATE B MUTATION — receipt-owned Item apply:**
 
@@ -585,13 +848,11 @@ set -euo pipefail
 cd "$REPO_ROOT"
 node scripts/thermal-model-config.mjs verify --receipt-dir "$ITEM_RECEIPT" \
   | jq -e 'select(.ok == true and .expected == "desired" and .phase == "desired")'
-jq -e 'select(.state == "open" and .phase == "desired" and .writeCount == 1)' "$ITEM_RECEIPT/receipt.json"
+jq -e 'select(.state == "open" and .phase == "desired" and .writeCount == 1)' \
+  "$ITEM_RECEIPT/receipt.json"
 ```
 
-The Task 8 CLI has no artificial close state. Exact desired readback plus the
-retained receipt is closure. If apply returned ambiguously, do not retry.
-
-**GATE B SETTLEMENT — only after exact readback proves intended state:**
+**GATE B SETTLEMENT — exact readback only:**
 
 ```bash
 set -euo pipefail
@@ -600,13 +861,17 @@ set -euo pipefail
 cd "$REPO_ROOT"
 PHASE="$(jq -e -r '.phase' "$ITEM_RECEIPT/receipt.json")"
 if test "$PHASE" = applying; then
-  curl --fail --silent --show-error http://127.0.0.1:5190/rest/items/Thermal_Model_JSON \
+  curl --fail --silent --show-error \
+    http://127.0.0.1:5190/rest/items/Thermal_Model_JSON \
     | jq -e 'select(.name == "Thermal_Model_JSON" and .type == "String")'
   node scripts/thermal-model-config.mjs settle --receipt-dir "$ITEM_RECEIPT"
 fi
 node scripts/thermal-model-config.mjs verify --receipt-dir "$ITEM_RECEIPT" \
   | jq -e 'select(.ok == true and .expected == "desired")'
 ```
+
+If apply returned ambiguously, never retry the write. Settle only after exact
+receipt-aware readback.
 
 **GATE B MUTATION — one manual valid shadow state publish:**
 
@@ -616,7 +881,8 @@ umask 077
 : "${STATE_ROOT:?}"
 /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow --publish \
   --output "$STATE_ROOT/review/shadow-published.json"
-test "$(stat -c %a "$STATE_ROOT/review/shadow-published.json")" = 600
+PUBLISHED_MODE="$(stat -c %a "$STATE_ROOT/review/shadow-published.json")"
+test "$PUBLISHED_MODE" = 600
 ```
 
 **GATE B PRIVATE EVIDENCE — durable exact Item readback:**
@@ -624,14 +890,21 @@ test "$(stat -c %a "$STATE_ROOT/review/shadow-published.json")" = 600
 ```bash
 set -euo pipefail
 umask 077
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
 : "${EVIDENCE_ROOT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py prepare \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
 READBACK_TMP="$(mktemp --tmpdir="$EVIDENCE_ROOT" .published-readback.XXXXXX)"
 chmod 0600 "$READBACK_TMP"
-curl --fail --silent --show-error http://127.0.0.1:5190/rest/items/Thermal_Model_JSON/state > "$READBACK_TMP"
+curl --fail --silent --show-error \
+  http://127.0.0.1:5190/rest/items/Thermal_Model_JSON/state > "$READBACK_TMP"
 sync -f "$READBACK_TMP"
 mv -- "$READBACK_TMP" "$EVIDENCE_ROOT/published-readback.json"
 sync -f "$EVIDENCE_ROOT"
-test "$(stat -c %a "$EVIDENCE_ROOT/published-readback.json")" = 600
+READBACK_MODE="$(stat -c %a "$EVIDENCE_ROOT/published-readback.json")"
+test "$READBACK_MODE" = 600
 ```
 
 **READ-ONLY — validate and compare publication exactly:**
@@ -640,9 +913,10 @@ test "$(stat -c %a "$EVIDENCE_ROOT/published-readback.json")" = 600
 set -euo pipefail
 : "${STATE_ROOT:?}"
 : "${EVIDENCE_ROOT:?}"
-/usr/bin/python3 /home/sat/earthship-ui/openhab/scripts/validate_thermal_shadow.py < "$EVIDENCE_ROOT/published-readback.json"
-BYTES="$(wc -c < "$EVIDENCE_ROOT/published-readback.json")"
-test "$BYTES" -lt 16384
+/usr/bin/python3 /home/sat/earthship-ui/openhab/scripts/validate_thermal_shadow.py \
+  < "$EVIDENCE_ROOT/published-readback.json"
+READBACK_BYTES="$(wc -c < "$EVIDENCE_ROOT/published-readback.json")"
+test "$READBACK_BYTES" -lt 16384
 LOCAL_SHA="$(jq -e -S -c . "$STATE_ROOT/review/shadow-published.json" | sha256sum | awk '{print $1}')"
 LIVE_SHA="$(jq -e -S -c . "$EVIDENCE_ROOT/published-readback.json" | sha256sum | awk '{print $1}')"
 test "$LOCAL_SHA" = "$LIVE_SHA"
@@ -652,32 +926,38 @@ test "$LOCAL_SHA" = "$LIVE_SHA"
 
 ```bash
 set -euo pipefail
-curl --fail --silent --show-error http://127.0.0.1:5190/rest/items/Thermal_Advisory \
+curl --fail --silent --show-error \
+  http://127.0.0.1:5190/rest/items/Thermal_Advisory \
   | jq -e '{name,state} | select(.name == "Thermal_Advisory")'
-curl --fail --silent --show-error http://127.0.0.1:5190/rest/items/SouthOutlet_Outlet2_Switch \
+curl --fail --silent --show-error \
+  http://127.0.0.1:5190/rest/items/SouthOutlet_Outlet2_Switch \
   | jq -e '{name,state} | select(.name == "SouthOutlet_Outlet2_Switch")'
 journalctl --user -u earthship-ui.service -n 100 --no-pager
 ```
 
 Compare protected values to preflight. Visually confirm the non-interactive
-`SHADOW` card. Test stale/unavailable with fixtures, never live corruption.
-Present this evidence before Gate C.
+`SHADOW` card. Present this evidence before Gate C.
 
 ## 6. Gate C: service and timer activation
 
-Gate C authorizes atomic unit installation, daemon reload, one manual run of
-each service, and timer enablement only after Gate B evidence is green.
+Gate C authorizes atomic unit installation, daemon reload, one manual train
+service run, one manual shadow-service publication to exact Thermal_Model_JSON,
+the required post-service readback, and—only after that evidence is green—
+future timer-driven private training, backtest, and artifact replacement plus
+future timer-driven PUTs to exact Thermal_Model_JSON. It authorizes no
+`Thermal_Advisory`, other Item, rule, notification, or actuator write.
 
 **READ-ONLY — verify tracked units offline:**
 
 ```bash
 set -euo pipefail
 cd /home/sat/earthship-ui
-systemd-analyze verify deploy/thermal-model-train.service deploy/thermal-model-train.timer \
-  deploy/thermal-model-shadow.service deploy/thermal-model-shadow.timer
+systemd-analyze verify deploy/thermal-model-train.service \
+  deploy/thermal-model-train.timer deploy/thermal-model-shadow.service \
+  deploy/thermal-model-shadow.timer
 ```
 
-**GATE C MUTATION — atomic unit phase installation:**
+**GATE C MUTATION — transactional unit installation and complete equality:**
 
 ```bash
 set -euo pipefail
@@ -691,9 +971,26 @@ cd "$REPO_ROOT"
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
 /usr/bin/python3 scripts/thermal-model-files.py verify-units \
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+jq -e 'select(.operation == "install-unit" and .status == "complete")' \
+  "$FILE_RECEIPT/phase-state.json"
 ```
 
-**GATE C MUTATION — reload only after complete unit equality:**
+If interrupted, stop. Gate C authorizes only this unit-phase recovery before
+returning to the Gate C approval boundary:
+
+**GATE C RECOVERY MUTATION — reconcile and restore interrupted unit writes:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py recover --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+jq -e 'select(.operation == "install-unit" and .status == "rolled-back")' "$FILE_RECEIPT/phase-state.json"
+```
+
+**GATE C MUTATION — reload only after complete manifest equality:**
 
 ```bash
 set -euo pipefail
@@ -702,104 +999,139 @@ systemctl --user cat thermal-model-train.service thermal-model-train.timer \
   thermal-model-shadow.service thermal-model-shadow.timer
 ```
 
+**READ-ONLY — exact installed, disabled, inactive state:**
+
+```bash
+set -euo pipefail
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py installed-disabled
+```
+
 **GATE C MUTATION — attended manual service checks:**
 
 ```bash
 set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py prepare \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
 systemctl --user start thermal-model-train.service
 systemctl --user start thermal-model-shadow.service
 ```
 
-**READ-ONLY — both oneshots exited successfully:**
+The shadow service's exact ExecStart performs one separately Gate-C-authorized
+publication to `Thermal_Model_JSON`.
+
+**READ-ONLY — exact service exit state:**
 
 ```bash
 set -euo pipefail
-for UNIT in thermal-model-train.service thermal-model-shadow.service
-do
-  test "$(systemctl --user show "$UNIT" --property=Result --value)" = success
-  test "$(systemctl --user show "$UNIT" --property=ExecMainStatus --value)" = 0
-done
-journalctl --user -u thermal-model-train.service -u thermal-model-shadow.service -n 200 --no-pager
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py services-succeeded
+journalctl --user -u thermal-model-train.service \
+  -u thermal-model-shadow.service -n 200 --no-pager
 ```
 
-**GATE C MUTATION — enable timers only now:**
+**GATE C PRIVATE EVIDENCE — post-service state readback:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+: "${EVIDENCE_ROOT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py prepare \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+POST_SERVICE_TMP="$(mktemp --tmpdir="$EVIDENCE_ROOT" .post-service-readback.XXXXXX)"
+chmod 0600 "$POST_SERVICE_TMP"
+curl --fail --silent --show-error \
+  http://127.0.0.1:5190/rest/items/Thermal_Model_JSON/state > "$POST_SERVICE_TMP"
+sync -f "$POST_SERVICE_TMP"
+mv -- "$POST_SERVICE_TMP" "$EVIDENCE_ROOT/post-service-readback.json"
+sync -f "$EVIDENCE_ROOT"
+POST_SERVICE_MODE="$(stat -c %a "$EVIDENCE_ROOT/post-service-readback.json")"
+test "$POST_SERVICE_MODE" = 600
+```
+
+**READ-ONLY — validate and digest-match the service publication:**
+
+```bash
+set -euo pipefail
+: "${STATE_ROOT:?}"
+: "${EVIDENCE_ROOT:?}"
+/usr/bin/python3 /home/sat/earthship-ui/openhab/scripts/validate_thermal_shadow.py \
+  < "$EVIDENCE_ROOT/post-service-readback.json"
+SERVICE_BYTES="$(wc -c < "$EVIDENCE_ROOT/post-service-readback.json")"
+test "$SERVICE_BYTES" -lt 16384
+SERVICE_LOCAL_MODE="$(stat -c %a "$STATE_ROOT/shadow.json")"
+test "$SERVICE_LOCAL_MODE" = 600
+SERVICE_LOCAL_SHA="$(jq -e -S -c . "$STATE_ROOT/shadow.json" | sha256sum | awk '{print $1}')"
+SERVICE_LIVE_SHA="$(jq -e -S -c . "$EVIDENCE_ROOT/post-service-readback.json" | sha256sum | awk '{print $1}')"
+test "$SERVICE_LOCAL_SHA" = "$SERVICE_LIVE_SHA"
+```
+
+Stop before timers unless the service state, validator, byte limit, digest,
+UI, log, advisory, and actuator evidence is green.
+
+**GATE C MUTATION — explicitly authorize catch-up and future scheduled work:**
 
 ```bash
 set -euo pipefail
 systemctl --user enable --now thermal-model-train.timer thermal-model-shadow.timer
 ```
 
-**READ-ONLY — intended schedules and next runs:**
+Enabling and starting `Persistent=true` timers can cause immediate catch-up
+training and an immediate catch-up publication. This command therefore requires
+explicit authorization for those possible immediate effects, all future daily
+private training/backtest/artifact replacement, and all future two-hour valid
+state PUTs to the exact `Thermal_Model_JSON` Item.
+
+**READ-ONLY — exact enabled timer state and schedules:**
 
 ```bash
 set -euo pipefail
-systemctl --user is-enabled --quiet thermal-model-train.timer
-systemctl --user is-enabled --quiet thermal-model-shadow.timer
-systemctl --user list-timers thermal-model-train.timer thermal-model-shadow.timer --all --no-pager
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py timers-enabled
+systemctl --user list-timers thermal-model-train.timer \
+  thermal-model-shadow.timer --all --no-pager
 ```
 
-Training is daily 06:50 after the 06:40 forecast. Shadow starts 15 minutes
-after boot, then every two hours; `Persistent=true` may cause catch-up.
+Training is daily 06:50 after the existing 06:40 forecast. Shadow starts 15
+minutes after boot and every two hours thereafter.
 
 ## 7. Attended rollback
 
-Retain receipts, journal, artifacts, reports, and logs. Never delete or rewrite
-journal evidence. Rollback begins with a concurrency barrier so shadow cannot
-republish and training cannot race restoration.
+Retain receipts, journal, artifacts, reports, readbacks, and logs. Never delete
+or rewrite evidence. Rollback first establishes a concurrency barrier so
+shadow cannot republish and training cannot race restoration.
 
-**ROLLBACK MUTATION — disable timers first:**
-
-When both units exist this is the exact equivalent of
-`systemctl --user disable --now thermal-model-train.timer thermal-model-shadow.timer`;
-an absent, inactive unit is explicitly accepted for rollback before Gate C.
+**ROLLBACK MUTATION — exact profile, disable timers, stop both services:**
 
 ```bash
 set -euo pipefail
-for TIMER in thermal-model-train.timer thermal-model-shadow.timer
-do
-  if systemctl --user cat "$TIMER" >/dev/null 2>&1; then
-    systemctl --user disable --now "$TIMER"
-  elif systemctl --user is-active --quiet "$TIMER"; then
-    printf '%s is active but its unit file is unavailable\n' "$TIMER" >&2
+cd /home/sat/earthship-ui
+ROLLBACK_PROFILE="$(/usr/bin/python3 scripts/thermal-systemd-state.py rollback-precheck)"
+case "$ROLLBACK_PROFILE" in
+  missing)
+    ;;
+  installed)
+    systemctl --user disable --now thermal-model-train.timer thermal-model-shadow.timer
+    systemctl --user stop thermal-model-train.service thermal-model-shadow.service
+    /usr/bin/python3 scripts/thermal-systemd-state.py rollback-quiescent
+    ;;
+  *)
+    printf '%s\n' 'unexpected rollback profile' >&2
     exit 1
-  fi
-done
-```
-
-**ROLLBACK MUTATION — stop both oneshot services:**
-
-When both units exist this is the exact equivalent of
-`systemctl --user stop thermal-model-train.service thermal-model-shadow.service`;
-an absent, inactive unit is explicitly accepted for rollback before Gate C.
-
-```bash
-set -euo pipefail
-for SERVICE in thermal-model-train.service thermal-model-shadow.service
-do
-  if systemctl --user cat "$SERVICE" >/dev/null 2>&1; then
-    systemctl --user stop "$SERVICE"
-  elif systemctl --user is-active --quiet "$SERVICE"; then
-    printf '%s is active but its unit file is unavailable\n' "$SERVICE" >&2
-    exit 1
-  fi
-done
-```
-
-**READ-ONLY — assert both oneshot services are inactive:**
-
-```bash
-set -euo pipefail
-for UNIT in thermal-model-train.service thermal-model-shadow.service
-do
-  if systemctl --user is-active --quiet "$UNIT"; then
-    printf '%s is still active\n' "$UNIT" >&2
-    exit 1
-  fi
-done
+    ;;
+esac
 printf '%s\n' 'both oneshot services are inactive'
 ```
 
-Only after that barrier may restoration begin.
+This explicitly handles only the complete first-install missing profile or the
+complete helper-installed profile. Any mixed state or systemctl transport
+failure aborts before restoration.
 
 **ROLLBACK MUTATION — receipt-based Item rollback and verify:**
 
@@ -813,7 +1145,7 @@ node scripts/thermal-model-config.mjs verify --receipt-dir "$ITEM_RECEIPT" \
   | jq -e 'select(.ok == true and .expected == "original" and .phase == "rolled-back")'
 ```
 
-**ROLLBACK SETTLEMENT — only exact original readback resolves ambiguity:**
+**ROLLBACK SETTLEMENT — exact original readback only:**
 
 ```bash
 set -euo pipefail
@@ -828,9 +1160,7 @@ node scripts/thermal-model-config.mjs verify --receipt-dir "$ITEM_RECEIPT" \
   | jq -e 'select(.ok == true and .expected == "original")'
 ```
 
-`settle` itself performs exact receipt-aware readback and refuses mismatch.
-
-**ROLLBACK MUTATION — exact verified file restoration/removal:**
+**ROLLBACK MUTATION — recover interrupted phase, then restore exact files:**
 
 ```bash
 set -euo pipefail
@@ -838,42 +1168,54 @@ umask 077
 : "${REPO_ROOT:?}"
 : "${FILE_RECEIPT:?}"
 cd "$REPO_ROOT"
+if test -f "$FILE_RECEIPT/phase-state.json"; then
+  FILE_PHASE_STATUS="$(jq -e -r '.status' "$FILE_RECEIPT/phase-state.json")"
+  case "$FILE_PHASE_STATUS" in
+    applying|recovering|recovery-required)
+      /usr/bin/python3 scripts/thermal-model-files.py recover \
+        --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+      ;;
+    complete|rolled-back)
+      ;;
+    *)
+      printf '%s\n' 'unknown file phase state' >&2
+      exit 1
+      ;;
+  esac
+fi
 /usr/bin/python3 scripts/thermal-model-files.py restore \
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
 systemctl --user daemon-reload
 ```
 
-The helper prevalidates every backup/absent marker before its first restore,
-atomically restores prior bytes/modes, removes only receipt-proven absent exact
-targets, fsyncs parents, and re-verifies every target.
+The restore prevalidates all targets before its first change. It refuses
+unowned drift, automatically reverses ordinary partial failure, atomically
+restores prior bytes/modes, removes only receipt-proven absent targets, and
+re-verifies the entire original manifest.
 
-**READ-ONLY — unit state remains disabled and no service is active:**
+**READ-ONLY — first-install systemd state restored:**
 
 ```bash
 set -euo pipefail
-for UNIT in thermal-model-train.timer thermal-model-shadow.timer
-do
-  if systemctl --user is-enabled --quiet "$UNIT"; then exit 1; fi
-done
-for UNIT in thermal-model-train.service thermal-model-shadow.service
-do
-  if systemctl --user is-active --quiet "$UNIT"; then exit 1; fi
-done
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py first-install
 ```
 
 **READ-ONLY — final protected-state verification:**
 
 ```bash
 set -euo pipefail
-curl --fail --silent --show-error http://127.0.0.1:5190/rest/items/Thermal_Advisory \
+curl --fail --silent --show-error \
+  http://127.0.0.1:5190/rest/items/Thermal_Advisory \
   | jq -e '{name,state} | select(.name == "Thermal_Advisory")'
-curl --fail --silent --show-error http://127.0.0.1:5190/rest/items/SouthOutlet_Outlet2_Switch \
+curl --fail --silent --show-error \
+  http://127.0.0.1:5190/rest/items/SouthOutlet_Outlet2_Switch \
   | jq -e '{name,state} | select(.name == "SouthOutlet_Outlet2_Switch")'
 ```
 
 ## Completion boundary
 
 No gate authorizes advisory graduation or actuation. A later warm/winter
-review must define and approve evidence-derived graduation thresholds.
-Actuation requires a separate threat model, capability owner, reconciliation,
-manual override, and fail-safe proof.
+review must define evidence-derived graduation thresholds. Actuation requires
+a separate threat model, capability owner, reconciliation, manual override,
+and fail-safe proof.

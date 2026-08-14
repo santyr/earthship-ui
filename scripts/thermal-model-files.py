@@ -2,17 +2,29 @@
 """Durable, receipt-bound deployment of the fixed thermal runtime manifest."""
 
 import argparse
+import errno
 from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
+import secrets
 import stat
-import tempfile
 
 
 MANIFEST = (
-    {"source": "openhab/scripts/forecast_intel.py", "target": "/home/sat/openhab/scripts/forecast_intel.py", "phase": "verify", "mode": 0o755},
-    {"source": "openhab/scripts/thermal_intel.py", "target": "/home/sat/openhab/scripts/thermal_intel.py", "phase": "code", "mode": 0o755},
+    {
+        "source": "openhab/scripts/forecast_intel.py",
+        "target": "/home/sat/openhab/scripts/forecast_intel.py",
+        "phase": "verify",
+        "mode": 0o755,
+    },
+    {
+        "source": "openhab/scripts/thermal_intel.py",
+        "target": "/home/sat/openhab/scripts/thermal_intel.py",
+        "phase": "code",
+        "mode": 0o755,
+    },
     *(
         {
             "source": f"openhab/scripts/thermal_model/{name}.py",
@@ -21,70 +33,76 @@ MANIFEST = (
             "mode": 0o644,
         }
         for name in (
-            "__init__", "actions", "artifacts", "behavior", "dataset",
-            "dynamics", "evaluation", "journal", "pipeline", "schema",
+            "__init__",
+            "actions",
+            "artifacts",
+            "behavior",
+            "dataset",
+            "dynamics",
+            "evaluation",
+            "journal",
+            "pipeline",
+            "schema",
         )
     ),
-    {"source": "deploy/thermal-model-train.service", "target": "/home/sat/.config/systemd/user/thermal-model-train.service", "phase": "unit", "mode": 0o644},
-    {"source": "deploy/thermal-model-train.timer", "target": "/home/sat/.config/systemd/user/thermal-model-train.timer", "phase": "unit", "mode": 0o644},
-    {"source": "deploy/thermal-model-shadow.service", "target": "/home/sat/.config/systemd/user/thermal-model-shadow.service", "phase": "unit", "mode": 0o644},
-    {"source": "deploy/thermal-model-shadow.timer", "target": "/home/sat/.config/systemd/user/thermal-model-shadow.timer", "phase": "unit", "mode": 0o644},
+    {
+        "source": "deploy/thermal-model-train.service",
+        "target": "/home/sat/.config/systemd/user/thermal-model-train.service",
+        "phase": "unit",
+        "mode": 0o644,
+    },
+    {
+        "source": "deploy/thermal-model-train.timer",
+        "target": "/home/sat/.config/systemd/user/thermal-model-train.timer",
+        "phase": "unit",
+        "mode": 0o644,
+    },
+    {
+        "source": "deploy/thermal-model-shadow.service",
+        "target": "/home/sat/.config/systemd/user/thermal-model-shadow.service",
+        "phase": "unit",
+        "mode": 0o644,
+    },
+    {
+        "source": "deploy/thermal-model-shadow.timer",
+        "target": "/home/sat/.config/systemd/user/thermal-model-shadow.timer",
+        "phase": "unit",
+        "mode": 0o644,
+    },
 )
+
 RECEIPT_SCHEMA = "earthship-thermal-file-deploy/v1"
 RECEIPT_NAME = "file-manifest.json"
+PHASE_STATE_SCHEMA = "earthship-thermal-file-phase/v1"
+PHASE_STATE_NAME = "phase-state.json"
+ALLOWED_REPO_ROOT = Path("/home/sat/earthship-ui")
+ALLOWED_STATE_ROOT = Path("/home/sat/.local/state/thermal-intel")
+ALLOWED_RECEIPT_ROOT = ALLOWED_STATE_ROOT / "deploy-receipts"
+
+_DIR_FLAGS = (
+    os.O_RDONLY
+    | getattr(os, "O_DIRECTORY", 0)
+    | getattr(os, "O_CLOEXEC", 0)
+    | getattr(os, "O_NOFOLLOW", 0)
+)
+_READ_FLAGS = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+_WRITE_FLAGS = (
+    os.O_WRONLY
+    | os.O_CREAT
+    | os.O_EXCL
+    | getattr(os, "O_CLOEXEC", 0)
+    | getattr(os, "O_NOFOLLOW", 0)
+)
+_RECOVERY_STATUSES = {"applying", "recovering", "recovery-required"}
+_ATTENDED_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+class MissingPath(FileNotFoundError):
+    """A no-follow path component or final name does not exist."""
 
 
 def _digest(data):
     return sha256(data).hexdigest()
-
-
-def _fsync_directory(path):
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-
-
-def _ensure_directory(path, mode, *, enforce_existing=True):
-    existed = path.exists() or path.is_symlink()
-    path.mkdir(parents=True, exist_ok=True, mode=mode)
-    if not path.is_dir() or path.is_symlink():
-        raise RuntimeError(f"unsafe directory: {path}")
-    if enforce_existing or not existed:
-        os.chmod(path, mode)
-    _fsync_directory(path)
-
-
-def _assert_mode(path, expected, label):
-    actual = stat.S_IMODE(path.stat().st_mode)
-    if actual != expected:
-        raise RuntimeError(f"unsafe {label} mode {actual:o}: {path}")
-
-
-def _atomic_write(path, data, mode, *, parent_mode=None):
-    _ensure_directory(
-        path.parent,
-        parent_mode if parent_mode is not None else 0o755,
-        enforce_existing=parent_mode is not None,
-    )
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{path.name}.thermal-stage-", dir=path.parent
-    )
-    temporary = Path(temporary_name)
-    try:
-        os.fchmod(descriptor, mode)
-        with os.fdopen(descriptor, "wb", closefd=True) as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        if _digest(temporary.read_bytes()) != _digest(data):
-            raise RuntimeError(f"staged digest mismatch: {path}")
-        os.replace(temporary, path)
-        _fsync_directory(path.parent)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
 
 
 def _canonical(value):
@@ -92,68 +110,333 @@ def _canonical(value):
 
 
 def _with_checksum(value):
-    value = dict(value)
-    value.pop("checksum", None)
-    value["checksum"] = _digest(_canonical(value))
-    return value
+    result = dict(value)
+    result.pop("checksum", None)
+    result["checksum"] = _digest(_canonical(result))
+    return result
 
 
-def _assert_regular(path, label):
+def _absolute_parts(path):
+    path = Path(path)
+    if not path.is_absolute():
+        raise ValueError(f"path must be absolute: {path}")
+    parts = path.parts[1:]
+    if not parts or any(part in {"", ".", ".."} or "/" in part for part in parts):
+        raise ValueError(f"unsafe absolute path: {path}")
+    return parts
+
+
+def _unsafe_component(path, exc):
+    if exc.errno in {errno.ELOOP, errno.ENOTDIR}:
+        raise RuntimeError(f"symlink or unsafe directory component: {path}") from exc
+    if exc.errno == errno.ENOENT:
+        raise MissingPath(str(path)) from exc
+    raise RuntimeError(f"directory unavailable: {path}") from exc
+
+
+def _open_directory(path, *, create=False, create_mode=0o755):
+    path = Path(path)
+    parts = _absolute_parts(path)
+    current_fd = os.open("/", _DIR_FLAGS)
+    walked = Path("/")
     try:
-        details = path.lstat()
+        for part in parts:
+            child_path = walked / part
+            try:
+                child_fd = os.open(part, _DIR_FLAGS, dir_fd=current_fd)
+            except OSError as exc:
+                if exc.errno != errno.ENOENT or not create:
+                    _unsafe_component(child_path, exc)
+                try:
+                    os.mkdir(part, create_mode, dir_fd=current_fd)
+                except OSError as mkdir_exc:
+                    _unsafe_component(child_path, mkdir_exc)
+                os.fsync(current_fd)
+                try:
+                    child_fd = os.open(part, _DIR_FLAGS, dir_fd=current_fd)
+                except OSError as open_exc:
+                    _unsafe_component(child_path, open_exc)
+                os.fchmod(child_fd, create_mode)
+                os.fsync(child_fd)
+            os.close(current_fd)
+            current_fd = child_fd
+            walked = child_path
+        return current_fd
+    except BaseException:
+        os.close(current_fd)
+        raise
+
+
+def secure_directory(path, mode, *, create, enforce_mode=False):
+    """Walk an absolute directory without following links and optionally create it."""
+    descriptor = _open_directory(path, create=create, create_mode=mode)
+    try:
+        details = os.fstat(descriptor)
+        if not stat.S_ISDIR(details.st_mode):
+            raise RuntimeError(f"unsafe directory: {path}")
+        if enforce_mode:
+            os.fchmod(descriptor, mode)
+            os.fsync(descriptor)
+        elif stat.S_IMODE(details.st_mode) != mode and Path(path) in {
+            ALLOWED_STATE_ROOT,
+            ALLOWED_STATE_ROOT / "models",
+            ALLOWED_STATE_ROOT / "review",
+            ALLOWED_STATE_ROOT / "evidence",
+        }:
+            raise RuntimeError(f"unsafe private directory mode: {path}")
+    finally:
+        os.close(descriptor)
+    return True
+
+
+def _open_parent(path, *, create=False, create_mode=0o755):
+    path = Path(path)
+    parts = _absolute_parts(path)
+    parent = path.parent
+    descriptor = _open_directory(parent, create=create, create_mode=create_mode)
+    return descriptor, parts[-1]
+
+
+def _read_from_fd(descriptor):
+    chunks = []
+    while True:
+        chunk = os.read(descriptor, 1024 * 1024)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+
+def _read_regular_at(parent_fd, name, path, label, *, allow_missing=False):
+    try:
+        descriptor = os.open(name, _READ_FLAGS, dir_fd=parent_fd)
     except OSError as exc:
+        if exc.errno == errno.ENOENT and allow_missing:
+            return None
+        if exc.errno == errno.ELOOP:
+            raise RuntimeError(f"{label} symlink rejected: {path}") from exc
+        if exc.errno == errno.ENOENT:
+            raise MissingPath(str(path)) from exc
         raise RuntimeError(f"{label} unavailable: {path}") from exc
-    if not stat.S_ISREG(details.st_mode):
-        raise RuntimeError(f"{label} is not a regular file: {path}")
-    return details
+    try:
+        details = os.fstat(descriptor)
+        if not stat.S_ISREG(details.st_mode):
+            raise RuntimeError(f"{label} is not a regular file: {path}")
+        return _read_from_fd(descriptor), stat.S_IMODE(details.st_mode)
+    finally:
+        os.close(descriptor)
+
+
+def _read_regular(path, label, *, allow_missing=False):
+    path = Path(path)
+    try:
+        parent_fd, name = _open_parent(path)
+    except MissingPath:
+        if allow_missing:
+            return None
+        raise RuntimeError(f"{label} unavailable: {path}") from None
+    try:
+        return _read_regular_at(
+            parent_fd, name, path, label, allow_missing=allow_missing
+        )
+    except MissingPath:
+        if allow_missing:
+            return None
+        raise RuntimeError(f"{label} unavailable: {path}") from None
+    finally:
+        os.close(parent_fd)
+
+
+def _assert_mode(actual, expected, label, path):
+    if actual != expected:
+        raise RuntimeError(f"unsafe {label} mode {actual:o}: {path}")
+
+
+def _hit(fault, event, index):
+    if fault is not None:
+        fault(event, index)
+
+
+def _atomic_write(path, data, mode, *, parent_mode=0o755, fault=None, index=-2):
+    path = Path(path)
+    parent_fd, name = _open_parent(path, create=True, create_mode=parent_mode)
+    temporary_name = f".{name}.thermal-stage-{secrets.token_hex(12)}"
+    temporary_exists = False
+    try:
+        _read_regular_at(
+            parent_fd, name, path, "target", allow_missing=True
+        )
+        descriptor = os.open(
+            temporary_name, _WRITE_FLAGS, mode, dir_fd=parent_fd
+        )
+        temporary_exists = True
+        try:
+            os.fchmod(descriptor, mode)
+            view = memoryview(data)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise OSError("short write")
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        staged = _read_regular_at(
+            parent_fd,
+            temporary_name,
+            path.parent / temporary_name,
+            "staged file",
+        )
+        if staged is None or _digest(staged[0]) != _digest(data) or staged[1] != mode:
+            raise RuntimeError(f"staged digest or mode mismatch: {path}")
+        _hit(fault, "before-replace", index)
+        os.replace(
+            temporary_name,
+            name,
+            src_dir_fd=parent_fd,
+            dst_dir_fd=parent_fd,
+        )
+        temporary_exists = False
+        _hit(fault, "after-replace", index)
+        _hit(fault, "before-parent-fsync", index)
+        os.fsync(parent_fd)
+    finally:
+        if temporary_exists:
+            try:
+                os.unlink(temporary_name, dir_fd=parent_fd)
+                os.fsync(parent_fd)
+            except FileNotFoundError:
+                pass
+        os.close(parent_fd)
+
+
+def _unlink(path):
+    path = Path(path)
+    parent_fd, name = _open_parent(path)
+    try:
+        current = _read_regular_at(parent_fd, name, path, "target", allow_missing=True)
+        if current is not None:
+            os.unlink(name, dir_fd=parent_fd)
+            os.fsync(parent_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def _receipt_path(receipt_dir, name):
+    return Path(receipt_dir) / name
+
+
+def _read_json(path, label, *, allow_missing=False):
+    result = _read_regular(path, label, allow_missing=allow_missing)
+    if result is None:
+        return None
+    data, actual_mode = result
+    _assert_mode(actual_mode, 0o600, label, path)
+    try:
+        return json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"{label} is not valid JSON: {path}") from exc
+
+
+def _write_json(path, value):
+    _atomic_write(
+        path,
+        _canonical(_with_checksum(value)) + b"\n",
+        0o600,
+        parent_mode=0o700,
+    )
+
+
+def _secure_empty_receipt(receipt_dir):
+    receipt_dir = Path(receipt_dir)
+    try:
+        descriptor = _open_directory(receipt_dir)
+    except MissingPath:
+        secure_directory(receipt_dir, 0o700, create=True, enforce_mode=True)
+        descriptor = _open_directory(receipt_dir)
+    try:
+        _assert_mode(
+            stat.S_IMODE(os.fstat(descriptor).st_mode),
+            0o700,
+            "receipt directory",
+            receipt_dir,
+        )
+        if os.listdir(descriptor):
+            raise RuntimeError(f"file deployment receipt is not empty: {receipt_dir}")
+    finally:
+        os.close(descriptor)
+
+
+def _source_path(repo_root, record):
+    relative = Path(record["source"])
+    if relative.is_absolute() or ".." in relative.parts:
+        raise RuntimeError(f"unsafe source path: {relative}")
+    return Path(repo_root) / relative
 
 
 def capture_backup(repo_root, receipt_dir, *, manifest=MANIFEST):
     os.umask(0o077)
-    repo_root = Path(repo_root).resolve()
+    repo_root = Path(repo_root)
+    repo_fd = _open_directory(repo_root)
+    os.close(repo_fd)
     receipt_dir = Path(receipt_dir)
-    receipt_dir.mkdir(parents=True, exist_ok=False, mode=0o700)
-    os.chmod(receipt_dir, 0o700)
+    _secure_empty_receipt(receipt_dir)
     backups = receipt_dir / "backups"
-    _ensure_directory(backups, 0o700)
-    records = []
-    for index, entry in enumerate(manifest):
-        source = repo_root / entry["source"]
-        _assert_regular(source, "source")
-        source_data = source.read_bytes()
+    secure_directory(backups, 0o700, create=True, enforce_mode=True)
+
+    prepared = []
+    for entry in manifest:
+        source = _source_path(repo_root, entry)
+        source_data, _ = _read_regular(source, "source")
         target = Path(entry["target"])
+        target_state = _read_regular(target, "target", allow_missing=True)
         record = {
             **entry,
             "mode": int(entry["mode"]),
             "source_sha256": _digest(source_data),
         }
         if entry["phase"] == "verify":
-            _assert_regular(target, "verify target")
-            target_data = target.read_bytes()
+            if target_state is None:
+                raise RuntimeError(f"verify target unavailable: {target}")
+            target_data, _ = target_state
             if _digest(target_data) != record["source_sha256"]:
                 raise RuntimeError(f"verify target digest mismatch: {target}")
             record.update(prior="verify-only", prior_sha256=_digest(target_data))
-        elif target.exists() or target.is_symlink():
-            details = _assert_regular(target, "target")
-            target_data = target.read_bytes()
-            backup_name = f"{index:02d}.bin"
-            _atomic_write(backups / backup_name, target_data, 0o600, parent_mode=0o700)
+        elif target_state is not None:
+            target_data, target_mode = target_state
             record.update(
                 prior="present",
                 prior_sha256=_digest(target_data),
-                prior_mode=stat.S_IMODE(details.st_mode),
-                backup=backup_name,
+                prior_mode=target_mode,
             )
+        else:
+            record.update(prior="absent")
+        prepared.append((record, target_state))
+
+    records = []
+    for index, (record, target_state) in enumerate(prepared):
+        if record["phase"] == "verify":
+            records.append(record)
+            continue
+        if target_state is not None:
+            backup_name = f"{index:02d}.bin"
+            _atomic_write(
+                backups / backup_name,
+                target_state[0],
+                0o600,
+                parent_mode=0o700,
+            )
+            record["backup"] = backup_name
         else:
             marker = f"{index:02d}.absent"
             _atomic_write(
                 backups / marker,
-                (str(target) + "\n").encode(),
+                (record["target"] + "\n").encode(),
                 0o600,
                 parent_mode=0o700,
             )
-            record.update(prior="absent", marker=marker)
+            record["marker"] = marker
         records.append(record)
+
     receipt = _with_checksum({"schema": RECEIPT_SCHEMA, "entries": records})
     _atomic_write(
         receipt_dir / RECEIPT_NAME,
@@ -161,146 +444,489 @@ def capture_backup(repo_root, receipt_dir, *, manifest=MANIFEST):
         0o600,
         parent_mode=0o700,
     )
-    _fsync_directory(receipt_dir)
+    receipt_fd = _open_directory(receipt_dir)
+    try:
+        os.fsync(receipt_fd)
+    finally:
+        os.close(receipt_fd)
     return receipt
 
 
 def _load_receipt(receipt_dir, manifest):
     receipt_dir = Path(receipt_dir)
-    if not receipt_dir.is_dir() or receipt_dir.is_symlink():
-        raise RuntimeError(f"unsafe receipt directory: {receipt_dir}")
-    _assert_mode(receipt_dir, 0o700, "receipt directory")
+    descriptor = _open_directory(receipt_dir)
+    try:
+        _assert_mode(
+            stat.S_IMODE(os.fstat(descriptor).st_mode),
+            0o700,
+            "receipt directory",
+            receipt_dir,
+        )
+    finally:
+        os.close(descriptor)
     backups = receipt_dir / "backups"
-    if not backups.is_dir() or backups.is_symlink():
-        raise RuntimeError(f"unsafe backup directory: {backups}")
-    _assert_mode(backups, 0o700, "backup directory")
-    path = receipt_dir / RECEIPT_NAME
-    _assert_regular(path, "receipt")
-    _assert_mode(path, 0o600, "receipt")
-    receipt = json.loads(path.read_text())
+    backup_fd = _open_directory(backups)
+    try:
+        _assert_mode(
+            stat.S_IMODE(os.fstat(backup_fd).st_mode),
+            0o700,
+            "backup directory",
+            backups,
+        )
+    finally:
+        os.close(backup_fd)
+
+    receipt = _read_json(receipt_dir / RECEIPT_NAME, "receipt")
     checksum = receipt.pop("checksum", None)
-    if receipt.get("schema") != RECEIPT_SCHEMA or checksum != _digest(_canonical(receipt)):
+    if (
+        receipt.get("schema") != RECEIPT_SCHEMA
+        or checksum != _digest(_canonical(receipt))
+    ):
         raise RuntimeError("file deployment receipt checksum mismatch")
     receipt["checksum"] = checksum
-    expected = [
-        {**entry, "mode": int(entry["mode"])} for entry in manifest
-    ]
-    actual = [
-        {key: record[key] for key in ("source", "target", "phase", "mode")}
-        for record in receipt.get("entries", [])
-    ]
+    expected = [{**entry, "mode": int(entry["mode"])} for entry in manifest]
+    try:
+        actual = [
+            {
+                key: record[key]
+                for key in ("source", "target", "phase", "mode")
+            }
+            for record in receipt.get("entries", [])
+        ]
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError("file deployment manifest identity mismatch") from exc
     if actual != expected:
         raise RuntimeError("file deployment manifest identity mismatch")
+
     for record in receipt["entries"]:
+        target = Path(record["target"])
+        if not target.is_absolute():
+            raise RuntimeError(f"non-absolute manifest target: {target}")
         if record["phase"] == "verify":
             continue
         artifact_name = record.get("backup") or record.get("marker")
-        if not artifact_name:
+        if (
+            not artifact_name
+            or Path(artifact_name).name != artifact_name
+            or "/" in artifact_name
+        ):
             raise RuntimeError("file deployment receipt lacks rollback evidence")
         artifact = backups / artifact_name
-        _assert_regular(artifact, "rollback evidence")
-        _assert_mode(artifact, 0o600, "rollback evidence")
+        artifact_data, artifact_mode = _read_regular(
+            artifact, "rollback evidence"
+        )
+        _assert_mode(
+            artifact_mode, 0o600, "rollback evidence", artifact
+        )
+        if record["prior"] == "present":
+            if _digest(artifact_data) != record.get("prior_sha256"):
+                raise RuntimeError(f"backup digest mismatch: {artifact}")
+        elif (
+            record["prior"] != "absent"
+            or artifact_data != (record["target"] + "\n").encode()
+        ):
+            raise RuntimeError(f"absent marker mismatch: {artifact}")
     return receipt
+
+
+def _load_phase_state(receipt_dir, receipt, *, allow_missing=True):
+    path = _receipt_path(receipt_dir, PHASE_STATE_NAME)
+    state_value = _read_json(
+        path, "phase state", allow_missing=allow_missing
+    )
+    if state_value is None:
+        return None
+    checksum = state_value.pop("checksum", None)
+    if (
+        state_value.get("schema") != PHASE_STATE_SCHEMA
+        or state_value.get("receipt_checksum") != receipt["checksum"]
+        or checksum != _digest(_canonical(state_value))
+    ):
+        raise RuntimeError("phase state checksum or receipt identity mismatch")
+    state_value["checksum"] = checksum
+    return state_value
+
+
+def _write_phase_state(receipt_dir, state_value):
+    _write_json(_receipt_path(receipt_dir, PHASE_STATE_NAME), state_value)
+
+
+def _assert_no_recovery(receipt_dir, receipt):
+    state_value = _load_phase_state(receipt_dir, receipt)
+    if state_value is not None and state_value.get("status") in _RECOVERY_STATUSES:
+        raise RuntimeError("explicit recovery required before next operation")
+    return state_value
+
+
+def _expected_metadata(record, state_name):
+    if state_name == "desired":
+        return record["source_sha256"], record["mode"]
+    if state_name != "original":
+        raise ValueError(f"unknown target state: {state_name}")
+    if record["prior"] == "absent":
+        return None
+    return record["prior_sha256"], record["prior_mode"]
+
+
+def _verify_dependency_matches(record):
+    current = _read_regular(
+        Path(record["target"]), "verify target", allow_missing=True
+    )
+    return current is not None and _digest(current[0]) == record["source_sha256"]
+
+
+def _target_matches(record, state_name):
+    expected = _expected_metadata(record, state_name)
+    current = _read_regular(
+        Path(record["target"]), "live target", allow_missing=True
+    )
+    if expected is None:
+        return current is None
+    if current is None:
+        return False
+    data, actual_mode = current
+    return _digest(data) == expected[0] and actual_mode == expected[1]
+
+
+def _owned_state(record, allowed):
+    for state_name in allowed:
+        if _target_matches(record, state_name):
+            return state_name
+    raise RuntimeError(f"unowned target drift: {record['target']}")
 
 
 def _validated_sources(repo_root, receipt, phase):
     prepared = []
+    required = {phase, "verify"} if phase == "code" else {phase}
     for record in receipt["entries"]:
-        if record["phase"] not in ({phase, "verify"} if phase == "code" else {phase}):
+        if record["phase"] not in required:
             continue
-        source = Path(repo_root) / record["source"]
-        _assert_regular(source, "source")
-        data = source.read_bytes()
+        source = _source_path(repo_root, record)
+        data, _ = _read_regular(source, "source")
         if _digest(data) != record["source_sha256"]:
             raise RuntimeError(f"source digest changed: {source}")
         if record["phase"] == "verify":
-            target = Path(record["target"])
-            _assert_regular(target, "verify target")
-            if _digest(target.read_bytes()) != record["source_sha256"]:
-                raise RuntimeError(f"verify target digest mismatch: {target}")
+            if not _verify_dependency_matches(record):
+                raise RuntimeError(
+                    f"verify target digest mismatch: {record['target']}"
+                )
         else:
             prepared.append((record, data))
     return prepared
 
 
-def install_phase(repo_root, receipt_dir, phase, *, manifest=MANIFEST):
+def _state_bytes(repo_root, receipt_dir, record, state_name):
+    if state_name == "desired":
+        source = _source_path(repo_root, record)
+        data, _ = _read_regular(source, "source")
+        if _digest(data) != record["source_sha256"]:
+            raise RuntimeError(f"source digest changed: {source}")
+        return data, record["mode"]
+    if state_name == "original":
+        if record["prior"] == "absent":
+            return None
+        backup = Path(receipt_dir) / "backups" / record["backup"]
+        data, actual_mode = _read_regular(backup, "backup")
+        _assert_mode(actual_mode, 0o600, "backup", backup)
+        if _digest(data) != record["prior_sha256"]:
+            raise RuntimeError(f"backup digest mismatch: {backup}")
+        return data, record["prior_mode"]
+    raise ValueError(f"unknown target state: {state_name}")
+
+
+def _apply_state(
+    repo_root,
+    receipt_dir,
+    record,
+    state_name,
+    *,
+    fault=None,
+    index=-2,
+):
+    payload = _state_bytes(repo_root, receipt_dir, record, state_name)
+    target = Path(record["target"])
+    if payload is None:
+        _unlink(target)
+    else:
+        _atomic_write(
+            target,
+            payload[0],
+            payload[1],
+            parent_mode=0o755,
+            fault=fault,
+            index=index,
+        )
+
+
+def _new_phase_state(receipt, operation, entries):
+    return {
+        "schema": PHASE_STATE_SCHEMA,
+        "receipt_checksum": receipt["checksum"],
+        "operation": operation,
+        "status": "applying",
+        "entries": entries,
+    }
+
+
+def _record_for_target(receipt, target):
+    for record in receipt["entries"]:
+        if record["target"] == target:
+            return record
+    raise RuntimeError(f"phase state target absent from receipt: {target}")
+
+
+def _rollback_transaction(repo_root, receipt_dir, receipt, state_value):
+    state_value["status"] = "recovering"
+    _write_phase_state(receipt_dir, state_value)
+    try:
+        for entry in reversed(state_value["entries"]):
+            record = _record_for_target(receipt, entry["target"])
+            current = _owned_state(record, (entry["before"], entry["after"]))
+            if current == entry["after"] and entry["before"] != entry["after"]:
+                _apply_state(
+                    repo_root, receipt_dir, record, entry["before"]
+                )
+            entry["status"] = "rolled-back"
+            _write_phase_state(receipt_dir, state_value)
+        state_value["status"] = "rolled-back"
+        _write_phase_state(receipt_dir, state_value)
+    except Exception:
+        state_value["status"] = "recovery-required"
+        _write_phase_state(receipt_dir, state_value)
+        raise
+
+
+def _execute_transaction(
+    repo_root,
+    receipt_dir,
+    receipt,
+    operation,
+    transitions,
+    *,
+    fault=None,
+    final_verify,
+):
+    entries = [
+        {
+            "target": record["target"],
+            "before": before,
+            "after": after,
+            "status": "pending",
+        }
+        for record, before, after in transitions
+        if before != after
+    ]
+    state_value = _new_phase_state(receipt, operation, entries)
+    _write_phase_state(receipt_dir, state_value)
+    try:
+        for index, entry in enumerate(state_value["entries"]):
+            record = _record_for_target(receipt, entry["target"])
+            if _owned_state(record, (entry["before"],)) != entry["before"]:
+                raise RuntimeError(f"unowned target drift: {entry['target']}")
+            entry["status"] = "intent"
+            _write_phase_state(receipt_dir, state_value)
+            _apply_state(
+                repo_root,
+                receipt_dir,
+                record,
+                entry["after"],
+                fault=fault,
+                index=index,
+            )
+            entry["status"] = "completed"
+            _write_phase_state(receipt_dir, state_value)
+        _hit(fault, "before-final-verify", -1)
+        if not final_verify():
+            raise RuntimeError(f"incomplete {operation} manifest equality")
+        state_value["status"] = "complete"
+        _write_phase_state(receipt_dir, state_value)
+        return True
+    except Exception:
+        try:
+            _rollback_transaction(
+                repo_root, receipt_dir, receipt, state_value
+            )
+        except Exception as rollback_error:
+            raise RuntimeError(
+                "automatic rollback failed; explicit recovery required"
+            ) from rollback_error
+        raise
+
+
+def install_phase(
+    repo_root,
+    receipt_dir,
+    phase,
+    *,
+    manifest=MANIFEST,
+    fault=None,
+):
     if phase not in {"code", "unit"}:
         raise ValueError("phase must be code or unit")
     os.umask(0o077)
+    repo_root = Path(repo_root)
     receipt = _load_receipt(receipt_dir, manifest)
-    prepared = _validated_sources(Path(repo_root).resolve(), receipt, phase)
-    for record, data in prepared:
-        _atomic_write(Path(record["target"]), data, record["mode"])
-    if not verify_phase(repo_root, receipt_dir, phase, manifest=manifest):
-        raise RuntimeError(f"incomplete {phase} manifest equality")
-    return True
+    _assert_no_recovery(receipt_dir, receipt)
+    prepared = _validated_sources(repo_root, receipt, phase)
+    transitions = []
+    for record, _ in prepared:
+        current = _owned_state(record, ("desired", "original"))
+        transitions.append((record, current, "desired"))
+    return _execute_transaction(
+        repo_root,
+        receipt_dir,
+        receipt,
+        f"install-{phase}",
+        transitions,
+        fault=fault,
+        final_verify=lambda: verify_phase(
+            repo_root,
+            receipt_dir,
+            phase,
+            manifest=manifest,
+            check_recovery=False,
+        ),
+    )
 
 
-def verify_phase(repo_root, receipt_dir, phase, *, manifest=MANIFEST):
+def verify_phase(
+    repo_root,
+    receipt_dir,
+    phase,
+    *,
+    manifest=MANIFEST,
+    check_recovery=True,
+):
+    if phase not in {"code", "unit"}:
+        raise ValueError("phase must be code or unit")
     receipt = _load_receipt(receipt_dir, manifest)
-    _validated_sources(Path(repo_root).resolve(), receipt, phase)
+    if check_recovery:
+        _assert_no_recovery(receipt_dir, receipt)
+    _validated_sources(Path(repo_root), receipt, phase)
     required = {phase, "verify"} if phase == "code" else {phase}
-    for record in receipt["entries"]:
-        if record["phase"] not in required:
-            continue
-        target = Path(record["target"])
-        _assert_regular(target, "live target")
-        if _digest(target.read_bytes()) != record["source_sha256"]:
-            return False
-        if record["phase"] != "verify" and stat.S_IMODE(target.stat().st_mode) != record["mode"]:
-            return False
-    return True
+    return all(
+        _verify_dependency_matches(record)
+        if record["phase"] == "verify"
+        else _target_matches(record, "desired")
+        for record in receipt["entries"]
+        if record["phase"] in required
+    )
 
 
-def restore(receipt_dir, *, manifest=MANIFEST):
+def restore(repo_root, receipt_dir=None, *, manifest=MANIFEST, fault=None):
+    if receipt_dir is None:
+        receipt_dir = repo_root
+        repo_root = Path.cwd()
     os.umask(0o077)
-    receipt_dir = Path(receipt_dir)
+    repo_root = Path(repo_root)
     receipt = _load_receipt(receipt_dir, manifest)
-    prepared = []
+    _assert_no_recovery(receipt_dir, receipt)
+    transitions = []
     for record in receipt["entries"]:
         if record["phase"] == "verify":
+            if not _verify_dependency_matches(record):
+                raise RuntimeError(f"unowned target drift: {record['target']}")
             continue
-        if record["prior"] == "present":
-            backup = receipt_dir / "backups" / record["backup"]
-            _assert_regular(backup, "backup")
-            data = backup.read_bytes()
-            if _digest(data) != record["prior_sha256"]:
-                raise RuntimeError(f"backup digest mismatch: {backup}")
-            prepared.append((record, data))
-        else:
-            marker = receipt_dir / "backups" / record["marker"]
-            _assert_regular(marker, "absent marker")
-            if marker.read_text() != record["target"] + "\n":
-                raise RuntimeError(f"absent marker mismatch: {marker}")
-            prepared.append((record, None))
-    for record, data in prepared:
-        target = Path(record["target"])
-        if data is None:
-            if target.exists() or target.is_symlink():
-                _assert_regular(target, "restore target")
-                target.unlink()
-                _fsync_directory(target.parent)
-        else:
-            _atomic_write(target, data, record["prior_mode"])
-    for record, data in prepared:
-        target = Path(record["target"])
-        if data is None:
-            if target.exists() or target.is_symlink():
-                raise RuntimeError(f"absent target restore failed: {target}")
-        elif _digest(target.read_bytes()) != record["prior_sha256"]:
-            raise RuntimeError(f"target restore digest mismatch: {target}")
-        elif stat.S_IMODE(target.stat().st_mode) != record["prior_mode"]:
-            raise RuntimeError(f"target restore mode mismatch: {target}")
+        current = _owned_state(record, ("original", "desired"))
+        transitions.append((record, current, "original"))
+    return _execute_transaction(
+        repo_root,
+        receipt_dir,
+        receipt,
+        "restore",
+        transitions,
+        fault=fault,
+        final_verify=lambda: all(
+            _target_matches(record, "original")
+            for record in receipt["entries"]
+            if record["phase"] != "verify"
+        ),
+    )
+
+
+def recover(repo_root, receipt_dir, *, manifest=MANIFEST):
+    os.umask(0o077)
+    repo_root = Path(repo_root)
+    receipt = _load_receipt(receipt_dir, manifest)
+    state_value = _load_phase_state(receipt_dir, receipt, allow_missing=False)
+    if state_value.get("status") not in _RECOVERY_STATUSES:
+        return state_value.get("status") in {"complete", "rolled-back"}
+    _rollback_transaction(repo_root, receipt_dir, receipt, state_value)
     return True
+
+
+def validate_cli_paths(repo_root, receipt_dir):
+    repo_root = Path(repo_root)
+    receipt_dir = Path(receipt_dir)
+    if repo_root != ALLOWED_REPO_ROOT:
+        raise ValueError("CLI is confined to the fixed reviewed repository")
+    root_parts = ALLOWED_RECEIPT_ROOT.parts
+    parts = receipt_dir.parts
+    remainder = parts[len(root_parts):]
+    if (
+        parts[: len(root_parts)] != root_parts
+        or len(remainder) != 2
+        or remainder[1] != "files"
+        or not _ATTENDED_ID.fullmatch(remainder[0])
+    ):
+        raise ValueError("CLI receipt must be below the fixed private receipt root")
+    return True
+
+
+def prepare_private_directories(
+    state_root,
+    evidence_root,
+    item_receipt,
+    file_receipt,
+):
+    for path in (
+        Path(state_root),
+        Path(state_root) / "models",
+        Path(state_root) / "review",
+        Path(state_root) / "evidence",
+        Path(evidence_root),
+        Path(item_receipt),
+        Path(file_receipt),
+    ):
+        secure_directory(path, 0o700, create=True, enforce_mode=True)
+    return True
+
+
+def _cli_paths(args):
+    validate_cli_paths(args.repo_root, args.receipt_dir)
+    evidence_root = args.receipt_dir.parent
+    item_receipt = evidence_root / "item"
+    return evidence_root, item_receipt
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("snapshot", "install-code", "verify-code", "install-units", "verify-units", "restore"))
-    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "command",
+        choices=(
+            "prepare",
+            "snapshot",
+            "install-code",
+            "verify-code",
+            "install-units",
+            "verify-units",
+            "restore",
+            "recover",
+        ),
+    )
+    parser.add_argument("--repo-root", type=Path, default=ALLOWED_REPO_ROOT)
     parser.add_argument("--receipt-dir", type=Path, required=True)
     args = parser.parse_args(argv)
-    if args.command == "snapshot":
+    evidence_root, item_receipt = _cli_paths(args)
+
+    if args.command == "prepare":
+        prepare_private_directories(
+            ALLOWED_STATE_ROOT,
+            evidence_root,
+            item_receipt,
+            args.receipt_dir,
+        )
+    elif args.command == "snapshot":
         capture_backup(args.repo_root, args.receipt_dir)
     elif args.command == "install-code":
         install_phase(args.repo_root, args.receipt_dir, "code")
@@ -312,8 +938,10 @@ def main(argv=None):
     elif args.command == "verify-units":
         if not verify_phase(args.repo_root, args.receipt_dir, "unit"):
             raise SystemExit(1)
+    elif args.command == "restore":
+        restore(args.repo_root, args.receipt_dir)
     else:
-        restore(args.receipt_dir)
+        recover(args.repo_root, args.receipt_dir)
 
 
 if __name__ == "__main__":

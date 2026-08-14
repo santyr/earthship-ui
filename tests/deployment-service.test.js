@@ -1,8 +1,10 @@
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 const SERVICE_PATH = 'deploy/earthship-ui.service';
 const THERMAL_RUNBOOK_PATH = 'docs/operations/thermal-model-shadow.md';
+const README_PATH = 'README.md';
 const THERMAL_UNIT_PATHS = {
   trainService: 'deploy/thermal-model-train.service',
   trainTimer: 'deploy/thermal-model-train.timer',
@@ -97,6 +99,14 @@ describe('thermal model shadow user units', () => {
   });
 });
 
+describe('thermal model operations documentation', () => {
+  it('routes operators to the first-install-only transactional runbook', () => {
+    const readme = fs.readFileSync(README_PATH, 'utf8');
+    expect(readme).toContain('first-install-only');
+    expect(readme).toContain('durable transaction recovery');
+    expect(readme).toContain('separately reviewed upgrade procedure');
+  });
+});
 
 function bashBlocks(source) {
   return [...source.matchAll(/```bash\n([\s\S]*?)\n```/g)].map((match) => match[1]);
@@ -112,14 +122,114 @@ describe('thermal model attended runbook safety', () => {
       expect(block.split('\n').find((line) => line.trim())).toBe('set -euo pipefail');
       for (const line of block.split('\n')) {
         const trimmed = line.trim();
-        if (trimmed.startsWith('jq ') || trimmed.startsWith('| jq ')) {
-          expect(trimmed).toMatch(/^(?:\| )?jq\b[^\n]*\s-e(?:\s|$)/);
+        if (/\bjq\s/.test(trimmed)) {
+          expect(trimmed).toMatch(/\bjq\b[^\n]*\s-e(?:\s|$)/);
         }
         if (trimmed.startsWith('curl ')) {
           expect(trimmed).toMatch(/^curl --fail --silent --show-error(?: |$)/);
         }
       }
       expect(block).not.toMatch(/printf[^\n]*"\$\(git /);
+    }
+  });
+
+  it('uses checked assignments and executable fail-closed probe patterns', () => {
+    for (const block of blocks) {
+      expect(block).not.toMatch(/\btest\b[^\n]*\$\(/);
+      expect(block).not.toMatch(/(?:if|elif) systemctl\b/);
+    }
+    const masked = spawnSync('bash', ['-c',
+      'set -euo pipefail; test -z "$(false)"; printf unsafe',
+    ]);
+    expect(masked.status).toBe(0);
+    const checked = spawnSync('bash', ['-c',
+      'set -euo pipefail; VALUE="$(false)"; test -z "$VALUE"; printf safe',
+    ]);
+    expect(checked.status).not.toBe(0);
+    expect(
+      runbook.match(/thermal-systemd-state\.py first-install/g)?.length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(runbook).toContain('thermal-systemd-state.py rollback-precheck');
+    expect(runbook).toContain('thermal-systemd-state.py rollback-quiescent');
+  });
+
+  it('binds the attended runtime DSN and Gate C publication authority exactly', () => {
+    const ordered = [
+      "read -r -s -p 'THERMAL_DATABASE_URL:",
+      "current_user <> 'thermal_intel_runtime'",
+      'thermal_intel.py train',
+      'thermal_intel.py backtest',
+      'unset THERMAL_DATABASE_URL',
+      'Gate B: sole observational Item and state writes',
+      'Gate C: service and timer activation',
+      'thermal-model-shadow.service',
+      'post-service-readback.json',
+      'validate_thermal_shadow.py',
+      'enable --now thermal-model-train.timer thermal-model-shadow.timer',
+    ];
+    let previous = -1;
+    for (const marker of ordered) {
+      const current = runbook.indexOf(marker, previous + 1);
+      expect(current, marker).toBeGreaterThan(previous);
+      previous = current;
+    }
+    expect(runbook).toContain('future timer-driven PUTs to exact Thermal_Model_JSON');
+    expect(runbook).toContain(
+      'future timer-driven private training, backtest, and artifact replacement',
+    );
+    expect(runbook).toContain('immediate catch-up publication');
+    expect(runbook).toContain("trap 'unset THERMAL_DATABASE_URL' EXIT HUP INT TERM");
+  });
+
+  it('documents recoverable transactions, secure directories, and exact database objects', () => {
+    expect(runbook).toContain('thermal-model-files.py prepare');
+    expect(runbook).toContain('phase-state.json');
+    expect(runbook).toContain('thermal-model-files.py recover');
+    expect(runbook).toContain('unowned target drift');
+    for (const object of [
+      'message_receipts',
+      'action_events',
+      'mode_events',
+      'reject_journal_mutation',
+      'reject_action_correction_cycle',
+      'reject_mode_correction_cycle',
+      'has_sequence_privilege',
+      'has_function_privilege',
+      'prosecdef',
+      'prokind',
+      'is_grantable',
+      'attacl',
+    ]) {
+      expect(runbook).toContain(object);
+    }
+    expect(runbook).toMatch(/CONNECT.*TEMP.*CREATE/s);
+    expect(runbook).toContain('system catalog visibility');
+  });
+
+  it('audits an existing schema before migration and revalidates private paths', () => {
+    const migration = runbook.indexOf('from thermal_model.journal import migrate');
+    const preInventory = runbook.indexOf('pre-migration thermal_intel inventory is not exact');
+    expect(preInventory).toBeGreaterThan(-1);
+    expect(preInventory).toBeLessThan(migration);
+    expect((runbook.match(/actual_tables/g) || []).length).toBeGreaterThanOrEqual(6);
+
+    const runtimePrompt = runbook.indexOf("read -r -s -p 'THERMAL_DATABASE_URL: '");
+    const runtimeOwnership = runbook.indexOf('runtime role owns database or application objects', runtimePrompt);
+    const runtimeSchemaCreate = runbook.indexOf('runtime role has schema CREATE', runtimePrompt);
+    const train = runbook.indexOf('thermal_intel.py train', runtimePrompt);
+    expect(runtimeOwnership).toBeGreaterThan(runtimePrompt);
+    expect(runtimeSchemaCreate).toBeGreaterThan(runtimeOwnership);
+    expect(train).toBeGreaterThan(runtimeSchemaCreate);
+
+    for (const marker of [
+      'THERMAL_DATABASE_URL: ',
+      '.published-readback.XXXXXX',
+      'systemctl --user start thermal-model-train.service',
+      '.post-service-readback.XXXXXX',
+    ]) {
+      const position = runbook.indexOf(marker);
+      const prepare = runbook.lastIndexOf('thermal-model-files.py prepare', position);
+      expect(prepare, marker).toBeGreaterThan(-1);
     }
   });
 
