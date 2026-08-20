@@ -5,7 +5,7 @@ from datetime import timedelta
 import math
 
 import numpy as np
-from scipy.optimize import lsq_linear
+from scipy.optimize import Bounds, LinearConstraint, lsq_linear, minimize
 
 from .schema import DynamicsModel
 
@@ -42,6 +42,10 @@ MASS_BOUNDS = (
     [0.0, 0.0, 0.0, 0.0],
     [0.20, 0.008, 0.004, 0.006],
 )
+GLAZING_BOUNDS = (
+    [-np.inf, -np.inf, -np.inf, 0.0, 0.0, 0.0],
+    [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
+)
 OUTPUT_RANGE_F = (-40.0, 140.0)
 MAX_VENT_FORCING = 2.0
 VENT_FORCING_LEVELS = (
@@ -51,6 +55,7 @@ VENT_FORCING_LEVELS = (
 )
 # Reject eigenvalues numerically indistinguishable from the unit circle.
 STABILITY_TOLERANCE = 1e-9
+SOLVER_FEASIBILITY_MARGIN = 1e-12
 
 
 def _value(row, name):
@@ -168,7 +173,23 @@ def fit_diagnostics(samples):
     return _selection(samples)[1]
 
 
-def _fit(design, target, bounds, names):
+def _solar_order_constraint(names, scale):
+    rows = np.zeros((2, len(names)), dtype=float)
+    unshaded = names.index("solar_unshaded")
+    rows[0, unshaded] = 1.0 / scale[unshaded]
+    rows[1, unshaded] = 1.0 / scale[unshaded]
+    indoor = names.index("solar_indoor_closed")
+    outdoor = names.index("solar_outdoor")
+    rows[0, indoor] = -1.0 / scale[indoor]
+    rows[1, outdoor] = -1.0 / scale[outdoor]
+    return LinearConstraint(
+        rows,
+        np.full(2, SOLVER_FEASIBILITY_MARGIN),
+        np.full(2, np.inf),
+    )
+
+
+def _fit(design, target, bounds, names, *, ordered_solar=False):
     if len(design) < len(names):
         raise ValueError(f"insufficient fitted pairs for {len(names)} coefficients")
     matrix = np.asarray(design, dtype=float)
@@ -180,7 +201,58 @@ def _fit(design, target, bounds, names):
     result = lsq_linear(matrix, values, bounds=bounds, method="trf", lsmr_tol="auto")
     if not result.success or not np.isfinite(result.x).all():
         raise ValueError("bounded least-squares fit failed")
-    return dict(zip(names, (float(value) for value in result.x)))
+    coefficients = result.x
+    if ordered_solar:
+        lower = np.asarray(bounds[0], dtype=float)
+        upper = np.asarray(bounds[1], dtype=float)
+        initial = np.clip(coefficients, lower, upper)
+        unshaded = names.index("solar_unshaded")
+        initial[unshaded] = max(
+            initial[unshaded],
+            initial[names.index("solar_indoor_closed")],
+            initial[names.index("solar_outdoor")],
+        )
+        scale = np.linalg.norm(matrix, axis=0)
+        scaled_matrix = matrix / scale
+        scaled_initial = initial * scale
+        scaled_lower = lower * scale
+        scaled_upper = upper * scale
+
+        def objective(candidate):
+            residual = scaled_matrix @ candidate - values
+            return 0.5 * float(residual @ residual)
+
+        def gradient(candidate):
+            return scaled_matrix.T @ (scaled_matrix @ candidate - values)
+
+        result = minimize(
+            objective,
+            scaled_initial,
+            method="SLSQP",
+            jac=gradient,
+            bounds=Bounds(scaled_lower, scaled_upper),
+            constraints=(_solar_order_constraint(names, scale),),
+            options={"ftol": 1e-12, "maxiter": 2000},
+        )
+        coefficients = result.x / scale
+        if not result.success or not np.isfinite(coefficients).all():
+            raise ValueError("constrained least-squares fit failed")
+        if np.any(coefficients < lower) or np.any(coefficients > upper):
+            raise ValueError("constrained least-squares fit violated bounds")
+        gains = {
+            name: coefficients[names.index(name)]
+            for name in (
+                "solar_unshaded",
+                "solar_indoor_closed",
+                "solar_outdoor",
+            )
+        }
+        if (
+            gains["solar_unshaded"] < gains["solar_indoor_closed"]
+            or gains["solar_unshaded"] < gains["solar_outdoor"]
+        ):
+            raise ValueError("constrained least-squares fit violated solar order")
+    return dict(zip(names, (float(value) for value in coefficients)))
 
 
 def fit_dynamics(samples):
@@ -212,14 +284,19 @@ def fit_dynamics(samples):
             np.asarray((left.air_f - left.mass_f, *solar)) * weight
         )
         mass_target.append((right.mass_f - left.mass_f) * weight)
-    air = _fit(air_design, air_target, AIR_BOUNDS, AIR_NAMES)
-    mass = _fit(mass_design, mass_target, MASS_BOUNDS, MASS_NAMES)
+    air = _fit(
+        air_design, air_target, AIR_BOUNDS, AIR_NAMES, ordered_solar=True
+    )
+    mass = _fit(
+        mass_design, mass_target, MASS_BOUNDS, MASS_NAMES, ordered_solar=True
+    )
     glazing = (
         _fit(
             glazing_design,
             glazing_target,
-            (-np.inf, np.inf),
+            GLAZING_BOUNDS,
             GLAZING_NAMES,
+            ordered_solar=True,
         )
         if _full_rank(glazing_design, GLAZING_NAMES)
         else {}

@@ -2,12 +2,15 @@ import math
 import random
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 import thermal_model.dynamics as dynamics
 from thermal_model.dynamics import (
     AIR_BOUNDS,
+    GLAZING_BOUNDS,
     MASS_BOUNDS,
     fit_diagnostics,
     fit_dynamics,
@@ -153,6 +156,36 @@ def synthetic_2r2c_days(days, seed):
     return rows[:split], rows[split:]
 
 
+def _synthetic_unordered_glazing_pressure():
+    training, _ = synthetic_2r2c_days(days=21, seed=41)
+    pressured = []
+    coefficients = {
+        "intercept": 4.0,
+        "air": 0.72,
+        "outdoor": 0.20,
+        "solar_unshaded": 0.0010,
+        "solar_indoor_closed": 0.0040,
+        "solar_outdoor": 0.0020,
+    }
+    for sample in training:
+        forcing = {
+            "radiation": sample.radiation_wm2,
+            "indoor": sample.indoor_shade_closed,
+            "outdoor_shade": sample.outdoor_shade_present,
+        }
+        solar = _synthetic_solar(forcing)
+        glazing = (
+            coefficients["intercept"]
+            + coefficients["air"] * sample.air_f
+            + coefficients["outdoor"] * sample.outdoor_f
+            + coefficients["solar_unshaded"] * solar[0]
+            + coefficients["solar_indoor_closed"] * solar[1]
+            + coefficients["solar_outdoor"] * solar[2]
+        )
+        pressured.append(replace(sample, glazing_f=glazing))
+    return pressured
+
+
 def _forcing_rows(samples):
     return samples[1:]
 
@@ -215,6 +248,36 @@ def test_fit_recovers_stable_synthetic_2r2c():
         assert model.glazing_observation_coefficients[name] == pytest.approx(
             expected, abs=glazing_tolerances[name]
         )
+
+
+def test_fit_enforces_ordered_solar_gains_during_optimization():
+    samples = _synthetic_unordered_glazing_pressure()
+    design, target = dynamics._glazing_rows(dynamics._selected_pairs(samples))
+    direct = dynamics.lsq_linear(
+        design,
+        target,
+        bounds=(-math.inf, math.inf),
+        method="trf",
+        lsmr_tol="auto",
+    )
+    direct_coefficients = dict(zip(dynamics.GLAZING_NAMES, direct.x))
+    assert direct.success
+    assert (
+        direct_coefficients["solar_indoor_closed"]
+        > direct_coefficients["solar_unshaded"]
+    )
+
+    model = fit_dynamics(samples)
+
+    for coefficients in (
+        model.air_coefficients,
+        model.mass_coefficients,
+        model.glazing_observation_coefficients,
+    ):
+        assert coefficients["solar_unshaded"] >= coefficients["solar_indoor_closed"]
+        assert coefficients["solar_unshaded"] >= coefficients["solar_outdoor"]
+        assert coefficients["solar_indoor_closed"] >= 0.0
+        assert coefficients["solar_outdoor"] >= 0.0
 
 
 def test_fit_rejects_shaded_gain_above_unshaded_gain():
@@ -392,6 +455,38 @@ def test_fit_rejects_rank_deficient_identification_data():
         fit_dynamics(samples)
 
 
+def test_ordered_fit_rejects_unsuccessful_optimizer(monkeypatch):
+    training, _ = synthetic_2r2c_days(days=5, seed=43)
+
+    def unsuccessful(*args, **kwargs):
+        return SimpleNamespace(success=False, x=np.asarray(args[1], dtype=float))
+
+    monkeypatch.setattr(dynamics, "minimize", unsuccessful)
+
+    with pytest.raises(ValueError, match="constrained least-squares fit failed"):
+        fit_dynamics(training)
+
+
+@pytest.mark.parametrize("failure", ["nonfinite", "unordered"])
+def test_ordered_fit_rejects_invalid_optimizer_result(monkeypatch, failure):
+    training, _ = synthetic_2r2c_days(days=5, seed=47)
+
+    def invalid(*args, **kwargs):
+        candidate = np.asarray(args[1], dtype=float).copy()
+        if failure == "nonfinite":
+            candidate[0] = math.nan
+        else:
+            candidate[2] = 0.0
+            candidate[3] = 1.0
+        return SimpleNamespace(success=True, x=candidate)
+
+    monkeypatch.setattr(dynamics, "minimize", invalid)
+    message = "fit failed" if failure == "nonfinite" else "violated solar order"
+
+    with pytest.raises(ValueError, match=message):
+        fit_dynamics(training)
+
+
 def test_rank_deficient_glazing_design_skips_only_auxiliary_fit():
     training, _ = synthetic_2r2c_days(days=5, seed=23)
     training = [
@@ -467,6 +562,10 @@ def test_exact_coefficient_bounds_are_the_approved_five_minute_bounds():
     assert MASS_BOUNDS == (
         [0.0, 0.0, 0.0, 0.0],
         [0.20, 0.008, 0.004, 0.006],
+    )
+    assert GLAZING_BOUNDS == (
+        [-math.inf, -math.inf, -math.inf, 0.0, 0.0, 0.0],
+        [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf],
     )
 
 
