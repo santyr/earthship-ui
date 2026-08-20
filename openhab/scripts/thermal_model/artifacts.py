@@ -15,11 +15,15 @@ from .behavior import AIRFLOW_LEVELS, FEATURE_NAMES, TRANSITIONS
 from .dataset import (
     AUXILIARY_EXCLUSION_COUNT_KEYS,
     CORE_REJECTED_COUNT_KEYS,
+    MASS_OBSERVER_TAU_MINUTES,
+    MAX_HOLD_FORWARD_GAP,
+    MAX_INTERPOLATION_GAP,
     MODE_COUNT_KEYS,
 )
 from .dynamics import (
     AIR_BOUNDS,
     AIR_NAMES,
+    ENVELOPE_MAX_RADIATION_WM2,
     GLAZING_BOUNDS,
     GLAZING_NAMES,
     MASS_BOUNDS,
@@ -33,6 +37,7 @@ from .schema import (
     BehaviorModel,
     DynamicsModel,
     SeasonalActionVocabulary,
+    OPTIONAL_OBSERVATION_ITEMS,
     SOURCE_WEIGHTS,
     THERMAL_ITEMS,
     ThermalArtifact,
@@ -46,7 +51,9 @@ THERMAL_UNITS = {
     "glazing": "F",
     "outdoor": "F",
     "radiation": "W/m2",
+    "living_office": "F",
 }
+MODEL_ITEMS = {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
 DEFAULT_STATE_DIRECTORY = Path("~/.local/state/thermal-intel/models").expanduser()
 _SHA_RE = re.compile(r"[0-9a-f]{7,64}\Z")
 _DIGEST_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -63,6 +70,8 @@ _MANIFEST_KEYS = {
     "sample_counts_by_mode",
     "rejected_counts",
     "auxiliary_exclusion_counts",
+    "interpolation_counts",
+    "hold_forward_counts",
     "event_counts_by_source",
     "items",
     "units",
@@ -77,6 +86,9 @@ _DIAGNOSTIC_KEYS = {
     "excluded_unknown_action_pairs",
     "auxiliary_glazing_fitted_rows",
     "auxiliary_glazing_skipped_rows",
+    "envelope_identification_pairs",
+    "auxiliary_living_office_observation_rows",
+    "auxiliary_living_office_hallway_mae_f",
     "action_label_coverage_fraction",
 }
 _ACTION_STATES = {
@@ -372,6 +384,21 @@ def _expected_constraints():
         "output_range_f": list(OUTPUT_RANGE_F),
         "max_vent_forcing": MAX_VENT_FORCING,
         "stability_tolerance": STABILITY_TOLERANCE,
+        "max_interpolation_gap_minutes": int(
+            MAX_INTERPOLATION_GAP.total_seconds() / 60
+        ),
+        "max_every_change_hold_minutes": int(
+            MAX_HOLD_FORWARD_GAP.total_seconds() / 60
+        ),
+        "mass_observer": {
+            "kind": "causal_ema",
+            "source_role": "mass",
+            "time_constant_minutes": MASS_OBSERVER_TAU_MINUTES,
+        },
+        "envelope_identification": {
+            "max_radiation_wm2": ENVELOPE_MAX_RADIATION_WM2,
+            "vent_forcing": 0.0,
+        },
     }
 
 
@@ -390,12 +417,15 @@ def _same_typed_value(actual, expected):
     return actual == expected
 
 
-def _validate_diagnostics(diagnostics):
+def _validate_diagnostics(diagnostics, sample_count):
     if not isinstance(diagnostics, dict) or set(diagnostics) != _DIAGNOSTIC_KEYS:
         raise ArtifactValidationError(
             "fit diagnostics fields do not match the Task 4 contract"
         )
-    integer_names = _DIAGNOSTIC_KEYS - {"action_label_coverage_fraction"}
+    integer_names = _DIAGNOSTIC_KEYS - {
+        "action_label_coverage_fraction",
+        "auxiliary_living_office_hallway_mae_f",
+    }
     for name in integer_names:
         _integer(diagnostics[name], f"fit diagnostics.{name}")
     coverage = _real(
@@ -422,6 +452,33 @@ def _validate_diagnostics(diagnostics):
         raise ArtifactValidationError(
             "fit diagnostics glazing counts must equal fitted pairs"
         )
+    envelope_pairs = diagnostics["envelope_identification_pairs"]
+    if envelope_pairs > fitted:
+        raise ArtifactValidationError(
+            "fit diagnostics envelope pairs must not exceed fitted pairs"
+        )
+    living_rows = diagnostics["auxiliary_living_office_observation_rows"]
+    living_mae = diagnostics["auxiliary_living_office_hallway_mae_f"]
+    if living_rows > sample_count:
+        raise ArtifactValidationError(
+            "fit diagnostics living-office rows must not exceed samples"
+        )
+    if living_rows == 0:
+        if living_mae is not None:
+            raise ArtifactValidationError(
+                "fit diagnostics living-office MAE requires observations"
+            )
+    else:
+        if living_mae is None:
+            raise ArtifactValidationError(
+                "fit diagnostics living-office observations require MAE"
+            )
+        _real(
+            living_mae,
+            "fit diagnostics.auxiliary_living_office_hallway_mae_f",
+            minimum=0.0,
+            maximum=180.0,
+        )
     expected_coverage = fitted / total if total else 0.0
     if not math.isclose(coverage, expected_coverage, rel_tol=0.0, abs_tol=1e-12):
         raise ArtifactValidationError(
@@ -435,7 +492,7 @@ def _validate_manifest(artifact):
         raise ArtifactValidationError(
             "data manifest fields do not match the artifact contract"
         )
-    if manifest["items"] != THERMAL_ITEMS:
+    if manifest["items"] != MODEL_ITEMS:
         raise ArtifactValidationError(
             "artifact sensor identities do not match the contract"
         )
@@ -481,13 +538,32 @@ def _validate_manifest(artifact):
         "auxiliary exclusion counts",
         AUXILIARY_EXCLUSION_COUNT_KEYS,
     )
+    interpolation_counts = manifest["interpolation_counts"]
+    if (
+        not isinstance(interpolation_counts, dict)
+        or set(interpolation_counts) != set(MODEL_ITEMS)
+    ):
+        raise ArtifactValidationError(
+            "interpolation count roles do not match the sensor contract"
+        )
+    for role, count in interpolation_counts.items():
+        _integer(count, f"interpolation count {role}", minimum=0)
+    hold_counts = manifest["hold_forward_counts"]
+    if not isinstance(hold_counts, dict) or set(hold_counts) != set(MODEL_ITEMS):
+        raise ArtifactValidationError(
+            "hold-forward count roles do not match the sensor contract"
+        )
+    for role, count in hold_counts.items():
+        _integer(count, f"hold-forward count {role}", minimum=0)
     counts = manifest["event_counts_by_source"]
     _validate_count_map(counts, "action provenance")
     if not counts or not set(counts) <= set(SOURCE_WEIGHTS) or sum(counts.values()) <= 0:
         raise ArtifactValidationError(
             "action provenance counts must be nonempty canonical sources"
         )
-    _validate_diagnostics(manifest["fit_diagnostics"])
+    _validate_diagnostics(
+        manifest["fit_diagnostics"], manifest["sample_count"]
+    )
     constraints = manifest["constraints"]
     expected = _expected_constraints()
     if not _same_typed_value(constraints, expected):
@@ -981,7 +1057,7 @@ def _validate_payload_shape(payload):
     _exact_payload_keys(
         manifest["sample_counts_by_mode"], MODE_COUNT_KEYS, "sample mode counts"
     )
-    _exact_payload_keys(manifest["items"], THERMAL_ITEMS, "sensor items")
+    _exact_payload_keys(manifest["items"], MODEL_ITEMS, "sensor items")
     _exact_payload_keys(manifest["units"], THERMAL_UNITS, "sensor units")
     _validate_count_map(
         manifest["rejected_counts"],
@@ -992,6 +1068,12 @@ def _validate_payload_shape(payload):
         manifest["auxiliary_exclusion_counts"],
         "auxiliary exclusion count payload",
         AUXILIARY_EXCLUSION_COUNT_KEYS,
+    )
+    _exact_payload_keys(
+        manifest["interpolation_counts"], MODEL_ITEMS, "interpolation counts"
+    )
+    _exact_payload_keys(
+        manifest["hold_forward_counts"], MODEL_ITEMS, "hold-forward counts"
     )
     _exact_payload_keys(
         manifest["fit_diagnostics"], _DIAGNOSTIC_KEYS, "fit diagnostics"

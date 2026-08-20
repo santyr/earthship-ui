@@ -11,6 +11,9 @@ THERMAL_ITEMS = {
     "outdoor": "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature",
     "radiation": "AmbientWeatherWS2902A_SolarRadiation",
 }
+OPTIONAL_OBSERVATION_ITEMS = {
+    "living_office": "LivingOffice_Shade_Temperature",
+}
 ACTION_KINDS = ("vent", "indoor_shade", "outdoor_shade", "kiva")
 SOURCE_WEIGHTS = {
     "nostr_confirmed": 1.0,
@@ -70,6 +73,8 @@ class ThermalSample:
     action_confidence: float
     passive_fit_allowed: bool
     mode: Literal["spring", "warm", "fall_charge", "winter"] | None = None
+    north_wall_f: float | None = None
+    living_office_f: float | None = None
 
 
 @dataclass(frozen=True)

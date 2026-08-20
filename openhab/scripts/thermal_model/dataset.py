@@ -1,7 +1,7 @@
 """Pure, read-only construction of reproducible five-minute thermal samples."""
 
 from collections import Counter, defaultdict
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
@@ -9,10 +9,20 @@ import math
 from statistics import median
 
 from .actions import reconstruct_events, reconstruct_state
-from .schema import ActionEvent, ModeEvent, SOURCE_WEIGHTS, THERMAL_ITEMS, ThermalSample
+from .schema import (
+    ActionEvent,
+    ModeEvent,
+    OPTIONAL_OBSERVATION_ITEMS,
+    SOURCE_WEIGHTS,
+    THERMAL_ITEMS,
+    ThermalSample,
+)
 
 
 STEP = timedelta(minutes=5)
+MAX_INTERPOLATION_GAP = timedelta(minutes=20)
+MAX_HOLD_FORWARD_GAP = timedelta(minutes=60)
+MASS_OBSERVER_TAU_MINUTES = 120
 REQUIRED_ROLES = ("air", "mass", "outdoor", "radiation")
 TEMPERATURE_ROLES = ("air", "mass", "glazing", "outdoor")
 CONFIRMED_SOURCES = frozenset(("nostr_confirmed", "manual_dm"))
@@ -26,6 +36,11 @@ AUXILIARY_EXCLUSION_COUNT_KEYS = frozenset(
         "glazing_source_gap",
         "glazing_non_finite",
         "glazing_missing",
+        "living_office_range",
+        "living_office_jump",
+        "living_office_source_gap",
+        "living_office_non_finite",
+        "living_office_missing",
     }
 )
 SITE_LATITUDE = 38.3739919
@@ -37,7 +52,8 @@ class ThermalDataset(list):
 
     def __init__(
         self, values, *, start, end, rejected_counts, auxiliary_exclusion_counts,
-        confirmed_action_rows=(),
+        confirmed_action_rows=(), interpolation_counts=None,
+        hold_forward_counts=None,
     ):
         super().__init__(values)
         self.start = start
@@ -45,6 +61,8 @@ class ThermalDataset(list):
         self.rejected_counts = dict(rejected_counts)
         self.auxiliary_exclusion_counts = dict(auxiliary_exclusion_counts)
         self.confirmed_action_rows = tuple(confirmed_action_rows)
+        self.interpolation_counts = dict(interpolation_counts or {})
+        self.hold_forward_counts = dict(hold_forward_counts or {})
 
 
 def _utc(value, name):
@@ -71,7 +89,11 @@ def _iso_utc(value):
 def _bucket_series(series_by_role, start, end):
     buckets = {}
     non_finite_only = {}
-    for role in THERMAL_ITEMS:
+    roles = tuple(THERMAL_ITEMS) + tuple(OPTIONAL_OBSERVATION_ITEMS)
+    interpolation_counts = {role: 0 for role in roles}
+    hold_forward_counts = {role: 0 for role in roles}
+    observed_buckets = {}
+    for role in roles:
         grouped = defaultdict(list)
         non_finite = set()
         for point in series_by_role.get(role, ()):
@@ -93,8 +115,57 @@ def _bucket_series(series_by_role, start, end):
         buckets[role] = {
             at: float(median(values)) for at, values in grouped.items() if values
         }
+        observed_buckets[role] = dict(buckets[role])
         non_finite_only[role] = non_finite - set(buckets[role])
-    return buckets, non_finite_only
+        original = sorted(buckets[role].items())
+        for (left_at, left_value), (right_at, right_value) in zip(
+            original, original[1:]
+        ):
+            gap = right_at - left_at
+            if gap <= STEP or gap > MAX_HOLD_FORWARD_GAP:
+                continue
+            if any(left_at < at < right_at for at in non_finite_only[role]):
+                continue
+            valid = (
+                0.0 <= left_value <= 1600.0
+                and 0.0 <= right_value <= 1600.0
+                if role == "radiation"
+                else -40.0 <= left_value <= 140.0
+                and -40.0 <= right_value <= 140.0
+            )
+            if not valid:
+                continue
+            steps = int(gap / STEP)
+            for index in range(1, steps):
+                at = left_at + STEP * index
+                if at in non_finite_only[role]:
+                    continue
+                if gap <= MAX_INTERPOLATION_GAP:
+                    fraction = index / steps
+                    buckets[role][at] = float(
+                        left_value + fraction * (right_value - left_value)
+                    )
+                    interpolation_counts[role] += 1
+                else:
+                    buckets[role][at] = float(left_value)
+                    hold_forward_counts[role] += 1
+        if original:
+            last_at, last_value = original[-1]
+            cursor = last_at + STEP
+            limit = min(end, last_at + MAX_HOLD_FORWARD_GAP + STEP)
+            while cursor < limit:
+                if cursor in non_finite_only[role]:
+                    break
+                buckets[role][cursor] = float(last_value)
+                hold_forward_counts[role] += 1
+                cursor += STEP
+    return (
+        buckets,
+        non_finite_only,
+        interpolation_counts,
+        hold_forward_counts,
+        observed_buckets,
+    )
 
 
 def _range_failures(
@@ -126,12 +197,15 @@ def _jump_failures(buckets, roles=TEMPERATURE_ROLES):
     return failed
 
 
-def _large_gap_buckets(buckets, start, end, roles=REQUIRED_ROLES):
+def _large_gap_buckets(
+    buckets, start, end, roles=REQUIRED_ROLES,
+    max_gap=MAX_HOLD_FORWARD_GAP,
+):
     failed = set()
     for role in roles:
         points = sorted(buckets[role])
         for left, right in zip(points, points[1:]):
-            if right - left <= timedelta(minutes=20):
+            if right - left <= max_gap:
                 continue
             cursor = max(start, left + STEP)
             while cursor < min(end, right):
@@ -164,6 +238,75 @@ def _glazing_value(
         exclusion_counts[f"glazing_{reason}"] += 1
         return None
     return buckets[at]
+
+
+def _optional_temperature_value(
+    role, at, buckets, non_finite, range_failures, jump_failures,
+    gap_failures, exclusion_counts,
+):
+    reason = None
+    if at in range_failures:
+        reason = "range"
+    elif at in jump_failures:
+        reason = "jump"
+    elif at in gap_failures:
+        reason = "source_gap"
+    elif at in non_finite:
+        reason = "non_finite"
+    elif at not in buckets:
+        reason = "missing"
+    if reason is not None:
+        exclusion_counts[f"{role}_{reason}"] += 1
+        return None
+    return buckets[at]
+
+
+def _observe_latent_mass(samples):
+    alpha = 1.0 - math.exp(-STEP.total_seconds() / 60.0 / MASS_OBSERVER_TAU_MINUTES)
+    observed = []
+    latent = None
+    previous_at = None
+    for sample in samples:
+        north_wall = sample.mass_f
+        if previous_at is None or sample.at - previous_at != STEP:
+            latent = north_wall
+        else:
+            latent += alpha * (north_wall - latent)
+        observed.append(
+            replace(sample, mass_f=float(latent), north_wall_f=north_wall)
+        )
+        previous_at = sample.at
+    return observed
+
+
+def latent_mass_from_series(points):
+    """Return the latest causal latent mass from raw north-wall history."""
+    points = tuple(points)
+    aware = [
+        at
+        for at, _ in points
+        if isinstance(at, datetime)
+        and at.tzinfo is not None
+        and at.utcoffset() is not None
+    ]
+    if not aware:
+        return None
+    start = _floor_five(min(aware).astimezone(timezone.utc))
+    end = _floor_five(max(aware).astimezone(timezone.utc)) + STEP
+    buckets, _, _, _, _ = _bucket_series({"mass": points}, start, end)
+    alpha = 1.0 - math.exp(
+        -STEP.total_seconds() / 60.0 / MASS_OBSERVER_TAU_MINUTES
+    )
+    latent = None
+    previous_at = None
+    latest_at = None
+    for at, north_wall in sorted(buckets["mass"].items()):
+        if previous_at is None or at - previous_at != STEP:
+            latent = north_wall
+        else:
+            latent += alpha * (north_wall - latent)
+        previous_at = latest_at = at
+    return None if latest_at is None else (latest_at, float(latent))
 
 
 def _source_rank(source):
@@ -342,18 +485,37 @@ def build_samples(series_by_role, events, modes, start, end):
         _utc(event.received_at, "event received_at")
         _utc(event.effective_at, "event effective_at")
 
-    buckets, non_finite = _bucket_series(series_by_role, start_utc, end_utc)
+    (
+        buckets,
+        non_finite,
+        interpolation_counts,
+        hold_forward_counts,
+        observed_buckets,
+    ) = _bucket_series(series_by_role, start_utc, end_utc)
     range_failures = _range_failures(
         buckets, ("air", "mass", "outdoor"), include_radiation=True
     )
-    jump_failures = _jump_failures(buckets, ("air", "mass", "outdoor"))
-    gap_failures = _large_gap_buckets(buckets, start_utc, end_utc)
+    jump_failures = _jump_failures(
+        observed_buckets, ("air", "mass", "outdoor")
+    )
+    gap_failures = _large_gap_buckets(
+        observed_buckets, start_utc, end_utc
+    )
     glazing_range_failures = _range_failures(
         buckets, ("glazing",), include_radiation=False
     )
-    glazing_jump_failures = _jump_failures(buckets, ("glazing",))
+    glazing_jump_failures = _jump_failures(observed_buckets, ("glazing",))
     glazing_gap_failures = _large_gap_buckets(
-        buckets, start_utc, end_utc, ("glazing",)
+        observed_buckets, start_utc, end_utc, ("glazing",)
+    )
+    living_range_failures = _range_failures(
+        buckets, ("living_office",), include_radiation=False
+    )
+    living_jump_failures = _jump_failures(
+        observed_buckets, ("living_office",)
+    )
+    living_gap_failures = _large_gap_buckets(
+        observed_buckets, start_utc, end_utc, ("living_office",)
     )
     regimes = reconstruct_events(start_utc, end_utc, modes)
     cooldowns = _confirmed_kiva_cooldowns(events)
@@ -418,6 +580,16 @@ def build_samples(series_by_role, events, modes, start, end):
                 action_confidence=confidence,
                 passive_fit_allowed=passive,
                 mode=_regime_at(regimes, cursor),
+                living_office_f=_optional_temperature_value(
+                    "living_office",
+                    cursor,
+                    buckets["living_office"],
+                    non_finite["living_office"],
+                    living_range_failures,
+                    living_jump_failures,
+                    living_gap_failures,
+                    auxiliary_exclusions,
+                ),
             )
         )
         cursor += STEP
@@ -432,6 +604,7 @@ def build_samples(series_by_role, events, modes, start, end):
             }
         )
     )
+    samples = _observe_latent_mass(samples)
     return ThermalDataset(
         samples,
         start=start_utc,
@@ -439,6 +612,8 @@ def build_samples(series_by_role, events, modes, start, end):
         rejected_counts=rejected,
         auxiliary_exclusion_counts=auxiliary_exclusions,
         confirmed_action_rows=confirmed_action_rows,
+        interpolation_counts=interpolation_counts,
+        hold_forward_counts=hold_forward_counts,
     )
 
 
@@ -464,15 +639,21 @@ def dataset_manifest(samples, events, modes):
         end = samples.end
         rejected_counts = samples.rejected_counts
         auxiliary_exclusion_counts = samples.auxiliary_exclusion_counts
+        interpolation_counts = samples.interpolation_counts
+        hold_forward_counts = samples.hold_forward_counts
     elif ordered:
         start = ordered[0].at.astimezone(timezone.utc)
         end = ordered[-1].at.astimezone(timezone.utc) + STEP
         rejected_counts = {}
         auxiliary_exclusion_counts = {}
+        interpolation_counts = {}
+        hold_forward_counts = {}
     else:
         start = end = None
         rejected_counts = {}
         auxiliary_exclusion_counts = {}
+        interpolation_counts = {}
+        hold_forward_counts = {}
 
     counts = Counter(record.source for record in tuple(events) + tuple(modes))
     mode_counts = {name: 0 for name in MODE_COUNT_KEYS}
@@ -490,7 +671,18 @@ def dataset_manifest(samples, events, modes):
         "auxiliary_exclusion_counts": dict(
             sorted(auxiliary_exclusion_counts.items())
         ),
+        "interpolation_counts": {
+            role: int(interpolation_counts.get(role, 0))
+            for role in tuple(THERMAL_ITEMS) + tuple(OPTIONAL_OBSERVATION_ITEMS)
+        },
+        "hold_forward_counts": {
+            role: int(hold_forward_counts.get(role, 0))
+            for role in tuple(THERMAL_ITEMS) + tuple(OPTIONAL_OBSERVATION_ITEMS)
+        },
         "event_counts_by_source": dict(sorted(counts.items())),
-        "items": dict(THERMAL_ITEMS),
+        "items": {
+            **dict(THERMAL_ITEMS),
+            **dict(OPTIONAL_OBSERVATION_ITEMS),
+        },
         "canonical_rows_sha256": sha256(canonical_json).hexdigest(),
     }

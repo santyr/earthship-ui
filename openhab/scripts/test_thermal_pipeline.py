@@ -9,6 +9,7 @@ import pytest
 
 from thermal_model.artifacts import ArtifactPromotionRefused, ArtifactUnavailable
 from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS, baseline_schedule
+from thermal_model.dataset import ThermalDataset
 from thermal_model.pipeline import (
     TrainingRefused,
     build_shadow_output,
@@ -24,6 +25,7 @@ from thermal_model.schema import (
     BehaviorModel,
     DynamicsModel,
     ModeEvent,
+    OPTIONAL_OBSERVATION_ITEMS,
     SeasonalActionVocabulary,
     THERMAL_ITEMS,
     ThermalSample,
@@ -768,12 +770,15 @@ def test_training_assembles_exact_manifest_persists_report_then_refuses():
         "start", "end", "sample_count", "rejected_counts",
         "sample_counts_by_mode",
         "auxiliary_exclusion_counts", "event_counts_by_source", "items", "units",
-        "canonical_rows_sha256", "fit_diagnostics", "constraints",
+        "interpolation_counts", "hold_forward_counts", "canonical_rows_sha256", "fit_diagnostics", "constraints",
     }
-    assert registry.artifact.data_manifest["items"] == THERMAL_ITEMS
+    assert registry.artifact.data_manifest["items"] == {
+        **THERMAL_ITEMS,
+        **OPTIONAL_OBSERVATION_ITEMS,
+    }
     assert registry.artifact.metrics is registry.report["metrics"]
     assert calls[0] == "site"
-    assert [call[1] for call in calls if isinstance(call, tuple) and call[0] == "series"] == list(THERMAL_ITEMS.values())
+    assert [call[1] for call in calls if isinstance(call, tuple) and call[0] == "series"] == list({**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}.values())
     assert "forecast" not in calls
 
 
@@ -791,6 +796,66 @@ def test_training_promotes_only_after_report_and_candidate():
     assert registry.calls == ["report", "candidate", "promote"]
     assert result.promoted is True
     assert result.artifact is registry.artifact
+
+
+def test_training_preserves_subsecond_creation_time_at_data_boundary():
+    calls = []
+    moment = NOW.replace(microsecond=123456)
+    dependencies = orchestration_dependencies(calls, eligible=True)
+    dependencies["clock"] = lambda: moment
+    dependencies["sample_builder"] = lambda *args: ThermalDataset(
+        training_samples(),
+        start=moment - timedelta(days=30),
+        end=moment,
+        rejected_counts={},
+        auxiliary_exclusion_counts={},
+    )
+
+    result = run_training(
+        start=moment - timedelta(days=30),
+        end=moment,
+        registry=RecordingRegistry(),
+        journal=FakeJournal(calls),
+        **dependencies,
+    )
+
+    assert result.artifact.created_at == "2026-08-13T12:00:00.123456Z"
+    assert result.artifact.created_at == result.artifact.trained_through
+
+
+def test_training_keeps_full_fit_strict_and_uses_fold_only_evaluation_fit():
+    calls = []
+    strict_calls = []
+    fold_calls = []
+    dependencies = orchestration_dependencies(calls, eligible=True)
+    dependencies["dynamics_fitter"] = (
+        lambda rows: strict_calls.append(len(rows)) or stable_dynamics()
+    )
+    dependencies["evaluation_dynamics_fitter"] = (
+        lambda rows: fold_calls.append(len(rows))
+        or SimpleNamespace(
+            dynamics=stable_dynamics(),
+            inactive_forcing_features=("solar_outdoor",),
+        )
+    )
+
+    def evaluator(rows, fit):
+        fitted = fit(rows)
+        assert fitted.dynamics == stable_dynamics()
+        assert fitted.inactive_forcing_features == ("solar_outdoor",)
+        return backtest_report(eligible=True)
+
+    dependencies["evaluator"] = evaluator
+    run_training(
+        start=NOW - timedelta(days=30),
+        end=NOW,
+        registry=RecordingRegistry(),
+        journal=FakeJournal(calls),
+        **dependencies,
+    )
+
+    assert strict_calls == [4]
+    assert fold_calls == [4]
 
 
 def test_backtest_reads_authorities_and_persists_only_report():
@@ -951,6 +1016,27 @@ def test_cli_observed_history_buckets_independent_item_updates_without_invention
         {"at": base + timedelta(minutes=10), "hallwayF": 72.0, "massF": 69.0},
     ]
     assert base + timedelta(minutes=5) not in {row["at"] for row in observed}
+
+
+def test_cli_current_state_initializes_mass_from_causal_latent_observer():
+    import thermal_intel
+
+    now = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
+    points = {
+        THERMAL_ITEMS["air"]: ((now - timedelta(minutes=5), 71.0), (now, 72.0)),
+        THERMAL_ITEMS["mass"]: ((now - timedelta(minutes=5), 68.0), (now, 72.0)),
+        THERMAL_ITEMS["glazing"]: ((now, 75.0),),
+        THERMAL_ITEMS["outdoor"]: ((now, 80.0),),
+        THERMAL_ITEMS["radiation"]: ((now, 500.0),),
+    }
+
+    current = thermal_intel._current_states(
+        now, series_reader=lambda item, start, end: points[item]
+    )
+    alpha = 1.0 - math.exp(-5.0 / 120.0)
+
+    assert current["mass"]["value"] == pytest.approx(68.0 + alpha * 4.0)
+    assert current["observed"][-1]["massF"] == 72.0
 
 
 class _ModeJournal:

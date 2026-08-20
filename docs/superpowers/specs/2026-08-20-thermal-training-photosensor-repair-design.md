@@ -1,7 +1,7 @@
 # Earthship Thermal Training and Photosensor Repair
 
 **Date:** 2026-08-20
-**Status:** Approved in conversation; implementation not started
+**Status:** Approved; implementation verified locally, private Gate A remains fail-closed
 **Extends:** `2026-08-13-rc-thermal-model-design.md`
 
 ## Purpose
@@ -198,3 +198,60 @@ Test-driven implementation must include:
 Timer activation authorizes future daily private 400-day training/backtest and
 accepted-artifact replacement plus two-hour observational shadow publication.
 It never authorizes physical automation.
+
+## 2026-08-20 latent-mass identification amendment
+
+The first attended 400-day fit disproved the assumption that the north-wall
+WH31E reading is the instantaneous five-minute mass state. Its apparent
+air-to-mass coupling was negative at 5 through 60 minute lags and positive only
+near 120 minutes. The direct fit therefore selected zero air/mass exchange and
+correctly failed the strict stability gate. The operator approved the following
+replacement identification boundary:
+
+- Hallway temperature remains the directly observed comfort/air state.
+- The modeled mass temperature is a latent deep-mass charge state produced by
+  a causal 120-minute first-order observer of the north-wall reading. The
+  observer never uses a future sample and resets after a rejected or greater
+  than 20-minute source gap.
+- The raw north-wall value remains an explicit observation for diagnostics; it
+  is no longer treated as the instantaneous latent state.
+- South-glazing remains its existing non-recursive observation equation.
+- `LivingOffice_Shade_Temperature` is ingested as an optional secondary indoor
+  observation. It never replaces hallway comfort, rejects a core row, or gains
+  action-label authority. Until sufficient history exists it contributes only
+  bounded hallway-difference diagnostics.
+- Closed-envelope exchange is identified from passive, vent-closed rows with
+  measured radiation at or below 20 W/m2, where solar/exchange confounding is
+  minimized. That identified coefficient is held fixed while the remaining air
+  equation is fit. Insufficient, rank-deficient, nonpositive, or unstable
+  envelope evidence refuses the fit; no epsilon is clamped or invented.
+
+The original five-minute alignment requirement is also made explicit. A single
+missing interior bucket may be linearly interpolated independently per sensor
+only when finite observations bracket it no more than 20 minutes apart. Because
+the verified JDBC policy is `everyChange`, the last finite state may then be
+held forward for at most 60 minutes; longer gaps are rejected. An explicitly
+non-finite bucket is never filled or crossed. Alignment never crosses a
+rejection boundary or uses a sample outside the requested window. The manifest
+counts interpolated and held core/auxiliary points separately.
+
+Walk-forward fitting treats insufficient early-fold evidence as a recorded
+unscored fold rather than aborting the entire report. Historical fold fitting
+may remove only an action-forcing column that is exactly zero throughout the
+fold training window, and only for `solar_outdoor` or `vent_exchange`. The
+omitted coefficient is represented as zero and named in the private fold
+report. Before scoring, the evaluator verifies that every held-out forcing row
+also leaves the omitted feature exactly inactive; any activation makes that
+fold unscored. Structural exchange, bias, unshaded-solar, and indoor-shade
+rank deficiencies still refuse the fold. The full artifact fit never uses this
+exception and remains full-rank across all required seasonal modes.
+
+`LivingOffice_Shade_Temperature` contributes only an observation count and a
+bounded mean absolute difference from hallway temperature in the private data
+manifest. Zero observations require a null difference. These diagnostics do
+not change either state equation, comfort authority, or action labels.
+
+Promotion still requires at least two scored, physics-valid folds and a finite
+24-hour hallway result
+that beats persistence. The shadow output schema and all Gate B/C authority
+boundaries remain unchanged.

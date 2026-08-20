@@ -34,6 +34,7 @@ from thermal_model.schema import (
     BehaviorModel,
     DynamicsModel,
     SeasonalActionVocabulary,
+    OPTIONAL_OBSERVATION_ITEMS,
     THERMAL_ITEMS,
     ThermalArtifact,
 )
@@ -168,7 +169,15 @@ def valid_artifact(**changes):
             },
             "rejected_counts": {"missing_required": 3},
             "auxiliary_exclusion_counts": {"glazing_missing": 5},
-            "items": dict(THERMAL_ITEMS),
+            "interpolation_counts": {
+                role: 0
+                for role in {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
+            },
+            "hold_forward_counts": {
+                role: 0
+                for role in {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
+            },
+            "items": {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS},
             "units": dict(THERMAL_UNITS),
             "canonical_rows_sha256": "a" * 64,
             "event_counts_by_source": {
@@ -182,6 +191,9 @@ def valid_artifact(**changes):
                 "excluded_unknown_action_pairs": 267,
                 "auxiliary_glazing_fitted_rows": 16000,
                 "auxiliary_glazing_skipped_rows": 1000,
+                "envelope_identification_pairs": 4000,
+                "auxiliary_living_office_observation_rows": 0,
+                "auxiliary_living_office_hallway_mae_f": None,
                 "action_label_coverage_fraction": fitted_pairs / total_pairs,
             },
             "constraints": {
@@ -198,6 +210,17 @@ def valid_artifact(**changes):
                 "output_range_f": list(OUTPUT_RANGE_F),
                 "max_vent_forcing": MAX_VENT_FORCING,
                 "stability_tolerance": STABILITY_TOLERANCE,
+                "max_interpolation_gap_minutes": 20,
+                "max_every_change_hold_minutes": 60,
+                "mass_observer": {
+                    "kind": "causal_ema",
+                    "source_role": "mass",
+                    "time_constant_minutes": 120,
+                },
+                "envelope_identification": {
+                    "max_radiation_wm2": 20.0,
+                    "vent_forcing": 0.0,
+                },
             },
         },
     )
@@ -608,6 +631,25 @@ def test_manifest_rejects_arbitrary_diagnostics_and_constraints(
     manifest = deepcopy(valid_artifact().data_manifest)
     manifest[field] = replacement
     with pytest.raises(ArtifactValidationError, match=field.replace("_", " ")):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("envelope_identification_pairs", 17001),
+        ("auxiliary_living_office_observation_rows", 17569),
+        ("auxiliary_living_office_hallway_mae_f", 1.0),
+    ],
+)
+def test_manifest_rejects_incoherent_auxiliary_diagnostics(
+    tmp_path, field, value
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    manifest["fit_diagnostics"][field] = value
+    with pytest.raises(ArtifactValidationError, match="fit diagnostics"):
         ArtifactRegistry(tmp_path).save_candidate(
             valid_artifact(data_manifest=manifest)
         )
@@ -1103,6 +1145,11 @@ def test_manifest_count_vocabularies_are_exported_from_producer_strings():
             "glazing_source_gap",
             "glazing_non_finite",
             "glazing_missing",
+            "living_office_range",
+            "living_office_jump",
+            "living_office_source_gap",
+            "living_office_non_finite",
+            "living_office_missing",
         }
     )
 

@@ -5,9 +5,19 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from thermal_model.dataset import build_samples, dataset_manifest
+from thermal_model.dataset import (
+    MASS_OBSERVER_TAU_MINUTES,
+    build_samples,
+    dataset_manifest,
+    latent_mass_from_series,
+)
 from thermal_model.actions import reconstruct_events, reconstruct_state
-from thermal_model.schema import ActionEvent, ModeEvent, THERMAL_ITEMS
+from thermal_model.schema import (
+    ActionEvent,
+    ModeEvent,
+    OPTIONAL_OBSERVATION_ITEMS,
+    THERMAL_ITEMS,
+)
 
 
 UTC = timezone.utc
@@ -121,7 +131,7 @@ def test_dataset_retains_only_actual_confirmed_action_event_rows():
 
 def test_five_minute_alignment_does_not_bridge_large_gaps():
     samples = build_samples(
-        series_by_role=fixture_series(gap_minutes=35),
+        series_by_role=fixture_series(gap_minutes=65),
         events=fully_labeled_events(),
         modes=[],
         start=START,
@@ -129,8 +139,117 @@ def test_five_minute_alignment_does_not_bridge_large_gaps():
     )
     assert all(sample.at.minute % 5 == 0 and sample.at.second == 0 for sample in samples)
     gap_start = START + timedelta(minutes=30)
-    gap_end = START + timedelta(minutes=60)
+    gap_end = START + timedelta(minutes=90)
     assert not any(gap_start <= sample.at <= gap_end for sample in samples)
+
+
+def test_five_minute_alignment_interpolates_only_finite_short_gaps():
+    rows = fixture_series()
+    expected_at = START + timedelta(minutes=5)
+    for role in ("air", "mass", "outdoor", "radiation"):
+        rows[role].pop(1)
+
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+    interpolated = next(sample for sample in samples if sample.at == expected_at)
+    manifest = dataset_manifest(samples, fully_labeled_events(), [])
+
+    assert interpolated.air_f == pytest.approx(74.1)
+    assert interpolated.north_wall_f == pytest.approx(72.02)
+    assert manifest["interpolation_counts"] == {
+        "air": 1,
+        "glazing": 0,
+        "living_office": 0,
+        "mass": 1,
+        "outdoor": 1,
+        "radiation": 1,
+    }
+
+
+def test_short_gap_alignment_never_replaces_explicit_nonfinite_value():
+    rows = fixture_series()
+    target_at, _ = rows["mass"][1]
+    rows["mass"][1] = (target_at, math.nan)
+
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+
+    assert not any(sample.at == START + timedelta(minutes=5) for sample in samples)
+
+
+def test_every_change_alignment_holds_state_after_twenty_up_to_sixty_minutes():
+    rows = fixture_series()
+    for role in ("air", "mass", "outdoor", "radiation"):
+        rows[role] = [rows[role][0], *rows[role][6:]]
+
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+    manifest = dataset_manifest(samples, fully_labeled_events(), [])
+
+    held = next(sample for sample in samples if sample.at == START + timedelta(minutes=25))
+    assert held.air_f == pytest.approx(74.0)
+    assert held.north_wall_f == pytest.approx(72.0)
+    assert manifest["hold_forward_counts"]["air"] == 5
+    assert manifest["hold_forward_counts"]["mass"] == 5
+
+
+def test_every_change_alignment_refuses_gaps_over_sixty_minutes():
+    rows = fixture_series()
+    for role in ("air", "mass", "outdoor", "radiation"):
+        rows[role] = [rows[role][0], *rows[role][13:]]
+
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+
+    assert not any(
+        START < sample.at < START + timedelta(minutes=65)
+        for sample in samples
+    )
+
+
+def test_latent_mass_observer_is_causal_and_preserves_north_wall_observation():
+    rows = fixture_series()
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+    alpha = 1.0 - math.exp(-5.0 / MASS_OBSERVER_TAU_MINUTES)
+
+    assert MASS_OBSERVER_TAU_MINUTES == 120
+    assert samples[0].north_wall_f == pytest.approx(72.0)
+    assert samples[0].mass_f == pytest.approx(72.0)
+    assert samples[1].north_wall_f == pytest.approx(72.02)
+    assert samples[1].mass_f == pytest.approx(72.0 + alpha * 0.02)
+
+    changed_future = fixture_series()
+    changed_future["mass"][-1] = (changed_future["mass"][-1][0], 75.0)
+    changed = build_samples(
+        changed_future, fully_labeled_events(), [], START, END
+    )
+    assert [sample.mass_f for sample in changed[:-1]] == pytest.approx(
+        [sample.mass_f for sample in samples[:-1]]
+    )
+
+
+def test_live_latent_mass_uses_the_same_causal_observer():
+    alpha = 1.0 - math.exp(-5.0 / MASS_OBSERVER_TAU_MINUTES)
+    points = (
+        (START, 68.0),
+        (START + timedelta(minutes=5), 72.0),
+    )
+
+    at, value = latent_mass_from_series(points)
+
+    assert at == START + timedelta(minutes=5)
+    assert value == pytest.approx(68.0 + alpha * 4.0)
+
+
+def test_living_office_temperature_is_optional_secondary_observation():
+    rows = fixture_series()
+    rows["living_office"] = [
+        (START, 73.5),
+        (START + timedelta(minutes=5), 73.7),
+    ]
+
+    samples = build_samples(rows, fully_labeled_events(), [], START, END)
+
+    assert samples[0].air_f == pytest.approx(74.0)
+    assert samples[0].living_office_f == pytest.approx(73.5)
+    assert samples[2].living_office_f == pytest.approx(73.7)
+    assert samples[14].living_office_f is None
 
 
 def test_bucket_uses_median_finite_value_and_glazing_is_optional():
@@ -150,7 +269,7 @@ def test_bucket_uses_median_finite_value_and_glazing_is_optional():
 @pytest.mark.parametrize(
     ("case", "target_step", "reason"),
     [
-        ("missing", 2, "missing"),
+        ("missing", 0, "missing"),
         ("non_finite", 3, "non_finite"),
         ("range", 4, "range"),
         ("jump", 5, "jump"),
@@ -176,7 +295,7 @@ def test_glazing_quality_failure_retains_core_sample_and_reports_exclusion(
         rows["glazing"] = [
             point
             for step, point in enumerate(rows["glazing"])
-            if not 6 <= step <= 11
+            if not 6 <= step <= 18
         ]
 
     samples = build_samples(rows, fully_labeled_events(), [], START, END)
@@ -478,7 +597,7 @@ def test_manifest_is_canonical_reproducible_and_identifies_authoritative_items()
     assert manifest["start"] == "2026-08-13T00:00:00Z"
     assert manifest["end"] == "2026-08-13T02:00:00Z"
     assert manifest["sample_count"] == len(samples)
-    assert manifest["items"] == THERMAL_ITEMS
+    assert manifest["items"] == {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
     assert manifest["event_counts_by_source"] == {"manual_dm": 5}
     assert len(manifest["canonical_rows_sha256"]) == 64
     assert manifest["canonical_rows_sha256"] == repeated["canonical_rows_sha256"]

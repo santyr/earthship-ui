@@ -14,7 +14,7 @@ from .behavior import (
     transition_probability,
 )
 from .artifacts import provisional_promotion_gates
-from .dynamics import simulate, validate_physics
+from .dynamics import evaluation_forcing_features, simulate, validate_physics
 
 STEP = timedelta(minutes=5)
 SITE_TIMEZONE = ZoneInfo("America/Denver")
@@ -60,6 +60,25 @@ def _behavior(model):
     if isinstance(model, dict):
         return model.get("behavior")
     return None
+
+
+def _inactive_forcing_features(model):
+    if hasattr(model, "inactive_forcing_features"):
+        return tuple(model.inactive_forcing_features)
+    if isinstance(model, dict):
+        return tuple(model.get("inactive_forcing_features", ()))
+    return ()
+
+
+def _activated_unidentified_features(model, future):
+    inactive = _inactive_forcing_features(model)
+    activated = set()
+    for row in future:
+        forcing = evaluation_forcing_features(row)
+        activated.update(
+            name for name in inactive if forcing.get(name, 0.0) != 0.0
+        )
+    return tuple(name for name in inactive if name in activated)
 
 
 def _continuous_future(by_at, origin, hours):
@@ -377,10 +396,25 @@ def walk_forward_evaluate(samples, fit):
 
     by_at = {sample.at: sample for sample in ordered}
     first_local_day = ordered[0].at.astimezone(SITE_TIMEZONE).date()
-    origins = {}
+    continuous_steps = {}
+    for sample in reversed(ordered):
+        continuous_steps[sample.at] = 1 + continuous_steps.get(
+            sample.at + STEP, 0
+        )
+    candidates = defaultdict(list)
     for sample in ordered:
         local_day = sample.at.astimezone(SITE_TIMEZONE).date()
-        origins.setdefault(local_day, sample)
+        candidates[local_day].append(sample)
+    origins = {
+        local_day: max(
+            rows,
+            key=lambda sample: (
+                continuous_steps[sample.at],
+                -sample.at.timestamp(),
+            ),
+        )
+        for local_day, rows in candidates.items()
+    }
 
     folds = []
     records = []
@@ -440,10 +474,29 @@ def walk_forward_evaluate(samples, fit):
                 },
             },
         }
-        fitted = fit(train)
         try:
-            validate_physics(_dynamics(fitted))
+            fitted = fit(train)
+        except ValueError as exc:
+            fold["fit_error"] = str(exc)
+            folds.append(fold)
+            continue
+        try:
             max_future = available[max(available)]
+            activated = _activated_unidentified_features(fitted, max_future)
+            if activated:
+                fold["fit_error"] = (
+                    "held-out forcing activates unidentified feature: "
+                    + ", ".join(activated)
+                )
+                fold["inactive_forcing_features"] = list(
+                    _inactive_forcing_features(fitted)
+                )
+                folds.append(fold)
+                continue
+            inactive = _inactive_forcing_features(fitted)
+            if inactive:
+                fold["inactive_forcing_features"] = list(inactive)
+            validate_physics(_dynamics(fitted))
             predictions = simulate(_dynamics(fitted), origin, max_future)
         except (KeyError, TypeError, ValueError) as exc:
             physics_valid = False

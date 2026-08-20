@@ -39,10 +39,29 @@ from .behavior import (
     fit_behavior,
     search_candidate_schedule,
 )
-from .dataset import build_samples, dataset_manifest
-from .dynamics import AIR_NAMES, MASS_NAMES, fit_diagnostics, fit_dynamics, simulate
+from .dataset import (
+    MASS_OBSERVER_TAU_MINUTES,
+    MAX_HOLD_FORWARD_GAP,
+    MAX_INTERPOLATION_GAP,
+    build_samples,
+    dataset_manifest,
+)
+from .dynamics import (
+    AIR_NAMES,
+    ENVELOPE_MAX_RADIATION_WM2,
+    MASS_NAMES,
+    fit_diagnostics,
+    fit_dynamics,
+    fit_dynamics_for_evaluation,
+    simulate,
+)
 from .evaluation import walk_forward_evaluate
-from .schema import THERMAL_ITEMS, ThermalArtifact, validate_shadow_output
+from .schema import (
+    OPTIONAL_OBSERVATION_ITEMS,
+    THERMAL_ITEMS,
+    ThermalArtifact,
+    validate_shadow_output,
+)
 
 
 STEP = timedelta(minutes=5)
@@ -146,7 +165,7 @@ def _iso_utc(value):
     return (
         _aware(value, "timestamp")
         .astimezone(timezone.utc)
-        .isoformat(timespec="seconds")
+        .isoformat()
         .replace("+00:00", "Z")
     )
 
@@ -179,7 +198,7 @@ def _read_authorities(*, start, end, series_reader, journal, site_settings_loade
         site_settings_loader()
     series_by_role = {
         role: tuple(series_reader(item, start, end))
-        for role, item in THERMAL_ITEMS.items()
+        for role, item in {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}.items()
     }
     events = tuple(journal.effective_events(start, end))
     modes = tuple(journal.effective_modes(start, end))
@@ -187,9 +206,19 @@ def _read_authorities(*, start, end, series_reader, journal, site_settings_loade
 
 
 def _fit_bundle(samples, dynamics_fitter, behavior_fitter):
+    fitted = dynamics_fitter(samples)
+    if hasattr(fitted, "dynamics") and hasattr(
+        fitted, "inactive_forcing_features"
+    ):
+        dynamics = fitted.dynamics
+        inactive = tuple(fitted.inactive_forcing_features)
+    else:
+        dynamics = fitted
+        inactive = ()
     return SimpleNamespace(
-        dynamics=dynamics_fitter(samples),
+        dynamics=dynamics,
         behavior=behavior_fitter(samples),
+        inactive_forcing_features=inactive,
     )
 
 
@@ -208,6 +237,21 @@ def _constraints_manifest():
         "output_range_f": list(OUTPUT_RANGE_F),
         "max_vent_forcing": MAX_VENT_FORCING,
         "stability_tolerance": STABILITY_TOLERANCE,
+        "max_interpolation_gap_minutes": int(
+            MAX_INTERPOLATION_GAP.total_seconds() / 60
+        ),
+        "max_every_change_hold_minutes": int(
+            MAX_HOLD_FORWARD_GAP.total_seconds() / 60
+        ),
+        "mass_observer": {
+            "kind": "causal_ema",
+            "source_role": "mass",
+            "time_constant_minutes": MASS_OBSERVER_TAU_MINUTES,
+        },
+        "envelope_identification": {
+            "max_radiation_wm2": ENVELOPE_MAX_RADIATION_WM2,
+            "vent_forcing": 0.0,
+        },
     }
 
 
@@ -245,6 +289,7 @@ def run_backtest(
     site_settings_loader=None,
     sample_builder=build_samples,
     dynamics_fitter=fit_dynamics,
+    evaluation_dynamics_fitter=fit_dynamics_for_evaluation,
     behavior_fitter=fit_behavior,
     evaluator=walk_forward_evaluate,
     artifact_validator=validate_artifact,
@@ -261,7 +306,9 @@ def run_backtest(
     samples = sample_builder(series_by_role, events, modes, start, end)
     report = evaluator(
         samples,
-        lambda train: _fit_bundle(train, dynamics_fitter, behavior_fitter),
+        lambda train: _fit_bundle(
+            train, evaluation_dynamics_fitter, behavior_fitter
+        ),
     )
     registry.save_backtest_report(report)
     return report
@@ -280,6 +327,7 @@ def run_training(
     site_settings_loader=None,
     sample_builder=build_samples,
     dynamics_fitter=fit_dynamics,
+    evaluation_dynamics_fitter=fit_dynamics_for_evaluation,
     behavior_fitter=fit_behavior,
     evaluator=walk_forward_evaluate,
     artifact_validator=validate_artifact,
@@ -298,7 +346,9 @@ def run_training(
     behavior = behavior_fitter(samples)
     report = evaluator(
         samples,
-        lambda train: _fit_bundle(train, dynamics_fitter, behavior_fitter),
+        lambda train: _fit_bundle(
+            train, evaluation_dynamics_fitter, behavior_fitter
+        ),
     )
 
     # The refusal evidence is durable before any candidate validation or promotion.

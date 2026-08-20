@@ -13,6 +13,7 @@ import psycopg2
 import forecast_intel
 from thermal_model.actions import parse_thermal_message
 from thermal_model.artifacts import ArtifactRegistry, DEFAULT_STATE_DIRECTORY
+from thermal_model.dataset import latent_mass_from_series
 from thermal_model.journal import ActionJournal, JournalUnavailable, audit_schema
 from thermal_model.pipeline import (
     TrainingRefused,
@@ -396,6 +397,11 @@ def _current_states(now, series_reader=None):
             current[role] = {"at": at, "value": value}
         elif role != "glazing":
             current[role] = None
+
+    latent_mass = latent_mass_from_series(histories["mass"])
+    if latent_mass is not None and current.get("mass") is not None:
+        _, value = latent_mass
+        current["mass"] = {**current["mass"], "value": value}
 
     current["observed"] = _aligned_observed_history(histories)
     return current

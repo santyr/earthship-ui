@@ -1,6 +1,7 @@
 """Pure fitting and simulation for the two-state Earthship thermal model."""
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import timedelta
 import math
 
@@ -56,6 +57,20 @@ VENT_FORCING_LEVELS = (
 # Reject eigenvalues numerically indistinguishable from the unit circle.
 STABILITY_TOLERANCE = 1e-9
 SOLVER_FEASIBILITY_MARGIN = 1e-12
+ENVELOPE_MAX_RADIATION_WM2 = 20.0
+ENVELOPE_NAMES = ("outside_exchange", "mass_exchange", "bias")
+ENVELOPE_BOUNDS = (
+    [AIR_BOUNDS[0][0], AIR_BOUNDS[0][1], AIR_BOUNDS[0][6]],
+    [AIR_BOUNDS[1][0], AIR_BOUNDS[1][1], AIR_BOUNDS[1][6]],
+)
+
+
+@dataclass(frozen=True)
+class EvaluationDynamicsFit:
+    """Fold-only fit plus action features absent from its training window."""
+
+    dynamics: DynamicsModel
+    inactive_forcing_features: tuple[str, ...]
 
 
 def _value(row, name):
@@ -152,6 +167,17 @@ def _selection(samples):
     auxiliary_fitted = (
         len(glazing_design) if _full_rank(glazing_design, GLAZING_NAMES) else 0
     )
+    envelope_pairs = sum(
+        _vent_forcing(right) == 0.0
+        and float(right.radiation_wm2) <= ENVELOPE_MAX_RADIATION_WM2
+        for _, right in selected
+    )
+    living_office_deltas = tuple(
+        abs(float(sample.living_office_f) - float(sample.air_f))
+        for sample in ordered
+        if sample.living_office_f is not None
+        and math.isfinite(float(sample.living_office_f))
+    )
     diagnostics = {
         "total_consecutive_pairs": total,
         "fitted_pairs": len(selected),
@@ -159,6 +185,13 @@ def _selection(samples):
         "excluded_unknown_action_pairs": excluded_unknown,
         "auxiliary_glazing_fitted_rows": auxiliary_fitted,
         "auxiliary_glazing_skipped_rows": len(selected) - auxiliary_fitted,
+        "envelope_identification_pairs": envelope_pairs,
+        "auxiliary_living_office_observation_rows": len(living_office_deltas),
+        "auxiliary_living_office_hallway_mae_f": (
+            sum(living_office_deltas) / len(living_office_deltas)
+            if living_office_deltas
+            else None
+        ),
         "action_label_coverage_fraction": len(selected) / total if total else 0.0,
     }
     return selected, diagnostics
@@ -173,19 +206,28 @@ def fit_diagnostics(samples):
     return _selection(samples)[1]
 
 
-def _solar_order_constraint(names, scale):
-    rows = np.zeros((2, len(names)), dtype=float)
+def _solar_order_constraints(names, scale):
+    if "solar_unshaded" not in names:
+        return ()
     unshaded = names.index("solar_unshaded")
-    rows[0, unshaded] = 1.0 / scale[unshaded]
-    rows[1, unshaded] = 1.0 / scale[unshaded]
-    indoor = names.index("solar_indoor_closed")
-    outdoor = names.index("solar_outdoor")
-    rows[0, indoor] = -1.0 / scale[indoor]
-    rows[1, outdoor] = -1.0 / scale[outdoor]
-    return LinearConstraint(
-        rows,
-        np.full(2, SOLVER_FEASIBILITY_MARGIN),
-        np.full(2, np.inf),
+    rows = []
+    for shaded_name in ("solar_indoor_closed", "solar_outdoor"):
+        if shaded_name not in names:
+            continue
+        row = np.zeros(len(names), dtype=float)
+        row[unshaded] = 1.0 / scale[unshaded]
+        shaded = names.index(shaded_name)
+        row[shaded] = -1.0 / scale[shaded]
+        rows.append(row)
+    if not rows:
+        return ()
+    matrix = np.asarray(rows, dtype=float)
+    return (
+        LinearConstraint(
+            matrix,
+            np.full(len(rows), SOLVER_FEASIBILITY_MARGIN),
+            np.full(len(rows), np.inf),
+        ),
     )
 
 
@@ -208,9 +250,13 @@ def _fit(design, target, bounds, names, *, ordered_solar=False):
         initial = np.clip(coefficients, lower, upper)
         unshaded = names.index("solar_unshaded")
         initial[unshaded] = max(
-            initial[unshaded],
-            initial[names.index("solar_indoor_closed")],
-            initial[names.index("solar_outdoor")],
+            initial[names.index(name)]
+            for name in (
+                "solar_unshaded",
+                "solar_indoor_closed",
+                "solar_outdoor",
+            )
+            if name in names
         )
         scale = np.linalg.norm(matrix, axis=0)
         scaled_matrix = matrix / scale
@@ -231,7 +277,7 @@ def _fit(design, target, bounds, names, *, ordered_solar=False):
             method="SLSQP",
             jac=gradient,
             bounds=Bounds(scaled_lower, scaled_upper),
-            constraints=(_solar_order_constraint(names, scale),),
+            constraints=_solar_order_constraints(names, scale),
             options={"ftol": 1e-12, "maxiter": 2000},
         )
         coefficients = result.x / scale
@@ -246,23 +292,105 @@ def _fit(design, target, bounds, names, *, ordered_solar=False):
                 "solar_indoor_closed",
                 "solar_outdoor",
             )
+            if name in names
         }
-        if (
-            gains["solar_unshaded"] < gains["solar_indoor_closed"]
-            or gains["solar_unshaded"] < gains["solar_outdoor"]
+        if any(
+            gains["solar_unshaded"] < gains[name]
+            for name in ("solar_indoor_closed", "solar_outdoor")
+            if name in gains
         ):
             raise ValueError("constrained least-squares fit violated solar order")
     return dict(zip(names, (float(value) for value in coefficients)))
 
 
-def fit_dynamics(samples):
-    """Fit start-state deltas against co-temporal end forcing and targets."""
+def _fit_envelope_exchange(pairs):
+    design = []
+    target = []
+    for left, right in pairs:
+        if (
+            _vent_forcing(right) != 0.0
+            or float(right.radiation_wm2) > ENVELOPE_MAX_RADIATION_WM2
+        ):
+            continue
+        weight = _weight(right)
+        design.append(
+            np.asarray(
+                (
+                    right.outdoor_f - left.air_f,
+                    left.mass_f - left.air_f,
+                    1.0,
+                )
+            )
+            * weight
+        )
+        target.append((right.air_f - left.air_f) * weight)
+    if len(design) < len(ENVELOPE_NAMES):
+        raise ValueError("insufficient closed low-radiation envelope evidence")
+    try:
+        coefficients = _fit(
+            design, target, ENVELOPE_BOUNDS, ENVELOPE_NAMES
+        )
+    except ValueError as exc:
+        raise ValueError(
+            f"closed low-radiation envelope evidence is invalid: {exc}"
+        ) from exc
+    return coefficients["outside_exchange"], len(design)
+
+
+def _fit_with_inactive_action_columns(
+    design, target, bounds, names, allowed_inactive
+):
+    """Fit a fold after removing only action columns that are exactly zero."""
+    if not design:
+        return _fit(design, target, bounds, names, ordered_solar=True), ()
+    matrix = np.asarray(design, dtype=float)
+    if not np.isfinite(matrix).all():
+        raise ValueError("fit inputs must be finite")
+    inactive = tuple(
+        name
+        for index, name in enumerate(names)
+        if np.all(matrix[:, index] == 0.0)
+    )
+    if not inactive:
+        return (
+            _fit(
+                design, target, bounds, names, ordered_solar=True
+            ),
+            (),
+        )
+    if any(name not in allowed_inactive for name in inactive):
+        raise ValueError("fit design is rank deficient")
+    active_indices = tuple(
+        index for index, name in enumerate(names) if name not in inactive
+    )
+    active_names = tuple(names[index] for index in active_indices)
+    active_design = matrix[:, active_indices]
+    active_bounds = (
+        [bounds[0][index] for index in active_indices],
+        [bounds[1][index] for index in active_indices],
+    )
+    fitted = _fit(
+        active_design,
+        target,
+        active_bounds,
+        active_names,
+        ordered_solar=True,
+    )
+    completed = {name: 0.0 for name in names}
+    completed.update(fitted)
+    return completed, inactive
+
+
+def _fit_dynamics(samples, *, allow_inactive_action_forcing):
     pairs = _selected_pairs(samples)
     air_design = []
     air_target = []
     mass_design = []
     mass_target = []
     glazing_design, glazing_target = _glazing_rows(pairs)
+    outside_exchange, _ = _fit_envelope_exchange(pairs)
+    if outside_exchange <= 0.0:
+        raise ValueError("positive envelope exchange was not identified")
 
     for left, right in pairs:
         solar = _solar_terms(right)
@@ -270,7 +398,6 @@ def fit_dynamics(samples):
         air_design.append(
             np.asarray(
                 (
-                    right.outdoor_f - left.air_f,
                     left.mass_f - left.air_f,
                     *solar,
                     _vent_forcing(right) * (right.outdoor_f - left.air_f),
@@ -279,17 +406,49 @@ def fit_dynamics(samples):
             )
             * weight
         )
-        air_target.append((right.air_f - left.air_f) * weight)
+        air_target.append(
+            (
+                right.air_f
+                - left.air_f
+                - outside_exchange * (right.outdoor_f - left.air_f)
+            )
+            * weight
+        )
         mass_design.append(
             np.asarray((left.air_f - left.mass_f, *solar)) * weight
         )
         mass_target.append((right.mass_f - left.mass_f) * weight)
-    air = _fit(
-        air_design, air_target, AIR_BOUNDS, AIR_NAMES, ordered_solar=True
-    )
-    mass = _fit(
-        mass_design, mass_target, MASS_BOUNDS, MASS_NAMES, ordered_solar=True
-    )
+
+    if allow_inactive_action_forcing:
+        air_fit, air_inactive = _fit_with_inactive_action_columns(
+            air_design,
+            air_target,
+            (AIR_BOUNDS[0][1:], AIR_BOUNDS[1][1:]),
+            AIR_NAMES[1:],
+            frozenset({"solar_outdoor", "vent_exchange"}),
+        )
+        mass, mass_inactive = _fit_with_inactive_action_columns(
+            mass_design,
+            mass_target,
+            MASS_BOUNDS,
+            MASS_NAMES,
+            frozenset({"solar_outdoor"}),
+        )
+    else:
+        air_fit = _fit(
+            air_design,
+            air_target,
+            (AIR_BOUNDS[0][1:], AIR_BOUNDS[1][1:]),
+            AIR_NAMES[1:],
+            ordered_solar=True,
+        )
+        mass = _fit(
+            mass_design, mass_target, MASS_BOUNDS, MASS_NAMES, ordered_solar=True
+        )
+        air_inactive = ()
+        mass_inactive = ()
+
+    air = {"outside_exchange": outside_exchange, **air_fit}
     glazing = (
         _fit(
             glazing_design,
@@ -309,8 +468,40 @@ def fit_dynamics(samples):
         glazing_observation_coefficients=glazing,
     )
     validate_physics(model)
-    return model
+    inactive = tuple(
+        name
+        for name in ("solar_outdoor", "vent_exchange")
+        if name in set(air_inactive) | set(mass_inactive)
+    )
+    return model, inactive
 
+
+def fit_dynamics(samples):
+    """Fit the strict full-evidence artifact dynamics."""
+    return _fit_dynamics(
+        samples, allow_inactive_action_forcing=False
+    )[0]
+
+
+def fit_dynamics_for_evaluation(samples):
+    """Fit a fold while tracking action forcing absent from its history."""
+    model, inactive = _fit_dynamics(
+        samples, allow_inactive_action_forcing=True
+    )
+    return EvaluationDynamicsFit(
+        dynamics=model, inactive_forcing_features=inactive
+    )
+
+
+def evaluation_forcing_features(row):
+    """Return action-feature activation used to guard held-out folds."""
+    solar = _solar_terms(row)
+    return {
+        "solar_unshaded": float(solar[0]),
+        "solar_indoor_closed": float(solar[1]),
+        "solar_outdoor": float(solar[2]),
+        "vent_exchange": float(_vent_forcing(row)),
+    }
 
 def _checked_output(value, name):
     if not math.isfinite(value):

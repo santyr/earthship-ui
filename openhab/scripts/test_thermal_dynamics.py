@@ -14,6 +14,7 @@ from thermal_model.dynamics import (
     MASS_BOUNDS,
     fit_diagnostics,
     fit_dynamics,
+    fit_dynamics_for_evaluation,
     predict_step,
     simulate,
     validate_physics,
@@ -214,12 +215,12 @@ def test_fit_recovers_stable_synthetic_2r2c():
         < 0.25
     )
     air_tolerances = {
-        "outside_exchange": 0.00002,
+        "outside_exchange": 0.00010,
         "mass_exchange": 0.00002,
-        "solar_unshaded": 0.0000005,
-        "solar_indoor_closed": 0.0000005,
-        "solar_outdoor": 0.0000005,
-        "vent_exchange": 0.00001,
+        "solar_unshaded": 0.000002,
+        "solar_indoor_closed": 0.000002,
+        "solar_outdoor": 0.000002,
+        "vent_exchange": 0.00010,
         "bias": 0.0001,
     }
     for name, expected in TRUE_AIR_COEFFICIENTS.items():
@@ -325,8 +326,27 @@ def test_fit_diagnostics_match_exact_selected_pairs_and_auxiliary_rows():
         "excluded_unknown_action_pairs": 1,
         "auxiliary_glazing_fitted_rows": 0,
         "auxiliary_glazing_skipped_rows": 6,
+        "envelope_identification_pairs": 0,
+        "auxiliary_living_office_observation_rows": 0,
+        "auxiliary_living_office_hallway_mae_f": None,
         "action_label_coverage_fraction": pytest.approx(6 / 9),
     }
+
+
+def test_fit_diagnostics_include_bounded_living_office_comparison():
+    samples, _ = synthetic_2r2c_days(days=5, seed=67)
+    samples[0] = replace(
+        samples[0], living_office_f=samples[0].air_f + 1.0
+    )
+    samples[1] = replace(
+        samples[1], living_office_f=samples[1].air_f - 2.0
+    )
+
+    diagnostics = fit_diagnostics(samples)
+
+    assert diagnostics["auxiliary_living_office_observation_rows"] == 2
+    assert diagnostics["auxiliary_living_office_hallway_mae_f"] == pytest.approx(1.5)
+    assert 0 < diagnostics["envelope_identification_pairs"] <= diagnostics["fitted_pairs"]
 
 
 def test_boosted_ventilation_forcing_scales_effective_outdoor_exchange():
@@ -453,6 +473,76 @@ def test_fit_rejects_rank_deficient_identification_data():
 
     with pytest.raises(ValueError, match="rank deficient"):
         fit_dynamics(samples)
+
+
+def test_evaluation_fit_allows_only_exactly_inactive_action_forcing():
+    training, _ = synthetic_2r2c_days(days=5, seed=71)
+    training = [
+        replace(sample, outdoor_shade_present=0.0)
+        for sample in training
+    ]
+
+    with pytest.raises(ValueError, match="rank deficient"):
+        fit_dynamics(training)
+
+    fitted = fit_dynamics_for_evaluation(training)
+
+    assert fitted.inactive_forcing_features == ("solar_outdoor",)
+    assert fitted.dynamics.air_coefficients["solar_outdoor"] == 0.0
+    assert fitted.dynamics.mass_coefficients["solar_outdoor"] == 0.0
+    validate_physics(fitted.dynamics)
+
+
+def test_evaluation_fit_refuses_structural_rank_deficiency(monkeypatch):
+    start = datetime(2026, 5, 1, tzinfo=UTC)
+    samples = [
+        _sample(start + index * STEP, 70.0, 70.0, None, 60.0, 0.0, 0.0, 0.0, 0.0)
+        for index in range(40)
+    ]
+    monkeypatch.setattr(
+        dynamics, "_fit_envelope_exchange", lambda pairs: (0.01, len(pairs))
+    )
+
+    with pytest.raises(ValueError, match="rank deficient"):
+        fit_dynamics_for_evaluation(samples)
+
+
+def test_fit_holds_evidence_derived_envelope_exchange_fixed(monkeypatch):
+    training, _ = synthetic_2r2c_days(days=5, seed=53)
+    identified = 0.012345
+    seen = {}
+
+    def envelope(pairs):
+        seen["pairs"] = len(pairs)
+        return identified, 37
+
+    monkeypatch.setattr(dynamics, "_fit_envelope_exchange", envelope)
+
+    model = fit_dynamics(training)
+
+    assert seen["pairs"] == len(training) - 1
+    assert model.air_coefficients["outside_exchange"] == identified
+
+
+def test_fit_refuses_without_closed_low_radiation_envelope_evidence():
+    training, _ = synthetic_2r2c_days(days=5, seed=59)
+    training = [
+        replace(sample, vent_open=1.0, radiation_wm2=max(100.0, sample.radiation_wm2))
+        for sample in training
+    ]
+
+    with pytest.raises(ValueError, match="closed low-radiation envelope"):
+        fit_dynamics(training)
+
+
+def test_fit_refuses_nonpositive_identified_envelope_exchange(monkeypatch):
+    training, _ = synthetic_2r2c_days(days=5, seed=61)
+    monkeypatch.setattr(
+        dynamics, "_fit_envelope_exchange", lambda pairs: (0.0, 100)
+    )
+
+    with pytest.raises(ValueError, match="positive envelope exchange"):
+        fit_dynamics(training)
 
 
 def test_ordered_fit_rejects_unsuccessful_optimizer(monkeypatch):

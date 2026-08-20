@@ -117,6 +117,30 @@ def test_walk_forward_never_trains_on_or_after_prediction_day():
     assert 72 not in report["folds"][-1]["horizons_hours"]
 
 
+def test_walk_forward_chooses_daily_origin_with_longest_continuous_future():
+    rows = samples_45_days()
+    target_day = rows[20 * 24 * 12].at.date()
+    missing = next(
+        row.at
+        for row in rows
+        if row.at.date() == target_day and row.at.hour == 0 and row.at.minute == 5
+    )
+    rows = [row for row in rows if row.at != missing]
+
+    report = walk_forward_evaluate(rows, fit=lambda train: fixed_model())
+    starts = [
+        datetime.fromisoformat(fold["prediction_start"].replace("Z", "+00:00"))
+        for fold in report["folds"]
+    ]
+
+    assert any(
+        at.astimezone(SITE_TIMEZONE).date() == target_day
+        and at.astimezone(SITE_TIMEZONE).hour == 0
+        and at.astimezone(SITE_TIMEZONE).minute == 10
+        for at in starts
+    )
+
+
 
 
 
@@ -291,6 +315,65 @@ def test_unphysical_fold_models_fail_the_shadow_promotion_gate():
     assert report["metrics"]["promotion"]["eligible"] is False
     assert report["metrics"]["promotion"]["gates"]["physics_valid"] is False
 
+
+def test_insufficient_early_fit_is_recorded_without_aborting_later_folds():
+    calls = 0
+
+    def fit(train):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise ValueError("closed low-radiation envelope evidence is invalid")
+        return fixed_model()
+
+    report = walk_forward_evaluate(samples_45_days(), fit=fit)
+
+    assert len(report["folds"]) == 31
+    assert report["folds"][0]["fit_error"] == (
+        "closed low-radiation envelope evidence is invalid"
+    )
+    assert "model_error" not in report["folds"][0]
+    assert report["metrics"]["overall"]["model"]["air"]["24"]["count"] == 29
+    assert report["metrics"]["promotion"]["gates"]["physics_valid"] is True
+
+
+def test_fold_is_unscored_when_future_activates_unidentified_action_forcing():
+    original = samples_45_days()
+    first_evaluation_at = original[14 * 24 * 12].at
+    rows = [
+        replace(
+            row,
+            outdoor_shade_present=(
+                1.0 if row.at >= first_evaluation_at else 0.0
+            ),
+        )
+        for row in original
+    ]
+    dynamics = fixed_model()
+    air = dict(dynamics.air_coefficients)
+    mass = dict(dynamics.mass_coefficients)
+    air["solar_outdoor"] = 0.0
+    mass["solar_outdoor"] = 0.0
+    dynamics = replace(
+        dynamics, air_coefficients=air, mass_coefficients=mass
+    )
+
+    report = walk_forward_evaluate(
+        rows,
+        fit=lambda train: SimpleNamespace(
+            dynamics=dynamics,
+            inactive_forcing_features=("solar_outdoor",),
+        ),
+    )
+
+    assert report["folds"]
+    assert all(
+        fold["fit_error"]
+        == "held-out forcing activates unidentified feature: solar_outdoor"
+        for fold in report["folds"]
+    )
+    assert report["metrics"]["scored_fold_count"] == 0
+    assert report["metrics"]["promotion"]["gates"]["physics_valid"] is True
 
 
 def test_overlapping_long_horizons_calibrate_only_after_targets_are_observed():
