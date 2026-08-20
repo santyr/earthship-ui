@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   // Task 4.1 — Energy console: battery + solar + forecast story with
   // history charts. Reuses Home's dark instrument-panel aesthetic (Tile /
   // StatTile chrome, tokens.colors) but favors inline HistoryChart panels
@@ -6,6 +7,8 @@
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
+  import EnergyAnalyticsDetail from '../lib/ui/EnergyAnalyticsDetail.svelte';
+  import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
 
@@ -85,6 +88,16 @@
   const commsOk = $derived($items.BMS_Comms_Status === 'OK');
   const devicePresent = $derived($items.BMS_DevicePresent === '1');
   const bmsHealthy = $derived(commsOk && devicePresent);
+  let analyticsNowMs = $state(Date.now());
+  onMount(() => {
+    const refresh = setInterval(() => {
+      analyticsNowMs = Date.now();
+    }, ENERGY_ANALYTICS_REFRESH_MS);
+    return () => clearInterval(refresh);
+  });
+  const analytics = $derived(
+    parseEnergyAnalyticsResult($items.Energy_Analytics_JSON, analyticsNowMs)
+  );
 </script>
 
 <div class="energy-grid">
@@ -183,6 +196,7 @@
             {bmsHealthy ? 'OK' : 'Fault'}
           </div>
         </div>
+        <EnergyAnalyticsDetail result={analytics} />
       </div>
     </Tile>
   </div>
@@ -402,7 +416,7 @@
   /* ---- Battery vitals ---- */
   .vitals-body {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     height: 100%;
     align-items: center;
     gap: 0.5rem;

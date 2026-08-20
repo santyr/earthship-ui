@@ -1,0 +1,13 @@
+{
+  "schema": "earthship-energy-analytics-observation/v1",
+  "items": [
+    {
+      "name": "Energy_Analytics_JSON",
+      "type": "String",
+      "label": "Energy analytics summary",
+      "category": "",
+      "tags": [],
+      "groupNames": []
+    }
+  ]
+}

@@ -103,6 +103,7 @@ C_air  dT_air/dt  = (T_out - T_air) / R_out
                    + exceptional_heat
 
 C_mass dT_mass/dt = (T_air - T_mass) / R_mass
+                   + (T_out - T_mass) / R_mass_out
                    + absorbed_solar_gain
 ```
 
