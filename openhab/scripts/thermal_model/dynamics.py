@@ -16,6 +16,9 @@ STEP = timedelta(minutes=5)
 SITE_TIMEZONE = ZoneInfo("America/Denver")
 IDENTIFICATION_HORIZON_STEPS = (1, 12, 72, 144, 288)
 MAX_ORIGINS_PER_HORIZON = 64
+MULTIHORIZON_FTOL = 1e-10
+MULTIHORIZON_MAXITER = 500
+MULTIHORIZON_OBJECTIVE_TOLERANCE = 1e-9
 AIR_NAMES = (
     "outside_exchange",
     "mass_exchange",
@@ -203,11 +206,30 @@ def _identification_origin_counts(endpoints):
 
 
 @dataclass(frozen=True)
+class MultihorizonEvidence:
+    """Exact bounded evidence for one multihorizon refinement."""
+
+    origin_counts: tuple[tuple[str, int], ...]
+    initial_objective: float
+    final_objective: float
+
+
+@dataclass(frozen=True)
+class MultihorizonDynamicsFit:
+    """Refined dynamics plus inactive features and fit evidence."""
+
+    dynamics: DynamicsModel
+    inactive_forcing_features: tuple[str, ...]
+    evidence: MultihorizonEvidence
+
+
+@dataclass(frozen=True)
 class EvaluationDynamicsFit:
     """Fold-only fit plus action features absent from its training window."""
 
     dynamics: DynamicsModel
     inactive_forcing_features: tuple[str, ...]
+    evidence: MultihorizonEvidence
 
 
 def _value(row, name):
@@ -518,7 +540,7 @@ def _fit_with_inactive_action_columns(
     return completed, inactive
 
 
-def _fit_dynamics(samples, *, allow_inactive_action_forcing):
+def _fit_five_minute_dynamics(samples, *, allow_inactive_action_forcing):
     pairs = _selected_pairs(samples)
     air_design = []
     air_target = []
@@ -617,20 +639,323 @@ def _fit_dynamics(samples, *, allow_inactive_action_forcing):
     return model, inactive
 
 
+def _coefficient_vector(model):
+    vector = np.asarray(
+        [
+            *(model.air_coefficients[name] for name in AIR_NAMES),
+            *(model.mass_coefficients[name] for name in MASS_NAMES),
+        ],
+        dtype=float,
+    )
+    if vector.shape != (len(AIR_NAMES) + len(MASS_NAMES),):
+        raise ValueError("multihorizon coefficient vector has invalid shape")
+    if not np.isfinite(vector).all():
+        raise ValueError("multihorizon coefficient vector must be finite")
+    return vector
+
+
+def _model_from_vector(vector, glazing):
+    values = np.asarray(vector, dtype=float)
+    expected = len(AIR_NAMES) + len(MASS_NAMES)
+    if values.shape != (expected,) or not np.isfinite(values).all():
+        raise ValueError("multihorizon coefficient vector is invalid")
+    air_count = len(AIR_NAMES)
+    return DynamicsModel(
+        version=2,
+        step_minutes=5,
+        air_coefficients={
+            name: float(values[index])
+            for index, name in enumerate(AIR_NAMES)
+        },
+        mass_coefficients={
+            name: float(values[air_count + index])
+            for index, name in enumerate(MASS_NAMES)
+        },
+        glazing_observation_coefficients=dict(glazing),
+    )
+
+
+def _multihorizon_objective_and_gradient(vector, endpoints):
+    values = np.asarray(vector, dtype=float)
+    expected = len(AIR_NAMES) + len(MASS_NAMES)
+    if values.shape != (expected,) or not np.isfinite(values).all():
+        raise ValueError("multihorizon objective coefficients are invalid")
+    air = dict(zip(AIR_NAMES, values[:len(AIR_NAMES)]))
+    mass = dict(zip(MASS_NAMES, values[len(AIR_NAMES):]))
+    loss = 0.0
+    gradient = np.zeros(expected, dtype=float)
+
+    for steps in IDENTIFICATION_HORIZON_STEPS:
+        group = tuple(endpoints.get(steps, ()))
+        if not group:
+            raise ValueError(
+                f"insufficient multihorizon origins for {steps * 5} minutes"
+            )
+        divisor = float(len(group))
+        for endpoint in group:
+            if len(endpoint.forcings) != steps:
+                raise ValueError("multihorizon forcing prefix is malformed")
+            state = np.asarray(
+                (endpoint.origin.air_f, endpoint.origin.mass_f), dtype=float
+            )
+            sensitivity = np.zeros((2, expected), dtype=float)
+            for forcing in endpoint.forcings:
+                outdoor = float(_value(forcing, "outdoor_f"))
+                vent = _vent_forcing(forcing)
+                solar = _solar_terms(forcing)
+                state_jacobian = np.asarray(
+                    (
+                        (
+                            1.0
+                            - air["outside_exchange"]
+                            - air["mass_exchange"]
+                            - air["vent_exchange"] * vent,
+                            air["mass_exchange"],
+                        ),
+                        (
+                            mass["air_exchange"],
+                            1.0
+                            - mass["air_exchange"]
+                            - mass["outside_exchange"],
+                        ),
+                    ),
+                    dtype=float,
+                )
+                direct = np.zeros((2, expected), dtype=float)
+                direct[0, :len(AIR_NAMES)] = (
+                    outdoor - state[0],
+                    state[1] - state[0],
+                    solar[0],
+                    solar[1],
+                    solar[2],
+                    vent * (outdoor - state[0]),
+                    1.0,
+                )
+                direct[1, len(AIR_NAMES):] = (
+                    state[0] - state[1],
+                    outdoor - state[1],
+                    solar[0],
+                    solar[1],
+                    solar[2],
+                )
+                next_state = np.asarray(
+                    (
+                        state[0]
+                        + air["outside_exchange"] * (outdoor - state[0])
+                        + air["mass_exchange"] * (state[1] - state[0])
+                        + air["solar_unshaded"] * solar[0]
+                        + air["solar_indoor_closed"] * solar[1]
+                        + air["solar_outdoor"] * solar[2]
+                        + air["vent_exchange"]
+                        * vent
+                        * (outdoor - state[0])
+                        + air["bias"],
+                        state[1]
+                        + mass["air_exchange"] * (state[0] - state[1])
+                        + mass["outside_exchange"] * (outdoor - state[1])
+                        + mass["solar_unshaded"] * solar[0]
+                        + mass["solar_indoor_closed"] * solar[1]
+                        + mass["solar_outdoor"] * solar[2],
+                    ),
+                    dtype=float,
+                )
+                sensitivity = state_jacobian @ sensitivity + direct
+                state = next_state
+                if (
+                    not np.isfinite(state).all()
+                    or not np.isfinite(sensitivity).all()
+                ):
+                    raise ValueError(
+                        "multihorizon rollout state or sensitivity is invalid"
+                    )
+
+            target = np.asarray(
+                (endpoint.target.air_f, endpoint.target.mass_f), dtype=float
+            )
+            residual = state - target
+            confidence = float(endpoint.confidence)
+            if (
+                not np.isfinite(target).all()
+                or not np.isfinite(residual).all()
+                or not math.isfinite(confidence)
+                or not 0.0 <= confidence <= 1.0
+            ):
+                raise ValueError("multihorizon endpoint evidence is invalid")
+            for state_index in (0, 1):
+                error = residual[state_index]
+                loss += confidence * error * error / divisor
+                gradient += (
+                    2.0
+                    * confidence
+                    * error
+                    * sensitivity[state_index]
+                    / divisor
+                )
+    if not math.isfinite(loss) or not np.isfinite(gradient).all():
+        raise ValueError("multihorizon objective is non-finite")
+    return float(loss), gradient
+
+
+def _multihorizon_linear_constraints(
+    active_indices, initial_vector, lower_bounds, spans
+):
+    rows = []
+    constraint_lower = []
+    total = len(initial_vector)
+    active_set = set(active_indices)
+    fixed_indices = tuple(
+        index for index in range(total) if index not in active_set
+    )
+    for offset, names in (
+        (0, AIR_NAMES),
+        (len(AIR_NAMES), MASS_NAMES),
+    ):
+        unshaded = offset + names.index("solar_unshaded")
+        for shaded_name in ("solar_indoor_closed", "solar_outdoor"):
+            shaded = offset + names.index(shaded_name)
+            full_row = np.zeros(total, dtype=float)
+            full_row[unshaded] = 1.0
+            full_row[shaded] = -1.0
+            active_row = full_row[list(active_indices)]
+            rows.append(active_row * spans[list(active_indices)])
+            offset_value = float(
+                active_row @ lower_bounds[list(active_indices)]
+            )
+            if fixed_indices:
+                offset_value += float(
+                    full_row[list(fixed_indices)]
+                    @ initial_vector[list(fixed_indices)]
+                )
+            constraint_lower.append(
+                SOLVER_FEASIBILITY_MARGIN - offset_value
+            )
+    return (
+        LinearConstraint(
+            np.asarray(rows, dtype=float),
+            np.asarray(constraint_lower, dtype=float),
+            np.full(len(rows), np.inf),
+        ),
+    )
+
+
+def _refine_multihorizon(initial, endpoints, inactive_features):
+    counts = _identification_origin_counts(endpoints)
+    for minutes, count in counts.items():
+        if count < 2:
+            raise ValueError(
+                f"insufficient multihorizon origins for {minutes} minutes"
+            )
+
+    initial_vector = _coefficient_vector(initial)
+    inactive = set(inactive_features)
+    active_indices = tuple(
+        index
+        for index, name in enumerate(AIR_NAMES + MASS_NAMES)
+        if name not in inactive
+    )
+    if not active_indices:
+        raise ValueError("multihorizon refinement has no active coefficients")
+    active = list(active_indices)
+    lower = np.asarray(AIR_BOUNDS[0] + MASS_BOUNDS[0], dtype=float)
+    upper = np.asarray(AIR_BOUNDS[1] + MASS_BOUNDS[1], dtype=float)
+    spans = upper - lower
+    if not np.isfinite(spans).all() or np.any(spans <= 0.0):
+        raise ValueError("multihorizon coefficient bounds are invalid")
+    initial_scaled = (
+        initial_vector[active] - lower[active]
+    ) / spans[active]
+    initial_objective, _ = _multihorizon_objective_and_gradient(
+        initial_vector, endpoints
+    )
+    cache = {}
+
+    def evaluate(scaled_active):
+        scaled = np.asarray(scaled_active, dtype=float)
+        candidate = initial_vector.copy()
+        candidate[active] = lower[active] + spans[active] * scaled
+        key = candidate.tobytes()
+        if key not in cache:
+            loss, physical_gradient = (
+                _multihorizon_objective_and_gradient(candidate, endpoints)
+            )
+            cache[key] = (
+                loss,
+                physical_gradient[active] * spans[active],
+                candidate,
+            )
+        return cache[key]
+
+    result = minimize(
+        lambda candidate: evaluate(candidate)[0],
+        initial_scaled,
+        method="SLSQP",
+        jac=lambda candidate: evaluate(candidate)[1],
+        bounds=Bounds(
+            np.zeros(len(active_indices)), np.ones(len(active_indices))
+        ),
+        constraints=_multihorizon_linear_constraints(
+            active_indices, initial_vector, lower, spans
+        ),
+        options={
+            "ftol": MULTIHORIZON_FTOL,
+            "maxiter": MULTIHORIZON_MAXITER,
+        },
+    )
+    if (
+        not result.success
+        or np.asarray(result.x).shape != (len(active_indices),)
+        or not np.isfinite(result.x).all()
+    ):
+        raise ValueError("multihorizon optimizer failed")
+
+    final_objective, _, final_vector = evaluate(result.x)
+    tolerance = MULTIHORIZON_OBJECTIVE_TOLERANCE * max(
+        1.0, initial_objective
+    )
+    if final_objective > initial_objective + tolerance:
+        raise ValueError("multihorizon objective increased")
+    final_model = _model_from_vector(
+        final_vector, initial.glazing_observation_coefficients
+    )
+    validate_physics(final_model)
+    evidence = MultihorizonEvidence(
+        origin_counts=tuple(counts.items()),
+        initial_objective=float(initial_objective),
+        final_objective=float(final_objective),
+    )
+    return MultihorizonDynamicsFit(
+        dynamics=final_model,
+        inactive_forcing_features=tuple(inactive_features),
+        evidence=evidence,
+    )
+
+
+def fit_dynamics_with_evidence(
+    samples, *, allow_inactive_action_forcing=False
+):
+    """Fit and refine dynamics while returning exact optimizer evidence."""
+    initial, inactive = _fit_five_minute_dynamics(
+        samples,
+        allow_inactive_action_forcing=allow_inactive_action_forcing,
+    )
+    endpoints = _select_multihorizon_endpoints(samples, inactive)
+    return _refine_multihorizon(initial, endpoints, inactive)
+
+
 def fit_dynamics(samples):
-    """Fit the strict full-evidence artifact dynamics."""
-    return _fit_dynamics(
-        samples, allow_inactive_action_forcing=False
-    )[0]
+    """Fit strict full-evidence artifact dynamics across forecast horizons."""
+    return fit_dynamics_with_evidence(samples).dynamics
 
 
 def fit_dynamics_for_evaluation(samples):
-    """Fit a fold while tracking action forcing absent from its history."""
-    model, inactive = _fit_dynamics(
+    """Fit one chronological fold without using held-out evidence."""
+    fitted = fit_dynamics_with_evidence(
         samples, allow_inactive_action_forcing=True
     )
     return EvaluationDynamicsFit(
-        dynamics=model, inactive_forcing_features=inactive
+        dynamics=fitted.dynamics,
+        inactive_forcing_features=fitted.inactive_forcing_features,
+        evidence=fitted.evidence,
     )
 
 

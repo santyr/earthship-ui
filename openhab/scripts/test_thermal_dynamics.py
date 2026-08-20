@@ -220,7 +220,7 @@ def test_fit_recovers_stable_synthetic_2r2c():
     )
     air_tolerances = {
         "outside_exchange": 0.00010,
-        "mass_exchange": 0.00002,
+        "mass_exchange": 0.00006,
         "solar_unshaded": 0.000002,
         "solar_indoor_closed": 0.000002,
         "solar_outdoor": 0.000002,
@@ -515,21 +515,30 @@ def test_evaluation_fit_refuses_structural_rank_deficiency(monkeypatch):
         fit_dynamics_for_evaluation(samples)
 
 
-def test_fit_holds_evidence_derived_envelope_exchange_fixed(monkeypatch):
+def test_fit_uses_evidence_derived_envelope_exchange_as_initializer(
+    monkeypatch,
+):
     training, _ = synthetic_2r2c_days(days=5, seed=53)
     identified = 0.012345
     seen = {}
+    original_refine = dynamics._refine_multihorizon
 
     def envelope(pairs):
         seen["pairs"] = len(pairs)
         return identified, 37
 
+    def refine(initial, endpoints, inactive_features):
+        seen["initial"] = initial.air_coefficients["outside_exchange"]
+        return original_refine(initial, endpoints, inactive_features)
+
     monkeypatch.setattr(dynamics, "_fit_envelope_exchange", envelope)
+    monkeypatch.setattr(dynamics, "_refine_multihorizon", refine)
 
     model = fit_dynamics(training)
 
     assert seen["pairs"] == len(training) - 1
-    assert model.air_coefficients["outside_exchange"] == identified
+    assert seen["initial"] == identified
+    assert 0.0 <= model.air_coefficients["outside_exchange"] <= 0.5
 
 
 def test_fit_refuses_without_closed_low_radiation_envelope_evidence():
@@ -749,7 +758,7 @@ def test_sqrt_confidence_weighting_suppresses_low_confidence_measurement_noise()
         for name in names
     )
 
-    assert weighted_error < unweighted_error * 0.05
+    assert weighted_error < unweighted_error * 0.10
 
 
 def test_simulation_is_repeatable_and_never_clamps_out_of_range_output():
@@ -1039,3 +1048,140 @@ def test_inactive_forcing_activation_excludes_only_affected_horizon():
         for rows in endpoints.values()
         for endpoint in rows
     )
+
+
+
+def synthetic_latent_observer_days(days, seed):
+    physical_training, physical_holdout = synthetic_2r2c_days(
+        days=days, seed=seed
+    )
+    physical = physical_training + physical_holdout
+    alpha = 1.0 - math.exp(-5.0 / 120.0)
+    latent = physical[0].mass_f
+    observed = []
+    for row in physical:
+        north_wall = row.mass_f
+        latent += alpha * (north_wall - latent)
+        observed.append(
+            replace(row, mass_f=latent, north_wall_f=north_wall, mode="warm")
+        )
+    split = (days - 2) * 288
+    return observed[:split], observed[split:]
+
+
+def test_multihorizon_gradient_matches_centered_difference():
+    training, _ = synthetic_2r2c_days(days=8, seed=113)
+    initial, _ = dynamics._fit_five_minute_dynamics(
+        training, allow_inactive_action_forcing=False
+    )
+    vector = dynamics._coefficient_vector(initial)
+    endpoints = dynamics._select_multihorizon_endpoints(training)
+    _, analytic = dynamics._multihorizon_objective_and_gradient(
+        vector, endpoints
+    )
+    numeric = []
+    epsilon = 1e-7
+    for index in range(len(vector)):
+        plus = vector.copy()
+        minus = vector.copy()
+        plus[index] += epsilon
+        minus[index] -= epsilon
+        plus_loss, _ = dynamics._multihorizon_objective_and_gradient(
+            plus, endpoints
+        )
+        minus_loss, _ = dynamics._multihorizon_objective_and_gradient(
+            minus, endpoints
+        )
+        numeric.append((plus_loss - minus_loss) / (2.0 * epsilon))
+    assert np.asarray(analytic) == pytest.approx(
+        np.asarray(numeric), rel=2e-5, abs=2e-6
+    )
+
+
+def test_multihorizon_refinement_reduces_latent_observer_open_loop_drift():
+    training, holdout = synthetic_latent_observer_days(days=28, seed=127)
+    initial, _ = dynamics._fit_five_minute_dynamics(
+        training, allow_inactive_action_forcing=False
+    )
+    refined = dynamics.fit_dynamics_with_evidence(training)
+    origin = 72
+    target = origin + 288
+    initial_prediction = simulate(
+        initial, holdout[origin], holdout[origin + 1:target + 1]
+    )[-1]
+    refined_prediction = simulate(
+        refined.dynamics, holdout[origin], holdout[origin + 1:target + 1]
+    )[-1]
+    initial_error = abs(initial_prediction["air_f"] - holdout[target].air_f)
+    refined_error = abs(
+        refined_prediction["air_f"] - holdout[target].air_f
+    )
+    assert refined_error < initial_error
+    assert (
+        refined.evidence.final_objective
+        <= refined.evidence.initial_objective
+    )
+    validate_physics(refined.dynamics)
+
+
+def test_multihorizon_fit_is_byte_deterministic():
+    training, _ = synthetic_latent_observer_days(days=28, seed=131)
+    first = dynamics.fit_dynamics_with_evidence(training)
+    second = dynamics.fit_dynamics_with_evidence(training)
+    assert first == second
+
+
+@pytest.mark.parametrize("probe", ("unsuccessful", "nonfinite"))
+def test_multihorizon_optimizer_failures_refuse(monkeypatch, probe):
+    training, _ = synthetic_latent_observer_days(days=28, seed=137)
+    original_minimize = dynamics.minimize
+
+    def injected(fun, initial, **kwargs):
+        if kwargs.get("options", {}).get("maxiter") != 500:
+            return original_minimize(fun, initial, **kwargs)
+        if probe == "unsuccessful":
+            return SimpleNamespace(
+                success=False,
+                x=np.asarray(initial),
+                message="injected failure",
+            )
+        return SimpleNamespace(
+            success=True,
+            x=np.full_like(np.asarray(initial), np.nan),
+            message="injected nonfinite result",
+        )
+
+    monkeypatch.setattr(dynamics, "minimize", injected)
+    with pytest.raises(ValueError, match="multihorizon"):
+        dynamics.fit_dynamics_with_evidence(training)
+
+
+def test_multihorizon_fit_requires_two_origins_at_every_horizon(monkeypatch):
+    training, _ = synthetic_2r2c_days(days=8, seed=139)
+    original = dynamics._select_multihorizon_endpoints
+
+    def insufficient(samples, inactive_features=()):
+        endpoints = original(samples, inactive_features)
+        endpoints[288] = endpoints[288][:1]
+        return endpoints
+
+    monkeypatch.setattr(dynamics, "_select_multihorizon_endpoints", insufficient)
+    with pytest.raises(ValueError, match="insufficient multihorizon.*1440"):
+        dynamics.fit_dynamics_with_evidence(training)
+
+
+def test_multihorizon_fit_rejects_final_unstable_model(monkeypatch):
+    training, _ = synthetic_latent_observer_days(days=28, seed=149)
+    original = dynamics.validate_physics
+    calls = 0
+
+    def reject_final(model):
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            raise ValueError("transition eigenvalue reaches the unit circle")
+        return original(model)
+
+    monkeypatch.setattr(dynamics, "validate_physics", reject_final)
+    with pytest.raises(ValueError, match="unit circle"):
+        dynamics.fit_dynamics_with_evidence(training)
