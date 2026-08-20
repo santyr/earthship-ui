@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-20
 
-**Status:** Operator-approved design; written-spec review pending
+**Status:** Approved for implementation planning
 
 **Extends:** `2026-08-20-thermal-training-photosensor-repair-design.md`
 
@@ -83,6 +83,13 @@ five-minute row:
 - does not cross a dataset rejection or mode-evidence gap; and
 - does not activate a forcing column that the fold training fit identified as
   absent.
+
+For each horizon, uniformly retain at most 64 eligible daily origins across the
+entire training interval, always including the first and last eligible origin.
+When more than 64 exist, select canonical sorted indices
+`floor(i * (count - 1) / 63)` for `i=0..63`. This bounds every fold's optimizer
+cost without selecting from held-out error. The cap and index rule are exact
+artifact constraints.
 
 The rollout weight is the minimum aggregate action confidence across its
 intervening rows. This is conservative and prevents a long reconstructed window
