@@ -933,15 +933,15 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
         raise ValueError("multihorizon optimizer failed")
 
     final_objective, _, final_vector = evaluate(result.x)
+    final_model = _model_from_vector(
+        final_vector, initial.glazing_observation_coefficients
+    )
+    validate_physics(final_model)
     tolerance = MULTIHORIZON_OBJECTIVE_TOLERANCE * max(
         1.0, initial_objective
     )
     if final_objective > initial_objective + tolerance:
         raise ValueError("multihorizon objective increased")
-    final_model = _model_from_vector(
-        final_vector, initial.glazing_observation_coefficients
-    )
-    validate_physics(final_model)
     evidence = MultihorizonEvidence(
         origin_counts=tuple(counts.items()),
         initial_objective=float(initial_objective),

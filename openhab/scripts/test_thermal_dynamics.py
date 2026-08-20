@@ -986,6 +986,41 @@ def test_multihorizon_selector_is_daily_bounded_and_spans_training_range():
     assert endpoints[288][-1] == eligible_24h[-1]
 
 
+def test_daily_selector_prefers_longest_future_then_earliest_utc():
+    start = datetime(2026, 5, 1, 6, 0, tzinfo=UTC)
+
+    def segment(offset_minutes, rows):
+        return [
+            _sample(
+                start + timedelta(minutes=offset_minutes + 5 * index),
+                70.0,
+                68.0,
+                None,
+                60.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            )
+            for index in range(rows)
+        ]
+
+    first = segment(0, 7)
+    longer_later = segment(60, 8)
+    selected = dynamics._eligible_daily_endpoints(
+        first + longer_later, 6, ()
+    )
+    assert len(selected) == 1
+    assert selected[0].origin.at == longer_later[0].at
+
+    equal_later = longer_later[:-1]
+    selected = dynamics._eligible_daily_endpoints(
+        first + equal_later, 6, ()
+    )
+    assert len(selected) == 1
+    assert selected[0].origin.at == first[0].at
+
+
 def test_uniform_origin_indices_are_exact_and_include_boundaries():
     assert dynamics._uniform_origin_indices(5, 64) == (0, 1, 2, 3, 4)
     indices = dynamics._uniform_origin_indices(100, 64)
@@ -1153,6 +1188,55 @@ def test_multihorizon_optimizer_failures_refuse(monkeypatch, probe):
 
     monkeypatch.setattr(dynamics, "minimize", injected)
     with pytest.raises(ValueError, match="multihorizon"):
+        dynamics.fit_dynamics_with_evidence(training)
+
+
+@pytest.mark.parametrize(
+    ("probe", "message"),
+    (
+        ("objective", "objective increased"),
+        ("bounds", "exchange coefficients must be nonnegative"),
+        ("solar_order", "shade gain exceeds"),
+        ("output_range", "out of range"),
+    ),
+)
+def test_multihorizon_optimizer_invalid_success_results_refuse(
+    monkeypatch, probe, message
+):
+    training, _ = synthetic_latent_observer_days(days=28, seed=141)
+    original_minimize = dynamics.minimize
+
+    def injected(fun, initial, **kwargs):
+        if kwargs.get("options", {}).get("maxiter") != 500:
+            return original_minimize(fun, initial, **kwargs)
+        candidate = np.asarray(initial, dtype=float).copy()
+        if probe == "objective":
+            baseline = float(fun(candidate))
+            for index in range(len(candidate)):
+                trial = candidate.copy()
+                trial[index] = min(1.0, trial[index] + 1e-4)
+                if float(fun(trial)) > baseline:
+                    candidate = trial
+                    break
+            else:
+                raise AssertionError("no increasing local objective probe")
+        elif probe == "bounds":
+            candidate[0] = -0.1
+        elif probe == "solar_order":
+            candidate[2] = 0.0
+            candidate[3] = 1.0
+        else:
+            candidate[0] = 1e-6
+            candidate[1] = 0.0
+            candidate[6] = 1.0
+        return SimpleNamespace(
+            success=True,
+            x=candidate,
+            message=f"injected {probe}",
+        )
+
+    monkeypatch.setattr(dynamics, "minimize", injected)
+    with pytest.raises(ValueError, match=message):
         dynamics.fit_dynamics_with_evidence(training)
 
 
