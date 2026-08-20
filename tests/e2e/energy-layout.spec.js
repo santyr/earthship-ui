@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'vite';
 
+import { energyAnalyticsFixture } from '../fixtures/energyAnalytics.js';
+
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
   { name: 'laptop-1280x720', width: 1280, height: 720 },
@@ -24,6 +26,7 @@ const STATES = {
   BMS_Capacity_Remaining_Ah: '89',
   BMS_Comms_Status: 'OK',
   BMS_DevicePresent: '1',
+  Energy_Analytics_JSON: JSON.stringify(energyAnalyticsFixture()),
 };
 
 let server;
@@ -132,4 +135,14 @@ test('Energy period selection issues a fresh 4-hour history range', async ({ pag
   const start = Date.parse(latest.searchParams.get('starttime'));
   const end = Date.parse(latest.searchParams.get('endtime'));
   expect(end - start).toBe(4 * 60 * 60 * 1000);
+});
+
+
+test("Energy exposes observational analytics detail without adding controls", async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0]);
+  await page.getByRole("button", { name: "Open energy analytics details" }).click();
+  const dialog = page.getByRole("dialog", { name: "Energy analytics details" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Winter" })).toBeVisible();
+  await expect(dialog.locator("form, input, select, textarea")).toHaveCount(0);
 });

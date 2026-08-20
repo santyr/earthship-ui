@@ -169,3 +169,12 @@ reverse proxy, HTTPS for the household UI, immutable release infrastructure,
 user accounts/multi-profile, remote (off-LAN) access, historical analytics
 beyond the shipped charts (Grafana remains the deep-analytics option later),
 voice, cameras.
+
+## Observational energy analytics
+
+The Energy screen consumes `Energy_Analytics_JSON` through the existing
+OpenHAB REST/SSE store. It validates the closed `earthship-energy-ui/v1`
+contract before rendering a compact summary or detail dialog. Analytics are
+read-only presentation: invalid or stale evidence becomes unavailable, and no
+analytics value is a control or authorization signal. See
+[the operating runbook](operations/energy-analytics.md).

@@ -94,7 +94,10 @@ observational: it publishes only `Thermal_Model_JSON`, does not change
 `Thermal_Advisory`, and has no actuator authority.
 
 Thermal identification uses a rolling 400-day window so accepted artifacts
-retain fall-charge, winter, spring, and warm evidence. The attended runbook also
+retain fall-charge, winter, spring, and warm evidence. The private artifact is
+`earthship-thermal-model/v2`: its north-wall mass equation includes a bounded,
+nonnegative mass-to-outdoor exchange, and v1 artifacts fail closed pending
+retraining. The public shadow payload remains observational version 1. The attended runbook also
 stages the hallway Philips sensor as `LivingOffice_Shade_Illuminance`,
 `LivingOffice_Shade_Occupancy`, and `LivingOffice_Shade_Temperature`; collection
 starts through the existing JDBC wildcard policy, with no photosensor-derived shade labels

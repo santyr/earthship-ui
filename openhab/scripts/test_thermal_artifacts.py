@@ -42,7 +42,7 @@ from thermal_model.schema import (
 
 def stable_dynamics():
     return DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.018,
@@ -55,6 +55,7 @@ def stable_dynamics():
         },
         mass_coefficients={
             "air_exchange": 0.008,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.000035,
             "solar_indoor_closed": 0.000014,
             "solar_outdoor": 0.000007,
@@ -74,7 +75,7 @@ def valid_artifact(**changes):
     total_pairs = 17567
     fitted_pairs = 17000
     artifact = ThermalArtifact(
-        schema="earthship-thermal-model/v1",
+        schema="earthship-thermal-model/v2",
         created_at="2026-08-13T12:00:00Z",
         trained_from="2026-06-01T00:00:00Z",
         trained_through="2026-08-01T00:00:00Z",
@@ -243,13 +244,20 @@ def test_artifact_accepts_exact_disjoint_action_evidence(tmp_path):
     assert registry.candidate_path.exists()
 
 
+def test_v1_artifact_is_rejected_without_implicit_migration(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+
+    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v2"):
+        registry.save_candidate(valid_artifact(schema="earthship-thermal-model/v1"))
+
+
 def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
     registry = ArtifactRegistry(tmp_path)
     registry.save_candidate(valid_artifact())
     registry.promote_candidate()
 
     loaded = registry.load_accepted()
-    assert loaded.schema == "earthship-thermal-model/v1"
+    assert loaded.schema == "earthship-thermal-model/v2"
     assert isinstance(loaded.dynamics, DynamicsModel)
     assert isinstance(loaded.behavior.seasonal_vocabulary, tuple)
     assert loaded.behavior.seasonal_vocabulary[0].action_states == (

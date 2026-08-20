@@ -43,7 +43,7 @@ from .schema import (
     ThermalArtifact,
 )
 
-MODEL_SCHEMA = "earthship-thermal-model/v1"
+MODEL_SCHEMA = "earthship-thermal-model/v2"
 BACKTEST_SCHEMA = "earthship-thermal-backtest/v1"
 THERMAL_UNITS = {
     "air": "F",
@@ -234,9 +234,9 @@ def _validate_dynamics(model):
         raise ArtifactValidationError("artifact dynamics type is invalid")
     _integer(model.version, "dynamics.version", minimum=1)
     _integer(model.step_minutes, "dynamics.step_minutes", minimum=1)
-    if model.version != 1 or model.step_minutes != 5:
+    if model.version != 2 or model.step_minutes != 5:
         raise ArtifactValidationError(
-            "dynamics model must be version 1 at five-minute steps"
+            "dynamics model must be version 2 at five-minute steps"
         )
     _validate_coefficient_map(
         model.air_coefficients, AIR_NAMES, "dynamics.air", AIR_BOUNDS

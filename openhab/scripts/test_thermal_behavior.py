@@ -177,7 +177,7 @@ def winter_forecast(*, sunny, hours=36):
 
 def stable_model():
     return DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.02,
@@ -190,6 +190,7 @@ def stable_model():
         },
         mass_coefficients={
             "air_exchange": 0.008,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.00003,
             "solar_indoor_closed": 0.00001,
             "solar_outdoor": 0.000005,
