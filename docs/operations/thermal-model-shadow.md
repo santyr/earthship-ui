@@ -20,6 +20,27 @@ logs, and household state stay outside Git. Never print or commit secrets or
 private evidence. Private directories have mode `0700` and private files have mode `0600`.
 No artifact or journal content is committed.
 
+## Thermal artifact v2 contract
+
+Gate A retrains from source data and accepts only `earthship-thermal-model/v2`
+with dynamics version `2`; v1 artifacts fail closed and are never rewritten or
+synthetically migrated. At each five-minute step the north-wall mass state uses
+
+```text
+M[t+1] = M[t]
+  + k_ma (A[t] - M[t])
+  + k_mo (O[t+1] - M[t])
+  + solar gains
+```
+
+where `k_mo` is the exact `mass_coefficients.outside_exchange` field and is
+bounded to `[0.0, 0.20]`. The closed and boosted transition matrices use
+`1 - k_ma - k_mo` on the mass diagonal. All exchange and gain bounds, ordered
+solar gains, spectral-radius checks, 72-hour simulations, chronological
+backtests, and promotion thresholds remain fail-closed. There is no mass bias,
+coefficient clamp, prior-value substitution, or gate relaxation. The public
+shadow payload remains its separate observational version-1 contract.
+
 ## Exact source-to-target manifest and transaction contract
 
 The checked-in `scripts/thermal-model-files.py` owns the fixed CLI repository,

@@ -55,6 +55,7 @@ TRUE_AIR_COEFFICIENTS = {
 }
 TRUE_MASS_COEFFICIENTS = {
     "air_exchange": 0.008,
+    "outside_exchange": 0.003,
     "solar_unshaded": 0.000035,
     "solar_indoor_closed": 0.000014,
     "solar_outdoor": 0.000007,
@@ -146,6 +147,8 @@ def synthetic_2r2c_days(days, seed):
         mass = (
             pre_mass
             + TRUE_MASS_COEFFICIENTS["air_exchange"] * (pre_air - pre_mass)
+            + TRUE_MASS_COEFFICIENTS["outside_exchange"]
+            * (end_forcing["outdoor"] - pre_mass)
             + TRUE_MASS_COEFFICIENTS["solar_unshaded"] * end_solar[0]
             + TRUE_MASS_COEFFICIENTS["solar_indoor_closed"] * end_solar[1]
             + TRUE_MASS_COEFFICIENTS["solar_outdoor"] * end_solar[2]
@@ -228,6 +231,7 @@ def test_fit_recovers_stable_synthetic_2r2c():
         )
     mass_tolerances = {
         "air_exchange": 0.00002,
+        "outside_exchange": 0.00002,
         "solar_unshaded": 0.000001,
         "solar_indoor_closed": 0.000001,
         "solar_outdoor": 0.000001,
@@ -282,7 +286,7 @@ def test_fit_enforces_ordered_solar_gains_during_optimization():
 
 def test_fit_rejects_shaded_gain_above_unshaded_gain():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.02,
@@ -295,6 +299,7 @@ def test_fit_rejects_shaded_gain_above_unshaded_gain():
         },
         mass_coefficients={
             "air_exchange": 0.01,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.002,
             "solar_indoor_closed": 0.001,
             "solar_outdoor": 0.0005,
@@ -331,7 +336,7 @@ def test_fit_diagnostics_match_exact_selected_pairs_and_auxiliary_rows():
 
 def test_boosted_ventilation_forcing_scales_effective_outdoor_exchange():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.0,
@@ -344,6 +349,7 @@ def test_boosted_ventilation_forcing_scales_effective_outdoor_exchange():
         },
         mass_coefficients={
             "air_exchange": 0.0,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0,
             "solar_indoor_closed": 0.0,
             "solar_outdoor": 0.0,
@@ -411,7 +417,7 @@ def test_sparse_glazing_coverage_skips_auxiliary_fit_without_rejecting_core():
 
 def test_negative_ventilation_forcing_is_rejected():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.02,
@@ -424,6 +430,7 @@ def test_negative_ventilation_forcing_is_rejected():
         },
         mass_coefficients={
             "air_exchange": 0.01,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0002,
             "solar_indoor_closed": 0.0001,
             "solar_outdoor": 0.00005,
@@ -504,7 +511,7 @@ def test_rank_deficient_glazing_design_skips_only_auxiliary_fit():
 
 def test_validation_rejects_unstable_72_hour_unforced_response():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.001,
@@ -517,6 +524,7 @@ def test_validation_rejects_unstable_72_hour_unforced_response():
         },
         mass_coefficients={
             "air_exchange": 0.01,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0002,
             "solar_indoor_closed": 0.0001,
             "solar_outdoor": 0.00005,
@@ -530,7 +538,7 @@ def test_validation_rejects_unstable_72_hour_unforced_response():
 
 def test_validation_rejects_negative_solar_gains_even_when_ordered():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.02,
@@ -543,6 +551,7 @@ def test_validation_rejects_negative_solar_gains_even_when_ordered():
         },
         mass_coefficients={
             "air_exchange": 0.01,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0002,
             "solar_indoor_closed": 0.0001,
             "solar_outdoor": 0.00005,
@@ -560,8 +569,8 @@ def test_exact_coefficient_bounds_are_the_approved_five_minute_bounds():
         [0.50, 0.50, 0.020, 0.010, 0.015, 0.80, 0.20],
     )
     assert MASS_BOUNDS == (
-        [0.0, 0.0, 0.0, 0.0],
-        [0.20, 0.008, 0.004, 0.006],
+        [0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.20, 0.20, 0.008, 0.004, 0.006],
     )
     assert GLAZING_BOUNDS == (
         [-math.inf, -math.inf, -math.inf, 0.0, 0.0, 0.0],
@@ -581,7 +590,7 @@ def test_prediction_uses_distinct_solar_gain_for_each_shade_regime(
     indoor, outdoor_shade, expected_air, expected_mass
 ):
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.0,
@@ -594,6 +603,7 @@ def test_prediction_uses_distinct_solar_gain_for_each_shade_regime(
         },
         mass_coefficients={
             "air_exchange": 0.0,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0003,
             "solar_indoor_closed": 0.0002,
             "solar_outdoor": 0.0001,
@@ -653,7 +663,7 @@ def test_sqrt_confidence_weighting_suppresses_low_confidence_measurement_noise()
 
 def test_simulation_is_repeatable_and_never_clamps_out_of_range_output():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.0,
@@ -666,6 +676,7 @@ def test_simulation_is_repeatable_and_never_clamps_out_of_range_output():
         },
         mass_coefficients={
             "air_exchange": 0.0,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0,
             "solar_indoor_closed": 0.0,
             "solar_outdoor": 0.0,
@@ -690,7 +701,7 @@ def test_simulation_is_repeatable_and_never_clamps_out_of_range_output():
 
 def test_stability_rejects_slow_neutral_bias_drift_inside_72_hour_range():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.0,
@@ -703,6 +714,7 @@ def test_stability_rejects_slow_neutral_bias_drift_inside_72_hour_range():
         },
         mass_coefficients={
             "air_exchange": 0.0,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0,
             "solar_indoor_closed": 0.0,
             "solar_outdoor": 0.0,
@@ -716,7 +728,7 @@ def test_stability_rejects_slow_neutral_bias_drift_inside_72_hour_range():
 
 def test_stability_rejects_oscillatory_boosted_transition():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.5,
@@ -729,6 +741,7 @@ def test_stability_rejects_oscillatory_boosted_transition():
         },
         mass_coefficients={
             "air_exchange": 0.2,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0,
             "solar_indoor_closed": 0.0,
             "solar_outdoor": 0.0,
@@ -753,7 +766,7 @@ def test_ventilation_forcing_is_bounded_at_operator_approved_boost():
         "outdoor_shade_present": 0.0,
     }
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.02,
@@ -766,6 +779,7 @@ def test_ventilation_forcing_is_bounded_at_operator_approved_boost():
         },
         mass_coefficients={
             "air_exchange": 0.01,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0,
             "solar_indoor_closed": 0.0,
             "solar_outdoor": 0.0,
@@ -779,7 +793,7 @@ def test_ventilation_forcing_is_bounded_at_operator_approved_boost():
 
 def test_glazing_prediction_is_aligned_with_end_of_step_air_state():
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.5,
@@ -792,6 +806,7 @@ def test_glazing_prediction_is_aligned_with_end_of_step_air_state():
         },
         mass_coefficients={
             "air_exchange": 0.0,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.0,
             "solar_indoor_closed": 0.0,
             "solar_outdoor": 0.0,
@@ -838,6 +853,9 @@ def test_synthetic_fixture_recovers_known_mass_coefficients():
 
     assert model.mass_coefficients["air_exchange"] == pytest.approx(
         0.008, abs=0.00002
+    )
+    assert model.mass_coefficients["outside_exchange"] == pytest.approx(
+        0.003, abs=0.00002
     )
     assert model.mass_coefficients["solar_unshaded"] == pytest.approx(
         0.000035, abs=0.000001

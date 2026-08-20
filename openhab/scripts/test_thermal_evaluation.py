@@ -21,7 +21,7 @@ SITE_TIMEZONE = ZoneInfo("America/Denver")
 
 def fixed_model():
     return DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients={
             "outside_exchange": 0.018,
@@ -34,6 +34,7 @@ def fixed_model():
         },
         mass_coefficients={
             "air_exchange": 0.008,
+            "outside_exchange": 0.0,
             "solar_unshaded": 0.000035,
             "solar_indoor_closed": 0.000014,
             "solar_outdoor": 0.000007,

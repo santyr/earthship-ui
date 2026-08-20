@@ -22,6 +22,7 @@ AIR_NAMES = (
 )
 MASS_NAMES = (
     "air_exchange",
+    "outside_exchange",
     "solar_unshaded",
     "solar_indoor_closed",
     "solar_outdoor",
@@ -39,8 +40,8 @@ AIR_BOUNDS = (
     [0.50, 0.50, 0.020, 0.010, 0.015, 0.80, 0.20],
 )
 MASS_BOUNDS = (
-    [0.0, 0.0, 0.0, 0.0],
-    [0.20, 0.008, 0.004, 0.006],
+    [0.0, 0.0, 0.0, 0.0, 0.0],
+    [0.20, 0.20, 0.008, 0.004, 0.006],
 )
 GLAZING_BOUNDS = (
     [-np.inf, -np.inf, -np.inf, 0.0, 0.0, 0.0],
@@ -281,7 +282,11 @@ def fit_dynamics(samples):
         )
         air_target.append((right.air_f - left.air_f) * weight)
         mass_design.append(
-            np.asarray((left.air_f - left.mass_f, *solar)) * weight
+            np.asarray((
+                left.air_f - left.mass_f,
+                right.outdoor_f - left.mass_f,
+                *solar,
+            )) * weight
         )
         mass_target.append((right.mass_f - left.mass_f) * weight)
     air = _fit(
@@ -302,7 +307,7 @@ def fit_dynamics(samples):
         else {}
     )
     model = DynamicsModel(
-        version=1,
+        version=2,
         step_minutes=5,
         air_coefficients=air,
         mass_coefficients=mass,
@@ -340,6 +345,7 @@ def predict_step(model, sample):
     )
     next_mass = mass + (
         mass_c["air_exchange"] * (air - mass)
+        + mass_c["outside_exchange"] * (outdoor - mass)
         + mass_c["solar_unshaded"] * solar[0]
         + mass_c["solar_indoor_closed"] * solar[1]
         + mass_c["solar_outdoor"] * solar[2]
@@ -414,7 +420,10 @@ def _transition_matrix(model, vent_forcing):
                 - air["vent_exchange"] * vent_forcing,
                 air["mass_exchange"],
             ),
-            (mass["air_exchange"], 1.0 - mass["air_exchange"]),
+            (
+                mass["air_exchange"],
+                1.0 - mass["air_exchange"] - mass["outside_exchange"],
+            ),
         ),
         dtype=float,
     )
@@ -437,11 +446,11 @@ def _validate_transition_stability(model):
 
 def validate_physics(model):
     """Reject sign, gain-order, spectral, and 72-hour violations."""
-    if model.version != 1 or model.step_minutes != 5:
-        raise ValueError("dynamics model must be version 1 at five-minute steps")
-    for coefficients, names in (
-        (model.air_coefficients, AIR_NAMES),
-        (model.mass_coefficients, MASS_NAMES),
+    if model.version != 2 or model.step_minutes != 5:
+        raise ValueError("dynamics model must be version 2 at five-minute steps")
+    for coefficients, names, bounds in (
+        (model.air_coefficients, AIR_NAMES, AIR_BOUNDS),
+        (model.mass_coefficients, MASS_NAMES, MASS_BOUNDS),
     ):
         if set(coefficients) != set(names):
             raise ValueError("dynamics coefficient names do not match the contract")
@@ -458,6 +467,7 @@ def validate_physics(model):
         model.air_coefficients["mass_exchange"],
         model.air_coefficients["vent_exchange"],
         model.mass_coefficients["air_exchange"],
+        model.mass_coefficients["outside_exchange"],
     )
     if any(value < 0.0 for value in exchanges):
         raise ValueError("exchange coefficients must be nonnegative")
@@ -467,6 +477,14 @@ def validate_physics(model):
         model.glazing_observation_coefficients,
     ):
         _validate_gain_relationship(coefficients)
+
+    for coefficients, names, bounds in (
+        (model.air_coefficients, AIR_NAMES, AIR_BOUNDS),
+        (model.mass_coefficients, MASS_NAMES, MASS_BOUNDS),
+    ):
+        for index, name in enumerate(names):
+            if not bounds[0][index] <= coefficients[name] <= bounds[1][index]:
+                raise ValueError("dynamics coefficient violates declared bounds")
 
     _validate_transition_stability(model)
     for _, vent_forcing in VENT_FORCING_LEVELS:
