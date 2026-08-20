@@ -328,6 +328,30 @@ def test_build_shadow_output_is_an_alias_for_validated_shadow_construction():
     assert output["status"] == "shadow"
 
 
+def test_photosensor_history_has_no_label_or_shadow_schema_authority():
+    photosensor_items = {
+        "LivingOffice_Shade_Illuminance",
+        "LivingOffice_Shade_Occupancy",
+        "LivingOffice_Shade_Temperature",
+    }
+    assert photosensor_items.isdisjoint(THERMAL_ITEMS.values())
+    output = build_shadow_output(
+        registry=AcceptedRegistry(),
+        current=current_states(),
+        forecast=forecast_hours(24),
+        now=NOW,
+    )
+    assert "photosensor" not in json.dumps(output).lower()
+    assert all(
+        "photosensor" not in marker
+        for row in output["forecast"]["trajectory"]
+        for marker in row["actions"]
+    )
+    output["photosensorShadeState"] = "closed"
+    with pytest.raises(ValueError, match="fields|schema|unknown"):
+        validate_shadow_output(output)
+
+
 def test_shadow_emits_no_candidate_for_actual_minimum_improvement_result():
     artifact = accepted_artifact()
     artifact.dynamics.air_coefficients["vent_exchange"] = 0.0

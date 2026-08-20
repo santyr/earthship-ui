@@ -189,11 +189,12 @@ umask 077
 REPO_ROOT=/home/sat/earthship-ui
 EVIDENCE_ROOT=/home/sat/.local/state/thermal-intel/deploy-receipts/ATTENDED-ID
 ITEM_RECEIPT="$EVIDENCE_ROOT/item"
+PHOTOSENSOR_RECEIPT="$EVIDENCE_ROOT/photosensor"
 FILE_RECEIPT="$EVIDENCE_ROOT/files"
 STATE_ROOT=/home/sat/.local/state/thermal-intel
 test "$REPO_ROOT" = /home/sat/earthship-ui
 test "$STATE_ROOT" = /home/sat/.local/state/thermal-intel
-export REPO_ROOT EVIDENCE_ROOT ITEM_RECEIPT FILE_RECEIPT STATE_ROOT
+export REPO_ROOT EVIDENCE_ROOT ITEM_RECEIPT PHOTOSENSOR_RECEIPT FILE_RECEIPT STATE_ROOT
 ```
 
 **PRELIMINARY MUTATION — securely prepare exact private directories:**
@@ -207,7 +208,8 @@ cd "$REPO_ROOT"
 /usr/bin/python3 scripts/thermal-model-files.py prepare \
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
 for DIR in "$STATE_ROOT" "$STATE_ROOT/models" "$STATE_ROOT/review" \
-  "$STATE_ROOT/evidence" "$EVIDENCE_ROOT" "$ITEM_RECEIPT" "$FILE_RECEIPT"
+  "$STATE_ROOT/evidence" "$EVIDENCE_ROOT" "$ITEM_RECEIPT" \
+  "$PHOTOSENSOR_RECEIPT" "$FILE_RECEIPT"
 do
   DIR_MODE="$(stat -c %a "$DIR")"
   test "$DIR_MODE" = 700
@@ -331,12 +333,182 @@ totals before Gate A. The attended operator must re-run the rehearsal and review
 its exact packet before Gate B if any tracked desired manifest or receipt fact
 changes.
 
+## 2a. Photosensor acquisition authorization
+
+Pause for the photosensor acquisition authorization. It permits only the
+receipt-owned creation of these observation resources for the ONLINE hallway
+Philips SML003 Thing `zigbee:device:a7351eb531:001788011024c307`:
+
+| Item | Type | Exact channel suffix |
+| --- | --- | --- |
+| `LivingOffice_Shade_Illuminance` | `Number` | `001788011024C307_2_illuminance` |
+| `LivingOffice_Shade_Occupancy` | `Switch` | `001788011024C307_2_occupancy` |
+| `LivingOffice_Shade_Temperature` | `Number:Temperature` | `001788011024C307_2_temperature` |
+
+The hallway position represents the living-room/office windows. This gate does
+not change the Thing, persistence policy, metadata, rules, Item values, or any
+unlisted Item/link. It begins raw observation collection only. There are no
+photosensor-derived shade labels until a later calibrated design has adequate
+history and confirmed shade transitions.
+
+**PHOTOSENSOR PRIVATE MUTATION — sanitized snapshot and exact evidence:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-photosensor-config.mjs snapshot \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT"
+PHOTOSENSOR_DIR_MODE="$(stat -c %a "$PHOTOSENSOR_RECEIPT")"
+PHOTOSENSOR_RECEIPT_MODE="$(stat -c %a "$PHOTOSENSOR_RECEIPT/receipt.json")"
+PHOTOSENSOR_SNAPSHOT_MODE="$(stat -c %a "$PHOTOSENSOR_RECEIPT/pre-state.json")"
+test "$PHOTOSENSOR_DIR_MODE" = 700
+test "$PHOTOSENSOR_RECEIPT_MODE" = 600
+test "$PHOTOSENSOR_SNAPSHOT_MODE" = 600
+jq -e 'select(.thing.uid == "zigbee:device:a7351eb531:001788011024c307")
+  | select(.thing.status == "ONLINE")
+  | select((.thing.channels | length) == 3)
+  | select(.jdbc.serviceId == "jdbc" and .jdbc.editable == true)
+  | select(.jdbc.wildcardStrategies | index("everyChange"))
+  | select(.jdbc.wildcardStrategies | index("restoreOnStartup"))' \
+  "$PHOTOSENSOR_RECEIPT/pre-state.json"
+```
+
+The snapshot contains only normalized Item/link DTOs and sanitized Thing/JDBC
+evidence. The existing editable JDBC wildcard `*` policy already includes
+`everyChange` and `restoreOnStartup`; it is verified read-only and never
+written by this procedure.
+
+**READ-ONLY — exact six-write apply and reverse rollback packet:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-photosensor-config.mjs plan \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT" \
+  | jq -e 'select((.apply | length) == 6)
+    | select((.rollback | length) == 6)
+    | select([.apply[0:3][].path] == [
+        "/rest/items/LivingOffice_Shade_Illuminance",
+        "/rest/items/LivingOffice_Shade_Occupancy",
+        "/rest/items/LivingOffice_Shade_Temperature"])
+    | select(all(.apply[0:3][]; .method == "PUT"))
+    | select(all(.apply[3:6][]; .method == "PUT"))'
+```
+
+**PHOTOSENSOR PRIVATE MUTATION — isolated offline receipt rehearsal:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-photosensor-config.mjs rehearse \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT" \
+  | jq -e 'select(.writeCounts == {put:6,delete:6,total:12})
+    | select(.terminal == {state:"closed",phase:"rolled-back"})'
+```
+
+Rehearsal cannot load authorization or contact OpenHAB. Review its exact paths
+and body digests before the live apply.
+
+**PHOTOSENSOR MUTATION — receipt-owned three-Item/three-link apply:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-photosensor-config.mjs apply \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT"
+```
+
+If the command returns ambiguously, do not retry. Run settlement once; it
+accepts only the exact receipt-owned prefix and never repeats the pending write:
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+PHOTOSENSOR_PHASE="$(jq -e -r '.phase' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+PHOTOSENSOR_PENDING="$(jq -e -r '.pendingOperation' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+if test "$PHOTOSENSOR_PHASE" = applying && test "$PHOTOSENSOR_PENDING" != null; then
+  node scripts/thermal-photosensor-config.mjs settle \
+    --receipt-dir "$PHOTOSENSOR_RECEIPT"
+fi
+PHOTOSENSOR_PHASE="$(jq -e -r '.phase' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+PHOTOSENSOR_PENDING="$(jq -e -r '.pendingOperation' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+case "$PHOTOSENSOR_PHASE:$PHOTOSENSOR_PENDING" in
+  applying:null)
+    node scripts/thermal-photosensor-config.mjs apply \
+      --receipt-dir "$PHOTOSENSOR_RECEIPT"
+    ;;
+  desired:null)
+    ;;
+  *)
+    printf '%s\n' 'unexpected photosensor receipt state after settlement' >&2
+    exit 1
+    ;;
+esac
+```
+
+The final `apply` only resumes a prefix that settlement proved exact. It fails
+if the receipt is already terminal, so skip it when settlement reports
+`phase=desired`.
+
+**READ-ONLY — exact Item/link verification and receipt closure:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-photosensor-config.mjs verify \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT" \
+  | jq -e 'select(.ok == true and .expected == "desired" and .phase == "desired")'
+node scripts/thermal-photosensor-config.mjs close \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT"
+jq -e 'select(.state == "closed" and .phase == "desired"
+  and .closedPhase == "desired" and .writeCount == 6)' \
+  "$PHOTOSENSOR_RECEIPT/receipt.json"
+```
+
+**READ-ONLY — bounded JDBC acquisition check:**
+
+```bash
+set -euo pipefail
+START_UTC="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
+END_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+for ITEM in LivingOffice_Shade_Illuminance \
+  LivingOffice_Shade_Occupancy LivingOffice_Shade_Temperature
+do
+  COUNT="$(curl --fail --silent --show-error \
+    "http://127.0.0.1:5190/rest/persistence/items/${ITEM}?serviceId=jdbc&starttime=${START_UTC}&endtime=${END_UTC}" \
+    | jq -e '.data | length')"
+  case "$COUNT" in
+    0) printf '%s\n' "$ITEM pending first acquisition" ;;
+    *) printf '%s %s\n' "$ITEM" "$COUNT" ;;
+  esac
+done
+```
+
+Present the closed receipt and either each first JDBC point or its explicit
+`pending first acquisition` result before continuing. This acquisition is not
+Gate B publication and does not create `Thermal_Model_JSON`.
+
 ## 3. Gate A: code, database, and private model evidence
 
 Gate A authorizes only atomic live code installation, exact role/schema
 audit and `thermal_intel` migration/grants, and private training, backtest,
 artifact, and local-only shadow creation. It authorizes no Item write,
 publication, credential provisioning, unit installation, or systemd mutation.
+The train/backtest commands below omit explicit date bounds and therefore use
+exactly 400 rolling days ending at their training origin.
 
 **READ-ONLY — repeat quiescence immediately before code replacement:**
 
@@ -1035,9 +1207,35 @@ fingerprint receipt contains no connection string or credentials.
 ```bash
 set -euo pipefail
 : "${STATE_ROOT:?}"
-jq -e '{schema,created_at,trained_from,trained_through,code_revision,dynamics,behavior,metrics,data_manifest:{start:.data_manifest.start,end:.data_manifest.end,sample_count:.data_manifest.sample_count,rejected_counts:.data_manifest.rejected_counts,auxiliary_exclusion_counts:.data_manifest.auxiliary_exclusion_counts,event_counts_by_source:.data_manifest.event_counts_by_source,fit_diagnostics:.data_manifest.fit_diagnostics,constraints:.data_manifest.constraints,canonical_rows_sha256:.data_manifest.canonical_rows_sha256}} | select(.metrics.promotion.shadow_only == true)' \
+jq -e '{schema,created_at,trained_from,trained_through,code_revision,dynamics,behavior,metrics,data_manifest:{start:.data_manifest.start,end:.data_manifest.end,sample_count:.data_manifest.sample_count,sample_counts_by_mode:.data_manifest.sample_counts_by_mode,rejected_counts:.data_manifest.rejected_counts,auxiliary_exclusion_counts:.data_manifest.auxiliary_exclusion_counts,event_counts_by_source:.data_manifest.event_counts_by_source,fit_diagnostics:.data_manifest.fit_diagnostics,constraints:.data_manifest.constraints,canonical_rows_sha256:.data_manifest.canonical_rows_sha256}} | select(.metrics.promotion.shadow_only == true)' \
   "$STATE_ROOT/models/accepted.json"
 ```
+
+**READ-ONLY — exact rolling window, seasonal coverage, and Kiva exclusions:**
+
+```bash
+set -euo pipefail
+: "${STATE_ROOT:?}"
+jq -e 'select(
+    ((.data_manifest.end | fromdateiso8601)
+      - (.data_manifest.start | fromdateiso8601)) == 34560000)
+  | select(.data_manifest.sample_counts_by_mode.fall_charge > 0)
+  | select(.data_manifest.sample_counts_by_mode.winter > 0)
+  | select(.data_manifest.sample_counts_by_mode.spring > 0)
+  | select(.data_manifest.sample_counts_by_mode.warm > 0)
+  | select((.data_manifest.sample_counts_by_mode | add)
+      == .data_manifest.sample_count)
+  | select(.data_manifest.fit_diagnostics.excluded_passive_pairs > 0)
+  | select(.data_manifest.event_counts_by_source.model_inferred > 0)
+  | {trained_from,trained_through,sample_counts_by_mode:.data_manifest.sample_counts_by_mode,
+     excluded_passive_pairs:.data_manifest.fit_diagnostics.excluded_passive_pairs,
+     model_inferred_events:.data_manifest.event_counts_by_source.model_inferred}' \
+  "$STATE_ROOT/models/accepted.json"
+```
+
+The final two predicates retain evidence that inferred Kiva intervals were
+present and excluded from passive fitting; inspect their private journal rows
+alongside this bounded manifest summary.
 
 **READ-ONLY — folds, leakage, baselines, and promotion gates:**
 
@@ -1076,9 +1274,10 @@ do
 done
 ```
 
-Stop on refusal, leakage, invalid physics, unexplained exclusions, missing
+Stop and present this evidence before Gate B. Stop on refusal, leakage,
+invalid physics, unexplained exclusions, missing
 baseline, unavailable confidence, revision mismatch, size failure, or weak
-mode. Present exact evidence before Gate B.
+mode.
 
 ## 5. Gate B: sole observational Item and state writes
 
@@ -1448,6 +1647,55 @@ cd "$REPO_ROOT"
 node scripts/thermal-model-config.mjs close --receipt-dir "$ITEM_RECEIPT"
 jq -e 'select(.state == "closed" and .phase == "rolled-back"
   and .closedPhase == "rolled-back" and (.closedAt | type) == "string")'   "$ITEM_RECEIPT/receipt.json"
+```
+
+**ROLLBACK MUTATION — receipt-based photosensor Item/link restoration:**
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+node scripts/thermal-photosensor-config.mjs rollback \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT"
+```
+
+If rollback returned ambiguously, never retry its pending write. Reconcile and
+resume only the exact receipt-owned reverse prefix:
+
+```bash
+set -euo pipefail
+: "${REPO_ROOT:?}"
+: "${PHOTOSENSOR_RECEIPT:?}"
+cd "$REPO_ROOT"
+PHOTOSENSOR_PHASE="$(jq -e -r '.phase' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+PHOTOSENSOR_PENDING="$(jq -e -r '.pendingOperation' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+if test "$PHOTOSENSOR_PHASE" = rolling-back && test "$PHOTOSENSOR_PENDING" != null; then
+  node scripts/thermal-photosensor-config.mjs settle \
+    --receipt-dir "$PHOTOSENSOR_RECEIPT"
+fi
+PHOTOSENSOR_PHASE="$(jq -e -r '.phase' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+PHOTOSENSOR_PENDING="$(jq -e -r '.pendingOperation' "$PHOTOSENSOR_RECEIPT/receipt.json")"
+case "$PHOTOSENSOR_PHASE:$PHOTOSENSOR_PENDING" in
+  rolling-back:null)
+    node scripts/thermal-photosensor-config.mjs rollback \
+      --receipt-dir "$PHOTOSENSOR_RECEIPT"
+    ;;
+  rolled-back:null)
+    ;;
+  *)
+    printf '%s\n' 'unexpected photosensor rollback receipt state' >&2
+    exit 1
+    ;;
+esac
+node scripts/thermal-photosensor-config.mjs verify \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT" \
+  | jq -e 'select(.ok == true and .expected == "original" and .phase == "rolled-back")'
+node scripts/thermal-photosensor-config.mjs close \
+  --receipt-dir "$PHOTOSENSOR_RECEIPT"
+jq -e 'select(.state == "closed" and .phase == "rolled-back"
+  and .closedPhase == "rolled-back" and .writeCount == 12)' \
+  "$PHOTOSENSOR_RECEIPT/receipt.json"
 ```
 
 **ROLLBACK MUTATION — recover interrupted phase, then restore exact files:**

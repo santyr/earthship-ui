@@ -106,6 +106,13 @@ describe('thermal model operations documentation', () => {
     expect(readme).toContain('durable transaction recovery');
     expect(readme).toContain('separately reviewed upgrade procedure');
   });
+
+  it('documents staged Philips collection and the rolling 400-day model window', () => {
+    const readme = fs.readFileSync(README_PATH, 'utf8');
+    expect(readme).toContain('LivingOffice_Shade_Illuminance');
+    expect(readme).toContain('400-day');
+    expect(readme).toContain('no photosensor-derived shade labels');
+  });
 });
 
 function bashBlocks(source) {
@@ -115,6 +122,55 @@ function bashBlocks(source) {
 describe('thermal model attended runbook safety', () => {
   const runbook = fs.readFileSync(THERMAL_RUNBOOK_PATH, 'utf8');
   const blocks = bashBlocks(runbook);
+
+  it('stages the exact receipt-bound Philips acquisition before private Gate A', () => {
+    const ordered = [
+      'Photosensor acquisition authorization',
+      'thermal-photosensor-config.mjs snapshot',
+      'thermal-photosensor-config.mjs plan',
+      'thermal-photosensor-config.mjs rehearse',
+      'thermal-photosensor-config.mjs apply',
+      'thermal-photosensor-config.mjs verify',
+      'thermal-photosensor-config.mjs close',
+      'Gate A: code, database, and private model evidence',
+    ];
+    let previous = -1;
+    for (const marker of ordered) {
+      const current = runbook.indexOf(marker);
+      expect(current, marker).toBeGreaterThan(previous);
+      previous = current;
+    }
+    const acquisitionStart = runbook.indexOf('Photosensor acquisition authorization');
+    const gateA = runbook.indexOf('Gate A: code, database, and private model evidence');
+    const acquisition = runbook.slice(acquisitionStart, gateA);
+    for (const item of [
+      'LivingOffice_Shade_Illuminance',
+      'LivingOffice_Shade_Occupancy',
+      'LivingOffice_Shade_Temperature',
+    ]) expect(acquisition).toContain(item);
+    for (const suffix of [
+      '001788011024C307_2_illuminance',
+      '001788011024C307_2_occupancy',
+      '001788011024C307_2_temperature',
+    ]) expect(acquisition).toContain(suffix);
+    expect(acquisition).toContain('everyChange');
+    expect(acquisition).toContain('restoreOnStartup');
+    expect(acquisition).toContain('pending first acquisition');
+    expect(acquisition).not.toMatch(/PUT .*persistence|\/rest\/rules|\/state\b|actuator/i);
+  });
+
+  it('requires exact 400-day seasonal evidence and stops before Gate B', () => {
+    expect(runbook).toContain('exactly 400 rolling days');
+    expect(runbook).toContain('sample_counts_by_mode');
+    for (const mode of ['fall_charge', 'winter', 'spring', 'warm']) {
+      expect(runbook).toContain(`.data_manifest.sample_counts_by_mode.${mode} > 0`);
+    }
+    const evidence = runbook.indexOf('Review artifact and backtest evidence');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    expect(evidence).toBeGreaterThan(-1);
+    expect(gateB).toBeGreaterThan(evidence);
+    expect(runbook.slice(evidence, gateB)).toContain('Stop and present');
+  });
 
   it('makes every executable Bash fence independently fail closed', () => {
     expect(blocks.length).toBeGreaterThan(40);

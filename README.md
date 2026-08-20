@@ -93,6 +93,13 @@ installed or enabled by implementation. The thermal output remains
 observational: it publishes only `Thermal_Model_JSON`, does not change
 `Thermal_Advisory`, and has no actuator authority.
 
+Thermal identification uses a rolling 400-day window so accepted artifacts
+retain fall-charge, winter, spring, and warm evidence. The attended runbook also
+stages the hallway Philips sensor as `LivingOffice_Shade_Illuminance`,
+`LivingOffice_Shade_Occupancy`, and `LivingOffice_Shade_Temperature`; collection
+starts through the existing JDBC wildcard policy, with no photosensor-derived shade labels
+in this change.
+
 Use the attended, approval-gated
 [thermal model shadow runbook](docs/operations/thermal-model-shadow.md) for the
 exact tracked-to-live manifest, least-privilege PostgreSQL setup,
