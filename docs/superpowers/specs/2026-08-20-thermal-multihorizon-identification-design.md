@@ -133,6 +133,12 @@ rank-deficient, or non-finite; when optimization is unsuccessful or
 non-finite; when the final objective exceeds the starting objective beyond
 numerical tolerance; or when final independent physics validation fails.
 
+Rank is evaluated locally at the five-minute initializer over the complete
+confidence-weighted endpoint-sensitivity matrix, restricted to active
+coefficients. Normalize each nonzero active column before the rank test so
+coefficient units do not hide structural dependence; reject zero columns or
+less than full active-column rank before invoking SLSQP.
+
 This is training, not evaluation. In every walk-forward fold the optimizer sees
 only rows before that fold's origin. Held-out targets and future action evidence
 cannot affect its coefficients, origin selection, convergence, or objective.
@@ -150,8 +156,10 @@ The private constraints manifest gains exact closed static evidence for:
 The fit diagnostics gain exact closed run evidence for valid rollout-origin
 counts at each horizon and finite initial and final objective values.
 
-Typed and raw artifact validation reject missing, extra, reordered, mistyped,
-non-finite, or semantically inconsistent multihorizon evidence. Because this
+Typed and raw artifact validation reject missing, extra, mistyped, non-finite,
+or semantically inconsistent multihorizon evidence. Dictionary key insertion
+order is non-semantic because canonical registry JSON sorts object keys; ordered
+arrays such as `horizons_minutes` reject reordering. Because this
 changes the exact private artifact contract, the model artifact schema advances
 from `earthship-thermal-model/v2` to `earthship-thermal-model/v3`. The registry
 has no accepted v2 generation to migrate; the refused private v2 candidate is

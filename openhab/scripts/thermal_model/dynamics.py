@@ -675,7 +675,9 @@ def _model_from_vector(vector, glazing):
     )
 
 
-def _multihorizon_objective_and_gradient(vector, endpoints):
+def _multihorizon_objective_and_gradient(
+    vector, endpoints, *, sensitivity_rows=None
+):
     values = np.asarray(vector, dtype=float)
     expected = len(AIR_NAMES) + len(MASS_NAMES)
     if values.shape != (expected,) or not np.isfinite(values).all():
@@ -791,9 +793,29 @@ def _multihorizon_objective_and_gradient(vector, endpoints):
                     * sensitivity[state_index]
                     / divisor
                 )
+                if sensitivity_rows is not None:
+                    sensitivity_rows.append(
+                        math.sqrt(confidence / divisor)
+                        * sensitivity[state_index].copy()
+                    )
     if not math.isfinite(loss) or not np.isfinite(gradient).all():
         raise ValueError("multihorizon objective is non-finite")
     return float(loss), gradient
+
+
+def _validate_multihorizon_rank(sensitivity_rows, active_indices):
+    matrix = np.asarray(sensitivity_rows, dtype=float)[:, list(active_indices)]
+    if not np.isfinite(matrix).all():
+        raise ValueError("multihorizon sensitivity matrix is non-finite")
+    column_norms = np.linalg.norm(matrix, axis=0)
+    if (
+        not np.isfinite(column_norms).all()
+        or np.any(column_norms == 0.0)
+    ):
+        raise ValueError("multihorizon objective inputs are rank deficient")
+    normalized = matrix / column_norms
+    if np.linalg.matrix_rank(normalized) < len(active_indices):
+        raise ValueError("multihorizon objective inputs are rank deficient")
 
 
 def _multihorizon_linear_constraints(
@@ -864,9 +886,11 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
     initial_scaled = (
         initial_vector[active] - lower[active]
     ) / spans[active]
+    sensitivity_rows = []
     initial_objective, _ = _multihorizon_objective_and_gradient(
-        initial_vector, endpoints
+        initial_vector, endpoints, sensitivity_rows=sensitivity_rows
     )
+    _validate_multihorizon_rank(sensitivity_rows, active_indices)
     cache = {}
 
     def evaluate(scaled_active):

@@ -1170,6 +1170,33 @@ def test_multihorizon_fit_requires_two_origins_at_every_horizon(monkeypatch):
         dynamics.fit_dynamics_with_evidence(training)
 
 
+def test_multihorizon_refinement_rejects_rank_deficient_endpoint_evidence():
+    training, _ = synthetic_2r2c_days(days=8, seed=143)
+    initial, inactive = dynamics._fit_five_minute_dynamics(
+        training, allow_inactive_action_forcing=False
+    )
+    selected = dynamics._select_multihorizon_endpoints(training)
+    rank_deficient = {}
+    for steps, rows in selected.items():
+        first, second = rows[:2]
+        offset = second.origin.at - first.origin.at
+        repeated_day = dynamics.RolloutEndpoint(
+            origin=replace(first.origin, at=second.origin.at),
+            forcings=tuple(
+                replace(row, at=row.at + offset)
+                for row in first.forcings
+            ),
+            target=replace(first.target, at=first.target.at + offset),
+            confidence=first.confidence,
+        )
+        rank_deficient[steps] = (first, repeated_day)
+
+    with pytest.raises(ValueError, match="multihorizon.*rank deficient"):
+        dynamics._refine_multihorizon(
+            initial, rank_deficient, inactive
+        )
+
+
 def test_multihorizon_fit_rejects_final_unstable_model(monkeypatch):
     training, _ = synthetic_latent_observer_days(days=28, seed=149)
     original = dynamics.validate_physics

@@ -337,13 +337,16 @@ Rename the present `_fit_dynamics()` initializer to
 call, active-vector projection for fold-only inactive features, the existing
 bounds, and ordered-solar constraints for both air and mass. Reconstruct the
 full model with unchanged glazing coefficients, apply the objective-regression
-tolerance, then call `validate_physics()`.
+tolerance, then call `validate_physics()`. Before SLSQP, build the local
+confidence-weighted endpoint-sensitivity matrix at the initializer, restrict it
+to active coefficients, normalize nonzero columns, and refuse zero columns or
+less than full active-column rank.
 
 `fit_dynamics_with_evidence()` returns the full result. `fit_dynamics()` returns
 only `.dynamics`. `fit_dynamics_for_evaluation()` returns its existing wrapper
 with the new evidence field so evaluation consumers remain explicit.
 
-- [ ] **Step 7: Add refusal tests for insufficient horizons and final physics**
+- [ ] **Step 7: Add refusal tests for insufficient horizons, rank deficiency, and final physics**
 
 ```python
 def test_multihorizon_fit_requires_two_origins_at_every_horizon():
