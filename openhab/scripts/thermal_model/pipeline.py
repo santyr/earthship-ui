@@ -6,6 +6,7 @@ to :func:`write_shadow_output`.
 """
 
 from bisect import bisect_right
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
@@ -23,6 +24,7 @@ from .artifacts import (
     MASS_BOUNDS,
     MAX_VENT_FORCING,
     MODEL_SCHEMA,
+    MULTIHORIZON_CONTRACT,
     OUTPUT_RANGE_F,
     STABILITY_TOLERANCE,
     THERMAL_UNITS,
@@ -50,8 +52,10 @@ from .dynamics import (
     AIR_NAMES,
     ENVELOPE_MAX_RADIATION_WM2,
     MASS_NAMES,
+    MultihorizonDynamicsFit,
     fit_diagnostics,
     fit_dynamics,
+    fit_dynamics_with_evidence,
     fit_dynamics_for_evaluation,
     simulate,
 )
@@ -252,15 +256,24 @@ def _constraints_manifest():
             "max_radiation_wm2": ENVELOPE_MAX_RADIATION_WM2,
             "vent_forcing": 0.0,
         },
+        "multihorizon_identification": deepcopy(MULTIHORIZON_CONTRACT),
     }
 
 
-def _complete_manifest(samples, events, modes):
+def _complete_manifest(samples, events, modes, evidence):
     manifest = dataset_manifest(samples, events, modes)
+    diagnostics = fit_diagnostics(samples)
+    diagnostics.update(
+        {
+            "multihorizon_origin_counts": dict(evidence.origin_counts),
+            "multihorizon_initial_objective": evidence.initial_objective,
+            "multihorizon_final_objective": evidence.final_objective,
+        }
+    )
     manifest.update(
         {
             "units": dict(THERMAL_UNITS),
-            "fit_diagnostics": fit_diagnostics(samples),
+            "fit_diagnostics": diagnostics,
             "constraints": _constraints_manifest(),
         }
     )
@@ -326,7 +339,7 @@ def run_training(
     revision_reader=lambda: "",
     site_settings_loader=None,
     sample_builder=build_samples,
-    dynamics_fitter=fit_dynamics,
+    dynamics_fitter=fit_dynamics_with_evidence,
     evaluation_dynamics_fitter=fit_dynamics_for_evaluation,
     behavior_fitter=fit_behavior,
     evaluator=walk_forward_evaluate,
@@ -342,7 +355,12 @@ def run_training(
         site_settings_loader=site_settings_loader,
     )
     samples = sample_builder(series_by_role, events, modes, start, end)
-    dynamics = dynamics_fitter(samples)
+    fitted_dynamics = dynamics_fitter(samples)
+    if not isinstance(fitted_dynamics, MultihorizonDynamicsFit):
+        raise ValueError(
+            "training dynamics fitter must return multihorizon evidence"
+        )
+    dynamics = fitted_dynamics.dynamics
     behavior = behavior_fitter(samples)
     report = evaluator(
         samples,
@@ -353,7 +371,9 @@ def run_training(
 
     # The refusal evidence is durable before any candidate validation or promotion.
     registry.save_backtest_report(report)
-    manifest = _complete_manifest(samples, events, modes)
+    manifest = _complete_manifest(
+        samples, events, modes, fitted_dynamics.evidence
+    )
     created_at = _aware(clock(), "clock")
     artifact = ThermalArtifact(
         schema=MODEL_SCHEMA,

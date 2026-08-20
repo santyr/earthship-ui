@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from dataclasses import replace
 import json
+import math
 import threading
 
 import pytest
@@ -75,7 +76,7 @@ def valid_artifact(**changes):
     total_pairs = 17567
     fitted_pairs = 17000
     artifact = ThermalArtifact(
-        schema="earthship-thermal-model/v2",
+        schema="earthship-thermal-model/v3",
         created_at="2026-08-13T12:00:00Z",
         trained_from="2026-06-01T00:00:00Z",
         trained_through="2026-08-01T00:00:00Z",
@@ -196,6 +197,12 @@ def valid_artifact(**changes):
                 "auxiliary_living_office_observation_rows": 0,
                 "auxiliary_living_office_hallway_mae_f": None,
                 "action_label_coverage_fraction": fitted_pairs / total_pairs,
+                "multihorizon_origin_counts": {
+                    "5": 64, "60": 64, "360": 64,
+                    "720": 64, "1440": 64,
+                },
+                "multihorizon_initial_objective": 10.0,
+                "multihorizon_final_objective": 5.0,
             },
             "constraints": {
                 "step_minutes": 5,
@@ -222,6 +229,22 @@ def valid_artifact(**changes):
                     "max_radiation_wm2": 20.0,
                     "vent_forcing": 0.0,
                 },
+                "multihorizon_identification": {
+                    "horizons_minutes": [5, 60, 360, 720, 1440],
+                    "daily_origin_selector": "longest_valid_future_then_earliest_utc",
+                    "max_origins_per_horizon": 64,
+                    "bounded_index_rule": "floor(i*(count-1)/63), i=0..63",
+                    "confidence_rule": "minimum_aggregate_action_confidence_over_prefix",
+                    "objective": "equal_air_mass_confidence_weighted_group_mse",
+                    "optimizer": {
+                        "method": "SLSQP",
+                        "ftol": 1e-10,
+                        "maxiter": 500,
+                        "random_restarts": 0,
+                        "gradient": "analytic_forward_sensitivity",
+                        "objective_regression_relative_tolerance": 1e-9,
+                    },
+                },
             },
         },
     )
@@ -244,11 +267,11 @@ def test_artifact_accepts_exact_disjoint_action_evidence(tmp_path):
     assert registry.candidate_path.exists()
 
 
-def test_v1_artifact_is_rejected_without_implicit_migration(tmp_path):
+def test_v2_artifact_is_rejected_without_implicit_migration(tmp_path):
     registry = ArtifactRegistry(tmp_path)
 
-    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v2"):
-        registry.save_candidate(valid_artifact(schema="earthship-thermal-model/v1"))
+    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v3"):
+        registry.save_candidate(valid_artifact(schema="earthship-thermal-model/v2"))
 
 
 def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
@@ -257,7 +280,7 @@ def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
     registry.promote_candidate()
 
     loaded = registry.load_accepted()
-    assert loaded.schema == "earthship-thermal-model/v2"
+    assert loaded.schema == "earthship-thermal-model/v3"
     assert isinstance(loaded.dynamics, DynamicsModel)
     assert isinstance(loaded.behavior.seasonal_vocabulary, tuple)
     assert loaded.behavior.seasonal_vocabulary[0].action_states == (
@@ -1238,3 +1261,55 @@ def test_manifest_count_map_values_are_nonnegative_non_bool(
         ArtifactRegistry(tmp_path).save_candidate(
             valid_artifact(data_manifest=manifest)
         )
+
+
+
+def test_model_artifact_v3_requires_exact_multihorizon_contract(tmp_path):
+    artifact = valid_artifact()
+    ArtifactRegistry(tmp_path).save_candidate(artifact)
+    for field in (
+        "multihorizon_origin_counts",
+        "multihorizon_initial_objective",
+        "multihorizon_final_objective",
+    ):
+        broken = deepcopy(artifact.data_manifest)
+        broken["fit_diagnostics"].pop(field)
+        with pytest.raises(ArtifactValidationError, match="fit diagnostics"):
+            ArtifactRegistry(tmp_path / field).save_candidate(
+                replace(artifact, data_manifest=broken)
+            )
+
+
+def artifact_with_multihorizon_mutation(mutation):
+    artifact = valid_artifact()
+    manifest = deepcopy(artifact.data_manifest)
+    diagnostics = manifest["fit_diagnostics"]
+    if mutation == "extra_horizon":
+        diagnostics["multihorizon_origin_counts"]["999"] = 2
+    elif mutation == "boolean_count":
+        diagnostics["multihorizon_origin_counts"]["5"] = True
+    elif mutation == "too_few_24h":
+        diagnostics["multihorizon_origin_counts"]["1440"] = 1
+    elif mutation == "objective_increase":
+        diagnostics["multihorizon_final_objective"] = (
+            diagnostics["multihorizon_initial_objective"] + 1.0
+        )
+    else:
+        diagnostics["multihorizon_final_objective"] = math.inf
+    return replace(artifact, data_manifest=manifest)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "extra_horizon",
+        "boolean_count",
+        "too_few_24h",
+        "objective_increase",
+        "nonfinite",
+    ),
+)
+def test_multihorizon_evidence_semantics_fail_closed(tmp_path, mutation):
+    artifact = artifact_with_multihorizon_mutation(mutation)
+    with pytest.raises(ArtifactValidationError, match="multihorizon|objective"):
+        ArtifactRegistry(tmp_path).save_candidate(artifact)

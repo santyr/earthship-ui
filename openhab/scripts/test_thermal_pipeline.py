@@ -743,7 +743,7 @@ def orchestration_dependencies(calls, *, eligible=False):
         "revision_reader": lambda: "a" * 40,
         "site_settings_loader": lambda: calls.append("site"),
         "sample_builder": lambda series, events, modes, start, end: training_samples(),
-        "dynamics_fitter": lambda rows: stable_dynamics(),
+        "dynamics_fitter": lambda rows: multihorizon_fit_result(),
         "behavior_fitter": lambda rows: warm_behavior(),
         "evaluator": lambda rows, fit: backtest_report(eligible=eligible),
         "artifact_validator": lambda artifact: artifact,
@@ -830,7 +830,7 @@ def test_training_keeps_full_fit_strict_and_uses_fold_only_evaluation_fit():
     fold_calls = []
     dependencies = orchestration_dependencies(calls, eligible=True)
     dependencies["dynamics_fitter"] = (
-        lambda rows: strict_calls.append(len(rows)) or stable_dynamics()
+        lambda rows: strict_calls.append(len(rows)) or multihorizon_fit_result()
     )
     dependencies["evaluation_dynamics_fitter"] = (
         lambda rows: fold_calls.append(len(rows))
@@ -1354,3 +1354,54 @@ def test_cli_keeps_only_the_existing_commands_and_adds_explicit_shadow_publish()
     assert all(name in help_text for name in ("journal", "train", "backtest", "shadow"))
     assert parser.parse_args(["shadow"]).publish is False
     assert parser.parse_args(["shadow", "--publish"]).publish is True
+
+
+
+def multihorizon_fit_result():
+    from thermal_model.dynamics import (
+        MultihorizonDynamicsFit,
+        MultihorizonEvidence,
+    )
+
+    return MultihorizonDynamicsFit(
+        dynamics=stable_dynamics(),
+        inactive_forcing_features=(),
+        evidence=MultihorizonEvidence(
+            origin_counts=(
+                ("5", 64),
+                ("60", 64),
+                ("360", 64),
+                ("720", 64),
+                ("1440", 32),
+            ),
+            initial_objective=3.0,
+            final_objective=2.0,
+        ),
+    )
+
+
+def test_training_uses_one_multihorizon_result_for_model_and_manifest():
+    fit = multihorizon_fit_result()
+    dependencies = orchestration_dependencies([], eligible=True)
+    dependencies["dynamics_fitter"] = lambda rows: fit
+    result = run_training(
+        start=NOW - timedelta(days=400),
+        end=NOW,
+        registry=RecordingRegistry(),
+        journal=FakeJournal([]),
+        **dependencies,
+    )
+
+    assert result.artifact.dynamics is fit.dynamics
+    diagnostics = result.artifact.data_manifest["fit_diagnostics"]
+    assert diagnostics["multihorizon_origin_counts"] == dict(
+        fit.evidence.origin_counts
+    )
+    assert (
+        diagnostics["multihorizon_initial_objective"]
+        == fit.evidence.initial_objective
+    )
+    assert (
+        diagnostics["multihorizon_final_objective"]
+        == fit.evidence.final_objective
+    )

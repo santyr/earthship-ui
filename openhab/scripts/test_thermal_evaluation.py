@@ -396,3 +396,45 @@ def test_overlapping_long_horizons_calibrate_only_after_targets_are_observed():
             str(hours)
         ]["count"]
         assert calibrated == scored - unavailable_origins
+
+
+
+def test_multihorizon_fold_fit_cannot_observe_held_out_mutation():
+    samples = samples_45_days()
+    first_origin = samples[14 * 24 * 12].at
+    baseline_seen = []
+    mutated_seen = []
+
+    def fingerprint(train):
+        return tuple(
+            (
+                row.at,
+                row.air_f,
+                row.mass_f,
+                row.vent_open,
+                row.indoor_shade_closed,
+                row.outdoor_shade_present,
+            )
+            for row in train
+        )
+
+    walk_forward_evaluate(
+        samples,
+        fit=lambda train: (
+            baseline_seen.append(fingerprint(train)) or fixed_model()
+        ),
+    )
+    mutated = [
+        replace(row, air_f=row.air_f + 10.0, vent_open=1.0)
+        if row.at >= first_origin
+        else row
+        for row in samples
+    ]
+    walk_forward_evaluate(
+        mutated,
+        fit=lambda train: (
+            mutated_seen.append(fingerprint(train)) or fixed_model()
+        ),
+    )
+
+    assert baseline_seen[0] == mutated_seen[0]

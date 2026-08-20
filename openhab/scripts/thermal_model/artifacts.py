@@ -1,6 +1,7 @@
 """Validated, race-safe local registry for reproducible thermal artifacts."""
 
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime, timezone
 import fcntl
@@ -30,6 +31,7 @@ from .dynamics import (
     MASS_NAMES,
     MAX_VENT_FORCING,
     OUTPUT_RANGE_F,
+    MULTIHORIZON_OBJECTIVE_TOLERANCE,
     STABILITY_TOLERANCE,
     validate_physics,
 )
@@ -43,7 +45,23 @@ from .schema import (
     ThermalArtifact,
 )
 
-MODEL_SCHEMA = "earthship-thermal-model/v2"
+MODEL_SCHEMA = "earthship-thermal-model/v3"
+MULTIHORIZON_CONTRACT = {
+    "horizons_minutes": [5, 60, 360, 720, 1440],
+    "daily_origin_selector": "longest_valid_future_then_earliest_utc",
+    "max_origins_per_horizon": 64,
+    "bounded_index_rule": "floor(i*(count-1)/63), i=0..63",
+    "confidence_rule": "minimum_aggregate_action_confidence_over_prefix",
+    "objective": "equal_air_mass_confidence_weighted_group_mse",
+    "optimizer": {
+        "method": "SLSQP",
+        "ftol": 1e-10,
+        "maxiter": 500,
+        "random_restarts": 0,
+        "gradient": "analytic_forward_sensitivity",
+        "objective_regression_relative_tolerance": 1e-9,
+    },
+}
 BACKTEST_SCHEMA = "earthship-thermal-backtest/v1"
 THERMAL_UNITS = {
     "air": "F",
@@ -90,6 +108,9 @@ _DIAGNOSTIC_KEYS = {
     "auxiliary_living_office_observation_rows",
     "auxiliary_living_office_hallway_mae_f",
     "action_label_coverage_fraction",
+    "multihorizon_origin_counts",
+    "multihorizon_initial_objective",
+    "multihorizon_final_objective",
 }
 _ACTION_STATES = {
     "vent": ("closed", "open"),
@@ -399,6 +420,7 @@ def _expected_constraints():
             "max_radiation_wm2": ENVELOPE_MAX_RADIATION_WM2,
             "vent_forcing": 0.0,
         },
+        "multihorizon_identification": deepcopy(MULTIHORIZON_CONTRACT),
     }
 
 
@@ -425,6 +447,9 @@ def _validate_diagnostics(diagnostics, sample_count):
     integer_names = _DIAGNOSTIC_KEYS - {
         "action_label_coverage_fraction",
         "auxiliary_living_office_hallway_mae_f",
+        "multihorizon_origin_counts",
+        "multihorizon_initial_objective",
+        "multihorizon_final_objective",
     }
     for name in integer_names:
         _integer(diagnostics[name], f"fit diagnostics.{name}")
@@ -483,6 +508,44 @@ def _validate_diagnostics(diagnostics, sample_count):
     if not math.isclose(coverage, expected_coverage, rel_tol=0.0, abs_tol=1e-12):
         raise ArtifactValidationError(
             "fit diagnostics coverage must match fitted/total pairs"
+        )
+
+    origin_counts = diagnostics["multihorizon_origin_counts"]
+    expected_horizons = ("5", "60", "360", "720", "1440")
+    if (
+        not isinstance(origin_counts, dict)
+        or set(origin_counts) != set(expected_horizons)
+    ):
+        raise ArtifactValidationError(
+            "multihorizon origin counts are not exact or ordered"
+        )
+    for minutes, count in origin_counts.items():
+        _integer(
+            count,
+            f"multihorizon origin count {minutes}",
+            minimum=2,
+        )
+        if count > 64:
+            raise ArtifactValidationError(
+                "multihorizon origin count exceeds the bounded maximum"
+            )
+    initial_objective = _real(
+        diagnostics["multihorizon_initial_objective"],
+        "multihorizon initial objective",
+        minimum=0.0,
+    )
+    final_objective = _real(
+        diagnostics["multihorizon_final_objective"],
+        "multihorizon final objective",
+        minimum=0.0,
+    )
+    tolerance = (
+        MULTIHORIZON_OBJECTIVE_TOLERANCE
+        * max(1.0, initial_objective)
+    )
+    if final_objective > initial_objective + tolerance:
+        raise ArtifactValidationError(
+            "multihorizon final objective exceeds its initializer"
         )
 
 
