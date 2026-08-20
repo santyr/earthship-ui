@@ -312,6 +312,29 @@ describe("receipt-bound multi-resource transaction", () => {
     expect((await stat(join(directory, SNAPSHOT_FILENAME))).mode & 0o777).toBe(0o600);
   });
 
+  it("selects the three owned channels from a Thing with unrelated channels", async () => {
+    const directory = await receiptDirectory();
+    const thing = thingFixture();
+    thing.channels.push({
+      uid: `${THING_UID}:battery_level`,
+      id: "battery_level",
+      kind: "STATE",
+      itemType: "Number:Dimensionless",
+      configuration: { private: "must-never-enter-receipt" },
+    });
+
+    const { snapshot } = await snapshotTransaction({
+      request: mutableTransport({ thing }).request,
+      receiptDir: directory,
+    });
+
+    expect(snapshot.thing.channels).toHaveLength(3);
+    expect(snapshot.thing.channels.map(({ uid }) => uid)).toEqual(
+      PHOTOSENSOR_LINKS.map(({ channelUID }) => channelUID),
+    );
+    expect(JSON.stringify(snapshot)).not.toContain("battery_level");
+  });
+
   it("applies exactly six writes, verifies, closes, and rolls back exactly", async () => {
     const directory = await receiptDirectory();
     const transport = mutableTransport();

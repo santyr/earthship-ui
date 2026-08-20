@@ -234,14 +234,17 @@ function sanitizeThing(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Philips photosensor Thing response must be an object");
   }
+  const ownedChannels = new Set(PHOTOSENSOR_LINKS.map(({ channelUID }) => channelUID));
   return normalizeThingEvidence({
     uid: value.UID ?? value.uid,
     status: value.statusInfo?.status ?? value.status,
-    channels: (value.channels ?? []).map((entry) => ({
-      uid: entry.uid ?? entry.UID,
-      kind: entry.kind,
-      itemType: entry.itemType,
-    })),
+    channels: (value.channels ?? [])
+      .map((entry) => ({
+        uid: entry.uid ?? entry.UID,
+        kind: entry.kind,
+        itemType: entry.itemType,
+      }))
+      .filter(({ uid }) => ownedChannels.has(uid)),
   });
 }
 
