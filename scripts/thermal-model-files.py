@@ -1214,6 +1214,7 @@ def prepare_private_directories(
         Path(state_root) / "evidence",
         Path(evidence_root),
         Path(item_receipt),
+        Path(evidence_root) / "photosensor",
         Path(file_receipt),
     ):
         secure_directory(path, 0o700, create=True, enforce_mode=True)

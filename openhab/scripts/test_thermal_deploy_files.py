@@ -200,6 +200,29 @@ def test_restore_refuses_unowned_drift_before_changing_any_target(tmp_path):
     assert (tmp_path / "live/pkg/two.py").read_bytes() == b"unowned-drift"
 
 
+def test_prepare_private_directories_creates_all_receipt_roots(tmp_path):
+    state_root = tmp_path / "state"
+    evidence_root = tmp_path / "receipts/attended"
+    item_receipt = evidence_root / "item"
+    file_receipt = evidence_root / "files"
+
+    thermal_model_files.prepare_private_directories(
+        state_root, evidence_root, item_receipt, file_receipt
+    )
+
+    expected = (
+        state_root,
+        state_root / "models",
+        state_root / "review",
+        state_root / "evidence",
+        evidence_root,
+        item_receipt,
+        evidence_root / "photosensor",
+        file_receipt,
+    )
+    assert all(path.is_dir() and mode(path) == 0o700 for path in expected)
+
+
 def test_secure_directory_rejects_symlink_ancestors_and_finals(tmp_path):
     real = tmp_path / "real"
     real.mkdir()
