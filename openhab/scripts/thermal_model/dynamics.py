@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 import math
 
 import numpy as np
@@ -12,6 +13,9 @@ from .schema import DynamicsModel
 
 
 STEP = timedelta(minutes=5)
+SITE_TIMEZONE = ZoneInfo("America/Denver")
+IDENTIFICATION_HORIZON_STEPS = (1, 12, 72, 144, 288)
+MAX_ORIGINS_PER_HORIZON = 64
 AIR_NAMES = (
     "outside_exchange",
     "mass_exchange",
@@ -64,6 +68,138 @@ ENVELOPE_BOUNDS = (
     [AIR_BOUNDS[0][0], AIR_BOUNDS[0][1], AIR_BOUNDS[0][6]],
     [AIR_BOUNDS[1][0], AIR_BOUNDS[1][1], AIR_BOUNDS[1][6]],
 )
+
+
+@dataclass(frozen=True)
+class RolloutEndpoint:
+    """One training-only open-loop endpoint and its complete forcing prefix."""
+
+    origin: object
+    forcings: tuple
+    target: object
+    confidence: float
+
+
+def _uniform_origin_indices(count, limit=MAX_ORIGINS_PER_HORIZON):
+    if count < 0 or limit < 2:
+        raise ValueError("origin count and limit are invalid")
+    if count <= limit:
+        return tuple(range(count))
+    return tuple(
+        index * (count - 1) // (limit - 1)
+        for index in range(limit)
+    )
+
+
+def _valid_rollout_row(row):
+    at = _value(row, "at")
+    if at is None or at.utcoffset() is None:
+        return False
+    if _value(row, "mode") not in {"spring", "warm", "fall_charge", "winter"}:
+        return False
+    if not bool(_value(row, "passive_fit_allowed")):
+        return False
+    for name in ("air_f", "mass_f", "outdoor_f", "radiation_wm2"):
+        value = _value(row, name)
+        if value is None or not math.isfinite(float(value)):
+            return False
+    confidence = _value(row, "action_confidence")
+    if confidence is None or not math.isfinite(float(confidence)):
+        return False
+    if not 0.0 <= float(confidence) <= 1.0:
+        return False
+    vent = _value(row, "vent_open")
+    indoor = _value(row, "indoor_shade_closed")
+    outdoor = _value(row, "outdoor_shade_present")
+    if any(value is None for value in (vent, indoor, outdoor)):
+        return False
+    if not math.isfinite(float(vent)) or not 0.0 <= float(vent) <= MAX_VENT_FORCING:
+        return False
+    for value in (indoor, outdoor):
+        if not math.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0:
+            return False
+    return True
+
+
+def _inactive_forcing_is_safe(row, inactive_features):
+    features = evaluation_forcing_features(row)
+    return all(features[name] == 0.0 for name in inactive_features)
+
+
+def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
+    if horizon_steps < 1:
+        raise ValueError("identification horizon must be positive")
+    ordered = tuple(sorted(samples, key=lambda row: row.at))
+    if len({row.at for row in ordered}) != len(ordered):
+        raise ValueError("duplicate thermal sample timestamp")
+    inactive = tuple(inactive_features)
+    unknown = set(inactive) - {
+        "solar_unshaded",
+        "solar_indoor_closed",
+        "solar_outdoor",
+        "vent_exchange",
+    }
+    if unknown:
+        raise ValueError("unknown inactive forcing feature")
+
+    valid_rows = tuple(_valid_rollout_row(row) for row in ordered)
+    forcing_safe = tuple(
+        valid and _inactive_forcing_is_safe(row, inactive)
+        for row, valid in zip(ordered, valid_rows)
+    )
+    run_lengths = [0] * len(ordered)
+    for index in range(len(ordered) - 2, -1, -1):
+        if (
+            ordered[index + 1].at - ordered[index].at == STEP
+            and forcing_safe[index + 1]
+        ):
+            run_lengths[index] = 1 + run_lengths[index + 1]
+
+    best_by_day = {}
+    for origin_index, origin in enumerate(ordered):
+        if not valid_rows[origin_index]:
+            continue
+        run_length = run_lengths[origin_index]
+        if run_length < horizon_steps:
+            continue
+        forcings = ordered[
+            origin_index + 1:origin_index + horizon_steps + 1
+        ]
+        endpoint = RolloutEndpoint(
+            origin=origin,
+            forcings=forcings,
+            target=forcings[-1],
+            confidence=min(float(row.action_confidence) for row in forcings),
+        )
+        local_day = origin.at.astimezone(SITE_TIMEZONE).date()
+        current = best_by_day.get(local_day)
+        candidate_key = (-run_length, origin.at)
+        if current is None or candidate_key < current[0]:
+            best_by_day[local_day] = (candidate_key, endpoint)
+    return tuple(
+        value[1]
+        for _, value in sorted(
+            best_by_day.items(), key=lambda entry: entry[1][1].origin.at
+        )
+    )
+
+
+def _select_multihorizon_endpoints(samples, inactive_features=()):
+    selected = {}
+    for steps in IDENTIFICATION_HORIZON_STEPS:
+        eligible = _eligible_daily_endpoints(samples, steps, inactive_features)
+        indices = _uniform_origin_indices(
+            len(eligible), MAX_ORIGINS_PER_HORIZON
+        )
+        selected[steps] = tuple(eligible[index] for index in indices)
+    return selected
+
+
+def _identification_origin_counts(endpoints):
+    return {
+        str(steps * 5): len(endpoints[steps])
+        for steps in IDENTIFICATION_HORIZON_STEPS
+    }
 
 
 @dataclass(frozen=True)

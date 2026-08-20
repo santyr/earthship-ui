@@ -42,6 +42,7 @@ def _sample(at, air, mass, glazing, outdoor, radiation, vent, indoor, outdoor_sh
         outdoor_shade_confidence=1.0,
         action_confidence=1.0,
         passive_fit_allowed=True,
+        mode="warm",
     )
 
 
@@ -955,4 +956,86 @@ def test_synthetic_fixture_recovers_known_mass_coefficients():
     )
     assert model.mass_coefficients["solar_outdoor"] == pytest.approx(
         0.000007, abs=0.000001
+    )
+
+
+def test_multihorizon_selector_is_daily_bounded_and_spans_training_range():
+    training, _ = synthetic_2r2c_days(days=90, seed=101)
+    endpoints = dynamics._select_multihorizon_endpoints(training)
+
+    assert tuple(endpoints) == (1, 12, 72, 144, 288)
+    for steps, rows in endpoints.items():
+        assert len(rows) <= 64
+        assert len({
+            row.origin.at.astimezone(dynamics.SITE_TIMEZONE).date()
+            for row in rows
+        }) == len(rows)
+        assert all(len(row.forcings) == steps for row in rows)
+        assert rows[0].origin.at < rows[-1].origin.at
+    eligible_24h = dynamics._eligible_daily_endpoints(training, 288, ())
+    assert endpoints[288][0] == eligible_24h[0]
+    assert endpoints[288][-1] == eligible_24h[-1]
+
+
+def test_uniform_origin_indices_are_exact_and_include_boundaries():
+    assert dynamics._uniform_origin_indices(5, 64) == (0, 1, 2, 3, 4)
+    indices = dynamics._uniform_origin_indices(100, 64)
+    assert len(indices) == 64
+    assert indices[0] == 0
+    assert indices[-1] == 99
+    assert indices == tuple((index * 99) // 63 for index in range(64))
+
+
+@pytest.mark.parametrize(
+    "mutation", ("gap", "unknown_action", "unknown_mode", "kiva")
+)
+def test_multihorizon_selector_rejects_invalid_interior_rows(mutation):
+    training, _ = synthetic_2r2c_days(days=4, seed=103)
+    damaged = list(training)
+    index = 150
+    invalid_at = damaged[index].at
+    if mutation == "gap":
+        damaged.pop(index)
+    elif mutation == "unknown_action":
+        damaged[index] = replace(damaged[index], vent_open=None)
+    elif mutation == "unknown_mode":
+        damaged[index] = replace(damaged[index], mode=None)
+    else:
+        damaged[index] = replace(damaged[index], passive_fit_allowed=False)
+
+    endpoints = dynamics._select_multihorizon_endpoints(damaged)
+    assert all(
+        not (endpoint.origin.at < invalid_at <= endpoint.target.at)
+        for rows in endpoints.values()
+        for endpoint in rows
+    )
+
+
+def test_rollout_confidence_is_minimum_over_complete_prefix():
+    training, _ = synthetic_2r2c_days(days=4, seed=107)
+    training[10] = replace(training[10], action_confidence=0.35)
+    endpoint = next(
+        row for row in dynamics._eligible_daily_endpoints(training, 12, ())
+        if row.origin.at < training[10].at <= row.target.at
+    )
+    assert endpoint.confidence == 0.35
+
+
+def test_inactive_forcing_activation_excludes_only_affected_horizon():
+    training, _ = synthetic_2r2c_days(days=4, seed=109)
+    activation = training[20].at
+    training = [
+        replace(row, outdoor_shade_present=float(row.at >= activation))
+        for row in training
+    ]
+    endpoints = dynamics._select_multihorizon_endpoints(
+        training, ("solar_outdoor",)
+    )
+    assert all(
+        all(
+            dynamics.evaluation_forcing_features(row)["solar_outdoor"] == 0.0
+            for row in endpoint.forcings
+        )
+        for rows in endpoints.values()
+        for endpoint in rows
     )
