@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-20
 
-**Status:** Approved for implementation planning
+**Status:** Approved for implementation; amended after the private v2 Gate A rerun
 
 **Extends:** `2026-08-20-thermal-training-photosensor-repair-design.md`
 
@@ -32,6 +32,16 @@ so the split envelope regression is not the primary cause. The failure is the
 identification objective: it does not constrain open-loop behavior at the
 horizon used by promotion.
 
+After this design was first approved, the separately approved thermal artifact
+v2 change added bounded `mass.outside_exchange` to remove the neutral deep-mass
+mode. A fresh private 400-day v2 Gate A run on 2026-08-20 passed the exact
+database and physics contracts but was still refused by
+`air_24h_beats_persistence`: model MAE was 4.070 F across nine scored forecasts
+versus 1.287 F for persistence, with +4.070 F model bias. The structural loss
+term improved the earlier v1 result but did not repair recursive warm drift.
+This multihorizon design therefore starts from the current v2 dynamics, retains
+`mass.outside_exchange`, and advances only the private artifact contract to v3.
+
 ## Selected approach
 
 Retain the existing constrained five-minute fit as a deterministic feasible
@@ -51,10 +61,10 @@ Rejected alternatives are:
 
 ## Model and coefficient boundary
 
-The five-minute state equations, coefficient names, coefficient bounds,
+The current v2 five-minute state equations, coefficient names, coefficient bounds,
 ordered nonnegative solar gains, vent forcing, and glazing observation equation
 remain unchanged. The second-stage optimizer refines all seven air coefficients
-and all four mass coefficients jointly because their recursive trajectories are
+and all five mass coefficients jointly because their recursive trajectories are
 coupled. Glazing coefficients remain a separate one-step observation fit and do
 not participate in state propagation.
 
@@ -143,8 +153,9 @@ counts at each horizon and finite initial and final objective values.
 Typed and raw artifact validation reject missing, extra, reordered, mistyped,
 non-finite, or semantically inconsistent multihorizon evidence. Because this
 changes the exact private artifact contract, the model artifact schema advances
-to `earthship-thermal-model/v2`. The registry has no accepted v1 generation to
-migrate. The backtest report shape remains v1, and the immutable
+from `earthship-thermal-model/v2` to `earthship-thermal-model/v3`. The registry
+has no accepted v2 generation to migrate; the refused private v2 candidate is
+evidence, not a fallback generation. The backtest report shape remains v1, and the immutable
 `earthship-thermal-shadow/v1` payload does not gain a field.
 
 The backtest report retains its existing shape and promotion rules. Gate A

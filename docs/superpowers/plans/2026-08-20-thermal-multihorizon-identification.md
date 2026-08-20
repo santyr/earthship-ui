@@ -4,7 +4,7 @@
 
 **Goal:** Replace the RC model's five-minute-only identification objective with a bounded, deterministic multihorizon refinement that can pass the unchanged held-out 24-hour persistence gate without changing the two-state physics or any public automation surface.
 
-**Architecture:** Keep the current bounded ordered-solar least-squares fit as the only initializer. Select strictly training-only daily rollout origins at 5 minutes, 1 hour, 6 hours, 12 hours, and 24 hours, then jointly refine the same seven air and four mass coefficients with analytic forward-sensitivity gradients. Carry exact optimizer evidence into a private v2 model artifact; retain the v1 backtest and shadow contracts and stop before Gate B.
+**Architecture:** Keep the current bounded ordered-solar least-squares fit as the only initializer. Select strictly training-only daily rollout origins at 5 minutes, 1 hour, 6 hours, 12 hours, and 24 hours, then jointly refine the same seven air and five mass coefficients with analytic forward-sensitivity gradients. Carry exact optimizer evidence into a private v3 model artifact; retain the v1 backtest and shadow contracts and stop before Gate B.
 
 **Tech Stack:** Python 3.12, NumPy 1.26, SciPy 1.11 SLSQP, pytest, PostgreSQL 16 journal, OpenHAB 5.2 JDBC persistence, Node.js/Vitest, Vite, Playwright, user-level systemd.
 
@@ -20,7 +20,7 @@
 - The objective is the equal sum of air and mass confidence-weighted mean squared endpoint errors for all five horizons.
 - Use the current constrained fit as the sole start, SLSQP `ftol=1e-10`, `maxiter=500`, no random restart, and analytic forward-sensitivity gradients.
 - Reject objective increases above `1e-9 * max(1, initial_objective)` and reject every non-finite, unsuccessful, bound-violating, solar-order-violating, unstable, or out-of-range result.
-- Advance only the private model artifact to `earthship-thermal-model/v2`; keep `earthship-thermal-backtest/v1` and `earthship-thermal-shadow/v1` unchanged.
+- Preserve the v2 `mass.outside_exchange` state equation and bounds. Advance only the private model artifact to `earthship-thermal-model/v3`; keep `earthship-thermal-backtest/v1` and `earthship-thermal-shadow/v1` unchanged.
 - Do not add an OpenHAB Item, state write, rule, advisory write, systemd mutation, timer, or actuator authority during implementation.
 - Gate A may install reviewed code and produce private artifacts only. Stop before Gate B even if promotion succeeds.
 
@@ -222,7 +222,7 @@ state_jacobian = np.asarray((
         1.0 - air["outside_exchange"] - air["mass_exchange"] - air["vent_exchange"] * vent,
         air["mass_exchange"],
     ),
-    (mass["air_exchange"], 1.0 - mass["air_exchange"]),
+    (mass["air_exchange"], 1.0 - mass["air_exchange"] - mass["outside_exchange"]),
 ))
 direct = np.zeros((2, len(AIR_NAMES) + len(MASS_NAMES)))
 direct[0, :] = (
@@ -231,10 +231,10 @@ direct[0, :] = (
     solar[0], solar[1], solar[2],
     vent * (outdoor - state[0]),
     1.0,
-    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0,
 )
 direct[1, len(AIR_NAMES):] = (
-    state[0] - state[1], solar[0], solar[1], solar[2]
+    state[0] - state[1], outdoor - state[1], solar[0], solar[1], solar[2]
 )
 next_sensitivity = state_jacobian @ sensitivity + direct
 ```
@@ -384,7 +384,7 @@ git commit -m "fix: fit thermal dynamics across forecast horizons"
 
 ---
 
-### Task 3: Chronology, artifact v2 evidence, and pipeline wiring
+### Task 3: Chronology, artifact v3 evidence, and pipeline wiring
 
 **Files:**
 - Modify: `openhab/scripts/thermal_model/artifacts.py`
@@ -395,14 +395,14 @@ git commit -m "fix: fit thermal dynamics across forecast horizons"
 
 **Interfaces:**
 - Consumes: `MultihorizonDynamicsFit` and `MultihorizonEvidence` from Task 2.
-- Produces: `MODEL_SCHEMA = "earthship-thermal-model/v2"`, exact `MULTIHORIZON_CONTRACT`, exact multihorizon fit diagnostics, and a `run_training()` artifact whose dynamics and evidence come from the same fit result.
+- Produces: `MODEL_SCHEMA = "earthship-thermal-model/v3"`, exact `MULTIHORIZON_CONTRACT`, exact multihorizon fit diagnostics, and a `run_training()` artifact whose dynamics and evidence come from the same fit result.
 
-- [ ] **Step 1: Write RED tests for v2 and exact evidence**
+- [ ] **Step 1: Write RED tests for v3 and exact evidence**
 
-Update `valid_artifact()` to expect v2, then add:
+Update `valid_artifact()` to expect v3, then add:
 
 ```python
-def test_model_artifact_v2_requires_exact_multihorizon_contract(tmp_path):
+def test_model_artifact_v3_requires_exact_multihorizon_contract(tmp_path):
     artifact = valid_artifact()
     ArtifactRegistry(tmp_path).save_candidate(artifact)
     for field in ("multihorizon_origin_counts", "multihorizon_initial_objective", "multihorizon_final_objective"):
@@ -438,20 +438,20 @@ def test_multihorizon_evidence_semantics_fail_closed(tmp_path, mutation):
         ArtifactRegistry(tmp_path).save_candidate(artifact)
 
 
-def test_v1_private_model_artifact_is_rejected(tmp_path):
-    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v2"):
-        ArtifactRegistry(tmp_path).save_candidate(valid_artifact(schema="earthship-thermal-model/v1"))
+def test_v2_private_model_artifact_is_rejected(tmp_path):
+    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v3"):
+        ArtifactRegistry(tmp_path).save_candidate(valid_artifact(schema="earthship-thermal-model/v2"))
 ```
 
 - [ ] **Step 2: Run artifact RED tests**
 
-Run: `pytest -q openhab/scripts/test_thermal_artifacts.py -k 'multihorizon or v1_private'`
+Run: `pytest -q openhab/scripts/test_thermal_artifacts.py -k 'multihorizon or v2_private'`
 
-Expected: failures because v1 and the old exact diagnostic/constraint sets remain active.
+Expected: failures because v2 and the old exact diagnostic/constraint sets remain active.
 
 - [ ] **Step 3: Implement exact static and run evidence validation**
 
-Set `MODEL_SCHEMA` to v2. Add this exact static value to both
+Set `MODEL_SCHEMA` to v3. Add this exact static value to both
 `pipeline._constraints_manifest()` and `artifacts._expected_constraints()`:
 
 ```python
@@ -600,17 +600,17 @@ git commit -m "feat: persist exact multihorizon fit evidence"
 - Modify: `tests/deployment-service.test.js`
 
 **Interfaces:**
-- Consumes: private v2 artifact and unchanged v1 backtest/shadow contracts.
+- Consumes: private v3 artifact and unchanged v1 backtest/shadow contracts.
 - Produces: reviewed deployment evidence commands that display the exact multihorizon contract and still stop before Gate B.
 
 - [ ] **Step 1: Write the runbook/static RED assertion**
 
 Add a Vitest assertion that the Gate A artifact review names
-`earthship-thermal-model/v2`, reads all five origin counts, compares final and
+`earthship-thermal-model/v3`, reads all five origin counts, compares final and
 initial objectives, and still places the Gate B heading after the explicit stop.
 
 ```javascript
-expect(runbook).toContain('earthship-thermal-model/v2');
+expect(runbook).toContain('earthship-thermal-model/v3');
 expect(runbook).toContain('multihorizon_origin_counts');
 expect(runbook).toContain('multihorizon_initial_objective');
 expect(runbook).toContain('multihorizon_final_objective');
@@ -621,14 +621,14 @@ expect(runbook.indexOf('Stop and present this evidence before Gate B')).toBeLess
 
 Run: `npm test -- --run tests/deployment-service.test.js`
 
-Expected: failure for absent v2/multihorizon runbook evidence.
+Expected: failure for absent v3/multihorizon runbook evidence.
 
 - [ ] **Step 3: Update only the Gate A evidence readback**
 
 Extend the existing accepted-artifact `jq` projection with:
 
 ```jq
-select(.schema == "earthship-thermal-model/v2")
+select(.schema == "earthship-thermal-model/v3")
 | .data_manifest.fit_diagnostics as $fit
 | select(($fit.multihorizon_origin_counts | keys | sort) == ["1440","360","5","60","720"])
 | select(all($fit.multihorizon_origin_counts[]; . >= 2 and . <= 64))
@@ -703,7 +703,7 @@ Expected: `0 0` and identical hashes.
 
 **Interfaces:**
 - Consumes: reviewed/pushed runtime manifest, existing exact PostgreSQL schema, protected runtime DSN, OpenHAB JDBC history, and action/mode journal.
-- Produces: either a fail-closed private refusal packet or a promoted v2 accepted artifact plus valid local v1 shadow. It never crosses Gate B.
+- Produces: either a fail-closed private refusal packet or a promoted v3 accepted artifact plus valid local v1 shadow. It never crosses Gate B.
 
 - [ ] **Step 1: Re-run the runbook preliminary read-only inventory and Gate A file preparation**
 
@@ -741,7 +741,7 @@ Do not use `--publish`.
 - [ ] **Step 4: Evaluate the unchanged promotion gate**
 
 ```bash
-jq -e 'select(.schema == "earthship-thermal-model/v2")
+jq -e 'select(.schema == "earthship-thermal-model/v3")
   | select(.metrics.promotion.eligible == true)
   | select(.metrics.promotion.gates.air_24h_beats_persistence == true)
   | {created_at,trained_from,trained_through,code_revision,
@@ -771,7 +771,7 @@ Expected invariant outputs remain OpenHAB `404` and systemd `first-install`.
 
 - [ ] **Step 6: Stop and present Gate A evidence**
 
-Present the pushed commit, runtime digest, exact schema fingerprint, v2
+Present the pushed commit, runtime digest, exact schema fingerprint, v3
 coefficient/constraint evidence, origin counts/objectives, all fold and baseline
 metrics, Kiva exclusions, local shadow validation/size, absent Item, and
 first-install systemd state. Request separate explicit Gate B approval. Do not
