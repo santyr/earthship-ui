@@ -172,6 +172,19 @@ describe('thermal model attended runbook safety', () => {
     expect(runbook.slice(evidence, gateB)).toContain('Stop and present');
   });
 
+  it('reviews exact multihorizon v3 evidence before Gate B', () => {
+    const evidence = runbook.indexOf('Review artifact and backtest evidence');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    const review = runbook.slice(evidence, gateB);
+    expect(review).toContain('earthship-thermal-model/v3');
+    expect(review).toContain('multihorizon_origin_counts');
+    expect(review).toContain('multihorizon_initial_objective');
+    expect(review).toContain('multihorizon_final_objective');
+    expect(
+      review.indexOf('Stop and present this evidence before Gate B'),
+    ).toBeGreaterThan(-1);
+  });
+
   it('makes every executable Bash fence independently fail closed', () => {
     expect(blocks.length).toBeGreaterThan(40);
     for (const block of blocks) {

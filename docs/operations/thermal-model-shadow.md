@@ -20,10 +20,10 @@ logs, and household state stay outside Git. Never print or commit secrets or
 private evidence. Private directories have mode `0700` and private files have mode `0600`.
 No artifact or journal content is committed.
 
-## Thermal artifact v2 contract
+## Thermal artifact v3 contract
 
-Gate A retrains from source data and accepts only `earthship-thermal-model/v2`
-with dynamics version `2`; v1 artifacts fail closed and are never rewritten or
+Gate A retrains from source data and accepts only `earthship-thermal-model/v3`
+with dynamics version `2`; v1 and v2 artifacts fail closed and are never rewritten or
 synthetically migrated. At each five-minute step the north-wall mass state uses
 
 ```text
@@ -40,6 +40,13 @@ solar gains, spectral-radius checks, 72-hour simulations, chronological
 backtests, and promotion thresholds remain fail-closed. There is no mass bias,
 coefficient clamp, prior-value substitution, or gate relaxation. The public
 shadow payload remains its separate observational version-1 contract.
+
+The v3 private artifact additionally proves deterministic multihorizon
+identification at 5, 60, 360, 720, and 1440 minutes, with at most 64 daily
+origins per horizon, minimum-prefix action confidence, equal air/mass group
+means, analytic SLSQP gradients, and a final training objective no greater than
+its five-minute initializer within the exact numerical tolerance. Promotion
+still depends only on the independent held-out backtest gates below.
 
 ## Exact source-to-target manifest and transaction contract
 
@@ -1228,7 +1235,17 @@ fingerprint receipt contains no connection string or credentials.
 ```bash
 set -euo pipefail
 : "${STATE_ROOT:?}"
-jq -e '{schema,created_at,trained_from,trained_through,code_revision,dynamics,behavior,metrics,data_manifest:{start:.data_manifest.start,end:.data_manifest.end,sample_count:.data_manifest.sample_count,sample_counts_by_mode:.data_manifest.sample_counts_by_mode,rejected_counts:.data_manifest.rejected_counts,auxiliary_exclusion_counts:.data_manifest.auxiliary_exclusion_counts,event_counts_by_source:.data_manifest.event_counts_by_source,fit_diagnostics:.data_manifest.fit_diagnostics,constraints:.data_manifest.constraints,canonical_rows_sha256:.data_manifest.canonical_rows_sha256}} | select(.metrics.promotion.shadow_only == true)' \
+jq -e 'select(.schema == "earthship-thermal-model/v3")
+  | .data_manifest.fit_diagnostics as $fit
+  | select(($fit.multihorizon_origin_counts | keys | sort)
+      == ["1440","360","5","60","720"])
+  | select(all($fit.multihorizon_origin_counts[];
+      . >= 2 and . <= 64))
+  | select($fit.multihorizon_final_objective
+      <= ($fit.multihorizon_initial_objective
+        + (1e-9 * ([1,$fit.multihorizon_initial_objective] | max))))
+  | {schema,created_at,trained_from,trained_through,code_revision,dynamics,behavior,metrics,data_manifest:{start:.data_manifest.start,end:.data_manifest.end,sample_count:.data_manifest.sample_count,sample_counts_by_mode:.data_manifest.sample_counts_by_mode,rejected_counts:.data_manifest.rejected_counts,auxiliary_exclusion_counts:.data_manifest.auxiliary_exclusion_counts,event_counts_by_source:.data_manifest.event_counts_by_source,fit_diagnostics:.data_manifest.fit_diagnostics,constraints:.data_manifest.constraints,canonical_rows_sha256:.data_manifest.canonical_rows_sha256}}
+  | select(.metrics.promotion.shadow_only == true)' \
   "$STATE_ROOT/models/accepted.json"
 ```
 
