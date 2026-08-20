@@ -26,7 +26,7 @@ from thermal_model.schema import ModeEvent, THERMAL_ITEMS, validate_shadow_outpu
 
 
 DEFAULT_SHADOW_PATH = DEFAULT_STATE_DIRECTORY.parent / "shadow.json"
-DEFAULT_TRAINING_DAYS = 90
+DEFAULT_TRAINING_DAYS = 400
 THERMAL_MODEL_ITEM = "Thermal_Model_JSON"
 MAX_SHADOW_BYTES = 16 * 1024
 RUNTIME_REVISION_PATHS = (

@@ -1,5 +1,6 @@
 import json
 import math
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -482,3 +483,28 @@ def test_manifest_is_canonical_reproducible_and_identifies_authoritative_items()
     assert len(manifest["canonical_rows_sha256"]) == 64
     assert manifest["canonical_rows_sha256"] == repeated["canonical_rows_sha256"]
     json.dumps(manifest, allow_nan=False)
+
+
+def test_manifest_reports_exact_closed_sample_counts_by_mode():
+    events = fully_labeled_events()
+    samples = build_samples(fixture_series(), events, [], START, END)
+    modes = (None, "fall_charge", "winter", "spring", "warm")
+    samples = [
+        replace(sample, mode=modes[index % len(modes)])
+        for index, sample in enumerate(samples)
+    ]
+
+    manifest = dataset_manifest(samples, events, [])
+
+    expected = {name: 0 for name in modes if name is not None}
+    expected["unknown"] = 0
+    for sample in samples:
+        expected[sample.mode or "unknown"] += 1
+    assert manifest["sample_counts_by_mode"] == {
+        "unknown": expected["unknown"],
+        "fall_charge": expected["fall_charge"],
+        "winter": expected["winter"],
+        "spring": expected["spring"],
+        "warm": expected["warm"],
+    }
+    assert sum(manifest["sample_counts_by_mode"].values()) == len(samples)

@@ -159,6 +159,13 @@ def valid_artifact(**changes):
             "start": "2026-06-01T00:00:00Z",
             "end": "2026-08-01T00:00:00Z",
             "sample_count": 17568,
+            "sample_counts_by_mode": {
+                "unknown": 568,
+                "fall_charge": 4250,
+                "winter": 4250,
+                "spring": 4250,
+                "warm": 4250,
+            },
             "rejected_counts": {"missing_required": 3},
             "auxiliary_exclusion_counts": {"glazing_missing": 5},
             "items": dict(THERMAL_ITEMS),
@@ -184,6 +191,10 @@ def valid_artifact(**changes):
                 "glazing_observation_coefficient_names": list(GLAZING_NAMES),
                 "air_bounds": [list(bound) for bound in AIR_BOUNDS],
                 "mass_bounds": [list(bound) for bound in MASS_BOUNDS],
+                "glazing_observation_bounds": [
+                    [None, None, None, 0.0, 0.0, 0.0],
+                    [None, None, None, None, None, None],
+                ],
                 "output_range_f": list(OUTPUT_RANGE_F),
                 "max_vent_forcing": MAX_VENT_FORCING,
                 "stability_tolerance": STABILITY_TOLERANCE,
@@ -277,6 +288,69 @@ def test_identity_units_digest_and_physics_are_validated(tmp_path):
     with pytest.raises(ArtifactValidationError, match="dynamics"):
         registry.save_candidate(
             valid_artifact(dynamics=replace(dynamics, air_coefficients=bad_air))
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "extra", "boolean", "negative", "noninteger", "sum"],
+)
+def test_candidate_manifest_rejects_invalid_sample_counts_by_mode(
+    tmp_path, mutation
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    counts = manifest["sample_counts_by_mode"]
+    if mutation == "missing":
+        del counts["winter"]
+    elif mutation == "extra":
+        counts["monsoon"] = 1
+    elif mutation == "boolean":
+        counts["winter"] = True
+    elif mutation == "negative":
+        counts["winter"] = -1
+    elif mutation == "noninteger":
+        counts["winter"] = 1.5
+    else:
+        counts["unknown"] += 1
+
+    with pytest.raises(ArtifactValidationError, match="sample.*mode|mode.*count"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
+def test_partial_season_artifact_is_valid_but_cannot_promote(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    manifest = deepcopy(valid_artifact().data_manifest)
+    manifest["sample_counts_by_mode"]["unknown"] += manifest[
+        "sample_counts_by_mode"
+    ]["winter"]
+    manifest["sample_counts_by_mode"]["winter"] = 0
+    registry.save_candidate(valid_artifact(data_manifest=manifest))
+
+    with pytest.raises(ArtifactPromotionRefused, match="seasonal mode coverage"):
+        registry.promote_candidate()
+
+
+def test_tampered_accepted_sample_mode_vocabulary_is_quarantined(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    registry.save_candidate(valid_artifact())
+    registry.promote_candidate()
+    payload = json.loads(registry.accepted_path.read_text(encoding="utf-8"))
+    payload["data_manifest"]["sample_counts_by_mode"]["monsoon"] = 1
+    registry.accepted_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ArtifactUnavailable, match="quarantined"):
+        registry.load_accepted()
+
+
+def test_manifest_requires_exact_glazing_observation_bounds(tmp_path):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    manifest["constraints"]["glazing_observation_bounds"][0][3] = False
+
+    with pytest.raises(ArtifactValidationError, match="constraints"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
         )
 
 

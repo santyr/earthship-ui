@@ -448,6 +448,9 @@ def _canonical_sample(sample):
     return row
 
 
+MODE_COUNT_KEYS = ("unknown", "fall_charge", "winter", "spring", "warm")
+
+
 def dataset_manifest(samples, events, modes):
     """Describe and digest a sample set using canonical, finite JSON rows."""
     ordered = sorted(samples, key=lambda sample: sample.at.astimezone(timezone.utc))
@@ -472,10 +475,17 @@ def dataset_manifest(samples, events, modes):
         auxiliary_exclusion_counts = {}
 
     counts = Counter(record.source for record in tuple(events) + tuple(modes))
+    mode_counts = {name: 0 for name in MODE_COUNT_KEYS}
+    for sample in ordered:
+        mode = sample.mode or "unknown"
+        if mode not in mode_counts:
+            raise ValueError("sample mode is outside the closed seasonal vocabulary")
+        mode_counts[mode] += 1
     return {
         "start": _iso_utc(start) if start is not None else None,
         "end": _iso_utc(end) if end is not None else None,
         "sample_count": len(ordered),
+        "sample_counts_by_mode": mode_counts,
         "rejected_counts": dict(sorted(rejected_counts.items())),
         "auxiliary_exclusion_counts": dict(
             sorted(auxiliary_exclusion_counts.items())

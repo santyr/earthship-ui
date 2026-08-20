@@ -37,6 +37,17 @@ NOW = datetime(2026, 8, 13, 12, 0, tzinfo=UTC)
 STEP = timedelta(minutes=5)
 
 
+def test_default_training_range_is_rolling_400_days():
+    import thermal_intel
+
+    start, end = thermal_intel._date_range(
+        SimpleNamespace(start=None, end=None), NOW
+    )
+
+    assert end == NOW
+    assert start == NOW - timedelta(days=400)
+
+
 def stable_dynamics():
     return DynamicsModel(
         version=1,
@@ -731,6 +742,7 @@ def test_training_assembles_exact_manifest_persists_report_then_refuses():
     assert registry.report is not None
     assert set(registry.artifact.data_manifest) == {
         "start", "end", "sample_count", "rejected_counts",
+        "sample_counts_by_mode",
         "auxiliary_exclusion_counts", "event_counts_by_source", "items", "units",
         "canonical_rows_sha256", "fit_diagnostics", "constraints",
     }

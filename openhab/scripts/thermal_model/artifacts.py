@@ -15,10 +15,12 @@ from .behavior import AIRFLOW_LEVELS, FEATURE_NAMES, TRANSITIONS
 from .dataset import (
     AUXILIARY_EXCLUSION_COUNT_KEYS,
     CORE_REJECTED_COUNT_KEYS,
+    MODE_COUNT_KEYS,
 )
 from .dynamics import (
     AIR_BOUNDS,
     AIR_NAMES,
+    GLAZING_BOUNDS,
     GLAZING_NAMES,
     MASS_BOUNDS,
     MASS_NAMES,
@@ -58,6 +60,7 @@ _MANIFEST_KEYS = {
     "start",
     "end",
     "sample_count",
+    "sample_counts_by_mode",
     "rejected_counts",
     "auxiliary_exclusion_counts",
     "event_counts_by_source",
@@ -362,6 +365,10 @@ def _expected_constraints():
         "glazing_observation_coefficient_names": list(GLAZING_NAMES),
         "air_bounds": [list(bound) for bound in AIR_BOUNDS],
         "mass_bounds": [list(bound) for bound in MASS_BOUNDS],
+        "glazing_observation_bounds": [
+            [value if math.isfinite(value) else None for value in bound]
+            for bound in GLAZING_BOUNDS
+        ],
         "output_range_f": list(OUTPUT_RANGE_F),
         "max_vent_forcing": MAX_VENT_FORCING,
         "stability_tolerance": STABILITY_TOLERANCE,
@@ -453,6 +460,17 @@ def _validate_manifest(artifact):
             "artifact training range must match the data manifest"
         )
     _integer(manifest["sample_count"], "data manifest sample_count", minimum=1)
+    mode_counts = manifest["sample_counts_by_mode"]
+    if not isinstance(mode_counts, dict) or set(mode_counts) != set(MODE_COUNT_KEYS):
+        raise ArtifactValidationError(
+            "sample mode count keys do not match the closed seasonal vocabulary"
+        )
+    for mode in MODE_COUNT_KEYS:
+        _integer(mode_counts[mode], f"sample mode count {mode}", minimum=0)
+    if sum(mode_counts.values()) != manifest["sample_count"]:
+        raise ArtifactValidationError(
+            "sample mode counts must sum to the manifest sample count"
+        )
     _validate_count_map(
         manifest["rejected_counts"],
         "rejected counts",
@@ -839,6 +857,19 @@ def _require_eligible(metrics):
         )
 
 
+def _require_year_round_mode_coverage(manifest):
+    missing = [
+        mode
+        for mode in MODE_COUNT_KEYS
+        if mode != "unknown" and manifest["sample_counts_by_mode"][mode] == 0
+    ]
+    if missing:
+        raise ArtifactPromotionRefused(
+            "candidate promotion refused: seasonal mode coverage missing "
+            + ", ".join(missing)
+        )
+
+
 def validate_artifact(artifact, *, require_eligible=False):
     """Validate complete type, semantic, provenance, and physical invariants."""
     if not isinstance(artifact, ThermalArtifact):
@@ -889,6 +920,7 @@ def validate_artifact(artifact, *, require_eligible=False):
     _validate_metric_semantics(metrics_without_promotion)
     _validate_manifest(artifact)
     if require_eligible:
+        _require_year_round_mode_coverage(artifact.data_manifest)
         _require_eligible(artifact.metrics)
     return artifact
 
@@ -946,6 +978,9 @@ def _validate_payload_shape(payload):
     _validate_metrics_structure(metrics, "metric payload")
     manifest = payload["data_manifest"]
     _exact_payload_keys(manifest, _MANIFEST_KEYS, "data manifest")
+    _exact_payload_keys(
+        manifest["sample_counts_by_mode"], MODE_COUNT_KEYS, "sample mode counts"
+    )
     _exact_payload_keys(manifest["items"], THERMAL_ITEMS, "sensor items")
     _exact_payload_keys(manifest["units"], THERMAL_UNITS, "sensor units")
     _validate_count_map(

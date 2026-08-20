@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from .artifacts import (
     AIR_BOUNDS,
+    GLAZING_BOUNDS,
     GLAZING_NAMES,
     MASS_BOUNDS,
     MAX_VENT_FORCING,
@@ -200,6 +201,10 @@ def _constraints_manifest():
         "glazing_observation_coefficient_names": list(GLAZING_NAMES),
         "air_bounds": [list(bound) for bound in AIR_BOUNDS],
         "mass_bounds": [list(bound) for bound in MASS_BOUNDS],
+        "glazing_observation_bounds": [
+            [value if math.isfinite(value) else None for value in bound]
+            for bound in GLAZING_BOUNDS
+        ],
         "output_range_f": list(OUTPUT_RANGE_F),
         "max_vent_forcing": MAX_VENT_FORCING,
         "stability_tolerance": STABILITY_TOLERANCE,
