@@ -57,7 +57,7 @@ def test_exact_manifest_contains_complete_runtime_and_four_units():
             f"openhab/scripts/thermal_model/{name}.py"
             for name in (
                 "__init__", "actions", "artifacts", "behavior", "dataset",
-                "dynamics", "evaluation", "journal", "pipeline", "schema",
+                "dynamics", "evaluation", "journal", "pipeline", "schema", "solar",
             )
         ],
     ]

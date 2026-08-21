@@ -44,6 +44,7 @@ MANIFEST = (
             "journal",
             "pipeline",
             "schema",
+            "solar",
         )
     ),
     {

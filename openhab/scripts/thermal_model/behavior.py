@@ -7,7 +7,7 @@ uses the existing dynamics simulator, and returns modeled schedule comparisons.
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import math
 
@@ -15,6 +15,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from .dynamics import simulate
+from .solar import solar_elevation_sin
 from .schema import BehaviorModel, SOURCE_WEIGHTS, SeasonalActionVocabulary
 
 
@@ -44,8 +45,6 @@ TRANSITIONS = (
     "outdoor_shade_removed",
 )
 AIRFLOW_LEVELS = {"closed": 0.0, "baseline": 1.0, "boosted": 2.0}
-SITE_LATITUDE = 38.3739919
-SITE_LONGITUDE = -105.7744609
 SITE_TIMEZONE = ZoneInfo("America/Denver")
 SUNNY_RADIATION_WM2 = 150.0
 MINIMUM_IMPROVEMENT = 0.25
@@ -99,37 +98,6 @@ def _minute_of_day(value):
     return local.hour * 60.0 + local.minute + local.second / 60.0
 
 
-def _solar_elevation_sin(at):
-    """NOAA fractional-year approximation, returned as sin(elevation)."""
-    at = _aware(at).astimezone(timezone.utc)
-    day = at.timetuple().tm_yday
-    hour = at.hour + at.minute / 60.0 + at.second / 3600.0
-    gamma = 2.0 * math.pi / 365.0 * (day - 1 + (hour - 12.0) / 24.0)
-    equation_minutes = 229.18 * (
-        0.000075
-        + 0.001868 * math.cos(gamma)
-        - 0.032077 * math.sin(gamma)
-        - 0.014615 * math.cos(2.0 * gamma)
-        - 0.040849 * math.sin(2.0 * gamma)
-    )
-    declination = (
-        0.006918
-        - 0.399912 * math.cos(gamma)
-        + 0.070257 * math.sin(gamma)
-        - 0.006758 * math.cos(2.0 * gamma)
-        + 0.000907 * math.sin(2.0 * gamma)
-        - 0.002697 * math.cos(3.0 * gamma)
-        + 0.00148 * math.sin(3.0 * gamma)
-    )
-    solar_minutes = hour * 60.0 + equation_minutes + 4.0 * SITE_LONGITUDE
-    hour_angle = math.radians(solar_minutes / 4.0 - 180.0)
-    latitude = math.radians(SITE_LATITUDE)
-    return float(
-        math.sin(latitude) * math.sin(declination)
-        + math.cos(latitude) * math.cos(declination) * math.cos(hour_angle)
-    )
-
-
 def feature_vector(row):
     """Build the fixed, finite feature vector from one contemporaneous row."""
     at = _aware(_value(row, "at"))
@@ -140,7 +108,7 @@ def feature_vector(row):
     mass = float(_first_value(row, ("mass_f", "mass_baseline_f")))
     outdoor = float(_value(row, "outdoor_f"))
     radiation = float(_value(row, "radiation_wm2"))
-    solar_sin = _solar_elevation_sin(at)
+    solar_sin = solar_elevation_sin(at)
     values = (
         1.0,
         math.sin(2.0 * math.pi * minute / 1440.0),
@@ -556,7 +524,7 @@ def _useful_winter_rows(rows):
     return tuple(
         row
         for row in rows
-        if _solar_elevation_sin(_value(row, "at")) > 0.0
+        if solar_elevation_sin(_value(row, "at")) > 0.0
         and float(_value(row, "radiation_wm2")) >= SUNNY_RADIATION_WM2
     )
 
@@ -629,7 +597,7 @@ def _radiation_shade_transitions(rows):
     for row in rows:
         at = _value(row, "at")
         if (
-            _solar_elevation_sin(at) > 0.0
+            solar_elevation_sin(at) > 0.0
             and float(_value(row, "radiation_wm2")) >= SUNNY_RADIATION_WM2
         ):
             by_day[at.date()].append(at)
@@ -721,12 +689,12 @@ def _nonwinter_shade_schedule(model, mode, rows):
         daylight_states = [
             _binary(_value(row, "indoor_shade_closed"))
             for row in rows
-            if _solar_elevation_sin(_value(row, "at")) > 0.0
+            if solar_elevation_sin(_value(row, "at")) > 0.0
         ]
         night_states = [
             _binary(_value(row, "indoor_shade_closed"))
             for row in rows
-            if _solar_elevation_sin(_value(row, "at")) <= 0.0
+            if solar_elevation_sin(_value(row, "at")) <= 0.0
         ]
         day_state = "closed" if any(daylight_states) else "open"
         night_state = "closed" if night_states and all(night_states) else "open"
@@ -1094,7 +1062,7 @@ def _winter_shade_rejection(rows, schedule):
     if not active:
         return "outside_forecast_horizon"
     if any(
-        _solar_elevation_sin(_value(row, "at")) <= 0.0 for row in active
+        solar_elevation_sin(_value(row, "at")) <= 0.0 for row in active
     ):
         return "winter_night_closed"
     return None

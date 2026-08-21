@@ -158,6 +158,7 @@ def test_runtime_revision_manifest_is_exact_and_complete():
         "thermal_model/journal.py",
         "thermal_model/pipeline.py",
         "thermal_model/schema.py",
+        "thermal_model/solar.py",
     )
 
 

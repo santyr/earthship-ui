@@ -90,6 +90,7 @@ transitions, leaves the external absence untouched, and keeps the phase
 | code | `openhab/scripts/thermal_model/journal.py` | `/home/sat/openhab/scripts/thermal_model/journal.py` |
 | code | `openhab/scripts/thermal_model/pipeline.py` | `/home/sat/openhab/scripts/thermal_model/pipeline.py` |
 | code | `openhab/scripts/thermal_model/schema.py` | `/home/sat/openhab/scripts/thermal_model/schema.py` |
+| code | `openhab/scripts/thermal_model/solar.py` | `/home/sat/openhab/scripts/thermal_model/solar.py` |
 | unit | `deploy/thermal-model-train.service` | `/home/sat/.config/systemd/user/thermal-model-train.service` |
 | unit | `deploy/thermal-model-train.timer` | `/home/sat/.config/systemd/user/thermal-model-train.timer` |
 | unit | `deploy/thermal-model-shadow.service` | `/home/sat/.config/systemd/user/thermal-model-shadow.service` |

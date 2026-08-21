@@ -9,6 +9,7 @@ import math
 from statistics import median
 
 from .actions import reconstruct_events, reconstruct_state
+from .solar import is_astronomical_night
 from .schema import (
     ActionEvent,
     ModeEvent,
@@ -43,8 +44,6 @@ AUXILIARY_EXCLUSION_COUNT_KEYS = frozenset(
         "living_office_missing",
     }
 )
-SITE_LATITUDE = 38.3739919
-SITE_LONGITUDE = -105.7744609
 
 
 class ThermalDataset(list):
@@ -342,38 +341,6 @@ def _binary_state(event, true_states, false_states):
     return None
 
 
-def _solar_elevation_positive(at):
-    """NOAA fractional-year approximation; sufficient for a daylight sign gate."""
-    at = at.astimezone(timezone.utc)
-    day = at.timetuple().tm_yday
-    hour = at.hour + at.minute / 60.0 + at.second / 3600.0
-    gamma = 2.0 * math.pi / 365.0 * (day - 1 + (hour - 12.0) / 24.0)
-    equation_minutes = 229.18 * (
-        0.000075
-        + 0.001868 * math.cos(gamma)
-        - 0.032077 * math.sin(gamma)
-        - 0.014615 * math.cos(2 * gamma)
-        - 0.040849 * math.sin(2 * gamma)
-    )
-    declination = (
-        0.006918
-        - 0.399912 * math.cos(gamma)
-        + 0.070257 * math.sin(gamma)
-        - 0.006758 * math.cos(2 * gamma)
-        + 0.000907 * math.sin(2 * gamma)
-        - 0.002697 * math.cos(3 * gamma)
-        + 0.00148 * math.sin(3 * gamma)
-    )
-    solar_minutes = hour * 60.0 + equation_minutes + 4.0 * SITE_LONGITUDE
-    hour_angle = math.radians(solar_minutes / 4.0 - 180.0)
-    latitude = math.radians(SITE_LATITUDE)
-    cosine_zenith = (
-        math.sin(latitude) * math.sin(declination)
-        + math.cos(latitude) * math.cos(declination) * math.cos(hour_angle)
-    )
-    return cosine_zenith > 0.0
-
-
 def _regime_at(intervals, at):
     for interval in intervals:
         if interval.start <= at < interval.end:
@@ -421,7 +388,7 @@ def _project_actions(at, radiation, outdoor, events, regimes, cooldowns):
     confidences = {}
     regime = _regime_at(regimes, at)
     if regime is not None:
-        daylight = _solar_elevation_positive(at)
+        daylight = not is_astronomical_night(at)
         reconstructed = reconstruct_state(
             regime,
             is_daylight=daylight,
