@@ -542,8 +542,8 @@ Gate A authorizes only atomic live code installation, exact role/schema
 audit and `thermal_intel` migration/grants, and private training, backtest,
 and artifact evidence. It authorizes no shadow, Item write,
 publication, credential provisioning, unit installation, or systemd mutation.
-The train/backtest commands below omit explicit date bounds and therefore use
-exactly 400 rolling days ending at their training origin.
+The train/backtest commands below use exact receipt-bound `--start` and
+`--end` values spanning exactly 400 rolling days.
 
 **GATE A MUTATION — prepare receipt and archive rejected v3 evidence:**
 
@@ -1303,6 +1303,46 @@ test "$LIVE_RUNTIME_REVISION" = "$TRACKED_RUNTIME_REVISION"
 printf '%s\n' "$LIVE_RUNTIME_REVISION"
 ```
 
+**GATE A PRIVATE MUTATION — select and persist the exact 400-day window:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${EVIDENCE_ROOT:?}"
+: "${LIVE_RUNTIME_REVISION:?}"
+WINDOW_RECEIPT="$EVIDENCE_ROOT/gate-a-window.json"
+test ! -e "$WINDOW_RECEIPT"
+test ! -L "$WINDOW_RECEIPT"
+END_UTC="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+START_UTC="$(date --utc --date="$END_UTC - 400 days" +%Y-%m-%dT%H:%M:%SZ)"
+SELECTED_AT="$(date --utc +%Y-%m-%dT%H:%M:%S.%NZ)"
+END_EPOCH="$(date --date="$END_UTC" +%s)"
+START_EPOCH="$(date --date="$START_UTC" +%s)"
+WINDOW_SECONDS="$((END_EPOCH - START_EPOCH))"
+test "$WINDOW_SECONDS" -eq 34560000
+WINDOW_TMP="$(mktemp "$EVIDENCE_ROOT/.gate-a-window.XXXXXX")"
+trap 'unlink -- "$WINDOW_TMP"' EXIT HUP INT TERM
+jq -e -n --arg selectedAt "$SELECTED_AT" --arg start "$START_UTC" \
+  --arg end "$END_UTC" --arg runtimeRevision "$LIVE_RUNTIME_REVISION" \
+  '{schema:"earthship-thermal-gate-a-window/v1",
+    selectedAt:$selectedAt,start:$start,end:$end,
+    runtimeRevision:$runtimeRevision}' >"$WINDOW_TMP"
+chmod 0600 "$WINDOW_TMP"
+sync -f "$WINDOW_TMP"
+ln -- "$WINDOW_TMP" "$WINDOW_RECEIPT"
+sync -f "$WINDOW_RECEIPT"
+unlink -- "$WINDOW_TMP"
+sync -f "$EVIDENCE_ROOT"
+trap - EXIT HUP INT TERM
+WINDOW_MODE="$(stat -c %a "$WINDOW_RECEIPT")"
+test "$WINDOW_MODE" = 600
+jq -e 'select(
+    (. | keys | sort)
+      == ["end","runtimeRevision","schema","selectedAt","start"]
+    and .schema == "earthship-thermal-gate-a-window/v1")' \
+  "$WINDOW_RECEIPT" >/dev/null
+```
+
 **GATE A MUTATION — private 400-day train and backtest:**
 
 ```bash
@@ -1311,6 +1351,7 @@ set -euo pipefail
   set -euo pipefail
   umask 077
   : "${EVIDENCE_ROOT:?}"
+  : "${STATE_ROOT:?}"
   read -r -s -p 'THERMAL_DATABASE_URL: ' THERMAL_DATABASE_URL
   printf '\n'
   test -n "$THERMAL_DATABASE_URL"
@@ -1329,16 +1370,83 @@ set -euo pipefail
   export THERMAL_DATABASE_EXPECTED_OWNER
   trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
 
-  END_UTC="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
-  START_UTC="$(date --utc --date="$END_UTC - 400 days" +%Y-%m-%dT%H:%M:%SZ)"
+  : "${LIVE_RUNTIME_REVISION:?}"
+  WINDOW_RECEIPT="$EVIDENCE_ROOT/gate-a-window.json"
+  test -f "$WINDOW_RECEIPT"
+  test ! -L "$WINDOW_RECEIPT"
+  WINDOW_MODE="$(stat -c %a "$WINDOW_RECEIPT")"
+  test "$WINDOW_MODE" = 600
+  jq -e 'select(
+      (. | keys | sort)
+        == ["end","runtimeRevision","schema","selectedAt","start"]
+      and .schema == "earthship-thermal-gate-a-window/v1")' \
+    "$WINDOW_RECEIPT" >/dev/null
+  START_UTC="$(jq -e -r '.start' "$WINDOW_RECEIPT")"
+  END_UTC="$(jq -e -r '.end' "$WINDOW_RECEIPT")"
+  SELECTED_AT="$(jq -e -r '.selectedAt' "$WINDOW_RECEIPT")"
+  WINDOW_RUNTIME_REVISION="$(jq -e -r '.runtimeRevision' "$WINDOW_RECEIPT")"
+  test "$WINDOW_RUNTIME_REVISION" = "$LIVE_RUNTIME_REVISION"
   END_EPOCH="$(date --date="$END_UTC" +%s)"
   START_EPOCH="$(date --date="$START_UTC" +%s)"
   WINDOW_SECONDS="$((END_EPOCH - START_EPOCH))"
   test "$WINDOW_SECONDS" -eq 34560000
+  BACKTEST="$STATE_ROOT/models/backtest-report.json"
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train \
     --start "$START_UTC" --end "$END_UTC"
+  test -f "$BACKTEST"
+  test ! -L "$BACKTEST"
+  TRAIN_BACKTEST_MODE="$(stat -c %a "$BACKTEST")"
+  test "$TRAIN_BACKTEST_MODE" = 600
+  TRAIN_BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest \
     --start "$START_UTC" --end "$END_UTC"
+
+  CANDIDATE="$STATE_ROOT/models/candidate.json"
+  for FILE in "$CANDIDATE" "$BACKTEST"
+  do
+    test -f "$FILE"
+    test ! -L "$FILE"
+    FILE_MODE="$(stat -c %a "$FILE")"
+    test "$FILE_MODE" = 600
+  done
+  WINDOW_SHA256="$(sha256sum "$WINDOW_RECEIPT" | awk '{print $1}')"
+  CANDIDATE_SHA256="$(sha256sum "$CANDIDATE" | awk '{print $1}')"
+  BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
+  CANDIDATE_CREATED_AT="$(jq -e -r '.created_at' "$CANDIDATE")"
+  BACKTEST_GENERATED_AT="$(jq -e -r '.generated_at' "$BACKTEST")"
+  SELECTED_AT_EPOCH="$(date --date="$SELECTED_AT" +%s%N)"
+  CANDIDATE_CREATED_EPOCH="$(date --date="$CANDIDATE_CREATED_AT" +%s%N)"
+  test "$CANDIDATE_CREATED_EPOCH" -ge "$SELECTED_AT_EPOCH"
+  CAPTURED_AT="$(date --utc +%Y-%m-%dT%H:%M:%S.%NZ)"
+  CAPTURED_AT_EPOCH="$(date --date="$CAPTURED_AT" +%s%N)"
+  test "$CANDIDATE_CREATED_EPOCH" -le "$CAPTURED_AT_EPOCH"
+  ARTIFACT_RECEIPT="$EVIDENCE_ROOT/gate-a-artifacts.json"
+  test ! -e "$ARTIFACT_RECEIPT"
+  test ! -L "$ARTIFACT_RECEIPT"
+  ARTIFACT_TMP="$(mktemp "$EVIDENCE_ROOT/.gate-a-artifacts.XXXXXX")"
+  trap 'unlink -- "$ARTIFACT_TMP"; unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
+  jq -e -n --arg capturedAt "$CAPTURED_AT" \
+    --arg windowSha256 "$WINDOW_SHA256" \
+    --arg candidateSha256 "$CANDIDATE_SHA256" \
+    --arg backtestSha256 "$BACKTEST_SHA256" \
+    --arg trainBacktestSha256 "$TRAIN_BACKTEST_SHA256" \
+    --arg candidateCreatedAt "$CANDIDATE_CREATED_AT" \
+    --arg backtestGeneratedAt "$BACKTEST_GENERATED_AT" \
+    '{schema:"earthship-thermal-gate-a-artifacts/v1",
+      capturedAt:$capturedAt,windowSha256:$windowSha256,
+      candidateSha256:$candidateSha256,backtestSha256:$backtestSha256,
+      trainBacktestSha256:$trainBacktestSha256,
+      candidateCreatedAt:$candidateCreatedAt,
+      backtestGeneratedAt:$backtestGeneratedAt}' >"$ARTIFACT_TMP"
+  chmod 0600 "$ARTIFACT_TMP"
+  sync -f "$ARTIFACT_TMP"
+  ln -- "$ARTIFACT_TMP" "$ARTIFACT_RECEIPT"
+  sync -f "$ARTIFACT_RECEIPT"
+  unlink -- "$ARTIFACT_TMP"
+  sync -f "$EVIDENCE_ROOT"
+  trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
+  ARTIFACT_RECEIPT_MODE="$(stat -c %a "$ARTIFACT_RECEIPT")"
+  test "$ARTIFACT_RECEIPT_MODE" = 600
 
   unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
   trap - EXIT HUP INT TERM
@@ -1351,6 +1459,92 @@ runs in Gate A; schema, candidate/report binding, and every promotion gate are
 checked next.
 
 ## 4. Review artifact and backtest evidence
+
+**READ-ONLY — receipt-bound selected window and exact fresh artifact bytes:**
+
+```bash
+set -euo pipefail
+: "${EVIDENCE_ROOT:?}"
+: "${STATE_ROOT:?}"
+: "${LIVE_RUNTIME_REVISION:?}"
+WINDOW_RECEIPT="$EVIDENCE_ROOT/gate-a-window.json"
+ARTIFACT_RECEIPT="$EVIDENCE_ROOT/gate-a-artifacts.json"
+CANDIDATE="$STATE_ROOT/models/candidate.json"
+BACKTEST="$STATE_ROOT/models/backtest-report.json"
+for FILE in "$WINDOW_RECEIPT" "$ARTIFACT_RECEIPT" "$CANDIDATE" "$BACKTEST"
+do
+  test -f "$FILE"
+  test ! -L "$FILE"
+  FILE_MODE="$(stat -c %a "$FILE")"
+  test "$FILE_MODE" = 600
+done
+jq -e 'select(
+    (. | keys | sort)
+      == ["end","runtimeRevision","schema","selectedAt","start"]
+    and .schema == "earthship-thermal-gate-a-window/v1")' \
+  "$WINDOW_RECEIPT" >/dev/null
+jq -e 'select(
+    (. | keys | sort) == [
+      "backtestGeneratedAt","backtestSha256","candidateCreatedAt",
+      "candidateSha256","capturedAt","schema","trainBacktestSha256",
+      "windowSha256"
+    ]
+    and .schema == "earthship-thermal-gate-a-artifacts/v1"
+    and ([.windowSha256,.candidateSha256,.backtestSha256,
+          .trainBacktestSha256]
+      | all(.[]; type == "string" and length == 64))
+    and ([.capturedAt,.candidateCreatedAt,.backtestGeneratedAt]
+      | all(.[]; type == "string" and length > 0)))' \
+  "$ARTIFACT_RECEIPT" >/dev/null
+
+START_UTC="$(jq -e -r '.start' "$WINDOW_RECEIPT")"
+END_UTC="$(jq -e -r '.end' "$WINDOW_RECEIPT")"
+SELECTED_AT="$(jq -e -r '.selectedAt' "$WINDOW_RECEIPT")"
+WINDOW_RUNTIME_REVISION="$(jq -e -r '.runtimeRevision' "$WINDOW_RECEIPT")"
+test "$WINDOW_RUNTIME_REVISION" = "$LIVE_RUNTIME_REVISION"
+START_EPOCH="$(date --date="$START_UTC" +%s)"
+END_EPOCH="$(date --date="$END_UTC" +%s)"
+WINDOW_SECONDS="$((END_EPOCH - START_EPOCH))"
+test "$WINDOW_SECONDS" -eq 34560000
+
+WINDOW_SHA256="$(sha256sum "$WINDOW_RECEIPT" | awk '{print $1}')"
+CANDIDATE_SHA256="$(sha256sum "$CANDIDATE" | awk '{print $1}')"
+BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
+RECEIPT_WINDOW_SHA256="$(jq -e -r '.windowSha256' "$ARTIFACT_RECEIPT")"
+RECEIPT_CANDIDATE_SHA256="$(jq -e -r '.candidateSha256' "$ARTIFACT_RECEIPT")"
+RECEIPT_BACKTEST_SHA256="$(jq -e -r '.backtestSha256' "$ARTIFACT_RECEIPT")"
+RECEIPT_TRAIN_BACKTEST_SHA256="$(jq -e -r '.trainBacktestSha256' "$ARTIFACT_RECEIPT")"
+test "$WINDOW_SHA256" = "$RECEIPT_WINDOW_SHA256"
+test "$CANDIDATE_SHA256" = "$RECEIPT_CANDIDATE_SHA256"
+test "$BACKTEST_SHA256" = "$RECEIPT_BACKTEST_SHA256"
+test "$BACKTEST_SHA256" = "$RECEIPT_TRAIN_BACKTEST_SHA256"
+
+CANDIDATE_CREATED_AT="$(jq -e -r '.created_at' "$CANDIDATE")"
+BACKTEST_GENERATED_AT="$(jq -e -r '.generated_at' "$BACKTEST")"
+RECEIPT_CANDIDATE_CREATED_AT="$(jq -e -r '.candidateCreatedAt' "$ARTIFACT_RECEIPT")"
+RECEIPT_BACKTEST_GENERATED_AT="$(jq -e -r '.backtestGeneratedAt' "$ARTIFACT_RECEIPT")"
+CAPTURED_AT="$(jq -e -r '.capturedAt' "$ARTIFACT_RECEIPT")"
+test "$CANDIDATE_CREATED_AT" = "$RECEIPT_CANDIDATE_CREATED_AT"
+test "$BACKTEST_GENERATED_AT" = "$RECEIPT_BACKTEST_GENERATED_AT"
+SELECTED_AT_EPOCH="$(date --date="$SELECTED_AT" +%s%N)"
+CANDIDATE_CREATED_EPOCH="$(date --date="$CANDIDATE_CREATED_AT" +%s%N)"
+CAPTURED_AT_EPOCH="$(date --date="$CAPTURED_AT" +%s%N)"
+test "$CANDIDATE_CREATED_EPOCH" -ge "$SELECTED_AT_EPOCH"
+test "$CANDIDATE_CREATED_EPOCH" -le "$CAPTURED_AT_EPOCH"
+
+jq -e --arg start "$START_UTC" --arg end "$END_UTC" \
+  --arg runtimeRevision "$WINDOW_RUNTIME_REVISION" \
+  'select(.trained_from == $start
+    and .trained_through == $end
+    and .data_manifest.start == $start
+    and .data_manifest.end == $end
+    and .code_revision == $runtimeRevision)' "$CANDIDATE" >/dev/null
+jq -e --arg start "$START_UTC" --arg end "$END_UTC" \
+  'select(.data_range.start >= $start
+    and .data_range.end <= $end)' "$BACKTEST" >/dev/null
+jq -e -s '.[0].metrics == .[1].metrics' \
+  "$CANDIDATE" "$BACKTEST" >/dev/null
+```
 
 **READ-ONLY — parameters, ranges, exclusions, and provenance:**
 
@@ -1473,20 +1667,26 @@ jq -e 'select(
 set -euo pipefail
 : "${STATE_ROOT:?}"
 BACKTEST="$STATE_ROOT/models/backtest-report.json"
-jq -e 'select(all(.folds[]; .train_end < .prediction_start))
+jq -e 'def exact_counts($labels; $expected):
+    ((keys | sort) == $labels)
+    and all(.[]; type == "number" and . >= 0 and . == floor)
+    and (([.[]] | add) == $expected);
+  ["astronomical_night_zero","held","interpolated","observed"]
+    as $RADIATION_LABELS
+  | ["confirmed","model_inferred","photosensor","reconstructed","unknown"]
+    as $ACTION_LABELS
+  | select(all(.folds[]; .train_end < .prediction_start))
   | select(all(.folds[];
-      (.radiation_provenance.training | keys | sort)
-        == ["astronomical_night_zero","held","interpolated","observed"]
-      and (.radiation_provenance.evaluation_targets | keys | sort)
-        == ["astronomical_night_zero","held","interpolated","observed"]
-      and ([.radiation_provenance.training[]] | add)
-        == .training_row_count
-      and ([.radiation_provenance.evaluation_targets[]] | add)
-        == .evaluation_target_row_count
-      and ([.action_provenance.training[]] | add)
-        == .training_row_count
-      and ([.action_provenance.evaluation_targets[]] | add)
-        == .evaluation_target_row_count))
+      .training_row_count as $TRAINING_ROWS
+      | .evaluation_target_row_count as $EVALUATION_ROWS
+      | (.radiation_provenance | keys | sort)
+          == ["evaluation_targets","training"]
+      and (.action_provenance | keys | sort)
+          == ["evaluation_targets","training"]
+      and (.radiation_provenance.training | exact_counts($RADIATION_LABELS; $TRAINING_ROWS))
+      and (.radiation_provenance.evaluation_targets | exact_counts($RADIATION_LABELS; $EVALUATION_ROWS))
+      and (.action_provenance.training | exact_counts($ACTION_LABELS; $TRAINING_ROWS))
+      and (.action_provenance.evaluation_targets | exact_counts($ACTION_LABELS; $EVALUATION_ROWS))))
   | {fold_provenance:[.folds[] | {
       prediction_start,training_row_count,evaluation_target_row_count,
       radiation_provenance,action_provenance}]}' "$BACKTEST"

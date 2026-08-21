@@ -289,12 +289,92 @@ describe('thermal model attended runbook safety', () => {
     const gateA = runbook.indexOf('Gate A: code, database, and private model evidence');
     const evidence = runbook.indexOf('Review artifact and backtest evidence');
     const privateRun = runbook.slice(gateA, evidence);
+    expect(privateRun).toContain('gate-a-window.json');
+    expect(privateRun).toContain('earthship-thermal-gate-a-window/v1');
+    expect(privateRun).toContain('mktemp');
+    expect(privateRun).toContain('chmod 0600');
+    expect(privateRun).toContain('ln --');
+    expect(privateRun).toContain('sync -f');
+    expect(privateRun).toContain(
+      'START_UTC="$(jq -e -r \'.start\' "$WINDOW_RECEIPT")"',
+    );
+    expect(privateRun).toContain(
+      'END_UTC="$(jq -e -r \'.end\' "$WINDOW_RECEIPT")"',
+    );
     expect(privateRun).toContain('START_UTC');
     expect(privateRun).toContain('END_UTC');
     expect(
       privateRun.match(/--start "\$START_UTC" --end "\$END_UTC"/g)?.length,
     ).toBe(2);
     expect(privateRun).toContain('34560000');
+    expect(privateRun).not.toContain('omit explicit date bounds');
+    const train = privateRun.indexOf('thermal_intel.py train');
+    const trainReportDigest = privateRun.indexOf('TRAIN_BACKTEST_SHA256=');
+    const backtest = privateRun.indexOf('thermal_intel.py backtest');
+    expect(train).toBeGreaterThan(-1);
+    expect(trainReportDigest).toBeGreaterThan(train);
+    expect(backtest).toBeGreaterThan(trainReportDigest);
+  });
+
+  it('binds fresh candidate and report bytes back to the selected window receipt', () => {
+    const evidence = runbook.indexOf('Review artifact and backtest evidence');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    const review = runbook.slice(evidence, gateB);
+    for (const marker of [
+      'gate-a-window.json',
+      'gate-a-artifacts.json',
+      'earthship-thermal-gate-a-artifacts/v1',
+      'windowSha256',
+      'candidateSha256',
+      'backtestSha256',
+      'trainBacktestSha256',
+      'candidateCreatedAt',
+      'backtestGeneratedAt',
+      '.trained_from == $start',
+      '.trained_through == $end',
+      '.data_manifest.start == $start',
+      '.data_manifest.end == $end',
+      '.data_range.start >= $start',
+      '.data_range.end <= $end',
+      'test "$CANDIDATE_CREATED_EPOCH" -ge "$SELECTED_AT_EPOCH"',
+      'test "$CANDIDATE_SHA256" = "$RECEIPT_CANDIDATE_SHA256"',
+      'test "$BACKTEST_SHA256" = "$RECEIPT_BACKTEST_SHA256"',
+      'test "$BACKTEST_SHA256" = "$RECEIPT_TRAIN_BACKTEST_SHA256"',
+      'test "$WINDOW_SHA256" = "$RECEIPT_WINDOW_SHA256"',
+    ]) expect(review).toContain(marker);
+  });
+
+  it('requires exact fold provenance containers, labels, integer counts, and sums', () => {
+    const start = runbook.indexOf(
+      'chronological folds and exact fold provenance sums',
+    );
+    const end = runbook.indexOf(
+      'review overall errors, regimes, daily extrema, coverage, and physics',
+      start,
+    );
+    const provenance = runbook.slice(start, end);
+    expect(
+      provenance.match(/== \["evaluation_targets","training"\]/g)?.length,
+    ).toBe(2);
+    expect(
+      provenance.match(
+        /\["astronomical_night_zero","held","interpolated","observed"\]/g,
+      )?.length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      provenance.match(
+        /\["confirmed","model_inferred","photosensor","reconstructed","unknown"\]/g,
+      )?.length,
+    ).toBeGreaterThanOrEqual(1);
+    for (const marker of [
+      '.radiation_provenance.training | exact_counts($RADIATION_LABELS; $TRAINING_ROWS)',
+      '.radiation_provenance.evaluation_targets | exact_counts($RADIATION_LABELS; $EVALUATION_ROWS)',
+      '.action_provenance.training | exact_counts($ACTION_LABELS; $TRAINING_ROWS)',
+      '.action_provenance.evaluation_targets | exact_counts($ACTION_LABELS; $EVALUATION_ROWS)',
+      'type == "number"',
+      '. >= 0',
+      '. == floor',
+    ]) expect(provenance).toContain(marker);
   });
 
   it('keeps a passing Gate A non-authorizing until a separate Gate B approval', () => {
