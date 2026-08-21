@@ -850,6 +850,110 @@ def _validate_metrics_structure(metrics, path="metrics"):
             )
 
 
+def _validate_exact_method_summary(value, path):
+    horizons = {"1", "6", "12", "24", "48", "72"}
+    if not isinstance(value, dict) or set(value) != {"air", "mass"}:
+        raise ArtifactValidationError(
+            f"{path} state metric fields are incomplete or unknown"
+        )
+    for state, state_horizons in value.items():
+        if not isinstance(state_horizons, dict) or set(state_horizons) != horizons:
+            raise ArtifactValidationError(
+                f"{path}.{state} horizon fields are incomplete or unknown"
+            )
+        for horizon, summary in state_horizons.items():
+            _metric_summary_shape(summary, f"{path}.{state}.{horizon}")
+
+
+def _validate_backtest_v2_metrics_structure(metrics):
+    """Require the evaluator's exact v2 metric shape without tightening artifacts."""
+    path = "backtest.metrics"
+    horizons = {"1", "6", "12", "24", "48", "72"}
+    methods = {"model", "persistence", "recent_cycle"}
+    if not isinstance(metrics, dict) or set(metrics) != _METRIC_PAYLOAD_KEYS:
+        raise ArtifactValidationError(
+            f"{path} fields are incomplete or unknown"
+        )
+    overall = metrics["overall"]
+    if not isinstance(overall, dict) or set(overall) != methods:
+        raise ArtifactValidationError(
+            f"{path}.overall method fields are incomplete or unknown"
+        )
+    for method, summary in overall.items():
+        _validate_exact_method_summary(summary, f"{path}.overall.{method}")
+
+    regimes = {"warm", "winter", "shoulder"}
+    by_regime = metrics["by_regime"]
+    if not isinstance(by_regime, dict) or set(by_regime) != regimes:
+        raise ArtifactValidationError(f"{path}.by_regime fields are incomplete")
+    for regime, regime_methods in by_regime.items():
+        if not isinstance(regime_methods, dict) or set(regime_methods) != methods:
+            raise ArtifactValidationError(
+                f"{path}.by_regime.{regime} method fields are incomplete"
+            )
+        for method, summary in regime_methods.items():
+            _validate_exact_method_summary(
+                summary, f"{path}.by_regime.{regime}.{method}"
+            )
+
+    by_horizon = metrics["by_horizon"]
+    if not isinstance(by_horizon, dict) or set(by_horizon) != horizons:
+        raise ArtifactValidationError(
+            f"{path}.by_horizon fields are incomplete or unknown"
+        )
+    for horizon, states in by_horizon.items():
+        if not isinstance(states, dict) or set(states) != {"air", "mass"}:
+            raise ArtifactValidationError(
+                f"{path}.by_horizon.{horizon} state fields are incomplete"
+            )
+        for state, summary in states.items():
+            _metric_summary_shape(
+                summary, f"{path}.by_horizon.{horizon}.{state}"
+            )
+
+    provenances = {
+        "confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"
+    }
+    by_provenance = metrics["by_provenance"]
+    if not isinstance(by_provenance, dict) or set(by_provenance) != provenances:
+        raise ArtifactValidationError(
+            f"{path}.by_provenance fields are incomplete or unknown"
+        )
+    for provenance, summary in by_provenance.items():
+        if summary:
+            _validate_exact_method_summary(
+                summary, f"{path}.by_provenance.{provenance}"
+            )
+
+    coverage = metrics["prediction_interval_coverage"]
+    if not isinstance(coverage, dict) or set(coverage) != {"air", "mass"}:
+        raise ArtifactValidationError(
+            f"{path}.prediction_interval_coverage states are incomplete"
+        )
+    coverage_fields = {"nominal", "count", "covered", "fraction", "calibration"}
+    for state, state_horizons in coverage.items():
+        if not isinstance(state_horizons, dict) or set(state_horizons) != horizons:
+            raise ArtifactValidationError(
+                f"{path}.prediction_interval_coverage.{state} horizons are incomplete"
+            )
+        for horizon, evidence in state_horizons.items():
+            if not isinstance(evidence, dict) or set(evidence) != coverage_fields:
+                raise ArtifactValidationError(
+                    f"{path}.prediction_interval_coverage.{state}.{horizon} fields are incomplete"
+                )
+            if not isinstance(evidence["calibration"], str) or not evidence[
+                "calibration"
+            ]:
+                raise ArtifactValidationError(
+                    f"{path}.prediction_interval_coverage.{state}.{horizon}.calibration is invalid"
+                )
+    definition = metrics["recent_cycle_definition"]
+    if not isinstance(definition, str) or not definition:
+        raise ArtifactValidationError(
+            f"{path}.recent_cycle_definition must be a nonempty string"
+        )
+
+
 def _validate_metric_semantics(value, path="metrics", key=None):
     is_count = key in {"count", "covered"} or (
         key is not None and key.endswith("_count")
@@ -972,6 +1076,16 @@ def provisional_promotion_gates(
     scored_24h_by_regime,
 ):
     """Return the only provisional shadow gates from explicit evidence."""
+    regimes = {"warm", "winter", "shoulder"}
+    if (
+        not isinstance(scored_24h_by_regime, dict)
+        or set(scored_24h_by_regime) != regimes
+    ):
+        raise ArtifactValidationError(
+            "scored 24-hour regime count fields are incomplete or unknown"
+        )
+    for regime, count in scored_24h_by_regime.items():
+        _integer(count, f"scored 24-hour regime count {regime}")
     return {
         "physics_valid": physics_valid is True,
         "finite_metrics": finite_metrics is True,
@@ -1590,6 +1704,7 @@ def _validate_backtest_report(report):
 
     metrics = report["metrics"]
     _validate_metrics_structure(metrics, "backtest.metrics")
+    _validate_backtest_v2_metrics_structure(metrics)
     if metrics["fold_count"] != len(folds) or metrics["scored_fold_count"] != error_free_folds:
         raise ArtifactValidationError(
             "backtest fold aggregate evidence is contradictory"

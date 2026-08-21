@@ -120,6 +120,32 @@ def test_two_regimes_need_five_folds_each():
     )["at_least_two_24h_regimes"] is True
 
 
+@pytest.mark.parametrize(
+    "regime_counts",
+    (
+        {"invented_a": 15, "invented_b": 15},
+        {"warm": 15, "winter": 15},
+        {"warm": 15, "winter": 15, "shoulder": 0, "invented": 5},
+        {"warm": 15, "winter": 15, "shoulder": True},
+        {"warm": 15, "winter": 15, "shoulder": -1},
+        {"warm": 15, "winter": 15, "shoulder": 0.0},
+        [("warm", 15), ("winter", 15), ("shoulder", 0)],
+    ),
+)
+def test_provisional_gates_require_exact_nonnegative_regime_counts(
+    regime_counts,
+):
+    with pytest.raises(ArtifactValidationError, match="regime"):
+        provisional_promotion_gates(
+            physics_valid=True,
+            finite_metrics=True,
+            scored_fold_count=30,
+            model_24={"count": 30, "mae": 1.0},
+            persistence_24={"count": 30, "mae": 2.0},
+            scored_24h_by_regime=regime_counts,
+        )
+
+
 def valid_artifact(**changes):
     total_pairs = 17567
     fitted_pairs = 17000
@@ -589,7 +615,28 @@ def test_refused_candidate_does_not_replace_accepted_artifact(tmp_path):
 
 
 def _backtest_summary(count, mae):
-    return {"count": count, "mae": mae, "rmse": mae, "bias": 0.0}
+    return {
+        "count": count,
+        "mae": mae,
+        "rmse": mae,
+        "bias": 0.0 if count else None,
+    }
+
+
+_BACKTEST_HORIZONS = ("1", "6", "12", "24", "48", "72")
+
+
+def _backtest_method_summary(count_24=0, air_mae=None, mass_mae=None):
+    return {
+        state: {
+            horizon: _backtest_summary(
+                count_24 if horizon == "24" else 0,
+                mae if horizon == "24" else None,
+            )
+            for horizon in _BACKTEST_HORIZONS
+        }
+        for state, mae in (("air", air_mae), ("mass", mass_mae))
+    }
 
 
 def valid_backtest_report():
@@ -652,22 +699,43 @@ def valid_backtest_report():
             "fold_count": 30,
             "scored_fold_count": 30,
             "overall": {
-                "model": {"air": {"24": _backtest_summary(30, 0.5)}},
-                "persistence": {"air": {"24": _backtest_summary(30, 1.0)}},
+                "model": _backtest_method_summary(30, 0.5, 0.25),
+                "persistence": _backtest_method_summary(30, 1.0, 0.5),
+                "recent_cycle": _backtest_method_summary(),
             },
             "by_regime": {
                 regime: {
-                    "model": {"air": {"24": _backtest_summary(count, 0.5)}},
-                    "persistence": {
-                        "air": {"24": _backtest_summary(count, 1.0)}
-                    },
+                    "model": _backtest_method_summary(count, 0.5, 0.25),
+                    "persistence": _backtest_method_summary(
+                        count, 1.0, 0.5
+                    ),
+                    "recent_cycle": _backtest_method_summary(),
                 }
                 for regime, count in (
                     ("warm", 15), ("winter", 15), ("shoulder", 0)
                 )
             },
-            "by_horizon": {},
-            "by_provenance": {},
+            "by_horizon": {
+                horizon: {
+                    state: _backtest_summary(
+                        30 if horizon == "24" else 0,
+                        mae if horizon == "24" else None,
+                    )
+                    for state, mae in (("air", 0.5), ("mass", 0.25))
+                }
+                for horizon in _BACKTEST_HORIZONS
+            },
+            "by_provenance": {
+                provenance: (
+                    _backtest_method_summary(30, 0.5, 0.25)
+                    if provenance == "unknown"
+                    else {}
+                )
+                for provenance in (
+                    "confirmed", "photosensor", "reconstructed",
+                    "model_inferred", "unknown",
+                )
+            },
             "action_evidence": {
                 "confirmed": {
                     "training_rows": 0,
@@ -675,6 +743,55 @@ def valid_backtest_report():
                     "disjoint_fold_count": 0,
                 }
             },
+            "daily": {
+                name: _backtest_summary(0, None)
+                for name in (
+                    "hallway_high_f", "hallway_low_f", "peak_time_minutes",
+                    "morning_mass_f",
+                )
+            },
+            "prediction_interval_coverage": {
+                state: {
+                    horizon: {
+                        "nominal": 0.9,
+                        "count": 0,
+                        "covered": 0,
+                        "fraction": None,
+                        "calibration": "prior_fold_signed_error_quantiles",
+                    }
+                    for horizon in _BACKTEST_HORIZONS
+                }
+                for state in ("air", "mass")
+            },
+            "behavior": {
+                "available": False,
+                "label_count": 0,
+                "precision": None,
+                "recall": None,
+                "median_timing_error_minutes": None,
+                "classification_probability": 0.5,
+            },
+            "threshold_baseline": {
+                "definition": {
+                    "close_up_tomorrow": "close",
+                    "vent_tonight": "vent",
+                    "none": "none",
+                },
+                "input": "held_out_outdoor_high_proxy",
+                "class_counts": {
+                    "none": 0,
+                    "vent_tonight": 0,
+                    "close_up_tomorrow": 0,
+                },
+                "comparison_target": "held_out_hallway_high_f >= 82",
+                "precision": None,
+                "recall": None,
+                "count": 0,
+            },
+            "recent_cycle_definition": (
+                "median delta from the seven most recent completed local-day "
+                "trajectories whose targets precede the forecast origin"
+            ),
             "promotion": {
                 "eligible": True,
                 "shadow_only": True,
@@ -690,6 +807,94 @@ def valid_backtest_report():
             },
         },
     }
+
+
+@pytest.mark.parametrize(
+    "section",
+    (
+        "daily",
+        "prediction_interval_coverage",
+        "behavior",
+        "threshold_baseline",
+        "recent_cycle_definition",
+    ),
+)
+def test_backtest_v2_requires_every_producer_metric_section(tmp_path, section):
+    report = valid_backtest_report()
+    del report["metrics"][section]
+
+    with pytest.raises(ArtifactValidationError, match="metrics.*fields"):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+@pytest.mark.parametrize("split", ("by_horizon", "by_provenance"))
+def test_backtest_v2_rejects_sparse_closed_metric_split(tmp_path, split):
+    report = valid_backtest_report()
+    report["metrics"][split] = {}
+
+    with pytest.raises(ArtifactValidationError, match=split):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+@pytest.mark.parametrize(
+    ("split", "unknown_key"),
+    (("by_horizon", "25"), ("by_provenance", "invented")),
+)
+def test_backtest_v2_rejects_unknown_closed_metric_split_key(
+    tmp_path, split, unknown_key
+):
+    report = valid_backtest_report()
+    report["metrics"][split][unknown_key] = {}
+
+    with pytest.raises(ArtifactValidationError, match=split):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "overall_method",
+        "overall_state",
+        "overall_horizon",
+        "regime_method",
+        "regime_state",
+        "horizon_state",
+        "provenance_state",
+        "coverage_state",
+        "coverage_horizon",
+        "coverage_calibration",
+    ),
+)
+def test_backtest_v2_rejects_nested_sparse_producer_metric_shape(
+    tmp_path, mutation
+):
+    report = valid_backtest_report()
+    metrics = report["metrics"]
+    if mutation == "overall_method":
+        del metrics["overall"]["recent_cycle"]
+    elif mutation == "overall_state":
+        del metrics["overall"]["model"]["mass"]
+    elif mutation == "overall_horizon":
+        del metrics["overall"]["model"]["air"]["72"]
+    elif mutation == "regime_method":
+        del metrics["by_regime"]["warm"]["recent_cycle"]
+    elif mutation == "regime_state":
+        del metrics["by_regime"]["warm"]["model"]["mass"]
+    elif mutation == "horizon_state":
+        del metrics["by_horizon"]["24"]["mass"]
+    elif mutation == "provenance_state":
+        del metrics["by_provenance"]["unknown"]["mass"]
+    elif mutation == "coverage_state":
+        del metrics["prediction_interval_coverage"]["mass"]
+    elif mutation == "coverage_horizon":
+        del metrics["prediction_interval_coverage"]["air"]["72"]
+    else:
+        del metrics["prediction_interval_coverage"]["air"]["24"][
+            "calibration"
+        ]
+
+    with pytest.raises(ArtifactValidationError, match="metrics"):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
 
 
 def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
