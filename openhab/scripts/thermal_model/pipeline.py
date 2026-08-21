@@ -47,6 +47,7 @@ from .dataset import (
     MAX_INTERPOLATION_GAP,
     build_samples,
     dataset_manifest,
+    radiation_reconstruction_contract,
 )
 from .dynamics import (
     AIR_NAMES,
@@ -247,6 +248,7 @@ def _constraints_manifest():
         "max_every_change_hold_minutes": int(
             MAX_HOLD_FORWARD_GAP.total_seconds() / 60
         ),
+        "radiation_reconstruction": radiation_reconstruction_contract(),
         "mass_observer": {
             "kind": "causal_ema",
             "source_role": "mass",

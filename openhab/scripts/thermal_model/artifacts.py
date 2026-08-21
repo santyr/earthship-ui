@@ -20,6 +20,8 @@ from .dataset import (
     MAX_HOLD_FORWARD_GAP,
     MAX_INTERPOLATION_GAP,
     MODE_COUNT_KEYS,
+    RADIATION_PROVENANCE_LABELS,
+    radiation_reconstruction_contract,
 )
 from .dynamics import (
     AIR_BOUNDS,
@@ -45,7 +47,7 @@ from .schema import (
     ThermalArtifact,
 )
 
-MODEL_SCHEMA = "earthship-thermal-model/v3"
+MODEL_SCHEMA = "earthship-thermal-model/v4"
 MULTIHORIZON_CONTRACT = {
     "horizons_minutes": [5, 60, 360, 720, 1440],
     "daily_origin_selector": "longest_valid_future_then_earliest_utc",
@@ -90,6 +92,7 @@ _MANIFEST_KEYS = {
     "auxiliary_exclusion_counts",
     "interpolation_counts",
     "hold_forward_counts",
+    "radiation_provenance_counts",
     "event_counts_by_source",
     "items",
     "units",
@@ -411,6 +414,7 @@ def _expected_constraints():
         "max_every_change_hold_minutes": int(
             MAX_HOLD_FORWARD_GAP.total_seconds() / 60
         ),
+        "radiation_reconstruction": radiation_reconstruction_contract(),
         "mass_observer": {
             "kind": "causal_ema",
             "source_role": "mass",
@@ -618,6 +622,20 @@ def _validate_manifest(artifact):
         )
     for role, count in hold_counts.items():
         _integer(count, f"hold-forward count {role}", minimum=0)
+    radiation_counts = manifest["radiation_provenance_counts"]
+    if (
+        not isinstance(radiation_counts, dict)
+        or set(radiation_counts) != set(RADIATION_PROVENANCE_LABELS)
+    ):
+        raise ArtifactValidationError(
+            "radiation provenance count fields are not exact"
+        )
+    for label, count in radiation_counts.items():
+        _integer(count, f"radiation provenance count {label}", minimum=0)
+    if sum(radiation_counts.values()) != manifest["sample_count"]:
+        raise ArtifactValidationError(
+            "radiation provenance counts must sum to the manifest sample count"
+        )
     counts = manifest["event_counts_by_source"]
     _validate_count_map(counts, "action provenance")
     if not counts or not set(counts) <= set(SOURCE_WEIGHTS) or sum(counts.values()) <= 0:
@@ -1137,6 +1155,11 @@ def _validate_payload_shape(payload):
     )
     _exact_payload_keys(
         manifest["hold_forward_counts"], MODEL_ITEMS, "hold-forward counts"
+    )
+    _exact_payload_keys(
+        manifest["radiation_provenance_counts"],
+        RADIATION_PROVENANCE_LABELS,
+        "radiation provenance counts",
     )
     _exact_payload_keys(
         manifest["fit_diagnostics"], _DIAGNOSTIC_KEYS, "fit diagnostics"

@@ -8,8 +8,8 @@ import json
 import math
 from statistics import median
 
+from . import solar
 from .actions import reconstruct_events, reconstruct_state
-from .solar import is_astronomical_night
 from .schema import (
     ActionEvent,
     ModeEvent,
@@ -20,6 +20,8 @@ from .schema import (
 )
 
 
+is_astronomical_night = solar.is_astronomical_night
+
 STEP = timedelta(minutes=5)
 MAX_INTERPOLATION_GAP = timedelta(minutes=20)
 MAX_HOLD_FORWARD_GAP = timedelta(minutes=60)
@@ -27,6 +29,12 @@ MASS_OBSERVER_TAU_MINUTES = 120
 REQUIRED_ROLES = ("air", "mass", "outdoor", "radiation")
 TEMPERATURE_ROLES = ("air", "mass", "glazing", "outdoor")
 CONFIRMED_SOURCES = frozenset(("nostr_confirmed", "manual_dm"))
+RADIATION_PROVENANCE_LABELS = (
+    "observed",
+    "interpolated",
+    "held",
+    "astronomical_night_zero",
+)
 CORE_REJECTED_COUNT_KEYS = frozenset(
     {"missing_required", "source_gap", "range", "jump"}
 )
@@ -52,7 +60,7 @@ class ThermalDataset(list):
     def __init__(
         self, values, *, start, end, rejected_counts, auxiliary_exclusion_counts,
         confirmed_action_rows=(), interpolation_counts=None,
-        hold_forward_counts=None,
+        hold_forward_counts=None, radiation_provenance_by_at=None,
     ):
         super().__init__(values)
         self.start = start
@@ -62,6 +70,20 @@ class ThermalDataset(list):
         self.confirmed_action_rows = tuple(confirmed_action_rows)
         self.interpolation_counts = dict(interpolation_counts or {})
         self.hold_forward_counts = dict(hold_forward_counts or {})
+        if radiation_provenance_by_at is None:
+            radiation_provenance_by_at = {
+                sample.at: "observed" for sample in self
+            }
+        self.radiation_provenance_by_at = dict(radiation_provenance_by_at)
+
+
+def radiation_reconstruction_contract():
+    return {
+        "rule": "missing_at_solar_elevation_lte_zero_becomes_zero",
+        "night_value_wm2": 0.0,
+        "solar": solar.solar_contract(),
+        "provenance_labels": list(RADIATION_PROVENANCE_LABELS),
+    }
 
 
 def _utc(value, name):
@@ -92,6 +114,7 @@ def _bucket_series(series_by_role, start, end):
     interpolation_counts = {role: 0 for role in roles}
     hold_forward_counts = {role: 0 for role in roles}
     observed_buckets = {}
+    radiation_provenance = {}
     for role in roles:
         grouped = defaultdict(list)
         non_finite = set()
@@ -115,6 +138,10 @@ def _bucket_series(series_by_role, start, end):
             at: float(median(values)) for at, values in grouped.items() if values
         }
         observed_buckets[role] = dict(buckets[role])
+        if role == "radiation":
+            radiation_provenance.update(
+                {at: "observed" for at in buckets[role]}
+            )
         non_finite_only[role] = non_finite - set(buckets[role])
         original = sorted(buckets[role].items())
         for (left_at, left_value), (right_at, right_value) in zip(
@@ -145,9 +172,13 @@ def _bucket_series(series_by_role, start, end):
                         left_value + fraction * (right_value - left_value)
                     )
                     interpolation_counts[role] += 1
+                    if role == "radiation":
+                        radiation_provenance[at] = "interpolated"
                 else:
                     buckets[role][at] = float(left_value)
                     hold_forward_counts[role] += 1
+                    if role == "radiation":
+                        radiation_provenance[at] = "held"
         if original:
             last_at, last_value = original[-1]
             cursor = last_at + STEP
@@ -157,13 +188,29 @@ def _bucket_series(series_by_role, start, end):
                     break
                 buckets[role][cursor] = float(last_value)
                 hold_forward_counts[role] += 1
+                if role == "radiation":
+                    radiation_provenance[cursor] = "held"
                 cursor += STEP
+
+    cursor = _floor_five(start)
+    if cursor < start:
+        cursor += STEP
+    while cursor < end:
+        if (
+            cursor not in buckets["radiation"]
+            and cursor not in non_finite_only["radiation"]
+            and is_astronomical_night(cursor)
+        ):
+            buckets["radiation"][cursor] = 0.0
+            radiation_provenance[cursor] = "astronomical_night_zero"
+        cursor += STEP
     return (
         buckets,
         non_finite_only,
         interpolation_counts,
         hold_forward_counts,
         observed_buckets,
+        radiation_provenance,
     )
 
 
@@ -292,7 +339,7 @@ def latent_mass_from_series(points):
         return None
     start = _floor_five(min(aware).astimezone(timezone.utc))
     end = _floor_five(max(aware).astimezone(timezone.utc)) + STEP
-    buckets, _, _, _, _ = _bucket_series({"mass": points}, start, end)
+    buckets, _, _, _, _, _ = _bucket_series({"mass": points}, start, end)
     alpha = 1.0 - math.exp(
         -STEP.total_seconds() / 60.0 / MASS_OBSERVER_TAU_MINUTES
     )
@@ -458,6 +505,7 @@ def build_samples(series_by_role, events, modes, start, end):
         interpolation_counts,
         hold_forward_counts,
         observed_buckets,
+        radiation_provenance,
     ) = _bucket_series(series_by_role, start_utc, end_utc)
     range_failures = _range_failures(
         buckets, ("air", "mass", "outdoor"), include_radiation=True
@@ -581,12 +629,16 @@ def build_samples(series_by_role, events, modes, start, end):
         confirmed_action_rows=confirmed_action_rows,
         interpolation_counts=interpolation_counts,
         hold_forward_counts=hold_forward_counts,
+        radiation_provenance_by_at={
+            at: radiation_provenance[at] for at in sample_times
+        },
     )
 
 
-def _canonical_sample(sample):
+def _canonical_sample(sample, radiation_provenance):
     row = asdict(sample)
     row["at"] = _iso_utc(sample.at)
+    row["_radiation_provenance"] = radiation_provenance
     return row
 
 
@@ -596,7 +648,24 @@ MODE_COUNT_KEYS = ("unknown", "fall_charge", "winter", "spring", "warm")
 def dataset_manifest(samples, events, modes):
     """Describe and digest a sample set using canonical, finite JSON rows."""
     ordered = sorted(samples, key=lambda sample: sample.at.astimezone(timezone.utc))
-    canonical_rows = [_canonical_sample(sample) for sample in ordered]
+    if isinstance(samples, ThermalDataset):
+        radiation_provenance_by_at = samples.radiation_provenance_by_at
+    else:
+        radiation_provenance_by_at = {
+            sample.at: "observed" for sample in ordered
+        }
+    provenance_labels = []
+    for sample in ordered:
+        provenance = radiation_provenance_by_at.get(sample.at)
+        if provenance not in RADIATION_PROVENANCE_LABELS:
+            raise ValueError(
+                "sample radiation provenance is outside the closed vocabulary"
+            )
+        provenance_labels.append(provenance)
+    canonical_rows = [
+        _canonical_sample(sample, provenance)
+        for sample, provenance in zip(ordered, provenance_labels)
+    ]
     canonical_json = json.dumps(
         canonical_rows, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
@@ -623,6 +692,7 @@ def dataset_manifest(samples, events, modes):
         hold_forward_counts = {}
 
     counts = Counter(record.source for record in tuple(events) + tuple(modes))
+    radiation_counts = Counter(provenance_labels)
     mode_counts = {name: 0 for name in MODE_COUNT_KEYS}
     for sample in ordered:
         mode = sample.mode or "unknown"
@@ -645,6 +715,10 @@ def dataset_manifest(samples, events, modes):
         "hold_forward_counts": {
             role: int(hold_forward_counts.get(role, 0))
             for role in tuple(THERMAL_ITEMS) + tuple(OPTIONAL_OBSERVATION_ITEMS)
+        },
+        "radiation_provenance_counts": {
+            label: int(radiation_counts.get(label, 0))
+            for label in RADIATION_PROVENANCE_LABELS
         },
         "event_counts_by_source": dict(sorted(counts.items())),
         "items": {

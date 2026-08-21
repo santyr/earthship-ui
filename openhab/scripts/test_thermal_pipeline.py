@@ -771,8 +771,20 @@ def test_training_assembles_exact_manifest_persists_report_then_refuses():
         "start", "end", "sample_count", "rejected_counts",
         "sample_counts_by_mode",
         "auxiliary_exclusion_counts", "event_counts_by_source", "items", "units",
-        "interpolation_counts", "hold_forward_counts", "canonical_rows_sha256", "fit_diagnostics", "constraints",
+        "interpolation_counts", "hold_forward_counts",
+        "radiation_provenance_counts", "canonical_rows_sha256",
+        "fit_diagnostics", "constraints",
     }
+    assert registry.artifact.schema == "earthship-thermal-model/v4"
+    assert registry.artifact.data_manifest["radiation_provenance_counts"] == {
+        "observed": 4,
+        "interpolated": 0,
+        "held": 0,
+        "astronomical_night_zero": 0,
+    }
+    assert registry.artifact.data_manifest["constraints"][
+        "radiation_reconstruction"
+    ]["rule"] == "missing_at_solar_elevation_lte_zero_becomes_zero"
     assert registry.artifact.data_manifest["items"] == {
         **THERMAL_ITEMS,
         **OPTIONAL_OBSERVATION_ITEMS,

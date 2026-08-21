@@ -25,6 +25,7 @@ from thermal_model.dynamics import (
     STABILITY_TOLERANCE,
 )
 from thermal_model.artifacts import (
+    MODEL_SCHEMA,
     THERMAL_UNITS,
     ArtifactPromotionRefused,
     ArtifactRegistry,
@@ -76,7 +77,7 @@ def valid_artifact(**changes):
     total_pairs = 17567
     fitted_pairs = 17000
     artifact = ThermalArtifact(
-        schema="earthship-thermal-model/v3",
+        schema=MODEL_SCHEMA,
         created_at="2026-08-13T12:00:00Z",
         trained_from="2026-06-01T00:00:00Z",
         trained_through="2026-08-01T00:00:00Z",
@@ -179,6 +180,12 @@ def valid_artifact(**changes):
                 role: 0
                 for role in {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
             },
+            "radiation_provenance_counts": {
+                "observed": 17568,
+                "interpolated": 0,
+                "held": 0,
+                "astronomical_night_zero": 0,
+            },
             "items": {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS},
             "units": dict(THERMAL_UNITS),
             "canonical_rows_sha256": "a" * 64,
@@ -220,6 +227,22 @@ def valid_artifact(**changes):
                 "stability_tolerance": STABILITY_TOLERANCE,
                 "max_interpolation_gap_minutes": 20,
                 "max_every_change_hold_minutes": 60,
+                "radiation_reconstruction": {
+                    "rule": "missing_at_solar_elevation_lte_zero_becomes_zero",
+                    "night_value_wm2": 0.0,
+                    "solar": {
+                        "rule": "earthship-solar-elevation/v1",
+                        "latitude": 38.3739919,
+                        "longitude": -105.7744609,
+                        "night_when_elevation_sin_lte": 0.0,
+                    },
+                    "provenance_labels": [
+                        "observed",
+                        "interpolated",
+                        "held",
+                        "astronomical_night_zero",
+                    ],
+                },
                 "mass_observer": {
                     "kind": "causal_ema",
                     "source_role": "mass",
@@ -270,7 +293,7 @@ def test_artifact_accepts_exact_disjoint_action_evidence(tmp_path):
 def test_v2_artifact_is_rejected_without_implicit_migration(tmp_path):
     registry = ArtifactRegistry(tmp_path)
 
-    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v3"):
+    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v4"):
         registry.save_candidate(valid_artifact(schema="earthship-thermal-model/v2"))
 
 
@@ -280,7 +303,7 @@ def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
     registry.promote_candidate()
 
     loaded = registry.load_accepted()
-    assert loaded.schema == "earthship-thermal-model/v3"
+    assert loaded.schema == "earthship-thermal-model/v4"
     assert isinstance(loaded.dynamics, DynamicsModel)
     assert isinstance(loaded.behavior.seasonal_vocabulary, tuple)
     assert loaded.behavior.seasonal_vocabulary[0].action_states == (
@@ -368,6 +391,62 @@ def test_candidate_manifest_rejects_invalid_sample_counts_by_mode(
         counts["unknown"] += 1
 
     with pytest.raises(ArtifactValidationError, match="sample.*mode|mode.*count"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "extra", "boolean", "negative", "noninteger", "sum"],
+)
+def test_candidate_manifest_rejects_invalid_radiation_provenance_counts(
+    tmp_path, mutation
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    counts = manifest["radiation_provenance_counts"]
+    if mutation == "missing":
+        del counts["held"]
+    elif mutation == "extra":
+        counts["invented"] = 0
+    elif mutation == "boolean":
+        counts["held"] = True
+    elif mutation == "negative":
+        counts["held"] = -1
+    elif mutation == "noninteger":
+        counts["held"] = 1.5
+    else:
+        counts["observed"] -= 1
+
+    with pytest.raises(
+        ArtifactValidationError, match="radiation.*provenance|provenance.*count"
+    ):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
+@pytest.mark.parametrize(
+    ("path", "replacement"),
+    [
+        (("rule",), "invented"),
+        (("night_value_wm2",), False),
+        (("solar", "latitude"), 0.0),
+        (("solar", "rule"), "invented"),
+        (("provenance_labels",), ["observed"]),
+    ],
+)
+def test_candidate_manifest_requires_exact_radiation_reconstruction_contract(
+    tmp_path, path, replacement
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    contract = manifest["constraints"]["radiation_reconstruction"]
+    target = contract
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = replacement
+
+    with pytest.raises(ArtifactValidationError, match="constraints"):
         ArtifactRegistry(tmp_path).save_candidate(
             valid_artifact(data_manifest=manifest)
         )
@@ -1264,7 +1343,7 @@ def test_manifest_count_map_values_are_nonnegative_non_bool(
 
 
 
-def test_model_artifact_v3_requires_exact_multihorizon_contract(tmp_path):
+def test_model_artifact_v4_requires_exact_multihorizon_contract(tmp_path):
     artifact = valid_artifact()
     ArtifactRegistry(tmp_path).save_candidate(artifact)
     for field in (
