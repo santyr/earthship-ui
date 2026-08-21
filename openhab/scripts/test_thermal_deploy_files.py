@@ -1,3 +1,4 @@
+import fcntl
 import importlib.util
 import json
 import os
@@ -1083,3 +1084,291 @@ def test_archive_prior_v3_cli_dispatch_has_no_generic_source_option(monkeypatch)
                 "/tmp/not-allowed",
             ]
         )
+
+
+def _write_complete_prior_v3_temporary(fixture, temporary):
+    temporary.mkdir(mode=0o700)
+    for archived_name, source_name in (
+        ("candidate-v3.json", "candidate.json"),
+        ("backtest-report-v1.json", "backtest-report.json"),
+    ):
+        path = temporary / archived_name
+        path.write_bytes(fixture["payloads"][source_name])
+        path.chmod(0o600)
+    manifest = temporary / "prior-evidence-manifest.json"
+    manifest.write_bytes(
+        thermal_model_files._canonical(_expected_prior_v3_manifest(fixture))
+        + b"\n"
+    )
+    manifest.chmod(0o600)
+
+
+def test_prior_model_byte_identical_marker_free_foreign_temp_is_preserved(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    foreign = fixture["attended"] / (
+        ".prior-model-v3.thermal-archive-" + "1" * 24
+    )
+    _write_complete_prior_v3_temporary(fixture, foreign)
+    before = {path.name: path.read_bytes() for path in foreign.iterdir()}
+
+    with pytest.raises(RuntimeError, match="unverifiable prior archive temporary"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert foreign.is_dir()
+    assert {path.name: path.read_bytes() for path in foreign.iterdir()} == before
+    assert not fixture["archive"].exists()
+
+
+def test_prior_model_deterministic_marker_without_receipt_proof_is_preserved(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    temporary_name = ".prior-model-v3.thermal-archive-" + "2" * 24
+    foreign = fixture["attended"] / temporary_name
+    foreign.mkdir(mode=0o700)
+    marker = foreign / ".thermal-archive-owner"
+    marker.write_bytes(
+        thermal_model_files._canonical(
+            {
+                "schema": "earthship-thermal-prior-archive-temp/v1",
+                "temporaryName": temporary_name,
+            }
+        )
+        + b"\n"
+    )
+    marker.chmod(0o600)
+
+    with pytest.raises(RuntimeError, match="unverifiable prior archive temporary"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert marker.is_file()
+    assert not fixture["archive"].exists()
+
+
+def test_archive_prior_v3_attended_path_substitution_cannot_redirect_writes(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    moved_attended = tmp_path / "moved-attended"
+    substituted = {"value": False}
+
+    def substitute(event, index):
+        if event == "after-file-write" and index == 0:
+            fixture["attended"].rename(moved_attended)
+            replacement_files = fixture["attended"] / "files"
+            replacement_files.mkdir(parents=True, mode=0o700)
+            fixture["attended"].chmod(0o700)
+            replacement_files.chmod(0o700)
+            substituted["value"] = True
+
+    assert thermal_model_files.archive_prior_v3(
+        fixture["files"], fault=substitute,
+    )
+
+    assert substituted["value"]
+    moved_fixture = {**fixture, "archive": moved_attended / "prior-model-v3"}
+    _assert_exact_prior_v3_archive(moved_fixture)
+    assert list(fixture["attended"].iterdir()) == [fixture["files"]]
+
+
+def test_archive_prior_v3_temp_substitution_cannot_redirect_later_writes(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    paths = {}
+
+    def substitute(event, index):
+        if event == "after-file-write" and index == 0:
+            temporary = next(
+                fixture["attended"].glob(".prior-model-v3.thermal-archive-*")
+            )
+            moved = fixture["attended"] / f"moved-{temporary.name}"
+            temporary.rename(moved)
+            temporary.mkdir(mode=0o700)
+            paths.update(moved=moved, replacement=temporary)
+
+    with pytest.raises(RuntimeError, match="temporary identity changed"):
+        thermal_model_files.archive_prior_v3(
+            fixture["files"], fault=substitute,
+        )
+
+    assert paths["replacement"].is_dir()
+    assert not list(paths["replacement"].iterdir())
+    assert {
+        path.name for path in paths["moved"].iterdir()
+    } == PRIOR_V3_ARCHIVE_FILES
+    assert not fixture["archive"].exists()
+
+
+def test_archive_prior_v3_temp_substitution_cannot_redirect_cleanup(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    paths = {}
+
+    def substitute_and_fail(event, index):
+        if event == "after-file-write" and index == 0:
+            temporary = next(
+                fixture["attended"].glob(".prior-model-v3.thermal-archive-*")
+            )
+            moved = fixture["attended"] / f"moved-{temporary.name}"
+            temporary.rename(moved)
+            temporary.mkdir(mode=0o700)
+            paths.update(moved=moved, replacement=temporary)
+            raise RuntimeError("injected after substitution")
+
+    with pytest.raises(RuntimeError):
+        thermal_model_files.archive_prior_v3(
+            fixture["files"], fault=substitute_and_fail,
+        )
+
+    assert paths["replacement"].is_dir()
+    assert not list(paths["replacement"].iterdir())
+    assert (paths["moved"] / "candidate-v3.json").is_file()
+    assert not fixture["archive"].exists()
+
+
+def test_prior_model_crash_before_receipt_ownership_proof_is_preserved(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+
+    def crash(event, index):
+        if event == "after-temporary-open" and index == -1:
+            raise SimulatedCrash("before receipt ownership proof")
+
+    with pytest.raises(SimulatedCrash):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=crash)
+
+    temporaries = list(
+        fixture["attended"].glob(".prior-model-v3.thermal-archive-*")
+    )
+    assert len(temporaries) == 1
+    assert not (
+        fixture["files"] / ".prior-model-v3-archive-intent.json"
+    ).exists()
+    with pytest.raises(RuntimeError, match="unverifiable prior archive temporary"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+    assert temporaries[0].is_dir()
+
+
+def test_prior_model_crash_records_random_receipt_bound_ownership_proof(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+
+    def crash(event, index):
+        if event == "after-file-write" and index == 0:
+            raise SimulatedCrash("after first file")
+
+    with pytest.raises(SimulatedCrash):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=crash)
+
+    temporary = next(
+        fixture["attended"].glob(".prior-model-v3.thermal-archive-*")
+    )
+    intent_path = fixture["files"] / thermal_model_files.PRIOR_V3_INTENT_NAME
+    intent = json.loads(intent_path.read_bytes())
+    assert set(intent) == {
+        "attendedDevice",
+        "attendedInode",
+        "filesDevice",
+        "filesInode",
+        "schema",
+        "temporaryDevice",
+        "temporaryInode",
+        "temporaryName",
+        "token",
+    }
+    assert intent["schema"] == "earthship-thermal-prior-archive-intent/v1"
+    assert len(intent["token"]) == 64
+    assert all(character in "0123456789abcdef" for character in intent["token"])
+    assert intent["token"] not in temporary.name
+    assert (intent["temporaryDevice"], intent["temporaryInode"]) == (
+        temporary.stat().st_dev,
+        temporary.stat().st_ino,
+    )
+    assert (intent["attendedDevice"], intent["attendedInode"]) == (
+        fixture["attended"].stat().st_dev,
+        fixture["attended"].stat().st_ino,
+    )
+    assert (intent["filesDevice"], intent["filesInode"]) == (
+        fixture["files"].stat().st_dev,
+        fixture["files"].stat().st_ino,
+    )
+    assert mode(intent_path) == 0o600
+
+    assert thermal_model_files.archive_prior_v3(fixture["files"])
+    _assert_exact_prior_v3_archive(fixture)
+    assert not intent_path.exists()
+
+
+@pytest.mark.parametrize("mutation", ("content", "mode", "extra"))
+def test_archive_prior_v3_reverifies_held_temp_immediately_before_rename(
+    tmp_path, monkeypatch, mutation,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    mutated = {}
+
+    def mutate(event, index):
+        if event != "before-final-archive-verify" or index != -1:
+            return
+        temporary = next(
+            fixture["attended"].glob(".prior-model-v3.thermal-archive-*")
+        )
+        if mutation == "extra":
+            target = temporary / "unexpected"
+            target.write_bytes(b"unowned extra\n")
+            target.chmod(0o600)
+        else:
+            target = temporary / "candidate-v3.json"
+            if mutation == "content":
+                target.write_bytes(b"mutated candidate\n")
+                target.chmod(0o600)
+            else:
+                target.chmod(0o640)
+        mutated["temporary"] = temporary
+
+    with pytest.raises(RuntimeError, match="final prior archive temporary"):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=mutate)
+
+    assert not fixture["archive"].exists()
+    assert mutated["temporary"].is_dir()
+
+
+def test_archive_prior_v3_holds_receipt_lock_through_rename_and_parent_fsync(
+    monkeypatch, tmp_path,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    real_renameat2 = thermal_model_files._renameat2
+    real_fsync = os.fsync
+    lock_was_held = {"rename": False, "parent-fsync": False}
+
+    def assert_receipt_locked():
+        contender = os.open(fixture["files"], os.O_RDONLY)
+        try:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(contender, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        finally:
+            os.close(contender)
+
+    def assert_locked(old_fd, old_name, new_fd, new_name, flags):
+        assert_receipt_locked()
+        lock_was_held["rename"] = True
+        return real_renameat2(old_fd, old_name, new_fd, new_name, flags)
+
+    def assert_locked_during_fsync(descriptor):
+        if (
+            fixture["archive"].exists()
+            and os.fstat(descriptor).st_ino == fixture["attended"].stat().st_ino
+        ):
+            assert_receipt_locked()
+            lock_was_held["parent-fsync"] = True
+        return real_fsync(descriptor)
+
+    monkeypatch.setattr(thermal_model_files, "_renameat2", assert_locked)
+    monkeypatch.setattr(thermal_model_files.os, "fsync", assert_locked_during_fsync)
+    assert thermal_model_files.archive_prior_v3(fixture["files"])
+    assert lock_was_held == {"rename": True, "parent-fsync": True}

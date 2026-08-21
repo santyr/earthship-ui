@@ -4,6 +4,7 @@
 import argparse
 import ctypes
 import errno
+import fcntl
 from hashlib import sha256
 import json
 import os
@@ -84,6 +85,8 @@ PRIOR_V3_SOURCE_ROOT = ALLOWED_STATE_ROOT / "models"
 PRIOR_V3_ARCHIVE_NAME = "prior-model-v3"
 PRIOR_V3_MANIFEST_NAME = "prior-evidence-manifest.json"
 PRIOR_V3_EVIDENCE_SCHEMA = "earthship-thermal-prior-evidence/v1"
+PRIOR_V3_INTENT_NAME = ".prior-model-v3-archive-intent.json"
+PRIOR_V3_INTENT_SCHEMA = "earthship-thermal-prior-archive-intent/v1"
 PRIOR_V3_EVIDENCE = (
     {
         "sourceName": "candidate.json",
@@ -120,7 +123,7 @@ _ATTENDED_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _PRIOR_V3_TEMP_NAME = re.compile(
     r"^\.prior-model-v3\.thermal-archive-[0-9a-f]{24}$"
 )
-_PRIOR_V3_OWNER_NAME = ".thermal-archive-owner"
+_PRIOR_V3_TOKEN = re.compile(r"^[0-9a-f]{64}$")
 _RENAME_NOREPLACE = 1
 _RENAME_EXCHANGE = 2
 _LIBC = ctypes.CDLL(None, use_errno=True)
@@ -289,10 +292,10 @@ def _hit(fault, event, index):
         fault(event, index)
 
 
-def _atomic_write_private(path, data, mode, *, parent_mode=0o755, fault=None, index=-2):
-    """Write only private receipt/backup artifacts, never a live manifest target."""
-    path = Path(path)
-    parent_fd, name = _open_parent(path, create=True, create_mode=parent_mode)
+def _atomic_write_private_at(
+    parent_fd, name, path, data, mode, *, fault=None, index=-2,
+):
+    """Atomically write a private artifact relative to an already pinned dirfd."""
     temporary_name = f".{name}.thermal-stage-{secrets.token_hex(12)}"
     temporary_exists = False
     try:
@@ -340,6 +343,23 @@ def _atomic_write_private(path, data, mode, *, parent_mode=0o755, fault=None, in
                 os.fsync(parent_fd)
             except FileNotFoundError:
                 pass
+
+
+def _atomic_write_private(path, data, mode, *, parent_mode=0o755, fault=None, index=-2):
+    """Write only private receipt/backup artifacts, never a live manifest target."""
+    path = Path(path)
+    parent_fd, name = _open_parent(path, create=True, create_mode=parent_mode)
+    try:
+        _atomic_write_private_at(
+            parent_fd,
+            name,
+            path,
+            data,
+            mode,
+            fault=fault,
+            index=index,
+        )
+    finally:
         os.close(parent_fd)
 
 
@@ -1262,6 +1282,7 @@ def _prior_v3_parent(receipt_dir):
         raise ValueError("prior v3 archive requires the attended files receipt")
     attended = receipt_dir.parent
     parent_fd = _open_directory(attended)
+    files_fd = None
     try:
         _assert_mode(
             stat.S_IMODE(os.fstat(parent_fd).st_mode),
@@ -1280,21 +1301,127 @@ def _prior_v3_parent(receipt_dir):
                 "file receipt directory",
                 receipt_dir,
             )
-        finally:
+            try:
+                fcntl.flock(files_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise RuntimeError(
+                    f"prior v3 archive receipt is locked: {receipt_dir}"
+                ) from exc
+        except BaseException:
             os.close(files_fd)
-        return parent_fd, attended
+            files_fd = None
+            raise
+        return parent_fd, files_fd, attended
     except BaseException:
+        if files_fd is not None:
+            os.close(files_fd)
         os.close(parent_fd)
         raise
 
 
-def _prior_v3_owner_bytes(temporary_name):
-    return _canonical(
-        {
-            "schema": "earthship-thermal-prior-archive-temp/v1",
-            "temporaryName": temporary_name,
-        }
-    ) + b"\n"
+def _prior_v3_intent_value(parent_fd, files_fd, temporary_fd, temporary_name):
+    attended_stat = os.fstat(parent_fd)
+    files_stat = os.fstat(files_fd)
+    temporary_stat = os.fstat(temporary_fd)
+    return {
+        "schema": PRIOR_V3_INTENT_SCHEMA,
+        "token": secrets.token_hex(32),
+        "temporaryName": temporary_name,
+        "temporaryDevice": temporary_stat.st_dev,
+        "temporaryInode": temporary_stat.st_ino,
+        "attendedDevice": attended_stat.st_dev,
+        "attendedInode": attended_stat.st_ino,
+        "filesDevice": files_stat.st_dev,
+        "filesInode": files_stat.st_ino,
+    }
+
+
+def _prior_v3_intent_bytes(intent):
+    return _canonical(intent) + b"\n"
+
+
+def _validate_prior_v3_intent(intent, parent_fd, files_fd, path):
+    expected_keys = {
+        "attendedDevice",
+        "attendedInode",
+        "filesDevice",
+        "filesInode",
+        "schema",
+        "temporaryDevice",
+        "temporaryInode",
+        "temporaryName",
+        "token",
+    }
+    if not isinstance(intent, dict) or set(intent) != expected_keys:
+        raise RuntimeError(f"unverifiable prior archive intent: {path}")
+    numeric_keys = expected_keys - {"schema", "temporaryName", "token"}
+    if (
+        intent["schema"] != PRIOR_V3_INTENT_SCHEMA
+        or not _PRIOR_V3_TOKEN.fullmatch(intent["token"])
+        or not _PRIOR_V3_TEMP_NAME.fullmatch(intent["temporaryName"])
+        or any(type(intent[key]) is not int or intent[key] < 0 for key in numeric_keys)
+    ):
+        raise RuntimeError(f"unverifiable prior archive intent: {path}")
+    attended_stat = os.fstat(parent_fd)
+    files_stat = os.fstat(files_fd)
+    if (
+        (intent["attendedDevice"], intent["attendedInode"])
+        != (attended_stat.st_dev, attended_stat.st_ino)
+        or (intent["filesDevice"], intent["filesInode"])
+        != (files_stat.st_dev, files_stat.st_ino)
+    ):
+        raise RuntimeError(f"unverifiable prior archive intent: {path}")
+    return intent
+
+
+def _load_prior_v3_intent(files_fd, receipt_dir, parent_fd):
+    path = receipt_dir / PRIOR_V3_INTENT_NAME
+    result = _read_regular_at(
+        files_fd,
+        PRIOR_V3_INTENT_NAME,
+        path,
+        "prior archive intent",
+        allow_missing=True,
+    )
+    if result is None:
+        return None
+    data, actual_mode = result
+    _assert_mode(actual_mode, 0o600, "prior archive intent", path)
+    try:
+        intent = json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"unverifiable prior archive intent: {path}") from exc
+    return _validate_prior_v3_intent(intent, parent_fd, files_fd, path)
+
+
+def _assert_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent):
+    current = _load_prior_v3_intent(files_fd, receipt_dir, parent_fd)
+    if current != intent:
+        raise RuntimeError(
+            f"prior archive intent changed: {receipt_dir / PRIOR_V3_INTENT_NAME}"
+        )
+
+
+def _write_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent):
+    if _load_prior_v3_intent(files_fd, receipt_dir, parent_fd) is not None:
+        raise RuntimeError(
+            f"prior archive intent already exists: "
+            f"{receipt_dir / PRIOR_V3_INTENT_NAME}"
+        )
+    _atomic_write_private_at(
+        files_fd,
+        PRIOR_V3_INTENT_NAME,
+        receipt_dir / PRIOR_V3_INTENT_NAME,
+        _prior_v3_intent_bytes(intent),
+        0o600,
+    )
+    _assert_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+
+
+def _remove_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent):
+    _assert_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+    os.unlink(PRIOR_V3_INTENT_NAME, dir_fd=files_fd)
+    os.fsync(files_fd)
 
 
 def _prior_v3_archive_exists(parent_fd, attended):
@@ -1330,88 +1457,174 @@ def _open_prior_v3_temporary(parent_fd, attended, temporary_name):
     return descriptor
 
 
-def _remove_verified_prior_v3_temporary(
-    parent_fd, attended, temporary_name, expected_files,
+def _assert_prior_v3_temporary_identity(
+    parent_fd, temporary_fd, attended, temporary_name,
 ):
     temporary_path = attended / temporary_name
-    descriptor = _open_prior_v3_temporary(
-        parent_fd, attended, temporary_name
+    try:
+        name_stat = os.stat(
+            temporary_name, dir_fd=parent_fd, follow_symlinks=False
+        )
+    except OSError as exc:
+        raise RuntimeError(
+            f"prior archive temporary identity changed: {temporary_path}"
+        ) from exc
+    descriptor_stat = os.fstat(temporary_fd)
+    if (
+        not stat.S_ISDIR(name_stat.st_mode)
+        or (name_stat.st_dev, name_stat.st_ino)
+        != (descriptor_stat.st_dev, descriptor_stat.st_ino)
+    ):
+        raise RuntimeError(
+            f"prior archive temporary identity changed: {temporary_path}"
+        )
+
+
+def _assert_prior_v3_intent_owns_temporary(intent, temporary_fd, path):
+    details = os.fstat(temporary_fd)
+    if (intent["temporaryDevice"], intent["temporaryInode"]) != (
+        details.st_dev,
+        details.st_ino,
+    ):
+        raise RuntimeError(f"unverifiable prior archive temporary: {path}")
+
+
+def _validate_prior_v3_temporary(
+    temporary_fd, temporary_path, expected_files, *, final,
+):
+    label = (
+        "final prior archive temporary"
+        if final
+        else "unverifiable prior archive temporary"
     )
     try:
-        names = set(os.listdir(descriptor))
-        owner = _read_regular_at(
-            descriptor,
-            _PRIOR_V3_OWNER_NAME,
-            temporary_path / _PRIOR_V3_OWNER_NAME,
-            "prior archive owner marker",
-            allow_missing=True,
-        )
-        if owner is not None:
-            if owner != (_prior_v3_owner_bytes(temporary_name), 0o600):
-                raise RuntimeError("prior archive owner marker mismatch")
-            allowed = set(expected_files) | {_PRIOR_V3_OWNER_NAME}
-            if not names <= allowed:
-                raise RuntimeError("unexpected prior archive temporary entry")
-        elif names != set(expected_files):
-            raise RuntimeError("incomplete unowned prior archive temporary")
-
-        for name in names - {_PRIOR_V3_OWNER_NAME}:
+        details = os.fstat(temporary_fd)
+        if stat.S_IMODE(details.st_mode) != 0o700:
+            raise RuntimeError("unsafe temporary directory mode")
+        names = set(os.listdir(temporary_fd))
+        if final:
+            if names != set(expected_files):
+                raise RuntimeError("inventory mismatch")
+        elif not names <= set(expected_files):
+            raise RuntimeError("unexpected entry")
+        for name in names:
             current = _read_regular_at(
-                descriptor,
+                temporary_fd,
                 name,
                 temporary_path / name,
                 "prior archive temporary file",
             )
             if current != (expected_files[name], 0o600):
-                raise RuntimeError("prior archive temporary content mismatch")
-        for name in sorted(names):
-            os.unlink(name, dir_fd=descriptor)
-        os.fsync(descriptor)
+                raise RuntimeError("content or mode mismatch")
+        return names
     except Exception as exc:
+        raise RuntimeError(f"{label} invalid: {temporary_path}") from exc
+
+
+def _remove_owned_prior_v3_temporary(
+    parent_fd,
+    files_fd,
+    receipt_dir,
+    attended,
+    temporary_fd,
+    temporary_name,
+    expected_files,
+    intent,
+):
+    temporary_path = attended / temporary_name
+    _assert_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+    _assert_prior_v3_intent_owns_temporary(intent, temporary_fd, temporary_path)
+    _assert_prior_v3_temporary_identity(
+        parent_fd, temporary_fd, attended, temporary_name
+    )
+    names = _validate_prior_v3_temporary(
+        temporary_fd, temporary_path, expected_files, final=False
+    )
+    for name in sorted(names):
+        os.unlink(name, dir_fd=temporary_fd)
+    os.fsync(temporary_fd)
+    _assert_prior_v3_temporary_identity(
+        parent_fd, temporary_fd, attended, temporary_name
+    )
+    os.rmdir(temporary_name, dir_fd=parent_fd)
+    os.fsync(parent_fd)
+    _remove_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+
+
+def _remove_current_unowned_empty_prior_v3_temporary(
+    parent_fd, attended, temporary_fd, temporary_name,
+):
+    temporary_path = attended / temporary_name
+    _assert_prior_v3_temporary_identity(
+        parent_fd, temporary_fd, attended, temporary_name
+    )
+    if os.listdir(temporary_fd):
         raise RuntimeError(
             f"unverifiable prior archive temporary: {temporary_path}"
-        ) from exc
-    finally:
-        os.close(descriptor)
-    try:
-        os.rmdir(temporary_name, dir_fd=parent_fd)
-        os.fsync(parent_fd)
-    except OSError as exc:
-        raise RuntimeError(
-            f"unable to remove prior archive temporary: {temporary_path}"
-        ) from exc
-
-
-def _remove_empty_prior_v3_temporary(parent_fd, attended, temporary_name):
-    temporary_path = attended / temporary_name
-    descriptor = _open_prior_v3_temporary(
-        parent_fd, attended, temporary_name
+        )
+    _assert_prior_v3_temporary_identity(
+        parent_fd, temporary_fd, attended, temporary_name
     )
-    try:
-        if os.listdir(descriptor):
-            raise RuntimeError(
-                f"unverifiable prior archive temporary: {temporary_path}"
-            )
-    finally:
-        os.close(descriptor)
     os.rmdir(temporary_name, dir_fd=parent_fd)
     os.fsync(parent_fd)
 
 
-def _recover_prior_v3_temporaries(parent_fd, attended, expected_files):
-    for name in sorted(os.listdir(parent_fd)):
-        if _PRIOR_V3_TEMP_NAME.fullmatch(name):
-            _remove_verified_prior_v3_temporary(
-                parent_fd, attended, name, expected_files
+def _prior_v3_temporary_names(parent_fd):
+    return sorted(
+        name
+        for name in os.listdir(parent_fd)
+        if _PRIOR_V3_TEMP_NAME.fullmatch(name)
+    )
+
+
+def _recover_prior_v3_temporaries(
+    parent_fd, files_fd, receipt_dir, attended, expected_files,
+):
+    intent = _load_prior_v3_intent(files_fd, receipt_dir, parent_fd)
+    temporary_names = _prior_v3_temporary_names(parent_fd)
+    if intent is None:
+        if temporary_names:
+            raise RuntimeError(
+                f"unverifiable prior archive temporary: "
+                f"{attended / temporary_names[0]}"
             )
+        return
+    if not temporary_names:
+        _remove_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+        return
+    if temporary_names != [intent["temporaryName"]]:
+        raise RuntimeError(
+            f"unverifiable prior archive temporary: "
+            f"{attended / temporary_names[0]}"
+        )
+    temporary_name = temporary_names[0]
+    temporary_fd = _open_prior_v3_temporary(
+        parent_fd, attended, temporary_name
+    )
+    try:
+        _remove_owned_prior_v3_temporary(
+            parent_fd,
+            files_fd,
+            receipt_dir,
+            attended,
+            temporary_fd,
+            temporary_name,
+            expected_files,
+            intent,
+        )
+    finally:
+        os.close(temporary_fd)
 
 
 def archive_prior_v3(receipt_dir, *, fault=None):
     """Archive only the pinned rejected v3 evidence beside an attended receipt."""
     os.umask(0o077)
-    parent_fd, attended = _prior_v3_parent(receipt_dir)
+    receipt_dir = Path(receipt_dir)
+    parent_fd, files_fd, attended = _prior_v3_parent(receipt_dir)
     temporary_name = None
     temporary_exists = False
+    temporary_fd = None
+    intent = None
     try:
         expected_files = _validated_prior_v3_files()
         if _prior_v3_archive_exists(parent_fd, attended):
@@ -1419,7 +1632,9 @@ def archive_prior_v3(receipt_dir, *, fault=None):
                 f"prior v3 archive already exists: "
                 f"{attended / PRIOR_V3_ARCHIVE_NAME}"
             )
-        _recover_prior_v3_temporaries(parent_fd, attended, expected_files)
+        _recover_prior_v3_temporaries(
+            parent_fd, files_fd, receipt_dir, attended, expected_files
+        )
 
         temporary_name = (
             f".{PRIOR_V3_ARCHIVE_NAME}.thermal-archive-"
@@ -1428,37 +1643,43 @@ def archive_prior_v3(receipt_dir, *, fault=None):
         os.mkdir(temporary_name, 0o700, dir_fd=parent_fd)
         temporary_exists = True
         temporary_path = attended / temporary_name
-        secure_directory(
-            temporary_path,
-            0o700,
-            create=False,
-            enforce_mode=True,
-        )
-        _atomic_write_private(
-            temporary_path / _PRIOR_V3_OWNER_NAME,
-            _prior_v3_owner_bytes(temporary_name),
-            0o600,
-            parent_mode=0o700,
-        )
-
-        for index, (name, data) in enumerate(expected_files.items()):
-            _atomic_write_private(
-                temporary_path / name,
-                data,
-                0o600,
-                parent_mode=0o700,
-            )
-            _hit(fault, "after-file-write", index)
-
         temporary_fd = _open_prior_v3_temporary(
             parent_fd, attended, temporary_name
         )
-        try:
-            os.unlink(_PRIOR_V3_OWNER_NAME, dir_fd=temporary_fd)
-            os.fsync(temporary_fd)
-        finally:
-            os.close(temporary_fd)
+        os.fchmod(temporary_fd, 0o700)
+        os.fsync(temporary_fd)
+        _hit(fault, "after-temporary-open", -1)
+        intent = _prior_v3_intent_value(
+            parent_fd, files_fd, temporary_fd, temporary_name
+        )
+        _write_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+
+        for index, (name, data) in enumerate(expected_files.items()):
+            _atomic_write_private_at(
+                temporary_fd,
+                name,
+                temporary_path / name,
+                data,
+                0o600,
+            )
+            _hit(fault, "after-file-write", index)
+
+        os.fsync(temporary_fd)
         _hit(fault, "after-directory-fsync", -1)
+        _hit(fault, "before-final-archive-verify", -1)
+        _assert_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
+        _assert_prior_v3_intent_owns_temporary(
+            intent, temporary_fd, temporary_path
+        )
+        _assert_prior_v3_temporary_identity(
+            parent_fd, temporary_fd, attended, temporary_name
+        )
+        _validate_prior_v3_temporary(
+            temporary_fd, temporary_path, expected_files, final=True
+        )
+        _assert_prior_v3_temporary_identity(
+            parent_fd, temporary_fd, attended, temporary_name
+        )
 
         try:
             _renameat2(
@@ -1476,19 +1697,35 @@ def archive_prior_v3(receipt_dir, *, fault=None):
         temporary_exists = False
         _hit(fault, "after-rename", -1)
         os.fsync(parent_fd)
+        _remove_prior_v3_intent(files_fd, receipt_dir, parent_fd, intent)
         return True
-    except Exception:
-        if temporary_exists:
+    except Exception as operation_error:
+        if temporary_exists and temporary_fd is not None:
             try:
-                _remove_verified_prior_v3_temporary(
-                    parent_fd, attended, temporary_name, expected_files
-                )
-            except RuntimeError:
-                _remove_empty_prior_v3_temporary(
-                    parent_fd, attended, temporary_name
+                if intent is None:
+                    _remove_current_unowned_empty_prior_v3_temporary(
+                        parent_fd, attended, temporary_fd, temporary_name
+                    )
+                else:
+                    _remove_owned_prior_v3_temporary(
+                        parent_fd,
+                        files_fd,
+                        receipt_dir,
+                        attended,
+                        temporary_fd,
+                        temporary_name,
+                        expected_files,
+                        intent,
+                    )
+            except Exception as cleanup_error:
+                operation_error.add_note(
+                    f"prior archive cleanup refused: {cleanup_error}"
                 )
         raise
     finally:
+        if temporary_fd is not None:
+            os.close(temporary_fd)
+        os.close(files_fd)
         os.close(parent_fd)
 
 
