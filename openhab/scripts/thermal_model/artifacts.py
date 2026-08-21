@@ -3,7 +3,7 @@
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import fcntl
 import json
 import math
@@ -64,7 +64,10 @@ MULTIHORIZON_CONTRACT = {
         "objective_regression_relative_tolerance": 1e-9,
     },
 }
-BACKTEST_SCHEMA = "earthship-thermal-backtest/v1"
+BACKTEST_SCHEMA = "earthship-thermal-backtest/v2"
+MIN_SCORED_24H_FOLDS = 30
+MIN_REGIME_24H_FOLDS = 5
+MIN_24H_REGIMES = 2
 THERMAL_UNITS = {
     "air": "F",
     "mass": "F",
@@ -82,6 +85,8 @@ _PROMOTION_GATES = {
     "finite_metrics",
     "at_least_two_folds",
     "air_24h_beats_persistence",
+    "at_least_30_scored_24h_folds",
+    "at_least_two_24h_regimes",
 }
 _MANIFEST_KEYS = {
     "start",
@@ -715,20 +720,34 @@ def _validate_metrics_structure(metrics, path="metrics"):
     split_pattern = re.compile(
         r"(?:air|mass)_(?:1|6|12|24|48|72)h_(?:count|mae|rmse|bias)\Z"
     )
-    for split_name, allowed in (
-        ("by_regime", {"warm", "winter", "shoulder"}),
-        (
-            "by_provenance",
-            {"confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"},
-        ),
-    ):
-        split = metrics[split_name]
-        if not isinstance(split, dict) or not set(split) <= allowed:
-            raise ArtifactValidationError(f"{path}.{split_name} fields are unknown")
-        for name, summary in split.items():
-            _split_summary_shape(
-                summary, f"{path}.{split_name}.{name}", split_pattern
+    by_regime = metrics["by_regime"]
+    regimes = {"warm", "winter", "shoulder"}
+    if not isinstance(by_regime, dict) or set(by_regime) != regimes:
+        raise ArtifactValidationError(f"{path}.by_regime fields are unknown")
+    for regime, methods in by_regime.items():
+        if (
+            not isinstance(methods, dict)
+            or not {"model", "persistence"} <= set(methods)
+            or not set(methods) <= {"model", "persistence", "recent_cycle"}
+        ):
+            raise ArtifactValidationError(
+                f"{path}.by_regime.{regime} method fields are unknown"
             )
+        for method, summary in methods.items():
+            _method_summary_shape(
+                summary, f"{path}.by_regime.{regime}.{method}"
+            )
+
+    by_provenance = metrics["by_provenance"]
+    provenances = {
+        "confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"
+    }
+    if not isinstance(by_provenance, dict) or not set(by_provenance) <= provenances:
+        raise ArtifactValidationError(f"{path}.by_provenance fields are unknown")
+    for name, summary in by_provenance.items():
+        _split_summary_shape(
+            summary, f"{path}.by_provenance.{name}", split_pattern
+        )
 
     action_evidence = metrics.get("action_evidence")
     if action_evidence is not None:
@@ -949,7 +968,8 @@ def _summary(metrics, method):
 
 
 def provisional_promotion_gates(
-    *, physics_valid, finite_metrics, scored_fold_count, model_24, persistence_24
+    *, physics_valid, finite_metrics, scored_fold_count, model_24, persistence_24,
+    scored_24h_by_regime,
 ):
     """Return the only provisional shadow gates from explicit evidence."""
     return {
@@ -961,7 +981,49 @@ def provisional_promotion_gates(
             and persistence_24["count"] > 0
             and model_24["mae"] < persistence_24["mae"]
         ),
+        "at_least_30_scored_24h_folds": (
+            model_24["count"] >= MIN_SCORED_24H_FOLDS
+        ),
+        "at_least_two_24h_regimes": sum(
+            count >= MIN_REGIME_24H_FOLDS
+            for count in scored_24h_by_regime.values()
+        ) >= MIN_24H_REGIMES,
     }
+
+
+def _scored_24h_by_regime(metrics):
+    try:
+        by_regime = metrics["by_regime"]
+    except (KeyError, TypeError) as exc:
+        raise ArtifactPromotionRefused(
+            "candidate regime promotion evidence is incomplete"
+        ) from exc
+    if not isinstance(by_regime, dict) or set(by_regime) != {
+        "warm", "winter", "shoulder"
+    }:
+        raise ArtifactPromotionRefused(
+            "candidate regime promotion evidence is incomplete"
+        )
+    model_counts = {}
+    persistence_counts = {}
+    try:
+        for regime, methods in by_regime.items():
+            for method, destination in (
+                ("model", model_counts),
+                ("persistence", persistence_counts),
+            ):
+                summary = methods[method]["air"]["24"]
+                if set(summary) != {"count", "mae", "rmse", "bias"}:
+                    raise KeyError(method)
+                destination[regime] = _integer(
+                    summary["count"],
+                    f"metrics.by_regime.{regime}.{method}.air.24.count",
+                )
+    except (ArtifactValidationError, KeyError, TypeError) as exc:
+        raise ArtifactPromotionRefused(
+            "candidate regime promotion evidence is incomplete or invalid"
+        ) from exc
+    return model_counts, persistence_counts
 
 
 def _promotion_evidence(metrics):
@@ -986,12 +1048,23 @@ def _promotion_evidence(metrics):
         )
     model = _summary(metrics, "model")
     persistence = _summary(metrics, "persistence")
+    model_by_regime, persistence_by_regime = _scored_24h_by_regime(metrics)
+    if (
+        model["count"] != persistence["count"]
+        or model_by_regime != persistence_by_regime
+        or sum(model_by_regime.values()) != model["count"]
+        or model["count"] > scored_folds
+    ):
+        raise ArtifactPromotionRefused(
+            "candidate 24-hour aggregate and regime evidence is contradictory"
+        )
     actual = provisional_promotion_gates(
         physics_valid=True,
         finite_metrics=True,
         scored_fold_count=scored_folds,
         model_24=model,
         persistence_24=persistence,
+        scored_24h_by_regime=model_by_regime,
     )
     mismatched = sorted(
         name for name in _PROMOTION_GATES if gates[name] is not actual[name]
@@ -1281,75 +1354,246 @@ def _atomic_json_write(path, payload):
                 pass
 
 
+_BACKTEST_REPORT_KEYS = {
+    "schema", "generated_at", "data_range", "folds", "prediction_records",
+    "metrics",
+}
+_FOLD_REQUIRED_KEYS = {
+    "train_start", "train_end", "prediction_start", "prediction_end",
+    "horizons_hours", "training_row_count", "evaluation_target_row_count",
+    "radiation_provenance", "action_provenance",
+}
+_FOLD_OPTIONAL_KEYS = {"fit_error", "model_error", "inactive_forcing_features"}
+_PREDICTION_RECORD_REQUIRED_KEYS = {
+    "origin_at", "target_at", "horizon", "regime", "provenance", "model",
+    "persistence",
+}
+
+
+def _fold_is_error_free(fold):
+    return "fit_error" not in fold and "model_error" not in fold
+
+
+def valid_paired_24h_prediction_record(record, fold):
+    """Return whether one record is paired 24-hour evidence for its fold."""
+    if (
+        not isinstance(record, dict)
+        or not isinstance(fold, dict)
+        or not _fold_is_error_free(fold)
+        or record.get("horizon") != 24
+    ):
+        return False
+    origin = record.get("origin_at")
+    if isinstance(origin, datetime):
+        if origin.tzinfo is None or origin.utcoffset() is None:
+            return False
+        origin = origin.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    if origin != fold.get("prediction_start"):
+        return False
+    for method in ("model", "persistence"):
+        errors = record.get(method)
+        if not isinstance(errors, dict) or set(errors) != {"air", "mass"}:
+            return False
+        if any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            for value in errors.values()
+        ):
+            return False
+    return True
+
+
+def _validate_count_split(value, labels, row_count, path):
+    if not isinstance(value, dict) or set(value) != {"training", "evaluation_targets"}:
+        raise ArtifactValidationError(f"{path} split fields are invalid")
+    for split, expected_count in (
+        ("training", row_count[0]),
+        ("evaluation_targets", row_count[1]),
+    ):
+        counts = value[split]
+        if not isinstance(counts, dict) or set(counts) != set(labels):
+            raise ArtifactValidationError(f"{path}.{split} fields are invalid")
+        for label, count in counts.items():
+            _integer(count, f"{path}.{split}.{label}")
+        if sum(counts.values()) != expected_count:
+            raise ArtifactValidationError(
+                f"{path}.{split} counts do not match local row count"
+            )
+
+
 def _validate_backtest_report(report):
-    if not isinstance(report, dict) or report.get("schema") != BACKTEST_SCHEMA:
+    if not isinstance(report, dict) or set(report) != _BACKTEST_REPORT_KEYS:
+        raise ArtifactValidationError(
+            "backtest report fields are incomplete or unknown"
+        )
+    if report["schema"] != BACKTEST_SCHEMA:
         raise ArtifactValidationError(
             f"backtest report schema must be {BACKTEST_SCHEMA}"
         )
-    _iso_utc(report.get("generated_at"), "backtest generated_at")
-    folds = report.get("folds")
+    _iso_utc(report["generated_at"], "backtest generated_at")
+    data_range = report["data_range"]
+    if not isinstance(data_range, dict) or set(data_range) != {"start", "end"}:
+        raise ArtifactValidationError("backtest data_range fields are invalid")
+    if _iso_utc(data_range["start"], "backtest data_range start") >= _iso_utc(
+        data_range["end"], "backtest data_range end"
+    ):
+        raise ArtifactValidationError("backtest data range must be increasing")
+
+    folds = report["folds"]
     if not isinstance(folds, list):
         raise ArtifactValidationError("backtest folds must be a list")
     confirmed_training_rows = 0
     confirmed_evaluation_targets = 0
     confirmed_disjoint_folds = 0
+    error_free_folds = 0
+    fold_by_origin = {}
+    expected_record_keys = set()
     for fold in folds:
-        if not isinstance(fold, dict):
-            raise ArtifactValidationError("backtest fold must be an object")
-        train_start = _iso_utc(fold.get("train_start"), "fold train_start")
-        train_end = _iso_utc(fold.get("train_end"), "fold train_end")
+        if (
+            not isinstance(fold, dict)
+            or not _FOLD_REQUIRED_KEYS <= set(fold)
+            or not set(fold) <= _FOLD_REQUIRED_KEYS | _FOLD_OPTIONAL_KEYS
+        ):
+            raise ArtifactValidationError(
+                "backtest fold fields are incomplete or unknown"
+            )
+        if "fit_error" in fold and "model_error" in fold:
+            raise ArtifactValidationError("backtest fold error fields conflict")
+        for error_key in ("fit_error", "model_error"):
+            if error_key in fold and (
+                not isinstance(fold[error_key], str) or not fold[error_key]
+            ):
+                raise ArtifactValidationError(
+                    f"backtest fold {error_key} must be a nonempty string"
+                )
+        if "inactive_forcing_features" in fold:
+            inactive = fold["inactive_forcing_features"]
+            if (
+                not isinstance(inactive, list)
+                or len(inactive) != len(set(inactive))
+                or any(name not in FEATURE_NAMES for name in inactive)
+            ):
+                raise ArtifactValidationError(
+                    "backtest fold inactive forcing fields are invalid"
+                )
+        train_start = _iso_utc(fold["train_start"], "fold train_start")
+        train_end = _iso_utc(fold["train_end"], "fold train_end")
         prediction_start = _iso_utc(
-            fold.get("prediction_start"), "fold prediction_start"
+            fold["prediction_start"], "fold prediction_start"
         )
-        prediction_end = _iso_utc(
-            fold.get("prediction_end"), "fold prediction_end"
-        )
-        if not train_start <= train_end < prediction_start <= prediction_end:
+        prediction_end = _iso_utc(fold["prediction_end"], "fold prediction_end")
+        if not train_start <= train_end < prediction_start < prediction_end:
             raise ArtifactValidationError(
                 "backtest fold ranges must be strictly chronological"
             )
-        action_provenance = fold.get("action_provenance")
-        if action_provenance is None:
-            raise ArtifactValidationError(
-                "backtest fold action provenance is required"
-            )
-        if action_provenance is not None:
-            if (
-                not isinstance(action_provenance, dict)
-                or set(action_provenance) != {"training", "evaluation_targets"}
-            ):
-                raise ArtifactValidationError(
-                    "backtest fold action provenance fields are invalid"
-                )
-            provenance_labels = {
-                "confirmed", "photosensor", "reconstructed",
-                "model_inferred", "unknown",
-            }
-            for split_name, counts in action_provenance.items():
-                if not isinstance(counts, dict) or set(counts) != provenance_labels:
-                    raise ArtifactValidationError(
-                        f"backtest fold {split_name} provenance fields are invalid"
-                    )
-                for label, count in counts.items():
-                    _integer(count, f"backtest fold {split_name}.{label}")
-            if "model_error" not in fold:
-                training_confirmed = action_provenance["training"]["confirmed"]
-                evaluation_confirmed = action_provenance["evaluation_targets"]["confirmed"]
-                confirmed_training_rows += training_confirmed
-                confirmed_evaluation_targets += evaluation_confirmed
-                if training_confirmed > 0 and evaluation_confirmed > 0:
-                    confirmed_disjoint_folds += 1
-        horizons = fold.get("horizons_hours")
+        if fold["prediction_start"] in fold_by_origin:
+            raise ArtifactValidationError("backtest fold origins must be unique")
+        fold_by_origin[fold["prediction_start"]] = fold
+        horizons = fold["horizons_hours"]
         if (
             not isinstance(horizons, list)
+            or not horizons
             or horizons != sorted(set(horizons))
             or any(value not in {1, 6, 12, 24, 48, 72} for value in horizons)
+            or prediction_end - prediction_start != timedelta(hours=max(horizons))
         ):
             raise ArtifactValidationError("backtest fold horizons are invalid")
-    metrics = report.get("metrics")
-    if not isinstance(metrics, dict):
-        raise ArtifactValidationError("backtest metrics must be an object")
-    action_evidence = metrics.get("action_evidence")
+        training_rows = _integer(
+            fold["training_row_count"], "backtest fold training_row_count",
+            minimum=1,
+        )
+        evaluation_rows = _integer(
+            fold["evaluation_target_row_count"],
+            "backtest fold evaluation_target_row_count", minimum=1,
+        )
+        if evaluation_rows != max(horizons) * 12:
+            raise ArtifactValidationError(
+                "backtest fold evaluation target row count is invalid"
+            )
+        _validate_count_split(
+            fold["radiation_provenance"], RADIATION_PROVENANCE_LABELS,
+            (training_rows, evaluation_rows), "backtest fold radiation provenance",
+        )
+        _validate_count_split(
+            fold["action_provenance"],
+            ("confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"),
+            (training_rows, evaluation_rows), "backtest fold action provenance",
+        )
+        if _fold_is_error_free(fold):
+            error_free_folds += 1
+            action = fold["action_provenance"]
+            training_confirmed = action["training"]["confirmed"]
+            evaluation_confirmed = action["evaluation_targets"]["confirmed"]
+            confirmed_training_rows += training_confirmed
+            confirmed_evaluation_targets += evaluation_confirmed
+            if training_confirmed > 0 and evaluation_confirmed > 0:
+                confirmed_disjoint_folds += 1
+            expected_record_keys.update(
+                (fold["prediction_start"], horizon) for horizon in horizons
+            )
+
+    records = report["prediction_records"]
+    if not isinstance(records, list):
+        raise ArtifactValidationError("prediction records must be a list")
+    actual_record_keys = set()
+    valid_24_records = []
+    records_24h_by_regime = {"warm": 0, "winter": 0, "shoulder": 0}
+    for record in records:
+        if (
+            not isinstance(record, dict)
+            or set(record) not in (
+                _PREDICTION_RECORD_REQUIRED_KEYS,
+                _PREDICTION_RECORD_REQUIRED_KEYS | {"recent_cycle"},
+            )
+        ):
+            raise ArtifactValidationError(
+                "prediction record fields are incomplete or unknown"
+            )
+        origin = _iso_utc(record["origin_at"], "prediction origin_at")
+        target = _iso_utc(record["target_at"], "prediction target_at")
+        horizon = _integer(record["horizon"], "prediction horizon", minimum=1)
+        if horizon not in {1, 6, 12, 24, 48, 72} or target - origin != timedelta(hours=horizon):
+            raise ArtifactValidationError("prediction record horizon is invalid")
+        if record["regime"] not in records_24h_by_regime:
+            raise ArtifactValidationError("prediction record regime is invalid")
+        if record["provenance"] not in {
+            "confirmed", "photosensor", "reconstructed", "model_inferred", "unknown"
+        }:
+            raise ArtifactValidationError("prediction record provenance is invalid")
+        for method in ("model", "persistence", "recent_cycle"):
+            if method not in record:
+                continue
+            errors = record[method]
+            if not isinstance(errors, dict) or set(errors) != {"air", "mass"}:
+                raise ArtifactValidationError(
+                    f"prediction record {method} fields are invalid"
+                )
+            for state, error in errors.items():
+                _real(error, f"prediction record {method}.{state}")
+        key = (record["origin_at"], horizon)
+        if key in actual_record_keys:
+            raise ArtifactValidationError("prediction record keys must be unique")
+        actual_record_keys.add(key)
+        fold = fold_by_origin.get(record["origin_at"])
+        if fold is None or horizon not in fold["horizons_hours"]:
+            raise ArtifactValidationError("prediction record has no matching fold")
+        if not _fold_is_error_free(fold):
+            raise ArtifactValidationError("prediction record references an error fold")
+        if valid_paired_24h_prediction_record(record, fold):
+            valid_24_records.append(record)
+            records_24h_by_regime[record["regime"]] += 1
+    if actual_record_keys != expected_record_keys:
+        raise ArtifactValidationError(
+            "prediction records do not match scored fold horizons"
+        )
+
+    metrics = report["metrics"]
+    _validate_metrics_structure(metrics, "backtest.metrics")
+    if metrics["fold_count"] != len(folds) or metrics["scored_fold_count"] != error_free_folds:
+        raise ArtifactValidationError(
+            "backtest fold aggregate evidence is contradictory"
+        )
     expected_action_evidence = {
         "confirmed": {
             "training_rows": confirmed_training_rows,
@@ -1357,30 +1601,30 @@ def _validate_backtest_report(report):
             "disjoint_fold_count": confirmed_disjoint_folds,
         }
     }
-    if action_evidence != expected_action_evidence:
+    if metrics.get("action_evidence") != expected_action_evidence:
         raise ArtifactValidationError(
             "backtest action evidence does not match fold receipts"
         )
     _validate_finite(report, "backtest")
-    promotion = metrics.get("promotion")
     metrics_without_promotion = {
         key: value for key, value in metrics.items() if key != "promotion"
     }
     _validate_metric_semantics(metrics_without_promotion, "backtest.metrics")
-    if promotion is not None:
-        _promotion_shape(metrics)
-    records = report.get("prediction_records", [])
-    if not isinstance(records, list):
-        raise ArtifactValidationError("prediction records must be a list")
-    for record in records:
-        if not isinstance(record, dict):
-            raise ArtifactValidationError("prediction record must be an object")
-        origin = _iso_utc(record.get("origin_at"), "prediction origin_at")
-        target = _iso_utc(record.get("target_at"), "prediction target_at")
-        if origin >= target:
-            raise ArtifactValidationError(
-                "prediction target must be after its origin"
-            )
+    model_by_regime, persistence_by_regime = _scored_24h_by_regime(metrics)
+    model_count = _summary(metrics, "model")["count"]
+    persistence_count = _summary(metrics, "persistence")["count"]
+    if (
+        model_count != persistence_count
+        or sum(model_by_regime.values()) != model_count
+        or sum(persistence_by_regime.values()) != persistence_count
+        or model_count != len(valid_24_records)
+        or model_by_regime != records_24h_by_regime
+        or persistence_by_regime != records_24h_by_regime
+    ):
+        raise ArtifactValidationError(
+            "backtest 24-hour aggregate, regime, and prediction record evidence is contradictory"
+        )
+    _promotion_evidence(metrics)
     return report
 
 

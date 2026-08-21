@@ -657,16 +657,18 @@ def mode_event():
 
 
 def backtest_report(*, eligible=False):
-    model_summary = {"count": 2, "mae": 0.5, "rmse": 0.6, "bias": 0.0}
-    persistence_summary = {"count": 2, "mae": 1.0, "rmse": 1.1, "bias": 0.0}
+    model_summary = {"count": 30, "mae": 0.5, "rmse": 0.6, "bias": 0.0}
+    persistence_summary = {"count": 30, "mae": 1.0, "rmse": 1.1, "bias": 0.0}
     gates = {
         "physics_valid": True,
         "finite_metrics": True,
         "at_least_two_folds": True,
         "air_24h_beats_persistence": eligible,
+        "at_least_30_scored_24h_folds": True,
+        "at_least_two_24h_regimes": True,
     }
     return {
-        "schema": "earthship-thermal-backtest/v1",
+        "schema": "earthship-thermal-backtest/v2",
         "generated_at": NOW.isoformat().replace("+00:00", "Z"),
         "data_range": {
             "start": (NOW - timedelta(days=30)).isoformat().replace("+00:00", "Z"),
@@ -675,13 +677,25 @@ def backtest_report(*, eligible=False):
         "folds": [],
         "prediction_records": [],
         "metrics": {
-            "fold_count": 2,
-            "scored_fold_count": 2,
+            "fold_count": 30,
+            "scored_fold_count": 30,
             "overall": {
                 "model": {"air": {"24": model_summary}},
                 "persistence": {"air": {"24": persistence_summary}},
             },
-            "by_regime": {},
+            "by_regime": {
+                regime: {
+                    "model": {"air": {"24": {
+                        **model_summary, "count": count,
+                    }}},
+                    "persistence": {"air": {"24": {
+                        **persistence_summary, "count": count,
+                    }}},
+                }
+                for regime, count in (
+                    ("warm", 15), ("winter", 15), ("shoulder", 0)
+                )
+            },
             "by_horizon": {},
             "by_provenance": {},
             "promotion": {
