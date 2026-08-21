@@ -172,17 +172,144 @@ describe('thermal model attended runbook safety', () => {
     expect(runbook.slice(evidence, gateB)).toContain('Stop and present');
   });
 
-  it('reviews exact multihorizon v3 evidence before Gate B', () => {
+  it('reviews exact multihorizon v4 evidence before Gate B', () => {
     const evidence = runbook.indexOf('Review artifact and backtest evidence');
     const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
     const review = runbook.slice(evidence, gateB);
-    expect(review).toContain('earthship-thermal-model/v3');
+    expect(review).toContain('earthship-thermal-model/v4');
+    expect(review).toContain('earthship-thermal-backtest/v2');
     expect(review).toContain('multihorizon_origin_counts');
     expect(review).toContain('multihorizon_initial_objective');
     expect(review).toContain('multihorizon_final_objective');
     expect(
       review.indexOf('Stop and present this evidence before Gate B'),
     ).toBeGreaterThan(-1);
+  });
+
+  it('orders attended Gate A archive, audits, install, private evidence, and stop exactly', () => {
+    const gateA = runbook.indexOf('Gate A: code, database, and private model evidence');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    const attended = runbook.slice(gateA, gateB);
+    const ordered = [
+      'thermal-model-files.py prepare',
+      'archive-prior-v3',
+      'exact rejected-v3 archive readback',
+      'secret-safe pre-audit, migration, and exact post-audit',
+      'secret-safe runtime authority audit',
+      'thermal-model-files.py install-code',
+      'private 400-day train and backtest',
+      'thermal_intel.py train',
+      'thermal_intel.py backtest',
+      'Review artifact and backtest evidence',
+      'Stop and present this evidence before Gate B',
+    ];
+    let previous = -1;
+    for (const marker of ordered) {
+      const current = attended.indexOf(marker);
+      expect(current, marker).toBeGreaterThan(previous);
+      previous = current;
+    }
+    expect(attended).not.toContain('thermal_intel.py shadow');
+    expect(attended).not.toContain('thermal-model-files.py install-units');
+    expect(attended).not.toMatch(/systemctl --user (?:start|enable)/);
+  });
+
+  it('archives and reads back only the pinned rejected v3 evidence before install', () => {
+    const gateA = runbook.indexOf('Gate A: code, database, and private model evidence');
+    const install = runbook.indexOf('thermal-model-files.py install-code', gateA);
+    const beforeInstall = runbook.slice(gateA, install);
+    expect(beforeInstall).toContain('python3 scripts/thermal-model-files.py');
+    expect(beforeInstall).toContain('--receipt-dir "$FILE_RECEIPT"');
+    expect(beforeInstall).toContain('archive-prior-v3');
+    expect(beforeInstall).toContain('$FILE_RECEIPT/../prior-model-v3');
+    for (const name of [
+      'candidate-v3.json',
+      'backtest-report-v1.json',
+      'prior-evidence-manifest.json',
+    ]) expect(beforeInstall).toContain(name);
+    expect(beforeInstall).toContain('earthship-thermal-prior-evidence/v1');
+    expect(beforeInstall).toContain('earthship-thermal-model/v3');
+    expect(beforeInstall).toContain('earthship-thermal-backtest/v1');
+    expect(beforeInstall.match(/\.metrics\.promotion\.eligible == false/g)?.length)
+      .toBe(2);
+    for (const pinned of [
+      '/home/sat/.local/state/thermal-intel/models/candidate.json',
+      '/home/sat/.local/state/thermal-intel/models/backtest-report.json',
+      '6d68639f426274d67a72d2ae45478f987af34dfdf0ae4675bc868c7f79f204fe',
+      '1c504fc3b37c945af990a368d3483c5c5a69fc985e4d76ddcf6d3eaf277b211f',
+      'test "$ARCHIVE_MODE" = 700',
+      'test "$FILE_MODE" = 600',
+    ]) expect(beforeInstall).toContain(pinned);
+    expect(beforeInstall.match(/>\/dev\/null/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(beforeInstall).toContain('stat -c %a');
+    expect(beforeInstall).toContain('sha256sum');
+    expect(beforeInstall).toContain('Deployment Unix account is trusted');
+    expect(beforeInstall).toContain('exclusive receipt lock');
+    expect(beforeInstall).toContain('Hostile same-UID actors are out of scope');
+  });
+
+  it('requires exact v4/v2 schemas, provenance sums, coverage, and every gate', () => {
+    const evidence = runbook.indexOf('Review artifact and backtest evidence');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    const review = runbook.slice(evidence, gateB);
+    for (const marker of [
+      '.schema == "earthship-thermal-model/v4"',
+      '.schema == "earthship-thermal-backtest/v2"',
+      '.metrics.promotion.eligible == true',
+      '.metrics.promotion.gates.at_least_30_scored_24h_folds == true',
+      '.metrics.promotion.gates.at_least_two_24h_regimes == true',
+      'physics_valid',
+      'finite_metrics',
+      'at_least_two_folds',
+      'air_24h_beats_persistence',
+      'radiation_provenance_counts',
+      'training_row_count',
+      'evaluation_target_row_count',
+      '.metrics.overall',
+      '.metrics.by_regime',
+      'prediction_interval_coverage',
+      'canonical_rows_sha256',
+    ]) expect(review).toContain(marker);
+    expect(review).toContain('$MODEL_24_COUNT == $PERSISTENCE_24_COUNT');
+    expect(review).toContain('$MODEL_24_COUNT >= 30');
+    expect(review).toContain('$QUALIFYING_REGIMES >= 2');
+    expect(review).toContain('>= 5');
+    expect(review).toContain('all(.metrics.promotion.gates[]; . == true)');
+    expect(review).toContain(
+      '(.data_manifest.radiation_provenance_counts | keys | sort)',
+    );
+    expect(review).toContain('== ["astronomical_night_zero","held","interpolated","observed"]');
+    expect(review).toContain('.[0].metrics == .[1].metrics');
+    expect(review).toContain('.[0].data_manifest.start <= .[1].data_range.start');
+    expect(review).toContain('.[0].data_manifest.end >= .[1].data_range.end');
+    expect(review).toContain('sha256sum');
+  });
+
+  it('binds candidate and standalone backtest to one explicit 400-day window', () => {
+    const gateA = runbook.indexOf('Gate A: code, database, and private model evidence');
+    const evidence = runbook.indexOf('Review artifact and backtest evidence');
+    const privateRun = runbook.slice(gateA, evidence);
+    expect(privateRun).toContain('START_UTC');
+    expect(privateRun).toContain('END_UTC');
+    expect(
+      privateRun.match(/--start "\$START_UTC" --end "\$END_UTC"/g)?.length,
+    ).toBe(2);
+    expect(privateRun).toContain('34560000');
+  });
+
+  it('keeps a passing Gate A non-authorizing until a separate Gate B approval', () => {
+    const evidence = runbook.indexOf('Review artifact and backtest evidence');
+    const gateB = runbook.indexOf('Gate B: sole observational Item and state writes');
+    const boundary = runbook.slice(evidence, gateB);
+    expect(boundary).toContain('requests separate Gate B approval');
+    expect(boundary).toContain('does not authorize Gate B');
+    expect(boundary).toContain('false gate');
+    for (const forbidden of [
+      'shadow publication',
+      'OpenHAB Item write',
+      'unit installation or start',
+      'timer enablement',
+    ]) expect(boundary).toContain(forbidden);
   });
 
   it('makes every executable Bash fence independently fail closed', () => {
