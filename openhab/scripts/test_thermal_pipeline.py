@@ -10,6 +10,7 @@ import pytest
 from thermal_model.artifacts import ArtifactPromotionRefused, ArtifactUnavailable
 from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS, baseline_schedule
 from thermal_model.dataset import ThermalDataset
+from thermal_model.evaluation import walk_forward_evaluate
 from thermal_model.pipeline import (
     TrainingRefused,
     build_shadow_output,
@@ -30,6 +31,11 @@ from thermal_model.schema import (
     THERMAL_ITEMS,
     ThermalSample,
     validate_shadow_output,
+)
+from test_thermal_dataset import (
+    EVERY_CHANGE_END,
+    EVERY_CHANGE_START,
+    every_change_history,
 )
 
 
@@ -898,6 +904,41 @@ def test_backtest_reads_authorities_and_persists_only_report():
 
     assert registry.calls == ["report"]
     assert report is registry.report
+
+
+def test_backtest_recovers_every_change_night_coverage_from_authorities():
+    rows, actions, modes = every_change_history()
+    series_by_item = {
+        THERMAL_ITEMS[role]: values for role, values in rows.items()
+    }
+
+    class EveryChangeJournal:
+        def effective_events(self, start, end):
+            assert (start, end) == (EVERY_CHANGE_START, EVERY_CHANGE_END)
+            return actions
+
+        def effective_modes(self, start, end):
+            assert (start, end) == (EVERY_CHANGE_START, EVERY_CHANGE_END)
+            return modes
+
+    registry = RecordingRegistry()
+    report = run_backtest(
+        start=EVERY_CHANGE_START,
+        end=EVERY_CHANGE_END,
+        registry=registry,
+        journal=EveryChangeJournal(),
+        series_reader=lambda item, start, end: series_by_item.get(item, ()),
+        evaluator=lambda samples, fit: walk_forward_evaluate(
+            samples, fit=lambda train: stable_dynamics()
+        ),
+    )
+
+    assert registry.calls == ["report"]
+    assert report is registry.report
+    assert report["metrics"]["overall"]["model"]["air"]["24"]["count"] >= 30
+    assert report["metrics"]["promotion"]["gates"][
+        "at_least_two_24h_regimes"
+    ] is True
 
 
 def test_shadow_output_write_is_atomic_and_compact(tmp_path):

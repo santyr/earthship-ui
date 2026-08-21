@@ -10,9 +10,15 @@ from zoneinfo import ZoneInfo
 from thermal_model.dynamics import predict_step
 from thermal_model.artifacts import ArtifactRegistry
 from thermal_model.dataset import RADIATION_PROVENANCE_LABELS, ThermalDataset
+from thermal_model.dataset import build_samples, dataset_manifest
 from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS
 from thermal_model.evaluation import threshold_advisory, walk_forward_evaluate
 from thermal_model.schema import BehaviorModel, DynamicsModel, ThermalSample
+from test_thermal_dataset import (
+    EVERY_CHANGE_END,
+    EVERY_CHANGE_START,
+    every_change_history,
+)
 
 
 STEP = timedelta(minutes=5)
@@ -167,6 +173,58 @@ def test_walk_forward_v2_report_passes_exact_registry_validation(tmp_path):
     ArtifactRegistry(tmp_path).save_backtest_report(report)
 
     assert ArtifactRegistry(tmp_path).backtest_report_path.exists()
+
+
+def test_every_change_history_recovers_regime_coverage_deterministically():
+    def build_evidence():
+        rows, actions, modes = every_change_history()
+        dataset = build_samples(
+            rows, actions, modes, EVERY_CHANGE_START, EVERY_CHANGE_END
+        )
+        return (
+            dataset_manifest(dataset, actions, modes),
+            walk_forward_evaluate(dataset, fit=lambda train: fixed_model()),
+        )
+
+    first_manifest, first_report = build_evidence()
+    second_manifest, second_report = build_evidence()
+
+    assert json.dumps(
+        first_manifest, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode() == json.dumps(
+        second_manifest, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+    assert (
+        first_manifest["canonical_rows_sha256"]
+        == second_manifest["canonical_rows_sha256"]
+    )
+    assert [fold["prediction_start"] for fold in first_report["folds"]] == [
+        fold["prediction_start"] for fold in second_report["folds"]
+    ]
+    assert json.dumps(
+        first_report, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode() == json.dumps(
+        second_report, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+    assert (
+        first_report["metrics"]["overall"]["model"]["air"]["24"]["count"]
+        >= 30
+    )
+    assert first_report["metrics"]["promotion"]["gates"][
+        "at_least_two_24h_regimes"
+    ] is True
+    assert first_report["metrics"]["promotion"]["gates"][
+        "at_least_30_scored_24h_folds"
+    ] is True
+    assert (
+        first_report["metrics"]["by_regime"]["winter"]["model"]["air"]["24"]["count"]
+        >= 5
+    )
+    assert (
+        first_report["metrics"]["by_regime"]["warm"]["model"]["air"]["24"]["count"]
+        >= 5
+    )
+    assert first_report["metrics"] == second_report["metrics"]
 
 
 def test_walk_forward_chooses_daily_origin_with_longest_continuous_future():

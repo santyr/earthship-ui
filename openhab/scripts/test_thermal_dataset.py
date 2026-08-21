@@ -2,6 +2,7 @@ import json
 import math
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -14,6 +15,7 @@ from thermal_model.dataset import (
     latent_mass_from_series,
 )
 from thermal_model.actions import reconstruct_events, reconstruct_state
+from thermal_model.solar import is_astronomical_night, solar_elevation_sin
 from thermal_model.schema import (
     ActionEvent,
     ModeEvent,
@@ -34,6 +36,30 @@ EXPECTED_RADIATION_PROVENANCE_LABELS = (
     "held",
     "astronomical_night_zero",
 )
+EVERY_CHANGE_START = datetime(2026, 1, 1, tzinfo=ZoneInfo("America/Denver"))
+EVERY_CHANGE_END = EVERY_CHANGE_START + timedelta(days=45)
+
+
+def five_minute_range(start, end):
+    cursor = start
+    while cursor < end:
+        yield cursor
+        cursor += timedelta(minutes=5)
+
+
+def synthetic_radiation(at):
+    return 0.0 if is_astronomical_night(at) else 800.0 * solar_elevation_sin(at)
+
+
+def every_change_radiation(start, end):
+    rows = []
+    previous = None
+    for at in five_minute_range(start, end):
+        value = synthetic_radiation(at)
+        if value != previous:
+            rows.append((at, value))
+            previous = value
+    return rows
 
 
 def action(
@@ -116,6 +142,34 @@ def constant_series(start, end):
             rows[role].append((cursor, value))
         cursor += timedelta(minutes=5)
     return rows
+
+
+def every_change_history(start=EVERY_CHANGE_START, end=EVERY_CHANGE_END):
+    rows = {role: [] for role in THERMAL_ITEMS}
+    for at in five_minute_range(start, end):
+        solar = max(0.0, solar_elevation_sin(at))
+        phase = 2.0 * math.pi * (at.hour * 60 + at.minute) / 1440.0
+        values = {
+            "air": 68.0 + 3.0 * math.sin(phase - math.pi / 3.0),
+            "mass": 66.0 + 1.5 * math.sin(phase - math.pi / 2.0),
+            "glazing": 67.0 + 5.0 * solar,
+            "outdoor": 46.0 + 24.0 * solar,
+        }
+        for role, value in values.items():
+            rows[role].append((at, value))
+    rows["radiation"] = every_change_radiation(start, end)
+    actions = [
+        action("every-change-vent", "vent", "closed", start),
+        action("every-change-indoor", "indoor_shade", "open", start),
+        action("every-change-outdoor", "outdoor_shade", "absent", start),
+    ]
+    modes = [
+        mode_event("winter", start, event_id="every-change-winter"),
+        mode_event(
+            "warm", start + timedelta(days=30), event_id="every-change-warm"
+        ),
+    ]
+    return rows, actions, modes
 
 
 def fully_labeled_events(at=START):
@@ -292,6 +346,63 @@ def test_night_reconstruction_never_fills_day_nonfinite_or_temperature_gaps():
     )
     assert DAY_START not in {sample.at for sample in daylight_gap_dataset}
     assert daylight_gap_dataset == []
+
+
+def test_every_change_radiation_history_recovers_continuous_nights():
+    rows, actions, modes = every_change_history()
+    dataset = build_samples(
+        rows, actions, modes, EVERY_CHANGE_START, EVERY_CHANGE_END
+    )
+    radiation_rows = rows["radiation"]
+
+    assert len(radiation_rows) < len(rows["air"])
+    assert all(
+        value == 0.0
+        for at, value in radiation_rows
+        if is_astronomical_night(at)
+    )
+    assert all(
+        not is_astronomical_night(next_at)
+        for (_, value), (next_at, _) in zip(radiation_rows, radiation_rows[1:])
+        if value == 0.0
+    )
+    assert len(dataset) == 45 * 24 * 12
+    assert set(sample.mode for sample in dataset) == {"winter", "warm"}
+    assert sum(
+        provenance == "astronomical_night_zero"
+        for provenance in dataset.radiation_provenance_by_at.values()
+    ) > 45 * 12
+
+
+def test_every_change_history_keeps_daylight_and_mass_gaps_rejected():
+    def gap_start():
+        return next(
+            at
+            for at in five_minute_range(EVERY_CHANGE_START, EVERY_CHANGE_END)
+            if all(
+                not is_astronomical_night(candidate)
+                for candidate in five_minute_range(
+                    at, at + timedelta(minutes=75)
+                )
+            )
+        )
+
+    missing_start = gap_start()
+    expected_gap = missing_start + timedelta(minutes=65)
+
+    for role in ("radiation", "mass"):
+        rows, actions, modes = every_change_history()
+        rows[role] = [
+            point
+            for point in rows[role]
+            if not missing_start <= point[0] < missing_start + timedelta(minutes=70)
+        ]
+        dataset = build_samples(
+            rows, actions, modes, EVERY_CHANGE_START, EVERY_CHANGE_END
+        )
+
+        assert expected_gap not in {sample.at for sample in dataset}
+        assert dataset.rejected_counts["source_gap"] > 0
 
 
 def test_manifest_partitions_radiation_provenance_and_binds_it_to_digest():
