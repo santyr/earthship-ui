@@ -80,6 +80,26 @@ PHASE_STATE_NAME = "phase-state.json"
 ALLOWED_REPO_ROOT = Path("/home/sat/earthship-ui")
 ALLOWED_STATE_ROOT = Path("/home/sat/.local/state/thermal-intel")
 ALLOWED_RECEIPT_ROOT = ALLOWED_STATE_ROOT / "deploy-receipts"
+PRIOR_V3_SOURCE_ROOT = ALLOWED_STATE_ROOT / "models"
+PRIOR_V3_ARCHIVE_NAME = "prior-model-v3"
+PRIOR_V3_MANIFEST_NAME = "prior-evidence-manifest.json"
+PRIOR_V3_EVIDENCE_SCHEMA = "earthship-thermal-prior-evidence/v1"
+PRIOR_V3_EVIDENCE = (
+    {
+        "sourceName": "candidate.json",
+        "archivedName": "candidate-v3.json",
+        "sourceSchema": "earthship-thermal-model/v3",
+        "sha256": "6d68639f426274d67a72d2ae45478f987af34dfdf0ae4675bc868c7f79f204fe",
+        "mode": "0600",
+    },
+    {
+        "sourceName": "backtest-report.json",
+        "archivedName": "backtest-report-v1.json",
+        "sourceSchema": "earthship-thermal-backtest/v1",
+        "sha256": "1c504fc3b37c945af990a368d3483c5c5a69fc985e4d76ddcf6d3eaf277b211f",
+        "mode": "0600",
+    },
+)
 
 _DIR_FLAGS = (
     os.O_RDONLY
@@ -97,6 +117,10 @@ _WRITE_FLAGS = (
 )
 _RECOVERY_STATUSES = {"applying", "recovering", "recovery-required"}
 _ATTENDED_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+_PRIOR_V3_TEMP_NAME = re.compile(
+    r"^\.prior-model-v3\.thermal-archive-[0-9a-f]{24}$"
+)
+_PRIOR_V3_OWNER_NAME = ".thermal-archive-owner"
 _RENAME_NOREPLACE = 1
 _RENAME_EXCHANGE = 2
 _LIBC = ctypes.CDLL(None, use_errno=True)
@@ -1184,6 +1208,290 @@ def recover(repo_root, receipt_dir, *, manifest=MANIFEST):
     return _rollback_transaction(repo_root, receipt_dir, receipt, state_value)
 
 
+def _prior_v3_manifest():
+    source_root = Path(PRIOR_V3_SOURCE_ROOT)
+    return {
+        "schema": PRIOR_V3_EVIDENCE_SCHEMA,
+        "records": [
+            {
+                "archivedName": record["archivedName"],
+                "sourcePath": str(source_root / record["sourceName"]),
+                "sourceSchema": record["sourceSchema"],
+                "sha256": record["sha256"],
+                "mode": record["mode"],
+            }
+            for record in PRIOR_V3_EVIDENCE
+        ],
+    }
+
+
+def _validated_prior_v3_files():
+    manifest = _prior_v3_manifest()
+    prepared = {}
+    for evidence, record in zip(PRIOR_V3_EVIDENCE, manifest["records"]):
+        source = Path(record["sourcePath"])
+        data, actual_mode = _read_regular(source, "prior v3 source")
+        _assert_mode(actual_mode, 0o600, "prior v3 source", source)
+        if evidence["mode"] != "0600" or _digest(data) != evidence["sha256"]:
+            raise RuntimeError(f"prior v3 source digest mismatch: {source}")
+        try:
+            document = json.loads(data)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"prior v3 source is not valid JSON: {source}") from exc
+        if not isinstance(document, dict) or document.get("schema") != evidence[
+            "sourceSchema"
+        ]:
+            raise RuntimeError(f"prior v3 source schema mismatch: {source}")
+        try:
+            eligible = document["metrics"]["promotion"]["eligible"]
+        except (KeyError, TypeError) as exc:
+            raise RuntimeError(
+                f"prior v3 source lacks promotion refusal: {source}"
+            ) from exc
+        if eligible is not False:
+            raise RuntimeError(f"prior v3 source is promotion eligible: {source}")
+        prepared[evidence["archivedName"]] = data
+    prepared[PRIOR_V3_MANIFEST_NAME] = _canonical(manifest) + b"\n"
+    return prepared
+
+
+def _prior_v3_parent(receipt_dir):
+    receipt_dir = Path(receipt_dir)
+    _absolute_parts(receipt_dir)
+    if receipt_dir.name != "files":
+        raise ValueError("prior v3 archive requires the attended files receipt")
+    attended = receipt_dir.parent
+    parent_fd = _open_directory(attended)
+    try:
+        _assert_mode(
+            stat.S_IMODE(os.fstat(parent_fd).st_mode),
+            0o700,
+            "attended receipt directory",
+            attended,
+        )
+        try:
+            files_fd = os.open("files", _DIR_FLAGS, dir_fd=parent_fd)
+        except OSError as exc:
+            _unsafe_component(receipt_dir, exc)
+        try:
+            _assert_mode(
+                stat.S_IMODE(os.fstat(files_fd).st_mode),
+                0o700,
+                "file receipt directory",
+                receipt_dir,
+            )
+        finally:
+            os.close(files_fd)
+        return parent_fd, attended
+    except BaseException:
+        os.close(parent_fd)
+        raise
+
+
+def _prior_v3_owner_bytes(temporary_name):
+    return _canonical(
+        {
+            "schema": "earthship-thermal-prior-archive-temp/v1",
+            "temporaryName": temporary_name,
+        }
+    ) + b"\n"
+
+
+def _prior_v3_archive_exists(parent_fd, attended):
+    try:
+        os.stat(PRIOR_V3_ARCHIVE_NAME, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise RuntimeError(
+            f"prior v3 archive unavailable: {attended / PRIOR_V3_ARCHIVE_NAME}"
+        ) from exc
+    return True
+
+
+def _open_prior_v3_temporary(parent_fd, attended, temporary_name):
+    temporary_path = attended / temporary_name
+    try:
+        descriptor = os.open(temporary_name, _DIR_FLAGS, dir_fd=parent_fd)
+    except OSError as exc:
+        raise RuntimeError(
+            f"unverifiable prior archive temporary: {temporary_path}"
+        ) from exc
+    try:
+        _assert_mode(
+            stat.S_IMODE(os.fstat(descriptor).st_mode),
+            0o700,
+            "prior archive temporary directory",
+            temporary_path,
+        )
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+def _remove_verified_prior_v3_temporary(
+    parent_fd, attended, temporary_name, expected_files,
+):
+    temporary_path = attended / temporary_name
+    descriptor = _open_prior_v3_temporary(
+        parent_fd, attended, temporary_name
+    )
+    try:
+        names = set(os.listdir(descriptor))
+        owner = _read_regular_at(
+            descriptor,
+            _PRIOR_V3_OWNER_NAME,
+            temporary_path / _PRIOR_V3_OWNER_NAME,
+            "prior archive owner marker",
+            allow_missing=True,
+        )
+        if owner is not None:
+            if owner != (_prior_v3_owner_bytes(temporary_name), 0o600):
+                raise RuntimeError("prior archive owner marker mismatch")
+            allowed = set(expected_files) | {_PRIOR_V3_OWNER_NAME}
+            if not names <= allowed:
+                raise RuntimeError("unexpected prior archive temporary entry")
+        elif names != set(expected_files):
+            raise RuntimeError("incomplete unowned prior archive temporary")
+
+        for name in names - {_PRIOR_V3_OWNER_NAME}:
+            current = _read_regular_at(
+                descriptor,
+                name,
+                temporary_path / name,
+                "prior archive temporary file",
+            )
+            if current != (expected_files[name], 0o600):
+                raise RuntimeError("prior archive temporary content mismatch")
+        for name in sorted(names):
+            os.unlink(name, dir_fd=descriptor)
+        os.fsync(descriptor)
+    except Exception as exc:
+        raise RuntimeError(
+            f"unverifiable prior archive temporary: {temporary_path}"
+        ) from exc
+    finally:
+        os.close(descriptor)
+    try:
+        os.rmdir(temporary_name, dir_fd=parent_fd)
+        os.fsync(parent_fd)
+    except OSError as exc:
+        raise RuntimeError(
+            f"unable to remove prior archive temporary: {temporary_path}"
+        ) from exc
+
+
+def _remove_empty_prior_v3_temporary(parent_fd, attended, temporary_name):
+    temporary_path = attended / temporary_name
+    descriptor = _open_prior_v3_temporary(
+        parent_fd, attended, temporary_name
+    )
+    try:
+        if os.listdir(descriptor):
+            raise RuntimeError(
+                f"unverifiable prior archive temporary: {temporary_path}"
+            )
+    finally:
+        os.close(descriptor)
+    os.rmdir(temporary_name, dir_fd=parent_fd)
+    os.fsync(parent_fd)
+
+
+def _recover_prior_v3_temporaries(parent_fd, attended, expected_files):
+    for name in sorted(os.listdir(parent_fd)):
+        if _PRIOR_V3_TEMP_NAME.fullmatch(name):
+            _remove_verified_prior_v3_temporary(
+                parent_fd, attended, name, expected_files
+            )
+
+
+def archive_prior_v3(receipt_dir, *, fault=None):
+    """Archive only the pinned rejected v3 evidence beside an attended receipt."""
+    os.umask(0o077)
+    parent_fd, attended = _prior_v3_parent(receipt_dir)
+    temporary_name = None
+    temporary_exists = False
+    try:
+        expected_files = _validated_prior_v3_files()
+        if _prior_v3_archive_exists(parent_fd, attended):
+            raise RuntimeError(
+                f"prior v3 archive already exists: "
+                f"{attended / PRIOR_V3_ARCHIVE_NAME}"
+            )
+        _recover_prior_v3_temporaries(parent_fd, attended, expected_files)
+
+        temporary_name = (
+            f".{PRIOR_V3_ARCHIVE_NAME}.thermal-archive-"
+            f"{secrets.token_hex(12)}"
+        )
+        os.mkdir(temporary_name, 0o700, dir_fd=parent_fd)
+        temporary_exists = True
+        temporary_path = attended / temporary_name
+        secure_directory(
+            temporary_path,
+            0o700,
+            create=False,
+            enforce_mode=True,
+        )
+        _atomic_write_private(
+            temporary_path / _PRIOR_V3_OWNER_NAME,
+            _prior_v3_owner_bytes(temporary_name),
+            0o600,
+            parent_mode=0o700,
+        )
+
+        for index, (name, data) in enumerate(expected_files.items()):
+            _atomic_write_private(
+                temporary_path / name,
+                data,
+                0o600,
+                parent_mode=0o700,
+            )
+            _hit(fault, "after-file-write", index)
+
+        temporary_fd = _open_prior_v3_temporary(
+            parent_fd, attended, temporary_name
+        )
+        try:
+            os.unlink(_PRIOR_V3_OWNER_NAME, dir_fd=temporary_fd)
+            os.fsync(temporary_fd)
+        finally:
+            os.close(temporary_fd)
+        _hit(fault, "after-directory-fsync", -1)
+
+        try:
+            _renameat2(
+                parent_fd,
+                temporary_name,
+                parent_fd,
+                PRIOR_V3_ARCHIVE_NAME,
+                _RENAME_NOREPLACE,
+            )
+        except FileExistsError as exc:
+            raise RuntimeError(
+                f"prior v3 archive already exists: "
+                f"{attended / PRIOR_V3_ARCHIVE_NAME}"
+            ) from exc
+        temporary_exists = False
+        _hit(fault, "after-rename", -1)
+        os.fsync(parent_fd)
+        return True
+    except Exception:
+        if temporary_exists:
+            try:
+                _remove_verified_prior_v3_temporary(
+                    parent_fd, attended, temporary_name, expected_files
+                )
+            except RuntimeError:
+                _remove_empty_prior_v3_temporary(
+                    parent_fd, attended, temporary_name
+                )
+        raise
+    finally:
+        os.close(parent_fd)
+
+
 def validate_cli_paths(repo_root, receipt_dir):
     repo_root = Path(repo_root)
     receipt_dir = Path(receipt_dir)
@@ -1235,6 +1543,7 @@ def main(argv=None):
         "command",
         choices=(
             "prepare",
+            "archive-prior-v3",
             "snapshot",
             "install-code",
             "verify-code",
@@ -1256,6 +1565,8 @@ def main(argv=None):
             item_receipt,
             args.receipt_dir,
         )
+    elif args.command == "archive-prior-v3":
+        archive_prior_v3(args.receipt_dir)
     elif args.command == "snapshot":
         capture_backup(args.repo_root, args.receipt_dir)
     elif args.command == "install-code":

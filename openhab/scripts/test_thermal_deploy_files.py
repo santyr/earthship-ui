@@ -608,3 +608,478 @@ def test_cli_paths_are_fixed_to_reviewed_repo_and_private_receipt_root(tmp_path)
         thermal_model_files.validate_cli_paths(
             thermal_model_files.ALLOWED_REPO_ROOT, tmp_path / "files",
         )
+
+
+PRIOR_V3_ARCHIVE_FILES = {
+    "candidate-v3.json",
+    "backtest-report-v1.json",
+    "prior-evidence-manifest.json",
+}
+
+
+def _prior_v3_payload(schema, *, eligible=False, marker):
+    return thermal_model_files._canonical(
+        {
+            "fixture": marker,
+            "metrics": {"promotion": {"eligible": eligible}},
+            "schema": schema,
+        }
+    ) + b"\n"
+
+
+def _prior_v3_fixture(tmp_path, monkeypatch):
+    source_root = tmp_path / "models"
+    attended_receipt = tmp_path / "receipts" / "attended-test"
+    file_receipt = attended_receipt / "files"
+    source_root.mkdir(mode=0o700)
+    file_receipt.mkdir(parents=True, mode=0o700)
+    attended_receipt.chmod(0o700)
+    file_receipt.chmod(0o700)
+
+    candidate = _prior_v3_payload(
+        "earthship-thermal-model/v3", marker="candidate",
+    )
+    report = _prior_v3_payload(
+        "earthship-thermal-backtest/v1", marker="report",
+    )
+    payloads = {
+        "candidate.json": candidate,
+        "backtest-report.json": report,
+    }
+    for name, data in payloads.items():
+        path = source_root / name
+        path.write_bytes(data)
+        path.chmod(0o600)
+
+    evidence = (
+        {
+            "sourceName": "candidate.json",
+            "archivedName": "candidate-v3.json",
+            "sourceSchema": "earthship-thermal-model/v3",
+            "sha256": thermal_model_files._digest(candidate),
+            "mode": "0600",
+        },
+        {
+            "sourceName": "backtest-report.json",
+            "archivedName": "backtest-report-v1.json",
+            "sourceSchema": "earthship-thermal-backtest/v1",
+            "sha256": thermal_model_files._digest(report),
+            "mode": "0600",
+        },
+    )
+    monkeypatch.setattr(
+        thermal_model_files, "PRIOR_V3_SOURCE_ROOT", source_root, raising=False,
+    )
+    monkeypatch.setattr(
+        thermal_model_files, "PRIOR_V3_EVIDENCE", evidence, raising=False,
+    )
+    return {
+        "archive": attended_receipt / "prior-model-v3",
+        "attended": attended_receipt,
+        "evidence": evidence,
+        "files": file_receipt,
+        "payloads": payloads,
+        "source_root": source_root,
+    }
+
+
+def _expected_prior_v3_manifest(fixture):
+    return {
+        "schema": "earthship-thermal-prior-evidence/v1",
+        "records": [
+            {
+                "archivedName": record["archivedName"],
+                "sourcePath": str(
+                    fixture["source_root"] / record["sourceName"]
+                ),
+                "sourceSchema": record["sourceSchema"],
+                "sha256": record["sha256"],
+                "mode": "0600",
+            }
+            for record in fixture["evidence"]
+        ],
+    }
+
+
+def _replace_prior_source(fixture, source_name, value):
+    data = value if isinstance(value, bytes) else thermal_model_files._canonical(value) + b"\n"
+    path = fixture["source_root"] / source_name
+    path.write_bytes(data)
+    path.chmod(0o600)
+    for record in fixture["evidence"]:
+        if record["sourceName"] == source_name:
+            record["sha256"] = thermal_model_files._digest(data)
+            break
+
+
+def _assert_exact_prior_v3_archive(fixture):
+    archive = fixture["archive"]
+    assert archive.is_dir()
+    assert mode(archive) == 0o700
+    assert {path.name for path in archive.iterdir()} == PRIOR_V3_ARCHIVE_FILES
+    assert (archive / "candidate-v3.json").read_bytes() == fixture["payloads"][
+        "candidate.json"
+    ]
+    assert (archive / "backtest-report-v1.json").read_bytes() == fixture[
+        "payloads"
+    ]["backtest-report.json"]
+    assert all(mode(path) == 0o600 for path in archive.iterdir())
+    expected_manifest = _expected_prior_v3_manifest(fixture)
+    assert json.loads(
+        (archive / "prior-evidence-manifest.json").read_bytes()
+    ) == expected_manifest
+    assert (
+        archive / "prior-evidence-manifest.json"
+    ).read_bytes() == thermal_model_files._canonical(expected_manifest) + b"\n"
+
+
+def test_archive_prior_v3_has_exact_pinned_production_manifest():
+    assert thermal_model_files.PRIOR_V3_SOURCE_ROOT == Path(
+        "/home/sat/.local/state/thermal-intel/models"
+    )
+    assert thermal_model_files.PRIOR_V3_ARCHIVE_NAME == "prior-model-v3"
+    assert (
+        thermal_model_files.PRIOR_V3_MANIFEST_NAME
+        == "prior-evidence-manifest.json"
+    )
+    assert thermal_model_files._prior_v3_manifest() == {
+        "schema": "earthship-thermal-prior-evidence/v1",
+        "records": [
+            {
+                "archivedName": "candidate-v3.json",
+                "sourcePath": "/home/sat/.local/state/thermal-intel/models/candidate.json",
+                "sourceSchema": "earthship-thermal-model/v3",
+                "sha256": "6d68639f426274d67a72d2ae45478f987af34dfdf0ae4675bc868c7f79f204fe",
+                "mode": "0600",
+            },
+            {
+                "archivedName": "backtest-report-v1.json",
+                "sourcePath": "/home/sat/.local/state/thermal-intel/models/backtest-report.json",
+                "sourceSchema": "earthship-thermal-backtest/v1",
+                "sha256": "1c504fc3b37c945af990a368d3483c5c5a69fc985e4d76ddcf6d3eaf277b211f",
+                "mode": "0600",
+            },
+        ],
+    }
+
+
+def test_archive_prior_v3_writes_exact_private_bytes_and_never_fallbacks(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    registry = fixture["source_root"] / "registry.json"
+    registry.write_bytes(b"registry-must-not-change\n")
+    registry.chmod(0o600)
+
+    assert thermal_model_files.archive_prior_v3(fixture["files"])
+
+    _assert_exact_prior_v3_archive(fixture)
+    assert registry.read_bytes() == b"registry-must-not-change\n"
+    manifest = json.loads(
+        (fixture["archive"] / "prior-evidence-manifest.json").read_text()
+    )
+    assert "fallback" not in manifest
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    (
+        "missing",
+        "non-regular",
+        "source-final-symlink",
+        "source-ancestor-symlink",
+        "wrong-mode",
+        "wrong-hash",
+        "invalid-json",
+        "wrong-schema",
+        "eligible-true",
+        "eligible-missing",
+        "eligible-zero",
+    ),
+)
+@pytest.mark.parametrize("source_name", ("candidate.json", "backtest-report.json"))
+def test_archive_prior_v3_prevalidates_both_sources_before_destination_mutation(
+    tmp_path, monkeypatch, corruption, source_name,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    source = fixture["source_root"] / source_name
+
+    if corruption == "missing":
+        source.unlink()
+    elif corruption == "non-regular":
+        source.unlink()
+        source.mkdir()
+    elif corruption == "source-final-symlink":
+        real = fixture["source_root"] / f"real-{source_name}"
+        real.write_bytes(fixture["payloads"][source_name])
+        real.chmod(0o600)
+        source.unlink()
+        source.symlink_to(real)
+    elif corruption == "source-ancestor-symlink":
+        real_root = tmp_path / "real-models"
+        fixture["source_root"].rename(real_root)
+        fixture["source_root"].symlink_to(real_root, target_is_directory=True)
+    elif corruption == "wrong-mode":
+        source.chmod(0o640)
+    elif corruption == "wrong-hash":
+        source.write_bytes(b"changed after evidence pin\n")
+        source.chmod(0o600)
+    elif corruption == "invalid-json":
+        _replace_prior_source(fixture, source_name, b"not-json\n")
+    else:
+        document = json.loads(source.read_bytes())
+        if corruption == "wrong-schema":
+            document["schema"] = "wrong-thermal-schema/v0"
+        elif corruption == "eligible-true":
+            document["metrics"]["promotion"]["eligible"] = True
+        elif corruption == "eligible-missing":
+            del document["metrics"]["promotion"]["eligible"]
+        else:
+            document["metrics"]["promotion"]["eligible"] = 0
+        _replace_prior_source(fixture, source_name, document)
+
+    with pytest.raises((RuntimeError, ValueError)):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert not fixture["archive"].exists()
+    assert not list(fixture["attended"].glob(".prior-model-v3.thermal-archive-*"))
+
+
+@pytest.mark.parametrize("link_kind", ("files", "attended"))
+def test_archive_prior_v3_rejects_symlink_receipt_components(
+    tmp_path, monkeypatch, link_kind,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    if link_kind == "files":
+        real_files = tmp_path / "real-files"
+        fixture["files"].rename(real_files)
+        fixture["files"].symlink_to(real_files, target_is_directory=True)
+    else:
+        real_attended = tmp_path / "real-attended"
+        fixture["attended"].rename(real_attended)
+        fixture["attended"].symlink_to(real_attended, target_is_directory=True)
+
+    with pytest.raises(RuntimeError, match="symlink"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert not fixture["archive"].exists()
+
+
+@pytest.mark.parametrize("existing_shape", ("missing-file", "unknown-extra"))
+def test_prior_model_existing_incomplete_or_extended_archive_is_never_accepted(
+    tmp_path, monkeypatch, existing_shape,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    archive = fixture["archive"]
+    archive.mkdir(mode=0o700)
+    sentinel = archive / "candidate-v3.json"
+    sentinel.write_bytes(b"existing-must-survive\n")
+    sentinel.chmod(0o600)
+    if existing_shape == "unknown-extra":
+        extra = archive / "unexpected.json"
+        extra.write_bytes(b"foreign\n")
+        extra.chmod(0o600)
+    before = {path.name: path.read_bytes() for path in archive.iterdir()}
+
+    with pytest.raises(RuntimeError, match="archive already exists"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert {path.name: path.read_bytes() for path in archive.iterdir()} == before
+
+
+@pytest.mark.parametrize(
+    ("event", "failure_index"),
+    (
+        ("after-file-write", 0),
+        ("after-file-write", 1),
+        ("after-file-write", 2),
+        ("after-directory-fsync", -1),
+    ),
+)
+def test_archive_prior_v3_ordinary_failure_cleans_only_owned_temporary(
+    tmp_path, monkeypatch, event, failure_index,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+
+    def fail(observed, index):
+        if observed == event and index == failure_index:
+            raise RuntimeError(f"injected {event} {index}")
+
+    with pytest.raises(RuntimeError, match=f"injected {event}"):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=fail)
+
+    assert not fixture["archive"].exists()
+    assert not list(fixture["attended"].glob(".prior-model-v3.thermal-archive-*"))
+
+
+@pytest.mark.parametrize(
+    ("event", "failure_index"),
+    (
+        ("after-file-write", 0),
+        ("after-file-write", 1),
+        ("after-file-write", 2),
+        ("after-directory-fsync", -1),
+    ),
+)
+def test_archive_prior_v3_crash_recovers_only_verifiable_owned_temporary(
+    tmp_path, monkeypatch, event, failure_index,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+
+    def crash(observed, index):
+        if observed == event and index == failure_index:
+            raise SimulatedCrash(f"{event} {index}")
+
+    with pytest.raises(SimulatedCrash):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=crash)
+
+    assert not fixture["archive"].exists()
+    assert len(
+        list(fixture["attended"].glob(".prior-model-v3.thermal-archive-*"))
+    ) == 1
+
+    assert thermal_model_files.archive_prior_v3(fixture["files"])
+    _assert_exact_prior_v3_archive(fixture)
+    assert not list(fixture["attended"].glob(".prior-model-v3.thermal-archive-*"))
+
+
+def test_prior_model_recovery_refuses_unverifiable_foreign_temporary(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    foreign = fixture["attended"] / (
+        ".prior-model-v3.thermal-archive-" + "0" * 24
+    )
+    foreign.mkdir(mode=0o700)
+    unknown = foreign / "unknown"
+    unknown.write_bytes(b"not helper owned\n")
+    unknown.chmod(0o600)
+
+    with pytest.raises(RuntimeError, match="unverifiable prior archive temporary"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert unknown.read_bytes() == b"not helper owned\n"
+    assert not fixture["archive"].exists()
+
+
+def test_archive_prior_v3_uses_confined_noreplace_and_fsyncs_parent(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    real_renameat2 = thermal_model_files._renameat2
+    real_fsync = os.fsync
+    renames = []
+    parent_fsync_after_publish = []
+
+    def recording_rename(old_fd, old_name, new_fd, new_name, flags):
+        renames.append((old_fd, old_name, new_fd, new_name, flags))
+        return real_renameat2(old_fd, old_name, new_fd, new_name, flags)
+
+    def recording_fsync(descriptor):
+        if fixture["archive"].exists():
+            parent_fsync_after_publish.append(
+                os.fstat(descriptor).st_ino == fixture["attended"].stat().st_ino
+            )
+        return real_fsync(descriptor)
+
+    monkeypatch.setattr(thermal_model_files, "_renameat2", recording_rename)
+    monkeypatch.setattr(thermal_model_files.os, "fsync", recording_fsync)
+
+    assert thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert len(renames) == 1
+    old_fd, old_name, new_fd, new_name, flags = renames[0]
+    assert old_fd == new_fd
+    assert old_name.startswith(".prior-model-v3.thermal-archive-")
+    assert new_name == "prior-model-v3"
+    assert flags == thermal_model_files._RENAME_NOREPLACE
+    assert any(parent_fsync_after_publish)
+
+
+def test_archive_prior_v3_noreplace_race_preserves_existing_destination(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+    real_renameat2 = thermal_model_files._renameat2
+
+    def race(old_fd, old_name, new_fd, new_name, flags):
+        fixture["archive"].mkdir(mode=0o700)
+        sentinel = fixture["archive"] / "foreign"
+        sentinel.write_bytes(b"unowned-race\n")
+        sentinel.chmod(0o600)
+        return real_renameat2(old_fd, old_name, new_fd, new_name, flags)
+
+    monkeypatch.setattr(thermal_model_files, "_renameat2", race)
+    with pytest.raises(RuntimeError, match="archive already exists"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+    assert (fixture["archive"] / "foreign").read_bytes() == b"unowned-race\n"
+    assert not list(fixture["attended"].glob(".prior-model-v3.thermal-archive-*"))
+
+
+def test_archive_prior_v3_failure_after_rename_exposes_only_complete_archive(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+
+    def fail(observed, index):
+        if observed == "after-rename" and index == -1:
+            raise RuntimeError("injected after rename")
+
+    with pytest.raises(RuntimeError, match="injected after rename"):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=fail)
+
+    _assert_exact_prior_v3_archive(fixture)
+    before = {
+        path.name: path.read_bytes() for path in fixture["archive"].iterdir()
+    }
+    with pytest.raises(RuntimeError, match="archive already exists"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+    assert {
+        path.name: path.read_bytes() for path in fixture["archive"].iterdir()
+    } == before
+
+
+def test_prior_model_crash_after_rename_exposes_only_complete_archive(
+    tmp_path, monkeypatch,
+):
+    fixture = _prior_v3_fixture(tmp_path, monkeypatch)
+
+    def crash(observed, index):
+        if observed == "after-rename" and index == -1:
+            raise SimulatedCrash("after rename")
+
+    with pytest.raises(SimulatedCrash):
+        thermal_model_files.archive_prior_v3(fixture["files"], fault=crash)
+
+    _assert_exact_prior_v3_archive(fixture)
+    assert not list(fixture["attended"].glob(".prior-model-v3.thermal-archive-*"))
+    with pytest.raises(RuntimeError, match="archive already exists"):
+        thermal_model_files.archive_prior_v3(fixture["files"])
+
+
+def test_archive_prior_v3_cli_dispatch_has_no_generic_source_option(monkeypatch):
+    receipt = thermal_model_files.ALLOWED_RECEIPT_ROOT / "attended-test" / "files"
+    observed = []
+    monkeypatch.setattr(
+        thermal_model_files,
+        "archive_prior_v3",
+        lambda receipt_dir: observed.append(receipt_dir) or True,
+        raising=False,
+    )
+
+    thermal_model_files.main(
+        ["archive-prior-v3", "--receipt-dir", str(receipt)]
+    )
+    assert observed == [receipt]
+
+    with pytest.raises(SystemExit):
+        thermal_model_files.main(
+            [
+                "archive-prior-v3",
+                "--receipt-dir",
+                str(receipt),
+                "--source-root",
+                "/tmp/not-allowed",
+            ]
+        )
