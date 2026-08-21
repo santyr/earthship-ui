@@ -218,11 +218,11 @@ def test_every_change_history_recovers_regime_coverage_deterministically():
     ] is True
     assert (
         first_report["metrics"]["by_regime"]["winter"]["model"]["air"]["24"]["count"]
-        >= 5
+        >= 15
     )
     assert (
         first_report["metrics"]["by_regime"]["warm"]["model"]["air"]["24"]["count"]
-        >= 5
+        >= 15
     )
     assert first_report["metrics"] == second_report["metrics"]
 
