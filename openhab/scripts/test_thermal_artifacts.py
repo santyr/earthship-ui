@@ -836,6 +836,38 @@ def test_backtest_v2_rejects_sparse_closed_metric_split(tmp_path, split):
         ArtifactRegistry(tmp_path).save_backtest_report(report)
 
 
+def test_backtest_v2_accepts_dynamics_inactive_forcing_features(tmp_path):
+    report = valid_backtest_report()
+    report["folds"][0]["inactive_forcing_features"] = [
+        "solar_outdoor",
+        "vent_exchange",
+    ]
+
+    ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+def test_backtest_v2_rejects_unknown_and_behavior_only_forcing_names(tmp_path):
+    for bad_name in ("not_a_feature", "intercept", "is_daylight"):
+        report = valid_backtest_report()
+        report["folds"][0]["inactive_forcing_features"] = [bad_name]
+
+        with pytest.raises(
+            ArtifactValidationError, match="inactive forcing"
+        ):
+            ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+def test_backtest_v2_rejects_duplicate_inactive_forcing(tmp_path):
+    report = valid_backtest_report()
+    report["folds"][0]["inactive_forcing_features"] = [
+        "solar_outdoor",
+        "solar_outdoor",
+    ]
+
+    with pytest.raises(ArtifactValidationError, match="inactive forcing"):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
 @pytest.mark.parametrize(
     ("split", "unknown_key"),
     (("by_horizon", "25"), ("by_provenance", "invented")),

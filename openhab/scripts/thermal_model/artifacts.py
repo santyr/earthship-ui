@@ -1478,6 +1478,12 @@ _FOLD_REQUIRED_KEYS = {
     "radiation_provenance", "action_provenance",
 }
 _FOLD_OPTIONAL_KEYS = {"fit_error", "model_error", "inactive_forcing_features"}
+_INACTIVE_FORCING_FEATURE_NAMES = (
+    "solar_unshaded",
+    "solar_indoor_closed",
+    "solar_outdoor",
+    "vent_exchange",
+)
 _PREDICTION_RECORD_REQUIRED_KEYS = {
     "origin_at", "target_at", "horizon", "regime", "provenance", "model",
     "persistence",
@@ -1586,7 +1592,10 @@ def _validate_backtest_report(report):
             if (
                 not isinstance(inactive, list)
                 or len(inactive) != len(set(inactive))
-                or any(name not in FEATURE_NAMES for name in inactive)
+                or any(
+                    name not in _INACTIVE_FORCING_FEATURE_NAMES
+                    for name in inactive
+                )
             ):
                 raise ArtifactValidationError(
                     "backtest fold inactive forcing fields are invalid"
