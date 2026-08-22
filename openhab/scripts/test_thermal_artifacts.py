@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 import json
 import math
 import threading
@@ -25,11 +26,13 @@ from thermal_model.dynamics import (
     STABILITY_TOLERANCE,
 )
 from thermal_model.artifacts import (
+    MODEL_SCHEMA,
     THERMAL_UNITS,
     ArtifactPromotionRefused,
     ArtifactRegistry,
     ArtifactUnavailable,
     ArtifactValidationError,
+    provisional_promotion_gates,
 )
 from thermal_model.schema import (
     BehaviorModel,
@@ -72,11 +75,82 @@ def stable_dynamics():
     )
 
 
+def test_29_scored_24h_folds_fail_count_gate():
+    gates = provisional_promotion_gates(
+        physics_valid=True,
+        finite_metrics=True,
+        scored_fold_count=29,
+        model_24={"count": 29, "mae": 1.0},
+        persistence_24={"count": 29, "mae": 2.0},
+        scored_24h_by_regime={"warm": 15, "winter": 14, "shoulder": 0},
+    )
+
+    assert gates["at_least_30_scored_24h_folds"] is False
+
+
+def test_30_scored_24h_folds_pass_count_gate():
+    gates = provisional_promotion_gates(
+        physics_valid=True,
+        finite_metrics=True,
+        scored_fold_count=30,
+        model_24={"count": 30, "mae": 1.0},
+        persistence_24={"count": 30, "mae": 2.0},
+        scored_24h_by_regime={"warm": 15, "winter": 15, "shoulder": 0},
+    )
+
+    assert gates["at_least_30_scored_24h_folds"] is True
+
+
+def test_two_regimes_need_five_folds_each():
+    common = {
+        "physics_valid": True,
+        "finite_metrics": True,
+        "scored_fold_count": 30,
+        "model_24": {"count": 30, "mae": 1.0},
+        "persistence_24": {"count": 30, "mae": 2.0},
+    }
+
+    assert provisional_promotion_gates(
+        **common,
+        scored_24h_by_regime={"warm": 25, "winter": 4, "shoulder": 1},
+    )["at_least_two_24h_regimes"] is False
+    assert provisional_promotion_gates(
+        **common,
+        scored_24h_by_regime={"warm": 25, "winter": 5, "shoulder": 0},
+    )["at_least_two_24h_regimes"] is True
+
+
+@pytest.mark.parametrize(
+    "regime_counts",
+    (
+        {"invented_a": 15, "invented_b": 15},
+        {"warm": 15, "winter": 15},
+        {"warm": 15, "winter": 15, "shoulder": 0, "invented": 5},
+        {"warm": 15, "winter": 15, "shoulder": True},
+        {"warm": 15, "winter": 15, "shoulder": -1},
+        {"warm": 15, "winter": 15, "shoulder": 0.0},
+        [("warm", 15), ("winter", 15), ("shoulder", 0)],
+    ),
+)
+def test_provisional_gates_require_exact_nonnegative_regime_counts(
+    regime_counts,
+):
+    with pytest.raises(ArtifactValidationError, match="regime"):
+        provisional_promotion_gates(
+            physics_valid=True,
+            finite_metrics=True,
+            scored_fold_count=30,
+            model_24={"count": 30, "mae": 1.0},
+            persistence_24={"count": 30, "mae": 2.0},
+            scored_24h_by_regime=regime_counts,
+        )
+
+
 def valid_artifact(**changes):
     total_pairs = 17567
     fitted_pairs = 17000
     artifact = ThermalArtifact(
-        schema="earthship-thermal-model/v3",
+        schema=MODEL_SCHEMA,
         created_at="2026-08-13T12:00:00Z",
         trained_from="2026-06-01T00:00:00Z",
         trained_through="2026-08-01T00:00:00Z",
@@ -108,13 +182,13 @@ def valid_artifact(**changes):
             ),
         ),
         metrics={
-            "fold_count": 2,
-            "scored_fold_count": 2,
+            "fold_count": 30,
+            "scored_fold_count": 30,
             "overall": {
                 "model": {
                     "air": {
                         "24": {
-                            "count": 2, "mae": 0.5,
+                            "count": 30, "mae": 0.5,
                             "rmse": 0.6, "bias": 0.1,
                         }
                     }
@@ -122,13 +196,44 @@ def valid_artifact(**changes):
                 "persistence": {
                     "air": {
                         "24": {
-                            "count": 2, "mae": 1.0,
+                            "count": 30, "mae": 1.0,
                             "rmse": 1.1, "bias": -0.2,
                         }
                     }
                 },
             },
-            "by_regime": {"warm": {"air_24h_mae": 0.5}},
+            "by_regime": {
+                "warm": {
+                    "model": {"air": {"24": {
+                        "count": 15, "mae": 0.5,
+                        "rmse": 0.6, "bias": 0.1,
+                    }}},
+                    "persistence": {"air": {"24": {
+                        "count": 15, "mae": 1.0,
+                        "rmse": 1.1, "bias": -0.2,
+                    }}},
+                },
+                "winter": {
+                    "model": {"air": {"24": {
+                        "count": 15, "mae": 0.5,
+                        "rmse": 0.6, "bias": 0.1,
+                    }}},
+                    "persistence": {"air": {"24": {
+                        "count": 15, "mae": 1.0,
+                        "rmse": 1.1, "bias": -0.2,
+                    }}},
+                },
+                "shoulder": {
+                    "model": {"air": {"24": {
+                        "count": 0, "mae": None,
+                        "rmse": None, "bias": None,
+                    }}},
+                    "persistence": {"air": {"24": {
+                        "count": 0, "mae": None,
+                        "rmse": None, "bias": None,
+                    }}},
+                },
+            },
             "by_horizon": {"24": {"air_mae": 0.5}},
             "by_provenance": {"confirmed": {"air_24h_mae": 0.5}},
             "prediction_interval_coverage": {
@@ -155,6 +260,8 @@ def valid_artifact(**changes):
                     "finite_metrics": True,
                     "at_least_two_folds": True,
                     "air_24h_beats_persistence": True,
+                    "at_least_30_scored_24h_folds": True,
+                    "at_least_two_24h_regimes": True,
                 },
             },
         },
@@ -178,6 +285,12 @@ def valid_artifact(**changes):
             "hold_forward_counts": {
                 role: 0
                 for role in {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
+            },
+            "radiation_provenance_counts": {
+                "observed": 17568,
+                "interpolated": 0,
+                "held": 0,
+                "astronomical_night_zero": 0,
             },
             "items": {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS},
             "units": dict(THERMAL_UNITS),
@@ -220,6 +333,22 @@ def valid_artifact(**changes):
                 "stability_tolerance": STABILITY_TOLERANCE,
                 "max_interpolation_gap_minutes": 20,
                 "max_every_change_hold_minutes": 60,
+                "radiation_reconstruction": {
+                    "rule": "missing_at_solar_elevation_lte_zero_becomes_zero",
+                    "night_value_wm2": 0.0,
+                    "solar": {
+                        "rule": "earthship-solar-elevation/v1",
+                        "latitude": 38.3739919,
+                        "longitude": -105.7744609,
+                        "night_when_elevation_sin_lte": 0.0,
+                    },
+                    "provenance_labels": [
+                        "observed",
+                        "interpolated",
+                        "held",
+                        "astronomical_night_zero",
+                    ],
+                },
                 "mass_observer": {
                     "kind": "causal_ema",
                     "source_role": "mass",
@@ -270,7 +399,7 @@ def test_artifact_accepts_exact_disjoint_action_evidence(tmp_path):
 def test_v2_artifact_is_rejected_without_implicit_migration(tmp_path):
     registry = ArtifactRegistry(tmp_path)
 
-    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v3"):
+    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v4"):
         registry.save_candidate(valid_artifact(schema="earthship-thermal-model/v2"))
 
 
@@ -280,7 +409,7 @@ def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
     registry.promote_candidate()
 
     loaded = registry.load_accepted()
-    assert loaded.schema == "earthship-thermal-model/v3"
+    assert loaded.schema == "earthship-thermal-model/v4"
     assert isinstance(loaded.dynamics, DynamicsModel)
     assert isinstance(loaded.behavior.seasonal_vocabulary, tuple)
     assert loaded.behavior.seasonal_vocabulary[0].action_states == (
@@ -303,7 +432,9 @@ def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
 
 def test_recursive_nonfinite_value_is_rejected_before_write(tmp_path):
     metrics = deepcopy(valid_artifact().metrics)
-    metrics["by_regime"]["warm"]["air_24h_mae"] = float("nan")
+    metrics["by_regime"]["warm"]["model"]["air"]["24"]["mae"] = float(
+        "nan"
+    )
     registry = ArtifactRegistry(tmp_path)
 
     with pytest.raises(ArtifactValidationError, match="finite"):
@@ -373,6 +504,62 @@ def test_candidate_manifest_rejects_invalid_sample_counts_by_mode(
         )
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "extra", "boolean", "negative", "noninteger", "sum"],
+)
+def test_candidate_manifest_rejects_invalid_radiation_provenance_counts(
+    tmp_path, mutation
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    counts = manifest["radiation_provenance_counts"]
+    if mutation == "missing":
+        del counts["held"]
+    elif mutation == "extra":
+        counts["invented"] = 0
+    elif mutation == "boolean":
+        counts["held"] = True
+    elif mutation == "negative":
+        counts["held"] = -1
+    elif mutation == "noninteger":
+        counts["held"] = 1.5
+    else:
+        counts["observed"] -= 1
+
+    with pytest.raises(
+        ArtifactValidationError, match="radiation.*provenance|provenance.*count"
+    ):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
+@pytest.mark.parametrize(
+    ("path", "replacement"),
+    [
+        (("rule",), "invented"),
+        (("night_value_wm2",), False),
+        (("solar", "latitude"), 0.0),
+        (("solar", "rule"), "invented"),
+        (("provenance_labels",), ["observed"]),
+    ],
+)
+def test_candidate_manifest_requires_exact_radiation_reconstruction_contract(
+    tmp_path, path, replacement
+):
+    manifest = deepcopy(valid_artifact().data_manifest)
+    contract = manifest["constraints"]["radiation_reconstruction"]
+    target = contract
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = replacement
+
+    with pytest.raises(ArtifactValidationError, match="constraints"):
+        ArtifactRegistry(tmp_path).save_candidate(
+            valid_artifact(data_manifest=manifest)
+        )
+
+
 def test_partial_season_artifact_is_valid_but_cannot_promote(tmp_path):
     registry = ArtifactRegistry(tmp_path)
     manifest = deepcopy(valid_artifact().data_manifest)
@@ -427,43 +614,292 @@ def test_refused_candidate_does_not_replace_accepted_artifact(tmp_path):
     assert registry.load_accepted().code_revision == "a" * 40
 
 
-def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
-    registry = ArtifactRegistry(tmp_path)
-    report = {
-        "schema": "earthship-thermal-backtest/v1",
-        "generated_at": "2026-08-13T12:00:00Z",
-        "folds": [
-            {
-                "train_start": "2026-06-01T00:00:00Z",
-                "train_end": "2026-06-14T23:55:00Z",
-                "prediction_start": "2026-06-15T00:00:00Z",
-                "prediction_end": "2026-06-18T00:00:00Z",
-                "horizons_hours": [1, 6, 12, 24, 48, 72],
-                "action_provenance": {
-                    "training": {
-                        "confirmed": 1, "photosensor": 0,
-                        "reconstructed": 0, "model_inferred": 0,
-                        "unknown": 0,
-                    },
-                    "evaluation_targets": {
-                        "confirmed": 1, "photosensor": 0,
-                        "reconstructed": 0, "model_inferred": 0,
-                        "unknown": 0,
-                    },
-                },
-            }
-        ],
+def _backtest_summary(count, mae):
+    return {
+        "count": count,
+        "mae": mae,
+        "rmse": mae,
+        "bias": 0.0 if count else None,
+    }
+
+
+_BACKTEST_HORIZONS = ("1", "6", "12", "24", "48", "72")
+
+
+def _backtest_method_summary(count_24=0, air_mae=None, mass_mae=None):
+    return {
+        state: {
+            horizon: _backtest_summary(
+                count_24 if horizon == "24" else 0,
+                mae if horizon == "24" else None,
+            )
+            for horizon in _BACKTEST_HORIZONS
+        }
+        for state, mae in (("air", air_mae), ("mass", mass_mae))
+    }
+
+
+def valid_backtest_report():
+    start = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    folds = []
+    records = []
+    for index in range(30):
+        origin = start + timedelta(days=15 + index)
+        target = origin + timedelta(hours=24)
+        regime = "warm" if index < 15 else "winter"
+        folds.append({
+            "train_start": start.isoformat().replace("+00:00", "Z"),
+            "train_end": (origin - timedelta(minutes=5)).isoformat().replace(
+                "+00:00", "Z"
+            ),
+            "prediction_start": origin.isoformat().replace("+00:00", "Z"),
+            "prediction_end": target.isoformat().replace("+00:00", "Z"),
+            "horizons_hours": [24],
+            "training_row_count": 1,
+            "evaluation_target_row_count": 288,
+            "radiation_provenance": {
+                split: {
+                    "observed": 1 if split == "training" else 288,
+                    "interpolated": 0,
+                    "held": 0,
+                    "astronomical_night_zero": 0,
+                }
+                for split in ("training", "evaluation_targets")
+            },
+            "action_provenance": {
+                split: {
+                    "confirmed": 0,
+                    "photosensor": 0,
+                    "reconstructed": 0,
+                    "model_inferred": 0,
+                    "unknown": 1 if split == "training" else 288,
+                }
+                for split in ("training", "evaluation_targets")
+            },
+        })
+        records.append({
+            "origin_at": origin.isoformat().replace("+00:00", "Z"),
+            "target_at": target.isoformat().replace("+00:00", "Z"),
+            "horizon": 24,
+            "regime": regime,
+            "provenance": "unknown",
+            "model": {"air": 0.5, "mass": 0.25},
+            "persistence": {"air": 1.0, "mass": 0.5},
+        })
+    return {
+        "schema": "earthship-thermal-backtest/v2",
+        "generated_at": records[-1]["target_at"],
+        "data_range": {
+            "start": start.isoformat().replace("+00:00", "Z"),
+            "end": records[-1]["target_at"],
+        },
+        "folds": folds,
+        "prediction_records": records,
         "metrics": {
-            "mae": 0.5,
+            "fold_count": 30,
+            "scored_fold_count": 30,
+            "overall": {
+                "model": _backtest_method_summary(30, 0.5, 0.25),
+                "persistence": _backtest_method_summary(30, 1.0, 0.5),
+                "recent_cycle": _backtest_method_summary(),
+            },
+            "by_regime": {
+                regime: {
+                    "model": _backtest_method_summary(count, 0.5, 0.25),
+                    "persistence": _backtest_method_summary(
+                        count, 1.0, 0.5
+                    ),
+                    "recent_cycle": _backtest_method_summary(),
+                }
+                for regime, count in (
+                    ("warm", 15), ("winter", 15), ("shoulder", 0)
+                )
+            },
+            "by_horizon": {
+                horizon: {
+                    state: _backtest_summary(
+                        30 if horizon == "24" else 0,
+                        mae if horizon == "24" else None,
+                    )
+                    for state, mae in (("air", 0.5), ("mass", 0.25))
+                }
+                for horizon in _BACKTEST_HORIZONS
+            },
+            "by_provenance": {
+                provenance: (
+                    _backtest_method_summary(30, 0.5, 0.25)
+                    if provenance == "unknown"
+                    else {}
+                )
+                for provenance in (
+                    "confirmed", "photosensor", "reconstructed",
+                    "model_inferred", "unknown",
+                )
+            },
             "action_evidence": {
                 "confirmed": {
-                    "training_rows": 1,
-                    "evaluation_targets": 1,
-                    "disjoint_fold_count": 1,
+                    "training_rows": 0,
+                    "evaluation_targets": 0,
+                    "disjoint_fold_count": 0,
                 }
+            },
+            "daily": {
+                name: _backtest_summary(0, None)
+                for name in (
+                    "hallway_high_f", "hallway_low_f", "peak_time_minutes",
+                    "morning_mass_f",
+                )
+            },
+            "prediction_interval_coverage": {
+                state: {
+                    horizon: {
+                        "nominal": 0.9,
+                        "count": 0,
+                        "covered": 0,
+                        "fraction": None,
+                        "calibration": "prior_fold_signed_error_quantiles",
+                    }
+                    for horizon in _BACKTEST_HORIZONS
+                }
+                for state in ("air", "mass")
+            },
+            "behavior": {
+                "available": False,
+                "label_count": 0,
+                "precision": None,
+                "recall": None,
+                "median_timing_error_minutes": None,
+                "classification_probability": 0.5,
+            },
+            "threshold_baseline": {
+                "definition": {
+                    "close_up_tomorrow": "close",
+                    "vent_tonight": "vent",
+                    "none": "none",
+                },
+                "input": "held_out_outdoor_high_proxy",
+                "class_counts": {
+                    "none": 0,
+                    "vent_tonight": 0,
+                    "close_up_tomorrow": 0,
+                },
+                "comparison_target": "held_out_hallway_high_f >= 82",
+                "precision": None,
+                "recall": None,
+                "count": 0,
+            },
+            "recent_cycle_definition": (
+                "median delta from the seven most recent completed local-day "
+                "trajectories whose targets precede the forecast origin"
+            ),
+            "promotion": {
+                "eligible": True,
+                "shadow_only": True,
+                "gates": {
+                    "physics_valid": True,
+                    "finite_metrics": True,
+                    "at_least_two_folds": True,
+                    "air_24h_beats_persistence": True,
+                    "at_least_30_scored_24h_folds": True,
+                    "at_least_two_24h_regimes": True,
+                },
+                "graduation_thresholds": None,
             },
         },
     }
+
+
+@pytest.mark.parametrize(
+    "section",
+    (
+        "daily",
+        "prediction_interval_coverage",
+        "behavior",
+        "threshold_baseline",
+        "recent_cycle_definition",
+    ),
+)
+def test_backtest_v2_requires_every_producer_metric_section(tmp_path, section):
+    report = valid_backtest_report()
+    del report["metrics"][section]
+
+    with pytest.raises(ArtifactValidationError, match="metrics.*fields"):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+@pytest.mark.parametrize("split", ("by_horizon", "by_provenance"))
+def test_backtest_v2_rejects_sparse_closed_metric_split(tmp_path, split):
+    report = valid_backtest_report()
+    report["metrics"][split] = {}
+
+    with pytest.raises(ArtifactValidationError, match=split):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+@pytest.mark.parametrize(
+    ("split", "unknown_key"),
+    (("by_horizon", "25"), ("by_provenance", "invented")),
+)
+def test_backtest_v2_rejects_unknown_closed_metric_split_key(
+    tmp_path, split, unknown_key
+):
+    report = valid_backtest_report()
+    report["metrics"][split][unknown_key] = {}
+
+    with pytest.raises(ArtifactValidationError, match=split):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "overall_method",
+        "overall_state",
+        "overall_horizon",
+        "regime_method",
+        "regime_state",
+        "horizon_state",
+        "provenance_state",
+        "coverage_state",
+        "coverage_horizon",
+        "coverage_calibration",
+    ),
+)
+def test_backtest_v2_rejects_nested_sparse_producer_metric_shape(
+    tmp_path, mutation
+):
+    report = valid_backtest_report()
+    metrics = report["metrics"]
+    if mutation == "overall_method":
+        del metrics["overall"]["recent_cycle"]
+    elif mutation == "overall_state":
+        del metrics["overall"]["model"]["mass"]
+    elif mutation == "overall_horizon":
+        del metrics["overall"]["model"]["air"]["72"]
+    elif mutation == "regime_method":
+        del metrics["by_regime"]["warm"]["recent_cycle"]
+    elif mutation == "regime_state":
+        del metrics["by_regime"]["warm"]["model"]["mass"]
+    elif mutation == "horizon_state":
+        del metrics["by_horizon"]["24"]["mass"]
+    elif mutation == "provenance_state":
+        del metrics["by_provenance"]["unknown"]["mass"]
+    elif mutation == "coverage_state":
+        del metrics["prediction_interval_coverage"]["mass"]
+    elif mutation == "coverage_horizon":
+        del metrics["prediction_interval_coverage"]["air"]["72"]
+    else:
+        del metrics["prediction_interval_coverage"]["air"]["24"][
+            "calibration"
+        ]
+
+    with pytest.raises(ArtifactValidationError, match="metrics"):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+
+def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
+    registry = ArtifactRegistry(tmp_path)
+    report = valid_backtest_report()
     registry.save_backtest_report(report)
     first = registry.backtest_report_path.read_bytes()
     assert first.endswith(b"\n")
@@ -474,7 +910,9 @@ def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
     ).exists()
 
     invalid = deepcopy(report)
-    invalid["metrics"]["mae"] = float("inf")
+    invalid["metrics"]["overall"]["model"]["air"]["24"]["mae"] = float(
+        "inf"
+    )
     with pytest.raises(ArtifactValidationError, match="finite"):
         registry.save_backtest_report(invalid)
     assert registry.backtest_report_path.read_bytes() == first
@@ -482,17 +920,52 @@ def test_backtest_report_write_is_canonical_atomic_and_finite(tmp_path):
     mismatched = deepcopy(report)
     mismatched["metrics"]["action_evidence"]["confirmed"][
         "disjoint_fold_count"
-    ] = 0
-    with pytest.raises(ArtifactValidationError, match="action evidence"):
+    ] = 1
+    with pytest.raises(ArtifactValidationError, match=r"action[_ ]evidence"):
         registry.save_backtest_report(mismatched)
     assert registry.backtest_report_path.read_bytes() == first
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "top_level_unknown",
+        "fold_unknown",
+        "training_radiation_sum",
+        "overall_method_count",
+        "regime_method_count",
+        "prediction_record_count",
+        "error_fold_with_record",
+    ),
+)
+def test_backtest_v2_rejects_contradictory_evidence(tmp_path, mutation):
+    report = valid_backtest_report()
+    if mutation == "top_level_unknown":
+        report["invented"] = True
+    elif mutation == "fold_unknown":
+        report["folds"][0]["invented"] = True
+    elif mutation == "training_radiation_sum":
+        report["folds"][0]["radiation_provenance"]["training"]["held"] = 1
+    elif mutation == "overall_method_count":
+        report["metrics"]["overall"]["persistence"]["air"]["24"]["count"] = 29
+    elif mutation == "regime_method_count":
+        report["metrics"]["by_regime"]["winter"]["persistence"]["air"]["24"]["count"] = 14
+    elif mutation == "prediction_record_count":
+        report["prediction_records"].pop()
+    else:
+        report["folds"][0]["fit_error"] = "fit failed"
+
+    with pytest.raises(
+        (ArtifactValidationError, ArtifactPromotionRefused),
+        match="fields|radiation|contradictory|record|error",
+    ):
+        ArtifactRegistry(tmp_path).save_backtest_report(report)
 
 
 
 def test_promotion_recomputes_provisional_gates_instead_of_trusting_flags(tmp_path):
     registry = ArtifactRegistry(tmp_path)
     metrics = deepcopy(valid_artifact().metrics)
-    metrics["scored_fold_count"] = 1
     metrics["overall"]["model"]["air"]["24"]["mae"] = 2.0
     metrics["overall"]["persistence"]["air"]["24"]["mae"] = 1.0
     assert all(metrics["promotion"]["gates"].values())
@@ -1013,7 +1486,7 @@ def test_positive_24h_evidence_still_promotes(tmp_path):
 
     promoted = registry.promote_candidate()
 
-    assert promoted.metrics["overall"]["model"]["air"]["24"]["count"] == 2
+    assert promoted.metrics["overall"]["model"]["air"]["24"]["count"] == 30
     assert registry.load_accepted() == promoted
 
 
@@ -1264,7 +1737,7 @@ def test_manifest_count_map_values_are_nonnegative_non_bool(
 
 
 
-def test_model_artifact_v3_requires_exact_multihorizon_contract(tmp_path):
+def test_model_artifact_v4_requires_exact_multihorizon_contract(tmp_path):
     artifact = valid_artifact()
     ArtifactRegistry(tmp_path).save_candidate(artifact)
     for field in (

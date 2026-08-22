@@ -13,7 +13,12 @@ from .behavior import (
     feature_vector,
     transition_probability,
 )
-from .artifacts import provisional_promotion_gates
+from .artifacts import (
+    BACKTEST_SCHEMA,
+    provisional_promotion_gates,
+    valid_paired_24h_prediction_record,
+)
+from .dataset import RADIATION_PROVENANCE_LABELS
 from .dynamics import evaluation_forcing_features, simulate, validate_physics
 
 STEP = timedelta(minutes=5)
@@ -386,6 +391,9 @@ def walk_forward_evaluate(samples, fit):
     confirmed_action_rows = frozenset(
         getattr(samples, "confirmed_action_rows", ())
     )
+    radiation_provenance_by_at = getattr(
+        samples, "radiation_provenance_by_at", None
+    )
     ordered = tuple(sorted(samples, key=lambda sample: sample.at))
     if not ordered:
         raise ValueError("walk-forward evaluation requires samples")
@@ -393,6 +401,18 @@ def walk_forward_evaluate(samples, fit):
         raise ValueError("walk-forward timestamps must include timezone information")
     if len({sample.at for sample in ordered}) != len(ordered):
         raise ValueError("walk-forward timestamps must be unique")
+    if radiation_provenance_by_at is None:
+        radiation_provenance_by_at = {
+            sample.at: "observed" for sample in ordered
+        }
+    if any(
+        radiation_provenance_by_at.get(sample.at)
+        not in RADIATION_PROVENANCE_LABELS
+        for sample in ordered
+    ):
+        raise ValueError(
+            "walk-forward radiation provenance is outside the closed vocabulary"
+        )
 
     by_at = {sample.at: sample for sample in ordered}
     first_local_day = ordered[0].at.astimezone(SITE_TIMEZONE).date()
@@ -455,6 +475,13 @@ def walk_forward_evaluate(samples, fit):
         evaluation_provenance = Counter(
             action_provenance(sample) for sample in evaluation_targets
         )
+        training_radiation = Counter(
+            radiation_provenance_by_at[sample.at] for sample in train
+        )
+        evaluation_radiation = Counter(
+            radiation_provenance_by_at[sample.at]
+            for sample in evaluation_targets
+        )
         fold = {
             "train_start": _iso_utc(train[0].at),
             "train_end": _iso_utc(train[-1].at),
@@ -463,6 +490,18 @@ def walk_forward_evaluate(samples, fit):
                 origin.at + timedelta(hours=max(available))
             ),
             "horizons_hours": list(available),
+            "training_row_count": len(train),
+            "evaluation_target_row_count": len(evaluation_targets),
+            "radiation_provenance": {
+                "training": {
+                    label: training_radiation.get(label, 0)
+                    for label in RADIATION_PROVENANCE_LABELS
+                },
+                "evaluation_targets": {
+                    label: evaluation_radiation.get(label, 0)
+                    for label in RADIATION_PROVENANCE_LABELS
+                },
+            },
             "action_provenance": {
                 "training": {
                     label: training_provenance.get(label, 0)
@@ -600,14 +639,29 @@ def walk_forward_evaluate(samples, fit):
         behavior_classifications.extend(classifications)
         behavior_timing.extend(timing)
 
+    fold_by_origin = {fold["prediction_start"]: fold for fold in folds}
+    valid_24h_records = [
+        record
+        for record in records
+        if valid_paired_24h_prediction_record(
+            record, fold_by_origin.get(_iso_utc(record["origin_at"]), {})
+        )
+    ]
+    scored_24h_by_regime = Counter(
+        record["regime"] for record in valid_24h_records
+    )
     overall = {
         method: _method_summary(records, method)
         for method in ("model", "persistence", "recent_cycle")
     }
     by_regime = {
-        regime: _model_summary(
-            [record for record in records if record["regime"] == regime]
-        )
+        regime: {
+            method: _method_summary(
+                [record for record in records if record["regime"] == regime],
+                method,
+            )
+            for method in ("model", "persistence", "recent_cycle")
+        }
         for regime in ("warm", "winter", "shoulder")
     }
     provenances = PROVENANCE_LABELS
@@ -665,6 +719,10 @@ def walk_forward_evaluate(samples, fit):
         scored_fold_count=scored_folds,
         model_24=model_24,
         persistence_24=persistence_24,
+        scored_24h_by_regime={
+            regime: scored_24h_by_regime.get(regime, 0)
+            for regime in ("warm", "winter", "shoulder")
+        },
     )
     metrics["promotion"] = {
         "eligible": all(gates.values()),
@@ -673,7 +731,7 @@ def walk_forward_evaluate(samples, fit):
         "graduation_thresholds": None,
     }
     return {
-        "schema": "earthship-thermal-backtest/v1",
+        "schema": BACKTEST_SCHEMA,
         "generated_at": _iso_utc(ordered[-1].at),
         "data_range": {
             "start": _iso_utc(ordered[0].at),

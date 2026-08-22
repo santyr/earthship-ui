@@ -20,11 +20,13 @@ logs, and household state stay outside Git. Never print or commit secrets or
 private evidence. Private directories have mode `0700` and private files have mode `0600`.
 No artifact or journal content is committed.
 
-## Thermal artifact v3 contract
+## Thermal artifact v4 contract
 
-Gate A retrains from source data and accepts only `earthship-thermal-model/v3`
-with dynamics version `2`; v1 and v2 artifacts fail closed and are never rewritten or
-synthetically migrated. At each five-minute step the north-wall mass state uses
+Gate A retrains from source data and accepts only `earthship-thermal-model/v4`
+with dynamics version `2`; v1, v2, and v3 artifacts fail closed and are never
+rewritten or synthetically migrated. The rejected v3 candidate and v1 backtest
+remain historical receipt evidence only, never an accepted-artifact fallback.
+At each five-minute step the north-wall mass state uses
 
 ```text
 M[t+1] = M[t]
@@ -41,12 +43,16 @@ backtests, and promotion thresholds remain fail-closed. There is no mass bias,
 coefficient clamp, prior-value substitution, or gate relaxation. The public
 shadow payload remains its separate observational version-1 contract.
 
-The v3 private artifact additionally proves deterministic multihorizon
+The v4 private artifact additionally proves deterministic multihorizon
 identification at 5, 60, 360, 720, and 1440 minutes, with at most 64 daily
 origins per horizon, minimum-prefix action confidence, equal air/mass group
 means, analytic SLSQP gradients, and a final training objective no greater than
-its five-minute initializer within the exact numerical tolerance. Promotion
-still depends only on the independent held-out backtest gates below.
+its five-minute initializer within the exact numerical tolerance. Its manifest
+partitions every valid row's radiation provenance into `observed`,
+`interpolated`, `held`, and `astronomical_night_zero`; the v2 backtest
+records the same exact partition for every fold's training prefix and longest
+evaluation target. Promotion still depends only on every independent held-out
+backtest gate below.
 
 ## Exact source-to-target manifest and transaction contract
 
@@ -90,6 +96,7 @@ transitions, leaves the external absence untouched, and keeps the phase
 | code | `openhab/scripts/thermal_model/journal.py` | `/home/sat/openhab/scripts/thermal_model/journal.py` |
 | code | `openhab/scripts/thermal_model/pipeline.py` | `/home/sat/openhab/scripts/thermal_model/pipeline.py` |
 | code | `openhab/scripts/thermal_model/schema.py` | `/home/sat/openhab/scripts/thermal_model/schema.py` |
+| code | `openhab/scripts/thermal_model/solar.py` | `/home/sat/openhab/scripts/thermal_model/solar.py` |
 | unit | `deploy/thermal-model-train.service` | `/home/sat/.config/systemd/user/thermal-model-train.service` |
 | unit | `deploy/thermal-model-train.timer` | `/home/sat/.config/systemd/user/thermal-model-train.timer` |
 | unit | `deploy/thermal-model-shadow.service` | `/home/sat/.config/systemd/user/thermal-model-shadow.service` |
@@ -533,20 +540,12 @@ Gate B publication and does not create `Thermal_Model_JSON`.
 
 Gate A authorizes only atomic live code installation, exact role/schema
 audit and `thermal_intel` migration/grants, and private training, backtest,
-artifact, and local-only shadow creation. It authorizes no Item write,
+and artifact evidence. It authorizes no shadow, Item write,
 publication, credential provisioning, unit installation, or systemd mutation.
-The train/backtest commands below omit explicit date bounds and therefore use
-exactly 400 rolling days ending at their training origin.
+The train/backtest commands below use exact receipt-bound `--start` and
+`--end` values spanning exactly 400 rolling days.
 
-**READ-ONLY — repeat quiescence immediately before code replacement:**
-
-```bash
-set -euo pipefail
-cd /home/sat/earthship-ui
-/usr/bin/python3 scripts/thermal-systemd-state.py first-install
-```
-
-**GATE A MUTATION — transactional code phase installation:**
+**GATE A MUTATION — prepare receipt and archive rejected v3 evidence:**
 
 ```bash
 set -euo pipefail
@@ -554,42 +553,72 @@ umask 077
 : "${REPO_ROOT:?}"
 : "${FILE_RECEIPT:?}"
 cd "$REPO_ROOT"
-/usr/bin/python3 scripts/thermal-model-files.py install-code \
+python3 scripts/thermal-model-files.py prepare \
   --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
-/usr/bin/python3 scripts/thermal-model-files.py verify-code \
-  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
-jq -e 'select(.schema == "earthship-thermal-file-phase/v1" and .operation == "install-code" and .status == "complete")' \
-  "$FILE_RECEIPT/phase-state.json"
+python3 scripts/thermal-model-files.py \
+  --receipt-dir "$FILE_RECEIPT" \
+  archive-prior-v3
 ```
 
-If the helper reports explicit recovery required, stop. Do not run Python from
-the live target. Under Gate A, the only permitted recovery command is:
+The Deployment Unix account is trusted. Cooperating helpers serialize via the
+exclusive receipt lock. Hostile same-UID actors are out of scope.
 
-**GATE A RECOVERY MUTATION — reconcile and restore the interrupted code phase:**
+**READ-ONLY — exact rejected-v3 archive readback:**
 
 ```bash
 set -euo pipefail
-umask 077
-: "${REPO_ROOT:?}"
 : "${FILE_RECEIPT:?}"
-cd "$REPO_ROOT"
-/usr/bin/python3 scripts/thermal-model-files.py recover \
-  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
-jq -e 'select(.status == "rolled-back")' "$FILE_RECEIPT/phase-state.json"
-```
+PRIOR_ARCHIVE="$FILE_RECEIPT/../prior-model-v3"
+test -d "$PRIOR_ARCHIVE"
+test ! -L "$PRIOR_ARCHIVE"
+ARCHIVE_MODE="$(stat -c %a "$PRIOR_ARCHIVE")"
+test "$ARCHIVE_MODE" = 700
+ARCHIVE_NAMES="$(find "$PRIOR_ARCHIVE" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)"
+test "$ARCHIVE_NAMES" = $'backtest-report-v1.json\ncandidate-v3.json\nprior-evidence-manifest.json'
 
-After recovery, return to the Gate A approval boundary before retrying.
+MANIFEST="$PRIOR_ARCHIVE/prior-evidence-manifest.json"
+test ! -L "$MANIFEST"
+jq -e 'select(
+    (. | keys | sort) == ["records","schema"]
+    and .schema == "earthship-thermal-prior-evidence/v1"
+    and (.records | length) == 2
+    and .records[0] == {
+      "archivedName":"candidate-v3.json",
+      "sourcePath":"/home/sat/.local/state/thermal-intel/models/candidate.json",
+      "sourceSchema":"earthship-thermal-model/v3",
+      "sha256":"6d68639f426274d67a72d2ae45478f987af34dfdf0ae4675bc868c7f79f204fe",
+      "mode":"0600"
+    }
+    and .records[1] == {
+      "archivedName":"backtest-report-v1.json",
+      "sourcePath":"/home/sat/.local/state/thermal-intel/models/backtest-report.json",
+      "sourceSchema":"earthship-thermal-backtest/v1",
+      "sha256":"1c504fc3b37c945af990a368d3483c5c5a69fc985e4d76ddcf6d3eaf277b211f",
+      "mode":"0600"
+    })' "$MANIFEST" >/dev/null
 
-**READ-ONLY — live runtime provenance equals reviewed provenance:**
+jq -e 'select(.schema == "earthship-thermal-model/v3"
+  and .metrics.promotion.eligible == false)' \
+  "$PRIOR_ARCHIVE/candidate-v3.json" >/dev/null
+jq -e 'select(.schema == "earthship-thermal-backtest/v1"
+  and .metrics.promotion.eligible == false)' \
+  "$PRIOR_ARCHIVE/backtest-report-v1.json" >/dev/null
 
-```bash
-set -euo pipefail
-: "${TRACKED_RUNTIME_REVISION:?}"
-cd /home/sat/openhab/scripts
-LIVE_RUNTIME_REVISION="$(/usr/bin/python3 -c 'import thermal_intel; print(thermal_intel._code_revision())')"
-test "$LIVE_RUNTIME_REVISION" = "$TRACKED_RUNTIME_REVISION"
-printf '%s\n' "$LIVE_RUNTIME_REVISION"
-export LIVE_RUNTIME_REVISION
+for NAME in candidate-v3.json backtest-report-v1.json prior-evidence-manifest.json
+do
+  FILE="$PRIOR_ARCHIVE/$NAME"
+  test -f "$FILE"
+  test ! -L "$FILE"
+  FILE_MODE="$(stat -c %a "$FILE")"
+  test "$FILE_MODE" = 600
+done
+for NAME in candidate-v3.json backtest-report-v1.json
+do
+  EXPECTED_SHA="$(jq -e -r --arg name "$NAME" \
+    '.records[] | select(.archivedName == $name) | .sha256' "$MANIFEST")"
+  ACTUAL_SHA="$(sha256sum "$PRIOR_ARCHIVE/$NAME" | awk '{print $1}')"
+  test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+done
 ```
 
 ### Exact PostgreSQL authority and migration
@@ -1039,7 +1068,7 @@ test "$ENV_MODE" = 600
 `EnvironmentFile` applies only to systemd. It does not configure the attended
 operator shell.
 
-**GATE A MUTATION — secret-safe runtime audit, train, backtest, and local shadow:**
+**GATE A READ-ONLY — secret-safe runtime authority audit:**
 
 ```bash
 set -euo pipefail
@@ -1049,8 +1078,6 @@ set -euo pipefail
   : "${REPO_ROOT:?}"
   : "${FILE_RECEIPT:?}"
   cd "$REPO_ROOT"
-  /usr/bin/python3 scripts/thermal-model-files.py prepare \
-    --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
   read -r -s -p 'THERMAL_DATABASE_URL: ' THERMAL_DATABASE_URL
   printf '\n'
   test -n "$THERMAL_DATABASE_URL"
@@ -1212,12 +1239,6 @@ SQL
 
   /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py schema-audit \
     | jq -e 'select(.schema == "thermal_intel" and .status == "exact" and .fingerprint == "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb")' >/dev/null
-  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
-  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest
-  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow \
-    --output "$STATE_ROOT/review/shadow-local.json"
-  LOCAL_SHADOW_MODE="$(stat -c %a "$STATE_ROOT/review/shadow-local.json")"
-  test "$LOCAL_SHADOW_MODE" = 600
 
   unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
   trap - EXIT HUP INT TERM
@@ -1228,14 +1249,312 @@ unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECT
 The runtime DSN is neither printed nor inherited after this fence. The exact
 fingerprint receipt contains no connection string or credentials.
 
+**READ-ONLY — repeat quiescence immediately before code replacement:**
+
+```bash
+set -euo pipefail
+cd /home/sat/earthship-ui
+/usr/bin/python3 scripts/thermal-systemd-state.py first-install
+```
+
+**GATE A MUTATION — transactional code phase installation:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py install-code \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+/usr/bin/python3 scripts/thermal-model-files.py verify-code \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+jq -e 'select(.schema == "earthship-thermal-file-phase/v1"
+  and .operation == "install-code" and .status == "complete")' \
+  "$FILE_RECEIPT/phase-state.json"
+```
+
+If the helper reports explicit recovery required, stop. Do not run Python from
+the live target. Under Gate A, the only permitted recovery command is:
+
+**GATE A RECOVERY MUTATION — reconcile and restore the interrupted code phase:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${REPO_ROOT:?}"
+: "${FILE_RECEIPT:?}"
+cd "$REPO_ROOT"
+/usr/bin/python3 scripts/thermal-model-files.py recover \
+  --repo-root "$REPO_ROOT" --receipt-dir "$FILE_RECEIPT"
+jq -e 'select(.status == "rolled-back")' "$FILE_RECEIPT/phase-state.json"
+```
+
+After recovery, return to the Gate A approval boundary before retrying.
+
+**READ-ONLY — live runtime provenance equals reviewed provenance:**
+
+```bash
+set -euo pipefail
+: "${TRACKED_RUNTIME_REVISION:?}"
+cd /home/sat/openhab/scripts
+LIVE_RUNTIME_REVISION="$(/usr/bin/python3 -c 'import thermal_intel; print(thermal_intel._code_revision())')"
+test "$LIVE_RUNTIME_REVISION" = "$TRACKED_RUNTIME_REVISION"
+printf '%s\n' "$LIVE_RUNTIME_REVISION"
+```
+
+**GATE A PRIVATE MUTATION — select and persist the exact 400-day window:**
+
+```bash
+set -euo pipefail
+umask 077
+: "${EVIDENCE_ROOT:?}"
+: "${LIVE_RUNTIME_REVISION:?}"
+WINDOW_RECEIPT="$EVIDENCE_ROOT/gate-a-window.json"
+test ! -e "$WINDOW_RECEIPT"
+test ! -L "$WINDOW_RECEIPT"
+END_UTC="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+START_UTC="$(date --utc --date="$END_UTC - 400 days" +%Y-%m-%dT%H:%M:%SZ)"
+SELECTED_AT="$(date --utc +%Y-%m-%dT%H:%M:%S.%NZ)"
+END_EPOCH="$(date --date="$END_UTC" +%s)"
+START_EPOCH="$(date --date="$START_UTC" +%s)"
+WINDOW_SECONDS="$((END_EPOCH - START_EPOCH))"
+test "$WINDOW_SECONDS" -eq 34560000
+WINDOW_TMP="$(mktemp "$EVIDENCE_ROOT/.gate-a-window.XXXXXX")"
+trap 'unlink -- "$WINDOW_TMP"' EXIT HUP INT TERM
+jq -e -n --arg selectedAt "$SELECTED_AT" --arg start "$START_UTC" \
+  --arg end "$END_UTC" --arg runtimeRevision "$LIVE_RUNTIME_REVISION" \
+  '{schema:"earthship-thermal-gate-a-window/v1",
+    selectedAt:$selectedAt,start:$start,end:$end,
+    runtimeRevision:$runtimeRevision}' >"$WINDOW_TMP"
+chmod 0600 "$WINDOW_TMP"
+sync -f "$WINDOW_TMP"
+ln -- "$WINDOW_TMP" "$WINDOW_RECEIPT"
+sync -f "$WINDOW_RECEIPT"
+unlink -- "$WINDOW_TMP"
+sync -f "$EVIDENCE_ROOT"
+trap - EXIT HUP INT TERM
+WINDOW_MODE="$(stat -c %a "$WINDOW_RECEIPT")"
+test "$WINDOW_MODE" = 600
+jq -e 'select(
+    (. | keys | sort)
+      == ["end","runtimeRevision","schema","selectedAt","start"]
+    and .schema == "earthship-thermal-gate-a-window/v1")' \
+  "$WINDOW_RECEIPT" >/dev/null
+```
+
+**GATE A MUTATION — private 400-day train and backtest:**
+
+```bash
+set -euo pipefail
+(
+  set -euo pipefail
+  umask 077
+  : "${EVIDENCE_ROOT:?}"
+  : "${STATE_ROOT:?}"
+  read -r -s -p 'THERMAL_DATABASE_URL: ' THERMAL_DATABASE_URL
+  printf '\n'
+  test -n "$THERMAL_DATABASE_URL"
+  export THERMAL_DATABASE_URL
+  THERMAL_DATABASE_RUNTIME_ROLE=thermal_intel_runtime
+  export THERMAL_DATABASE_RUNTIME_ROLE
+  EXPECTED_OWNER_RECEIPT="$EVIDENCE_ROOT/database-expected-owner"
+  test -f "$EXPECTED_OWNER_RECEIPT"
+  test ! -L "$EXPECTED_OWNER_RECEIPT"
+  EXPECTED_OWNER_MODE="$(stat -c %a "$EXPECTED_OWNER_RECEIPT")"
+  test "$EXPECTED_OWNER_MODE" = 600
+  EXPECTED_OWNER_LINES="$(wc -l <"$EXPECTED_OWNER_RECEIPT")"
+  test "$EXPECTED_OWNER_LINES" -eq 1
+  IFS= read -r THERMAL_DATABASE_EXPECTED_OWNER <"$EXPECTED_OWNER_RECEIPT"
+  test -n "$THERMAL_DATABASE_EXPECTED_OWNER"
+  export THERMAL_DATABASE_EXPECTED_OWNER
+  trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
+
+  : "${LIVE_RUNTIME_REVISION:?}"
+  WINDOW_RECEIPT="$EVIDENCE_ROOT/gate-a-window.json"
+  test -f "$WINDOW_RECEIPT"
+  test ! -L "$WINDOW_RECEIPT"
+  WINDOW_MODE="$(stat -c %a "$WINDOW_RECEIPT")"
+  test "$WINDOW_MODE" = 600
+  jq -e 'select(
+      (. | keys | sort)
+        == ["end","runtimeRevision","schema","selectedAt","start"]
+      and .schema == "earthship-thermal-gate-a-window/v1")' \
+    "$WINDOW_RECEIPT" >/dev/null
+  START_UTC="$(jq -e -r '.start' "$WINDOW_RECEIPT")"
+  END_UTC="$(jq -e -r '.end' "$WINDOW_RECEIPT")"
+  SELECTED_AT="$(jq -e -r '.selectedAt' "$WINDOW_RECEIPT")"
+  WINDOW_RUNTIME_REVISION="$(jq -e -r '.runtimeRevision' "$WINDOW_RECEIPT")"
+  test "$WINDOW_RUNTIME_REVISION" = "$LIVE_RUNTIME_REVISION"
+  END_EPOCH="$(date --date="$END_UTC" +%s)"
+  START_EPOCH="$(date --date="$START_UTC" +%s)"
+  WINDOW_SECONDS="$((END_EPOCH - START_EPOCH))"
+  test "$WINDOW_SECONDS" -eq 34560000
+  BACKTEST="$STATE_ROOT/models/backtest-report.json"
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train \
+    --start "$START_UTC" --end "$END_UTC"
+  test -f "$BACKTEST"
+  test ! -L "$BACKTEST"
+  TRAIN_BACKTEST_MODE="$(stat -c %a "$BACKTEST")"
+  test "$TRAIN_BACKTEST_MODE" = 600
+  TRAIN_BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
+  /usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py backtest \
+    --start "$START_UTC" --end "$END_UTC"
+
+  CANDIDATE="$STATE_ROOT/models/candidate.json"
+  for FILE in "$CANDIDATE" "$BACKTEST"
+  do
+    test -f "$FILE"
+    test ! -L "$FILE"
+    FILE_MODE="$(stat -c %a "$FILE")"
+    test "$FILE_MODE" = 600
+  done
+  WINDOW_SHA256="$(sha256sum "$WINDOW_RECEIPT" | awk '{print $1}')"
+  CANDIDATE_SHA256="$(sha256sum "$CANDIDATE" | awk '{print $1}')"
+  BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
+  CANDIDATE_CREATED_AT="$(jq -e -r '.created_at' "$CANDIDATE")"
+  BACKTEST_GENERATED_AT="$(jq -e -r '.generated_at' "$BACKTEST")"
+  SELECTED_AT_EPOCH="$(date --date="$SELECTED_AT" +%s%N)"
+  CANDIDATE_CREATED_EPOCH="$(date --date="$CANDIDATE_CREATED_AT" +%s%N)"
+  test "$CANDIDATE_CREATED_EPOCH" -ge "$SELECTED_AT_EPOCH"
+  CAPTURED_AT="$(date --utc +%Y-%m-%dT%H:%M:%S.%NZ)"
+  CAPTURED_AT_EPOCH="$(date --date="$CAPTURED_AT" +%s%N)"
+  test "$CANDIDATE_CREATED_EPOCH" -le "$CAPTURED_AT_EPOCH"
+  ARTIFACT_RECEIPT="$EVIDENCE_ROOT/gate-a-artifacts.json"
+  test ! -e "$ARTIFACT_RECEIPT"
+  test ! -L "$ARTIFACT_RECEIPT"
+  ARTIFACT_TMP="$(mktemp "$EVIDENCE_ROOT/.gate-a-artifacts.XXXXXX")"
+  trap 'unlink -- "$ARTIFACT_TMP"; unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
+  jq -e -n --arg capturedAt "$CAPTURED_AT" \
+    --arg windowSha256 "$WINDOW_SHA256" \
+    --arg candidateSha256 "$CANDIDATE_SHA256" \
+    --arg backtestSha256 "$BACKTEST_SHA256" \
+    --arg trainBacktestSha256 "$TRAIN_BACKTEST_SHA256" \
+    --arg candidateCreatedAt "$CANDIDATE_CREATED_AT" \
+    --arg backtestGeneratedAt "$BACKTEST_GENERATED_AT" \
+    '{schema:"earthship-thermal-gate-a-artifacts/v1",
+      capturedAt:$capturedAt,windowSha256:$windowSha256,
+      candidateSha256:$candidateSha256,backtestSha256:$backtestSha256,
+      trainBacktestSha256:$trainBacktestSha256,
+      candidateCreatedAt:$candidateCreatedAt,
+      backtestGeneratedAt:$backtestGeneratedAt}' >"$ARTIFACT_TMP"
+  chmod 0600 "$ARTIFACT_TMP"
+  sync -f "$ARTIFACT_TMP"
+  ln -- "$ARTIFACT_TMP" "$ARTIFACT_RECEIPT"
+  sync -f "$ARTIFACT_RECEIPT"
+  unlink -- "$ARTIFACT_TMP"
+  sync -f "$EVIDENCE_ROOT"
+  trap 'unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER' EXIT HUP INT TERM
+  ARTIFACT_RECEIPT_MODE="$(stat -c %a "$ARTIFACT_RECEIPT")"
+  test "$ARTIFACT_RECEIPT_MODE" = 600
+
+  unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
+  trap - EXIT HUP INT TERM
+)
+unset THERMAL_DATABASE_URL THERMAL_DATABASE_RUNTIME_ROLE THERMAL_DATABASE_EXPECTED_OWNER
+```
+
+The attended commands use one explicit 400-day private window. No shadow command
+runs in Gate A; schema, candidate/report binding, and every promotion gate are
+checked next.
+
 ## 4. Review artifact and backtest evidence
+
+**READ-ONLY — receipt-bound selected window and exact fresh artifact bytes:**
+
+```bash
+set -euo pipefail
+: "${EVIDENCE_ROOT:?}"
+: "${STATE_ROOT:?}"
+: "${LIVE_RUNTIME_REVISION:?}"
+WINDOW_RECEIPT="$EVIDENCE_ROOT/gate-a-window.json"
+ARTIFACT_RECEIPT="$EVIDENCE_ROOT/gate-a-artifacts.json"
+CANDIDATE="$STATE_ROOT/models/candidate.json"
+BACKTEST="$STATE_ROOT/models/backtest-report.json"
+for FILE in "$WINDOW_RECEIPT" "$ARTIFACT_RECEIPT" "$CANDIDATE" "$BACKTEST"
+do
+  test -f "$FILE"
+  test ! -L "$FILE"
+  FILE_MODE="$(stat -c %a "$FILE")"
+  test "$FILE_MODE" = 600
+done
+jq -e 'select(
+    (. | keys | sort)
+      == ["end","runtimeRevision","schema","selectedAt","start"]
+    and .schema == "earthship-thermal-gate-a-window/v1")' \
+  "$WINDOW_RECEIPT" >/dev/null
+jq -e 'select(
+    (. | keys | sort) == [
+      "backtestGeneratedAt","backtestSha256","candidateCreatedAt",
+      "candidateSha256","capturedAt","schema","trainBacktestSha256",
+      "windowSha256"
+    ]
+    and .schema == "earthship-thermal-gate-a-artifacts/v1"
+    and ([.windowSha256,.candidateSha256,.backtestSha256,
+          .trainBacktestSha256]
+      | all(.[]; type == "string" and length == 64))
+    and ([.capturedAt,.candidateCreatedAt,.backtestGeneratedAt]
+      | all(.[]; type == "string" and length > 0)))' \
+  "$ARTIFACT_RECEIPT" >/dev/null
+
+START_UTC="$(jq -e -r '.start' "$WINDOW_RECEIPT")"
+END_UTC="$(jq -e -r '.end' "$WINDOW_RECEIPT")"
+SELECTED_AT="$(jq -e -r '.selectedAt' "$WINDOW_RECEIPT")"
+WINDOW_RUNTIME_REVISION="$(jq -e -r '.runtimeRevision' "$WINDOW_RECEIPT")"
+test "$WINDOW_RUNTIME_REVISION" = "$LIVE_RUNTIME_REVISION"
+START_EPOCH="$(date --date="$START_UTC" +%s)"
+END_EPOCH="$(date --date="$END_UTC" +%s)"
+WINDOW_SECONDS="$((END_EPOCH - START_EPOCH))"
+test "$WINDOW_SECONDS" -eq 34560000
+
+WINDOW_SHA256="$(sha256sum "$WINDOW_RECEIPT" | awk '{print $1}')"
+CANDIDATE_SHA256="$(sha256sum "$CANDIDATE" | awk '{print $1}')"
+BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
+RECEIPT_WINDOW_SHA256="$(jq -e -r '.windowSha256' "$ARTIFACT_RECEIPT")"
+RECEIPT_CANDIDATE_SHA256="$(jq -e -r '.candidateSha256' "$ARTIFACT_RECEIPT")"
+RECEIPT_BACKTEST_SHA256="$(jq -e -r '.backtestSha256' "$ARTIFACT_RECEIPT")"
+RECEIPT_TRAIN_BACKTEST_SHA256="$(jq -e -r '.trainBacktestSha256' "$ARTIFACT_RECEIPT")"
+test "$WINDOW_SHA256" = "$RECEIPT_WINDOW_SHA256"
+test "$CANDIDATE_SHA256" = "$RECEIPT_CANDIDATE_SHA256"
+test "$BACKTEST_SHA256" = "$RECEIPT_BACKTEST_SHA256"
+test "$BACKTEST_SHA256" = "$RECEIPT_TRAIN_BACKTEST_SHA256"
+
+CANDIDATE_CREATED_AT="$(jq -e -r '.created_at' "$CANDIDATE")"
+BACKTEST_GENERATED_AT="$(jq -e -r '.generated_at' "$BACKTEST")"
+RECEIPT_CANDIDATE_CREATED_AT="$(jq -e -r '.candidateCreatedAt' "$ARTIFACT_RECEIPT")"
+RECEIPT_BACKTEST_GENERATED_AT="$(jq -e -r '.backtestGeneratedAt' "$ARTIFACT_RECEIPT")"
+CAPTURED_AT="$(jq -e -r '.capturedAt' "$ARTIFACT_RECEIPT")"
+test "$CANDIDATE_CREATED_AT" = "$RECEIPT_CANDIDATE_CREATED_AT"
+test "$BACKTEST_GENERATED_AT" = "$RECEIPT_BACKTEST_GENERATED_AT"
+SELECTED_AT_EPOCH="$(date --date="$SELECTED_AT" +%s%N)"
+CANDIDATE_CREATED_EPOCH="$(date --date="$CANDIDATE_CREATED_AT" +%s%N)"
+CAPTURED_AT_EPOCH="$(date --date="$CAPTURED_AT" +%s%N)"
+test "$CANDIDATE_CREATED_EPOCH" -ge "$SELECTED_AT_EPOCH"
+test "$CANDIDATE_CREATED_EPOCH" -le "$CAPTURED_AT_EPOCH"
+
+jq -e --arg start "$START_UTC" --arg end "$END_UTC" \
+  --arg runtimeRevision "$WINDOW_RUNTIME_REVISION" \
+  'select(.trained_from == $start
+    and .trained_through == $end
+    and .data_manifest.start == $start
+    and .data_manifest.end == $end
+    and .code_revision == $runtimeRevision)' "$CANDIDATE" >/dev/null
+jq -e --arg start "$START_UTC" --arg end "$END_UTC" \
+  'select(.data_range.start >= $start
+    and .data_range.end <= $end)' "$BACKTEST" >/dev/null
+jq -e -s '.[0].metrics == .[1].metrics' \
+  "$CANDIDATE" "$BACKTEST" >/dev/null
+```
 
 **READ-ONLY — parameters, ranges, exclusions, and provenance:**
 
 ```bash
 set -euo pipefail
 : "${STATE_ROOT:?}"
-jq -e 'select(.schema == "earthship-thermal-model/v3")
+CANDIDATE="$STATE_ROOT/models/candidate.json"
+jq -e '.schema == "earthship-thermal-model/v4"
+  and .metrics.promotion.eligible == true' "$CANDIDATE"
+jq -e 'select(.schema == "earthship-thermal-model/v4")
   | .data_manifest.fit_diagnostics as $fit
   | select(($fit.multihorizon_origin_counts | keys | sort)
       == ["1440","360","5","60","720"])
@@ -1244,16 +1563,28 @@ jq -e 'select(.schema == "earthship-thermal-model/v3")
   | select($fit.multihorizon_final_objective
       <= ($fit.multihorizon_initial_objective
         + (1e-9 * ([1,$fit.multihorizon_initial_objective] | max))))
-  | {schema,created_at,trained_from,trained_through,code_revision,dynamics,behavior,metrics,data_manifest:{start:.data_manifest.start,end:.data_manifest.end,sample_count:.data_manifest.sample_count,sample_counts_by_mode:.data_manifest.sample_counts_by_mode,rejected_counts:.data_manifest.rejected_counts,auxiliary_exclusion_counts:.data_manifest.auxiliary_exclusion_counts,event_counts_by_source:.data_manifest.event_counts_by_source,fit_diagnostics:.data_manifest.fit_diagnostics,constraints:.data_manifest.constraints,canonical_rows_sha256:.data_manifest.canonical_rows_sha256}}
-  | select(.metrics.promotion.shadow_only == true)' \
-  "$STATE_ROOT/models/accepted.json"
+  | select(.metrics.promotion.shadow_only == true)
+  | {schema,created_at,trained_from,trained_through,code_revision,dynamics,
+     behavior,physics:.metrics.promotion.gates.physics_valid,
+     data_manifest:{start:.data_manifest.start,end:.data_manifest.end,
+       valid_rows:.data_manifest.sample_count,
+       sample_counts_by_mode:.data_manifest.sample_counts_by_mode,
+       reconstruction_counts:.data_manifest.radiation_provenance_counts,
+       rejected_counts:.data_manifest.rejected_counts,
+       auxiliary_exclusion_counts:.data_manifest.auxiliary_exclusion_counts,
+       event_counts_by_source:.data_manifest.event_counts_by_source,
+       fit_diagnostics:.data_manifest.fit_diagnostics,
+       constraints:.data_manifest.constraints,
+       canonical_rows_sha256:.data_manifest.canonical_rows_sha256}}' \
+  "$CANDIDATE"
 ```
 
-**READ-ONLY — exact rolling window, seasonal coverage, and Kiva exclusions:**
+**READ-ONLY — exact rolling window, seasonal coverage, reconstruction sums, and Kiva exclusions:**
 
 ```bash
 set -euo pipefail
 : "${STATE_ROOT:?}"
+CANDIDATE="$STATE_ROOT/models/candidate.json"
 jq -e 'select(
     ((.data_manifest.end | fromdateiso8601)
       - (.data_manifest.start | fromdateiso8601)) == 34560000)
@@ -1263,59 +1594,150 @@ jq -e 'select(
   | select(.data_manifest.sample_counts_by_mode.warm > 0)
   | select((.data_manifest.sample_counts_by_mode | add)
       == .data_manifest.sample_count)
+  | select((.data_manifest.radiation_provenance_counts | keys | sort)
+      == ["astronomical_night_zero","held","interpolated","observed"])
+  | select(([.data_manifest.radiation_provenance_counts[]] | add)
+      == .data_manifest.sample_count)
   | select(.data_manifest.fit_diagnostics.excluded_passive_pairs > 0)
   | select(.data_manifest.event_counts_by_source.model_inferred > 0)
-  | {trained_from,trained_through,sample_counts_by_mode:.data_manifest.sample_counts_by_mode,
+  | {trained_from,trained_through,valid_rows:.data_manifest.sample_count,
+     sample_counts_by_mode:.data_manifest.sample_counts_by_mode,
+     reconstruction_counts:.data_manifest.radiation_provenance_counts,
      excluded_passive_pairs:.data_manifest.fit_diagnostics.excluded_passive_pairs,
      model_inferred_events:.data_manifest.event_counts_by_source.model_inferred}' \
-  "$STATE_ROOT/models/accepted.json"
+  "$CANDIDATE"
 ```
 
 The final two predicates retain evidence that inferred Kiva intervals were
 present and excluded from passive fitting; inspect their private journal rows
 alongside this bounded manifest summary.
 
-**READ-ONLY — folds, leakage, baselines, and promotion gates:**
+**READ-ONLY — exact v2 schema, old and new gates, counts, regimes, and MAE:**
 
 ```bash
 set -euo pipefail
 : "${STATE_ROOT:?}"
-jq -e 'select(all(.folds[]; .train_end < .prediction_start)) | {schema,generated_at,data_range,folds,overall:.metrics.overall,by_horizon:.metrics.by_horizon,by_regime:.metrics.by_regime,promotion:.metrics.promotion}' \
-  "$STATE_ROOT/models/backtest-report.json"
+CANDIDATE="$STATE_ROOT/models/candidate.json"
+BACKTEST="$STATE_ROOT/models/backtest-report.json"
+jq -e '.schema == "earthship-thermal-backtest/v2"' "$BACKTEST"
+jq -e '.metrics.promotion.eligible == true' "$BACKTEST"
+jq -e '.metrics.promotion.gates.at_least_30_scored_24h_folds == true' "$BACKTEST"
+jq -e '.metrics.promotion.gates.at_least_two_24h_regimes == true' "$BACKTEST"
+jq -e -s '.[0].data_manifest.start <= .[1].data_range.start
+  and .[0].data_manifest.end >= .[1].data_range.end
+  and .[0].metrics == .[1].metrics' "$CANDIDATE" "$BACKTEST" >/dev/null
+jq -e 'select(
+    (.metrics.promotion.gates | keys | sort) == [
+      "air_24h_beats_persistence",
+      "at_least_30_scored_24h_folds",
+      "at_least_two_24h_regimes",
+      "at_least_two_folds",
+      "finite_metrics",
+      "physics_valid"
+    ])
+  | select(all(.metrics.promotion.gates[]; . == true))
+  | .metrics.overall.model.air["24"].count as $MODEL_24_COUNT
+  | .metrics.overall.persistence.air["24"].count as $PERSISTENCE_24_COUNT
+  | select($MODEL_24_COUNT == $PERSISTENCE_24_COUNT)
+  | select($MODEL_24_COUNT >= 30)
+  | ([.metrics.by_regime
+      | to_entries[]
+      | select(.key == "warm" or .key == "winter" or .key == "shoulder")
+      | select(.value.model.air["24"].count
+          == .value.persistence.air["24"].count)
+      | select(.value.model.air["24"].count >= 5)] | length)
+      as $QUALIFYING_REGIMES
+  | select($QUALIFYING_REGIMES >= 2)
+  | {fold_counts:{total:.metrics.fold_count,
+       scored:.metrics.scored_fold_count,scored_24h:$MODEL_24_COUNT},
+     regime_24h_counts:{
+       warm:.metrics.by_regime.warm.model.air["24"].count,
+       winter:.metrics.by_regime.winter.model.air["24"].count,
+       shoulder:.metrics.by_regime.shoulder.model.air["24"].count},
+     mae_24h:{
+       model:.metrics.overall.model.air["24"].mae,
+       persistence:.metrics.overall.persistence.air["24"].mae},
+     physics:.metrics.promotion.gates.physics_valid,
+     gates:.metrics.promotion.gates}' "$BACKTEST"
 ```
 
-**READ-ONLY — artifact provenance equals complete live runtime:**
+**READ-ONLY — chronological folds and exact fold provenance sums:**
+
+```bash
+set -euo pipefail
+: "${STATE_ROOT:?}"
+BACKTEST="$STATE_ROOT/models/backtest-report.json"
+jq -e 'def exact_counts($labels; $expected):
+    ((keys | sort) == $labels)
+    and all(.[]; type == "number" and . >= 0 and . == floor)
+    and (([.[]] | add) == $expected);
+  ["astronomical_night_zero","held","interpolated","observed"]
+    as $RADIATION_LABELS
+  | ["confirmed","model_inferred","photosensor","reconstructed","unknown"]
+    as $ACTION_LABELS
+  | select(all(.folds[]; .train_end < .prediction_start))
+  | select(all(.folds[];
+      .training_row_count as $TRAINING_ROWS
+      | .evaluation_target_row_count as $EVALUATION_ROWS
+      | (.radiation_provenance | keys | sort)
+          == ["evaluation_targets","training"]
+      and (.action_provenance | keys | sort)
+          == ["evaluation_targets","training"]
+      and (.radiation_provenance.training | exact_counts($RADIATION_LABELS; $TRAINING_ROWS))
+      and (.radiation_provenance.evaluation_targets | exact_counts($RADIATION_LABELS; $EVALUATION_ROWS))
+      and (.action_provenance.training | exact_counts($ACTION_LABELS; $TRAINING_ROWS))
+      and (.action_provenance.evaluation_targets | exact_counts($ACTION_LABELS; $EVALUATION_ROWS))))
+  | {fold_provenance:[.folds[] | {
+      prediction_start,training_row_count,evaluation_target_row_count,
+      radiation_provenance,action_provenance}]}' "$BACKTEST"
+```
+
+**READ-ONLY — review overall errors, regimes, daily extrema, coverage, and physics:**
+
+```bash
+set -euo pipefail
+: "${STATE_ROOT:?}"
+BACKTEST="$STATE_ROOT/models/backtest-report.json"
+jq -e 'select(.schema == "earthship-thermal-backtest/v2")
+  | select(.metrics.promotion.gates.physics_valid == true)
+  | {overall:.metrics.overall,
+     by_regime:.metrics.by_regime,
+     extrema:.metrics.daily,
+     coverage:.metrics.prediction_interval_coverage,
+     physics:.metrics.promotion.gates.physics_valid}' "$BACKTEST"
+```
+
+**READ-ONLY — artifact provenance, digests, and private modes:**
 
 ```bash
 set -euo pipefail
 : "${STATE_ROOT:?}"
 : "${LIVE_RUNTIME_REVISION:?}"
-ARTIFACT_REVISION="$(jq -e -r '.code_revision | select(type == "string" and length == 64)' "$STATE_ROOT/models/accepted.json")"
+CANDIDATE="$STATE_ROOT/models/candidate.json"
+BACKTEST="$STATE_ROOT/models/backtest-report.json"
+ARTIFACT_REVISION="$(jq -e -r '.code_revision | select(type == "string" and length == 64)' "$CANDIDATE")"
 test "$ARTIFACT_REVISION" = "$LIVE_RUNTIME_REVISION"
-```
-
-**READ-ONLY — local shadow validation, size, and private modes:**
-
-```bash
-set -euo pipefail
-: "${STATE_ROOT:?}"
-/usr/bin/python3 /home/sat/earthship-ui/openhab/scripts/validate_thermal_shadow.py \
-  < "$STATE_ROOT/review/shadow-local.json"
-LOCAL_BYTES="$(wc -c < "$STATE_ROOT/review/shadow-local.json")"
-test "$LOCAL_BYTES" -lt 16384
-for FILE in "$STATE_ROOT/models/accepted.json" \
-  "$STATE_ROOT/models/backtest-report.json" \
-  "$STATE_ROOT/review/shadow-local.json"
+CANDIDATE_SHA256="$(sha256sum "$CANDIDATE" | awk '{print $1}')"
+BACKTEST_SHA256="$(sha256sum "$BACKTEST" | awk '{print $1}')"
+CANONICAL_ROWS_SHA256="$(jq -e -r '.data_manifest.canonical_rows_sha256
+  | select(type == "string" and length == 64)' "$CANDIDATE")"
+for FILE in "$CANDIDATE" "$BACKTEST"
 do
   FILE_MODE="$(stat -c %a "$FILE")"
   test "$FILE_MODE" = 600
 done
+printf 'candidate_sha256=%s\nbacktest_sha256=%s\ncanonical_rows_sha256=%s\n' \
+  "$CANDIDATE_SHA256" "$BACKTEST_SHA256" "$CANONICAL_ROWS_SHA256"
 ```
 
-Stop and present this evidence before Gate B. Stop on refusal, leakage,
-invalid physics, unexplained exclusions, missing
-baseline, unavailable confidence, revision mismatch, size failure, or weak
-mode.
+Stop and present this evidence before Gate B. Any false gate terminates Gate A
+before shadow publication, an OpenHAB Item write, unit installation or start,
+or timer enablement. Also stop on refusal, leakage, invalid physics, unexplained
+exclusions, missing baseline, unavailable confidence, revision mismatch, digest
+failure, or weak mode.
+
+A fully passing Gate A requests separate Gate B approval; it does not authorize Gate B
+or any publication or systemd action.
 
 ## 5. Gate B: sole observational Item and state writes
 

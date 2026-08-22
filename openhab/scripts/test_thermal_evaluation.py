@@ -8,10 +8,17 @@ import pytest
 from zoneinfo import ZoneInfo
 
 from thermal_model.dynamics import predict_step
-from thermal_model.dataset import ThermalDataset
+from thermal_model.artifacts import ArtifactRegistry
+from thermal_model.dataset import RADIATION_PROVENANCE_LABELS, ThermalDataset
+from thermal_model.dataset import build_samples, dataset_manifest
 from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS
 from thermal_model.evaluation import threshold_advisory, walk_forward_evaluate
 from thermal_model.schema import BehaviorModel, DynamicsModel, ThermalSample
+from test_thermal_dataset import (
+    EVERY_CHANGE_END,
+    EVERY_CHANGE_START,
+    every_change_history,
+)
 
 
 STEP = timedelta(minutes=5)
@@ -118,6 +125,108 @@ def test_walk_forward_never_trains_on_or_after_prediction_day():
     assert 72 not in report["folds"][-1]["horizons_hours"]
 
 
+def test_walk_forward_v2_folds_reconcile_local_radiation_provenance():
+    rows = samples_45_days()
+    provenance = {
+        row.at: RADIATION_PROVENANCE_LABELS[index % len(RADIATION_PROVENANCE_LABELS)]
+        for index, row in enumerate(rows)
+    }
+    dataset = ThermalDataset(
+        rows,
+        start=rows[0].at,
+        end=rows[-1].at + STEP,
+        rejected_counts={},
+        auxiliary_exclusion_counts={},
+        radiation_provenance_by_at=provenance,
+    )
+
+    report = walk_forward_evaluate(dataset, fit=lambda train: fixed_model())
+
+    assert report["schema"] == "earthship-thermal-backtest/v2"
+    assert report["folds"]
+    for fold in report["folds"]:
+        assert set(fold["radiation_provenance"]) == {
+            "training", "evaluation_targets"
+        }
+        assert set(fold["radiation_provenance"]["training"]) == set(
+            RADIATION_PROVENANCE_LABELS
+        )
+        assert set(fold["radiation_provenance"]["evaluation_targets"]) == set(
+            RADIATION_PROVENANCE_LABELS
+        )
+        assert sum(fold["radiation_provenance"]["training"].values()) == fold[
+            "training_row_count"
+        ]
+        assert sum(
+            fold["radiation_provenance"]["evaluation_targets"].values()
+        ) == fold["evaluation_target_row_count"]
+    assert sum(
+        fold["training_row_count"] for fold in report["folds"]
+    ) > len(rows)
+
+
+def test_walk_forward_v2_report_passes_exact_registry_validation(tmp_path):
+    report = walk_forward_evaluate(
+        samples_45_days(), fit=lambda train: fixed_model()
+    )
+
+    ArtifactRegistry(tmp_path).save_backtest_report(report)
+
+    assert ArtifactRegistry(tmp_path).backtest_report_path.exists()
+
+
+def test_every_change_history_recovers_regime_coverage_deterministically():
+    def build_evidence():
+        rows, actions, modes = every_change_history()
+        dataset = build_samples(
+            rows, actions, modes, EVERY_CHANGE_START, EVERY_CHANGE_END
+        )
+        return (
+            dataset_manifest(dataset, actions, modes),
+            walk_forward_evaluate(dataset, fit=lambda train: fixed_model()),
+        )
+
+    first_manifest, first_report = build_evidence()
+    second_manifest, second_report = build_evidence()
+
+    assert json.dumps(
+        first_manifest, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode() == json.dumps(
+        second_manifest, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+    assert (
+        first_manifest["canonical_rows_sha256"]
+        == second_manifest["canonical_rows_sha256"]
+    )
+    assert [fold["prediction_start"] for fold in first_report["folds"]] == [
+        fold["prediction_start"] for fold in second_report["folds"]
+    ]
+    assert json.dumps(
+        first_report, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode() == json.dumps(
+        second_report, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+    assert (
+        first_report["metrics"]["overall"]["model"]["air"]["24"]["count"]
+        >= 30
+    )
+    assert first_report["metrics"]["promotion"]["gates"][
+        "at_least_two_24h_regimes"
+    ] is True
+    assert first_report["metrics"]["promotion"]["gates"][
+        "at_least_30_scored_24h_folds"
+    ] is True
+    assert (
+        first_report["metrics"]["by_regime"]["winter"]["model"]["air"]["24"]["count"]
+        >= 15
+    )
+    assert (
+        first_report["metrics"]["by_regime"]["warm"]["model"]["air"]["24"]["count"]
+        >= 15
+    )
+    assert first_report["metrics"] == second_report["metrics"]
+
+
 def test_walk_forward_chooses_daily_origin_with_longest_continuous_future():
     rows = samples_45_days()
     target_day = rows[20 * 24 * 12].at.date()
@@ -213,9 +322,9 @@ def test_report_contains_required_metrics_baselines_splits_and_shadow_gates():
         < metrics["overall"]["persistence"]["air"]["24"]["mae"]
     )
     assert metrics["overall"]["recent_cycle"]["air"]["72"]["count"] > 0
-    assert metrics["by_regime"]["warm"]["air"]["24"]["count"] > 0
-    assert metrics["by_regime"]["winter"] == {}
-    assert metrics["by_regime"]["shoulder"] == {}
+    assert metrics["by_regime"]["warm"]["model"]["air"]["24"]["count"] > 0
+    assert metrics["by_regime"]["winter"]["model"]["air"]["24"]["count"] == 0
+    assert metrics["by_regime"]["shoulder"]["model"]["air"]["24"]["count"] == 0
     assert metrics["by_provenance"]["confirmed"]["air"]["24"]["count"] > 0
     assert metrics["daily"]["hallway_high_f"]["count"] > 0
     assert metrics["daily"]["hallway_low_f"]["count"] > 0
@@ -224,15 +333,18 @@ def test_report_contains_required_metrics_baselines_splits_and_shadow_gates():
     assert metrics["prediction_interval_coverage"]["air"]["24"]["count"] > 0
 
     promotion = metrics["promotion"]
-    assert promotion["eligible"] is True
     assert promotion["shadow_only"] is True
     assert set(promotion["gates"]) == {
         "physics_valid",
         "finite_metrics",
         "at_least_two_folds",
         "air_24h_beats_persistence",
+        "at_least_30_scored_24h_folds",
+        "at_least_two_24h_regimes",
     }
-    assert all(promotion["gates"].values())
+    assert promotion["gates"]["at_least_30_scored_24h_folds"] is True
+    assert promotion["gates"]["at_least_two_24h_regimes"] is False
+    assert promotion["eligible"] is False
 
 
 def test_missing_future_samples_omit_only_uncovered_horizons_and_report_is_deterministic():

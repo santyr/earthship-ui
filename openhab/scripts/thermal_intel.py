@@ -43,6 +43,7 @@ RUNTIME_REVISION_PATHS = (
     "thermal_model/journal.py",
     "thermal_model/pipeline.py",
     "thermal_model/schema.py",
+    "thermal_model/solar.py",
 )
 
 

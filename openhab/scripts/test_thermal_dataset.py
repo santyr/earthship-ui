@@ -2,16 +2,20 @@ import json
 import math
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import pytest
 
+import thermal_model.dataset as dataset_module
 from thermal_model.dataset import (
     MASS_OBSERVER_TAU_MINUTES,
+    ThermalDataset,
     build_samples,
     dataset_manifest,
     latent_mass_from_series,
 )
 from thermal_model.actions import reconstruct_events, reconstruct_state
+from thermal_model.solar import is_astronomical_night, solar_elevation_sin
 from thermal_model.schema import (
     ActionEvent,
     ModeEvent,
@@ -24,6 +28,38 @@ UTC = timezone.utc
 START = datetime(2026, 8, 13, tzinfo=UTC)
 END = START + timedelta(hours=2)
 HOUR = timedelta(hours=1)
+NIGHT_START = datetime(2026, 8, 13, 6, 0, tzinfo=UTC)
+DAY_START = datetime(2026, 8, 13, 18, 0, tzinfo=UTC)
+EXPECTED_RADIATION_PROVENANCE_LABELS = (
+    "observed",
+    "interpolated",
+    "held",
+    "astronomical_night_zero",
+)
+EVERY_CHANGE_START = datetime(2026, 1, 1, tzinfo=ZoneInfo("America/Denver"))
+EVERY_CHANGE_END = EVERY_CHANGE_START + timedelta(days=45)
+
+
+def five_minute_range(start, end):
+    cursor = start
+    while cursor < end:
+        yield cursor
+        cursor += timedelta(minutes=5)
+
+
+def synthetic_radiation(at):
+    return 0.0 if is_astronomical_night(at) else 800.0 * solar_elevation_sin(at)
+
+
+def every_change_radiation(start, end):
+    rows = []
+    previous = None
+    for at in five_minute_range(start, end):
+        value = synthetic_radiation(at)
+        if value != previous:
+            rows.append((at, value))
+            previous = value
+    return rows
 
 
 def action(
@@ -90,6 +126,50 @@ def fixture_series(*, gap_minutes=0, glazing=True):
             if role != "glazing" or glazing:
                 rows[role].append((at, value))
     return rows
+
+
+def constant_series(start, end):
+    rows = {role: [] for role in THERMAL_ITEMS}
+    cursor = start
+    while cursor < end:
+        for role, value in {
+            "air": 72.0,
+            "mass": 70.0,
+            "glazing": 73.0,
+            "outdoor": 60.0,
+            "radiation": 0.0,
+        }.items():
+            rows[role].append((cursor, value))
+        cursor += timedelta(minutes=5)
+    return rows
+
+
+def every_change_history(start=EVERY_CHANGE_START, end=EVERY_CHANGE_END):
+    rows = {role: [] for role in THERMAL_ITEMS}
+    for at in five_minute_range(start, end):
+        solar = max(0.0, solar_elevation_sin(at))
+        phase = 2.0 * math.pi * (at.hour * 60 + at.minute) / 1440.0
+        values = {
+            "air": 68.0 + 3.0 * math.sin(phase - math.pi / 3.0),
+            "mass": 66.0 + 1.5 * math.sin(phase - math.pi / 2.0),
+            "glazing": 67.0 + 5.0 * solar,
+            "outdoor": 46.0 + 24.0 * solar,
+        }
+        for role, value in values.items():
+            rows[role].append((at, value))
+    rows["radiation"] = every_change_radiation(start, end)
+    actions = [
+        action("every-change-vent", "vent", "closed", start),
+        action("every-change-indoor", "indoor_shade", "open", start),
+        action("every-change-outdoor", "outdoor_shade", "absent", start),
+    ]
+    modes = [
+        mode_event("winter", start, event_id="every-change-winter"),
+        mode_event(
+            "warm", start + timedelta(days=30), event_id="every-change-warm"
+        ),
+    ]
+    return rows, actions, modes
 
 
 def fully_labeled_events(at=START):
@@ -200,6 +280,185 @@ def test_every_change_alignment_refuses_gaps_over_sixty_minutes():
     assert not any(
         START < sample.at < START + timedelta(minutes=65)
         for sample in samples
+    )
+
+
+def test_astronomical_night_reconstruction_preserves_ordinary_precedence():
+    end = NIGHT_START + timedelta(hours=2)
+    rows = constant_series(NIGHT_START, end)
+    rows["radiation"] = [
+        (NIGHT_START, 11.0),
+        (NIGHT_START + timedelta(minutes=10), 13.0),
+        (NIGHT_START + timedelta(minutes=40), 17.0),
+    ]
+
+    dataset = build_samples(
+        rows, fully_labeled_events(NIGHT_START), [], NIGHT_START, end
+    )
+    by_at = {sample.at: sample for sample in dataset}
+
+    assert by_at[NIGHT_START].radiation_wm2 == 11.0
+    assert dataset.radiation_provenance_by_at[NIGHT_START] == "observed"
+    assert by_at[NIGHT_START + timedelta(minutes=5)].radiation_wm2 == 12.0
+    assert (
+        dataset.radiation_provenance_by_at[
+            NIGHT_START + timedelta(minutes=5)
+        ]
+        == "interpolated"
+    )
+    assert by_at[NIGHT_START + timedelta(minutes=35)].radiation_wm2 == 13.0
+    assert (
+        dataset.radiation_provenance_by_at[
+            NIGHT_START + timedelta(minutes=35)
+        ]
+        == "held"
+    )
+    reconstructed_at = NIGHT_START + timedelta(minutes=105)
+    assert by_at[reconstructed_at].radiation_wm2 == 0.0
+    assert (
+        dataset.radiation_provenance_by_at[reconstructed_at]
+        == "astronomical_night_zero"
+    )
+
+
+def test_night_reconstruction_never_fills_day_nonfinite_or_temperature_gaps():
+    night_end = NIGHT_START + timedelta(hours=2)
+    rows = constant_series(NIGHT_START, night_end)
+    rows["radiation"] = [
+        (NIGHT_START + timedelta(minutes=15), math.nan),
+    ]
+    rows["air"][6] = (NIGHT_START + timedelta(minutes=30), math.nan)
+
+    night = build_samples(
+        rows, fully_labeled_events(NIGHT_START), [], NIGHT_START, night_end
+    )
+    accepted = {sample.at for sample in night}
+
+    assert NIGHT_START in accepted
+    assert NIGHT_START + timedelta(minutes=15) not in accepted
+    assert NIGHT_START + timedelta(minutes=30) not in accepted
+
+    day_end = DAY_START + timedelta(hours=2)
+    day_rows = constant_series(DAY_START, day_end)
+    day_rows["radiation"] = []
+    daylight_gap_dataset = build_samples(
+        day_rows, fully_labeled_events(DAY_START), [], DAY_START, day_end
+    )
+    assert DAY_START not in {sample.at for sample in daylight_gap_dataset}
+    assert daylight_gap_dataset == []
+
+
+def test_every_change_radiation_history_recovers_continuous_nights():
+    rows, actions, modes = every_change_history()
+    dataset = build_samples(
+        rows, actions, modes, EVERY_CHANGE_START, EVERY_CHANGE_END
+    )
+    radiation_rows = rows["radiation"]
+
+    assert len(radiation_rows) < len(rows["air"])
+    assert all(
+        value == 0.0
+        for at, value in radiation_rows
+        if is_astronomical_night(at)
+    )
+    assert all(
+        not is_astronomical_night(next_at)
+        for (_, value), (next_at, _) in zip(radiation_rows, radiation_rows[1:])
+        if value == 0.0
+    )
+    assert len(dataset) == 45 * 24 * 12
+    assert set(sample.mode for sample in dataset) == {"winter", "warm"}
+    assert sum(
+        provenance == "astronomical_night_zero"
+        for provenance in dataset.radiation_provenance_by_at.values()
+    ) > 45 * 12
+
+
+def test_every_change_history_keeps_daylight_and_mass_gaps_rejected():
+    def gap_start():
+        return next(
+            at
+            for at in five_minute_range(EVERY_CHANGE_START, EVERY_CHANGE_END)
+            if all(
+                not is_astronomical_night(candidate)
+                for candidate in five_minute_range(
+                    at, at + timedelta(minutes=75)
+                )
+            )
+        )
+
+    missing_start = gap_start()
+    expected_gap = missing_start + timedelta(minutes=65)
+
+    for role in ("radiation", "mass"):
+        rows, actions, modes = every_change_history()
+        rows[role] = [
+            point
+            for point in rows[role]
+            if not missing_start <= point[0] < missing_start + timedelta(minutes=70)
+        ]
+        dataset = build_samples(
+            rows, actions, modes, EVERY_CHANGE_START, EVERY_CHANGE_END
+        )
+
+        assert expected_gap not in {sample.at for sample in dataset}
+        assert dataset.rejected_counts["source_gap"] > 0
+
+
+def test_manifest_partitions_radiation_provenance_and_binds_it_to_digest():
+    end = NIGHT_START + timedelta(hours=2)
+    rows = constant_series(NIGHT_START, end)
+    rows["radiation"] = [
+        (NIGHT_START, 1.0),
+        (NIGHT_START + timedelta(minutes=10), 3.0),
+        (NIGHT_START + timedelta(minutes=40), 5.0),
+    ]
+    events = fully_labeled_events(NIGHT_START)
+    dataset = build_samples(rows, events, [], NIGHT_START, end)
+
+    manifest = dataset_manifest(dataset, events, [])
+
+    assert tuple(manifest.get("radiation_provenance_counts", ())) == (
+        EXPECTED_RADIATION_PROVENANCE_LABELS
+    )
+    assert sum(manifest["radiation_provenance_counts"].values()) == len(dataset)
+    assert manifest["radiation_provenance_counts"]["observed"] == 3
+    assert manifest["radiation_provenance_counts"]["interpolated"] == 1
+    assert manifest["radiation_provenance_counts"]["held"] == 17
+    assert (
+        manifest["radiation_provenance_counts"]["astronomical_night_zero"]
+        == len(dataset) - 21
+    )
+    assert hasattr(dataset_module, "radiation_reconstruction_contract")
+    assert dataset_module.radiation_reconstruction_contract() == {
+        "rule": "missing_at_solar_elevation_lte_zero_becomes_zero",
+        "night_value_wm2": 0.0,
+        "solar": {
+            "rule": "earthship-solar-elevation/v1",
+            "latitude": 38.3739919,
+            "longitude": -105.7744609,
+            "night_when_elevation_sin_lte": 0.0,
+        },
+        "provenance_labels": list(EXPECTED_RADIATION_PROVENANCE_LABELS),
+    }
+
+    changed_provenance = dict(dataset.radiation_provenance_by_at)
+    changed_provenance[dataset[0].at] = "held"
+    mutation = ThermalDataset(
+        dataset,
+        start=dataset.start,
+        end=dataset.end,
+        rejected_counts=dataset.rejected_counts,
+        auxiliary_exclusion_counts=dataset.auxiliary_exclusion_counts,
+        confirmed_action_rows=dataset.confirmed_action_rows,
+        interpolation_counts=dataset.interpolation_counts,
+        hold_forward_counts=dataset.hold_forward_counts,
+        radiation_provenance_by_at=changed_provenance,
+    )
+    mutated_manifest = dataset_manifest(mutation, events, [])
+    assert (
+        mutated_manifest["canonical_rows_sha256"]
+        != manifest["canonical_rows_sha256"]
     )
 
 

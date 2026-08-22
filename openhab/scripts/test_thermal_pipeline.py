@@ -10,6 +10,7 @@ import pytest
 from thermal_model.artifacts import ArtifactPromotionRefused, ArtifactUnavailable
 from thermal_model.behavior import FEATURE_NAMES, TRANSITIONS, baseline_schedule
 from thermal_model.dataset import ThermalDataset
+from thermal_model.evaluation import walk_forward_evaluate
 from thermal_model.pipeline import (
     TrainingRefused,
     build_shadow_output,
@@ -30,6 +31,11 @@ from thermal_model.schema import (
     THERMAL_ITEMS,
     ThermalSample,
     validate_shadow_output,
+)
+from test_thermal_dataset import (
+    EVERY_CHANGE_END,
+    EVERY_CHANGE_START,
+    every_change_history,
 )
 
 
@@ -657,16 +663,18 @@ def mode_event():
 
 
 def backtest_report(*, eligible=False):
-    model_summary = {"count": 2, "mae": 0.5, "rmse": 0.6, "bias": 0.0}
-    persistence_summary = {"count": 2, "mae": 1.0, "rmse": 1.1, "bias": 0.0}
+    model_summary = {"count": 30, "mae": 0.5, "rmse": 0.6, "bias": 0.0}
+    persistence_summary = {"count": 30, "mae": 1.0, "rmse": 1.1, "bias": 0.0}
     gates = {
         "physics_valid": True,
         "finite_metrics": True,
         "at_least_two_folds": True,
         "air_24h_beats_persistence": eligible,
+        "at_least_30_scored_24h_folds": True,
+        "at_least_two_24h_regimes": True,
     }
     return {
-        "schema": "earthship-thermal-backtest/v1",
+        "schema": "earthship-thermal-backtest/v2",
         "generated_at": NOW.isoformat().replace("+00:00", "Z"),
         "data_range": {
             "start": (NOW - timedelta(days=30)).isoformat().replace("+00:00", "Z"),
@@ -675,13 +683,25 @@ def backtest_report(*, eligible=False):
         "folds": [],
         "prediction_records": [],
         "metrics": {
-            "fold_count": 2,
-            "scored_fold_count": 2,
+            "fold_count": 30,
+            "scored_fold_count": 30,
             "overall": {
                 "model": {"air": {"24": model_summary}},
                 "persistence": {"air": {"24": persistence_summary}},
             },
-            "by_regime": {},
+            "by_regime": {
+                regime: {
+                    "model": {"air": {"24": {
+                        **model_summary, "count": count,
+                    }}},
+                    "persistence": {"air": {"24": {
+                        **persistence_summary, "count": count,
+                    }}},
+                }
+                for regime, count in (
+                    ("warm", 15), ("winter", 15), ("shoulder", 0)
+                )
+            },
             "by_horizon": {},
             "by_provenance": {},
             "promotion": {
@@ -771,8 +791,20 @@ def test_training_assembles_exact_manifest_persists_report_then_refuses():
         "start", "end", "sample_count", "rejected_counts",
         "sample_counts_by_mode",
         "auxiliary_exclusion_counts", "event_counts_by_source", "items", "units",
-        "interpolation_counts", "hold_forward_counts", "canonical_rows_sha256", "fit_diagnostics", "constraints",
+        "interpolation_counts", "hold_forward_counts",
+        "radiation_provenance_counts", "canonical_rows_sha256",
+        "fit_diagnostics", "constraints",
     }
+    assert registry.artifact.schema == "earthship-thermal-model/v4"
+    assert registry.artifact.data_manifest["radiation_provenance_counts"] == {
+        "observed": 4,
+        "interpolated": 0,
+        "held": 0,
+        "astronomical_night_zero": 0,
+    }
+    assert registry.artifact.data_manifest["constraints"][
+        "radiation_reconstruction"
+    ]["rule"] == "missing_at_solar_elevation_lte_zero_becomes_zero"
     assert registry.artifact.data_manifest["items"] == {
         **THERMAL_ITEMS,
         **OPTIONAL_OBSERVATION_ITEMS,
@@ -872,6 +904,41 @@ def test_backtest_reads_authorities_and_persists_only_report():
 
     assert registry.calls == ["report"]
     assert report is registry.report
+
+
+def test_backtest_recovers_every_change_night_coverage_from_authorities():
+    rows, actions, modes = every_change_history()
+    series_by_item = {
+        THERMAL_ITEMS[role]: values for role, values in rows.items()
+    }
+
+    class EveryChangeJournal:
+        def effective_events(self, start, end):
+            assert (start, end) == (EVERY_CHANGE_START, EVERY_CHANGE_END)
+            return actions
+
+        def effective_modes(self, start, end):
+            assert (start, end) == (EVERY_CHANGE_START, EVERY_CHANGE_END)
+            return modes
+
+    registry = RecordingRegistry()
+    report = run_backtest(
+        start=EVERY_CHANGE_START,
+        end=EVERY_CHANGE_END,
+        registry=registry,
+        journal=EveryChangeJournal(),
+        series_reader=lambda item, start, end: series_by_item.get(item, ()),
+        evaluator=lambda samples, fit: walk_forward_evaluate(
+            samples, fit=lambda train: stable_dynamics()
+        ),
+    )
+
+    assert registry.calls == ["report"]
+    assert report is registry.report
+    assert report["metrics"]["overall"]["model"]["air"]["24"]["count"] >= 30
+    assert report["metrics"]["promotion"]["gates"][
+        "at_least_two_24h_regimes"
+    ] is True
 
 
 def test_shadow_output_write_is_atomic_and_compact(tmp_path):
