@@ -534,14 +534,14 @@ separate Gate B decision.
 - Modify: exact artifact/runbook validation where the manifest changes
 - Modify: corresponding focused tests
 
-- [ ] **Step 1: RED for deterministic short-gap alignment**
+- [x] **Step 1: RED for deterministic short-gap alignment**
 
 Prove one interior five- or ten-minute hole is linearly interpolated when the
 finite bracketing observations are at most 20 minutes apart. Prove no fill
 occurs across a larger gap, an explicit non-finite bucket, or a window edge.
 Require interpolation counts in the manifest.
 
-- [ ] **Step 2: RED for the causal latent-mass observer**
+- [x] **Step 2: RED for the causal latent-mass observer**
 
 Prove the observer uses only current/past north-wall values, has the exact
 120-minute time constant, resets across rejected gaps, preserves raw north-wall
@@ -549,20 +549,20 @@ observations, and leaves hallway as the primary air state. Add optional
 `LivingOffice_Shade_Temperature` ingestion and bounded hallway-difference
 diagnostics without making it required or action-authoritative.
 
-- [ ] **Step 3: RED for evidence-derived envelope identification**
+- [x] **Step 3: RED for evidence-derived envelope identification**
 
 Prove the closed-envelope coefficient is learned only from passive,
 vent-closed, radiation-at-most-20 W/m2 rows; then held fixed in the full air
 fit. Refuse insufficient/rank-deficient/nonpositive evidence. Retain ordered
 solar constraints and independent stability/range validation.
 
-- [ ] **Step 4: RED for chronological evaluation behavior**
+- [x] **Step 4: RED for chronological evaluation behavior**
 
 Prove early rank-deficient folds are recorded as unscored without aborting,
 later folds remain strictly chronological, and promotion still requires two
 scored folds plus the existing 24-hour hallway-versus-persistence gate.
 
-- [ ] **Step 5: Integrate and verify**
+- [x] **Step 5: Integrate and verify**
 
 Carry latent mass through training, behavior features, backtest targets,
 current-state initialization, and forecast simulation without changing the
@@ -570,6 +570,13 @@ shadow JSON schema. Run focused and full Python/JavaScript/build/Playwright/
 systemd verification, self-review the exact diff, commit, merge, install the
 new runtime through a fresh durable receipt, and rerun private Gate A. Stop
 before Gate B/C.
+
+Verified complete on 2026-08-22 against `main` at `d1ea546`: all four latent-mass
+RED behaviors are implemented and green (573 focused+full thermal/forecast Python
+tests, 1005 JS tests, build, Playwright, py_compile/pyflakes/systemd-analyze/
+`git diff --check` clean). Runtime installed through receipt
+`20260822T0740-MDT-thermal-v4-d1ea546`; private Gate A retraining is executed by
+the attended agent separately.
 
 ## Approved latent-mass implementation notes
 
