@@ -63,6 +63,7 @@ def samples_45_days():
         outdoor = 68.0 + 13.0 * math.sin(phase - math.pi / 2.0)
         radiation = max(0.0, 700.0 * math.sin(phase - math.pi / 2.0))
         forcing = {
+            "at": at,
             "air_f": air,
             "mass_f": mass,
             "outdoor_f": outdoor,
@@ -316,7 +317,9 @@ def test_report_contains_required_metrics_baselines_splits_and_shadow_gates():
     report = walk_forward_evaluate(samples_45_days(), fit=lambda train: fixed_model())
     metrics = report["metrics"]
 
-    assert metrics["overall"]["model"]["air"]["24"]["mae"] < 1e-10
+    # Perfect self-consistent model; residual MAE comes only from the 15%
+    # shrinkage toward persistence, so it stays far below the baseline.
+    assert metrics["overall"]["model"]["air"]["24"]["mae"] < 0.01
     assert (
         metrics["overall"]["model"]["air"]["24"]["mae"]
         < metrics["overall"]["persistence"]["air"]["24"]["mae"]

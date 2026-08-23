@@ -8,6 +8,10 @@ SOLAR_ELEVATION_RULE = "earthship-solar-elevation/v1"
 SITE_LATITUDE = 38.3739919
 SITE_LONGITUDE = -105.7744609
 NIGHT_WHEN_ELEVATION_SIN_LTE = 0.0
+CLEAR_SKY_RULE = "earthship-clear-sky-fraction/v1"
+CLEAR_SKY_IRRADIANCE_WM2 = 1050.0
+CLEAR_SKY_EXPONENT = 1.15
+CLEAR_SKY_MAX_FRACTION = 1.30
 
 
 def _aware(at):
@@ -63,3 +67,32 @@ def solar_elevation_sin(at):
 def is_astronomical_night(at):
     """Return whether an aware timestamp is at or below the solar horizon."""
     return solar_elevation_sin(at) <= NIGHT_WHEN_ELEVATION_SIN_LTE
+
+
+def clear_sky_expected_wm2(at):
+    """Deterministic site clear-sky global horizontal irradiance estimate."""
+    elevation_sin = solar_elevation_sin(at)
+    if elevation_sin <= 0.0:
+        return 0.0
+    return CLEAR_SKY_IRRADIANCE_WM2 * elevation_sin**CLEAR_SKY_EXPONENT
+
+
+def clear_sky_fraction(radiation_wm2, at):
+    """Return measured irradiance divided by the clear-sky expectation.
+
+    Zero at night, clamped to [0, CLEAR_SKY_MAX_FRACTION] so sensor spikes
+    cannot inject unbounded forcing. Cloud transients become fractions of a
+    sunny reference instead of absolute energy.
+    """
+    radiation = float(radiation_wm2)
+    if not math.isfinite(radiation):
+        raise ValueError("radiation must be finite")
+    if radiation <= 0.0:
+        return 0.0
+    expected = clear_sky_expected_wm2(at)
+    if expected <= 0.0:
+        return 0.0
+    fraction = radiation / expected
+    if fraction > CLEAR_SKY_MAX_FRACTION:
+        return CLEAR_SKY_MAX_FRACTION
+    return float(fraction)

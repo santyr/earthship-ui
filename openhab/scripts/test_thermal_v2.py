@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import numpy as np
@@ -39,6 +40,7 @@ def model(*, version=2, mass_air=0.01, mass_outside=0.01):
 
 def forcing(**changes):
     values = {
+        "at": datetime(2026, 1, 1, tzinfo=timezone.utc),
         "air_f": 80.0,
         "mass_f": 80.0,
         "outdoor_f": 60.0,

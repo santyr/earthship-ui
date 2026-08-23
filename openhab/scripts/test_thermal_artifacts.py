@@ -326,7 +326,7 @@ def valid_artifact(**changes):
                 "mass_bounds": [list(bound) for bound in MASS_BOUNDS],
                 "glazing_observation_bounds": [
                     [None, None, None, 0.0, 0.0, 0.0],
-                    [None, None, None, None, None, None],
+                    [None, None, None, 0.012, 0.003, None],
                 ],
                 "output_range_f": list(OUTPUT_RANGE_F),
                 "max_vent_forcing": MAX_VENT_FORCING,

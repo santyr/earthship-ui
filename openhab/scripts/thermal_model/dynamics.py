@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import math
 
@@ -10,6 +10,7 @@ import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, lsq_linear, minimize
 
 from .schema import DynamicsModel
+from .solar import clear_sky_fraction
 
 
 STEP = timedelta(minutes=5)
@@ -53,10 +54,13 @@ MASS_BOUNDS = (
 )
 GLAZING_BOUNDS = (
     [-np.inf, -np.inf, -np.inf, 0.0, 0.0, 0.0],
-    [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf],
+    [np.inf, np.inf, np.inf, 0.012, 0.003, np.inf],
 )
 OUTPUT_RANGE_F = (-40.0, 140.0)
 MAX_VENT_FORCING = 2.0
+# Clear-sky-normalized solar terms live on [0, ~1.3]; scale to ~1000 W/m2
+# equivalent magnitude so existing coefficient bounds keep physical meaning.
+SOLAR_TERM_SCALE = 1000.0
 VENT_FORCING_LEVELS = (
     ("closed", 0.0),
     ("baseline", 1.0),
@@ -259,10 +263,14 @@ def _solar_terms(row):
     indoor_closed = indoor
     outdoor_shaded = (1.0 - indoor) * outdoor
     radiation = _value(row, "radiation_wm2")
+    at = _value(row, "at")
+    if at is None:
+        raise ValueError("solar forcing requires a timezone-aware timestamp")
+    normalized = clear_sky_fraction(radiation, at)
     return (
-        radiation * unshaded,
-        radiation * indoor_closed,
-        radiation * outdoor_shaded,
+        SOLAR_TERM_SCALE * normalized * unshaded,
+        SOLAR_TERM_SCALE * normalized * indoor_closed,
+        SOLAR_TERM_SCALE * normalized * outdoor_shaded,
     )
 
 
@@ -1053,6 +1061,7 @@ def simulate(model, initial, forcings):
     results = []
     for forcing in forcings:
         row = {
+            "at": _value(forcing, "at"),
             "air_f": air,
             "mass_f": mass,
             "outdoor_f": _value(forcing, "outdoor_f"),
@@ -1165,6 +1174,7 @@ def validate_physics(model):
     _validate_transition_stability(model)
     for _, vent_forcing in VENT_FORCING_LEVELS:
         forcing = {
+            "at": datetime(2026, 1, 1, tzinfo=timezone.utc),
             "outdoor_f": 70.0,
             "radiation_wm2": 0.0,
             "vent_open": vent_forcing,

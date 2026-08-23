@@ -992,6 +992,7 @@ def _forcing_rows(rows, schedule):
             indoor_closed = float(_shade_state_at(schedule, at) == "closed")
         forcings.append(
             {
+                "at": at,
                 "outdoor_f": float(_value(row, "outdoor_f")),
                 "radiation_wm2": float(_value(row, "radiation_wm2")),
                 "vent_open": vent,

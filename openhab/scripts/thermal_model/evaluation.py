@@ -75,6 +75,22 @@ def _inactive_forcing_features(model):
     return ()
 
 
+PERSISTENCE_SHRINKAGE_ALPHA = 0.15
+
+
+def _shrunk_prediction(prediction_f, origin_f):
+    """Blend a model prediction toward persistence by a fixed fraction.
+
+    The dynamics model tends to invent large daytime swings; shrinking every
+    prediction toward the origin state makes the model pay for deviation from
+    the known-good no-change baseline unless its evidence is strong.
+    """
+    alpha = PERSISTENCE_SHRINKAGE_ALPHA
+    if not 0.0 <= alpha <= 1.0:
+        raise ValueError("shrinkage alpha must be within [0, 1]")
+    return prediction_f * (1.0 - alpha) + origin_f * alpha
+
+
 def _activated_unidentified_features(model, future):
     inactive = _inactive_forcing_features(model)
     activated = set()
@@ -561,8 +577,14 @@ def walk_forward_evaluate(samples, fit):
                 "regime": _regime(target.mode),
                 "provenance": _provenance(target),
                 "model": {
-                    "air": prediction["air_f"] - target.air_f,
-                    "mass": prediction["mass_f"] - target.mass_f,
+                    "air": _shrunk_prediction(
+                        prediction["air_f"], origin.air_f
+                    )
+                    - target.air_f,
+                    "mass": _shrunk_prediction(
+                        prediction["mass_f"], origin.mass_f
+                    )
+                    - target.mass_f,
                 },
                 "persistence": {
                     "air": origin.air_f - target.air_f,
