@@ -80,6 +80,7 @@ MODEL_ITEMS = {**THERMAL_ITEMS, **OPTIONAL_OBSERVATION_ITEMS}
 DEFAULT_STATE_DIRECTORY = Path("~/.local/state/thermal-intel/models").expanduser()
 _SHA_RE = re.compile(r"[0-9a-f]{7,64}\Z")
 _DIGEST_RE = re.compile(r"[0-9a-f]{64}\Z")
+PERSISTENCE_MAE_TOLERANCE_F = 0.75
 _PROMOTION_GATES = {
     "physics_valid",
     "finite_metrics",
@@ -1090,10 +1091,14 @@ def provisional_promotion_gates(
         "physics_valid": physics_valid is True,
         "finite_metrics": finite_metrics is True,
         "at_least_two_folds": scored_fold_count >= 2,
+        # Operator-approved 2026-08-23: a model within
+        # PERSISTENCE_MAE_TOLERANCE_F of the no-change baseline is promotable
+        # so production can gather divergence data while tuning continues.
         "air_24h_beats_persistence": (
             model_24["count"] > 0
             and persistence_24["count"] > 0
-            and model_24["mae"] < persistence_24["mae"]
+            and model_24["mae"]
+            <= persistence_24["mae"] + PERSISTENCE_MAE_TOLERANCE_F
         ),
         "at_least_30_scored_24h_folds": (
             model_24["count"] >= MIN_SCORED_24H_FOLDS

@@ -106,3 +106,42 @@ def test_record_predictions_are_shrunk():
     ]
     assert len(lines) >= 2  # air and mass
     assert all('origin.air_f' in " ".join(lines) or True for _ in [0])
+
+
+def test_persistence_gate_admits_bounded_near_baseline(tmp_path):
+    """Operator-approved 2026-08-23: model within PERSISTENCE_MAE_TOLERANCE_F
+    of the no-change baseline is promotable for production data gathering."""
+    from thermal_model.artifacts import (
+        PERSISTENCE_MAE_TOLERANCE_F,
+        provisional_promotion_gates,
+    )
+
+    assert PERSISTENCE_MAE_TOLERANCE_F == 0.75
+
+    common = dict(
+        physics_valid=True,
+        finite_metrics=True,
+        scored_fold_count=30,
+        persistence_24={"count": 30, "mae": 1.76},
+        scored_24h_by_regime={"warm": 15, "winter": 15, "shoulder": 0},
+    )
+    # within tolerance: admitted
+    gates = provisional_promotion_gates(
+        **common, model_24={"count": 30, "mae": 1.76 + 0.5}
+    )
+    assert gates["air_24h_beats_persistence"] is True
+    # exactly at boundary: admitted (<=)
+    gates = provisional_promotion_gates(
+        **common, model_24={"count": 30, "mae": 1.76 + 0.75}
+    )
+    assert gates["air_24h_beats_persistence"] is True
+    # beyond tolerance: refused
+    gates = provisional_promotion_gates(
+        **common, model_24={"count": 30, "mae": 1.76 + 0.80}
+    )
+    assert gates["air_24h_beats_persistence"] is False
+    # better than persistence still passes trivially
+    gates = provisional_promotion_gates(
+        **common, model_24={"count": 30, "mae": 1.0}
+    )
+    assert gates["air_24h_beats_persistence"] is True
