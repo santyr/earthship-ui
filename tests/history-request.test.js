@@ -65,6 +65,43 @@ describe('history request generation', () => {
     expect(empty.state).toBe('empty');
   });
 
+  it('omits malformed rows only when the caller selects tolerant validation', async () => {
+    const rows = [
+      { time: NOW - 3_000, state: '100000 USD' },
+      { time: 'not-a-time', state: '100100 USD' },
+      { time: NOW - 2_000, state: 'UNDEF' },
+      { time: NOW - 1_000, state: '100200 EUR' },
+      { time: NOW, state: '100300 $' },
+    ];
+    const result = await loadHistorySeries({
+      client: { getHistory: vi.fn().mockResolvedValue(rows) },
+      series: [{ name: 'BTC_USD_Price' }],
+      hours: 24,
+      nowMs: NOW,
+      invalidRowPolicy: 'omit',
+    });
+
+    expect(result.state).toBe('ready');
+    expect(result.errors).toEqual([]);
+    expect(result.pointsPerSeries).toEqual([[rows[0], rows[4]]]);
+  });
+
+  it('keeps malformed-row validation strict by default for line charts', async () => {
+    const result = await loadHistorySeries({
+      client: { getHistory: vi.fn().mockResolvedValue([
+        { time: NOW, state: '54 %' },
+        { time: NOW - 1_000, state: 'UNDEF' },
+      ]) },
+      series: [{ name: 'BMS_SOC' }],
+      hours: 24,
+      nowMs: NOW,
+    });
+
+    expect(result.state).toBe('error');
+    expect(result.pointsPerSeries).toEqual([[]]);
+    expect(result.errors[0].error.message).toMatch(/state/i);
+  });
+
   it('keeps completed series and times out every stalled series at one batch deadline', async () => {
     vi.useFakeTimers();
     const signals = [];

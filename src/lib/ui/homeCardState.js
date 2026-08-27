@@ -1,4 +1,5 @@
 import { num } from '../openhab/values.js';
+import { wmoIcon } from './wmo.js';
 
 export const HOME_STATE_COLORS = Object.freeze({
   positive: '#22c55e',
@@ -231,7 +232,11 @@ export function outdoorTemperatureIconColor(value) {
 export function outdoorConditionIcon(value) {
   const raw = value == null ? '' : String(value).trim();
   if (!raw || raw === 'NULL' || raw === 'UNDEF') return 'iconify:mdi:weather-partly-cloudy';
-  if (raw.startsWith('iconify:')) return raw;
+
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric)) return wmoIcon(numeric);
+  if (/^(?:iconify:)?(?:mdi|bi):[a-z0-9][a-z0-9-]*$/i.test(raw)) return raw;
+
   const normalized = raw.toLowerCase().replaceAll('_', '-').replace(/\s+/g, '-');
   if (normalized.includes('night') && /part(?:ly|ially)-cloudy/.test(normalized)) {
     return 'iconify:mdi:weather-night-partly-cloudy';

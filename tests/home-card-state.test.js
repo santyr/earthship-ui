@@ -356,6 +356,23 @@ describe('Home signed card state colors', () => {
   });
 
   it.each([
+    [0, 'mdi:weather-sunny'],
+    ['2', 'mdi:weather-partly-cloudy'],
+    [3, 'mdi:weather-cloudy'],
+  ])('routes finite WMO condition %s through the shared WMO icon map', (raw, expected) => {
+    expect(outdoorConditionIcon(raw)).toBe(expected);
+  });
+
+  it.each([
+    ['mdi:weather-sunny', 'mdi:weather-sunny'],
+    ['bi:cloud-sun-fill', 'bi:cloud-sun-fill'],
+    ['iconify:mdi:weather-rainy', 'iconify:mdi:weather-rainy'],
+    ['iconify:bi:sun-fill', 'iconify:bi:sun-fill'],
+  ])('preserves explicit OhIcon identifier %s', (raw, expected) => {
+    expect(outdoorConditionIcon(raw)).toBe(expected);
+  });
+
+  it.each([
     ['Partly Cloudy', 'iconify:mdi:weather-partly-cloudy'],
     ['partially cloudy', 'iconify:mdi:weather-partly-cloudy'],
     ['weather-night-partly-cloudy', 'iconify:mdi:weather-night-partly-cloudy'],

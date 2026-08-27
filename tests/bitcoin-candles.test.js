@@ -215,6 +215,36 @@ describe('Bitcoin candle ECharts options', () => {
     expect(option.animation).toBe(false);
   });
 
+  it('formats full subday axis and tooltip timestamps in browser-local time', () => {
+    const startMs = new Date(2026, 6, 18, 14, 5).getTime();
+    const option = buildBitcoinCandleOption({
+      candles: [{ ...candles[0], startMs }],
+      interval: { unit: 'minutes', value: 60 },
+    });
+    const expected = new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(startMs));
+
+    expect(option.xAxis.axisLabel.formatter(startMs)).toBe(expected);
+    const html = option.tooltip.formatter([{ axisValue: startMs, data: candles[0] }]);
+    expect(html).toContain(expected);
+  });
+
+  it('formats full daily axis timestamps as browser-local month and day', () => {
+    const startMs = new Date(2026, 6, 18).getTime();
+    const option = buildBitcoinCandleOption({
+      candles: [{ ...candles[0], startMs }],
+      interval: { unit: 'day', value: 1 },
+    });
+    const expected = new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(startMs));
+
+    expect(option.xAxis.axisLabel.formatter(startMs)).toBe(expected);
+  });
+
   it('removes compact-chart axes and tooltip while preserving a scaled candle series', () => {
     const option = buildBitcoinCandleOption({ candles, compact: true });
 

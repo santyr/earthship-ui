@@ -12,6 +12,14 @@ export const BITCOIN_CANDLE_COLORS = Object.freeze({
 const WHOLE_DOLLARS = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
+const LOCAL_SUBDAY_TIME = new Intl.DateTimeFormat(undefined, {
+  hour: 'numeric',
+  minute: '2-digit',
+});
+const LOCAL_MONTH_DAY = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+});
 
 export function bitcoinCandleInterval(hours) {
   if (hours === 4) return { unit: 'minutes', value: 15 };
@@ -71,10 +79,23 @@ function formatBitcoinPrice(value) {
   return Number.isFinite(value) ? '$' + WHOLE_DOLLARS.format(value) : '-';
 }
 
-function formatBitcoinCandleTooltip(params) {
+function formatBitcoinCandleTimestamp(value, interval) {
+  const timeMs = Number(value);
+  if (!Number.isFinite(timeMs)) return String(value ?? '');
+  const date = new Date(timeMs);
+  if (Number.isNaN(date.getTime())) return String(value ?? '');
+  return interval?.unit === 'day'
+    ? LOCAL_MONTH_DAY.format(date)
+    : LOCAL_SUBDAY_TIME.format(date);
+}
+
+function formatBitcoinCandleTooltip(params, interval) {
   const entry = (Array.isArray(params) ? params[0] : params) || {};
   const [open, close, low, high] = tooltipValues(entry);
-  const timestamp = entry.axisValueLabel ?? entry.axisValue ?? '';
+  const timestamp = formatBitcoinCandleTimestamp(
+    entry.axisValue ?? entry.axisValueLabel ?? '',
+    interval,
+  );
   return [
     '<div>' + escapeHtml(timestamp) + '</div>',
     '<div>Open: ' + escapeHtml(formatBitcoinPrice(open)) + '</div>',
@@ -84,7 +105,11 @@ function formatBitcoinCandleTooltip(params) {
   ].join('');
 }
 
-export function buildBitcoinCandleOption({ candles = [], compact = false } = {}) {
+export function buildBitcoinCandleOption({
+  candles = [],
+  compact = false,
+  interval = { unit: 'minutes', value: 60 },
+} = {}) {
   const source = Array.isArray(candles) ? candles : [];
   const hiddenAxis = compact ? { show: false } : {};
   return {
@@ -94,14 +119,23 @@ export function buildBitcoinCandleOption({ candles = [], compact = false } = {})
       : { left: 48, right: 16, top: 24, bottom: 32, containLabel: true },
     tooltip: compact
       ? { show: false }
-      : { trigger: 'axis', confine: true, formatter: formatBitcoinCandleTooltip },
+      : {
+        trigger: 'axis',
+        confine: true,
+        formatter: (params) => formatBitcoinCandleTooltip(params, interval),
+      },
     xAxis: {
       type: 'category',
       data: source.map(({ startMs }) => startMs),
       boundaryGap: true,
       axisLine: echartsTheme.categoryAxis.axisLine,
       axisTick: echartsTheme.categoryAxis.axisTick,
-      axisLabel: echartsTheme.categoryAxis.axisLabel,
+      axisLabel: compact
+        ? echartsTheme.categoryAxis.axisLabel
+        : {
+          ...echartsTheme.categoryAxis.axisLabel,
+          formatter: (value) => formatBitcoinCandleTimestamp(value, interval),
+        },
       splitLine: echartsTheme.categoryAxis.splitLine,
       ...hiddenAxis,
     },

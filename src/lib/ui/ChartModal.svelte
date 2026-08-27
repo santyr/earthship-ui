@@ -108,12 +108,13 @@
       let nextCandleDescription = '';
       let nextExtremaDescription = '';
       if ($chartStore.presentation === 'candlestick') {
+        const interval = bitcoinCandleInterval(activeHours);
         const candles = aggregateBitcoinCandles(pointsPerSeries[0] || [], {
-          interval: bitcoinCandleInterval(activeHours),
+          interval,
           startMs: latestNowMs - activeHours * 60 * 60 * 1_000,
           endMs: latestNowMs,
         });
-        option = buildBitcoinCandleOption({ candles });
+        option = buildBitcoinCandleOption({ candles, interval });
         nextCandleDescription = describeLatestBitcoinCandle(candles);
       } else {
         option = buildHistoryOption({
@@ -177,6 +178,7 @@
         hours: hoursVal,
         nowMs,
         signal: controller.signal,
+        invalidRowPolicy: $chartStore.presentation === 'candlestick' ? 'omit' : 'strict',
       });
     } catch (error) {
       if (controller.signal.aborted || myGen !== loadGen) return;

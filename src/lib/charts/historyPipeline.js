@@ -29,6 +29,44 @@ function parseState(state) {
   return Number.isFinite(value) ? { value, unit: match[2].trim() } : null;
 }
 
+function normalizeRow(row, index, units) {
+  const time = row?.time instanceof Date
+    ? row.time.getTime()
+    : typeof row?.time === 'number'
+      ? row.time
+      : new Date(row?.time).getTime();
+  const parsed = parseState(row?.state);
+  if (!Number.isFinite(time)) {
+    throw new HistoryDataError(`Invalid history timestamp at row ${index}`);
+  }
+  if (!parsed) {
+    throw new HistoryDataError(`Invalid history state at row ${index}`);
+  }
+  const explicitUnit = row?.unit == null ? '' : String(row.unit).trim();
+  if (explicitUnit && parsed.unit && explicitUnit !== parsed.unit) {
+    throw new HistoryDataError(`Conflicting history unit at row ${index}`);
+  }
+  const unit = explicitUnit || parsed.unit;
+  if (units && !units.has(unit)) {
+    throw new HistoryDataError(`Unsupported history unit: ${unit || '(unitless)'}`);
+  }
+  return { time, value: parsed.value, rawValue: parsed.value };
+}
+
+export function filterValidHistoryRows(rows, { allowedUnits } = {}) {
+  if (!Array.isArray(rows)) throw new HistoryDataError('History rows must be an array');
+  const units = allowedUnits ? new Set(allowedUnits) : null;
+  return rows.filter((row, index) => {
+    try {
+      normalizeRow(row, index, units);
+      return true;
+    } catch (error) {
+      if (error instanceof HistoryDataError) return false;
+      throw error;
+    }
+  });
+}
+
 export function normalizeHistory(rows, { allowedUnits } = {}) {
   const units = allowedUnits ? new Set(allowedUnits) : null;
   const byTimestamp = new Map();
@@ -38,31 +76,8 @@ export function normalizeHistory(rows, { allowedUnits } = {}) {
   }
 
   rows.forEach((row, index) => {
-    const time = row?.time instanceof Date
-      ? row.time.getTime()
-      : typeof row?.time === 'number'
-        ? row.time
-        : new Date(row?.time).getTime();
-    const parsed = parseState(row?.state);
-    if (!Number.isFinite(time)) {
-      throw new HistoryDataError(`Invalid history timestamp at row ${index}`);
-    }
-    if (!parsed) {
-      throw new HistoryDataError(`Invalid history state at row ${index}`);
-    }
-    const explicitUnit = row?.unit == null ? '' : String(row.unit).trim();
-    if (explicitUnit && parsed.unit && explicitUnit !== parsed.unit) {
-      throw new HistoryDataError(`Conflicting history unit at row ${index}`);
-    }
-    const unit = explicitUnit || parsed.unit;
-    if (units && !units.has(unit)) {
-      throw new HistoryDataError(`Unsupported history unit: ${unit || '(unitless)'}`);
-    }
-    byTimestamp.set(time, {
-      time,
-      value: parsed.value,
-      rawValue: parsed.value,
-    });
+    const point = normalizeRow(row, index, units);
+    byTimestamp.set(point.time, point);
   });
 
   return [...byTimestamp.values()].sort((left, right) => left.time - right.time);

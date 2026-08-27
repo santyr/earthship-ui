@@ -422,6 +422,27 @@ describe('ChartModal history periods', () => {
     },
   );
 
+  it('retains valid Bitcoin candles when persistence mixes malformed rows', async () => {
+    const pointTime = Date.now() - 60_000;
+    mocks.getHistory.mockResolvedValue([
+      { time: pointTime, state: '100000 USD' },
+      { time: 'not-a-time', state: '100250 USD' },
+      { time: pointTime, state: 'UNDEF' },
+      { time: pointTime, state: '99999 EUR' },
+      { time: pointTime + 1, state: '100500 $' },
+    ]);
+
+    render(ChartModal);
+    openBitcoinChart(24);
+
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series[0].data).toEqual([[100000, 100500, 100000, 100500]]);
+    expect(modalDescription().textContent).toContain(
+      'Latest candle: open $100,000, high $100,500, low $100,000, close $100,500.',
+    );
+  });
+
   it('clears stale candle OHLC immediately on reload, error, and empty history', async () => {
     const pointTime = Date.now() - 60_000;
     mocks.getHistory.mockResolvedValueOnce([

@@ -71,10 +71,18 @@ describe('Home tablet presentation contract', () => {
   it('uses local-day temperature extrema and renders an Indoor sparkline', () => {
     expect(home).toContain("fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature'");
     expect(home).toContain("fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature'");
-    expect(home).toContain("fetchHistorySafe('AmbientWeatherWS2902A_IndoorSensor_Temperature', 6)");
+    expect(home).toMatch(/fetchHistorySafe\(\s*'AmbientWeatherWS2902A_IndoorSensor_Temperature', 6, signal\)/);
     expect(home).toContain('<Sparkline data={indoorSpark}');
     expect(home).not.toContain('OutdoorTemp_24h_High');
     expect(home).not.toContain('IndoorTemp_24h_High');
+  });
+
+  it('cancels stale weather and Bitcoin refreshes and tears them down on destroy', () => {
+    expect(home).toContain("import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js'");
+    expect(home).toContain('temperatureRefresh.run(');
+    expect(home).toContain('bitcoinRefresh.run(');
+    expect(home).toContain('temperatureRefresh.destroy()');
+    expect(home).toContain('bitcoinRefresh.destroy()');
   });
 
   it('renders zero battery flow as a neutral stationary value', () => {

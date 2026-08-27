@@ -1,6 +1,6 @@
 import { createHistoryWindow, getSeriesRequestWindow } from './periods.js';
 import { getSeriesPolicy } from './seriesPolicy.js';
-import { normalizeHistory } from './historyPipeline.js';
+import { filterValidHistoryRows, normalizeHistory } from './historyPipeline.js';
 
 export const HISTORY_REQUEST_TIMEOUT_MS = 15_000;
 
@@ -23,6 +23,7 @@ export async function loadHistorySeries({
   hours,
   nowMs = Date.now(),
   signal,
+  invalidRowPolicy = 'strict',
 } = {}) {
   if (!client?.getHistory) throw new TypeError('A history client is required');
   if (signal?.aborted) throw abortReason(signal);
@@ -79,7 +80,9 @@ export async function loadHistorySeries({
     if (result.status === 'fulfilled') {
       const points = Array.isArray(result.value) ? result.value : [];
       try {
-        normalizeHistory(points, { allowedUnits: getSeriesPolicy(series[index]).allowedUnits });
+        const validation = { allowedUnits: getSeriesPolicy(series[index]).allowedUnits };
+        if (invalidRowPolicy === 'omit') return filterValidHistoryRows(points, validation);
+        normalizeHistory(points, validation);
         return points;
       } catch (error) {
         errors.push({ index, source: series[index], error });

@@ -25,7 +25,7 @@
       endMs,
       interval,
     });
-    chart.setOption(buildBitcoinCandleOption({ candles, compact: true }), true);
+    chart.setOption(buildBitcoinCandleOption({ candles, compact: true, interval }), true);
   }
 
   onMount(() => {

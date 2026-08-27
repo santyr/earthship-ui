@@ -16,6 +16,7 @@
   import OhIcon from '../lib/ui/OhIcon.svelte';
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
+  import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
   import {
     adaptCurrentAqi,
     batteryPowerFlowPresentation,
@@ -52,15 +53,16 @@
   // getClientOnce() can briefly be null right at boot (initOpenhab() in
   // App.svelte's onMount hasn't resolved yet), so retry a few times instead
   // of giving up on the first miss.
-  async function fetchHistorySafe(name, hours = 6) {
+  async function fetchHistorySafe(name, hours = 6, signal) {
     for (let attempt = 0; attempt < 10; attempt++) {
+      if (signal?.aborted) return [];
       const client = getClientOnce();
       if (client) {
         const now = Date.now();
         const starttime = new Date(now - hours * 3600 * 1000).toISOString();
         const endtime = new Date(now).toISOString();
         try {
-          return await client.getHistory(name, { starttime, endtime });
+          return await client.getHistory(name, { starttime, endtime, signal });
         } catch {
           return [];
         }
@@ -82,16 +84,20 @@
   let windGustMaxToday = $state(null);
   let loadToday = $state(null);
 
+  const temperatureRefresh = createLatestRefreshCoordinator();
+  const bitcoinRefresh = createLatestRefreshCoordinator();
+
   let wallClock = $state(Date.now());
   // Same retry pattern as fetchHistorySafe, but with explicit start/end
   // (used for the "today so far" load-energy integration, which needs
   // local-midnight-to-now rather than a rolling N-hour window).
-  async function fetchHistoryRange(name, starttime, endtime) {
+  async function fetchHistoryRange(name, starttime, endtime, signal) {
     for (let attempt = 0; attempt < 10; attempt++) {
+      if (signal?.aborted) return [];
       const client = getClientOnce();
       if (client) {
         try {
-          return await client.getHistory(name, { starttime, endtime });
+          return await client.getHistory(name, { starttime, endtime, signal });
         } catch {
           return [];
         }
@@ -137,14 +143,18 @@
   async function refreshTemperatureHistory() {
     const range = localDayHistoryRange(new Date());
     if (!range) return;
-    const [outdoorDay, indoorDay, indoorSixHours] = await Promise.all([
-      fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', range.starttime, range.endtime),
-      fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature', range.starttime, range.endtime),
-      fetchHistorySafe('AmbientWeatherWS2902A_IndoorSensor_Temperature', 6),
-    ]);
-    outdoorTodayHistory = outdoorDay;
-    indoorTodayHistory = indoorDay;
-    indoorSpark = indoorSixHours;
+    return temperatureRefresh.run(
+      (signal) => Promise.all([
+        fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', range.starttime, range.endtime, signal),
+        fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature', range.starttime, range.endtime, signal),
+        fetchHistorySafe('AmbientWeatherWS2902A_IndoorSensor_Temperature', 6, signal),
+      ]),
+      ([outdoorDay, indoorDay, indoorSixHours]) => {
+        outdoorTodayHistory = outdoorDay;
+        indoorTodayHistory = indoorDay;
+        indoorSpark = indoorSixHours;
+      },
+    );
   }
   async function refreshBattSpark() {
     battSpark = await fetchHistorySafe('BMS_SOC', 6);
@@ -156,12 +166,23 @@
   async function refreshBitcoinHistory() {
     const now = Date.now();
     const currentHour = Math.floor(now / 3_600_000) * 3_600_000;
-    btcHistoryStartMs = currentHour - 23 * 3_600_000;
-    btcHistoryEndMs = now;
-    btcHistory = await fetchHistoryRange(
-      'BTC_USD_Price',
-      new Date(btcHistoryStartMs).toISOString(),
-      new Date(btcHistoryEndMs).toISOString(),
+    const startMs = currentHour - 23 * 3_600_000;
+    return bitcoinRefresh.run(
+      async (signal) => ({
+        startMs,
+        endMs: now,
+        points: await fetchHistoryRange(
+          'BTC_USD_Price',
+          new Date(startMs).toISOString(),
+          new Date(now).toISOString(),
+          signal,
+        ),
+      }),
+      ({ startMs: nextStartMs, endMs: nextEndMs, points }) => {
+        btcHistoryStartMs = nextStartMs;
+        btcHistoryEndMs = nextEndMs;
+        btcHistory = points;
+      },
     );
   }
 
@@ -202,6 +223,8 @@
   });
 
   onDestroy(() => {
+    temperatureRefresh.destroy();
+    bitcoinRefresh.destroy();
     if (sparkRefreshTimer) clearInterval(sparkRefreshTimer);
     if (wallClockTimer) clearInterval(wallClockTimer);
   });
