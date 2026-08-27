@@ -133,7 +133,9 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
   await page.route('**/fixture-openhab/rest/persistence/items/**', (route) => {
     const url = new URL(route.request().url());
     const name = decodeURIComponent(url.pathname.split('/').at(-1));
-    historyRequests.push(name);
+    const startMs = Date.parse(url.searchParams.get('starttime'));
+    const endMs = Date.parse(url.searchParams.get('endtime'));
+    historyRequests.push({ name, url: url.toString() });
     const now = Date.now();
     const stateForHistory = (index) => {
       if (name === 'BMS_SOC') return 62;
@@ -144,21 +146,34 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
       if (name === 'AmbientWeatherWS2902A_IndoorSensor_Temperature') {
         return index === 0 ? 64 : index === 23 ? 74 : 70;
       }
-      if (name === 'BTC_USD_Price') {
-        const time = now - (23 - index) * 15 * 60_000;
-        const hour = Math.floor(time / 3_600_000);
-        const quarter = Math.floor((time - hour * 3_600_000) / (15 * 60_000));
-        const baseline = 118_000 + Math.floor(hour / 2) * 100;
-        return hour % 2 === 0 ? baseline + quarter * 60 : baseline + (3 - quarter) * 60;
-      }
       return 50 + index / 2;
+    };
+    const bitcoinHistory = () => {
+      const quarterHourMs = 15 * 60_000;
+      const firstSampleMs = Math.ceil(startMs / quarterHourMs) * quarterHourMs;
+      const sampleCount = Math.max(0, Math.ceil((endMs - firstSampleMs) / quarterHourMs));
+      const rangeOffset = endMs - startMs <= 4 * 60 * 60 * 1_000 ? 5_000 : 0;
+      const priceSteps = [
+        [0, 20, 60, 80],
+        [80, 60, 20, 0],
+        [30, 60, 0, 30],
+      ];
+      return Array.from({ length: sampleCount }, (_, index) => {
+        const time = firstSampleMs + index * quarterHourMs;
+        const hour = Math.floor(time / 3_600_000);
+        const quarter = Math.floor((time - hour * 3_600_000) / quarterHourMs);
+        const baseline = 118_000 + (hour % 12) * 100 + rangeOffset;
+        return { time, state: String(baseline + priceSteps[hour % 3][quarter]) };
+      });
     };
     return route.fulfill({
       json: {
-        data: Array.from({ length: 24 }, (_, index) => ({
-          time: now - (23 - index) * 15 * 60_000,
-          state: String(stateForHistory(index)),
-        })),
+        data: name === 'BTC_USD_Price'
+          ? bitcoinHistory()
+          : Array.from({ length: 24 }, (_, index) => ({
+            time: now - (23 - index) * 15 * 60_000,
+            state: String(stateForHistory(index)),
+          })),
       },
     });
   });
@@ -626,6 +641,7 @@ for (const target of TARGETS) {
     ));
     expect(btcCandleFills).toContain('#22c55e');
     expect(btcCandleFills).toContain('#ef4444');
+    expect(btcCandleFills).toContain('#f7931a');
     const bitcoinLayout = await page.locator('.bitcoin-body').evaluate((body) => {
       const box = (element) => {
         const rect = element.getBoundingClientRect();
@@ -650,8 +666,10 @@ for (const target of TARGETS) {
       Math.max(bitcoinLayout.price.bottom, bitcoinLayout.change.bottom) - 0.5,
     );
 
-    await page.waitForTimeout(100);
-    expect(runtime.historyRequests).toContain('BTC_USD_Price');
+    const bitcoinHistoryRequests = () => runtime.historyRequests.filter(
+      ({ name }) => name === 'BTC_USD_Price',
+    );
+    await expect.poll(() => bitcoinHistoryRequests().length).toBeGreaterThan(0);
     const bitcoin = page.getByRole('button', { name: 'Open Bitcoin history chart' });
     await bitcoin.focus();
     await bitcoin.press('Enter');
@@ -659,8 +677,34 @@ for (const target of TARGETS) {
     await expect(bitcoinDialog.getByRole('heading', { name: 'Bitcoin (USD)' })).toBeVisible();
     await expect(bitcoinDialog.locator('.chart-canvas svg')).toBeVisible();
     await expect(bitcoinDialog).toContainText(/Latest candle: open \$/);
+    const description = bitcoinDialog.locator('#history-chart-modal-description');
+    await expect(description).toContainText(/24h selected\. History loaded\. Latest candle: open \x24/);
+    const initialDescription = await description.textContent();
+    const initialOhlc = initialDescription?.match(/Latest candle: .*/)?.[0];
+    expect(initialOhlc).toBeTruthy();
+    const initialModalRequest = bitcoinHistoryRequests().at(-1);
+    expect(initialModalRequest).toBeTruthy();
+    const requestCountBeforeFourHours = bitcoinHistoryRequests().length;
     await bitcoinDialog.getByRole('button', { name: '4h', exact: true }).click();
     await expect(bitcoinDialog.getByRole('button', { name: '4h', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => bitcoinHistoryRequests().length).toBe(requestCountBeforeFourHours + 1);
+    const fourHourRequest = bitcoinHistoryRequests().at(-1);
+    expect(fourHourRequest).toBeTruthy();
+    const initialUrl = new URL(initialModalRequest.url);
+    const fourHourUrl = new URL(fourHourRequest.url);
+    const initialStartMs = Date.parse(initialUrl.searchParams.get('starttime'));
+    const initialEndMs = Date.parse(initialUrl.searchParams.get('endtime'));
+    const fourHourStartMs = Date.parse(fourHourUrl.searchParams.get('starttime'));
+    const fourHourEndMs = Date.parse(fourHourUrl.searchParams.get('endtime'));
+    expect(initialEndMs - initialStartMs).toBe(24 * 60 * 60 * 1_000);
+    expect(fourHourEndMs - fourHourStartMs).toBe(4 * 60 * 60 * 1_000);
+    expect(fourHourStartMs).toBeGreaterThan(initialStartMs);
+    expect(fourHourEndMs).toBeGreaterThanOrEqual(initialEndMs);
+    await expect(bitcoinDialog.locator('.chart-canvas svg')).toBeVisible();
+    await expect(description).toContainText(/4h selected\. History loaded\. Latest candle: open \x24/);
+    const fourHourOhlc = (await description.textContent())?.match(/Latest candle: .*/)?.[0];
+    expect(fourHourOhlc).toBeTruthy();
+    expect(fourHourOhlc).not.toBe(initialOhlc);
     await page.getByRole('button', { name: 'Close chart' }).click();
     await expect(bitcoin).toBeFocused();
     await bitcoin.click();
