@@ -3,8 +3,10 @@ import {
   BITCOIN_CANDLE_COLORS,
   aggregateBitcoinCandles,
   bitcoinCandleInterval,
+  buildBitcoinCandleOption,
   describeLatestBitcoinCandle,
 } from '../src/lib/charts/bitcoinCandles.js';
+import { HOME_STATE_COLORS } from '../src/lib/ui/homeCardState.js';
 
 const MINUTE = 60_000;
 
@@ -159,5 +161,84 @@ describe('Bitcoin candle aggregation', () => {
       down: '#ef4444',
       neutral: '#f7931a',
     });
+  });
+});
+
+
+describe('Bitcoin candle ECharts options', () => {
+  const candles = [{
+    startMs: 1_700_000_000_000,
+    endMs: 1_700_000_060_000,
+    open: 100,
+    close: 102,
+    low: 98,
+    high: 103,
+    direction: 'up',
+    count: 3,
+  }, {
+    startMs: 1_700_000_060_000,
+    endMs: 1_700_000_120_000,
+    open: 102,
+    close: 102,
+    low: 101,
+    high: 104,
+    direction: 'neutral',
+    count: 2,
+  }];
+
+  it('uses ECharts OHLC ordering, timestamp categories, and green/red candle colors', () => {
+    const option = buildBitcoinCandleOption({ candles });
+
+    expect(option.xAxis).toMatchObject({
+      type: 'category',
+      data: candles.map(({ startMs }) => startMs),
+    });
+    expect(option.yAxis).toMatchObject({ type: 'value', scale: true });
+    expect(option.series[0]).toMatchObject({
+      type: 'candlestick',
+      itemStyle: {
+        color: HOME_STATE_COLORS.positive,
+        color0: HOME_STATE_COLORS.negative,
+        borderColor: HOME_STATE_COLORS.positive,
+        borderColor0: HOME_STATE_COLORS.negative,
+      },
+    });
+    expect(option.series[0].data[0]).toEqual([100, 102, 98, 103]);
+    expect(option.series[0].data[1]).toEqual({
+      value: [102, 102, 101, 104],
+      itemStyle: {
+        color: HOME_STATE_COLORS.bitcoin,
+        borderColor: HOME_STATE_COLORS.bitcoin,
+      },
+    });
+    expect(option.dataZoom).toBeUndefined();
+    expect(option.animation).toBe(false);
+  });
+
+  it('removes compact-chart axes and tooltip while preserving a scaled candle series', () => {
+    const option = buildBitcoinCandleOption({ candles, compact: true });
+
+    expect(option.xAxis).toMatchObject({ show: false });
+    expect(option.yAxis).toMatchObject({ show: false, scale: true });
+    expect(option.tooltip).toEqual({ show: false });
+    expect(option.animation).toBe(false);
+    expect(option.series[0].type).toBe('candlestick');
+  });
+
+  it('formats and escapes the full OHLC tooltip', () => {
+    const option = buildBitcoinCandleOption({ candles });
+    const html = option.tooltip.formatter([{
+      axisValueLabel: '<script>alert(1)</script>',
+      marker: '<i>marker</i>',
+      data: [100, 102, 98, 103],
+    }]);
+
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+    expect(html).not.toContain('<i>marker</i>');
+    expect(html).toContain('Open: $100');
+    expect(html).toContain('High: $103');
+    expect(html).toContain('Low: $98');
+    expect(html).toContain('Close: $102');
   });
 });

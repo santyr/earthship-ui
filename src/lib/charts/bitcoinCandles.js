@@ -1,4 +1,7 @@
 import { num } from '../openhab/values.js';
+import { escapeHtml } from './options.js';
+import { HOME_STATE_COLORS } from '../ui/homeCardState.js';
+import { echartsTheme } from '../ui/tokens.js';
 
 export const BITCOIN_CANDLE_COLORS = Object.freeze({
   up: '#22c55e',
@@ -52,6 +55,88 @@ function minuteBucket(timeMs, value) {
 function candleDirection(candle) {
   if (candle.count === 1 || candle.open === candle.close) return 'neutral';
   return candle.close > candle.open ? 'up' : 'down';
+}
+
+
+function candleValue(candle) {
+  return [candle.open, candle.close, candle.low, candle.high];
+}
+
+function tooltipValues(entry) {
+  const value = entry?.data?.value ?? entry?.data ?? entry?.value;
+  return Array.isArray(value) ? value : [];
+}
+
+function formatBitcoinPrice(value) {
+  return Number.isFinite(value) ? '$' + WHOLE_DOLLARS.format(value) : '-';
+}
+
+function formatBitcoinCandleTooltip(params) {
+  const entry = (Array.isArray(params) ? params[0] : params) || {};
+  const [open, close, low, high] = tooltipValues(entry);
+  const timestamp = entry.axisValueLabel ?? entry.axisValue ?? '';
+  return [
+    '<div>' + escapeHtml(timestamp) + '</div>',
+    '<div>Open: ' + escapeHtml(formatBitcoinPrice(open)) + '</div>',
+    '<div>High: ' + escapeHtml(formatBitcoinPrice(high)) + '</div>',
+    '<div>Low: ' + escapeHtml(formatBitcoinPrice(low)) + '</div>',
+    '<div>Close: ' + escapeHtml(formatBitcoinPrice(close)) + '</div>',
+  ].join('');
+}
+
+export function buildBitcoinCandleOption({ candles = [], compact = false } = {}) {
+  const source = Array.isArray(candles) ? candles : [];
+  const hiddenAxis = compact ? { show: false } : {};
+  return {
+    ...echartsTheme,
+    grid: compact
+      ? { left: 0, right: 0, top: 4, bottom: 0, containLabel: false }
+      : { left: 48, right: 16, top: 24, bottom: 32, containLabel: true },
+    tooltip: compact
+      ? { show: false }
+      : { trigger: 'axis', confine: true, formatter: formatBitcoinCandleTooltip },
+    xAxis: {
+      type: 'category',
+      data: source.map(({ startMs }) => startMs),
+      boundaryGap: true,
+      axisLine: echartsTheme.categoryAxis.axisLine,
+      axisTick: echartsTheme.categoryAxis.axisTick,
+      axisLabel: echartsTheme.categoryAxis.axisLabel,
+      splitLine: echartsTheme.categoryAxis.splitLine,
+      ...hiddenAxis,
+    },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      axisLine: echartsTheme.valueAxis.axisLine,
+      axisTick: echartsTheme.valueAxis.axisTick,
+      axisLabel: echartsTheme.valueAxis.axisLabel,
+      splitLine: echartsTheme.valueAxis.splitLine,
+      ...hiddenAxis,
+    },
+    series: [{
+      name: 'Bitcoin',
+      type: 'candlestick',
+      data: source.map((candle) => (
+        candle.direction === 'neutral'
+          ? {
+            value: candleValue(candle),
+            itemStyle: {
+              color: HOME_STATE_COLORS.bitcoin,
+              borderColor: HOME_STATE_COLORS.bitcoin,
+            },
+          }
+          : candleValue(candle)
+      )),
+      itemStyle: {
+        color: HOME_STATE_COLORS.positive,
+        color0: HOME_STATE_COLORS.negative,
+        borderColor: HOME_STATE_COLORS.positive,
+        borderColor0: HOME_STATE_COLORS.negative,
+      },
+    }],
+    animation: false,
+  };
 }
 
 /**
