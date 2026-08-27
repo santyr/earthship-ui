@@ -824,6 +824,7 @@ def main():
         safe_put(item, value, put_failed)
 
     hourly_scored = score_hourly_targets(st, now)
+    save_state(st)  # commit consumed/pruned evidence before later fallible work
     if hourly_scored:
         log.append(f"hourly-temp scored: {hourly_scored} raw targets")
 
@@ -922,6 +923,7 @@ def main():
     for key, record in capture_next_day_hourly(snapshot, now).items():
         targets.setdefault(key, record)
     _bound_hourly_targets(st)
+    save_state(st)  # preserve the first consistent capture before later work
     om = snapshot["daily"]
     highs, lows = om["temperature_2m_max"], om["temperature_2m_min"]
     radsum_kwh = om["shortwave_radiation_sum"][0] / 3.6   # MJ/m² -> kWh/m²

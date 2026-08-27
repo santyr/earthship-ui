@@ -796,15 +796,26 @@ def test_score_hourly_targets_keeps_unmatched_and_rejects_nonfinite_observation(
     assert state["hourly_temp_model"]["12"]["count"] == 0
 
 
-def test_score_hourly_targets_prunes_after_72_hours_and_bounds_newest_96(monkeypatch):
+def test_score_hourly_targets_prunes_only_after_72_hours(monkeypatch):
     now = datetime(2026, 8, 27, 12, 0, tzinfo=fi.MOUNTAIN)
     exactly_72h = (now - timedelta(hours=72)).isoformat()
     stale = (now - timedelta(hours=72, seconds=1)).isoformat()
-    targets = {
+    state = {"hourly_temp_targets": {
         exactly_72h: {"raw": 40.0, "captured_at": now.isoformat()},
         stale: {"raw": 39.0, "captured_at": now.isoformat()},
-    }
+    }}
+    monkeypatch.setattr(fi, "series", lambda *_: [])
+
+    assert fi.score_hourly_targets(state, now) == 0
+
+    assert exactly_72h in state["hourly_temp_targets"]
+    assert stale not in state["hourly_temp_targets"]
+
+
+def test_score_hourly_targets_bounds_newest_96(monkeypatch):
+    now = datetime(2026, 8, 27, 12, 0, tzinfo=fi.MOUNTAIN)
     newest = []
+    targets = {}
     for minute in range(100):
         key = (now + timedelta(days=1, minutes=minute)).isoformat()
         newest.append(key)
@@ -814,8 +825,6 @@ def test_score_hourly_targets_prunes_after_72_hours_and_bounds_newest_96(monkeyp
 
     assert fi.score_hourly_targets(state, now) == 0
 
-    assert stale not in state["hourly_temp_targets"]
-    assert exactly_72h not in state["hourly_temp_targets"]  # older than newest 96 bound
     assert list(state["hourly_temp_targets"]) == newest[-96:]
 
 
@@ -861,3 +870,70 @@ def test_hourly_correction_clamps():
     assert fi.hourly_temperature_correction(
         50, 40, 60, 50, 50, {"b": 0, "P": 1, "count": 0}
     ) == 20
+
+
+def test_main_saves_hourly_score_before_later_failure(monkeypatch):
+    target = datetime.now(fi.MOUNTAIN).replace(microsecond=0) - timedelta(hours=1)
+    key = target.isoformat()
+    state = json.loads(json.dumps(fi.DEFAULT_STATE))
+    state["hourly_temp_targets"][key] = {
+        "raw": 64.0,
+        "captured_at": (target - timedelta(days=1)).isoformat(),
+    }
+    saves = []
+    monkeypatch.setattr(fi, "load_state", lambda: state)
+    monkeypatch.setattr(
+        fi, "save_state",
+        lambda current: saves.append(json.loads(json.dumps(current))),
+    )
+    monkeypatch.setattr(
+        fi, "series",
+        lambda item, *_: [(target.astimezone(UTC), 60.0)]
+        if item == fi.OUTDOOR_TEMP_ITEM else [],
+    )
+
+    def fail_after_score(_day):
+        raise RuntimeError("post-score failure")
+
+    monkeypatch.setattr(fi, "measured_day_weather", fail_after_score)
+
+    with pytest.raises(RuntimeError, match="post-score failure"):
+        fi.main()
+
+    assert len(saves) == 1
+    saved = saves[0]
+    assert key not in saved["hourly_temp_targets"]
+    assert saved["hourly_temp_model"][str(target.hour)]["count"] == 1
+
+
+def test_main_saves_first_hourly_capture_before_failure_and_retry(monkeypatch):
+    now_local = datetime.now(fi.MOUNTAIN)
+    target_wall = f"{(now_local.date() + timedelta(days=1)).isoformat()}T12:00"
+    target_key = fi._offset_timestamp(target_wall).isoformat(timespec="seconds")
+    durable = json.loads(json.dumps(fi.DEFAULT_STATE))
+    snapshots = iter([
+        {"daily": {}, "hourly": {"time": [target_wall], "temperature_2m": [41.0]}},
+        {"daily": {}, "hourly": {"time": [target_wall], "temperature_2m": [99.0]}},
+    ])
+
+    def load():
+        return json.loads(json.dumps(durable))
+
+    def save(current):
+        durable.clear()
+        durable.update(json.loads(json.dumps(current)))
+
+    monkeypatch.setattr(fi, "load_state", load)
+    monkeypatch.setattr(fi, "save_state", save)
+    monkeypatch.setattr(fi, "measured_day_weather", lambda _day: (None, None, None))
+    monkeypatch.setattr(fi, "fetch_forecast", lambda: next(snapshots))
+
+    with pytest.raises(KeyError, match="temperature_2m_max"):
+        fi.main()
+    first_record = json.loads(json.dumps(durable["hourly_temp_targets"][target_key]))
+    assert first_record["raw"] == 41.0
+
+    with pytest.raises(KeyError, match="temperature_2m_max"):
+        fi.main()
+
+    assert durable["hourly_temp_targets"][target_key] == first_record
