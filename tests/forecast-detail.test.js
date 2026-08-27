@@ -50,6 +50,34 @@ function payload(days, generatedAt = '2026-07-18T12:00:00-06:00') {
   });
 }
 
+function temperatureAdjustment(overrides = {}) {
+  return {
+    highCorrectionF: 2.5,
+    lowCorrectionF: -9,
+    hourlyMethod: 'daily-fallback',
+    hourBuckets: Array.from({ length: 24 }, (_, hourValue) => ({
+      hour: hourValue,
+      count: 0,
+      weight: 0,
+    })),
+    ...overrides,
+  };
+}
+
+function v2Payload(
+  days,
+  adjustment = temperatureAdjustment(),
+  generatedAt = '2026-07-18T12:00:00-06:00',
+) {
+  return JSON.stringify({
+    version: 2,
+    generatedAt,
+    timezone: 'America/Denver',
+    temperatureAdjustment: adjustment,
+    days,
+  });
+}
+
 describe('ten-day forecast contract', () => {
   it('normalizes ten ordered days and preserves provider nulls', () => {
     const days = Array.from({ length: 10 }, (_, index) => {
@@ -70,7 +98,7 @@ describe('ten-day forecast contract', () => {
   it('rejects unsupported, duplicate, unordered, oversize, and offset-free payloads', () => {
     const validDay = day('2026-07-18', 'Today');
     expect(parseForecast10Day(JSON.stringify({
-      version: 2,
+      version: 3,
       generatedAt: '2026-07-18T12:00:00-06:00',
       timezone: 'America/Denver',
       days: [validDay],
@@ -86,6 +114,61 @@ describe('ten-day forecast contract', () => {
     }])).reason).toMatch(/offset/i);
     expect(parseForecast10Day('x'.repeat(FORECAST_DETAIL_MAX_BYTES + 1)).reason)
       .toMatch(/size/i);
+  });
+
+  it('accepts v1 and exposes validated frozen v2 correction provenance', () => {
+    const v1 = parseForecast10Day(payload([
+      day('2026-07-18', 'Today', 0, 0),
+    ]), { nowMs: Date.parse('2026-07-18T12:00:00-06:00') });
+    expect(v1.status).toBe('ready');
+    expect(v1.temperatureAdjustment).toBeNull();
+
+    const correctedDay = day('2026-07-18', 'Today', 0, 0);
+    correctedDay.summary.highF = 82.5;
+    correctedDay.summary.lowF = 41;
+    const result = parseForecast10Day(v2Payload([correctedDay]), {
+      nowMs: Date.parse('2026-07-18T12:00:00-06:00'),
+    });
+
+    expect(result.status).toBe('ready');
+    expect(result.days[0].summary.highF).toBe(82.5);
+    expect(result.days[0].summary.lowF).toBe(41);
+    expect(result.temperatureAdjustment).toEqual(temperatureAdjustment());
+    expect(Object.isFrozen(result.temperatureAdjustment)).toBe(true);
+    expect(Object.isFrozen(result.temperatureAdjustment.hourBuckets)).toBe(true);
+    expect(Object.isFrozen(result.temperatureAdjustment.hourBuckets[0])).toBe(true);
+  });
+
+  it('requires valid daily corrections and 24 ordered count/weight buckets for v2', () => {
+    const validDay = day('2026-07-18', 'Today', 0, 0);
+    const invalid = [
+      null,
+      temperatureAdjustment({ highCorrectionF: Number.POSITIVE_INFINITY }),
+      temperatureAdjustment({ lowCorrectionF: 'cold' }),
+      temperatureAdjustment({ hourlyMethod: 'unknown' }),
+      temperatureAdjustment({ hourBuckets: temperatureAdjustment().hourBuckets.slice(1) }),
+      temperatureAdjustment({
+        hourBuckets: temperatureAdjustment().hourBuckets.map((bucket, index) => (
+          index === 6 ? { ...bucket, count: null } : bucket
+        )),
+      }),
+      temperatureAdjustment({
+        hourBuckets: temperatureAdjustment().hourBuckets.map((bucket, index) => (
+          index === 6 ? { ...bucket, weight: 'none' } : bucket
+        )),
+      }),
+      temperatureAdjustment({
+        hourBuckets: temperatureAdjustment().hourBuckets.map((bucket, index) => (
+          index === 6 ? { ...bucket, hour: 7 } : bucket
+        )),
+      }),
+    ];
+
+    for (const adjustment of invalid) {
+      const result = parseForecast10Day(v2Payload([validDay], adjustment));
+      expect(result.status).toBe('unavailable');
+      expect(result.reason).toMatch(/adjustment|correction|bucket|method/i);
+    }
   });
 
   it('marks forecasts older than four hours stale without dropping data', () => {

@@ -56,6 +56,23 @@ describe('DailyForecast', () => {
     })).toBeTruthy();
   });
 
+  it('renders producer-corrected daily temperatures without applying another correction', () => {
+    const corrected = [{
+      ...days[0],
+      summary: { ...days[0].summary, highF: 82.5, lowF: 41 },
+    }];
+    const { container } = render(DailyForecast, {
+      props: { days: corrected, variant: 'home' },
+    });
+
+    expect(screen.getByRole('button', {
+      name: /Today.*high 83 degrees.*low 41 degrees/i,
+    })).toBeTruthy();
+    const degree = String.fromCharCode(176);
+    expect(container.querySelector('.day-hilo')?.textContent.replace(/\s+/g, ' ').trim())
+      .toBe(`83${degree} / 41${degree}`);
+  });
+
   it('renders the rain amount when precipSumIn is positive, in the rain color', () => {
     const wet = [{ ...days[0], summary: { ...days[0].summary, precipSumIn: 0.24 } }];
     const { container } = render(DailyForecast, { props: { days: wet, variant: 'home' } });

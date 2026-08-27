@@ -28,6 +28,47 @@ function nullableNumber(value, field) {
   return value;
 }
 
+function finiteNumber(value, field) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new TypeError(`${field} must be a finite number`);
+  }
+  return value;
+}
+
+function normalizeTemperatureAdjustment(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new TypeError('temperature adjustment is required for version 2');
+  }
+  const highCorrectionF = finiteNumber(raw.highCorrectionF, 'high correction');
+  const lowCorrectionF = finiteNumber(raw.lowCorrectionF, 'low correction');
+  if (!['daily-fallback', 'hourly-blend'].includes(raw.hourlyMethod)) {
+    throw new TypeError('temperature adjustment method is invalid');
+  }
+  if (!Array.isArray(raw.hourBuckets) || raw.hourBuckets.length !== 24) {
+    throw new TypeError('temperature adjustment requires 24 hour buckets');
+  }
+  const hourBuckets = raw.hourBuckets.map((bucket, hour) => {
+    if (!bucket || typeof bucket !== 'object' || Array.isArray(bucket) || bucket.hour !== hour) {
+      throw new TypeError('temperature adjustment buckets must be ordered by hour');
+    }
+    const count = finiteNumber(bucket.count, 'hour bucket count');
+    const weight = finiteNumber(bucket.weight, 'hour bucket weight');
+    if (!Number.isInteger(count) || count < 0) {
+      throw new TypeError('hour bucket count must be a non-negative integer');
+    }
+    if (weight < 0 || weight > 1) {
+      throw new TypeError('hour bucket weight must be between zero and one');
+    }
+    return Object.freeze({ hour, count, weight });
+  });
+  return Object.freeze({
+    highCorrectionF,
+    lowCorrectionF,
+    hourlyMethod: raw.hourlyMethod,
+    hourBuckets: Object.freeze(hourBuckets),
+  });
+}
+
 function normalizeHour(raw, date) {
   if (!raw || typeof raw !== 'object' || !OFFSET_TIMESTAMP.test(raw.at ?? '')) {
     throw new TypeError('hour timestamp must include an offset');
@@ -84,7 +125,12 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
   }
   try {
     const parsed = JSON.parse(raw);
-    if (parsed?.version !== 1) throw new TypeError('unsupported forecast detail version');
+    if (![1, 2].includes(parsed?.version)) {
+      throw new TypeError('unsupported forecast detail version');
+    }
+    const temperatureAdjustment = parsed.version === 2
+      ? normalizeTemperatureAdjustment(parsed.temperatureAdjustment)
+      : null;
     if (parsed.timezone !== 'America/Denver') throw new TypeError('unexpected forecast timezone');
     if (!OFFSET_TIMESTAMP.test(parsed.generatedAt ?? '')) {
       throw new TypeError('generatedAt must include an offset');
@@ -108,6 +154,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
       reason: '',
       generatedAtMs,
       timezone: parsed.timezone,
+      temperatureAdjustment,
       days: Object.freeze(days),
     });
   } catch (error) {

@@ -25,17 +25,27 @@ const BASE_ITEMS = {
 
 function forecastDetail() {
   return JSON.stringify({
-    version: 1,
+    version: 2,
     generatedAt: '2026-07-18T12:00:00-06:00',
     timezone: 'America/Denver',
+    temperatureAdjustment: {
+      highCorrectionF: 2.5,
+      lowCorrectionF: -9,
+      hourlyMethod: 'daily-fallback',
+      hourBuckets: Array.from({ length: 24 }, (_, hour) => ({
+        hour,
+        count: 0,
+        weight: 0,
+      })),
+    },
     days: Array.from({ length: 10 }, (_, index) => {
       const date = `2026-07-${String(18 + index).padStart(2, '0')}`;
       return {
         date,
         label: index === 0 ? 'Today' : `Day ${index + 1}`,
         summary: {
-          highF: 80 + index,
-          lowF: 50 + index,
+          highF: 82.5 + index,
+          lowF: 41 + index,
           precipPct: index * 5,
           weatherCode: 1,
           pvKwh: 6.4,
@@ -91,5 +101,8 @@ describe('Weather current AQI', () => {
 
     expect(container.querySelector('[data-forecast-variant="weather"]')).toBeTruthy();
     expect(container.querySelectorAll('[data-forecast-day]')).toHaveLength(10);
+    expect(screen.getByRole('button', {
+      name: /Today.*high 83 degrees.*low 41 degrees/i,
+    })).toBeTruthy();
   });
 });

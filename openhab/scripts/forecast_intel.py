@@ -14,7 +14,7 @@ Model (validated against 30 days of history, 2026-07-17):
   D_direct seeded 4.0 [2.5, 6.0]  — calibrated on demand-limited (curtailing) days
 DM policy: ONLY predicted trough < 30% (full 4P 400 Ah bank, 20.48 kWh, since 2026-07-18).
 """
-import json, os, subprocess, sys, time, urllib.parse, urllib.request
+import json, math, os, subprocess, sys, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -404,8 +404,48 @@ def _offset_timestamp(local_timestamp, previous=None):
     return ordered[0]
 
 
-def build_forecast_payloads(snapshot, pv_per_day, now):
-    """Return (legacy_hourly, legacy_daily, detail_v1) from one provider snapshot."""
+def _finite_correction(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0.0
+    return value if math.isfinite(value) else 0.0
+
+
+def normalize_temperature_adjustment(adjustment=None):
+    """Return Task 4 daily corrections plus zero-filled hourly provenance."""
+    source = adjustment if isinstance(adjustment, dict) else {}
+    return {
+        "highCorrectionF": _finite_correction(source.get("highCorrectionF")),
+        "lowCorrectionF": _finite_correction(source.get("lowCorrectionF")),
+        "hourlyMethod": "daily-fallback",
+        "hourBuckets": [
+            {"hour": hour, "count": 0, "weight": 0.0}
+            for hour in range(24)
+        ],
+    }
+
+
+def temperature_adjustment_from_state(state):
+    """Read learned daily biases without adding defaults to persisted state."""
+    kalman = state.get("kalman", {}) if isinstance(state, dict) else {}
+    high = kalman.get("hi", {}) if isinstance(kalman, dict) else {}
+    low = kalman.get("lo", {}) if isinstance(kalman, dict) else {}
+    high_bias = high.get("b") if isinstance(high, dict) else None
+    low_bias = low.get("b") if isinstance(low, dict) else None
+    return normalize_temperature_adjustment({
+        "highCorrectionF": -_finite_correction(high_bias),
+        "lowCorrectionF": -_finite_correction(low_bias),
+    })
+
+
+def _adjusted_temperature(value, correction):
+    return value + correction if value is not None else None
+
+
+def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=None):
+    """Return legacy payloads plus corrected detail v2 from one snapshot."""
+    adjustment = normalize_temperature_adjustment(temperature_adjustment)
+    high_correction = adjustment["highCorrectionF"]
+    low_correction = adjustment["lowCorrectionF"]
     hourly = snapshot["hourly"]
     daily = snapshot["daily"]
     if now.tzinfo is None:
@@ -437,8 +477,10 @@ def build_forecast_payloads(snapshot, pv_per_day, now):
         day_date = date.fromisoformat(daily["time"][index])
         legacy_daily.append({
             "d": "Today" if day_date == now_local.date() else names[day_date.weekday()],
-            "hi": _rounded(_series_value(daily, "temperature_2m_max", index)),
-            "lo": _rounded(_series_value(daily, "temperature_2m_min", index)),
+            "hi": _rounded(_adjusted_temperature(
+                _series_value(daily, "temperature_2m_max", index), high_correction)),
+            "lo": _rounded(_adjusted_temperature(
+                _series_value(daily, "temperature_2m_min", index), low_correction)),
             "p": _series_value(daily, "precipitation_probability_max", index) or 0,
             "a": round(_series_value(daily, "precipitation_sum", index) or 0, 2),
             "w": _series_value(daily, "weather_code", index),
@@ -470,8 +512,10 @@ def build_forecast_payloads(snapshot, pv_per_day, now):
             "date": day_string,
             "label": "Today" if day_date == now_local.date() else names[day_date.weekday()],
             "summary": {
-                "highF": _series_value(daily, "temperature_2m_max", index),
-                "lowF": _series_value(daily, "temperature_2m_min", index),
+                "highF": _adjusted_temperature(
+                    _series_value(daily, "temperature_2m_max", index), high_correction),
+                "lowF": _adjusted_temperature(
+                    _series_value(daily, "temperature_2m_min", index), low_correction),
                 "precipPct": _series_value(daily, "precipitation_probability_max", index),
                 "precipSumIn": _series_value(daily, "precipitation_sum", index),
                 "weatherCode": _series_value(daily, "weather_code", index),
@@ -481,9 +525,10 @@ def build_forecast_payloads(snapshot, pv_per_day, now):
         })
 
     detail = {
-        "version": 1,
+        "version": 2,
         "generatedAt": now_local.isoformat(timespec="seconds"),
         "timezone": SITE_TZ_NAME,
+        "temperatureAdjustment": adjustment,
         "days": detail_days,
     }
     return legacy_hourly, legacy_daily, detail
@@ -534,21 +579,31 @@ def align_pv_days(pv_days, stored_date, today):
     return None   # future-dated or entirely stale: unusable
 
 
-def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None):
+def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
+                     temperature_adjustment=None):
     """Materialize legacy JSON items plus additive ten-day detail from one fetch."""
     now_local = now or datetime.now(MOUNTAIN)
     if now_local.tzinfo is None:
         now_local = now_local.replace(tzinfo=MOUNTAIN)
     if snapshot is None:
         snapshot = fetch_forecast()
-    if pv_per_day is None:   # standalone JSON refresh: reuse the morning's PV estimates
+    state = None
+    if pv_per_day is None or temperature_adjustment is None:
         try:
-            st = load_state()
-            pv_per_day = align_pv_days(st.get("pv_days"), st.get("pv_days_date"),
-                                       now_local.astimezone(MOUNTAIN).date())
+            state = load_state()
         except Exception:
-            pv_per_day = None
-    payloads = build_forecast_payloads(snapshot, pv_per_day, now or datetime.now(MOUNTAIN))
+            state = {}
+    if pv_per_day is None:   # standalone JSON refresh: reuse the morning's PV estimates
+        pv_per_day = align_pv_days(
+            state.get("pv_days"), state.get("pv_days_date"),
+            now_local.astimezone(MOUNTAIN).date(),
+        )
+    if temperature_adjustment is None:
+        temperature_adjustment = temperature_adjustment_from_state(state)
+    payloads = build_forecast_payloads(
+        snapshot, pv_per_day, now_local,
+        temperature_adjustment=temperature_adjustment,
+    )
     publish_forecast_payloads(payloads, put_state=put_state or oh_put_state)
     return payloads
 
@@ -753,7 +808,16 @@ def main():
         pv_days = [round(min(st["k_res"] * (r or 0) / 3.6, 6.9), 1) for r in om["shortwave_radiation_sum"]]
         st["pv_days"] = pv_days
         st["pv_days_date"] = today.isoformat()   # lets the 2-hourly json refresh realign after midnight
-        build_json_items(snapshot=snapshot, pv_per_day=pv_days, now=now, put_state=put)
+        build_json_items(
+            snapshot=snapshot,
+            pv_per_day=pv_days,
+            now=now,
+            put_state=put,
+            temperature_adjustment={
+                "highCorrectionF": -b_hi,
+                "lowCorrectionF": -b_lo,
+            },
+        )
     except Exception as e:
         log.append(f"json build failed: {e}")
 
