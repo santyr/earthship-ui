@@ -16,6 +16,7 @@ import {
   createGoatFeederTracker,
   curtailmentColor,
   formatGoatFeedings,
+  historyExtrema,
   greywaterState,
   harvestedGallons,
   indoorTemperatureIconColor,
@@ -169,6 +170,15 @@ describe('Home signed card state colors', () => {
       { state: '17.2 mph' },
       { state: 'UNDEF' },
     ])).toBe(17.2);
+  });
+
+  it('computes extrema from valid persisted states plus the live value', () => {
+    expect(historyExtrema([
+      { time: 1, state: '68.5 °F' },
+      { time: 2, state: 'UNDEF' },
+      { time: 3, state: '72.0' },
+    ], '66 °F')).toEqual({ high: 72, low: 66 });
+    expect(historyExtrema([], 'NULL')).toEqual({ high: null, low: null });
   });
 
   it.each([
@@ -343,6 +353,14 @@ describe('Home signed card state colors', () => {
     ['  ', 'iconify:mdi:weather-partly-cloudy'],
   ])('selects item-driven Outdoor icon %s as %s', (value, expected) => {
     expect(outdoorConditionIcon(value)).toBe(expected);
+  });
+
+  it.each([
+    ['Partly Cloudy', 'iconify:mdi:weather-partly-cloudy'],
+    ['partially cloudy', 'iconify:mdi:weather-partly-cloudy'],
+    ['weather-night-partly-cloudy', 'iconify:mdi:weather-night-partly-cloudy'],
+  ])('normalizes current condition %s', (raw, expected) => {
+    expect(outdoorConditionIcon(raw)).toBe(expected);
   });
 
   it.each([

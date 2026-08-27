@@ -88,6 +88,17 @@ export function maxHistoryValue(points) {
     .filter((value) => value !== null);
   return values.length ? Math.max(...values) : null;
 }
+
+export function historyExtrema(points, currentValue = null) {
+  const values = Array.isArray(points)
+    ? points.map((point) => finiteNumber(point?.state)).filter((value) => value !== null)
+    : [];
+  const current = finiteNumber(currentValue);
+  if (current !== null) values.push(current);
+  return values.length
+    ? { high: Math.max(...values), low: Math.min(...values) }
+    : { high: null, low: null };
+}
 export function formatGoatFeedings(raw) {
   const count = finiteNumber(raw);
   if (count === null || count < 0) return 'Feedings unavailable';
@@ -218,10 +229,14 @@ export function outdoorTemperatureIconColor(value) {
 }
 
 export function outdoorConditionIcon(value) {
-  const normalized = value == null ? '' : String(value).trim();
-  return normalized && normalized !== 'NULL' && normalized !== 'UNDEF'
-    ? normalized
-    : 'iconify:mdi:weather-partly-cloudy';
+  const raw = value == null ? '' : String(value).trim();
+  if (!raw || raw === 'NULL' || raw === 'UNDEF') return 'iconify:mdi:weather-partly-cloudy';
+  const normalized = raw.toLowerCase().replaceAll('_', '-').replace(/\s+/g, "-");
+  if (normalized.includes('night') && /part(?:ly|ially)-cloudy/.test(normalized)) {
+    return 'iconify:mdi:weather-night-partly-cloudy';
+  }
+  if (/part(?:ly|ially)-cloudy/.test(normalized)) return 'iconify:mdi:weather-partly-cloudy';
+  return raw;
 }
 
 const CURRENT_AQI_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
