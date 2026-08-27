@@ -284,6 +284,12 @@ async function homeGeometry(page) {
           box(document.querySelector(`.${name}-cell`)),
         ])
       ),
+      rightCards: Object.fromEntries(
+        ['wind', 'baro', 'rain', 'sunmoon', 'solar', 'zones'].map((name) => [
+          name,
+          box(document.querySelector(`.${name}-cell`)),
+        ])
+      ),
       outdoorSvg: box(outdoorSvg),
       outdoorHost: box(document.querySelector('.outdoor-spark')),
       outdoor: {
@@ -320,6 +326,8 @@ async function homeGeometry(page) {
       battery: {
         top: box(document.querySelector('.battery-top')),
         arc: box(document.querySelector('.battery-arc')),
+        center: box(document.querySelector('.battery-arc .arc-center')),
+        value: box(document.querySelector('.battery-arc .arc-value')),
         meta: box(document.querySelector('.battery-meta')),
         status: box(document.querySelector('.batt-status')),
         icon: box(document.querySelector('.batt-icon')),
@@ -381,6 +389,7 @@ async function homeGeometry(page) {
         rainValue: parseFloat(getComputedStyle(rainValue).fontSize),
         rainFooter: parseFloat(getComputedStyle(rainFooter).fontSize),
         sunMoon: parseFloat(getComputedStyle(sunMoon).fontSize),
+        socValue: parseFloat(getComputedStyle(document.querySelector('.battery-arc .arc-value')).fontSize),
       },
       visibleLabels: grid.querySelectorAll('.tile-label').length,
       headerHeight: document.querySelector('header.header').getBoundingClientRect().height,
@@ -420,6 +429,41 @@ function expectEqualPrimaryCards(geometry) {
   const heights = cards.map(({ height }) => height);
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
   expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+}
+
+function expectAlignedRightPairs(geometry) {
+  const { wind, baro, rain, sunmoon, solar, zones } = geometry.rightCards;
+  for (const [left, right] of [[wind, baro], [rain, sunmoon], [solar, zones]]) {
+    expect(Math.abs(left.top - right.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(left.bottom - right.bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(left.height - right.height)).toBeLessThanOrEqual(1);
+  }
+  for (const column of [[wind, rain, solar], [baro, sunmoon, zones]]) {
+    const lefts = column.map(({ left }) => left);
+    const rights = column.map(({ right }) => right);
+    expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThanOrEqual(1);
+    expect(Math.max(...rights) - Math.min(...rights)).toBeLessThanOrEqual(1);
+  }
+  expect(wind.bottom).toBeLessThanOrEqual(rain.top + 0.5);
+  expect(baro.bottom).toBeLessThanOrEqual(sunmoon.top + 0.5);
+  expect(rain.bottom).toBeLessThanOrEqual(solar.top + 0.5);
+  expect(sunmoon.bottom).toBeLessThanOrEqual(zones.top + 0.5);
+}
+
+function expectSocValueContained(geometry) {
+  const { center, value } = geometry.battery;
+  expect(value.left).toBeGreaterThanOrEqual(center.left - 0.5);
+  expect(value.top).toBeGreaterThanOrEqual(center.top - 0.5);
+  expect(value.right).toBeLessThanOrEqual(center.right + 0.5);
+  expect(value.bottom).toBeLessThanOrEqual(center.bottom + 0.5);
+  expect(geometry.fonts.socValue).toBeCloseTo(23.2, 1);
+}
+
+function expectPrimaryChartHeights(geometry) {
+  expect(geometry.outdoor.spark.height).toBeGreaterThanOrEqual(50);
+  expect(geometry.indoor.spark.height).toBeGreaterThanOrEqual(50);
+  expect(geometry.battery.spark.height).toBeGreaterThanOrEqual(50);
+  expect(geometry.bitcoin.chart.height).toBeGreaterThanOrEqual(50);
 }
 
 
@@ -567,6 +611,9 @@ for (const target of TARGETS) {
 
     expectBounded(geometry, target);
     expectEqualPrimaryCards(geometry);
+    expectAlignedRightPairs(geometry);
+    expectSocValueContained(geometry);
+    expectPrimaryChartHeights(geometry);
     expectHomeCardSeparation(geometry);
     expect(geometry.visibleLabels).toBe(0);
     expect(geometry.centeredBodies).toBe(14);
@@ -587,10 +634,6 @@ for (const target of TARGETS) {
     expect(geometry.compass.bottom).toBeLessThanOrEqual(geometry.windMeta.top + 0.5);
     expect(geometry.outdoorSvg.width).toBeGreaterThanOrEqual(160);
     expect(geometry.outdoorSvg.height).toBeGreaterThanOrEqual(35);
-    expect(geometry.outdoor.spark.height).toBeGreaterThanOrEqual(35);
-    expect(geometry.indoor.spark.height).toBeGreaterThanOrEqual(35);
-    expect(geometry.battery.spark.height).toBeGreaterThanOrEqual(35);
-    expect(geometry.bitcoin.chart.height).toBeGreaterThanOrEqual(35);
     expect(geometry.windCardinalCount).toBe(4);
     expect(geometry.fonts.compassCardinal).toBeCloseTo(13, 1);
     expect(geometry.fonts.compassCardinalWeight).toBe('800');
@@ -650,6 +693,10 @@ for (const target of TARGETS) {
     await expect(page.locator('.batt-indicator')).toHaveCSS('color', 'rgb(245, 158, 11)');
     await expect(page.locator('.batt-runtime-empty')).toHaveText('Empty 10 h 40 m');
     await expect(page.locator('.batt-runtime-full')).toHaveText('Full 17 h 20 m');
+    await runtime.emitState('BMS_SOC', '100');
+    await expect(page.locator('.battery-arc .arc-value')).toHaveText('100%');
+    const maximumSocGeometry = await homeGeometry(page);
+    expectSocValueContained(maximumSocGeometry);
     await expect(page.locator('.rain-cell .state-icon')).toHaveCSS('color', 'rgb(59, 130, 246)');
     await expect(page.locator('.rain-cell .value')).toHaveText('9.99″ / 17,427 gal');
     await expect(page.locator('.rain-cell .footer')).toHaveText('Week 1.72″ / 3,000 gal');
@@ -844,6 +891,9 @@ for (const target of TARGETS) {
     const geometry = await homeGeometry(page);
     expectBounded(geometry, target);
     expectEqualPrimaryCards(geometry);
+    expectAlignedRightPairs(geometry);
+    expectSocValueContained(geometry);
+    expectPrimaryChartHeights(geometry);
     expectHomeCardSeparation(geometry);
     expect(geometry.centeredBodies).toBe(14);
     expect(geometry.outdoor.chipItems).toHaveLength(3);

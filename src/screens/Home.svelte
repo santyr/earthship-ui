@@ -802,15 +802,16 @@
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
       minmax(0, 0.38fr)
-      minmax(0, 1fr)
-      minmax(0, 1fr)
-      minmax(0, 0.55fr)
+      repeat(6, minmax(0, 0.425fr))
       minmax(0, 0.72fr);
     grid-template-areas:
       'topbar topbar topbar topbar goat greywater'
       'outdoor outdoor battery battery wind baro'
+      'outdoor outdoor battery battery wind baro'
+      'outdoor outdoor battery battery rain sunmoon'
       'indoor indoor bitcoin bitcoin rain sunmoon'
-      'solar solar solar zones zones zones'
+      'indoor indoor bitcoin bitcoin solar zones'
+      'indoor indoor bitcoin bitcoin solar zones'
       'forecast forecast forecast forecast forecast forecast';
     gap: 0.55rem;
     overflow: hidden;
@@ -1102,6 +1103,7 @@
   .battery-arc {
     width: 30%;
     max-width: 6.25rem;
+    --arc-value-size: 1.45rem;
   }
   .battery-meta {
     display: flex;

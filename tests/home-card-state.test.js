@@ -512,6 +512,7 @@ describe('Home signed card state colors', () => {
   it('pins equal-grid primary temperature sizing', () => {
     expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4rem/is);
     expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4rem/is);
+    expect(home).toMatch(/\.battery-arc\s*\{[^}]*--arc-value-size:\s*1\.45rem;/is);
   });
 
   it('removes the visible SoC label while retaining truthful battery accessibility', () => {

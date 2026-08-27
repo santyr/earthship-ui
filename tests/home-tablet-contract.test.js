@@ -96,6 +96,7 @@ describe('Home tablet presentation contract', () => {
     expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4rem/is);
     expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4rem/is);
     expect(home).toMatch(/\.indoor-temp\s*\{[^}]*color:\s*#fff/is);
+    expect(home).toMatch(/\.battery-arc\s*\{[^}]*--arc-value-size:\s*1\.45rem;/is);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?valueSize="1rem"/);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?footerSize="0\.72rem"/);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?footerNoWrap/);
@@ -114,12 +115,17 @@ describe('Home tablet presentation contract', () => {
     expect(home).toContain('border-color: {currentAqi.accent}');
   });
 
-  it('uses an exact two-by-two primary instrument grid', () => {
+  it('uses six tablet-first sub-rows with equal primary instruments and right-side pairs', () => {
     expect(home).toContain("'outdoor outdoor battery battery wind baro'");
+    expect(home).toContain("'outdoor outdoor battery battery rain sunmoon'");
     expect(home).toContain("'indoor indoor bitcoin bitcoin rain sunmoon'");
-    expect(home).toContain("'solar solar solar zones zones zones'");
-    expect(home).not.toContain("'outdoor outdoor battery battery rain sunmoon'");
-    expect(home).toMatch(/grid-template-rows:[\s\S]*0\.38fr[\s\S]*1fr[\s\S]*1fr[\s\S]*0\.55fr[\s\S]*0\.72fr/);
+    expect(home).toContain("'indoor indoor bitcoin bitcoin solar zones'");
+    expect(home.match(/'outdoor outdoor battery battery wind baro'/g)).toHaveLength(2);
+    expect(home.match(/'outdoor outdoor battery battery rain sunmoon'/g)).toHaveLength(1);
+    expect(home.match(/'indoor indoor bitcoin bitcoin rain sunmoon'/g)).toHaveLength(1);
+    expect(home.match(/'indoor indoor bitcoin bitcoin solar zones'/g)).toHaveLength(2);
+    expect(home).not.toContain("'solar solar solar zones zones zones'");
+    expect(home).toMatch(/grid-template-rows:[\s\S]*0\.38fr[\s\S]*repeat\(6,\s*minmax\(0,\s*0\.425fr\)\)[\s\S]*0\.72fr/);
     expect(home).toMatch(/\.indoor-body\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
   });
 
