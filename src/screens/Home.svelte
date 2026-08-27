@@ -802,15 +802,15 @@
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
       minmax(0, 0.38fr)
-      minmax(0, 1.2fr)
       minmax(0, 1fr)
-      minmax(0, 0.9fr)
+      minmax(0, 1fr)
+      minmax(0, 0.55fr)
       minmax(0, 0.72fr);
     grid-template-areas:
       'topbar topbar topbar topbar goat greywater'
       'outdoor outdoor battery battery wind baro'
-      'outdoor outdoor battery battery rain sunmoon'
-      'indoor indoor bitcoin bitcoin solar zones'
+      'indoor indoor bitcoin bitcoin rain sunmoon'
+      'solar solar solar zones zones zones'
       'forecast forecast forecast forecast forecast forecast';
     gap: 0.55rem;
     overflow: hidden;
@@ -947,7 +947,10 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
     gap: 0.4rem;
+    overflow: hidden;
   }
   .outdoor-top {
     display: flex;
@@ -966,7 +969,7 @@
     line-height: 1;
   }
   .big-temp {
-    font-size: 4.4rem;
+    font-size: 4rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -1019,17 +1022,22 @@
 
   /* ---- Indoor ---- */
   .indoor-body {
-    display: grid;
-    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-    align-items: center;
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    gap: 0.65rem;
+    min-width: 0;
+    min-height: 0;
+    gap: 0.35rem;
+    overflow: hidden;
   }
   .indoor-copy {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    width: 100%;
     min-width: 0;
+    justify-content: space-between;
+    gap: 0.65rem;
+    flex: 0 0 auto;
   }
   .indoor-reading {
     display: flex;
@@ -1045,7 +1053,7 @@
     line-height: 1;
   }
   .indoor-temp {
-    font-size: 4.4rem;
+    font-size: 4rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -1067,9 +1075,10 @@
     color: #d7dee6;
   }
   .indoor-spark {
+    width: 100%;
+    flex: 1;
     min-width: 0;
-    min-height: 0;
-    height: 100%;
+    min-height: 2.2rem;
     overflow: hidden;
     position: relative;
   }
@@ -1079,6 +1088,8 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
     gap: 0.5rem;
     overflow: hidden;
   }
@@ -1089,8 +1100,8 @@
     flex: 0 0 auto;
   }
   .battery-arc {
-    width: 36%;
-    max-width: 8rem;
+    width: 30%;
+    max-width: 6.25rem;
   }
   .battery-meta {
     display: flex;
@@ -1141,8 +1152,10 @@
   }
   .battery-spark {
     flex: 1;
-    min-height: 1.6rem;
+    min-width: 0;
+    min-height: 2.2rem;
     overflow: hidden;
+    position: relative;
   }
 
   /* ---- Bitcoin (mirrors Indoor's slot under Battery) ---- */
@@ -1167,7 +1180,7 @@
     line-height: 1;
   }
   .btc-price {
-    font-size: 1.5rem;
+    font-size: 1.65rem;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -1180,8 +1193,9 @@
   }
   .btc-candles {
     min-width: 0;
-    min-height: 2.5rem;
+    min-height: 2.2rem;
     overflow: hidden;
+    position: relative;
   }
   /* ---- Wind ---- */
   /* The rose measures the remaining content box. Gust and daily maximum stay
@@ -1341,6 +1355,7 @@
     align-items: center;
     gap: 0.3rem;
     font-size: 0.62rem;
+    line-height: 1;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     white-space: nowrap;

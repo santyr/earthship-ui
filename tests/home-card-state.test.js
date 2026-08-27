@@ -510,8 +510,8 @@ describe('Home signed card state colors', () => {
   });
 
   it('keeps card sizes while enlarging the two primary temperature readings', () => {
-    expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4\.4rem/is);
-    expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4\.4rem/is);
+    expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4rem/is);
+    expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4rem/is);
   });
 
   it('removes the visible SoC label while retaining truthful battery accessibility', () => {

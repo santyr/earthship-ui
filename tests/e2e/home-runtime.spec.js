@@ -278,6 +278,12 @@ async function homeGeometry(page) {
         tile: extent(cell.querySelector('.tile')),
         tileBody: extent(cell.querySelector('.tile-body')),
       })),
+      primaryCards: Object.fromEntries(
+        ['outdoor', 'indoor', 'battery', 'bitcoin'].map((name) => [
+          name,
+          box(document.querySelector(`.${name}-cell`)),
+        ])
+      ),
       outdoorSvg: box(outdoorSvg),
       outdoorHost: box(document.querySelector('.outdoor-spark')),
       outdoor: {
@@ -321,6 +327,10 @@ async function homeGeometry(page) {
         empty: box(document.querySelector('.batt-runtime-empty')),
         full: box(document.querySelector('.batt-runtime-full')),
         spark: box(document.querySelector('.battery-spark')),
+      },
+      bitcoin: {
+        top: box(document.querySelector('.btc-top')),
+        chart: box(document.querySelector('.btc-candles')),
       },
       baro: {
         head: box(document.querySelector('.baro-head')),
@@ -404,6 +414,14 @@ function expectBounded(geometry, target) {
   }
 }
 
+function expectEqualPrimaryCards(geometry) {
+  const cards = Object.values(geometry.primaryCards);
+  const widths = cards.map(({ width }) => width);
+  const heights = cards.map(({ height }) => height);
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+}
+
 
 function expectHomeCardSeparation(geometry) {
   const { outdoor, indoor, rain, battery, baro, solar, greywater, goat, powerFlow } = geometry;
@@ -419,8 +437,8 @@ function expectHomeCardSeparation(geometry) {
   expect(indoor.icon.right).toBeLessThanOrEqual(indoor.temp.left + 0.5);
   expect(indoor.temp.right).toBeLessThanOrEqual(indoor.meta.left + 0.5);
   expect(indoor.humidity.bottom).toBeLessThanOrEqual(indoor.hilo.top + 0.5);
-  expect(indoor.reading.right).toBeLessThanOrEqual(indoor.spark.left + 0.5);
-  expect(indoor.meta.right).toBeLessThanOrEqual(indoor.spark.left + 0.5);
+  expect(indoor.reading.bottom).toBeLessThanOrEqual(indoor.spark.top + 0.5);
+  expect(indoor.meta.bottom).toBeLessThanOrEqual(indoor.spark.top + 0.5);
   for (let index = 1; index < outdoor.chipItems.length; index += 1) {
     expect(outdoor.chipItems[index - 1].bottom).toBeLessThanOrEqual(outdoor.chipItems[index].top + 0.5);
   }
@@ -548,14 +566,15 @@ for (const target of TARGETS) {
     const geometry = await homeGeometry(page);
 
     expectBounded(geometry, target);
+    expectEqualPrimaryCards(geometry);
     expectHomeCardSeparation(geometry);
     expect(geometry.visibleLabels).toBe(0);
     expect(geometry.centeredBodies).toBe(14);
     expect(geometry.headerHeight).toBe(44);
     expect(geometry.colors.outdoor).toBe('rgb(255, 255, 255)');
     expect(geometry.colors.indoor).toBe('rgb(255, 255, 255)');
-    expect(geometry.fonts.outdoor).toBeCloseTo(70.4, 1);
-    expect(geometry.fonts.indoor).toBeCloseTo(70.4, 1);
+    expect(geometry.fonts.outdoor).toBeCloseTo(64, 1);
+    expect(geometry.fonts.indoor).toBeCloseTo(64, 1);
     expect(geometry.fonts.indoorHumidity).toBeCloseTo(16.8, 1);
     expect(geometry.fonts.indoorHilo).toBeCloseTo(16.8, 1);
     expect(geometry.fonts.rainValue).toBeCloseTo(16, 1);
@@ -568,6 +587,10 @@ for (const target of TARGETS) {
     expect(geometry.compass.bottom).toBeLessThanOrEqual(geometry.windMeta.top + 0.5);
     expect(geometry.outdoorSvg.width).toBeGreaterThanOrEqual(160);
     expect(geometry.outdoorSvg.height).toBeGreaterThanOrEqual(35);
+    expect(geometry.outdoor.spark.height).toBeGreaterThanOrEqual(35);
+    expect(geometry.indoor.spark.height).toBeGreaterThanOrEqual(35);
+    expect(geometry.battery.spark.height).toBeGreaterThanOrEqual(35);
+    expect(geometry.bitcoin.chart.height).toBeGreaterThanOrEqual(35);
     expect(geometry.windCardinalCount).toBe(4);
     expect(geometry.fonts.compassCardinal).toBeCloseTo(13, 1);
     expect(geometry.fonts.compassCardinalWeight).toBe('800');
@@ -820,13 +843,14 @@ for (const target of TARGETS) {
     await expect(page.locator('.sm-moon')).toHaveCSS('text-overflow', 'ellipsis');
     const geometry = await homeGeometry(page);
     expectBounded(geometry, target);
+    expectEqualPrimaryCards(geometry);
     expectHomeCardSeparation(geometry);
     expect(geometry.centeredBodies).toBe(14);
     expect(geometry.outdoor.chipItems).toHaveLength(3);
     expect(geometry.windNeedleCount).toBe(0);
     expect(geometry.windHubCount).toBe(0);
-    expect(geometry.fonts.outdoor).toBeCloseTo(70.4, 1);
-    expect(geometry.fonts.indoor).toBeCloseTo(70.4, 1);
+    expect(geometry.fonts.outdoor).toBeCloseTo(64, 1);
+    expect(geometry.fonts.indoor).toBeCloseTo(64, 1);
     expect(geometry.windCardinalCount).toBe(4);
     expect(geometry.fonts.compassCardinal).toBeCloseTo(13, 1);
     expect(geometry.fonts.compassCardinalWeight).toBe('800');

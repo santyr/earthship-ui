@@ -93,8 +93,8 @@ describe('Home tablet presentation contract', () => {
 
   it('pins the requested distance-readable Home typography', () => {
     expect(home).toMatch(/\.big-temp\s*\{[^}]*color:\s*#fff/is);
-    expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4\.4rem/is);
-    expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4\.4rem/is);
+    expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4rem/is);
+    expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4rem/is);
     expect(home).toMatch(/\.indoor-temp\s*\{[^}]*color:\s*#fff/is);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?valueSize="1rem"/);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?footerSize="0\.72rem"/);
@@ -112,6 +112,15 @@ describe('Home tablet presentation contract', () => {
     expect(home).toContain("currentAqi.value ?? '—'");
     expect(home).toContain('color: {currentAqi.textColor}');
     expect(home).toContain('border-color: {currentAqi.accent}');
+  });
+
+  it('uses an exact two-by-two primary instrument grid', () => {
+    expect(home).toContain("'outdoor outdoor battery battery wind baro'");
+    expect(home).toContain("'indoor indoor bitcoin bitcoin rain sunmoon'");
+    expect(home).toContain("'solar solar solar zones zones zones'");
+    expect(home).not.toContain("'outdoor outdoor battery battery rain sunmoon'");
+    expect(home).toMatch(/grid-template-rows:[\s\S]*0\.38fr[\s\S]*1fr[\s\S]*1fr[\s\S]*0\.55fr[\s\S]*0\.72fr/);
+    expect(home).toMatch(/\.indoor-body\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
   });
 
   it('opts every Home card into the Tile-owned centered-body policy', () => {
