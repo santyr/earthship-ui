@@ -1,6 +1,6 @@
 # Bitcoin Task 4 report: compact Home candlesticks
 
-Status: implemented, self-reviewed, and verified pending commit.
+Status: implemented, self-reviewed, verified, and committed as fe4212f (feat: show bitcoin candles on home).
 
 ## Scope delivered
 
