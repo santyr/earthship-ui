@@ -231,12 +231,13 @@ export function outdoorTemperatureIconColor(value) {
 export function outdoorConditionIcon(value) {
   const raw = value == null ? '' : String(value).trim();
   if (!raw || raw === 'NULL' || raw === 'UNDEF') return 'iconify:mdi:weather-partly-cloudy';
-  const normalized = raw.toLowerCase().replaceAll('_', '-').replace(/\s+/g, "-");
+  if (raw.startsWith('iconify:')) return raw;
+  const normalized = raw.toLowerCase().replaceAll('_', '-').replace(/\s+/g, '-');
   if (normalized.includes('night') && /part(?:ly|ially)-cloudy/.test(normalized)) {
     return 'iconify:mdi:weather-night-partly-cloudy';
   }
   if (/part(?:ly|ially)-cloudy/.test(normalized)) return 'iconify:mdi:weather-partly-cloudy';
-  return raw;
+  return 'iconify:mdi:weather-partly-cloudy';
 }
 
 const CURRENT_AQI_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;

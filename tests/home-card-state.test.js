@@ -364,6 +364,13 @@ describe('Home signed card state colors', () => {
   });
 
   it.each([
+    ['unrecognized-condition', 'iconify:mdi:weather-partly-cloudy'],
+    ['iconify:mdi:weather-sunny', 'iconify:mdi:weather-sunny'],
+  ])('falls back for unsupported text but preserves explicit icons %s', (raw, expected) => {
+    expect(outdoorConditionIcon(raw)).toBe(expected);
+  });
+
+  it.each([
     [0.42, 733],
     [1.72, 3000],
     [0, 0],
