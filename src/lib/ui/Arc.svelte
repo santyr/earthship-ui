@@ -78,7 +78,7 @@
     pointer-events: none;
   }
   .arc-value {
-    font-size: 1.8rem;
+    font-size: var(--arc-value-size, 1.8rem);
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
