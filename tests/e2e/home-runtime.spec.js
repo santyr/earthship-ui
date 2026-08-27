@@ -139,6 +139,7 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
     const now = Date.now();
     const stateForHistory = (index) => {
       if (name === 'BMS_SOC') return 62;
+      if (name === 'AmbientWeatherWS2902A_WindGust') return 18;
       if (name === 'Forecast_Temp') return 64 + index / 4;
       if (name === 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature') {
         return index === 0 ? 53 : index === 23 ? 80 : 70;
@@ -568,7 +569,7 @@ for (const target of TARGETS) {
     expect(geometry.outdoorSvg.width).toBeGreaterThanOrEqual(160);
     expect(geometry.outdoorSvg.height).toBeGreaterThanOrEqual(35);
     expect(geometry.windCardinalCount).toBe(4);
-    expect(geometry.fonts.compassCardinal).toBeCloseTo(12, 1);
+    expect(geometry.fonts.compassCardinal).toBeCloseTo(13, 1);
     expect(geometry.fonts.compassCardinalWeight).toBe('800');
     expect(geometry.outdoorSvg.right).toBeLessThanOrEqual(geometry.outdoorHost.right + 0.5);
     expect(geometry.outdoorSvg.bottom).toBeLessThanOrEqual(geometry.outdoorHost.bottom + 0.5);
@@ -605,7 +606,11 @@ for (const target of TARGETS) {
     await expect(page.getByRole('group', { name: 'Indoor', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Rain', exact: true })).toBeAttached();
     await expect(page.getByText('AQI 42', { exact: true })).toBeVisible();
-    await expect(page.getByRole('img', { name: 'Wind direction 0 degrees, speed 11 mph', exact: true })).toBeVisible();
+    await expect(page.locator('.compass-heading')).toHaveText('N · 0°');
+    await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
+    await expect(
+      page.getByRole('img', { name: 'Wind direction N, 0 degrees, speed 11 mph', exact: true })
+    ).toBeVisible();
     await expect(page.getByText('AQI 501', { exact: true })).toHaveCount(0);
     await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
     await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(34, 197, 94)');
@@ -616,7 +621,7 @@ for (const target of TARGETS) {
     await expect(page.locator('.compass-needle')).toHaveAttribute('fill', '#4caf50');
     await expect(page.locator('.compass-hub')).toHaveAttribute('fill', '#4caf50');
     await expect(page.locator('.wind-gust')).toHaveCSS('color', 'rgb(255, 152, 0)');
-    await expect(page.locator('.wind-max')).toHaveCSS('color', 'rgb(244, 67, 54)');
+    await expect(page.locator('.wind-max')).toHaveCSS('color', 'rgb(255, 152, 0)');
     await expect(page.locator('.battery-arc .arc-value')).toHaveText('62%');
     await expect(page.locator('.batt-icon')).toHaveCSS('color', 'rgb(34, 197, 94)');
     await expect(page.locator('.batt-indicator')).toHaveCSS('color', 'rgb(245, 158, 11)');
@@ -775,7 +780,11 @@ for (const target of TARGETS) {
     await expect(page.getByRole('group', { name: 'Advisory', exact: true })).toHaveCount(0);
     await expect(page.locator('.btc-icon')).toHaveCSS('color', 'rgb(247, 147, 26)');
     await expect(page.locator('.btc-pct')).toHaveCSS('color', 'rgb(247, 147, 26)');
-    await expect(page.getByRole('img', { name: 'Wind direction unavailable, speed 11 mph', exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('img', { name: 'Wind direction unavailable, speed 11 mph', exact: true })
+    ).toBeVisible();
+    await expect(page.locator('.compass-heading')).toHaveText('DIR —');
+    await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(page.getByRole('group', { name: 'Greywater status unavailable', exact: true })).toBeAttached();
     await expect(page.locator('.gw-icon')).toHaveCSS('color', 'rgb(139, 147, 161)');
     await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
@@ -819,7 +828,7 @@ for (const target of TARGETS) {
     expect(geometry.fonts.outdoor).toBeCloseTo(70.4, 1);
     expect(geometry.fonts.indoor).toBeCloseTo(70.4, 1);
     expect(geometry.windCardinalCount).toBe(4);
-    expect(geometry.fonts.compassCardinal).toBeCloseTo(12, 1);
+    expect(geometry.fonts.compassCardinal).toBeCloseTo(13, 1);
     expect(geometry.fonts.compassCardinalWeight).toBe('800');
     expect(geometry.headerHeight).toBe(44);
     expect(runtime.pageErrors).toEqual([]);

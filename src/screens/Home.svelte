@@ -672,7 +672,8 @@
           <CompassRose degrees={windDeg} speed={windSpeedR} gust={windGustR} showGust={false} accent={windAccent} />
         </div>
         <div class="wind-meta">
-          <span class="wind-gust" style="color: {windGustColor}">gust {windGustR === null ? '—' : windGustR} mph</span>
+          <span class="wind-gust" style="color: {windGustColor}">gust {windGustR === null ? '—' : windGustR}</span>
+          <span class="wind-separator" aria-hidden="true">·</span>
           <span class="wind-max" style="color: {windMaxColor}">max {windGustMaxToday === null ? '—' : Math.round(windGustMaxToday)} mph</span>
         </div>
       </div>
@@ -1208,6 +1209,9 @@
     font-size: 0.68rem;
     line-height: 1;
     white-space: nowrap;
+  }
+  .wind-separator {
+    color: #64748b;
   }
 
   /* ---- Baro ---- */

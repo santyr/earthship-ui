@@ -11,21 +11,21 @@ describe('CompassRose semantic direction', () => {
   });
 
   it('does not imply North when direction is unavailable', () => {
-    expect(compass).toMatch(/const\s+hasHeading\s*=\s*\$derived/);
-    expect(compass).toMatch(/\{#if hasHeading\}[\s\S]*class="compass-needle"/);
-    expect(compass).toMatch(/\{#if hasHeading\}[\s\S]*class="compass-hub"/);
+    expect(compass).toMatch(/\{#if presentation\.hasHeading\}[\s\S]*class="compass-needle"/);
+    expect(compass).toMatch(/\{#if presentation\.hasHeading\}[\s\S]*class="compass-hub"/);
   });
 
-  it('exposes the current heading and speed to assistive technology', () => {
-    expect(compass).toMatch(/const\s+compassLabel\s*=\s*\$derived/);
-    expect(compass).toMatch(/<svg[^>]*role="img"[^>]*aria-label=\{compassLabel\}/s);
-    expect(compass).toContain('Wind direction unavailable');
+  it('delegates direction, calm and accessibility text to the pure adapter', () => {
+    expect(compass).toContain("import { compassPresentation } from './compassPresentation.js'");
+    expect(compass).toMatch(/const\s+presentation\s*=\s*\$derived\(compassPresentation\(degrees,\s*speed\)\)/);
+    expect(compass).toMatch(/aria-label=\{presentation\.ariaLabel\}/);
+    expect(compass).toContain('{presentation.headingText}');
   });
 
-  it('keeps bold cardinal labels clear of the shortened needle', () => {
-    expect(compass).toMatch(
-      /\.dir-label\s*\{[^}]*font-size:\s*12px;[^}]*font-weight:\s*800;/s
-    );
-    expect(compass).toContain('points="50,22 45,52 50,46 55,52"');
+  it('renders a stronger but restrained instrument hierarchy', () => {
+    expect(compass).toContain('class="compass-heading"');
+    expect(compass).toContain('points="50,23 43.5,53 50,48 56.5,53"');
+    expect(compass).toMatch(/\.dir-label\s*\{[^}]*font-size:\s*13px;[^}]*fill:\s*#d7dee6;/s);
+    expect(compass).toMatch(/\.compass-speed\s*\{[^}]*font-size:\s*1\.8rem;/s);
   });
 });
