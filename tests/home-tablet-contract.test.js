@@ -67,6 +67,15 @@ describe('Home tablet presentation contract', () => {
     expect(home).not.toMatch(/fetchHistorySafe\('AmbientWeatherWS2902A_WindGust',\s*24\)/);
   });
 
+  it('uses local-day temperature extrema and renders an Indoor sparkline', () => {
+    expect(home).toContain("fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature'");
+    expect(home).toContain("fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature'");
+    expect(home).toContain("fetchHistorySafe('AmbientWeatherWS2902A_IndoorSensor_Temperature', 6)");
+    expect(home).toContain('<Sparkline data={indoorSpark}');
+    expect(home).not.toContain('OutdoorTemp_24h_High');
+    expect(home).not.toContain('IndoorTemp_24h_High');
+  });
+
   it('renders zero battery flow as a neutral stationary value', () => {
     expect(home).toContain('batteryPowerFlowPresentation(battWatts)');
     expect(home).toContain('{battFlow.text} {battFlow.glyph}');

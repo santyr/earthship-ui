@@ -24,6 +24,7 @@
     curtailmentColor,
     greywaterState,
     harvestedGallons,
+    historyExtrema,
     indoorTemperatureIconColor,
     localDayHistoryRange,
     maxHistoryValue,
@@ -69,6 +70,9 @@
   }
 
   let outdoorSpark = $state([]);
+  let indoorSpark = $state([]);
+  let outdoorTodayHistory = $state([]);
+  let indoorTodayHistory = $state([]);
   let battSpark = $state([]);
   let baroSpark = $state([]);
   let windGustMaxToday = $state(null);
@@ -126,6 +130,18 @@
   async function refreshOutdoorSpark() {
     outdoorSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 6);
   }
+  async function refreshTemperatureHistory() {
+    const range = localDayHistoryRange(new Date());
+    if (!range) return;
+    const [outdoorDay, indoorDay, indoorSixHours] = await Promise.all([
+      fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', range.starttime, range.endtime),
+      fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature', range.starttime, range.endtime),
+      fetchHistorySafe('AmbientWeatherWS2902A_IndoorSensor_Temperature', 6),
+    ]);
+    outdoorTodayHistory = outdoorDay;
+    indoorTodayHistory = indoorDay;
+    indoorSpark = indoorSixHours;
+  }
   async function refreshBattSpark() {
     battSpark = await fetchHistorySafe('BMS_SOC', 6);
   }
@@ -147,6 +163,7 @@
   onMount(() => {
     wallClock = Date.now();
     refreshOutdoorSpark();
+    refreshTemperatureHistory();
     refreshBattSpark();
     refreshBaroSpark();
     refreshLoadToday();
@@ -158,6 +175,7 @@
 
     sparkRefreshTimer = setInterval(() => {
       refreshOutdoorSpark();
+      refreshTemperatureHistory();
       refreshBattSpark();
       refreshBaroSpark();
       refreshLoadToday();
@@ -255,6 +273,8 @@
   const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));
   const uvColor = $derived(uvIndexColor(uvIndex));
   const indoorTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
+  const outdoorToday = $derived(historyExtrema(outdoorTodayHistory, outdoorTemp));
+  const indoorToday = $derived(historyExtrema(indoorTodayHistory, indoorTemp));
   const indoorIconColor = $derived(indoorTemperatureIconColor(indoorTemp));
 
   const soc = $derived(num($items.BMS_SOC));
@@ -505,7 +525,7 @@
             &middot; {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
           </div>
           <div class="outdoor-hilo">
-            H {fmt($items.OutdoorTemp_24h_High, '°')} &nbsp;/&nbsp; L {fmt($items.OutdoorTemp_24h_Low, '°')}
+            H {fmt(outdoorToday.high, '°')} &nbsp;/&nbsp; L {fmt(outdoorToday.low, '°')}
           </div>
         </div>
         <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={outdoorIconColor} lineWidth={2} /></div>
@@ -523,15 +543,20 @@
   >
     <Tile label="Indoor" accent={colors.temperature} hideLabel fill clip centerBody padding="0.65rem">
       <div class="indoor-body">
-        <div class="indoor-reading">
-          <span class="indoor-icon" style="color: {indoorIconColor}">
-            <OhIcon icon="iconify:mdi:home-thermometer" size="2rem" />
-          </span>
-          <div class="indoor-temp">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
+        <div class="indoor-copy">
+          <div class="indoor-reading">
+            <span class="indoor-icon" style="color: {indoorIconColor}">
+              <OhIcon icon="iconify:mdi:home-thermometer" size="2rem" />
+            </span>
+            <div class="indoor-temp">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
+          </div>
+          <div class="indoor-meta">
+            <div class="indoor-hum">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity, '%')} RH</div>
+            <div class="indoor-hilo">H {fmt(indoorToday.high, '°')} / L {fmt(indoorToday.low, '°')}</div>
+          </div>
         </div>
-        <div class="indoor-meta">
-          <div class="indoor-hum">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity, '%')} RH</div>
-          <div class="indoor-hilo">H {fmt($items.IndoorTemp_24h_High, '°')} / L {fmt($items.IndoorTemp_24h_Low, '°')}</div>
+        <div class="indoor-spark">
+          <Sparkline data={indoorSpark} color={indoorIconColor} lineWidth={2} />
         </div>
       </div>
     </Tile>
@@ -948,10 +973,17 @@
 
   /* ---- Indoor ---- */
   .indoor-body {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
     align-items: center;
     height: 100%;
+    gap: 0.65rem;
+  }
+  .indoor-copy {
+    display: flex;
+    align-items: center;
     gap: 0.85rem;
+    min-width: 0;
   }
   .indoor-reading {
     display: flex;
@@ -987,6 +1019,13 @@
   .indoor-hilo {
     font-size: 1.05rem;
     color: #d7dee6;
+  }
+  .indoor-spark {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
   }
 
   /* ---- Battery hero ---- */

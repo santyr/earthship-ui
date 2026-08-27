@@ -138,6 +138,12 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
     const stateForHistory = (index) => {
       if (name === 'BMS_SOC') return 62;
       if (name === 'Forecast_Temp') return 64 + index / 4;
+      if (name === 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature') {
+        return index === 0 ? 53 : index === 23 ? 80 : 70;
+      }
+      if (name === 'AmbientWeatherWS2902A_IndoorSensor_Temperature') {
+        return index === 0 ? 64 : index === 23 ? 74 : 70;
+      }
       return 50 + index / 2;
     };
     return route.fulfill({
@@ -261,11 +267,13 @@ async function homeGeometry(page) {
         spark: box(document.querySelector('.outdoor-spark')),
       },
       indoor: {
+        reading: box(document.querySelector('.indoor-reading')),
         icon: box(document.querySelector('.indoor-icon')),
         temp: box(document.querySelector('.indoor-temp')),
         meta: box(document.querySelector('.indoor-meta')),
         humidity: box(document.querySelector('.indoor-hum')),
         hilo: box(document.querySelector('.indoor-hilo')),
+        spark: box(document.querySelector('.indoor-spark')),
       },
       rain: {
         stat: box(document.querySelector('.rain-cell .stat')),
@@ -388,6 +396,8 @@ function expectHomeCardSeparation(geometry) {
   expect(indoor.icon.right).toBeLessThanOrEqual(indoor.temp.left + 0.5);
   expect(indoor.temp.right).toBeLessThanOrEqual(indoor.meta.left + 0.5);
   expect(indoor.humidity.bottom).toBeLessThanOrEqual(indoor.hilo.top + 0.5);
+  expect(indoor.reading.right).toBeLessThanOrEqual(indoor.spark.left + 0.5);
+  expect(indoor.meta.right).toBeLessThanOrEqual(indoor.spark.left + 0.5);
   for (let index = 1; index < outdoor.chipItems.length; index += 1) {
     expect(outdoor.chipItems[index - 1].bottom).toBeLessThanOrEqual(outdoor.chipItems[index].top + 0.5);
   }
@@ -556,6 +566,10 @@ for (const target of TARGETS) {
     await expect(page.locator('.goat-activation-icon')).toHaveCount(0);
     await expect(page.locator('.sm-season')).toContainText(/(?:equinox|solstice)/);
     await expect(page.locator('.outdoor-spark svg path[stroke="#4caf50"]').first()).toBeVisible();
+    await expect(page.locator('.indoor-spark svg')).toBeVisible();
+    await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°');
+    await expect(page.locator('.indoor-hilo')).toHaveText('H 74° / L 64°');
+    expect(geometry.indoor.spark.width).toBeGreaterThan(0);
 
     await runtime.emitState('Goat_Plugs_Outlet2_Switch', 'OFF');
     await runtime.emitState('Goat_Plugs_Outlet2_Switch', 'ON');
