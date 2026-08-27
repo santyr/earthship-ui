@@ -2,7 +2,8 @@
 
 import '@testing-library/jest-dom/vitest';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,7 +13,10 @@ vi.mock('svelte', async () => import(
 
 import Arc from '../../src/lib/ui/Arc.svelte';
 
-const arcSource = readFileSync(resolve(process.cwd(), 'src/lib/ui/Arc.svelte'), 'utf8');
+const arcSource = readFileSync(
+  resolve(dirname(fileURLToPath(import.meta.url)), '../../src/lib/ui/Arc.svelte'),
+  'utf8',
+);
 
 
 afterEach(cleanup);

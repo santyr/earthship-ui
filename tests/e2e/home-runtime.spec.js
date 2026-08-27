@@ -263,6 +263,7 @@ async function homeGeometry(page) {
       },
       grid: {
         ...box(grid),
+        rowGap: parseFloat(getComputedStyle(grid).rowGap),
         clientWidth: grid.clientWidth,
         clientHeight: grid.clientHeight,
         scrollWidth: grid.scrollWidth,
@@ -433,6 +434,7 @@ function expectEqualPrimaryCards(geometry) {
 
 function expectAlignedRightPairs(geometry) {
   const { wind, baro, rain, sunmoon, solar, zones } = geometry.rightCards;
+  expect(geometry.grid.rowGap).toBeGreaterThan(0);
   for (const [left, right] of [[wind, baro], [rain, sunmoon], [solar, zones]]) {
     expect(Math.abs(left.top - right.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(left.bottom - right.bottom)).toBeLessThanOrEqual(1);
@@ -444,10 +446,16 @@ function expectAlignedRightPairs(geometry) {
     expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThanOrEqual(1);
     expect(Math.max(...rights) - Math.min(...rights)).toBeLessThanOrEqual(1);
   }
-  expect(wind.bottom).toBeLessThanOrEqual(rain.top + 0.5);
-  expect(baro.bottom).toBeLessThanOrEqual(sunmoon.top + 0.5);
-  expect(rain.bottom).toBeLessThanOrEqual(solar.top + 0.5);
-  expect(sunmoon.bottom).toBeLessThanOrEqual(zones.top + 0.5);
+  for (const [above, below, label] of [
+    [wind, rain, 'Wind to Rain'],
+    [baro, sunmoon, 'Baro to Sun/Moon'],
+    [rain, solar, 'Rain to Solar'],
+    [sunmoon, zones, 'Sun/Moon to Zones'],
+  ]) {
+    const verticalDistance = below.top - above.bottom;
+    expect(Math.abs(verticalDistance - geometry.grid.rowGap), label + " row gap")
+      .toBeLessThanOrEqual(1);
+  }
 }
 
 function expectSocValueContained(geometry) {

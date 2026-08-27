@@ -125,7 +125,7 @@ describe('Home tablet presentation contract', () => {
     expect(home.match(/'indoor indoor bitcoin bitcoin rain sunmoon'/g)).toHaveLength(1);
     expect(home.match(/'indoor indoor bitcoin bitcoin solar zones'/g)).toHaveLength(2);
     expect(home).not.toContain("'solar solar solar zones zones zones'");
-    expect(home).toMatch(/grid-template-rows:[\s\S]*0\.38fr[\s\S]*repeat\(6,\s*minmax\(0,\s*0\.425fr\)\)[\s\S]*0\.72fr/);
+    expect(home).toMatch(/\.home-grid\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*0\.38fr\)\s*repeat\(6,\s*minmax\(0,\s*0\.425fr\)\)\s*minmax\(0,\s*0\.72fr\)\s*;/s);
     expect(home).toMatch(/\.indoor-body\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
   });
 
