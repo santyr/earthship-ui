@@ -1,5 +1,11 @@
 <script>
   import { onDestroy, tick } from 'svelte';
+  import {
+    aggregateBitcoinCandles,
+    bitcoinCandleInterval,
+    buildBitcoinCandleOption,
+    describeLatestBitcoinCandle,
+  } from '../charts/bitcoinCandles.js';
   import { getEcharts } from '../charts/loadEcharts.js';
   import { buildHistoryOption } from '../charts/options.js';
   import { describeExtremaMarkers } from '../charts/extremaMarkers.js';
@@ -19,6 +25,7 @@
   let loadState = $state('idle');
   let errorMessage = $state('');
   let extremaDescription = $state('');
+  let candleDescription = $state('');
   let activeHours = $state(24);
   let pointsPerSeries = $state([]);
   let unavailableCount = $state(0);
@@ -52,16 +59,20 @@
       empty: 'No data',
       'no-client': 'History client unavailable',
     }[loadState] || loadState;
-    let latest = 'Most recent value unavailable';
-    for (let index = 0; index < pointsPerSeries.length; index += 1) {
-      const point = pointsPerSeries[index]?.at(-1);
-      if (!point) continue;
-      const label = latestSeries[index]?.label || latestSeries[index]?.name || `Series ${index + 1}`;
-      latest = `Most recent ${label}: ${String(point.state)}`;
-      break;
+    let latest = candleDescription || 'Latest candle unavailable';
+    if ($chartStore.presentation !== 'candlestick') {
+      latest = 'Most recent value unavailable';
+      for (let index = 0; index < pointsPerSeries.length; index += 1) {
+        const point = pointsPerSeries[index]?.at(-1);
+        if (!point) continue;
+        const label = latestSeries[index]?.label || latestSeries[index]?.name || `Series ${index + 1}`;
+        latest = `Most recent ${label}: ${String(point.state)}`;
+        break;
+      }
     }
     const extrema = extremaDescription ? `${extremaDescription} ` : '';
-    return `${labels}. ${period} selected. ${stateText}. ${extrema}${latest}.`;
+    const latestSentence = latest.endsWith('.') ? latest : `${latest}.`;
+    return `${labels}. ${period} selected. ${stateText}. ${extrema}${latestSentence}`;
   });
 
   function stopRefresh() {
@@ -93,21 +104,36 @@
     if (!chart || widthPx <= 0) return;
     latestWidthPx = widthPx;
     try {
-      const option = buildHistoryOption({
-        series: latestSeries,
-        pointsPerSeries,
-        widthPx,
-        nowMs: latestNowMs,
-        grid: { left: 52, right: 24, top: 56, bottom: 40 },
-        legendTop: 8,
-        legendFontSize: 12,
-      });
-      const nextExtremaDescription = describeExtremaMarkers(option.series);
+      let option;
+      let nextCandleDescription = '';
+      let nextExtremaDescription = '';
+      if ($chartStore.presentation === 'candlestick') {
+        const candles = aggregateBitcoinCandles(pointsPerSeries[0] || [], {
+          interval: bitcoinCandleInterval(activeHours),
+          startMs: latestNowMs - activeHours * 60 * 60 * 1_000,
+          endMs: latestNowMs,
+        });
+        option = buildBitcoinCandleOption({ candles });
+        nextCandleDescription = describeLatestBitcoinCandle(candles);
+      } else {
+        option = buildHistoryOption({
+          series: latestSeries,
+          pointsPerSeries,
+          widthPx,
+          nowMs: latestNowMs,
+          grid: { left: 52, right: 24, top: 56, bottom: 40 },
+          legendTop: 8,
+          legendFontSize: 12,
+        });
+        nextExtremaDescription = describeExtremaMarkers(option.series);
+      }
       chart.setOption(option, true);
       extremaDescription = nextExtremaDescription;
+      candleDescription = nextCandleDescription;
       chart.resize();
     } catch (error) {
       extremaDescription = '';
+      candleDescription = '';
       errorMessage = error?.message || 'History could not be rendered';
       loadState = 'error';
       disposeChart();
@@ -126,6 +152,7 @@
     timedOutCount = 0;
     errorMessage = '';
     extremaDescription = '';
+    candleDescription = '';
     loadState = 'loading';
 
     const client = getClientOnce();
@@ -200,6 +227,7 @@
       observedOpenId = state.openId;
       activeHours = snapHistoryPeriod(state.initialHours ?? state.hours ?? 24);
       extremaDescription = '';
+      candleDescription = '';
       loadState = 'loading';
       startRefresh(state.openId);
       const openId = state.openId;
@@ -214,6 +242,7 @@
       cancelPending();
       stopRefresh();
       disposeChart();
+      candleDescription = '';
       loadState = 'idle';
       if (state.openId && restoredOpenId !== state.openId) {
         restoredOpenId = state.openId;

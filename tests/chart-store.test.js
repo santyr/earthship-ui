@@ -19,4 +19,28 @@ describe('chart store', () => {
     expect(second.initialHours).toBe(4);
     expect(second.openId).toBe(first.openId + 1);
   });
+
+  it('defaults existing chart callers to line presentation', () => {
+    openChart({ title: 'Outdoor', series: [{ name: 'Outdoor' }] });
+
+    expect(get(chartStore).presentation).toBe('line');
+  });
+
+  it('accepts and retains the exact candlestick presentation', () => {
+    openChart({
+      title: 'Bitcoin',
+      presentation: 'candlestick',
+      series: [{ name: 'BTC_USD_Price' }],
+    });
+
+    expect(get(chartStore).presentation).toBe('candlestick');
+    closeChart();
+    expect(get(chartStore).presentation).toBe('candlestick');
+  });
+
+  it('normalizes unknown presentations back to line', () => {
+    openChart({ title: 'Outdoor', presentation: 'area', series: [] });
+
+    expect(get(chartStore).presentation).toBe('line');
+  });
 });

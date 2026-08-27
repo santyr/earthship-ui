@@ -442,6 +442,7 @@
     openChart({
       title: 'Bitcoin (USD)',
       series: [{ name: 'BTC_USD_Price', color: BTC_ACCENT, label: 'BTC/USD' }],
+      presentation: 'candlestick',
       hours: 24,
     });
   }

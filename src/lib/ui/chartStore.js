@@ -14,19 +14,27 @@ export const chartStore = writable({
   openId: 0,
   title: '',
   series: [],
+  presentation: 'line',
   initialHours: 24,
   // Retain `hours` while callers migrate; ChartModal reads initialHours only.
   hours: 24,
   opener: null,
 });
 
-export function openChart({ title = '', series = [], initialHours, hours = 24 } = {}) {
+export function openChart({
+  title = '',
+  series = [],
+  presentation = 'line',
+  initialHours,
+  hours = 24,
+} = {}) {
   const seededHours = snapHistoryPeriod(initialHours ?? hours);
   chartStore.set({
     open: true,
     openId: ++nextOpenId,
     title,
     series,
+    presentation: presentation === 'candlestick' ? 'candlestick' : 'line',
     initialHours: seededHours,
     hours: seededHours,
     opener: typeof document !== 'undefined' && document.activeElement instanceof HTMLElement

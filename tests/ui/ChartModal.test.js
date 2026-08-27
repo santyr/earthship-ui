@@ -30,9 +30,47 @@ vi.mock('../../src/lib/openhab/index.js', () => ({
 import ChartModal from '../../src/lib/ui/ChartModal.svelte';
 import { closeChart, openChart } from '../../src/lib/ui/chartStore.js';
 
+const BITCOIN_SERIES = [{ name: 'BTC_USD_Price', label: 'BTC/USD', color: '#f7931a' }];
+const CANDLE_PERIODS = [
+  ['4h', 4, { unit: 'minutes', value: 15 }],
+  ['24h', 24, { unit: 'minutes', value: 60 }],
+  ['7d', 168, { unit: 'minutes', value: 360 }],
+  ['30d', 720, { unit: 'day', value: 1 }],
+];
+
+function candleBucketStart(timeMs, interval) {
+  if (interval.unit === 'day') {
+    const date = new Date(timeMs);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  }
+  const intervalMs = interval.value * 60_000;
+  return Math.floor(timeMs / intervalMs) * intervalMs;
+}
+
+function openBitcoinChart(initialHours) {
+  openChart({
+    title: 'Bitcoin (USD)',
+    series: BITCOIN_SERIES,
+    presentation: 'candlestick',
+    initialHours,
+  });
+}
+
+function modalDescription() {
+  const dialog = screen.getByRole('dialog', { name: 'Bitcoin (USD)' });
+  return document.getElementById(dialog.getAttribute('aria-describedby'));
+}
+
 describe('ChartModal history periods', () => {
+  let observers;
+
   beforeEach(() => {
+    observers = [];
     global.ResizeObserver = class {
+      constructor(callback) {
+        this.callback = callback;
+        observers.push(this);
+      }
       observe() {}
       disconnect() {}
     };
@@ -353,5 +391,106 @@ describe('ChartModal history periods', () => {
     expect(option.series[0].markPoint.data.map((marker) => marker.value))
       .toEqual([88, 41]);
     expect(description.textContent).toMatch(/SoC: High 88%, Low 41%/);
+  });
+
+  it.each(CANDLE_PERIODS)(
+    'renders the %s Bitcoin selector with its mapped candle interval and latest OHLC',
+    async (label, hours, interval) => {
+      const pointTime = Date.now() - 60_000;
+      mocks.getHistory.mockResolvedValue([
+        { time: pointTime, state: '100000 USD' },
+        { time: pointTime, state: '101000 USD' },
+        { time: pointTime, state: '99500 USD' },
+        { time: pointTime, state: '100500 USD' },
+      ]);
+
+      render(ChartModal);
+      openBitcoinChart(hours === 24 ? 4 : 24);
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+
+      await fireEvent.click(screen.getByRole('button', { name: label }));
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(2));
+
+      const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+      expect(screen.getByRole('button', { name: label }).getAttribute('aria-pressed')).toBe('true');
+      expect(option.xAxis.data).toEqual([candleBucketStart(pointTime, interval)]);
+      expect(option.series[0].type).toBe('candlestick');
+      expect(option.series[0].data).toEqual([[100000, 100500, 99500, 101000]]);
+      expect(modalDescription().textContent).toContain(
+        'Latest candle: open $100,000, high $101,000, low $99,500, close $100,500.',
+      );
+    },
+  );
+
+  it('clears stale candle OHLC immediately on reload, error, and empty history', async () => {
+    const pointTime = Date.now() - 60_000;
+    mocks.getHistory.mockResolvedValueOnce([
+      { time: pointTime, state: '100000' },
+      { time: pointTime, state: '101000' },
+    ]);
+
+    render(ChartModal);
+    openBitcoinChart(24);
+    await waitFor(() => expect(modalDescription().textContent).toContain('Latest candle:'));
+
+    mocks.getHistory.mockImplementationOnce(() => new Promise(() => {}));
+    await fireEvent.click(screen.getByRole('button', { name: '7d' }));
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+    expect(modalDescription().textContent).toContain('Loading history');
+    expect(modalDescription().textContent).not.toContain('Latest candle:');
+
+    closeChart();
+    mocks.getHistory.mockRejectedValueOnce(new Error('offline'));
+    openBitcoinChart(24);
+    expect(await screen.findByText('History unavailable')).toBeTruthy();
+    expect(modalDescription().textContent).not.toContain('Latest candle:');
+
+    closeChart();
+    mocks.getHistory.mockResolvedValueOnce([]);
+    openBitcoinChart(24);
+    expect(await screen.findByText('No data')).toBeTruthy();
+    expect(modalDescription().textContent).not.toContain('Latest candle:');
+  });
+
+  it('clears candle OHLC when candlestick option rendering fails', async () => {
+    const pointTime = Date.now() - 60_000;
+    mocks.getHistory.mockResolvedValue([
+      { time: pointTime, state: '100000' },
+      { time: pointTime, state: '101000' },
+    ]);
+
+    render(ChartModal);
+    openBitcoinChart(24);
+    await waitFor(() => expect(modalDescription().textContent).toContain('Latest candle:'));
+
+    closeChart();
+    mocks.chart.setOption.mockImplementationOnce(() => {
+      throw new Error('candle render failed');
+    });
+    openBitcoinChart(24);
+
+    expect(await screen.findByText('History unavailable')).toBeTruthy();
+    expect(modalDescription().textContent).toContain('candle render failed');
+    expect(modalDescription().textContent).not.toContain('Latest candle:');
+  });
+
+  it('keeps candlestick rendering through resize and disposes it on close', async () => {
+    const pointTime = Date.now() - 60_000;
+    mocks.getHistory.mockResolvedValue([
+      { time: pointTime, state: '100000' },
+      { time: pointTime, state: '101000' },
+    ]);
+
+    render(ChartModal);
+    openBitcoinChart(24);
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+    expect(mocks.chart.setOption.mock.calls.at(-1)[0].series[0].type).toBe('candlestick');
+
+    observers[0].callback([{ contentRect: { width: 920, height: 480 } }]);
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(2));
+    expect(mocks.chart.setOption.mock.calls.at(-1)[0].series[0].type).toBe('candlestick');
+
+    closeChart();
+    await waitFor(() => expect(mocks.chart.dispose).toHaveBeenCalledTimes(1));
   });
 });

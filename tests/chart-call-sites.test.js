@@ -36,3 +36,33 @@ describe('Home extrema marker call sites', () => {
     expect(battery).toContain("markerUnit: '%'");
   });
 });
+
+describe('Home chart presentation call sites', () => {
+  it('pins only Bitcoin to candlesticks while existing charts remain implicit lines', async () => {
+    const source = await readFile('src/screens/Home.svelte', 'utf8');
+    const handlers = [
+      ['openOutdoorChart', 'openIndoorChart'],
+      ['openIndoorChart', 'openBatteryChart'],
+      ['openBatteryChart', 'openWindChart'],
+      ['openWindChart', 'openRainChart'],
+      ['openRainChart', 'openSolarChart'],
+      ['openSolarChart', 'openBaroChart'],
+      ['openBaroChart', 'openBitcoinChart'],
+    ];
+
+    for (const [start, end] of handlers) {
+      const chartCall = source.slice(
+        source.indexOf(`function ${start}()`),
+        source.indexOf(`function ${end}()`),
+      );
+      expect(chartCall).not.toContain('presentation:');
+    }
+
+    const bitcoin = source.slice(
+      source.indexOf('function openBitcoinChart()'),
+      source.indexOf('</script>'),
+    );
+    expect(bitcoin).toContain("presentation: 'candlestick'");
+    expect(source.match(/presentation:\s*'candlestick'/g)).toHaveLength(1);
+  });
+});
