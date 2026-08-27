@@ -624,10 +624,15 @@ def _hourly_model_snapshot(hourly_model=None):
         if not isinstance(bucket, dict):
             continue
         bias = bucket.get("b")
+        variance = bucket.get("P")
         count = bucket.get("count")
         if (not isinstance(bias, bool) and isinstance(bias, (int, float))
                 and math.isfinite(bias)):
             model[str(hour)]["b"] = bias
+        if (not isinstance(variance, bool)
+                and isinstance(variance, (int, float))
+                and math.isfinite(variance)):
+            model[str(hour)]["P"] = variance
         if not isinstance(count, bool) and isinstance(count, int) and count >= 0:
             model[str(hour)]["count"] = count
     return model

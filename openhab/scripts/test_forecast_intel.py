@@ -365,6 +365,51 @@ def test_forecast_payload_v2_applies_one_hourly_correction_to_both_surfaces():
     assert json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode("utf-8") == original_bytes
 
 
+def test_forecast_payload_uses_each_local_date_range_and_keeps_repeated_hour():
+    now = datetime(2026, 10, 31, 23, 0, tzinfo=fi.MOUNTAIN)
+    snapshot = _snapshot()
+    snapshot["daily"]["time"][:2] = ["2026-10-31", "2026-11-01"]
+    snapshot["daily"]["temperature_2m_min"][:2] = [30.0, 20.0]
+    snapshot["daily"]["temperature_2m_max"][:2] = [70.0, 60.0]
+    snapshot["hourly"] = {
+        "time": [
+            "2026-10-31T23:00",
+            "2026-11-01T01:00",
+            "2026-11-01T01:00",
+        ],
+        "temperature_2m": [50.0, 40.0, 40.0],
+        "precipitation_probability": [10, 20, 30],
+        "precipitation": [0.0, 0.1, 0.2],
+        "shortwave_radiation": [0.0, 0.0, 0.0],
+        "wind_speed_10m": [5.0, 6.0, 7.0],
+        "weather_code": [1, 2, 3],
+    }
+    hourly_model = fi.hourly_model_seed()
+    hourly_model["23"] = {"b": 3.0, "P": 1.0, "count": 14}
+    hourly_model["1"] = {"b": 8.0, "P": 2.0, "count": 7}
+
+    legacy, _, detail = fi.build_forecast_payloads(
+        snapshot, [], now,
+        temperature_adjustment=_daily_adjustment(high=4.0, low=-10.0),
+        hourly_model=hourly_model,
+    )
+
+    detail_hours = [
+        hour
+        for day in detail["days"][:2]
+        for hour in day["hours"]
+    ]
+    assert [hour["at"] for hour in detail_hours] == [
+        "2026-10-31T23:00:00-06:00",
+        "2026-11-01T01:00:00-06:00",
+        "2026-11-01T01:00:00-07:00",
+    ]
+    assert [hour["tempF"] for hour in detail_hours] == [47.0, 34.5, 34.5]
+    assert [row["t"] for row in legacy] == [
+        round(hour["tempF"]) for hour in detail_hours
+    ]
+
+
 @pytest.mark.parametrize("temperature_adjustment", [
     None,
     {"highCorrectionF": float("nan"), "lowCorrectionF": "not-a-number"},
@@ -379,6 +424,73 @@ def test_forecast_payload_normalizes_missing_or_nonfinite_daily_corrections(
     assert detail["temperatureAdjustment"] == _daily_adjustment(high=0.0, low=0.0)
     assert legacy_daily[0]["hi"] == 90
     assert legacy_daily[0]["lo"] == 60
+
+
+@pytest.mark.parametrize((
+    "case", "source", "hour", "expected_model_bucket",
+    "expected_count", "expected_weight", "expected_method",
+), [
+    (
+        "nonfinite bias",
+        {"2": {"b": float("nan"), "P": 2.5, "count": 3}},
+        2, {"b": 0.0, "P": 2.5, "count": 3}, 3, 3 / 14, "hourly-blend",
+    ),
+    (
+        "nonfinite variance",
+        {"3": {"b": 1.5, "P": float("inf"), "count": 4}},
+        3, {"b": 1.5, "P": 10.0, "count": 4}, 4, 4 / 14, "hourly-blend",
+    ),
+    (
+        "boolean count",
+        {"4": {"b": 2.0, "P": 1.0, "count": True}},
+        4, {"b": 2.0, "P": 1.0, "count": 0}, 0, 0.0, "daily-fallback",
+    ),
+    (
+        "negative count",
+        {"5": {"b": 2.0, "P": 1.5, "count": -1}},
+        5, {"b": 2.0, "P": 1.5, "count": 0}, 0, 0.0, "daily-fallback",
+    ),
+    (
+        "noninteger count",
+        {"6": {"b": 2.0, "P": 2.0, "count": 2.5}},
+        6, {"b": 2.0, "P": 2.0, "count": 0}, 0, 0.0, "daily-fallback",
+    ),
+    (
+        "extra and missing keys",
+        {
+            "7": {"b": 3.0, "P": 4.0, "count": 2},
+            "24": {"b": 99.0, "P": 99.0, "count": 99},
+            "bogus": {"b": 99.0, "P": 99.0, "count": 99},
+        },
+        7, {"b": 3.0, "P": 4.0, "count": 2}, 2, 2 / 14, "hourly-blend",
+    ),
+    (
+        "count above full weight",
+        {"8": {"b": 4.0, "P": 5.0, "count": 20}},
+        8, {"b": 4.0, "P": 5.0, "count": 20}, 20, 1.0, "hourly-blend",
+    ),
+])
+def test_malformed_hourly_model_is_sanitized_without_mutating_source(
+        case, source, hour, expected_model_bucket, expected_count,
+        expected_weight, expected_method):
+    del case  # pytest id context only
+    original_bytes = json.dumps(source, sort_keys=True).encode("utf-8")
+
+    model = fi._hourly_model_snapshot(source)
+    adjustment = fi.normalize_temperature_adjustment(
+        _daily_adjustment(), hourly_model=source,
+    )
+
+    assert json.dumps(source, sort_keys=True).encode("utf-8") == original_bytes
+    assert list(model) == [str(bucket_hour) for bucket_hour in range(24)]
+    assert model[str(hour)] == expected_model_bucket
+    assert model["0"] == {"b": 0.0, "P": 10.0, "count": 0}
+    buckets = adjustment["hourBuckets"]
+    assert len(buckets) == 24
+    assert [bucket["hour"] for bucket in buckets] == list(range(24))
+    assert buckets[hour]["count"] == expected_count
+    assert buckets[hour]["weight"] == pytest.approx(expected_weight)
+    assert adjustment["hourlyMethod"] == expected_method
 
 
 def test_standalone_json_refresh_reads_temperature_models_without_mutating_state(monkeypatch):
