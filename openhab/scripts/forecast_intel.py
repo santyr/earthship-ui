@@ -615,23 +615,50 @@ def _finite_correction(value):
     return value if math.isfinite(value) else 0.0
 
 
-def normalize_temperature_adjustment(adjustment=None):
-    """Return Task 4 daily corrections plus zero-filled hourly provenance."""
+def _hourly_model_snapshot(hourly_model=None):
+    """Return a safe generation-time copy without mutating learned state."""
+    source = hourly_model if isinstance(hourly_model, dict) else {}
+    model = hourly_model_seed()
+    for hour in range(24):
+        bucket = source.get(str(hour))
+        if not isinstance(bucket, dict):
+            continue
+        bias = bucket.get("b")
+        count = bucket.get("count")
+        if (not isinstance(bias, bool) and isinstance(bias, (int, float))
+                and math.isfinite(bias)):
+            model[str(hour)]["b"] = bias
+        if not isinstance(count, bool) and isinstance(count, int) and count >= 0:
+            model[str(hour)]["count"] = count
+    return model
+
+
+def normalize_temperature_adjustment(adjustment=None, hourly_model=None):
+    """Return daily corrections plus generation-time hourly provenance."""
     source = adjustment if isinstance(adjustment, dict) else {}
+    model = _hourly_model_snapshot(hourly_model)
+    buckets = [
+        {
+            "hour": hour,
+            "count": model[str(hour)]["count"],
+            "weight": min(model[str(hour)]["count"] / 14.0, 1.0),
+        }
+        for hour in range(24)
+    ]
     return {
         "highCorrectionF": _finite_correction(source.get("highCorrectionF")),
         "lowCorrectionF": _finite_correction(source.get("lowCorrectionF")),
-        "hourlyMethod": "daily-fallback",
-        "hourBuckets": [
-            {"hour": hour, "count": 0, "weight": 0.0}
-            for hour in range(24)
-        ],
+        "hourlyMethod": ("hourly-blend"
+                         if any(bucket["count"] > 0 for bucket in buckets)
+                         else "daily-fallback"),
+        "hourBuckets": buckets,
     }
 
 
 def temperature_adjustment_from_state(state):
-    """Read learned daily biases without adding defaults to persisted state."""
-    kalman = state.get("kalman", {}) if isinstance(state, dict) else {}
+    """Read learned biases without adding defaults to persisted state."""
+    source = state if isinstance(state, dict) else {}
+    kalman = source.get("kalman", {})
     high = kalman.get("hi", {}) if isinstance(kalman, dict) else {}
     low = kalman.get("lo", {}) if isinstance(kalman, dict) else {}
     high_bias = high.get("b") if isinstance(high, dict) else None
@@ -639,16 +666,18 @@ def temperature_adjustment_from_state(state):
     return normalize_temperature_adjustment({
         "highCorrectionF": -_finite_correction(high_bias),
         "lowCorrectionF": -_finite_correction(low_bias),
-    })
+    }, hourly_model=source.get("hourly_temp_model"))
 
 
 def _adjusted_temperature(value, correction):
     return value + correction if value is not None else None
 
 
-def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=None):
+def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=None,
+                            hourly_model=None):
     """Return legacy payloads plus corrected detail v2 from one snapshot."""
-    adjustment = normalize_temperature_adjustment(temperature_adjustment)
+    model = _hourly_model_snapshot(hourly_model)
+    adjustment = normalize_temperature_adjustment(temperature_adjustment, model)
     high_correction = adjustment["highCorrectionF"]
     low_correction = adjustment["lowCorrectionF"]
     hourly = snapshot["hourly"]
@@ -659,6 +688,31 @@ def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=No
         now_local = now.astimezone(MOUNTAIN)
     pv_days = list(pv_per_day or [])
 
+    day_indexes = {
+        day_string: index for index, day_string in enumerate(daily["time"])
+    }
+    corrected_hours = []
+    previous = None
+    for index, local_timestamp in enumerate(hourly["time"]):
+        aware = _offset_timestamp(local_timestamp, previous)
+        previous = aware
+        raw = _series_value(hourly, "temperature_2m", index)
+        day_index = day_indexes.get(local_timestamp[:10])
+        raw_low = (_series_value(daily, "temperature_2m_min", day_index)
+                   if day_index is not None else None)
+        raw_high = (_series_value(daily, "temperature_2m_max", day_index)
+                    if day_index is not None else None)
+        corrected = raw
+        values = (raw, raw_low, raw_high)
+        if all(not isinstance(value, bool) and isinstance(value, (int, float))
+               and math.isfinite(value) for value in values):
+            correction = hourly_temperature_correction(
+                raw, raw_low, raw_high, low_correction, high_correction,
+                model[str(aware.hour)],
+            )
+            corrected = raw + correction
+        corrected_hours.append((aware, corrected))
+
     now_iso = now_local.strftime("%Y-%m-%dT%H:00")
     try:
         start = hourly["time"].index(now_iso)
@@ -668,7 +722,7 @@ def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=No
     for index in range(start, min(start + 14, len(hourly["time"]))):
         legacy_hourly.append({
             "h": _hour_label(hourly["time"][index]),
-            "t": _rounded(_series_value(hourly, "temperature_2m", index)),
+            "t": _rounded(corrected_hours[index][1]),
             "p": _series_value(hourly, "precipitation_probability", index) or 0,
             "a": round(_series_value(hourly, "precipitation", index) or 0, 2),
             "r": _rounded(_series_value(hourly, "shortwave_radiation", index) or 0),
@@ -693,16 +747,14 @@ def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=No
         })
 
     hours_by_date = {day_string: [] for day_string in daily["time"][:day_count]}
-    previous = None
     for index, local_timestamp in enumerate(hourly["time"]):
-        aware = _offset_timestamp(local_timestamp, previous)
-        previous = aware
+        aware, corrected = corrected_hours[index]
         day_string = local_timestamp[:10]
         if day_string not in hours_by_date:
             continue
         hours_by_date[day_string].append({
             "at": aware.isoformat(timespec="seconds"),
-            "tempF": _series_value(hourly, "temperature_2m", index),
+            "tempF": corrected,
             "precipPct": _series_value(hourly, "precipitation_probability", index),
             "precipIn": _series_value(hourly, "precipitation", index),
             "radiationWm2": _series_value(hourly, "shortwave_radiation", index),
@@ -785,7 +837,7 @@ def align_pv_days(pv_days, stored_date, today):
 
 
 def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
-                     temperature_adjustment=None):
+                     temperature_adjustment=None, hourly_model=None):
     """Materialize legacy JSON items plus additive ten-day detail from one fetch."""
     now_local = now or datetime.now(MOUNTAIN)
     if now_local.tzinfo is None:
@@ -793,7 +845,8 @@ def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
     if snapshot is None:
         snapshot = fetch_forecast()
     state = None
-    if pv_per_day is None or temperature_adjustment is None:
+    if (pv_per_day is None or temperature_adjustment is None
+            or hourly_model is None):
         try:
             state = load_state()
         except Exception:
@@ -805,9 +858,12 @@ def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
         )
     if temperature_adjustment is None:
         temperature_adjustment = temperature_adjustment_from_state(state)
+    if hourly_model is None:
+        hourly_model = state.get("hourly_temp_model")
     payloads = build_forecast_payloads(
         snapshot, pv_per_day, now_local,
         temperature_adjustment=temperature_adjustment,
+        hourly_model=hourly_model,
     )
     publish_forecast_payloads(payloads, put_state=put_state or oh_put_state)
     return payloads
@@ -1032,6 +1088,7 @@ def main():
                 "highCorrectionF": -b_hi,
                 "lowCorrectionF": -b_lo,
             },
+            hourly_model=st.get("hourly_temp_model"),
         )
     except Exception as e:
         log.append(f"json build failed: {e}")

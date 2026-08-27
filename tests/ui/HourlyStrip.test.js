@@ -54,6 +54,20 @@ describe('HourlyStrip', () => {
     expect(container.querySelectorAll('[data-testid="hour-rain-amount"]')).toHaveLength(1);
   });
 
+  it('renders the producer-corrected temperature without applying a row correction again', async () => {
+    render(HourlyStrip, {
+      props: {
+        hours: [{ ...baseHour, t: 66.8, temperatureCorrectionF: -4.3 }],
+      },
+    });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    const temperatureSeries = option.series.find(({ name }) => name === 'Temp');
+    expect(temperatureSeries.data).toEqual([66.8]);
+    expect(option.tooltip.formatter([{ dataIndex: 0 }])).toContain('temp: 67°');
+  });
+
   it('renders no rain amount when the hourly precip amount is zero, null, or missing', async () => {
     const { container } = render(HourlyStrip, {
       props: {

@@ -296,7 +296,7 @@ def _daily_adjustment(high=2.5, low=-9.0):
     }
 
 
-def test_forecast_payload_v2_applies_only_daily_temperature_corrections():
+def test_forecast_payload_v2_applies_one_hourly_correction_to_both_surfaces():
     snapshot = _snapshot()
     now = datetime.now().replace(minute=0, second=0, microsecond=0)
     snapshot["hourly"] = {
@@ -314,20 +314,38 @@ def test_forecast_payload_v2_applies_only_daily_temperature_corrections():
     raw_hi = snapshot["daily"]["temperature_2m_max"][0]
     raw_lo = snapshot["daily"]["temperature_2m_min"][0]
     adjustment = _daily_adjustment()
+    hourly_model = fi.hourly_model_seed()
+    hour = int(snapshot["hourly"]["time"][0][11:13])
+    hourly_model[str(hour)] = {"b": 4.0, "P": 1.0, "count": 7}
+    correction = fi.hourly_temperature_correction(
+        71.25, raw_lo, raw_hi, -9.0, 2.5, hourly_model[str(hour)]
+    )
+    corrected = 71.25 + correction
 
     legacy_hourly, legacy_daily, detail = fi.build_forecast_payloads(
-        snapshot, [6.4], now, temperature_adjustment=adjustment
+        snapshot, [6.4], now, temperature_adjustment=adjustment,
+        hourly_model=hourly_model,
     )
 
     assert detail["version"] == 2
-    assert detail["temperatureAdjustment"] == adjustment
+    assert detail["temperatureAdjustment"]["highCorrectionF"] == 2.5
+    assert detail["temperatureAdjustment"]["lowCorrectionF"] == -9.0
+    assert detail["temperatureAdjustment"]["hourlyMethod"] == "hourly-blend"
+    assert detail["temperatureAdjustment"]["hourBuckets"] == [
+        {
+            "hour": bucket_hour,
+            "count": 7 if bucket_hour == hour else 0,
+            "weight": 0.5 if bucket_hour == hour else 0.0,
+        }
+        for bucket_hour in range(24)
+    ]
     assert legacy_daily[0]["hi"] == round(raw_hi + 2.5)
     assert legacy_daily[0]["lo"] == round(raw_lo - 9.0)
     assert detail["days"][0]["summary"]["highF"] == raw_hi + 2.5
     assert detail["days"][0]["summary"]["lowF"] == raw_lo - 9.0
     assert legacy_hourly[0] == {
         "h": fi._hour_label(snapshot["hourly"]["time"][0]),
-        "t": round(71.25),
+        "t": round(corrected),
         "p": 35,
         "a": 0.12,
         "r": 410,
@@ -337,7 +355,8 @@ def test_forecast_payload_v2_applies_only_daily_temperature_corrections():
     assert detail["days"][0]["summary"]["precipSumIn"] == 0.0
     assert detail["days"][0]["summary"]["weatherCode"] == 1
     detail_hour = detail["days"][0]["hours"][0]
-    assert detail_hour["tempF"] == 71.25
+    assert detail_hour["tempF"] == corrected
+    assert legacy_hourly[0]["t"] == round(detail_hour["tempF"])
     assert detail_hour["precipPct"] == 35
     assert detail_hour["precipIn"] == 0.12
     assert detail_hour["radiationWm2"] == 410.0
@@ -362,13 +381,34 @@ def test_forecast_payload_normalizes_missing_or_nonfinite_daily_corrections(
     assert legacy_daily[0]["lo"] == 60
 
 
-def test_standalone_json_refresh_reads_daily_kalman_without_mutating_state(monkeypatch):
+def test_standalone_json_refresh_reads_temperature_models_without_mutating_state(monkeypatch):
+    now = datetime.now().replace(minute=0, second=0, microsecond=0)
+    snapshot = _snapshot()
+    snapshot["hourly"] = {
+        "time": [now.strftime("%Y-%m-%dT%H:00")],
+        "temperature_2m": [75.0],
+        "precipitation_probability": [20],
+        "precipitation": [0.02],
+        "shortwave_radiation": [300.0],
+        "wind_speed_10m": [8.0],
+        "weather_code": [1],
+    }
+    hourly_model = fi.hourly_model_seed()
+    hour = now.hour
+    hourly_model[str(hour)] = {"b": 6.0, "P": 1.0, "count": 14}
     state = {
         "pv_days": [6.4],
         "pv_days_date": date.today().isoformat(),
         "kalman": {
             "hi": {"b": -2.5, "P": 1.25},
             "lo": {"b": 9.0, "P": 2.5},
+        },
+        "hourly_temp_model": hourly_model,
+        "hourly_temp_targets": {
+            (now + timedelta(hours=3)).astimezone(fi.MOUNTAIN).isoformat(): {
+                "raw": 72.0,
+                "captured_at": now.astimezone(fi.MOUNTAIN).isoformat(),
+            },
         },
     }
     original = json.loads(json.dumps(state))
@@ -381,21 +421,28 @@ def test_standalone_json_refresh_reads_daily_kalman_without_mutating_state(monke
 
     monkeypatch.setattr(fi, "load_state", load)
 
-    _, legacy_daily, detail = fi.build_json_items(
-        snapshot=_snapshot(),
-        now=datetime.now(),
+    legacy_hourly, legacy_daily, detail = fi.build_json_items(
+        snapshot=snapshot,
+        now=now,
         put_state=lambda item, value: published.setdefault(item, value),
     )
 
-    assert detail["temperatureAdjustment"] == _daily_adjustment()
+    assert detail["temperatureAdjustment"]["highCorrectionF"] == 2.5
+    assert detail["temperatureAdjustment"]["lowCorrectionF"] == -9.0
     assert legacy_daily[0]["hi"] == 92
     assert legacy_daily[0]["lo"] == 51
+    assert legacy_hourly[0]["t"] == 69
+    assert detail["days"][0]["hours"][0]["tempF"] == 69.0
+    assert detail["temperatureAdjustment"]["hourlyMethod"] == "hourly-blend"
+    assert detail["temperatureAdjustment"]["hourBuckets"][hour] == {
+        "hour": hour, "count": 14, "weight": 1.0,
+    }
     assert json.loads(published["Forecast_10Day_JSON"])["version"] == 2
     assert loads == [True]
     assert state == original
 
 
-def test_main_passes_post_scoring_daily_kalman_to_json_builder(monkeypatch, tmp_path):
+def test_main_passes_post_scoring_temperature_models_to_json_builder(monkeypatch, tmp_path):
     ykey = (date.today() - timedelta(days=1)).isoformat()
     state = _scoring_state(ykey)
     captured = []
@@ -412,6 +459,7 @@ def test_main_passes_post_scoring_daily_kalman_to_json_builder(monkeypatch, tmp_
     adjustment = captured[0]["temperature_adjustment"]
     assert adjustment["highCorrectionF"] == pytest.approx(-saved["kalman"]["hi"]["b"])
     assert adjustment["lowCorrectionF"] == pytest.approx(-saved["kalman"]["lo"]["b"])
+    assert captured[0]["hourly_model"] == saved["hourly_temp_model"]
     assert saved["predictions"][date.today().isoformat()]["hi"] == 90.0
     assert saved["predictions"][date.today().isoformat()]["lo"] == 60.0
 

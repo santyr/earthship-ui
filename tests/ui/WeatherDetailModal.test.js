@@ -31,9 +31,21 @@ import {
 } from '../../src/lib/weather/detailStore.js';
 import { currentRoute } from '../../src/routes.js';
 
-function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn } = {}) {
+function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn, version = 1, firstTempF = 60 } = {}) {
   return JSON.stringify({
-    version: 1,
+    version,
+    ...(version === 2 ? {
+      temperatureAdjustment: {
+        highCorrectionF: 2.5,
+        lowCorrectionF: -9,
+        hourlyMethod: 'hourly-blend',
+        hourBuckets: Array.from({ length: 24 }, (_, hour) => ({
+          hour,
+          count: hour === 7 ? 7 : 0,
+          weight: hour === 7 ? 0.5 : 0,
+        })),
+      },
+    } : {}),
     generatedAt: new Date(Date.now() - (stale ? 5 * 60 * 60 * 1_000 : 0)).toISOString(),
     timezone: 'America/Denver',
     days: [{
@@ -49,7 +61,7 @@ function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn } = {}) 
       },
       hours: Array.from({ length: count }, (_, index) => ({
         at: `2026-07-19T${String(index + 7).padStart(2, '0')}:00:00-06:00`,
-        tempF: 60 + index,
+        tempF: firstTempF + index,
         precipPct: index * 5,
         ...(hourPrecipIn !== undefined ? { precipIn: hourPrecipIn(index) } : {}),
         radiationWm2: index * 80,
@@ -119,6 +131,24 @@ describe('WeatherDetailModal', () => {
       { renderer: 'svg' },
     ));
     expect(mocks.chart.setOption).toHaveBeenCalled();
+  });
+
+  it('renders producer-corrected v2 temperatures without applying correction items again', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    items.set({
+      Forecast_10Day_JSON: payload({ version: 2, firstTempF: 66.8 }),
+      Forecast_HighCorrection_F: -12,
+      Forecast_LowCorrection_F: -12,
+    });
+    addOpener();
+    render(WeatherDetailModal);
+    await openTomorrow();
+
+    expect(screen.getByText('67°')).toBeTruthy();
+    expect(screen.queryByText('55°')).toBeNull();
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    expect(JSON.stringify(mocks.chart.setOption.mock.calls.at(-1)[0])).toContain('66.8');
   });
 
   it('announces stale and partial forecast coverage', async () => {
