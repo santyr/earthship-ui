@@ -32,12 +32,13 @@ describe('Home tablet presentation contract', () => {
     expect(headerAlerts).toMatch(/text-overflow:\s*ellipsis/);
   });
 
-  it('keeps the Bitcoin summary and lazy modal activation without inline history', () => {
+  it('shows Bitcoin candles and opens the candle modal', () => {
     expect(home).toContain('btcPriceText');
     expect(home).toContain('btcPctText');
-    expect(home).toMatch(/openBitcoinChart/);
-    expect(home).not.toMatch(/btcSpark|refreshBtcSpark/);
-    expect(home).not.toMatch(/class="btc-spark"/);
+    expect(home).toContain("import BitcoinCandles from '../lib/ui/BitcoinCandles.svelte'");
+    expect(home).toMatch(/fetchHistoryRange\(\s*'BTC_USD_Price'/);
+    expect(home).toContain('<BitcoinCandles points={btcHistory}');
+    expect(home).toMatch(/openBitcoinChart[\s\S]*presentation:\s*'candlestick'/);
     expect(home).toMatch(/class="cell bitcoin-cell clickable"/);
   });
 

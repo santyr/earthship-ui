@@ -9,6 +9,7 @@
   import StatTile from '../lib/ui/StatTile.svelte';
   import Arc from '../lib/ui/Arc.svelte';
   import Sparkline from '../lib/ui/Sparkline.svelte';
+  import BitcoinCandles from '../lib/ui/BitcoinCandles.svelte';
   import CompassRose from '../lib/ui/CompassRose.svelte';
   import GoatFeedingsCard from '../lib/ui/GoatFeedingsCard.svelte';
   import SeasonCountdown from '../lib/ui/SeasonCountdown.svelte';
@@ -75,6 +76,9 @@
   let indoorTodayHistory = $state([]);
   let battSpark = $state([]);
   let baroSpark = $state([]);
+  let btcHistory = $state([]);
+  let btcHistoryStartMs = $state(0);
+  let btcHistoryEndMs = $state(0);
   let windGustMaxToday = $state(null);
   let loadToday = $state(null);
 
@@ -149,6 +153,18 @@
     baroSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6);
   }
 
+  async function refreshBitcoinHistory() {
+    const now = Date.now();
+    const currentHour = Math.floor(now / 3_600_000) * 3_600_000;
+    btcHistoryStartMs = currentHour - 23 * 3_600_000;
+    btcHistoryEndMs = now;
+    btcHistory = await fetchHistoryRange(
+      'BTC_USD_Price',
+      new Date(btcHistoryStartMs).toISOString(),
+      new Date(btcHistoryEndMs).toISOString(),
+    );
+  }
+
   async function refreshWindGustMaxToday() {
     const range = localDayHistoryRange(new Date());
     const data = await fetchHistoryRange('AmbientWeatherWS2902A_WindGust', range.starttime, range.endtime);
@@ -166,6 +182,7 @@
     refreshTemperatureHistory();
     refreshBattSpark();
     refreshBaroSpark();
+    refreshBitcoinHistory();
     refreshLoadToday();
     refreshWindGustMaxToday();
 
@@ -178,6 +195,7 @@
       refreshTemperatureHistory();
       refreshBattSpark();
       refreshBaroSpark();
+      refreshBitcoinHistory();
       refreshLoadToday();
       refreshWindGustMaxToday();
     }, SPARK_REFRESH_MS);
@@ -609,6 +627,9 @@
           </span>
           <span class="btc-price">{btcPriceText}</span>
           <span class="btc-pct" style="color: {btcPctColor}">{btcPctText}</span>
+        </div>
+        <div class="btc-candles">
+          <BitcoinCandles points={btcHistory} startMs={btcHistoryStartMs} endMs={btcHistoryEndMs} />
         </div>
       </div>
     </Tile>
@@ -1102,17 +1123,19 @@
 
   /* ---- Bitcoin (mirrors Indoor's slot under Battery) ---- */
   .bitcoin-body {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto minmax(2.5rem, 1fr);
+    gap: 0.35rem;
     height: 100%;
-    justify-content: center;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
   }
   .btc-top {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    flex: 0 0 auto;
+    min-width: 0;
   }
   .btc-icon {
     display: inline-flex;
@@ -1130,6 +1153,11 @@
     font-size: 0.8rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+  }
+  .btc-candles {
+    min-width: 0;
+    min-height: 2.5rem;
+    overflow: hidden;
   }
   /* ---- Wind ---- */
   /* The rose measures the remaining content box. Gust and daily maximum stay

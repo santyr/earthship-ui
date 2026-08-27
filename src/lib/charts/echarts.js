@@ -1,5 +1,5 @@
 import * as echarts from 'echarts/core';
-import { BarChart, LineChart } from 'echarts/charts';
+import { BarChart, CandlestickChart, LineChart } from 'echarts/charts';
 import {
   GridComponent,
   LegendComponent,
@@ -11,6 +11,7 @@ import { SVGRenderer } from 'echarts/renderers';
 echarts.use([
   LineChart,
   BarChart,
+  CandlestickChart,
   GridComponent,
   LegendComponent,
   MarkPointComponent,

@@ -144,6 +144,13 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
       if (name === 'AmbientWeatherWS2902A_IndoorSensor_Temperature') {
         return index === 0 ? 64 : index === 23 ? 74 : 70;
       }
+      if (name === 'BTC_USD_Price') {
+        const time = now - (23 - index) * 15 * 60_000;
+        const hour = Math.floor(time / 3_600_000);
+        const quarter = Math.floor((time - hour * 3_600_000) / (15 * 60_000));
+        const baseline = 118_000 + Math.floor(hour / 2) * 100;
+        return hour % 2 === 0 ? baseline + quarter * 60 : baseline + (3 - quarter) * 60;
+      }
       return 50 + index / 2;
     };
     return route.fulfill({
@@ -613,15 +620,49 @@ for (const target of TARGETS) {
     await expect(page.locator('.btc-icon svg')).toBeVisible();
     await expect(page.locator('.btc-icon')).toHaveCSS('color', 'rgb(239, 68, 68)');
     await expect(page.locator('.btc-pct')).toHaveCSS('color', 'rgb(239, 68, 68)');
+    await expect(page.locator('.btc-candles svg')).toBeVisible();
+    const btcCandleFills = await page.locator('.btc-candles svg path').evaluateAll((paths) => (
+      paths.map((path) => path.getAttribute('fill')).filter(Boolean)
+    ));
+    expect(btcCandleFills).toContain('#22c55e');
+    expect(btcCandleFills).toContain('#ef4444');
+    const bitcoinLayout = await page.locator('.bitcoin-body').evaluate((body) => {
+      const box = (element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        };
+      };
+      return {
+        price: box(body.querySelector('.btc-price')),
+        change: box(body.querySelector('.btc-pct')),
+        candles: box(body.querySelector('.btc-candles')),
+      };
+    });
+    expect(bitcoinLayout.candles.width).toBeGreaterThan(0);
+    expect(bitcoinLayout.candles.height).toBeGreaterThan(0);
+    expect(bitcoinLayout.candles.top).toBeGreaterThanOrEqual(
+      Math.max(bitcoinLayout.price.bottom, bitcoinLayout.change.bottom) - 0.5,
+    );
 
     await page.waitForTimeout(100);
-    expect(runtime.historyRequests).not.toContain('BTC_USD_Price');
+    expect(runtime.historyRequests).toContain('BTC_USD_Price');
     const bitcoin = page.getByRole('button', { name: 'Open Bitcoin history chart' });
     await bitcoin.focus();
     await bitcoin.press('Enter');
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Bitcoin (USD)' })).toBeVisible();
-    await expect.poll(() => runtime.historyRequests).toContain('BTC_USD_Price');
+    const bitcoinDialog = page.getByRole('dialog', { name: 'Bitcoin (USD)' });
+    await expect(bitcoinDialog.getByRole('heading', { name: 'Bitcoin (USD)' })).toBeVisible();
+    await expect(bitcoinDialog.locator('.chart-canvas svg')).toBeVisible();
+    await expect(bitcoinDialog).toContainText(/Latest candle: open \$/);
+    await bitcoinDialog.getByRole('button', { name: '4h', exact: true }).click();
+    await expect(bitcoinDialog.getByRole('button', { name: '4h', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Close chart' }).click();
+    await expect(bitcoin).toBeFocused();
     await bitcoin.click();
     await expect(page.getByRole('dialog').getByRole('heading', { name: 'Bitcoin (USD)' })).toBeVisible();
     await page.getByRole('button', { name: 'Close chart' }).click();
