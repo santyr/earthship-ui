@@ -509,7 +509,7 @@ describe('Home signed card state colors', () => {
     expect(home).toMatch(/class="btc-pct"\s+style="color:\s*\{btcPctColor\}"/);
   });
 
-  it('keeps card sizes while enlarging the two primary temperature readings', () => {
+  it('pins equal-grid primary temperature sizing', () => {
     expect(home).toMatch(/\.big-temp\s*\{[^}]*font-size:\s*4rem/is);
     expect(home).toMatch(/\.indoor-temp\s*\{[^}]*font-size:\s*4rem/is);
   });
