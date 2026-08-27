@@ -205,8 +205,25 @@ def local_day_window_utc(day):
     return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
 
 
+
+HOURLY_KALMAN_Q = 0.10
+HOURLY_KALMAN_R = 9.0
+HOURLY_TARGET_LIMIT = 96
+HOURLY_TARGET_MAX_AGE = timedelta(hours=72)
+HOURLY_MATCH_WINDOW = timedelta(minutes=15)
+
+
+def hourly_model_seed():
+    """Return one independent scalar-bias bucket for each local clock hour."""
+    return {
+        str(hour): {"b": 0.0, "P": 10.0, "count": 0}
+        for hour in range(24)
+    }
+
 DEFAULT_STATE = {"k_res": 1.0, "d_direct": 4.0, "predictions": {},
-                 "pv_errors": [], "trough_errors": [], "dm_sent": {}}
+                 "pv_errors": [], "trough_errors": [], "dm_sent": {},
+                 "hourly_temp_model": hourly_model_seed(),
+                 "hourly_temp_targets": {}}
 
 
 def _quarantine_state():
@@ -241,6 +258,15 @@ def load_state():
         _quarantine_state()
         return defaults
     defaults.update(loaded)      # schema-tolerant: old files lacking new keys
+    loaded_model = loaded.get("hourly_temp_model")
+    if isinstance(loaded_model, dict):
+        model = hourly_model_seed()
+        for hour, bucket in loaded_model.items():
+            if hour in model and isinstance(bucket, dict):
+                model[hour].update(bucket)
+        defaults["hourly_temp_model"] = model
+    if not isinstance(defaults.get("hourly_temp_targets"), dict):
+        defaults["hourly_temp_targets"] = {}
     return defaults
 
 
@@ -403,6 +429,185 @@ def _offset_timestamp(local_timestamp, previous=None):
             return later[0]
     return ordered[0]
 
+
+
+def _local_datetime(value):
+    """Normalize an input datetime to the configured site zone."""
+    return (value.replace(tzinfo=MOUNTAIN) if value.tzinfo is None
+            else value.astimezone(MOUNTAIN))
+
+
+def _target_instant(value):
+    """Parse an offset-aware target key as a UTC instant, or return None."""
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def _observation_instant(value):
+    """Normalize persistence timestamps; legacy naive rows are UTC wall time."""
+    try:
+        parsed = (datetime.fromisoformat(value.replace("Z", "+00:00"))
+                  if isinstance(value, str) else value)
+    except ValueError:
+        return None
+    if not isinstance(parsed, datetime):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _ensure_hourly_model(state):
+    model = hourly_model_seed()
+    loaded = state.get("hourly_temp_model")
+    if isinstance(loaded, dict):
+        for hour, bucket in loaded.items():
+            if hour in model and isinstance(bucket, dict):
+                model[hour].update(bucket)
+    state["hourly_temp_model"] = model
+    return model
+
+
+def _bound_hourly_targets(state):
+    """Keep valid offset-aware target records ordered by instant, newest 96."""
+    targets = state.get("hourly_temp_targets")
+    if not isinstance(targets, dict):
+        targets = {}
+    ordered = sorted(
+        ((instant, key, record)
+         for key, record in targets.items()
+         if (instant := _target_instant(key)) is not None and isinstance(record, dict)),
+        key=lambda row: (row[0], row[1]),
+    )[-HOURLY_TARGET_LIMIT:]
+    state["hourly_temp_targets"] = {key: record for _, key, record in ordered}
+    return state["hourly_temp_targets"]
+
+
+def capture_next_day_hourly(snapshot, now):
+    """Return one raw provider target for each hour of the next local day."""
+    now_local = _local_datetime(now)
+    capture_key = now_local.isoformat(timespec="seconds")
+    next_day = now_local.date() + timedelta(days=1)
+    hourly = snapshot.get("hourly", {}) if isinstance(snapshot, dict) else {}
+    times = hourly.get("time", []) if isinstance(hourly, dict) else []
+    temperatures = hourly.get("temperature_2m", []) if isinstance(hourly, dict) else []
+    targets = {}
+    previous = None
+    for timestamp, raw_value in zip(times, temperatures):
+        try:
+            target = _offset_timestamp(timestamp, previous=previous)
+        except (TypeError, ValueError):
+            continue
+        previous = target
+        if target.date() != next_day or isinstance(raw_value, bool):
+            continue
+        try:
+            raw = float(raw_value)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(raw):
+            continue
+        targets[target.isoformat(timespec="seconds")] = {
+            "raw": raw, "captured_at": capture_key,
+        }
+    return targets
+
+
+def score_hourly_targets(state, now):
+    """Score elapsed raw targets once against nearest trustworthy observations."""
+    now_utc = _local_datetime(now).astimezone(timezone.utc)
+    model = _ensure_hourly_model(state)
+    targets = state.get("hourly_temp_targets")
+    if not isinstance(targets, dict):
+        targets = {}
+        state["hourly_temp_targets"] = targets
+
+    for key in list(targets):
+        instant = _target_instant(key)
+        if instant is not None and now_utc - instant > HOURLY_TARGET_MAX_AGE:
+            targets.pop(key, None)
+    targets = _bound_hourly_targets(state)
+
+    elapsed = []
+    for key, record in targets.items():
+        instant = _target_instant(key)
+        if instant is not None and instant + HOURLY_MATCH_WINDOW <= now_utc:
+            elapsed.append((instant, key, record))
+    if not elapsed:
+        return 0
+
+    start = min(row[0] for row in elapsed) - HOURLY_MATCH_WINDOW
+    end = max(row[0] for row in elapsed) + HOURLY_MATCH_WINDOW + timedelta(seconds=1)
+    try:
+        rows = series(OUTDOOR_TEMP_ITEM, start, end)
+    except Exception:
+        return 0
+    observations = []
+    for timestamp, measured_value in rows:
+        instant = _observation_instant(timestamp)
+        if instant is None or isinstance(measured_value, bool):
+            continue
+        try:
+            measured = float(measured_value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(measured):
+            observations.append((instant, measured))
+
+    scored = 0
+    for target, key, record in elapsed:
+        raw_value = record.get("raw")
+        if isinstance(raw_value, bool):
+            continue
+        try:
+            raw = float(raw_value)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(raw):
+            continue
+        candidates = [
+            (abs((instant - target).total_seconds()), instant, measured)
+            for instant, measured in observations
+            if abs((instant - target).total_seconds()) <= HOURLY_MATCH_WINDOW.total_seconds()
+        ]
+        if not candidates:
+            continue
+        _, _, measured = min(candidates, key=lambda row: (row[0], row[1]))
+        hour = str(target.astimezone(MOUNTAIN).hour)
+        bucket = model[hour]
+        try:
+            bias, variance = float(bucket["b"]), float(bucket["P"])
+            count = int(bucket.get("count", 0))
+        except (KeyError, TypeError, ValueError, OverflowError):
+            bias, variance, count = 0.0, 10.0, 0
+        if not math.isfinite(bias) or not math.isfinite(variance):
+            bias, variance = 0.0, 10.0
+        predicted_variance = variance + HOURLY_KALMAN_Q
+        gain = predicted_variance / (predicted_variance + HOURLY_KALMAN_R)
+        innovation = raw - measured
+        bucket["b"] = round(bias + gain * (innovation - bias), 3)
+        bucket["P"] = round((1 - gain) * predicted_variance, 4)
+        bucket["count"] = max(count, 0) + 1
+        targets.pop(key, None)
+        scored += 1
+    return scored
+
+
+def hourly_temperature_correction(raw, raw_low, raw_high, low_correction,
+                                  high_correction, bucket):
+    """Blend daily fallback toward learned local-hour correction."""
+    position = (clamp((raw - raw_low) / (raw_high - raw_low), 0.0, 1.0)
+                if raw_high > raw_low else 0.5)
+    fallback = low_correction + position * (high_correction - low_correction)
+    learned = -bucket["b"]
+    weight = min(bucket["count"] / 14.0, 1.0)
+    return round(clamp(fallback * (1 - weight) + learned * weight,
+                       -20.0, 20.0), 1)
 
 def _finite_correction(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -618,6 +823,10 @@ def main():
     def put(item, value):
         safe_put(item, value, put_failed)
 
+    hourly_scored = score_hourly_targets(st, now)
+    if hourly_scored:
+        log.append(f"hourly-temp scored: {hourly_scored} raw targets")
+
     # ---- Phase 1: score yesterday, per quantity — a quantity whose series
     # had no data on an earlier run today may still score on a re-run,
     # without double-appending the ones that already scored ----
@@ -709,6 +918,10 @@ def main():
 
     # ---- Phase 3: fetch forecast, predict today ----
     snapshot = fetch_forecast()
+    targets = st.setdefault("hourly_temp_targets", {})
+    for key, record in capture_next_day_hourly(snapshot, now).items():
+        targets.setdefault(key, record)
+    _bound_hourly_targets(st)
     om = snapshot["daily"]
     highs, lows = om["temperature_2m_max"], om["temperature_2m_min"]
     radsum_kwh = om["shortwave_radiation_sum"][0] / 3.6   # MJ/m² -> kWh/m²

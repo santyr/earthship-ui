@@ -653,3 +653,211 @@ def test_backfill_urls_follow_resolved_site_settings(site_globals, monkeypatch):
         assert "timezone=America%2FPhoenix" in url
     assert "start_date=2026-01-01&end_date=2026-01-02" in hist
     assert bf.site_zone() is fi.MOUNTAIN
+
+# ---------------------------------------------------------------- hourly temperature learning
+
+def test_load_state_migrates_hourly_defaults_without_overwriting_prior_bucket(
+        tmp_path, monkeypatch):
+    sf = _state_paths(tmp_path, monkeypatch)
+    prior = {"b": 3.25, "P": 2.5, "count": 9}
+    sf.write_text(json.dumps({
+        "hourly_temp_model": {"7": prior},
+        "hourly_temp_targets": {"2026-08-28T07:00:00-06:00": {
+            "raw": 48.0, "captured_at": "2026-08-27T06:40:00-06:00",
+        }},
+    }))
+
+    st = fi.load_state()
+
+    assert len(st["hourly_temp_model"]) == 24
+    assert st["hourly_temp_model"]["7"] == prior
+    assert st["hourly_temp_model"]["8"] == {"b": 0.0, "P": 10.0, "count": 0}
+    assert list(st["hourly_temp_targets"]) == ["2026-08-28T07:00:00-06:00"]
+
+
+def test_hourly_model_seed_has_24_independent_local_hour_buckets():
+    model = fi.hourly_model_seed()
+
+    assert list(model) == [str(hour) for hour in range(24)]
+    assert all(bucket == {"b": 0.0, "P": 10.0, "count": 0}
+               for bucket in model.values())
+    model["0"]["count"] = 1
+    assert model["1"]["count"] == 0
+
+
+def test_capture_next_day_hourly_keeps_only_raw_next_local_day_values():
+    now = datetime(2026, 8, 27, 6, 40, tzinfo=fi.MOUNTAIN)
+    snapshot = {"hourly": {
+        "time": [
+            "2026-08-27T23:00", "2026-08-28T00:00",
+            "2026-08-28T01:00", "2026-08-29T00:00",
+        ],
+        "temperature_2m": [41.0, 42.25, 43.5, 44.0],
+    }}
+
+    targets = fi.capture_next_day_hourly(snapshot, now)
+
+    assert targets == {
+        "2026-08-28T00:00:00-06:00": {
+            "raw": 42.25, "captured_at": "2026-08-27T06:40:00-06:00",
+        },
+        "2026-08-28T01:00:00-06:00": {
+            "raw": 43.5, "captured_at": "2026-08-27T06:40:00-06:00",
+        },
+    }
+
+
+def test_capture_next_day_hourly_uses_distinct_offset_keys_for_repeated_dst_hour():
+    now = datetime(2026, 10, 31, 6, 40, tzinfo=fi.MOUNTAIN)
+    snapshot = {"hourly": {
+        "time": ["2026-11-01T01:00", "2026-11-01T01:00", "2026-11-01T02:00"],
+        "temperature_2m": [30.0, 29.0, 28.0],
+    }}
+
+    targets = fi.capture_next_day_hourly(snapshot, now)
+
+    assert list(targets) == [
+        "2026-11-01T01:00:00-06:00",
+        "2026-11-01T01:00:00-07:00",
+        "2026-11-01T02:00:00-07:00",
+    ]
+    assert [target["raw"] for target in targets.values()] == [30.0, 29.0, 28.0]
+
+
+def test_capture_next_day_hourly_rejects_nonfinite_raw_values():
+    now = datetime(2026, 8, 27, 6, 40, tzinfo=fi.MOUNTAIN)
+    snapshot = {"hourly": {
+        "time": ["2026-08-28T00:00", "2026-08-28T01:00", "2026-08-28T02:00"],
+        "temperature_2m": [float("nan"), float("inf"), 44.0],
+    }}
+
+    targets = fi.capture_next_day_hourly(snapshot, now)
+
+    assert list(targets) == ["2026-08-28T02:00:00-06:00"]
+
+
+def test_score_hourly_targets_uses_earlier_nearest_tie_and_raw_innovation(monkeypatch):
+    target = datetime(2026, 8, 27, 12, 0, tzinfo=fi.MOUNTAIN)
+    key = target.isoformat()
+    future_key = datetime(2026, 8, 27, 14, 0, tzinfo=fi.MOUNTAIN).isoformat()
+    state = {
+        "hourly_temp_model": fi.hourly_model_seed(),
+        "hourly_temp_targets": {
+            key: {"raw": 74.0, "captured_at": "2026-08-26T06:40:00-06:00"},
+            future_key: {"raw": 80.0, "captured_at": "2026-08-26T06:40:00-06:00"},
+        },
+    }
+    calls = []
+
+    def observations(item, start, end):
+        calls.append((item, start, end))
+        return [
+            (target.astimezone(UTC) - timedelta(minutes=10), 70.0),
+            (target.astimezone(UTC) + timedelta(minutes=10), 80.0),
+        ]
+
+    monkeypatch.setattr(fi, "series", observations)
+
+    assert fi.score_hourly_targets(
+        state, target + timedelta(minutes=30)
+    ) == 1
+
+    bucket = state["hourly_temp_model"]["12"]
+    gain = 10.1 / (10.1 + 9.0)
+    assert bucket["b"] == pytest.approx(round(gain * (74.0 - 70.0), 3))
+    assert bucket["P"] == pytest.approx(round((1 - gain) * 10.1, 4))
+    assert bucket["count"] == 1
+    assert key not in state["hourly_temp_targets"]
+    assert future_key in state["hourly_temp_targets"]
+    assert len(calls) == 1
+    item, start, end = calls[0]
+    assert item == fi.OUTDOOR_TEMP_ITEM
+    assert start == target.astimezone(UTC) - timedelta(minutes=15)
+    assert end > target.astimezone(UTC) + timedelta(minutes=15)
+
+
+def test_score_hourly_targets_keeps_unmatched_and_rejects_nonfinite_observation(monkeypatch):
+    target = datetime(2026, 8, 27, 12, 0, tzinfo=fi.MOUNTAIN)
+    key = target.isoformat()
+    state = {
+        "hourly_temp_model": fi.hourly_model_seed(),
+        "hourly_temp_targets": {
+            key: {"raw": 74.0, "captured_at": "2026-08-26T06:40:00-06:00"},
+        },
+    }
+    monkeypatch.setattr(fi, "series", lambda *_: [
+        (target.astimezone(UTC), float("nan")),
+        (target.astimezone(UTC) + timedelta(minutes=16), 70.0),
+    ])
+
+    assert fi.score_hourly_targets(state, target + timedelta(minutes=30)) == 0
+
+    assert key in state["hourly_temp_targets"]
+    assert state["hourly_temp_model"]["12"]["count"] == 0
+
+
+def test_score_hourly_targets_prunes_after_72_hours_and_bounds_newest_96(monkeypatch):
+    now = datetime(2026, 8, 27, 12, 0, tzinfo=fi.MOUNTAIN)
+    exactly_72h = (now - timedelta(hours=72)).isoformat()
+    stale = (now - timedelta(hours=72, seconds=1)).isoformat()
+    targets = {
+        exactly_72h: {"raw": 40.0, "captured_at": now.isoformat()},
+        stale: {"raw": 39.0, "captured_at": now.isoformat()},
+    }
+    newest = []
+    for minute in range(100):
+        key = (now + timedelta(days=1, minutes=minute)).isoformat()
+        newest.append(key)
+        targets[key] = {"raw": 50.0, "captured_at": now.isoformat()}
+    state = {"hourly_temp_targets": targets}
+    monkeypatch.setattr(fi, "series", lambda *_: [])
+
+    assert fi.score_hourly_targets(state, now) == 0
+
+    assert stale not in state["hourly_temp_targets"]
+    assert exactly_72h not in state["hourly_temp_targets"]  # older than newest 96 bound
+    assert list(state["hourly_temp_targets"]) == newest[-96:]
+
+
+def test_score_hourly_targets_repeated_dst_instants_share_local_hour_bucket(monkeypatch):
+    first = datetime.fromisoformat("2026-11-01T01:00:00-06:00")
+    second = datetime.fromisoformat("2026-11-01T01:00:00-07:00")
+    state = {
+        "hourly_temp_model": fi.hourly_model_seed(),
+        "hourly_temp_targets": {
+            first.isoformat(): {"raw": 35.0, "captured_at": "2026-10-31T06:40:00-06:00"},
+            second.isoformat(): {"raw": 34.0, "captured_at": "2026-10-31T06:40:00-06:00"},
+        },
+    }
+    monkeypatch.setattr(fi, "series", lambda *_: [
+        (first.astimezone(UTC), 33.0),
+        (second.astimezone(UTC), 30.0),
+    ])
+
+    assert fi.score_hourly_targets(state, second + timedelta(minutes=30)) == 2
+
+    assert state["hourly_temp_targets"] == {}
+    assert state["hourly_temp_model"]["1"]["count"] == 2
+    assert sum(bucket["count"] for bucket in state["hourly_temp_model"].values()) == 2
+
+
+def test_hourly_blend_moves_from_daily_fallback_to_bucket_bias():
+    bucket = {"b": 4.0, "P": 1.0, "count": 7}
+    # raw 50 is halfway from daily 40..60; fallback correction is (-8 + 2)/2 = -3
+    assert fi.hourly_temperature_correction(50, 40, 60, -8, 2, bucket) == -3.5
+
+
+def test_hourly_correction_uses_bucket_at_full_weight_without_feedback():
+    bucket = {"b": 4.25, "P": 1.0, "count": 14}
+
+    assert fi.hourly_temperature_correction(50, 40, 60, -8, 2, bucket) == -4.2
+    assert bucket == {"b": 4.25, "P": 1.0, "count": 14}
+
+
+def test_hourly_correction_clamps():
+    assert fi.hourly_temperature_correction(
+        50, 40, 60, -50, -50, {"b": 0, "P": 1, "count": 0}
+    ) == -20
+    assert fi.hourly_temperature_correction(
+        50, 40, 60, 50, 50, {"b": 0, "P": 1, "count": 0}
+    ) == 20
