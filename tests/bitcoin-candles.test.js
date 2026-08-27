@@ -87,6 +87,23 @@ describe('Bitcoin candle aggregation', () => {
     })]);
   });
 
+  it('keeps an equal open and close neutral across multiple observations', () => {
+    const candles = aggregateBitcoinCandles([
+      { time: 1_000, state: '100' },
+      { time: 2_000, state: '101' },
+      { time: 3_000, state: '100' },
+    ], { interval: { unit: 'minutes', value: 1 }, startMs: 0, endMs: MINUTE });
+
+    expect(candles).toEqual([expect.objectContaining({
+      open: 100,
+      high: 101,
+      low: 100,
+      close: 100,
+      direction: 'neutral',
+      count: 3,
+    })]);
+  });
+
   it('marks a decreasing multi-sample candle down', () => {
     const candles = aggregateBitcoinCandles([
       { time: 1_000, state: '102' },
