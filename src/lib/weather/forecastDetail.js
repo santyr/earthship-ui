@@ -1,6 +1,10 @@
 export const FORECAST_DETAIL_ITEM = 'Forecast_10Day_JSON';
 export const FORECAST_DETAIL_MAX_BYTES = 64 * 1024;
 export const FORECAST_DETAIL_STALE_MS = 4 * 60 * 60 * 1_000;
+export const FORECAST_DETAIL_HOURS = 12;
+
+const FUTURE_DAY_START_HOUR = 7;
+const FUTURE_DAY_END_HOUR = 18;
 
 const SENTINELS = new Set(['', 'NULL', 'UNDEF']);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -162,19 +166,19 @@ export function selectForecastWindow(result, selectedDate, { nowMs = Date.now() 
   if (selectedDate === today) {
     mode = 'rolling';
     const nextHourMs = Math.ceil(nowMs / 3_600_000) * 3_600_000;
-    hours = allHours.filter(({ atMs }) => atMs >= nextHourMs).slice(0, 10);
+    hours = allHours.filter(({ atMs }) => atMs >= nextHourMs).slice(0, FORECAST_DETAIL_HOURS);
   } else {
     mode = 'daytime';
     hours = allHours.filter(({ at }) => (
       at.slice(0, 10) === selectedDate
-      && Number(at.slice(11, 13)) >= 8
-      && Number(at.slice(11, 13)) <= 17
+      && Number(at.slice(11, 13)) >= FUTURE_DAY_START_HOUR
+      && Number(at.slice(11, 13)) <= FUTURE_DAY_END_HOUR
     ));
   }
   return Object.freeze({
     mode,
     hours: Object.freeze(hours),
-    expectedHours: 10,
-    missingHours: Math.max(0, 10 - hours.length),
+    expectedHours: FORECAST_DETAIL_HOURS,
+    missingHours: Math.max(0, FORECAST_DETAIL_HOURS - hours.length),
   });
 }

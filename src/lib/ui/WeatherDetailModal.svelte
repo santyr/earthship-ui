@@ -5,6 +5,7 @@
   import { items } from '../openhab/store.js';
   import { buildWeatherDetailOption } from '../weather/detailChart.js';
   import {
+    FORECAST_DETAIL_HOURS,
     parseForecast10Day,
     selectForecastWindow,
   } from '../weather/forecastDetail.js';
@@ -47,7 +48,7 @@
       ? selectForecastWindow(forecast, selectedDay.date, {
         nowMs: $weatherDetailStore.openedAtMs || Date.now(),
       })
-      : { mode: 'unavailable', hours: [], expectedHours: 10, missingHours: 10 },
+      : { mode: 'unavailable', hours: [], expectedHours: FORECAST_DETAIL_HOURS, missingHours: FORECAST_DETAIL_HOURS },
   );
   const hourSignature = $derived(
     selectedWindow.hours.map((hour) => [
@@ -62,7 +63,7 @@
   const warnings = $derived([
     forecast.status === 'stale' ? 'Forecast data may be stale' : '',
     selectedDay && selectedWindow.missingHours > 0
-      ? `${selectedWindow.hours.length} of 10 hours available`
+      ? `${selectedWindow.hours.length} of ${FORECAST_DETAIL_HOURS} hours available`
       : '',
   ].filter(Boolean));
   const summaryText = $derived(selectedDay ? [
@@ -75,7 +76,7 @@
   const description = $derived(
     `${$weatherDetailStore.label || 'Selected day'} forecast. ${summaryText}. `
     + (selectedDay
-      ? `${selectedWindow.hours.length} of 10 hourly periods shown.`
+      ? `${selectedWindow.hours.length} of ${FORECAST_DETAIL_HOURS} hourly periods shown.`
       : 'No hourly forecast periods are available.'),
   );
 
@@ -417,7 +418,7 @@
   .weather-detail-hours {
     min-width: 0;
     display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     border-block: 1px solid #242b38;
   }
 

@@ -23,14 +23,17 @@ function forecastDetail() {
           weatherCode: dayIndex % 4,
           pvKwh: 5.2 + dayIndex / 2,
         },
-        hours: Array.from({ length: 24 }, (_, hour) => ({
-          at: `${date}T${String(hour).padStart(2, '0')}:00:00-06:00`,
-          tempF: 50 + hour + dayIndex,
-          precipPct: (hour * 5) % 100,
-          radiationWm2: hour >= 6 && hour <= 19 ? (hour - 5) * 65 : 0,
-          windMph: 4 + (hour % 9),
-          weatherCode: (hour + dayIndex) % 4,
-        })),
+        hours: Array.from({ length: 12 }, (_, index) => {
+          const hour = index + 7;
+          return ({
+            at: `${date}T${String(hour).padStart(2, '0')}:00:00-06:00`,
+            tempF: 50 + hour + dayIndex,
+            precipPct: (hour * 5) % 100,
+            radiationWm2: hour >= 6 && hour <= 19 ? (hour - 5) * 65 : 0,
+            windMph: 4 + (hour % 9),
+            weatherCode: (hour + dayIndex) % 4,
+          });
+        }),
       };
     }),
   });
@@ -153,7 +156,7 @@ async function openFixture(page, route, target) {
 
 for (const target of TARGETS) {
   for (const route of ['home', 'weather']) {
-    test(`${route} opens bounded ten-hour weather detail at ${target.name}`, async ({ page }) => {
+    test(`${route} opens bounded twelve-hour weather detail at ${target.name}`, async ({ page }) => {
       const errors = await openFixture(page, route, target);
       const buttons = page.locator('[data-forecast-day]');
       await expect(buttons).toHaveCount(10);
@@ -162,7 +165,11 @@ for (const target of TARGETS) {
 
       const dialog = page.getByRole('dialog', { name: /forecast/i });
       await expect(dialog).toBeVisible();
-      await expect(dialog.locator('[data-testid="weather-detail-hour"]')).toHaveCount(10);
+      await expect(dialog.locator('[data-testid="weather-detail-hour"]')).toHaveCount(12);
+      expect(await dialog.locator('[data-testid="weather-detail-hour"] .hour-time').allTextContents()).toEqual([
+        '7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM',
+        '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM',
+      ]);
       await expect(dialog.locator('.weather-detail-chart svg')).toBeVisible();
 
       const bounds = await dialog.evaluate((element) => {

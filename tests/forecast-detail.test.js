@@ -106,12 +106,12 @@ describe('ten-day forecast contract', () => {
       nowMs: Date.parse('2026-07-18T20:32:00-06:00'),
     });
     expect(selected.mode).toBe('rolling');
-    expect(selected.hours).toHaveLength(10);
+    expect(selected.hours).toHaveLength(12);
     expect(selected.hours[0].at).toContain('T21:00:00');
-    expect(selected.hours.at(-1).at).toContain('2026-07-19T06:00:00');
+    expect(selected.hours.at(-1).at).toContain('2026-07-19T08:00:00');
   });
 
-  it('selects exactly 08:00 through 17:00 for a future day', () => {
+  it('selects exactly 07:00 through 18:00 for a future day', () => {
     const result = parseForecast10Day(payload([
       day('2026-07-18', 'Today'),
       day('2026-07-19', 'Tomorrow'),
@@ -120,8 +120,9 @@ describe('ten-day forecast contract', () => {
       nowMs: Date.parse('2026-07-18T12:00:00-06:00'),
     });
     expect(selected.mode).toBe('daytime');
+    expect(selected.hours).toHaveLength(12);
     expect(selected.hours.map(({ at }) => at.slice(11, 13))).toEqual([
-      '08', '09', '10', '11', '12', '13', '14', '15', '16', '17',
+      '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18',
     ]);
   });
 
@@ -150,13 +151,13 @@ describe('ten-day forecast contract', () => {
 
   it('retains exact partial coverage and maps nullable legacy fallback values', () => {
     const result = parseForecast10Day(payload([
-      day('2026-07-19', 'Tomorrow', 8, 14),
+      day('2026-07-19', 'Tomorrow', 7, 14),
     ]), { nowMs: Date.parse('2026-07-18T12:00:00-06:00') });
     const selected = selectForecastWindow(result, '2026-07-19', {
       nowMs: Date.parse('2026-07-18T12:00:00-06:00'),
     });
-    expect(selected.hours).toHaveLength(7);
-    expect(selected.missingHours).toBe(3);
+    expect(selected.hours).toHaveLength(8);
+    expect(selected.missingHours).toBe(4);
 
     expect(parseLegacyDailyForecast(JSON.stringify([
       { d: 'Today', hi: 80, lo: null, p: 'UNDEF', w: 1, pv: 6.4 },

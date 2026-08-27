@@ -31,7 +31,7 @@ import {
 } from '../../src/lib/weather/detailStore.js';
 import { currentRoute } from '../../src/routes.js';
 
-function payload({ count = 10, stale = false, precipSumIn, hourPrecipIn } = {}) {
+function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn } = {}) {
   return JSON.stringify({
     version: 1,
     generatedAt: new Date(Date.now() - (stale ? 5 * 60 * 60 * 1_000 : 0)).toISOString(),
@@ -48,7 +48,7 @@ function payload({ count = 10, stale = false, precipSumIn, hourPrecipIn } = {}) 
         pvKwh: 6.4,
       },
       hours: Array.from({ length: count }, (_, index) => ({
-        at: `2026-07-19T${String(index + 8).padStart(2, '0')}:00:00-06:00`,
+        at: `2026-07-19T${String(index + 7).padStart(2, '0')}:00:00-06:00`,
         tempF: 60 + index,
         precipPct: index * 5,
         ...(hourPrecipIn !== undefined ? { precipIn: hourPrecipIn(index) } : {}),
@@ -98,7 +98,7 @@ describe('WeatherDetailModal', () => {
     document.body.style.overflow = '';
   });
 
-  it('renders a complete ten-hour icon/value strip and SVG chart', async () => {
+  it('renders a complete twelve-hour icon/value strip and SVG chart', async () => {
     // The fixture's 2026-07-19 hours are "Tomorrow" relative to a pinned
     // 07-18 clock; unpinned, these tests fail whenever the wall-clock date
     // catches up to the fixture. shouldAdvanceTime keeps waitFor polling.
@@ -108,7 +108,9 @@ describe('WeatherDetailModal', () => {
     render(WeatherDetailModal);
     await openTomorrow();
 
-    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(10);
+    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(12);
+    expect(document.getElementById('weather-detail-modal-description')?.textContent)
+      .toContain('12 of 12 hourly periods shown.');
     expect(screen.getByText('60°')).toBeTruthy();
     expect(screen.getByText('0 W/m²')).toBeTruthy();
     await waitFor(() => expect(mocks.init).toHaveBeenCalledWith(
@@ -128,7 +130,7 @@ describe('WeatherDetailModal', () => {
     await openTomorrow();
 
     expect(screen.getByRole('status').textContent).toContain('Forecast data may be stale');
-    expect(screen.getByRole('status').textContent).toContain('7 of 10 hours available');
+    expect(screen.getByRole('status').textContent).toContain('7 of 12 hours available');
     expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(7);
   });
 
@@ -200,7 +202,7 @@ describe('WeatherDetailModal', () => {
   });
 
   // These two use fake timers pinned well before the fixture's forecast date
-  // so selectForecastWindow always resolves 'daytime' mode (all 10 hours from
+  // so selectForecastWindow always resolves 'daytime' mode (all 12 hours from
   // index 0) regardless of the real wall-clock date the suite runs on — the
   // same real-time coupling that makes the two pre-existing tests above
   // flaky depending on time of day/date.
