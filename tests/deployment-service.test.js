@@ -63,7 +63,7 @@ describe('thermal model shadow user units', () => {
     expect(shadow).toMatch(
       /^ExecStart=\/usr\/bin\/python3 \/home\/sat\/openhab\/scripts\/thermal_intel\.py shadow --publish$/m,
     );
-    expect(train).toMatch(/^TimeoutStartSec=900$/m);
+    expect(train).toMatch(/^TimeoutStartSec=3h$/m);
     expect(shadow).toMatch(/^TimeoutStartSec=180$/m);
     expect(train + shadow).not.toMatch(
       /Thermal_Advisory|sendCommand|\/rest\/rules/i,

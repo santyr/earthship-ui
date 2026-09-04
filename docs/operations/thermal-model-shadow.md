@@ -2036,6 +2036,11 @@ systemctl --user list-timers thermal-model-train.timer \
 Training is daily 06:50 after the existing 06:40 forecast. Shadow starts 15
 minutes after boot and every two hours thereafter.
 
+The training service allows up to three hours for the full 400-day walk-forward
+evaluation. The attended September 4 run exceeded the former 15-minute limit
+while still computing normally. The shadow service retains its three-minute
+limit. A failed training run must retain the previous accepted artifact.
+
 ## 7. Attended rollback
 
 Retain receipts, journal, artifacts, reports, readbacks, and logs. Never delete

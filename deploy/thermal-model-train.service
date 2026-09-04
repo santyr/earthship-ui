@@ -8,4 +8,5 @@ WorkingDirectory=/home/sat/openhab/scripts
 EnvironmentFile=/home/sat/.config/hex/openhab.env
 UMask=0077
 ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py train
-TimeoutStartSec=900
+# Full 400-day walk-forward evaluation exceeds the former 15-minute limit.
+TimeoutStartSec=3h
