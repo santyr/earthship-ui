@@ -321,6 +321,22 @@ def test_learned_shadow_timing_receives_simulated_indoor_states(mode, monkeypatc
         assert len({row["air_f"] for row in rows}) > 1
 
 
+def test_shadow_groups_sunny_evenings_by_site_day_not_utc_midnight():
+    hourly = forecast_hours()
+    for row in hourly:
+        if row["at"].hour in (18, 19):
+            row["radiationWm2"] = 200.0
+    outputs = [run_shadow(
+        registry=AcceptedRegistry(), current=current_states(), forecast=hourly,
+        now=origin, site_timezone=LOCAL,
+    ) for origin in (NOW, NOW.astimezone(LOCAL))]
+    for output in outputs:
+        assert output["confidence"]["grade"] != "unavailable", output["reasons"]
+        validate_shadow_output(output)
+    assert outputs[0]["forecast"] == outputs[1]["forecast"]
+    assert outputs[0]["schedule"] == outputs[1]["schedule"]
+
+
 def test_shadow_output_is_bounded_versioned_and_never_advisory():
     output = run_shadow(
         registry=AcceptedRegistry(),

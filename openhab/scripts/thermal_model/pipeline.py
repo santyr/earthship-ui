@@ -1038,7 +1038,8 @@ def _build_available_shadow(
 ):
     model, model_age, data_age = _artifact_context(artifact, now)
     values, current_ages = _current_values(current, now)
-    origin = now.replace(second=0, microsecond=0) - timedelta(minutes=now.minute % 5)
+    local_now = now.astimezone(site_timezone)
+    origin = local_now.replace(second=0, microsecond=0) - timedelta(minutes=local_now.minute % 5)
     hourly = _normalize_hourly_rows(forecast)
     final = min(hourly[-1]["at"].astimezone(timezone.utc), origin.astimezone(timezone.utc) + timedelta(hours=MAX_FORECAST_HOURS))
     available_hours = int((final - origin.astimezone(timezone.utc)).total_seconds() // 3600)
