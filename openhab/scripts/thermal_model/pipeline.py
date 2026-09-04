@@ -7,7 +7,7 @@ to :func:`write_shadow_output`.
 
 from bisect import bisect_right
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import json
 import math
@@ -1050,6 +1050,20 @@ def _build_available_shadow(
     rows = interpolate_hourly_forecast(hourly, start=origin, end=end)
     rows[0].update({"air_f": values["air"], "mass_f": values["mass"]})
     initial = {"air_f": values["air"], "mass_f": values["mass"]}
+
+    # Weather provides outdoor forcing only. Seed the learned timing features
+    # with a causal physics trajectory under the existing seasonal protocol.
+    # The learned schedule is then simulated again below for candidate scoring.
+    protocol_behavior = replace(artifact.behavior, transitions={})
+    protocol = _expand_nightly_venting(
+        baseline_schedule(protocol_behavior, rows), rows, site_timezone
+    )
+    _validate_internal_schedule(
+        protocol, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+    )
+    protocol_predictions = _simulate_schedule(artifact.dynamics, rows, protocol, initial)
+    for row, predicted in zip(rows[1:], protocol_predictions):
+        row.update({"air_f": predicted["air_f"], "mass_f": predicted["mass_f"]})
 
     baseline = _expand_nightly_venting(
         baseline_schedule(artifact.behavior, rows), rows, site_timezone

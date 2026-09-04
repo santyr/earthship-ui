@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 import json
 import math
 from types import SimpleNamespace
@@ -283,6 +284,41 @@ def test_forecast_interpolation_rejects_extrapolation_naive_and_missing_numeric(
             start=broken[0]["at"],
             end=broken[-1]["at"],
         )
+
+
+@pytest.mark.parametrize("mode", ["warm", "spring", "fall_charge", "winter"])
+def test_learned_shadow_timing_receives_simulated_indoor_states(mode, monkeypatch):
+    artifact = accepted_artifact()
+    vocabulary = replace(
+        artifact.behavior.seasonal_vocabulary[0], mode=mode,
+        transitions=("vent_open", "vent_close", "indoor_shade_open", "indoor_shade_close"),
+    )
+    artifact.behavior = replace(
+        artifact.behavior, seasonal_vocabulary=(vocabulary,),
+        transitions={name: (-4.0,) + (0.0,) * (len(FEATURE_NAMES) - 1)
+                     for name in TRANSITIONS},
+    )
+    learned_inputs = []
+    original = thermal_pipeline.baseline_schedule
+
+    def record(model, rows):
+        if model is artifact.behavior:
+            learned_inputs.append([dict(row) for row in rows])
+        return original(model, rows)
+
+    monkeypatch.setattr(thermal_pipeline, "baseline_schedule", record)
+    output = run_shadow(
+        registry=AcceptedRegistry(artifact), current=current_states(),
+        forecast=[{**row, "mode": mode} for row in forecast_hours()], now=NOW,
+    )
+    assert output["confidence"]["grade"] != "unavailable", output["reasons"]
+    validate_shadow_output(output)
+    assert learned_inputs
+    for rows in learned_inputs:
+        assert all(math.isfinite(row["air_f"]) and math.isfinite(row["mass_f"])
+                   for row in rows)
+        assert rows[0]["air_f"] == current_states()["air"]["value"]
+        assert len({row["air_f"] for row in rows}) > 1
 
 
 def test_shadow_output_is_bounded_versioned_and_never_advisory():
