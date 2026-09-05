@@ -107,14 +107,17 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
 Implementation branch `feat/advisory-outcome-foundation` now contains the pure
 UTC day/trough window dependency and immutable decision/result JSON builders
 (implementation commits 33fb0f9 and d283033). Combined verification has 132 passing
-tests and clean task/whole-branch reviews. These are dependencies only: storage,
-producer capture, measured outcomes and live scoring replacement are unfinished.
+tests and clean task/whole-branch reviews. These are dependencies only: storage
+activation, producer capture, measured outcomes and live scoring replacement are unfinished.
 The reviewed foundation was merged into main at 4818d75 and reverified with
 132 Python and 1,103 UI tests. No live forecast capture/scorer was wired or
-activated by this merge. The separate Solar_PV storage branch is at 57467b2;
-its 235-test run passes but independent review requires fixture routing isolation
-and deterministic timeout/retry tests. Those corrections are now approved and
-under implementation; the storage task is not yet accepted or deployed.
+activated by this merge. Solar_PV storage corrections at 1de8aa0 resolved fixture
+routing isolation and deterministic timeout/retry acceptance. Independent task
+and whole-branch reviews are clean. The storage implementation was merged and
+pushed to Solar_PV main at 7f0b583, with 240 tests passing on merged main in
+7.29 seconds and exact remote SHA verified. This integrates source only: production
+migration, runtime grants, shared-module installation and capture activation have
+not occurred. Completed-window live evidence remains required.
 Detailed source-health evidence is in
 `docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
 BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
