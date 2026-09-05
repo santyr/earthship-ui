@@ -246,3 +246,64 @@ Primary references: official openhab-core 5.2.1
 [trigger handling](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.automation/src/main/java/org/openhab/core/automation/internal/module/handler/ItemStateTriggerHandler.java),
 [binding profile](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.thing/src/main/java/org/openhab/core/thing/internal/profiles/ProfileCallbackImpl.java), and
 [REST event DTO](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.io.rest.sse/src/main/java/org/openhab/core/io/rest/sse/internal/dto/EventDTO.java).
+
+### Live WebSocket follow-up supersedes the trigger-source assumption
+
+The WebSocket event DTO, unlike REST SSE, can expose source. A bounded,
+authenticated, read-only subscription on September 5 observed both raw and
+scale `ItemStateUpdatedEvent` messages with no source field. A second targeted
+subscription observed the same raw input path at both stages:
+
+- `ItemStateEvent`, topic `openhab/items/BMS_SOC_Raw/state`: exact source
+  `org.openhab.core.thing$modbus:data:schneiderBatterySunSpec:battery802Core:socRaw:number`.
+- `ItemStateUpdatedEvent`, topic `openhab/items/BMS_SOC_Raw/stateupdated`:
+  source omitted, with payload keys lastStateUpdate/type/value.
+
+Only connection filter/heartbeat management messages were sent. No Item event,
+command, state mutation, rule invocation or credentials were printed or stored.
+Both bounded observation sessions completed normally.
+
+Root cause is in official 5.2.1 `ItemEventFactory`: event reconstruction routes
+updated events through `createStateUpdatedEvent(topic, payload)`, which passes
+null for source. The earlier investigation traced creation and trigger handling
+but missed this reconstruction boundary. Its conclusion that source-qualified
+ordinary UPDATE triggers were usable on this runtime was premature. Installed
+core/thing/WebSocket cache bundles all identify as 5.2.1; the cached thing bundle
+hash matches the distribution JAR.
+
+The draft independent producer in worktree `.worktrees/bms-soc-evidence` has
+42 passing exact-script tests and 274 passing OpenHAB tests, but their constructed
+updated events carry a source the live events lack. It is paused before source
+commit or deployment. Green tests do not validate this runtime assumption.
+
+Safe next contract investigation: the live `core.GenericEventTrigger` supports
+exact topic/type selection and returns the original event. Both raw and scale
+Modbus Things also expose native DateTime `lastReadSuccess` and `lastReadError`
+channels. The binding's version-matched `processUpdatedValue` stamps success
+after processing a register response, even if a field transformation failed;
+numeric field validity must therefore remain independently checked. Do not
+substitute rule receipt time for a sensor/read timestamp without explicitly
+changing that contract. Do not loosen the exact source match or patch the
+installed OpenHAB core merely to make this draft pass.
+
+Other live release facts: the proposed output Item and rule are absent (404),
+startlevel100 is supported, and JDBC already has wildcard everyChange plus
+restoreOnStartup with no cron strategies. Adding the observer does not require
+changing that persistence configuration. Original scaler/watchdog/SouthOutlet/
+night-load script hashes remained unchanged during these read-only checks.
+
+References: [WebSocket API](https://www.openhab.org/docs/configuration/websocket.html),
+[5.2.1 event reconstruction](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core/src/main/java/org/openhab/core/items/events/ItemEventFactory.java),
+[5.2.1 Modbus processing](https://github.com/openhab/openhab-addons/blob/5.2.1/bundles/org.openhab.binding.modbus/src/main/java/org/openhab/binding/modbus/internal/handler/ModbusDataThingHandler.java).
+
+## Nonfinite numeric carry can become apparently healthy zero power
+
+An isolated pure probe of Solar_PV main 3b82b94 confirmed the numeric reader
+accepts NaN/+Infinity/-Infinity in pre-window carry while rejecting identical
+in-window values. It creates synthetic start/end points from that carry.
+`aggregate_power` clips NaN and negative infinity to zero before shared finite
+validation, yielding energy0, coverage1 and qualityOK for a one-hour synthetic
+window. Positive infinity is rejected downstream. This proves a reader validation
+gap, not an observed invalid production sample or historical corruption. Apply
+the same finite-value check to carries before normalization/clipping; preserve
+change-only semantics and existing history. No backfill or source edit was made.

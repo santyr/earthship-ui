@@ -165,6 +165,16 @@ the exact script hash, positive control and counterexamples. Producer-validity
 and binding/restoration provenance remain open; no live scaler or control gate
 was changed. Historical heartbeat coverage is not yet validated SoC coverage.
 
+Sat subsequently approved a separate validated SoC signal. Draft source/tests
+are isolated in `.worktrees/bms-soc-evidence`, but live WebSocket verification
+found that OpenHAB5.2.1 event reconstruction strips source from updated events.
+The original binding state event retains it. Implementation is paused before
+source commit/deployment pending the corrected event/timestamp contract; the
+42 passing draft tests do not establish runtime usability. Native Modbus read-
+success channels and a generic event trigger are available for that correction.
+The preflight also reproduces nonfinite numeric carry becoming apparently valid
+zero-power analytics; identical finite validation for carries remains to fix.
+
 Release preflight also found that the already integrated advisory migration0002
 would block the next daily --apply invocation while pending. Following a verified
 14-table/four-sequence isolated restore of the affected-schema backup, only0002
