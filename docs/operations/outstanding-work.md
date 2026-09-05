@@ -5,6 +5,21 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
+Operator approval update, September 5: Sat approved all pending work and directed
+completion. This clears the pending storage-plan corrections, corrective alert
+design, and integration/release decisions, subject to verification and unchanged
+safety constraints. Task 82 remains held; future-data and seasonal gates remain
+unfinished until their actual evidence exists.
+
+The Cistern Pump display rename is merged and published in origin/main at
+377763a. Fresh verification: 1,103 UI tests, build, two fixture browser checks,
+and live read-only 1340x800 check (new label present, old label absent, no page
+errors or control-write requests). Underlying ShurefloPump_Power item and control
+IDs are unchanged. Local Vite serves the main checkout; no service restart was
+needed. Build emitted large-chunk warnings; browser runner emitted a color-env
+warning. Neither run failed. The merged rename worktree was removed; commits
+remain in Git.
+
 | Work | Current evidence | Remaining completion evidence |
 | --- | --- | --- |
 | Task 95: battery daily minimum SoC, DoD, EFC | September 5 reader-first v2 deployment verified against the September 4 persisted row: minimum 84%, range 16 percentage points, daily EFC 0.1656947462, cumulative EFC 7.297289539817, epoch discover_4_module_2026, battery quality ok. Live 1340x800 tablet dialog fits, displays correct values and closes. No accounting or BMS-counter changes. | Completed. Continue normal daily collection; EFC is estimated available-epoch use, not manufacturer lifetime cycles. |
@@ -94,6 +109,12 @@ UTC day/trough window dependency and immutable decision/result JSON builders
 (implementation commits 33fb0f9 and d283033). Combined verification has 132 passing
 tests and clean task/whole-branch reviews. These are dependencies only: storage,
 producer capture, measured outcomes and live scoring replacement are unfinished.
+The reviewed foundation was merged into main at 4818d75 and reverified with
+132 Python and 1,103 UI tests. No live forecast capture/scorer was wired or
+activated by this merge. The separate Solar_PV storage branch is at 57467b2;
+its 235-test run passes but independent review requires fixture routing isolation
+and deterministic timeout/retry tests. Those corrections are now approved and
+under implementation; the storage task is not yet accepted or deployed.
 Detailed source-health evidence is in
 `docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
 BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
