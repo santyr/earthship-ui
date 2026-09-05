@@ -116,8 +116,11 @@ routing isolation and deterministic timeout/retry acceptance. Independent task
 and whole-branch reviews are clean. The storage implementation was merged and
 pushed to Solar_PV main at 7f0b583, with 240 tests passing on merged main in
 7.29 seconds and exact remote SHA verified. This integrates source only: production
-migration, runtime grants, shared-module installation and capture activation have
-not occurred. Completed-window live evidence remains required.
+migration, runtime grants, shared-module installation and capture activation had
+not occurred at that source-integration checkpoint. Migration 0002 has since been
+installed in the separately reviewed corrective release below; runtime grants,
+shared-module installation and capture activation remain unfinished.
+Completed-window live evidence remains required.
 Detailed source-health evidence is in
 `docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
 BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
@@ -130,12 +133,25 @@ branch `fix/heartbeat-provenance` at `3b82b94`: original carry timestamps are
 preserved, future-at-observation reports grant no coverage, and timezone
 validation precedes stable observation sorting. All 275 analytics tests passed
 in 7.26 seconds; final whole-branch re-review found no outstanding issues.
-This branch has not been merged or deployed. Live daily aggregation imports
-Solar_PV main directly, so integration must be treated as a release, with
-explicit history-preservation safeguards rather than a source-only merge.
-No aggregate/backfill/reset was invoked. Independent comms-fault intersection,
+The separately reviewed corrective release is now complete: Solar_PV main and
+origin/main are both `3b82b94d1e94a3007543f862b048321ee9d784c6`, with275tests
+passing on integrated main in7.32seconds. Live daily aggregation imports this
+checkout, so the next normal run uses the correction. No aggregate/backfill/reset
+was invoked. Independent comms-fault intersection,
 restart/epoch checks and per-weather-field provenance remain open before reuse
 for verified outcomes.
+
+Release preflight also found that the already integrated advisory migration0002
+would block the next daily --apply invocation while pending. Following a verified
+14-table/four-sequence isolated restore of the affected-schema backup, only0002
+was applied transactionally. Readback verifies versions[1,2], no pending migration,
+two empty advisory tables with enabled append-only triggers and no PUBLIC table
+privileges. Seven existing history/configuration row fingerprints are unchanged.
+The September4 full dry-run snapshot is identical between pre-fix and integrated
+source. Timer remains active for September6 00:20MDT plus its unchanged delay;
+that future run is not yet verified. No capture, runtime role grants, notification,
+threshold or hardware changes were made. Release/rollback evidence is in
+`docs/superpowers/plans/2026-09-05-analytics-corrective-release.md`.
 
 The written outcome/scoring specification was approved. Live cadence validation
 then found a necessary design correction before implementation: managed JDBC
