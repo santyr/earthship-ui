@@ -24,6 +24,12 @@ services and their enabled timers after a successful private Hexmem MCP context
 call. It performed only that bounded read-only task. Coordinator readback confirmed
 the unit names and the snapshot service command. No authority was expanded.
 
+After the immutable record-builder task, a bounded read-only schema check found
+only applied migration 0001_energy_analytics and no advisory/outcome/decision-named
+tables in energy_analytics. The discover_4_module_2026 epoch key exists. The next
+storage increment therefore needs an explicit additive migration; neither this
+check nor the record builders created any database schema or captured decisions.
+
 ## Historical source availability
 
 Bounded JDBC queries used a read-only connection, five-second connection/statement

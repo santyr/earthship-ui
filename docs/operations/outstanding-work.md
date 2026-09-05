@@ -90,8 +90,11 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
 ## Outcome implementation preflight
 
 Implementation branch `feat/advisory-outcome-foundation` now contains the pure
-UTC day/trough window dependency; it does not yet replace live scoring. Detailed
-source-health evidence is in
+UTC day/trough window dependency and immutable decision/result JSON builders
+(implementation commits 33fb0f9 and d283033). Combined verification has 132 passing
+tests and clean task/whole-branch reviews. These are dependencies only: storage,
+producer capture, measured outcomes and live scoring replacement are unfinished.
+Detailed source-health evidence is in
 `docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
 BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
 despite zero comms/device state changes. Historical temperature update provenance
