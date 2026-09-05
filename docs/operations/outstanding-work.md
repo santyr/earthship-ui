@@ -310,6 +310,19 @@ local-day values. Carry-in, source health and persistence API aggregation
 semantics remain to be verified for the three analytical consumers. No live
 rule was invoked or changed during this inventory.
 
+### UI boundary follow-up
+
+Read-only REST requests plus the actual extrema helper reproduce missing
+start-state carry in UI history: a September4 two-minute outdoor window yields
+only65.3, while the prior state65.48 changes its historical maximum. The full-day
+sample's extrema are not asserted wrong. Native boundary=true is not a safe
+global fix: OpenHAB also moves the first post-window value back to the end and
+relabels the carry timestamp. UI repair must explicitly discard look-ahead,
+separate historical carry from freshness evidence, and handle local-day rollover.
+The preflight records exact ranges/results and version-matched source. Category-
+axis sparkline spacing and midnight-array retention remain additional review
+targets; no UI fix is claimed by this audit.
+
 No hardware actions, advisory-policy changes, migrations, or production writes
 were performed for this inventory. Design approval and cross-repository
 contracts apply before implementation. Existing OpenHAB controls and Discover

@@ -319,3 +319,48 @@ The normal daily service's working directory and PYTHONPATH point to this main
 checkout; no service invocation/restart or data rewrite was needed. Timer remains
 active for September6 00:20MDT, and its next result remains unverified. Source
 rollback can revert this exact commit without restoring or deleting history.
+
+## UI history boundary audit
+
+The main page requests local-midnight-to-now for temperature extrema, load
+energy and gust maximum. `createClient.getHistory` sends starttime/endtime but
+does not request boundary evidence; `historyExtrema` uses returned values plus
+the current value without obtaining the state in effect at window start.
+
+Read-only JDBC REST requests for outdoor temperature on September4 confirm the
+distinction. The complete local day returned1064 change records, first at
+06:02:45.525Z rather than midnight06:00Z. With boundary=true it returned1066
+records: a start record65.48 at06:00Z and an end record57.92 at next midnight.
+The last actual in-window change was57.74 at05:59:16.420Z.
+
+A bounded historical window06:01Z through06:03Z returned only65.3 at
+06:02:45.525Z without boundaries. With boundaries it returned65.48 at06:01Z,
+that65.3 change, and65.48 at06:03Z. The current pure extrema helper therefore
+reports H/L65.3/65.3 from changes alone, versus65.48/65.3 when the known prior
+state is included. This is a concrete carry-in omission, not proof that the
+full-day September4 extrema happened to be wrong.
+
+Version-matched PersistenceResource source explains both synthetic boundaries:
+the last record before start is moved to start; the first record after end is
+moved back to end. Enabling boundary=true globally would therefore introduce
+look-ahead. It would also lose the carry's original observation timestamp.
+Boundary records cannot establish source freshness or learning coverage.
+
+A UI-only repair must explicitly distinguish plotting/statistical carry from
+telemetry freshness: obtain the start state, exclude end/look-ahead values,
+retain the requested local-day identity across midnight and delayed responses,
+and leave missing/invalid state explicit. Any extension to the query end must
+use the last earlier state, not the API's future boundary. Source-health/epoch
+qualification remains a separate requirement; this audit does not authorize
+carrying values across faults as verified measurements. Do not alter the
+rolling24h Item contracts used by Weather/Earthship to fix Home's local-day view.
+
+Also identified for follow-up: Home retains its previous day arrays until the
+five-minute history refresh completes; its wall-clock tick does not invalidate
+the day identity. The shared Sparkline uses a category axis, placing irregular
+change events at equal horizontal spacing. Those are code-derived review
+targets, not yet browser-reproduced regressions or completed fixes.
+
+Reference: [OpenHAB5.2.1 PersistenceResource](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.io.rest.core/src/main/java/org/openhab/core/io/rest/core/internal/persistence/PersistenceResource.java).
+All requests were read-only. No production source, persistence configuration,
+historical data or live controls were modified during this audit.
