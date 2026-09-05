@@ -206,8 +206,13 @@ two targeted stateupdated topics, fresh temperature timestamps, no overflow,
 no page errors and no attempted writes. It also caught an actual BMS heartbeat
 format gap: OpenHAB state uses compact offset`-0600`, rejected by the first parser.
 Follow-up4fde6e0 supports that qualified format with genuine4-test RED and59focused/
-1,156full GREEN plus build. This follow-up is awaiting independent review, not
-deployed at this checkpoint; do not call the live battery freshness fix complete.
+1,156full GREEN plus build. Independent review found no issues. It was merged,
+pushed and locally deployed at`b0064d91db4a281c99f2496c9f6a9d3a434c680c`, with
+1,156tests passing again on merged main. Live1340x800 recheck accepted actual
+heartbeat`2026-09-05T12:40:59.070-0600` with commsOK: the false battery freshness
+warning was absent, normal thermal advisory was shown, and there were no page
+errors, horizontal overflow or attempted writes. This completes the first
+corrective UI/checker alert slice, not the broader historical-algorithm audit.
 
 ### Live rule history inventory, September 5
 
