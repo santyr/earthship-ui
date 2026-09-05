@@ -157,6 +157,14 @@ was invoked. Independent comms-fault intersection,
 restart/epoch checks and per-weather-field provenance remain open before reuse
 for verified outcomes.
 
+Further live-source tracing and an isolated replay found that `hex_bms_soc_scale`
+refreshes its heartbeat before validating raw SoC and on scale-factor changes
+alone. Invalid raw 65535 and unavailable scaling can therefore retain old SoC
+while posting a fresh heartbeat and comms OK. The preflight document records
+the exact script hash, positive control and counterexamples. Producer-validity
+and binding/restoration provenance remain open; no live scaler or control gate
+was changed. Historical heartbeat coverage is not yet validated SoC coverage.
+
 Release preflight also found that the already integrated advisory migration0002
 would block the next daily --apply invocation while pending. Following a verified
 14-table/four-sequence isolated restore of the affected-schema backup, only0002

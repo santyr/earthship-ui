@@ -173,3 +173,76 @@ observation, and clip valid coverage to the requested window. General text
 duration consumers still need their existing clipped intervals; do not change
 their meaning incidentally. No live data, learned state, database or service was
 modified by this reproduction. Both defects remain unfixed at this checkpoint.
+
+## Follow-up: BMS producer heartbeat is not validated SoC evidence
+
+The historical reader/quality defects above were subsequently corrected and
+released; see `2026-09-05-analytics-corrective-release.md` in the plans directory.
+That correction does not validate what the heartbeat producer actually observed.
+
+Read-only retrieval of live rule `hex_bms_soc_scale` on September 5 yielded
+script SHA256 `45dcb2234e30ae954b8f6e661fef34cf2e1975593cbb11d21a249cf2a10ce8a8`.
+It refreshes its raw-last-seen cache and five-minute heartbeat before numeric
+validation, on either a raw SoC update or a scale-factor change. Invalid raw
+65535 is rejected for scaled output; an unavailable scale factor falls back to
+zero. Neither prevents that earlier heartbeat refresh.
+
+A Node VM replay of that exact retrieved script used only in-memory Item/cache
+stubs, an Instant-only Java stub and no network or notifier access. At fixed
+time 2026-09-05T19:40:00Z, retained SoC 99 and a four-hour-old cached observation:
+
+| Trigger/input | Retained SoC | Heartbeat posted | Comms posted |
+| --- | --- | --- | --- |
+| Raw update: raw 99, scale 0 (control) | 99 | Current fixed time | OK |
+| Raw update: raw 65535, scale 0 | 99 | Current fixed time | OK |
+| Raw update: raw 99, scale UNDEF | 99 | Current fixed time | OK |
+| Scale-factor change: raw 99, scale 0 | 99 | Current fixed time | OK |
+
+Thus heartbeat plus comms OK alone cannot establish a newly validated SoC
+observation. This is a deterministic synthetic reproduction, not evidence that
+these invalid cases occurred in the sampled live day. Healthy unchanged raw
+updates must continue to count as fresh; persistence remains change-only.
+
+A targeted read-only REST event sample omitted event-source metadata. That
+omission does not establish the rule-internal source value or restart behavior.
+The installed core bundles are version 5.2.1; restoration versus binding-update
+provenance still needs verification before selecting the corrective contract.
+No production rule, control gate, heartbeat, learned state or history was changed.
+Existing historical heartbeat coverage must not be relabeled as validated SoC
+coverage until this producer gap and source epochs are addressed.
+
+### Binding/restoration distinction verified in version-matched source
+
+Read-only tracing of official openhab-core tag 5.2.1 establishes the following
+mechanism, without restarting OpenHAB or injecting an event:
+
+- `PersistenceManagerImpl` restores through `GenericItem.setState` with source
+  `org.openhab.core.persistence`, retaining the persisted update/change times.
+- `GenericItem` emits `ItemStateUpdatedEvent` with the supplied source.
+- `ItemStateTriggerHandler` subscribes to that updated event for
+  `core.ItemStateUpdateTrigger` and passes the original event to the action.
+- `ProfileCallbackImpl` publishes binding updates with delegated source
+  `org.openhab.core.thing` plus the linked channel identity.
+- The installed JavaScript bundle's `node_modules/openhab.js` and globals bundle
+  both convert the original event's `getSource()` to `event.eventSource`.
+- The version-matched REST SSE `EventDTO` contains only topic, payload and type.
+  Its source omission is therefore a transport limitation, not evidence that
+  the rule cannot distinguish persistence from binding updates.
+
+The live raw and scale links are respectively
+`modbus:data:schneiderBatterySunSpec:battery802Core:socRaw:number` and
+`modbus:data:schneiderBatterySunSpec:battery802Core:socSf:number`.
+Installed persistence and profile class constant pools agree with the source
+identifiers above. This verifies an available qualification mechanism; it is
+not an end-to-end live restart test or permission to trust arbitrary delegated
+source strings. A corrective implementation must test exact source matching,
+invalid values, delayed/restored events, scale-only updates and startup with
+unchanged scaling. Merely rejecting scale-change heartbeat updates does not
+establish fresh scale provenance after restart.
+
+Primary references: official openhab-core 5.2.1
+[persistence restoration](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.persistence/src/main/java/org/openhab/core/persistence/internal/PersistenceManagerImpl.java),
+[Item updates](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core/src/main/java/org/openhab/core/items/GenericItem.java),
+[trigger handling](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.automation/src/main/java/org/openhab/core/automation/internal/module/handler/ItemStateTriggerHandler.java),
+[binding profile](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.thing/src/main/java/org/openhab/core/thing/internal/profiles/ProfileCallbackImpl.java), and
+[REST event DTO](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.io.rest.sse/src/main/java/org/openhab/core/io/rest/sse/internal/dto/EventDTO.java).
