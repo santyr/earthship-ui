@@ -64,6 +64,54 @@ retroactively establish update times throughout a historical constant interval.
 Historical temperature coverage therefore remains a source-contract question;
 do not substitute present freshness or another sensor's activity for that proof.
 
+### Follow-up: weather station packet-age evidence
+
+A subsequent metric-source lookup located WeatherData_HealthStatus, and the
+live item/link inventory identified WeatherData_WH65B_AgeSeconds (outdoor) and
+WeatherData_WH32B_AgeSeconds (indoor). Both are persisted independently of
+temperature changes. The earlier bounded name search did not establish their
+absence. The two temperature Items map to http:url:weatherData; the health and
+age Items map to http:url:weatherHealth. Both Things were ONLINE with a
+30-second refresh. The health status is lowercase in the producer; existing
+analytics normalizes case before comparing it.
+
+The same September 4 local-day read-only query, bounded to 10,000 rows per
+source, found:
+
+| Companion | In-window changes | Maximum age | Packet-age-only coverage at 180 seconds |
+| --- | ---: | ---: | ---: |
+| WH65B age | 2,878 | 52 seconds | 100.0% |
+| WH32B age | 2,880 | 91 seconds | 100.0% |
+| Aggregate health | 2 | Not applicable | Changed between ok and degraded |
+
+That exploratory coverage clips each original persistence event's age allowance
+at the next event and the window end, with pre-window carry-in. It measures
+packet-age evidence only, not validated temperature coverage or outcome quality.
+The 180-second allowance matches the live sky-condition rule's WH65B gate; it
+is not yet an approved outcome-source contract. Do not hold a numeric age
+constant indefinitely or replace its original event time with a synthetic
+window boundary. Producer ages are rounded to whole seconds, which a final
+contract must account for conservatively.
+
+Verified source path: weather.service runs weather:app from /home/sat/bin;
+rtl_weather.service runs /home/sat/bin/rtl_weather.py. The receiver's /health
+endpoint derives age from in-memory per-model receive timestamps and declares
+degraded if any recorded model exceeds five minutes. The live sky-condition
+rule deliberately accepts OK or DEGRADED when the WH65B age passes, because an
+unrelated add-on sensor can degrade aggregate status. A global OK-only gate
+therefore does not express source-specific health.
+
+Remaining provenance limits are concrete: weather.py refreshes a model's
+timestamp before validating its fields and can reuse a persisted temperature
+when a field is missing or invalid. The normal RTL producer requires temperature
+keys, but that is not a per-field freshness guarantee for every receiver request.
+The WH65B producer filters station ID 206; the inspected WH32B path does not pin
+one station ID. An empty receiver sensor map also reports aggregate ok, which
+cannot prove any particular sensor is present after restart. Thus the new
+companions improve the available evidence but do not alone close per-quantity
+validation, source-epoch, restart, or field-fallback gaps. No producer, binding,
+persistence, or quality policy was changed during this preflight.
+
 ## Reproduced daily-quality defect
 
 Current Solar_PV earthship_energy/quality.py computes timestamp-threshold coverage

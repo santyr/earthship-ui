@@ -97,8 +97,10 @@ producer capture, measured outcomes and live scoring replacement are unfinished.
 Detailed source-health evidence is in
 `docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
 BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
-despite zero comms/device state changes. Historical temperature update provenance
-remains unresolved. A synthetic probe also reproduced future-heartbeat acceptance
+despite zero comms/device state changes. Further tracing found persisted WH65B
+and WH32B packet-age companions covering the sampled day, but receiver field
+fallback and source-epoch validation still prevent treating packet freshness as
+proven per-temperature freshness. A synthetic probe also reproduced future-heartbeat acceptance
 in Solar_PV daily quality; that path must be corrected before reuse for outcomes.
 
 The written outcome/scoring specification was approved. Live cadence validation
