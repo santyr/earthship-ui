@@ -37,6 +37,21 @@ Source pointers: Solar_PV/analytics/src/earthship_energy/{aggregation,series,
 materialize,forecasts,ui_payload,ui_reader}.py; src/lib/energy/analyticsResult.js;
 src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
 
+## September 5 learning-prerequisite follow-up
+
+- Stored forecast snapshots cover only eight distinct local issue dates,
+  August 20–27, across each stored daily/hourly metric. Restoring capture does
+  not retroactively create the missing origins or meet the approximately
+  90-day analog-ensemble prerequisite.
+- Current forecast state retains 30 daily prediction entries (August 7 through
+  September 5) and seven absolute PV/trough errors. Those short arrays are not
+  a validated long-term calibration set for confidence intervals.
+- The thermal journal contains ten action events. Forecast state records an
+  advisory category in each daily prediction and a DM deduplication marker,
+  but the inspected path does not link decisions/actions to delayed rewards.
+  Do not infer outcome verification from an action journal or forecast error
+  average alone.
+
 ## Safety and completion boundaries
 
 No hardware actions, advisory-policy changes, migrations, or production writes
