@@ -201,3 +201,95 @@ All database tests again used UUID-named, loopback-only ephemeral `postgres:16` 
 ### Concerns
 
 No implementation blocker. Production schema/role migration remains deferred to the explicit operator-approved deployment gate. As before, PostgreSQL integration tests require Docker and `postgres:16` and fail rather than falling back to SQLite or a live database.
+
+---
+
+# Energy analytics Task 2: dual-version UI reader
+
+Status: implemented and committed as `9edc889 feat: display daily battery cycle analytics`
+on `work/energy-analytics-ui` from base `9473cab`. No live REST, service,
+OpenHAB, publisher, database, or production changes were made. The v2 publisher
+is implemented separately but is not documented as live; deployment remains
+reader-first and controller-gated.
+
+## TDD evidence
+
+Parser RED:
+
+```text
+$ npm test -- tests/energy-analytics-result.test.js
+Test Files  1 failed (1)
+Tests  5 failed | 26 passed (31)
+```
+
+The failures proved the v1 result lacked normalized null fields and the reader
+rejected otherwise-valid v2 payloads.
+
+Rendered-dialog RED, verified with the dialog implementation temporarily absent:
+
+```text
+$ env -u NO_COLOR npx playwright test tests/e2e/energy-layout.spec.js --grep 'observational analytics detail|legacy battery cycle'
+2 failed
+```
+
+Both tests failed because the two new metric labels were absent. After restoring
+the implementation, the same focused command passed `2 passed (3.2s)`.
+
+Focused parser GREEN:
+
+```text
+$ npm test -- tests/energy-analytics-result.test.js
+Test Files  1 passed (1)
+Tests  31 passed (31)
+```
+
+## Full verification
+
+```text
+$ npm test
+Test Files  87 passed (87)
+Tests  1103 passed (1103)
+
+$ npm run build
+793 modules transformed
+built successfully
+
+$ env -u NO_COLOR npx playwright test tests/e2e/energy-layout.spec.js
+5 passed (5.8s)
+
+$ git diff --check
+# exit 0, no output
+```
+
+The build retained its existing large-chunk advisory without failure. Energy
+Playwright covered both existing viewport geometry cases, period selection, v2
+dialog display and close behavior, the degraded-day caveat, and legacy nulls
+rendered as unavailable.
+
+## Delivered behavior and self-review
+
+- Exact v1 and exact v2 payloads are accepted; unsupported or malformed
+  versions fail closed.
+- Legacy v1 results normalize the two new battery fields to `null`.
+- v2 DoD accepts null or 0 through 100; v2 daily EFC accepts null or any
+  non-negative finite number. Strings, booleans, negatives, missing keys, and
+  extra keys are rejected.
+- Existing freshness and byte-size gates apply to both versions.
+- The existing details dialog displays daily SoC range and daily estimated EFC,
+  labels cumulative EFC as estimated, explains the measurement basis, and shows
+  a concise incomplete-day caveat when battery status is degraded.
+- No main-page card or control surface was added.
+
+## Controller evidence and remaining deployment gate
+
+The controller separately verified a real read-only database query through the
+candidate v2 producer and this candidate parser without publishing. The parsed
+evidence was through date 2026-09-04, minimum SoC 84%, DoD 16 percentage points,
+daily EFC 0.1656947462379083, cumulative EFC 7.297289539817, and battery status
+`ok`. Overall `degraded` was expected from the old forecast and
+`daily_source_quality_not_ok` evidence.
+
+Reader-first deployment, writer deployment, persisted date/epoch/quality
+comparison, and authorization remain controller tasks. Publisher-first rollback
+is documented. No screenshots or live layout inspection were performed, as
+requested; existing DOM geometry coverage passed at 1340x800 and 1280x720.
