@@ -45,6 +45,13 @@ it('does not manufacture boot alarms; an empty successful snapshot warns', async
   expect(warnings().every(a => a.severity === 'warning' && a.shortText.includes('unavailable'))).toBe(true);
   expect(get(consoleAlerts).alerts.some(a => a.priorityKey === 'battery-critical')).toBe(false);
 });
+it('accepts the actual compact-offset BMS heartbeat state', async () => {
+  await boot();
+  emit('BMS_SOC_LastUpdate', 'statechanged', { value: '2026-09-05T11:59:59.824-0600' });
+  expect(warnings().map(a => a.id)).not.toContain('telemetry-stale:BMS_SOC');
+  emit('BMS_SOC_LastUpdate', 'statechanged', { value: '2026-09-05T12:00:01-0600' });
+  expect(warnings().map(a => a.id)).toContain('telemetry-stale:BMS_SOC');
+});
 it('keeps hours of constant SoC healthy using the heartbeat value', async () => {
   await boot();
   for (let i = 0; i < 48; i++) {
