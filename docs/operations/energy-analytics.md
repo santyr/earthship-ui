@@ -6,10 +6,10 @@ reads that Item through its existing REST/SSE connection. No component in this
 path can command hardware or authorize an action.
 
 The UI reader accepts the exact `earthship-energy-ui/v1` and
-`earthship-energy-ui/v2` payloads. The implemented v2 publisher adds nullable
-daily depth-of-discharge and estimated-EFC evidence, but v2 is not live until
-the reader-first deployment is completed and the controller verifies the
-publisher against persisted date, epoch, and quality evidence. The publisher rejects
+`earthship-energy-ui/v2` payloads. The v2 publisher adds nullable daily
+depth-of-discharge and estimated-EFC evidence. Reader-first deployment was
+verified on 2026-09-05: live publication matches the persisted date, bank epoch,
+and battery-quality evidence. The publisher rejects
 payloads at or above 16 KiB and writes only
 `PUT /rest/items/Energy_Analytics_JSON/state`. The browser treats payloads older
 than 15 minutes, dated in the future, malformed, oversized, or on an unsupported
