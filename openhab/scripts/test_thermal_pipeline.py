@@ -1151,12 +1151,57 @@ def test_cli_current_state_initializes_mass_from_causal_latent_observer():
     }
 
     current = thermal_intel._current_states(
-        now, series_reader=lambda item, start, end: points[item]
+        now, series_reader=lambda item, start, end: points[item],
+        state_reader=lambda item: dict(name=item, state=str(points[item][-1][1]),
+                                      lastStateUpdate=int(now.timestamp() * 1000)),
     )
     alpha = 1.0 - math.exp(-5.0 / 120.0)
 
     assert current["mass"]["value"] == pytest.approx(68.0 + alpha * 4.0)
     assert current["observed"][-1]["massF"] == 72.0
+
+
+@pytest.mark.parametrize("mass_age,available", [(1, True), (45, False)])
+def test_current_freshness_uses_sensor_updates_not_persisted_changes(mass_age, available):
+    import thermal_intel
+
+    values = {"air": 74.1, "mass": 72.8, "glazing": 75.0,
+              "outdoor": 65.0, "radiation": 100.0}
+    roles = {item: role for role, item in THERMAL_ITEMS.items()}
+    def state_reader(item):
+        role = roles[item]
+        at = NOW - timedelta(minutes=mass_age if role == "mass" else 1)
+        return dict(name=item, state=str(values[role]),
+                    lastStateUpdate=int(at.timestamp() * 1000))
+
+    current = thermal_intel._current_states(
+        NOW, series_reader=lambda item, start, end: (
+            (NOW - timedelta(minutes=60), values[roles[item]]),),
+        state_reader=state_reader,
+    )
+    output = run_shadow(registry=AcceptedRegistry(), current=current,
+                        forecast=forecast_hours(), now=NOW)
+    assert (output["confidence"]["grade"] != "unavailable") is available
+    assert current["mass"]["at"] == NOW - timedelta(minutes=mass_age)
+    if not available:
+        assert "stale mass temperature" in output["reasons"]
+
+
+@pytest.mark.parametrize("bad_fields", [
+    {"lastStateUpdate": None}, {"lastStateUpdate": True},
+    {"lastStateUpdate": float("nan")}, {"state": ""}, {"state": "NULL"},
+    {"name": "unrelated_sensor"},
+])
+def test_current_state_rejects_invalid_live_evidence(bad_fields):
+    import thermal_intel
+
+    with pytest.raises(ValueError):
+        thermal_intel._current_states(
+            NOW, series_reader=lambda *args: ((NOW, 70.0),),
+            state_reader=lambda item: dict(
+                {"name": item, "state": "70.0", "lastStateUpdate": NOW.timestamp() * 1000},
+                **bad_fields),
+        )
 
 
 class _ModeJournal:

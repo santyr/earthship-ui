@@ -383,8 +383,9 @@ def _aligned_observed_history(histories):
     ]
 
 
-def _current_states(now, series_reader=None):
+def _current_states(now, series_reader=None, state_reader=None):
     series_reader = series_reader or _jdbc_series
+    state_reader = state_reader or (lambda item: forecast_intel.oh_get(f"/items/{item}"))
     start = now - timedelta(hours=24)
     end = now + timedelta(seconds=1)
     histories = {
@@ -392,12 +393,25 @@ def _current_states(now, series_reader=None):
         for role, item in THERMAL_ITEMS.items()
     }
     current = {}
-    for role, points in histories.items():
-        if points:
-            at, value = max(points, key=lambda point: point[0])
-            current[role] = {"at": at, "value": value}
-        elif role != "glazing":
-            current[role] = None
+    for role, item in THERMAL_ITEMS.items():
+        # JDBC records changes; an unchanged reading can still be freshly
+        # reported. Only the Item's actual update timestamp proves freshness.
+        state = state_reader(item)
+        if not isinstance(state, dict) or state.get("name") != item:
+            raise ValueError(f"invalid current {role} Item identity")
+        timestamp = state.get("lastStateUpdate")
+        if type(timestamp) not in (int, float) or not math.isfinite(timestamp) or timestamp <= 0:
+            raise ValueError(f"missing or invalid current {role} update timestamp")
+        at = datetime.fromtimestamp(timestamp / 1000.0, tz=timezone.utc)
+        parts = str(state.get("state", "")).split()
+        if not parts:
+            raise ValueError(f"missing current {role} value")
+        value = float(parts[0])
+        if not math.isfinite(value):
+            raise ValueError(f"invalid current {role} value")
+        current[role] = {"at": at, "value": value}
+        if at <= now and (not histories[role] or at > max(point[0] for point in histories[role])):
+            histories[role] = (*histories[role], (at, value))
 
     latent_mass = latent_mass_from_series(histories["mass"])
     if latent_mass is not None and current.get("mass") is not None:
