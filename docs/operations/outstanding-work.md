@@ -172,8 +172,20 @@ The original binding state event retains it. Implementation is paused before
 source commit/deployment pending the corrected event/timestamp contract; the
 42 passing draft tests do not establish runtime usability. Native Modbus read-
 success channels and a generic event trigger are available for that correction.
-The preflight also reproduces nonfinite numeric carry becoming apparently valid
-zero-power analytics; identical finite validation for carries remains to fix.
+The preflight also reproduced nonfinite numeric carry becoming apparently valid
+zero-power analytics. That independent correction is now integrated and pushed
+to Solar_PV main/origin at `91867f8c79bf894d608ec0f052d343fe19eb2bc6`:
+selected carries receive the same finite check as in-window rows, before
+synthetic boundaries or clipping. Genuine RED17fail/10pass preceded the change;
+focused27pass, full296pass, clean task and whole-branch reviews, and integrated
+main296pass in7.29seconds. September4 complete read-only daily JSON is identical
+before, after and on integrated main (SHA256
+`16c37713e2855d93a892c4b573c5828656f3f90dfc24f5e744f809a034c0d080`).
+The existing service imports this checkout; it remains inactive with prior
+success status, timer active for September6 00:20MDT. No manual apply/backfill,
+database/configuration mutation, schedule change or learned-state reset occurred.
+The next natural scheduled result is not yet verified. This does not close the
+separate BMS event/timestamp contract or broader source-health work.
 
 Release preflight also found that the already integrated advisory migration0002
 would block the next daily --apply invocation while pending. Following a verified

@@ -307,3 +307,15 @@ window. Positive infinity is rejected downstream. This proves a reader validatio
 gap, not an observed invalid production sample or historical corruption. Apply
 the same finite-value check to carries before normalization/clipping; preserve
 change-only semantics and existing history. No backfill or source edit was made.
+
+Follow-up release: the finite-carry correction was tested, independently reviewed
+and fast-forwarded into Solar_PV main/origin at `91867f8c79bf894d608ec0f052d343fe19eb2bc6`.
+Its only production-code change applies the existing finite check to selected
+carry values. Regression evidence: RED17fail/10pass, GREEN27pass, full296pass,
+and integrated296pass in7.29seconds. The full September4 read-only snapshot
+remained identical to baseline, with canonical JSON SHA256
+`16c37713e2855d93a892c4b573c5828656f3f90dfc24f5e744f809a034c0d080`.
+The normal daily service's working directory and PYTHONPATH point to this main
+checkout; no service invocation/restart or data rewrite was needed. Timer remains
+active for September6 00:20MDT, and its next result remains unverified. Source
+rollback can revert this exact commit without restoring or deleting history.
