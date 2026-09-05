@@ -125,7 +125,17 @@ despite zero comms/device state changes. Further tracing found persisted WH65B
 and WH32B packet-age companions covering the sampled day, but receiver field
 fallback and source-epoch validation still prevent treating packet freshness as
 proven per-temperature freshness. A synthetic probe also reproduced future-heartbeat acceptance
-in Solar_PV daily quality; that path must be corrected before reuse for outcomes.
+in Solar_PV daily quality. The source correction is now complete on isolated
+branch `fix/heartbeat-provenance` at `3b82b94`: original carry timestamps are
+preserved, future-at-observation reports grant no coverage, and timezone
+validation precedes stable observation sorting. All 275 analytics tests passed
+in 7.26 seconds; final whole-branch re-review found no outstanding issues.
+This branch has not been merged or deployed. Live daily aggregation imports
+Solar_PV main directly, so integration must be treated as a release, with
+explicit history-preservation safeguards rather than a source-only merge.
+No aggregate/backfill/reset was invoked. Independent comms-fault intersection,
+restart/epoch checks and per-weather-field provenance remain open before reuse
+for verified outcomes.
 
 The written outcome/scoring specification was approved. Live cadence validation
 then found a necessary design correction before implementation: managed JDBC
