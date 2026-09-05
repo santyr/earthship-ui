@@ -1,6 +1,8 @@
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { createClient } from './client.js';
 import { createSSE } from './sse.js';
+import { parseSourceTimestamp } from './timestamp.js';
+import { TEMPERATURE_ITEMS } from '../alerts/staleness.js';
 
 export const items = writable({});
 export const thingStatuses = writable({});
@@ -21,25 +23,35 @@ export function getClientOnce() {
   return _client;
 }
 
-// Per-item wall-clock of the last snapshot/statechanged write. Feeds the
-// item-staleness alerts (src/lib/alerts/staleness.js): a dead sensor stops
-// producing statechanged events, so "last written" is the honest freshness
-// signal the UI has.
-const itemLastUpdated = {};
+// Upstream lastStateUpdate provenance for the two curated temperature items.
+// REST snapshots and targeted SSE stateupdated events populate this evidence;
+// ordinary statechanged receipt times never do.
+export const itemUpdateEvidence = writable({});
 
-export function getItemLastUpdated() {
-  return { ...itemLastUpdated };
+export function applyUpdateEvidence(name, rawTimestamp) {
+  if (!TEMPERATURE_ITEMS.some(item => item.name === name)) return;
+  const timestamp = parseSourceTimestamp(rawTimestamp);
+  const prior = get(itemUpdateEvidence)[name];
+  if (timestamp !== null && prior?.lastKnown != null && timestamp < prior.lastKnown) return;
+  itemUpdateEvidence.update(current => ({
+    ...current,
+    [name]: { lastKnown: timestamp ?? prior?.lastKnown ?? null, available: timestamp !== null },
+  }));
 }
 
 export function applySnapshot(arr) {
-  const at = Date.now();
+  const rows = new Map(arr.map(item => [item.name, item]));
+  for (const item of TEMPERATURE_ITEMS) applyUpdateEvidence(item.name, rows.get(item.name)?.lastStateUpdate);
   items.update((m) => {
-    for (const it of arr) { m[it.name] = it.state; itemLastUpdated[it.name] = at; }
-    return { ...m };
+    const next = { ...m };
+    for (const name of ['BMS_SOC_LastUpdate', 'BMS_Comms_Status', 'BMS_DevicePresent']) {
+      if (!rows.has(name)) delete next[name];
+    }
+    for (const it of arr) next[it.name] = it.state;
+    return next;
   });
 }
 export function applyState(name, value) {
-  itemLastUpdated[name] = Date.now();
   items.update((m) => { m[name] = value; return { ...m }; });
 }
 
@@ -125,6 +137,7 @@ export async function initOpenhab(config, {
     ...config,
     staleSeconds: config.staleBannerSeconds,
     onState: applyState,
+    onUpdateEvidence: applyUpdateEvidence,
     onThingStatus: applyThingStatus,
     onStatus: (s) => connection.set(s),
     onReconnect: () => resyncSnapshots(client),

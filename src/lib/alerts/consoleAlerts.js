@@ -1,5 +1,6 @@
 import { num } from '../openhab/values.js';
 import { adaptCurrentAqi } from '../ui/homeCardState.js';
+import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
 
 export const CONTROL_OUTCOME_TTL_MS = 15 * 60_000;
 
@@ -36,14 +37,6 @@ function baseAlert({ id, severity, shortText, fullText = shortText, route = null
     id, severity, shortText, fullText, route, dedupeKey, priorityKey, priorityOffset,
     ...(Number.isFinite(transitionAt) ? { transitionAt } : {}),
   };
-}
-
-function normalizedDevicePresent(value) {
-  const normalized = clean(value).toUpperCase();
-  if (!normalized) return null;
-  if (['1', 'ON', 'TRUE', 'PRESENT', 'ONLINE', 'OK'].includes(normalized)) return true;
-  if (['0', 'OFF', 'FALSE', 'ABSENT', 'OFFLINE', 'ERROR', 'FAULT'].includes(normalized)) return false;
-  return null;
 }
 
 function stateSignature(alert) {
@@ -103,7 +96,7 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     }));
   }
 
-  const comms = clean(items.BMS_Comms_Status);
+  const comms = normalizedComms(items.BMS_Comms_Status);
   if (comms && comms.toUpperCase() !== 'OK') {
     alerts.push(baseAlert({
       id: 'battery-comms-critical', severity: 'critical', shortText: 'BMS communication fault',
@@ -151,7 +144,8 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     alerts.push(baseAlert({
       id: `telemetry-stale:${name}`,
       severity: stale.severity === 'critical' ? 'critical' : 'warning',
-      shortText: `${label} stale`, fullText: clean(stale.fullText) || `${label} telemetry is stale.`,
+      shortText: `${label} ${stale.unavailable ? 'freshness unavailable' : 'stale'}`,
+      fullText: clean(stale.fullText) || `${label} telemetry is stale.`,
       route: stale.route ?? null, dedupeKey: `telemetry:stale:${name}`,
       priorityKey: 'telemetry-stale', transitionAt: Number(stale.transitionAt),
     }));

@@ -23,6 +23,8 @@ vi.mock('../../src/lib/openhab/index.js', async () => {
   const { writable } = await import('svelte/store');
   return {
     items: writable({}),
+    itemUpdateEvidence: writable({}),
+    clientReady: writable(false),
     connection: writable('live'),
     num: (value) => {
       const parsed = Number.parseFloat(value);

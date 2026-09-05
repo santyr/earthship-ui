@@ -85,11 +85,9 @@ test.afterAll(async () => {
 });
 
 function itemSnapshot(overrides = {}) {
-  return Object.entries({ ...BASE_STATES, ...overrides }).map(([name, state]) => ({
-    name,
-    state,
-    type: 'String',
-  }));
+  const sourceAt = Date.now() - 1000;
+  return Object.entries({ ...BASE_STATES, BMS_SOC_LastUpdate: new Date(sourceAt).toISOString(), ...overrides })
+    .map(([name, state]) => ({ name, state, type: 'String', lastStateUpdate: sourceAt }));
 }
 
 async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } = {}) {
@@ -918,3 +916,36 @@ for (const target of TARGETS) {
     await page.screenshot({ path: testInfo.outputPath('home-long-unavailable-stale.png') });
   });
 }
+
+test('upstream freshness reaches the tablet header without value changes', async ({ page }, testInfo) => {
+  const writes = [];
+  page.on('request', request => { if (!['GET', 'HEAD'].includes(request.method())) writes.push(request.url()); });
+  await page.clock.install({ time: new Date() });
+  const runtime = await openHomeFixture(page, { width: 1340, height: 800 });
+  await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
+  await page.clock.fastForward(16 * 60000);
+  await runtime.emitState('BMS_SOC', '62');
+  await expect(page.locator('[data-header-alert-winner]')).toContainText('stale');
+  await runtime.emitState('BMS_SOC_LastUpdate', await page.evaluate(() => new Date(Date.now()).toISOString()));
+  await page.evaluate(() => {
+    const source = window.__fixtureEventSources.at(-1);
+    for (const name of ['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 'AmbientWeatherWS2902A_IndoorSensor_Temperature']) {
+      source.onmessage({ data: JSON.stringify({ topic: `openhab/items/${name}/stateupdated`, payload: JSON.stringify({ value: 'unchanged', lastStateUpdate: Date.now() }) }) });
+    }
+  });
+  await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
+  await expect(page.locator('.battery-arc .arc-value')).toHaveText('62%');
+  await runtime.emitState('BMS_SOC_LastUpdate', 'UNDEF');
+  await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
+  await runtime.emitState('BMS_Comms_Status', 'FAULT');
+  await expect(page.locator('[data-header-alert-winner]')).toContainText('BMS communication fault');
+  await runtime.emitState('BMS_Comms_Status', 'NULL');
+  await expect(page.locator('[data-header-alert-winner]')).toContainText('freshness unavailable');
+  const geometry = await homeGeometry(page);
+  expectBounded(geometry, { width: 1340, height: 800 });
+  expect(geometry.headerHeight).toBe(44);
+  expect(runtime.pageErrors).toEqual([]);
+  expect(runtime.unexpectedExternalRequests).toEqual([]);
+  expect(writes).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('upstream-freshness-1340x800.png') });
+});

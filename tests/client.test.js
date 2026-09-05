@@ -10,7 +10,7 @@ it('getAllItems returns parsed array with auth header', async () => {
   fetch.mockResolvedValue({ ok: true, json: async () => [{ name: 'A', state: '5', type: 'Number' }] });
   const items = await createClient(cfg).getAllItems();
   expect(items[0].name).toBe('A');
-  expect(fetch).toHaveBeenCalledWith('http://oh:8080/rest/items?fields=name,state,type',
+  expect(fetch).toHaveBeenCalledWith('http://oh:8080/rest/items?fields=name,state,type,lastStateUpdate',
     expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer TK' }) }));
 });
 
@@ -20,7 +20,7 @@ it('omits browser Authorization when the same-origin Vite proxy owns auth', asyn
   await createClient({ openhabUrl: '', apiToken: '' }).getAllItems();
 
   expect(fetch).toHaveBeenCalledWith(
-    '/rest/items?fields=name,state,type',
+    '/rest/items?fields=name,state,type,lastStateUpdate',
     expect.objectContaining({ headers: {} }),
   );
 });
