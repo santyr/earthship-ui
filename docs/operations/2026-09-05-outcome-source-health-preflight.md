@@ -128,3 +128,27 @@ epochs, restart gaps, and genuine unchanged-but-healthy intervals.
 
 This defect is part of the requested all-algorithm change-only audit. No existing
 EFC totals or learned parameters were recomputed, relabeled, or changed here.
+
+## Reproduced hourly-learning change-event selection
+
+The existing forecast_intel.score_hourly_targets queries temperature changes
+within 15 minutes of elapsed targets, selects the nearest event (earlier on a
+tie), updates the local-hour Kalman bucket, and consumes that target. It does
+not query an independent source-health companion or explicitly obtain the
+value in effect at the target from pre-window history.
+
+A pure in-memory probe of the current function used a raw prediction of 74 F
+at September 4 noon, evaluated 30 minutes later. With no change events it
+scored zero and retained the target. With only an 80 F change five minutes
+after the target it scored once, set the initial bucket bias to -3.173 F, and
+consumed the target. No live model or persisted state was changed by the probe.
+This proves event-time selection, not that either synthetic case represents
+actual sensor conditions. A known healthy 70 F carry at noon followed by an
+80 F later change would require different target-time treatment; missing
+health evidence must still remain unscored rather than assuming that carry
+is valid. An empty change window is likewise not proof of a failed sensor.
+
+The existing unit tests explicitly pin nearest-event matching and therefore
+must change with an approved change-aware hourly assessment contract; they do
+not currently verify target-time carry plus independent source freshness.
+Do not replay or reset existing learned state based on this synthetic probe.
