@@ -4,7 +4,7 @@ export {
   thingStatuses,
   connection,
   getClientOnce,
-  getItemLastUpdated,
+  itemUpdateEvidence,
   clientReady,
 } from './store.js';
 export { num, fmt, socBands, runtimeText, rainAmountText, splitRoundedMinutes } from './values.js';

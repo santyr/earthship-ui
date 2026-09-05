@@ -78,7 +78,7 @@ export function createClient({ openhabUrl, apiToken }) {
   const base = openhabUrl.replace(/\/$/, '');
   return {
     async getAllItems() {
-      const r = await fetch(`${base}/rest/items?fields=name,state,type`, { headers: h });
+      const r = await fetch(`${base}/rest/items?fields=name,state,type,lastStateUpdate`, { headers: h });
       if (!r.ok) throw new Error(`getAllItems ${r.status}`);
       return r.json();
     },

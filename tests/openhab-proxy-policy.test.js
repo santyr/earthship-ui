@@ -16,6 +16,7 @@ describe('household Vite OpenHAB proxy policy', () => {
   it('allows read-only REST and SSE requests', () => {
     for (const path of [
       '/rest/items?fields=name,state,type',
+      '/rest/items?fields=name,state,type,lastStateUpdate',
       '/rest/things',
       '/rest/events?topics=openhab%2Fitems%2F*%2Fstatechanged',
       '/rest/persistence/items/BMS_SOC?starttime=a&endtime=b',

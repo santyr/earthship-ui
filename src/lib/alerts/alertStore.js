@@ -1,5 +1,5 @@
-import { derived, writable } from 'svelte/store';
-import { connection, items, getItemLastUpdated } from '../openhab/index.js';
+import { derived, get, writable } from 'svelte/store';
+import { connection, items, itemUpdateEvidence, clientReady } from '../openhab/index.js';
 import { controlOutcomes } from '../controls/outcomeStore.js';
 import { createAlertProjector, selectHeaderAlerts } from './consoleAlerts.js';
 import { computeStaleEssentials, STALENESS_CHECK_INTERVAL_MS } from './staleness.js';
@@ -19,12 +19,14 @@ export function startStalenessMonitor({
   now = Date.now,
 } = {}) {
   const check = () => {
-    const staleEssentials = computeStaleEssentials(getItemLastUpdated(), now());
+    const staleEssentials = computeStaleEssentials(get(itemUpdateEvidence), now(), {
+      values: get(items), ready: get(clientReady),
+    });
     alertContext.update((context) => ({ ...context, staleEssentials }));
   };
-  check();
+  const unsubscribe = [items, itemUpdateEvidence, clientReady].map(store => store.subscribe(check));
   const timer = setInterval(check, intervalMs);
-  return () => clearInterval(timer);
+  return () => { clearInterval(timer); unsubscribe.forEach(stop => stop()); };
 }
 
 export const consoleAlerts = derived(

@@ -1,3 +1,15 @@
+import { TEMPERATURE_ITEMS } from '../alerts/staleness.js';
+
+export function parseUpdateEvidenceSSEMessage(raw) {
+  let message;
+  try { message = JSON.parse(raw); } catch { return null; }
+  const match = /^openhab\/items\/([^/]+)\/stateupdated$/.exec(message?.topic || '');
+  if (!match || !TEMPERATURE_ITEMS.some(item => item.name === match[1])) return null;
+  let payload;
+  try { payload = JSON.parse(message.payload); } catch { payload = null; }
+  return { name: match[1], lastStateUpdate: payload?.lastStateUpdate };
+}
+
 export function parseSSEMessage(raw) {
   let msg;
   try { msg = JSON.parse(raw); } catch { return null; }
@@ -36,10 +48,11 @@ export function parseThingStatusSSEMessage(raw) {
 
 export function createSSE({
   openhabUrl, apiToken, onState, onThingStatus = () => {}, onStatus,
-  onReconnect = () => {}, staleSeconds = 90,
+  onReconnect = () => {}, onUpdateEvidence = () => {}, staleSeconds = 90,
 }) {
   const base = openhabUrl.replace(/\/$/, '');
-  const topics = 'openhab/items/*/statechanged,openhab/things/*/status';
+  const topics = ['openhab/items/*/statechanged', 'openhab/things/*/status',
+    ...TEMPERATURE_ITEMS.map(item => `openhab/items/${item.name}/stateupdated`)].join(',');
   const url = `${base}/rest/events?topics=${encodeURIComponent(topics)}`;
   let es = null, backoff = 1000, staleTimer = null, offlineTimer = null, stopped = false;
   let reconnectTimer = null, lastStatus = null, hasOpened = false;
@@ -73,6 +86,13 @@ export function createSSE({
       if (isReconnect) onReconnect();
     };
     es.onmessage = (e) => {
+      const update = parseUpdateEvidenceSSEMessage(e.data);
+      if (update) {
+        onUpdateEvidence(update.name, update.lastStateUpdate);
+        setStatus('live');
+        armTimers();
+        return;
+      }
       const itemState = parseSSEMessage(e.data);
       if (itemState) {
         onState(itemState.name, itemState.value);

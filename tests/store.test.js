@@ -8,7 +8,7 @@ import {
   clientReady,
   connection,
   getClientOnce,
-  getItemLastUpdated,
+  itemUpdateEvidence,
   items,
   thingStatuses,
 } from '../src/lib/openhab/store.js';
@@ -80,17 +80,14 @@ describe('store', () => {
     expect(get(thingStatuses)['tplinksmarthome:kl125:E7FA31'].status).toBe('ONLINE');
   });
 
-  it('records a lastUpdated timestamp per item on snapshot and statechanged', () => {
-    const before = Date.now();
-    applySnapshot([{ name: 'TS_A', state: '1' }]);
+  it('retains upstream temperature evidence without using ordinary value receipt', () => {
+    const name = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
+    const sourceAt = Date.now() - 60000;
+    applySnapshot([{ name, state: '70', lastStateUpdate: sourceAt }]);
+    applyState(name, '71');
     applyState('TS_B', '2');
-    const after = Date.now();
-
-    const seen = getItemLastUpdated();
-    expect(seen.TS_A).toBeGreaterThanOrEqual(before);
-    expect(seen.TS_A).toBeLessThanOrEqual(after);
-    expect(seen.TS_B).toBeGreaterThanOrEqual(before);
-    expect(seen.TS_B).toBeLessThanOrEqual(after);
+    expect(get(itemUpdateEvidence)[name]).toEqual({ lastKnown: sourceAt, available: true });
+    expect(get(itemUpdateEvidence).TS_B).toBeUndefined();
   });
 
   it('connection defaults to connecting', () => {
