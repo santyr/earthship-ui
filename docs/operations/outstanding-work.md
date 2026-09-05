@@ -121,6 +121,22 @@ not occurred at that source-integration checkpoint. Migration 0002 has since bee
 installed in the separately reviewed corrective release below; runtime grants,
 shared-module installation and capture activation remain unfinished.
 Completed-window live evidence remains required.
+
+Default-off producer source has since been integrated at `2fa6a70` under
+`docs/superpowers/plans/2026-09-05-advisory-capture.md`. It freezes natural-run
+decision inputs and observes the existing advisory/trough PUTs and notifier
+results, with no side-effect retries. Exact enabled flag, lazy storage import,
+constant capture-gap diagnostics and unchanged advice/DM behavior are covered
+by 27 new regressions. Genuine RED27fail preceded implementation; affected
+GREEN159pass, independent full Python754pass plus42subtests in139.83seconds,
+and clean task/whole-branch reviews. Affected159tests passed again on main.
+This is source integration only: both forecast services still execute the
+unchanged installed `/home/sat/openhab/scripts/forecast_intel.py` (SHA-256
+`6a3d176a9e8e852c8da9890e4c5d8a4731a912124065b8cf8ae7af7f72b23412`).
+Capture helpers, protected runtime DSN/least-privilege role and assessors must
+be installed and verified before activation. No decision or outcome is claimed
+captured live, and premature scoring remains a required separate correction.
+
 Detailed source-health evidence is in
 `docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
 BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
