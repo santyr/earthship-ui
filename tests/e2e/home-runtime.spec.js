@@ -941,6 +941,11 @@ test('upstream freshness reaches the tablet header without value changes', async
   await expect(page.locator('[data-header-alert-winner]')).toContainText('BMS communication fault');
   await runtime.emitState('BMS_Comms_Status', 'NULL');
   await expect(page.locator('[data-header-alert-winner]')).toContainText('freshness unavailable');
+  const geometry = await homeGeometry(page);
+  expectBounded(geometry, { width: 1340, height: 800 });
+  expect(geometry.headerHeight).toBe(44);
+  expect(runtime.pageErrors).toEqual([]);
+  expect(runtime.unexpectedExternalRequests).toEqual([]);
   expect(writes).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('upstream-freshness-1340x800.png') });
 });

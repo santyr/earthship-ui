@@ -23,10 +23,9 @@ export function getClientOnce() {
   return _client;
 }
 
-// Per-item wall-clock of the last snapshot/statechanged write. Feeds the
-// item-staleness alerts (src/lib/alerts/staleness.js): a dead sensor stops
-// producing statechanged events, so "last written" is the honest freshness
-// signal the UI has.
+// Upstream lastStateUpdate provenance for the two curated temperature items.
+// REST snapshots and targeted SSE stateupdated events populate this evidence;
+// ordinary statechanged receipt times never do.
 export const itemUpdateEvidence = writable({});
 
 export function applyUpdateEvidence(name, rawTimestamp) {
