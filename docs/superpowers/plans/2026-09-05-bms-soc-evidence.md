@@ -130,16 +130,17 @@ function original(input) {
   if (input && input.raw && typeof input.raw.get === 'function') return input.raw.get('event');
   return null;
 }
-function integer(value) {
+function integer(value, signed) {
   const text = String(value).trim();
-  return /^[+-]?\d+$/.test(text) && Number.isSafeInteger(Number(text)) ? Number(text) : null;
+  const pattern = signed ? /^[+-]?\d+$/ : /^\d+$/;
+  return pattern.test(text) && Number.isSafeInteger(Number(text)) ? Number(text) : null;
 }
 function accept(input) {
   const raw = original(input);
   let name;
   try { name = raw ? String(raw.getItemName()) : input && input.itemName; }
   catch (_) { name = input && input.itemName; }
-  const config = SOURCES[name];
+  const config = Object.hasOwn(SOURCES, name) ? SOURCES[name] : null;
   if (!config) return;
   const [field, channel] = config;
   let at, value;
@@ -152,7 +153,7 @@ function accept(input) {
     if (!Number.isSafeInteger(at) || at <= 0 || at > now) { state[field] = null; return; }
     if (at < state.floor || at <= state.water[field]) return;
     state.water[field] = at;
-    value = integer(raw.getItemState());
+    value = integer(raw.getItemState(), field === 'scale');
   } catch (_) { state[field] = null; return; }
   const inRange = value !== null && (field === 'raw' ? value >= 0 && value <= 65534 : value >= -32767 && value <= 32767);
   state[field] = inRange && now - at <= MAX_AGE_MS ? { at, value } : null;
