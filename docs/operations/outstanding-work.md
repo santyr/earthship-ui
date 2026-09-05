@@ -183,6 +183,30 @@ from the still-required historical-algorithm audit.
 
 ## Safety and completion boundaries
 
+### Live rule history inventory, September 5
+
+Read-only registry inspection scanned 25 live rules and found eight actions with
+history-related text. The targeted analytical calls are:
+
+- `hex_bms_ttd_smooth`: overnight AC-power `averageBetween`, from yesterday
+  20:30 to today 06:00, cached per day with a numeric fallback. Script SHA-256
+  `b5b80aa90ca0dbea4b03cd4c7b62eb73d2ee938d7df2b7940a21a29ba5d543a2`.
+- `temp-highlow-24h`: `minimumSince`/`maximumSince` from now minus 24 hours,
+  publishing the four `IndoorTemp_24h_*`/`OutdoorTemp_24h_*` Items. Script hash
+  `a499269f5aabf7a82de55f9fbc168d7c281c3155d07d91321a2259199b7072db`.
+- `hex_btc_24h_change`: `persistedState(now.minusHours(24))`. Script hash
+  `9e15eb8e7f4e3d3118f12295d7b09f82525ab52f41b951f8809097c98fc369bb`.
+
+These identify review targets, not proven defects or verified change-aware
+behavior. Other matches include comments/guard terminology in the sky,
+scaler and household-owner rules; keyword matching alone is not a full audit.
+Main-page temperatures use `localDayHistoryRange` already. Weather still displays
+the outdoor 24-hour Items, and Earthship's buffering metric explicitly compares
+24-hour indoor/outdoor swings. Do not silently redefine those Item contracts as
+local-day values. Carry-in, source health and persistence API aggregation
+semantics remain to be verified for the three analytical consumers. No live
+rule was invoked or changed during this inventory.
+
 No hardware actions, advisory-policy changes, migrations, or production writes
 were performed for this inventory. Design approval and cross-repository
 contracts apply before implementation. Existing OpenHAB controls and Discover
