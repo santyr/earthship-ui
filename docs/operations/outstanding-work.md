@@ -64,6 +64,29 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
   verified Hexmem observations. No threshold tuning, new DM, migration, or
   runtime capture is authorized by this prerequisite assessment alone.
 
+## Task 16 calibration audit — September 5
+
+- Live state has seven PV percentage errors and seven SoC-trough absolute
+  errors, without per-error issue timestamps or coverage metadata. No interval,
+  P10, P90, or conformal-named OpenHAB Items were found in the current inventory.
+- `Forecast_TempLow_Error_7d=7.2` is raw forecast MAE, not corrected forecast
+  MAE. The current low filter bias is +8.214 F and the producer subtracts that
+  bias. The raw error cannot prove that the applied correction is inadequate;
+  evaluate generation-time corrected forecasts against later actuals instead
+  of subtracting today's filter retrospectively from historical forecasts.
+- Confirmed incomplete-night scoring defect: `measured_trough()` defines the
+  observation window as 20:00 through 11:00 local, but the live daily timer
+  invokes `forecast-intel` at 06:40. Its September 5 journal reports the
+  September 4 prediction scored against an actual of 86% at 06:40:29; live
+  state already marks that trough scored. The remaining observation window
+  had not elapsed. The per-quantity guard prevents later same-day correction.
+- Repair must precede trustworthy interval calibration: score only completed
+  trough windows, retain forecast-origin and target identities, and permit
+  delayed scoring without duplicate updates. Keep the 06:40 forecast/advisory
+  schedule; a whole-job move to 11:00 would delay existing morning advice.
+  Do not reset learned state or relabel the old seven errors as validated
+  full-window calibration evidence. Implementation design remains pending.
+
 ## Safety and completion boundaries
 
 No hardware actions, advisory-policy changes, migrations, or production writes
