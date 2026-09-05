@@ -152,3 +152,24 @@ The existing unit tests explicitly pin nearest-event matching and therefore
 must change with an approved change-aware hourly assessment contract; they do
 not currently verify target-time carry plus independent source freshness.
 Do not replay or reset existing learned state based on this synthetic probe.
+
+## Heartbeat provenance reproduction after storage integration
+
+On Solar_PV main 7f0b583, a pure in-memory reproduction through
+`normalize_window_text_series` and `assess_source_quality` confirmed two distinct
+failures for the ten-minute window beginning September 4 at 00:00 UTC:
+
+- A heartbeat observed at window start but reporting a time one day after the
+  window ends produces coverage 1.0 and quality `ok`.
+- A carry-in observed an hour before window start but reporting window start
+  also produces coverage 1.0 and quality `ok`. The text reader replaces the
+  original observation time with window start before quality assessment sees it.
+
+The production path in `daily.py` obtains freshness points through that same
+text reader. Checking a reported timestamp only against the normalized boundary
+would leave the second defect intact. The correction must preserve the original
+observation timestamp for health validation, reject reports future-dated at that
+observation, and clip valid coverage to the requested window. General text
+duration consumers still need their existing clipped intervals; do not change
+their meaning incidentally. No live data, learned state, database or service was
+modified by this reproduction. Both defects remain unfixed at this checkpoint.
