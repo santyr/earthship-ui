@@ -11,7 +11,7 @@ outside this Earthship workstream.
 | Task 96: energy forecast snapshot ingestion | September 5 repaired capture service succeeded, storing 1,446 v2 rows with genuine issue time 2026-09-05T13:45:29Z. Live analytics forecast now current. Both existing timers restored active. | Completed. Preserve the August 27–September 5 capture gap; no fabricated historical origins. |
 | Task 18: Bandit thresholds | Task explicitly requires outcome verification. Thermal shadow is observational. No outcome/advisory/reward-named tables found in inspected OpenHAB PostgreSQL database; this alone does not prove no loop exists elsewhere. | Inventory actual decision/outcome producers, establish verified delayed outcome attribution and scoring, then approve bounded tuning design and verify it before live threshold changes. |
 | Task 16: forecast ML v3 | Hexmem remains in progress with conformal trough/PV intervals and low-temperature correction watch outstanding. Current forecast_intel retains seven absolute PV/trough errors; searched P10 Items absent. | Trace all current producers and scoring history, specify calibrated intervals and evidence requirements, test and verify publication; explicitly resolve the under-correction watch. |
-| Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion is currently broken. | Verify usable paired history, repair capture, approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
+| Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion was repaired September 5; current history has nine distinct local issue dates. | Accumulate and verify usable paired history; approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
 | Task 21: live winter timezone verification | Pending November MST verification; summer checks cannot satisfy its explicit requirement. | Inspect actual winter data after transition, including sunny/cloudy boundary cases and calibration attribution. |
 | Task 22: rain/wind learned corrections | Task description explicitly defers rain and requires a wind consumer, scoring, and renewed approval. | Resolve deferred scope with operator; satisfy outcome/scoring prerequisites before implementing learned gains. |
 
@@ -39,8 +39,8 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
 
 ## September 5 learning-prerequisite follow-up
 
-- Stored forecast snapshots cover only eight distinct local issue dates,
-  August 20–27, across each stored daily/hourly metric. Restoring capture does
+- Before the repair, stored forecast snapshots covered eight distinct local issue dates,
+  August 20–27. After verified September 5 capture, there are nine overall. Restoring capture does
   not retroactively create the missing origins or meet the approximately
   90-day analog-ensemble prerequisite.
 - Current forecast state retains 30 daily prediction entries (August 7 through
@@ -51,6 +51,18 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
   but the inspected path does not link decisions/actions to delayed rewards.
   Do not infer outcome verification from an action journal or forecast error
   average alone.
+- Current read-only journal verification places those ten action events between
+  October 16, 2025 and May 22, 2026. They do not verify current warm-season
+  advice. Tracked and installed `forecast_intel.py` hashes match; the current
+  decision path replaces its per-date prediction record on each run and keeps
+  only 30 dates. It does not preserve an immutable decision ID, the exact
+  thresholds/corrected inputs for that decision, or linked measured outcomes.
+- Task 18 next design gate: preserve each decision and notification result,
+  associate later measured outcomes and confirmed actions without assuming
+  compliance or causal benefit, and retain unscorable evidence explicitly.
+  Prefer the existing quantitative PostgreSQL/OpenHAB history plus compact
+  verified Hexmem observations. No threshold tuning, new DM, migration, or
+  runtime capture is authorized by this prerequisite assessment alone.
 
 ## Safety and completion boundaries
 
