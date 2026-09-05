@@ -117,22 +117,83 @@ const MAX_AGE_MS = 120000;
 const PUBLISH_MS = 60000;
 const CACHE_KEY = 'earthship.bms-soc-evidence.v1';
 const OUTPUT_ITEM = 'BMS_SOC_Evidence_JSON';
-// Initialize one private state object: epoch UUID, raw:null, scale:null,
-// lastPublished:null. Never read OUTPUT_ITEM to initialize it.
-// Normalize event.raw.get('event') or direct Java event; use getType,
-// getItemName, getItemState, getSource, getLastStateUpdate().toInstant().
-// On exact raw/scale Item event, validate source/type/time/value before
-// accepting {at,value}; retain per-field high-water timestamps so an invalid
-// later sample cannot be replaced by an older valid one.
-// A known health fault clears observations, retaining high-water marks.
-// Construct unavailable or valid schema from both cached observations and
-// current health. Freshness uses each original event timestamp, not now.
-// Publish immediately if status/reason/soc differs from last successful
-// publication; otherwise valid records only after PUBLISH_MS. Unavailable
-// records with unchanged status/reason are not re-posted.
-// Persist private state even on publication failure, but mark lastPublished
-// only after postUpdate returns. Catch only publication failure, log the
-// constant 'BMS SoC evidence publication failed', and await the next trigger.
+const SOURCES = {
+  BMS_SOC_Raw: ['raw', 'socRaw'],
+  BMS_SOC_ScaleFactor_Raw: ['scale', 'socSf'],
+};
+const now = Number(Instant.now().toEpochMilli());
+let state = cache.private.get(CACHE_KEY);
+if (!state) state = { epoch: UUID.randomUUID().toString(), raw: null, scale: null,
+  water: { raw: -1, scale: -1 }, floor: now, lastPublished: null };
+function original(input) {
+  if (input && typeof input.getItemName === 'function') return input;
+  if (input && input.raw && typeof input.raw.get === 'function') return input.raw.get('event');
+  return null;
+}
+function integer(value) {
+  const text = String(value).trim();
+  return /^[+-]?\d+$/.test(text) && Number.isSafeInteger(Number(text)) ? Number(text) : null;
+}
+function accept(input) {
+  const raw = original(input);
+  let name;
+  try { name = raw ? String(raw.getItemName()) : input && input.itemName; }
+  catch (_) { name = input && input.itemName; }
+  const config = SOURCES[name];
+  if (!config) return;
+  const [field, channel] = config;
+  let at, value;
+  try {
+    const expected = `org.openhab.core.thing$modbus:data:schneiderBatterySunSpec:battery802Core:${channel}:number`;
+    if (!raw || String(raw.getType()) !== 'ItemStateUpdatedEvent' || String(raw.getSource()) !== expected) {
+      state[field] = null; return;
+    }
+    at = Number(raw.getLastStateUpdate().toInstant().toEpochMilli());
+    if (!Number.isSafeInteger(at) || at <= 0 || at > now) { state[field] = null; return; }
+    if (at < state.floor || at <= state.water[field]) return;
+    state.water[field] = at;
+    value = integer(raw.getItemState());
+  } catch (_) { state[field] = null; return; }
+  const inRange = value !== null && (field === 'raw' ? value >= 0 && value <= 65534 : value >= -32767 && value <= 32767);
+  state[field] = inRange && now - at <= MAX_AGE_MS ? { at, value } : null;
+}
+function healthy() {
+  try {
+    return String(items.getItem('BMS_Comms_Status').state).trim() === 'OK'
+      && Number(String(items.getItem('BMS_DevicePresent').state)) === 1;
+  } catch (_) { return false; }
+}
+function record() {
+  const out = { version: 1, streamEpoch: state.epoch, recordedAt: now,
+    status: 'unavailable', reason: 'input_unavailable', observedAt: null,
+    scaleObservedAt: null, validUntil: null, soc: null };
+  if (!healthy()) {
+    state.raw = null; state.scale = null; state.floor = now;
+    out.reason = 'source_unavailable'; return out;
+  }
+  if (!state.raw || !state.scale) return out;
+  if (state.raw.at > now || state.scale.at > now || now - Math.min(state.raw.at, state.scale.at) > MAX_AGE_MS) {
+    out.reason = 'input_stale'; return out;
+  }
+  const soc = state.raw.value * Math.pow(10, state.scale.value);
+  if (!Number.isFinite(soc) || soc < 0 || soc > 100 || (state.raw.value !== 0 && soc === 0)) {
+    out.reason = 'invalid_scaled_soc'; return out;
+  }
+  return { ...out, status: 'valid', reason: 'ok', soc, observedAt: state.raw.at,
+    scaleObservedAt: state.scale.at, validUntil: Math.min(state.raw.at, state.scale.at) + MAX_AGE_MS };
+}
+accept(typeof event === 'undefined' ? null : event);
+const next = record();
+const previous = state.lastPublished;
+const changed = !previous || previous.status !== next.status || previous.reason !== next.reason || previous.soc !== next.soc;
+const due = next.status === 'valid' && previous && now - previous.recordedAt >= PUBLISH_MS;
+if (changed || due) {
+  try {
+    items.getItem(OUTPUT_ITEM).postUpdate(JSON.stringify(next));
+    state.lastPublished = next;
+  } catch (_) { console.warn('BMS SoC evidence publication failed'); }
+}
+cache.private.put(CACHE_KEY, state);
 ```
 
 The implementation must complete that flow as actual code, with no placeholders.
