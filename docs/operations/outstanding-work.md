@@ -87,6 +87,26 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
   Do not reset learned state or relabel the old seven errors as validated
   full-window calibration evidence. Implementation design remains pending.
 
+## Outcome implementation preflight
+
+The written outcome/scoring specification was approved. Live cadence validation
+then found a necessary design correction before implementation: managed JDBC
+persistence uses everyChange plus restoreOnStartup for all Items, with no cron
+strategy. Under the approved 20-minute hold, September 2–4 BMS_SOC history covers
+only 34.4%, 45.2% and 38.2% of each day; hallway temperature covers 96.3–98.6%.
+Some SoC gaps exceed five hours. Change-only history cannot itself establish
+fresh observations during an unchanged interval; this is not proof of BMS failure.
+
+Do not silently lower the 90% coverage gate or treat these gaps as fresh samples.
+Proposed operator decision: add five-minute periodic persistence for BMS_SOC
+through OpenHAB's existing JDBC owner, retaining everyChange and restoreOnStartup
+and leaving other Items and controls unchanged. This adds observations, not a
+new collector or forecast/notification run. A periodic stored value alone is not
+freshness proof: the implementation must also validate contemporaneous BMS
+freshness evidence and reject a cached value during stale/faulted telemetry.
+Design amendment and exact managed-configuration deployment require approval;
+no persistence configuration has been changed by this preflight.
+
 ## Safety and completion boundaries
 
 No hardware actions, advisory-policy changes, migrations, or production writes
