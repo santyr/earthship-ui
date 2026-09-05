@@ -44,7 +44,7 @@ export const CONTROL_CATALOG = Object.freeze({
   dishwasher: ownedBinary('Dishwasher', 'Dish_Washer_Power', 'dishwasher', {
     providerThingUid: PROVIDER_THINGS.dishwasher,
   }),
-  shureflo: ownedBinary('Shureflo Pump', 'ShurefloPump_Power', 'shureflo', {
+  shureflo: ownedBinary('Cistern Pump', 'ShurefloPump_Power', 'shureflo', {
     providerThingUid: PROVIDER_THINGS.shureflo,
   }),
   goatCam: ownedBinary('Goat Cam', 'Goat_Plugs_Outlet1_Switch', 'goat-cam', {

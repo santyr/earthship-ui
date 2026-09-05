@@ -21,7 +21,7 @@ describe('control catalog', () => {
       living3: ['Living Room 3', 'binary', 'LED_living_room_1_Switch'],
       circadian: ['Circadian', 'binary-policy', 'LivingRoomCircadian_Enable'],
       dishwasher: ['Dishwasher', 'owned-binary', 'Dish_Washer_Power'],
-      shureflo: ['Shureflo Pump', 'owned-binary', 'ShurefloPump_Power'],
+      shureflo: ['Cistern Pump', 'owned-binary', 'ShurefloPump_Power'],
       goatCam: ['Goat Cam', 'owned-binary', 'Goat_Plugs_Outlet1_Switch'],
       feedOnce: ['Feed once', 'action', 'Goat_Plugs_Outlet2_Switch'],
       circulation: ['Request circulation', 'safety-request', 'SouthOutlet_Outlet2_Switch'],

@@ -151,7 +151,7 @@ for (const target of TARGETS) {
     // Override is ON in the fixture, so the owned loads stay disabled
     // ("Owned by Night Load Override"); the verified correlated controls
     // (capabilities flipped 2026-07-19) are live with hold interaction.
-    for (const label of [/Dishwasher/i, /Shureflo Pump/i]) {
+    for (const label of [/Dishwasher/i, /Cistern Pump/i]) {
       await expect(page.getByRole('button', { name: label })).toBeDisabled();
     }
     // Goat Cam is override-INDEPENDENT (operator instruction 2026-07-26): the
