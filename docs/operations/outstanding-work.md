@@ -111,6 +111,13 @@ now separates held value state from independently verified telemetry freshness.
 
 ## Change-only semantics and notification audit
 
+Corrective alert design: `docs/superpowers/specs/2026-09-05-change-only-alerts-design.md`.
+Written review is pending; no corrective alert code has been deployed. September 5
+read-only verification confirmed live bulk REST lastStateUpdate and targeted
+ItemStateUpdatedEvent support, so unchanged sensor updates can be used without
+adding a collector or changing JDBC strategy. The spec separates this alert slice
+from the still-required historical-algorithm audit.
+
 - Confirmed UI false alert: src/lib/alerts/staleness.js flags BMS_SOC after
   60 minutes without a value change even with a current BMS_SOC_LastUpdate
   heartbeat. Snapshot receipt time also must not masquerade as sensor freshness.
