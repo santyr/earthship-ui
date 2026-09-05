@@ -122,7 +122,7 @@
           <h3>Battery</h3>
           <dl>
             <div><dt>Latest daily low</dt><dd>{metric(result.battery.latestMinSocPct, '%')}</dd></div>
-            <div><dt>Daily SoC range (DoD)</dt><dd>{metric(result.battery.latestDepthOfDischargePct, ' pp')}</dd></div>
+            <div><dt>Daily SoC range (DoD)</dt><dd class="metric-value">{metric(result.battery.latestDepthOfDischargePct, ' pp')}</dd></div>
             <div><dt>Daily estimated EFC</dt><dd>{metric(result.battery.latestEfc, '', 3)}</dd></div>
             <div><dt>Reached 99%</dt><dd>{yesNo(result.battery.latestReached99)}</dd></div>
             <div><dt>Days since full</dt><dd>{count(result.battery.daysSinceFull)}</dd></div>
@@ -208,6 +208,7 @@
   dl div { display: flex; justify-content: space-between; gap: .6rem; border-bottom: 1px solid #1c2230; padding-bottom: .2rem; }
   dt { color: #8b93a1; font-size: .7rem; }
   dd { margin: 0; font-size: .72rem; font-weight: 600; text-transform: capitalize; text-align: right; }
+  dd.metric-value { text-transform: none; }
   .analytics-note { margin: .75rem 0 0; color: #8b93a1; font-size: .68rem; }
   @media (max-width: 760px) { .analytics-sections { grid-template-columns: 1fr; } }
 </style>

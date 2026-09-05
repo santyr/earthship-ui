@@ -149,6 +149,9 @@ test("Energy exposes observational analytics detail without adding controls", as
   await expect(dialog.getByRole("heading", { name: "Winter" })).toBeVisible();
   await expect(dialog.getByText('Daily SoC range (DoD)')).toBeVisible();
   await expect(dialog.getByText('16.0 pp')).toBeVisible();
+  const dailyRangeValue = dialog.getByText('Daily SoC range (DoD)').locator('..').locator('dd');
+  await expect.poll(() => dailyRangeValue.evaluate((element) => element.innerText))
+    .toBe('16.0 pp');
   await expect(dialog.getByText('Daily estimated EFC')).toBeVisible();
   await expect(dialog.getByText('0.160', { exact: true })).toBeVisible();
   await expect(dialog.getByText('The latest day is incomplete; daily battery values may change.'))
