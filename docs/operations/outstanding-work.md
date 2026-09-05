@@ -183,6 +183,32 @@ from the still-required historical-algorithm audit.
 
 ## Safety and completion boundaries
 
+### Alert release checkpoint, September 5
+
+Reviewed UI freshness and external checker changes merged and pushed at
+`d85f07cccf1390ccdaf3cd01633b78179d7c245f`. Branch verification included1,148UI
+tests,727Python tests plus42subtests,5Home browser tests and build. Merged main
+reverified1,148UI and14checker tests plus42subtests; runtime/test files matched
+the fully reviewed branch exactly. UI tests-first deviation was explicitly
+accepted by Sat (Hexmem8671); no retroactive TDD claim.
+
+The checker is installed at `/home/sat/openhab/scripts/openhab_sanity_check.py`,
+hash`0e796c07b9d828aab579c77bea9f4bbb9ca33ed617f2c029e1533d9180e866f4`,
+permissions775 sat:sat. Paired original script/state and unchanged unit backups
+are at `/home/sat/.local/state/openhab-sanity/release-20260905-br7IJC`.
+Installation was atomic during an idle interval; state and units were unchanged.
+The normal12:39:48MDT timer invocation exited0 and logged all checks passed.
+No manual checker invocation or test notification was used. Rollback must retain
+newer state/log evidence, then restore the paired original script/state while idle.
+
+Live1340x800 UI validation confirmed requested REST lastStateUpdate fields,
+two targeted stateupdated topics, fresh temperature timestamps, no overflow,
+no page errors and no attempted writes. It also caught an actual BMS heartbeat
+format gap: OpenHAB state uses compact offset`-0600`, rejected by the first parser.
+Follow-up4fde6e0 supports that qualified format with genuine4-test RED and59focused/
+1,156full GREEN plus build. This follow-up is awaiting independent review, not
+deployed at this checkpoint; do not call the live battery freshness fix complete.
+
 ### Live rule history inventory, September 5
 
 Read-only registry inspection scanned 25 live rules and found eight actions with
