@@ -1,7 +1,7 @@
 export const ENERGY_ANALYTICS_MAX_BYTES = 16 * 1024;
 export const ENERGY_ANALYTICS_STALE_MS = 15 * 60_000;
 export const ENERGY_ANALYTICS_REFRESH_MS = 30_000;
-const SCHEMA = 'earthship-energy-ui/v1';
+const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2']);
 const STATUS = new Set(['ok', 'degraded', 'unavailable', 'stale', 'fault']);
 const FORECAST_STATUS = new Set(['current', 'stale', 'unavailable', 'degraded']);
 
@@ -9,6 +9,7 @@ const TOP = ['battery', 'energy', 'epochId', 'forecast', 'generatedAt', 'health'
   'lifecycle', 'schema', 'status', 'throughDate', 'timezone', 'winter'];
 const BATTERY = ['currentNoFullDays', 'daysSinceFull', 'endingCumulativeEfc',
   'latestMinSocPct', 'latestReached99', 'status'];
+const BATTERY_V2 = [...BATTERY, 'latestDepthOfDischargePct', 'latestEfc'].sort();
 const ENERGY = ['activeLoads', 'latest', 'observedCurtailmentKwh',
   'observedCurtailmentStatus', 'status'];
 const LATEST = ['chargeKwh', 'date', 'dischargeKwh', 'loadKwh', 'pvKwh'];
@@ -108,7 +109,7 @@ function boundedText(value, path, optional = true) {
 
 function validatePayload(payload) {
   exact(payload, TOP, 'payload');
-  if (payload.schema !== SCHEMA) throw new Error('schema');
+  if (!SCHEMAS.has(payload.schema)) throw new Error('schema');
   const generatedAtMs = timestamp(payload.generatedAt, 'generatedAt');
   if (typeof payload.timezone !== 'string' || payload.timezone !== 'America/Denver') {
     throw new Error('timezone');
@@ -122,13 +123,28 @@ function validatePayload(payload) {
   }
   status(payload.status, 'payload');
 
-  const battery = exact(payload.battery, BATTERY, 'battery');
+  const battery = exact(
+    payload.battery,
+    payload.schema === 'earthship-energy-ui/v2' ? BATTERY_V2 : BATTERY,
+    'battery',
+  );
   status(battery.status, 'battery');
   number(battery.latestMinSocPct, 'battery_latestMinSocPct');
   bool(battery.latestReached99, 'battery_latestReached99');
   number(battery.endingCumulativeEfc, 'battery_endingCumulativeEfc');
   integer(battery.currentNoFullDays, 'battery_currentNoFullDays');
   integer(battery.daysSinceFull, 'battery_daysSinceFull');
+  if (payload.schema === 'earthship-energy-ui/v2') {
+    const depthOfDischarge = number(
+      battery.latestDepthOfDischargePct,
+      'battery_latestDepthOfDischargePct',
+    );
+    const latestEfc = number(battery.latestEfc, 'battery_latestEfc');
+    if (depthOfDischarge !== null && (depthOfDischarge < 0 || depthOfDischarge > 100)) {
+      throw new Error('battery_latestDepthOfDischargePct_bounds');
+    }
+    if (latestEfc !== null && latestEfc < 0) throw new Error('battery_latestEfc_bounds');
+  }
 
   const energy = exact(payload.energy, ENERGY, 'energy');
   status(energy.status, 'energy');
@@ -226,7 +242,11 @@ export function parseEnergyAnalyticsResult(raw, nowMs = Date.now()) {
       generatedAtMs,
       throughDate: payload.throughDate,
       epochId: payload.epochId,
-      battery: structuredClone(payload.battery),
+      battery: {
+        latestDepthOfDischargePct: null,
+        latestEfc: null,
+        ...structuredClone(payload.battery),
+      },
       energy: structuredClone(payload.energy),
       winter: structuredClone(payload.winter),
       lifecycle: structuredClone(payload.lifecycle),

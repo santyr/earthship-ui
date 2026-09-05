@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'vite';
 
-import { energyAnalyticsFixture } from '../fixtures/energyAnalytics.js';
+import { energyAnalyticsFixture, energyAnalyticsV2Fixture } from '../fixtures/energyAnalytics.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -46,7 +46,7 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openEnergyFixture(page, target) {
+async function openEnergyFixture(page, target, analytics = energyAnalyticsFixture()) {
   const historyRequests = [];
   await page.setViewportSize({ width: target.width, height: target.height });
   await page.addInitScript(() => {
@@ -66,7 +66,8 @@ async function openEnergyFixture(page, target) {
     json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture-only', staleBannerSeconds: 90 },
   }));
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
-    json: Object.entries(STATES).map(([name, state]) => ({ name, state, type: 'String' })),
+    json: Object.entries({ ...STATES, Energy_Analytics_JSON: JSON.stringify(analytics) })
+      .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (route) => {
     const url = new URL(route.request().url());
@@ -139,10 +140,30 @@ test('Energy period selection issues a fresh 4-hour history range', async ({ pag
 
 
 test("Energy exposes observational analytics detail without adding controls", async ({ page }) => {
-  await openEnergyFixture(page, TARGETS[0]);
+  const analytics = energyAnalyticsV2Fixture();
+  analytics.battery.status = 'degraded';
+  await openEnergyFixture(page, TARGETS[0], analytics);
   await page.getByRole("button", { name: "Open energy analytics details" }).click();
   const dialog = page.getByRole("dialog", { name: "Energy analytics details" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("heading", { name: "Winter" })).toBeVisible();
+  await expect(dialog.getByText('Daily SoC range (DoD)')).toBeVisible();
+  await expect(dialog.getByText('16.0 pp')).toBeVisible();
+  await expect(dialog.getByText('Daily estimated EFC')).toBeVisible();
+  await expect(dialog.getByText('0.160', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('The latest day is incomplete; daily battery values may change.'))
+    .toBeVisible();
   await expect(dialog.locator("form, input, select, textarea")).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close energy analytics details' }).click();
+  await expect(dialog).toBeHidden();
+});
+
+test('Energy renders legacy battery cycle evidence as unavailable', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0]);
+  await page.getByRole('button', { name: 'Open energy analytics details' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Energy analytics details' });
+  await expect(dialog.getByText('Daily SoC range (DoD)').locator('..').locator('dd'))
+    .toHaveText('Unavailable');
+  await expect(dialog.getByText('Daily estimated EFC').locator('..').locator('dd'))
+    .toHaveText('Unavailable');
 });

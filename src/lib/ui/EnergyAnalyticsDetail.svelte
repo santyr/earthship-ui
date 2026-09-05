@@ -122,6 +122,8 @@
           <h3>Battery</h3>
           <dl>
             <div><dt>Latest daily low</dt><dd>{metric(result.battery.latestMinSocPct, '%')}</dd></div>
+            <div><dt>Daily SoC range (DoD)</dt><dd>{metric(result.battery.latestDepthOfDischargePct, ' pp')}</dd></div>
+            <div><dt>Daily estimated EFC</dt><dd>{metric(result.battery.latestEfc, '', 3)}</dd></div>
             <div><dt>Reached 99%</dt><dd>{yesNo(result.battery.latestReached99)}</dd></div>
             <div><dt>Days since full</dt><dd>{count(result.battery.daysSinceFull)}</dd></div>
             <div><dt>Current no-full run</dt><dd>{count(result.battery.currentNoFullDays, ' d')}</dd></div>
@@ -148,7 +150,7 @@
         <section>
           <h3>Lifecycle</h3>
           <dl>
-            <div><dt>Ending EFC</dt><dd>{metric(result.lifecycle.endingCumulativeEfc, '', 2)}</dd></div>
+            <div><dt>Ending estimated EFC</dt><dd>{metric(result.lifecycle.endingCumulativeEfc, '', 2)}</dd></div>
             <div><dt>Charge throughput</dt><dd>{metric(result.lifecycle.chargeKwh, ' kWh')}</dd></div>
             <div><dt>Above 95% SoC</dt><dd>{metric(result.lifecycle.highSocHoursAbove95, ' h')}</dd></div>
             <div><dt>State of health</dt><dd>{metric(result.lifecycle.stateOfHealthPct, '%')}</dd></div>
@@ -174,6 +176,10 @@
           </dl>
         </section>
       </div>
+      <p class="analytics-note">EFC uses measured charge/discharge energy over available bank-epoch history, not the BMS lifetime cycle count. Daily SoC range does not count repeated partial cycles.</p>
+      {#if result.battery.status === 'degraded'}
+        <p class="analytics-note">The latest day is incomplete; daily battery values may change.</p>
+      {/if}
       <p class="analytics-note">Observed summaries only. Unavailable values are not estimated.</p>
     </div>
   </div>

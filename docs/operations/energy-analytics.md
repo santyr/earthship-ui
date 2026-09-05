@@ -5,7 +5,11 @@ OpenHAB owns one observational String Item, `Energy_Analytics_JSON`; earthship-u
 reads that Item through its existing REST/SSE connection. No component in this
 path can command hardware or authorize an action.
 
-The closed payload schema is `earthship-energy-ui/v1`. The publisher rejects
+The UI reader accepts the exact `earthship-energy-ui/v1` and
+`earthship-energy-ui/v2` payloads. The implemented v2 publisher adds nullable
+daily depth-of-discharge and estimated-EFC evidence, but v2 is not live until
+the reader-first deployment is completed and the controller verifies the
+publisher against persisted date, epoch, and quality evidence. The publisher rejects
 payloads at or above 16 KiB and writes only
 `PUT /rest/items/Energy_Analytics_JSON/state`. The browser treats payloads older
 than 15 minutes, dated in the future, malformed, oversized, or on an unsupported
@@ -32,9 +36,17 @@ After installing and enabling `energy-ui-publish.timer` from `Solar_PV`, start
 OpenHAB and the UI proxy. No OpenHAB rule, Thing, link, persistence policy,
 actuator Item, or earthship-ui service restart belongs to this deployment.
 
+For the v2 contract transition, deploy and verify the dual-version UI reader
+before enabling the v2 publisher. Keep the publisher on v1 until the candidate
+reader accepts a real read-only database-derived v2 payload. Then deploy the
+writer and compare its output with the persisted date, bank epoch, and quality
+gate before considering the transition live.
+
 ## Rollback
 
-Disable the publisher timer first. If Item rollback is required, use only the
+Roll back the publisher to v1 first, while the dual-version reader remains in
+place. Disable the publisher timer before changing or restoring publisher
+configuration. If Item rollback is required, use only the
 closed receipt that performed the apply:
 
 ```bash

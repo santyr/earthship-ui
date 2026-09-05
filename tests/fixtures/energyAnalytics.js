@@ -45,3 +45,10 @@ export function energyAnalyticsFixture(overrides = {}) {
     ...overrides,
   };
 }
+
+export function energyAnalyticsV2Fixture() {
+  const value = energyAnalyticsFixture();
+  value.schema = 'earthship-energy-ui/v2';
+  Object.assign(value.battery, { latestDepthOfDischargePct: 16, latestEfc: 0.16 });
+  return value;
+}

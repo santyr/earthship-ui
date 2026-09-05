@@ -8,6 +8,7 @@ import {
 import {
   GENERATED_AT_MS,
   energyAnalyticsFixture,
+  energyAnalyticsV2Fixture,
 } from './fixtures/energyAnalytics.js';
 
 
@@ -34,6 +35,46 @@ describe('Energy analytics closed payload parser', () => {
     expect(result.lifecycle.endingCumulativeEfc).toBe(4.36);
     expect(result.forecast.pv24hKwh).toBe(7.2);
     expect(result.reasons).toEqual([]);
+    expect(result.battery.latestDepthOfDischargePct).toBeNull();
+    expect(result.battery.latestEfc).toBeNull();
+  });
+
+  it('accepts v2 battery cycle evidence', () => {
+    const result = parse(energyAnalyticsV2Fixture());
+    expect(result.battery.latestDepthOfDischargePct).toBe(16);
+    expect(result.battery.latestEfc).toBe(0.16);
+  });
+
+  it.each([
+    ['missing DoD', (value) => { delete value.battery.latestDepthOfDischargePct; }],
+    ['extra battery field', (value) => { value.battery.extra = null; }],
+  ])('rejects v2 with %s', (_label, mutate) => {
+    const payload = energyAnalyticsV2Fixture();
+    mutate(payload);
+    expect(parse(payload).state).toBe('unavailable');
+  });
+
+  it.each([
+    ['DoD string', (value) => { value.battery.latestDepthOfDischargePct = '16'; }],
+    ['DoD boolean', (value) => { value.battery.latestDepthOfDischargePct = true; }],
+    ['DoD negative', (value) => { value.battery.latestDepthOfDischargePct = -1; }],
+    ['DoD above 100', (value) => { value.battery.latestDepthOfDischargePct = 101; }],
+    ['EFC string', (value) => { value.battery.latestEfc = '0.16'; }],
+    ['EFC boolean', (value) => { value.battery.latestEfc = false; }],
+    ['EFC negative', (value) => { value.battery.latestEfc = -0.01; }],
+  ])('rejects v2 %s', (_label, mutate) => {
+    const payload = energyAnalyticsV2Fixture();
+    mutate(payload);
+    expect(parse(payload).state).toBe('unavailable');
+  });
+
+  it.each([null, 0])('accepts nullable or zero v2 battery evidence: %s', (value) => {
+    const payload = energyAnalyticsV2Fixture();
+    payload.battery.latestDepthOfDischargePct = value;
+    payload.battery.latestEfc = value;
+    const result = parse(payload);
+    expect(result.battery.latestDepthOfDischargePct).toBe(value);
+    expect(result.battery.latestEfc).toBe(value);
   });
 
   it('marks an otherwise valid payload stale after fifteen minutes', () => {
@@ -47,6 +88,8 @@ describe('Energy analytics closed payload parser', () => {
       expect(parseEnergyAnalyticsResult(raw, GENERATED_AT_MS).state).toBe('unavailable');
     }
     expect(parse({ ...energyAnalyticsFixture(), schema: 'earthship-energy-ui/v2' }).state)
+      .toBe('unavailable');
+    expect(parse({ ...energyAnalyticsFixture(), schema: 'earthship-energy-ui/v3' }).state)
       .toBe('unavailable');
     expect(parse(energyAnalyticsFixture(), GENERATED_AT_MS - 1).state)
       .toBe('unavailable');
@@ -73,6 +116,21 @@ describe('Energy analytics closed payload parser', () => {
     const result = parseEnergyAnalyticsResult(raw, GENERATED_AT_MS);
     expect(result.state).toBe('unavailable');
     expect(result.reasons).toContain('analytics_payload_too_large');
+  });
+
+  it.each([
+    ['v1 stale', energyAnalyticsFixture],
+    ['v2 stale', energyAnalyticsV2Fixture],
+  ])('applies freshness gate to %s', (_label, fixture) => {
+    expect(parse(fixture(), GENERATED_AT_MS + 15 * 60_000 + 1).state).toBe('stale');
+  });
+
+  it.each([
+    ['v1', energyAnalyticsFixture],
+    ['v2', energyAnalyticsV2Fixture],
+  ])('applies size gate to %s', (_label, fixture) => {
+    const raw = `${' '.repeat(ENERGY_ANALYTICS_MAX_BYTES)}${JSON.stringify(fixture())}`;
+    expect(parseEnergyAnalyticsResult(raw, GENERATED_AT_MS).state).toBe('unavailable');
   });
 
   it('does not mutate or retain caller-owned objects', () => {
