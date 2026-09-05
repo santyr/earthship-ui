@@ -89,6 +89,20 @@ src/lib/ui/EnergyAnalyticsDetail.svelte; docs/operations/energy-analytics.md.
 
 ## Outcome implementation preflight
 
+Implementation branch `feat/advisory-outcome-foundation` now contains the pure
+UTC day/trough window dependency and immutable decision/result JSON builders
+(implementation commits 33fb0f9 and d283033). Combined verification has 132 passing
+tests and clean task/whole-branch reviews. These are dependencies only: storage,
+producer capture, measured outcomes and live scoring replacement are unfinished.
+Detailed source-health evidence is in
+`docs/operations/2026-09-05-outcome-source-health-preflight.md`: the September 4
+BMS heartbeat provides full-day coverage under the existing 12-minute allowance,
+despite zero comms/device state changes. Further tracing found persisted WH65B
+and WH32B packet-age companions covering the sampled day, but receiver field
+fallback and source-epoch validation still prevent treating packet freshness as
+proven per-temperature freshness. A synthetic probe also reproduced future-heartbeat acceptance
+in Solar_PV daily quality; that path must be corrected before reuse for outcomes.
+
 The written outcome/scoring specification was approved. Live cadence validation
 then found a necessary design correction before implementation: managed JDBC
 persistence uses everyChange plus restoreOnStartup for all Items, with no cron
