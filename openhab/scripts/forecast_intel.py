@@ -14,7 +14,7 @@ Model (validated against 30 days of history, 2026-07-17):
   D_direct seeded 4.0 [2.5, 6.0]  — calibrated on demand-limited (curtailing) days
 DM policy: ONLY predicted trough < 30% (full 4P 400 Ah bank, 20.48 kWh, since 2026-07-18).
 """
-import json, math, os, subprocess, sys, time, urllib.parse, urllib.request
+import json, math, os, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -26,6 +26,7 @@ STATE_FILE = os.path.join(STATE_DIR, "state.json")
 BANK_KWH, RESERVE_SOC, ETA_RT = 20.48, 10, 0.95  # full 4P 400Ah bank (2026-07-19; was 5.12 single-module interim)
 K_RES_BOUNDS, D_DIRECT_BOUNDS, ALPHA = (0.5, 1.3), (2.5, 6.0), 0.2
 TROUGH_DM_THRESHOLD = 30  # full-bank policy (was 42 on the single 100 Ah bank)
+CLOSE_UP_HIGH_F, CLOSE_UP_STREAK_F, VENT_HIGH_F = 95, 92, 90
 DETAIL_MAX_BYTES = 64 * 1024
 _TOKEN = None
 
@@ -130,20 +131,23 @@ def oh_put_state(item, value):
     urllib.request.urlopen(req, timeout=15)
 
 
-def safe_put(item, value, failures=None):
-    """PUT one item, never raise: one openHAB flap must not abort the run.
-
-    Failed item names are appended to `failures` so the caller can log them.
-    Returns True on success.
-    """
+def safe_put(item, value, failures=None, *, observer=None):
+    """PUT once, preserve boolean/failure-list behavior, optionally observe result."""
+    status, succeeded = "unknown", False
     try:
         oh_put_state(item, value)
-        return True
+        status, succeeded = "accepted", True
     except Exception as e:
+        status = "failed" if isinstance(e, urllib.error.HTTPError) else "unknown"
         print(f"PUT failed for {item}: {e}", file=sys.stderr)
         if failures is not None:
             failures.append(item)
-        return False
+    if observer is not None:
+        try:
+            observer(status)
+        except Exception:
+            print("advisory capture gap: publication observer", file=sys.stderr)
+    return succeeded
 
 
 def fetch_forecast(url=None, attempts=3, delays=(10, 30), opener=None, sleep=None):
@@ -880,9 +884,13 @@ def main():
     today = date.today()
     log = []
     put_failed = []
+    capture = None
 
     def put(item, value):
-        safe_put(item, value, put_failed)
+        if capture is not None and item in {"Thermal_Advisory", "Predicted_SoC_Trough_Tomorrow"}:
+            return safe_put(item, value, put_failed,
+                            observer=lambda status: capture.publication(item, status))
+        return safe_put(item, value, put_failed)
 
     hourly_scored = score_hourly_targets(st, now)
     save_state(st)  # commit consumed/pruned evidence before later fallible work
@@ -1041,12 +1049,36 @@ def main():
     put("Forecast_LowCorrection_F", round(-b_lo, 1))
     t_high = highs[1] - b_hi
     streak3 = sum(highs[1:4]) / 3 - b_hi
-    if t_high >= 95 or streak3 >= 92:
-        advisory = f"close_up_tomorrow|Close up tomorrow — {t_high:.0f}° forecast" + (f", {streak3:.0f}° 3-day streak" if streak3 >= 92 else "")
-    elif t_high >= 90:
+    if t_high >= CLOSE_UP_HIGH_F or streak3 >= CLOSE_UP_STREAK_F:
+        advisory = f"close_up_tomorrow|Close up tomorrow — {t_high:.0f}° forecast" + (f", {streak3:.0f}° 3-day streak" if streak3 >= CLOSE_UP_STREAK_F else "")
+    elif t_high >= VENT_HIGH_F:
         advisory = f"vent_tonight|Vent tonight — {t_high:.0f}° tomorrow, pre-cool the mass"
     else:
         advisory = "none|No thermal action needed"
+
+    notification_eligible = trough_pred < TROUGH_DM_THRESHOLD
+    notification_suppressed = notification_eligible and st["dm_sent"].get(today.isoformat()) == True
+    if os.environ.get("ADVISORY_CAPTURE_ENABLED") == "1":
+        try:
+            from advisory_capture import start_capture
+            capture = start_capture(diagnostics=log, source_path=__file__, decision={
+                "site_timezone": SITE_TZ_NAME, "prediction_day": today,
+                "advisory": advisory.split("|")[0],
+                "notification_eligible": notification_eligible,
+                "notification_suppressed": notification_suppressed,
+                "inputs": {
+                    "weather_today_high_raw_f": highs[0], "weather_today_low_raw_f": lows[0],
+                    "tomorrow_high_raw_f": highs[1], "tomorrow_low_raw_f": lows[1],
+                    "tomorrow_high_corrected_f": t_high, "tomorrow_low_corrected_f": lows[1] - b_lo,
+                    "high_bias_f": b_hi, "low_bias_f": b_lo, "next_three_highs_raw_f": highs[1:4],
+                    "three_day_high_mean_corrected_f": streak3,
+                    "pv_today_kwh": pv_pred, "trough_tomorrow_pct": trough_pred,
+                },
+                "thresholds": {"close_up_high_f": CLOSE_UP_HIGH_F, "close_up_streak_f": CLOSE_UP_STREAK_F,
+                               "vent_high_f": VENT_HIGH_F, "trough_dm_pct": TROUGH_DM_THRESHOLD},
+            })
+        except Exception:
+            log.append("advisory capture gap: setup")
 
     for item, val in [("Predicted_PV_Today_kWh", pv_pred), ("Predicted_Curtailment_Hours", curtail),
                       ("Predicted_SoC_Trough_Tomorrow", trough_pred), ("Thermal_Advisory", advisory),
@@ -1069,6 +1101,8 @@ def main():
         }
 
     # DM policy: deep-cycling warning only, once per day
+    notification_status = ("not_eligible" if not notification_eligible else
+                           "suppressed" if notification_suppressed else "attempted_unknown")
     if trough_pred < TROUGH_DM_THRESHOLD and st["dm_sent"].get(today.isoformat()) != True:
         try:
             out = subprocess.run([NOTIFY, f"🔋 Forecast: tonight's SoC trough predicted at {trough_pred}% "
@@ -1076,8 +1110,14 @@ def main():
                                   "consider deferring heavy loads."], capture_output=True, text=True, timeout=60)
             if "DM sent" in (out.stdout + out.stderr):
                 st["dm_sent"] = {today.isoformat(): True}
+                notification_status = "attempted_reported_success"
+            else:
+                notification_status = "attempted_failed" if out.returncode != 0 else "attempted_unknown"
         except Exception:
             pass
+
+    if capture is not None:
+        capture.notification(notification_status)
 
     # per-day PV estimates for the 7-day view (typical demand cap ~6.9 kWh)
     try:
