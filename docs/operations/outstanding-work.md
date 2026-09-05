@@ -104,8 +104,37 @@ and leaving other Items and controls unchanged. This adds observations, not a
 new collector or forecast/notification run. A periodic stored value alone is not
 freshness proof: the implementation must also validate contemporaneous BMS
 freshness evidence and reject a cached value during stale/faulted telemetry.
-Design amendment and exact managed-configuration deployment require approval;
-no persistence configuration has been changed by this preflight.
+This periodic-persistence proposal was superseded by Sat's subsequent direction:
+adjust all algorithms for change-only persistence rather than changing storage
+strategy. No persistence configuration was changed. The outcome specification
+now separates held value state from independently verified telemetry freshness.
+
+## Change-only semantics and notification audit
+
+- Confirmed UI false alert: src/lib/alerts/staleness.js flags BMS_SOC after
+  60 minutes without a value change even with a current BMS_SOC_LastUpdate
+  heartbeat. Snapshot receipt time also must not masquerade as sensor freshness.
+- Forecast window readers, hourly matching, thermal historical gap rejection,
+  dashboard extrema and Solar_PV integrations require a source-by-source audit
+  for carry-in, reset boundaries, health gating and event-sampling bias. Do not
+  claim these are all fixed from the UI reproduction alone.
+- The supplied DMs are `openHAB sanity` runtime-basis alerts, not stale-SoC
+  alerts. openhab_sanity_check.py immediately flags basis=bms with current>0.5A.
+  The live estimator intentionally dwells for eight minutes. September 5 basis
+  transitions: evening08:48:46, bms08:49:16, now08:56:49; the08:52:50 warning
+  occurred during that permitted dwell. The next sanity check reported recovery.
+  Correct the checker against the actual state-machine contract, retaining
+  detection of persistent mismatch. Do not remove genuine freshness alarms.
+- Existing BMS_SOC_LastUpdate is a five-minute rate-gated timestamp driven by
+  raw SoC update / scale-factor events; the scaler also calculates comms health
+  from a120-second raw-update timeout. The sanity checker already evaluates the
+  heartbeat timestamp value, not a persisted SoC change timestamp.
+- Authorized read-only Nostr verification fetched 37 unique outgoing NIP-04
+  events for the operator over the preceding 14 days from two responding relays;
+  all 37 decrypted locally. Of these, 34 were runtime-basis warnings/recoveries,
+  including the supplied September 5 examples. This is bounded relay evidence,
+  not a claim of complete lifetime DM history or recipient delivery. No message
+  was sent, credentials printed, or decrypted archive committed.
 
 ## Safety and completion boundaries
 

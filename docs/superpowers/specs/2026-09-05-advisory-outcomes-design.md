@@ -107,12 +107,19 @@ pending before window completion; measured only when evidence passes validation;
 otherwise insufficient_data with explicit reasons. Invalid, nonfinite, stale,
 out-of-window and implausible SoC values cannot become valid observations.
 
-Coverage uses bounded sample holding, maximum 20 minutes, clipped to the target
-window. Require at least 90% covered duration and observations within 20 minutes
-of each boundary. These are versioned data-quality gates, not performance or
-safety thresholds. Do not interpolate through longer gaps. The implementation
-plan must verify persisted sensor cadence against these gates; a mismatch needs
-a documented design correction, not silently relaxed validation.
+Operator correction, September 5: retain change-only persistence and make the
+algorithms aware of its semantics; do not add periodic persistence as a workaround.
+Carry the last known state across unchanged intervals, including a valid value
+before the window start, without relabeling its change time as an observation.
+Coverage must come from independent update/heartbeat and source-health evidence,
+not the spacing or number of value changes. A healthy constant SoC may therefore
+cover the full window. Conversely, a restored/cached value without corroborating
+freshness does not establish coverage. Keep at least 90% validated coverage for
+scoring, but apply source-specific freshness expiry to telemetry evidence, not
+a generic 20-minute limit to state-change intervals. The implementation plan
+must specify verified per-source freshness contracts and boundary handling.
+Never forward-fill across a known fault, unknown source epoch, or unsupported
+freshness interval. Do not interpolate daily-reset accumulators across midnight.
 
 Associate action-journal events by effective time, action kind and target window,
 preserving source, confidence, corrections and event IDs. Distinguish confirmed,
