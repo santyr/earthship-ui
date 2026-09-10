@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "transformations": [
+    {"uid":"bms_soc_raw_observation.js","type":"js","source":"openhab/transform/bms_soc_raw_observation.js"},
+    {"uid":"bms_soc_scale_observation.js","type":"js","source":"openhab/transform/bms_soc_scale_observation.js"}
+  ],
+  "things": [
+    {"UID":"modbus:data:schneiderBatterySunSpec:battery802Core:socRawObservation","thingTypeUID":"modbus:data",
+      "bridgeUID":"modbus:poller:schneiderBatterySunSpec:battery802Core","label":"BMS raw SoC observation source","enabled":false,
+      "configuration":{"readStart":"40255","readValueType":"uint16","readTransform":["JS(bms_soc_raw_observation.js)"],"updateUnchangedValuesEveryMillis":30000}},
+    {"UID":"modbus:data:schneiderBatterySunSpec:battery802Core:socScaleObservation","thingTypeUID":"modbus:data",
+      "bridgeUID":"modbus:poller:schneiderBatterySunSpec:battery802Core","label":"BMS scale observation source","enabled":false,
+      "configuration":{"readStart":"40300","readValueType":"int16","readTransform":["JS(bms_soc_scale_observation.js)"],"updateUnchangedValuesEveryMillis":30000}}
+  ],
+  "links": [
+    {"itemName":"BMS_SOC_Raw_Observation_JSON","channelUID":"modbus:data:schneiderBatterySunSpec:battery802Core:socRawObservation:string","configuration":{"profile":"system:default"}},
+    {"itemName":"BMS_SOC_Scale_Observation_JSON","channelUID":"modbus:data:schneiderBatterySunSpec:battery802Core:socScaleObservation:string","configuration":{"profile":"system:default"}}
+  ],
+  "items": [
+    {"name":"BMS_SOC_Evidence_JSON","type":"String","label":"Validated BMS SoC evidence","category":"","tags":[],"groupNames":[]},
+    {"name":"BMS_SOC_Raw_Observation_JSON","type":"String","label":"BMS raw SoC source observation","category":"","tags":[],"groupNames":[]},
+    {"name":"BMS_SOC_Scale_Observation_JSON","type":"String","label":"BMS scale source observation","category":"","tags":[],"groupNames":[]}
+  ],
+  "persistence":{"serviceId":"jdbc","strategy":"everyChange","restoreOnStartup":true,
+    "items":["BMS_SOC_Evidence_JSON","BMS_SOC_Raw_Observation_JSON","BMS_SOC_Scale_Observation_JSON"]},
+  "rule": {
+    "uid":"hex_bms_soc_evidence","name":"Validated BMS SoC evidence","enabled":false,"source":"openhab/rules/bms-soc-evidence.js",
+    "triggers": [
+      {"id":"raw","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/BMS_SOC_Raw_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"scale","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/BMS_SOC_Scale_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"comms","type":"core.ItemStateChangeTrigger","configuration":{"itemName":"BMS_Comms_Status"}},
+      {"id":"device","type":"core.ItemStateChangeTrigger","configuration":{"itemName":"BMS_DevicePresent"}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0 * * * * ?"}},
+      {"id":"startup","type":"core.SystemStartlevelTrigger","configuration":{"startlevel":100}}
+    ]
+  }
+}
