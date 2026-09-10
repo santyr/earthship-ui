@@ -130,3 +130,11 @@ and restoreOnStartup; `gForecast*` additionally uses forecast/everyChange.
 No persistence file was invented or changed. New observation Things, Items,
 links and observer are still absent; production source-event and output/history
 qualification remain mandatory before any reader migration.
+
+Installer boundary still to resolve: version5.2.1 `ItemResource.createOrUpdateItem`
+uses `managedItemProvider.update` when an Item already exists; a REST PUT is an
+upsert, not an atomic create-only operation. Do not claim that an absence check
+plus PUT implements a create-only server precondition. Verify a registry/provider
+add-only path before installing Items. New Thing creation can be staged without
+links, disabled through its text/plain `/enable` endpoint, and read back before
+any link is added. No resource installation was attempted in this preflight.
