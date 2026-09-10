@@ -1,8 +1,9 @@
-# BMS atomic source observations — proposed replacement
+# BMS atomic source observations — approved replacement
 
 Sat approved extending the design to source-generated value/timestamp records
-(Hexmem 8689). This proposed replacement requires written review before its
-implementation. The September 5 staged rule remains unusable and undeployed.
+(Hexmem 8689), then approved this written design at 43ccb08 (Hexmem 8691).
+Implementation may proceed under this contract. The September 5 staged rule
+remains unusable and undeployed; approval does not qualify it for activation.
 
 ## Source boundary
 
