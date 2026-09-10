@@ -88,6 +88,23 @@ Solar_PV `docs/operations/2026-09-10-bms-analytics-reader-verification.md`.
 The existing next daily run is September11 at00:21:25MDT; its completed
 materialization is still unverified and remains an open release follow-through.
 
+Release correction: a later caller audit found that the shared atomic source
+policy was also consumed by the live analytics quality/UI health evaluators,
+which did not recognize it and falsely marked BMS fault. Solar_PV hotfix6a992f0
+is merged, pushed and deployed, explicitly preserving their prior comms-status
+contract while historical readers remain atomic.383tests and real read-only
+comparison passed. The normal17:20:29MDT publication reports BMS OK and removes
+the false BMS fault reason; `daily_source_quality_not_ok` remains explicit.
+Receipt: Solar_PV docs/operations/2026-09-10-live-health-contract-correction.md.
+
+Outcome work is implemented on isolated Solar_PV feat/advisory-trough-assessment
+throughba55b3f: completed-window SoC qualification, strict immutable-origin
+association, append-only outcome revisions, frozen accepted-trough selection,
+and a bounded latest-revision/seven-verified-night projection.441tests pass.
+Migrations0003/0004 remain feature-only; production still has[1,2]. Bounded
+orchestration, reviewed runtime activation and genuine completed captured targets
+remain unfinished. No bandit reward, learned reset or live scoring change occurred.
+
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
 clipping and day-owned results. Midnight and tablet visibility reconciliation
