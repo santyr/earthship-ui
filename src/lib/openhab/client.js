@@ -97,8 +97,21 @@ export function createClient({ openhabUrl, apiToken }) {
         method: 'POST', headers: { ...h, 'Content-Type': 'text/plain' }, body: String(value) });
       if (!r.ok) throw new Error(`sendCommand ${name} ${r.status}`);
     },
-    async getHistory(name, { starttime, endtime, signal } = {}) {
+    async getHistory(name, { starttime, endtime, signal, includeStartState = false } = {}) {
+      let startMs;
+      let endMs;
+      if (includeStartState) {
+        const qualified = (value) => typeof value === 'string'
+          && /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value);
+        startMs = qualified(starttime) ? Date.parse(starttime) : NaN;
+        endMs = qualified(endtime) ? Date.parse(endtime) : NaN;
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) {
+          throw new HistoryResponseError('Invalid state history window', 'invalid-history-window');
+        }
+        if (startMs === endMs) return [];
+      }
       const q = new URLSearchParams({ starttime, endtime });
+      if (includeStartState) q.set('boundary', 'true');
       const r = await fetch(`${base}/rest/persistence/items/${encodeURIComponent(name)}?${q}`, {
         headers: h,
         signal,
@@ -111,7 +124,11 @@ export function createClient({ openhabUrl, apiToken }) {
       if (d.data.length > MAX_HISTORY_ROWS) {
         throw new HistoryResponseError('History response has too many rows', 'history-row-limit');
       }
-      return d.data.map((point) => ({
+      const rows = includeStartState
+        ? d.data.filter((point) => typeof point?.time === 'number'
+          && Number.isFinite(point.time) && point.time >= startMs && point.time < endMs)
+        : d.data;
+      return rows.map((point) => ({
         time: point?.time,
         state: point?.state,
         ...(point?.unit == null ? {} : { unit: point.unit }),
