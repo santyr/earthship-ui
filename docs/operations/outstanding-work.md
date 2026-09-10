@@ -45,9 +45,15 @@ observer was updated while disabled, then enabled under bounded natural-output
 qualification. Five valid persisted records matched exact source envelopes; an
 adjacent unchanged100percent pair63.385seconds apart proved the heartbeat.
 Current validity, healthy companions and unchanged other definitions were checked.
-Observer and sources remain enabled; no readers were migrated. Live fault/expiry/
-restart qualification, consumer integration and sufficient completed-window
-coverage remain open. This is not a completed historical-algorithm audit.
+Observer and sources remain enabled; no readers were migrated. A subsequent
+source-only pause passed natural expiry/recovery: exact accepted timestamps,
+input_stale with null measurement fields, independent source restoration, fresh
+same-epoch recovery and all exact output records persisted. Existing BMS
+acquisition remained healthy and definitions unchanged. Consumers must enforce
+validUntil even while the status remains valid before the next cron publication.
+Live health-fault/cache-restart qualification, consumer integration and sufficient
+completed-window coverage remain open. This is not a completed historical-
+algorithm audit.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end

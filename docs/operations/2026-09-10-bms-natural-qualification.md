@@ -122,3 +122,43 @@ not live fault/expiry/restart qualification or sufficient full-window outcome
 coverage. Existing UI/checker/analytics readers remain unchanged. Migration must
 preserve the approved source/persistence-time coverage and epoch boundaries;
 legacy history cannot be promoted into this newly established evidence stream.
+
+## Natural expiry and source recovery
+
+A reviewed bounded check paused only `socRawObservation` and
+`socScaleObservation`. Existing BMS acquisition/poller, controls, health Items,
+reader definitions and observer triggers remained unchanged. No synthetic Item
+states or manual rule executions were used. The helper tracked attempted source
+changes before requests and independently restored each source in finally;
+an offline first-restoration-failure check proved the second restoration was still
+attempted. Recovery cannot turn a failed expiry assertion into a successful test.
+
+Both new sources were confirmed DISABLED, then their source envelopes remained
+unchanged throughout the pause. The observer naturally published an exact accepted
+source anchor: raw/scale observedAt1789077489701, recordedAt1789077600793,
+validUntil1789077609701, SoC100. This tied expiry to accepted data, not assumed
+Item snapshot association. Original BMS comms/device and poller health were checked
+throughout the wait.
+
+At now1789077609963, the current record still said valid although its validity
+deadline had passed262ms earlier. That is expected with a one-minute cron:
+**readers must reject expired validUntil independently of status**, and historical
+coverage must end at validUntil rather than a later unavailable publication.
+
+The natural cron published unavailable/input_stale at1789077660794,51.093seconds
+after the exact expiry deadline. All four measurement fields were null. Both
+sources were restored and independently verified ONLINE. Fresh recovery was
+recorded at1789077665425 with raw/scale observations1789077665422, SoC99 and
+validUntil1789077785422, all after restoration began. The stream epoch remained
+`864142d5-99ee-4b7a-b5fc-e6a96e7274d8` throughout.
+
+Bounded read-only JDBC queries verified the exact anchor, expiry and recovery
+records, with persistence time no earlier than recordedAt. Baseline comparisons
+for rules, links, persistence and existing raw/scale/poller configuration passed;
+the observer was IDLE at final acceptance. The helper completed with
+`expiry_recovery_qualification=PASS`. Both observational sources and observer
+remain enabled. Preserve the real observation gap; no history was deleted.
+
+This closes the live source-pause expiry/recovery check. It is not an induced
+physical BMS fault or a process/cache restart test. Reader migration and sufficient
+completed-window outcome coverage remain unfinished; task82 remains held.
