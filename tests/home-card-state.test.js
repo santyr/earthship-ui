@@ -200,6 +200,20 @@ describe('Home signed card state colors', () => {
       .toEqual({ high: 95, low: 65 });
   });
 
+  it('uses explicit Denver DST midnight boundaries for 23-hour and 25-hour days', () => {
+    const spring = localDayHistoryRange(new Date('2026-03-08T12:00:00-06:00'));
+    const springNext = localDayHistoryRange(new Date('2026-03-09T12:00:00-06:00'));
+    expect(spring.starttime).toBe('2026-03-08T07:00:00.000Z');
+    expect(springNext.starttime).toBe('2026-03-09T06:00:00.000Z');
+    expect(Date.parse(springNext.starttime) - Date.parse(spring.starttime)).toBe(23 * 60 * 60 * 1000);
+
+    const fall = localDayHistoryRange(new Date('2026-11-01T12:00:00-07:00'));
+    const fallNext = localDayHistoryRange(new Date('2026-11-02T12:00:00-07:00'));
+    expect(fall.starttime).toBe('2026-11-01T06:00:00.000Z');
+    expect(fallNext.starttime).toBe('2026-11-02T07:00:00.000Z');
+    expect(Date.parse(fallNext.starttime) - Date.parse(fall.starttime)).toBe(25 * 60 * 60 * 1000);
+  });
+
   it('falls back to current-only extrema for invalid clock or day identity', () => {
     expect(historyExtremaForDay([{ state: '95' }], 'not-a-day', Number.NaN, 65))
       .toEqual({ high: 65, low: 65 });

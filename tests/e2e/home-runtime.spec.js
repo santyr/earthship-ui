@@ -90,7 +90,9 @@ function itemSnapshot(overrides = {}) {
     .map(([name, state]) => ({ name, state, type: 'String', lastStateUpdate: sourceAt }));
 }
 
-async function openHomeFixture(page, target, { states = {}, staleSeconds = 90, historyRows } = {}) {
+async function openHomeFixture(page, target, {
+  states = {}, staleSeconds = 90, historyRows, historyFailure,
+} = {}) {
   let activeStates = { ...states };
   const historyRequests = [];
   const attemptedNonGetRequests = [];
@@ -166,8 +168,12 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90, h
         return { time, state: String(baseline + priceSteps[hour % 3][quarter]) };
       });
     };
+    const request = { name, startMs, endMs, url };
+    if (historyFailure?.(request)) {
+      return route.fulfill({ status: 500, json: { error: 'fixture persistence failure' } });
+    }
     const fixtureRows = historyRows
-      ? await historyRows({ name, startMs, endMs, url })
+      ? await historyRows(request)
       : undefined;
     return route.fulfill({
       json: {
@@ -290,9 +296,18 @@ test.describe('Home local-day temperature history ownership', () => {
       },
     });
     try {
+      const oldResponses = [OUTDOOR, INDOOR].map((name) => page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return decodeURIComponent(url.pathname.split('/').at(-1)) === name
+          && Date.parse(url.searchParams.get('starttime')) === DAY_START
+          && url.searchParams.get('boundary') === 'true';
+      }));
       await page.clock.setSystemTime(new Date('2026-09-11T00:00:10-06:00'));
       releaseOld();
+      await Promise.all((await Promise.all(oldResponses)).map((response) => response.finished()));
+      await page.clock.runFor(0);
       await expect(page.locator('.outdoor-hilo')).toHaveText('H 73° / L 73°');
+      await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 70°');
       await page.clock.runFor(60_000);
       await expect(page.locator('.outdoor-hilo')).toHaveText('H 73° / L 55°');
       await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 66°');
@@ -303,6 +318,29 @@ test.describe('Home local-day temperature history ownership', () => {
     } finally {
       releaseOld();
     }
+  });
+
+  test('keeps current-only and unavailable extrema when the new-day history request fails', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
+      states: { [OUTDOOR]: 'UNDEF' },
+      historyFailure: ({ name, startMs }) =>
+        [OUTDOOR, INDOOR].includes(name) && startMs === NEXT_DAY_START,
+      historyRows: ({ name, startMs }) => {
+        if (![OUTDOOR, INDOOR].includes(name)) return undefined;
+        if (startMs === DAY_START) return [{ time: startMs, state: name === OUTDOOR ? '95' : '85' }];
+        return undefined;
+      },
+    });
+    await expect(page.locator('.outdoor-hilo')).toHaveText('H 95° / L 95°');
+    await expect(page.locator('.indoor-hilo')).toHaveText('H 85° / L 70°');
+    await page.clock.runFor(60_000);
+    await expect(page.locator('.outdoor-hilo')).toHaveText('H — / L —');
+    await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 70°');
+    expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
   });
 
   test('refreshes a changed day on visibility restoration and removes the listener on destroy', async ({ page }) => {
