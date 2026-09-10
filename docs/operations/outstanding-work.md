@@ -57,8 +57,8 @@ algorithm audit.
 
 Analytics reader cutover design e91b576 was approved by Sat (recorded34b2ded;
 Hexmem8697). Superpowers was disabled at the operator's request; no further
-skill approval loops apply. Solar_PV branch `feat/bms-analytics-reader` now
-contains foundation6f97edf: closed-record validation, immutable qualified SoC
+skill approval loops apply. Solar_PV branch `feat/bms-analytics-reader` initially
+introduced foundation6f97edf: closed-record validation, immutable qualified SoC
 intervals, explicit ordering errors, bank/window clipping, expiry/fault barriers,
 and a JDBC adapter retaining120seconds of pre-window history plus its original
 carry. A single latest carry can hide a fault followed by restored evidence;
@@ -70,8 +70,23 @@ cross-repository advisory test import path supplied. Read-only PostgreSQL checks
 against the exact live expiry/recovery window produced9segments, no value at
 the expired-valid snapshot and99percent after fresh recovery. No production
 configuration, schedules, Items, algorithms, accounting or historical rows changed.
-This foundation is committed on the feature branch, not deployed: daily SoC
-statistics and feature-export integration remain the next implementation steps.
+Subsequent daily integration1c5d2c9 and hourly/configuration integrationb08ae14
+are now reviewed, merged, pushed to Solar_PV origin/main and deployed locally.
+All381analytics tests pass. Daily statistics and quality use the same qualified
+intervals; hourly current/lag values are qualified independently at actual UTC
+times, including bank and DST boundaries. The real expiry/recovery feature
+comparison yielded null at22:00:09.963Z and100percent at22:05:09.963Z;
+unrelated features, daily power/temperature metrics and EFC matched exactly.
+The partial first source day remains insufficient rather than being backfilled.
+
+Spark completed a bounded independent read-only checklist, including a corrected
+second pass over accounting and CLI files; Hex retained deployment authority.
+Deployed imports/default policy and a real CLI dry run passed. All53historical
+rows in each daily battery/PV/load/weather table retained identical fingerprints.
+No controls, schedules, persistence or notification policy changed. Full receipt:
+Solar_PV `docs/operations/2026-09-10-bms-analytics-reader-verification.md`.
+The existing next daily run is September11 at00:21:25MDT; its completed
+materialization is still unverified and remains an open release follow-through.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
