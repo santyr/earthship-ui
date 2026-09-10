@@ -10,6 +10,7 @@ const SOURCES = {
   BMS_SOC_Raw_Observation_JSON: ['raw','socRawObservation'],
   BMS_SOC_Scale_Observation_JSON: ['scale','socScaleObservation'],
 };
+const ORIGINAL_EVENT_KEYS = ['raw.event','scale.event','comms.event','device.event','event'];
 const now = Number(Instant.now().toEpochMilli());
 let state = cache.private.get(CACHE_KEY);
 if (!state || now < state.lastNow) {
@@ -24,7 +25,12 @@ state.lastNow = now;
 function original(input) {
   try {
     if (input && typeof input.getItemName === 'function') return input;
-    if (input && input.raw && typeof input.raw.get === 'function') return input.raw.get('event');
+    if (input && input.raw && typeof input.raw.get === 'function') {
+      const candidates = ORIGINAL_EVENT_KEYS
+        .map(key => input.raw.get(key))
+        .filter(candidate => candidate !== null && candidate !== undefined);
+      return candidates.length === 1 ? candidates[0] : null;
+    }
   } catch (_) {}
   return null;
 }

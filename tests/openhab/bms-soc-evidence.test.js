@@ -65,11 +65,15 @@ function harness() {
     getSource: () => `org.openhab.core.thing$modbus:data:schneiderBatterySunSpec:battery802Core:${channels[field]}:string`,
     ...overrides,
   });
+  const wrappedEvent = (key, original) => ({ raw: new Map([
+    [`${key}.event`, original],
+    ['ruleUID', 'hex_bms_soc_evidence'],
+  ]) });
   const update = (field, value, at = now, overrides = {}) =>
-    run({ raw: new Map([['event', originalEvent(field, value, at, overrides)]]) });
+    run(wrappedEvent(field, originalEvent(field, value, at, overrides)));
 
   return {
-    run, update, originalEvent, posts, outputItems, health, values,
+    run, update, originalEvent, wrappedEvent, posts, outputItems, health, values,
     advance: (ms) => { now += ms; }, now: () => now,
     setNow: (ms) => { now = ms; }, setFail: (value) => { fail = value; },
     restart: () => values.clear(),
@@ -154,12 +158,52 @@ describe('atomic BMS SoC evidence observer', () => {
     expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', soc: null });
   });
 
-  it('accepts direct original events and wrapped events', () => {
+  it('accepts direct, observed trigger-key, and plain-event compatibility shapes', () => {
     const h = harness(); h.run(); h.advance(1);
     h.run(h.originalEvent('scale', '0'));
-    h.run({ raw: new Map([['event', h.originalEvent('raw', '42')]]) });
+    h.run(h.wrappedEvent('raw', h.originalEvent('raw', '42')));
     expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 42 });
+    h.advance(1);
+    h.run({ raw: new Map([['event', h.originalEvent('raw', '43')]]) });
+    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 43 });
   });
+
+  it.each(['raw', 'scale'])('accepts natural %s.event source wrappers', (field) => {
+    const h = harness(); h.run(); h.advance(1);
+    h.update('scale', '0');
+    h.update('raw', '44');
+    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 44 });
+    expect(h.values.get('earthship.bms-soc-evidence.v1')[field]).not.toBeNull();
+  });
+
+  it.each([
+    ['comms', 'BMS_Comms_Status'],
+    ['device', 'BMS_DevicePresent'],
+  ])('invalidates cached evidence through natural %s.event health wrappers', (key, itemName) => {
+    const h = harness(); establishValid(h); h.advance(1);
+    const event = { getItemName: () => itemName };
+    h.run(h.wrappedEvent(key, event));
+    expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', observedAt: null, soc: null });
+  });
+
+  it('rejects ambiguous original-event wrapper candidates', () => {
+    const h = harness(); establishValid(h); h.advance(1);
+    h.run({ raw: new Map([
+      ['raw.event', h.originalEvent('raw', '98')],
+      ['scale.event', h.originalEvent('scale', '0')],
+    ]) });
+    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 99 });
+    expect(h.values.get('earthship.bms-soc-evidence.v1').raw.value).toBe(99);
+  });
+
+  it.each([null, {}, new Map(), new Map([['raw.event', null]])])(
+    'fails closed for malformed raw wrapper %#', (raw) => {
+      const h = harness(); establishValid(h); const count = h.posts.length; h.advance(1);
+      h.run({ raw });
+      expect(h.posts).toHaveLength(count);
+      expect(h.values.get('earthship.bms-soc-evidence.v1').raw.value).toBe(99);
+    },
+  );
 
   it('ignores duplicate and out-of-order trusted events', () => {
     const h = harness(); establishValid(h); const state = h.values.get('earthship.bms-soc-evidence.v1');
