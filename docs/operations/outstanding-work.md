@@ -98,12 +98,23 @@ the false BMS fault reason; `daily_source_quality_not_ok` remains explicit.
 Receipt: Solar_PV docs/operations/2026-09-10-live-health-contract-correction.md.
 
 Outcome work is implemented on isolated Solar_PV feat/advisory-trough-assessment
-throughba55b3f: completed-window SoC qualification, strict immutable-origin
-association, append-only outcome revisions, frozen accepted-trough selection,
-and a bounded latest-revision/seven-verified-night projection.441tests pass.
-Migrations0003/0004 remain feature-only; production still has[1,2]. Bounded
-orchestration, reviewed runtime activation and genuine completed captured targets
-remain unfinished. No bandit reward, learned reset or live scoring change occurred.
+through `814a10a`: completed-window SoC qualification, immutable origins,
+append-only revisions, frozen accepted-trough selection, bounded orchestration,
+hard worker timeout, current-revision projection and exact diagnostic publisher.
+The real worker passes isolated PostgreSQL success/replay/denied-read tests;
+523 analytics tests pass. Earthship integration branch
+`feat/completed-trough-integration` at `81f6a03` removes premature scoring while
+preserving morning prediction inputs and legacy state. Its full script suite
+passes 795 tests and 42 subtests, including forecast/DM behavior comparisons.
+
+These branches are not deployed. Read-only preflight confirms production
+migrations [1,2], atomic source item0613, no proposed advisory_writer or
+advisory_assessor roles, and no installed capture/record/window/score helpers.
+The existing service still executes the older forecast script from
+`/home/sat/openhab/scripts` at 06:40. Reviewed migration/grant/dependency and
+service-environment installation, activation and genuinely completed captured
+targets remain unfinished. No bandit reward, learned reset or live scoring
+change occurred. Feature-branch receipts document the exact tests and gaps.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
