@@ -1,6 +1,9 @@
-# BMS analytics reader cutover — proposed
+# BMS analytics reader cutover — approved
 
-Status: awaiting operator review. The atomic producer contract at43ccb08 is
+Status: approved by Sat on September10 after review of proposale91b576.
+The operator also disabled Superpowers workflows; implementation proceeds under
+this approved contract without those additional approval loops.
+The atomic producer contract at43ccb08 is
 approved and its live source, output, expiry and recovery checks are complete.
 This proposal resolves downstream numerical and rollout semantics; it does not
 authorize notification-policy changes or claim reader implementation.
