@@ -27,9 +27,16 @@ are installed and registered with exact source hashes. The installed JS service
 passed eight filename-based cases through a triggerless diagnostic; a fresh log
 receipt proved execution, and the diagnostic rule was removed. Existing rules,
 poller, raw/scale configurations and persistence hashes stayed unchanged.
-New source Things, three Items, links and the observer are not installed yet;
-enforced disabled-state installation, natural-event qualification and reader
-migration remain unfinished. See the dated atomic-source preflight for evidence.
+Disabled installation is now verified: two read-only source Things, three String
+Items, two links and the exact observer with six triggers. Sources and observer
+remain disabled, all three Items remain NULL, and preexisting rules, Items, links,
+persistence and raw/scale/poller configurations matched the private baseline.
+Ten installer VM tests passed; both one-shot installer receipts were verified
+and temporary rules removed. The [installation receipt](2026-09-10-bms-disabled-install.md)
+records the corrected rule-disable API/status assertions and safe ordering
+deviation. Do not sweep these intentionally staged resources as dead config.
+Source enablement, natural-event qualification and reader migration remain
+unfinished; no new evidence history or consumer coverage is claimed.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
