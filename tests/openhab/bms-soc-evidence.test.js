@@ -186,17 +186,66 @@ describe('atomic BMS SoC evidence observer', () => {
     expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', observedAt: null, soc: null });
   });
 
-  it('rejects ambiguous original-event wrapper candidates', () => {
+  it('clears both inputs on raw and scale wrapper ambiguity and needs post-barrier evidence', () => {
     const h = harness(); establishValid(h); h.advance(1);
     h.run({ raw: new Map([
       ['raw.event', h.originalEvent('raw', '98')],
       ['scale.event', h.originalEvent('scale', '0')],
+      ['ruleUID', 'hex_bms_soc_evidence'],
     ]) });
-    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 99 });
-    expect(h.values.get('earthship.bms-soc-evidence.v1').raw.value).toBe(99);
+    expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', observedAt: null, soc: null });
+    expect(h.values.get('earthship.bms-soc-evidence.v1')).toMatchObject({ raw: null, scale: null });
+    h.update('scale', '0'); h.update('raw', '80');
+    expect(h.posts.at(-1).status).toBe('unavailable');
+    h.advance(1); h.update('scale', '0'); h.update('raw', '80');
+    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 80 });
   });
 
-  it.each([null, {}, new Map(), new Map([['raw.event', null]])])(
+  it.each([
+    ['raw', 'comms', 'BMS_Comms_Status'],
+    ['scale', 'device', 'BMS_DevicePresent'],
+  ])('clears both inputs on ambiguous %s source plus queued %s fault', (field, healthKey, itemName) => {
+    const h = harness(); establishValid(h); h.advance(1);
+    h.run({ raw: new Map([
+      [`${field}.event`, h.originalEvent(field, field === 'raw' ? '98' : '0')],
+      [`${healthKey}.event`, { getItemName: () => itemName }],
+      ['ruleUID', 'hex_bms_soc_evidence'],
+    ]) });
+    expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', observedAt: null, soc: null });
+    expect(h.values.get('earthship.bms-soc-evidence.v1')).toMatchObject({ raw: null, scale: null });
+    h.update('scale', '0'); h.update('raw', '80');
+    expect(h.posts.at(-1).status).toBe('unavailable');
+    h.advance(1); h.update('scale', '0'); h.update('raw', '80');
+    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 80 });
+  });
+
+  it('invalidates a recognized null raw.event and requires a new raw observation', () => {
+    const h = harness(); establishValid(h); h.advance(1);
+    h.run({ raw: new Map([['raw.event', null], ['ruleUID', 'hex_bms_soc_evidence']]) });
+    expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', observedAt: null, soc: null });
+    expect(h.values.get('earthship.bms-soc-evidence.v1').raw).toBeNull();
+    h.advance(1); h.update('raw', '80');
+    expect(h.posts.at(-1)).toMatchObject({ status: 'valid', soc: 80 });
+  });
+
+  it('invalidates malformed known-source wrapper metadata without snapshot fallback', () => {
+    const h = harness(); establishValid(h); h.advance(1);
+    h.run({ itemName: names.raw, raw: new Map([['ruleUID', 'hex_bms_soc_evidence']]) });
+    expect(h.posts.at(-1)).toMatchObject({ status: 'unavailable', observedAt: null, soc: null });
+    expect(h.values.get('earthship.bms-soc-evidence.v1').raw).toBeNull();
+  });
+
+  it('leaves valid evidence unchanged for eventless cron and startup wrapper maps', () => {
+    const h = harness(); establishValid(h); const count = h.posts.length; h.advance(1);
+    h.run({ itemName: 'expiry', raw: new Map([['ruleUID', 'hex_bms_soc_evidence']]) });
+    h.run({ itemName: 'startup', raw: new Map([['ruleUID', 'hex_bms_soc_evidence']]) });
+    expect(h.posts).toHaveLength(count);
+    expect(h.values.get('earthship.bms-soc-evidence.v1')).toMatchObject({
+      raw: { value: 99 }, scale: { value: 0 },
+    });
+  });
+
+  it.each([null, {}, new Map()])(
     'fails closed for malformed raw wrapper %#', (raw) => {
       const h = harness(); establishValid(h); const count = h.posts.length; h.advance(1);
       h.run({ raw });
