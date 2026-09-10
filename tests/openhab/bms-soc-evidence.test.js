@@ -268,40 +268,49 @@ describe('atomic BMS SoC evidence observer', () => {
   });
 });
 
-describe('superseded draft resource descriptor (pending descriptor task)', () => {
-  it('defines the superseded draft Item, persistence, and six disabled rule triggers', () => {
-    expect(existsSync(descriptorUrl), 'evidence resource descriptor exists').toBe(true);
-    const descriptor = JSON.parse(readFileSync(descriptorUrl, 'utf8'));
-    expect(descriptor).toEqual({
-      version: 1,
-      items: [{
-        name: 'BMS_SOC_Evidence_JSON',
-        type: 'String',
-        label: 'Validated BMS SoC evidence',
-        category: '',
-        tags: [],
-        groupNames: [],
-      }],
-      persistence: {
-        serviceId: 'jdbc',
-        strategy: 'everyChange',
-        restoreOnStartup: true,
-        items: ['BMS_SOC_Evidence_JSON'],
-      },
-      rule: {
-        uid: 'hex_bms_soc_evidence',
-        name: 'Validated BMS SoC evidence',
-        enabled: false,
-        source: 'openhab/rules/bms-soc-evidence.js',
-        triggers: [
-          { id: 'raw', type: 'core.ItemStateUpdateTrigger', configuration: { itemName: 'BMS_SOC_Raw' } },
-          { id: 'scale', type: 'core.ItemStateUpdateTrigger', configuration: { itemName: 'BMS_SOC_ScaleFactor_Raw' } },
-          { id: 'comms', type: 'core.ItemStateChangeTrigger', configuration: { itemName: 'BMS_Comms_Status' } },
-          { id: 'device', type: 'core.ItemStateChangeTrigger', configuration: { itemName: 'BMS_DevicePresent' } },
-          { id: 'expiry', type: 'timer.GenericCronTrigger', configuration: { cronExpression: '0 * * * * ?' } },
-          { id: 'startup', type: 'core.SystemStartlevelTrigger', configuration: { startlevel: 100 } },
-        ],
-      },
+describe('create-only disabled atomic source resources', () => {
+  const descriptor = JSON.parse(readFileSync(descriptorUrl,'utf8'));
+  const cases = [
+    ['raw','socRawObservation','BMS_SOC_Raw_Observation_JSON','40255','uint16'],
+    ['scale','socScaleObservation','BMS_SOC_Scale_Observation_JSON','40300','int16'],
+  ];
+  it('declares only three new String Items with existing persistence policy',()=>{
+    expect(descriptor.version).toBe(1);
+    expect(descriptor.createOnly).toBe(true);
+    expect(descriptor.items.map(i=>i.name).sort()).toEqual([
+      'BMS_SOC_Evidence_JSON','BMS_SOC_Raw_Observation_JSON','BMS_SOC_Scale_Observation_JSON']);
+    expect(descriptor.items.every(i=>i.type==='String')).toBe(true);
+    expect(descriptor.persistence).toEqual({serviceId:'jdbc',strategy:'everyChange',
+      restoreOnStartup:true,items:descriptor.items.map(i=>i.name)});
+  });
+  it.each(cases)('maps %s to a disabled read-only child and exact original event',
+    (field,suffix,item,register,valueType)=>{
+      const uid=`modbus:data:schneiderBatterySunSpec:battery802Core:${suffix}`;
+      const thing=descriptor.things.find(t=>t.UID===uid);
+      expect(thing).toMatchObject({enabled:false,thingTypeUID:'modbus:data',
+        bridgeUID:'modbus:poller:schneiderBatterySunSpec:battery802Core'});
+      expect(thing.configuration).toEqual({readStart:register,readValueType:valueType,
+        readTransform:[`JS(bms_soc_${field}_observation.js)`],updateUnchangedValuesEveryMillis:30000});
+      expect(descriptor.links.find(l=>l.itemName===item)).toEqual({itemName:item,
+        channelUID:`${uid}:string`,configuration:{profile:'system:default'}});
+      expect(descriptor.rule.triggers.find(t=>t.id===field)).toEqual({id:field,
+        type:'core.GenericEventTrigger',configuration:{topic:`openhab/items/${item}/state`,
+          types:'ItemStateEvent',source:'',payload:''}});
+      expect(descriptor.transformations.find(t=>t.uid===`bms_soc_${field}_observation.js`))
+        .toEqual({uid:`bms_soc_${field}_observation.js`,type:'js',
+          source:`openhab/transform/bms_soc_${field}_observation.js`});
     });
+  it('has no extra resources, timestamp companions or control triggers',()=>{
+    expect(descriptor.things).toHaveLength(2);
+    expect(descriptor.links).toHaveLength(2);
+    expect(descriptor.transformations).toHaveLength(2);
+    expect(descriptor.rule).toMatchObject({uid:'hex_bms_soc_evidence',enabled:false,
+      source:'openhab/rules/bms-soc-evidence.js'});
+    expect(descriptor.rule.triggers.slice(2)).toEqual([
+      {id:'comms',type:'core.ItemStateChangeTrigger',configuration:{itemName:'BMS_Comms_Status'}},
+      {id:'device',type:'core.ItemStateChangeTrigger',configuration:{itemName:'BMS_DevicePresent'}},
+      {id:'expiry',type:'timer.GenericCronTrigger',configuration:{cronExpression:'0 * * * * ?'}},
+      {id:'startup',type:'core.SystemStartlevelTrigger',configuration:{startlevel:100}},
+    ]);
   });
 });
