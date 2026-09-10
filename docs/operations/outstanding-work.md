@@ -184,8 +184,18 @@ before, after and on integrated main (SHA256
 The existing service imports this checkout; it remains inactive with prior
 success status, timer active for September6 00:20MDT. No manual apply/backfill,
 database/configuration mutation, schedule change or learned-state reset occurred.
-The next natural scheduled result is not yet verified. This does not close the
-separate BMS event/timestamp contract or broader source-health work.
+September 10 read-only follow-up closes the natural-run verification item:
+the September 6–10 scheduled invocations all finished successfully, reporting
+materialization of September 5–9 respectively (five tables and 21 source-quality
+rows each). PostgreSQL readback confirms all five daily battery records in
+`discover_4_module_2026`, with cumulative EFC respectively 7.460282252545,
+7.629311980220, 7.804210099642, 7.968349561756 and 8.134920384835, matching the
+service journal. Solar_PV remains clean at `91867f8`; the service still imports
+that checkout. Latest invocation September 10 00:20:29 MDT exited 0; timer active
+for September 11. No manual apply, restart, backfill or production write was
+used for this verification. Successful materialization is not independent proof
+of historical sensor health and does not close the separate BMS event/timestamp
+contract or broader source-health work.
 
 Release preflight also found that the already integrated advisory migration0002
 would block the next daily --apply invocation while pending. Following a verified
