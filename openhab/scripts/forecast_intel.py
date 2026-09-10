@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Forecast intelligence for the Earthship (design: docs/plans/2026-07-17-openmeteo-forecast-integration-design.md).
 
-Daily at 06:40: score yesterday's predictions against measured actuals,
+Daily at 06:40: score completed prediction windows against measured actuals,
 calibrate the transparent model coefficients, predict today (PV kWh,
 curtailment hours, tonight's SoC trough), issue the thermal advisory, and
 materialize tomorrow-snapshot items for the UI. Accuracy is the product:
@@ -930,14 +930,8 @@ def main():
                             st["d_direct"] = clamp(st["d_direct"] * (1 - ALPHA) + d_imp * ALPHA, *D_DIRECT_BOUNDS)
                             log.append(f"calibrated d_direct -> {st['d_direct']:.2f} (demand-limited day)")
                     mark_scored(st, ykey, "pv")
-        if should_score(st, ykey, "trough"):
-            tr_actual = measured_trough(today)
-            if tr_actual is not None and yp.get("trough") is not None:
-                terr = yp["trough"] - tr_actual
-                st["trough_errors"] = (st["trough_errors"] + [abs(terr)])[-7:]
-                put("Forecast_Trough_Error_7d", round(sum(st["trough_errors"]) / len(st["trough_errors"]), 1))
-                log.append(f"trough scored: pred {yp['trough']:.0f} vs actual {tr_actual:.0f} (err {terr:+.1f} pts)")
-                mark_scored(st, ykey, "trough")
+        # Legacy trough_errors/scored markers are preserved, never appended here.
+        # At 06:40 this target has not ended; completed-window scoring runs below.
 
         # ---- Phase 1b: forecast-vs-measured divergence (goal: learn where
         # Open-Meteo diverges from THIS site and adjust over time) ----
@@ -1139,6 +1133,13 @@ def main():
         log.append(f"json build failed: {e}")
 
     save_state(st)
+    # Run after normal forecast/advisory/DM work, never as a prerequisite to it.
+    try:
+        from completed_trough_score import update_completed_trough_score
+        update_completed_trough_score(diagnostics=log, token_provider=auth_token,
+            put_unknown=lambda: put("Forecast_Trough_Error_7d", "UNDEF"))
+    except Exception:
+        log.append("completed trough: adapter unavailable")
     if put_failed:
         log.append("PUT FAILED: " + ",".join(put_failed))
     line = (f"{now.isoformat(timespec='seconds')} pv={pv_pred} curtail={curtail} trough={trough_pred} "
