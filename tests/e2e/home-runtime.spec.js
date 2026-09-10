@@ -90,15 +90,19 @@ function itemSnapshot(overrides = {}) {
     .map(([name, state]) => ({ name, state, type: 'String', lastStateUpdate: sourceAt }));
 }
 
-async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } = {}) {
+async function openHomeFixture(page, target, {
+  states = {}, staleSeconds = 90, historyRows, historyFailure,
+} = {}) {
   let activeStates = { ...states };
   const historyRequests = [];
+  const attemptedNonGetRequests = [];
   const unexpectedExternalRequests = [];
   const pageErrors = [];
 
   page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('request', (request) => {
     const url = new URL(request.url());
+    if (request.method() !== 'GET') attemptedNonGetRequests.push(request.url());
     if (!['127.0.0.1', 'localhost'].includes(url.hostname)) unexpectedExternalRequests.push(request.url());
   });
 
@@ -128,13 +132,12 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
     json: itemSnapshot(activeStates),
   }));
-  await page.route('**/fixture-openhab/rest/persistence/items/**', (route) => {
+  await page.route('**/fixture-openhab/rest/persistence/items/**', async (route) => {
     const url = new URL(route.request().url());
     const name = decodeURIComponent(url.pathname.split('/').at(-1));
     const startMs = Date.parse(url.searchParams.get('starttime'));
     const endMs = Date.parse(url.searchParams.get('endtime'));
-    historyRequests.push({ name, url: url.toString() });
-    const now = Date.now();
+    historyRequests.push({ name, startMs, endMs, url: url.toString() });
     const stateForHistory = (index) => {
       if (name === 'BMS_SOC') return 62;
       if (name === 'AmbientWeatherWS2902A_WindGust') return 18;
@@ -165,12 +168,21 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
         return { time, state: String(baseline + priceSteps[hour % 3][quarter]) };
       });
     };
+    const request = { name, startMs, endMs, url };
+    if (historyFailure?.(request)) {
+      return route.fulfill({ status: 500, json: { error: 'fixture persistence failure' } });
+    }
+    const fixtureRows = historyRows
+      ? await historyRows(request)
+      : undefined;
     return route.fulfill({
       json: {
-        data: name === 'BTC_USD_Price'
+        data: fixtureRows !== undefined
+          ? fixtureRows
+          : name === 'BTC_USD_Price'
           ? bitcoinHistory()
           : Array.from({ length: 24 }, (_, index) => ({
-            time: now - (23 - index) * 15 * 60_000,
+            time: startMs + Math.floor(((endMs - startMs) * index) / 24),
             state: String(stateForHistory(index)),
           })),
       },
@@ -182,6 +194,7 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
   await page.locator('.outdoor-spark svg').waitFor({ timeout: 20_000 });
   return {
     historyRequests,
+    attemptedNonGetRequests,
     pageErrors,
     unexpectedExternalRequests,
     setStates: (overrides) => { activeStates = { ...activeStates, ...overrides }; },
@@ -201,6 +214,155 @@ async function openHomeFixture(page, target, { states = {}, staleSeconds = 90 } 
     },
   };
 }
+
+const OUTDOOR = 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature';
+const INDOOR = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
+const DAY_START = Date.parse('2026-09-10T00:00:00-06:00');
+const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
+
+test.describe('Home local-day temperature history ownership', () => {
+  test.use({ timezoneId: 'America/Denver' });
+
+  test('includes native start states, clips end states, and opts in only daily temperatures', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
+      historyRows: ({ name, startMs, endMs }) => {
+        if ([OUTDOOR, INDOOR].includes(name) && startMs === DAY_START) {
+          const values = name === OUTDOOR ? [95, 50, 999] : [85, 60, 998];
+          return [
+            { time: startMs, state: String(values[0]) },
+            { time: startMs + 60_000, state: String(values[1]) },
+            { time: endMs, state: String(values[2]) },
+          ];
+        }
+        return undefined;
+      },
+    });
+    await expect(page.locator('.outdoor-hilo')).toHaveText('H 95° / L 50°');
+    await expect(page.locator('.indoor-hilo')).toHaveText('H 85° / L 60°');
+    expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+    const boundaryRequests = runtime.historyRequests.filter(({ url }) => new URL(url).searchParams.get('boundary') === 'true');
+    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([INDOOR, OUTDOOR].sort());
+    expect(runtime.historyRequests.filter(({ name, url }) => ![INDOOR, OUTDOOR].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+  });
+
+  test('clears yesterday extrema on the first minute tick while new-day history is pending', async ({ page }) => {
+    let releaseNewDay;
+    const pending = new Promise((resolve) => { releaseNewDay = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
+      historyRows: async ({ name, startMs }) => {
+        if (![OUTDOOR, INDOOR].includes(name)) return undefined;
+        if (startMs === DAY_START) return [{ time: startMs, state: name === OUTDOOR ? '95' : '85' }];
+        if (startMs === NEXT_DAY_START) {
+          await pending;
+          return [{ time: startMs, state: name === OUTDOOR ? '55' : '66' }];
+        }
+        return undefined;
+      },
+    });
+    try {
+      await expect(page.locator('.outdoor-hilo')).toContainText('95°');
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.outdoor-hilo')).toHaveText('H 73° / L 73°');
+      await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 70°');
+      releaseNewDay();
+      await expect(page.locator('.outdoor-hilo')).toHaveText('H 73° / L 55°');
+      await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 66°');
+      expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+      expect(runtime.pageErrors).toEqual([]);
+      expect(runtime.unexpectedExternalRequests).toEqual([]);
+      expect(runtime.attemptedNonGetRequests).toEqual([]);
+    } finally {
+      releaseNewDay();
+    }
+  });
+
+  test('rejects a pre-midnight response resolved after midnight', async ({ page }) => {
+    let releaseOld;
+    const oldPending = new Promise((resolve) => { releaseOld = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
+      historyRows: async ({ name, startMs }) => {
+        if (![OUTDOOR, INDOOR].includes(name)) return undefined;
+        if (startMs === DAY_START) {
+          await oldPending;
+          return [{ time: startMs, state: name === OUTDOOR ? '95' : '85' }];
+        }
+        return [{ time: startMs, state: name === OUTDOOR ? '55' : '66' }];
+      },
+    });
+    try {
+      const oldResponses = [OUTDOOR, INDOOR].map((name) => page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return decodeURIComponent(url.pathname.split('/').at(-1)) === name
+          && Date.parse(url.searchParams.get('starttime')) === DAY_START
+          && url.searchParams.get('boundary') === 'true';
+      }));
+      await page.clock.setSystemTime(new Date('2026-09-11T00:00:10-06:00'));
+      releaseOld();
+      await Promise.all((await Promise.all(oldResponses)).map((response) => response.finished()));
+      await page.clock.runFor(0);
+      await expect(page.locator('.outdoor-hilo')).toHaveText('H 73° / L 73°');
+      await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 70°');
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.outdoor-hilo')).toHaveText('H 73° / L 55°');
+      await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 66°');
+      expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+      expect(runtime.pageErrors).toEqual([]);
+      expect(runtime.unexpectedExternalRequests).toEqual([]);
+      expect(runtime.attemptedNonGetRequests).toEqual([]);
+    } finally {
+      releaseOld();
+    }
+  });
+
+  test('keeps current-only and unavailable extrema when the new-day history request fails', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
+      states: { [OUTDOOR]: 'UNDEF' },
+      historyFailure: ({ name, startMs }) =>
+        [OUTDOOR, INDOOR].includes(name) && startMs === NEXT_DAY_START,
+      historyRows: ({ name, startMs }) => {
+        if (![OUTDOOR, INDOOR].includes(name)) return undefined;
+        if (startMs === DAY_START) return [{ time: startMs, state: name === OUTDOOR ? '95' : '85' }];
+        return undefined;
+      },
+    });
+    await expect(page.locator('.outdoor-hilo')).toHaveText('H 95° / L 95°');
+    await expect(page.locator('.indoor-hilo')).toHaveText('H 85° / L 70°');
+    await page.clock.runFor(60_000);
+    await expect(page.locator('.outdoor-hilo')).toHaveText('H — / L —');
+    await expect(page.locator('.indoor-hilo')).toHaveText('H 70° / L 70°');
+    expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+  });
+
+  test('refreshes a changed day on visibility restoration and removes the listener on destroy', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, { width: 1340, height: 800 });
+    const dailyCount = () => runtime.historyRequests.filter(({ name, url }) =>
+      [OUTDOOR, INDOOR].includes(name) && new URL(url).searchParams.get('boundary') === 'true').length;
+    await expect.poll(dailyCount).toBe(2);
+    await page.clock.setSystemTime(new Date('2026-09-11T00:00:10-06:00'));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect.poll(dailyCount).toBe(4);
+    await page.goto(`${baseURL}#/weather`, { waitUntil: 'domcontentloaded' });
+    const afterDestroy = dailyCount();
+    await page.clock.setSystemTime(new Date('2026-09-12T00:00:10-06:00'));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(dailyCount()).toBe(afterDestroy);
+    expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+  });
+});
 
 async function homeGeometry(page) {
   return page.evaluate(() => {

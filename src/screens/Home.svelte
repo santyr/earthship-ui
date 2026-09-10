@@ -26,7 +26,7 @@
     curtailmentColor,
     greywaterState,
     harvestedGallons,
-    historyExtrema,
+    historyExtremaForDay,
     indoorTemperatureIconColor,
     localDayHistoryRange,
     maxHistoryValue,
@@ -76,6 +76,7 @@
   let indoorSpark = $state([]);
   let outdoorTodayHistory = $state([]);
   let indoorTodayHistory = $state([]);
+  let temperatureHistoryDay = $state(null);
   let battSpark = $state([]);
   let baroSpark = $state([]);
   let btcHistory = $state([]);
@@ -91,13 +92,13 @@
   // Same retry pattern as fetchHistorySafe, but with explicit start/end
   // (used for the "today so far" load-energy integration, which needs
   // local-midnight-to-now rather than a rolling N-hour window).
-  async function fetchHistoryRange(name, starttime, endtime, signal) {
+  async function fetchHistoryRange(name, starttime, endtime, signal, includeStartState = false) {
     for (let attempt = 0; attempt < 10; attempt++) {
       if (signal?.aborted) return [];
       const client = getClientOnce();
       if (client) {
         try {
-          return await client.getHistory(name, { starttime, endtime, signal });
+          return await client.getHistory(name, { starttime, endtime, signal, includeStartState });
         } catch {
           return [];
         }
@@ -145,14 +146,16 @@
     if (!range) return;
     return temperatureRefresh.run(
       (signal) => Promise.all([
-        fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', range.starttime, range.endtime, signal),
-        fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature', range.starttime, range.endtime, signal),
+        fetchHistoryRange('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', range.starttime, range.endtime, signal, true),
+        fetchHistoryRange('AmbientWeatherWS2902A_IndoorSensor_Temperature', range.starttime, range.endtime, signal, true),
         fetchHistorySafe('AmbientWeatherWS2902A_IndoorSensor_Temperature', 6, signal),
       ]),
       ([outdoorDay, indoorDay, indoorSixHours]) => {
+        indoorSpark = indoorSixHours;
+        if (range.starttime !== localDayHistoryRange(new Date()).starttime) return;
+        temperatureHistoryDay = range.starttime;
         outdoorTodayHistory = outdoorDay;
         indoorTodayHistory = indoorDay;
-        indoorSpark = indoorSixHours;
       },
     );
   }
@@ -197,6 +200,22 @@
   let sparkRefreshTimer;
   let wallClockTimer;
 
+  function reconcileDayClock() {
+    const oldDay = localDayHistoryRange(new Date(wallClock))?.starttime;
+    wallClock = Date.now();
+    const newDay = localDayHistoryRange(new Date(wallClock))?.starttime;
+    if (newDay && newDay !== oldDay) {
+      temperatureHistoryDay = null;
+      outdoorTodayHistory = [];
+      indoorTodayHistory = [];
+      refreshTemperatureHistory();
+    }
+  }
+
+  function handleDayVisibility() {
+    if (document.visibilityState === 'visible') reconcileDayClock();
+  }
+
   onMount(() => {
     wallClock = Date.now();
     refreshOutdoorSpark();
@@ -207,9 +226,8 @@
     refreshLoadToday();
     refreshWindGustMaxToday();
 
-    wallClockTimer = setInterval(() => {
-      wallClock = Date.now();
-    }, WALL_CLOCK_REFRESH_MS);
+    wallClockTimer = setInterval(reconcileDayClock, WALL_CLOCK_REFRESH_MS);
+    document.addEventListener('visibilitychange', handleDayVisibility);
 
     sparkRefreshTimer = setInterval(() => {
       refreshOutdoorSpark();
@@ -227,6 +245,7 @@
     bitcoinRefresh.destroy();
     if (sparkRefreshTimer) clearInterval(sparkRefreshTimer);
     if (wallClockTimer) clearInterval(wallClockTimer);
+    document.removeEventListener('visibilitychange', handleDayVisibility);
   });
 
   // ---- Small null-safe formatting helpers ----------------------------------
@@ -314,8 +333,8 @@
   const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));
   const uvColor = $derived(uvIndexColor(uvIndex));
   const indoorTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
-  const outdoorToday = $derived(historyExtrema(outdoorTodayHistory, outdoorTemp));
-  const indoorToday = $derived(historyExtrema(indoorTodayHistory, indoorTemp));
+  const outdoorToday = $derived(historyExtremaForDay(outdoorTodayHistory, temperatureHistoryDay, wallClock, outdoorTemp));
+  const indoorToday = $derived(historyExtremaForDay(indoorTodayHistory, temperatureHistoryDay, wallClock, indoorTemp));
   const indoorIconColor = $derived(indoorTemperatureIconColor(indoorTemp));
 
   const soc = $derived(num($items.BMS_SOC));
