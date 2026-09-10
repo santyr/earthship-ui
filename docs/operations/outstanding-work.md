@@ -55,6 +55,24 @@ Live health-fault/cache-restart qualification, consumer integration and sufficie
 completed-window coverage remain open. This is not a completed historical-
 algorithm audit.
 
+Analytics reader cutover design e91b576 was approved by Sat (recorded34b2ded;
+Hexmem8697). Superpowers was disabled at the operator's request; no further
+skill approval loops apply. Solar_PV branch `feat/bms-analytics-reader` now
+contains foundation6f97edf: closed-record validation, immutable qualified SoC
+intervals, explicit ordering errors, bank/window clipping, expiry/fault barriers,
+and a JDBC adapter retaining120seconds of pre-window history plus its original
+carry. A single latest carry can hide a fault followed by restored evidence;
+the regression rejects that ambiguous sequence instead of renewing coverage.
+Original source data from a previous physical bank cannot authorize the new bank.
+
+Verification:51new cases,347full analytics tests passed with the existing
+cross-repository advisory test import path supplied. Read-only PostgreSQL checks
+against the exact live expiry/recovery window produced9segments, no value at
+the expired-valid snapshot and99percent after fresh recovery. No production
+configuration, schedules, Items, algorithms, accounting or historical rows changed.
+This foundation is committed on the feature branch, not deployed: daily SoC
+statistics and feature-export integration remain the next implementation steps.
+
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
 clipping and day-owned results. Midnight and tablet visibility reconciliation
