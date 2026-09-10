@@ -1,5 +1,41 @@
 # Validated BMS SoC evidence
 
+## September 10 correction: original timestamp contract superseded
+
+The input-event and measurement-timestamp portions below describe the original
+proposal, not a usable current runtime contract. Do not implement or deploy
+them unchanged. The staged draft and its passing mocked tests still depend on
+the disproven `ItemStateUpdatedEvent` source/timestamp assumption.
+
+Sat approved the replacement mechanism in Hexmem 8686: original binding events
+plus two read-only native Modbus read-success timestamp links. Source checks,
+numeric validation, fault/restart isolation and unchanged controls still apply.
+The two input timestamp Items are not separate output status/value Items; the
+consumer-facing evidence output remains one atomic JSON record.
+
+Verified replacement trigger requirements:
+
+- Use `core.GenericEventTrigger` with each exact Item state-event topic and
+  `ItemStateEvent` type. Leave its source filter empty. Check exact expected
+  source inside the rule, so foreign-source events clear evidence rather than
+  disappearing before the rule can invalidate it.
+- OpenHAB core 5.2.1 `GenericEventTriggerHandler.receive` passes the original
+  Event as `values.put("event", event)` (lines 104–112). Its source filter is
+  a pre-delivery equality check (lines 136–137), not an invalidation signal.
+- Original numeric ItemStateEvent has no measurement timestamp. Do not call
+  getLastStateUpdate on it or relabel rule execution time as sensor observation
+  time. Separate receipt provenance from native read-success timestamps.
+- Native read-success events and numeric events cannot be paired one-for-one:
+  the live poll interval is 5 seconds, while unchanged numeric events use a
+  30-second suppression threshold. State-map publication order is unspecified.
+
+The replacement timestamp-association and output schema contract must be made
+explicit before revising the implementation. In particular, the old observedAt
+and scaleObservedAt semantics below cannot simply be populated from independently
+arriving heartbeat events. Consumers remain unchanged until that revised contract
+and real-runtime qualification are verified. The original sections are retained
+to explain the draft's provenance, not to override this correction.
+
 ## Approval and purpose
 
 Sat approved a separate validated SoC freshness signal for alerts and analytics
