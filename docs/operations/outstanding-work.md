@@ -11,6 +11,16 @@ design, and integration/release decisions, subject to verification and unchanged
 safety constraints. Task 82 remains held; future-data and seasonal gates remain
 unfinished until their actual evidence exists.
 
+Operator approval update, September 10 (Hexmem 8689): Sat approved the written
+UI current-day history specification and expanding the BMS design to emit each
+value with its timestamp in one source record. This supersedes the pending
+approval status of those approaches; it is not implementation or live
+verification. The originally approved separate BMS event/timestamp streams lack
+an exact sample association and must not silently populate the old observedAt
+contract. The isolated BMS draft is explicitly marked superseded in 70b9667.
+UI implementation is proceeding in `fix/ui-day-history`; broader source-health,
+outcome/scoring and remaining algorithm work is still open.
+
 The Cistern Pump display rename is merged and published in origin/main at
 377763a. Fresh verification: 1,103 UI tests, build, two fixture browser checks,
 and live read-only 1340x800 check (new label present, old label absent, no page
