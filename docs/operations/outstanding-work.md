@@ -38,11 +38,16 @@ deviation. Do not sweep these intentionally staged resources as dead config.
 Subsequent [natural source qualification](2026-09-10-bms-natural-qualification.md)
 passed five events per field with exact provenance, advancing source timestamps
 despite unchanged numeric values, and all ten corresponding JDBC records. The
-two observational sources are now ONLINE; the observer remains DISABLED/output
-NULL. Live probing exposed a trigger-prefixed original-event map absent from
-the observer's test fixtures. Correcting/reviewing that accessor and qualifying
-the observer output remain required before any reader migration. Source history
-is not yet qualified observer coverage or a completed historical-algorithm audit.
+two observational sources are now ONLINE. Live probing exposed a trigger-prefixed
+original-event map absent from the observer's test fixtures; the reviewed fix is
+published at9840831, with1280 merged-main tests and build passing. The installed
+observer was updated while disabled, then enabled under bounded natural-output
+qualification. Five valid persisted records matched exact source envelopes; an
+adjacent unchanged100percent pair63.385seconds apart proved the heartbeat.
+Current validity, healthy companions and unchanged other definitions were checked.
+Observer and sources remain enabled; no readers were migrated. Live fault/expiry/
+restart qualification, consumer integration and sufficient completed-window
+coverage remain open. This is not a completed historical-algorithm audit.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end

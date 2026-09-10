@@ -65,3 +65,60 @@ The source timestamp remains binding read-processing time, not hardware sample
 time or independent gateway freshness. Next gates: fix/review/deploy the disabled
 observer, qualify its natural outputs and persisted coverage, then migrate readers
 under their own reviewed contracts. Task82 remains held.
+
+## Observer correction and healthy-window qualification
+
+The accessor correction is now integrated and published at9840831, comprising
+c363392 and639424b. Actual trigger-prefixed wrappers are accepted. Recognized
+ambiguous wrappers clear both inputs and establish a fresh barrier; null or
+malformed recognized source wrappers invalidate evidence. Eventless timer/startup
+maps remain neutral. Review rejected the first ambiguity test because it retained
+valid cached data; corrected regressions cover hidden health events and fresh
+post-barrier recovery. Focused105 and isolated full1261 tests passed (excluding
+one root-owned standalone Node helper from Vitest discovery). Fresh merged-main
+verification passed1280 tests in91files and build; only the existing large-chunk
+warning remained. No UI source changed.
+
+The installed rule was first verified DISABLED with its exact prior definition
+and source hash. Only its action script was replaced; full DTO readback matched
+and the rule remained DISABLED. A private pre-update snapshot was generated at
+`/tmp/bms-observer-before-accessor-jzib_x4o.json` (temporary evidence, not durable
+backup). Installed corrected source SHA-256:
+`b55d4e002379087fb5cc8f39dc56761951f3c87a4e1519d27bfc680e752d824b`.
+
+The independently reviewed natural-output helper then enabled only the observer
+with POST text/plain true. No runnow, synthetic inputs, commands, reader changes
+or history deletion occurred. PostgreSQL queries were read-only with5second
+connect timeout,3second statement timeout,1000-row caps and a180second observation
+deadline. They matched output timestamps to exact version/field/numeric source
+envelopes, checked the closed output shape, common UUID epoch, original timestamp
+bounds, scaled SoC, nonzero-underflow rejection and exact120second validity end.
+
+Verifier review found two acceptance gaps: filtering unavailable records before
+heartbeat detection could bridge a fault, and nonzero underflow could be accepted
+as zero. Regression tests failed before correction and then passed3/3; seven
+other validator cases had passed. Heartbeat detection now uses adjacency in the
+full persisted output history, with equal SoC, epoch and at least60seconds elapsed.
+
+Live qualification PASS:
+
+- Epoch `864142d5-99ee-4b7a-b5fc-e6a96e7274d8`.
+- Initial unavailable record recordedAt1789077092793, then five valid records.
+- First valid recordedAt1789077103661, SoC99, raw timestamp1789077103659,
+  scale timestamp1789077098023, validUntil1789077218023.
+- Final accepted valid recordedAt1789077223464, SoC100, raw timestamp1789077223463,
+  scale timestamp1789077218137, validUntil1789077338137.
+- Adjacent unchanged100percent records at1789077160079 and1789077223464 establish
+  a63.385second heartbeat. Intermediate99/100 changes earlier in the window were
+  immediate value publications, not falsely counted as heartbeats.
+- Final current output was valid/unexpired; companions were OK/device1 and the
+  observer was IDLE. Other rule definitions, persistence, links and existing
+  raw/scale/poller configurations matched the pre-enable baseline.
+
+Observer and both observational sources remain enabled and collecting real
+history. The earlier disabled/NULL descriptions above are historical checkpoints.
+This establishes natural healthy output and steady-value heartbeat behavior,
+not live fault/expiry/restart qualification or sufficient full-window outcome
+coverage. Existing UI/checker/analytics readers remain unchanged. Migration must
+preserve the approved source/persistence-time coverage and epoch boundaries;
+legacy history cannot be promoted into this newly established evidence stream.
