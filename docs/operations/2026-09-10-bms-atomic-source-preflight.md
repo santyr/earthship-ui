@@ -69,3 +69,19 @@ Before activation: installed transformation qualification, write-disabled source
 configuration, affected-resource snapshots, unchanged control/scaler/persistence
 hashes and natural atomic events. Readers remain on their current contracts until
 live evidence qualifies the new one. Task82 remains held.
+
+## Source completion update — September 10, after d12f4c3
+
+The earlier unfinished-draft descriptions above record the initial preflight,
+not current source status. Corrected observer8073985 now validates original
+ItemStateEvent envelopes, scale-change barriers, health transitions, cache
+restart and clock rollback. Its genuine RED was53failed/2passed against the
+original draft; GREEN89focused and1245full-suite tests followed.
+Descriptor d12f4c3 replaces the final incompatible staged draft with explicit
+create-only disabled resources. Its RED was4new descriptor failures while54
+observer tests stayed green; GREEN92focused and1248full-suite tests passed.
+Independent descriptor spec/quality and whole-branch source review are clean.
+All source files are committed; only the ignored worktree dependency link remains
+untracked. Installed-engine qualification, enforced disabled-state creation,
+natural source/observer events and reader migration still require live evidence.
+Source review approval is not a runtime activation receipt.
