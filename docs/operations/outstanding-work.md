@@ -18,8 +18,26 @@ approval status of those approaches; it is not implementation or live
 verification. The originally approved separate BMS event/timestamp streams lack
 an exact sample association and must not silently populate the old observedAt
 contract. The isolated BMS draft is explicitly marked superseded in 70b9667.
-UI implementation is proceeding in `fix/ui-day-history`; broader source-health,
-outcome/scoring and remaining algorithm work is still open.
+The written atomic BMS observation specification at `43ccb08` was subsequently
+approved (Hexmem 8691). Its source transformations, observer and activation
+preflight remain unfinished; the superseded BMS draft must not be deployed.
+
+UI current-day temperature history is merged at `487365c`. Native start-state
+carry is opt-in for the two daily temperature requests, with half-open end
+clipping and day-owned results. Midnight and tablet visibility reconciliation
+clear yesterday's extrema; failed or late responses cannot restore them.
+Independent task and whole-branch review passed after deterministic late-response,
+HTTP-failure and explicit Denver DST regression additions. Removing the commit-day
+guard made the late-response regression fail, then exact restoration passed.
+Fresh merged-main verification: 1,175 unit tests, all 10 Home browser tests and
+build passed. Existing chunk-size and browser color-environment warnings remain.
+Live read-only 1340x800 verification on September 10 used local midnight
+`06:00Z`, boundary carry and actual persistence rows: outdoor 90.86/48.38 F
+rendered 91/48, indoor 82.58/67.1 F rendered 83/67. No page errors, horizontal
+overflow or write requests occurred. Active local Vite serves this main checkout;
+no restart was needed. This is not a live overnight or winter observation.
+The isolated UI worktree is retained to preserve ignored review evidence.
+Broader source-health, outcome/scoring and remaining algorithm work is still open.
 
 The Cistern Pump display rename is merged and published in origin/main at
 377763a. Fresh verification: 1,103 UI tests, build, two fixture browser checks,
