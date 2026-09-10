@@ -35,8 +35,14 @@ Ten installer VM tests passed; both one-shot installer receipts were verified
 and temporary rules removed. The [installation receipt](2026-09-10-bms-disabled-install.md)
 records the corrected rule-disable API/status assertions and safe ordering
 deviation. Do not sweep these intentionally staged resources as dead config.
-Source enablement, natural-event qualification and reader migration remain
-unfinished; no new evidence history or consumer coverage is claimed.
+Subsequent [natural source qualification](2026-09-10-bms-natural-qualification.md)
+passed five events per field with exact provenance, advancing source timestamps
+despite unchanged numeric values, and all ten corresponding JDBC records. The
+two observational sources are now ONLINE; the observer remains DISABLED/output
+NULL. Live probing exposed a trigger-prefixed original-event map absent from
+the observer's test fixtures. Correcting/reviewing that accessor and qualifying
+the observer output remain required before any reader migration. Source history
+is not yet qualified observer coverage or a completed historical-algorithm audit.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
