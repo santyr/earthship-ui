@@ -85,3 +85,48 @@ All source files are committed; only the ignored worktree dependency link remain
 untracked. Installed-engine qualification, enforced disabled-state creation,
 natural source/observer events and reader migration still require live evidence.
 Source review approval is not a runtime activation receipt.
+
+## Integration and installed-engine qualification — September 10
+
+Reviewed branch merged at `487eadaec5e435938a4689b4dbd913c60544d236`.
+Fresh merged-main verification:91files,1267unit tests passed in4.56seconds;
+build passed with the existing large-chunk advisory. No UI source changed in
+this integration. The UI service continues serving the previously verified main
+checkout; this merge does not install a live OpenHAB observer.
+
+Two new unlinked files were copied create-only into `/etc/openhab/transform`
+using the operator's existing OpenHAB group permission. No existing file was
+overwritten. Files and registered function bodies match these SHA-256 values:
+
+- `bms_soc_raw_observation.js`: `a12811c58019f24c63bbd6726387f09852621ba56faceca1e64d73b273d2bb78`
+- `bms_soc_scale_observation.js`: `2450d60f904b56f745f3c27b0a4b5b4d38f5db31ade6064601b2dc1d6bf1196f`
+
+A reviewed triggerless temporary diagnostic rule called the installed
+`org.openhab.core.transform.actions.Transformation.transformRaw` JS service,
+checking exact keys, version, field, value and timestamp bounds for four inputs
+per file. Filename-based qualification passed eight cases with a fresh correlated
+log receipt at15:08local (the actual receipt timestamp remains authoritative in
+the log). The temporary rule was deleted with full submitted-DTO ownership
+comparison and verified absent. No sample Item or persistence row was written.
+An earlier inline qualification also passed after replacing newline whitespace;
+that is separate from this exact registered-file lookup test.
+
+Diagnostic corrections retained as evidence: the runtime exposes status inside
+the rule DTO, not a `/status` subresource. Its5.2.1 inline-script regex is not
+DOTALL, so multiline inline input is rejected. The original multiline file form
+is supported and was successfully qualified by filename. Initial failed probes
+were removed and never treated as successful just because `/runnow` returned200.
+
+Before/after canonical hashes stayed equal across qualification:
+
+- Existing rule definitions: `d2b149f619660b0bc7b0f47bf268b31e11386ca9ddb25c91eb7cdf6ce1a3c703`
+- JDBC persistence: `e0e08b5a736294caa77a934ccec9a95907579b222918ffe34d9e0731d7c87aeb`
+- Existing raw Thing configuration: `b1e38d407610d862a23207181ca19fd01e89b9001a1a5787ba037e06423e36eb`
+- Existing scale Thing configuration: `706db468032a113eaa3c02a322a9eae6822d41dbe5b2a0f18f0ab79ff37bffe0`
+- Existing poller configuration: `fe63d8a70c43c18ef5dc2740aba886da1a83892a1b48a3ea9ff557622e74dd40`
+
+Persistence remains managed REST configuration: wildcard `*` uses everyChange
+and restoreOnStartup; `gForecast*` additionally uses forecast/everyChange.
+No persistence file was invented or changed. New observation Things, Items,
+links and observer are still absent; production source-event and output/history
+qualification remain mandatory before any reader migration.

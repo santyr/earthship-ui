@@ -19,8 +19,17 @@ verification. The originally approved separate BMS event/timestamp streams lack
 an exact sample association and must not silently populate the old observedAt
 contract. The isolated BMS draft is explicitly marked superseded in 70b9667.
 The written atomic BMS observation specification at `43ccb08` was subsequently
-approved (Hexmem 8691). Its source transformations, observer and activation
-preflight remain unfinished; the superseded BMS draft must not be deployed.
+approved (Hexmem 8691). Reviewed atomic transforms, corrected observer and
+create-only disabled descriptor are now merged at `487eada`; fresh merged-main
+verification passed 1,267 unit tests and build. This replaces the unusable draft,
+not existing control or freshness readers. Two new unlinked transformation files
+are installed and registered with exact source hashes. The installed JS service
+passed eight filename-based cases through a triggerless diagnostic; a fresh log
+receipt proved execution, and the diagnostic rule was removed. Existing rules,
+poller, raw/scale configurations and persistence hashes stayed unchanged.
+New source Things, three Items, links and the observer are not installed yet;
+enforced disabled-state installation, natural-event qualification and reader
+migration remain unfinished. See the dated atomic-source preflight for evidence.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
