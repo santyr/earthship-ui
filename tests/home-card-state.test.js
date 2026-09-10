@@ -17,6 +17,7 @@ import {
   curtailmentColor,
   formatGoatFeedings,
   historyExtrema,
+  historyExtremaForDay,
   greywaterState,
   harvestedGallons,
   indoorTemperatureIconColor,
@@ -179,6 +180,38 @@ describe('Home signed card state colors', () => {
       { time: 3, state: '72.0' },
     ], '66 °F')).toEqual({ high: 72, low: 66 });
     expect(historyExtrema([], 'NULL')).toEqual({ high: null, low: null });
+  });
+
+  it('excludes yesterday history even before the replacement fetch completes', () => {
+    const yesterday = localDayHistoryRange(new Date('2026-09-09T23:59:50-06:00')).starttime;
+    const now = Date.parse('2026-09-10T00:00:10-06:00');
+    expect(historyExtremaForDay([{ time: now - 3600000, state: '95' }], yesterday, now, 65))
+      .toEqual({ high: 65, low: 65 });
+  });
+
+  it.each([
+    '2026-03-08T23:59:00-06:00',
+    '2026-11-01T23:59:00-07:00',
+    '2026-09-10T23:59:00-06:00',
+  ])('accepts matching local day %s', (stamp) => {
+    const now = Date.parse(stamp);
+    const day = localDayHistoryRange(new Date(now)).starttime;
+    expect(historyExtremaForDay([{ time: now - 1000, state: '95' }], day, now, 65))
+      .toEqual({ high: 95, low: 65 });
+  });
+
+  it('falls back to current-only extrema for invalid clock or day identity', () => {
+    expect(historyExtremaForDay([{ state: '95' }], 'not-a-day', Number.NaN, 65))
+      .toEqual({ high: 65, low: 65 });
+    expect(historyExtremaForDay([{ state: '95' }], null, Date.now(), null))
+      .toEqual({ high: null, low: null });
+  });
+
+  it('continues excluding invalid numeric states for matching days', () => {
+    const now = Date.parse('2026-09-10T12:00:00-06:00');
+    const day = localDayHistoryRange(new Date(now)).starttime;
+    expect(historyExtremaForDay([{ state: 'UNDEF' }, { state: 'NaN' }], day, now, 65))
+      .toEqual({ high: 65, low: 65 });
   });
 
   it.each([

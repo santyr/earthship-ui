@@ -100,6 +100,11 @@ export function historyExtrema(points, currentValue = null) {
     ? { high: Math.max(...values), low: Math.min(...values) }
     : { high: null, low: null };
 }
+
+export function historyExtremaForDay(points, historyDayStart, nowMs, currentValue = null) {
+  const range = Number.isFinite(nowMs) ? localDayHistoryRange(new Date(nowMs)) : null;
+  return historyExtrema(range && historyDayStart === range.starttime ? points : [], currentValue);
+}
 export function formatGoatFeedings(raw) {
   const count = finiteNumber(raw);
   if (count === null || count < 0) return 'Feedings unavailable';
