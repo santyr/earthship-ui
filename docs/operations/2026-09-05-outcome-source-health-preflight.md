@@ -364,3 +364,30 @@ targets, not yet browser-reproduced regressions or completed fixes.
 Reference: [OpenHAB5.2.1 PersistenceResource](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.io.rest.core/src/main/java/org/openhab/core/io/rest/core/internal/persistence/PersistenceResource.java).
 All requests were read-only. No production source, persistence configuration,
 historical data or live controls were modified during this audit.
+# September 10 BMS correlation follow-up
+
+Sat approved the original-event/two-native-timestamp-link adjustment (Hexmem
+8686). Read-only live configuration now establishes an additional correlation
+constraint: `battery802Core` polls every 5,000 ms; both `socRaw` and `socSf`
+have `updateUnchangedValuesEveryMillis=30000`. Both data Things and their
+poller were ONLINE. Raw remains uint16 at 40255; scale remains int16 at 40300.
+
+Version-matched `ModbusDataThingHandler.java` at the official openhab-addons
+5.2.1 tag confirms that `processUpdatedValue` creates a new DateTime value for
+a linked lastReadSuccess channel (lines 1016–1018). `updateExpiredChannels`
+iterates the state map and retains it as channelLastState (1024–1030).
+`updateExpiredChannel` publishes on a changed value or when elapsed time is
+strictly greater than the configured unchanged-value interval (1036–1045).
+Consequently a read-success channel can publish on every poll while an
+unchanged numeric channel is suppressed; exact 30-second equality does not
+force publication. These are source/config-derived semantics, not a measured
+event-cadence trace of newly linked Items (the links are not installed yet).
+
+Do not pair raw/scale events one-for-one with timestamp events or require a
+numeric event on each poll. Do not bypass suppression by altering the binding
+or persistence configuration. The revised observational contract must separately
+retain source-authenticated numeric state and native read-success evidence,
+cover changed/unchanged values and both publication orders, and avoid claiming
+that separate events prove an exact shared sample timestamp. Restart, faults,
+scale changes and delayed event delivery still need explicit tests before the
+draft can be treated as usable. No rule, Item, link or control was changed.
