@@ -67,3 +67,35 @@ This is source/test verification, not live installation. Rule configuration,
 script cache and output state remain untouched; managed deployment/readback and
 natural boundary observation are still required. Independent power-source
 freshness remains outside this narrow correction.
+
+## Script-only release planner
+
+`scripts/runtime-cache-release.mjs` is a pure planner/readback verifier, with
+no network, credential loading or rule-execution API. It requires OpenHAB5.2.1,
+the exact editable/quiescent rule UID, original and reviewed replacement script
+hashes, and the original single update-trigger/action contract. Unknown DTO
+fields, extra actions, trigger/source drift and running/error states refuse
+planning. Mutable metadata is cloned unchanged; only script content differs.
+
+For an enabled rule, the plan is POST enable=false, PUT the preserved rule DTO,
+POST enable=true. A previously disabled rule is not intentionally enabled.
+Before applying any operation, an executor must durably back up the complete
+fresh snapshot and revalidate it, then verify disabled/quiescent state before
+replacement. Verify replacement content while disabled before restoring the
+prior enable state. The planner is not an executor and does not provide an
+atomic compare-and-swap against concurrent editors. Coordinate ownership and
+abort on any intervening drift; never use /runnow or mutate Item states to test.
+Rule reload resets existing private estimator caches, so their normal reseeding
+must be observed without changing dwell/threshold policy.
+
+Twelve planner tests cover enabled/disabled preservation, all listed drift
+rejections, readback metadata/enable mismatch and unknown status. Combined with
+the fourteen estimator tests:26passed. Fresh live planning passed with zero
+writes and pins replacement SHA-256
+`8698b16a5e07a5fde653c6e74219886f78c2b6ec7740e5a8a8608c32c205a794`.
+
+Two live API details were corrected during read-only preflight: GET on
+`/rules/hex_bms_ttd_smooth/enable` is unsupported (405), so known rule status
+determines enable state; runtime version comes from root.runtimeInfo.version
+(5.2.1), not root.version (REST version8). The existing feeder-specific helper
+with its5.2.0 guard was not reused or weakened. No live mutation occurred.
