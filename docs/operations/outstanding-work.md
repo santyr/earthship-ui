@@ -442,6 +442,15 @@ local-day values. Carry-in, source health and persistence API aggregation
 semantics remain to be verified for the three analytical consumers. No live
 rule was invoked or changed during this inventory.
 
+September 10 follow-up confirms an incomplete-night cache defect in the exact
+live runtime estimator: the first call before06:00 queries a future-ending
+window and caches its result for the whole date, including after completion.
+An isolated exact-function reproduction returned the early value at06:05 with
+no second query. See [runtime cache audit](2026-09-10-runtime-overnight-cache-audit.md).
+The correction should select/cache the latest completed local06:00 window,
+preserving weighted averaging and all estimator gates. Patch/tests/deployment
+and independent power-source coverage qualification remain unfinished.
+
 ### UI boundary follow-up
 
 Read-only REST requests plus the actual extrema helper reproduce missing
