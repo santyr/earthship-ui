@@ -461,8 +461,18 @@ global fix: OpenHAB also moves the first post-window value back to the end and
 relabels the carry timestamp. UI repair must explicitly discard look-ahead,
 separate historical carry from freshness evidence, and handle local-day rollover.
 The preflight records exact ranges/results and version-matched source. Category-
-axis sparkline spacing and midnight-array retention remain additional review
-targets; no UI fix is claimed by this audit.
+axis sparkline spacing and midnight-array retention were additional review
+targets in that audit.
+
+September 10 sparkline follow-up replaces the category axis with a hidden time
+axis and timestamp/value pairs. Irregular change-only events now retain elapsed
+time spacing; smoothing, colors and card dimensions are unchanged. Verification:
+1,282 unit tests across 91 files, production build, and all 12 Home browser tests
+passed. Actual ECharts pixel-coordinate checks on Lenovo M9 1340x800 and laptop
+1280x720 prove a one-minute gap occupies 1/60 of a one-hour gap for both indoor
+and outdoor sparklines. A unit regression preserves distinct instants through
+the repeated DST hour. These fixture checks do not establish source freshness,
+gap coverage, time-weighted smoothing or completion of the wider algorithm audit.
 
 No hardware actions, advisory-policy changes, migrations, or production writes
 were performed for this inventory. Design approval and cross-repository

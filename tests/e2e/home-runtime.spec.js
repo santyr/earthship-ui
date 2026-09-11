@@ -220,6 +220,50 @@ const INDOOR = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
 const DAY_START = Date.parse('2026-09-10T00:00:00-06:00');
 const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
 
+for (const target of TARGETS) {
+  test(`sparklines preserve elapsed-time spacing on ${target.name}`, async ({ page }) => {
+    const runtime = await openHomeFixture(page, target, {
+      historyRows: ({ name, startMs }) => [OUTDOOR, INDOOR].includes(name)
+        ? [0, 60_000, 3_600_000].map((offset, index) => ({
+          time: startMs + offset, state: String(65 + index),
+        }))
+        : undefined,
+    });
+    await expect(page.locator('.indoor-spark svg')).toBeVisible();
+    const charts = await page.evaluate(async () => {
+      const { echarts } = await import('/src/lib/charts/echarts.js');
+      return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {
+        const el = document.querySelector(selector);
+        const chart = echarts.getInstanceByDom(el);
+        const option = chart.getOption();
+        const points = option.series[0].data;
+        const pixels = points.map(([time]) => chart.convertToPixel({ xAxisIndex: 0 }, time));
+        return {
+          axis: option.xAxis[0].type,
+          times: points.map(([time]) => time),
+          ratio: (pixels[1] - pixels[0]) / (pixels[2] - pixels[0]),
+          width: el.clientWidth,
+          height: el.clientHeight,
+          hiddenAxis: !option.xAxis[0].show,
+        };
+      });
+    });
+    for (const chart of charts) {
+      expect(chart.axis).toBe('time');
+      expect(chart.times).toHaveLength(3);
+      expect(chart.times[1] - chart.times[0]).toBe(60_000);
+      expect(chart.times[2] - chart.times[0]).toBe(3_600_000);
+      expect(chart.ratio).toBeCloseTo(1 / 60, 6);
+      expect(chart.width).toBeGreaterThan(100);
+      expect(chart.height).toBeGreaterThan(20);
+      expect(chart.hiddenAxis).toBe(true);
+    }
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+  });
+}
+
 test.describe('Home local-day temperature history ownership', () => {
   test.use({ timezoneId: 'America/Denver' });
 
