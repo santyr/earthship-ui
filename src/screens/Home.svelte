@@ -17,6 +17,7 @@
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
+  import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     adaptCurrentAqi,
     batteryPowerFlowPresentation,
@@ -87,6 +88,7 @@
 
   const temperatureRefresh = createLatestRefreshCoordinator();
   const bitcoinRefresh = createLatestRefreshCoordinator();
+  const loadRefresh = createLatestRefreshCoordinator();
 
   let wallClock = $state(Date.now());
   // Same retry pattern as fetchHistorySafe, but with explicit start/end
@@ -108,31 +110,16 @@
     return [];
   }
 
-  // Trapezoidal integration of a W-vs-time series -> kWh. No dedicated
-  // "load energy today" item exists on ConextGateway, so it's derived
-  // client-side from the ACPowerValue history rather than guessing at an
-  // unconfirmed item name.
-  function integrateKWh(points) {
-    if (!Array.isArray(points) || points.length === 0) return null;
-    const pts = points
-      .map((p) => ({ t: new Date(p.time).getTime(), w: num(p.state) }))
-      .filter((p) => Number.isFinite(p.t) && p.w !== null)
-      .sort((a, b) => a.t - b.t);
-    if (pts.length < 2) return pts.length === 1 ? 0 : null;
-    let wh = 0;
-    for (let i = 1; i < pts.length; i++) {
-      const dtSec = (pts[i].t - pts[i - 1].t) / 1000;
-      if (dtSec <= 0) continue;
-      wh += ((pts[i].w + pts[i - 1].w) / 2) * (dtSec / 3600);
-    }
-    return wh / 1000;
-  }
-
   async function refreshLoadToday() {
     const range = localDayHistoryRange(new Date());
     if (!range) return;
-    const data = await fetchHistoryRange('ConextGateway_ACPowerValue', range.starttime, range.endtime);
-    loadToday = integrateKWh(data);
+    return loadRefresh.run(
+      signal => fetchHistoryRange('ConextGateway_ACPowerValue', range.starttime, range.endtime, signal, true),
+      data => {
+        if (range.starttime !== localDayHistoryRange(new Date()).starttime) return;
+        loadToday = estimateDailyLoadKWh(data, Date.parse(range.starttime), Date.parse(range.endtime));
+      },
+    );
   }
 
   // Refetched on mount AND on a 5-minute interval below, so the trend lines
@@ -208,7 +195,9 @@
       temperatureHistoryDay = null;
       outdoorTodayHistory = [];
       indoorTodayHistory = [];
+      loadToday = null;
       refreshTemperatureHistory();
+      refreshLoadToday();
     }
   }
 
@@ -243,6 +232,7 @@
   onDestroy(() => {
     temperatureRefresh.destroy();
     bitcoinRefresh.destroy();
+    loadRefresh.destroy();
     if (sparkRefreshTimer) clearInterval(sparkRefreshTimer);
     if (wallClockTimer) clearInterval(wallClockTimer);
     document.removeEventListener('visibilitychange', handleDayVisibility);
@@ -523,11 +513,11 @@
             <span class="pf-sep">&middot;</span>
             <span class="pf-net" style="color: {netColor}">net {signedFmt(netWatts, ' W')}</span>
           </div>
-          <div class="pf-line2">
+          <div class="pf-line2" title="Load and daily net are estimates from held power-history states, refreshed every five minutes; not a source-health measurement.">
             Today: {numFmt(pvToday, ' kWh', 1)} in &middot; {loadToday === null
               ? '—'
-              : numFmt(loadToday, ' kWh', 1)} used &middot;
-            <span style="color: {netTodayColor}">{signedFmt(netToday, ' kWh', 1)} net</span>
+              : `~${numFmt(loadToday, ' kWh', 1)}`} used &middot;
+            <span style="color: {netTodayColor}">{netToday === null ? '—' : `~${signedFmt(netToday, ' kWh', 1)}`} net</span>
           </div>
         </div>
       </Tile>

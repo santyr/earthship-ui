@@ -479,6 +479,27 @@ and outdoor sparklines. A unit regression preserves distinct instants through
 the repeated DST hour. These fixture checks do not establish source freshness,
 gap coverage, time-weighted smoothing or completion of the wider algorithm audit.
 
+September10 Home daily-load follow-up replaces endpoint-only trapezoidal
+integration with held-state integration of change-only power history. The
+explicit local-midnight boundary request includes native carry-in, excludes
+end look-ahead and accounts for the final interval through the request time.
+A constant1000W state now contributes2kWh over two hours rather than zero.
+Missing midnight coverage, invalid/negative/non-W states, conflicting duplicate
+timestamps and request failure show unavailable rather than a partial daily
+total. Latest-request ownership, minute-tick/visibility day reconciliation and
+destroy cancellation prevent yesterday's response/total leaking into today.
+Displayed load and derived net carry an estimate marker; historical held state
+is not independent source-health evidence. No persistence policy or controls
+change. This does not close the power-source outage/coverage audit.
+
+Verification:19focusedintegrationtests; full1,351tests/95files; productionbuild;
+all17Homebrowserchecks including constant carry/tail, missing coverage, request
+failure, pending midnight reset and late old-day response. Existing LenovoM9
+1340x800/laptop1280x720 geometry checks pass. A read-only live September10
+00:00–18:53:44MDT history contained12,904rows with midnight carry and finite
+nonnegative states, yielding a held-state estimate4.5274kWh. This is a bounded
+snapshot calculation, not metered truth or verified source-health coverage.
+
 No hardware actions, advisory-policy changes, migrations, or production writes
 were performed for this inventory. Design approval and cross-repository
 contracts apply before implementation. Existing OpenHAB controls and Discover
