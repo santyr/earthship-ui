@@ -35,3 +35,30 @@ exec may leave the previous Item state visible; this parser correction alone
 does not implement a feed freshness indicator or historical coverage evidence.
 Those remain separate work. Keep the unchanged 24-hour arithmetic and candle
 observation semantics established by the carry audit.
+
+## September 11 deployment receipt
+
+Commit `300fc160821afa4e34ee39d0d40d58d644251bd2` was merged and pushed to
+origin/main. All 24 offline tests passed again on main. The operator supplied
+the required ownership adjustment for the staged file; preflight confirmed
+both original and replacement were regular files with owner/group 112:115 and
+mode 0775. The original hash above and the exact backup were checked again
+immediately before atomic replacement at 08:00:56 MDT, September 11.
+
+Installed SHA-256:
+`3650adbfddcd383c504dfbdfae0723fe31a7d5315adc4308f3dd5f369fb68bc4`.
+Original bytes remain at
+`/tmp/bitcoin-feed-release-afzV9N/original-bitcoin.py` (0600, private 0700 parent).
+This is a temporary-host rollback copy, not a durable off-host backup. Rollback
+must verify both hashes, preserve live owner/group/mode and use another atomic
+replacement; do not copy the backup's private file permissions onto the live
+executable.
+
+No OpenHAB restart, credential edit, Thing/link/configuration change, manual
+feed execution or Item write was performed. Natural scheduled updates logged
+79320 at 08:01:15.618 MDT and 79398 at 08:01:45.609 MDT; both triggered normal
+24-hour calculations. At 08:02:05 MDT the Thing remained ONLINE and REST showed
+price 79398, percent change 2.788566 and corresponding fresh update timestamps.
+The installed hash was rechecked. This completes parser deployment and natural
+success-path verification, not historical feed-health coverage or an induced
+production failure test. Invalid-response behavior remains verified offline.
