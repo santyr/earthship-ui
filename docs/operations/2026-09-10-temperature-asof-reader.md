@@ -65,3 +65,45 @@ persistence fetch adapter, original query/carry provenance, natural collector
 and expiry/restart qualification, policy cutover bookkeeping and actual hourly
 scorer integration are still required. Legacy hourly history/model state is
 not reset or relabeled. Indoor sensor ownership confirmation remains pending.
+
+## Bounded JDBC adapter
+
+`weather_temperature_history.py` fetches one elapsed target from the exact
+proposed Item Weather_Temperature_Evidence_JSON. Its connection factory must
+return a new dedicated psycopg2 connection with bounded connection timeout;
+the adapter contains no credentials, fallback Item or automatic live caller.
+It refuses an active transaction, configures read-only repeatable-read and
+verifies both properties inside the transaction. Statement/lock/idle deadlines
+are2s/1s/5s. It closes the dedicated connection without committing.
+
+Within that stable snapshot it resolves one exact Item mapping (LIMIT2), derives
+the table identifier only from a validated nonnegative integer, reads original
+carry before target-minus-policy-validity, and all rows through the target
+inclusive. Values remain raw text; oversized values become explicit NULL
+barriers rather than disappearing. Queries use a10001row sentinel; more than
+10000combined rows, bad carry or out-of-window rows refuse qualification.
+Database/permission/timeout/mapping failures yield a constant sanitized
+TemperatureHistoryUnavailable error, never a partial daily/hourly value.
+
+Fifteen adapter tests plus27reader tests pass. A separate real PostgreSQL case
+uses Solar_PV's explicit disposable-only advisory_db fixture: fresh
+postgres:16 container, generated credentials, no external DSN fallback and
+cleanup of only that fixture. It verifies exact raw reading, carry preservation,
+post-target exclusion, invalid/oversize barriers, fresh recovery, SELECT denial,
+duplicate mapping and an actual access-exclusive lock timeout. All43tests pass
+in3.41seconds with that fixture enabled. The rest of the95focused weather-source
+tests remain the previously verified baseline; no full-script result is claimed
+for the new adapter yet.
+
+Reproduction from the reader worktree:
+
+```sh
+PYTHONPATH=openhab/scripts:/home/sat/earthship-ui/.worktrees/advisory-trough-assessment/analytics/tests:/home/sat/earthship-ui/.worktrees/advisory-trough-assessment/analytics/src python3 -m pytest -q --tb=short openhab/scripts/test_weather_temperature_history_postgres.py openhab/scripts/test_weather_temperature_history.py openhab/scripts/test_weather_temperature_reader.py
+```
+
+Without the explicitly supplied disposable fixture the PostgreSQL test skips;
+it never substitutes the OpenHAB production connection. Installed Item/table,
+natural receiver publication, production read-only role/factory wiring and
+bounded multi-target scorer scheduling/cutover remain to be implemented and
+qualified. No OpenHAB contract, production table, scheduler or learned state
+was modified by this adapter implementation.
