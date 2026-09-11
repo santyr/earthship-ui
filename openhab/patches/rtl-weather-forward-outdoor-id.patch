@@ -1,0 +1,10 @@
+--- a/rtl_weather.py
++++ b/rtl_weather.py
+@@ -125,6 +125,7 @@
+                     if all(k in data for k in req):
+                         payload = {
+                             "model": model,
++                            "id": data["id"],
+                             "tempf": round(data["temperature_C"] * 1.8 + 32, 2),
+                             "humidity": round(float(data["humidity"]), 2),
+                             "winddir": round(float(data["wind_dir_deg"])),

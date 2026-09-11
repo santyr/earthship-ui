@@ -145,3 +145,31 @@ They cover exact enable semantics, strict schema/size/duplicate/nonfinite
 rejection, unsafe file kinds/permissions, sanitized startup failure, and the
 actual WSGI entrypoint with an isolated app in enabled/disabled modes. These
 checks do not qualify a production policy or constitute service deployment.
+
+## Outdoor identity forwarding — installed September10
+
+The existing relay's WH65B/WH24 filter already rejects station IDs other than
+206. Its forwarded outdoor payload now includes id=data["id"] from that same
+filtered packet. No expected ID is invented downstream. Reproducible patch:
+`openhab/patches/rtl-weather-forward-outdoor-id.patch`.
+
+Five tests execute the actual relay main AST using fake subprocess/RF lines,
+fake sleep and captured sends; they perform no real RF or HTTP operation. Both
+outdoor aliases failed solely for missing ID before the patch, then passed with
+every weather value unchanged. Foreign207, missing ID and wrong-type string206
+remain filtered. The full focused evidence/receiver suite passes95tests.
+
+The current script including the temporary WH32B survey was backed up to
+`/home/sat/bin/rtl_weather.py.before-outdoor-id-forward-20260910`, originalSHA256
+`d2af9e4e621f611e783227e696adaac3daf659c3aee1a3d8b02c3af5ac7fc928`.
+Syntax and whole-source AST comparison proved the only change is the added
+outdoor id expression. ReplacementSHA256:
+`9f034f9d0ed5912ad5495136bcb6414c20bccb3cb24d1c09622a16c29c9e2777`.
+rtl_weather.service was restarted; it and weather.service read back active.
+The preexisting systemd disk/loaded-unit drift was not daemon-reloaded. Receiver
+source and rain state were not edited, and the temporary indoor survey retains
+its original expiry. No temperature evidence endpoint or learning was activated.
+The new optional receiver still requires its separate policy and deployment.
+Read-only receiver health after restart reports outdoor packet receipt
+19:18:59MDT, age1second and aggregateok. That confirms normal packet reception,
+not field-qualified evidence or an end-to-end persisted identity record.
