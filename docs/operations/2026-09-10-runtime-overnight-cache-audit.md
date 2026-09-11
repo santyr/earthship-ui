@@ -123,3 +123,25 @@ The sequencing helper cannot create an atomic compare-and-swap API where none
 exists. If another editor may change the rule during the sequence, do not deploy.
 After a failure, inspect the live state and the verified backup before choosing
 recovery; an HTTP timeout is not proof that the server rejected a write.
+
+## Local deployment adapter
+
+`node scripts/runtime-cache-deploy.mjs --check` validates the live version, rule
+and source hashes without writes. `--apply --attended` additionally requires
+operator-authorized, coordinated deployment. The adapter uses fixed loopback
+HTTP on port8080, the existing protected token file, an exact method/path allowlist,
+five-second whole-request deadlines and a one-MiB response cap. Redirects, Item
+writes and /runnow are refused. It does not retry failed requests.
+
+Before mutations it creates an exclusive0700 directory under
+`/home/sat/.local/state/runtime-cache-release-*`, writes the original complete
+rule snapshot0600, fsyncs the file/directory/parent and verifies the saved bytes
+and canonical digest by reading them back. Backup files are retained. A separate
+exclusive lock directory serializes cooperating deployments; it does not lock
+the OpenHAB editor. The backup path is reported before any live mutation.
+
+Ten real-loopback/private-filesystem adapter tests plus40existing focused tests
+passed. They cover request scope, redirects, deadlines, response bounds, invalid
+JSON, private backup permissions/digest/exclusivity and explicit mode selection.
+The live --check succeeded with writes=0 against the original script hash. This
+preflight alone is not proof of installation or natural post-reload behavior.
