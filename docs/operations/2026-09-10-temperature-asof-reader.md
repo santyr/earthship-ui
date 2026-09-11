@@ -61,7 +61,7 @@ elapsed time through Denver's repeated autumn hour. Combined with95source,
 collector, configuration and relay cases:122focused tests passed.
 
 No production history is available for this new envelope yet. The bounded
-persistence fetch adapter, original query/carry provenance, natural collector
+persistence fetch adapter is implemented below. Natural collector
 and expiry/restart qualification, policy cutover bookkeeping and actual hourly
 scorer integration are still required. Legacy hourly history/model state is
 not reset or relabeled. Indoor sensor ownership confirmation remains pending.
@@ -107,3 +107,39 @@ natural receiver publication, production read-only role/factory wiring and
 bounded multi-target scorer scheduling/cutover remain to be implemented and
 qualified. No OpenHAB contract, production table, scheduler or learned state
 was modified by this adapter implementation.
+
+## Disabled deployment staging (September 10)
+
+The additive descriptor `openhab/weather-temperature-evidence-resources.json`
+specifies one disabled HTTP Thing, one String Item and one read-only link for
+the entire envelope. Live channel metadata confirms `READONLY` is supported.
+The descriptor is not an installer: `createOnly` and `enabled: false` declare
+requirements, not guarantees that OpenHAB REST will enforce them.
+
+Do not PUT an Item to install this descriptor: that operation can overwrite an
+existing Item. Installation still needs add-only Item/link providers with
+ownership checks. Create the Thing unlinked, explicitly disable it and verify
+DISABLED before linking; do not assume the manifest's `enabled` field disables
+a REST-created Thing. Use the existing JDBC wildcard `everyChange` policy;
+do not add periodic numeric persistence or change persistence policy.
+
+Four source modules were copied add-only into `/home/sat/bin` and matched
+production-main source bytes: `weather_temperature_evidence.py`,
+`weather_temperature_receiver.py`, `weather_temperature_config.py` and
+`weather_evidence_wsgi.py`. They were syntax-compiled without executing or
+importing the live receiver. This supersedes earlier statements that those
+files were absent; it does not constitute collector activation.
+
+Readback after staging confirmed `weather.service` remains active with
+`gunicorn --workers 1 --bind 0.0.0.0:5000 weather:app`. The evidence endpoint,
+`Weather_Temperature_Evidence_JSON` Item and
+`http:url:weatherTemperatureEvidence` Thing each returned HTTP 404. No service
+entrypoint, policy file, Item, Thing, link, learning consumer or control was
+activated. Indoor sensor ownership confirmation remains outstanding.
+
+The complete OpenHAB script regression suite passed: 892 tests and 42 subtests
+in 140.64 seconds, with the opt-in PostgreSQL fixture skipped. Running that
+fixture explicitly with the reader/adapter tests then passed all 43 tests in
+3.36 seconds. The descriptor contract test separately passed after assertions
+for the HTTP Thing and String channel types were tightened. These are software
+and staging checks, not proof of natural production evidence collection.

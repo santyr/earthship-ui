@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "things": [
+    {
+      "UID": "http:url:weatherTemperatureEvidence",
+      "thingTypeUID": "http:url",
+      "label": "Weather temperature receipt evidence",
+      "enabled": false,
+      "configuration": {
+        "baseURL": "http://127.0.0.1:5000/temperature_evidence",
+        "refresh": 30,
+        "timeout": 3000,
+        "bufferSize": 16384,
+        "stateMethod": "GET"
+      },
+      "channels": [
+        {
+          "id": "snapshot",
+          "uid": "http:url:weatherTemperatureEvidence:snapshot",
+          "channelTypeUID": "http:string",
+          "kind": "STATE",
+          "itemType": "String",
+          "label": "Complete temperature evidence snapshot",
+          "configuration": {"mode": "READONLY"}
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "Weather_Temperature_Evidence_JSON",
+      "type": "String",
+      "label": "Weather temperature receipt evidence",
+      "category": "",
+      "tags": [],
+      "groupNames": []
+    }
+  ],
+  "links": [
+    {
+      "itemName": "Weather_Temperature_Evidence_JSON",
+      "channelUID": "http:url:weatherTemperatureEvidence:snapshot",
+      "configuration": {"profile": "system:default"}
+    }
+  ],
+  "persistence": {
+    "serviceId": "jdbc",
+    "strategy": "everyChange",
+    "restoreOnStartup": true,
+    "existingWildcardPolicyOnly": true
+  }
+}
