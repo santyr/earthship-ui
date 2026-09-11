@@ -64,3 +64,46 @@ export function verifyRuntimeCacheReadback({ plan, rule, enabled }) {
   }
   return { verified: true, uid: RULE_UID, sha256: digest(rule.actions[0].configuration.script), enabled };
 }
+
+// Injected transport only: callers own attended approval, exclusive edit ownership,
+// durable backup/readback and bounded I/O. No retries, /runnow or Item writes.
+// On any uncertainty stop; never blindly restore enable state or overwrite drift.
+export async function executeRuntimeCacheRelease({ source, version, readRule, backup, write }) {
+  let stage = 'snapshot';
+  try {
+    const snapshot = await readRule();
+    const plan = planRuntimeCacheRelease({ rule: snapshot,
+      enabled: runtimeRuleEnabledState(snapshot), version, source });
+    stage = 'backup';
+    const expectedBackupDigest = digest(canonical(snapshot));
+    const receipt = await backup(structuredClone(snapshot));
+    if (receipt?.verified !== true || receipt.sha256 !== expectedBackupDigest) {
+      throw new Error('verified snapshot backup required');
+    }
+    stage = 'prewrite-recheck';
+    const fresh = await readRule();
+    if (canonical(fresh) !== canonical(snapshot)) throw new Error('snapshot changed');
+    const path = `/rest/rules/${RULE_UID}`;
+    if (plan.enabled) {
+      stage = 'disable';
+      await write({ method: 'POST', path: `${path}/enable`, body: 'false' });
+    }
+    stage = 'disabled-original-readback';
+    verifyRuntimeCacheReadback({ plan: { ...plan, enabled: false, desired: plan.original },
+      rule: await readRule(), enabled: false });
+    stage = 'replace';
+    await write({ method: 'PUT', path, body: structuredClone(plan.desired) });
+    stage = 'disabled-replacement-readback';
+    verifyRuntimeCacheReadback({ plan: { ...plan, enabled: false },
+      rule: await readRule(), enabled: false });
+    if (plan.enabled) {
+      stage = 'enable';
+      await write({ method: 'POST', path: `${path}/enable`, body: 'true' });
+    }
+    stage = 'final-readback';
+    return verifyRuntimeCacheReadback({ plan, rule: await readRule(), enabled: plan.enabled });
+  } catch {
+    // Do not leak transport errors (which may contain credentials or payloads).
+    throw new Error(`runtime cache release stopped at ${stage}; inspect live state before any further write`);
+  }
+}

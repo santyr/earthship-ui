@@ -99,3 +99,27 @@ Two live API details were corrected during read-only preflight: GET on
 determines enable state; runtime version comes from root.runtimeInfo.version
 (5.2.1), not root.version (REST version8). The existing feeder-specific helper
 with its5.2.0 guard was not reused or weakened. No live mutation occurred.
+
+## Guarded release sequencing
+
+The same module now includes `executeRuntimeCacheRelease`, an injected-transport
+state machine. It validates the initial rule with the exact planner, requires
+a verified SHA-256 receipt for the canonical full-snapshot backup, rechecks the
+snapshot for drift, disables only when originally enabled, verifies the original
+DTO while disabled, replaces only the script, verifies the replacement while
+disabled, restores the original enable state and checks final content/status.
+It never retries an uncertain write or blindly re-enables a rule after failure.
+Errors report only the failed stage, not transport payloads or credentials.
+
+Fourteen new isolated tests cover both enable states, backup refusal, intervening
+edits, still-running disable readback, corrupt script readback, unknown initial
+source, ambiguous writes at all three mutation stages and final initialization
+error. Combined estimator/planner/executor verification:40tests passed. All
+transports in these tests are in-memory; no live OpenHAB mutation occurred.
+
+The adapter still must supply bounded HTTP calls, private durable backup with
+actual file readback, attended ownership and live post-installation observation.
+The sequencing helper cannot create an atomic compare-and-swap API where none
+exists. If another editor may change the rule during the sequence, do not deploy.
+After a failure, inspect the live state and the verified backup before choosing
+recovery; an HTTP timeout is not proof that the server rejected a write.
