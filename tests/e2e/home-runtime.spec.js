@@ -220,6 +220,73 @@ const INDOOR = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
 const DAY_START = Date.parse('2026-09-10T00:00:00-06:00');
 const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
 const LOAD = 'ConextGateway_ACPowerValue';
+const GUST = 'AmbientWeatherWS2902A_WindGust';
+
+test.describe('Home daily gust ownership', () => {
+  test.use({ timezoneId: 'America/Denver' });
+  test('includes midnight carry and excludes end look-ahead', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T02:00:00-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: ({ name, startMs, endMs }) => name === GUST ? [
+        { time: startMs, state: '25' }, { time: startMs + 60_000, state: '10' },
+        { time: endMs, state: '999' },
+      ] : undefined,
+    });
+    await expect(page.locator('.wind-max')).toHaveText('max 25 mph');
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+  });
+  test('clears yesterday maximum until new-day history arrives', async ({ page }) => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: async ({ name, startMs }) => {
+        if (name !== GUST) return undefined;
+        if (startMs === NEXT_DAY_START) await pending;
+        return [{ time: startMs, state: startMs === DAY_START ? '40' : '10' }];
+      },
+    });
+    try {
+      await expect(page.locator('.wind-max')).toHaveText('max 40 mph');
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.wind-max')).toHaveText('max — mph');
+      release();
+      await expect(page.locator('.wind-max')).toHaveText('max 10 mph');
+      expect(runtime.pageErrors).toEqual([]);
+    } finally { release(); }
+  });
+  test('rejects a late old-day gust response', async ({ page }) => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: async ({ name, startMs }) => {
+        if (name !== GUST) return undefined;
+        if (startMs === DAY_START) await pending;
+        return [{ time: startMs, state: startMs === DAY_START ? '40' : '10' }];
+      },
+    });
+    try {
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.wind-max')).toHaveText('max 10 mph');
+      release();
+      await page.clock.runFor(1000);
+      await expect(page.locator('.wind-max')).toHaveText('max 10 mph');
+      expect(runtime.pageErrors).toEqual([]);
+    } finally { release(); }
+  });
+  test('shows unavailable when the new-day request fails', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    await openHomeFixture(page, TARGETS[0], {
+      historyRows: ({ name, startMs }) => name === GUST ? [{ time: startMs, state: '40' }] : undefined,
+      historyFailure: ({ name, startMs }) => name === GUST && startMs === NEXT_DAY_START,
+    });
+    await expect(page.locator('.wind-max')).toHaveText('max 40 mph');
+    await page.clock.runFor(60_000);
+    await expect(page.locator('.wind-max')).toHaveText('max — mph');
+  });
+});
 
 test.describe('Home daily load estimate', () => {
   test.use({ timezoneId: 'America/Denver' });
@@ -335,7 +402,7 @@ for (const target of TARGETS) {
 test.describe('Home local-day temperature history ownership', () => {
   test.use({ timezoneId: 'America/Denver' });
 
-  test('includes native start states, clips end states, and opts in only daily temperatures and load', async ({ page }) => {
+  test('includes native start states, clips end states, and opts in only daily temperatures, load and gust', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
     const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
       historyRows: ({ name, startMs, endMs }) => {
@@ -355,8 +422,8 @@ test.describe('Home local-day temperature history ownership', () => {
     expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
     expect(runtime.attemptedNonGetRequests).toEqual([]);
     const boundaryRequests = runtime.historyRequests.filter(({ url }) => new URL(url).searchParams.get('boundary') === 'true');
-    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([INDOOR, OUTDOOR, LOAD].sort());
-    expect(runtime.historyRequests.filter(({ name, url }) => ![INDOOR, OUTDOOR, LOAD].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
+    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([INDOOR, OUTDOOR, LOAD, GUST].sort());
+    expect(runtime.historyRequests.filter(({ name, url }) => ![INDOOR, OUTDOOR, LOAD, GUST].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
     expect(runtime.pageErrors).toEqual([]);
     expect(runtime.unexpectedExternalRequests).toEqual([]);
   });

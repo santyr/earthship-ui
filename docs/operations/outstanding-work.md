@@ -500,6 +500,17 @@ failure, pending midnight reset and late old-day response. Existing LenovoM9
 nonnegative states, yielding a held-state estimate4.5274kWh. This is a bounded
 snapshot calculation, not metered truth or verified source-health coverage.
 
+September10 Home daily-gust follow-up now requests native midnight carry-in
+with end look-ahead excluded, uses latest-request ownership, rejects prior-day
+responses and clears/refetches the daily maximum on minute-tick or visible-tab
+day rollover. Destroy aborts the gust request. Failed new-day reads show
+unavailable rather than yesterday's maximum. Existing gust units, colors,
+refresh cadence and current-gust display are unchanged. Full1,351tests/95files,
+productionbuild and all21Homebrowserchecks passed, including four dedicated
+gust cases and the existing M9/laptop layout checks. No source-health guarantee,
+weather algorithm qualification or global24-hour Item contract is inferred
+from this UI history correction.
+
 No hardware actions, advisory-policy changes, migrations, or production writes
 were performed for this inventory. Design approval and cross-repository
 contracts apply before implementation. Existing OpenHAB controls and Discover

@@ -89,6 +89,7 @@
   const temperatureRefresh = createLatestRefreshCoordinator();
   const bitcoinRefresh = createLatestRefreshCoordinator();
   const loadRefresh = createLatestRefreshCoordinator();
+  const gustRefresh = createLatestRefreshCoordinator();
 
   let wallClock = $state(Date.now());
   // Same retry pattern as fetchHistorySafe, but with explicit start/end
@@ -178,8 +179,14 @@
 
   async function refreshWindGustMaxToday() {
     const range = localDayHistoryRange(new Date());
-    const data = await fetchHistoryRange('AmbientWeatherWS2902A_WindGust', range.starttime, range.endtime);
-    windGustMaxToday = maxHistoryValue(data);
+    if (!range) return;
+    return gustRefresh.run(
+      signal => fetchHistoryRange('AmbientWeatherWS2902A_WindGust', range.starttime, range.endtime, signal, true),
+      data => {
+        if (range.starttime !== localDayHistoryRange(new Date()).starttime) return;
+        windGustMaxToday = maxHistoryValue(data);
+      },
+    );
   }
 
   const SPARK_REFRESH_MS = 300000; // 5 minutes
@@ -196,8 +203,10 @@
       outdoorTodayHistory = [];
       indoorTodayHistory = [];
       loadToday = null;
+      windGustMaxToday = null;
       refreshTemperatureHistory();
       refreshLoadToday();
+      refreshWindGustMaxToday();
     }
   }
 
@@ -233,6 +242,7 @@
     temperatureRefresh.destroy();
     bitcoinRefresh.destroy();
     loadRefresh.destroy();
+    gustRefresh.destroy();
     if (sparkRefreshTimer) clearInterval(sparkRefreshTimer);
     if (wallClockTimer) clearInterval(wallClockTimer);
     document.removeEventListener('visibilitychange', handleDayVisibility);
