@@ -94,11 +94,16 @@ clock failures return a constant503 error rather than stale measurements.
 The collector still reports receiver receipts, not cryptographically authenticated
 sensor measurements. Policy matching cannot prove physical ownership or protect
 an unauthenticated receiver from deliberately forged HTTP input. Production
-deployment must preserve/verify the trusted relay ingress boundary and expose
-the endpoint only to its intended local reader. This implementation adds no
+deployment must preserve/verify the trusted relay ingress boundary. Capture and
+the evidence endpoint accept loopback peers only (127.0.0.1/::1), ignoring
+forwarding headers in the current unproxied Flask app. Nonlocal weather requests
+retain legacy behavior but cannot populate evidence; nonlocal evidence reads
+return404. Local processes and WSGI peer metadata are the trust boundary, not
+proof against a hostile same-host process or a future misconfigured proxy.
+This implementation adds no
 credential, arbitrary URL, file write, learning or control surface.
 
-Verification:65focused tests total (38builder,19collector/Flask,3actual-receiver
+Verification:67focused tests total (38builder,21collector/Flask,3actual-receiver
 comparisons,5existingcharacterizations). The actual installed weather.py is
 loaded twice with disposable state, blocked requests.Session traffic, dummy auth
 and fixed receiver time. Disabled/enabled/forced-capture-failure modes produce

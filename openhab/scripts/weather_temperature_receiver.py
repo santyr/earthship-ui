@@ -88,7 +88,7 @@ def install_temperature_evidence(app, *, enabled=False, policies=None, clock=Non
 
     @app.before_request
     def capture_temperature_receipt():
-        if request.method == 'GET' and request.path == '/weather':
+        if request.method == 'GET' and request.path == '/weather' and request.remote_addr in {'127.0.0.1', '::1'}:
             try:
                 collector.observe(request.args)
             except Exception:
@@ -97,6 +97,8 @@ def install_temperature_evidence(app, *, enabled=False, policies=None, clock=Non
         return None
 
     def evidence_response():
+        if request.remote_addr not in {'127.0.0.1', '::1'}:
+            return '', 404
         try:
             response = jsonify(collector.snapshot())
         except Exception:

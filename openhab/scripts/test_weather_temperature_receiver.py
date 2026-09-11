@@ -124,6 +124,26 @@ def test_foreign_packet_does_not_renew_expected_source(setup):
     assert collector.snapshot() == old
 
 
+def test_nonlocal_weather_request_keeps_legacy_route_but_cannot_create_evidence(setup):
+    app, collector, _, _ = setup
+    client = app.test_client()
+    response = client.get('/weather', query_string=PACKET,
+                          environ_overrides={'REMOTE_ADDR': '192.168.1.99'},
+                          headers={'X-Forwarded-For': '127.0.0.1'})
+    assert response.text == 'legacy response'
+    assert collector.snapshot()['records']['indoor'] is None
+    assert client.get('/temperature_evidence', environ_overrides={'REMOTE_ADDR': '192.168.1.99'},
+                      headers={'X-Forwarded-For': '127.0.0.1'}).status_code == 404
+
+
+def test_loopback_v6_receipt_and_reader_are_allowed(setup):
+    app, collector, _, _ = setup
+    client = app.test_client()
+    client.get('/weather', query_string=PACKET, environ_overrides={'REMOTE_ADDR': '::1'})
+    assert collector.snapshot()['records']['indoor']['status'] == 'valid'
+    assert client.get('/temperature_evidence', environ_overrides={'REMOTE_ADDR': '::1'}).status_code == 200
+
+
 def test_snapshot_cannot_mutate_internal_state(setup):
     _, collector, _, _ = setup
     collector.observe(PACKET)
