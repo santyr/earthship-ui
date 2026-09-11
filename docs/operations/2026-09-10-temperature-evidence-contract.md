@@ -10,8 +10,9 @@ is not wired into production or any learning consumer.
 The operator-approved ID-only relay survey observed WH32B235 on September10
 18:32:12MDT; a later bounded journal check found no additional surveyed IDs.
 That is an observed identity, not proof of physical ownership or exclusivity.
-Outdoor WH65B/WH24 is filtered to206 by the relay; its current forwarded payload
-omits the ID. North-wall WH31E193 is explicit in live OpenHAB. New accepted
+Outdoor WH65B/WH24 is filtered to206 by the relay; its initial forwarded payload
+omitted the ID. Forwarding is now installed as recorded in the receipt below.
+North-wall WH31E193 is explicit in live OpenHAB. New accepted
 outdoor evidence must require the actual forwarded ID, not inject206 in the
 receiver merely because it expects that station.
 
@@ -173,3 +174,12 @@ The new optional receiver still requires its separate policy and deployment.
 Read-only receiver health after restart reports outdoor packet receipt
 19:18:59MDT, age1second and aggregateok. That confirms normal packet reception,
 not field-qualified evidence or an end-to-end persisted identity record.
+
+## Whole-script release verification
+
+The complete openhab/scripts pytest suite passed849tests and42subtests in
+144.44seconds at the fe4ec7f implementation plus documentation corrections.
+This includes the95focused evidence/relay cases. Production readback still
+shows gunicorn --workers1 --bind0.0.0.0:5000 weather:app, active; the optional
+weather_evidence_wsgi.py is absent from /home/sat/bin. Merging repository source
+does not select that entrypoint, install policy or activate a learning reader.

@@ -58,3 +58,13 @@ the valid state in effect at the target, with independent freshness, rather
 than the nearest change event. The old learned history must not be relabeled or
 reset, and no retrospective synthetic origin can count as validated training.
 Temperature outcome attribution and the broader all-algorithm audit remain open.
+
+Subsequent correction: the operator-approved indoor ID-only survey observed
+WH32B235, still awaiting physical ownership confirmation. Outdoor206 ID
+forwarding is now installed in the relay with the original filter and all
+weather values preserved. The optional temperature evidence collector and
+startup wrapper are implemented and tested but not selected by the live service.
+See [temperature evidence contract](2026-09-10-temperature-evidence-contract.md)
+for exact source hashes, isolated tests and the current deployment boundary.
+These follow-ups do not repair or qualify the legacy receiver's fallback/health
+semantics characterized above.

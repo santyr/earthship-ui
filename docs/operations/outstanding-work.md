@@ -152,6 +152,29 @@ remain in Git.
 | Task 21: live winter timezone verification | Pending November MST verification; summer checks cannot satisfy its explicit requirement. | Inspect actual winter data after transition, including sunny/cloudy boundary cases and calibration attribution. |
 | Task 22: rain/wind learned corrections | Task description explicitly defers rain and requires a wind consumer, scoring, and renewed approval. | Resolve deferred scope with operator; satisfy outcome/scoring prerequisites before implementing learned gains. |
 
+## Weather temperature evidence implementation
+
+Additive temperature receipt evidence is implemented through fe4ec7f, with an
+explicit model/ID/range/expiry policy, atomic value/receipt/expiry records,
+process epochs, clock-rollback and expiry handling, loopback-only capture/read,
+and an optional default-off WSGI entrypoint. Missing/invalid fields never renew
+saved fallback temperatures. Exact configuration and deployment boundaries:
+[temperature evidence contract](2026-09-10-temperature-evidence-contract.md).
+
+Full script verification passed849tests and42subtests in144.44seconds, including
+95focused source/receiver/configuration cases. The actual receiver was exercised
+only with disposable state and blocked network; disabled/enabled/failed capture
+produced identical legacy responses and saved weather/rain state.
+
+The only installed production change is outdoor relay ID forwarding, preserving
+the existing206filter and all weather conversions, with exact backup/source
+hashes and restart/readback recorded in the contract. Both services are active;
+the receiver still runs gunicorn weather:app. No evidence wrapper, policy file,
+OpenHAB evidence persistence or scoring reader is active. Indoor235 was observed
+but physical ownership confirmation remains pending. Natural per-field history,
+expiry/restart/ingress qualification and learned scoring cutover remain open.
+Packet health and display fallbacks cannot substitute for that evidence.
+
 ## Existing battery ownership and definitions
 
 Solar_PV analytics owns quantitative PostgreSQL history and scheduled
