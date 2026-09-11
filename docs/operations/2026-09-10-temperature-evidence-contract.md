@@ -116,3 +116,32 @@ Not yet installed: relay ID forwarding, actual service import/configuration,
 production identity/range/TTL/ingress qualification, natural expiry/restart
 records, OpenHAB atomic persistence and scoring reader cutover. The isolated
 integration closes the adapter implementation/equivalence step only.
+
+## Optional startup wrapper and policy loading
+
+`weather_evidence_wsgi.py` exports the existing `weather.app` and invokes the
+configuration adapter. The existing gunicorn service still uses weather:app;
+neither its command nor installed sources were changed. A future switch to
+weather_evidence_wsgi:app alone does not enable capture.
+
+Only WEATHER_TEMP_EVIDENCE_ENABLE exactly equal to string1 reads
+WEATHER_TEMP_EVIDENCE_POLICY. That variable must name an absolute path to an
+owned regular file not writable by group/others. Reading uses a no-follow,
+nonblocking file descriptor (rejecting symlinks, FIFOs and directories), checks
+size and reads at most8193bytes with an8192byte limit. JSON duplicate keys,
+nonfinite constants, unknown fields and implicit policy values are rejected.
+The exact document shape is version=1 plus streams mapping names to model,
+sensor_id, minimum_f, maximum_f and validity_seconds. There is no installed
+production policy, default identity or default acceptance range.
+
+Disabled mode performs no policy read or app mutation. Invalid enabled
+configuration emits a constant sanitized warning and retains the legacy app
+without an evidence endpoint. Collection still requires reviewed identity,
+range/expiry and ingress decisions; malformed settings never fall back to
+wildcard collection. Endpoint/policy errors cannot authorize learning.
+
+The23new configuration/wrapper tests plus67previous cases pass (90total).
+They cover exact enable semantics, strict schema/size/duplicate/nonfinite
+rejection, unsafe file kinds/permissions, sanitized startup failure, and the
+actual WSGI entrypoint with an isolated app in enabled/disabled modes. These
+checks do not qualify a production policy or constitute service deployment.
