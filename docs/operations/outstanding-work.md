@@ -479,6 +479,34 @@ rule backup is retained; see the audit's deployment receipt. Natural overnight
 boundary verification and independent power-source coverage qualification remain
 unfinished; installation alone does not establish either.
 
+### Bitcoin carry audit, September 10
+
+The live `hex_btc_24h_change` source still matches the September 5 SHA above.
+REST configuration confirms its default persistence service is JDBC. The
+[OpenHAB 5.2.1 implementation](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.persistence/src/main/java/org/openhab/core/persistence/extensions/PersistenceExtensions.java#L314-L339)
+sets the historical query end to the target, orders descending and requests one
+row. This is a held-state lookup, not an exact-time or nearest-change lookup.
+
+At September 10 20:00:45.313 MDT, the naturally triggered rule logged current
+76960 and historical 78043. A bounded read-only JDBC check at the corresponding
+September 9 cutoff found 78043 at 20:00:44.781223 MDT, followed by 78036 at
+20:01:14.773108 MDT. The logged historical value matches the preceding row;
+no manual rule run or Item update was used. This verifies carry semantics for
+this consumer, not feed freshness or completeness of all historical data.
+
+Home and modal candles retain their approved observation-only contract:
+first/high/low/last recorded values, empty intervals omitted, no fabricated
+carry candles. The three focused candle/component/modal suites passed all
+41 tests. No Bitcoin rule, chart behavior or persistence policy change was
+needed for this carry audit. Independent feed-health qualification remains
+separate from arithmetic and held-state semantics.
+
+Additional follow-up: `/home/sat/bin/bitcoin.py` contains a hard-coded provider
+API credential. Its current use has not been established. Do not copy its raw
+contents into reports or memory; verify consumers and coordinate credential
+rotation/externalization without interrupting the feed. No credential change
+was performed during this read-only audit.
+
 ### UI boundary follow-up
 
 Read-only REST requests plus the actual extrema helper reproduce missing
