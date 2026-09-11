@@ -85,8 +85,16 @@ Deployed imports/default policy and a real CLI dry run passed. All53historical
 rows in each daily battery/PV/load/weather table retained identical fingerprints.
 No controls, schedules, persistence or notification policy changed. Full receipt:
 Solar_PV `docs/operations/2026-09-10-bms-analytics-reader-verification.md`.
-The existing next daily run is September11 at00:21:25MDT; its completed
-materialization is still unverified and remains an open release follow-through.
+Natural materialization was verified September11: the scheduled service ran at
+00:21:29MDT, exited0 and materialized September10 into five tables with21source
+quality rows. JDBC readback confirms bank discover_4_module_2026 and atomic
+BMS quality provenance,679rows with29233.746037qualified seconds of86400
+(33.835354percent), correctly insufficient_data. Qualified observed SoC ranged
+92..100percent (8points observed DoD); these are partial-day observations, not
+proof of the full day's minimum or maximum. Daily/cumulative EFC readback was
+0.161628077692/8.296548462527 under the unchanged power accounting path.
+The first scheduled post-cutover materialization is now verified; a full
+qualified source day and source-health coverage remain pending.
 
 Release correction: a later caller audit found that the shared atomic source
 policy was also consumed by the live analytics quality/UI health evaluators,
@@ -478,6 +486,15 @@ Full verification:1,332tests/94files and production build passed. Private origin
 rule backup is retained; see the audit's deployment receipt. Natural overnight
 boundary verification and independent power-source coverage qualification remain
 unfinished; installation alone does not establish either.
+
+September11 read-only follow-through reconfirmed installed runtime action SHA
+8698b16a5e07a5fde653c6e74219886f78c2b6ec7740e5a8a8608c32c205a794,
+rule IDLE/NONE and naturally updated runtime Items (basis evening,4640minutes
+at the snapshot). There are no dedicated cache-window diagnostics in the
+installed action, and the bounded midnight/06:00 log check yielded no such
+evidence. Current output and correct source do not independently prove which
+private cache window was used at those boundaries. That verification remains
+open; no forced run, cache read/write or diagnostic control mutation was used.
 
 ### Bitcoin carry audit, September 10
 
