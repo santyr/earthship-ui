@@ -447,9 +447,14 @@ live runtime estimator: the first call before06:00 queries a future-ending
 window and caches its result for the whole date, including after completion.
 An isolated exact-function reproduction returned the early value at06:05 with
 no second query. See [runtime cache audit](2026-09-10-runtime-overnight-cache-audit.md).
-The correction should select/cache the latest completed local06:00 window,
-preserving weighted averaging and all estimator gates. Patch/tests/deployment
-and independent power-source coverage qualification remain unfinished.
+The correction now selects/caches the latest completed local06:00 window,
+preserving weighted averaging and all estimator gates. Source and guarded
+deployment adapter merged/pushed at b07af72; live script installed September10
+18:45MDT with original enable state restored and exact source/readback verified.
+Full verification:1,332tests/94files and production build passed. Private original
+rule backup is retained; see the audit's deployment receipt. Natural overnight
+boundary verification and independent power-source coverage qualification remain
+unfinished; installation alone does not establish either.
 
 ### UI boundary follow-up
 

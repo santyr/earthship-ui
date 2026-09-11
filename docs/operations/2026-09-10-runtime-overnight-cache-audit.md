@@ -145,3 +145,29 @@ passed. They cover request scope, redirects, deadlines, response bounds, invalid
 JSON, private backup permissions/digest/exclusivity and explicit mode selection.
 The live --check succeeded with writes=0 against the original script hash. This
 preflight alone is not proof of installation or natural post-reload behavior.
+
+## Production installation receipt — September10 18:45MDT
+
+Under the operator's standing approval for outstanding corrections, release
+`b07af72` was fast-forwarded and pushed to origin/main, then installed using the
+attended adapter. The integrated full suite passed1,332tests across94files;
+production build passed with the existing large-chunk warning.
+
+The complete original rule backup is retained at
+`/home/sat/.local/state/runtime-cache-release-Sukr95/original-rule.json`.
+Live permission readback confirms directory0700/file0600. The adapter verified
+the backup before disabling, original content while disabled, replacement
+content while disabled and final content/status after restoring enabled=true.
+Final script SHA-256 is
+`8698b16a5e07a5fde653c6e74219886f78c2b6ec7740e5a8a8608c32c205a794`.
+A subsequent independent GET confirms IDLE/NONE and the same source hash.
+At that readback raw time-to-discharge was7124min, smoothed7124.0min,
+time-to-full0.0min and basis=bms. These values are a state snapshot, not proof
+of a post-install trigger or correct overnight power coverage.
+
+No /runnow, Item-state test mutation, hardware command, scheduler, threshold,
+notification policy or BMS counter was changed. Only the exact rule's script
+and its brief disable/restore sequence were written. The original private
+script caches reseed through ordinary updates. The bounded event-log read did
+not establish a fresh trigger; natural midnight/06:00 behavior remains an open
+verification item. Do not mark the independent source-health audit complete.
