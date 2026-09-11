@@ -16,6 +16,8 @@ def test_disabled_descriptor_preserves_whole_envelope_with_no_control_or_policy_
     channel, = thing['channels']
     assert channel['kind'] == 'STATE' and channel['itemType'] == 'String'
     assert channel['id'] == 'snapshot' and channel['channelTypeUID'] == 'http:string'
+    assert channel['defaultTags'] == []
+    assert channel['properties'] == {}
     assert channel['configuration'] == {'mode': 'READONLY'}  # no field extraction or command transform
     assert channel['uid'] == 'http:url:weatherTemperatureEvidence:snapshot'
     item, = descriptor['items']

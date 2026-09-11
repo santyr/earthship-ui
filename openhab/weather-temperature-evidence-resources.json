@@ -22,6 +22,8 @@
           "kind": "STATE",
           "itemType": "String",
           "label": "Complete temperature evidence snapshot",
+          "defaultTags": [],
+          "properties": {},
           "configuration": {"mode": "READONLY"}
         }
       ]
