@@ -29,15 +29,14 @@
       ...echartsTheme,
       grid: { left: 0, right: 0, top: 4, bottom: 0, containLabel: false },
       xAxis: {
-        type: 'category',
+        type: 'time',
         show: false,
-        data: prepared.map((point) => point.time),
-        boundaryGap: false,
+        boundaryGap: [0, 0],
       },
       yAxis: { type: 'value', show: false, scale: true },
       series: [{
         type: 'line',
-        data: prepared.map((point) => point.value),
+        data: prepared.map((point) => [point.time, point.value]),
         showSymbol: false,
         smooth: false,
         connectNulls: true,
