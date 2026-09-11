@@ -72,3 +72,42 @@ missing fields, malformed/foreign IDs, unchanged-value receipts, ignored request
 timestamps, no saved fallback, outdoor alias/ID requirement, duplicate fields,
 explicit epochs/timezones and policy bounds. No production source, service,
 Item, persistence or learned-state change was made by this foundation.
+
+## Optional receiver integration — isolated verification
+
+`weather_temperature_receiver.py` now supplies an optional Flask extension.
+Only literal enabled=True plus explicit1–3named policies registers a raw GET
+/weather before-request hook and additive GET /temperature_evidence endpoint.
+Disabled mode registers neither and does not inspect configuration. Existing
+endpoint collisions refuse installation before modifying the app.
+
+Each process owns a new UUID and initially null records (unknown, never restored
+fallbacks). PID changes also invalidate a preloaded/forked collector. A locked
+snapshot checks both aware wall time and monotonic elapsed time: expiry at the
+exact deadline is irreversible until another valid packet arrives. Clock
+rollback clears the epoch and all observations. Polling does not refresh receipt
+timestamps, and snapshots are copies rather than mutable internal references.
+No-store responses prevent HTTP caches presenting old evidence as current.
+Capture failures clear evidence and preserve legacy request handling; endpoint
+clock failures return a constant503 error rather than stale measurements.
+
+The collector still reports receiver receipts, not cryptographically authenticated
+sensor measurements. Policy matching cannot prove physical ownership or protect
+an unauthenticated receiver from deliberately forged HTTP input. Production
+deployment must preserve/verify the trusted relay ingress boundary and expose
+the endpoint only to its intended local reader. This implementation adds no
+credential, arbitrary URL, file write, learning or control surface.
+
+Verification:65focused tests total (38builder,19collector/Flask,3actual-receiver
+comparisons,5existingcharacterizations). The actual installed weather.py is
+loaded twice with disposable state, blocked requests.Session traffic, dummy auth
+and fixed receiver time. Disabled/enabled/forced-capture-failure modes produce
+identical legacy HTTP bodies, diagnostics, health, full previous_data state and
+saved JSON bytes across outdoor rain/temp, missing/invalid temp, indoor,
+north-wall and foreign-ID packets. Evidence independently rejects fallback and
+foreign overwrite. These tests do not send anything to production.
+
+Not yet installed: relay ID forwarding, actual service import/configuration,
+production identity/range/TTL/ingress qualification, natural expiry/restart
+records, OpenHAB atomic persistence and scoring reader cutover. The isolated
+integration closes the adapter implementation/equivalence step only.

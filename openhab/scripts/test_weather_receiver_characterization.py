@@ -15,8 +15,7 @@ import requests
 SOURCE = Path('/home/sat/bin/weather.py')
 
 
-@pytest.fixture
-def receiver(monkeypatch, tmp_path):
+def load_isolated_receiver(monkeypatch, tmp_path):
     if not SOURCE.is_file():
         pytest.skip('host receiver source unavailable')
     pytest.importorskip('flask')
@@ -46,6 +45,11 @@ def receiver(monkeypatch, tmp_path):
     assert Path(module.previous_data_file) == state
     assert module._last_update == {}
     return module
+
+
+@pytest.fixture
+def receiver(monkeypatch, tmp_path):
+    return load_isolated_receiver(monkeypatch, tmp_path)
 
 
 def test_empty_sensor_map_reports_ok_without_any_field_observation(receiver):
