@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "streams": {
+    "outdoor": {"model": "Fineoffset-WH65B", "sensor_id": 206, "minimum_f": -40, "maximum_f": 140, "validity_seconds": 120},
+    "indoor": {"model": "Fineoffset-WH32B", "sensor_id": 235, "minimum_f": -40, "maximum_f": 140, "validity_seconds": 120},
+    "north_wall": {"model": "AmbientWeather-WH31E", "sensor_id": 193, "minimum_f": -40, "maximum_f": 140, "validity_seconds": 120}
+  }
+}
