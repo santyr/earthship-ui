@@ -4,7 +4,7 @@ import json, os, subprocess, sys, tempfile, time
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 sys.path[:0] = ['/home/sat/earthship-ui/openhab/scripts', '/home/sat/Solar_PV/analytics/src']
 import openhab_sanity_check as oh
 from earthship_energy.db import parse_openhab_jdbc_config
@@ -36,7 +36,8 @@ def validate(i):
     assert not i.get('metadata')
 
 def same_number(left, right):
-    a,b=Decimal(left),Decimal(right)
+    try:a,b=Decimal(left),Decimal(right)
+    except (InvalidOperation, TypeError, ValueError):return False
     return a.is_finite() and b.is_finite() and a==b
 
 def wait(provider, state=None):
