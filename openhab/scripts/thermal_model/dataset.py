@@ -125,11 +125,16 @@ def _bucket_series(series_by_role, start, end):
             at = _utc(at, f"series {role} timestamp")
             if not start <= at < end:
                 continue
+            bucket = _floor_five(at)
             try:
+                if isinstance(raw_value, bool):
+                    raise ValueError('boolean is not a measurement')
                 value = float(raw_value)
             except (TypeError, ValueError):
+                # The input can be a direct/raw reader as well as the CLI.
+                # Explicit invalid readings must block gap filling, not vanish.
+                non_finite.add(bucket)
                 continue
-            bucket = _floor_five(at)
             if math.isfinite(value):
                 grouped[bucket].append(value)
             else:
