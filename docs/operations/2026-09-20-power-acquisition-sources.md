@@ -153,3 +153,14 @@ Things disabled, stage the observer triggerless then disabled, add reviewed
 triggers and links only after exact ownership/posture checks, and compare
 protected controls/persistence/pollers with a private baseline. No power resource
 has yet been installed or activated by this preflight.
+
+The fixed-scope provider-add helper is now tracked at
+`scripts/openhab-power-install-action.js`. It permits only preflight/items/links,
+adds exactly four named String Items or three links, refuses collisions, requires
+disabled source Things without configured write registers before linking, and
+rejects changed Item labels/types/category/groups/tags. It never updates/removes
+providers or writes states/commands.12deny-by-default VM tests pass, including
+partial failure without retries and service-reference cleanup;1510full unit tests
+pass. Live preflight verified installed providers and zero-created receipt via
+`hex_power_install_1bd8524926c34f6faa108334c5e0a134`, then removed that exact
+temporary diagnostic. Actual resource installation has not yet run.

@@ -29,6 +29,14 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
 
 ### Operational checkpoint
 
+- First natural qualified-temperature training completed and promoted at
+  September20 08:44:23MDT. Installed pure validators accepted the new eligible
+  model and backtest report; prior accepted generation was preserved. Post-cutover
+  evidence:air149/149,mass148/149(with1missing),outdoor149/149. Older training
+  history remains explicitly legacy. See [training receipt](2026-09-20-natural-qualified-training.md).
+  Training is terminal; the pending daily-temperature release is no longer
+  blocked by that process. New-artifact shadow output remains to verify.
+
 - Temperature receipt collection and qualified hourly learning are enabled and
   deployed. Indoor235 is operator-confirmed. All three streams have naturally
   persisted receipts; the installed restricted worker passed post-cutover reads.
