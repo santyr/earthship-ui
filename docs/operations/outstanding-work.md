@@ -873,6 +873,12 @@ API credential. Its current use has not been established. Do not copy its raw
 contents into reports or memory; verify consumers and coordinate credential
 rotation/externalization without interrupting the feed. No credential change
 was performed during this read-only audit.
+September20 clarification: the live feed executes the distinct Bash script at
+`/etc/openhab/scripts/bitcoin.py`, still matching the validated tracked version
+and using externalized Strike credentials. Exec result/time channels are
+currently unlinked and publish separately; a timestamp alone is not a successful
+price receipt. See the updated feed-validation audit. Legacy credential cleanup
+and independently correlated feed-health evidence remain separate open work.
 
 ### UI boundary follow-up
 

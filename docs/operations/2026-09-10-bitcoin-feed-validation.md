@@ -62,3 +62,21 @@ price 79398, percent change 2.788566 and corresponding fresh update timestamps.
 The installed hash was rechecked. This completes parser deployment and natural
 success-path verification, not historical feed-health coverage or an induced
 production failure test. Invalid-response behavior remains verified offline.
+
+## September 20 health-contract audit
+
+The installed Bash script still matches the tracked replacement byte-for-byte
+and the deployed SHA256 above. Its Strike credential remains externalized;
+the legacy CoinMarketCap helper is a separate file, not this Exec Thing's target.
+Do not conflate cleanup/rotation of the legacy credential with the live feed.
+
+The live Exec Thing exposes output, input, exit, run, lastexecution, stdout and
+stderr channels, but only output is linked (to the price Item). Inspection of
+the installed 5.2.1 ExecHandler confirms stdout/stderr/output are published
+separately and lastexecution is posted after output. It is an execution marker,
+not an atomic successful-price receipt. Simply linking its timestamp or reading
+the retained exit code beside an old price is insufficient to qualify historical
+price freshness. A health design needs same-execution correlation and explicit
+failure/timeout barriers; unchanged valid prices must still renew success.
+No channel links, script, credential, polling schedule or production state were
+changed by this audit, and no provider API request was made by the agent.
