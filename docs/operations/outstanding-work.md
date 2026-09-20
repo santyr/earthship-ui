@@ -41,7 +41,7 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Physical-source faults and full-openHAB restart were not induced.
 
 - Qualified power accounting remains **source-only**, Solar_PV branch
-  `feat/qualified-power-accounting` at`232047a`; all660analytics tests pass.
+  `feat/qualified-power-accounting` at`ec810ed`; all671analytics tests pass.
   Implemented: bounded evidence transport; battery/PV energy and EFC using exact
   qualified intervals; daily and solar-noon composition with matching source
   quality; common-support PV efficiency; explicit legacy/cutover provenance.
@@ -68,6 +68,12 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   all1513UI/observer unit tests pass. Historical gaps remain unqualified;
   collection stays active and no accounting activation occurred. See the
   [sequence-gap evidence](2026-09-20-power-persistence-sequence-gaps.md).
+  An explicit `report power` consumer now reads the bounded qualified revision
+  series and exports JSON/Markdown with policy/cutover/as-of and per-day revision
+  provenance/coverage. Missing dates remain listed and empty totals remain null;
+  observed-window EFC is not mixed with lifetime/legacy estimates. Real isolated
+  PostgreSQL verifies latest lower-coverage correction selection. This additive
+  report does not migrate the legacy monthly/lifecycle/winter commands or UI.
   **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or
