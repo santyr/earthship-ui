@@ -126,3 +126,9 @@ OpenHAB 5.2.1 parser in a bounded, offline JVM. It verifies syntax, selector typ
 and strategy tokens; malformed syntax was rejected. Runtime built-in strategy
 resolution, provider transfer and restore/rollback still need live qualification.
 The harness uses installed jars, never the running OpenHAB process or REST writes.
+
+The exact prepared JDBC strategy DTO has subsequently passed actual file-provider
+readback in a disconnected disposable OpenHAB5.2.1 instance. See
+`docs/operations/2026-09-20-persistence-provider-qualification.md`. Production
+remains managed. Actual JDBC write/restore behavior, provider rollback and
+collection-gap handling still require qualification before production cutover.
