@@ -3,6 +3,8 @@
 const { items, cache } = require('openhab');
 const Instant = Java.type('java.time.Instant');
 const UUID = Java.type('java.util.UUID');
+const ZonedDateTime = Java.type('java.time.ZonedDateTime');
+const Persistence = Java.type('org.openhab.core.persistence.extensions.PersistenceExtensions');
 const now = Number(Instant.now().toEpochMilli());
 const TTL = 120000;
 const KEY = 'earthship.power-evidence.v1';
@@ -122,10 +124,30 @@ const previous = state.lastPublished;
 // Every accepted receipt must be published: suppressing changed timestamps
 // would erase field-specific expiry and invalidation history.
 if (!previous || JSON.stringify(previous.fields) !== JSON.stringify(fields)) {
+  // Consume identity even on an ambiguous enqueue exception. Retrying a changed
+  // payload under the same sequence would hide a possible missing publication.
+  state.sequence = next.sequence;
   try {
-    items.getItem(OUTPUT).postUpdate(JSON.stringify(next));
-    state.sequence = next.sequence;
+    const output = items.getItem(OUTPUT);
+    const encoded = JSON.stringify(next);
+    let stamp = ZonedDateTime.now();
+    stamp = stamp.withNano(Math.floor(stamp.getNano() / 1000) * 1000);
+    if (state.lastPersistenceAt && !stamp.isAfter(state.lastPersistenceAt)) {
+      stamp = state.lastPersistenceAt.plusNanos(1000);
+    }
+    state.lastPersistenceAt = stamp;
+    // Automatic change persistence MUST exclude this Item before activation.
+    // This overload queues the immutable value, never a later Item.getState().
+    // Acceptance is not a durability acknowledgement: readers still detect gaps.
+    Persistence.persist(output.rawItem, stamp, encoded, 'jdbc');
     state.lastPublished = next;
-  } catch (_) { console.warn('Power evidence publication failed'); }
+    state.pendingPost = encoded;
+  } catch (_) { console.warn('Power evidence persistence enqueue failed'); }
+}
+if (state.pendingPost) {
+  try {
+    items.getItem(OUTPUT).postUpdate(state.pendingPost);
+    state.pendingPost = null;
+  } catch (_) { console.warn('Power evidence state publication failed'); }
 }
 cache.private.put(KEY, state);

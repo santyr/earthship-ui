@@ -11,6 +11,15 @@ const definitions = [
 function harness() {
   const state = new Map();
   const posts = [];
+  const queued = [];
+  const rawItem = { name: 'Power_Evidence_JSON' };
+  let persistenceFailure = null;
+  const timestamp = micros => ({ micros,
+    getNano: () => (micros % 1000000) * 1000,
+    withNano: nanos => timestamp(Math.floor(micros / 1000000) * 1000000 + nanos / 1000),
+    isAfter: other => micros > other.micros,
+    plusNanos: nanos => timestamp(micros + nanos / 1000),
+  });
   let now = 1800000000000, epoch = 0, fail = false;
   const denied = () => { throw new Error('forbidden capability'); };
   const run = event => vm.runInNewContext(source, {
@@ -20,13 +29,23 @@ function harness() {
       return { cache: { private: { get: k => state.get(k), put: (k, v) => state.set(k, v) } },
         items: { getItem: name => {
           expect(name).toBe('Power_Evidence_JSON');
-          return { get state() { return denied(); }, sendCommand: denied,
+          return { rawItem, get state() { return denied(); }, sendCommand: denied,
             postUpdate: text => { if (fail) throw new Error('injected'); posts.push(JSON.parse(text)); } };
         } } };
     },
     Java: { type: name => {
       if (name === 'java.time.Instant') return { now: () => ({ toEpochMilli: () => now }) };
       if (name === 'java.util.UUID') return { randomUUID: () => ({ toString: () => `epoch-${++epoch}` }) };
+      if (name === 'java.time.ZonedDateTime') return { now: () => timestamp(now * 1000) };
+      if (name === 'org.openhab.core.persistence.extensions.PersistenceExtensions') return {
+        persist: (item, stamp, encoded, service) => {
+          expect(item).toBe(rawItem); expect(service).toBe('jdbc');
+          expect(typeof encoded).toBe('string');
+          if (persistenceFailure === 'before') throw new Error('rejected');
+          queued.push({ stamp, encoded });
+          if (persistenceFailure === 'after') throw new Error('ambiguous enqueue');
+        },
+      };
       return denied();
     } },
   }, { timeout: 1000 });
@@ -38,7 +57,8 @@ function harness() {
       getSource: () => `org.openhab.core.thing$modbus:data:${bridge}:powerObservation:string`,
       getItemState: () => JSON.stringify(record), ...overrides };
   };
-  return { run, event, posts, state, advance: (ms = 5000) => { now += ms; },
+  return { run, event, posts, state, queued, persistenceFail: mode => { persistenceFailure = mode; },
+    advance: (ms = 5000) => { now += ms; },
     get now() { return now; }, get latest() { return posts.at(-1); },
     fail: value => { fail = value; } };
 }
@@ -146,6 +166,21 @@ it('publication failure does not acknowledge the missing update', () => {
   h.fail(false); h.run();
   expect(h.latest.fields['battery.dc_power_w'].status).toBe('valid');
   expect(h.latest.sequence).toBe(2);
+  expect(h.queued).toHaveLength(2); // retry only the UI post, not the persisted record
+});
+
+it('queued immutable values survive subsequent Item updates', () => {
+  const h = harness(); h.run(); h.advance();
+  h.run(h.event(definitions[0], '100')); h.advance(); h.run(h.event(definitions[0], '200'));
+  expect(h.queued.map(q => JSON.parse(q.encoded).fields['battery.dc_power_w'].watts))
+    .toEqual([null, 100, 200]);
+});
+
+it.each(['before', 'after'])('consumes sequence on %s enqueue failure without identity reuse', mode => {
+  const h = harness(); h.run(); h.advance(); h.persistenceFail(mode);
+  h.run(h.event(definitions[0])); h.persistenceFail(null); h.run();
+  expect(h.latest.sequence).toBe(3);
+  expect(h.queued.map(q => JSON.parse(q.encoded).sequence)).toEqual(mode === 'before' ? [1, 3] : [1, 2, 3]);
 });
 
 it('orders same-millisecond publications with a per-epoch sequence', () => {
@@ -153,6 +188,7 @@ it('orders same-millisecond publications with a per-epoch sequence', () => {
   h.run(h.event(definitions[0])); h.run(h.event(definitions[1]));
   expect(h.posts.at(-2).recordedAt).toBe(h.latest.recordedAt);
   expect(h.posts.map(p=>p.sequence)).toEqual([1,2,3]);
+  expect(h.queued[2].stamp.micros-h.queued[1].stamp.micros).toBe(1);
   h.state.clear(); h.run(); expect(h.latest.sequence).toBe(1);
 });
 
