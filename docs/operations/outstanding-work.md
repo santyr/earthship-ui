@@ -39,7 +39,13 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   records across all three fields; battery naturally repeated a watt value with
   a fresh acquisition receipt. The production parser and interval builder passed
   against actual PostgreSQL rows. All four new resources were disabled again.
-  Expiry/restart and sustained storage-rate qualification are still outstanding.
+  Observer-only restart/expiry is now verified: a new unavailable epoch,
+  fresh post-reset recovery, then natural stale publication after observation
+  inputs were paused. Persisted-history integration clips each field at its
+  exact120-second expiry, not the later timer tick. All29probe records pass the
+  strict parser;129JS and72Python targeted tests pass. Sustained storage-rate
+  evaluation and accounting integration remain outstanding. This is not a
+  physical-source-fault or full-openHAB-restart qualification.
 
 - Qualified daily/day-3 temperature learning is now deployed and enabled with
   actual cutover2026-09-20T14:52:58.582165Z. Five runtime files verified, protected

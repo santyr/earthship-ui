@@ -71,3 +71,35 @@ Current Item states retain the last probe record; consumers must respect its
 embedded expiry and must not treat disabled collection as fresh telemetry.
 All new acquisition Things and the observer remain disabled. Persisted probe
 history is retained and must not be represented as a full-day coverage result.
+
+## Observer restart and expiry qualification
+
+The next bounded test enabled the observer while all three new acquisition
+Things remained disabled. Its normal cron published a new epoch
+`6b7d4a08-ebe5-464e-8fcc-57920129321b`, sequence1, all fields unavailable,
+persisted at `2026-09-20T15:09:01.022283Z`. Old Item state did not authenticate
+fresh coverage. Enabling only the three new Things recovered every field from
+post-reset receipts by sequence4. Those Things were then disabled again while
+the observer's ordinary expiry timer remained active.
+
+Sequence5 marked all fields `input_stale`, with null watts and receipt times;
+it persisted at `2026-09-20T15:11:30.969108Z`. The production parser accepted
+all29 historical records from both probes. The production interval builder
+clipped this epoch's final coverage exactly to each embedded expiry:
+
+| Field | Last qualified endpoint (UTC) | Qualified seconds |
+| --- | --- | --- |
+| Battery | 15:11:05.517 | 119.988658 |
+| PV input | 15:11:03.766 | 119.992811 |
+| PV output | 15:11:02.437 | 119.991974 |
+
+The later timer/persistence time did not extend coverage. Publication delays
+remain unqualified. Cleanup disabled the observer and all three new Things and
+verified their readbacks. Existing rules, Thing definitions and persistence
+still matched the original installation baseline. No physical source fault or
+whole-openHAB restart was induced; these results qualify observer cache reset
+and acquisition pause, not every infrastructure failure mode.
+
+Private sampled-state receipt: `/tmp/hex-power-lifecycle-ttvj9ab3`.
+Targeted regression rerun:129JavaScript tests and72Python tests passed.
+Sustained volume/retention evaluation and accounting integration remain open.
