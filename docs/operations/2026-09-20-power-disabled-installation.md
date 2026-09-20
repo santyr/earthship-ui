@@ -42,3 +42,32 @@ changed. Do not replay the add-only installer against these now-existing IDs.
 The approved file-first policy change and migration remain ordered after the
 in-flight power-evidence work. This installation does not transfer configuration
 ownership or weaken protected-control migration gates.
+
+## Bounded live acquisition qualification
+
+At 09:05 MDT a 40-second observation enabled only the new observer and three
+new data Things. Cleanup disabled all four again and verified their disabled
+readbacks. No existing poller or control was changed.
+
+PostgreSQL created `item0648` for `Power_Evidence_JSON`; input tables are
+`item0647` (PV output), `item0649` (PV input), `item0650` (battery).
+Exactly 24 output records persisted between
+`2026-09-20T15:05:22.557696Z` and `2026-09-20T15:06:01.402689Z`.
+All passed the staged production `parse_power_evidence` validator using original
+persistence timestamps. One epoch, contiguous sequences1–24, maximum486bytes.
+The production interval builder accepted all three field histories, producing
+7battery/8PV-input/7PV-output qualified segments in the bounded window.
+
+Battery evidence included one naturally unchanged watt reading with a newer
+acquisition receipt. That establishes unchanged-value receipt renewal for this
+field; neither PV field happened to repeat during this short probe. The
+observer's strict original-event source checks accepted actual binding events.
+No new observer error was found. Sampled REST states are retained privately at
+`/tmp/hex-power-live-probe-dq7rwkcn`; the authoritative history is PostgreSQL,
+not the subsampled REST receipt.
+
+This is not continuous-collection activation or lifecycle/expiry qualification.
+Current Item states retain the last probe record; consumers must respect its
+embedded expiry and must not treat disabled collection as fresh telemetry.
+All new acquisition Things and the observer remain disabled. Persisted probe
+history is retained and must not be represented as a full-day coverage result.

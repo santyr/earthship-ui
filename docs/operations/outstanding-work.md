@@ -35,6 +35,11 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   No live collection or accounting cutover is claimed; binding-event, persistence,
   lifecycle and storage-rate qualification remain. See the
   [disabled installation receipt](2026-09-20-power-disabled-installation.md).
+  A subsequent40-second live probe persisted24strictly valid, contiguous evidence
+  records across all three fields; battery naturally repeated a watt value with
+  a fresh acquisition receipt. The production parser and interval builder passed
+  against actual PostgreSQL rows. All four new resources were disabled again.
+  Expiry/restart and sustained storage-rate qualification are still outstanding.
 
 - Qualified daily/day-3 temperature learning is now deployed and enabled with
   actual cutover2026-09-20T14:52:58.582165Z. Five runtime files verified, protected
