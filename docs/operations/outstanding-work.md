@@ -7,6 +7,14 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 20, 2026
 
+### Explicit active goal: graduate the thermal model from shadow
+
+Operator reaffirmed that Hex must perform the requisite work, without rushing
+or forgetting it. Hexmem task99 and the [graduation workstream](thermal-model-graduation.md)
+track historical tuning, confirmed action/outcome evidence, numerical acceptance
+criteria, advisory integration and verified deployment. Model fitting and shadow
+publication alone do not close this goal; automatic actuation is separate.
+
 Latest UI follow-up: `051ed57` restores outdoor chart forecasts from corrected
 hourly JSON rather than absent future `Forecast_Temp` persistence; indoor charts
 use validated thermal trajectories explicitly labeled shadow model. Current-day
