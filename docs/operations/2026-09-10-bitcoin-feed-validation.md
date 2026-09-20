@@ -80,3 +80,11 @@ price freshness. A health design needs same-execution correlation and explicit
 failure/timeout barriers; unchanged valid prices must still renew success.
 No channel links, script, credential, polling schedule or production state were
 changed by this audit, and no provider API request was made by the agent.
+
+Source-only receipt draft: `openhab/transform/bitcoin_output_receipt.js` validates
+canonical integer output and emits local transform receipt time. Errors become
+null prices without copying stderr. Unchanged prices get new receipt times.
+No links or Items are installed. Installed profile/event identity, unchanged
+delivery, queue/restart behavior and failure/timeout expiry still need validation
+before any health consumer or historical coverage claim. Existing price links
+and API polling remain unchanged; focused VM tests verify the pure transform.
