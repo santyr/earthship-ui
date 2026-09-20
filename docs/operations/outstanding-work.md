@@ -34,8 +34,17 @@ are retained as evidence, not current-state claims.
   fully completed-night assessment remain unverified. No synthetic origin,
   forecast replay, test DM, or causal/bandit reward was manufactured.
 - Pump hour-selection and expired-busy fixes are deployed; natural East start
-  was observed. The concurrent15-minute rule change is preserved. A complete
-  natural timed cycle remains unverified; do not overwrite operator-owned timing.
+  was observed. The concurrent15-minute rule change is preserved. Natural South
+  start18:53:03.334 was curtailed safely at19:04:51.935 by the after-dark gate.
+  At19:08:03.336 its stale timer nevertheless advanced LastCycle and posted
+  cycle_completed. This is a verified reporting/ownership defect, not proof of
+  a full run. Fix the old callback's ownership check without changing timing
+  or safety gates. The bounded monitor finished; no monitor remains running.
+- Thermal invalid-history barrier correction5fc437a is merged and deployed:
+  timestamped UNDEF/NULL/bad states remain invalid rather than being dropped and
+  bridged by interpolation/hold.10regressions failed before the fix;118focused
+  and1031full tests plus42subtests pass. This does not migrate thermal learning
+  to receipt-qualified temperature history. See [receipt](2026-09-19-thermal-invalid-history.md).
 - Conformal intervals, weather/thermal outcome attribution, broad change-only
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82
