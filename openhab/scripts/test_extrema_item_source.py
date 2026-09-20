@@ -44,3 +44,12 @@ def test_missing_duplicate_and_linked_items_are_rejected():
     for bad in (items[:-1], items + [items[0]], [items[0]] * 4):
         with pytest.raises(ValueError): render(bad, [])
     with pytest.raises(ValueError): render(items, [{'itemName': items[0]['name']}])
+
+
+def test_explicit_file_owned_readback_preserves_source():
+    items = fixtures()
+    expected = render(items, [])
+    for item in items:
+        item['editable'] = False
+    assert render(items, [], provider=False) == expected
+    with pytest.raises(ValueError): render(items, [])

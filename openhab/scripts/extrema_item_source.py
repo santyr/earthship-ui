@@ -10,18 +10,18 @@ NAMES = {
 }
 
 
-def render(items, links):
+def render(items, links, provider=True):
     if len(items) != len(NAMES) or {i.get('name') for i in items} != set(NAMES):
         raise ValueError('exact four reviewed extrema Items required')
     if any(link.get('itemName') in NAMES for link in links):
         raise ValueError('linked extrema Items require separate review')
-    lines = ['// PREPARED ONLY: managed Items remain authoritative; do not bulk deploy.',
+    lines = ['// Git-owned temperature extrema; deploy only to the declared ownership destination.',
              '// Preserve rolling-24h secondary-screen semantics and existing stable IDs.',
              '// Main-page current-day extrema are separate. No explicit metadata override.', '']
     for item in sorted(items, key=lambda i: i['name']):
         name = item['name']
         label, group = NAMES[name]
-        if (item.get('type') != 'Number:Temperature' or item.get('editable') is not True
+        if (item.get('type') != 'Number:Temperature' or item.get('editable') is not provider
                 or item.get('label') != label or item.get('category') != 'temperature'
                 or sorted(item.get('tags', [])) != ['Point', 'Temperature']
                 or item.get('groupNames') != [group]):
@@ -37,5 +37,10 @@ def render(items, links):
 
 
 if __name__ == '__main__':
+    import argparse
     from openhab_sanity_check import get
-    print(render([get('/items/' + name + '?metadata=.*') for name in NAMES], get('/links')), end='')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--file-owned', action='store_true')
+    args = parser.parse_args()
+    print(render([get('/items/' + name + '?metadata=.*') for name in NAMES], get('/links'),
+                 provider=not args.file_owned), end='')

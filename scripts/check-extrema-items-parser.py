@@ -10,7 +10,7 @@ if len(parsers) != 1 or Path(parsers[0]).name != 'org.openhab.core.model.item-5.
     raise SystemExit('review installed parser version before qualification')
 result = subprocess.run(['java', '-Xmx256m', '--class-path', ':'.join(jars),
                          str(root / 'scripts/HexExtremaItemsParse.java'),
-                         str(root / 'openhab/file-config/drafts/temperature-extrema.items')],
+                         str(root / 'openhab/file-config/items/temperature-extrema.items')],
                         capture_output=True, text=True, timeout=45)
 actual = [line for line in result.stdout.splitlines()
           if line.startswith(('item=', 'negative_syntax_rejected=', 'syntax_errors='))]

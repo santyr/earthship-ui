@@ -22,9 +22,11 @@ durable configuration/userdata and isolated runtime boot were verified. Earlier
 unqualified-full-restore statements below are historical, not the current result.
 Whole-host/off-host and protected-control restart qualification remain open.
 
-Next observational migration preparation covers the four display-only rolling
-temperature extrema Items; see [preflight](2026-09-20-temperature-extrema-migration.md).
-They remain managed pending exact state/unit recovery and rollback qualification.
+The four display-only rolling temperature extrema Items are now file-owned;
+same-unit state restoration, historical-prefix preservation and actual provider
+rollback passed. See [migration receipt](2026-09-20-temperature-extrema-migration.md).
+Natural17:30scheduled writer confirmation passed for both indoor and outdoor
+calculations; this batch's post-transfer checks are complete.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.

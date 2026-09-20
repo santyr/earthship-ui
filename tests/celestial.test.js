@@ -13,6 +13,7 @@ describe('shared astronomical weather icons', () => {
     expect(wmoLabel(0, night)).toBe('Clear');
     expect(wmoColor(0, night)).toBe(CONDITION_COLORS.clearNight);
     expect(contextualSkyIcon('iconify:mdi:weather-sunny', night)).toBe(wmoIcon(0, night));
+    expect(contextualSkyIcon('iconify:mdi:white-balance-sunny', night)).toBe(wmoIcon(0, night));
   });
   it('covers all eight phases and equivalent instants across offsets', () => {
     const phases = new Set(Array.from({ length: 30 }, (_, i) => moonPhaseIcon(Date.UTC(2026, 8, i + 1))));

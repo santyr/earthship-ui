@@ -32,7 +32,7 @@ export function contextualSkyIcon(icon, context) {
   const day = isDaylight(context);
   if (day === null) return icon;
   const name = String(icon).replace(/^iconify:/, '');
-  if (/^(?:mdi:weather-(?:sunny|night)|mdi:moon-[a-z-]+|bi:(?:sun|moon)(?:-fill)?)$/.test(name)) {
+  if (/^(?:mdi:white-balance-sunny|mdi:weather-(?:sunny|night)|mdi:moon-[a-z-]+|bi:(?:sun|moon)(?:-fill)?)$/.test(name)) {
     return day ? 'mdi:weather-sunny' : moonPhaseIcon(context.at);
   }
   if (/^(?:mdi:weather-(?:night-)?partly-cloudy|bi:cloud-(?:sun|moon)(?:-fill)?)$/.test(name)) {

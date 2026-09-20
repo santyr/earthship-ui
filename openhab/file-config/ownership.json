@@ -3,6 +3,26 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "item", "id": "IndoorTemp_24h_High", "provider": "file", "migration": "verified",
+      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "state_writer": "temp-highlow-24h"
+    },
+    {
+      "kind": "item", "id": "IndoorTemp_24h_Low", "provider": "file", "migration": "verified",
+      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "state_writer": "temp-highlow-24h"
+    },
+    {
+      "kind": "item", "id": "OutdoorTemp_24h_High", "provider": "file", "migration": "verified",
+      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "state_writer": "temp-highlow-24h"
+    },
+    {
+      "kind": "item", "id": "OutdoorTemp_24h_Low", "provider": "file", "migration": "verified",
+      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "state_writer": "temp-highlow-24h"
+    },
+    {
       "kind": "item",
       "id": "BTC_Price_24h_PercentChange",
       "provider": "file",

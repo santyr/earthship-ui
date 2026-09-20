@@ -26,9 +26,11 @@ def run(args, data=None):
 
 
 def main():
-    source = (ROOT / 'openhab/file-config/drafts/temperature-extrema.items').read_bytes()
+    source = (ROOT / 'openhab/file-config/items/temperature-extrema.items').read_bytes()
     originals = [oh.get('/items/' + name + '?metadata=.*') for name in NAMES]
-    assert render(originals, oh.get('/links')).encode() == source
+    provider = originals[0].get('editable')
+    assert isinstance(provider, bool)
+    assert render(originals, oh.get('/links'), provider=provider).encode() == source
     # Equipment ancestry generates isPointOf; plain Groups are not equivalent.
     parents = sorted({g for _, g in NAMES.values()})
     for name in parents:

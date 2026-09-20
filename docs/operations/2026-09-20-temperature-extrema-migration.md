@@ -1,8 +1,41 @@
-# Temperature extrema Item migration preflight
+# Temperature extrema Item migration
 
-The four Items below remain managed. The source in
-`openhab/file-config/drafts/temperature-extrema.items` is prepared, not deployed.
-Do not bulk-copy drafts into the watched configuration tree.
+## Verified provider transfer, September20 at17:23 MDT
+
+The four Items below are now file-owned. Canonical source is
+`openhab/file-config/items/temperature-extrema.items`, installed at the matching
+`/etc/openhab/items/temperature-extrema.items` destination and declared in
+`ownership.json`. Both SHA256 values are
+`9d732df108e6bf5bf8a5f6c483e6af97390e99658c2e420231451afe226ba3e3`.
+
+The attended transfer restored all four numeric values in Fahrenheit before
+reenabling their writer. Actual file-to-managed-to-file rollback restored the
+same states on both legs. JDBC mappings and historical prefix counts, maximum
+timestamps and ordered time/value fingerprints remained unchanged. All rule
+definitions and links matched their before snapshots. Live REST confirms exact
+labels, groups, tags, generated metadata, format and `editable:false`; the writer
+returned IDLE/NONE. Registry inventory reports422managed plus7file Items with no
+ownership issues. OpenHAB remains active with original MainPID4060018.
+Natural quarter-hour execution at17:30:00.025/.032 MDT successfully published
+both indoor and outdoor extrema with no manual run. Post-run values remain
+60.8/78.98°F indoors and38.3/80.42°F outdoors. The bounded read-only log monitor
+exited after both expected messages; no watcher remains running.
+
+Private receipt: `/tmp/temperature-extrema-transfer-9k7w12zt/` (0700), containing
+before/paused snapshots and successful verification. This local receipt is not
+an off-host backup. No hardware command, manual calculation trigger, telemetry
+injection, history change, persistence-policy edit or production restart occurred.
+
+An earlier attempt read metadata before the provider settled, rejected it and
+restored all original managed definitions and Fahrenheit states; the writer was
+reenabled. The bounded verifier now allows settling but never accepts mismatched
+metadata or units. Eleven migration guard tests pass, including transient
+metadata and wrong-unit rejection; eleven closed-renderer tests also pass.
+The superseded failed-attempt receipt was removed after verifying its successful
+recovery and the retained successful transfer receipt; no useful rollback
+material from the successful transfer was deleted.
+
+The following sections retain the reviewed preflight and transfer requirements.
 
 | Item | JDBC mapping | Semantic parent |
 | --- | --- | --- |
@@ -43,7 +76,7 @@ Weather/Earthship secondary displays still consume the rolling24-hour Items.
 Exact-name registry search alone does not prove absence of dynamically built
 references, so preserve all stable identities and do not rename consumers.
 
-## Remaining attended transfer
+## Reviewed transfer procedure
 
 Capture a private receipt containing all four original definitions/states,
 the writer definition/status, all rule definitions, links and each JDBC mapping,

@@ -1,4 +1,4 @@
-// PREPARED ONLY: managed Items remain authoritative; do not bulk deploy.
+// Git-owned temperature extrema; deploy only to the declared ownership destination.
 // Preserve rolling-24h secondary-screen semantics and existing stable IDs.
 // Main-page current-day extrema are separate. No explicit metadata override.
 
