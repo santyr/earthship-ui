@@ -1,4 +1,4 @@
-"""Bounded, read-only JDBC fetch for one elapsed temperature target.
+"""Bounded, read-only JDBC fetch for elapsed temperature targets.
 
 connection_factory must return a NEW dedicated psycopg2 connection with a
 bounded connect timeout. This module never reads credentials or falls back to
@@ -7,7 +7,7 @@ another Item. No production caller or Item is installed by importing it.
 from datetime import timedelta
 
 from weather_temperature_evidence import TemperaturePolicy
-from weather_temperature_reader import _utc, select_temperature_at
+from weather_temperature_reader import _utc, select_temperature_grid
 
 EVIDENCE_ITEM = 'Weather_Temperature_Evidence_JSON'
 
@@ -17,12 +17,28 @@ class TemperatureHistoryUnavailable(RuntimeError):
 
 
 def fetch_temperature_target(connection_factory, *, target, assessed_at, stream, policy):
+    return fetch_temperature_grid(connection_factory, targets=[target], assessed_at=assessed_at,
+                                  stream=stream, policy=policy)[0][1]
+
+
+def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, policy):
+    """Fetch one bounded elapsed-day grid using one dedicated stable snapshot.
+
+    Preserves original source timestamps and qualification metadata. This is a
+    reader only: callers must explicitly decide how unqualified targets affect
+    training; never interpolate them into apparently healthy measurements.
+    """
     connection = None
     try:
         if not isinstance(policy, TemperaturePolicy): raise ValueError('explicit policy required')
-        target, assessed_at = _utc(target), _utc(assessed_at)
-        if target > assessed_at: raise ValueError('target must be elapsed')
-        start = target - timedelta(seconds=policy.validity_seconds)
+        if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= 289:
+            raise ValueError('bounded target grid required')
+        targets = [_utc(target) for target in targets]
+        assessed_at = _utc(assessed_at)
+        start = targets[0] - timedelta(seconds=policy.validity_seconds)
+        target = targets[-1]
+        select_temperature_grid([], targets=targets, assessed_at=assessed_at,
+                                history_start=start, stream=stream, policy=policy)
         connection = connection_factory()
         if connection.get_transaction_status() != 0:
             raise ValueError('dedicated idle connection required')
@@ -51,8 +67,8 @@ def fetch_temperature_target(connection_factory, *, target, assessed_at, stream,
         if carry is not None and _utc(carry[0]) >= start: raise ValueError('invalid carry boundary')
         if any(not start <= _utc(at) <= target for at, _raw in rows): raise ValueError('history outside window')
         # Oversized/NULL raw values remain barriers. Never silently drop them.
-        return select_temperature_at(observations, target=target, assessed_at=assessed_at,
-                                     history_start=start, stream=stream, policy=policy)
+        return select_temperature_grid(observations, targets=targets, assessed_at=assessed_at,
+                                       history_start=start, stream=stream, policy=policy)
     except Exception:
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
     finally:

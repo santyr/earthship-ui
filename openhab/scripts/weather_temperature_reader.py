@@ -82,17 +82,46 @@ def select_temperature_at(rows, *, target, assessed_at, history_start, stream, p
     barriers, not candidates to skip while looking for an older valid value.
     """
     try:
-        if not isinstance(policy, TemperaturePolicy) or not isinstance(stream, str): return None
-        target, assessed_at, start = _utc(target), _utc(assessed_at), _utc(history_start)
-        if target > assessed_at or start > target - timedelta(seconds=policy.validity_seconds): return None
-        if not isinstance(rows, list) or not 1 <= len(rows) <= 10000: return None
-        previous_at = None; previous_raw = None; selected = None; barrier_at = None; epoch = None
-        for stored, raw in rows:
-            stored = _utc(stored)
-            if previous_at is not None and (stored < previous_at or (stored == previous_at and raw != previous_raw)):
-                return None
-            previous_at, previous_raw = stored, raw
-            if stored > target: continue
+        return select_temperature_grid(rows, targets=[target], assessed_at=assessed_at,
+            history_start=history_start, stream=stream, policy=policy)[0][1]
+    except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
+        return None
+
+
+def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream, policy):
+    """Select at most 289 increasing targets over one elapsed day in one pass.
+
+    Returns (target, qualified metadata or None) pairs, not fabricated sensor
+    observations. Invalid history ordering or query contracts refuse the entire
+    batch. Invalid snapshots remain barriers until a genuinely newer receipt.
+    The complete history and original carry must be supplied from at least one
+    validity interval before the first target. No numeric-history fallback.
+    """
+    if not isinstance(policy, TemperaturePolicy) or not isinstance(stream, str):
+        raise ValueError('explicit stream and policy required')
+    if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= 289:
+        raise ValueError('bounded target grid required')
+    targets = [_utc(target) for target in targets]
+    assessed_at, start = _utc(assessed_at), _utc(history_start)
+    if (targets[-1] > assessed_at or targets[-1] - targets[0] > timedelta(days=1)
+            or start > targets[0] - timedelta(seconds=policy.validity_seconds)
+            or any(left >= right for left, right in zip(targets, targets[1:]))):
+        raise ValueError('invalid target window')
+    if not isinstance(rows, list) or len(rows) > 10000:
+        raise ValueError('bounded history required')
+    normalized = []
+    previous_at = None; previous_raw = None
+    for stored, raw in rows:
+        stored = _utc(stored)
+        if previous_at is not None and (stored < previous_at or (stored == previous_at and raw != previous_raw)):
+            raise ValueError('unordered or conflicting history')
+        previous_at, previous_raw = stored, raw
+        normalized.append((stored, raw))
+    selected = None; barrier_at = None; epoch = None; index = 0; results = []
+    for target in targets:
+        while index < len(normalized) and normalized[index][0] <= target:
+            stored, raw = normalized[index]
+            index += 1
             try:
                 next_epoch, candidate = _snapshot(raw, stored, stream, policy)
             except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
@@ -114,7 +143,6 @@ def select_temperature_at(rows, *, target, assessed_at, history_start, stream, p
                 candidate = None
                 barrier_at = stored
             selected = candidate
-        if selected is None or not selected['receivedAt'] <= target < selected['validUntil']: return None
-        return selected
-    except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
-        return None
+        qualified = selected if selected is not None and selected['receivedAt'] <= target < selected['validUntil'] else None
+        results.append((target, None if qualified is None else dict(qualified)))
+    return results

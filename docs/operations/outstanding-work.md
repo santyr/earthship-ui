@@ -49,6 +49,11 @@ are retained as evidence, not current-state claims.
   bridged by interpolation/hold.10regressions failed before the fix;118focused
   and1031full tests plus42subtests pass. This does not migrate thermal learning
   to receipt-qualified temperature history. See [receipt](2026-09-19-thermal-invalid-history.md).
+- A bounded single-pass qualified temperature grid reader is implemented for
+  thermal's next history integration. Independent old-reader parity passed6300
+  comparisons; a live restricted read qualified all36targets across the three
+  streams. It is not installed in runtime or connected to thermal training yet.
+  See [foundation and integration requirements](2026-09-19-thermal-qualified-grid.md).
 - Conformal intervals, weather/thermal outcome attribution, broad change-only
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82
