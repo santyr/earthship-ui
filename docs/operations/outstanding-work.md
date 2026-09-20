@@ -60,10 +60,17 @@ are retained as evidence, not current-state claims.
   targets and existing accepted/previous artifacts remain readable. Training is
   now activated with cutover2026-09-20T00:30:00Z; all model files are unchanged,
   installed reads pass and the three original timers are restored. Natural
-  training proof and current-shadow source migration remain outstanding.
+  training proof remains outstanding. Current-shadow temperature migration is
+  now deployed as recorded in the September20 update below.
   See [integration and rollback contract](2026-09-19-thermal-qualified-integration.md).
   The [activation receipt](2026-09-19-thermal-qualified-activation.md) records
   exact runtime/model hashes and the next06:50MDT natural training gate.
+- September20: qualified current-shadow temperatures are deployed and enabled
+  from63529ea. Installed current-input and expiry validation passed; all model
+  files and original unit definitions are unchanged. Three supported temperature
+  streams use receipts with no numeric fallback; glazing/radiation are not newly
+  qualified. Full1078Python tests pass. Subsequent natural shadow output remains
+  unverified. See [activation](2026-09-20-shadow-receipt-activation.md).
 - Conformal intervals, weather/thermal outcome attribution, broad change-only
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82
