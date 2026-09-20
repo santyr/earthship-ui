@@ -70,6 +70,15 @@ and protected-resource rollback remain outstanding.
 
 ### Operational checkpoint
 
+- Qualified monthly reporting is now deployed from Solar_PV `5fc878a` on the
+  existing monthly timer with the restricted power reader. It writes a distinct
+  `qualified-power-monthly.json`, preserves legacy reports and missing dates,
+  and never substitutes legacy totals. All 706 analytics tests pass; a real
+  restricted-reader report succeeds. No manual monthly job or DM was triggered.
+  Private activation receipt: `/tmp/qualified-monthly-release-ik0qyach`.
+  Next natural run is October 1 in the existing randomized morning window;
+  its execution remains unverified. Lifecycle/winter/feature-export policy work
+  remains outstanding; this change only completes the monthly consumer path.
 - Recurring 09:00/21:00 legacy-rule errors are diagnosed and their cause removed:
   two schedules still called three deliberately disabled child rules. Only those
   references were removed; live readback preserves schedules, OverrideSwitch and
