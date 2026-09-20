@@ -570,6 +570,10 @@ def _reading(entry, role, now):
     age = now.astimezone(timezone.utc) - at.astimezone(timezone.utc)
     if age < timedelta(0):
         raise ValueError(f"future {label}")
+    if 'validUntil' in entry:
+        expires = _parse_time(entry['validUntil'], f"{label} receipt expiry")
+        if not at < expires or now >= expires:
+            raise ValueError(f"expired {label} receipt")
     if role in _CURRENT_LABELS and age > MAX_CURRENT_AGE:
         raise ValueError(f"stale {label}")
     return number, at, age.total_seconds() / 60.0

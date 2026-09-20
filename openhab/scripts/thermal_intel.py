@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 import sys
+import time
 
 import psycopg2
 
@@ -397,18 +398,28 @@ def _aligned_observed_history(histories):
 
 
 def _current_states(now, series_reader=None, state_reader=None):
+    from thermal_temperature_runtime import configured_shadow_temperatures
+    qualified = configured_shadow_temperatures(now)
     series_reader = series_reader or _jdbc_series
     state_reader = state_reader or (lambda item: forecast_intel.oh_get(f"/items/{item}"))
     start = now - timedelta(hours=24)
     end = now + timedelta(seconds=1)
     histories = {
-        role: tuple(series_reader(item, start, end))
+        role: qualified[role]['history'] if qualified is not None and role in qualified
+              else tuple(series_reader(item, start, end))
         for role, item in THERMAL_ITEMS.items()
     }
     current = {}
     for role, item in THERMAL_ITEMS.items():
-        # JDBC records changes; an unchanged reading can still be freshly
-        # reported. Only the Item's actual update timestamp proves freshness.
+        if qualified is not None and role in qualified:
+            current[role] = qualified[role]['current']
+            at, value = current[role]['at'], current[role]['value']
+            if not histories[role] or at > max(point[0] for point in histories[role]):
+                histories[role] = (*histories[role], (at, value))
+            continue
+        # Legacy/other-source path retains its Item-update contract. An Item
+        # update alone is not RF sensor receipt evidence; qualified roles above
+        # never enter this fallback.
         state = state_reader(item)
         if not isinstance(state, dict) or state.get("name") != item:
             raise ValueError(f"invalid current {role} Item identity")
@@ -449,6 +460,8 @@ def publish_shadow_output(payload, put_state=None):
 
 
 def _shadow(args, now, put_state=None, journal=None):
+    from thermal_temperature_runtime import validate_shadow_receipt_expiry
+    started = time.monotonic()
     current = None
     failed_input = "site settings input"
     try:
@@ -491,6 +504,8 @@ def _shadow(args, now, put_state=None, journal=None):
             now=now,
             site_timezone=forecast_intel.MOUNTAIN,
         )
+        validate_shadow_receipt_expiry(
+            current, now + timedelta(seconds=max(0, time.monotonic()-started)))
     except (JournalUnavailable, psycopg2.Error):
         output = build_unavailable_shadow(
             now=now,

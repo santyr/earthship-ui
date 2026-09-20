@@ -1,6 +1,6 @@
 """Opt-in, bounded read-only temperature worker for thermal history ingestion."""
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 
-from thermal_model.temperature_history import QualifiedTemperatureHistory, STREAMS, POLICY
+from thermal_model.temperature_history import QualifiedTemperatureHistory, STREAMS, POLICY, _validate_receipt
 from weather_temperature_reader import _utc
 
 
@@ -20,10 +20,15 @@ def configured_history(legacy_reader, now, environ=None):
     if enabled != '1':
         raise ValueError('explicit qualified thermal history is unavailable')
     cutover = _utc(env.get('THERMAL_TEMP_EVIDENCE_CUTOVER'))
+    read = _configured_grid_reader(env, budget=900)
+    return QualifiedTemperatureHistory(legacy_reader, read, cutover=cutover, assessed_at=now)
+
+
+def _configured_grid_reader(env, *, budget):
     for key in ('THERMAL_TEMP_DB_CONFIG', 'THERMAL_TEMP_POLICY'):
         if not env.get(key) or not os.path.isabs(env[key]):
             raise ValueError('explicit absolute thermal evidence configuration required')
-    deadline = time.monotonic() + 900
+    deadline = time.monotonic() + budget
     def read(stream, targets, assessed_at):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -41,7 +46,60 @@ def configured_history(legacy_reader, now, environ=None):
         return [(_utc(at), None if value is None else {
             key: _utc(val) if key in ('receivedAt','storedAt','validUntil') else val
             for key, val in value.items()}) for at, value in rows]
-    return QualifiedTemperatureHistory(legacy_reader, read, cutover=cutover, assessed_at=now)
+    return read
+
+
+def configured_shadow_temperatures(now, environ=None):
+    env = dict(os.environ if environ is None else environ)
+    enabled = env.get('THERMAL_TEMP_SHADOW_QUALIFIED_ENABLE')
+    if enabled is None:
+        return None
+    if enabled != '1':
+        raise ValueError('explicit qualified shadow temperatures unavailable')
+    try:
+        return shadow_temperatures(now, _configured_grid_reader(env, budget=90))
+    except Exception:
+        raise ValueError('qualified shadow temperature evidence unavailable') from None
+
+
+def shadow_temperatures(now, grid_reader):
+    """Receipt-only trailing history and current observations; no legacy carry."""
+    now = _utc(now)
+    floor = now.replace(minute=now.minute//5*5, second=0, microsecond=0)
+    targets = [floor-timedelta(minutes=5*i) for i in reversed(range(288))]
+    if targets[-1] != now:
+        targets.append(now)
+    result = {}
+    for role, (stream, _, _) in STREAMS.items():
+        rows = grid_reader(stream, targets, now)
+        if not isinstance(rows, list) or len(rows) != len(targets):
+            raise ValueError('incomplete shadow receipt history')
+        history = []
+        latest = None
+        for target, (at, value) in zip(targets, rows):
+            if _utc(at) != target:
+                raise ValueError('shadow receipt target mismatch')
+            if value is not None:
+                _validate_receipt(value, target)
+            # The exact current target is handled separately, not relabeled
+            # to a historical bucket or fabricated sensor receipt timestamp.
+            if target < now:
+                history.append((target, float('nan') if value is None else value['temperatureF']))
+            else:
+                latest = value
+        if latest is None:
+            raise ValueError(f'unqualified current {role} temperature receipt')
+        result[role] = dict(history=tuple(history), current={
+            'at': _utc(latest['receivedAt']), 'value': latest['temperatureF'],
+            'validUntil': _utc(latest['validUntil'])})
+    return result
+
+
+def validate_shadow_receipt_expiry(current, at):
+    for role in STREAMS:
+        reading = (current or {}).get(role, {})
+        if 'validUntil' in reading and not _utc(reading['at']) <= _utc(at) < _utc(reading['validUntil']):
+            raise ValueError(f'expired current {role} temperature receipt')
 
 
 def collect(request, *, config_path, policy_path):
