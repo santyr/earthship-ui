@@ -30,14 +30,14 @@ describe('September 19 live greywater clock and expired-busy repair', () => {
     expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=busy');
   });
   it.each([[0, 'SouthOutlet_Outlet2_Switch'], [3600000, 'East_Bed_Socket_Outlet_2_Power']])(
-    'selects local-hour pump and completes the unchanged ten-minute cycle', (offset, pump) => {
+    'selects local-hour pump and completes the live fifteen-minute cycle', (offset, pump) => {
       const h = harness({ clock: now + offset });
       h.execute();
       expect(ons(h).map(e => e.item)).toEqual([pump]);
       expect(h.pendingTimers()).toBe(1);
       h.runNextTimer();
       expect(h.state(pump)).toBe('OFF');
-      expect(h.state('SouthOutlet_LastCycle')).toBe(new Date(now + offset + 600000).toISOString());
+      expect(h.state('SouthOutlet_LastCycle')).toBe(new Date(now + offset + 900000).toISOString());
     });
   it('recovers an expired token only with both pumps explicitly OFF', () => {
     const h = harness({ token: 'auto:2026-09-16T15:10:58-06:00[America/Denver]' });
@@ -60,5 +60,58 @@ describe('September 19 live greywater clock and expired-busy repair', () => {
     const h = harness({ token: 'auto:2026-09-16T21:00:00Z', overrides: { SouthOutlet_Outlet2_Switch: 'ON' } });
     h.execute(); expect(ons(h)).toHaveLength(0);
     expect(h.state('SouthOutlet_AutoStatus')).toContain('cycle_active');
+  });
+});
+
+describe('cycle timer ownership after interruption', () => {
+  it.each([
+    ['Sun_Position_Elevation', '-1'],
+    ['BMS_SOC', '40'],
+    ['DCData_Voltage', 'UNDEF'],
+  ])('does not report completion after %s invalidates its owner', (item, value) => {
+    const h = harness(); h.execute();
+    h.advance(60000); h.setState(item, value); h.execute();
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    const count = h.events.length;
+    const status = h.state('SouthOutlet_AutoStatus');
+    h.runNextTimer();
+    expect(h.events).toHaveLength(count);
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+    expect(h.state('SouthOutlet_AutoStatus')).toBe(status);
+  });
+
+  it('cannot command OFF or complete a newer cycle after ownership changes', () => {
+    const h = harness(); h.execute();
+    h.advance(60000); h.setState('Sun_Position_Elevation', '-1'); h.execute();
+    h.advance(60 * 60000); h.setState('Sun_Position_Elevation', '37'); h.execute();
+    expect(h.pendingTimers()).toBe(2);
+    expect(h.state('East_Bed_Socket_Outlet_2_Power')).toBe('ON');
+    const count = h.events.length;
+    h.runNextTimer(); // delayed callback for the now-invalid South owner
+    expect(h.events).toHaveLength(count);
+    expect(h.state('East_Bed_Socket_Outlet_2_Power')).toBe('ON');
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+    h.runNextTimer(); // current owner still completes normally
+    expect(h.state('East_Bed_Socket_Outlet_2_Power')).toBe('OFF');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('cycle_completed');
+  });
+
+  it('cannot replace a recovered interrupted manual result with completion', () => {
+    const h = harness();
+    h.execute({ itemName: 'SouthOutlet_ManualRequest', receivedCommand: JSON.stringify({
+      requestId: 'manual-curfew-20260919', requestedAt: new Date(now).toISOString(),
+    }) });
+    expect(JSON.parse(h.state('SouthOutlet_ManualRequest')).entries[0].status).toBe('accepted');
+    h.advance(60000); h.setState('Sun_Position_Elevation', '-1'); h.execute();
+    h.advance(1000); h.execute(); // normal interrupted-ledger recovery
+    expect(JSON.parse(h.state('SouthOutlet_ManualRequest')).entries[0].status).toBe('failed');
+    const count = h.events.length;
+    const ledger = h.state('SouthOutlet_ManualRequest');
+    const result = h.state('SouthOutlet_ManualResult');
+    h.runNextTimer();
+    expect(h.events).toHaveLength(count);
+    expect(h.state('SouthOutlet_ManualRequest')).toBe(ledger);
+    expect(h.state('SouthOutlet_ManualResult')).toBe(result);
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
   });
 });

@@ -38,8 +38,12 @@ are retained as evidence, not current-state claims.
   start18:53:03.334 was curtailed safely at19:04:51.935 by the after-dark gate.
   At19:08:03.336 its stale timer nevertheless advanced LastCycle and posted
   cycle_completed. This is a verified reporting/ownership defect, not proof of
-  a full run. Fix the old callback's ownership check without changing timing
-  or safety gates. The bounded monitor finished; no monitor remains running.
+  a full run. The callback ownership guard is now deployed and read back exactly;
+  stale callbacks cannot command either pump or publish completion. Live15-minute
+  timing and all gates are unchanged. Five regressions reproduced the defect;
+  all1370unit tests and build pass. See [release](2026-09-19-pump-timer-ownership.md).
+  An uninterrupted natural cycle is still unverified. The bounded monitor
+  finished; no monitor remains running.
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
   timestamped UNDEF/NULL/bad states remain invalid rather than being dropped and
   bridged by interpolation/hold.10regressions failed before the fix;118focused

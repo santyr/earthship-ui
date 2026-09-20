@@ -9,7 +9,7 @@
  * result contract are shared verbatim with `openhab/rules/feeder-owner.js`.
  *
  * Spec amendments over the live rule (operator-approved, 2026-07-19):
- * - 10-minute cycle (was 55 min).
+ * - 15 minute cycle (was 10 min).
  * - 60-minute start-to-start gap; automatic/manual starts select one pump by
  *   local clock-hour parity so South and East alternate hourly. Each pump is
  *   therefore scheduled every two hours while one pump is scheduled each hour.
@@ -63,7 +63,7 @@ const CFG = {
   defaultSocMin: 98,
   requiredGapMs: 60 * 60 * 1000, // One pump start every hour
   fallbackMaxGapMs: 24 * 60 * 60 * 1000,
-  cycleMs: 10 * 60 * 1000, // run for 10 minutes
+  cycleMs: 15 * 60 * 1000, // run for 10 minutes
 };
 
 const BUSY_KEY = 'earthship.southoutlet.busy';
@@ -480,6 +480,8 @@ function beginCycle({
   });
 
   actions.ScriptExecution.createTimer(now().plusSeconds(CFG.cycleMs / 1000), () => {
+    // Safety stops and recovery invalidate ownership; old callbacks must be inert.
+    if (cache.shared.get(BUSY_KEY) !== invocationToken) return;
     const actuator = items.getItem(pump);
     try {
       actuator.sendCommand('OFF');

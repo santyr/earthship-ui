@@ -442,6 +442,8 @@ function beginCycle({ isManual, request, ledger, voltage, soc, mode, invocationT
   });
 
   actions.ScriptExecution.createTimer(now().plusSeconds(CFG.cycleMs / 1000), () => {
+    // Safety stops and recovery invalidate ownership; old callbacks must be inert.
+    if (cache.shared.get(BUSY_KEY) !== invocationToken) return;
     const actuator = items.getItem(CFG.outletItem);
     try {
       actuator.sendCommand('OFF');
