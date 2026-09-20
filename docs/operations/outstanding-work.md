@@ -30,9 +30,15 @@ are retained as evidence, not current-state claims.
 - The [verified private backup/rehearsal](2026-09-19-trough-release-preflight.md)
   was the live migration gate. All15pre-existing data-table fingerprints and
   the learned model state remained identical after cutover. There were still
-  zero origins/results/outcomes at release: next natural capture and subsequent
-  fully completed-night assessment remain unverified. No synthetic origin,
+  zero origins/results/outcomes at release. First natural capture/publication is
+  now verified September20; fully completed-night assessment remains unverified. No synthetic origin,
   forecast replay, test DM, or causal/bandit reward was manufactured.
+- September20 natural06:40 forecast run succeeded: one canonical immutable origin,
+  two accepted publications matching live Items, and notification not_eligible.
+  No completed-night outcomes/selections exist yet. All24new hourly targets are
+  for September21, correctly yielding zero eligible scores today. First normal
+  hourly scoring is September21; first completed-night assessment is September22.
+  See [natural capture evidence](2026-09-20-natural-forecast-capture.md).
 - Pump hour-selection and expired-busy fixes are deployed; natural East start
   was observed. The concurrent15-minute rule change is preserved. Natural South
   start18:53:03.334 was curtailed safely at19:04:51.935 by the after-dark gate.
