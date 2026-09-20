@@ -32,6 +32,11 @@ managed persistence stays authoritative pending provider/load/rollback validatio
 Backup review confirms the weekly check correctly reports the August 20 full
 restore point stale and same-host. The recent analytics-only rehearsal cannot
 replace that broader backup. Full restore refresh remains outstanding.
+A full-database snapshot/rehearsal is now executing with 510 tables, read-only
+production access and a network-isolated restore target. The
+[procedure and scope](2026-09-20-full-database-restore.md) distinguish data restore
+from role/configuration recovery. Do not treat this running operation as verified
+completion or start a duplicate while its process remains active.
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before
