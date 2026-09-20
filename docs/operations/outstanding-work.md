@@ -72,6 +72,15 @@ and protected-resource rollback remain outstanding.
 
 ### Operational checkpoint
 
+- Qualified power feature export is now available in the deployed Solar_PV
+  `1a013f3` via explicit `export-features --power-evidence-policy`. CSV v3 labels
+  PV evidence/cutover and other-field limitations; PV and one-hour lag never
+  bridge gaps, AC-load values remain empty. Legacy v2 is separate. Requests
+  are bounded to 24 hours plus lag. All 728 analytics tests pass and a live
+  read-only three-row export verified actual qualified PV and withheld load.
+  No scheduler or training consumer was activated. Lifecycle/winter reporting
+  and independent AC-load qualification remain outstanding.
+
 - Qualified monthly reporting is now deployed from Solar_PV `5fc878a` on the
   existing monthly timer with the restricted power reader. It writes a distinct
   `qualified-power-monthly.json`, preserves legacy reports and missing dates,
