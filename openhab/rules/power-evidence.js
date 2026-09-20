@@ -131,9 +131,11 @@ if (!previous || JSON.stringify(previous.fields) !== JSON.stringify(fields)) {
     const output = items.getItem(OUTPUT);
     const encoded = JSON.stringify(next);
     let stamp = ZonedDateTime.now();
-    stamp = stamp.withNano(Math.floor(stamp.getNano() / 1000) * 1000);
+    // JDBC5.2.1 converts explicit timestamps through toEpochMilli(). Reserve
+    // distinct milliseconds, not microseconds that the driver would discard.
+    stamp = stamp.withNano(Math.floor(stamp.getNano() / 1000000) * 1000000);
     if (state.lastPersistenceAt && !stamp.isAfter(state.lastPersistenceAt)) {
-      stamp = state.lastPersistenceAt.plusNanos(1000);
+      stamp = state.lastPersistenceAt.plusNanos(1000000);
     }
     state.lastPersistenceAt = stamp;
     // Automatic change persistence MUST exclude this Item before activation.

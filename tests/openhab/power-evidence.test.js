@@ -188,7 +188,8 @@ it('orders same-millisecond publications with a per-epoch sequence', () => {
   h.run(h.event(definitions[0])); h.run(h.event(definitions[1]));
   expect(h.posts.at(-2).recordedAt).toBe(h.latest.recordedAt);
   expect(h.posts.map(p=>p.sequence)).toEqual([1,2,3]);
-  expect(h.queued[2].stamp.micros-h.queued[1].stamp.micros).toBe(1);
+  expect(h.queued[2].stamp.micros-h.queued[1].stamp.micros).toBe(1000);
+  expect(new Set(h.queued.map(q=>Math.floor(q.stamp.micros/1000))).size).toBe(h.queued.length);
   h.state.clear(); h.run(); expect(h.latest.sequence).toBe(1);
 });
 
