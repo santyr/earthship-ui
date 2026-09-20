@@ -10,6 +10,25 @@ outside this Earthship workstream.
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
 
+### Approved next workstream: file-first configuration migration
+
+September20 operator instruction: change the OpenHAB configuration policy and
+start migration after current tasks are finished. Execution order communicated:
+finish the in-flight temperature-learning and power-evidence work, then replace
+the REST-managed-only policy with Git-owned, file-first configuration and begin
+staged migration. This is approval, not an assertion that ownership changed.
+
+Preserve stable resource IDs and exactly one configuration provider per resource.
+Start with observational resources; qualify restore/restart/rollback before
+migrating pumps, battery safety or other protected controls. Supported declarative
+definitions and scripts belong in Git; managed exceptions require reproducible
+exports. Credentials, userdata, PostgreSQL history and learned model artifacts
+need appropriate encrypted backups rather than raw secret/data commits. A clean
+restore rehearsal is a completion requirement. Existing runtime ownership stays
+unchanged until the ordered policy/migration cutover. Task82 remains held.
+
+### Operational checkpoint
+
 - Temperature receipt collection and qualified hourly learning are enabled and
   deployed. Indoor235 is operator-confirmed. All three streams have naturally
   persisted receipts; the installed restricted worker passed post-cutover reads.
