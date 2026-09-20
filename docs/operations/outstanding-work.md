@@ -19,8 +19,12 @@ are retained as evidence, not current-state claims.
   Raw-envelope rederivation matches daily coverage/minimum/DoD and the live
   published latest-day values; all eight days exceed99.93%qualified coverage.
   September10 correctly remains partial/insufficient. See [full-day receipt](2026-09-19-bms-full-day-verification.md).
-  Independent power health and remaining source fault/restart qualification are
-  not implied by these daily SoC results.
+  Independent power health and physical source-fault qualification are not implied
+  by these daily SoC results. The September20observer-only cache restart is now
+  separately verified: new epoch first unavailable, fresh post-reset raw/scale
+  recovery, and10.197147seconds retained as an unqualified gap by the production
+  reader. Protected rule definitions and BMS acquisition were unchanged.
+  See [restart evidence](2026-09-20-bms-cache-restart-verification.md).
 - Completed-night capture/assessment is now enabled on the existing06:40
   schedule, with assessment cutover2026-09-20T00:48:40Z. Exact deployed source
   retains qualified hourly learning and removes premature trough scoring.
