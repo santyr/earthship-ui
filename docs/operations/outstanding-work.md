@@ -31,60 +31,32 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
 
 - Continuous observational power collection is now enabled with actual cutover
   `2026-09-20T15:18:58.261099Z`; all three new data Things ONLINE, observer ready,
-  and every field verified from fresh post-cutover receipts. This supersedes the
-  disabled installation/probe statuses below. A180-second probe yielded105valid
+  and every field verified from fresh post-cutover receipts. A180-second probe yielded105valid
   output rows, projected52,466rows/25h and26.95MiB/day combined JSON payload.
   Full-day storage/query checks remain; no control or published total changed.
-  Solar_PV `7a3a1c7` adds source-only qualified battery-energy/EFC aggregation;
-  all602analytics tests pass. Daily/PV/materialization/UI wiring remains open.
-  PV aggregation now also accepts qualified intervals for energy, peak and
-  productive duration; missing evidence never falls back to numeric history.
-  All611analytics tests pass, including9new PV regressions. A read-only check
-  of147naturally persisted post-cutover records through15:23:10Z produced
-  0.121052kWh PV input and0.118448kWh output, with explicit partial-window
-  coverage97.29%/97.83%. These are probe-window observations, not published
-  daily totals. Daily orchestration and versioned materialization remain open.
-  Daily composition now has explicit all-or-none evidence-reader configuration
-  and cutover, one bounded shared snapshot, qualified battery/PV/noon-split
-  energy and matching per-source coverage. Reader errors do not fall back;
-  pre-cutover days are explicitly legacy. All620analytics tests pass. This is
-  source-only: CLI/config activation, versioned persistence/rollups and UI
-  provenance remain. PV efficiency needs common-support integration; PV/load
-  balance is withheld in the new path until AC-load evidence is qualified.
-  Common-support PV efficiency is now implemented: both energies are integrated
-  over the identical intersection of qualified input/output intervals. Gaps,
-  exclusive endpoints and23/25-hour DST days are tested; unequal coverage cannot
-  distort the ratio. Efficiency coverage is explicit; no positive common input
-  yields null rather than a made-up ratio. All628analytics tests pass. The
-  AC-load boundary and production configuration/versioned-storage/UI gates
-  remain open; this does not activate the new daily calculations.
-  Versioned storage is now implemented source-only: migration0005 adds an
-  append-only daily snapshot revision series, leaving every legacy daily table
-  unchanged. Qualified cumulative EFC selects the latest revision per day within
-  one bank/policy/cutover only; retries cannot double-count or reactivate older
-  revisions. PostgreSQL tests verify mutation refusal, permissions, cutover and
-  legacy isolation, and transactional locking. All639analytics tests pass.
-  No live migration or grants applied. Report/export/UI readers must switch to
-  the versioned series before the writer is activated; configuration, backup/
-  restore rehearsal and reader-first deployment remain required.
+  Binding-origin receipt validation, natural unchanged battery receipts,
+  observer cache restart and exact120-second expiry clipping are verified.
+  Initial disabled installation and bounded probes are historical stages, not
+  the current enabled state. See the [installation and activation receipt](2026-09-20-power-disabled-installation.md).
+  Physical-source faults and full-openHAB restart were not induced.
 
-- Power evidence resources are installed **disabled** from `d336876`: four
-  Items, three read-only data Things, three links and `hex_power_evidence`.
-  Existing rules, Thing definitions and persistence configuration are unchanged.
-  No live collection or accounting cutover is claimed; binding-event, persistence,
-  lifecycle and storage-rate qualification remain. See the
-  [disabled installation receipt](2026-09-20-power-disabled-installation.md).
-  A subsequent40-second live probe persisted24strictly valid, contiguous evidence
-  records across all three fields; battery naturally repeated a watt value with
-  a fresh acquisition receipt. The production parser and interval builder passed
-  against actual PostgreSQL rows. All four new resources were disabled again.
-  Observer-only restart/expiry is now verified: a new unavailable epoch,
-  fresh post-reset recovery, then natural stale publication after observation
-  inputs were paused. Persisted-history integration clips each field at its
-  exact120-second expiry, not the later timer tick. All29probe records pass the
-  strict parser;129JS and72Python targeted tests pass. Sustained storage-rate
-  evaluation and accounting integration remain outstanding. This is not a
-  physical-source-fault or full-openHAB-restart qualification.
+- Qualified power accounting remains **source-only**, Solar_PV branch
+  `feat/qualified-power-accounting` at`551589f`; all645analytics tests pass.
+  Implemented: bounded evidence transport; battery/PV energy and EFC using exact
+  qualified intervals; daily and solar-noon composition with matching source
+  quality; common-support PV efficiency; explicit legacy/cutover provenance.
+  Empty/error evidence never falls back to held numeric history. PV/load balance
+  remains withheld until independent AC-load evidence is qualified.
+  Migration0005 adds append-only daily revisions without rewriting legacy daily
+  tables. Cumulative qualified EFC selects latest revisions within one bank,
+  policy and cutover. The new read-only reader is bounded to366days/5-second SQL,
+  validates identity/digest/completed windows, preserves missing dates and never
+  resurrects an older better-quality result. Real PostgreSQL tests cover these
+  semantics, immutable writes, retries, permissions and transaction locking.
+  **Remaining:** CLI/config wiring; report/export/UI consumer integration and
+  provenance; restricted roles; backup/restore and migration rehearsal;
+  reader-first deployment and actual accounting cutover. No live migration or
+  grants have been applied. Collection continues independently.
 
 - Qualified daily/day-3 temperature learning is now deployed and enabled with
   actual cutover2026-09-20T14:52:58.582165Z. Five runtime files verified, protected
