@@ -50,8 +50,11 @@ backup monitor confirmed fresh, readable, restore-verified and hash-matching.
 The archive SHA256 is
 `6e6fba4f7608500a0964f453b57fb9a20b1f39fb857ed66563139f8b437d5e31`.
 Directory mode is 0700; manifest/archive modes are 0600. Off-host and disaster
-recovery remain false, with Actionable severity. The scheduled monitor still
-needs its reference changed from the old archive; this assessment sent no DM.
+recovery remain false, with Actionable severity. The scheduled monitor now uses
+this manifest: Solar_PV `6f5d914`, 27 monitor/unit tests passed, exact unit readback
+verified. Private rollback receipt: `/tmp/backup-monitor-adoption-fanm1yx4`.
+Only the manifest path changed. Timer remains active, next randomized run
+September 27 at 03:33:08 MDT. No manual job or DM was triggered.
 Unit tests cover SQL identifier safety and bounded accumulator shape;
 read-only PostgreSQL VALUES tests verify order invariance, duplicate sensitivity
 and value sensitivity.

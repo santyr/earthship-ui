@@ -33,15 +33,16 @@ Offline syntax qualification now passes using the actual installed OpenHAB 5.2.1
 parser in a separate bounded JVM, including selector types and strategy tokens;
 malformed syntax is rejected. This does not establish live strategy resolution,
 provider transfer or rollback, which remain required.
-Backup review confirms the weekly check correctly reports the August 20 full
-restore point stale and same-host. The recent analytics-only rehearsal cannot
-replace that broader backup. Full restore refresh remains outstanding.
+Backup review found the August 20 full restore point stale and same-host.
+The analytics-only rehearsal could not replace it; the full refresh below does.
 A full-database snapshot/rehearsal completed at 18:59:53Z with all 510 tables
 matching the source snapshot; the isolated target was removed. Independent
 monitor assessment verifies freshness, readability and archive hash. The
 [procedure and scope](2026-09-20-full-database-restore.md) distinguish data restore
-from role/configuration recovery. Scheduled monitor adoption remains pending;
-off-host recovery remains deferred and Actionable.
+from role/configuration recovery. The scheduled monitor now selects the new
+verified archive (Solar_PV `6f5d914`); exact deployed unit readback and active
+weekly timer verified, with no manual job or DM. Off-host recovery remains
+deferred and Actionable.
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before
