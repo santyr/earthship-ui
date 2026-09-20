@@ -177,6 +177,29 @@ function num(name, fallback = Number.NaN) {
 function status(reason, fields = {}) {
   const parts = [`reason=${reason}`];
   for (const [key, value] of Object.entries(fields)) parts.push(`${key}=${value}`);
+  // Observational hint only: use this owner's actual gap and local-hour policy.
+  // A conditional candidate is not a reservation and never authorizes a start.
+  try {
+    const evaluated = now();
+    const evaluatedMs = epochMillis(evaluated);
+    parts.push('scheduleVersion=1', `evaluatedAt=${evaluated.toInstant().toString()}`);
+    const predictable = new Set(['cycle_started', 'cycle_active', 'cycle_completed',
+      'cooldown_wait', 'cooldown_initialized']);
+    // postUpdate is asynchronous: the just-started cycle must use its captured
+    // timestamp, not a possibly previous LastCycleStart registry value.
+    const last = reason === 'cycle_started' ? epochMillis(fields.startedAt) : lastStartMs();
+    if (predictable.has(reason) && Number.isFinite(last) && last <= evaluatedMs) {
+      const earliest = Math.max(evaluatedMs, last + CFG.requiredGapMs);
+      const candidate = evaluated.plusNanos(Math.round((earliest - evaluatedMs) * 1e6));
+      parts.push('scheduling=conditional',
+        `nextEligibleAt=${candidate.toInstant().toString()}`,
+        `nextPump=${candidate.hour() % 2 === 0 ? 'south' : 'east'}`);
+    } else {
+      parts.push(`scheduling=${predictable.has(reason) ? 'unavailable' : 'blocked'}`);
+    }
+  } catch {
+    // A display failure must never interrupt a cycle, safety stop or its timer.
+  }
   post(CFG.statusItem, parts.join(','));
 }
 
@@ -472,6 +495,7 @@ function beginCycle({
   if (!isManual) post(CFG.lastRunItem, startAt); // automatic-only compatibility
   command(pump, 'ON');
   status('cycle_started', {
+    startedAt: startAt,
     voltage: voltage.toFixed(2),
     soc: soc.toFixed(1),
     mode: mode || 'normal',

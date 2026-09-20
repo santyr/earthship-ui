@@ -17,6 +17,7 @@
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
+  import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     adaptCurrentAqi,
@@ -294,8 +295,10 @@
     }
   }
 
-  const gwStatus = $derived(greywaterState($items.SouthOutlet_Outlet2_Switch));
-  const gwAccessibleLabel = $derived(`Greywater status ${gwStatus.label.toLowerCase()}`);
+  const gwSchedule = $derived(greywaterSchedule({ south: $items.SouthOutlet_Outlet2_Switch,
+    east: $items.East_Bed_Socket_Outlet_2_Power, status: $items.SouthOutlet_AutoStatus, now: wallClock }));
+  const gwStatus = $derived(greywaterState(gwSchedule.running ? 'ON' : gwSchedule.known ? 'OFF' : null));
+  const gwAccessibleLabel = $derived(`Greywater status ${gwSchedule.label.toLowerCase()}. ${gwSchedule.next}. ${gwSchedule.detail}`);
   const gwLastAgo = $derived(relativeAgeText($items.SouthOutlet_LastAutoRun, wallClock));
 
 
@@ -547,8 +550,9 @@
           <OhIcon icon="iconify:mdi:fountain" size="1.35rem" />
         </span>
         <div class="gw-text">
-          <div class="gw-state" style="color: {gwStatus.color}">{gwStatus.label}</div>
-          <div class="gw-last">last {gwLastAgo}</div>
+          <div class="gw-state" style="color: {gwStatus.color}">{gwSchedule.label}</div>
+          <div class="gw-next" title={gwSchedule.detail}>{gwSchedule.next}</div>
+          <div class="gw-last" title={`Last automatic run ${gwLastAgo}`}>Daylight &amp; safety permitting</div>
         </div>
       </div>
     </Tile>
@@ -957,6 +961,8 @@
     color: #e6edf3;
     line-height: 1.1;
   }
+  .gw-text { min-width: 0; }
+  .gw-next { font-size: 0.68rem; line-height: 1.25; color: #d0d8e2; overflow-wrap: anywhere; }
   .gw-last {
     font-size: 0.68rem;
     color: #aab4c2;
