@@ -36,11 +36,12 @@ provider transfer or rollback, which remain required.
 Backup review confirms the weekly check correctly reports the August 20 full
 restore point stale and same-host. The recent analytics-only rehearsal cannot
 replace that broader backup. Full restore refresh remains outstanding.
-A full-database snapshot/rehearsal is now executing with 510 tables, read-only
-production access and a network-isolated restore target. The
+A full-database snapshot/rehearsal completed at 18:59:53Z with all 510 tables
+matching the source snapshot; the isolated target was removed. Independent
+monitor assessment verifies freshness, readability and archive hash. The
 [procedure and scope](2026-09-20-full-database-restore.md) distinguish data restore
-from role/configuration recovery. Do not treat this running operation as verified
-completion or start a duplicate while its process remains active.
+from role/configuration recovery. Scheduled monitor adoption remains pending;
+off-host recovery remains deferred and Actionable.
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before

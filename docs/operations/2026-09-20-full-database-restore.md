@@ -42,8 +42,16 @@ OpenHAB startup, protected-control recovery or off-host disaster recovery.
 The backup-check reference must not change before successful readback. Its
 off-host limitation stays Actionable under the operator's existing deferral.
 
-The first execution is in progress under the private directory
-`/home/sat/backups/earthship-energy/full-restore-0lnrkogj`. Completion is not yet
-claimed. Unit tests cover SQL identifier safety and bounded accumulator shape;
+The first execution completed at 2026-09-20T18:59:53.335249Z under the private
+directory `/home/sat/backups/earthship-energy/full-restore-0lnrkogj`. All 510
+tables matched their source-snapshot fingerprints; the owned container was
+removed and the process exited zero. Independent assessment with the deployed
+backup monitor confirmed fresh, readable, restore-verified and hash-matching.
+The archive SHA256 is
+`6e6fba4f7608500a0964f453b57fb9a20b1f39fb857ed66563139f8b437d5e31`.
+Directory mode is 0700; manifest/archive modes are 0600. Off-host and disaster
+recovery remain false, with Actionable severity. The scheduled monitor still
+needs its reference changed from the old archive; this assessment sent no DM.
+Unit tests cover SQL identifier safety and bounded accumulator shape;
 read-only PostgreSQL VALUES tests verify order invariance, duplicate sensitivity
 and value sensitivity.
