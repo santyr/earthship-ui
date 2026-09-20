@@ -15,19 +15,18 @@ are retained as evidence, not current-state claims.
   persisted receipts; the installed restricted worker passed post-cutover reads.
   Hourly cutover is2026-09-20T00:30:09Z. First natural qualified model update is
   still unobserved. See [activation receipt](2026-09-19-qualified-temperature-activation.md).
-- Completed-night scoring remains staged, not live. The Earthship integration
-  was reconciled with current main at3015eda, preserving the exact qualified
-  hourly scorer and runtime wrapper. Its full suite passes1014tests/42subtests,
-  with the separately exercised PostgreSQL test skipped in that invocation.
-  Solar integration9ab7461 includes current main;523analytics tests pass.
-- The live analytics database still has migrations1/2 and zero captured advisory
-  decisions/results. A consistent private16-table backup was restored and
-  migrations3/4 rehearsed successfully in a networkless disposable PostgreSQL
-  container, with existing data fingerprints unchanged. Container removed;
-  archive retained. See [release preflight](2026-09-19-trough-release-preflight.md).
-  Live migration, restricted roles, capture/assessment activation, and natural
-  completed outcomes remain the next implementation steps, under existing
-  approval—not a request to approve learning again.
+- Completed-night capture/assessment is now enabled on the existing06:40
+  schedule, with assessment cutover2026-09-20T00:48:40Z. Exact deployed source
+  retains qualified hourly learning and removes premature trough scoring.
+  Migrations1–4/checksums, separate restricted roles, imports, private configuration,
+  source hashes and all eight restored timers are verified. The natural18:50:14
+  analytics publication succeeded. See [activation](2026-09-19-trough-live-activation.md).
+- The [verified private backup/rehearsal](2026-09-19-trough-release-preflight.md)
+  was the live migration gate. All15pre-existing data-table fingerprints and
+  the learned model state remained identical after cutover. There were still
+  zero origins/results/outcomes at release: next natural capture and subsequent
+  fully completed-night assessment remain unverified. No synthetic origin,
+  forecast replay, test DM, or causal/bandit reward was manufactured.
 - Pump hour-selection and expired-busy fixes are deployed; natural East start
   was observed. The concurrent15-minute rule change is preserved. A complete
   natural timed cycle remains unverified; do not overwrite operator-owned timing.
