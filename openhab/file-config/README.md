@@ -80,6 +80,29 @@ external services and private configuration require separate review. Do not use
 an empty issue list as permission to migrate a resource or claim restart safety.
 See `docs/operations/2026-09-20-file-first-inventory.md` for the initial scope.
 
+## Registered transformation recovery snapshot
+
+`transform-source-archive.json` preserves all 15 registered file transformations
+read back on September 20, 2026. Each entry contains its exact UTF-8 source,
+destination, registry type and SHA256. JSON encoding deliberately preserves
+missing final newlines in `astro.map~` and `temp_icons.scale`. Every archived
+body matched both the live registry's function and its installed file; each
+decoded content hash and byte-for-byte filesystem comparison passed.
+
+This is an exact recovery snapshot, not a bulk deployment list, active ownership
+transfer or permission to restore obsolete behavior. Existing tracked transforms
+under `openhab/transform/` remain their canonical maintained sources. In
+particular, `voltage_to_soc_fine.js` is legacy voltage-derived SoC logic: archiving
+it does not make it an authority for the Discover lithium bank. `astro.map~` is
+an editor-backup artifact that happens to be registered; preserve that fact
+without treating it as an approved new transform. No live files were changed.
+
+Recovery must select an explicitly reviewed entry, verify its stored content
+hash and destination, preserve a private current-file backup, and verify the
+installed registry after provider hot reload. Check current canonical sources
+before using this dated snapshot. This archive excludes credentials, unregistered
+files, add-on binaries and external scripts; it is not a complete OpenHAB backup.
+
 ## Prepared persistence source (not deployed)
 
 `persistence/jdbc.persist` reproduces the live September 20 managed JDBC strategy

@@ -1,0 +1,112 @@
+{
+  "schema": "openhab-transform-source-archive/v1",
+  "captured_at": "2026-09-20",
+  "scope": "registered file transformations only; exact recovery snapshot, not bulk-deploy authorization",
+  "entries": [
+    {
+      "id": "astro.map",
+      "type": "map",
+      "destination": "/etc/openhab/transform/astro.map",
+      "sha256": "25f76f802ab403d97bcf4608ffce41529455a1de79a7964fd805ba7d8f8dc7ad",
+      "content": "# OpenHAB Icon Map File\n# These icon definitions are intended to display well on a black background.\n# Moon Phase Icons (using Material Design Icons - better for dark backgrounds)\nNEW=iconify:mdi:moon-new\nFIRST_QUARTER=iconify:mdi:moon-first-quarter\nWAXING_CRESCENT=iconify:mdi:moon-waxing-crescent\nWAXING_GIBBOUS=iconify:mdi:moon-waxing-gibbous\nFULL=iconify:mdi:moon-full\nWANING_GIBBOUS=iconify:mdi:moon-waning-gibbous\nTHIRD_QUARTER=iconify:mdi:moon-last-quarter\nWANING_CRESCENT=iconify:mdi:moon-waning-crescent\n\n# Sunrise and Sunset Icons (Material Design Icons)\nCIVIL_DAWN=iconify:mdi:weather-sunset-up\nASTRO_DAWN=iconify:mdi:weather-sunset-up\nNAUTIC_DAWN=iconify:mdi:weather-sunset-up\nSUN_RISE=iconify:mdi:weather-sunset-up\nSUN_SET=iconify:mdi:weather-sunset-down\nCIVIL_DUSK=iconify:mdi:weather-sunset-down\nNAUTIC_DUSK=iconify:mdi:weather-sunset-down\nASTRO_DUSK=iconify:mdi:weather-sunset-down\n\n# Daytime Icons\nDAYLIGHT=iconify:mdi:white-balance-sunny\nNOON=iconify:mdi:white-balance-sunny\n\n# Night Icons (added 2026-07-11 — NIGHT was unmapped, ~1240 warns/day)\nNIGHT=iconify:mdi:weather-night\nMORNING_NIGHT=iconify:mdi:weather-night\nEVENING_NIGHT=iconify:mdi:weather-night\n"
+    },
+    {
+      "id": "astro.map~",
+      "type": "map~",
+      "destination": "/etc/openhab/transform/astro.map~",
+      "sha256": "c048f3a576ba0ca87c888ade79812a7573a7d3206d69dc37f8801319ff6e4fec",
+      "content": "NEW=iconify:emojione-monotone:new-moon-face\nFIRST_QUARTER=iconify:emojione-monotone:first-quarter-moon\nWAXING_CRESCENT=iconify:emojione-monotone:waxing-crescent-moon\nWAXING_GIBBOUS=iconify:emojione-monotone:waxing-gibbous-moon\nFULL=iconify:emojione-monotone:full-moon-face\nWANING_GIBBOUS=iconify:emojione-monotone:waning-gibbous-moon\nTHIRD_QUARTER=iconify:emojione-monotone:last-quarter-moon\nWANING_CRESCENT=iconify:emojione-monotone:waning-crescent-moon\n\nCIVIL_DAWN=iconify:mdi:weather-sunset-up\nASTRO_DAWN=iconify:mdi:weather-sunset-up\nNAUTIC_DAWN=iconify:mdi:weather-sunset-up\nSUN_RISE=iconify:mdi:weather-sunset-up\nSUN_SET=iconify:mdi:weather-sunset-down\nCIVIL_DUSK=iconify:mdi:weather-sunset-down\nNAUTIC_DUSK=iconify:mdi:weather-sunset-down\nASTRO_DUSK=iconify:mdi:weather-sunset-down\nDAYLIGHT=iconify:mdi:white-balance-sunny\nNOON=iconify:mdi:white-balance-sunny\n\nNULL=iconify:bx:bx-error"
+    },
+    {
+      "id": "bitcoin_output_receipt.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/bitcoin_output_receipt.js",
+      "sha256": "d73c9fc54c9e12cbc53f5338550391d7deee775e6cf82e4555c465782c6bcaba",
+      "content": "// Transform receipt time, not provider quote time or execution ID.\n// Never copy raw stderr into persistence; it may contain sensitive details.\n(function (data) {\n  const receivedAt = Date.now();\n  if (!Number.isSafeInteger(receivedAt) || receivedAt <= 0) throw new Error('invalid receipt clock');\n  const raw = typeof data === 'string' ? data : '';\n  const amount = /^[1-9][0-9]{0,15}$/.test(raw) && !raw.includes('\\n') ? Number(raw) : NaN;\n  const price = Number.isSafeInteger(amount) && String(amount) === raw && amount <= 9007199254740990 ? amount : null;\n  return JSON.stringify({ version: 1, field: 'bitcoin.usd', receivedAt, price });\n})(input);\n"
+    },
+    {
+      "id": "bms_soc_raw_observation.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/bms_soc_raw_observation.js",
+      "sha256": "a12811c58019f24c63bbd6726387f09852621ba56faceca1e64d73b273d2bb78",
+      "content": "(function (data) {\n  return JSON.stringify({\n    version: 1,\n    field: 'raw',\n    observedAt: Date.now(),\n    value: String(data),\n  });\n})(input);\n"
+    },
+    {
+      "id": "bms_soc_scale_observation.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/bms_soc_scale_observation.js",
+      "sha256": "2450d60f904b56f745f3c27b0a4b5b4d38f5db31ade6064601b2dc1d6bf1196f",
+      "content": "(function (data) {\n  return JSON.stringify({\n    version: 1,\n    field: 'scale',\n    observedAt: Date.now(),\n    value: String(data),\n  });\n})(input);\n"
+    },
+    {
+      "id": "celsiusToFahrenheit.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/celsiusToFahrenheit.js",
+      "sha256": "8434e90fb4bf40b7e6a318e6bf8b4b6418bac8679cf30504f7bb6c6a63c2a228",
+      "content": "(function(input) {\n    var celsius = parseFloat(input);\n    var fahrenheit = (celsius * 9/5) + 32;\n    return fahrenheit.toFixed(1);\n})(input)\n"
+    },
+    {
+      "id": "de.map",
+      "type": "map",
+      "destination": "/etc/openhab/transform/de.map",
+      "sha256": "cd749d0f4d62a83310bd99a70206f641c9b0d807961f594a46e793c9247758d5",
+      "content": "CLOSED=zu\nOPEN=offen\nNULL=undefiniert\nUNDEF=unbekannt\n"
+    },
+    {
+      "id": "divide1.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/divide1.js",
+      "sha256": "f87ef2295b44638fb6d9c8589fc1a89cd088f6f2ab3d3a47dbdd737171392d9b",
+      "content": "(function(input) {\n  return parseFloat(input);\n})(input)\n"
+    },
+    {
+      "id": "divide1000.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/divide1000.js",
+      "sha256": "6c2d1f903fd0d983c58704b0934b1bedf8958f7caa55c231eb8a9c96b52e2089",
+      "content": "(function(input) {\n  return parseFloat(input) / 1000;\n})(input)\n"
+    },
+    {
+      "id": "en.map",
+      "type": "map",
+      "destination": "/etc/openhab/transform/en.map",
+      "sha256": "b8284d12dc2f0eb384e2586f2a5c57277b7924983bd89b4cd29b5c9d26ea55a7",
+      "content": "CLOSED=closed\nOPEN=open\nNULL=undefined\nUNDEF=unknown\n"
+    },
+    {
+      "id": "get_current.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/get_current.js",
+      "sha256": "19c4e42cc254c3453d752606d4aca7e9db42eb7b45356a36291486864033b997",
+      "content": "var data = JSON.parse(input);\nif (data.current !== undefined) {\n    return data.current.toString();\n} else {\n    return \"\";\n}\n"
+    },
+    {
+      "id": "get_voltage.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/get_voltage.js",
+      "sha256": "e3168cb365f04c10fd05ffbd57d859239a03ad191b006c6b793c0a4d9dfdbc29",
+      "content": "var data = JSON.parse(input);\nif (data.voltage !== undefined) {\n    return data.voltage.toString();\n} else {\n    return \"\";\n}\n"
+    },
+    {
+      "id": "js/toNumber.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/js/toNumber.js",
+      "sha256": "f32df994a4a9dcb13bac4ad9508d1fbb515a4dccb61b3ff7f7fa3288f6232ac0",
+      "content": "(function(input) {\n  return Math.round(parseFloat(input));\n})(input);\n"
+    },
+    {
+      "id": "temp_icons.scale",
+      "type": "scale",
+      "destination": "/etc/openhab/transform/temp_icons.scale",
+      "sha256": "e8fe9ce3b50bd1d7cb3ca58cff42e01b511dff51f987cc765f734f6b3d0396d1",
+      "content": "0..12=iconify:fa-solid:thermometer-empty\n13..24=iconify:fa-solid:thermometer-quarter\n14..50=iconify:fa-solid:thermometer-half\n51.75=iconify:fa-solid:thermometer-three-quarters\n76..100=iconify:fa-solid:thermometer-full\n100..150=iconify:el:fire\n\n[..]=iconify:fa-solid:thermometer-empty"
+    },
+    {
+      "id": "voltage_to_soc_fine.js",
+      "type": "js",
+      "destination": "/etc/openhab/transform/voltage_to_soc_fine.js",
+      "sha256": "0c6253bad8a6119add8871b210f635d4fe48f6a4751c668037559f0e5128f634",
+      "content": "// conf/transform/voltage_to_soc.js (or voltage_to_soc_fine.js)\n(function(input) {\n    // --- Input Validation ---\n    if (input === null || input === undefined || typeof input !== 'string' || input == 'NULL' || input == 'UNDEF') {\n        return \"N/A\"; // Return N/A for the transformation part\n    }\n\n    // Handle potential units (e.g., \"50.5 V\")\n    var v = parseFloat(input.split(' ')[0]);\n\n    if (isNaN(v)) {\n        return \"N/A\"; // Return N/A if parsing failed\n    }\n\n    // --- Voltage-SoC Mapping Points ---\n    // Define the known points based on your original logic.\n    // IMPORTANT: Must be sorted by Voltage in ASCENDING order.\n    const points = [\n        // [Voltage, SoC]\n        // Add a lower bound if needed, e.g., [44.0, 0] if 44.0V truly means 0%\n        // Using your lowest threshold as the first point for interpolation:\n        [44.4, 10],\n        [45.2, 20],\n        [46.0, 30],\n        [46.8, 40],\n        [47.6, 50],\n        [48.4, 60],\n        [49.2, 70],\n        [50.0, 80],\n        [50.8, 90],\n        [52.0, 100]\n    ];\n\n    // --- Handle Edge Cases ---\n    // Voltage below the lowest defined point (use 0% like your original logic)\n    if (v < points[0][0]) { // Voltage is lower than 44.4V\n        return 0;\n    }\n    // Voltage at or above the highest defined point\n    if (v >= points[points.length - 1][0]) { // Voltage is 52.0V or higher\n        return points[points.length - 1][1]; // Return 100%\n    }\n\n    // --- Linear Interpolation ---\n    // Find the two points the current voltage 'v' falls between\n    for (let i = 0; i < points.length - 1; i++) {\n        const p1 = points[i];     // Lower point [v1, soc1]\n        const p2 = points[i+1];   // Upper point [v2, soc2]\n\n        // Check if voltage 'v' is within the segment [v1, v2)\n        if (v >= p1[0] && v < p2[0]) {\n            const v1 = p1[0];\n            const soc1 = p1[1];\n            const v2 = p2[0];\n            const soc2 = p2[1];\n\n            // Calculate the proportion of how far 'v' is between v1 and v2\n            const proportion = (v - v1) / (v2 - v1);\n\n            // Apply that proportion to the SoC range [soc1, soc2]\n            const interpolatedSoc = soc1 + proportion * (soc2 - soc1);\n\n            // Round to the nearest whole number for display\n            return Math.round(interpolatedSoc);\n        }\n    }\n\n    // --- Fallback ---\n    // This part should ideally not be reached if the points cover the range\n    // and edge cases are handled correctly.\n    // Could return the closest known point or N/A.\n    // Let's return N/A for safety.\n    return \"N/A\";\n\n})(input) // Special variable 'input' holds the item state passed to the transform\n"
+    }
+  ]
+}
