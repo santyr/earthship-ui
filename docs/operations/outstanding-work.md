@@ -58,7 +58,12 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   succeeded, but revealed a new persistence release gate:155missing sequence
   publications paired with155duplicate following snapshots in a fixed1207-row
   window. Valid source values do not authorize bridging those missing records.
-  Collector-vs-JDBC attribution remains to investigate; collection stays active
+  Attribution is now localized after publication: event log sequences395/396/397
+  correspond to JDBC395/397/397. Matching5.2.1JDBC code reads mutable Item state
+  inside its queued task. A later27-event SSE/database sample was complete,
+  confirming intermittency. Next: qualify explicit timestamp/state persistence
+  and exclude only this Item from its automatic writer. No repair applied yet;
+  collection stays active
   and no accounting activation occurred. See the
   [sequence-gap evidence](2026-09-20-power-persistence-sequence-gaps.md).
   **Remaining:** resolve publication/persistence loss; report/export/UI consumer integration and
