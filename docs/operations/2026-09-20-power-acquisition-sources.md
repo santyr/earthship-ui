@@ -106,3 +106,12 @@ or a live restart. No persistence configuration is added yet. Required next
 steps are the strict historical reader, bounded persistence plan, live source
 and lifecycle qualification, household-load contract and versioned accounting
 integration. Do not reuse the BMS parser on this different record schema.
+
+The producer now adds a positive per-stream `sequence`, advanced after successful
+publication, to order distinct snapshots recorded in the same millisecond.
+Failed posts do not acknowledge sequence advancement. Cache reset restarts the
+sequence under a new UUID epoch.77observer tests and1498full unit tests pass.
+The separate Solar_PV power reader accepts this schema and preserves publication
+delays, missing-sequence gaps and per-field independence.579analytics tests pass.
+An isolated actual-transform/observer-to-reader/accounting probe also passed;
+none of this substitutes for live provenance or bounded persistence checks.

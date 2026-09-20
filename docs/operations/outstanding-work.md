@@ -629,6 +629,13 @@ descriptor is not in managed deployment; no producer is active and no new
 persistence is configured. Historical reader, volume qualification, household
 load and versioned accounting integration remain required.
 
+Historical power parsing/interval construction is now implemented in the isolated
+Solar_PV branch: strict schema, per-epoch publication sequence, invalid/missing
+barriers, exact TTL, persistence delay and unchanged-field independence.
+579analytics tests and an actual-JS-output-to-Python-reader probe pass. Producer
+sequence support passes1498UI/OpenHAB tests. Neither side is active; bounded SQL
+transport/persistence, real source qualification and accounting cutover remain.
+
 ### Bitcoin carry audit, September 10
 
 The live `hex_btc_24h_change` source still matches the September 5 SHA above.

@@ -145,6 +145,15 @@ it('publication failure does not acknowledge the missing update', () => {
   expect(h.latest.fields['battery.dc_power_w'].status).toBe('unavailable');
   h.fail(false); h.run();
   expect(h.latest.fields['battery.dc_power_w'].status).toBe('valid');
+  expect(h.latest.sequence).toBe(2);
+});
+
+it('orders same-millisecond publications with a per-epoch sequence', () => {
+  const h = harness(); h.run(); h.advance();
+  h.run(h.event(definitions[0])); h.run(h.event(definitions[1]));
+  expect(h.posts.at(-2).recordedAt).toBe(h.latest.recordedAt);
+  expect(h.posts.map(p=>p.sequence)).toEqual([1,2,3]);
+  h.state.clear(); h.run(); expect(h.latest.sequence).toBe(1);
 });
 
 it('descriptor remains disabled, observational and outside automatic deployment', () => {

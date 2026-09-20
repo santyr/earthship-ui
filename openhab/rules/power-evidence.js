@@ -27,7 +27,7 @@ const sources = {
 let state = cache.private.get(KEY);
 if (!state || now < state.lastNow) {
   state = { epoch: UUID.randomUUID().toString(), floor: now, lastNow: now,
-    values: {}, water: {}, lastPublished: null };
+    values: {}, water: {}, lastPublished: null, sequence: 0 };
 }
 state.lastNow = now;
 function invalidate(name) {
@@ -117,13 +117,14 @@ for (const [name, source] of Object.entries(sources)) {
     : { status: 'unavailable', reason: value ? 'input_stale' : 'input_unavailable',
       observedAt: null, validUntil: null, watts: null };
 }
-const next = { version: 1, streamEpoch: state.epoch, recordedAt: now, fields };
+const next = { version: 1, streamEpoch: state.epoch, sequence: state.sequence + 1, recordedAt: now, fields };
 const previous = state.lastPublished;
 // Every accepted receipt must be published: suppressing changed timestamps
 // would erase field-specific expiry and invalidation history.
 if (!previous || JSON.stringify(previous.fields) !== JSON.stringify(fields)) {
   try {
     items.getItem(OUTPUT).postUpdate(JSON.stringify(next));
+    state.sequence = next.sequence;
     state.lastPublished = next;
   } catch (_) { console.warn('Power evidence publication failed'); }
 }
