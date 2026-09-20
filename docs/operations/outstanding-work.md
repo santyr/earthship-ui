@@ -622,6 +622,13 @@ household-load receipt contract, persistence, qualified reader and versioned
 accounting integration remain open. Raw observation transforms are not qualified
 evidence and have not been deployed.
 
+The source-only power observer now validates original binding events, keeps
+per-field120-second expiry and invalid barriers, and resets its stream epoch
+across cache loss/clock rollback.76isolated observer tests pass. The disabled
+descriptor is not in managed deployment; no producer is active and no new
+persistence is configured. Historical reader, volume qualification, household
+load and versioned accounting integration remain required.
+
 ### Bitcoin carry audit, September 10
 
 The live `hex_btc_24h_change` source still matches the September 5 SHA above.

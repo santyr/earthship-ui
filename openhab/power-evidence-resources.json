@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "items": [
+    {"name":"Power_Evidence_JSON","type":"String","label":"Validated battery and PV power evidence","category":"","tags":[],"groupNames":[]}
+  ],
+  "rule": {
+    "uid":"hex_power_evidence","name":"Validated battery and PV power evidence","enabled":false,"source":"openhab/rules/power-evidence.js",
+    "triggers": [
+      {"id":"battery","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/Battery_Power_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"pv_input","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/PV_Input_Power_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"pv_output","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/PV_Output_Power_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/30 * * * * ?"}}
+    ]
+  }
+}

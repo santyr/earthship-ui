@@ -72,3 +72,37 @@ The corresponding interval-math foundation is Solar_PV branch
 `feat/qualified-power-accounting`, commita8925f9, with543analytics tests passing.
 No existing cumulative totals, BMS counters, safety publishers or pump controls
 have changed. Full producer/reader/accounting/cutover integration remains open.
+
+## Source-only observer implementation
+
+`openhab/rules/power-evidence.js` and its separate disabled resource descriptor
+now define the observational `Power_Evidence_JSON` publisher. It authenticates
+the original ItemStateEvent topic, Item name and exact binding channel source;
+requires canonical bounded receipt JSON; preserves per-field acquisition times;
+rejects future/expired/malformed readings; and publishes null-valued barriers on
+invalid input. Signed battery values are retained; raw int16 minimum and uint32
+maximum are conservatively excluded. These are encoding/sentinel bounds, not
+physical power plausibility certification. PV negatives are rejected.
+
+The observer does not read existing numeric or health Items, issue commands,
+perform I/O, or adjust pollers. Its only Item access is posting the new evidence
+String. Each field expires120seconds after its own acquisition timestamp; a
+30-second observational timer publishes expiry status, while readers must honor
+the exact validUntil boundary independently. Every accepted distinct acquisition
+timestamp is published, including unchanged watts. This preserves evidence but
+requires measuring publication/storage volume before persistence activation.
+
+Private-cache reset or clock rollback creates a new stream epoch, starting
+unavailable and requiring strictly post-reset acquisition. Delayed older receipts
+do not renew values; conflicting same-time readings invalidate the field and
+require a later receipt. Failed publication is retried without acknowledging a
+successful post. Ambiguous original-event wrappers invalidate all fields.
+
+The initial timestamp-only acquisition source and observer remain undeployed.
+Tests exercise76observer cases in an isolated VM with forbidden numeric reads,
+commands/network capabilities, injected clocks, original events and failures.
+This is not proof of real binding-event provenance, a hardware fault response,
+or a live restart. No persistence configuration is added yet. Required next
+steps are the strict historical reader, bounded persistence plan, live source
+and lifecycle qualification, household-load contract and versioned accounting
+integration. Do not reuse the BMS parser on this different record schema.
