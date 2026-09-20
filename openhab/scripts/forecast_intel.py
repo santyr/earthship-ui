@@ -942,7 +942,8 @@ def main():
                             observer=lambda status: capture.publication(item, status))
         return safe_put(item, value, put_failed)
 
-    hourly_scored = score_hourly_targets(st, now)
+    from hourly_temperature_runtime import score_runtime_hourly
+    hourly_scored = score_runtime_hourly(st, now, score_hourly_targets)
     save_state(st)  # commit consumed/pruned evidence before later fallible work
     if hourly_scored:
         log.append(f"hourly-temp scored: {hourly_scored} raw targets")
