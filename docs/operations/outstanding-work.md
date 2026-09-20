@@ -15,6 +15,12 @@ are retained as evidence, not current-state claims.
   persisted receipts; the installed restricted worker passed post-cutover reads.
   Hourly cutover is2026-09-20T00:30:09Z. First natural qualified model update is
   still unobserved. See [activation receipt](2026-09-19-qualified-temperature-activation.md).
+- Full-day atomic BMS materialization is now verified for September11–18.
+  Raw-envelope rederivation matches daily coverage/minimum/DoD and the live
+  published latest-day values; all eight days exceed99.93%qualified coverage.
+  September10 correctly remains partial/insufficient. See [full-day receipt](2026-09-19-bms-full-day-verification.md).
+  Independent power health and remaining source fault/restart qualification are
+  not implied by these daily SoC results.
 - Completed-night capture/assessment is now enabled on the existing06:40
   schedule, with assessment cutover2026-09-20T00:48:40Z. Exact deployed source
   retains qualified hourly learning and removes premature trough scoring.
