@@ -47,3 +47,20 @@ Observe an actual daylight automatic run from ON through OFF, including all
 intervening safety/ownership events. A changed LastCycle plus OFF state alone
 is not proof of uninterrupted operation. Do not force a nighttime run or bypass
 gates to obtain a completion receipt. No monitor was left running.
+
+## September 20 natural completion
+
+The East pump received an automatic ON command at13:25:00.274MDT. Across the
+complete event-log interval there were32ONupdates and no OFF before the timer's
+OFF command at13:40:00.277. LastCycle was published19:40:00.276Z and status was
+cycle_completed; subsequent OFF confirmations included13:40:00.613 and00.955.
+South remained OFF. Observed status reasons were only cycle_started, cycle_active
+and cycle_completed; openhab.log contained no ERROR/Exception in the interval.
+The second OFF command at13:40:00.279 matches the callback's defensive finally
+cleanup, not a separate interrupted cycle. The next eligible hint remained South
+at14:25:00.272MDT, conditional on gates.
+
+This closes the normal uninterrupted natural controller/Item-cycle observation
+requirement; it is not independent electrical/flow proof. Post-fix natural sunset
+interruption remains a separate gate. No command, runnow, rule update or synthetic
+telemetry was used for observation. The bounded monitor exited successfully.

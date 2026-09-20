@@ -242,8 +242,12 @@ and protected-resource rollback remain outstanding.
   stale callbacks cannot command either pump or publish completion. Live15-minute
   timing and all gates are unchanged. Five regressions reproduced the defect;
   all1370unit tests and build pass. See [release](2026-09-19-pump-timer-ownership.md).
-  An uninterrupted natural cycle is still unverified. The bounded monitor
-  finished; no monitor remains running.
+  September20 natural East cycle now verifies uninterrupted observed operation:
+  ON13:25:00.274, 32ONupdates with no intervening OFF, then timer OFF13:40:00.277,
+  completion19:40:00.276Z and subsequent OFF confirmations. No safety interruption
+  or logged error occurred. The bounded monitor exited. This is controller/Item
+  evidence, not independent flow measurement; post-fix sunset interruption still
+  needs natural verification. See the updated timer-ownership release receipt.
   September20morning's old status was explained by the former08:00–20:00condition.
   The operator then approved daylight operation and timer-only automatic checks:
   live now has one-minute cron plus manual request, no fixed-hour condition and
