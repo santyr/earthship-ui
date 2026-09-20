@@ -5,7 +5,7 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
-## Current checkpoint — September 19, 2026
+## Current checkpoint — September 20, 2026
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
@@ -88,6 +88,14 @@ are retained as evidence, not current-state claims.
   elapsed window fully covered. Daily/day-3 temperature scoring integration,
   cutover policy and provenance remain open; numeric learning is not yet replaced.
   See [reader evidence and integration boundary](2026-09-20-temperature-window-reader.md).
+- September20 daily/day-3 temperature scoring is now integrated in source with
+  a bounded restricted worker, explicit complete-day receipt coverage policy,
+  post-cutover forecast origins and bounded scoring provenance. No activation
+  has occurred: the natural thermal training job is still using shared runtime
+  files and must finish before deployment. The real read-only child correctly
+  reports September19aspartial. Final1146Python tests and42subtests pass, one skip.
+  Rain/PV are not newly qualified by this work.
+  See [integration and activation gates](2026-09-20-daily-temperature-integration.md).
 
 The broad goal remains active. Successful source deployment or synthetic tests
 do not substitute for natural outcome or future-season verification.

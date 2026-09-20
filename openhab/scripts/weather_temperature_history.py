@@ -5,6 +5,8 @@ bounded connect timeout. This module never reads credentials or falls back to
 another Item. No production caller or Item is installed by importing it.
 """
 from datetime import timedelta
+import hashlib
+import json
 
 from weather_temperature_evidence import TemperaturePolicy
 from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_window
@@ -45,7 +47,8 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
 
 
-def fetch_temperature_window(connection_factory, *, start, end, assessed_at, stream, policy):
+def fetch_temperature_window(connection_factory, *, start, end, assessed_at, stream, policy,
+                             include_provenance=False):
     """Read all receipt changes for an elapsed window, including 25-hour days.
 
     Same restricted transport, row limits and no-fallback contract as grids.
@@ -59,7 +62,14 @@ def fetch_temperature_window(connection_factory, *, start, end, assessed_at, str
                       history_start=history_start, stream=stream, policy=policy)
         select_temperature_window([], **kwargs)  # Validate before connecting.
         observations = _fetch_rows(connection_factory, history_start, end)
-        return select_temperature_window(observations, **kwargs)
+        result = select_temperature_window(observations, **kwargs)
+        if include_provenance:
+            # Hash the complete bounded input, including original carry and
+            # invalid barriers. Never expose raw envelopes to the parent.
+            body = [[_utc(at).isoformat(), raw] for at, raw in observations]
+            result['history_sha256'] = hashlib.sha256(json.dumps(
+                body, ensure_ascii=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        return result
     except Exception:
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
 

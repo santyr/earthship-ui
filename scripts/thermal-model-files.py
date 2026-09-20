@@ -36,6 +36,7 @@ MANIFEST = (
         }
         for name in (
             "thermal_temperature_runtime", "hourly_temperature_runtime",
+            "daily_temperature_runtime",
             "weather_temperature_reader", "weather_temperature_history",
             "weather_temperature_evidence", "weather_temperature_config",
         )

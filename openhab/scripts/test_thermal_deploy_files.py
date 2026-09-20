@@ -58,6 +58,7 @@ def test_exact_manifest_contains_complete_runtime_and_four_units():
             f"openhab/scripts/{name}.py"
             for name in (
                 "thermal_temperature_runtime", "hourly_temperature_runtime",
+                "daily_temperature_runtime",
                 "weather_temperature_reader", "weather_temperature_history",
                 "weather_temperature_evidence", "weather_temperature_config",
             )

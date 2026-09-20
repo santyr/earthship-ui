@@ -36,6 +36,7 @@ RUNTIME_REVISION_PATHS = (
     "forecast_intel.py",
     "thermal_temperature_runtime.py",
     "hourly_temperature_runtime.py",
+    "daily_temperature_runtime.py",
     "weather_temperature_reader.py",
     "weather_temperature_history.py",
     "weather_temperature_evidence.py",

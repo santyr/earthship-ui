@@ -402,6 +402,19 @@ def measured_day_weather(day):
     return rain, (max(temps) if temps else None), (min(temps) if temps else None)
 
 
+def measured_day_weather_with_evidence(day):
+    """Migrate both daily and day-3 temperature actuals at one boundary."""
+    if os.environ.get('DAILY_TEMP_QUALIFIED_ENABLE') is None:
+        return (*measured_day_weather(day), None)
+    from daily_temperature_runtime import read_daily_actuals
+    window = local_day_window_utc(day)
+    # Rain is a separate quantity and retains its existing contract. Do not
+    # fetch numeric outdoor history at all on the explicitly qualified path.
+    rain = max((v for _, v in series(RAIN_DAY_ITEM, *window)), default=None)
+    high, low, evidence = read_daily_actuals(*window, datetime.now(timezone.utc))
+    return rain, high, low, evidence
+
+
 def _series_value(series_data, key, index):
     values = series_data.get(key, [])
     return values[index] if index < len(values) else None
@@ -953,7 +966,11 @@ def main():
     # without double-appending the ones that already scored ----
     ykey = (today - timedelta(days=1)).isoformat()
     yp = st["predictions"].get(ykey)
-    rain_actual, hi_actual, lo_actual = measured_day_weather(today - timedelta(days=1))
+    rain_actual, hi_actual, lo_actual, temp_evidence = measured_day_weather_with_evidence(today - timedelta(days=1))
+    from daily_temperature_runtime import origin_eligible, record_score, forecast_value_eligible
+    daily_origin_ok = origin_eligible(yp, today - timedelta(days=1), temp_evidence, MOUNTAIN, 0)
+    if temp_evidence is not None and yp and not daily_origin_ok:
+        log.append('daily temperature origin ineligible; scoring skipped')
     if yp:
         if should_score(st, ykey, "pv"):
             pv_pts = series("MPPT60_EnergyFromPV_Today", *local_day_window_utc(today - timedelta(days=1)))
@@ -993,7 +1010,7 @@ def main():
             log.append(f"precip scored: pred {yp['precip_in']:.2f} vs actual {rain_actual:.2f} in (err {perr:+.2f})")
             mark_scored(st, ykey, "precip")
         kalman = st.setdefault("kalman", kalman_seed())
-        if should_score(st, ykey, "hi") and hi_actual is not None and yp.get("hi") is not None:
+        if daily_origin_ok and should_score(st, ykey, "hi") and hi_actual is not None and forecast_value_eligible(yp, 'hi', temp_evidence):
             herr = yp["hi"] - hi_actual   # raw-forecast error: the filter learns truth
             st["temp_hi_errors"] = (st.get("temp_hi_errors", []) + [herr])[-7:]   # signed: feeds bias
             put("Forecast_TempHigh_Error_7d", round(sum(abs(e) for e in st["temp_hi_errors"]) / len(st["temp_hi_errors"]), 1))
@@ -1001,13 +1018,15 @@ def main():
             b = kalman_update(kalman, "hi", herr)
             log.append(f"temp-hi scored: pred {yp['hi']:.0f} vs actual {hi_actual:.0f} (err {herr:+.1f}F, kalman bias {b:+.2f})")
             mark_scored(st, ykey, "hi")
-        if should_score(st, ykey, "lo") and lo_actual is not None and yp.get("lo") is not None:
+            record_score(st, ykey, 'hi', yp, hi_actual, temp_evidence)
+        if daily_origin_ok and should_score(st, ykey, "lo") and lo_actual is not None and forecast_value_eligible(yp, 'lo', temp_evidence):
             lerr = yp["lo"] - lo_actual
             st["temp_lo_errors"] = (st.get("temp_lo_errors", []) + [abs(lerr)])[-7:]
             put("Forecast_TempLow_Error_7d", round(sum(st["temp_lo_errors"]) / len(st["temp_lo_errors"]), 1))
             b = kalman_update(kalman, "lo", lerr)
             log.append(f"temp-lo scored: pred {yp['lo']:.0f} vs actual {lo_actual:.0f} (err {lerr:+.1f}F, kalman bias {b:+.2f})")
             mark_scored(st, ykey, "lo")
+            record_score(st, ykey, 'lo', yp, lo_actual, temp_evidence)
 
     # ---- Phase 1c: day-3 horizon skill (how trustworthy is 3-day planning) ----
     # Consume-on-success only: a field is popped from the record when it was
@@ -1016,11 +1035,17 @@ def main():
     horizon = st.setdefault("horizon", {})
     h3 = horizon.get(ykey)
     if h3:
-        if hi_actual is not None and h3.get("hi") is not None:
+        horizon_origin_ok = origin_eligible(h3, today - timedelta(days=1), temp_evidence, MOUNTAIN, 3)
+        if temp_evidence is not None and not horizon_origin_ok and h3.get('hi') is not None:
+            log.append('day3 temperature origin ineligible; scoring skipped')
+        if (horizon_origin_ok
+                and hi_actual is not None and forecast_value_eligible(h3, 'hi', temp_evidence)):
+            scored_origin = dict(h3)
             e3 = h3.pop("hi") - hi_actual
             st["day3_hi_errors"] = (st.get("day3_hi_errors", []) + [abs(e3)])[-7:]
             put("Forecast_Day3_High_Error_7d", round(sum(st["day3_hi_errors"]) / len(st["day3_hi_errors"]), 1))
             log.append(f"day3-hi scored: pred {e3 + hi_actual:.0f} vs actual {hi_actual:.0f} (err {e3:+.1f}F)")
+            record_score(st, ykey, 'day3_hi', scored_origin, hi_actual, temp_evidence)
         if rain_actual is not None and h3.get("precip_in") is not None:
             e3p = h3.pop("precip_in") - rain_actual
             st["day3_precip_errors"] = (st.get("day3_precip_errors", []) + [abs(e3p)])[-7:]
@@ -1030,9 +1055,11 @@ def main():
             horizon.pop(ykey, None)
     for stale_key in [k for k in horizon if k < (today - timedelta(days=7)).isoformat()]:
         horizon.pop(stale_key, None)
+    save_state(st)  # Persist consumed daily evidence before the fallible forecast fetch.
 
     # ---- Phase 3: fetch forecast, predict today ----
     snapshot = fetch_forecast()
+    forecast_issued_at = datetime.now(timezone.utc).isoformat()
     targets = st.setdefault("hourly_temp_targets", {})
     for key, record in capture_next_day_hourly(snapshot, now).items():
         targets.setdefault(key, record)
@@ -1132,6 +1159,7 @@ def main():
         put(item, val)
 
     st["predictions"][today.isoformat()] = {
+        "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
         "pv": pv_pred, "trough": trough_pred, "curtail": curtail, "advisory": advisory.split("|")[0],
         "radsum": radsum_kwh, "demand": round(demand, 2), "deficit_kwh": round(deficit_kwh, 2),
         "k_res": round(st["k_res"], 3), "d_direct": round(st["d_direct"], 2),
@@ -1141,6 +1169,7 @@ def main():
     # Day+3 horizon record, scored when that day's actuals exist (Phase 1c).
     if len(highs) > 3:
         st.setdefault("horizon", {})[(today + timedelta(days=3)).isoformat()] = {
+            "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
             "hi": highs[3],
             "precip_in": (precip_sum[3] if len(precip_sum) > 3 else None),
         }

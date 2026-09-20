@@ -150,6 +150,7 @@ def test_runtime_revision_manifest_is_exact_and_complete():
         "forecast_intel.py",
         "thermal_temperature_runtime.py",
         "hourly_temperature_runtime.py",
+        "daily_temperature_runtime.py",
         "weather_temperature_reader.py",
         "weather_temperature_history.py",
         "weather_temperature_evidence.py",

@@ -158,3 +158,17 @@ def test_window_future_end_never_opens_connection():
     with pytest.raises(TemperatureHistoryUnavailable):
         fetch_temperature_window(forbidden, start=AT, end=AT + timedelta(seconds=1),
                                  assessed_at=AT, stream='indoor', policy=POLICY)
+
+
+def test_history_provenance_hashes_original_input_not_only_numeric_extrema():
+    from test_weather_temperature_history import Connection
+    from weather_temperature_history import fetch_temperature_window
+    digests = []
+    for value in [raw(), raw(), raw() + ' ']:
+        connection = Connection(rows=[(AT, value)])
+        result = fetch_temperature_window(lambda: connection, start=AT,
+            end=AT + timedelta(seconds=60), assessed_at=AT + timedelta(seconds=60),
+            stream='indoor', policy=POLICY, include_provenance=True)
+        assert result['fully_covered'] and result['observed_high_f'] == 70
+        digests.append(result['history_sha256'])
+    assert digests[0] == digests[1] != digests[2]

@@ -132,6 +132,15 @@ def test_observer_failure_does_not_change_put_result(monkeypatch, capsys):
 
 def run_main(monkeypatch, tmp_path, *, active, highs, low_resource=False,
              suppressed=False, notifier="success", fail_store=None):
+    # Golden comparisons run the same forecast twice under one clock. Newly
+    # captured origin timestamps must match too, not be stripped from the result.
+    day = fi.date.today()
+    fixed = datetime(day.year, day.month, day.day, 12, 40, tzinfo=timezone.utc)
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed.astimezone(tz) if tz is not None else fixed.astimezone().replace(tzinfo=None)
+    monkeypatch.setattr(fi, 'datetime', Clock)
     import advisory_capture as ac
     store = Store(fail_store)
     state = {"k_res": 1.0, "d_direct": 4.0, "predictions": {}, "pv_errors": [],
