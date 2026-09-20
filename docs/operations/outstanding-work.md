@@ -54,6 +54,12 @@ are retained as evidence, not current-state claims.
   comparisons; a live restricted read qualified all36targets across the three
   streams. It is not installed in runtime or connected to thermal training yet.
   See [foundation and integration requirements](2026-09-19-thermal-qualified-grid.md).
+- Thermal training/backtest source integration now has an explicit legacy/
+  receipt cutover, bounded read-only worker, no-fallback invalid grid targets and
+  validated per-role artifact provenance. Real child-worker reads qualified36/36
+  targets and existing accepted/previous artifacts remain readable. Activation,
+  natural training proof and current-shadow source migration remain outstanding.
+  See [integration and rollback contract](2026-09-19-thermal-qualified-integration.md).
 - Conformal intervals, weather/thermal outcome attribution, broad change-only
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82

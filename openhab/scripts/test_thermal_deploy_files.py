@@ -55,10 +55,19 @@ def test_exact_manifest_contains_complete_runtime_and_four_units():
     assert [entry["source"] for entry in entries if entry["phase"] == "code"] == [
         "openhab/scripts/thermal_intel.py",
         *[
+            f"openhab/scripts/{name}.py"
+            for name in (
+                "thermal_temperature_runtime", "hourly_temperature_runtime",
+                "weather_temperature_reader", "weather_temperature_history",
+                "weather_temperature_evidence", "weather_temperature_config",
+            )
+        ],
+        *[
             f"openhab/scripts/thermal_model/{name}.py"
             for name in (
                 "__init__", "actions", "artifacts", "behavior", "dataset",
                 "dynamics", "evaluation", "journal", "pipeline", "schema", "solar",
+                "temperature_history",
             )
         ],
     ]

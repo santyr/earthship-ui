@@ -376,6 +376,8 @@ def run_training(
     manifest = _complete_manifest(
         samples, events, modes, fitted_dynamics.evidence
     )
+    if hasattr(series_reader, 'evidence_manifest'):
+        manifest['temperature_evidence'] = series_reader.evidence_manifest()
     created_at = _aware(clock(), "clock")
     artifact = ThermalArtifact(
         schema=MODEL_SCHEMA,

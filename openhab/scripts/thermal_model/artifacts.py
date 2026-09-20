@@ -561,10 +561,19 @@ def _validate_diagnostics(diagnostics, sample_count):
 
 def _validate_manifest(artifact):
     manifest = artifact.data_manifest
-    if not isinstance(manifest, dict) or set(manifest) != _MANIFEST_KEYS:
+    if not isinstance(manifest, dict) or set(manifest) not in (
+        _MANIFEST_KEYS, _MANIFEST_KEYS | {'temperature_evidence'}
+    ):
         raise ArtifactValidationError(
             "data manifest fields do not match the artifact contract"
         )
+    if 'temperature_evidence' in manifest:
+        from .temperature_history import validate_evidence_manifest
+        try:
+            validate_evidence_manifest(manifest['temperature_evidence'],
+                                      start=manifest['start'], end=manifest['end'])
+        except (ValueError, TypeError, KeyError, OverflowError, AttributeError) as exc:
+            raise ArtifactValidationError('invalid temperature source evidence') from exc
     if manifest["items"] != MODEL_ITEMS:
         raise ArtifactValidationError(
             "artifact sensor identities do not match the contract"
@@ -1326,7 +1335,10 @@ def _validate_payload_shape(payload):
     metrics = payload["metrics"]
     _validate_metrics_structure(metrics, "metric payload")
     manifest = payload["data_manifest"]
-    _exact_payload_keys(manifest, _MANIFEST_KEYS, "data manifest")
+    manifest_keys = _MANIFEST_KEYS
+    if isinstance(manifest, dict) and 'temperature_evidence' in manifest:
+        manifest_keys = manifest_keys | {'temperature_evidence'}
+    _exact_payload_keys(manifest, manifest_keys, "data manifest")
     _exact_payload_keys(
         manifest["sample_counts_by_mode"], MODE_COUNT_KEYS, "sample mode counts"
     )

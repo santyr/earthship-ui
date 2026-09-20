@@ -148,6 +148,13 @@ def test_runtime_revision_manifest_is_exact_and_complete():
     assert thermal_intel.RUNTIME_REVISION_PATHS == (
         "thermal_intel.py",
         "forecast_intel.py",
+        "thermal_temperature_runtime.py",
+        "hourly_temperature_runtime.py",
+        "weather_temperature_reader.py",
+        "weather_temperature_history.py",
+        "weather_temperature_evidence.py",
+        "weather_temperature_config.py",
+        "thermal_model/temperature_history.py",
         "thermal_model/__init__.py",
         "thermal_model/actions.py",
         "thermal_model/artifacts.py",

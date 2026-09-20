@@ -33,6 +33,13 @@ MAX_SHADOW_BYTES = 16 * 1024
 RUNTIME_REVISION_PATHS = (
     "thermal_intel.py",
     "forecast_intel.py",
+    "thermal_temperature_runtime.py",
+    "hourly_temperature_runtime.py",
+    "weather_temperature_reader.py",
+    "weather_temperature_history.py",
+    "weather_temperature_evidence.py",
+    "weather_temperature_config.py",
+    "thermal_model/temperature_history.py",
     "thermal_model/__init__.py",
     "thermal_model/actions.py",
     "thermal_model/artifacts.py",
@@ -215,13 +222,14 @@ def _offline_journal(parser):
 
 
 def _training_kwargs(args, parser, now):
+    from thermal_temperature_runtime import configured_history
     start, end = _date_range(args, now)
     return {
         "start": start,
         "end": end,
         "registry": ArtifactRegistry(args.state_dir),
         "journal": _offline_journal(parser),
-        "series_reader": _jdbc_series,
+        "series_reader": configured_history(_jdbc_series, now),
         "forecast_reader": forecast_intel.fetch_forecast,
         "clock": lambda: now,
         "revision_reader": _code_revision,

@@ -29,6 +29,19 @@ MANIFEST = (
     },
     *(
         {
+            "source": f"openhab/scripts/{name}.py",
+            "target": f"/home/sat/openhab/scripts/{name}.py",
+            "phase": "code",
+            "mode": 0o644,
+        }
+        for name in (
+            "thermal_temperature_runtime", "hourly_temperature_runtime",
+            "weather_temperature_reader", "weather_temperature_history",
+            "weather_temperature_evidence", "weather_temperature_config",
+        )
+    ),
+    *(
+        {
             "source": f"openhab/scripts/thermal_model/{name}.py",
             "target": f"/home/sat/openhab/scripts/thermal_model/{name}.py",
             "phase": "code",
@@ -46,6 +59,7 @@ MANIFEST = (
             "pipeline",
             "schema",
             "solar",
+            "temperature_history",
         )
     ),
     {
