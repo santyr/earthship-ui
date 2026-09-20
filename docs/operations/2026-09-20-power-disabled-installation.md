@@ -1,5 +1,10 @@
 # Power evidence: disabled installation
 
+**Current status:** continuous observational collection enabled at
+`2026-09-20T15:18:58.261099Z` after the qualifications below. Earlier disabled
+states describe staged installation and bounded tests, not current ownership.
+Accounting integration remains source-only; published totals are unchanged.
+
 September 20, 2026, 09:02:38 MDT. Installed from clean main `d336876`.
 This is a configuration-installation receipt, not live acquisition qualification.
 
@@ -103,3 +108,35 @@ and acquisition pause, not every infrastructure failure mode.
 Private sampled-state receipt: `/tmp/hex-power-lifecycle-ttvj9ab3`.
 Targeted regression rerun:129JavaScript tests and72Python tests passed.
 Sustained volume/retention evaluation and accounting integration remain open.
+
+## Volume probe and continuous collection activation
+
+A180.115-second bounded probe produced105output records and35receipts for each
+of the three inputs. All output rows parsed with contiguous sequences in one
+epoch. Combined JSON payload was58,920bytes: approximately26.95MiB/day at this
+short-window rate. Projected output rows per25-hour day were52,466, below the
+reader's60,000row bound including its lookback allowance. This is an estimate,
+not a measured full-day capacity or retention guarantee. Heap/index/WAL/backup
+overhead and other database growth are excluded. Current filesystem headroom
+was659GiB; no retention deletion was performed or authorized by this check.
+
+Following acquisition, unchanged-battery-value, observer restart and expiry
+qualification, continuous collection was enabled at the actual cutover above.
+The new epoch is `b9e9a314-ebf1-4b64-a1a1-5877cb4dcdd1`. All three fields
+recovered from post-cutover receipts, all three data Things were ONLINE, and
+the observer was ready. No new poller, scheduler, control command or global
+persistence edit was introduced. Rollback disables these three observation
+Things and `hex_power_evidence`; it preserves all history and original pollers.
+
+Collection may accumulate evidence while analytics integration proceeds. Do not
+backdate the accounting cutover into test windows, rewrite old estimates as
+qualified history, or infer that existing energy totals now use this stream.
+Verify full-day record volume, actual storage growth and bounded reader runtime
+after enough natural data exists. Missing/invalid intervals remain missing.
+
+Solar_PV source-only branch `feat/qualified-power-accounting`, commit`7a3a1c7`,
+adds the battery aggregation input for qualified power intervals. Empty evidence
+has no numeric fallback; charge/discharge/EFC and power coverage use the same
+clipped segments and calibrated polarity. Seven new regressions and the full
+602-test analytics suite pass. Daily orchestration, PV accounting, versioned
+materialization/rollups and UI provenance remain to integrate before deployment.

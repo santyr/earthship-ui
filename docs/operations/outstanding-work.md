@@ -29,6 +29,15 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
 
 ### Operational checkpoint
 
+- Continuous observational power collection is now enabled with actual cutover
+  `2026-09-20T15:18:58.261099Z`; all three new data Things ONLINE, observer ready,
+  and every field verified from fresh post-cutover receipts. This supersedes the
+  disabled installation/probe statuses below. A180-second probe yielded105valid
+  output rows, projected52,466rows/25h and26.95MiB/day combined JSON payload.
+  Full-day storage/query checks remain; no control or published total changed.
+  Solar_PV `7a3a1c7` adds source-only qualified battery-energy/EFC aggregation;
+  all602analytics tests pass. Daily/PV/materialization/UI wiring remains open.
+
 - Power evidence resources are installed **disabled** from `d336876`: four
   Items, three read-only data Things, three links and `hex_power_evidence`.
   Existing rules, Thing definitions and persistence configuration are unchanged.
