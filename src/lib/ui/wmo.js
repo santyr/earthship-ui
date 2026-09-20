@@ -9,6 +9,8 @@
 
 // Condition colors (spec 2026-07-19). Anchored to tokens.js accents where
 // one exists; all ≥3:1 contrast on the #11151c tile background.
+import { contextualSkyIcon, isDaylight } from '../weather/celestial.js';
+
 export const CONDITION_COLORS = Object.freeze({
   sunny: '#eab308',
   clearNight: '#cbd5e1',
@@ -43,16 +45,18 @@ function findBand(code) {
   return BANDS.find((b) => c <= b.max && (b.min === undefined || c >= b.min)) || null;
 }
 
-export function wmoIcon(code) {
-  return findBand(code)?.icon ?? 'mdi:help-circle-outline';
+export function wmoIcon(code, context) {
+  return contextualSkyIcon(findBand(code)?.icon ?? 'mdi:help-circle-outline', context);
 }
 
-export function wmoLabel(code) {
+export function wmoLabel(code, context) {
+  if (findBand(code)?.colorKey === 'sunny' && isDaylight(context) === false) return 'Clear';
   return findBand(code)?.label ?? '—';
 }
 
-export function wmoColor(code) {
+export function wmoColor(code, context) {
   const key = findBand(code)?.colorKey;
+  if (key === 'sunny' && isDaylight(context) === false) return CONDITION_COLORS.clearNight;
   return key ? CONDITION_COLORS[key] : null;
 }
 

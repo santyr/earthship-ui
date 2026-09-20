@@ -80,6 +80,7 @@ function normalizeHour(raw, date) {
   return Object.freeze({
     at: raw.at,
     atMs,
+    isDay: typeof raw.isDay === 'boolean' ? raw.isDay : null,
     tempF: nullableNumber(raw.tempF, 'tempF'),
     precipPct: nullableNumber(raw.precipPct, 'precipPct'),
     precipIn: nullableNumber(raw.precipIn ?? null, 'precipIn'),

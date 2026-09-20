@@ -5,6 +5,8 @@ const TEMPERATURE_UNITS = ['', '°F', '°C'];
 const PERCENT_UNITS = ['', '%'];
 
 const SERIES = new Map([
+  ['Outdoor_Hourly_Forecast', { expectedCadenceMs: 3600000, allowedUnits: TEMPERATURE_UNITS, domain: 'forecast' }],
+  ['Indoor_Thermal_Forecast', { expectedCadenceMs: 3600000, allowedUnits: TEMPERATURE_UNITS, domain: 'forecast' }],
   ['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['AmbientWeatherWS2902A_IndoorSensor_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['AmbientWeatherWS2902A_WH31E_193_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],

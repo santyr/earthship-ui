@@ -102,10 +102,11 @@ describe('ChartModal history periods', () => {
       hours: 24,
     });
 
-    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+    expect(mocks.getHistory.mock.calls[0][1].includeStartState).toBe(true);
     await fireEvent.click(screen.getByRole('button', { name: '7d' }));
 
-    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(4));
     await Promise.resolve();
     await Promise.resolve();
 
@@ -113,9 +114,9 @@ describe('ChartModal history periods', () => {
       .toBe('true');
     expect(screen.getByRole('button', { name: '24h' }).getAttribute('aria-pressed'))
       .toBe('false');
-    expect(mocks.getHistory).toHaveBeenCalledTimes(2);
+    expect(mocks.getHistory).toHaveBeenCalledTimes(4);
 
-    const request = mocks.getHistory.mock.calls[1][1];
+    const request = mocks.getHistory.mock.calls[3][1];
     expect(Date.parse(request.endtime) - Date.parse(request.starttime))
       .toBe(168 * 60 * 60 * 1_000);
   });
@@ -135,11 +136,11 @@ describe('ChartModal history periods', () => {
       }],
       hours: 24,
     });
-    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
     const firstSignal = mocks.getHistory.mock.calls[0][1].signal;
 
     await fireEvent.click(screen.getByRole('button', { name: '4h' }));
-    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(4));
     expect(firstSignal.aborted).toBe(true);
 
     resolveFirst([{ time: Date.now(), state: 99 }]);

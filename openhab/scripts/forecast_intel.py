@@ -44,7 +44,7 @@ FALLBACK_TZ_NAME = "America/Denver"
 def open_meteo_url(lat, lon, tz_name):
     return (f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
             "&hourly=temperature_2m,precipitation_probability,precipitation,"
-            "shortwave_radiation,wind_speed_10m,weather_code"
+            "shortwave_radiation,wind_speed_10m,weather_code,is_day"
             "&daily=temperature_2m_max,temperature_2m_min,shortwave_radiation_sum,"
             "precipitation_probability_max,precipitation_sum,cloud_cover_mean,weather_code"
             "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
@@ -420,6 +420,11 @@ def _series_value(series_data, key, index):
     return values[index] if index < len(values) else None
 
 
+def _daylight_value(hourly, index):
+    value = _series_value(hourly, "is_day", index)
+    return bool(value) if type(value) in (int, float) and value in (0, 1) else None
+
+
 def _rounded(value):
     return round(value) if value is not None else None
 
@@ -793,6 +798,8 @@ def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=No
     legacy_hourly = []
     for index in range(start, min(start + 14, len(hourly["time"]))):
         legacy_hourly.append({
+            "at": corrected_hours[index][0].isoformat(timespec="seconds"),
+            "isDay": _daylight_value(hourly, index),
             "h": _hour_label(hourly["time"][index]),
             "t": _rounded(corrected_hours[index][1]),
             "p": _series_value(hourly, "precipitation_probability", index) or 0,
@@ -825,6 +832,7 @@ def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=No
         if day_string not in hours_by_date:
             continue
         hours_by_date[day_string].append({
+            "isDay": _daylight_value(hourly, index),
             "at": aware.isoformat(timespec="seconds"),
             "tempF": corrected,
             "precipPct": _series_value(hourly, "precipitation_probability", index),

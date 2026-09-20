@@ -11,6 +11,15 @@ Covers (2026-07-22 audit fixes):
 - Open-Meteo fetch retry, PUT failure collection, pv_days realignment
 """
 import contextlib
+
+
+def test_hourly_daylight_contract():
+    assert fi._daylight_value({'is_day': [0, 1]}, 0) is False
+    assert fi._daylight_value({'is_day': [0, 1]}, 1) is True
+    for value in [None, '0', 2, False]:
+        assert fi._daylight_value({'is_day': [value]}, 0) is None
+    assert fi._daylight_value({}, 0) is None
+    assert 'weather_code,is_day' in fi.open_meteo_url(1, 2, 'America/Denver')
 import importlib.util
 import io
 import json
@@ -344,6 +353,8 @@ def test_forecast_payload_v2_applies_one_hourly_correction_to_both_surfaces():
     assert detail["days"][0]["summary"]["highF"] == raw_hi + 2.5
     assert detail["days"][0]["summary"]["lowF"] == raw_lo - 9.0
     assert legacy_hourly[0] == {
+        "at": detail["days"][0]["hours"][0]["at"],
+        "isDay": None,
         "h": fi._hour_label(snapshot["hourly"]["time"][0]),
         "t": round(corrected),
         "p": 35,

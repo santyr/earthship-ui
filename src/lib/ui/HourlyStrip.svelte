@@ -168,7 +168,7 @@
     <div class="hs-icons">
       {#each hours as row, i (i)}
         <div class="hs-icon-col">
-          <OhIcon icon={wmoIcon(row.w)} size="1.1rem" color={wmoColor(row.w) ?? 'currentColor'} />
+          <OhIcon icon={wmoIcon(row.w, row)} size="1.1rem" color={wmoColor(row.w, row) ?? 'currentColor'} />
           {#if rainAmountText(row.a)}
             <span class="hs-rain" data-testid="hour-rain-amount" style="color: {colors.rain}">{rainAmountText(row.a)}</span>
           {/if}

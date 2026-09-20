@@ -1,4 +1,16 @@
 <script>
+  import { onMount } from 'svelte';
+  import { outdoorConditionIcon } from '../lib/ui/homeCardState.js';
+  let wallClock = $state(Date.now());
+  onMount(() => {
+    const update = () => { wallClock = Date.now(); };
+    const timer = setInterval(update, 60000);
+    document.addEventListener('visibilitychange', update);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', update); };
+  });
+  const skyIcon = $derived(outdoorConditionIcon($items.SkyConditionIcon, {
+    at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
+  }));
   // Task 5.1 — Weather console: current conditions, 14h hourly strip, 10-day
   // forecast, and measured wind/rain/pressure tiles. Mirrors Home's
   // dark-console aesthetic (Tile/StatTile chrome, tokens.colors,
@@ -136,9 +148,9 @@
         <div class="cur-main">
           <span class="cur-icon">
             <OhIcon
-              icon={$items.SkyConditionIcon}
+              icon={skyIcon}
               size="2.4rem"
-              color={skyIconColor($items.SkyConditionIcon) ?? 'currentColor'}
+              color={skyIconColor(skyIcon) ?? 'currentColor'}
             />
           </span>
           <span class="cur-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>

@@ -1,5 +1,6 @@
 import { num } from '../openhab/values.js';
 import { wmoIcon } from './wmo.js';
+import { contextualSkyIcon } from '../weather/celestial.js';
 
 export const HOME_STATE_COLORS = Object.freeze({
   positive: '#22c55e',
@@ -234,7 +235,11 @@ export function outdoorTemperatureIconColor(value) {
   return '#f44336';
 }
 
-export function outdoorConditionIcon(value) {
+export function outdoorConditionIcon(value, context) {
+  return contextualSkyIcon(baseOutdoorConditionIcon(value), context);
+}
+
+function baseOutdoorConditionIcon(value) {
   const raw = value == null ? '' : String(value).trim();
   if (!raw || raw === 'NULL' || raw === 'UNDEF') return 'iconify:mdi:weather-partly-cloudy';
 

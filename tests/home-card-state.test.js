@@ -546,7 +546,7 @@ describe('Home signed card state colors', () => {
     expect(home).toMatch(/class="wind-max"\s+style="color: \{windMaxColor\}"/);
     expect(home).toContain('icon="iconify:mdi:home-thermometer"');
     expect(home).toMatch(/class="indoor-icon"\s+style="color: \{indoorIconColor\}"/);
-    expect(home).toContain('selectOutdoorConditionIcon($items.SkyConditionIcon)');
+    expect(home).toContain('selectOutdoorConditionIcon($items.SkyConditionIcon, {');
     expect(home).toMatch(/<OhIcon icon=\{outdoorConditionIcon\} size="2rem" color=\{outdoorIconColor\}/);
   });
 

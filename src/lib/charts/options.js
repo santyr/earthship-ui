@@ -125,7 +125,7 @@ export function buildHistoryOption({
         renderedSeries.push(lineOption(
           source,
           futureData,
-          { name: `${source.label || source.name} (forecast)`, dashed: true },
+          { name: source.forecastLabel || `${source.label || source.name} (forecast)`, dashed: true },
         ));
       }
     } else {
@@ -141,7 +141,7 @@ export function buildHistoryOption({
     ...echartsTheme,
     grid,
     legend: {
-      data: series.map((source) => source.label || source.name),
+      data: [...new Set(renderedSeries.filter((source) => source.data.length).map((source) => source.name))],
       top: legendTop,
       itemWidth: 14,
       itemHeight: 8,

@@ -289,13 +289,13 @@
               <div
                 class="weather-detail-hour"
                 data-testid="weather-detail-hour"
-                aria-label={`${hourLabel(hour.at)}, ${wmoLabel(hour.weatherCode)}`}
+                aria-label={`${hourLabel(hour.at)}, ${wmoLabel(hour.weatherCode, hour)}`}
               >
                 <span class="hour-time">{hourLabel(hour.at)}</span>
                 <OhIcon
-                  icon={wmoIcon(hour.weatherCode)}
+                  icon={wmoIcon(hour.weatherCode, hour)}
                   size="1.2rem"
-                  color={wmoColor(hour.weatherCode) ?? 'currentColor'}
+                  color={wmoColor(hour.weatherCode, hour) ?? 'currentColor'}
                 />
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
                 <span class="hour-precip">{metric(hour.precipPct, '%')}</span>

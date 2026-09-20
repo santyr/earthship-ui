@@ -334,7 +334,9 @@
   const netTodayColor = $derived(netStateColor(netToday));
 
   const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
-  const outdoorConditionIcon = $derived(selectOutdoorConditionIcon($items.SkyConditionIcon));
+  const outdoorConditionIcon = $derived(selectOutdoorConditionIcon($items.SkyConditionIcon, {
+    at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
+  }));
   const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
   const currentAqi = $derived(adaptCurrentAqi($items.Current_US_AQI));
   const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));

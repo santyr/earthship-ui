@@ -74,6 +74,13 @@ beforeEach(() => iconCollectionsReady);
 afterEach(cleanup);
 
 describe('condition icon colors', () => {
+  it('HourlyStrip renders a neutral moon phase for clear nighttime forecasts', () => {
+    const { container } = render(HourlyStrip, { hours: [{ h: '11p', t: 50, p: 0, r: 0, w: 0,
+      at: '2026-09-20T23:00:00-06:00', isDay: false }] });
+    const svg = container.querySelector('svg');
+    expect(svg?.style.color).toBe(hexToRgb(CONDITION_COLORS.clearNight));
+    expect(svg?.querySelector('path')).not.toBeNull();
+  });
   it('DailyForecast colors day icons by condition', () => {
     const { container } = render(DailyForecast, { days: [day], variant: 'home' });
     const svg = container.querySelector('.day-icon svg');

@@ -14,6 +14,12 @@
   import { getClientOnce } from '../openhab/index.js';
   import { chartStore, closeChart } from './chartStore.js';
   import { observeElementSize } from './observeElementSize.js';
+  import { items } from '../openhab/store.js';
+  import { OUTDOOR, INDOOR, temperatureForecast } from '../charts/temperatureForecast.js';
+  import { historyExtrema, localDayHistoryRange } from './homeCardState.js';
+
+  let dailySummary = $state('');
+  let forecastSummary = $state('');
 
   const REFRESH_MS = 5 * 60 * 1_000;
   const TITLE_ID = 'history-chart-modal-title';
@@ -155,6 +161,8 @@
     extremaDescription = '';
     candleDescription = '';
     loadState = 'loading';
+    dailySummary = '';
+    forecastSummary = '';
 
     const client = getClientOnce();
     if (!client) {
@@ -162,7 +170,11 @@
       loadState = 'no-client';
       return;
     }
-    const series = seriesList || [];
+    const hasOutdoor = (seriesList || []).some(({ name }) => name === OUTDOOR);
+    const series = (seriesList || [])
+      .filter(({ name }) => !(hasOutdoor && name === 'Forecast_Temp'))
+      .map((source) => ({ markers: ['min', 'max'],
+        ...([OUTDOOR, INDOOR].includes(source.name) ? { markerUnit: '°' } : {}), ...source }));
     if (!series.length) {
       if (requestController === controller) requestController = null;
       loadState = 'empty';
@@ -170,6 +182,15 @@
     }
 
     const nowMs = Date.now();
+    const temperature = series.find(({ name }) => [OUTDOOR, INDOOR].includes(name));
+    const dayRange = localDayHistoryRange(new Date(nowMs));
+    const dailyRequest = temperature ? Promise.resolve().then(() => client.getHistory(temperature.name, {
+      ...dayRange, includeStartState: true, signal: controller.signal,
+    })).then((points) => historyExtrema(points)).catch(() => null) : Promise.resolve(null);
+    let dailyDeadline;
+    const boundedDaily = Promise.race([dailyRequest, new Promise((resolve) => {
+      dailyDeadline = setTimeout(() => resolve(null), 15000);
+    })]);
     let result;
     try {
       result = await loadHistorySeries({
@@ -180,12 +201,20 @@
         signal: controller.signal,
         invalidRowPolicy: $chartStore.presentation === 'candlestick' ? 'omit' : 'strict',
       });
+      const daily = await boundedDaily;
+      if (!controller.signal.aborted && myGen === loadGen && temperature) {
+        dailySummary = daily?.high != null
+          ? `Today · High ${daily.high.toFixed(1)}° · Low ${daily.low.toFixed(1)}°`
+          : 'Today · High/low unavailable';
+      }
     } catch (error) {
       if (controller.signal.aborted || myGen !== loadGen) return;
       if (requestController === controller) requestController = null;
       errorMessage = error?.message || 'History request failed';
       loadState = 'error';
       return;
+    } finally {
+      clearTimeout(dailyDeadline);
     }
     if (controller.signal.aborted || myGen !== loadGen) return;
     if (requestController === controller) requestController = null;
@@ -196,6 +225,15 @@
       ({ error }) => error?.code === 'history-request-timeout',
     ).length;
     latestSeries = series;
+    const forecast = temperatureForecast(series, $items, nowMs);
+    if (forecast) {
+      forecastSummary = forecast.description;
+      if (forecast.points.length) {
+        latestSeries = [...series, forecast.source];
+        pointsPerSeries = [...pointsPerSeries, forecast.points];
+        if (result.state === 'empty') result.state = 'ready';
+      }
+    }
     latestNowMs = nowMs;
     loadState = result.state;
     if (result.state === 'error') {
@@ -324,6 +362,9 @@
         <button type="button" class="chart-close" onclick={closeChart} aria-label="Close chart">×</button>
       </div>
       <p id={DESCRIPTION_ID} class="sr-only" aria-live="polite">{description}</p>
+      {#if dailySummary || forecastSummary}
+        <p class="chart-summary" role="status">{[dailySummary, forecastSummary].filter(Boolean).join(' · ')}</p>
+      {/if}
       <div class="chart-body">
         {#if loadState === 'loading' || loadState === 'idle'}
           <div class="chart-message">Loading…</div>
@@ -356,6 +397,7 @@
 {/if}
 
 <style>
+  .chart-summary { margin: 0; padding: 0.4rem 1rem; color: #cbd5e1; font-size: 0.85rem; }
   .chart-backdrop {
     position: fixed;
     inset: 0;
