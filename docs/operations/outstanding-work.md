@@ -636,6 +636,14 @@ barriers, exact TTL, persistence delay and unchanged-field independence.
 sequence support passes1498UI/OpenHAB tests. Neither side is active; bounded SQL
 transport/persistence, real source qualification and accounting cutover remain.
 
+Bounded SQL transport is now implemented and published on Solar_PV feature branch
+at c1d04e6. One read-only snapshot supplies all fields, with120-second lookback,
+original timestamps,25-hour/60000-row bounds, oversized-record barriers and
+explicit overflow failure.595analytics tests pass; a read-only real-JDBC query
+structure probe passed on existing weather history, not power evidence. It is
+not scheduled or deployed. Live collection, storage-volume measurement,
+read-only role/table configuration and accounting cutover remain open.
+
 ### Bitcoin carry audit, September 10
 
 The live `hex_btc_24h_change` source still matches the September 5 SHA above.
