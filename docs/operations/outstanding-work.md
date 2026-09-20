@@ -53,7 +53,15 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   validates identity/digest/completed windows, preserves missing dates and never
   resurrects an older better-quality result. Real PostgreSQL tests cover these
   semantics, immutable writes, retries, permissions and transaction locking.
-  **Remaining:** CLI/config wiring; report/export/UI consumer integration and
+  Strict opt-in policy and CLI/scheduler forwarding are now implemented;
+  all660analytics tests pass. An end-to-end live read-only daily calculation
+  succeeded, but revealed a new persistence release gate:155missing sequence
+  publications paired with155duplicate following snapshots in a fixed1207-row
+  window. Valid source values do not authorize bridging those missing records.
+  Collector-vs-JDBC attribution remains to investigate; collection stays active
+  and no accounting activation occurred. See the
+  [sequence-gap evidence](2026-09-20-power-persistence-sequence-gaps.md).
+  **Remaining:** resolve publication/persistence loss; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or
   grants have been applied. Collection continues independently.
