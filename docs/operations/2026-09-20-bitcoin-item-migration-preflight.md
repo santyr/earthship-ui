@@ -30,6 +30,10 @@ the network-none/capability-dropped isolation settings. This is not a successful
 restore rehearsal, and the exact restriction is not yet attributed. No host
 security setting was relaxed. All disposable image test containers were removed;
 the requested image is retained for subsequent restore work.
+The execution denial was subsequently attributed and resolved in a non-root,
+network-none container without host-policy changes. Clean boot and narrow Item
+restoration now pass; see [isolated execution qualification](2026-09-20-isolated-openhab-execution.md).
+Full installation/history recovery remains unqualified.
 
 ## Historical preflight
 
