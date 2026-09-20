@@ -41,7 +41,7 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Physical-source faults and full-openHAB restart were not induced.
 
 - Qualified power accounting remains **source-only**, Solar_PV branch
-  `feat/qualified-power-accounting` at`705202d`; all687analytics tests pass.
+  `feat/qualified-power-accounting` at`6fcd97f`; all693analytics tests pass.
   Implemented: bounded evidence transport; battery/PV energy and EFC using exact
   qualified intervals; daily and solar-noon composition with matching source
   quality; common-support PV efficiency; explicit legacy/cutover provenance.
@@ -85,6 +85,12 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Actual Python partial/empty outputs pass the JavaScript parser. No live
   publisher flag changed. Completed-day writer qualification remains a release
   gate, alongside historical consumer policy treatment and database rehearsal.
+  Completed-day writer and database safeguards now pass actual SQL/DST tests.
+  Production schema backup restored all18tables exactly and migration5 rehearsed
+  without changing existing data. See [release preflight](2026-09-20-power-release-preflight.md).
+  Operator prioritizes production activation when safe; immediate remaining
+  dependencies are read-only reference verification, qualified monitor routing,
+  restricted roles and attended cutover. No production migration applied yet.
   **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or

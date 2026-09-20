@@ -25,6 +25,13 @@ def execute(argv, *, data=None, env=None, timeout=120):
     result = subprocess.run(argv, input=data, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, env=env, timeout=timeout)
     if result.returncode:
+        # Private diagnostic only: retain exact stderr without exposing database
+        # content or command arguments in the conversational error message.
+        error_dir = Path(tempfile.mkdtemp(prefix='energy-rehearsal-error-',dir='/tmp'))
+        write_artifact(error_dir/'command-error.json', {
+            'program':argv[0], 'returncode':result.returncode,
+            'stderr':result.stderr.decode(errors='replace')}) if argv[0] != 'apply_patch' else None
+        print('private_error_directory='+str(error_dir),flush=True)
         raise RuntimeError('Backup/rehearsal command failed: ' + argv[0])
     return result.stdout
 
@@ -32,9 +39,13 @@ def execute(argv, *, data=None, env=None, timeout=120):
 def fingerprint_query(table):
     if not re.fullmatch('[a-z][a-z0-9_]+', table):
         raise ValueError('unexpected analytics identifier')
+    # Hash each row before aggregation: large JSON payloads must not be retained
+    # twice in a monolithic string_agg transition buffer. Counts and duplicate
+    # row hashes remain significant; source and restore use the same snapshot.
     return ("SELECT count(*)::text || '|' || COALESCE(md5(string_agg("
-            "to_jsonb(t)::text, E'\\n' ORDER BY to_jsonb(t)::text COLLATE \"C\")), 'empty') "
-            f'FROM energy_analytics.{table} t;')
+            "row_hash, E'\\n' ORDER BY row_hash COLLATE \"C\")), 'empty') "
+            "FROM (SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') AS row_hash "
+            f'FROM energy_analytics.{table} t) fingerprints;')
 
 
 def write_artifact(path, value):
@@ -47,14 +58,17 @@ def write_artifact(path, value):
 
 
 def main():
-    if len(sys.argv) != 2:
-        raise SystemExit('usage: verify-energy-schema-backup.py MIGRATION_DIRECTORY')
+    if len(sys.argv) not in (2,3) or (len(sys.argv)==3 and sys.argv[2]!='--power'):
+        raise SystemExit('usage: verify-energy-schema-backup.py MIGRATION_DIRECTORY [--power]')
+    power = len(sys.argv)==3
+    expected_before = [1,2,3,4] if power else [1,2]
+    expected_after = [1,2,3,4,5] if power else [1,2,3,4]
     migrations = Path(sys.argv[1]).resolve()
-    pending = sorted(migrations.glob('000[34]_*.sql'))
-    if len(pending) != 2:
-        raise RuntimeError('exact migrations3/4 required')
+    pending = sorted(migrations.glob('0005_*.sql' if power else '000[34]_*.sql'))
+    if len(pending) != (1 if power else 2):
+        raise RuntimeError('exact pending migration set required')
     os.umask(0o077)
-    destination = Path(tempfile.mkdtemp(prefix='trough-activation-backup-', dir='/tmp'))
+    destination = Path(tempfile.mkdtemp(prefix='power-activation-backup-' if power else 'trough-activation-backup-', dir='/tmp'))
     archive = destination / 'energy_analytics.dump'
     settings = parse_openhab_jdbc_config('/var/lib/openhab/config/org/openhab/jdbc.config')
     connection = psycopg2.connect(**settings.connect_kwargs, connect_timeout=3)
@@ -67,7 +81,7 @@ def main():
             cursor.execute("SET LOCAL timezone='UTC'")
             cursor.execute("SELECT version,sha256 FROM energy_analytics.schema_migrations ORDER BY version")
             applied = dict(cursor.fetchall())
-            if list(applied) != [1, 2]:
+            if list(applied) != expected_before:
                 raise RuntimeError('unexpected live migration versions')
             for version, digest in applied.items():
                 sources = list(migrations.glob(f'{version:04d}_*.sql'))
@@ -120,21 +134,23 @@ def main():
             script.extend([path.read_text(), f"INSERT INTO energy_analytics.schema_migrations(version,name,sha256) VALUES ({version},'{name}','{checksum}');"])
         script.append('COMMIT;')
         query('\n'.join(script))
-        if query('SELECT version FROM energy_analytics.schema_migrations ORDER BY version;') != ['1', '2', '3', '4']:
+        if query('SELECT version FROM energy_analytics.schema_migrations ORDER BY version;') != [str(v) for v in expected_after]:
             raise RuntimeError('rehearsal migration ledger mismatch')
         for table in original:
             if table != 'schema_migrations' and query(fingerprint_query(table))[0] != original[table]:
                 raise RuntimeError('migration changed unrelated data')
-        for table in ('advisory_trough_outcomes', 'advisory_trough_selection'):
+        for table in (('daily_power_snapshots',) if power else ('advisory_trough_outcomes', 'advisory_trough_selection')):
             if query(fingerprint_query(table))[0] != '0|empty':
                 raise RuntimeError('unexpected synthetic outcome')
         manifest = dict(version=1, database='openhab', status='restore_verified',
             archive_path=str(archive), archive_sha256=digest, scope='energy_analytics',
             verified_at=datetime.now(timezone.utc).isoformat(), fingerprints=original,
-            rehearsal_versions=[1, 2, 3, 4], production_mutations=False)
+            fingerprint_algorithm='sorted_row_sha256_md5_v2',
+            rehearsal_versions=expected_after, production_mutations=False,
+            rehearsed_migration_sha256={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in pending})
         write_artifact(destination / 'backup-manifest.json', manifest)
         print(json.dumps({'status': 'restore_verified', 'directory': str(destination),
-            'archive_sha256': digest, 'tables': len(original), 'rehearsal_versions': [1, 2, 3, 4]}))
+            'archive_sha256': digest, 'tables': len(original), 'rehearsal_versions': expected_after}))
     finally:
         if container and re.fullmatch('[0-9a-f]{64}', container):
             label = execute(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.trough.restore"}}', container]).decode().strip()
