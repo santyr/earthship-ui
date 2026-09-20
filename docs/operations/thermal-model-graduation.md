@@ -16,6 +16,11 @@ from training-artifact acceptance and from automatic actuation.
 
 ## Required work and evidence
 
+The [September20 baseline audit](2026-09-20-thermal-graduation-baseline.md)
+records errors, interval coverage and absent confirmed action evidence. It also
+identifies evaluation-only persistence blending: resolve forecast-output parity
+before tuning or using those metrics to qualify the displayed trajectory.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified
