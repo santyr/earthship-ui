@@ -59,10 +59,10 @@ and protected-resource rollback remain outstanding.
 
 ### Operator-requested follow-up after current tasks
 
-- Investigate whether the grey-water rule actually alternates both pumps. The
-  operator reports noticing only the East pump. Use live rule state, event logs
-  and historical runtime evidence; do not assume parity logic proves actuation
-  and do not run pumps merely to test it.
+- Pump-cycling investigation removed at the operator's request: both pumps are
+  running (operator confirmation September 20). Do not retain the earlier
+  East-only concern as an outstanding fault. Hexmem task 98 now retains only
+  the display work below.
 - Add a main UI indication of which pump will run next and its expected start
   time. Distinguish a committed schedule from the earliest eligible time when
   sunlight, SoC, minimum gap or other safety gates can delay execution. Confirm
