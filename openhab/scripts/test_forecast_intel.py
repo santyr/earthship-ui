@@ -619,11 +619,11 @@ def test_rain_scores_once_on_rerun_temps_never_double(monkeypatch, tmp_path):
     }
     st1, _ = _run_main(monkeypatch, tmp_path, st, data)
     assert len(st1["pv_errors"]) == 1
-    assert len(st1["trough_errors"]) == 1
+    assert st1["trough_errors"] == []  # legacy evidence is no longer appended
     assert len(st1["temp_hi_errors"]) == 1
     assert len(st1["temp_lo_errors"]) == 1
     assert st1.get("precip_errors", []) == []            # nothing to score yet
-    assert set(st1["scored"][ykey]) == {"pv", "trough", "hi", "lo"}
+    assert set(st1["scored"][ykey]) == {"pv", "hi", "lo"}
     # day-3 horizon: hi consumed, precip preserved for the re-run (not destroyed)
     assert st1["day3_hi_errors"] == [pytest.approx(3.0)]
     assert st1["horizon"][ykey] == {"precip_in": 0.2}
@@ -635,8 +635,8 @@ def test_rain_scores_once_on_rerun_temps_never_double(monkeypatch, tmp_path):
     assert len(st2["pv_errors"]) == 1, "pv must not double-append"
     assert len(st2["temp_hi_errors"]) == 1, "temps must not double-append"
     assert len(st2["temp_lo_errors"]) == 1
-    assert len(st2["trough_errors"]) == 1
-    assert set(st2["scored"][ykey]) == set(fi.SCORE_QUANTITIES)
+    assert st2["trough_errors"] == []
+    assert set(st2["scored"][ykey]) == set(fi.SCORE_QUANTITIES) - {"trough"}
     assert st2["day3_precip_errors"] == [pytest.approx(0.15)]
     assert len(st2["day3_hi_errors"]) == 1, "day-3 hi must not double-append"
     assert ykey not in st2["horizon"]                      # fully consumed now
@@ -690,7 +690,7 @@ def test_put_failures_collected_not_fatal(monkeypatch, tmp_path):
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
     fi.main()   # must not raise
     assert len(saved["pv_errors"]) == 1, "scoring must complete despite PUT failures"
-    assert set(saved["scored"][ykey]) == set(fi.SCORE_QUANTITIES)
+    assert set(saved["scored"][ykey]) == set(fi.SCORE_QUANTITIES) - {"trough"}
     log_text = (tmp_path / "log").read_text()
     assert "PUT FAILED:" in log_text
     assert "Forecast_PV_Error_7d" in log_text
