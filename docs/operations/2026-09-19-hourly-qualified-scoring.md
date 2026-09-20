@@ -25,8 +25,30 @@ receipt/persistence/expiry times and exact snapshot digest. The existing atomic
 state save persists learned updates, consumption and provenance together.
 Earlier learned values are not reset or relabeled as qualified observations.
 
-Verification:81focused hourly/forecast tests pass, including unavailable,
+Verification:89focused hourly/forecast tests pass, including unavailable,
 expired/future/nonfinite evidence, no fallback, cutover eligibility, exactly-once
 updates, count bounds, prior buckets and atomic save/reload. Remaining work:
 natural source/persistence qualification, worker/config wiring, integration with
-the separate completed-trough branch, full regression and attended activation.
+the separate completed-trough branch and attended activation.
+
+Eight producer-to-reader-to-scorer cases additionally verify unchanged receipts,
+a closer post-target observation, future-only history, exact expiry, invalid
+barriers, a restarted unknown epoch, fresh recovery and foreign identity. The
+restart fixture's explicit epoch change was separately rechecked with all26
+qualified-scoring tests. All43strict reader/adapter tests also passed against
+the explicitly supplied disposable PostgreSQL fixture (5.63seconds); no live
+database was used for those tests.
+
+The first full regression exposed two relay fixture failures: the live relay
+has independently gained an optional Lightning Goats observer, while its AST
+fixture did not supply that global. The fixture now explicitly supplies None
+(no project DB I/O), plus a failing-observer case proving household forwarding
+continues. No production relay or observer change was made. Combined relay,
+hourly and forecast checks passed95tests after the fixture correction.
+
+Fresh full script regression after correcting the observer fixture passed
+943tests and42subtests in142.17seconds, with one opt-in PostgreSQL test skipped.
+That skipped path was independently exercised by the43-test disposable suite
+above. The later explicit epoch-change fixture refinement passed its26-test
+qualified group separately. These are offline software checks, not evidence
+of activated production collection, a full real pump cycle, or learned outcomes.

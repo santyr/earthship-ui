@@ -1,8 +1,11 @@
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+import json
 
 import pytest
 from test_forecast_intel import fi
+from weather_temperature_evidence import TemperaturePolicy, temperature_receipt
+from weather_temperature_reader import select_temperature_at
 
 TARGET = datetime(2026, 9, 20, 18, tzinfo=timezone.utc)
 CUTOVER = (TARGET - timedelta(days=2)).isoformat()
@@ -99,3 +102,41 @@ def test_count_bound_and_old_ineligible_targets_do_not_starve_new_work():
     assert score(state, reader, now=TARGET + timedelta(hours=27)) == 24
     assert len(calls) == 24
     assert len(state['hourly_temp_targets']) == 7
+
+
+@pytest.mark.parametrize('case,expected', [
+    ('unchanged', 1), ('closer_future', 1), ('future_only', 0),
+    ('expired', 0), ('invalid_barrier', 0), ('restart_unknown', 0),
+    ('fresh_recovery', 1), ('foreign_id', 0),
+])
+def test_real_receipt_reader_to_scorer(case, expected):
+    policy = TemperaturePolicy('Fineoffset-WH65B', 206, -40, 140, 120)
+    epoch = '882078a7-c0f2-4079-a979-120a100c5e92'
+    def row(seconds, value='70', sensor=206, restart=False):
+        at = TARGET + timedelta(seconds=seconds)
+        record = None if restart else temperature_receipt(
+            {'model': policy.model, 'id': str(sensor), 'tempf': value},
+            policy=policy, stream_epoch=epoch, received_at=at)
+        envelope_epoch = 'f624fc92-61de-4a8b-b6f2-5f5948fe5b7f' if restart else epoch
+        return at, json.dumps({'version': 1, 'streamEpoch': envelope_epoch, 'records': {'outdoor': record}})
+    cases = {
+        'unchanged': [row(-100), row(-40)],
+        'closer_future': [row(-40), row(1, '90')],
+        'future_only': [row(1, '90')],
+        'expired': [row(-120)],
+        'invalid_barrier': [row(-40), row(-20, 'invalid')],
+        'restart_unknown': [row(-40), row(-20, restart=True)],
+        'fresh_recovery': [row(-40, 'invalid'), row(-10)],
+        'foreign_id': [row(-40, sensor=999)],
+    }
+    def reader(**kwargs):
+        return select_temperature_at(cases[case], history_start=TARGET - timedelta(seconds=120),
+            stream='outdoor', policy=policy, **kwargs)
+    state = initial(); before = deepcopy(state)
+    assert score(state, reader) == expected
+    if expected:
+        assert state['hourly_temp_evidence_receipts'][0]['measured'] == 70
+        assert state['hourly_temp_model']['12']['count'] == 1
+        assert score(state, reader) == 0
+    else:
+        assert state == before
