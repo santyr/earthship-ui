@@ -137,27 +137,6 @@
         "source": "openhab/rules/southoutlet-cycle.js",
         "triggers": [
           {
-            "id": "1",
-            "type": "core.ItemStateChangeTrigger",
-            "configuration": {
-              "itemName": "DCData_Voltage"
-            }
-          },
-          {
-            "id": "2",
-            "type": "core.ItemStateChangeTrigger",
-            "configuration": {
-              "itemName": "BMS_SOC"
-            }
-          },
-          {
-            "id": "earthship-greywater-sun",
-            "type": "core.ItemStateChangeTrigger",
-            "configuration": {
-              "itemName": "Sun_Position_Elevation"
-            }
-          },
-          {
             "id": "cron",
             "type": "timer.GenericCronTrigger",
             "configuration": {

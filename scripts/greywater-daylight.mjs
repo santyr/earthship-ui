@@ -1,7 +1,5 @@
 // Narrow managed-rule transformation: no script, actuator or hydrology changes.
 export const DAYLIGHT_TRIGGERS = [
-  { id: 'earthship-greywater-sun', type: 'core.ItemStateChangeTrigger',
-    configuration: { itemName: 'Sun_Position_Elevation' } },
   { id: 'cron', type: 'timer.GenericCronTrigger',
     configuration: { cronExpression: '0 * * * * ?' } },
 ];
@@ -24,6 +22,19 @@ export function buildGreywaterDaylightRule(rule, expectedSource) {
   }
   const result = structuredClone(rule);
   result.conditions = withoutFixedGreywaterWindow(rule.conditions);
+  const formerAutomaticItems = new Set(['DCData_Voltage', 'BMS_SOC', 'Sun_Position_Elevation']);
+  result.triggers = result.triggers.filter(trigger => {
+    if (trigger.type === 'core.ItemStateChangeTrigger'
+        && formerAutomaticItems.has(trigger.configuration?.itemName)) return false;
+    if (trigger.id === 'cron') return true; // Validated below before replacement.
+    if (trigger.type === 'core.ItemCommandTrigger'
+        && trigger.configuration?.itemName === 'SouthOutlet_ManualRequest') return true;
+    throw new Error('unreviewed greywater trigger');
+  });
+  if (result.triggers.filter(t => t.id === 'cron').length > 1
+      || result.triggers.filter(t => t.type === 'core.ItemCommandTrigger').length !== 1) {
+    throw new Error('one manual request trigger and at most one timer required');
+  }
   for (const trigger of DAYLIGHT_TRIGGERS) {
     const index = result.triggers.findIndex(t => t.id === trigger.id);
     if (index < 0) result.triggers.push(structuredClone(trigger));

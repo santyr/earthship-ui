@@ -8,7 +8,12 @@ const source = readFileSync(new URL('../../openhab/rules/southoutlet-cycle-curre
 const manifest = JSON.parse(readFileSync(new URL('../../openhab/managed-resources.json', import.meta.url), 'utf8'));
 const rule = {
   uid: 'hex_southoutlet_cycle', name: 'Greywater Pumps SOC-Gated Cycle', tags: ['SouthOutlet'],
-  triggers: [{ id: '1', type: 'core.ItemStateChangeTrigger', configuration: { itemName: 'DCData_Voltage' } }],
+  triggers: [
+    { id: '1', type: 'core.ItemStateChangeTrigger', configuration: { itemName: 'DCData_Voltage' } },
+    { id: '2', type: 'core.ItemStateChangeTrigger', configuration: { itemName: 'BMS_SOC' } },
+    { id: 'sun', type: 'core.ItemStateChangeTrigger', configuration: { itemName: 'Sun_Position_Elevation' } },
+    { id: 'manual', type: 'core.ItemCommandTrigger', configuration: { itemName: 'SouthOutlet_ManualRequest' } },
+  ],
   conditions: [{ id: '3', type: 'core.TimeOfDayCondition', configuration: { startTime: '08:00', endTime: '20:00' } }],
   actions: [{ id: 'owner', type: 'script.ScriptAction', configuration: { type: 'application/javascript', script: source } }],
 };
@@ -22,12 +27,13 @@ const states = {
 const ons = h => h.events.filter(e => e.type === 'command' && e.value === 'ON');
 
 describe('greywater daylight schedule transformation', () => {
-  it('removes only the fixed window and leaves live source, triggers and other conditions intact', () => {
+  it('removes fixed hours and event-driven automatic triggers, retaining source and manual requests', () => {
     const original = structuredClone(rule);
     original.conditions.push({ id: 'other', type: 'unrelated', configuration: {} });
     const result = buildGreywaterDaylightRule(original, source);
     expect(result.actions).toEqual(original.actions);
-    expect(result.triggers.slice(0, original.triggers.length)).toEqual(original.triggers);
+    expect(result.triggers).toEqual([original.triggers[3], ...DAYLIGHT_TRIGGERS]);
+    expect(result.triggers.some(t => t.type === 'core.ItemStateChangeTrigger')).toBe(false);
     expect(result.conditions).toEqual([original.conditions[1]]);
     expect(original.conditions).toHaveLength(2);
     expect(result.tags).toEqual(original.tags);
@@ -42,12 +48,16 @@ describe('greywater daylight schedule transformation', () => {
     const conflict = structuredClone(rule);
     conflict.triggers.push({ id: 'cron', type: 'unknown', configuration: {} });
     expect(() => buildGreywaterDaylightRule(conflict, source)).toThrow(/conflicting/);
+    const unknown = structuredClone(rule);
+    unknown.triggers.push({ id: 'unknown', type: 'other', configuration: {} });
+    expect(() => buildGreywaterDaylightRule(unknown, source)).toThrow(/unreviewed/);
   });
   it('keeps future managed deployments on daylight policy', () => {
     const subset = manifest.subsets.greywater;
     const result = buildSubsetRuleDto({ subset, subsetName: 'greywater', source, originalRule: rule });
     expect(result.conditions).toEqual([]);
     for (const trigger of DAYLIGHT_TRIGGERS) expect(result.triggers).toContainEqual(trigger);
+    expect(result.triggers).toHaveLength(2);
   });
 });
 
@@ -60,7 +70,7 @@ describe('daylight control with unchanged voltage and SoC', () => {
       h.execute();
       expect(ons(h)).toHaveLength(1);
     });
-  it('starts on the sunrise change, stops at zero elevation, and invalidates the completion timer', () => {
+  it('starts on the first daylight timer tick, stops on a sunset tick, and invalidates the completion timer', () => {
     const h = createRuleHarness({ source, now: Date.parse('2026-09-20T13:00:00Z'),
       states: { ...states, Sun_Position_Elevation: '-0.1' } });
     h.execute(); expect(ons(h)).toHaveLength(0);
