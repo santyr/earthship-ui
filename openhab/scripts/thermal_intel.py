@@ -95,7 +95,7 @@ def _build_parser():
 
 
 def _jdbc_series(item, start, end):
-    """Read exactly the OpenHAB JDBC persistence service for [start, end)."""
+    """Read JDBC history, retaining timestamped invalid states as NaN barriers."""
     start_utc = start.astimezone(timezone.utc)
     end_utc = end.astimezone(timezone.utc)
     fmt = "%Y-%m-%dT%H:%M:%SZ"
@@ -108,9 +108,14 @@ def _jdbc_series(item, start, end):
     for point in payload.get("data", []):
         try:
             at = datetime.fromtimestamp(point["time"] / 1000, tz=timezone.utc)
+        except (KeyError, TypeError, ValueError):
+            continue
+        try:
             value = float(str(point["state"]).split()[0])
         except (KeyError, TypeError, ValueError, IndexError):
-            continue
+            # Dropping UNDEF/NULL would permit interpolation across a known
+            # unavailable observation. Preserve its actual timestamp instead.
+            value = math.nan
         if start_utc <= at < end_utc:
             points.append((at, value))
     return points
