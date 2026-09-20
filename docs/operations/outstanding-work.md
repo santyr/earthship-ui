@@ -602,6 +602,17 @@ evidence. Current output and correct source do not independently prove which
 private cache window was used at those boundaries. That verification remains
 open; no forced run, cache read/write or diagnostic control mutation was used.
 
+### Power coverage audit, September 20
+
+The [power coverage audit](2026-09-20-power-coverage-audit.md) reproduces a
+numeric/health mismatch with production functions: a held1000W state integrates
+to24kWh while a single120-second health receipt qualifies only1/720 of the day.
+Daily quality is downgraded, but numeric energy is not clipped; cumulative EFC
+currently sums daily records without a quality predicate. This is a verified
+software-contract gap, not proof of a physical outage or the size of any live
+accounting error. Qualified-interval accounting and an explicit legacy/cutover
+policy remain required; no historical totals or controls were changed.
+
 ### Bitcoin carry audit, September 10
 
 The live `hex_btc_24h_change` source still matches the September 5 SHA above.
