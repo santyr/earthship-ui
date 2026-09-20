@@ -7,7 +7,7 @@ another Item. No production caller or Item is installed by importing it.
 from datetime import timedelta
 
 from weather_temperature_evidence import TemperaturePolicy
-from weather_temperature_reader import _utc, select_temperature_grid
+from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_window
 
 EVIDENCE_ITEM = 'Weather_Temperature_Evidence_JSON'
 
@@ -28,7 +28,6 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
     reader only: callers must explicitly decide how unqualified targets affect
     training; never interpolate them into apparently healthy measurements.
     """
-    connection = None
     try:
         if not isinstance(policy, TemperaturePolicy): raise ValueError('explicit policy required')
         if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= 289:
@@ -39,6 +38,36 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
         target = targets[-1]
         select_temperature_grid([], targets=targets, assessed_at=assessed_at,
                                 history_start=start, stream=stream, policy=policy)
+        observations = _fetch_rows(connection_factory, start, target)
+        return select_temperature_grid(observations, targets=targets, assessed_at=assessed_at,
+                                       history_start=start, stream=stream, policy=policy)
+    except Exception:
+        raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
+
+
+def fetch_temperature_window(connection_factory, *, start, end, assessed_at, stream, policy):
+    """Read all receipt changes for an elapsed window, including 25-hour days.
+
+    Same restricted transport, row limits and no-fallback contract as grids.
+    The end row may be fetched but cannot affect the half-open assessment.
+    """
+    try:
+        if not isinstance(policy, TemperaturePolicy): raise ValueError('explicit policy required')
+        start, end, assessed_at = map(_utc, (start, end, assessed_at))
+        history_start = start - timedelta(seconds=policy.validity_seconds)
+        kwargs = dict(start=start, end=end, assessed_at=assessed_at,
+                      history_start=history_start, stream=stream, policy=policy)
+        select_temperature_window([], **kwargs)  # Validate before connecting.
+        observations = _fetch_rows(connection_factory, history_start, end)
+        return select_temperature_window(observations, **kwargs)
+    except Exception:
+        raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
+
+
+def _fetch_rows(connection_factory, start, target):
+    """One private bounded read-only transaction; no interpretation or filtering."""
+    connection = None
+    try:
         connection = connection_factory()
         if connection.get_transaction_status() != 0:
             raise ValueError('dedicated idle connection required')
@@ -67,10 +96,7 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
         if carry is not None and _utc(carry[0]) >= start: raise ValueError('invalid carry boundary')
         if any(not start <= _utc(at) <= target for at, _raw in rows): raise ValueError('history outside window')
         # Oversized/NULL raw values remain barriers. Never silently drop them.
-        return select_temperature_grid(observations, targets=targets, assessed_at=assessed_at,
-                                       history_start=start, stream=stream, policy=policy)
-    except Exception:
-        raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
+        return observations
     finally:
         if connection is not None:
             try:

@@ -81,6 +81,13 @@ are retained as evidence, not current-state claims.
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82
   remains held; rain/wind scope and offhost backup retain their explicit deferrals.
+- September20 daily-temperature evidence foundation is implemented, not deployed:
+  exact receipt-interval coverage/extrema includes every persisted change point
+  and DST-length days. All1101Python tests pass;7200pre-refactor oracle selections
+  agree. Live read-only evidence correctly marks September19partial and today's
+  elapsed window fully covered. Daily/day-3 temperature scoring integration,
+  cutover policy and provenance remain open; numeric learning is not yet replaced.
+  See [reader evidence and integration boundary](2026-09-20-temperature-window-reader.md).
 
 The broad goal remains active. Successful source deployment or synthetic tests
 do not substitute for natural outcome or future-season verification.

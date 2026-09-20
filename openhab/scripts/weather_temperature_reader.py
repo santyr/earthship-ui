@@ -107,6 +107,11 @@ def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream
             or start > targets[0] - timedelta(seconds=policy.validity_seconds)
             or any(left >= right for left, right in zip(targets, targets[1:]))):
         raise ValueError('invalid target window')
+    return _select_normalized(_normalize_rows(rows), targets, stream, policy)
+
+
+def _normalize_rows(rows):
+    """Shared bounded ordering check; conflicting duplicates are not evidence."""
     if not isinstance(rows, list) or len(rows) > 10000:
         raise ValueError('bounded history required')
     normalized = []
@@ -117,6 +122,11 @@ def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream
             raise ValueError('unordered or conflicting history')
         previous_at, previous_raw = stored, raw
         normalized.append((stored, raw))
+    return normalized
+
+
+def _select_normalized(normalized, targets, stream, policy):
+    """One-pass barrier engine shared by point, grid and interval readers."""
     selected = None; barrier_at = None; epoch = None; index = 0; results = []
     for target in targets:
         while index < len(normalized) and normalized[index][0] <= target:
@@ -146,3 +156,48 @@ def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream
         qualified = selected if selected is not None and selected['receivedAt'] <= target < selected['validUntil'] else None
         results.append((target, None if qualified is None else dict(qualified)))
     return results
+
+
+def select_temperature_window(rows, *, start, end, assessed_at, history_start,
+                              stream, policy):
+    """Exact qualified coverage and observed extrema over elapsed [start, end).
+
+    Supports a 25-hour DST day. Uses every persisted change point, not a sampled
+    grid, and never extends validity beyond the receiver's expiry. Persistence
+    delay is not backdated. Malformed/invalid records and restart barriers have
+    the same semantics as point selection. The adapter must supply complete
+    history plus original carry from at least one validity interval before start.
+
+    Observed extrema describe qualified, persisted evidence ONLY: they are not
+    assertions of the physical day's true extrema, nor permission to train on
+    a partially covered day. This pure reader neither sets a learning threshold
+    nor updates a model. No legacy numeric fallback.
+    """
+    if not isinstance(policy, TemperaturePolicy) or not isinstance(stream, str):
+        raise ValueError('explicit stream and policy required')
+    start, end, assessed_at, history_start = map(_utc, (start, end, assessed_at, history_start))
+    if (not start < end <= assessed_at or end - start > timedelta(hours=25)
+            or history_start > start - timedelta(seconds=policy.validity_seconds)):
+        raise ValueError('invalid elapsed window')
+    normalized = _normalize_rows(rows)
+    targets = [start] + sorted({at for at, _ in normalized if start < at < end})
+    selected = _select_normalized(normalized, targets, stream, policy)
+    covered = timedelta(0)
+    gap = timedelta(0)
+    maximum_gap = timedelta(0)
+    high = low = None
+    for (at, evidence), stop in zip(selected, targets[1:] + [end]):
+        valid_stop = at if evidence is None else min(stop, evidence['validUntil'])
+        if valid_stop > at:
+            covered += valid_stop - at
+            value = evidence['temperatureF']
+            high = value if high is None else max(high, value)
+            low = value if low is None else min(low, value)
+            gap = timedelta(0)
+        gap += stop - valid_stop
+        maximum_gap = max(maximum_gap, gap)
+    return dict(observed_high_f=high, observed_low_f=low,
+                covered_seconds=covered.total_seconds(),
+                total_seconds=(end - start).total_seconds(),
+                maximum_gap_seconds=maximum_gap.total_seconds(),
+                fully_covered=covered == end - start)
