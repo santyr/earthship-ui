@@ -115,8 +115,12 @@ Existing everyChange persistence captures each timestamped receipt, approximatel
 
 This is observational collection, not a freshness consumer or qualified historical
 coverage. Local receipt time is not provider quote time or a unique execution ID.
-Unchanged-price natural delivery, queue/restart behavior and failure/timeout expiry
-remain unqualified. Do not use a restored receipt to renew success automatically.
+Natural unchanged-price delivery is now verified: price 81179 was retained while
+receipt timestamps advanced from 1789934425473 to 1789934455431; the second row
+persisted at 20:00:55.432178 UTC on September 20. This verifies this path delivers
+and persists unchanged prices, not that every execution can always be correlated.
+Queue/restart behavior and failure/timeout expiry remain unqualified.
+Do not use a restored receipt to renew success automatically.
 Rollback: move only these two newly installed files into a private directory outside
 the watched configuration tree, verify the new Item/link disappear and the original
 price link remains. Retain JDBC history; no original managed resource needs recreation.

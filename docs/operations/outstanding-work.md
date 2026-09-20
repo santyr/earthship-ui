@@ -22,8 +22,8 @@ at 11:24 MDT. Persisted state restored before publication; JDBC identity/history
 protected rule definitions and the publisher schedule were preserved. A natural
 11:25 publication and the 11:20 data-quality run succeeded. See the
 [initial migration receipt](2026-09-20-file-first-initial-migration.md).
-Read-only registry inventory now verifies 427 managed Items plus the one migrated
-Item, 84 managed Things, 35 managed rules and 261 managed links, with no detected
+Read-only registry inventory at 13:59 MDT verifies 427 managed Items plus two file
+Items, 84 managed Things, 35 managed rules and 261 managed plus one file link, with no detected
 structural dependency/ownership discrepancies. The reproducible tool excludes
 configuration values and states; this is not yet a full installation inventory
 or restore export. See [remaining scope](2026-09-20-file-first-inventory.md).
@@ -72,13 +72,26 @@ and protected-resource rollback remain outstanding.
 
 ### Operational checkpoint
 
+- Bitcoin receipt collection is deployed from `a6946ef`: file-owned observation
+  Item/link, existing price link and polling unchanged, JDBC651/item0651 verified.
+  A naturally unchanged price produced a distinct persisted receipt timestamp.
+  These are local output receipts, not provider quote timestamps or execution IDs;
+  failure/timeout/restart qualification and health consumers remain outstanding.
+  See [deployment evidence](2026-09-10-bitcoin-feed-validation.md).
+  The separate percent-change Item migration remains paused pending the operator's
+  label-normalization choice; its original managed definition is restored.
+
 - Qualified lifecycle throughput reporting is deployed in Solar_PV `819880a`:
   `report lifecycle --power-evidence-policy` selects only qualified revisions,
   preserves missing days and daily coverage, and reports period EFC rather than
   lifetime totals. All 733 analytics tests pass; restricted live reader verified
   empty evidence yields null totals without legacy substitution. Complete
-  lifecycle temperature/high-SoC exposure, independent BMS comparison and winter
-  load replay remain unqualified; no scheduled consumer was changed.
+  lifecycle temperature exposure, independent BMS comparison and winter load
+  replay remain unqualified; no scheduled consumer was changed. High-SoC exposure
+  was subsequently deployed in `af93fb1`, with atomic SoC evidence, independent
+  coverage, unknown-versus-zero handling and no extrapolation. All 743 analytics
+  tests passed. Follow-up `a4d402b` verifies 23/25-hour Denver DST exposure windows
+  (27 targeted tests); the first nonempty completed qualified day is still pending.
 
 - Qualified power feature export is now available in the deployed Solar_PV
   `1a013f3` via explicit `export-features --power-evidence-policy`. CSV v3 labels
@@ -86,8 +99,8 @@ and protected-resource rollback remain outstanding.
   bridge gaps, AC-load values remain empty. Legacy v2 is separate. Requests
   are bounded to 24 hours plus lag. All 728 analytics tests pass and a live
   read-only three-row export verified actual qualified PV and withheld load.
-  No scheduler or training consumer was activated. Lifecycle/winter reporting
-  and independent AC-load qualification remain outstanding.
+  No scheduler or training consumer was activated. Winter reporting and independent
+  AC-load qualification remain outstanding; lifecycle progress is recorded above.
 
 - Qualified monthly reporting is now deployed from Solar_PV `5fc878a` on the
   existing monthly timer with the restricted power reader. It writes a distinct
@@ -96,8 +109,8 @@ and protected-resource rollback remain outstanding.
   restricted-reader report succeeds. No manual monthly job or DM was triggered.
   Private activation receipt: `/tmp/qualified-monthly-release-ik0qyach`.
   Next natural run is October 1 in the existing randomized morning window;
-  its execution remains unverified. Lifecycle/winter/feature-export policy work
-  remains outstanding; this change only completes the monthly consumer path.
+  its execution remains unverified. Later lifecycle/feature-export work is recorded
+  above; this change only completes the monthly consumer path.
 - Recurring 09:00/21:00 legacy-rule errors are diagnosed and their cause removed:
   two schedules still called three deliberately disabled child rules. Only those
   references were removed; live readback preserves schedules, OverrideSwitch and
@@ -146,39 +159,34 @@ and protected-resource rollback remain outstanding.
   restore preserved. Final millisecond-precision cutover16:22:52.592732Z passes
   exact event/database parity for46contiguous rows and the production reader;
   all1513UI/observer unit tests pass. Historical gaps remain unqualified;
-  collection stays active and no accounting activation occurred. See the
+  collection stays active; accounting was subsequently activated as noted above. See the
   [sequence-gap evidence](2026-09-20-power-persistence-sequence-gaps.md).
   An explicit `report power` consumer now reads the bounded qualified revision
   series and exports JSON/Markdown with policy/cutover/as-of and per-day revision
   provenance/coverage. Missing dates remain listed and empty totals remain null;
   observed-window EFC is not mixed with lifetime/legacy estimates. Real isolated
   PostgreSQL verifies latest lower-coverage correction selection. This additive
-  report does not migrate the legacy monthly/lifecycle/winter commands or UI.
+  report itself does not migrate the legacy consumers; subsequent monthly,
+  lifecycle and UI releases are recorded separately.
   Reader-first UI v3 support now validates exact qualified provenance, completed
   revision windows, missing-day counts and coverage, and labels observed-window
   EFC separately from lifetime estimates. Served source and unchanged live v2
-  payload compatibility are verified;1536unit tests and build pass. The producer
-  is still v2. See [v3 reader contract](2026-09-20-qualified-energy-ui-contract.md).
+  payload compatibility were verified;1536unit tests and build passed at that
+  stage. The producer is now v3. See [v3 reader contract](2026-09-20-qualified-energy-ui-contract.md).
   Matching source-only Python v3 validation/projection and explicit scheduled
   publisher policy routing are now implemented. Qualified mode bypasses legacy
   daily/quality tables; missing yesterday cannot borrow older healthy evidence.
-  Actual Python partial/empty outputs pass the JavaScript parser. No live
-  publisher flag changed. Completed-day writer qualification remains a release
-  gate, alongside historical consumer policy treatment and database rehearsal.
+  Actual Python partial/empty outputs pass the JavaScript parser. Publisher
+  activation and writer qualification were subsequently completed below.
   Completed-day writer and database safeguards now pass actual SQL/DST tests.
   Production schema backup restored all18tables exactly and migration5 rehearsed
   without changing existing data. See [release preflight](2026-09-20-power-release-preflight.md).
-  Operator prioritizes production activation when safe; immediate remaining
-  dependencies are read-only reference verification, qualified monitor routing,
-  restricted roles and attended cutover. No production migration applied yet.
-  This preceding migration-pending checkpoint is superseded: reference verification
-  and qualified monitor routing are implemented; source/schema cutover is now
-  deployed, new table empty, timers restored. Remaining immediate release work
-  is restricted-role provisioning, policy flags and live verification.
-  **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
-  provenance; restricted roles; backup/restore and migration rehearsal;
-  reader-first deployment and actual accounting cutover. No live migration or
-  grants have been applied. Collection continues independently.
+  Reference verification, monitor routing, restricted roles, policy flags,
+  source/schema cutover and production accounting activation are complete; see
+  the activation receipt above. **Remaining:** full-day persistence qualification,
+  first natural completed-day write, scheduled monthly execution, independent
+  AC-load qualification and the specific unfinished lifecycle/winter consumers.
+  Do not repeat completed migrations, grants or backup rehearsals.
 
 - Qualified daily/day-3 temperature learning is now deployed and enabled with
   actual cutover2026-09-20T14:52:58.582165Z. Five runtime files verified, protected
@@ -269,7 +277,7 @@ and protected-resource rollback remain outstanding.
   targets and existing accepted/previous artifacts remain readable. Training is
   now activated with cutover2026-09-20T00:30:00Z; all model files are unchanged,
   installed reads pass and the three original timers are restored. Natural
-  training proof remains outstanding. Current-shadow temperature migration is
+  training proof was subsequently verified at 08:44 as recorded above. Current-shadow temperature migration is
   now deployed as recorded in the September20 update below.
   See [integration and rollback contract](2026-09-19-thermal-qualified-integration.md).
   The [activation receipt](2026-09-19-thermal-qualified-activation.md) records
@@ -280,8 +288,9 @@ and protected-resource rollback remain outstanding.
   streams use receipts with no numeric fallback; glazing/radiation are not newly
   qualified. Full1078Python tests passed at activation. Natural07:25shadow output
   is now verified: successful scheduled job, canonical saved/live Item equality,
-  fresh receipt ages and25observed rows. It still uses yesterday's accepted model;
-  today's training is active. See [natural verification](2026-09-20-natural-shadow-verification.md).
+  fresh receipt ages and25observed rows. That 07:25 result used yesterday's model;
+  the 09:25 result subsequently verified today's accepted model as recorded above.
+  See [natural verification](2026-09-20-natural-shadow-verification.md).
 - Conformal intervals, weather/thermal outcome attribution, broad change-only
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82
