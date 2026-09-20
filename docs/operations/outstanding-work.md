@@ -644,6 +644,14 @@ structure probe passed on existing weather history, not power evidence. It is
 not scheduled or deployed. Live collection, storage-volume measurement,
 read-only role/table configuration and accounting cutover remain open.
 
+Power collection preflight found no target collisions and confirmed existing
+wildcard JDBC persistence needs no edit. All three exact source bodies passed
+12installed-JS-engine checks through a temporary triggerless diagnostic, removed
+with ownership verification. The source descriptor now uses REST-managed inline
+transforms; no additional `/etc/openhab` files are needed. Exact source-parity
+tests pass. Disabled resource installation and natural pipeline qualification
+are the next gates; no power Items/Things/observer are live yet.
+
 ### Bitcoin carry audit, September 10
 
 The live `hex_btc_24h_change` source still matches the September 5 SHA above.

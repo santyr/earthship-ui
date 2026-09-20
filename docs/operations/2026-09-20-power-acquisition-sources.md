@@ -115,3 +115,41 @@ The separate Solar_PV power reader accepts this schema and preserves publication
 delays, missing-sequence gaps and per-field independence.579analytics tests pass.
 An isolated actual-transform/observer-to-reader/accounting probe also passed;
 none of this substitutes for live provenance or bounded persistence checks.
+
+## Live preflight and installed-engine qualification
+
+September20 live preflight found no collisions for the four planned String
+Items, three data Things, observer rule or three earlier proposed transformation
+registry names. JDBC still has the existing wildcard everyChange/restoreOnStartup
+policy; no persistence edit is needed or performed. Existing BMS transformations
+are file-backed/editable=false, so copying their installation mechanism would
+add files rather than meet the host's REST-managed configuration preference.
+
+The power descriptor now embeds each exact source body as a single-line
+`JS(|...)` readTransform in its managed Thing configuration. `transformSources`
+identifies reviewed repository assets only, not transformation resources to
+install. Tests require byte-exact newline-to-space equivalence with those assets.
+No file under `/etc/openhab` was created, modified or removed.
+
+Installed JS service qualification passed12checks (three transforms times four
+raw inputs) through an ownership-verified temporary triggerless diagnostic rule:
+`hex_power_transform_probe_0c1fe48b569c4518b78fb89afbdc44c8`.
+A fresh correlated log receipt confirmed actual execution; the exact unchanged
+probe was removed and verified absent. The diagnostic used no Item writes,
+commands, poller changes or notifications. This is engine-level qualification;
+natural Modbus pipeline and original-event provenance still need verification.
+
+The reviewed lifecycle helper from the earlier BMS qualification was reused by
+`/tmp/hex-power-transform-probe.py`; it is an already-executed temporary receipt
+artifact, not a deployment command to rerun. Source hashes:
+
+- battery:391e3b8ea6d6e6090930b7e614bd3f7e76c87971f6e28a9c8883a2ccb2f7ddf0
+- PV input:e1d7b96c8b80b48c33893d8b3788cab3276a1b06031fb2902f0ea648af71d3a0
+- PV output:6ec8375c56c31722573b710da1e454936cdefe54bb5eb616b85fdfe84c149ee7
+
+Create-only Items/links must use the verified provider-add semantics rather than
+claiming REST PUT is atomic creation. Next installation should stage unlinked
+Things disabled, stage the observer triggerless then disabled, add reviewed
+triggers and links only after exact ownership/posture checks, and compare
+protected controls/persistence/pollers with a private baseline. No power resource
+has yet been installed or activated by this preflight.

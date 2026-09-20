@@ -41,10 +41,11 @@ describe.each(fields)('%s acquisition receipt', (key, field, address, type, item
     expect(thing.enabled).toBe(false);
     expect(thing.thingTypeUID).toBe('modbus:data');
     expect(thing.bridgeUID).toMatch(/^modbus:poller:/);
+    const transformSource = readFileSync(new URL(`../../openhab/transform/power_${key}_observation.js`, import.meta.url), 'utf8');
     expect(thing.configuration).toEqual({ readStart: address, readValueType: type,
-      readTransform: [`JS(power_${key}_observation.js)`], updateUnchangedValuesEveryMillis: 30000 });
+      readTransform: [`JS(|${transformSource.split('\n').join(' ')})`], updateUnchangedValuesEveryMillis: 30000 });
     expect(descriptor.items.find(i => i.name === item).type).toBe('String');
-    expect(descriptor.transformations.find(t => t.uid === `power_${key}_observation.js`).source)
+    expect(descriptor.transformSources.find(t => t.uid === `power_${key}_observation.js`).source)
       .toBe(`openhab/transform/power_${key}_observation.js`);
   });
 });
@@ -54,7 +55,7 @@ it('adds only acquisition resources, never controls, pollers or automatic deploy
   expect(descriptor.things).toHaveLength(3);
   expect(descriptor.items).toHaveLength(3);
   expect(descriptor.links).toHaveLength(3);
-  expect(Object.keys(descriptor).sort()).toEqual(['version', 'createOnly', 'transformations', 'things', 'links', 'items'].sort());
+  expect(Object.keys(descriptor).sort()).toEqual(['version', 'createOnly', 'transformSources', 'things', 'links', 'items'].sort());
   const managed = readFileSync(new URL('../../openhab/managed-resources.json', import.meta.url), 'utf8');
   for (const item of descriptor.items) expect(managed).not.toContain(item.name);
 });

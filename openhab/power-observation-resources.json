@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createOnly": true,
-  "transformations": [
+  "transformSources": [
     {"uid":"power_battery_observation.js","type":"js","source":"openhab/transform/power_battery_observation.js"},
     {"uid":"power_pv_input_observation.js","type":"js","source":"openhab/transform/power_pv_input_observation.js"},
     {"uid":"power_pv_output_observation.js","type":"js","source":"openhab/transform/power_pv_output_observation.js"}
@@ -9,13 +9,13 @@
   "things": [
     {"UID":"modbus:data:schneiderBatterySunSpec:battery802Core:powerObservation","thingTypeUID":"modbus:data",
       "bridgeUID":"modbus:poller:schneiderBatterySunSpec:battery802Core","label":"Battery power acquisition observation","enabled":false,
-      "configuration":{"readStart":"40291","readValueType":"int16","readTransform":["JS(power_battery_observation.js)"],"updateUnchangedValuesEveryMillis":30000}},
+      "configuration":{"readStart":"40291","readValueType":"int16","readTransform":["JS(|(function (data) {   return JSON.stringify({     version: 1,     field: 'battery.dc_power_w',     observedAt: Date.now(),     value: String(data),   }); })(input); )"],"updateUnchangedValuesEveryMillis":30000}},
     {"UID":"modbus:data:9eb978a141:mppt60Input:powerObservation","thingTypeUID":"modbus:data",
       "bridgeUID":"modbus:poller:9eb978a141:mppt60Input","label":"PV input power acquisition observation","enabled":false,
-      "configuration":{"readStart":"80","readValueType":"uint32","readTransform":["JS(power_pv_input_observation.js)"],"updateUnchangedValuesEveryMillis":30000}},
+      "configuration":{"readStart":"80","readValueType":"uint32","readTransform":["JS(|(function (data) {   return JSON.stringify({     version: 1,     field: 'pv.input_power_w',     observedAt: Date.now(),     value: String(data),   }); })(input); )"],"updateUnchangedValuesEveryMillis":30000}},
     {"UID":"modbus:data:9eb978a141:mppt60Output:powerObservation","thingTypeUID":"modbus:data",
       "bridgeUID":"modbus:poller:9eb978a141:mppt60Output","label":"PV output power acquisition observation","enabled":false,
-      "configuration":{"readStart":"92","readValueType":"uint32","readTransform":["JS(power_pv_output_observation.js)"],"updateUnchangedValuesEveryMillis":30000}}
+      "configuration":{"readStart":"92","readValueType":"uint32","readTransform":["JS(|(function (data) {   return JSON.stringify({     version: 1,     field: 'pv.output_power_w',     observedAt: Date.now(),     value: String(data),   }); })(input); )"],"updateUnchangedValuesEveryMillis":30000}}
   ],
   "links": [
     {"itemName":"Battery_Power_Observation_JSON","channelUID":"modbus:data:schneiderBatterySunSpec:battery802Core:powerObservation:string","configuration":{"profile":"system:default"}},
