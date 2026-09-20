@@ -45,3 +45,22 @@ origin-capture gate, not the first qualified model-update gate.
 
 All checks used read-only database transactions, filesystem reads and Item GETs.
 No model, threshold, schema, scheduling, evidence row or Item was changed.
+
+## Bandit prerequisite disposition
+
+Task18 explicitly instructs deferral if outcome verification is absent. On
+September20 the live outcome count remains zero, so the task is deferred rather
+than treating deployed capture as completed verification. The production
+`assess_trough_decision` and projection contracts preserve
+`bandit_eligible:false`; `action_attribution` remains `not_assessed`.
+Prediction residuals can measure forecast accuracy but cannot establish the
+benefit of closing windows, ventilation, notification delivery or compliance.
+The first natural completed-night assessment is a prerequisite, not automatic
+permission to turn those residuals into Thompson-sampling rewards.
+
+Resume after natural assessment verification and an explicitly reviewed reward,
+attribution and bounded threshold-selection design. Preserve existing independent
+safety controls, notification rate limits and current policy (95F close-up high,
+92F three-day streak, 90F ventilation, below30percent trough DM). Tracked/live
+forecast producer hashes matched during this check. No threshold or runtime
+change was made; no synthetic outcome or reward was inserted.
