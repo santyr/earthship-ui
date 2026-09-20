@@ -40,6 +40,9 @@ JSONDB/userdata, PostgreSQL history and learned artifacts separately. A clean
 restore rehearsal remains required before declaring the whole migration complete.
 Do not commit raw tokens, passwords, private keys, runtime state or telemetry.
 
-The first prepared candidate is `Energy_Analytics_JSON`, an observational String
-Item with a separate state publisher. The older managed configuration tool now
+The first migrated resource is `Energy_Analytics_JSON`, an observational String
+Item with a separate state publisher. Its file ownership, persisted-state restore,
+unchanged JDBC mapping/history and fresh publication were verified 2026-09-20.
+See `docs/operations/2026-09-20-file-first-initial-migration.md` in the repository.
+The older managed configuration tool now
 refuses `editable:false` resources rather than attempting to recreate ownership.

@@ -10,13 +10,18 @@ outside this Earthship workstream.
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
 
-### Approved next workstream: file-first configuration migration
+### Started: file-first configuration migration
 
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:
 finish the in-flight temperature-learning and power-evidence work, then replace
 the REST-managed-only policy with Git-owned, file-first configuration and begin
-staged migration. This is approval, not an assertion that ownership changed.
+staged migration. The host policy is now file-first and the first observational
+Item, `Energy_Analytics_JSON`, was transferred to its Git-owned file definition
+at 11:24 MDT. Persisted state restored before publication; JDBC identity/history,
+protected rule definitions and the publisher schedule were preserved. A natural
+11:25 publication and the 11:20 data-quality run succeeded. See the
+[initial migration receipt](2026-09-20-file-first-initial-migration.md).
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before
@@ -24,8 +29,9 @@ migrating pumps, battery safety or other protected controls. Supported declarati
 definitions and scripts belong in Git; managed exceptions require reproducible
 exports. Credentials, userdata, PostgreSQL history and learned model artifacts
 need appropriate encrypted backups rather than raw secret/data commits. A clean
-restore rehearsal is a completion requirement. Existing runtime ownership stays
-unchanged until the ordered policy/migration cutover. Task82 remains held.
+restore rehearsal is a completion requirement. All other runtime ownership stays
+unchanged until each resource's verified cutover. Full restart, actual rollback
+rehearsal and protected-control migration remain outstanding. Task82 remains held.
 
 ### Operational checkpoint
 
