@@ -124,3 +124,36 @@ Do not use a restored receipt to renew success automatically.
 Rollback: move only these two newly installed files into a private directory outside
 the watched configuration tree, verify the new Item/link disappear and the original
 price link remains. Retain JDBC history; no original managed resource needs recreation.
+
+## Legacy CoinMarketCap helper credential cleanup
+
+September 20: checked user/system service definitions, user cron, repository
+references and live OpenHAB rule/Thing definitions for legacy helper consumers.
+Only the distinct live Exec script was found in OpenHAB. Root cron could not be
+read, so this is not proof the legacy helper is unused; manual callers also remain
+possible. No provider request or credential validity probe was made.
+
+The embedded key was removed from `/home/sat/bin/bitcoin.py`, preserving the
+credential privately at `/home/sat/.config/hex/coinmarketcap_api_key` (0600, inside
+a 0700 directory). The tracked replacement is `openhab/scripts/bitcoin_legacy.py`;
+it also accepts an explicit `CMC_PRO_API_KEY` environment override. Its default
+key loader rejects symlinks, nonregular files, foreign ownership, permissive modes
+and invalid/oversize values without echoing the key. Original argument, endpoint,
+quote selection and output behavior are retained, including legacy limitations;
+this is not a new feed-validation implementation.
+
+Installed SHA256:
+`2484cbde6cd3d3a6b74f578b6035a98f94dbe3c6344b54da397cff3197228b35`.
+Four offline tests cover private-file loading, environment override, invalid
+configuration, missing/symlink/permissive files and both original output paths
+with mocked HTTP. Actual installed import/key loading passed without HTTP.
+The original script is preserved privately (0600) in
+`/tmp/legacy-bitcoin-externalize-re3nk67f` (0700); it contains the old embedded key
+and must not be committed or copied to public storage. Prefer fixing forward;
+restoring that backup would reintroduce an embedded credential.
+
+The live Strike script hash remains
+`3650adbfddcd383c504dfbdfae0723fe31a7d5315adc4308f3dd5f369fb68bc4`.
+No live feed, credential, rule or polling configuration changed. CoinMarketCap
+provider-side rotation/revocation and cleanup of any historical copies remain
+outstanding: externalization does not invalidate an already exposed credential.

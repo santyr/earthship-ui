@@ -877,11 +877,13 @@ carry candles. The three focused candle/component/modal suites passed all
 needed for this carry audit. Independent feed-health qualification remains
 separate from arithmetic and held-state semantics.
 
-Additional follow-up: `/home/sat/bin/bitcoin.py` contains a hard-coded provider
-API credential. Its current use has not been established. Do not copy its raw
-contents into reports or memory; verify consumers and coordinate credential
-rotation/externalization without interrupting the feed. No credential change
-was performed during this read-only audit.
+September20 follow-up: the legacy `/home/sat/bin/bitcoin.py` credential is now
+externalized into a private 0600 file; the tracked credential-free replacement
+is installed and four offline tests pass. Checked consumer surfaces found no
+legacy reference, but root cron was unreadable and manual use cannot be excluded.
+The existing credential was preserved, not rotated. Provider-side rotation and
+historical-copy cleanup remain open. See the feed-validation cleanup receipt;
+never copy the private key or original backup into reports or Git.
 September20 clarification: the live feed executes the distinct Bash script at
 `/etc/openhab/scripts/bitcoin.py`, still matching the validated tracked version
 and using externalized Strike credentials. Exec result/time channels are
