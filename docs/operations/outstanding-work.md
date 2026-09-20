@@ -40,10 +40,13 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   the current enabled state. See the [installation and activation receipt](2026-09-20-power-disabled-installation.md).
   Physical-source faults and full-openHAB restart were not induced.
 
-- Qualified power accounting source/schema are now deployed on Solar_PV main
-  `d4151a1`; all700analytics tests pass. Production migration5/ledger readback and
-  original six timer states are verified. Writer/publisher/monitor policy
-  options remain disabled pending restricted roles and coordinated activation.
+- Qualified power accounting is **enabled in production** since17:10:31.538073Z;
+  Solar_PV main `d3361d1`,702analytics tests; UI1537tests/build pass. Restricted
+  writer/publisher/monitor paths and a natural v3 publication are verified.
+  The UI shows a truthful waiting state until the first daily write around
+  September21 00:21MDT. See [activation receipt](2026-09-20-power-production-activation.md).
+  The implementation chronology below is historical; this activation supersedes
+  its earlier source-only, v2-only, pending-grants and pending-migration statements.
   Implemented: bounded evidence transport; battery/PV energy and EFC using exact
   qualified intervals; daily and solar-noon composition with matching source
   quality; common-support PV efficiency; explicit legacy/cutover provenance.

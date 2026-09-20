@@ -26,6 +26,20 @@ afterEach(() => {
 });
 
 describe('EnergyAnalyticsDetail observational presentation', () => {
+  it('exposes a validated empty qualified series without inventing totals', async () => {
+    const payload=energyAnalyticsV3Fixture();
+    payload.status='unavailable';payload.throughDate=null;payload.energy.latest=null;
+    for (const key of Object.keys(payload.battery)) payload.battery[key]=key==='status' ? 'unavailable' : null;
+    Object.assign(payload.lifecycle,{periodEfc:null,chargeKwh:null,dischargeKwh:null});
+    Object.assign(payload.accounting,{daysPresent:0,missingDays:2,latestRevision:null,
+      latestBatteryCoverage:null,latestPvCoverage:null});
+    render(EnergyAnalyticsDetail,{result:result(payload)});
+    expect(screen.getByText('No daily data')).toBeTruthy();
+    expect(screen.getByText('WAITING')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button',{name:'Open energy analytics details'}));
+    expect(screen.getByText(/No completed daily records/)).toBeTruthy();
+    expect(screen.queryByText('0.00 observed EFC')).toBeNull();
+  });
   it('labels qualified window EFC, coverage and missing days without lifetime claims', async () => {
     const { container } = render(EnergyAnalyticsDetail, { result: result(energyAnalyticsV3Fixture()) });
     expect(screen.getByText('0.33 observed EFC')).toBeTruthy();
