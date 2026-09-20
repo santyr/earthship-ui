@@ -1,5 +1,22 @@
 # First natural qualified-input shadow publication — September 20
 
+## Follow-up: today's accepted model used naturally
+
+The next scheduled job ran09:25:48–09:25:52MDT and completed successfully.
+Saved `shadow.json` and live `Thermal_Model_JSON` matched exactly and passed
+the installed production schema validator. generatedAt is15:25:48Z, with25
+observed rows. It now identifies today's model, created/trained-through
+`2026-09-20T12:50:29Z`, codeRevision
+`261d0da8b615ea99ef2f3a2fad25a454ffd34d2f20479b98aa85e9d38ffd0e1a`.
+The accepted artifact hash remains
+`40a48cf6e491054a83b2577c2974a5a65ec37e8c8298f0e36613238ce4201e18`.
+This closes natural shadow use of the newly promoted qualified-training model.
+Status remains shadow and confidence low; no candidate was emitted because
+minimum modeled improvement was not met. This is not proof of predictive
+accuracy or authorization for additional controls. No run was forced.
+
+## Earlier publication using yesterday's model
+
 The scheduled thermal-model-shadow job ran07:25:29–07:25:32MDT and completed
 successfully, with no forced run. This is the first verified natural output after
 the [qualified shadow-input activation](2026-09-20-shadow-receipt-activation.md).

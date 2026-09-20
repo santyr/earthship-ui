@@ -44,6 +44,13 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   0.121052kWh PV input and0.118448kWh output, with explicit partial-window
   coverage97.29%/97.83%. These are probe-window observations, not published
   daily totals. Daily orchestration and versioned materialization remain open.
+  Daily composition now has explicit all-or-none evidence-reader configuration
+  and cutover, one bounded shared snapshot, qualified battery/PV/noon-split
+  energy and matching per-source coverage. Reader errors do not fall back;
+  pre-cutover days are explicitly legacy. All620analytics tests pass. This is
+  source-only: CLI/config activation, versioned persistence/rollups and UI
+  provenance remain. PV efficiency needs common-support integration; PV/load
+  balance is withheld in the new path until AC-load evidence is qualified.
 
 - Power evidence resources are installed **disabled** from `d336876`: four
   Items, three read-only data Things, three links and `hex_power_evidence`.
@@ -77,7 +84,11 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   evidence:air149/149,mass148/149(with1missing),outdoor149/149. Older training
   history remains explicitly legacy. See [training receipt](2026-09-20-natural-qualified-training.md).
   Training is terminal; the pending daily-temperature release is no longer
-  blocked by that process. New-artifact shadow output remains to verify.
+  blocked by that process. The natural09:25shadow job now verifiably uses today's
+  accepted artifact: saved/live equality and production schema passed, model
+  hash unchanged,25observed rows. Confidence remains low, statusshadow and no
+  candidate emitted; no accuracy or additional control authority is claimed.
+  See [shadow follow-up](2026-09-20-natural-shadow-verification.md).
 
 - Temperature receipt collection and qualified hourly learning are enabled and
   deployed. Indoor235 is operator-confirmed. All three streams have naturally
