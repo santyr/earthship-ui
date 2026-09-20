@@ -63,3 +63,22 @@ values, link profiles, persistence strategies, UI pages, installed add-ons,
 external services and private configuration require separate review. Do not use
 an empty issue list as permission to migrate a resource or claim restart safety.
 See `docs/operations/2026-09-20-file-first-inventory.md` for the initial scope.
+
+## Prepared persistence source (not deployed)
+
+`persistence/jdbc.persist` reproduces the live September 20 managed JDBC strategy
+configuration. `python3 openhab/scripts/persistence_source.py` reads only the
+strategy endpoint and renders it; unsupported fields, filters, aliases or custom
+strategies are refused rather than omitted. It never reads connection settings.
+The checked-in file is preparation, not a provider transfer: do not bulk-copy this
+directory into `/etc/openhab`. The ownership manifest still records only the
+verified Item transfer.
+
+Preserve the power observer's explicit immutable JDBC writes, its automatic
+write exclusion and restore strategy. Preserve existing forecast behavior during
+migration, including the existing `forecast, everyChange` combination. The
+[official persistence documentation](https://www.openhab.org/docs/configuration/persistence)
+discourages that combination; reviewing it is separate from reproducing current
+behavior. JDBC provider cutover needs syntax/load qualification, exact strategy
+readback, rollback and real acquisition/persistence verification. No live
+persistence change or parser qualification is claimed by renderer unit tests.

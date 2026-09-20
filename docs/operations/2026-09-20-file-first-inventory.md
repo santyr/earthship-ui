@@ -39,3 +39,22 @@ ambiguity, ownership drift, duplicates and absent declarations.
 
 No additional live provider transfer occurred during this inventory. Task 82
 remains held; feeder work owned by another agent is not included in this change.
+
+## Persistence and backup follow-up
+
+Live `/persistence` reports only JDBC. `/persistence/jdbc` is managed and has three
+entries: global everyChange/restore excluding `Power_Evidence_JSON`, group
+`gForecast*` forecast/everyChange, and explicit power-evidence restore. There are
+no aliases, custom cron strategies or filters. Prepared `jdbc.persist` matches
+the live DTO through a closed, tested renderer. It is not installed; managed
+ownership remains unchanged. Existing change-only semantics must be preserved.
+
+The weekly `energy-backup-check.service` still reads the August 20 full-database
+manifest. Its September 20 03:31 run reported `fresh:false`, `readable:true`,
+`restore_verified:true`, `off_host:false`, `disaster_recovery:false`, Actionable.
+Systemd success is expected because exit statuses 10/20 are accepted; it does not
+mean backup coverage is healthy. The recent September 20 restore rehearsal is
+only `energy_analytics`, not public telemetry, thermal models, configuration or
+credentials. Substituting that manifest would narrow the monitored recovery
+scope, so the reference was intentionally not changed. A refreshed full restore
+point is still needed; the off-host destination remains explicitly deferred.

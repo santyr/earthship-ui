@@ -1,0 +1,10 @@
+// PREPARED ONLY: managed JDBC remains authoritative until attended cutover.
+// Preserve change-only collection and explicit immutable power writes.
+Strategies {
+}
+
+Items {
+    *, !Power_Evidence_JSON : strategy = everyChange, restoreOnStartup
+    gForecast* : strategy = forecast, everyChange
+    Power_Evidence_JSON : strategy = restoreOnStartup
+}

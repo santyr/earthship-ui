@@ -27,6 +27,11 @@ Item, 84 managed Things, 35 managed rules and 261 managed links, with no detecte
 structural dependency/ownership discrepancies. The reproducible tool excludes
 configuration values and states; this is not yet a full installation inventory
 or restore export. See [remaining scope](2026-09-20-file-first-inventory.md).
+The exact JDBC strategy file is now prepared and live-compared, but not deployed;
+managed persistence stays authoritative pending provider/load/rollback validation.
+Backup review confirms the weekly check correctly reports the August 20 full
+restore point stale and same-host. The recent analytics-only rehearsal cannot
+replace that broader backup. Full restore refresh remains outstanding.
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before
