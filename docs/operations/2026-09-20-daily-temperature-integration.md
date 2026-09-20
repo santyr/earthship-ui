@@ -91,3 +91,24 @@ Removing only the new override returns daily temperature inputs to the prior
 path. Keep compatible code and newer model state; do not restore old model/state
 backups over later learning. Activation and natural qualified daily/day-3 updates
 remain unverified until separately recorded.
+
+## Read-only release preflight, 07:24 MDT
+
+Every existing installed runtime file still matches reviewed commit63529ea by
+content. Four files need replacement and one new worker needs installation:
+
+| Source under openhab/scripts | Intended SHA256 |
+| --- | --- |
+| forecast_intel.py | 905f033e305c10266ba51fc113702748f4f3ef5eaeda23f917233bd3ccaf6faa |
+| thermal_intel.py | d22e1e04762022bd65caa23a9847dd9720979d0f3a7692a331da87266ed95c5e |
+| daily_temperature_runtime.py (new) | 89f67dc1053828fbff78f63fac5e0da68cad38b80937965abfe711a99625cfe2 |
+| weather_temperature_reader.py | cc616076bca34a77e4a2a6b827927272c4e92646432dabbf9dca57f83ad17f79 |
+| weather_temperature_history.py | 5291874247e2fd82f20013f97890c571cbe7bcbd63f5cc70d8e7701932aa6fdd |
+
+The live forecast script's mode is0775, while the default thermal manifest lists
+0755 for its verify-only entry. Preserve0775 explicitly in the receipt-bound
+release manifest when treating forecast as code to install. Do not use the
+unmodified default manifest: its forecast entry verifies rather than installs.
+All other checked runtime modes match the manifest. Revalidate this baseline
+after training is terminal; this preflight made no changes or backups of active
+training state.

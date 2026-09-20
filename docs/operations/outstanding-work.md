@@ -50,6 +50,11 @@ are retained as evidence, not current-state claims.
   all1370unit tests and build pass. See [release](2026-09-19-pump-timer-ownership.md).
   An uninterrupted natural cycle is still unverified. The bounded monitor
   finished; no monitor remains running.
+  September20morning's old status was explained by the former08:00–20:00condition.
+  The operator then approved daylight operation and timer-only automatic checks:
+  live now has one-minute cron plus manual request, no fixed-hour condition and
+  unchanged safety/SoC/cycle timing. Natural07:38evaluation correctly kept pumps
+  OFF at84%SoC under partly cloudy skies. See [activation](2026-09-20-greywater-daylight-activation.md).
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
   timestamped UNDEF/NULL/bad states remain invalid rather than being dropped and
   bridged by interpolation/hold.10regressions failed before the fix;118focused
@@ -75,8 +80,10 @@ are retained as evidence, not current-state claims.
   from63529ea. Installed current-input and expiry validation passed; all model
   files and original unit definitions are unchanged. Three supported temperature
   streams use receipts with no numeric fallback; glazing/radiation are not newly
-  qualified. Full1078Python tests pass. Subsequent natural shadow output remains
-  unverified. See [activation](2026-09-20-shadow-receipt-activation.md).
+  qualified. Full1078Python tests passed at activation. Natural07:25shadow output
+  is now verified: successful scheduled job, canonical saved/live Item equality,
+  fresh receipt ages and25observed rows. It still uses yesterday's accepted model;
+  today's training is active. See [natural verification](2026-09-20-natural-shadow-verification.md).
 - Conformal intervals, weather/thermal outcome attribution, broad change-only
   historical-algorithm coverage, bandit reward design, independent feed-health
   checks, and actual seasonal/paired-data gates are still unfinished. Task82
