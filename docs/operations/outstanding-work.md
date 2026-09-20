@@ -72,6 +72,14 @@ and protected-resource rollback remain outstanding.
 
 ### Operational checkpoint
 
+- Qualified lifecycle throughput reporting is deployed in Solar_PV `819880a`:
+  `report lifecycle --power-evidence-policy` selects only qualified revisions,
+  preserves missing days and daily coverage, and reports period EFC rather than
+  lifetime totals. All 733 analytics tests pass; restricted live reader verified
+  empty evidence yields null totals without legacy substitution. Complete
+  lifecycle temperature/high-SoC exposure, independent BMS comparison and winter
+  load replay remain unqualified; no scheduled consumer was changed.
+
 - Qualified power feature export is now available in the deployed Solar_PV
   `1a013f3` via explicit `export-features --power-evidence-policy`. CSV v3 labels
   PV evidence/cutover and other-field limitations; PV and one-hour lag never
