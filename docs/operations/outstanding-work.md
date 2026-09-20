@@ -58,6 +58,15 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   yields null rather than a made-up ratio. All628analytics tests pass. The
   AC-load boundary and production configuration/versioned-storage/UI gates
   remain open; this does not activate the new daily calculations.
+  Versioned storage is now implemented source-only: migration0005 adds an
+  append-only daily snapshot revision series, leaving every legacy daily table
+  unchanged. Qualified cumulative EFC selects the latest revision per day within
+  one bank/policy/cutover only; retries cannot double-count or reactivate older
+  revisions. PostgreSQL tests verify mutation refusal, permissions, cutover and
+  legacy isolation, and transactional locking. All639analytics tests pass.
+  No live migration or grants applied. Report/export/UI readers must switch to
+  the versioned series before the writer is activated; configuration, backup/
+  restore rehearsal and reader-first deployment remain required.
 
 - Power evidence resources are installed **disabled** from `d336876`: four
   Items, three read-only data Things, three links and `hex_power_evidence`.
