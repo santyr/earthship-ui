@@ -88,3 +88,35 @@ No links or Items are installed. Installed profile/event identity, unchanged
 delivery, queue/restart behavior and failure/timeout expiry still need validation
 before any health consumer or historical coverage claim. Existing price links
 and API polling remain unchanged; focused VM tests verify the pure transform.
+
+## September 20 observation receipt deployment
+
+The draft above was hot-loaded at 13:58 MDT as file-owned String Item
+`BTC_Output_Receipt_JSON`, with a separate file-owned link to the existing output
+channel. The original managed `BTC_USD_Price` link remains unchanged. The live
+profile configuration confirms `transform:JS`, `toItemScript=bitcoin_output_receipt.js`;
+no reverse command/state scripts are set. This uses the installed profile contract
+and the [official script transformation syntax](https://www.openhab.org/docs/configuration/transformations.html).
+No API request, manual feed run, credential change or service restart was needed.
+
+Natural receipts at 19:58:25 and 19:58:55 UTC were independently read from JDBC
+`651/item0651`; the Item and link both report `editable:false`. The existing
+Bitcoin calculation and pump rules remain IDLE/NONE. No ERROR/Exception was found
+in the deployment log window. Focused transform and Item-definition tests pass.
+
+Installed transform SHA256:
+`d73c9fc54c9e12cbc53f5338550391d7deee775e6cf82e4555c465782c6bcaba`.
+Installed Item file SHA256:
+`c1d130224a60b93fa5301e4e5f91c58ef7c0252d9652e57928f77582c752458c`.
+Both match Git source bytes. Destinations are `/etc/openhab/transform/bitcoin_output_receipt.js`
+and `/etc/openhab/items/bitcoin-receipt.items`; neither existed before deployment.
+Existing everyChange persistence captures each timestamped receipt, approximately
+2,880 small rows/day at the unchanged 30-second polling interval.
+
+This is observational collection, not a freshness consumer or qualified historical
+coverage. Local receipt time is not provider quote time or a unique execution ID.
+Unchanged-price natural delivery, queue/restart behavior and failure/timeout expiry
+remain unqualified. Do not use a restored receipt to renew success automatically.
+Rollback: move only these two newly installed files into a private directory outside
+the watched configuration tree, verify the new Item/link disappear and the original
+price link remains. Retain JDBC history; no original managed resource needs recreation.

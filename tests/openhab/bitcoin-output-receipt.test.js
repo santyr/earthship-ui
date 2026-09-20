@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { expect, it } from 'vitest';
 const source = readFileSync(new URL('../../openhab/transform/bitcoin_output_receipt.js', import.meta.url), 'utf8');
+it('links a separate observation Item with no reverse command or state transform', () => {
+  const item = readFileSync(new URL('../../openhab/file-config/items/bitcoin-receipt.items', import.meta.url), 'utf8');
+  const definition = item.split('\n').filter(line => line && !line.startsWith('//'));
+  expect(definition).toEqual(['String BTC_Output_Receipt_JSON "Bitcoin Output Receipt" { channel="exec:command:BTC_Price:output" [profile="transform:JS", toItemScript="bitcoin_output_receipt.js"] }']);
+});
 function run(input, now = 1800000000000) {
   const forbidden = () => { throw new Error('unexpected capability'); };
   return JSON.parse(vm.runInNewContext(source, { input, Date: { now: () => now },

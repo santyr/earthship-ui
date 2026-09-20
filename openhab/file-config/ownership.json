@@ -4,6 +4,15 @@
   "resources": [
     {
       "kind": "item",
+      "id": "BTC_Output_Receipt_JSON",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/bitcoin-receipt.items",
+      "destination": "/etc/openhab/items/bitcoin-receipt.items",
+      "state_writer": "exec:command:BTC_Price:output via transform:JS bitcoin_output_receipt.js"
+    },
+    {
+      "kind": "item",
       "id": "Energy_Analytics_JSON",
       "provider": "file",
       "migration": "verified",

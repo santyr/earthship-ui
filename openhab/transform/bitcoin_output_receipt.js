@@ -1,4 +1,4 @@
-// Source-only: transform receipt time, not provider quote time or execution ID.
+// Transform receipt time, not provider quote time or execution ID.
 // Never copy raw stderr into persistence; it may contain sensitive details.
 (function (data) {
   const receivedAt = Date.now();
