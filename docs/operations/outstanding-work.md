@@ -51,6 +51,22 @@ need appropriate encrypted backups rather than raw secret/data commits. A clean
 restore rehearsal is a completion requirement. All other runtime ownership stays
 unchanged until each resource's verified cutover. Full restart, actual rollback
 rehearsal and protected-control migration remain outstanding. Task82 remains held.
+Update: actual file-to-managed-to-file rollback is now verified for the single
+observational analytics Item, including pre-publication state restoration on both
+legs, unchanged history/mapping and unchanged control definitions. See the
+[rollback receipt](2026-09-20-item-provider-rollback.md). Broader restore/restart
+and protected-resource rollback remain outstanding.
+
+### Operator-requested follow-up after current tasks
+
+- Investigate whether the grey-water rule actually alternates both pumps. The
+  operator reports noticing only the East pump. Use live rule state, event logs
+  and historical runtime evidence; do not assume parity logic proves actuation
+  and do not run pumps merely to test it.
+- Add a main UI indication of which pump will run next and its expected start
+  time. Distinguish a committed schedule from the earliest eligible time when
+  sunlight, SoC, minimum gap or other safety gates can delay execution. Confirm
+  the actual scheduling contract before designing or implementing the display.
 
 ### Operational checkpoint
 

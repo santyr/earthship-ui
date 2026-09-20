@@ -46,6 +46,9 @@ unchanged JDBC mapping/history and fresh publication were verified 2026-09-20.
 See `docs/operations/2026-09-20-file-first-initial-migration.md` in the repository.
 The older managed configuration tool now
 refuses `editable:false` resources rather than attempting to recreate ownership.
+Its actual provider rollback and return were subsequently rehearsed successfully;
+see `docs/operations/2026-09-20-item-provider-rollback.md`. This is specific to the
+unlinked observational analytics Item, not general protected-control recovery.
 
 ## Read-only inventory
 
