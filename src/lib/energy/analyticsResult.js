@@ -1,12 +1,15 @@
 export const ENERGY_ANALYTICS_MAX_BYTES = 16 * 1024;
 export const ENERGY_ANALYTICS_STALE_MS = 15 * 60_000;
 export const ENERGY_ANALYTICS_REFRESH_MS = 30_000;
-const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2']);
+const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2', 'earthship-energy-ui/v3']);
 const STATUS = new Set(['ok', 'degraded', 'unavailable', 'stale', 'fault']);
 const FORECAST_STATUS = new Set(['current', 'stale', 'unavailable', 'degraded']);
 
 const TOP = ['battery', 'energy', 'epochId', 'forecast', 'generatedAt', 'health',
   'lifecycle', 'schema', 'status', 'throughDate', 'timezone', 'winter'];
+const ACCOUNTING = ['basis', 'cutover', 'daysPresent', 'latestBatteryCoverage',
+  'latestPvCoverage', 'latestRevision', 'loadStatus', 'missingDays', 'policy',
+  'windowEndExclusive', 'windowStart'];
 const BATTERY = ['currentNoFullDays', 'daysSinceFull', 'endingCumulativeEfc',
   'latestMinSocPct', 'latestReached99', 'status'];
 const BATTERY_V2 = [...BATTERY, 'latestDepthOfDischargePct', 'latestEfc'].sort();
@@ -32,7 +35,7 @@ function unavailable(reason) {
   return Object.freeze({
     state: 'unavailable', generatedAtMs: null, throughDate: null, epochId: null,
     battery: null, energy: null, winter: null, lifecycle: null, forecast: null,
-    health: null, reasons: Object.freeze([reason]),
+    health: null, accounting: null, reasons: Object.freeze([reason]),
   });
 }
 
@@ -108,7 +111,8 @@ function boundedText(value, path, optional = true) {
 }
 
 function validatePayload(payload) {
-  exact(payload, TOP, 'payload');
+  const qualified = payload?.schema === 'earthship-energy-ui/v3';
+  exact(payload, qualified ? ['accounting', ...TOP] : TOP, 'payload');
   if (!SCHEMAS.has(payload.schema)) throw new Error('schema');
   const generatedAtMs = timestamp(payload.generatedAt, 'generatedAt');
   if (typeof payload.timezone !== 'string' || payload.timezone !== 'America/Denver') {
@@ -125,7 +129,7 @@ function validatePayload(payload) {
 
   const battery = exact(
     payload.battery,
-    payload.schema === 'earthship-energy-ui/v2' ? BATTERY_V2 : BATTERY,
+    payload.schema !== 'earthship-energy-ui/v1' ? BATTERY_V2 : BATTERY,
     'battery',
   );
   status(battery.status, 'battery');
@@ -134,7 +138,7 @@ function validatePayload(payload) {
   number(battery.endingCumulativeEfc, 'battery_endingCumulativeEfc');
   integer(battery.currentNoFullDays, 'battery_currentNoFullDays');
   integer(battery.daysSinceFull, 'battery_daysSinceFull');
-  if (payload.schema === 'earthship-energy-ui/v2') {
+  if (payload.schema !== 'earthship-energy-ui/v1') {
     const depthOfDischarge = number(
       battery.latestDepthOfDischargePct,
       'battery_latestDepthOfDischargePct',
@@ -152,7 +156,7 @@ function validatePayload(payload) {
     const latest = exact(energy.latest, LATEST, 'energy_latest');
     date(latest.date, 'energy_latest_date');
     for (const field of ['chargeKwh', 'dischargeKwh', 'loadKwh', 'pvKwh']) {
-      number(latest[field], `energy_latest_${field}`, false);
+      number(latest[field], `energy_latest_${field}`, qualified && field === 'loadKwh');
     }
     if (payload.throughDate !== null && latest.date !== payload.throughDate) {
       throw new Error('energy_latest_throughDate');
@@ -210,7 +214,66 @@ function validatePayload(payload) {
     'schneider', 'weather']) status(health[field], `health_${field}`);
   if (!Array.isArray(health.reasons) || health.reasons.length > 16) throw new Error('health_reasons');
   health.reasons.forEach((reason, index) => boundedText(reason, `health_reason_${index}`, false));
+  if (qualified) validateAccounting(payload, generatedAtMs);
   return generatedAtMs;
+}
+
+function validateAccounting(payload, generatedAtMs) {
+  const a = exact(payload.accounting, ACCOUNTING, 'accounting');
+  if (a.policy !== 'qualified_power_evidence_v1'
+      || a.basis !== 'observed_qualified_throughput_in_requested_window'
+      || a.loadStatus !== 'ac_load_evidence_unqualified') throw new Error('accounting_policy');
+  const cutover = timestamp(a.cutover, 'accounting_cutover');
+  date(a.windowStart, 'accounting_start');
+  date(a.windowEndExclusive, 'accounting_end');
+  const days = (Date.parse(a.windowEndExclusive) - Date.parse(a.windowStart)) / 86400000;
+  if (cutover > generatedAtMs || days < 1 || days > 366
+      || a.windowEndExclusive > localDate(generatedAtMs, payload.timezone)) {
+    throw new Error('accounting_window');
+  }
+  integer(a.daysPresent, 'accounting_present', false);
+  integer(a.missingDays, 'accounting_missing', false);
+  if (a.daysPresent + a.missingDays !== days) throw new Error('accounting_days');
+  for (const field of ['latestBatteryCoverage', 'latestPvCoverage']) {
+    const value = number(a[field], field);
+    if (value !== null && (value < 0 || value > 1)) throw new Error('accounting_coverage');
+  }
+  if (a.daysPresent === 0) {
+    if (a.latestRevision !== null || payload.throughDate !== null || payload.energy.latest !== null
+        || a.latestBatteryCoverage !== null || a.latestPvCoverage !== null
+        || payload.battery.latestEfc !== null || payload.lifecycle.periodEfc !== null
+        || payload.lifecycle.chargeKwh !== null || payload.lifecycle.dischargeKwh !== null) {
+      throw new Error('accounting_empty');
+    }
+  } else {
+    const revision = exact(a.latestRevision, ['computedAt', 'id', 'sha256'], 'accounting_revision');
+    if (!Number.isSafeInteger(revision.id) || revision.id <= 0
+        || typeof revision.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(revision.sha256)
+        || timestamp(revision.computedAt, 'revision_time') > generatedAtMs
+        || timestamp(revision.computedAt, 'revision_time') < cutover
+        || payload.throughDate === null || payload.throughDate < a.windowStart
+        || payload.throughDate < localDate(cutover, payload.timezone)
+        || payload.throughDate >= a.windowEndExclusive
+        || localDate(timestamp(revision.computedAt, 'revision_time'), payload.timezone) <= payload.throughDate
+        || payload.energy.latest === null
+        || a.latestBatteryCoverage === null || a.latestPvCoverage === null) {
+      throw new Error('accounting_revision');
+    }
+  }
+  if (payload.battery.endingCumulativeEfc !== null || payload.lifecycle.endingCumulativeEfc !== null
+      || payload.energy.latest?.loadKwh != null || payload.winter.worstDeficitPeriod !== null) {
+    throw new Error('accounting_unqualified_total');
+  }
+  for (const value of [payload.lifecycle.periodEfc, payload.lifecycle.chargeKwh,
+    payload.lifecycle.dischargeKwh, payload.energy.latest?.pvKwh,
+    payload.energy.latest?.chargeKwh, payload.energy.latest?.dischargeKwh]) {
+    if (value != null && value < 0) throw new Error('accounting_negative');
+  }
+  if (a.missingDays > 0 && payload.status === 'ok') throw new Error('accounting_missing_status');
+  if ((a.latestBatteryCoverage !== null && a.latestBatteryCoverage < 0.9 && payload.battery.status === 'ok')
+      || (a.latestPvCoverage !== null && a.latestPvCoverage < 0.9 && payload.energy.status === 'ok')) {
+    throw new Error('accounting_partial_status');
+  }
 }
 
 function deepFreeze(value) {
@@ -242,6 +305,7 @@ export function parseEnergyAnalyticsResult(raw, nowMs = Date.now()) {
       generatedAtMs,
       throughDate: payload.throughDate,
       epochId: payload.epochId,
+      accounting: payload.accounting ? structuredClone(payload.accounting) : null,
       battery: {
         latestDepthOfDischargePct: null,
         latestEfc: null,

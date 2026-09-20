@@ -52,3 +52,22 @@ export function energyAnalyticsV2Fixture() {
   Object.assign(value.battery, { latestDepthOfDischargePct: 16, latestEfc: 0.16 });
   return value;
 }
+
+export function energyAnalyticsV3Fixture() {
+  const value = energyAnalyticsV2Fixture();
+  value.schema = 'earthship-energy-ui/v3';
+  value.battery.status = 'degraded';
+  value.battery.endingCumulativeEfc = null;
+  value.lifecycle.endingCumulativeEfc = null;
+  value.energy.latest.loadKwh = null;
+  value.accounting = {
+    policy: 'qualified_power_evidence_v1',
+    basis: 'observed_qualified_throughput_in_requested_window',
+    cutover: '2026-08-18T12:00:00Z', windowStart: '2026-08-18',
+    windowEndExclusive: '2026-08-20', daysPresent: 1, missingDays: 1,
+    latestBatteryCoverage: 0.8, latestPvCoverage: 0.9,
+    latestRevision: { id: 12, sha256: 'a'.repeat(64), computedAt: GENERATED_AT },
+    loadStatus: 'ac_load_evidence_unqualified',
+  };
+  return value;
+}

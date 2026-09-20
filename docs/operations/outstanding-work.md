@@ -74,6 +74,11 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   observed-window EFC is not mixed with lifetime/legacy estimates. Real isolated
   PostgreSQL verifies latest lower-coverage correction selection. This additive
   report does not migrate the legacy monthly/lifecycle/winter commands or UI.
+  Reader-first UI v3 support now validates exact qualified provenance, completed
+  revision windows, missing-day counts and coverage, and labels observed-window
+  EFC separately from lifetime estimates. Served source and unchanged live v2
+  payload compatibility are verified;1536unit tests and build pass. The producer
+  is still v2. See [v3 reader contract](2026-09-20-qualified-energy-ui-contract.md).
   **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or

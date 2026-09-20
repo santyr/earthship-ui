@@ -9,6 +9,7 @@ import {
   GENERATED_AT_MS,
   energyAnalyticsFixture,
   energyAnalyticsV2Fixture,
+  energyAnalyticsV3Fixture,
 } from './fixtures/energyAnalytics.js';
 
 
@@ -18,6 +19,52 @@ function parse(payload = energyAnalyticsFixture(), nowMs = GENERATED_AT_MS + 60_
 
 
 describe('Energy analytics closed payload parser', () => {
+  it('accepts qualified v3 provenance without legacy or lifetime totals', () => {
+    const result = parse(energyAnalyticsV3Fixture());
+    expect(result.state).toBe('degraded');
+    expect(result.accounting.missingDays).toBe(1);
+    expect(result.accounting.latestRevision.id).toBe(12);
+    expect(result.energy.latest.loadKwh).toBeNull();
+    expect(result.lifecycle.endingCumulativeEfc).toBeNull();
+    expect(Object.isFrozen(result.accounting.latestRevision)).toBe(true);
+    expect(parse().accounting).toBeNull();
+  });
+
+  it.each([
+    ['missing provenance', p => { delete p.accounting; }],
+    ['extra provenance', p => { p.accounting.extra = 1; }],
+    ['wrong policy', p => { p.accounting.policy = 'legacy'; }],
+    ['bad coverage', p => { p.accounting.latestPvCoverage = 1.1; }],
+    ['boolean coverage', p => { p.accounting.latestPvCoverage = false; }],
+    ['day count mismatch', p => { p.accounting.daysPresent = 2; }],
+    ['unfinished window', p => { p.accounting.windowEndExclusive = '2026-08-21'; }],
+    ['future cutover', p => { p.accounting.cutover = '2030-01-01T00:00:00Z'; }],
+    ['future revision', p => { p.accounting.latestRevision.computedAt = '2030-01-01T00:00:00Z'; }],
+    ['revision before completed day', p => { p.accounting.latestRevision.computedAt = '2026-08-19T20:00:00Z'; }],
+    ['partial battery claimed complete', p => { p.battery.status = 'ok'; }],
+    ['bad digest', p => { p.accounting.latestRevision.sha256 = 'x'; }],
+    ['unsafe revision ID', p => { p.accounting.latestRevision.id = 2 ** 54; }],
+    ['legacy EFC', p => { p.lifecycle.endingCumulativeEfc = 40; }],
+    ['unqualified load', p => { p.energy.latest.loadKwh = 5; }],
+    ['negative throughput', p => { p.lifecycle.periodEfc = -1; }],
+    ['missing days claimed complete', p => { p.status = 'ok'; }],
+    ['empty series with totals', p => { p.accounting.daysPresent = 0; p.accounting.missingDays = 2; }],
+  ])('rejects qualified v3 %s', (_label, mutate) => {
+    const payload = energyAnalyticsV3Fixture();
+    mutate(payload);
+    expect(parse(payload).state).toBe('unavailable');
+  });
+
+  it('accepts an explicitly empty qualified series without fabricated zero totals', () => {
+    const payload = energyAnalyticsV3Fixture();
+    Object.assign(payload.accounting, { daysPresent: 0, missingDays: 2,
+      latestRevision: null, latestBatteryCoverage: null, latestPvCoverage: null });
+    payload.throughDate = null;
+    payload.energy.latest = null;
+    payload.battery.latestEfc = null;
+    Object.assign(payload.lifecycle, { periodEfc: null, chargeKwh: null, dischargeKwh: null });
+    expect(parse(payload).accounting.daysPresent).toBe(0);
+  });
   it('refreshes freshness well before the stale boundary', () => {
     expect(ENERGY_ANALYTICS_REFRESH_MS).toBeGreaterThan(0);
     expect(ENERGY_ANALYTICS_REFRESH_MS).toBeLessThan(15 * 60_000);
@@ -121,6 +168,7 @@ describe('Energy analytics closed payload parser', () => {
   it.each([
     ['v1 stale', energyAnalyticsFixture],
     ['v2 stale', energyAnalyticsV2Fixture],
+    ['v3 stale', energyAnalyticsV3Fixture],
   ])('applies freshness gate to %s', (_label, fixture) => {
     expect(parse(fixture(), GENERATED_AT_MS + 15 * 60_000 + 1).state).toBe('stale');
   });
@@ -128,6 +176,7 @@ describe('Energy analytics closed payload parser', () => {
   it.each([
     ['v1', energyAnalyticsFixture],
     ['v2', energyAnalyticsV2Fixture],
+    ['v3', energyAnalyticsV3Fixture],
   ])('applies size gate to %s', (_label, fixture) => {
     const raw = `${' '.repeat(ENERGY_ANALYTICS_MAX_BYTES)}${JSON.stringify(fixture())}`;
     expect(parseEnergyAnalyticsResult(raw, GENERATED_AT_MS).state).toBe('unavailable');

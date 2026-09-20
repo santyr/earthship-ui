@@ -11,6 +11,7 @@ import { parseEnergyAnalyticsResult } from '../../src/lib/energy/analyticsResult
 import {
   GENERATED_AT_MS,
   energyAnalyticsFixture,
+  energyAnalyticsV3Fixture,
 } from '../fixtures/energyAnalytics.js';
 
 
@@ -25,6 +26,17 @@ afterEach(() => {
 });
 
 describe('EnergyAnalyticsDetail observational presentation', () => {
+  it('labels qualified window EFC, coverage and missing days without lifetime claims', async () => {
+    const { container } = render(EnergyAnalyticsDetail, { result: result(energyAnalyticsV3Fixture()) });
+    expect(screen.getByText('0.33 observed EFC')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+    expect(screen.getByText('Window observed EFC')).toBeTruthy();
+    expect(screen.getByText('Daily observed EFC')).toBeTruthy();
+    expect(container.textContent).toContain('1 days present; 1 missing');
+    expect(container.textContent).toContain('80.0%');
+    expect(container.textContent).toContain('Legacy estimates are excluded');
+    expect(screen.queryByText('Ending estimated EFC')).toBeNull();
+  });
   it('shows compact evidence and opens all six labeled detail sections', async () => {
     const { container } = render(EnergyAnalyticsDetail, { result: result() });
 
