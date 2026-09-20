@@ -37,6 +37,13 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Full-day storage/query checks remain; no control or published total changed.
   Solar_PV `7a3a1c7` adds source-only qualified battery-energy/EFC aggregation;
   all602analytics tests pass. Daily/PV/materialization/UI wiring remains open.
+  PV aggregation now also accepts qualified intervals for energy, peak and
+  productive duration; missing evidence never falls back to numeric history.
+  All611analytics tests pass, including9new PV regressions. A read-only check
+  of147naturally persisted post-cutover records through15:23:10Z produced
+  0.121052kWh PV input and0.118448kWh output, with explicit partial-window
+  coverage97.29%/97.83%. These are probe-window observations, not published
+  daily totals. Daily orchestration and versioned materialization remain open.
 
 - Power evidence resources are installed **disabled** from `d336876`: four
   Items, three read-only data Things, three links and `hex_power_evidence`.
