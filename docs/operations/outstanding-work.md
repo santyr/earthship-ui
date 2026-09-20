@@ -29,6 +29,10 @@ configuration values and states; this is not yet a full installation inventory
 or restore export. See [remaining scope](2026-09-20-file-first-inventory.md).
 The exact JDBC strategy file is now prepared and live-compared, but not deployed;
 managed persistence stays authoritative pending provider/load/rollback validation.
+Offline syntax qualification now passes using the actual installed OpenHAB 5.2.1
+parser in a separate bounded JVM, including selector types and strategy tokens;
+malformed syntax is rejected. This does not establish live strategy resolution,
+provider transfer or rollback, which remain required.
 Backup review confirms the weekly check correctly reports the August 20 full
 restore point stale and same-host. The recent analytics-only rehearsal cannot
 replace that broader backup. Full restore refresh remains outstanding.

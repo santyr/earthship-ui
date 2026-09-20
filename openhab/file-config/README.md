@@ -81,4 +81,9 @@ migration, including the existing `forecast, everyChange` combination. The
 discourages that combination; reviewing it is separate from reproducing current
 behavior. JDBC provider cutover needs syntax/load qualification, exact strategy
 readback, rollback and real acquisition/persistence verification. No live
-persistence change or parser qualification is claimed by renderer unit tests.
+persistence change is claimed by renderer unit tests. Separately,
+`python3 scripts/check-persistence-parser.py` has passed with the installed
+OpenHAB 5.2.1 parser in a bounded, offline JVM. It verifies syntax, selector types
+and strategy tokens; malformed syntax was rejected. Runtime built-in strategy
+resolution, provider transfer and restore/rollback still need live qualification.
+The harness uses installed jars, never the running OpenHAB process or REST writes.
