@@ -39,6 +39,14 @@ and the distinction from lifetime use is explicit. No control is added.
 
 ## Remaining producer work
 
+Update: matching Python validation/projection and explicit opt-in publisher
+routing are implemented source-only on Solar_PV `705202d`. All687analytics tests
+pass. Actual Python-encoded partial and empty payloads pass this JavaScript
+reader. Qualified daily health bypasses the legacy quality table; missing
+yesterday is unavailable. No live publisher flag or accounting migration changed.
+The following original integration plan remains relevant to deployment and
+cross-repository regression coverage, not an assertion that source is absent.
+
 Implement matching Python v3 validation/projection and publisher policy routing,
 selecting latest revisions before quality interpretation. Carry qualified daily
 source quality into health without reading stale legacy rows. Share fixtures

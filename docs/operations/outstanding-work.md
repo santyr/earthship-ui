@@ -41,7 +41,7 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Physical-source faults and full-openHAB restart were not induced.
 
 - Qualified power accounting remains **source-only**, Solar_PV branch
-  `feat/qualified-power-accounting` at`ec810ed`; all671analytics tests pass.
+  `feat/qualified-power-accounting` at`705202d`; all687analytics tests pass.
   Implemented: bounded evidence transport; battery/PV energy and EFC using exact
   qualified intervals; daily and solar-noon composition with matching source
   quality; common-support PV efficiency; explicit legacy/cutover provenance.
@@ -79,6 +79,12 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   EFC separately from lifetime estimates. Served source and unchanged live v2
   payload compatibility are verified;1536unit tests and build pass. The producer
   is still v2. See [v3 reader contract](2026-09-20-qualified-energy-ui-contract.md).
+  Matching source-only Python v3 validation/projection and explicit scheduled
+  publisher policy routing are now implemented. Qualified mode bypasses legacy
+  daily/quality tables; missing yesterday cannot borrow older healthy evidence.
+  Actual Python partial/empty outputs pass the JavaScript parser. No live
+  publisher flag changed. Completed-day writer qualification remains a release
+  gate, alongside historical consumer policy treatment and database rehearsal.
   **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or
