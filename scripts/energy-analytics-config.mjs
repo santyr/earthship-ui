@@ -418,7 +418,11 @@ async function writeClosedReceipt(receiptPath, receipt, { now } = {}) {
 }
 
 async function readLiveItem(request) {
-  return itemConfiguration(await request('GET', ITEM_PATH, { allowMissing: true }));
+  const item = await request('GET', ITEM_PATH, { allowMissing: true });
+  if (item?.editable === false) {
+    throw new Error('Energy analytics Item is file-owned; use the Git-owned file-config deployment, not REST');
+  }
+  return itemConfiguration(item);
 }
 
 async function executeOperation(request, operation, transaction) {

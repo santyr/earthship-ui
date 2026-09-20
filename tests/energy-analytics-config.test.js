@@ -65,6 +65,21 @@ afterEach(async () => {
 });
 
 describe('Energy analytics observational Item transaction', () => {
+  it('refuses file-owned Items before capturing a managed deployment transaction', async () => {
+    const directory=await receiptDirectory();
+    const transport=mutableItemTransport({...ENERGY_ANALYTICS_ITEM,editable:false});
+    await expect(snapshotTransaction({request:transport.request,receiptDir:directory})).rejects.toThrow(/file-owned/);
+    expect(transport.calls.map(c=>c.method)).toEqual(['GET']);
+  });
+
+  it('refuses provider drift before a receipt-backed REST apply', async () => {
+    const directory=await receiptDirectory();
+    const managed=mutableItemTransport(ENERGY_ANALYTICS_ITEM);
+    await snapshotTransaction({request:managed.request,receiptDir:directory});
+    const file=mutableItemTransport({...ENERGY_ANALYTICS_ITEM,editable:false});
+    await expect(applyTransaction({request:file.request,receiptDir:directory})).rejects.toThrow(/file-owned/);
+    expect(file.calls.map(c=>c.method)).toEqual(['GET']);
+  });
   it('declares one String Item and no command, rule, state, or actuator', () => {
     expect(manifest).toEqual({
       schema: 'earthship-energy-analytics-observation/v1',

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "policy": "git_owned_file_first",
+  "resources": [
+    {
+      "kind": "item",
+      "id": "Energy_Analytics_JSON",
+      "provider": "managed",
+      "migration": "prepared",
+      "source": "items/energy-analytics.items",
+      "destination": "/etc/openhab/items/energy-analytics.items",
+      "state_writer": "energy-ui-publish.service"
+    }
+  ]
+}
