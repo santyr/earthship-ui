@@ -10,6 +10,22 @@
       "source": "items/energy-analytics.items",
       "destination": "/etc/openhab/items/energy-analytics.items",
       "state_writer": "energy-ui-publish.service"
+    },
+    {
+      "kind": "rule",
+      "id": "1f692c798b",
+      "provider": "managed",
+      "migration": "inventoried",
+      "source": "managed-exceptions/1f692c798b.json",
+      "rest_path": "/rules/1f692c798b"
+    },
+    {
+      "kind": "rule",
+      "id": "b1501047a9",
+      "provider": "managed",
+      "migration": "inventoried",
+      "source": "managed-exceptions/b1501047a9.json",
+      "rest_path": "/rules/b1501047a9"
     }
   ]
 }

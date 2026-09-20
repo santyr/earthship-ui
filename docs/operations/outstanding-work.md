@@ -50,6 +50,12 @@ rehearsal and protected-control migration remain outstanding. Task82 remains hel
 
 ### Operational checkpoint
 
+- Recurring 09:00/21:00 legacy-rule errors are diagnosed and their cause removed:
+  two schedules still called three deliberately disabled child rules. Only those
+  references were removed; live readback preserves schedules, OverrideSwitch and
+  GoatCamOff actions, other definitions and disabled retirement. Four tests pass;
+  natural next executions remain to be observed. See the
+  [repair receipt](2026-09-20-retired-schedule-calls.md).
 - Continuous observational power collection is now enabled with actual cutover
   `2026-09-20T15:18:58.261099Z`; all three new data Things ONLINE, observer ready,
   and every field verified from fresh post-cutover receipts. A180-second probe yielded105valid

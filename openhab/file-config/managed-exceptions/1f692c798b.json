@@ -1,0 +1,40 @@
+{
+  "actions": [
+    {
+      "configuration": {
+        "command": "ON",
+        "itemName": "OverrideSwitch"
+      },
+      "id": "2",
+      "inputs": {},
+      "type": "core.ItemCommandAction"
+    },
+    {
+      "configuration": {
+        "considerConditions": false,
+        "ruleUIDs": [
+          "GoatCamOff"
+        ]
+      },
+      "id": "3",
+      "inputs": {},
+      "type": "core.RunRuleAction"
+    }
+  ],
+  "conditions": [],
+  "configuration": {},
+  "description": "Turns on the override switch on a schedule",
+  "name": "Override ON",
+  "tags": [],
+  "triggers": [
+    {
+      "configuration": {
+        "time": "21:00"
+      },
+      "id": "1",
+      "type": "timer.TimeOfDayTrigger"
+    }
+  ],
+  "uid": "1f692c798b",
+  "visibility": "VISIBLE"
+}

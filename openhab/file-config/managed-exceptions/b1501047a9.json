@@ -1,0 +1,29 @@
+{
+  "actions": [
+    {
+      "configuration": {
+        "command": "OFF",
+        "itemName": "OverrideSwitch"
+      },
+      "id": "2",
+      "inputs": {},
+      "type": "core.ItemCommandAction"
+    }
+  ],
+  "conditions": [],
+  "configuration": {},
+  "description": "Turn off the override on a schedule",
+  "name": "Override OFF",
+  "tags": [],
+  "triggers": [
+    {
+      "configuration": {
+        "time": "09:00"
+      },
+      "id": "1",
+      "type": "timer.TimeOfDayTrigger"
+    }
+  ],
+  "uid": "b1501047a9",
+  "visibility": "VISIBLE"
+}
