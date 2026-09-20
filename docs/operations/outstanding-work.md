@@ -41,7 +41,7 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Physical-source faults and full-openHAB restart were not induced.
 
 - Qualified power accounting remains **source-only**, Solar_PV branch
-  `feat/qualified-power-accounting` at`551589f`; all645analytics tests pass.
+  `feat/qualified-power-accounting` at`232047a`; all660analytics tests pass.
   Implemented: bounded evidence transport; battery/PV energy and EFC using exact
   qualified intervals; daily and solar-noon composition with matching source
   quality; common-support PV efficiency; explicit legacy/cutover provenance.
@@ -61,12 +61,14 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Attribution is now localized after publication: event log sequences395/396/397
   correspond to JDBC395/397/397. Matching5.2.1JDBC code reads mutable Item state
   inside its queued task. A later27-event SSE/database sample was complete,
-  confirming intermittency. Next: qualify explicit timestamp/state persistence
-  and exclude only this Item from its automatic writer. No repair applied yet;
-  collection stays active
-  and no accounting activation occurred. See the
+  confirming intermittency. The explicit immutable timestamp/state writer is now
+  deployed, with only this Item excluded from automatic change persistence and
+  restore preserved. Final millisecond-precision cutover16:22:52.592732Z passes
+  exact event/database parity for46contiguous rows and the production reader;
+  all1513UI/observer unit tests pass. Historical gaps remain unqualified;
+  collection stays active and no accounting activation occurred. See the
   [sequence-gap evidence](2026-09-20-power-persistence-sequence-gaps.md).
-  **Remaining:** resolve publication/persistence loss; report/export/UI consumer integration and
+  **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or
   grants have been applied. Collection continues independently.
