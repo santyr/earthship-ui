@@ -95,6 +95,10 @@ that fixture failure was not a production failure. Main before merge also had
 two known relay AST-fixture failures; the merged feature supplies the observer
 fixture correction and regression without changing the live radio relay.
 Installer safety tests:7passed. Post-merge focused regression:62passed.
+Final merged-main suite:973passed,42subtests,1expected disposable-PostgreSQL
+skip (that test separately passed as described above). Recent-log review found
+an18:01:59 pump timer closed-context warning predating collection installation;
+it is consistent with the earlier concurrent rule reload, not this activation.
 
 To pause qualified hourly learning, explicitly set the drop-in enable flag to0
 and reload user-systemd: supplied non-1 values skip scoring, not legacy fallback.
