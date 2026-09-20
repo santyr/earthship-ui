@@ -9,7 +9,7 @@ import pytest
 SOURCE = Path('/home/sat/bin/rtl_weather.py')
 
 
-def relay(packet):
+def relay(packet, observer=None):
     if not SOURCE.is_file(): pytest.skip('host relay unavailable')
     tree = ast.parse(SOURCE.read_text())
     main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
@@ -27,6 +27,9 @@ def relay(packet):
         'WH65B_STATION_ID': ast.literal_eval(station),
         '_should_send': lambda *a: True, 'send_data_to_flask': lambda payload: sent.append(payload.copy()),
         '_log_wh32b_id': lambda _: None,
+        # The separately deployed project observer must never perform DB I/O
+        # in this AST-only household forwarding fixture.
+        '_lg_record_packet': observer,
     }
     exec(compile(ast.Module(body=[main], type_ignores=[]), str(SOURCE), 'exec'), namespace)
     namespace['main']()
@@ -50,3 +53,13 @@ def test_actual_filtered_outdoor_identity_is_forwarded_without_value_changes(mod
 @pytest.mark.parametrize('sensor_id', [207, None, '206'])
 def test_foreign_missing_or_wrong_type_outdoor_identity_remains_filtered(sensor_id):
     assert relay(packet('Fineoffset-WH65B', sensor_id)) == []
+
+
+def test_optional_observer_failure_does_not_interrupt_household_forwarding():
+    seen = []
+    def failing_observer(_path, raw, station):
+        seen.append((raw['id'], station))
+        raise RuntimeError('offline observer failure')
+    sent = relay(packet('Fineoffset-WH65B', 206), observer=failing_observer)
+    assert seen == [(206, 206)]
+    assert len(sent) == 1 and sent[0]['id'] == 206 and sent[0]['tempf'] == 68
