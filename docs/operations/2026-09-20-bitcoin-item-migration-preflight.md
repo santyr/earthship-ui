@@ -32,3 +32,21 @@ upstream script edit or full OpenHAB restart is needed or authorized by this pla
 
 Only after successful cutover should the draft move to canonical `items/` and
 the ownership manifest declare this Item file-owned. It is not yet migrated.
+
+## Attempt and verified rollback
+
+The installed 5.2.1 Item parser accepts the draft and preserves its model label,
+but the live file provider interprets the embedded bracketed formatting and
+registers a different label (`"BTC 24h Change`). Exact definition verification
+therefore rejected the transfer. The original managed definition and persisted
+numeric value were restored, the new file removed, and the writer returned IDLE.
+Final recovery verified; receipt `/tmp/bitcoin-item-transfer-0dcuay6v`.
+No price-feed link, Thing, hardware control or historical rows were deleted.
+
+The script now refuses execution until this representation issue is resolved.
+Earlier pre-delete checks also established that disabled rules report
+UNINITIALIZED/DISABLED, and numeric JDBC restoration must compare exact decimal
+values rather than text formatting. Missing and empty icon categories are
+equivalent; meaningful label differences are not silently accepted.
+Next step is explicitly normalizing the malformed managed label and its display
+format, or retaining a reproducible managed exception—not bypassing the check.
