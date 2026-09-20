@@ -151,10 +151,17 @@
             }
           },
           {
+            "id": "earthship-greywater-sun",
+            "type": "core.ItemStateChangeTrigger",
+            "configuration": {
+              "itemName": "Sun_Position_Elevation"
+            }
+          },
+          {
             "id": "cron",
             "type": "timer.GenericCronTrigger",
             "configuration": {
-              "cronExpression": "0 */5 * * * ?"
+              "cronExpression": "0 * * * * ?"
             }
           },
           {

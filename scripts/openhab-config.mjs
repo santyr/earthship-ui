@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { withoutFixedGreywaterWindow } from './greywater-daylight.mjs';
 import {
   assertReceiptChecksum as assertIngressChecksum,
   durableAtomicWriteJson,
@@ -361,7 +362,9 @@ export function buildSubsetRuleDto({ subset, subsetName, source, originalRule = 
     visibility: originalRule.visibility ?? 'VISIBLE',
     configuration: clone(originalRule.configuration ?? {}),
     triggers: clone(subset.rule.triggers),
-    conditions: clone(originalRule.conditions ?? []),
+    conditions: subsetName === 'greywater'
+      ? withoutFixedGreywaterWindow(originalRule.conditions)
+      : clone(originalRule.conditions ?? []),
     actions: [{
       // Same canonical-compare contract as buildFeederRuleDto: openHAB GET
       // renders `inputs: {}` on every action.
