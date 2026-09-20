@@ -51,6 +51,13 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   source-only: CLI/config activation, versioned persistence/rollups and UI
   provenance remain. PV efficiency needs common-support integration; PV/load
   balance is withheld in the new path until AC-load evidence is qualified.
+  Common-support PV efficiency is now implemented: both energies are integrated
+  over the identical intersection of qualified input/output intervals. Gaps,
+  exclusive endpoints and23/25-hour DST days are tested; unequal coverage cannot
+  distort the ratio. Efficiency coverage is explicit; no positive common input
+  yields null rather than a made-up ratio. All628analytics tests pass. The
+  AC-load boundary and production configuration/versioned-storage/UI gates
+  remain open; this does not activate the new daily calculations.
 
 - Power evidence resources are installed **disabled** from `d336876`: four
   Items, three read-only data Things, three links and `hex_power_evidence`.
