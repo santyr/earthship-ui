@@ -613,6 +613,15 @@ software-contract gap, not proof of a physical outage or the size of any live
 accounting error. Qualified-interval accounting and an explicit legacy/cutover
 policy remain required; no historical totals or controls were changed.
 
+The [power acquisition audit](2026-09-20-power-acquisition-sources.md) now
+identifies exact raw battery/PV registers and source-only timestamp transforms
+on existing pollers. No additional TCP slaves or polling schedules are proposed.
+The Solar_PV interval-math foundation a8925f9 is published on
+feat/qualified-power-accounting;543analytics tests pass. Validated observer,
+household-load receipt contract, persistence, qualified reader and versioned
+accounting integration remain open. Raw observation transforms are not qualified
+evidence and have not been deployed.
+
 ### Bitcoin carry audit, September 10
 
 The live `hex_btc_24h_change` source still matches the September 5 SHA above.
