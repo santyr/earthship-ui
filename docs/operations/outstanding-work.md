@@ -76,7 +76,10 @@ and protected-resource rollback remain outstanding.
   Item/link, existing price link and polling unchanged, JDBC651/item0651 verified.
   A naturally unchanged price produced a distinct persisted receipt timestamp.
   These are local output receipts, not provider quote timestamps or execution IDs;
-  failure/timeout/restart qualification and health consumers remain outstanding.
+  a read-only Home warning now handles unknown/invalid/stale/mismatched receipts
+  and unchanged-price recovery without extra polling. Failure/restart source
+  qualification and historical coverage remain outstanding; UI status is not
+  provider quote freshness or a control gate.
   See [deployment evidence](2026-09-10-bitcoin-feed-validation.md).
   The separate percent-change Item migration remains paused pending the operator's
   label-normalization choice; its original managed definition is restored.

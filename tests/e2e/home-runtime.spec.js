@@ -37,6 +37,7 @@ const BASE_STATES = {
   DCData_Current: '-4.2',
   DCData_Native_Power: '150',
   DCData_Voltage: '52',
+  East_Bed_Socket_Outlet_2_Power: 'OFF',
   Forecast_AQI: '501',
   Forecast_Daily_JSON: JSON.stringify(Array.from({ length: 7 }, (_, index) => ({
     d: index === 0 ? 'Today' : `Day ${index + 1}`,
@@ -221,6 +222,37 @@ const DAY_START = Date.parse('2026-09-10T00:00:00-06:00');
 const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
 const LOAD = 'ConextGateway_ACPowerValue';
 const GUST = 'AmbientWeatherWS2902A_WindGust';
+
+test('Bitcoin receipt warning expires and recovers without a price change', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-20T14:00:00-06:00') });
+  const runtime = await openHomeFixture(page, TARGETS[0]);
+  const warning = page.locator('.btc-feed-status');
+  await expect(warning).toHaveText('Feed unknown');
+  const publish = async (price = 118532) => {
+    const receivedAt = await page.evaluate(() => Date.now());
+    await runtime.emitState('BTC_Output_Receipt_JSON', JSON.stringify({version: 1, field: 'bitcoin.usd', receivedAt, price}));
+  };
+  await publish();
+  await expect(warning).toHaveCount(0);
+  await expect(page.locator('.btc-price')).toHaveText('$118,532');
+  await page.clock.fastForward(120000);
+  await expect(warning).toHaveText('Feed stale');
+  const fits = await warning.evaluate(el => {
+    const a = el.getBoundingClientRect(), b = el.parentElement.getBoundingClientRect();
+    return a.left >= b.left && a.right <= b.right + 0.5 && a.bottom <= b.bottom;
+  });
+  expect(fits).toBe(true);
+  await publish();
+  await expect(warning).toHaveCount(0);
+  await publish(null);
+  await expect(warning).toHaveText('Feed error');
+  await publish(118533);
+  await expect(warning).toHaveText('Price syncing');
+  await runtime.emitState('BTC_USD_Price', '118533');
+  await expect(warning).toHaveCount(0);
+  expect(runtime.pageErrors).toEqual([]);
+  expect(runtime.attemptedNonGetRequests).toEqual([]);
+});
 
 test.describe('Home daily gust ownership', () => {
   test.use({ timezoneId: 'America/Denver' });
@@ -1029,7 +1061,7 @@ for (const target of TARGETS) {
     await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(34, 197, 94)');
     await expect(page.getByText('UV 0', { exact: true })).toHaveCSS('color', 'rgb(76, 175, 80)');
     await expect(page.locator('.rain-rate-chip')).toHaveCount(0);
-    await expect(page.getByRole('group', { name: 'Greywater status idle', exact: true })).toBeAttached();
+    await expect(page.getByRole('group', { name: /^Greywater status idle\./i })).toBeAttached();
     await expect(page.locator('.gw-icon')).toHaveCSS('color', 'rgb(139, 147, 161)');
     await expect(page.locator('.compass-needle')).toHaveAttribute('fill', '#4caf50');
     await expect(page.locator('.compass-hub')).toHaveAttribute('fill', '#4caf50');
@@ -1202,7 +1234,7 @@ for (const target of TARGETS) {
     ).toBeVisible();
     await expect(page.locator('.compass-heading')).toHaveText('DIR —');
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
-    await expect(page.getByRole('group', { name: 'Greywater status unavailable', exact: true })).toBeAttached();
+    await expect(page.getByRole('group', { name: /^Greywater status unavailable\./i })).toBeAttached();
     await expect(page.locator('.gw-icon')).toHaveCSS('color', 'rgb(139, 147, 161)');
     await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
     await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(139, 147, 161)');

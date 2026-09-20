@@ -18,6 +18,7 @@
   import { colors } from '../lib/ui/tokens.js';
   import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
+  import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     adaptCurrentAqi,
@@ -420,6 +421,7 @@
   // ---- Bitcoin card (mirrors Indoor's slot under Battery) ------------------
   const BTC_ACCENT = '#f7931a';
   const btcPriceN = $derived(num($items.BTC_USD_Price));
+  const btcFeed = $derived(bitcoinReceiptState($items.BTC_Output_Receipt_JSON, btcPriceN, Math.max(wallClock, Date.now())));
   const btcPriceText = $derived(btcPriceN === null ? '—' : `$${Math.round(btcPriceN).toLocaleString()}`);
   const btcPct = $derived(num($items.BTC_Price_24h_PercentChange));
   const btcPctText = $derived(btcPct === null ? '—' : `${btcPct >= 0 ? '+' : ''}${btcPct.toFixed(2)}%`);
@@ -669,7 +671,7 @@
     onkeydown={(e) => onKeyActivate(e, openBitcoinChart)}
   >
     <Tile label="Bitcoin" accent={BTC_ACCENT} hideLabel fill clip centerBody padding="0.65rem">
-      <div class="bitcoin-body">
+      <div class="bitcoin-body" title={btcFeed.detail}>
         <div class="btc-top">
           <span class="btc-icon" style="color: {btcPctColor}">
             <OhIcon icon="iconify:mdi:bitcoin" size="1.5rem" />
@@ -679,6 +681,9 @@
         </div>
         <div class="btc-candles">
           <BitcoinCandles points={btcHistory} startMs={btcHistoryStartMs} endMs={btcHistoryEndMs} />
+          {#if btcFeed.label}
+            <span class="btc-feed-status">{btcFeed.label}</span>
+          {/if}
         </div>
       </div>
     </Tile>
@@ -968,6 +973,7 @@
   .gw-next { font-size: 0.68rem; line-height: 1.25; color: #d0d8e2; overflow-wrap: anywhere; }
   .gw-last {
     font-size: 0.68rem;
+    line-height: 1.2;
     color: #aab4c2;
   }
 
@@ -1226,6 +1232,18 @@
     min-height: 2.2rem;
     overflow: hidden;
     position: relative;
+  }
+  .btc-feed-status {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 0.65rem;
+    line-height: 1.3;
+    color: #fbbf24;
+    background: #0b101bcc;
+    padding: 0.1rem 0.25rem;
+    border-radius: 0.2rem;
+    pointer-events: none;
   }
   /* ---- Wind ---- */
   /* The rose measures the remaining content box. Gust and daily maximum stay

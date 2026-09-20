@@ -125,6 +125,31 @@ Rollback: move only these two newly installed files into a private directory out
 the watched configuration tree, verify the new Item/link disappear and the original
 price link remains. Retain JDBC history; no original managed resource needs recreation.
 
+## Home receipt-status consumer
+
+The Home Bitcoin card now consumes `BTC_Output_Receipt_JSON` without extra
+network polling. A valid local receipt matching the displayed price leaves the
+card unchanged; unknown/malformed/future receipts, invalid output, mismatched
+price and expired receipts produce a compact warning over the chart. Existing
+price/candle observation semantics and 24-hour arithmetic remain unchanged.
+The title explicitly describes local receipt time, not provider quote time.
+
+The expiry threshold is 90 seconds (three ordinary poll periods). Existing
+minute clock ticks and incoming Item events reevaluate it; timeout-only display
+can therefore lag the threshold by up to one minute. This is presentation, not
+a precise watchdog, alarm or control gate. A restored record retains its embedded
+timestamp; reload does not renew it. Historical coverage, execution correlation,
+physical/provider failure behavior and full-service restart qualification remain
+separate. No provider failure, restart, synthetic live Item update or DM was used.
+
+Verification: 84 focused unit tests, five browser cases covering Lenovo1340x800
+and laptop1280x720 normal/unavailable layouts plus receipt expiry/error/unchanged
+recovery, and production build passed. A read-only browser against local5190 at
+Lenovo resolution showed a valid recent receipt, no warning, a198px chart, no
+page errors and no write requests. The layout run additionally caught and fixed
+a one-pixel Greywater text overflow at1280x720 and updated obsolete fixture
+labels for the existing two-pump display. Build retains existing chunk warnings.
+
 ## Legacy CoinMarketCap helper credential cleanup
 
 September 20: checked user/system service definitions, user cron, repository
