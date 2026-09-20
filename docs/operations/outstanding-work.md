@@ -29,6 +29,14 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
 
 ### Operational checkpoint
 
+- Qualified daily/day-3 temperature learning is now deployed and enabled with
+  actual cutover2026-09-20T14:52:58.582165Z. Five runtime files verified, protected
+  model/state hashes unchanged, all three timers restored with definitions
+  unchanged. Installed read-only worker correctly reported September19 partial.
+  See [activation receipt](2026-09-20-daily-temperature-activation.md).
+  First natural daily assessment remainsSeptember22 and day-3September25,
+  contingent on complete coverage and correctly captured origins.
+
 - First natural qualified-temperature training completed and promoted at
   September20 08:44:23MDT. Installed pure validators accepted the new eligible
   model and backtest report; prior accepted generation was preserved. Post-cutover

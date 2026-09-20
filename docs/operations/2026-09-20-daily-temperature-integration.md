@@ -1,5 +1,9 @@
 # Qualified daily temperature learning integration — September 20
 
+Update:the [live activation](2026-09-20-daily-temperature-activation.md) completed
+at08:52:58MDT after natural training finished. The source/preflight notes below
+are historical; natural daily/day-3 model updates remain future evidence gates.
+
 Source implementation only. No production code/configuration, learned state,
 service cadence, Item, notification or control has been changed by this step.
 Deployment must wait for the currently running natural thermal training job to
