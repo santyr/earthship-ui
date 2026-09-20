@@ -5,6 +5,40 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
+## Current checkpoint — September 19, 2026
+
+This section supersedes older deployment snapshots below; historical receipts
+are retained as evidence, not current-state claims.
+
+- Temperature receipt collection and qualified hourly learning are enabled and
+  deployed. Indoor235 is operator-confirmed. All three streams have naturally
+  persisted receipts; the installed restricted worker passed post-cutover reads.
+  Hourly cutover is2026-09-20T00:30:09Z. First natural qualified model update is
+  still unobserved. See [activation receipt](2026-09-19-qualified-temperature-activation.md).
+- Completed-night scoring remains staged, not live. The Earthship integration
+  was reconciled with current main at3015eda, preserving the exact qualified
+  hourly scorer and runtime wrapper. Its full suite passes1014tests/42subtests,
+  with the separately exercised PostgreSQL test skipped in that invocation.
+  Solar integration9ab7461 includes current main;523analytics tests pass.
+- The live analytics database still has migrations1/2 and zero captured advisory
+  decisions/results. A consistent private16-table backup was restored and
+  migrations3/4 rehearsed successfully in a networkless disposable PostgreSQL
+  container, with existing data fingerprints unchanged. Container removed;
+  archive retained. See [release preflight](2026-09-19-trough-release-preflight.md).
+  Live migration, restricted roles, capture/assessment activation, and natural
+  completed outcomes remain the next implementation steps, under existing
+  approval—not a request to approve learning again.
+- Pump hour-selection and expired-busy fixes are deployed; natural East start
+  was observed. The concurrent15-minute rule change is preserved. A complete
+  natural timed cycle remains unverified; do not overwrite operator-owned timing.
+- Conformal intervals, weather/thermal outcome attribution, broad change-only
+  historical-algorithm coverage, bandit reward design, independent feed-health
+  checks, and actual seasonal/paired-data gates are still unfinished. Task82
+  remains held; rain/wind scope and offhost backup retain their explicit deferrals.
+
+The broad goal remains active. Successful source deployment or synthetic tests
+do not substitute for natural outcome or future-season verification.
+
 Operator approval update, September 5: Sat approved all pending work and directed
 completion. This clears the pending storage-plan corrections, corrective alert
 design, and integration/release decisions, subject to verification and unchanged
