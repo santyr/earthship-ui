@@ -27,6 +27,10 @@ def inventory(items, things, rules, links, manifest):
     result['things'] = sorted([
         {'id': x['UID'], 'provider': provider(x), 'type': x['thingTypeUID'],
          'bridge': x.get('bridgeUID'),
+         'configuration_keys': sorted(x.get('configuration', {})),
+         'channel_configuration_keys': {
+             c['uid']: sorted(c.get('configuration', {}))
+             for c in sorted(x.get('channels', []), key=lambda c: c['uid'])},
          'channels': sorted(c['uid'] for c in x.get('channels', []))}
         for x in things], key=lambda x: x['id'])
     result['rules'] = sorted([
@@ -35,7 +39,8 @@ def inventory(items, things, rules, links, manifest):
                                  for m in x.get(k, [])})}
         for x in rules], key=lambda x: x['id'])
     result['links'] = sorted([
-        {'item': x['itemName'], 'channel': x['channelUID'], 'provider': provider(x)}
+        {'item': x['itemName'], 'channel': x['channelUID'], 'provider': provider(x),
+         'configuration_keys': sorted(x.get('configuration', {}))}
         for x in links], key=lambda x: (x['item'], x['channel']))
     issues = []
     for kind in ('items', 'things', 'rules'):

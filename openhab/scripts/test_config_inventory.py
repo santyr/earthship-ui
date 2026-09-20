@@ -28,6 +28,26 @@ class InventoryTests(unittest.TestCase):
         args = self.fixture(); args[-1]['resources'] = []
         self.assertIn('unverified provider: item I', inventory(*args)['issues'])
 
+    def test_configuration_shape_without_values(self):
+        args = self.fixture()
+        args[1][0]['channels'][0]['configuration'] = {'command': 'SECRET'}
+        args[3][0]['configuration']['profile'] = 'SECRET'
+        result = inventory(*args)
+        self.assertEqual(result['things'][0]['configuration_keys'], ['password'])
+        self.assertEqual(result['things'][0]['channel_configuration_keys'],
+                         {'t:c': ['command']})
+        self.assertEqual(result['links'][0]['configuration_keys'], ['password', 'profile'])
+        self.assertNotIn('SECRET', json.dumps(result))
+
+    def test_absent_configuration_is_empty(self):
+        args = self.fixture()
+        args[1][0].pop('configuration')
+        args[3][0].pop('configuration')
+        result = inventory(*args)
+        self.assertEqual(result['things'][0]['configuration_keys'], [])
+        self.assertEqual(result['things'][0]['channel_configuration_keys'], {'t:c': []})
+        self.assertEqual(result['links'][0]['configuration_keys'], [])
+
     def test_provider_drift_and_absent(self):
         args = self.fixture(); args[0][0]['editable'] = True
         args[-1]['resources'].append({'kind': 'rule', 'id': 'absent', 'provider': 'file'})

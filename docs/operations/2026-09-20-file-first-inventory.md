@@ -16,6 +16,23 @@ ownership manifest. This is structural evidence, not proof of control safety.
 Six unit tests cover omission of sensitive values, graph references, provider
 ambiguity, ownership drift, duplicates and absent declarations.
 
+Follow-up inventory adds Thing, channel and link configuration **key names only**.
+Eight tests now cover value omission and absent configuration. Live readback still
+has the same counts and no structural issues. Eleven links have configuration;
+their keys include `profile` and `function`, so migrating links without their
+private value review would lose behavior. Thing configuration includes credential
+fields (API keys, passwords and Zigbee network/link keys). Values were neither
+printed nor exported. A blanket Things-to-Git export is therefore inappropriate;
+secret-bearing resources need private provisioning or documented exceptions.
+
+The installed `/usr/share/openhab/runtime/bin/backup` was inspected, not executed.
+Its `--noninteractive` mode writes an archive under `/etc/openhab/html`, which is
+unsuitable for credential-bearing recovery material. Its normal mode copies live
+configuration/userdata and is not an atomic snapshot or proof of clean restart.
+Any future use must have dedicated private staging and destination paths; external
+PostgreSQL, systemd configuration and learned artifacts still require separate
+coverage. No backup or production configuration was changed by this inspection.
+
 ## Remaining migration scope
 
 1. Review each observational Item's metadata, link profiles, state restoration,
