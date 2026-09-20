@@ -135,11 +135,12 @@
     parseThermalModelResult($items.Thermal_Model_JSON, wallClock)
   );
 
-  // ---- Greywater — South planter aerobic circulation -------------------------
+  // ---- Greywater — South and East planters in service; West planned -----------
   // Shared with Home: ON -> Running, OFF -> Idle, NULL/UNDEF/missing ->
   // Unavailable (an unknown switch state must not masquerade as "Idle").
   const gwState = $derived(greywaterState($items.SouthOutlet_Outlet2_Switch));
   const gwRunning = $derived(gwState.label === 'Running');
+  const gwEastState = $derived(greywaterState($items.East_Bed_Socket_Outlet_2_Power));
 
   function parseKV(raw) {
     if (!raw || raw === 'NULL' || raw === 'UNDEF') return {};
@@ -243,16 +244,26 @@
   <div class="cell greywater-cell">
     <Tile label="Greywater Circulation" accent={colors.water}>
       <div class="greywater-body">
+        <div class="gw-pumps">
         <div class="gw-top">
           <span class="gw-dot" class:active={gwRunning}></span>
           <div class="gw-text">
+            <div class="gw-name">South planter</div>
             <div class="gw-state">{gwState.label}</div>
-            <div class="gw-status">{gwStatusText}</div>
           </div>
         </div>
+        <div class="gw-top">
+          <span class="gw-dot" class:active={gwEastState.label === 'Running'}></span>
+          <div class="gw-text">
+            <div class="gw-name">East planter</div>
+            <div class="gw-state gw-east-state">{gwEastState.label}</div>
+          </div>
+        </div>
+        </div>
+        <div class="gw-status">{gwStatusText}</div>
         <div class="gw-footer">
           <span>last run {gwLastAgo}</span>
-          <span class="gw-caption">South planter &middot; aerobic circulation</span>
+          <span class="gw-caption">South + East in service &middot; West planter planned</span>
         </div>
       </div>
     </Tile>
@@ -428,6 +439,8 @@
   }
 
   /* ---- Greywater ---- */
+  .gw-pumps { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; }
+  .gw-name { font-size: 0.72rem; color: #aab4c2; }
   .greywater-body {
     display: flex;
     flex-direction: column;
@@ -474,7 +487,7 @@
     color: #6b7280;
   }
   .gw-caption {
-    color: #4b5563;
+    color: #94a3b8;
   }
 
   /* ---- Zone humidity ---- */

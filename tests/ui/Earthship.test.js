@@ -77,6 +77,19 @@ describe('Earthship thermal model integration', () => {
 });
 
 describe('Earthship greywater honesty', () => {
+  it('shows East independently in service and West as planned', () => {
+    setItems({ SouthOutlet_Outlet2_Switch: 'OFF', East_Bed_Socket_Outlet_2_Power: 'ON' });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-state').textContent).toBe('Idle');
+    expect(container.querySelector('.gw-east-state').textContent).toBe('Running');
+    expect(container.querySelector('.gw-caption').textContent).toBe('South + East in service · West planter planned');
+  });
+
+  it('does not treat unknown East status as idle', () => {
+    setItems({ SouthOutlet_Outlet2_Switch: 'OFF', East_Bed_Socket_Outlet_2_Power: 'UNDEF' });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-east-state').textContent).toBe('Unavailable');
+  });
   it('renders Unavailable when the switch state is missing, matching Home semantics', () => {
     const { container } = render(Earthship);
     expect(container.querySelector('.gw-state').textContent).toBe('Unavailable');
