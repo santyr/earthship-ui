@@ -1,0 +1,8 @@
+// PREPARED ONLY: managed Items remain authoritative; do not bulk deploy.
+// Preserve rolling-24h secondary-screen semantics and existing stable IDs.
+// Main-page current-day extrema are separate. No explicit metadata override.
+
+Number:Temperature IndoorTemp_24h_High "Indoor temp (24h high)" <temperature> (Shelly_HT1) ["Point", "Temperature"]
+Number:Temperature IndoorTemp_24h_Low "Indoor temp (24h low)" <temperature> (Shelly_HT1) ["Point", "Temperature"]
+Number:Temperature OutdoorTemp_24h_High "Outdoor temp (24h high)" <temperature> (AmbientWeatherWS2902A) ["Point", "Temperature"]
+Number:Temperature OutdoorTemp_24h_Low "Outdoor temp (24h low)" <temperature> (AmbientWeatherWS2902A) ["Point", "Temperature"]

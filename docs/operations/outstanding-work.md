@@ -7,6 +7,25 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 20, 2026
 
+Latest UI follow-up: `051ed57` restores outdoor chart forecasts from corrected
+hourly JSON rather than absent future `Forecast_Temp` persistence; indoor charts
+use validated thermal trajectories explicitly labeled shadow model. Current-day
+temperature high/low summaries and shared selected-period extrema are rendered.
+Shared nighttime weather icons use timestamped day/night flags and moon phases.
+Live Home/Weather and both temperature modals passed browser checks; 1,625 UI
+tests,64 producer tests and build passed. The temporary missing-import UI failure
+was corrected. This does not promote the shadow thermal model to control authority.
+
+Full OpenHAB recovery follow-up is now recorded in the
+[integrated recovery receipt](2026-09-20-openhab-recovery-rehearsal.md): database,
+durable configuration/userdata and isolated runtime boot were verified. Earlier
+unqualified-full-restore statements below are historical, not the current result.
+Whole-host/off-host and protected-control restart qualification remain open.
+
+Next observational migration preparation covers the four display-only rolling
+temperature extrema Items; see [preflight](2026-09-20-temperature-extrema-migration.md).
+They remain managed pending exact state/unit recovery and rollback qualification.
+
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
 
