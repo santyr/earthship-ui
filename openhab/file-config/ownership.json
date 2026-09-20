@@ -3,6 +3,15 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "item",
+      "id": "BTC_Price_24h_PercentChange",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/bitcoin-change.items",
+      "destination": "/etc/openhab/items/bitcoin-change.items",
+      "state_writer": "hex_btc_24h_change"
+    },
+    {
       "kind": "link",
       "id": "BTC_Output_Receipt_JSON -> exec:command:BTC_Price:output",
       "provider": "file",

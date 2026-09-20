@@ -81,8 +81,10 @@ and protected-resource rollback remain outstanding.
   qualification and historical coverage remain outstanding; UI status is not
   provider quote freshness or a control gate.
   See [deployment evidence](2026-09-10-bitcoin-feed-validation.md).
-  The separate percent-change Item migration remains paused pending the operator's
-  label-normalization choice; its original managed definition is restored.
+  The operator subsequently approved normalization; the percent-change Item is
+  now file-owned with clean label and two-decimal percent format. JDBC139/history,
+  original-definition rollback and natural writer recovery are verified. See
+  [migration receipt](2026-09-20-bitcoin-item-migration-preflight.md).
 
 - Qualified lifecycle throughput reporting is deployed in Solar_PV `819880a`:
   `report lifecycle --power-evidence-policy` selects only qualified revisions,

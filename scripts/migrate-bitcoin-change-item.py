@@ -12,10 +12,11 @@ import psycopg2
 
 NAME = 'BTC_Price_24h_PercentChange'
 RULE = 'hex_btc_24h_change'
-SOURCE = Path('/home/sat/earthship-ui/openhab/file-config/drafts/bitcoin-change.items')
+SOURCE = Path('/home/sat/earthship-ui/openhab/file-config/items/bitcoin-change.items')
 TARGET = Path('/etc/openhab/items/bitcoin-change.items')
-EXPECTED = dict(name=NAME, type='Number', label='"BTC 24h Change [%.2f %%]"',
+ORIGINAL = dict(name=NAME, type='Number', label='"BTC 24h Change [%.2f %%]"',
                 category='', tags=[], groupNames=['BTC_Price'])
+EXPECTED = {**ORIGINAL, 'label': 'BTC 24h Change'}
 
 def request(path, method, data=None, content='application/json'):
     with urlopen(Request(oh.BASE+path, method=method, data=data,
@@ -28,24 +29,27 @@ def item():
         if e.code==404:return None
         raise
 
-def validate(i):
+def validate(i, normalized=True):
     assert i is not None
-    actual={k:i.get(k) for k in EXPECTED}
+    expected = EXPECTED if normalized else ORIGINAL
+    actual={k:i.get(k) for k in expected}
     actual['category']=actual['category'] or ''
-    if actual!=EXPECTED:raise ValueError('Item definition mismatch: '+json.dumps(actual))
+    if actual!=expected:raise ValueError('Item definition mismatch: '+json.dumps(actual))
     assert not i.get('metadata')
+    if normalized and i.get('stateDescription',{}).get('pattern') != '%.2f %%':
+        raise ValueError('normalized percentage display pattern mismatch')
 
 def same_number(left, right):
     try:a,b=Decimal(left),Decimal(right)
     except (InvalidOperation, TypeError, ValueError):return False
     return a.is_finite() and b.is_finite() and a==b
 
-def wait(provider, state=None):
+def wait(provider, state=None, normalized=True):
     for _ in range(100):
         i=item()
         if provider is None and i is None:return
         if i is not None and i.get('editable') is provider:
-            validate(i)
+            validate(i, normalized)
             if state is None or same_number(i['state'],state):return
         time.sleep(.2)
     raise RuntimeError('provider or persisted state did not restore')
@@ -56,7 +60,7 @@ def definitions():
 
 def main():
     assert not TARGET.exists() and not TARGET.is_symlink()
-    original=item();validate(original);assert original['editable'] is True
+    original=item();validate(original, False);assert original['editable'] is True
     assert oh.get('/rules/'+RULE)['status']['status']=='IDLE'
     links=oh.get('/links');assert not any(x['itemName']==NAME for x in links)
     rules=definitions();source=SOURCE.read_bytes()
@@ -83,7 +87,7 @@ def main():
             if oh.get('/rules/'+RULE)['status']=={'status':'UNINITIALIZED','statusDetail':'DISABLED'}:break
             time.sleep(.2)
         else:raise RuntimeError('writer did not disable')
-        original=item();validate(original);assert original['editable'] is True
+        original=item();validate(original, False);assert original['editable'] is True
         before=history();assert before[0]>0
         with db.cursor() as c:
             c.execute('SELECT value::text FROM public.item0139 ORDER BY time DESC LIMIT 1')
@@ -95,7 +99,7 @@ def main():
         wait(False,original['state'])
         assert TARGET.read_bytes()==source
         TARGET.rename(receipt/'rollback.items');wait(None)
-        request('/items/'+NAME,'PUT',json.dumps(EXPECTED).encode());wait(True,original['state'])
+        request('/items/'+NAME,'PUT',json.dumps(ORIGINAL).encode());wait(True,original['state'],False)
         request('/items/'+NAME,'DELETE');wait(None)
         (receipt/'rollback.items').rename(TARGET);wait(False,original['state'])
         assert history(before[1])==before and definitions()==rules and oh.get('/links')==links
@@ -109,8 +113,8 @@ def main():
                     assert not TARGET.is_symlink() and TARGET.read_bytes()==source
                     TARGET.rename(receipt/'failed.items');wait(None)
                 current=item()
-                if current is None:request('/items/'+NAME,'PUT',json.dumps(EXPECTED).encode())
-                wait(True,original['state'])
+                if current is None:request('/items/'+NAME,'PUT',json.dumps(ORIGINAL).encode())
+                wait(True,original['state'],False)
         finally:
             db.close()
             request('/rules/'+RULE+'/enable','POST',b'true','text/plain')
@@ -118,4 +122,6 @@ def main():
     print('writer_reenabled=true',flush=True)
 
 if __name__=='__main__':
-    raise SystemExit('Migration held: resolve file-provider label normalization before running')
+    if sys.argv[1:] != ['--execute-approved']:
+        raise SystemExit('Attended migration requires --execute-approved; operator approved normalization September20')
+    main()

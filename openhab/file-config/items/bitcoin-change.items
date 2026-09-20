@@ -1,0 +1,2 @@
+// Operator-approved label normalization; stable Item identity/history retained.
+Number BTC_Price_24h_PercentChange "BTC 24h Change [%.2f %%]" (BTC_Price)

@@ -1,5 +1,38 @@
 # Bitcoin display Item migration preflight
 
+## Completed after operator approval, September 20 14:58 MDT
+
+The operator approved label normalization. The live file-owned Item now has
+label `BTC 24h Change` and display pattern `%.2f %%`, preserving its original
+name, group, Number type, absence of links and JDBC139/item0139 identity.
+Canonical source: `openhab/file-config/items/bitcoin-change.items` (the obsolete
+draft was removed). Installed/source SHA256 both match:
+`729a3e183266a42e641f09417990be445536a7c8d888b45c7f1e91cee1fd5ada`.
+
+The attended transfer verified persisted numeric state, rehearsed rollback to
+the original managed definition and back to the normalized file provider,
+and verified the unchanged historical prefix, other rule definitions and links.
+Only the calculation rule was paused; it returned IDLE/NONE. Natural updates
+at14:58:55 and14:59:25 confirm normal calculation resumed. No feed/pump operation,
+synthetic Item update or full OpenHAB restart was used. Six guard tests pass.
+One private rollback/evidence record is retained at
+`/tmp/bitcoin-item-transfer-4vw4m5m3` (0700 directory,0600 files,264KiB).
+The earlier sections below are historical attempts, superseded by this receipt.
+At the operator's cleanup request, the four obsolete failed-attempt directories
+were removed after validating their ownership/Item identity and the retained
+successful rollback record. Historical paths below no longer designate backups.
+
+The approved [official OpenHAB Docker image](https://www.openhab.org/docs/installation/docker)
+`openhab/openhab:5.2.1-debian` is downloaded,825924248bytes. Repository digest:
+`sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f0351e471a2e938d6c3c`.
+Both Java and `/bin/sh` entrypoint tests returned `operation not permitted` under
+the network-none/capability-dropped isolation settings. This is not a successful
+restore rehearsal, and the exact restriction is not yet attributed. No host
+security setting was relaxed. All disposable image test containers were removed;
+the requested image is retained for subsequent restore work.
+
+## Historical preflight
+
 Read-only inventory identifies `BTC_Price_24h_PercentChange` as the next small
 observational migration candidate. Its staged definition is in
 `openhab/file-config/drafts/bitcoin-change.items`; it is NOT installed and the

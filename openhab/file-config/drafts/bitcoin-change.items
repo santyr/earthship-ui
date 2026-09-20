@@ -1,3 +1,0 @@
-// DRAFT ONLY: file-provider label normalization is unresolved; do not install.
-// Preserve the current label verbatim, including its literal quotation marks.
-Number BTC_Price_24h_PercentChange "\"BTC 24h Change [%.2f %%]\"" (BTC_Price)
