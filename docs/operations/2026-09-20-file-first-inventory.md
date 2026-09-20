@@ -35,6 +35,15 @@ coverage. No backup or production configuration was changed by this inspection.
 
 ## Remaining migration scope
 
+14:16 MDT extension: `config_inventory.py --extended --summary` now also
+verifies explicit link ownership and inventories 18 installed add-ons, 12 UI
+pages and 15 registered transformations without reading their settings into
+output. Ten tests pass, including secret-value exclusion and link ownership
+drift/absence. The live core graph has 427 managed plus two file Items, 261
+managed plus one file link, 84 Things and 35 rules, with no detected issues.
+This does not establish additional provider transfers, script dependency
+resolution, complete filesystem coverage or restore qualification.
+
 1. Review each observational Item's metadata, link profiles, state restoration,
    writer and consumers before selecting further transfers. A String Item is not
    inherently safe: it may carry safety observations or operator commands.

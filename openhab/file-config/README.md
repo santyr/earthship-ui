@@ -57,6 +57,19 @@ It emits a deterministic registry graph (apart from capture timestamps), without
 state values, labels, configuration values or script bodies. Exit status 1 means
 an unresolved dependency, duplicate identity or ownership discrepancy was found;
 transport/format errors also fail rather than returning a partial success.
+Use `--summary` for compact counts/issues rather than the full registry graph.
+`--extended` additionally inventories installed add-on identities/versions,
+registered transformation identities/configuration key names and UI page
+identities/components/configuration key names. It excludes UI props/slots,
+script bodies, labels and configuration values. Any failed endpoint aborts the
+command instead of presenting partial success. These extra surfaces are
+descriptive inventory, not verified ownership, dependency analysis or restorable
+exports. Filesystem-only scripts, external services and private backups still
+require separate inventory.
+File/non-managed links also require explicit ownership declarations, using
+`kind: link` and `id: <itemName> -> <channelUID>`. The Bitcoin receipt's verified
+file-owned link is declared; missing declarations, provider drift and absent
+declared links now fail the graph check.
 `editable:false` is reported as non-managed, not assumed to mean file-owned.
 Only the separately verified manifest declares file ownership.
 

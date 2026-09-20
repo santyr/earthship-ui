@@ -3,6 +3,14 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "link",
+      "id": "BTC_Output_Receipt_JSON -> exec:command:BTC_Price:output",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/bitcoin-receipt.items",
+      "destination": "/etc/openhab/items/bitcoin-receipt.items"
+    },
+    {
       "kind": "item",
       "id": "BTC_Output_Receipt_JSON",
       "provider": "file",

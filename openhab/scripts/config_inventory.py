@@ -68,7 +68,7 @@ def inventory(items, things, rules, links, manifest):
         key = (x['kind'], x['id'])
         if key in declared:
             raise ValueError('duplicate ownership declaration')
-        if x['kind'] not in ('item', 'thing', 'rule') or x['provider'] not in ('file', 'managed'):
+        if x['kind'] not in ('item', 'thing', 'rule', 'link') or x['provider'] not in ('file', 'managed'):
             raise ValueError('unsupported ownership declaration')
         declared[key] = x['provider']
     observed = {}
@@ -84,28 +84,65 @@ def inventory(items, things, rules, links, manifest):
                     issues.append(f'ownership mismatch: {kind} {x["id"]}')
             elif x['provider'] != 'managed':
                 issues.append(f'unverified provider: {kind} {x["id"]}')
-    for key in declared.keys() - observed.keys():
-        issues.append(f'declared resource absent: {key[0]} {key[1]}')
     if any(x['provider'] == 'unknown' for x in result['links']):
         issues.append('unknown link provider')
+    for x in result['links']:
+        identity = f'{x["item"]} -> {x["channel"]}'
+        key = ('link', identity)
+        expected = declared.get(key)
+        if expected:
+            x['declared_provider'] = expected
+            required = 'non-managed' if expected == 'file' else 'managed'
+            if x['provider'] != required:
+                issues.append(f'ownership mismatch: link {identity}')
+        elif x['provider'] != 'managed':
+            issues.append(f'unverified provider: link {identity}')
+        observed[key] = x['provider']
+    for key in declared.keys() - observed.keys():
+        issues.append(f'declared resource absent: {key[0]} {key[1]}')
     result['issues'] = sorted(issues)
     result['counts'] = {k: dict(sorted(Counter(x['provider'] for x in result[k]).items()))
                         for k in ('items', 'things', 'rules', 'links')}
     return result
 
 
+def extended_inventory(addons, pages, transformations):
+    """Names/shapes only: never UI props/slots, transform scripts or settings."""
+    return {
+        'addons': sorted([
+            {'id': x['uid'], 'type': x['type'], 'version': x.get('version')}
+            for x in addons if x.get('installed') is True], key=lambda x: x['id']),
+        'pages': sorted([
+            {'id': x['uid'], 'component': x['component'], 'provider': provider(x),
+             'configuration_keys': sorted(x.get('config', {}))}
+            for x in pages], key=lambda x: x['id']),
+        'transformations': sorted([
+            {'id': x['uid'], 'type': x['type'], 'provider': provider(x),
+             'configuration_keys': sorted(x.get('configuration', {}))}
+            for x in transformations], key=lambda x: x['id']),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, default=Path(__file__).resolve().parents[1]
                         / 'file-config' / 'ownership.json')
+    parser.add_argument('--extended', action='store_true', help='Include installed add-ons, UI pages and registered transformations')
+    parser.add_argument('--summary', action='store_true', help='Print only counts and issues')
     args = parser.parse_args()
     from openhab_sanity_check import get
     started = datetime.now(timezone.utc).isoformat()
     result = inventory(get('/items?metadata=all'), get('/things'), get('/rules'),
                        get('/links'), json.loads(args.manifest.read_text()))
+    if args.extended:
+        result['extended'] = extended_inventory(get('/addons'), get('/ui/components/ui:page'), get('/transformations'))
+        result['extended_counts'] = {k: len(v) for k, v in result['extended'].items()}
     result['started_at'] = started
     result['finished_at'] = datetime.now(timezone.utc).isoformat()
-    print(json.dumps(result, indent=2, sort_keys=True))
+    output = ({k: v for k, v in result.items() if k in
+               ('schema', 'atomic', 'counts', 'extended_counts', 'issues', 'started_at', 'finished_at')}
+              if args.summary else result)
+    print(json.dumps(output, indent=2, sort_keys=True))
     return 1 if result['issues'] else 0
 
 

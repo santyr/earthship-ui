@@ -1,6 +1,6 @@
 import json
 import unittest
-from config_inventory import inventory
+from config_inventory import inventory, extended_inventory
 
 
 class InventoryTests(unittest.TestCase):
@@ -72,6 +72,28 @@ class InventoryTests(unittest.TestCase):
         args = self.fixture(); args[-1]['resources'] *= 2
         with self.assertRaises(ValueError):
             inventory(*args)
+
+    def test_file_link_requires_matching_declaration(self):
+        args = self.fixture(); args[3][0]['editable'] = False
+        self.assertIn('unverified provider: link I -> t:c', inventory(*args)['issues'])
+        args[-1]['resources'].append({'kind': 'link', 'id': 'I -> t:c', 'provider': 'file'})
+        self.assertEqual(inventory(*args)['issues'], [])
+        args[3][0]['editable'] = True
+        self.assertIn('ownership mismatch: link I -> t:c', inventory(*args)['issues'])
+        args[3].clear()
+        self.assertIn('declared resource absent: link I -> t:c', inventory(*args)['issues'])
+
+    def test_extended_inventory_excludes_bodies_and_uninstalled_addons(self):
+        result = extended_inventory(
+            [{'uid': 'a', 'type': 'binding', 'installed': True, 'version': '5', 'properties': {'password': 'SECRET'}},
+             {'uid': 'b', 'type': 'binding', 'installed': False}],
+            [{'uid': 'p', 'component': 'page', 'editable': True, 'config': {'password': 'SECRET'},
+              'props': {'password': 'SECRET'}, 'slots': {'body': 'SECRET'}}],
+            [{'uid': 't', 'type': 'JS', 'editable': False, 'configuration': {'script': 'SECRET'}}])
+        self.assertNotIn('SECRET', json.dumps(result))
+        self.assertEqual([x['id'] for x in result['addons']], ['a'])
+        self.assertEqual(result['pages'][0]['configuration_keys'], ['password'])
+        self.assertEqual(result['transformations'][0]['configuration_keys'], ['script'])
 
 
 if __name__ == '__main__':
