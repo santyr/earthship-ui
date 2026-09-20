@@ -40,8 +40,10 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   the current enabled state. See the [installation and activation receipt](2026-09-20-power-disabled-installation.md).
   Physical-source faults and full-openHAB restart were not induced.
 
-- Qualified power accounting remains **source-only**, Solar_PV branch
-  `feat/qualified-power-accounting` at`6fcd97f`; all693analytics tests pass.
+- Qualified power accounting source/schema are now deployed on Solar_PV main
+  `d4151a1`; all700analytics tests pass. Production migration5/ledger readback and
+  original six timer states are verified. Writer/publisher/monitor policy
+  options remain disabled pending restricted roles and coordinated activation.
   Implemented: bounded evidence transport; battery/PV energy and EFC using exact
   qualified intervals; daily and solar-noon composition with matching source
   quality; common-support PV efficiency; explicit legacy/cutover provenance.
@@ -91,6 +93,10 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
   Operator prioritizes production activation when safe; immediate remaining
   dependencies are read-only reference verification, qualified monitor routing,
   restricted roles and attended cutover. No production migration applied yet.
+  This preceding migration-pending checkpoint is superseded: reference verification
+  and qualified monitor routing are implemented; source/schema cutover is now
+  deployed, new table empty, timers restored. Remaining immediate release work
+  is restricted-role provisioning, policy flags and live verification.
   **Remaining:** full-day persistence qualification; report/export/UI consumer integration and
   provenance; restricted roles; backup/restore and migration rehearsal;
   reader-first deployment and actual accounting cutover. No live migration or

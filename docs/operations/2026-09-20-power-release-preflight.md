@@ -1,5 +1,26 @@
 # Qualified power production release preflight
 
+## Production source/schema deployed
+
+Solar_PV main is now `d4151a1`. Qualified writes verify all21source references
+and3bank epochs read-only instead of seeding/updating them; production read-only
+comparison passed. The opt-in monitor reads selected qualified snapshots rather
+than legacy daily tables and distinguishes first-day-not-due, missing materialized
+days and present partial evidence. All700analytics tests pass.
+
+The attended source/schema cutover is complete. Existing six energy timers were
+captured and paused, all associated jobs verified inactive, exact rehearsed
+migration5 applied transactionally with2-second lock/30-second statement limits,
+and the clean production checkout fast-forwarded from19ff30a to d4151a1. Ledger
+1–5/checksums match, the new table has zero rows, service definitions are
+unchanged, and all original timer states were restored. Private before/after
+receipt: `/tmp/power-production-schema-qxe7f3pn`.
+
+Restricted-role provisioning and activation of the writer/publisher/monitor
+policy options are still pending. Existing publisher remains v2; no synthetic
+daily row or hardware action was performed. This supersedes the earlier
+source/schema-pending status below, while retaining the rehearsal evidence.
+
 Operator directed production deployment as soon as it is sensible, without
 waiting for unrelated cleanup. Collection and UI v3 reader are live; accounting
 writer/publisher activation remains pending the checks below.
@@ -43,6 +64,10 @@ requires an exact starting ledger and source checksums. Error details remain in
 private files rather than exposing database content in conversational errors.
 
 ## Immediate release dependencies
+
+Update: dependencies1and2below are implemented and tested in d4151a1; the
+source/schema portion of3is deployed as recorded above. Remaining immediate
+work is restricted roles, policy flags, and live publisher/monitor verification.
 
 1. The aggregate CLI still calls `seed_reference_data` before qualified writes.
    Replace that with read-only reference verification for the qualified path;
