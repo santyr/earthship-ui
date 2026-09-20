@@ -46,3 +46,20 @@ unchanged JDBC mapping/history and fresh publication were verified 2026-09-20.
 See `docs/operations/2026-09-20-file-first-initial-migration.md` in the repository.
 The older managed configuration tool now
 refuses `editable:false` resources rather than attempting to recreate ownership.
+
+## Read-only inventory
+
+Run `python3 openhab/scripts/config_inventory.py` from the repository root.
+It emits a deterministic registry graph (apart from capture timestamps), without
+state values, labels, configuration values or script bodies. Exit status 1 means
+an unresolved dependency, duplicate identity or ownership discrepancy was found;
+transport/format errors also fail rather than returning a partial success.
+`editable:false` is reported as non-managed, not assumed to mean file-owned.
+Only the separately verified manifest declares file ownership.
+
+This is not a restore export, an atomic snapshot, a complete installation backup,
+or a safety classifier. Rule dependencies embedded in executable bodies, metadata
+values, link profiles, persistence strategies, UI pages, installed add-ons,
+external services and private configuration require separate review. Do not use
+an empty issue list as permission to migrate a resource or claim restart safety.
+See `docs/operations/2026-09-20-file-first-inventory.md` for the initial scope.

@@ -22,6 +22,11 @@ at 11:24 MDT. Persisted state restored before publication; JDBC identity/history
 protected rule definitions and the publisher schedule were preserved. A natural
 11:25 publication and the 11:20 data-quality run succeeded. See the
 [initial migration receipt](2026-09-20-file-first-initial-migration.md).
+Read-only registry inventory now verifies 427 managed Items plus the one migrated
+Item, 84 managed Things, 35 managed rules and 261 managed links, with no detected
+structural dependency/ownership discrepancies. The reproducible tool excludes
+configuration values and states; this is not yet a full installation inventory
+or restore export. See [remaining scope](2026-09-20-file-first-inventory.md).
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before
