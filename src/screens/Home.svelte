@@ -296,7 +296,10 @@
   }
 
   const gwSchedule = $derived(greywaterSchedule({ south: $items.SouthOutlet_Outlet2_Switch,
-    east: $items.East_Bed_Socket_Outlet_2_Power, status: $items.SouthOutlet_AutoStatus, now: wallClock }));
+    east: $items.East_Bed_Socket_Outlet_2_Power, status: $items.SouthOutlet_AutoStatus,
+    // Fresh SSE data can arrive between periodic clock ticks. Validate against
+    // current wall time, retaining the tick dependency for expiry while idle.
+    now: Math.max(wallClock, Date.now()) }));
   const gwStatus = $derived(greywaterState(gwSchedule.running ? 'ON' : gwSchedule.known ? 'OFF' : null));
   const gwAccessibleLabel = $derived(`Greywater status ${gwSchedule.label.toLowerCase()}. ${gwSchedule.next}. ${gwSchedule.detail}`);
   const gwLastAgo = $derived(relativeAgeText($items.SouthOutlet_LastAutoRun, wallClock));
@@ -552,7 +555,7 @@
         <div class="gw-text">
           <div class="gw-state" style="color: {gwStatus.color}">{gwSchedule.label}</div>
           <div class="gw-next" title={gwSchedule.detail}>{gwSchedule.next}</div>
-          <div class="gw-last" title={`Last automatic run ${gwLastAgo}`}>Daylight &amp; safety permitting</div>
+          <div class="gw-last" title={`${gwSchedule.detail} Last automatic run ${gwLastAgo}`}>Conditions permitting</div>
         </div>
       </div>
     </Tile>

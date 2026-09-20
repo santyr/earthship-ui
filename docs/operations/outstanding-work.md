@@ -63,10 +63,10 @@ and protected-resource rollback remain outstanding.
   running (operator confirmation September 20). Do not retain the earlier
   East-only concern as an outstanding fault. Hexmem task 98 now retains only
   the display work below.
-- Add a main UI indication of which pump will run next and its expected start
-  time. Distinguish a committed schedule from the earliest eligible time when
-  sunlight, SoC, minimum gap or other safety gates can delay execution. Confirm
-  the actual scheduling contract before designing or implementing the display.
+- Completed: the main UI displays the controller-authored next pump and earliest
+  eligible time, explicitly conditional on safety and sunlight. Live natural
+  publication, tablet text containment, all 1,561 UI tests and build verified.
+  See [next-pump display receipt](2026-09-20-greywater-next-display.md).
 
 ### Operational checkpoint
 
