@@ -33,6 +33,9 @@ function localWallClock(epochMs) {
 function zonedDateTime(epochMs) {
   return {
     epochMs,
+    hour() {
+      return new Date(epochMs + HARNESS_ZONE_OFFSET_MINUTES * 60_000).getUTCHours();
+    },
     toInstant() {
       return instant(epochMs);
     },

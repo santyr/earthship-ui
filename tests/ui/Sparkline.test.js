@@ -42,7 +42,7 @@ describe('Sparkline', () => {
     await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
     const option = mocks.chart.setOption.mock.calls.at(-1)[0];
     expect(option.series[0].smooth).toBe(false);
-    expect(option.series[0].data).toEqual([1, 1.5, 2.125, 2.59375, 3.1953125]);
+    expect(option.series[0].data).toEqual([1, 1.5, 2.125, 2.59375, 3.1953125].map((value, index) => [index * 1000, value]));
     expect(option.series[0].data).not.toContain(null);
   });
 
@@ -57,7 +57,8 @@ describe('Sparkline', () => {
     const option = mocks.chart.setOption.mock.calls.at(-1)[0];
     const expected = [1, 1.24, 1.5712, 1.862656, 2.23913728];
     expect(option.series[0].data).toHaveLength(expected.length);
-    option.series[0].data.forEach((value, index) => {
+    option.series[0].data.forEach(([timestamp, value], index) => {
+      expect(timestamp).toBe(index * 1000);
       expect(value).toBeCloseTo(expected[index], 8);
     });
     expect(option.series[0].connectNulls).toBe(true);
@@ -73,6 +74,29 @@ describe('Sparkline', () => {
     });
     await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
     const option = mocks.chart.setOption.mock.calls.at(-1)[0];
-    expect(option.series[0].data).toEqual([1, 1.5, 2.125, 2.59375, 3.1953125]);
+    expect(option.series[0].data).toEqual([1, 1.5, 2.125, 2.59375, 3.1953125].map((value, index) => [index * 1000, value]));
+  });
+
+  it('preserves actual elapsed spacing for irregular change-only history', async () => {
+    const start = Date.UTC(2026, 8, 10, 12);
+    const timestamps = [start, start + 60_000, start + 3_600_000];
+    render(Sparkline, { props: { data: timestamps.map((time, i) => ({time, state: 70 + i})) } });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.xAxis.type).toBe('time');
+    expect(option.xAxis).not.toHaveProperty('data');
+    expect(option.xAxis.boundaryGap).toEqual([0, 0]);
+    expect(option.series[0].data.map(point => point[0])).toEqual(timestamps);
+    expect(option.xAxis.show).toBe(false);
+    expect(option.tooltip.show).toBe(false);
+  });
+
+  it('keeps distinct offset instants across the repeated DST hour', async () => {
+    const times = ['2026-11-01T01:15:00-06:00', '2026-11-01T01:15:00-07:00'];
+    render(Sparkline, { props: { data: times.map(time => ({time, state: 70})) } });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const points = mocks.chart.setOption.mock.calls.at(-1)[0].series[0].data;
+    expect(points.map(point => point[0])).toEqual(times.map(Date.parse));
+    expect(points[1][0] - points[0][0]).toBe(3_600_000);
   });
 });

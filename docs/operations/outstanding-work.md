@@ -85,8 +85,16 @@ Deployed imports/default policy and a real CLI dry run passed. All53historical
 rows in each daily battery/PV/load/weather table retained identical fingerprints.
 No controls, schedules, persistence or notification policy changed. Full receipt:
 Solar_PV `docs/operations/2026-09-10-bms-analytics-reader-verification.md`.
-The existing next daily run is September11 at00:21:25MDT; its completed
-materialization is still unverified and remains an open release follow-through.
+Natural materialization was verified September11: the scheduled service ran at
+00:21:29MDT, exited0 and materialized September10 into five tables with21source
+quality rows. JDBC readback confirms bank discover_4_module_2026 and atomic
+BMS quality provenance,679rows with29233.746037qualified seconds of86400
+(33.835354percent), correctly insufficient_data. Qualified observed SoC ranged
+92..100percent (8points observed DoD); these are partial-day observations, not
+proof of the full day's minimum or maximum. Daily/cumulative EFC readback was
+0.161628077692/8.296548462527 under the unchanged power accounting path.
+The first scheduled post-cutover materialization is now verified; a full
+qualified source day and source-health coverage remain pending.
 
 Release correction: a later caller audit found that the shared atomic source
 policy was also consumed by the live analytics quality/UI health evaluators,
@@ -98,12 +106,23 @@ the false BMS fault reason; `daily_source_quality_not_ok` remains explicit.
 Receipt: Solar_PV docs/operations/2026-09-10-live-health-contract-correction.md.
 
 Outcome work is implemented on isolated Solar_PV feat/advisory-trough-assessment
-throughba55b3f: completed-window SoC qualification, strict immutable-origin
-association, append-only outcome revisions, frozen accepted-trough selection,
-and a bounded latest-revision/seven-verified-night projection.441tests pass.
-Migrations0003/0004 remain feature-only; production still has[1,2]. Bounded
-orchestration, reviewed runtime activation and genuine completed captured targets
-remain unfinished. No bandit reward, learned reset or live scoring change occurred.
+through `814a10a`: completed-window SoC qualification, immutable origins,
+append-only revisions, frozen accepted-trough selection, bounded orchestration,
+hard worker timeout, current-revision projection and exact diagnostic publisher.
+The real worker passes isolated PostgreSQL success/replay/denied-read tests;
+523 analytics tests pass. Earthship integration branch
+`feat/completed-trough-integration` at `81f6a03` removes premature scoring while
+preserving morning prediction inputs and legacy state. Its full script suite
+passes 795 tests and 42 subtests, including forecast/DM behavior comparisons.
+
+These branches are not deployed. Read-only preflight confirms production
+migrations [1,2], atomic source item0613, no proposed advisory_writer or
+advisory_assessor roles, and no installed capture/record/window/score helpers.
+The existing service still executes the older forecast script from
+`/home/sat/openhab/scripts` at 06:40. Reviewed migration/grant/dependency and
+service-environment installation, activation and genuinely completed captured
+targets remain unfinished. No bandit reward, learned reset or live scoring
+change occurred. Feature-branch receipts document the exact tests and gaps.
 
 UI current-day temperature history is merged at `487365c`. Native start-state
 carry is opt-in for the two daily temperature requests, with half-open end
@@ -140,6 +159,29 @@ remain in Git.
 | Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion was repaired September 5; current history has nine distinct local issue dates. | Accumulate and verify usable paired history; approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
 | Task 21: live winter timezone verification | Pending November MST verification; summer checks cannot satisfy its explicit requirement. | Inspect actual winter data after transition, including sunny/cloudy boundary cases and calibration attribution. |
 | Task 22: rain/wind learned corrections | Task description explicitly defers rain and requires a wind consumer, scoring, and renewed approval. | Resolve deferred scope with operator; satisfy outcome/scoring prerequisites before implementing learned gains. |
+
+## Weather temperature evidence implementation
+
+Additive temperature receipt evidence is implemented through fe4ec7f, with an
+explicit model/ID/range/expiry policy, atomic value/receipt/expiry records,
+process epochs, clock-rollback and expiry handling, loopback-only capture/read,
+and an optional default-off WSGI entrypoint. Missing/invalid fields never renew
+saved fallback temperatures. Exact configuration and deployment boundaries:
+[temperature evidence contract](2026-09-10-temperature-evidence-contract.md).
+
+Full script verification passed849tests and42subtests in144.44seconds, including
+95focused source/receiver/configuration cases. The actual receiver was exercised
+only with disposable state and blocked network; disabled/enabled/failed capture
+produced identical legacy responses and saved weather/rain state.
+
+The only installed production change is outdoor relay ID forwarding, preserving
+the existing206filter and all weather conversions, with exact backup/source
+hashes and restart/readback recorded in the contract. Both services are active;
+the receiver still runs gunicorn weather:app. No evidence wrapper, policy file,
+OpenHAB evidence persistence or scoring reader is active. Indoor235 was observed
+but physical ownership confirmation remains pending. Natural per-field history,
+expiry/restart/ingress qualification and learned scoring cutover remain open.
+Packet health and display fallbacks cannot substitute for that evidence.
 
 ## Existing battery ownership and definitions
 
@@ -431,6 +473,57 @@ local-day values. Carry-in, source health and persistence API aggregation
 semantics remain to be verified for the three analytical consumers. No live
 rule was invoked or changed during this inventory.
 
+September 10 follow-up confirms an incomplete-night cache defect in the exact
+live runtime estimator: the first call before06:00 queries a future-ending
+window and caches its result for the whole date, including after completion.
+An isolated exact-function reproduction returned the early value at06:05 with
+no second query. See [runtime cache audit](2026-09-10-runtime-overnight-cache-audit.md).
+The correction now selects/caches the latest completed local06:00 window,
+preserving weighted averaging and all estimator gates. Source and guarded
+deployment adapter merged/pushed at b07af72; live script installed September10
+18:45MDT with original enable state restored and exact source/readback verified.
+Full verification:1,332tests/94files and production build passed. Private original
+rule backup is retained; see the audit's deployment receipt. Natural overnight
+boundary verification and independent power-source coverage qualification remain
+unfinished; installation alone does not establish either.
+
+September11 read-only follow-through reconfirmed installed runtime action SHA
+8698b16a5e07a5fde653c6e74219886f78c2b6ec7740e5a8a8608c32c205a794,
+rule IDLE/NONE and naturally updated runtime Items (basis evening,4640minutes
+at the snapshot). There are no dedicated cache-window diagnostics in the
+installed action, and the bounded midnight/06:00 log check yielded no such
+evidence. Current output and correct source do not independently prove which
+private cache window was used at those boundaries. That verification remains
+open; no forced run, cache read/write or diagnostic control mutation was used.
+
+### Bitcoin carry audit, September 10
+
+The live `hex_btc_24h_change` source still matches the September 5 SHA above.
+REST configuration confirms its default persistence service is JDBC. The
+[OpenHAB 5.2.1 implementation](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.persistence/src/main/java/org/openhab/core/persistence/extensions/PersistenceExtensions.java#L314-L339)
+sets the historical query end to the target, orders descending and requests one
+row. This is a held-state lookup, not an exact-time or nearest-change lookup.
+
+At September 10 20:00:45.313 MDT, the naturally triggered rule logged current
+76960 and historical 78043. A bounded read-only JDBC check at the corresponding
+September 9 cutoff found 78043 at 20:00:44.781223 MDT, followed by 78036 at
+20:01:14.773108 MDT. The logged historical value matches the preceding row;
+no manual rule run or Item update was used. This verifies carry semantics for
+this consumer, not feed freshness or completeness of all historical data.
+
+Home and modal candles retain their approved observation-only contract:
+first/high/low/last recorded values, empty intervals omitted, no fabricated
+carry candles. The three focused candle/component/modal suites passed all
+41 tests. No Bitcoin rule, chart behavior or persistence policy change was
+needed for this carry audit. Independent feed-health qualification remains
+separate from arithmetic and held-state semantics.
+
+Additional follow-up: `/home/sat/bin/bitcoin.py` contains a hard-coded provider
+API credential. Its current use has not been established. Do not copy its raw
+contents into reports or memory; verify consumers and coordinate credential
+rotation/externalization without interrupting the feed. No credential change
+was performed during this read-only audit.
+
 ### UI boundary follow-up
 
 Read-only REST requests plus the actual extrema helper reproduce missing
@@ -441,8 +534,50 @@ global fix: OpenHAB also moves the first post-window value back to the end and
 relabels the carry timestamp. UI repair must explicitly discard look-ahead,
 separate historical carry from freshness evidence, and handle local-day rollover.
 The preflight records exact ranges/results and version-matched source. Category-
-axis sparkline spacing and midnight-array retention remain additional review
-targets; no UI fix is claimed by this audit.
+axis sparkline spacing and midnight-array retention were additional review
+targets in that audit.
+
+September 10 sparkline follow-up replaces the category axis with a hidden time
+axis and timestamp/value pairs. Irregular change-only events now retain elapsed
+time spacing; smoothing, colors and card dimensions are unchanged. Verification:
+1,282 unit tests across 91 files, production build, and all 12 Home browser tests
+passed. Actual ECharts pixel-coordinate checks on Lenovo M9 1340x800 and laptop
+1280x720 prove a one-minute gap occupies 1/60 of a one-hour gap for both indoor
+and outdoor sparklines. A unit regression preserves distinct instants through
+the repeated DST hour. These fixture checks do not establish source freshness,
+gap coverage, time-weighted smoothing or completion of the wider algorithm audit.
+
+September10 Home daily-load follow-up replaces endpoint-only trapezoidal
+integration with held-state integration of change-only power history. The
+explicit local-midnight boundary request includes native carry-in, excludes
+end look-ahead and accounts for the final interval through the request time.
+A constant1000W state now contributes2kWh over two hours rather than zero.
+Missing midnight coverage, invalid/negative/non-W states, conflicting duplicate
+timestamps and request failure show unavailable rather than a partial daily
+total. Latest-request ownership, minute-tick/visibility day reconciliation and
+destroy cancellation prevent yesterday's response/total leaking into today.
+Displayed load and derived net carry an estimate marker; historical held state
+is not independent source-health evidence. No persistence policy or controls
+change. This does not close the power-source outage/coverage audit.
+
+Verification:19focusedintegrationtests; full1,351tests/95files; productionbuild;
+all17Homebrowserchecks including constant carry/tail, missing coverage, request
+failure, pending midnight reset and late old-day response. Existing LenovoM9
+1340x800/laptop1280x720 geometry checks pass. A read-only live September10
+00:00–18:53:44MDT history contained12,904rows with midnight carry and finite
+nonnegative states, yielding a held-state estimate4.5274kWh. This is a bounded
+snapshot calculation, not metered truth or verified source-health coverage.
+
+September10 Home daily-gust follow-up now requests native midnight carry-in
+with end look-ahead excluded, uses latest-request ownership, rejects prior-day
+responses and clears/refetches the daily maximum on minute-tick or visible-tab
+day rollover. Destroy aborts the gust request. Failed new-day reads show
+unavailable rather than yesterday's maximum. Existing gust units, colors,
+refresh cadence and current-gust display are unchanged. Full1,351tests/95files,
+productionbuild and all21Homebrowserchecks passed, including four dedicated
+gust cases and the existing M9/laptop layout checks. No source-health guarantee,
+weather algorithm qualification or global24-hour Item contract is inferred
+from this UI history correction.
 
 No hardware actions, advisory-policy changes, migrations, or production writes
 were performed for this inventory. Design approval and cross-repository

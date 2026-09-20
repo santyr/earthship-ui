@@ -522,9 +522,19 @@ def capture_next_day_hourly(snapshot, now):
     return targets
 
 
-def score_hourly_targets(state, now):
-    """Score elapsed raw targets once against nearest trustworthy observations."""
+def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=None):
+    """Score once; optional receipt reader never falls back to numeric history.
+
+    qualified_reader(target=..., assessed_at=...) must be the strict evidence
+    adapter with bounded I/O. Production activation and worker wiring are
+    separate; existing callers retain their current behavior until cutover.
+    """
     now_utc = _local_datetime(now).astimezone(timezone.utc)
+    qualified = qualified_reader is not None or evidence_cutover is not None
+    if qualified:
+        cutover = _target_instant(evidence_cutover)
+        if not callable(qualified_reader) or cutover is None or cutover > now_utc:
+            raise ValueError('explicit qualified reader and elapsed aware cutover required')
     model = _ensure_hourly_model(state)
     targets = state.get("hourly_temp_targets")
     if not isinstance(targets, dict):
@@ -548,7 +558,7 @@ def score_hourly_targets(state, now):
     start = min(row[0] for row in elapsed) - HOURLY_MATCH_WINDOW
     end = max(row[0] for row in elapsed) + HOURLY_MATCH_WINDOW + timedelta(seconds=1)
     try:
-        rows = series(OUTDOOR_TEMP_ITEM, start, end)
+        rows = [] if qualified else series(OUTDOOR_TEMP_ITEM, start, end)
     except Exception:
         return 0
     observations = []
@@ -564,7 +574,13 @@ def score_hourly_targets(state, now):
             observations.append((instant, measured))
 
     scored = 0
-    for target, key, record in elapsed:
+    if qualified:
+        elapsed = [row for row in elapsed
+                   if (captured := _target_instant(row[2].get('captured_at'))) is not None
+                   and cutover <= captured < row[0]]
+    # At most one day's targets per qualified invocation; old work remains
+    # queued under the existing 72-hour retention and 96-target bounds.
+    for target, key, record in (elapsed[:24] if qualified else elapsed):
         raw_value = record.get("raw")
         if isinstance(raw_value, bool):
             continue
@@ -574,14 +590,37 @@ def score_hourly_targets(state, now):
             continue
         if not math.isfinite(raw):
             continue
-        candidates = [
-            (abs((instant - target).total_seconds()), instant, measured)
-            for instant, measured in observations
-            if abs((instant - target).total_seconds()) <= HOURLY_MATCH_WINDOW.total_seconds()
-        ]
-        if not candidates:
-            continue
-        _, _, measured = min(candidates, key=lambda row: (row[0], row[1]))
+        evidence = None
+        if qualified:
+            captured = _target_instant(record.get('captured_at'))
+            if captured is None or not cutover <= captured < target or target < cutover:
+                continue
+            try:
+                evidence = qualified_reader(target=target, assessed_at=now_utc)
+                if not isinstance(evidence, dict):
+                    continue
+                measured = evidence['temperatureF']
+                if type(measured) not in (int, float) or not math.isfinite(measured):
+                    continue
+                received, stored, expires = (evidence[k] for k in ('receivedAt', 'storedAt', 'validUntil'))
+                if not all(isinstance(t, datetime) and t.tzinfo is not None for t in (received, stored, expires)):
+                    continue
+                if not cutover <= received <= stored <= target < expires:
+                    continue
+                digest = evidence['snapshotSha256']
+                if not isinstance(digest, str) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+                    continue
+            except Exception:
+                continue  # unavailable evidence never invokes the old matcher
+        else:
+            candidates = [
+                (abs((instant - target).total_seconds()), instant, measured)
+                for instant, measured in observations
+                if abs((instant - target).total_seconds()) <= HOURLY_MATCH_WINDOW.total_seconds()
+            ]
+            if not candidates:
+                continue
+            _, _, measured = min(candidates, key=lambda row: (row[0], row[1]))
         hour = str(target.astimezone(MOUNTAIN).hour)
         bucket = model[hour]
         try:
@@ -597,6 +636,17 @@ def score_hourly_targets(state, now):
         bucket["b"] = round(bias + gain * (innovation - bias), 3)
         bucket["P"] = round((1 - gain) * predicted_variance, 4)
         bucket["count"] = max(count, 0) + 1
+        if evidence is not None:
+            receipts = state.get('hourly_temp_evidence_receipts', [])
+            if not isinstance(receipts, list):
+                receipts = []
+            state['hourly_temp_evidence_receipts'] = (receipts + [{
+                'target': key, 'captured_at': record['captured_at'],
+                'cutover': cutover.isoformat(), 'assessed_at': now_utc.isoformat(),
+                'raw': raw, 'measured': measured, 'snapshotSha256': digest,
+                'receivedAt': received.isoformat(), 'storedAt': stored.isoformat(),
+                'validUntil': expires.isoformat(),
+            }])[-HOURLY_TARGET_LIMIT:]
         targets.pop(key, None)
         scored += 1
     return scored
@@ -892,7 +942,8 @@ def main():
                             observer=lambda status: capture.publication(item, status))
         return safe_put(item, value, put_failed)
 
-    hourly_scored = score_hourly_targets(st, now)
+    from hourly_temperature_runtime import score_runtime_hourly
+    hourly_scored = score_runtime_hourly(st, now, score_hourly_targets)
     save_state(st)  # commit consumed/pruned evidence before later fallible work
     if hourly_scored:
         log.append(f"hourly-temp scored: {hourly_scored} raw targets")

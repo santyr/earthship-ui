@@ -219,11 +219,190 @@ const OUTDOOR = 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature';
 const INDOOR = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
 const DAY_START = Date.parse('2026-09-10T00:00:00-06:00');
 const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
+const LOAD = 'ConextGateway_ACPowerValue';
+const GUST = 'AmbientWeatherWS2902A_WindGust';
+
+test.describe('Home daily gust ownership', () => {
+  test.use({ timezoneId: 'America/Denver' });
+  test('includes midnight carry and excludes end look-ahead', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T02:00:00-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: ({ name, startMs, endMs }) => name === GUST ? [
+        { time: startMs, state: '25' }, { time: startMs + 60_000, state: '10' },
+        { time: endMs, state: '999' },
+      ] : undefined,
+    });
+    await expect(page.locator('.wind-max')).toHaveText('max 25 mph');
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+  });
+  test('clears yesterday maximum until new-day history arrives', async ({ page }) => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: async ({ name, startMs }) => {
+        if (name !== GUST) return undefined;
+        if (startMs === NEXT_DAY_START) await pending;
+        return [{ time: startMs, state: startMs === DAY_START ? '40' : '10' }];
+      },
+    });
+    try {
+      await expect(page.locator('.wind-max')).toHaveText('max 40 mph');
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.wind-max')).toHaveText('max — mph');
+      release();
+      await expect(page.locator('.wind-max')).toHaveText('max 10 mph');
+      expect(runtime.pageErrors).toEqual([]);
+    } finally { release(); }
+  });
+  test('rejects a late old-day gust response', async ({ page }) => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: async ({ name, startMs }) => {
+        if (name !== GUST) return undefined;
+        if (startMs === DAY_START) await pending;
+        return [{ time: startMs, state: startMs === DAY_START ? '40' : '10' }];
+      },
+    });
+    try {
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.wind-max')).toHaveText('max 10 mph');
+      release();
+      await page.clock.runFor(1000);
+      await expect(page.locator('.wind-max')).toHaveText('max 10 mph');
+      expect(runtime.pageErrors).toEqual([]);
+    } finally { release(); }
+  });
+  test('shows unavailable when the new-day request fails', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    await openHomeFixture(page, TARGETS[0], {
+      historyRows: ({ name, startMs }) => name === GUST ? [{ time: startMs, state: '40' }] : undefined,
+      historyFailure: ({ name, startMs }) => name === GUST && startMs === NEXT_DAY_START,
+    });
+    await expect(page.locator('.wind-max')).toHaveText('max 40 mph');
+    await page.clock.runFor(60_000);
+    await expect(page.locator('.wind-max')).toHaveText('max — mph');
+  });
+});
+
+test.describe('Home daily load estimate', () => {
+  test.use({ timezoneId: 'America/Denver' });
+  test('includes constant carry and tail, excluding end look-ahead', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-10T02:00:00-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: ({ name, startMs, endMs }) => name === LOAD
+        ? [{ time: startMs, state: '1000' }, { time: endMs, state: '999999' }] : undefined,
+    });
+    await expect(page.locator('.pf-line2')).toContainText('~2.0 kWh used');
+    await expect(page.locator('.pf-line2')).toContainText('~+3.2 kWh net');
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+  });
+  for (const failure of ['missing carry', 'request failure']) {
+    test(`shows unavailable for ${failure}`, async ({ page }) => {
+      await page.clock.install({ time: new Date('2026-09-10T02:00:00-06:00') });
+      await openHomeFixture(page, TARGETS[0], {
+        historyRows: ({ name, startMs }) => name === LOAD ? [{ time: startMs + 60_000, state: '1000' }] : undefined,
+        historyFailure: ({ name }) => failure === 'request failure' && name === LOAD,
+      });
+      await expect(page.locator('.pf-line2')).toContainText('— used');
+      await expect(page.locator('.pf-line2')).toContainText('— net');
+    });
+  }
+  test('clears yesterday total while new-day history is pending', async ({ page }) => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: async ({ name, startMs }) => {
+        if (name !== LOAD) return undefined;
+        if (startMs === NEXT_DAY_START) await pending;
+        return [{ time: startMs, state: '1000' }];
+      },
+    });
+    try {
+      await expect(page.locator('.pf-line2')).toContainText('~24.0 kWh used');
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.pf-line2')).toContainText('— used');
+      release();
+      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      expect(runtime.pageErrors).toEqual([]);
+      expect(runtime.attemptedNonGetRequests).toEqual([]);
+    } finally { release(); }
+  });
+  test('does not let a late old-day response overwrite the new day', async ({ page }) => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
+    const runtime = await openHomeFixture(page, TARGETS[0], {
+      historyRows: async ({ name, startMs }) => {
+        if (name !== LOAD) return undefined;
+        if (startMs === DAY_START) await pending;
+        return [{ time: startMs, state: '1000' }];
+      },
+    });
+    try {
+      await page.clock.runFor(60_000);
+      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      release();
+      await page.clock.runFor(1000);
+      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      expect(runtime.pageErrors).toEqual([]);
+    } finally { release(); }
+  });
+});
+
+for (const target of TARGETS) {
+  test(`sparklines preserve elapsed-time spacing on ${target.name}`, async ({ page }) => {
+    const runtime = await openHomeFixture(page, target, {
+      historyRows: ({ name, startMs }) => [OUTDOOR, INDOOR].includes(name)
+        ? [0, 60_000, 3_600_000].map((offset, index) => ({
+          time: startMs + offset, state: String(65 + index),
+        }))
+        : undefined,
+    });
+    await expect(page.locator('.indoor-spark svg')).toBeVisible();
+    const charts = await page.evaluate(async () => {
+      const { echarts } = await import('/src/lib/charts/echarts.js');
+      return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {
+        const el = document.querySelector(selector);
+        const chart = echarts.getInstanceByDom(el);
+        const option = chart.getOption();
+        const points = option.series[0].data;
+        const pixels = points.map(([time]) => chart.convertToPixel({ xAxisIndex: 0 }, time));
+        return {
+          axis: option.xAxis[0].type,
+          times: points.map(([time]) => time),
+          ratio: (pixels[1] - pixels[0]) / (pixels[2] - pixels[0]),
+          width: el.clientWidth,
+          height: el.clientHeight,
+          hiddenAxis: !option.xAxis[0].show,
+        };
+      });
+    });
+    for (const chart of charts) {
+      expect(chart.axis).toBe('time');
+      expect(chart.times).toHaveLength(3);
+      expect(chart.times[1] - chart.times[0]).toBe(60_000);
+      expect(chart.times[2] - chart.times[0]).toBe(3_600_000);
+      expect(chart.ratio).toBeCloseTo(1 / 60, 6);
+      expect(chart.width).toBeGreaterThan(100);
+      expect(chart.height).toBeGreaterThan(20);
+      expect(chart.hiddenAxis).toBe(true);
+    }
+    expect(runtime.pageErrors).toEqual([]);
+    expect(runtime.attemptedNonGetRequests).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+  });
+}
 
 test.describe('Home local-day temperature history ownership', () => {
   test.use({ timezoneId: 'America/Denver' });
 
-  test('includes native start states, clips end states, and opts in only daily temperatures', async ({ page }) => {
+  test('includes native start states, clips end states, and opts in only daily temperatures, load and gust', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
     const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
       historyRows: ({ name, startMs, endMs }) => {
@@ -243,8 +422,8 @@ test.describe('Home local-day temperature history ownership', () => {
     expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
     expect(runtime.attemptedNonGetRequests).toEqual([]);
     const boundaryRequests = runtime.historyRequests.filter(({ url }) => new URL(url).searchParams.get('boundary') === 'true');
-    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([INDOOR, OUTDOOR].sort());
-    expect(runtime.historyRequests.filter(({ name, url }) => ![INDOOR, OUTDOOR].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
+    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([INDOOR, OUTDOOR, LOAD, GUST].sort());
+    expect(runtime.historyRequests.filter(({ name, url }) => ![INDOOR, OUTDOOR, LOAD, GUST].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
     expect(runtime.pageErrors).toEqual([]);
     expect(runtime.unexpectedExternalRequests).toEqual([]);
   });
