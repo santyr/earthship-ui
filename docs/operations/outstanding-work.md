@@ -29,6 +29,13 @@ unchanged until the ordered policy/migration cutover. Task82 remains held.
 
 ### Operational checkpoint
 
+- Power evidence resources are installed **disabled** from `d336876`: four
+  Items, three read-only data Things, three links and `hex_power_evidence`.
+  Existing rules, Thing definitions and persistence configuration are unchanged.
+  No live collection or accounting cutover is claimed; binding-event, persistence,
+  lifecycle and storage-rate qualification remain. See the
+  [disabled installation receipt](2026-09-20-power-disabled-installation.md).
+
 - Qualified daily/day-3 temperature learning is now deployed and enabled with
   actual cutover2026-09-20T14:52:58.582165Z. Five runtime files verified, protected
   model/state hashes unchanged, all three timers restored with definitions
