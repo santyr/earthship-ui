@@ -78,6 +78,15 @@ or deployed collection path. The approved design specifically chooses scoped
 Nostr replies; the shared household proxy token is not individual operator
 authentication and should not be repurposed as confirmation identity.
 
+The source-only CLI also refuses receipt timestamps later than processing time
+and effective action/mode timestamps later than their original receipt, before
+constructing a journal connection. Future interval endpoints remain parseable
+as plans but cannot enter this confirmed-action write path. Report actual
+transitions separately with explicit aware timestamps; do not manufacture a
+later receipt date to turn a plan into evidence. Tests cover current and past
+confirmations, duplicate retries, future receipts, modes and overnight intervals.
+Production ingestion/runtime remains unchanged pending coordinated deployment.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified

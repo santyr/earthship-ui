@@ -162,7 +162,7 @@ def _schema_audit_command(parser):
     )
 
 
-def _journal(args, parser):
+def _journal(args, parser, *, now=None):
     dsn = os.environ.get("THERMAL_DATABASE_URL")
     if not dsn:
         parser.error("THERMAL_DATABASE_URL is required")
@@ -171,8 +171,13 @@ def _journal(args, parser):
         text = payload.decode("utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         parser.error(f"unable to read UTF-8 message file: {exc}")
-    received_at = args.received_at or datetime.now(timezone.utc)
+    now = now or datetime.now(timezone.utc)
+    received_at = args.received_at or now
+    if received_at > now:
+        raise ValueError('confirmation receipt cannot be in the future')
     parsed = parse_thermal_message(text, received_at, args.idempotency_key)
+    if any(event.effective_at > received_at for event in (*parsed.actions, *parsed.modes)):
+        raise ValueError('future thermal actions or modes are plans, not completed confirmations')
     journal = ActionJournal(dsn)
     inserted = journal.append_batch(parsed.actions, parsed.modes, payload=payload)
     stored_actions = journal.events_for_receipt(args.idempotency_key)
@@ -547,7 +552,7 @@ def main(argv=None):
             _schema_audit_command(parser)
             return 0
         if args.subcommand == "journal":
-            _journal(args, parser)
+            _journal(args, parser, now=now)
             return 0
         if args.subcommand == "train":
             return _train(args, parser, now)
