@@ -91,5 +91,24 @@ changing the production provider. Do not introduce periodic persistence or
 synthetic telemetry to conceal missing events. Preserve private recovery material
 and compare the exact strategy DTO and historical prefixes after each leg.
 
+### Change-only and power-exclusion follow-up
+
+The real JDBC rehearsal additionally passed both policy checks at all five
+ownership checkpoints. After each successful changed-value write, an identical
+Number update left the complete history unchanged. A different synthetic JSON
+value was applied to an isolated `Power_Evidence_JSON` Item and its current state
+was read back; it produced no persistence history. Each negative check sampled
+three times at one-second intervals and had the changed-value probe as a
+positive service control. These are bounded observations, not proof of all
+future timing behavior. No synthetic values were sent to production.
+
+Both exact provider roundtrips, five-row historical-prefix preservation and
+Item-recreation restoration still passed in the same run. Its owned container
+pair and ephemeral database were removed. The everyChange power exclusion and
+unchanged-state suppression branches are now exercised against PostgreSQL;
+forecast-group behavior, full runtime restart and collection-gap accounting
+remain open. Restore of power history written by its independent immutable
+writer is not established by this empty-history exclusion test.
+
 This qualification does not authorize or claim production persistence migration,
 whole-host recovery or protected-control restart safety.

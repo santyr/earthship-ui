@@ -71,8 +71,9 @@ DTO with only editability changed. See [qualification](2026-09-20-persistence-pr
 Two isolated file/managed/file configuration rollback cycles now pass with
 exact DTOs and absent-provider checks before each handoff. Actual isolated
 PostgreSQL/JDBC writes preserve five history rows through both roundtrips;
-Item recreation restores the latest value. Full restart, forecast/power policy
-branches and collection-boundary handling remain open; no live persistence
+Item recreation restores the latest value. Change-only suppression and power
+exclusion now pass at every ownership checkpoint. Full restart, forecast-group
+and independent-power restore behavior and collection-boundary handling remain open; no live persistence
 ownership change occurred.
 Offline syntax qualification now passes using the actual installed OpenHAB 5.2.1
 parser in a separate bounded JVM, including selector types and strategy tokens;

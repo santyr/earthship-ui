@@ -97,6 +97,10 @@ class Database:
                 if 'org.openhab.persistence.jdbc' in line or 'org.postgresql.jdbc' in line:
                     print('isolated_bundle=' + line.strip(), flush=True)
             self.create(cid, header)
+            status, _ = self.request(cid, header, '/items/Power_Evidence_JSON', 'PUT',
+                json.dumps({'type': 'String', 'name': 'Power_Evidence_JSON', 'label': 'Isolated excluded probe'}))
+            if status != 201:
+                raise RuntimeError('isolated exclusion Item creation failed')
         value = str(10 + len(self.previous))
         status, _ = self.request(cid, header, '/items/' + PROBE + '/state', 'PUT', value, 'text/plain')
         if status != 202:
@@ -110,11 +114,36 @@ class Database:
                         raise RuntimeError('JDBC historical prefix or write count changed')
                     self.previous = rows
                     print('jdbc_write_and_prefix_' + label + '=verified', flush=True)
+                    self.policy_branches(cid, header, label, value)
                     return
             time.sleep(1)
         # This endpoint contains only this synthetic Item's history/error, never connection config.
         raise RuntimeError('isolated JDBC did not persist expected state; last history HTTP '
             + str(status) + ': ' + body[:250])
+
+    def policy_branches(self, cid, header, label, value):
+        # A repeated value must not become a periodic/update persistence policy.
+        status, _ = self.request(cid, header, '/items/' + PROBE + '/state', 'PUT', value, 'text/plain')
+        if status != 202:
+            raise RuntimeError('isolated unchanged update failed')
+        excluded = json.dumps({'isolatedQualification': label})
+        status, _ = self.request(cid, header, '/items/Power_Evidence_JSON/state', 'PUT', excluded, 'text/plain')
+        if status != 202:
+            raise RuntimeError('isolated excluded update failed')
+        status, body = self.request(cid, header, '/items/Power_Evidence_JSON/state')
+        if status != 200 or body != excluded:
+            raise RuntimeError('excluded test update was not applied to isolated Item')
+        # Bounded negative observation plus a positive persistence control at each
+        # checkpoint; this is not a claim about all future scheduler behavior.
+        for _ in range(3):
+            time.sleep(1)
+            status, body = self.request(cid, header, '/persistence/items/' + PROBE + '?serviceId=jdbc')
+            if status != 200 or json.loads(body).get('data') != self.previous:
+                raise RuntimeError('unchanged probe update altered history')
+            status, body = self.request(cid, header, '/persistence/items/Power_Evidence_JSON?serviceId=jdbc')
+            if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
+                raise RuntimeError('excluded power Item persisted or its history check failed')
+        print('change_only_and_power_exclusion_' + label + '=verified', flush=True)
 
     def restore(self, cid, header):
         status, _ = self.request(cid, header, '/items/' + PROBE, 'DELETE')
