@@ -87,6 +87,13 @@ later receipt date to turn a plan into evidence. Tests cover current and past
 confirmations, duplicate retries, future receipts, modes and overnight intervals.
 Production ingestion/runtime remains unchanged pending coordinated deployment.
 
+Broader regression verification at source revision `e7af4f2`: all633 local
+thermal tests passed in137.87seconds with single-thread numerical libraries.
+This includes every `test_thermal*.py` suite except container-backed
+`test_thermal_journal.py`, plus the graduation-audit tests. Deployment/systemd
+tests use temporary files or mocked services; this result is not a new live
+database, inbound-transport, restart or production-deployment qualification.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified
