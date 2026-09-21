@@ -1,6 +1,6 @@
 import json
 import os
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import subprocess
@@ -27,8 +27,8 @@ from thermal_model.schema import ActionEvent, ModeEvent
 
 @dataclass(frozen=True)
 class EphemeralPostgres:
-    admin_dsn: str
-    runtime_dsn: str
+    admin_dsn: str = field(repr=False)
+    runtime_dsn: str = field(repr=False)
     runtime_role: str
     expected_owner: str
 
@@ -1028,12 +1028,13 @@ def test_runtime_role_is_least_privilege_and_database_guards_are_append_only(
             connection.rollback()
 
 
+@pytest.mark.parametrize('interval,completed', [('06:30-07:00', True), ('20:30-07:00', False)])
 def test_cli_journals_one_atomic_message_and_replay_reports_zero(
-    journal, ephemeral_postgres, tmp_path
+    journal, ephemeral_postgres, tmp_path, interval, completed
 ):
     message = tmp_path / "message.txt"
     message.write_text(
-        "THERMAL\nmode: warm\nvent: 20:30-07:00\nnote: test receipt\n",
+        f"THERMAL\nmode: warm\nvent: {interval}\nnote: test receipt\n",
         encoding="utf-8",
     )
     command = [
@@ -1043,12 +1044,25 @@ def test_cli_journals_one_atomic_message_and_replay_reports_zero(
         "--message-file",
         str(message),
         "--idempotency-key",
-        "cli-receipt",
+        f"cli-receipt-{completed}",
         "--received-at",
         "2026-08-13T18:00:00-06:00",
     ]
     environment = os.environ.copy()
     environment["THERMAL_DATABASE_URL"] = ephemeral_postgres.runtime_dsn
+    if not completed:
+        refused = subprocess.run(command, capture_output=True, text=True, env=environment)
+        assert refused.returncode == 1
+        assert refused.stdout == ''
+        assert 'future' in json.loads(refused.stderr)['reasons'][0]
+        assert journal.events_for_receipt('cli-receipt-False') == ()
+        assert journal.modes_for_receipt('cli-receipt-False') == ()
+        with psycopg2.connect(ephemeral_postgres.runtime_dsn) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT count(*) FROM thermal_intel.message_receipts WHERE idempotency_key = %s',
+                    ('cli-receipt-False',))
+                assert cursor.fetchone()[0] == 0
+        return
     first = subprocess.run(
         command, check=True, capture_output=True, text=True, env=environment
     )
@@ -1059,7 +1073,7 @@ def test_cli_journals_one_atomic_message_and_replay_reports_zero(
     second_receipt = json.loads(second.stdout)
     assert first_receipt == {
         "action_event_ids": first_receipt["action_event_ids"],
-        "idempotency_key": "cli-receipt",
+        "idempotency_key": "cli-receipt-True",
         "inserted": 3,
         "mode_event_ids": first_receipt["mode_event_ids"],
     }

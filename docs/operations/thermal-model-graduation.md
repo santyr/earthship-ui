@@ -94,6 +94,16 @@ This includes every `test_thermal*.py` suite except container-backed
 tests use temporary files or mocked services; this result is not a new live
 database, inbound-transport, restart or production-deployment qualification.
 
+Subsequent isolated PostgreSQL16 journal verification passed all32 tests
+(4.01seconds final run). Actual CLI/database checks now use a completed same-day
+ventilation interval: first write stores three records, replay stores zero new
+records with the same IDs, and future overnight plans leave no receipt, action
+or mode rows. The prior integration fixture represented a future plan and was
+updated for the stricter confirmation contract. Fixture DSNs are excluded from
+dataclass representations. All owned `thermal-journal-test-*` containers were
+removed and absence verified; no production database writes occurred. This
+closes isolated storage/replay testing, not Nostr authentication or deployment.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified
