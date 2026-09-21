@@ -18,7 +18,10 @@ publication alone do not close this goal; automatic actuation is separate.
 The [baseline audit](2026-09-20-thermal-graduation-baseline.md) now quantifies
 forecast errors and interval undercoverage. Historical evaluation blends toward
 persistence but the publication path does not; output-contract parity is the
-next prerequisite before tuning. No advisory graduation occurred.
+next prerequisite before tuning. Source-only v5/v3 parity repair now scores raw
+predictions and rejects legacy blended evidence. Production retains its prior
+runtime/model pair pending separate candidate qualification; do not deploy the
+new runtime alone. No advisory graduation occurred.
 
 Latest UI follow-up: `051ed57` restores outdoor chart forecasts from corrected
 hourly JSON rather than absent future `Forecast_Temp` persistence; indoor charts

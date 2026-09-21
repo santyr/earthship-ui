@@ -47,7 +47,8 @@ from .schema import (
     ThermalArtifact,
 )
 
-MODEL_SCHEMA = "earthship-thermal-model/v4"
+# v5 binds metrics to raw physical trajectories, without evaluation-only blending.
+MODEL_SCHEMA = "earthship-thermal-model/v5"
 MULTIHORIZON_CONTRACT = {
     "horizons_minutes": [5, 60, 360, 720, 1440],
     "daily_origin_selector": "longest_valid_future_then_earliest_utc",
@@ -64,7 +65,7 @@ MULTIHORIZON_CONTRACT = {
         "objective_regression_relative_tolerance": 1e-9,
     },
 }
-BACKTEST_SCHEMA = "earthship-thermal-backtest/v2"
+BACKTEST_SCHEMA = "earthship-thermal-backtest/v3"
 MIN_SCORED_24H_FOLDS = 30
 MIN_REGIME_24H_FOLDS = 5
 MIN_24H_REGIMES = 2

@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'openhab/scripts'))
 from thermal_model.artifacts import (
-    PERSISTENCE_MAE_TOLERANCE_F, _artifact_from_payload,
+    BACKTEST_SCHEMA, PERSISTENCE_MAE_TOLERANCE_F, _artifact_from_payload,
     _validate_backtest_report, validate_artifact,
 )
 
@@ -61,6 +61,8 @@ def audit(directory, historical_shrinkage_alpha=None):
     paths = [directory / 'accepted.json', directory / 'backtest-report.json']
     bodies = [path.read_bytes() for path in paths]
     model, report = map(json.loads, bodies)
+    if report.get('schema') == BACKTEST_SCHEMA and historical_shrinkage_alpha not in (None, 0):
+        raise ValueError('raw backtest schema cannot be unblended; omit historical shrinkage alpha')
     validate_artifact(_artifact_from_payload(model))
     _validate_backtest_report(report)
     if model['metrics'] != report['metrics']:

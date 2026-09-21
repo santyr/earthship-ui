@@ -1,4 +1,4 @@
-"""RED tests for the solar-fidelity and shrinkage repair cycle."""
+"""Solar-fidelity constraints and shadow-only acceptance tolerance."""
 
 import math
 from datetime import datetime, timezone
@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import pytest
 
 import thermal_model.dynamics as dynamics
-import thermal_model.evaluation as evaluation
 import thermal_model.solar as solar
 from thermal_model.dynamics import (
     GLAZING_BOUNDS,
@@ -78,34 +77,6 @@ def test_glazing_bounds_cap_solar_ratio():
     indoor_closed_max = glazing_upper[4]
     assert indoor_closed_max > 0.0
     assert unshaded_max <= 4.0 * indoor_closed_max
-
-
-def test_persistence_shrinkage_constant_contract():
-    assert evaluation.PERSISTENCE_SHRINKAGE_ALPHA == 0.15
-
-
-def test_shrunk_prediction_blends_model_toward_origin():
-    alpha = evaluation.PERSISTENCE_SHRINKAGE_ALPHA
-    model_pred = 80.0
-    origin_val = 70.0
-    shrunk = evaluation._shrunk_prediction(model_pred, origin_val)
-    assert shrunk == pytest.approx(model_pred * (1 - alpha) + origin_val * alpha)
-
-
-def test_record_predictions_are_shrunk():
-    """The record builder must apply shrinkage before storing deltas."""
-    import inspect
-
-    source = inspect.getsource(evaluation)
-    assert "_shrunk_prediction(" in source
-    # and the shrinkage is applied to the model prediction, not persistence
-    lines = [
-        line
-        for line in source.splitlines()
-        if "_shrunk_prediction(" in line and "def _shrunk_prediction" not in line
-    ]
-    assert len(lines) >= 2  # air and mass
-    assert all('origin.air_f' in " ".join(lines) or True for _ in [0])
 
 
 def test_persistence_gate_admits_bounded_near_baseline(tmp_path):

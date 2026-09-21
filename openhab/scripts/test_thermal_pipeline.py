@@ -726,7 +726,7 @@ def backtest_report(*, eligible=False):
         "at_least_two_24h_regimes": True,
     }
     return {
-        "schema": "earthship-thermal-backtest/v2",
+        "schema": "earthship-thermal-backtest/v3",
         "generated_at": NOW.isoformat().replace("+00:00", "Z"),
         "data_range": {
             "start": (NOW - timedelta(days=30)).isoformat().replace("+00:00", "Z"),
@@ -847,7 +847,7 @@ def test_training_assembles_exact_manifest_persists_report_then_refuses():
         "radiation_provenance_counts", "canonical_rows_sha256",
         "fit_diagnostics", "constraints",
     }
-    assert registry.artifact.schema == "earthship-thermal-model/v4"
+    assert registry.artifact.schema == "earthship-thermal-model/v5"
     assert registry.artifact.data_manifest["radiation_provenance_counts"] == {
         "observed": 4,
         "interpolated": 0,

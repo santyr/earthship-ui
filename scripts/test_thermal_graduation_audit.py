@@ -56,3 +56,10 @@ def test_raw_rescore_inverts_blend_for_both_states(alpha):
 def test_raw_rescore_refuses_noninvertible_or_invalid_assumption(alpha):
     with pytest.raises(ValueError):
         m.rescore_raw_errors([], alpha)
+
+
+def test_raw_schema_cannot_be_treated_as_historically_blended(tmp_path):
+    (tmp_path/'accepted.json').write_text('{}')
+    (tmp_path/'backtest-report.json').write_text('{"schema":"earthship-thermal-backtest/v3"}')
+    with pytest.raises(ValueError, match='raw backtest schema cannot be unblended'):
+        m.audit(tmp_path, .15)

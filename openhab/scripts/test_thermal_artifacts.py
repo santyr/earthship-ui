@@ -396,11 +396,19 @@ def test_artifact_accepts_exact_disjoint_action_evidence(tmp_path):
     assert registry.candidate_path.exists()
 
 
-def test_v2_artifact_is_rejected_without_implicit_migration(tmp_path):
+@pytest.mark.parametrize('schema', ['earthship-thermal-model/v2', 'earthship-thermal-model/v4'])
+def test_legacy_artifact_is_rejected_without_implicit_migration(tmp_path, schema):
     registry = ArtifactRegistry(tmp_path)
 
-    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v4"):
-        registry.save_candidate(valid_artifact(schema="earthship-thermal-model/v2"))
+    with pytest.raises(ArtifactValidationError, match="earthship-thermal-model/v5"):
+        registry.save_candidate(valid_artifact(schema=schema))
+
+
+def test_blended_backtest_is_rejected_without_implicit_migration():
+    report = valid_backtest_report()
+    report['schema'] = 'earthship-thermal-backtest/v2'
+    with pytest.raises(ArtifactValidationError, match='earthship-thermal-backtest/v3'):
+        artifacts_module._validate_backtest_report(report)
 
 
 def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
@@ -409,7 +417,7 @@ def test_artifact_write_is_atomic_and_corruption_is_quarantined(tmp_path):
     registry.promote_candidate()
 
     loaded = registry.load_accepted()
-    assert loaded.schema == "earthship-thermal-model/v4"
+    assert loaded.schema == "earthship-thermal-model/v5"
     assert isinstance(loaded.dynamics, DynamicsModel)
     assert isinstance(loaded.behavior.seasonal_vocabulary, tuple)
     assert loaded.behavior.seasonal_vocabulary[0].action_states == (
@@ -687,7 +695,7 @@ def valid_backtest_report():
             "persistence": {"air": 1.0, "mass": 0.5},
         })
     return {
-        "schema": "earthship-thermal-backtest/v2",
+        "schema": "earthship-thermal-backtest/v3",
         "generated_at": records[-1]["target_at"],
         "data_range": {
             "start": start.isoformat().replace("+00:00", "Z"),

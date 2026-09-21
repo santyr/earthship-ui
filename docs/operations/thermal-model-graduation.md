@@ -21,6 +21,17 @@ records errors, interval coverage and absent confirmed action evidence. It also
 identifies evaluation-only persistence blending: resolve forecast-output parity
 before tuning or using those metrics to qualify the displayed trajectory.
 
+Source-only parity repair now removes evaluation-only blending and advances the
+model/backtest schemas to v5/v3. Daily extrema, horizon errors, candidate scoring
+and published states use raw physical simulation. Legacy v4/v2 evidence is
+explicitly rejected by the new validators; it must not be relabeled or used to
+seed a new accepted registry. Production still runs the previous runtime and
+accepted model. Before cutover, run the new trainer with a separate candidate
+state directory, verify recalculated residual intervals and unchanged acceptance
+gates, and retain the old runtime/model pair for rollback. If the candidate
+fails, continue tuning rather than deploying this incompatible runtime alone.
+Historical weather/action provenance and live no-candidate replay remain open.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified

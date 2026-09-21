@@ -3,6 +3,11 @@
 Task99 remains in progress. This is a descriptive audit, not new release
 thresholds, a promotion, or evidence of causal benefit from advice.
 
+Historical receipt: the commands/results below used audit revision `c91eec0`
+and legacy v4/v2 artifacts. The subsequent source-only parity repair uses v5/v3
+and intentionally refuses those old artifacts. Use a matching historical checkout
+to reproduce this receipt; never relabel the legacy JSON to bypass validation.
+
 ## Reproducible evidence
 
 Run `python3 scripts/audit-thermal-graduation.py`. The utility reads the accepted

@@ -143,7 +143,7 @@ def test_walk_forward_v2_folds_reconcile_local_radiation_provenance():
 
     report = walk_forward_evaluate(dataset, fit=lambda train: fixed_model())
 
-    assert report["schema"] == "earthship-thermal-backtest/v2"
+    assert report["schema"] == "earthship-thermal-backtest/v3"
     assert report["folds"]
     for fold in report["folds"]:
         assert set(fold["radiation_provenance"]) == {
@@ -313,12 +313,35 @@ def test_action_evidence_separates_training_from_heldout_targets(
     assert evidence["disjoint_fold_count"] == folds_expected
 
 
+def test_horizon_residuals_match_raw_simulation_for_both_states(monkeypatch):
+    import thermal_model.evaluation as evaluation
+
+    rows = samples_45_days()
+    by_at = {row.at.astimezone(UTC).isoformat().replace('+00:00', 'Z'): row for row in rows}
+    original_simulate = evaluation.simulate
+    simulations = {}
+
+    def capture(model, initial, future):
+        predictions = original_simulate(model, initial, future)
+        simulations[initial.at.astimezone(UTC).isoformat().replace('+00:00', 'Z')] = predictions
+        return predictions
+
+    monkeypatch.setattr(evaluation, 'simulate', capture)
+    report = walk_forward_evaluate(rows, fit=lambda train: fixed_model())
+    assert report['prediction_records']
+    for record in report['prediction_records']:
+        prediction = simulations[record['origin_at']][record['horizon'] * 12 - 1]
+        target = by_at[record['target_at']]
+        for state in ('air', 'mass'):
+            expected = prediction[state + '_f'] - getattr(target, state + '_f')
+            assert record['model'][state] == pytest.approx(expected, abs=1e-12)
+
+
 def test_report_contains_required_metrics_baselines_splits_and_shadow_gates():
     report = walk_forward_evaluate(samples_45_days(), fit=lambda train: fixed_model())
     metrics = report["metrics"]
 
-    # Perfect self-consistent model; residual MAE comes only from the 15%
-    # shrinkage toward persistence, so it stays far below the baseline.
+    # Self-consistent physical model, scored without evaluation-only blending.
     assert metrics["overall"]["model"]["air"]["24"]["mae"] < 0.01
     assert (
         metrics["overall"]["model"]["air"]["24"]["mae"]
