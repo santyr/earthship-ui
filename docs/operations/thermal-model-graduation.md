@@ -37,6 +37,39 @@ the frozen parity revision and original historical window. Its source audit
 confirms conditional hindcast inputs, not operational forecast replay; retain
 that distinction when interpreting any successful training result.
 
+### Confirmed-action collection audit, September20
+
+Read-only aggregate journal queries still find ten action events: eight
+`model_inferred` Kiva events (December2025–January2026), one reconstructed
+outdoor-shade event (October2025), and one `manual_dm` outdoor-shade event
+(May22,2026). There are no ventilation or indoor-shade events. Mode history has
+three reconstructed entries and one May22 manual entry. No message bodies,
+notes or credentials were exported and no journal entries were fabricated.
+
+This explains a substantive collection gap, not merely insufficient elapsed
+time. The dataset only marks confirmed-source event timestamps which survive
+sample construction. Evaluation additionally classifies joined action confidence;
+one confirmed outdoor-shade state does not make reconstructed ventilation or
+indoor-shade states confirmed. Do not relabel those fields to raise gate counts.
+
+The existing CLI `thermal_intel.py journal` accepts structured `THERMAL` messages
+with an explicit receipt/idempotency key and optional aware effective timestamp.
+It is a trusted ingestion primitive, not proof of authenticated live transport.
+Inspection found the legacy user `nostr-inbox.service` disabled/inactive, pointing
+to missing `/home/sat/clawd/scripts/nostr-inbox-listener.sh`. No active thermal
+confirmation route was established by the inspected repository/service paths;
+this is not proof that every host messaging path was exhaustively checked.
+Do not enable that obsolete unit or commandeer unrelated messaging projects.
+
+Next implementable collection work: establish a scoped authenticated operator
+confirmation route to the existing append-only journal, with immutable original
+receipt identity/time, duplicate handling, explicit effective time, correction
+semantics, and acknowledgement only after verified storage. Keep planned future
+actions distinct from confirmation of completed actions. Test transport and
+journal failure/retry behavior in isolation; only genuine operator reports may
+be recorded as production confirmations. Then verify natural ventilation/shade
+transitions and associate later qualified outcomes without assuming compliance.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified
