@@ -70,6 +70,14 @@ journal failure/retry behavior in isolation; only genuine operator reports may
 be recorded as production confirmations. Then verify natural ventilation/shade
 transitions and associate later qualified outcomes without assuming compliance.
 
+Source-only confirmation hardening now requires full action/mode readback equality
+before the journal CLI emits success, including duplicate retries. Missing,
+changed, duplicate, unexpected or unavailable stored records produce no success
+receipt. This is a tested ingestion prerequisite, not an authenticated collector
+or deployed collection path. The approved design specifically chooses scoped
+Nostr replies; the shared household proxy token is not individual operator
+authentication and should not be repurposed as confirmation identity.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified

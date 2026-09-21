@@ -177,6 +177,14 @@ def _journal(args, parser):
     inserted = journal.append_batch(parsed.actions, parsed.modes, payload=payload)
     stored_actions = journal.events_for_receipt(args.idempotency_key)
     stored_modes = journal.modes_for_receipt(args.idempotency_key)
+    # A successful append alone is not an acknowledgement of exact storage.
+    # Compare full immutable records, not just IDs/counts, before emitting success.
+    for expected, stored in ((parsed.actions, stored_actions), (parsed.modes, stored_modes)):
+        expected_by_id = {event.event_id: event for event in expected}
+        stored_by_id = {event.event_id: event for event in stored}
+        if (len(expected_by_id) != len(expected) or len(stored_by_id) != len(stored)
+                or expected_by_id != stored_by_id):
+            raise ValueError('thermal journal readback does not match submitted confirmation')
     receipt = {
         "action_event_ids": [event.event_id for event in stored_actions],
         "idempotency_key": args.idempotency_key,
