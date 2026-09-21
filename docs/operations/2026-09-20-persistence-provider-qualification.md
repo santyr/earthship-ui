@@ -37,13 +37,23 @@ telemetry, notification or collection-policy change was performed.
 
 ## Remaining cutover requirements
 
+Follow-up: the isolated5.2.1 test now passes two file-to-managed-to-file
+roundtrips. Each leg observes HTTP404 before installing the other provider,
+then compares the full strategy DTO including editability. File-owned REST
+deletion is refused405; managed creation returns201 and deletion200. Exact
+strategy selectors, filters and aliases survive both cycles. The first attempt
+stopped on a test assertion expecting200 instead of the documented201 creation
+response; cleanup completed, the assertion was corrected, and a fresh isolated
+run passed. Both owned containers and their tmpfs/test identities were removed.
+This qualifies configuration-provider rollback only, not JDBC data operations.
+
 The [version-matched REST implementation](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.io.rest.core/src/main/java/org/openhab/core/io/rest/core/internal/persistence/PersistenceResource.java#L176-L257)
 reports provider editability separately and refuses edits to non-managed
 configuration. It does not provide an atomic managed-to-file handoff. Do not
 install an overlapping file while the managed provider is still authoritative.
 
-Before production transfer, exercise managed/file rollback and actual JDBC
-write/restore behavior against a disconnected disposable database. Preserve
+Before production transfer, exercise actual JDBC write/restore behavior during
+managed/file rollback against a disconnected disposable database. Preserve
 the explicit immutable power path, forecast behavior and historical mappings.
 Account for the live collection boundary: an interval without strategy listeners
 cannot be presented as uninterrupted sensor history or qualified learning

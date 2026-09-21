@@ -76,6 +76,48 @@ def main():
             # Strategy DTO excludes connection settings and credentials.
             raise RuntimeError('strategy DTO mismatch: ' + json.dumps({'expected': expected, 'actual': actual}, sort_keys=True))
         print('exact_file_strategy_dto_verified=true', flush=True)
+
+        def request(method='GET', body=None):
+            command = ['docker', 'exec', '-i', cid, 'curl', '-sS', '--max-time', '5',
+                '-X', method, '-H', '@-', '-w', '\\n%{http_code}', url]
+            if body is not None:
+                command += ['-H', 'Content-Type: application/json', '--data-binary', json.dumps(body)]
+            output = run(command, header).decode()
+            value, status = output.rsplit('\n', 1)
+            return int(status), value
+
+        def wait_for(wanted):
+            for _ in range(30):
+                status, body = request()
+                if wanted is None and status == 404:
+                    return
+                if wanted is not None and status == 200 and json.loads(body) == wanted:
+                    return
+                time.sleep(1)
+            raise RuntimeError('isolated provider transition did not reach exact expected state')
+
+        # Both providers must never overlap: observe absence before each handoff.
+        # These files and REST mutations exist only inside this network-none CID.
+        active = '/openhab/conf/persistence/jdbc.persist'
+        parked = '/tmp/jdbc.persist.parked'
+        managed = {**expected, 'editable': True}
+        for cycle in range(2):
+            status, _ = request('DELETE')
+            if status != 405:
+                raise RuntimeError('file-owned provider unexpectedly allowed REST deletion')
+            run(['docker', 'exec', cid, 'mv', active, parked])
+            wait_for(None)
+            status, _ = request('PUT', managed)
+            if status != 201:
+                raise RuntimeError('isolated managed provider creation failed: HTTP ' + str(status))
+            wait_for(managed)
+            status, _ = request('DELETE')
+            if status != 200:
+                raise RuntimeError('isolated managed provider removal failed')
+            wait_for(None)
+            run(['docker', 'exec', cid, 'mv', parked, active])
+            wait_for(expected)
+            print('exact_file_managed_file_roundtrip_' + str(cycle + 1) + '=verified', flush=True)
         print('database_writes_restore_and_production_cutover=not_tested', flush=True)
     finally:
         label = run(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.persistence.qualification"}}', cid]).decode().strip()
