@@ -34,7 +34,9 @@ def main(database=None):
     command += ['-e', 'EXTRA_JAVA_OPTS=-Xmx512m -Duser.timezone=America/Denver -Duser.home=/openhab/userdata',
         '--entrypoint', '/bin/sh', isolated.IMAGE, '-c',
         'cp -a /openhab/dist/conf/. /openhab/conf/; cp -a /openhab/dist/userdata/. /openhab/userdata/; '
-        'touch /tmp/bootstrap-ready; while [ ! -f /tmp/ready ]; do sleep 1; done; exec /openhab/start.sh server']
+        'touch /tmp/bootstrap-ready; while [ ! -f /tmp/ready ]; do sleep 1; done; '
+        + ('for boot in 1 2; do /openhab/start.sh server; done' if database
+           else 'exec /openhab/start.sh server')]
     cid = run(command).decode().strip()
     print('isolated_container=' + cid, flush=True)
     try:
@@ -128,9 +130,12 @@ def main(database=None):
             print('exact_file_managed_file_roundtrip_' + str(cycle + 1) + '=verified', flush=True)
         if database:
             database.restore(cid, header)
+            database.restart(cid, header)
+            wait_for(expected)
+            print('exact_file_strategy_after_jvm_restart=verified', flush=True)
         else:
             print('database_writes_and_restore=not_tested', flush=True)
-        print('full_restart_and_production_cutover=not_tested', flush=True)
+        print('whole_host_restart_and_production_cutover=not_tested', flush=True)
     finally:
         label = run(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.persistence.qualification"}}', cid]).decode().strip()
         if label != marker:

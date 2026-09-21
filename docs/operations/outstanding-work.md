@@ -72,7 +72,8 @@ Two isolated file/managed/file configuration rollback cycles now pass with
 exact DTOs and absent-provider checks before each handoff. Actual isolated
 PostgreSQL/JDBC writes preserve five history rows through both roundtrips;
 Item recreation restores the latest value. Change-only suppression and power
-exclusion now pass at every ownership checkpoint. Full restart, forecast-group
+exclusion now pass at every ownership checkpoint. Full isolated JVM stop/start
+restores state and exact history with the same file-owned strategy. Forecast-group
 and independent-power restore behavior and collection-boundary handling remain open; no live persistence
 ownership change occurred.
 Offline syntax qualification now passes using the actual installed OpenHAB 5.2.1

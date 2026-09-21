@@ -110,5 +110,23 @@ forecast-group behavior, full runtime restart and collection-gap accounting
 remain open. Restore of power history written by its independent immutable
 writer is not established by this empty-history exclusion test.
 
+### Full isolated JVM restart follow-up
+
+A new run now passes an actual Java-process stop/start. The disposable launcher
+permits exactly two boots while retaining tmpfs configuration/userdata and the
+separate disposable PostgreSQL database. The test captures the original Java
+PID, requests a clean shutdown, requires a different live Java PID, then checks
+restored Number state, the exact five-row historical prefix and full file-owned
+strategy DTO. No additional restore-generated history rows were observed.
+All earlier provider, change-only and exclusion checks passed in the same run.
+
+An initial attempt using Karaf's reboot command did not prove a new JVM and
+correctly failed qualification; its containers were removed. The subsequent
+two-boot supervised run passed and its containers were also removed. This is
+full isolated JVM restart evidence, not host reboot, production restart,
+protected-control recovery or proof of uninterrupted collection. Forecast-group
+behavior, independently written power-history restoration and collection-gap
+accounting remain required before production persistence migration.
+
 This qualification does not authorize or claim production persistence migration,
 whole-host recovery or protected-control restart safety.

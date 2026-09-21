@@ -158,6 +158,48 @@ class Database:
             time.sleep(1)
         raise RuntimeError('isolated Item did not restore its persisted state')
 
+    def restart(self, cid, header):
+        def java_pid():
+            listing = run(['docker', 'top', cid, '-eo', 'pid,comm']).decode()
+            pids = [line.split()[0] for line in listing.splitlines()[1:]
+                    if line.split()[-1] == 'java']
+            return pids[0] if len(pids) == 1 else None
+        before = java_pid()
+        if before is None:
+            raise RuntimeError('isolated Java process is not uniquely identified')
+        try:
+            run(['docker', 'exec', '-i', cid, '/openhab/runtime/bin/client',
+                '-h', '127.0.0.1', '-u', 'openhab', '-p', 'habopen', '-r', '2', '-d', '1',
+                'system:shutdown -f'], b'\n')
+        except RuntimeError:
+            # Closing the console connection is not proof of either success or
+            # failure. Require a different live JVM plus restored state below.
+            pass
+        for _ in range(90):
+            time.sleep(2)
+            try:
+                after = java_pid()
+                if after is None or after == before:
+                    continue
+                status, body = self.request(cid, header, '/items/' + PROBE + '/state')
+                if status != 200 or not same_number(body, self.previous[-1]['state']):
+                    continue
+                status, body = self.request(cid, header, '/persistence/items/' + PROBE + '?serviceId=jdbc')
+                if status != 200:
+                    continue
+                rows = json.loads(body).get('data', [])
+                if rows[:len(self.previous)] != self.previous:
+                    raise ValueError('history prefix changed across isolated JVM restart')
+                if not all(same_number(row['state'], self.previous[-1]['state'])
+                           for row in rows[len(self.previous):]):
+                    raise ValueError('unexpected post-restore history state')
+                print('isolated_jvm_restart_and_jdbc_restore=verified', flush=True)
+                print('restore_generated_history_rows=' + str(len(rows)-len(self.previous)), flush=True)
+                return
+            except RuntimeError:
+                continue
+        raise RuntimeError('isolated JVM restart/restoration was not verified')
+
 
 if __name__ == '__main__':
     with Database() as database:
