@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -37,7 +38,26 @@ def summarize(metrics):
         'interpretation': 'Descriptive audit, not release thresholds. Shadow acceptance is not advisory graduation.'}
 
 
-def audit(directory):
+def rescore_raw_errors(records, alpha):
+    """Invert an explicitly supplied historical blend; not an operational replay."""
+    if not math.isfinite(alpha) or not 0 <= alpha < 1:
+        raise ValueError('historical shrinkage alpha must be finite and in [0, 1)')
+    groups = {}
+    for record in records:
+        for state in ('air', 'mass'):
+            # blended_error = (1-alpha)*raw_error + alpha*persistence_error
+            error = (record['model'][state] - alpha * record['persistence'][state]) / (1-alpha)
+            groups.setdefault((record['horizon'], state), []).append(error)
+    return {'assumed_historical_shrinkage_alpha': alpha,
+        'interpretation': 'Algebraic historical raw-error rescore, not a live forecast replay or interval recalibration.',
+        'raw_errors': [{'hours': hours, 'state': state, 'count': len(errors),
+            'mae_f': sum(map(abs, errors))/len(errors),
+            'bias_f': sum(errors)/len(errors),
+            'rmse_f': math.sqrt(sum(error*error for error in errors)/len(errors))}
+            for (hours, state), errors in sorted(groups.items())]}
+
+
+def audit(directory, historical_shrinkage_alpha=None):
     paths = [directory / 'accepted.json', directory / 'backtest-report.json']
     bodies = [path.read_bytes() for path in paths]
     model, report = map(json.loads, bodies)
@@ -49,6 +69,9 @@ def audit(directory):
     result['inputs_sha256'] = {path.name: hashlib.sha256(body).hexdigest() for path, body in zip(paths, bodies)}
     result['trained_through'] = model['trained_through']
     result['data_range'] = report['data_range']
+    if historical_shrinkage_alpha is not None:
+        result['historical_raw_rescore'] = rescore_raw_errors(
+            report['prediction_records'], historical_shrinkage_alpha)
     if any(path.read_bytes() != body for path, body in zip(paths, bodies)):
         raise ValueError('model/report changed during audit; retry after training completes')
     return result
@@ -57,4 +80,7 @@ def audit(directory):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--model-dir', type=Path, default=Path('/home/sat/.local/state/thermal-intel/models'))
-    print(json.dumps(audit(parser.parse_args().model_dir), indent=2, sort_keys=True, allow_nan=False))
+    parser.add_argument('--historical-shrinkage-alpha', type=float,
+        help='Explicit historical blend assumption for optional raw-error rescore; verify producer source first.')
+    args = parser.parse_args()
+    print(json.dumps(audit(args.model_dir, args.historical_shrinkage_alpha), indent=2, sort_keys=True, allow_nan=False))

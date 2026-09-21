@@ -9,7 +9,7 @@ Run `python3 scripts/audit-thermal-graduation.py`. The utility reads the accepte
 artifact and backtest report, validates both without loading the mutable model
 registry, requires matching metrics and refuses files changed during the read.
 It does not train, publish, quarantine artifacts, query the database or control
-equipment. Five tests pass in `scripts/test_thermal_graduation_audit.py`.
+equipment. Thirteen tests pass in `scripts/test_thermal_graduation_audit.py`.
 
 Audited private model directory: `/home/sat/.local/state/thermal-intel/models`.
 The accepted model was trained through `2026-09-20T12:50:29.206945Z`; the report
@@ -70,6 +70,43 @@ Do not simply blend the displayed line while leaving advisory scoring and
 physics validation inconsistent. Any changed model/evaluation semantics need a
 versioned artifact boundary and fresh backtest evidence, not reuse of this
 accepted report. No runtime semantics or accepted artifact were changed here.
+
+### Raw-error rescore and deployment implications
+
+Follow-up byte comparisons confirm deployed `evaluation.py` and `pipeline.py`
+match the audited repository files. Daily high/low scoring already uses raw
+simulation output, so the backtest itself currently mixes output contracts.
+
+The audit supports optional `--historical-shrinkage-alpha .15`. This explicit
+assumption is necessary because the stored schema does not declare the blend.
+For each paired residual it computes
+`raw_error = (blended_error - alpha * persistence_error) / (1 - alpha)`.
+Tests verify inversion for both states and reject nonfinite/noninvertible alpha.
+This reuses the same historical targets without refitting or overwriting any
+artifact. It is not a weather/action replay or interval recalibration.
+
+| Horizon | Recovered raw air MAE (F) | Reported blended MAE (F) |
+| --- | ---: | ---: |
+| 1h | 0.801 | 0.687 |
+| 6h | 1.520 | 1.682 |
+| 12h | 2.169 | 2.317 |
+| 24h | 2.470 | 2.179 |
+| 48h | 2.767 | 2.322 |
+| 72h | 4.958 | 4.194 |
+
+Blending is not uniformly beneficial: raw 6h predictions outperform both
+baselines in this historical sample, while longer-horizon errors increase.
+Raw 24h air RMSE is 3.277F and bias +0.691F. Raw 24h mass MAE is 2.289F.
+These are exploratory comparisons on existing backtest data, not untouched
+holdout results or evidence of operational advisory superiority.
+
+Simply removing blending from evaluation would put this report's 24h MAE
+above the existing shadow tolerance: 2.470F exceeds 1.690F + 0.750F by about
+0.030F. Do not widen the acceptance tolerance to hide that result. A semantic
+cutover must retain a rollback path and qualify its newly scored candidate
+before replacing accepted production evidence. The explicit output contract
+should cover horizon residuals, daily extrema, advice scoring and intervals;
+the runtime source digest alone does not describe their statistical meaning.
 
 ## Next work
 
