@@ -1,0 +1,61 @@
+# Thermal v5 qualification — in progress
+
+Source revision: `e7dd34e`. This run does not deploy the v5 runtime or replace
+production artifacts. The existing shadow runtime/model pair stays authoritative.
+
+## Isolated run
+
+Started one transient user unit `thermal-v5-qualification-AsBEbyXN.service`.
+Invocation ID: `84500d12f3384d37b1c0e2cede705be7`.
+Private workspace: `/tmp/thermal-v5-qualification-AsBEbyXN` (mode0700).
+Source is a `git archive` snapshot, not the changing main worktree. The command
+is `thermal_intel.py train`, with explicit private `models` output directory and
+the production artifact's exact time range:
+`2025-08-16T12:50:29.206945Z` through `2026-09-20T12:50:29.206945Z`.
+
+The unit reads the existing private environment file without copying credentials
+into this repository. Qualified-temperature enable/cutover/policy/database config
+match the production trainer drop-in. PostgreSQL sessions request read-only
+transactions and a30-second statement timeout. Training uses historical OpenHAB
+GETs and journal SELECTs; it does not invoke shadow publication or action commands.
+CPU is limited to one core, numerical libraries to one worker, memory to2GiB,
+runtime to3hours, and scheduling nice10. Output goes to a private `run.log`.
+
+The production scheduled trainer was inactive at launch; its next timer is
+September21 at06:50MDT. The isolated unit was confirmed active with MainPID3346405
+and about380MB memory. These are launch observations, not completion evidence.
+Recheck this exact unit before continuing; never restart merely because a tool
+observation timed out. Inspect sanitized failure evidence if terminal. Do not
+print raw environment or unreviewed logs.
+
+On completion, validate the report/artifact schema, exact data manifest and raw
+residual metrics, acceptance result and production artifact hashes. If accepted,
+that qualifies only this isolated shadow candidate, not deployment or advisory
+graduation. Retain useful model/report/receipt evidence, then remove the owned
+temporary source copy and transient unit after qualification work is finished.
+
+## Historical evidence boundary confirmed from source
+
+- `pipeline.run_training` discards `forecast_reader`. `_read_authorities` reads
+  sensor history and effective journal events; the evaluator passes held-out
+  sample rows directly to `dynamics.simulate` as weather/action forcing.
+- The physics simulation advances its own air/mass states, but its outdoor
+  temperature, radiation and action inputs come from those historical future
+  rows. This is a conditional physical-model hindcast, not origin-time forecast
+  accuracy. Removing residual blending does not remove this distinction.
+- `journal.effective_events/effective_modes` resolve present-day supersession
+  using effective timestamps without an origin-time `received_at` cutoff.
+  Retrospective corrections can therefore differ from knowledge at issuance.
+- Legacy dataset preprocessing interpolates between bracketing observations
+  before chronological folds are split. A training-row timestamp before the
+  origin alone does not prove every input used to construct it was then known.
+- Daily origins maximize subsequent continuous coverage. This is a useful
+  retrospective coverage rule, not an unbiased fixed-time operational schedule.
+
+Keep the physical hindcast for diagnosing model fit. Qualify operational advice
+separately with immutable origin-time weather forecasts, receipt-qualified
+initial states, origin-available modes/actions, and later scored outcomes.
+Do not represent this run as an untouched operational holdout, confirmed causal
+benefit, or proof that historical action labels are trustworthy. Before tuning,
+reserve a separate chronological validation/test protocol and verify its
+preprocessing and correction cutoffs at the input boundary.

@@ -32,6 +32,11 @@ gates, and retain the old runtime/model pair for rollback. If the candidate
 fails, continue tuning rather than deploying this incompatible runtime alone.
 Historical weather/action provenance and live no-candidate replay remain open.
 
+An [isolated qualification run](2026-09-20-thermal-v5-qualification.md) now uses
+the frozen parity revision and original historical window. Its source audit
+confirms conditional hindcast inputs, not operational forecast replay; retain
+that distinction when interpreting any successful training result.
+
 1. Audit the current accepted backtest: errors by horizon, season/regime and
    temperature state; compare persistence, recent/seasonal trajectories and
    existing advisory baselines. Separate legacy history from receipt-qualified
