@@ -47,13 +47,42 @@ response; cleanup completed, the assertion was corrected, and a fresh isolated
 run passed. Both owned containers and their tmpfs/test identities were removed.
 This qualifies configuration-provider rollback only, not JDBC data operations.
 
+### Actual JDBC follow-up
+
+`scripts/qualify-persistence-jdbc.py` now passes with the cached JDBC5.2.1
+bundle and PostgreSQL42.7.11 driver, both reported Active by the isolated
+runtime. A fresh disposable PostgreSQL16 container has no network interface
+beyond loopback; OpenHAB shares only that container's network namespace. Neither
+has published ports, host mounts, production data or production database
+credentials. Ephemeral database credentials exist only in disposable resources.
+
+Five successive values (10–14) written to a synthetic Number Item persisted:
+initial file ownership, managed1, file1, managed2 and file2. Each checkpoint
+verified exactly one added history row and byte-equivalent parsed prior rows,
+including their timestamps. Both exact configuration-provider roundtrips passed.
+Deleting and recreating the synthetic Item restored its last persisted value.
+This verifies Item-recreation restore behavior, **not a full runtime restart**.
+
+Two preliminary runs timed out reading initial history; the first lacked numeric
+normalization and the second returned404. An instrumented run passed, followed
+by another successful run with explicit JDBC mapping-table readiness before the
+first update. The fixture does not conceal startup loss by replaying test state
+updates until something sticks. Numeric representation is compared by value;
+historical prefix records remain compared exactly.
+
+All four owned OpenHAB/PostgreSQL pairs, tmpfs databases and identities were
+removed. The production provider remains managed. Remaining qualification:
+full isolated restart, forecast-group behavior, immutable-power exclusion and
+explicit handling of events during the provider-free gap. The synthetic probe
+does not establish uninterrupted production collection or hardware safety.
+
 The [version-matched REST implementation](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.io.rest.core/src/main/java/org/openhab/core/io/rest/core/internal/persistence/PersistenceResource.java#L176-L257)
 reports provider editability separately and refuses edits to non-managed
 configuration. It does not provide an atomic managed-to-file handoff. Do not
 install an overlapping file while the managed provider is still authoritative.
 
-Before production transfer, exercise actual JDBC write/restore behavior during
-managed/file rollback against a disconnected disposable database. Preserve
+Before production transfer, finish the remaining restart and policy-branch
+checks above against the disconnected disposable database. Preserve
 the explicit immutable power path, forecast behavior and historical mappings.
 Account for the live collection boundary: an interval without strategy listeners
 cannot be presented as uninterrupted sensor history or qualified learning

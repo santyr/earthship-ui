@@ -20,14 +20,14 @@ from persistence_source import render
 import openhab_sanity_check as oh
 
 
-def main():
+def main(database=None):
     source = (ROOT / 'openhab/file-config/persistence/jdbc.persist').read_bytes()
     expected = oh.get('/persistence/jdbc')
     if render(expected).encode() != source:
         raise RuntimeError('prepared/live strategy drift')
     marker = str(uuid.uuid4())
     command = ['docker', 'run', '-d', '--label', 'hex.persistence.qualification=' + marker,
-        '--network', 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',
+        '--network', database.network if database else 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',
         '--memory', '1536m', '--cpus', '1', '--pids-limit', '256']
     for path, size in [('tmp', '64m'), ('openhab/conf', '64m'), ('openhab/userdata', '512m'), ('openhab/addons', '32m')]:
         command += ['--tmpfs', '/' + path + ':rw,exec,nosuid,nodev,size=' + size + ',uid=9001,gid=9001']
@@ -40,7 +40,7 @@ def main():
     try:
         info = json.loads(run(['docker', 'inspect', cid]))[0]
         host = info['HostConfig']
-        assert host['NetworkMode'] == 'none' and not host['Privileged']
+        assert host['NetworkMode'] == (database.network if database else 'none') and not host['Privileged']
         assert not host.get('Binds') and not host.get('Devices') and not host.get('PortBindings')
         assert info['AppArmorProfile'] == 'docker-default'
         run(['docker', 'exec', cid, 'sh', '-c', 'while [ ! -f /tmp/bootstrap-ready ]; do sleep 1; done'])
@@ -49,6 +49,8 @@ def main():
             entry = tarfile.TarInfo('persistence/jdbc.persist'); entry.mode = 0o644; entry.size = len(source)
             tar.addfile(entry, io.BytesIO(source))
         run(['docker', 'exec', '-i', cid, 'tar', '-xf', '-', '-C', '/openhab/conf'], archive.getvalue())
+        if database:
+            database.stage(cid)
         run(['docker', 'exec', cid, 'touch', '/tmp/ready'])
         for _ in range(80):
             try:
@@ -76,6 +78,8 @@ def main():
             # Strategy DTO excludes connection settings and credentials.
             raise RuntimeError('strategy DTO mismatch: ' + json.dumps({'expected': expected, 'actual': actual}, sort_keys=True))
         print('exact_file_strategy_dto_verified=true', flush=True)
+        if database:
+            database.checkpoint(cid, header, 'initial-file')
 
         def request(method='GET', body=None):
             command = ['docker', 'exec', '-i', cid, 'curl', '-sS', '--max-time', '5',
@@ -111,14 +115,22 @@ def main():
             if status != 201:
                 raise RuntimeError('isolated managed provider creation failed: HTTP ' + str(status))
             wait_for(managed)
+            if database:
+                database.checkpoint(cid, header, 'managed-' + str(cycle + 1))
             status, _ = request('DELETE')
             if status != 200:
                 raise RuntimeError('isolated managed provider removal failed')
             wait_for(None)
             run(['docker', 'exec', cid, 'mv', parked, active])
             wait_for(expected)
+            if database:
+                database.checkpoint(cid, header, 'file-' + str(cycle + 1))
             print('exact_file_managed_file_roundtrip_' + str(cycle + 1) + '=verified', flush=True)
-        print('database_writes_restore_and_production_cutover=not_tested', flush=True)
+        if database:
+            database.restore(cid, header)
+        else:
+            print('database_writes_and_restore=not_tested', flush=True)
+        print('full_restart_and_production_cutover=not_tested', flush=True)
     finally:
         label = run(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.persistence.qualification"}}', cid]).decode().strip()
         if label != marker:

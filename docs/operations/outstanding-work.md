@@ -69,9 +69,11 @@ managed persistence stays authoritative pending provider/load/rollback validatio
 Follow-up: isolated5.2.1 file-provider readback now matches the complete strategy
 DTO with only editability changed. See [qualification](2026-09-20-persistence-provider-qualification.md).
 Two isolated file/managed/file configuration rollback cycles now pass with
-exact DTOs and absent-provider checks before each handoff. Actual JDBC
-write/restore during rollback and collection-boundary handling remain open;
-no live persistence ownership change occurred.
+exact DTOs and absent-provider checks before each handoff. Actual isolated
+PostgreSQL/JDBC writes preserve five history rows through both roundtrips;
+Item recreation restores the latest value. Full restart, forecast/power policy
+branches and collection-boundary handling remain open; no live persistence
+ownership change occurred.
 Offline syntax qualification now passes using the actual installed OpenHAB 5.2.1
 parser in a separate bounded JVM, including selector types and strategy tokens;
 malformed syntax is rejected. This does not establish live strategy resolution,
