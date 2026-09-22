@@ -30,6 +30,12 @@ DENVER = ZoneInfo("America/Denver")
 MAX_INPUT = 65536
 MAX_RUMOR = 16384
 MAX_AGE = timedelta(hours=48)
+# Operator-reported v0.18.2 binary. Its tagged unwrap implementation lacks
+# authenticated seal verification and sender binding required by this adapter.
+# This is a refusal list, NOT approval of every other build or digest.
+UNQUALIFIED_NAK_SHA256 = frozenset({
+    "56a97dd08b2a21a7fe4989ebdf321af4ae1a34ec26c5aa195f9a386dfec0ef80",
+})
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 STATES = {"vent": {"open", "closed"}, "indoor_shade": {"open", "closed"},
           "outdoor_shade": {"installed", "removed"}, "kiva": {"on", "off"}}
@@ -324,6 +330,8 @@ class NakDecoder:
                  *, runner: Callable = run_bounded):
         self.executable = executable
         self.digest = identifier(expected_sha256)
+        if self.digest in UNQUALIFIED_NAK_SHA256:
+            raise Refused("nak build is not qualified for authenticated thermal confirmations")
         self.runner = runner
 
     def decode(self, raw: bytes, recipient: str):

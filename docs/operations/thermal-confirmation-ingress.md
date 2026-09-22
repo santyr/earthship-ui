@@ -34,15 +34,55 @@ forwarded diagnostics. The crypto child does not receive the PostgreSQL DSN.
 The two nak subprocesses have bounded time/output and fail closed. Nak itself may
 consult its configured network/keyer; no real keyer was invoked in local tests.
 
-## Household nak location
+## Household nak inventory and qualification blocker
 
-On September 22, 2026, Sat supplied the installed executable path:
-`/home/sat/.local/bin/nak`. Use that exact path on the household host; no
-reinstallation, relocation, PATH lookup, or assumption about a system-wide
-`/usr/local/bin/nak` is needed. This is an operator-supplied location, not a
-remotely verified binary version, digest, or cryptographic acceptance result.
+On September 22, 2026, Sat reported:
 
-Collect the build inventory on that host before pinning it:
+| Field | Reported value |
+| --- | --- |
+| Executable | `/home/sat/.local/bin/nak` |
+| Version | `v0.18.2` |
+| SHA-256 | `56a97dd08b2a21a7fe4989ebdf321af4ae1a34ec26c5aa195f9a386dfec0ef80` |
+| File and owner | Regular file, `sat:sat` |
+| Permissions | `0775` |
+
+This is supplied host inventory, not a remotely executed binary qualification.
+The digest is recorded as **unqualified**, not an approved ingestion pin.
+
+Two independent blockers remain:
+
+1. Mode `0775` permits group writes. The decoder rejects group/world-writable
+   executables even when their digest matches. As `sat`, remove that permission:
+
+   ```bash
+   chmod 755 /home/sat/.local/bin/nak
+   stat -c '%F %a %U:%G %n' /home/sat/.local/bin/nak
+   ```
+
+   This changes permissions, not the executable bytes or their SHA-256.
+2. The [upstream v0.18.2 unwrap implementation](https://github.com/fiatjaf/nak/blob/v0.18.2/gift.go)
+   decrypts the seal and rumor, but does not verify the seal signature or bind
+   the returned rumor author to the seal author. Reviewed `gift.go` Git blob:
+   `d80bfed3eff3b216c10b9a787bc5288f46e82398`. This fails this collector's
+   authenticated-sender contract. Verifying the outer gift wrap is not enough:
+   its ephemeral author is not the operator. The sender-identifying layer is
+   the seal, as described in [NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md).
+
+**Do not run this collector's `--apply` with the reported build, even after
+changing its mode to `0755`.** `NakDecoder` explicitly refuses that configured
+fingerprint before invoking any child process. The refusal list is not an
+allowlist: absence from it does not qualify another binary, rebuild, or version.
+The tag-source review does not establish that the reported binary was built
+from those exact source bytes; it establishes why this supplied build cannot
+be approved on the available evidence.
+
+The next crypto qualification must use a separately reviewed build or adapter
+that verifies the seal and authenticates the returned sender. Exercise genuine
+valid and invalid messages with disposable keys before granting it production
+journal access. Do not replace the working binary underneath unrelated
+Lightning Goats or Nostr services as part of this source-only change.
+
+For a candidate build, collect version, SHA-256 and mode on the host:
 
 ```bash
 env -u NOSTR_SECRET_KEY /home/sat/.local/bin/nak --version
@@ -50,13 +90,11 @@ sha256sum /home/sat/.local/bin/nak
 stat -c '%F %a %U:%G %n' /home/sat/.local/bin/nak
 ```
 
-These commands report the version, file digest, and ownership/mode; do not send
-private keys, bunker URLs, environment-file contents, or database credentials.
-A symlink must be reviewed and its actual executable explicitly selected; do not
-silently bypass the ingress's non-symlink check. Keep the reviewed digest as the
-fixed `VERIFIED_BINARY_SHA256` value. Do **not** recalculate and automatically
-trust a new digest on every ingestion: a binary upgrade needs renewed review and
-qualification. Knowing the path does not replace the acceptance tests below.
+Do not share private keys, bunker URLs, environment-file contents, or database
+credentials. A symlink requires review and explicit selection of the actual
+executable. Preserve a reviewed, qualified digest as `VERIFIED_BINARY_SHA256`;
+do not automatically trust a newly calculated digest on every ingestion.
+Neither this inventory nor a permission repair closes cryptographic acceptance.
 
 ## Bind the question before collecting replies
 
@@ -141,8 +179,9 @@ records. Use a connection with bounded connection/query/lock timeouts and verify
 that the existing append-only schema, restricted role, and backup are qualified.
 Do not deploy an incompatible thermal runtime/model pair to obtain this module.
 
-An attended invocation, with credentials supplied through an existing private
-environment rather than pasted in the shell command, is:
+Only after replacing or separately qualifying the crypto dependency (the reported
+v0.18.2 build above is refused), an attended invocation is below. Supply credentials
+through an existing private environment rather than pasted in the command:
 
 ```bash
 python3 openhab/scripts/thermal_confirmation.py --apply \
