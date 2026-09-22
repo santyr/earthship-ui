@@ -59,7 +59,8 @@ failed valid cases and timeouts fail the job; there are no skip paths.
 Seventeen new local harness unit cases pass. These exercise file checks,
 secret isolation, CLI failure semantics and the distinction between refusal
 and timeout; they do **not** execute nak or prove actual cryptography. Read the
-new CI job's result before claiming the release binary has passed.
+new CI job's result before claiming the release binary has passed. The actual
+result is now recorded immediately below.
 
 The preceding CI run 35736760129 passed 1,627 UI tests, the production bundle,
 141 completion cases and the OpenHAB Python suite (1,206 passed, 15 skipped,
@@ -69,6 +70,27 @@ checks out Solar_PV at the fixed revision
 `d24771b77de540f32e592a7c44a0bff6385e8cd4` and supplies the two source paths only
 for that test step. No tests were removed and production migration code was
 not changed. This CI dependency checkout is not a household library upgrade.
+
+### Verified real-binary result
+
+At 2026-09-22T14:18:44Z, CI run `35739410979`, job `106784921790`, at source
+commit `486b867a74d260ae0f8e5347280c3b48537a5d67` completed successfully.
+The actual Linux AMD64 v0.20.7 release binary matched SHA-256
+`ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e`.
+All eight checks listed above passed through the real `NakDecoder` and real
+nak subprocesses, inside the disconnected network namespace. No cryptographic
+or decoder test double was used in that job. The temporary process environment
+contained only disposable keys; the household identity and journal were unused.
+
+This clears the tested release's local-key authentication compatibility gate,
+not the household binary readback, bunker or delivery gates. The printed receipt
+retained `production_ready:false`, `bunker_verified:false`,
+`relay_delivery_verified:false`, and `journal_writes:0`. The broader test job
+was still in progress when this result was recorded; this is not a claim that
+the entire workflow passed. This documentation-only follow-up does not change
+the tested scripts or workflow.
+
+Evidence: [completed authentication job](https://github.com/santyr/earthship-ui/actions/runs/35739410979/job/106784921790).
 
 ## Remaining boundary
 
