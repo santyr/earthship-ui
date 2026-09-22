@@ -5,3 +5,4 @@ scipy>=1.13,<2
 psycopg2-binary>=2.9,<3
 Flask>=3.0,<4
 requests>=2.32,<3
+-r openhab/scripts/requirements-messaging.txt

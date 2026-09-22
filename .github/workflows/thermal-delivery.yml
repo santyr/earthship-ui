@@ -1,0 +1,40 @@
+name: Thermal delivery qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  encrypted-delivery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r openhab/scripts/requirements-messaging.txt
+      - name: Fetch the already qualified nak release
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 90 \
+            'https://github.com/fiatjaf/nak/releases/download/v0.20.7/nak-v0.20.7-linux-amd64' \
+            --output "$RUNNER_TEMP/nak-download"
+          printf '%s  %s\n' \
+            'ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e' \
+            "$RUNNER_TEMP/nak-download" | sha256sum --check --strict
+          sudo install -o root -g root -m 755 "$RUNNER_TEMP/nak-download" "$RUNNER_TEMP/nak-delivery"
+      - name: Real crypto and local relay only, no household keys or external network
+        shell: bash
+        run: |
+          set -euo pipefail
+          python="$(command -v python)"
+          sudo unshare --net -- sh -c 'ip link set lo up; exec "$1" scripts/qualify-thermal-delivery.py --nak "$2"' \
+            _ "$python" "$RUNNER_TEMP/nak-delivery"

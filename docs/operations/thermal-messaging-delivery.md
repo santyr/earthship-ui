@@ -1,0 +1,179 @@
+# Attended thermal messaging and keyer qualification
+
+## September 22, 2026 checkpoint
+
+The operator's `/home/sat/.local/bin/nak` v0.20.7 passed the installed-binary
+qualification with SHA-256
+`ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e`.
+Do not ask for the same binary inventory again or treat v0.18.2 as the installed
+version. The old fingerprint remains refused as a rollback guard.
+
+CI run `35742165746` for `e6ba9ed` completed successfully in both the main test
+job and nak-authentication. That result precedes the new delivery code and does
+not establish its acceptance. The new dedicated workflow tests delivery below.
+
+## Implemented scope
+
+`openhab/scripts/thermal_messaging.py` adds the configured-keyer self-check,
+encrypted prompt transmission, single-file authenticated reply processing,
+encrypted storage acknowledgements, and a persistent outbox. This is attended
+source functionality, not an activated service or an automatic inbox subscriber.
+
+Messages are canonical unsigned kind-14 rumors sealed and gift-wrapped through
+the qualified nak. Plaintext goes over stdin, not command arguments. Both the
+operator and collector get separately encrypted copies. Identity encryption is
+explicit; decoupled-key addressing is not enabled. Recipient routes come only
+from reviewed, signed kind-10050 announcements. Publication sends kind-1059
+wrappers, never a public plaintext note or the raw signed keyer probe.
+
+The relay adapter requires a boolean-true NIP-01 OK naming the exact envelope
+ID. Socket writes, process success, NOTICE, EOSE, wrong IDs and negative OK do
+not count as acceptance. An OK means relay acceptance, not operator receipt or
+reading. Optional NIP-42 auth is bounded to one challenge per connection and
+requires `--relay-auth`: it reveals the collector identity to the approved
+relay. No arbitrary event-signing endpoint is exposed by the CLI.
+
+SQLite stores each randomized envelope before publication. Retries and process
+restarts reuse the original envelope ID. A lost OK can cause retransmission of
+that same event, never a claim of exactly-once network delivery. Positive OKs
+are saved per route. Retrying is attended with `--flush`, using exponential
+backoff from 10 seconds to one hour; nothing starts a timer automatically.
+
+Every acknowledgement is generated from the existing ingress receipt, not
+caller-provided success JSON. Before publication the original reply is
+reauthenticated and the existing JournalSink repeats exact record readback.
+Journal failure cannot generate a success receipt. Reconciliation repairs the
+crash window between journal commit, local acknowledgement and outbox queue.
+Revoked operators, modified questions and expired prompts are withheld.
+
+A batch admits at most 16 pending copies. New work stops after a 90-second
+batch budget; an in-flight bounded keyer/relay operation may finish beyond it.
+The relay has a 45-second response budget, 32-frame limit, 64-KiB message limit,
+10-second connect timeout and two-second close timeout. There is no unlimited
+relay replay or automatic message polling in this change.
+
+The outbox caps itself at 4,096 copies and refuses further insertion rather
+than silently pruning evidence. Retention and encrypted, SQLite-consistent
+backup procedures must be reviewed before long-running deployment. Its private
+plaintext state is not a tamper-proof ledger against an administrator.
+
+## Next host step: configured-keyer check only
+
+Use the existing private signer environment on the host. `NOSTR_SECRET_KEY`
+selects the intended keyer; for a remote signer this is the existing bunker URL.
+An explicitly configured `NOSTR_CLIENT_KEY` is preserved. Do not paste either
+setting, an environment file or a database DSN into chat or commit it.
+
+From the updated repository, substitute the collector's expected public hex key:
+
+```bash
+python3 openhab/scripts/thermal_messaging.py --check-keyer \
+  --collector COLLECTOR_HEX_PUBLIC_KEY
+```
+
+Or use the collector already bound in a private normalized policy:
+
+```bash
+python3 openhab/scripts/thermal_messaging.py --check-keyer \
+  --policy "$NORMALIZED_POLICY"
+```
+
+No new Python package is required for this check. It verifies the pinned binary,
+asks the configured signer to sign a random self-check, verifies that signature
+and its expected author, then encrypts and decrypts the self-check. The probe
+is not published and creates no production journal, outbox or service.
+
+Unlike the previous disposable-key test, this deliberately uses the configured
+signer and may require a bunker approval. `bunker_verified` is true only when
+the tested setting is a bunker URL. A local key's successful self-check is not
+reported as a bunker test. No result establishes remote operator delivery.
+Share only the resulting JSON receipt. An error is sanitized and never prints
+keyer URLs, keys, decrypted messages or PostgreSQL diagnostics.
+
+## Attended delivery setup (after keyer acceptance)
+
+Install `openhab/scripts/requirements-messaging.txt` into the intended existing
+virtual environment; do not modify unrelated application environments. It pins
+websockets 16.0. The existing journal environment must also provide psycopg2.
+
+Use the normalized prompt policy described in
+[thermal-confirmation-ingress.md](thermal-confirmation-ingress.md). Keep policy,
+routes and encrypted reply files owned by the service user with mode 0600;
+state directories must be 0700. No production identities are supplied in Git.
+
+The private routes file has this shape (the array holds complete signed events,
+not strings or placeholder objects):
+
+```json
+{"version":1,"announcements":[]}
+```
+
+Replace the empty array with one verified kind-10050 event for the collector
+and each allowlisted operator. Empty, missing or duplicate identities fail.
+Review the current recipient announcements and their relay endpoints before
+saving them. This implementation intentionally does not discover or silently
+update routes from untrusted replies. It cannot establish that a supplied
+snapshot is the newest network event: refreshing and approving snapshots is an
+operator responsibility. Each list must have one to three unique wss endpoints,
+without credentials, query strings or fragments. Pending sends obey the current
+reviewed route file, not removed endpoints. No fallback public relay is used.
+
+For an explicitly approved question, sending creates real encrypted messages:
+
+```bash
+python3 openhab/scripts/thermal_messaging.py --send-prompts \
+  --policy "$NORMALIZED_POLICY" --routes "$PRIVATE_ROUTES" \
+  --state-dir "$PRIVATE_THERMAL_STATE"
+```
+
+Processing a genuine reply writes to the existing restricted action journal
+only through the qualified ingress, then queues its encrypted receipt:
+
+```bash
+python3 openhab/scripts/thermal_messaging.py --process-reply \
+  --policy "$NORMALIZED_POLICY" --routes "$PRIVATE_ROUTES" \
+  --state-dir "$PRIVATE_THERMAL_STATE" --event-file "$ENCRYPTED_REPLY_FILE"
+```
+
+After interrupted publication or a restored connection:
+
+```bash
+python3 openhab/scripts/thermal_messaging.py --flush \
+  --policy "$NORMALIZED_POLICY" --routes "$PRIVATE_ROUTES" \
+  --state-dir "$PRIVATE_THERMAL_STATE"
+```
+
+Add `--relay-auth` only after reviewing collector-identity disclosure to those
+relays. Keep old accepted prompt entries for journal retries. For operational
+commands exit 0 means no pending failure was reported, 2 means withheld/refused
+work, and 3 means retryable/deferred/incomplete work. Read the counts; zero new
+acceptances may simply mean all queued copies were accepted on an earlier run.
+No command returns an operator-read receipt or promotes a model.
+
+## Validation and remaining work
+
+Local validation: 56 new tests exercise private SQLite state, atomic enqueue,
+replay, journal-failure gating, recovery, expiry, revocation, route validation,
+secret separation, exact OK semantics, and actual loopback WebSocket/NIP-42
+connections. These unit tests explicitly double cryptography and the journal.
+The existing 137 packaged regressions also pass in the local fixture; this is
+not a local run of the complete repository.
+
+The dedicated Thermal delivery qualification workflow executes the real pinned
+nak with disposable keys and a real loopback WebSocket relay inside a network
+namespace with only loopback enabled. It checks actual signing, wrapping,
+operator/self decryption, NIP-42 signatures, exact prompt and receipt contents,
+and restart deduplication. Its journal sink is explicitly in-memory; do not
+claim that workflow alone proves a real PostgreSQL integration or live bunker.
+Read the actual CI result before calling the new code qualified.
+
+Remaining: genuine configured bunker check, reviewed recipient routes, a live
+attended question/reply/journal/acknowledgement trial, durable bounded inbox
+subscription/polling and reconnect tests, retention/backup qualification and
+service deployment. No legacy listener, controller, timer, production journal
+or thermal model has been activated by these repository changes.
+
+Protocol references: [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md),
+[NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md),
+[NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md),
+and [WebSocket client API](https://websockets.readthedocs.io/en/16.0/reference/sync/client.html).

@@ -1,0 +1,2 @@
+# Optional attended relay-delivery dependency; --check-keyer uses the standard library.
+websockets==16.0
