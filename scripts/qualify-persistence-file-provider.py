@@ -18,6 +18,7 @@ run = isolated.run
 sys.path.insert(0, str(ROOT / 'openhab/scripts'))
 from persistence_source import render
 import openhab_sanity_check as oh
+from persistence_boundary import BoundaryLedger
 
 
 def main(database=None):
@@ -25,6 +26,7 @@ def main(database=None):
     expected = oh.get('/persistence/jdbc')
     if render(expected).encode() != source:
         raise RuntimeError('prepared/live strategy drift')
+    boundaries = BoundaryLedger() if database else None
     marker = str(uuid.uuid4())
     command = ['docker', 'run', '-d', '--label', 'hex.persistence.qualification=' + marker,
         '--network', database.network if database else 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',
@@ -96,7 +98,7 @@ def main(database=None):
             for _ in range(30):
                 status, body = request()
                 if wanted is None and status == 404:
-                    return
+                    return status
                 if wanted is not None and status == 200 and json.loads(body) == wanted:
                     return
                 time.sleep(1)
@@ -111,37 +113,57 @@ def main(database=None):
             status, _ = request('DELETE')
             if status != 405:
                 raise RuntimeError('file-owned provider unexpectedly allowed REST deletion')
+            if boundaries:
+                boundaries.begin('file-to-managed-' + str(cycle + 1), database.previous)
             run(['docker', 'exec', cid, 'mv', active, parked])
-            wait_for(None)
+            absent_status = wait_for(None)
+            if boundaries:
+                boundaries.exercise_absence(database, cid, header, absent_status)
             status, _ = request('PUT', managed)
             if status != 201:
                 raise RuntimeError('isolated managed provider creation failed: HTTP ' + str(status))
             wait_for(managed)
             if database:
                 database.checkpoint(cid, header, 'managed-' + str(cycle + 1))
+                boundaries.finish(database.previous)
+                boundaries.begin('managed-to-file-' + str(cycle + 1), database.previous)
             status, _ = request('DELETE')
             if status != 200:
                 raise RuntimeError('isolated managed provider removal failed')
-            wait_for(None)
+            absent_status = wait_for(None)
+            if boundaries:
+                boundaries.exercise_absence(database, cid, header, absent_status)
             run(['docker', 'exec', cid, 'mv', parked, active])
             wait_for(expected)
             if database:
                 database.checkpoint(cid, header, 'file-' + str(cycle + 1))
+                boundaries.finish(database.previous)
             print('exact_file_managed_file_roundtrip_' + str(cycle + 1) + '=verified', flush=True)
         if database:
             database.restore(cid, header)
             database.restart(cid, header)
             wait_for(expected)
+            boundaries.complete()
             print('exact_file_strategy_after_jvm_restart=verified', flush=True)
         else:
             print('database_writes_and_restore=not_tested', flush=True)
         print('whole_host_restart_and_production_cutover=not_tested', flush=True)
     finally:
-        label = run(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.persistence.qualification"}}', cid]).decode().strip()
-        if label != marker:
-            raise RuntimeError('cleanup ownership mismatch')
-        run(['docker', 'rm', '-f', '-v', cid])
-        print('owned_container_tmpfs_and_test_identity_removed=true', flush=True)
+        try:
+            label = run(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.persistence.qualification"}}', cid]).decode().strip()
+            if label != marker:
+                raise RuntimeError('cleanup ownership mismatch')
+            run(['docker', 'rm', '-f', '-v', cid])
+            print('owned_container_tmpfs_and_test_identity_removed=true', flush=True)
+        except BaseException:
+            if boundaries:
+                boundaries.suite_complete = False
+            raise
+        finally:
+            if boundaries:
+                print('persistence_collection_boundary_report=' +
+                      json.dumps(boundaries.report(), sort_keys=True, separators=(',', ':')), flush=True)
+
 
 
 if __name__ == '__main__':

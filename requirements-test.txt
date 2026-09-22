@@ -1,0 +1,6 @@
+# CI/test dependencies only; this file does not change the household runtime.
+pytest>=9,<10
+numpy>=1.26,<3
+scipy>=1.13,<2
+psycopg2-binary>=2.9,<3
+Flask>=3.0,<4

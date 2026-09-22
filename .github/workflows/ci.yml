@@ -1,7 +1,4 @@
-# Minimal CI for the household console: unit suite (~4s), production build,
-# and the Python forecast-pipeline tests. Playwright e2e specs are excluded
-# from unit runs (vite.config.js test.exclude) and self-host a Vite server,
-# so they stay local-only for now.
+# Source validation only: never deploy or contact household services from CI.
 name: CI
 
 on:
@@ -9,9 +6,18 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,5 +27,15 @@ jobs:
       - run: npm ci
       - run: npx vitest run
       - run: npm run build
-      - run: pip install pytest
-      - run: python3 -m pytest openhab/scripts/ -q
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+      - run: python -m pip install -r requirements-test.txt
+      - name: Completion regression tests
+        run: python -m pytest tests/completion/ -q
+      - name: Existing OpenHAB Python tests (including disposable PostgreSQL)
+        run: python -m pytest openhab/scripts/ -q
+      - name: Operational tooling regression tests
+        run: python -m pytest scripts/ -q
