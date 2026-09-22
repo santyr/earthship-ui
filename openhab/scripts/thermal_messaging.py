@@ -33,6 +33,42 @@ def require(condition, reason):
         raise t.Refused(reason)
 
 
+def collector_public_key(value: str) -> str:
+    """Normalize CLI input only; signed events and policy files stay strict hex.
+
+    NIP-19 npub uses BIP-173 Bech32 (not Bech32m), with a 32-byte payload.
+    Validate its checksum, case and zero padding before using the public key.
+    Never echo rejected input: someone may accidentally paste a private key.
+    """
+    reason = 'collector must be a 64-character hex public key or a valid npub'
+    require(isinstance(value, str) and len(value) in {63, 64} and value.isascii(), reason)
+    normalized = value.lower()
+    if t.HEX64.fullmatch(normalized):
+        return normalized
+    require(len(value) == 63 and normalized.startswith('npub1')
+            and (value == normalized or value == value.upper()), reason)
+    alphabet = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
+    words = [alphabet.find(char) for char in normalized[5:]]
+    require(all(word >= 0 for word in words), reason)
+    hrp = 'npub'
+    expanded = [ord(char) >> 5 for char in hrp] + [0] + [ord(char) & 31 for char in hrp]
+    generators = (0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
+    checksum = 1
+    for word in expanded + words:
+        top = checksum >> 25
+        checksum = ((checksum & 0x1ffffff) << 5) ^ word
+        for bit, generator in enumerate(generators):
+            if (top >> bit) & 1:
+                checksum ^= generator
+    require(checksum == 1, reason)
+    # A bare npub is exactly 52 data symbols: 256 key bits and 4 zero pad bits.
+    payload = 0
+    for word in words[:-6]:
+        payload = (payload << 5) | word
+    require(payload & 0x0f == 0, reason)
+    return t.identifier((payload >> 4).to_bytes(32, 'big').hex())
+
+
 def rumor_fields(event):
     return {k: v for k, v in event.items() if k != 'sig'}
 
@@ -437,7 +473,7 @@ def main(argv=None):
     mode.add_argument('--flush', action='store_true')
     parser.add_argument('--nak', type=Path, default=DEFAULT_NAK)
     parser.add_argument('--nak-sha256', default=DEFAULT_SHA256)
-    parser.add_argument('--collector', help='expected collector hex public key for --check-keyer')
+    parser.add_argument('--collector', help='expected collector public key (64-character hex or npub) for --check-keyer')
     parser.add_argument('--policy', type=Path)
     parser.add_argument('--routes', type=Path, help='reviewed signed kind-10050 JSON inventory')
     parser.add_argument('--state-dir', type=Path)
@@ -452,6 +488,7 @@ def main(argv=None):
             if collector is None and args.policy is not None:
                 collector = t.Policy.load(read_private(args.policy)).recipient
             require(collector is not None, '--check-keyer requires --collector or --policy')
+            collector = collector_public_key(collector)
             print(t.canonical(keyer.check_identity(collector)).decode())
             return 0
         require(all(x is not None for x in (args.policy, args.routes, args.state_dir)),
