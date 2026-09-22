@@ -34,6 +34,30 @@ forwarded diagnostics. The crypto child does not receive the PostgreSQL DSN.
 The two nak subprocesses have bounded time/output and fail closed. Nak itself may
 consult its configured network/keyer; no real keyer was invoked in local tests.
 
+## Household nak location
+
+On September 22, 2026, Sat supplied the installed executable path:
+`/home/sat/.local/bin/nak`. Use that exact path on the household host; no
+reinstallation, relocation, PATH lookup, or assumption about a system-wide
+`/usr/local/bin/nak` is needed. This is an operator-supplied location, not a
+remotely verified binary version, digest, or cryptographic acceptance result.
+
+Collect the build inventory on that host before pinning it:
+
+```bash
+env -u NOSTR_SECRET_KEY /home/sat/.local/bin/nak --version
+sha256sum /home/sat/.local/bin/nak
+stat -c '%F %a %U:%G %n' /home/sat/.local/bin/nak
+```
+
+These commands report the version, file digest, and ownership/mode; do not send
+private keys, bunker URLs, environment-file contents, or database credentials.
+A symlink must be reviewed and its actual executable explicitly selected; do not
+silently bypass the ingress's non-symlink check. Keep the reviewed digest as the
+fixed `VERIFIED_BINARY_SHA256` value. Do **not** recalculate and automatically
+trust a new digest on every ingestion: a binary upgrade needs renewed review and
+qualification. Knowing the path does not replace the acceptance tests below.
+
 ## Bind the question before collecting replies
 
 Policy preparation generates a canonical **unsigned** kind-14 question. Its ID
@@ -124,7 +148,7 @@ environment rather than pasted in the shell command, is:
 python3 openhab/scripts/thermal_confirmation.py --apply \
   --policy "$NORMALIZED_POLICY" \
   --spool-dir "$PRIVATE_SPOOL_DIRECTORY" \
-  --nak "$ABSOLUTE_APPROVED_NAK_BINARY" \
+  --nak /home/sat/.local/bin/nak \
   --nak-sha256 "$VERIFIED_BINARY_SHA256" \
   --event-file "$ENCRYPTED_REPLY_FILE"
 ```

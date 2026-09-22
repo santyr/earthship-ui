@@ -176,6 +176,17 @@ def scoring_fixture(monkeypatch, *, qualified=True, old_origin=False):
     monkeypatch.setattr(fi, 'score_hourly_targets', lambda *args: 0)
     monkeypatch.setattr(fi, 'measured_day_weather_with_evidence', lambda day:
                         (None, 80, 40, evidence) if qualified else (None, None, None, None))
+    # main() also checks PV history before reaching the forecast-fetch sentinel.
+    # This temperature fixture must not read host credentials or contact OpenHAB.
+    # The rain/PV test below supplies its own explicit history when needed.
+    def pv_history(item, *args):
+        assert item == 'MPPT60_EnergyFromPV_Today'
+        return []
+    def no_host_access(*args, **kwargs):
+        pytest.fail('temperature scoring fixture attempted host access')
+    monkeypatch.setattr(fi, 'series', pv_history)
+    monkeypatch.setattr(fi, 'auth_token', no_host_access)
+    monkeypatch.setattr(fi, 'oh_get', no_host_access)
     monkeypatch.setattr(fi, 'oh_put_state', lambda *args: None)
     def stop(): raise RuntimeError('after-scoring')
     monkeypatch.setattr(fi, 'fetch_forecast', stop)
