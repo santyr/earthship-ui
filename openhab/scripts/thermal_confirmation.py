@@ -358,9 +358,15 @@ class NakDecoder:
                        if k in {"PATH", "HOME", "LANG", "LC_ALL", "XDG_CONFIG_HOME"}}
         # Database credentials are never exposed to the crypto subprocess.
         self.runner([str(self.executable), "verify"], payload, environment)
-        environment["NOSTR_SECRET_KEY"] = secret
+        identity_environment = {**environment, "NOSTR_SECRET_KEY": secret}
+        # NIP-46 uses a separate client key to talk to the remote signer. Keep
+        # an explicitly configured identity rather than silently losing it at
+        # the subprocess boundary. Neither key is needed by `nak verify`.
+        client_key = os.environ.get("NOSTR_CLIENT_KEY")
+        if client_key:
+            identity_environment["NOSTR_CLIENT_KEY"] = client_key
         clear = self.runner([str(self.executable), "gift", "unwrap"], payload,
-                            environment, limit=MAX_RUMOR)
+                            identity_environment, limit=MAX_RUMOR)
         return validate_event(strict_json(clear, MAX_RUMOR), kind=14, signed=False)
 
 
