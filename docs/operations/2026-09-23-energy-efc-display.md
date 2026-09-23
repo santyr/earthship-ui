@@ -33,3 +33,14 @@ Verification: 1,694 UI tests, production build and six Energy browser checks
 passed, including a 1340x800 card/modal overflow regression. This release does
 not qualify AC load, winter replay, high-SoC exposure, SoH or observed
 curtailment; those producer/evidence tasks remain open.
+
+The qualified full-charge streak producer was subsequently published as
+Solar_PV `41c1494`. It counts only contiguous, complete battery-evidence days:
+`currentNoFullDays` describes the observed no-full run, while `daysSinceFull`
+requires a witnessed 99% day in that run. Neither bridges a gap or partial day.
+The existing `energy-ui-publish.timer` picked up the source at 17:00:29 MDT on
+September 23 (exit 0). Read-only OpenHAB UI-proxy readback showed throughDate
+September 22, battery status `ok`, latestReached99 `true`, and both streak
+fields `0`. The focused analytics/UI contract suite passed 53 tests. The full
+analytics suite cannot collect nine unrelated advisory/trough test modules
+because `advisory_records` and `advisory_windows` are absent from that checkout.
