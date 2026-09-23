@@ -1296,6 +1296,45 @@ def test_cli_shadow_refuses_invalid_decision_clock(tmp_path, monkeypatch, decisi
     assert "decision clock" in destination.read_text()
 
 
+@pytest.mark.parametrize("archive_failure", [False, True])
+def test_cli_shadow_capture_is_default_off_and_failure_does_not_unpublish(
+    tmp_path, monkeypatch, capsys, archive_failure,
+):
+    import thermal_intel
+
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: None)
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {'source': 'test'})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows",
+                        lambda snapshot, now: forecast_hours(24))
+    monkeypatch.setattr(thermal_intel, "ArtifactRegistry", lambda path: AcceptedRegistry())
+    captured, published = [], []
+    def archive(*args, **kwargs):
+        captured.append((args, kwargs))
+        if archive_failure:
+            raise OSError('private test archive failure')
+    monkeypatch.setattr(thermal_intel, 'capture_shadow_inputs', archive)
+    monkeypatch.delenv('THERMAL_SHADOW_CAPTURE_DIR', raising=False)
+    args = SimpleNamespace(output=tmp_path / 'shadow.json', publish=True)
+    status = thermal_intel._shadow(args, NOW, put_state=lambda *values: published.append(values))
+    assert status == 0 and len(published) == 1 and captured == []
+
+    monkeypatch.setenv('THERMAL_SHADOW_CAPTURE_DIR', '/private/test-capture')
+    decision = NOW + timedelta(minutes=1)
+    status = thermal_intel._shadow(
+        args, NOW, put_state=lambda *values: published.append(values),
+        decision_clock=lambda: decision,
+        published_clock=lambda: decision + timedelta(seconds=2),
+    )
+    assert status == 0 and len(published) == 2 and len(captured) == 1
+    assert captured[0][0] == ('/private/test-capture',)
+    assert captured[0][1]['snapshot'] == {'source': 'test'}
+    assert captured[0][1]['inputs_available_at'] == decision
+    assert captured[0][1]['output']['generatedAt'] == decision.isoformat()
+    if archive_failure:
+        assert 'thermal forcing capture gap' in capsys.readouterr().err
+
+
 def test_cli_shadow_journal_operational_error_is_sanitized_and_never_published(
     tmp_path, monkeypatch
 ):

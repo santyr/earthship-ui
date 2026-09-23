@@ -14,6 +14,7 @@ import psycopg2
 import forecast_intel
 from thermal_model.actions import parse_thermal_message
 from thermal_model.artifacts import ArtifactRegistry, DEFAULT_STATE_DIRECTORY
+from thermal_model.forcing_capture import capture_shadow_inputs
 from thermal_model.dataset import latent_mass_from_series
 from thermal_model.journal import ActionJournal, JournalUnavailable, audit_schema
 from thermal_model.pipeline import (
@@ -473,7 +474,8 @@ def publish_shadow_output(payload, put_state=None):
     return encoded
 
 
-def _shadow(args, now, put_state=None, journal=None, decision_clock=None):
+def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
+            published_clock=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     started = time.monotonic()
     current = None
@@ -547,6 +549,20 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None):
     unavailable = output["confidence"]["grade"] == "unavailable"
     if getattr(args, "publish", False) and not unavailable:
         publish_shadow_output(output, put_state=put_state)
+        capture_dir = os.environ.get('THERMAL_SHADOW_CAPTURE_DIR')
+        if capture_dir:
+            try:
+                capture_shadow_inputs(
+                    capture_dir, output=output, snapshot=snapshot, rows=rows,
+                    current=current, inputs_available_at=now,
+                    published_at=(published_clock() if published_clock else
+                                  datetime.now(timezone.utc)),
+                )
+            except (OSError, RuntimeError, TypeError, ValueError):
+                # An observational archive failure cannot revoke an already
+                # accepted UI publication; the missing replay proof is explicit.
+                print('thermal forcing capture gap: input archive unavailable',
+                      file=sys.stderr)
     print(encoded, file=sys.stderr if unavailable else sys.stdout)
     return int(unavailable)
 
