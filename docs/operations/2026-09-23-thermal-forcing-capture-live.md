@@ -60,3 +60,20 @@ Together the two mature, capture-qualified one-hour points have model MAE
 forecast error signs alongside two indoor underpredictions do not prove a
 specific physical-model cause. Neither 24-hour captured target is mature,
 and no shadow graduation, tuning or advisory change follows from two points.
+
+Later September 23, the existing read-only strict scorer was rerun after the
+13:51 MDT captured publication's one-hour target matured. Across three
+non-overlapping one-hour pairs from one revision, model MAE was **2.162°F**
+versus same-origin persistence **0.840°F**, with signed model bias −2.162°F.
+All three broad intervals covered their outcomes; mean width was 10.414°F.
+The exact-forcing outdoor forecast had MAE 3.4933°F and bias +2.7333°F on
+those same three targets. This adds evidence of indoor underprediction, not a
+qualified correction or weather-causality finding.
+
+The first captured six-hour target also matured: one model error was −6.529°F
+versus −3.420°F for persistence. Its 10.414°F interval missed the qualified
+outcome, while the same target's outdoor forcing error was +1.26°F. This
+single case points to a high-priority physical-model diagnosis but cannot
+identify a coefficient or regime correction. The strict 24-hour scorer found
+five publications with outcomes not yet due and zero capture-qualified scores.
+The model remains in shadow; no tuning, release gate or advice was changed.

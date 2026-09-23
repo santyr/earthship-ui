@@ -7,12 +7,19 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 23, 2026
 
+The next [strict forcing-capture score](2026-09-23-thermal-forcing-capture-live.md)
+has three matured non-overlapping one-hour pairs for the current revision:
+model MAE 2.162°F versus persistence 0.840°F. Its first six-hour pair missed
+low by 6.529°F and fell outside the published interval, versus a 3.420°F
+persistence error. No capture-qualified 24-hour target is mature. These are
+diagnostics for historical/physical-model tuning, not grounds to leave shadow.
+
 The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-preactivation.md)
 records a default-off daily command and opt-in v4 publisher path pushed to
 Solar_PV, with 838 analytics tests passing. The live service still emits v3.
 An 828-row AC stream audit has one startup barrier and no sequence gaps, but
 not full-day or fault/restart evidence. Four scoped restricted-role
-grant is required for the new table, identity sequence and `item0653`; the
+grants are required for the new table, identity sequence and `item0653`; the
 approval gate rejected that production privilege change, and readback proves
 no partial grant. Do not retry without explicit operator approval.
 
@@ -27,9 +34,9 @@ The [read-first AC UI v4 contract](ac-load-ui-v4.md) is now implemented and
 tested without activating an AC publisher. It accepts a distinct observed
 inverter-output day with coverage, revision, cutover and topology provenance,
 while keeping the existing v3 load and DC/AC balance fields withheld. The
-first complete AC day is not due until September25 06:00Z. A selected-revision
-reader, long-run/fault/restart/retention evidence,
-and v4 writer activation are still required.
+first complete AC day is not due until September25 06:00Z. Long-run,
+fault/restart and retention evidence, restricted-role grants and explicit
+v4 publication activation are still required.
 
 The [AC-day revision schema](2026-09-23-ac-day-revision-schema.md) is now live
 and empty after a backed-up, isolated-test-qualified additive migration. The
