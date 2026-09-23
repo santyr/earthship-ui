@@ -1,12 +1,13 @@
 import { parseSourceTimestamp } from '../openhab/timestamp.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
+import { atomicSocFreshness } from './atomicSoc.js';
 
 export const ESSENTIAL_STALE_THRESHOLD_MS = 15 * 60000;
 export const STALENESS_CHECK_INTERVAL_MS = 60000;
 export const ESSENTIAL_ITEMS = Object.freeze([
   Object.freeze({ name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', label: 'Outdoor temperature', route: 'home' }),
   Object.freeze({ name: 'AmbientWeatherWS2902A_IndoorSensor_Temperature', label: 'Indoor temperature', route: 'home' }),
-  Object.freeze({ name: 'BMS_SOC', label: 'Battery SoC', route: 'energy', thresholdMs: 12 * 60000 }),
+  Object.freeze({ name: 'BMS_SOC', label: 'Battery SoC', route: 'energy' }),
 ]);
 export const TEMPERATURE_ITEMS = Object.freeze(ESSENTIAL_ITEMS.filter(item => item.name !== 'BMS_SOC'));
 
@@ -19,7 +20,16 @@ export function computeStaleEssentials(evidence = {}, nowMs = Date.now(), { valu
     if (item.name === 'BMS_SOC') {
       const comms = normalizedComms(values.BMS_Comms_Status);
       if ((comms && comms.toUpperCase() !== 'OK') || normalizedDevicePresent(values.BMS_DevicePresent) === false) continue;
-      timestamp = comms ? parseSourceTimestamp(values.BMS_SOC_LastUpdate, nowMs) : null;
+      // BMS_SOC is change-only. Its scaler heartbeat can advance without a
+      // validated acquisition, so only the atomic source receipt proves health.
+      const receipt = comms ? atomicSocFreshness(values.BMS_SOC_Evidence_JSON, nowMs) : null;
+      if (receipt) continue;
+      stale.push({
+        name: item.name, label: item.label, route: item.route, severity: 'warning',
+        unavailable: true,
+        fullText: 'Battery SoC atomic acquisition evidence is unavailable or stale.',
+      });
+      continue;
     } else {
       const source = evidence[item.name];
       timestamp = source?.available ? parseSourceTimestamp(source.lastKnown, nowMs) : null;

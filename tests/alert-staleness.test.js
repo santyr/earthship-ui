@@ -8,6 +8,11 @@ import { ESSENTIAL_ITEMS, computeStaleEssentials } from '../src/lib/alerts/stale
 const OUT = ESSENTIAL_ITEMS[0].name;
 const IN = ESSENTIAL_ITEMS[1].name;
 const NOW = Date.parse('2026-09-05T18:00:00Z');
+function socReceipt(at = Date.now(), soc = 100) {
+  return JSON.stringify({ version: 1, streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+    recordedAt: at, status: 'valid', reason: 'ok', observedAt: at - 1000,
+    scaleObservedAt: at - 1000, validUntil: at + 119000, soc });
+}
 let stream, stop, snapshot;
 class FakeES { static all = []; constructor(url) { this.url = url; FakeES.all.push(this); } close() {} }
 function emit(name, suffix, payload) {
@@ -17,7 +22,7 @@ function healthy(at = Date.now()) {
   return [
     { name: OUT, state: '70', lastStateUpdate: at }, { name: IN, state: '69', lastStateUpdate: at },
     { name: 'BMS_SOC', state: '100', lastStateUpdate: at - 6 * 3600000 },
-    { name: 'BMS_SOC_LastUpdate', state: new Date(at).toISOString() },
+    { name: 'BMS_SOC_Evidence_JSON', state: socReceipt(at) },
     { name: 'BMS_Comms_Status', state: 'OK' }, { name: 'BMS_DevicePresent', state: '1' },
   ];
 }
@@ -45,17 +50,16 @@ it('does not manufacture boot alarms; an empty successful snapshot warns', async
   expect(warnings().every(a => a.severity === 'warning' && a.shortText.includes('unavailable'))).toBe(true);
   expect(get(consoleAlerts).alerts.some(a => a.priorityKey === 'battery-critical')).toBe(false);
 });
-it('accepts the actual compact-offset BMS heartbeat state', async () => {
+it('a scaler heartbeat cannot cure absent atomic acquisition evidence', async () => {
   await boot();
-  emit('BMS_SOC_LastUpdate', 'statechanged', { value: '2026-09-05T11:59:59.824-0600' });
-  expect(warnings().map(a => a.id)).not.toContain('telemetry-stale:BMS_SOC');
-  emit('BMS_SOC_LastUpdate', 'statechanged', { value: '2026-09-05T12:00:01-0600' });
+  emit('BMS_SOC_Evidence_JSON', 'statechanged', { value: 'UNDEF' });
+  emit('BMS_SOC_LastUpdate', 'statechanged', { value: new Date(Date.now()).toISOString() });
   expect(warnings().map(a => a.id)).toContain('telemetry-stale:BMS_SOC');
 });
-it('keeps hours of constant SoC healthy using the heartbeat value', async () => {
+it('keeps hours of constant SoC healthy using fresh atomic receipts', async () => {
   await boot();
-  for (let i = 0; i < 48; i++) {
-    vi.advanceTimersByTime(5 * 60000); emit('BMS_SOC_LastUpdate', 'statechanged', { value: new Date(Date.now()).toISOString() });
+  for (let i = 0; i < 120; i++) {
+    vi.advanceTimersByTime(60000); emit('BMS_SOC_Evidence_JSON', 'statechanged', { value: socReceipt() });
     for (const name of [OUT, IN]) emit(name, 'stateupdated', { value: '70', lastStateUpdate: Date.now() });
     expect(warnings()).toEqual([]);
   }
@@ -86,10 +90,10 @@ it('retains diagnostic time on invalid evidence and ignores older valid evidence
 it('reconnect requests another snapshot without rejuvenating stale evidence', async () => {
   const client = await boot(healthy(NOW - 16 * 60000)); snapshot = healthy(NOW - 30 * 60000); FakeES.all[0].onerror(); await vi.advanceTimersByTimeAsync(1000); FakeES.all.at(-1).onopen(); await Promise.resolve(); await Promise.resolve();
   expect(client.getAllItems).toHaveBeenCalledTimes(2); expect(get(itemUpdateEvidence)[OUT].lastKnown).toBe(NOW - 16 * 60000); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
-  applySnapshot([]); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 16 * 60000, available: false }); expect(get(items).BMS_SOC_LastUpdate).toBeUndefined();
+  applySnapshot([]); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 16 * 60000, available: false }); expect(get(items).BMS_SOC_Evidence_JSON).toBeUndefined();
 });
-it.each([undefined, 'NULL', 'UNDEF', 'bad', '2026-09-05T18:00:01Z', '2026-09-05T17:47:59Z'])('warns on unusable or expired heartbeat %s', async value => {
-  await boot(); if (value === undefined) applySnapshot(healthy().filter(row => row.name !== 'BMS_SOC_LastUpdate')); else emit('BMS_SOC_LastUpdate', 'statechanged', { value });
+it.each([undefined, 'NULL', 'UNDEF', 'bad', socReceipt(NOW - 120000), socReceipt(NOW + 1000)])('warns on unusable or expired atomic evidence %s', async value => {
+  await boot(); if (value === undefined) applySnapshot(healthy().filter(row => row.name !== 'BMS_SOC_Evidence_JSON')); else emit('BMS_SOC_Evidence_JSON', 'statechanged', { value });
   expect(warnings().map(a => a.id)).toContain('telemetry-stale:BMS_SOC');
 });
 it.each([undefined, 'NULL', 'UNDEF', ''])('missing comms %s warns without becoming a critical fault', async value => {
@@ -100,6 +104,6 @@ it.each([['BMS_Comms_Status', 'FAULT'], ['BMS_DevicePresent', 'OFF']])('explicit
 });
 it('checks exact thresholds and stops both reactive and timer updates', async () => {
   await boot(); const evaluate = elapsed => computeStaleEssentials(get(itemUpdateEvidence), NOW + elapsed, { values: get(items), ready: true }).map(a => a.name);
-  expect(evaluate(12 * 60000)).not.toContain('BMS_SOC'); expect(evaluate(12 * 60000 + 1)).toContain('BMS_SOC'); expect(evaluate(15 * 60000)).not.toContain(OUT); expect(evaluate(15 * 60000 + 1)).toContain(OUT);
+  expect(evaluate(119000 - 1)).not.toContain('BMS_SOC'); expect(evaluate(119000)).toContain('BMS_SOC'); expect(evaluate(15 * 60000)).not.toContain(OUT); expect(evaluate(15 * 60000 + 1)).toContain(OUT);
   stop(); const before = get(alertContext); emit('BMS_Comms_Status', 'statechanged', { value: 'UNDEF' }); vi.advanceTimersByTime(20 * 60000); expect(get(alertContext)).toBe(before);
 });

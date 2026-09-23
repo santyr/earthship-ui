@@ -85,9 +85,15 @@ test.afterAll(async () => {
   await server?.close();
 });
 
+function socReceipt(at, soc = 62) {
+  return JSON.stringify({ version: 1, streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+    recordedAt: at, status: 'valid', reason: 'ok', observedAt: at - 1000,
+    scaleObservedAt: at - 1000, validUntil: at + 119000, soc });
+}
+
 function itemSnapshot(overrides = {}) {
   const sourceAt = Date.now() - 1000;
-  return Object.entries({ ...BASE_STATES, BMS_SOC_LastUpdate: new Date(sourceAt).toISOString(), ...overrides })
+  return Object.entries({ ...BASE_STATES, BMS_SOC_Evidence_JSON: socReceipt(sourceAt), ...overrides })
     .map(([name, state]) => ({ name, state, type: 'String', lastStateUpdate: sourceAt }));
 }
 
@@ -1344,8 +1350,8 @@ test('upstream freshness reaches the tablet header without value changes', async
   await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
   await page.clock.fastForward(16 * 60000);
   await runtime.emitState('BMS_SOC', '62');
-  await expect(page.locator('[data-header-alert-winner]')).toContainText('stale');
-  await runtime.emitState('BMS_SOC_LastUpdate', await page.evaluate(() => new Date(Date.now()).toISOString()));
+  await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
+  await runtime.emitState('BMS_SOC_Evidence_JSON', socReceipt(await page.evaluate(() => Date.now())));
   await page.evaluate(() => {
     const source = window.__fixtureEventSources.at(-1);
     for (const name of ['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 'AmbientWeatherWS2902A_IndoorSensor_Temperature']) {
@@ -1354,7 +1360,7 @@ test('upstream freshness reaches the tablet header without value changes', async
   });
   await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
   await expect(page.locator('.battery-arc .arc-value')).toHaveText('62%');
-  await runtime.emitState('BMS_SOC_LastUpdate', 'UNDEF');
+  await runtime.emitState('BMS_SOC_Evidence_JSON', 'UNDEF');
   await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
   await runtime.emitState('BMS_Comms_Status', 'FAULT');
   await expect(page.locator('[data-header-alert-winner]')).toContainText('BMS communication fault');

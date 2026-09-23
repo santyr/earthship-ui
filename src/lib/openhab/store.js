@@ -44,7 +44,7 @@ export function applySnapshot(arr) {
   for (const item of TEMPERATURE_ITEMS) applyUpdateEvidence(item.name, rows.get(item.name)?.lastStateUpdate);
   items.update((m) => {
     const next = { ...m };
-    for (const name of ['BMS_SOC_LastUpdate', 'BMS_Comms_Status', 'BMS_DevicePresent']) {
+    for (const name of ['BMS_SOC_Evidence_JSON', 'BMS_Comms_Status', 'BMS_DevicePresent']) {
       if (!rows.has(name)) delete next[name];
     }
     for (const it of arr) next[it.name] = it.state;
