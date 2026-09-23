@@ -7,6 +7,14 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 23, 2026
 
+The [EFC display clarification](2026-09-23-energy-efc-display.md) now keeps
+qualified observed-window EFC on the Energy card with its date range and shows
+the preserved 9.809 pre-cutover estimate separately and explicitly dated in
+Details for the same bank epoch. The figures are not added. The modal now
+displays qualified daily discharge and concise pending states instead of rows
+of unsupported numbers; Lenovo layout tests pass. Source-side winter, SoH,
+high-SoC, curtailment and AC-load qualification remain unfinished.
+
 The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
 isolated OpenHAB/JDBC restore and live managed rollback/return qualification.
 Its state, stable JDBC mapping/history and shadow timer were preserved; a
@@ -316,6 +324,9 @@ rehearsals. The actual live cutover also verified managed rollback and return
 to file ownership, exact states and unchanged item580/581/588 histories. The
 forecast timer is active; next natural file-provider publication remains to be
 observed at about15:16 MDT. No synthetic production values were posted.
+The 15:17 MDT natural publisher exited0, and each of the three file-owned Items
+matched a new JDBC row under its unchanged identity. This resource's first
+post-transfer publication check is complete; see the updated cutover receipt.
 
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:

@@ -38,3 +38,11 @@ service. The ownership manifest declares the three resources, and inventory
 issues are zero. A subsequent natural publisher run under the new provider is
 still needed to close this resource's live publication gate; the next scheduled
 run is approximately 15:16 MDT. No full production OpenHAB restart was done.
+
+Natural-publication follow-up at 15:17:26 MDT: `forecast-json.service` ran from
+its active timer and exited 0. All three Items remained `editable:false` and
+their REST states exactly matched the latest JDBC values without exposing the
+payloads. The original JDBC identities 580/581/588 remained unchanged; each
+history gained one row since cutover, with final timestamps 21:17:26.789957Z,
+21:17:26.795965Z and 21:17:26.799724Z respectively. This closes the first
+natural post-transfer publication check, not a whole-OpenHAB restart claim.

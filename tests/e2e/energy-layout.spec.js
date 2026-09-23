@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'vite';
 
-import { energyAnalyticsFixture, energyAnalyticsV2Fixture } from '../fixtures/energyAnalytics.js';
+import { energyAnalyticsFixture, energyAnalyticsV2Fixture, energyAnalyticsCurrentV3Fixture } from '../fixtures/energyAnalytics.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -136,6 +136,23 @@ test('Energy period selection issues a fresh 4-hour history range', async ({ pag
   const start = Date.parse(latest.searchParams.get('starttime'));
   const end = Date.parse(latest.searchParams.get('endtime'));
   expect(end - start).toBe(4 * 60 * 60 * 1000);
+});
+
+test('Lenovo Energy shows dated observed and earlier estimated EFC without horizontal overflow', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsCurrentV3Fixture());
+  await expect(page.locator('.analytics-value')).toHaveText('0.43 observed EFC');
+  await expect(page.locator('.analytics-through')).toHaveText('since Sep 20 · through Sep 22');
+  await page.getByRole('button', { name: 'Open energy analytics details' }).click();
+  await expect(page.getByText('Earlier estimated EFC (Jul 19–Sep 19)')).toBeVisible();
+  await expect(page.getByText('9.81')).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const panel = document.querySelector('.analytics-panel');
+    const compact = document.querySelector('.analytics-compact');
+    return { bodyOverflow: document.body.scrollWidth > document.body.clientWidth,
+      panelOverflow: panel.scrollWidth > panel.clientWidth,
+      compactOverflow: compact.scrollWidth > compact.clientWidth };
+  });
+  expect(layout).toEqual({ bodyOverflow: false, panelOverflow: false, compactOverflow: false });
 });
 
 

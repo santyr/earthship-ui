@@ -13,6 +13,7 @@ import {
   energyAnalyticsFixture,
   energyAnalyticsV3Fixture,
   energyAnalyticsV4Fixture,
+  energyAnalyticsCurrentV3Fixture,
 } from '../fixtures/energyAnalytics.js';
 
 
@@ -27,6 +28,22 @@ afterEach(() => {
 });
 
 describe('EnergyAnalyticsDetail observational presentation', () => {
+  it('separates current observed EFC from a dated earlier estimate and explains pending fields', async () => {
+    const payload = energyAnalyticsCurrentV3Fixture();
+    const parsed = parseEnergyAnalyticsResult(JSON.stringify(payload), Date.parse(payload.generatedAt) + 60_000);
+    const { container } = render(EnergyAnalyticsDetail, { result: parsed });
+    expect(screen.getByText('0.43 observed EFC')).toBeTruthy();
+    expect(screen.getByText('since Sep 20 · through Sep 22')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+    expect(screen.getByText('Earlier estimated EFC (Jul 19–Sep 19)')).toBeTruthy();
+    expect(screen.getByText('9.81')).toBeTruthy();
+    expect(container.textContent).toContain('1 insufficient-data day');
+    expect(container.textContent).toContain('not added to observed EFC');
+    expect(screen.getByText('Awaiting qualified AC day')).toBeTruthy();
+    expect(screen.getByText('Discharge')).toBeTruthy();
+    expect(screen.getByText('Qualified winter analysis is pending.')).toBeTruthy();
+    expect(screen.queryByText('State of health')).toBeNull();
+  });
   it('shows observed AC load with coverage and keeps DC/AC balance withheld', async () => {
     const { container } = render(EnergyAnalyticsDetail, { result: result(energyAnalyticsV4Fixture()) });
     await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));

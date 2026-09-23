@@ -27,7 +27,9 @@ Three observational forecast JSON Items now share
 `items/forecast-json.items`; their isolated provider/JDBC/full-restart checks,
 live managed rollback and return, state preservation and unchanged history are
 recorded in `docs/operations/2026-09-23-forecast-json-item-cutover.md`.
-Their first natural post-transfer publisher run remains to be observed.
+Their first natural post-transfer publisher run succeeded at 15:17 MDT with
+exact live Item/JDBC state matches under preserved identities; see the cutover
+receipt.
 `items/inverter-ac-output-observation.items` is an additional file-owned,
 read-only link to the existing inverter AC-power channel. Its canonical JS
 transform is `openhab/transform/inverter_ac_output_observation.js`. This

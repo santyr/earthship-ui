@@ -196,7 +196,7 @@
             {bmsHealthy ? 'OK' : 'Fault'}
           </div>
         </div>
-        <EnergyAnalyticsDetail result={analytics} />
+        <div class="analytics-slot"><EnergyAnalyticsDetail result={analytics} /></div>
       </div>
     </Tile>
   </div>
@@ -416,7 +416,7 @@
   /* ---- Battery vitals ---- */
   .vitals-body {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     height: 100%;
     align-items: center;
     gap: 0.5rem;
@@ -426,6 +426,7 @@
     flex-direction: column;
     gap: 0.2rem;
   }
+  .analytics-slot { grid-column: span 2; min-width: 0; }
   .vital-label {
     font-size: 0.68rem;
     color: #8b93a1;

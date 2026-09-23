@@ -86,3 +86,22 @@ export function energyAnalyticsV4Fixture() {
   };
   return value;
 }
+
+export function energyAnalyticsCurrentV3Fixture() {
+  const value = energyAnalyticsV3Fixture();
+  value.generatedAt = '2026-09-23T22:35:29Z';
+  value.throughDate = '2026-09-22';
+  value.energy.latest.date = '2026-09-22';
+  value.lifecycle.periodEfc = 0.4347889408117881;
+  Object.assign(value.accounting, {
+    cutover: '2026-09-20T15:18:58.261099Z',
+    windowStart: '2026-09-20',
+    windowEndExclusive: '2026-09-23',
+    daysPresent: 3,
+    missingDays: 0,
+    latestRevision: { id: 3, sha256: 'a'.repeat(64), computedAt: '2026-09-23T06:22:32Z' },
+  });
+  value.forecast.issuedAt = '2026-09-23T21:00:00Z';
+  value.forecast.validFor = '2026-09-24T06:00:00Z';
+  return value;
+}

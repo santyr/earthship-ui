@@ -1,5 +1,6 @@
 <script>
   import { onDestroy, tick } from 'svelte';
+  import { priorEfcEstimateFor } from '../energy/priorEfcEstimate.js';
 
   let { result } = $props();
   let open = $state(false);
@@ -13,6 +14,7 @@
   const badge = $derived(
     result?.state === 'stale' ? 'STALE' : result?.accounting?.daysPresent === 0 && !result?.acLoad?.latest ? 'WAITING' : result?.state === 'ready' ? 'CURRENT' : 'PARTIAL'
   );
+  const priorEfc = $derived(priorEfcEstimateFor(result));
 
   function metric(value, suffix = '', digits = 1) {
     return typeof value === 'number' && Number.isFinite(value)
@@ -82,7 +84,7 @@
       <div class="analytics-label">Analytics <span class="analytics-badge">{badge}</span></div>
       <div class="analytics-meta">
         <span class="analytics-value">{result.accounting?.daysPresent === 0 ? result.acLoad?.latest ? metric(result.acLoad.latest.observedKwh, ' kWh AC') : 'No daily data' : metric(result.accounting ? result.lifecycle?.periodEfc : result.lifecycle?.endingCumulativeEfc, result.accounting ? ' observed EFC' : ' EFC', 2)}</span>
-        <span class="analytics-through">{result.throughDate ? `through ${shortDate(result.throughDate)}` : result.acLoad?.latest?.date ? `AC through ${shortDate(result.acLoad.latest.date)}` : 'qualified accounting'}</span>
+        <span class="analytics-through">{result.accounting && result.throughDate ? `since ${shortDate(result.accounting.windowStart)} · through ${shortDate(result.throughDate)}` : result.throughDate ? `through ${shortDate(result.throughDate)}` : result.acLoad?.latest?.date ? `AC through ${shortDate(result.acLoad.latest.date)}` : result.accounting ? `since ${shortDate(result.accounting.windowStart)} · awaiting daily data` : 'No completed daily records'}</span>
       </div>
     </div>
     <button class="analytics-open" type="button" aria-label="Open energy analytics details" onclick={openDetail}>
@@ -125,44 +127,48 @@
             <div><dt>Daily SoC range (DoD)</dt><dd class="metric-value">{metric(result.battery.latestDepthOfDischargePct, ' pp')}</dd></div>
             <div><dt>{result.accounting ? 'Daily observed EFC' : 'Daily estimated EFC'}</dt><dd>{metric(result.battery.latestEfc, '', 3)}</dd></div>
             <div><dt>Reached 99%</dt><dd>{yesNo(result.battery.latestReached99)}</dd></div>
-            <div><dt>Days since full</dt><dd>{count(result.battery.daysSinceFull)}</dd></div>
-            <div><dt>Current no-full run</dt><dd>{count(result.battery.currentNoFullDays, ' d')}</dd></div>
+            {#if result.battery.daysSinceFull !== null}<div><dt>Days since full</dt><dd>{count(result.battery.daysSinceFull)}</dd></div>{/if}
+            {#if result.battery.currentNoFullDays !== null}<div><dt>Current no-full run</dt><dd>{count(result.battery.currentNoFullDays, ' d')}</dd></div>{/if}
           </dl>
         </section>
         <section>
           <h3>Energy</h3>
           <dl>
             <div><dt>PV</dt><dd>{metric(result.energy.latest?.pvKwh, ' kWh')}</dd></div>
-            <div><dt>{result.acLoad ? 'Observed AC load' : 'Load'}</dt><dd>{metric(result.acLoad?.latest?.observedKwh ?? result.energy.latest?.loadKwh, ' kWh')}</dd></div>
+            <div><dt>{result.acLoad ? 'Observed AC load' : 'Load'}</dt><dd>{result.accounting && !result.acLoad?.latest ? 'Awaiting qualified AC day' : metric(result.acLoad?.latest?.observedKwh ?? result.energy.latest?.loadKwh, ' kWh')}</dd></div>
             <div><dt>Charge</dt><dd>{metric(result.energy.latest?.chargeKwh, ' kWh')}</dd></div>
-            <div><dt>Observed curtailment</dt><dd>{metric(result.energy.observedCurtailmentKwh, ' kWh')}</dd></div>
+            <div><dt>Discharge</dt><dd>{metric(result.energy.latest?.dischargeKwh, ' kWh')}</dd></div>
+            {#if result.energy.observedCurtailmentKwh !== null}<div><dt>Observed curtailment</dt><dd>{metric(result.energy.observedCurtailmentKwh, ' kWh')}</dd></div>{/if}
           </dl>
         </section>
         <section>
           <h3>Winter</h3>
-          <dl>
+          {#if result.winter.status === 'unavailable'}
+            <p class="section-pending">Qualified winter analysis is pending.</p>
+          {:else}<dl>
             <div><dt>Observation days</dt><dd>{count(result.winter.observationDays)}</dd></div>
             <div><dt>Lowest SoC</dt><dd>{metric(result.winter.lowestSocPct, '%')}</dd></div>
             <div><dt>Median daily low</dt><dd>{metric(result.winter.medianMinSocPct, '%')}</dd></div>
             <div><dt>Longest no-full run</dt><dd>{count(result.winter.longestNoFullDays, ' d')}</dd></div>
-          </dl>
+          </dl>{/if}
         </section>
         <section>
           <h3>Lifecycle</h3>
           <dl>
             <div><dt>{result.accounting ? 'Window observed EFC' : 'Ending estimated EFC'}</dt><dd>{metric(result.accounting ? result.lifecycle.periodEfc : result.lifecycle.endingCumulativeEfc, '', 2)}</dd></div>
+            {#if priorEfc}<div><dt>Earlier estimated EFC ({shortDate(priorEfc.firstDate)}–{shortDate(priorEfc.throughDate)})</dt><dd>{metric(priorEfc.estimateEfc, '', 2)}</dd></div>{/if}
             <div><dt>Charge throughput</dt><dd>{metric(result.lifecycle.chargeKwh, ' kWh')}</dd></div>
-            <div><dt>Above 95% SoC</dt><dd>{metric(result.lifecycle.highSocHoursAbove95, ' h')}</dd></div>
-            <div><dt>State of health</dt><dd>{metric(result.lifecycle.stateOfHealthPct, '%')}</dd></div>
+            {#if result.lifecycle.highSocHoursAbove95 !== null}<div><dt>Above 95% SoC</dt><dd>{metric(result.lifecycle.highSocHoursAbove95, ' h')}</dd></div>{/if}
+            {#if result.lifecycle.stateOfHealthPct !== null}<div><dt>State of health</dt><dd>{metric(result.lifecycle.stateOfHealthPct, '%')}</dd></div>{/if}
           </dl>
         </section>
         <section>
           <h3>Forecast</h3>
           <dl>
             <div><dt>PV forecast day</dt><dd>{metric(result.forecast.pv24hKwh, ' kWh')}</dd></div>
-            <div><dt>Next morning SoC</dt><dd>{metric(result.forecast.nextMorningSocPct, '%')}</dd></div>
-            <div><dt>Full today</dt><dd>{yesNo(result.forecast.fullToday)}</dd></div>
-            <div><dt>Full tomorrow</dt><dd>{yesNo(result.forecast.fullTomorrow)}</dd></div>
+            {#if result.forecast.nextMorningSocPct !== null}<div><dt>Next morning SoC</dt><dd>{metric(result.forecast.nextMorningSocPct, '%')}</dd></div>{/if}
+            {#if result.forecast.fullToday !== null}<div><dt>Full today</dt><dd>{yesNo(result.forecast.fullToday)}</dd></div>{/if}
+            {#if result.forecast.fullTomorrow !== null}<div><dt>Full tomorrow</dt><dd>{yesNo(result.forecast.fullTomorrow)}</dd></div>{/if}
           </dl>
         </section>
         <section>
@@ -178,7 +184,8 @@
       </div>
       {#if result.accounting}
         <p class="analytics-note">Qualified observations: {result.accounting.windowStart} to {result.accounting.windowEndExclusive} (end exclusive). {result.accounting.daysPresent} days present; {result.accounting.missingDays} missing. Latest battery coverage {metric(result.accounting.latestBatteryCoverage === null ? null : result.accounting.latestBatteryCoverage * 100, '%')}; PV coverage {metric(result.accounting.latestPvCoverage === null ? null : result.accounting.latestPvCoverage * 100, '%')}.</p>
-        <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded. {result.acLoad ? 'DC PV and AC load cannot be subtracted into a valid balance.' : 'Load balance is unavailable pending qualified inverter-output receipts; inverter output represents household load only while all loads remain inverter-served.'}</p>
+        <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded from observed totals. {result.acLoad ? 'DC PV and AC load cannot be subtracted into a valid balance.' : 'Load balance is unavailable pending qualified inverter-output receipts; inverter output represents household load only while all loads remain inverter-served.'}</p>
+        {#if priorEfc}<p class="analytics-note">Earlier estimate: {priorEfc.days} consecutive recorded days in this bank epoch, with {priorEfc.insufficientDataDays} insufficient-data day. It is a dated legacy estimate, not a BMS lifetime count, and is not added to observed EFC.</p>{/if}
         {#if result.acLoad}
           <p class="analytics-note">AC load {result.acLoad.status}: {result.acLoad.latest?.date ?? 'no completed day'}; coverage {metric(result.acLoad.latest === null ? null : result.acLoad.latest.coverage * 100, '%')}; revision {result.acLoad.latest?.revision.id ?? 'unavailable'}. Inverter output represents household load only while all loads remain inverter-served, without bypass or generator supplementation.</p>
         {/if}
@@ -188,7 +195,7 @@
       {#if result.battery.status === 'degraded'}
         <p class="analytics-note">The latest day is incomplete; daily battery values may change.</p>
       {/if}
-      <p class="analytics-note">Observed summaries only. Unavailable values are not estimated.</p>
+      <p class="analytics-note">Missing qualified measurements remain pending; no values are filled from unrelated telemetry.</p>
     </div>
   </div>
 {/if}
@@ -218,5 +225,6 @@
   dd { margin: 0; font-size: .72rem; font-weight: 600; text-transform: capitalize; text-align: right; }
   dd.metric-value { text-transform: none; }
   .analytics-note { margin: .75rem 0 0; color: #8b93a1; font-size: .68rem; }
+  .section-pending { margin: 0; color: #8b93a1; font-size: .72rem; line-height: 1.4; }
   @media (max-width: 760px) { .analytics-sections { grid-template-columns: 1fr; } }
 </style>
