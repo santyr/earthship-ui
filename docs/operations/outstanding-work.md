@@ -7,6 +7,15 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 23, 2026
 
+The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-preactivation.md)
+records a default-off daily command and opt-in v4 publisher path pushed to
+Solar_PV, with 838 analytics tests passing. The live service still emits v3.
+An 828-row AC stream audit has one startup barrier and no sequence gaps, but
+not full-day or fault/restart evidence. Four scoped restricted-role
+grant is required for the new table, identity sequence and `item0653`; the
+approval gate rejected that production privilege change, and readback proves
+no partial grant. Do not retry without explicit operator approval.
+
 The first natural thermal shadow run after the installed-v4 confirmation-CLI
 hardening succeeded at 15:51 MDT. Its verified private forcing archive exactly
 matched the live shadow Item and the timer rescheduled. The result remained
