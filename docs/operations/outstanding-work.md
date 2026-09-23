@@ -11,9 +11,15 @@ The [read-first AC UI v4 contract](ac-load-ui-v4.md) is now implemented and
 tested without activating an AC publisher. It accepts a distinct observed
 inverter-output day with coverage, revision, cutover and topology provenance,
 while keeping the existing v3 load and DC/AC balance fields withheld. The
-first complete AC day is not due until September25 06:00Z. Append-only AC
-storage, selected-revision reader, long-run/fault/restart/retention evidence,
+first complete AC day is not due until September25 06:00Z. A selected-revision
+reader, long-run/fault/restart/retention evidence,
 and v4 writer activation are still required.
+
+The [AC-day revision schema](2026-09-23-ac-day-revision-schema.md) is now live
+and empty after a backed-up, isolated-test-qualified additive migration. The
+matching Solar_PV v4 payload validator is also pushed. Append-only AC storage
+is therefore ready but has no scheduled writer or selected-revision reader;
+the remaining runtime and publication gates above still apply.
 
 September23 live follow-up: the existing qualified daily power job naturally
 materialized September20,21,22; the UI publication reports three present days,
