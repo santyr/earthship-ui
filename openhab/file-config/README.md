@@ -15,6 +15,10 @@ Canonical source files live here; deploy only their declared destinations.
 Preparing a source file does not transfer runtime ownership. Existing managed
 resources remain managed until a verified, receipt-backed cutover removes that
 provider and loads the file definition. Never create overlapping definitions.
+`items/openmeteo-current-aqi.items` is prepared only. `Current_US_AQI` and its
+OpenMeteo channel link remain managed; do not install the prepared file until an
+isolated provider/link and state-recovery rehearsal plus a private rollback
+snapshot have passed. The ownership manifest must change only after live readback.
 
 ## Staged migration and rollback
 

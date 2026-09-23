@@ -35,6 +35,21 @@ coverage. No backup or production configuration was changed by this inspection.
 
 ## Remaining migration scope
 
+September 23 live refresh: the read-only extended inventory reports 422 managed
+and seven non-managed Items, 81 managed and three non-managed Things, 261
+managed and one non-managed link, 35 managed rules, one non-managed JDBC
+strategy, and zero structural/ownership issues. It also sees 18 add-ons, 12 UI
+pages and 15 transformations. This is still non-atomic and not a restore export.
+
+The next staged observational candidate is `Current_US_AQI`. Its live managed
+definition is a Number labeled “Current US AQI,” category `airquality`, with a
+`Measurement` tag and a single managed link to the file-owned OpenMeteo AQI
+Thing. A prepared Git source preserves those identifiers and passed the
+installed OpenHAB 5.2.1 Item grammar and a focused source test. It is **not**
+installed or declared file-owned: provider/link behavior, state recovery,
+JDBC continuity and rollback still need isolated qualification and an attended
+cutover. No second Item/link provider was created.
+
 14:16 MDT extension: `config_inventory.py --extended --summary` now also
 verifies explicit link ownership and inventories 18 installed add-ons, 12 UI
 pages and 15 registered transformations without reading their settings into

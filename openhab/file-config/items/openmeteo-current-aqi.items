@@ -1,0 +1,3 @@
+// Prepared only: do not install while Current_US_AQI or its channel link is managed.
+// Observation-only current modeled US AQI. Preserve the stable Item and channel IDs.
+Number Current_US_AQI "Current US AQI" <airquality> ["Measurement"] { channel="openmeteo:air-quality:local:aq:current#us-aqi" }
