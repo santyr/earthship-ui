@@ -158,7 +158,8 @@
             <div><dt>{result.accounting ? 'Window observed EFC' : 'Ending estimated EFC'}</dt><dd>{metric(result.accounting ? result.lifecycle.periodEfc : result.lifecycle.endingCumulativeEfc, '', 2)}</dd></div>
             {#if priorEfc}<div><dt>Earlier estimated EFC ({shortDate(priorEfc.firstDate)}–{shortDate(priorEfc.throughDate)})</dt><dd>{metric(priorEfc.estimateEfc, '', 2)}</dd></div>{/if}
             <div><dt>Charge throughput</dt><dd>{metric(result.lifecycle.chargeKwh, ' kWh')}</dd></div>
-            {#if result.lifecycle.highSocHoursAbove95 !== null}<div><dt>Above 95% SoC</dt><dd>{metric(result.lifecycle.highSocHoursAbove95, ' h')}</dd></div>{/if}
+            {#if result.lifecycle.highSocHoursAbove90 !== null}<div><dt>Observed above 90% SoC</dt><dd>{metric(result.lifecycle.highSocHoursAbove90, ' h')}</dd></div>{/if}
+            {#if result.lifecycle.highSocHoursAbove95 !== null}<div><dt>Observed above 95% SoC</dt><dd>{metric(result.lifecycle.highSocHoursAbove95, ' h')}</dd></div>{/if}
             {#if result.lifecycle.stateOfHealthPct !== null}<div><dt>State of health</dt><dd>{metric(result.lifecycle.stateOfHealthPct, '%')}</dd></div>{/if}
           </dl>
         </section>
@@ -185,6 +186,7 @@
       {#if result.accounting}
         <p class="analytics-note">Qualified observations: {result.accounting.windowStart} to {result.accounting.windowEndExclusive} (end exclusive). {result.accounting.daysPresent} days present; {result.accounting.missingDays} missing. Latest battery coverage {metric(result.accounting.latestBatteryCoverage === null ? null : result.accounting.latestBatteryCoverage * 100, '%')}; PV coverage {metric(result.accounting.latestPvCoverage === null ? null : result.accounting.latestPvCoverage * 100, '%')}.</p>
         <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded from observed totals. {result.acLoad ? 'DC PV and AC load cannot be subtracted into a valid balance.' : 'Load balance is unavailable pending qualified inverter-output receipts; inverter output represents household load only while all loads remain inverter-served.'}</p>
+        {#if result.lifecycle.highSocHoursAbove90 !== null}<p class="analytics-note">High-SoC hours count observed atomic BMS intervals in this window. They are published only when every selected day has at least 90% source coverage; they are not a lifetime total.</p>{/if}
         {#if priorEfc}<p class="analytics-note">Earlier estimate: {priorEfc.days} consecutive recorded days in this bank epoch, with {priorEfc.insufficientDataDays} insufficient-data day. It is a dated legacy estimate, not a BMS lifetime count, and is not added to observed EFC.</p>{/if}
         {#if result.acLoad}
           <p class="analytics-note">AC load {result.acLoad.status}: {result.acLoad.latest?.date ?? 'no completed day'}; coverage {metric(result.acLoad.latest === null ? null : result.acLoad.latest.coverage * 100, '%')}; revision {result.acLoad.latest?.revision.id ?? 'unavailable'}. Inverter output represents household load only while all loads remain inverter-served, without bypass or generator supplementation.</p>

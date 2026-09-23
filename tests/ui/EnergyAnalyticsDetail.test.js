@@ -94,6 +94,20 @@ describe('EnergyAnalyticsDetail observational presentation', () => {
     expect(container.textContent).toContain('only while all loads remain inverter-served');
     expect(screen.queryByText('Ending estimated EFC')).toBeNull();
   });
+  it('labels qualified high-SoC exposure as observed window hours', async () => {
+    const payload = energyAnalyticsCurrentV3Fixture();
+    payload.lifecycle.highSocHoursAbove90 = 49.6;
+    payload.lifecycle.highSocHoursAbove95 = 32.5;
+    const { container } = render(EnergyAnalyticsDetail, {
+      result: parseEnergyAnalyticsResult(JSON.stringify(payload), Date.parse(payload.generatedAt) + 60_000),
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+    expect(screen.getByText('Observed above 90% SoC')).toBeTruthy();
+    expect(screen.getByText('49.6 h')).toBeTruthy();
+    expect(screen.getByText('Observed above 95% SoC')).toBeTruthy();
+    expect(screen.getByText('32.5 h')).toBeTruthy();
+    expect(container.textContent).toContain('not a lifetime total');
+  });
   it('shows compact evidence and opens all six labeled detail sections', async () => {
     const { container } = render(EnergyAnalyticsDetail, { result: result() });
 

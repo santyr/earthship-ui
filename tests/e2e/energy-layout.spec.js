@@ -139,7 +139,10 @@ test('Energy period selection issues a fresh 4-hour history range', async ({ pag
 });
 
 test('Lenovo Energy shows dated observed and earlier estimated EFC without horizontal overflow', async ({ page }) => {
-  await openEnergyFixture(page, TARGETS[0], energyAnalyticsCurrentV3Fixture());
+  const analytics = energyAnalyticsCurrentV3Fixture();
+  analytics.lifecycle.highSocHoursAbove90 = 49.6;
+  analytics.lifecycle.highSocHoursAbove95 = 32.5;
+  await openEnergyFixture(page, TARGETS[0], analytics);
   await expect(page.locator('.analytics-value')).toHaveText('0.43 observed EFC');
   await expect(page.locator('.analytics-through')).toHaveText('since Sep 20 · through Sep 22');
   await expect(page.getByText('BMS cycles', { exact: true })).toBeVisible();
@@ -148,6 +151,8 @@ test('Lenovo Energy shows dated observed and earlier estimated EFC without horiz
   await page.getByRole('button', { name: 'Open energy analytics details' }).click();
   await expect(page.getByText('Earlier estimated EFC (Jul 19–Sep 19)')).toBeVisible();
   await expect(page.getByText('9.81')).toBeVisible();
+  await expect(page.getByText('Observed above 90% SoC')).toBeVisible();
+  await expect(page.getByText('Observed above 95% SoC')).toBeVisible();
   const layout = await page.evaluate(() => {
     const panel = document.querySelector('.analytics-panel');
     const compact = document.querySelector('.analytics-compact');
