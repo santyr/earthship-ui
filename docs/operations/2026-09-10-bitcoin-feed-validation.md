@@ -172,10 +172,16 @@ Installed SHA256:
 Four offline tests cover private-file loading, environment override, invalid
 configuration, missing/symlink/permissive files and both original output paths
 with mocked HTTP. Actual installed import/key loading passed without HTTP.
-The original script is preserved privately (0600) in
-`/tmp/legacy-bitcoin-externalize-re3nk67f` (0700); it contains the old embedded key
-and must not be committed or copied to public storage. Prefer fixing forward;
-restoring that backup would reintroduce an embedded credential.
+The original script was temporarily preserved privately (0600) in
+`/tmp/legacy-bitcoin-externalize-re3nk67f` (0700); it contained the old embedded
+key and could not be committed or copied to public storage. Restoring it would
+have reintroduced an embedded credential. That temporary copy was removed below.
+
+September23 cleanup: after verifying the active helper and tracked replacement
+still have the same SHA256 and the separate private key file remains mode0600,
+the exact temporary backup directory above was removed. It is no longer a
+recovery source; the installed replacement and private key remain. No live
+polling configuration or credential value changed.
 
 The live Strike script hash remains
 `3650adbfddcd383c504dfbdfae0723fe31a7d5315adc4308f3dd5f369fb68bc4`.
@@ -200,3 +206,11 @@ matching valid receipt. The next scheduled run at 07:59:36 updated it to 85765
 with another matching receipt. No script, credential or Thing configuration was
 changed. For a recurrence after a Java package upgrade, check the JVM's process
 spawn errors and Thing status before attributing a retained price to the provider.
+
+Later September23 read-only follow-up: the Thing remained ONLINE and
+BTC_USD_Price continued changing. Over the preceding two hours,183 of184
+persisted output receipts had a numeric price. One `price:null` receipt was
+followed by a valid value on the next 30-second poll; the latest receipt age
+was approximately30 seconds. This is a recovered transient sample, not a
+stuck-price condition. The incidental `BTC_Price` Item is NULL; the UI's active
+price source is `BTC_USD_Price` with `BTC_Output_Receipt_JSON` freshness.

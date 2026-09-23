@@ -44,3 +44,13 @@ why current revisions overpredict cooling or miss stable-temperature regimes,
 then score any candidate against chronological, capture-safe, revision-specific
 holdouts. Do not change the live output contract or graduate advice from this
 exploratory audit.
+
+An exploratory forcing-source check paired the same31 target hours with the
+latest complete Open-Meteo archive issuance captured no later than each shadow
+publication. Against qualified outdoor-temperature receipts, that archived
+forecast had MAE2.456°F and signed bias−1.166°F. The signed outdoor-weather
+and indoor-shadow errors had correlation−0.174. The archive may not be the
+exact weather sequence consumed by the historical publisher, so this does not
+attribute the indoor error to weather or exonerate it; capturing the actual
+forcing digest/provenance in a future versioned publication is the next
+diagnostic prerequisite before changing model physics or weather correction.
