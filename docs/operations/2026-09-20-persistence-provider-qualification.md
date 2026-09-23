@@ -233,3 +233,21 @@ across the boundary; this does **not** recover the three absent automatic
 Item-history rows or prove every other stream continuous. Coverage/learning
 consumers must treat the recorded interval as unqualified, even where a held
 value can be interpolated across it.
+
+The first observed natural Open-Meteo time-series refresh after cutover occurred
+at **09:12:01 MDT**. `events.log` recorded 48-value updates for hourly
+Forecast_Temp, Forecast_Cloudiness, Forecast_Radiation and Forecast_PrecipProb,
+plus seven-value updates for the linked daily forecast Items. All four sampled
+Items belong to `gForecast`. Read-only JDBC queries then returned47 future
+hourly rows (the first of the48 was already current) for temperature, radiation
+and cloudiness through September25 14:00Z. This verifies the natural group
+forecast-series write path under the file provider; it does not close the
+separate collection-gap or whole-host-recovery questions.
+
+The separate `forecast-json.timer` next ran naturally at **09:16:06 MDT** and
+exited successfully. Forecast_Hourly_JSON, Forecast_Daily_JSON and
+Forecast_10Day_JSON each changed from the pre-run state and each had one new
+JDBC history row in the 09:15–09:18 MDT window. The detailed payload's
+`generatedAt` advanced from07:15:49 to09:16:06 MDT. This verifies the normal
+corrected-forecast JSON publisher and automatic change-only persistence after
+the file transfer, independently of the binding's `gForecast` time series.

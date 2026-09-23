@@ -46,7 +46,13 @@ three MPPT-derived changes inside that window without corresponding JDBC rows;
 the independent power-evidence sequence remained contiguous. See the
 [handoff receipt](2026-09-20-persistence-provider-qualification.md). Propagating
 this known collection boundary into all affected historical quality/learning
-readers, and observing the next natural forecast-series publication, remain open.
+readers remains open.
+The natural Open-Meteo refresh at09:12MDT subsequently published48 hourly and
+seven daily forecast-series values; JDBC served47 future hourly rows under the
+file provider. The separate forecast-JSON timer then completed naturally at
+09:16:06MDT: all three JSON forecast Items changed
+and each new value had a JDBC history row. Both forecast publication paths are
+verified under the file-owned provider.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
