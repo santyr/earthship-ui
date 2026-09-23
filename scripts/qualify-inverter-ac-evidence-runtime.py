@@ -22,7 +22,7 @@ GRAAL = Path('/var/lib/openhab/tmp/kar/openhab-addons-5.2.1/org/openhab/osgiify'
 ITEM = 'Inverter_AC_Evidence_JSON'
 RULE = 'isolated_hex_inverter_ac_evidence'
 SOURCE = ROOT / 'openhab/rules/inverter-ac-evidence.js'
-ITEM_SOURCE = ROOT / 'openhab/file-config/drafts/inverter-ac-evidence.items'
+ITEM_SOURCE = ROOT / 'openhab/file-config/items/inverter-ac-evidence.items'
 RESOURCE = ROOT / 'openhab/inverter-ac-evidence-resources.json'
 
 

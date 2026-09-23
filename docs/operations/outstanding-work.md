@@ -148,7 +148,8 @@ adds a disabled, source-only producer and file-owned Item draft with 26
 fail-closed tests. It preserves the existing three-field stream and labels
 the new basis as inverter output. The subsequent persistence exclusion and
 Solar-PV strict reader work is recorded below; fault/restart, production writer
-and topology-period gates remain open, and the candidate is not deployed.
+and topology-period gates remained open at that preflight; the subsequent
+activation is recorded below.
 An isolated networkless OpenHAB 5.2.1 run subsequently loaded the file Item,
 registered the exact triggers and executed the candidate rule body to an
 unavailable evidence envelope. The disposable container was removed. Runtime
@@ -159,14 +160,22 @@ subsequently passed disconnected provider/JDBC/explicit-writer/restart tests
 and was hot-reloaded into the file-owned production strategy. Bounded live
 readback found exact selectors, zero ownership issues, ten of ten AC observer
 events persisted in the reload minute and no sequence gaps among 42 existing
-power-evidence rows. The AC evidence Item/rule remain absent; physical-source,
-fault, reader, topology-period and actual production writer gates remain open.
+power-evidence rows. At that checkpoint the AC evidence Item/rule remained
+absent; the later activation is recorded below. Physical-source, fault, reader,
+topology-period and actual production writer gates were still open then.
 Solar-PV `24d2e89` subsequently added and published a separate strict AC
 history reader. Its full analytics suite passed 763 tests. The reader is
 source-only and requires an explicitly finite inverter-only topology period;
 the operator's current no-bypass/no-generator statement is not backdated.
-Production Item/rule activation, natural durable receipts, fault/restart
-behavior, topology period recording and daily/UI load accounting remain open.
+At that source-only checkpoint, production activation, natural durable
+receipts, fault/restart behavior, topology period recording and daily/UI load
+accounting remained open; the activation follows below.
+The [September23 AC activation](2026-09-23-inverter-ac-evidence-activation.md)
+subsequently installed the file-owned output Item and enabled the separate
+observational rule. Natural Modbus-provenance receipts produced strict-parser-valid
+immutable JDBC rows; the new reader also passed a bounded live diagnostic
+read without publishing load. Fault/recovery, long-run durability, retention,
+topology-period policy and daily/UI accounting remain open.
 
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo

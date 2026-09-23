@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createOnly": true,
-  "itemSource": "openhab/file-config/drafts/inverter-ac-evidence.items",
+  "itemSource": "openhab/file-config/items/inverter-ac-evidence.items",
   "persistenceExclusion": "!Inverter_AC_Evidence_JSON",
   "rule": {
     "uid":"hex_inverter_ac_evidence","name":"Validated inverter AC output evidence","enabled":false,

@@ -99,6 +99,15 @@
       "state_writer": "modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power via transform:JS inverter_ac_output_observation.js"
     },
     {
+      "kind": "item",
+      "id": "Inverter_AC_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/inverter-ac-evidence.items",
+      "destination": "/etc/openhab/items/inverter-ac-evidence.items",
+      "state_writer": "hex_inverter_ac_evidence explicit JDBC and state post"
+    },
+    {
       "kind": "link",
       "id": "Inverter_AC_Output_Observation_JSON -> modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power",
       "provider": "file",

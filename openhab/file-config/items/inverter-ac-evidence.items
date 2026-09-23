@@ -1,0 +1,3 @@
+// Independent inverter-output evidence; never unconditional household load.
+// Explicit JDBC writes only. Keep this Item excluded from automatic everyChange.
+String Inverter_AC_Evidence_JSON "Validated inverter AC output evidence"

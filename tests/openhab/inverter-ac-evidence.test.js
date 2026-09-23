@@ -184,11 +184,11 @@ describe('independent inverter AC evidence producer', () => {
     expect(h.posts.some(x => x.fields[field].watts === 200)).toBe(false);
   });
 
-  it('remains disabled, observational and separate from the three-field stream', () => {
+  it('starts disabled, observational and separate from the three-field stream', () => {
     expect(resources.createOnly).toBe(true);
-    expect(resources.itemSource).toBe('openhab/file-config/drafts/inverter-ac-evidence.items');
+    expect(resources.itemSource).toBe('openhab/file-config/items/inverter-ac-evidence.items');
     expect(resources.persistenceExclusion).toBe('!Inverter_AC_Evidence_JSON');
-    expect(readFileSync(new URL('../../openhab/file-config/drafts/inverter-ac-evidence.items', import.meta.url), 'utf8'))
+    expect(readFileSync(new URL('../../openhab/file-config/items/inverter-ac-evidence.items', import.meta.url), 'utf8'))
       .toContain(`String ${output}`);
     expect(resources.rule.enabled).toBe(false);
     expect(resources.rule.source).toBe('openhab/rules/inverter-ac-evidence.js');

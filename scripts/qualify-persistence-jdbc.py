@@ -112,7 +112,7 @@ class Database:
             files['tmp/hex-jdbc-ac-probe.jar'] = self.ac_probe
             files['openhab/conf/items/inverter-ac-evidence.items'] = (
                 Path(__file__).resolve().parents[1]
-                / 'openhab/file-config/drafts/inverter-ac-evidence.items').read_bytes()
+                / 'openhab/file-config/items/inverter-ac-evidence.items').read_bytes()
         archive = io.BytesIO()
         with tarfile.open(fileobj=archive, mode='w') as tar:
             for name, body in files.items():

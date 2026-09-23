@@ -1,7 +1,7 @@
 # Independent inverter AC evidence: source-only preflight
 
-September 23, 2026. No `Inverter_AC_Evidence_JSON` Item or
-`hex_inverter_ac_evidence` rule has been installed or enabled. The existing
+September 23, 2026 initial preflight. The separate Item and rule were then
+activated as described in the [live receipt](2026-09-23-inverter-ac-evidence-activation.md). The existing
 `Power_Evidence_JSON` v1 producer and Solar-PV strict three-field reader are
 unchanged. This candidate exists to preserve that working contract while
 qualifying inverter output for a future, explicitly topology-scoped load reader.
@@ -44,15 +44,14 @@ qualifier is `scripts/qualify-inverter-ac-evidence-runtime.py`.
 ## Gates before activation or accounting
 
 1. Isolated compilation, trigger registration and basic execution passed.
-   Still qualify inverter/bridge status transitions and the original event
-   object in a suitable isolated or attended runtime. The existing live
+   Natural live receipts have now passed original-event source validation;
+   inverter/bridge loss and recovery remain unobserved. The existing live
    observation must not be used to send a synthetic value or hardware command.
 2. The exact output-Item exclusion, isolated immutable write/readback,
-   restart/rollback and live file hot reload now pass; see
+   restart/rollback and live file hot reload passed; see
    [JDBC exclusion receipt](2026-09-23-ac-evidence-jdbc-exclusion.md). The
-   output Item and rule are still absent. Install the file-owned Item and
-   disabled rule only after preserving this exclusion and validating the
-   remaining source/reader gates.
+   file-owned output Item and separate rule are now active under the
+   [live receipt](2026-09-23-inverter-ac-evidence-activation.md).
 3. Solar-PV `24d2e89` now contains a strict, source-only reader for this
    **separate** stream, with invalid-row, gap, epoch, expired-field and finite
    topology-period barriers. The v1 three-field schema and its active reader
