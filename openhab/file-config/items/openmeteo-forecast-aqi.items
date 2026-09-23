@@ -1,0 +1,3 @@
+// Prepared only: do not install while Forecast_AQI or its channel link is managed.
+// Observation-only hourly US AQI series; preserve Item and channel identities.
+String Forecast_AQI "US Air Quality Index" ["forecast"] { channel="openmeteo:air-quality:local:aq:forecastHourly#us-aqi-as-string" }

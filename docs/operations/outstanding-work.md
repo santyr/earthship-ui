@@ -265,6 +265,11 @@ The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
 channel source, and JDBC identity587 advanced by one matching changed-value
 row. See the [cutover receipt](2026-09-23-openmeteo-aqi-item-cutover.md).
+The separate managed `Forecast_AQI` Item/link now has an exact prepared Git
+source and passed networkless OpenHAB 5.2.1 first-boot, full-restart and
+managed-rollback rehearsal. It is not installed or declared file-owned;
+JDBC/history and attended live transfer remain open. See the
+[preflight receipt](2026-09-23-openmeteo-forecast-aqi-preflight.md).
 
 ### Explicit active goal: graduate the thermal model from shadow
 

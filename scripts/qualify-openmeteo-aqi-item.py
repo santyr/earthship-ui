@@ -6,6 +6,7 @@ networkless container and is never printed or copied into Git.
 """
 import io
 import json
+import argparse
 from pathlib import Path
 import secrets
 import subprocess
@@ -25,6 +26,11 @@ SOURCE = ROOT / 'openhab/file-config/items/openmeteo-current-aqi.items'
 ITEM = 'Current_US_AQI'
 CHANNEL = 'openmeteo:air-quality:local:aq:current#us-aqi'
 LINK = ITEM + ' -> ' + CHANNEL
+CANDIDATES = {
+    'current': (SOURCE, ITEM, CHANNEL),
+    'forecast': (ROOT / 'openhab/file-config/items/openmeteo-forecast-aqi.items',
+                 'Forecast_AQI', 'openmeteo:air-quality:local:aq:forecastHourly#us-aqi-as-string'),
+}
 
 
 def run(args, data=None, *, check=True, timeout=45):
@@ -108,7 +114,21 @@ def wait_state(container, header, original, *, file_owned, seconds=240):
     return False
 
 
+def managed_item_dto(original):
+    required = ('name', 'type', 'label')
+    if any(field not in original for field in required):
+        raise ValueError('managed Item identity is incomplete')
+    optional = ('category', 'tags', 'groupNames')
+    return {field: original[field] for field in (*required, *optional) if field in original}
+
+
 def main():
+    global SOURCE, ITEM, CHANNEL, LINK
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--candidate', choices=tuple(CANDIDATES), default='current')
+    args = parser.parse_args()
+    SOURCE, ITEM, CHANNEL = CANDIDATES[args.candidate]
+    LINK = ITEM + ' -> ' + CHANNEL
     original = oh.get('/items/' + ITEM + '?metadata=.*')
     links = [link for link in oh.get('/links') if link.get('itemName') == ITEM]
     if original.get('editable') is not True or len(links) != 1 or links[0].get('channelUID') != CHANNEL:
@@ -126,7 +146,7 @@ def main():
                          '--tmpfs', '/tmp:rw,nosuid,nodev,size=128m',
                          '-e', 'EXTRA_JAVA_OPTS=-Xmx768m -Duser.timezone=America/Denver',
                          '--entrypoint', '/bin/sh', IMAGE, '-c',
-                         'while [ ! -f /openhab/conf/items/openmeteo-current-aqi.items ]; do sleep 1; done; '
+                         'while [ ! -f /openhab/conf/items/' + SOURCE.name + ' ]; do sleep 1; done; '
                          'exec /openhab/start.sh server'], timeout=45).stdout.decode().strip()
         owner = run(['docker', 'inspect', '--format',
                      '{{index .Config.Labels "hex.aqi.qualification"}}', container]).stdout.decode().strip()
@@ -165,8 +185,7 @@ def main():
         else:
             raise RuntimeError('file provider/link did not disappear before rollback')
         install_bytes(container, '/tmp', 'auth-header', header, mode=0o600)
-        dto = {field: original[field] for field in ('name', 'type', 'label', 'category',
-                                                    'tags', 'groupNames')}
+        dto = managed_item_dto(original)
         install_bytes(container, '/tmp', 'item.json', json.dumps(dto).encode(), mode=0o600)
         link_dto = {field: links[0][field] for field in ('itemName', 'channelUID')}
         link_dto['configuration'] = links[0].get('configuration', {})
