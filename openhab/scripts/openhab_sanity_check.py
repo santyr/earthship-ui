@@ -21,6 +21,7 @@ Alert prefix is a magnifier so DMs are distinguishable from the watchdog's.
 State: ~/.local/state/openhab-sanity/state.json
 """
 import json, math, os, subprocess, sys, time, urllib.request, urllib.error
+from uuid import UUID
 from datetime import datetime, timezone
 
 BASE = "http://127.0.0.1:8080/rest"
@@ -112,6 +113,54 @@ DWELL_S = 8 * 60
 def finite_num(value):
     value = num(value)
     return value if value is not None and math.isfinite(value) else None
+
+
+def atomic_soc_freshness(raw, now):
+    """Require a current, validated acquisition receipt, not a changed-value row.
+
+    The scaler's BMS_SOC_LastUpdate can advance before its raw value is checked.
+    The independent observer publishes this exact v1 envelope even when SoC is
+    unchanged, and its source events have already passed binding-origin checks.
+    """
+    problem = "BMS SoC atomic acquisition evidence unavailable or stale"
+    try:
+        if not isinstance(raw, str) or len(raw) > 2048:
+            return problem
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError('duplicate atomic evidence field')
+                result[key] = value
+            return result
+        row = json.loads(raw, object_pairs_hook=unique)
+        if not isinstance(row, dict) or set(row) != {
+                'version', 'streamEpoch', 'recordedAt', 'status', 'reason',
+                'observedAt', 'scaleObservedAt', 'validUntil', 'soc'}:
+            return problem
+        if (type(row['version']) is not int or row['version'] != 1
+                or not isinstance(row['streamEpoch'], str)
+                or str(UUID(row['streamEpoch'])) != row['streamEpoch']
+                or row['status'] != 'valid' or row['reason'] != 'ok'):
+            return problem
+        recorded, observed, scale, until = (row[key] for key in
+                                             ('recordedAt', 'observedAt',
+                                              'scaleObservedAt', 'validUntil'))
+        if any(type(value) is not int for value in (recorded, observed, scale, until)):
+            return problem
+        now_ms = int(now * 1000)
+        if (not 0 < observed <= recorded <= now_ms
+                or not 0 < scale <= recorded
+                or now_ms - recorded > 180000
+                or until != min(observed, scale) + 120000
+                or not now_ms < until):
+            return problem
+        soc = row['soc']
+        if type(soc) not in (int, float) or not math.isfinite(soc) or not 0 <= soc <= 100:
+            return problem
+        return None
+    except (TypeError, ValueError, OverflowError, KeyError):
+        return problem
 
 
 def runtime_checks(st, now, snapshot, problems, unresolved):
@@ -256,9 +305,11 @@ def main():
             return (datetime.now(timezone.utc) - dt).total_seconds() / 60
         except ValueError:
             return None
-    a = age_min("BMS_SOC_LastUpdate")
-    if a is None or a > 12:  # heartbeat is rate-gated to 5 min
-        problems["fresh:bms"] = f"BMS_SOC_LastUpdate stale ({'unparseable' if a is None else f'{a:.0f} min'})"
+    # BMS_SOC_LastUpdate is only a scaler heartbeat; it can advance on invalid
+    # raw input and is not authoritative for change-only SoC freshness.
+    soc_problem = atomic_soc_freshness(items.get("BMS_SOC_Evidence_JSON"), now)
+    if soc_problem:
+        problems["fresh:bms"] = soc_problem
     a = age_min("Schneider_DCData_LastUpdate")
     if a is None or a > 5:
         problems["fresh:schneider"] = f"Schneider_DCData_LastUpdate stale ({'unparseable' if a is None else f'{a:.0f} min'})"

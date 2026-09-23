@@ -53,8 +53,21 @@ class CheckerTests(unittest.TestCase):
         return [dict(name=k, state=v, lastStateChange=(T - 60) * 1000)
                 for k, v in values.items()]
 
+    def evidence(self, at=T, **changes):
+        stamp = int(at * 1000)
+        row = dict(version=1, streamEpoch='4bb09d80-9b62-41ed-87a5-3fcc5164ac1e',
+                   recordedAt=stamp, status='valid', reason='ok',
+                   observedAt=stamp-5000, scaleObservedAt=stamp-5000,
+                   validUntil=stamp+115000, soc=50)
+        row.update(changes)
+        return json.dumps(row)
+
     def tick(self, now=T, snapshot=None, fail=None):
         rows = self.snapshot() if snapshot is None else snapshot
+        if not any(row['name'] == 'BMS_SOC_Evidence_JSON' for row in rows):
+            rows = [*rows, dict(name='BMS_SOC_Evidence_JSON',
+                                state=self.evidence(now),
+                                lastStateChange=(now-60)*1000)]
         def get(path, timeout=10):
             self.calls.append(path)
             if fail == "probe" and path == "/items/BMS_SOC":
@@ -232,7 +245,7 @@ class CheckerTests(unittest.TestCase):
         self.assertFalse(self.active(st, "algo:basis"))
         self.assertFalse(self.active(st, "algo:runtime"))
 
-    def test_heartbeat_thresholds_and_other_checks_remain(self):
+    def test_atomic_soc_ignores_stale_heartbeat_and_other_checks_remain(self):
         stamp = lambda seconds: datetime.fromtimestamp(
             datetime.now(timezone.utc).timestamp() - seconds, timezone.utc).isoformat()
         st = self.tick(T, self.snapshot(DCData_Current="0",
@@ -244,12 +257,39 @@ class CheckerTests(unittest.TestCase):
                        BMS_Temperature="80", Forecast_Temp="NULL",
                        BMS_SOC_LastUpdate=stamp(13 * 60),
                        Schneider_DCData_LastUpdate=stamp(6 * 60)))[1]
-        for key in ("fresh:bms", "fresh:schneider", "range:BMS_SOC",
+        self.assertFalse(self.active(st, "fresh:bms"))
+        for key in ("fresh:schneider", "range:BMS_SOC",
                     "algo:temp", "algo:soc", "fresh:forecast"):
             self.assertTrue(self.active(st, key), key)
         self.assertEqual(self.c.RATE_S, 1800)
         self.assertEqual(len([p for p in self.calls if p.startswith("/rules/")]),
                          2 * len(self.c.RULES_EXPECTED))
+
+    def test_fresh_scaler_heartbeat_cannot_mask_bad_atomic_soc(self):
+        for evidence in (None, 'NULL', '{}', self.evidence(status='unavailable',
+                         reason='input_stale', soc=None),
+                         self.evidence(observedAt=int(T*1000)-180000),
+                         self.evidence(recordedAt=int(T*1000)+1),
+                         self.evidence(soc=float('nan')),
+                         self.evidence(streamEpoch=42),
+                         self.evidence().replace('"version": 1',
+                                                 '"version": 1, "version": 1')):
+            with self.subTest(evidence=evidence):
+                rows = self.snapshot(DCData_Current='0',
+                                     BMS_SOC_Evidence_JSON=evidence)
+                st = self.tick(T, rows)[1]
+                self.assertTrue(self.active(st, 'fresh:bms'))
+
+    def test_valid_unchanged_atomic_receipt_recovers_stale_fault(self):
+        rows = self.snapshot(DCData_Current='0',
+                             BMS_SOC_Evidence_JSON=self.evidence(T-300))
+        self.assertTrue(self.active(self.tick(T, rows)[1], 'fresh:bms'))
+        count = len(self.messages)
+        rows = self.snapshot(DCData_Current='0',
+                             BMS_SOC_Evidence_JSON=self.evidence(T+60))
+        st = self.tick(T+60, rows)[1]
+        self.assertFalse(self.active(st, 'fresh:bms'))
+        self.assertIn('✅ openHAB sanity: recovered [fresh:bms]', self.messages[count:])
 
 
 if __name__ == "__main__":
