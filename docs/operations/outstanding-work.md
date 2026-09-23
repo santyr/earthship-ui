@@ -176,6 +176,11 @@ observational rule. Natural Modbus-provenance receipts produced strict-parser-va
 immutable JDBC rows; the new reader also passed a bounded live diagnostic
 read without publishing load. Fault/recovery, long-run durability, retention,
 topology-period policy and daily/UI accounting remain open.
+Solar-PV `e36e54f` subsequently added a strict, source-only AC activation
+policy: complete finished Denver-local days only, resolved Item table, evidence
+cutover and explicit topology period. Its full analytics suite passed 778
+tests. No production topology policy or load accounting is enabled; the
+operator's validity-period preference is being confirmed.
 
 The [thermal confirmation CLI backport](2026-09-23-thermal-journal-cli-backport.md)
 then installed only the tested future-plan and exact-readback guards into the

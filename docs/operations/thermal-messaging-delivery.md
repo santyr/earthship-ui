@@ -95,6 +95,13 @@ directory was removed. No operator-signed kind-10050 announcement was found at
 the final readback, so the complete reviewed route inventory still cannot be
 installed. No prompt, listener, outbox or journal action was enabled.
 
+At a new September23 approximately 15:10 MDT read-only query, the approved
+operator identity still had zero kind-10050 route events returned on each of
+the same three configured relays. All three queries completed successfully.
+The existing DM notifier's local key signs as Hex, not as the recipient; it
+cannot create the missing operator-signed announcement. Collector activation
+remains withheld, while independent storage and accounting work continues.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

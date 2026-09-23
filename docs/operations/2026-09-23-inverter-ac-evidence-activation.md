@@ -42,6 +42,10 @@ strict-parser-valid rows, 43 valid fields and one startup unavailable field,
 with one epoch, no sequence gaps and no duplicate timestamps. The existing
 three-field power stream held 175/175 strict-parser-valid rows in the checked
 five-minute window, also with one epoch, no gaps and no duplicate timestamps.
+At the later approximately 15:13 MDT read-only check, `item0653` held 213/213
+strict-parser-valid rows, 212 valid fields and one startup barrier, one epoch,
+no gaps or duplicate timestamps; the table plus index used 122,880 bytes.
+This is an early durability/volume sample, not a full-day retention release.
 
 ## Remaining gates and rollback
 
@@ -51,6 +55,8 @@ durability/volume and raw-observation retention remain to be measured. The
 operator reports current inverter-only household topology, but no finite
 period policy has been recorded for daily accounting; no load or balance
 publisher was enabled. The existing v3 UI withholding contract is unchanged.
+Solar-PV `e36e54f` subsequently added a source-only, strict topology/complete-
+local-day policy loader. No actual policy file or daily consumer is active.
 
 To stop collection, disable only `hex_inverter_ac_evidence` via its REST
 `/enable` endpoint with body `false`; verify `UNINITIALIZED/DISABLED`. The
