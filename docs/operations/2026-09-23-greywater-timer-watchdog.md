@@ -60,3 +60,29 @@ Its fallback requires OpenHAB and the one-minute rule itself to run. A
 naturally interrupted post-release cycle and the earlier requested sunset
 interruption case remain unobserved under this revision; do not force a pump
 run solely to close those evidence gates.
+
+## Same-day last-second completion guard
+
+Review found a remaining race: an external OFF during the final seconds before
+the scheduled callback might occur after the last one-minute evaluation. A new
+regression reproduced a false `SouthOutlet_LastCycle` receipt when the pump was
+OFF just before the callback. The callback now checks that its own pump is
+still ON before issuing OFF or recording completion. If it is not, it reports
+`cycle_interrupted`, leaves `LastCycle` untouched, and fails an accepted manual
+request with that reason. The existing token-ownership check still runs first.
+
+Commit `272d51f` is pushed to origin/main. Focused greywater tests passed
+93/93, all 1,634 UI/OpenHAB tests and the production build passed. The
+second guarded transfer used the first release hash
+`358c5c1131b731ee944c7cd45769cbc29b191fe42d28186d5020345fed1ff0ab`
+as its exact live baseline and installed
+`312cf24ceba5c63e30c4ecd0104bbf3bcf646f1e203b8c6c9c964e58dd7b84df`.
+The immediate rollback copy is private at
+`/home/sat/.local/state/greywater-rule-release/timer-guard-7fe65cj5`
+(0700 directory, 0600 file). Both pump Items were OFF before and after, the
+rule was `IDLE/NONE` at readback, and its one-minute plus manual triggers
+remained unchanged. No manual cycle or pump command was issued for this
+qualification. The 11:16 MDT natural minute evaluation then reported a
+low-SoC hold under the final installed hash, with both pumps OFF and the rule
+`IDLE/NONE`. A naturally interrupted cycle under the final revision remains
+unobserved.

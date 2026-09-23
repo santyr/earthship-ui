@@ -402,6 +402,8 @@ and protected-resource rollback remain outstanding.
   completion marker; the old callback later failed because its JS context was
   closed. The live rule now invalidates an early-OFF timer and enforces a
   next-minute duration cutoff if a callback is lost while a pump stays ON.
+  A same-day follow-up also prevents the callback itself from claiming
+  completion if its pump turned OFF just before the deadline.
   Exact guarded release, private rollback and natural idle evaluation passed;
   no post-release interrupted cycle was manufactured or claimed.
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
