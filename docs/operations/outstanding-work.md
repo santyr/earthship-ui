@@ -146,6 +146,14 @@ publication of 48 hourly and seven daily forecast values, 48 AQI forecast
 values and an AQI Item update. A later scheduled refresh remains to be
 observed; immediate JDBC readback had no new AQI receipt because the state
 was unchanged and forecast rows use target timestamps.
+Later at 11:51 MDT, a natural scheduled binding refresh updated both 48-hour
+forecast series and changed Current_US_AQI; its new JDBC value row was read
+back. After separate isolated Item/link and JDBC restore/restart qualification,
+the [AQI observation Item and link were transferred](2026-09-23-openmeteo-aqi-item-cutover.md)
+to a Git-owned file at 12:18 MDT. Exact state and 581-row history prefix were
+preserved, both resources are non-managed, and the registry inventory reports
+zero issues. A later natural writer update under the new Item provider is still
+required before closing this resource's publication gate.
 
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:

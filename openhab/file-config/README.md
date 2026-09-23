@@ -15,11 +15,14 @@ Canonical source files live here; deploy only their declared destinations.
 Preparing a source file does not transfer runtime ownership. Existing managed
 resources remain managed until a verified, receipt-backed cutover removes that
 provider and loads the file definition. Never create overlapping definitions.
-`items/openmeteo-current-aqi.items` is prepared only. `Current_US_AQI` and its
-OpenMeteo channel link remain managed. Isolated provider/link, state/JDBC and
-full-restart round trips have passed; do not install the file until a private
-production rollback snapshot and attended cutover are ready. The ownership
-manifest must change only after live readback and a natural writer receipt.
+`items/openmeteo-current-aqi.items` is now installed as the sole provider for
+`Current_US_AQI` and its OpenMeteo channel link. Isolated provider/link,
+state/JDBC and full-restart checks passed before the attended cutover; live
+provider/state and historical-prefix readback passed afterward. The private
+rollback snapshot and remaining natural-writer check are recorded in
+`docs/operations/2026-09-23-openmeteo-aqi-item-cutover.md`. The source file's
+pre-cutover warning remains a guard against installing it alongside a managed
+provider on another host.
 
 ## Staged migration and rollback
 

@@ -15,6 +15,16 @@
       "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
     },
     {
+      "kind": "item", "id": "Current_US_AQI", "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-current-aqi.items", "destination": "/etc/openhab/items/openmeteo-current-aqi.items",
+      "state_writer": "openmeteo:air-quality:local:aq:current#us-aqi"
+    },
+    {
+      "kind": "link", "id": "Current_US_AQI -> openmeteo:air-quality:local:aq:current#us-aqi",
+      "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-current-aqi.items", "destination": "/etc/openhab/items/openmeteo-current-aqi.items"
+    },
+    {
       "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",
       "source": "persistence/jdbc.persist", "destination": "/etc/openhab/persistence/jdbc.persist"
     },
