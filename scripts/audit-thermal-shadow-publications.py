@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Score persisted shadow forecasts against qualified indoor outcomes, read-only.
 
-Near-24-hour targets are the closest published hourly trajectory point within
-30 minutes of the issue+24h mark. Results are overlapping observational pairs,
+Targets are the closest published hourly trajectory point within 30 minutes
+of the selected issue+horizon mark. Results are overlapping observational pairs,
 not independent days, causal action evidence, or a graduation decision.
 """
 import argparse
@@ -28,6 +28,7 @@ ITEM = 'Thermal_Model_JSON'
 CONFIG = '/home/sat/.config/hex/weather-temperature-db.json'
 POLICY = '/home/sat/.config/hex/weather-temperature-policy.json'
 CAPTURE_ROOT = '/home/sat/.local/state/thermal-intel/forcing-captures'
+SUPPORTED_HORIZONS = (1, 6, 12, 24, 48)
 
 
 def capture_for_publication(publication, root=CAPTURE_ROOT):
@@ -63,8 +64,10 @@ def finite_temperature(value):
     return float(value)
 
 
-def select_pair(row, *, now):
+def select_pair(row, *, now, horizon_hours=24):
     """Return a mature published pair or a reason; never use future outcomes."""
+    if type(horizon_hours) is not int or horizon_hours not in SUPPORTED_HORIZONS:
+        raise ValueError('supported horizon required')
     now = aware(now)
     if not isinstance(row, dict) or set(row) != {'time', 'state'} or type(row['time']) is not int:
         raise ValueError('unexpected persisted publication row')
@@ -81,16 +84,16 @@ def select_pair(row, *, now):
         return None, 'stale_initial'
     current = finite_temperature(publication['current']['hallwayF'])
     trajectory = publication['forecast']['trajectory']
-    if not isinstance(trajectory, list) or len(trajectory) < 25:
+    if not isinstance(trajectory, list) or not trajectory:
         return None, 'trajectory_unavailable'
     candidates = []
     for point in trajectory:
         at = aware(point['at'])
-        drift = abs((at - issue).total_seconds() - 86400)
+        drift = abs((at - issue).total_seconds() - horizon_hours * 3600)
         if drift <= 1800:
             candidates.append((drift, at, point))
     if not candidates:
-        return None, 'near24h_target_unavailable'
+        return None, f'near{horizon_hours}h_target_unavailable'
     _, target, point = min(candidates, key=lambda entry: (entry[0], entry[1]))
     predicted = finite_temperature(point['hallwayF'])
     low, high = finite_temperature(point['lowF']), finite_temperature(point['highF'])
@@ -112,11 +115,13 @@ def select_pair(row, *, now):
             'confidence': publication['confidence']['grade']}, None
 
 
-def score(rows, *, now, outcome_reader, capture_reader=None):
+def score(rows, *, now, outcome_reader, capture_reader=None, horizon_hours=24):
+    if type(horizon_hours) is not int or horizon_hours not in SUPPORTED_HORIZONS:
+        raise ValueError('supported horizon required')
     counts = Counter()
     groups = defaultdict(list)
     for row in rows:
-        pair, reason = select_pair(row, now=now)
+        pair, reason = select_pair(row, now=now, horizon_hours=horizon_hours)
         if reason:
             counts[reason] += 1
             continue
@@ -150,6 +155,7 @@ def score(rows, *, now, outcome_reader, capture_reader=None):
                 'interval_coverage': round(sum(x[2] for x in errors) / n, 4),
                 'mean_interval_width_f': round(sum(x[3] for x in errors) / n, 4)}
     return {'scope': 'observational_shadow_publications_not_graduation',
+            'horizon_hours': horizon_hours,
             'publication_rows': len(rows), 'counts': dict(sorted(counts.items())),
             'groups': {key: metrics(value) for key, value in sorted(groups.items())}}
 
@@ -160,6 +166,7 @@ def main():
     parser.add_argument('--until', default=None)
     parser.add_argument('--require-capture', action='store_true',
                         help='score only publications with an exact private forcing archive')
+    parser.add_argument('--horizon-hours', type=int, choices=SUPPORTED_HORIZONS, default=24)
     args = parser.parse_args()
     now = datetime.now(timezone.utc)
     start = aware(args.since)
@@ -178,7 +185,8 @@ def main():
             raise ValueError('qualified outcome reader returned unexpected target')
         return rows[0][1]
     print(json.dumps(score(rows, now=now, outcome_reader=outcome,
-                           capture_reader=capture_for_publication if args.require_capture else None),
+                           capture_reader=capture_for_publication if args.require_capture else None,
+                           horizon_hours=args.horizon_hours),
                      sort_keys=True))
 
 

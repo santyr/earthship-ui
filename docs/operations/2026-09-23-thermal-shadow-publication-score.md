@@ -53,6 +53,17 @@ non-strict observational score remained 31 pairs, model MAE 2.4565°F versus
 same-origin persistence 2.0265°F. Capture-qualified scoring must wait for the
 first archived 24-hour target to mature; missing archives remain explicit gaps.
 
+The scorer now also accepts explicit 1, 6, 12 and 48-hour diagnostic horizons;
+the default and graduation-relevant 24-hour selection are unchanged. At
+11:21 MDT, `--since 2026-09-23T15:45:00Z --require-capture --horizon-hours 1`
+read two persisted publications. The 15:48:53Z legacy publication correctly
+counted as missing a forcing capture; the 15:50:54.866271Z captured publication
+scored one qualified indoor target. Its 1-hour model absolute error was
+**1.541°F** versus **0.540°F** for same-origin persistence. The published
+interval contained the outcome but was 10.414°F wide. Both publications'
+24-hour targets were not yet due. This first exact-forcing point is a useful
+early diagnostic, not a trend, independent-day sample or shadow-exit pass.
+
 This live score does not support shadow exit: overall near24-hour
 MAE trails persistence by0.4300°F, and interval coverage is below the nominal
 90% on this small overlapping sample. The next modeling work should diagnose

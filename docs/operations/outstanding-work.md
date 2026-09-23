@@ -56,7 +56,12 @@ now records exact raw Open-Meteo inputs alongside successful shadow
 publications. Its first natural run exposed a sub-second provenance gap;
 the decision timestamp was corrected and an attended publication produced a
 verified private archive matching the live item. This is prospective input
-evidence, not a model score or shadow graduation.
+evidence, not a 24-hour model score or shadow graduation. The new explicit
+1-hour strict scorer paired that first captured publication with a qualified
+target: model error1.541°F versus same-origin persistence0.540°F, with the
+wide interval covering one point. The legacy publication remained excluded;
+both 24-hour targets were not yet due. This is one diagnostic, not a release
+gate or a reason to graduate the model.
 
 Later September23 checkpoint: the production JDBC persistence strategy was
 transferred from managed to Git-owned file configuration. The exact file-owned

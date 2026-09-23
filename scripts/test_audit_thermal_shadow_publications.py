@@ -59,6 +59,23 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(audit.select_pair(row(stale), now=TARGET + timedelta(minutes=10))[1],
                          'stale_initial')
 
+    def test_short_horizon_uses_its_own_mature_target(self):
+        short_target = datetime(2026, 9, 20, 2, tzinfo=timezone.utc)
+        pair, reason = audit.select_pair(row(), now=short_target + timedelta(minutes=6),
+                                         horizon_hours=1)
+        self.assertIsNone(reason)
+        self.assertEqual(pair['target'], short_target)
+        self.assertEqual(audit.select_pair(row(), now=short_target + timedelta(minutes=1),
+                                           horizon_hours=1)[1], 'outcome_not_yet_due')
+        scored = audit.score([row()], now=short_target + timedelta(minutes=6),
+                             outcome_reader=receipt, horizon_hours=1)
+        self.assertEqual(scored['horizon_hours'], 1)
+        self.assertEqual(scored['counts']['scored'], 1)
+
+    def test_unsupported_horizon_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'supported horizon'):
+            audit.select_pair(row(), now=TARGET + timedelta(minutes=10), horizon_hours=3)
+
     def test_postdated_issue_is_refused(self):
         invalid = published(); invalid['generatedAt'] = (ISSUE + timedelta(minutes=1)).isoformat()
         with self.assertRaisesRegex(ValueError, 'not available'):
