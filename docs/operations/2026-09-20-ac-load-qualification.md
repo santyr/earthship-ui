@@ -40,6 +40,26 @@ A 33.4-second REST event observation saw six ItemStateEvents approximately5.12s
 apart. All values differed. Event envelopes exposed only payload/topic/type,
 not original Java source or acquisition time. This proves natural updates, not
 unchanged-value delivery or bounded event-queue delay.
+September23 follow-up: a bounded 65-second authenticated WebSocket subscription
+to only this Item observed 13 ItemStateEvents, 13 ItemStateChangedEvents and 13
+ItemStateUpdatedEvents. The first two event kinds carried exact source
+`org.openhab.core.thing$modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power`;
+the updated events omitted source, as previously seen on this runtime.
+State-event intervals were 5.07–5.16 seconds. All 13 values differed, so this
+sample still cannot prove an unchanged-value receipt in live operation. The
+probe sent only a topic filter and heartbeat, no Item event or command, and
+did not print power values or credentials. The inverter Thing remained
+ONLINE/NONE at readback.
+
+Version-matched installed SunSpec bytecode shows `InverterHandler.handlePolledData`
+calling `updateState` on `acGeneral#ac-power` after parsing and scaling each
+received inverter model block, without a value-change comparison in that
+handler. This supports the candidate unchanged-update path, but downstream
+event delivery and an actual unchanged-value acquisition still require live
+qualification. The channel has no native `lastReadSuccess` companion in its
+current Thing channel set. An eventual collector must bind to the original
+`ItemStateEvent` source, not assume the source-less updated event authenticates
+a binding read; distinguish host event time from device measurement time.
 The existing `hex_schneider_safety` uses an ItemStateUpdate trigger and routes
 this Item through `stampIfFresh` to `Schneider_ACLoad_LastUpdate`; it is not an
 atomic value/acquisition receipt in the qualified power stream.

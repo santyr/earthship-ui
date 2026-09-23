@@ -123,7 +123,11 @@ household load is inverter-served, without bypass or generator supplementation.
 The Conext Gateway AC Power channel can be considered a candidate for current
 household load only under that topology; it still lacks qualified acquisition
 receipts, invalid/offline and restart evidence, so energy/balance publication
-remains withheld. See [AC-load qualification](2026-09-20-ac-load-qualification.md).
+remains withheld. A bounded 65-second WebSocket probe then confirmed13
+binding-sourced state events at roughly5.12-second intervals, but all values
+changed; source-less updated events and absent native read-success channel
+require a source-bound receipt design and unchanged-value/fault qualification.
+See [AC-load qualification](2026-09-20-ac-load-qualification.md).
 
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
