@@ -30,16 +30,16 @@ def run(args, data=None, timeout=45):
     return result.stdout
 
 
-def main():
-    source = SOURCE.read_bytes()
-    if any(source.count(('String ' + name + ' ').encode()) != 1 for name in NAMES):
+def main(names=NAMES, source_path=SOURCE):
+    source = source_path.read_bytes()
+    if any(source.count(('String ' + name + ' ').encode()) != 1 for name in names):
         raise ValueError('prepared file does not define exactly the expected Items')
-    originals = {name: oh.get('/items/' + name + '?metadata=.*') for name in NAMES}
+    originals = {name: oh.get('/items/' + name + '?metadata=.*') for name in names}
     if any(item.get('editable') not in (True, False) or item.get('type') != 'String'
            for item in originals.values()):
         raise ValueError('live forecast Item preflight failed')
-    if any(link.get('itemName') in NAMES for link in oh.get('/links')):
-        raise ValueError('forecast JSON Item has an unexpected channel link')
+    if any(link.get('itemName') in names for link in oh.get('/links')):
+        raise ValueError('prepared Item has an unexpected channel link')
     marker = uuid4().hex
     cid = run(['docker', 'run', '-d', '--label', 'hex.forecast.qualifier=' + marker,
         '--network', 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',
@@ -61,7 +61,7 @@ def main():
             raise RuntimeError('disposable isolation mismatch')
         archive = io.BytesIO()
         with tarfile.open(fileobj=archive, mode='w') as tar:
-            entry = tarfile.TarInfo('items/forecast-json.items')
+            entry = tarfile.TarInfo('items/' + source_path.name)
             entry.size, entry.mode = len(source), 0o644
             tar.addfile(entry, io.BytesIO(source))
         run(['docker', 'exec', '-i', cid, 'tar', '-xf', '-', '-C', '/openhab/conf'],
@@ -72,7 +72,7 @@ def main():
             try:
                 rows = json.loads(run(['docker', 'exec', cid, 'curl', '-fsS',
                     '--max-time', '3', 'http://127.0.0.1:8080/rest/items?metadata=.*']))
-                if all(name in {item['name'] for item in rows} for name in NAMES):
+                if all(name in {item['name'] for item in rows} for name in names):
                     time.sleep(20)  # reject a transient first-ready provider
                     break
             except (RuntimeError, ValueError):
@@ -89,13 +89,18 @@ def main():
                 raise RuntimeError('file provider did not own the prepared Item')
             for field in ('name', 'type', 'label', 'category', 'groupNames',
                           'metadata', 'stateDescription'):
-                if actual.get(field) != expected.get(field):
-                    raise RuntimeError('forecast provider DTO mismatch: ' + name + ':' + field)
+                left, right = actual.get(field), expected.get(field)
+                # REST-managed resources may encode no icon as an empty string;
+                # the file provider returns null for the same absent category.
+                if field == 'category':
+                    left, right = left or None, right or None
+                if left != right:
+                    raise RuntimeError('prepared provider DTO mismatch: ' + name + ':' + field)
             if sorted(actual.get('tags', [])) != sorted(expected.get('tags', [])):
-                raise RuntimeError('forecast Item tags differ: ' + name)
-        if run(['docker', 'exec', cid, 'cat', '/openhab/conf/items/forecast-json.items']) != source:
+                raise RuntimeError('prepared Item tags differ: ' + name)
+        if run(['docker', 'exec', cid, 'cat', '/openhab/conf/items/' + source_path.name]) != source:
             raise RuntimeError('isolated file differs from source')
-        print('three_file_provider_definitions_exact=true')
+        print('file_provider_definitions_exact=' + str(len(names)))
         print('state_restore_and_live_transfer=not_tested')
     finally:
         label = run(['docker', 'inspect', '--format',

@@ -28,6 +28,7 @@ SOURCE = ROOT / 'openhab/file-config/items/forecast-json.items'
 TARGET = Path('/etc/openhab/items/forecast-json.items')
 ITEM_DB = Path('/var/lib/openhab/jsondb/org.openhab.core.items.Item.json')
 BACKUP_ROOT = Path('/home/sat/.local/state/openhab-config-migration')
+BACKUP_PREFIX = 'forecast-json'
 TIMER = 'forecast-json.timer'
 SERVICE = 'forecast-json.service'
 FIELDS = ('name', 'type', 'label', 'category', 'tags', 'groupNames')
@@ -76,6 +77,8 @@ def definition(actual, original, provider):
         a, b = actual.get(field), original.get(field)
         if field in ('tags', 'groupNames'):
             a, b = sorted(a or []), sorted(b or [])
+        if field == 'category':
+            a, b = a or None, b or None
         if a != b:
             return False
     return True
@@ -126,7 +129,7 @@ def backup(originals, histories, source_hash):
     root = BACKUP_ROOT.lstat()
     require(stat.S_ISDIR(root.st_mode) and root.st_uid == os.getuid()
             and stat.S_IMODE(root.st_mode) == 0o700, 'private backup root unsafe')
-    directory = BACKUP_ROOT / ('forecast-json-' + datetime.now(timezone.utc).strftime(
+    directory = BACKUP_ROOT / (BACKUP_PREFIX + '-' + datetime.now(timezone.utc).strftime(
         '%Y%m%dT%H%M%SZ'))
     directory.mkdir(mode=0o700)
     save_private(directory, 'managed-items-and-history.json', json.dumps(

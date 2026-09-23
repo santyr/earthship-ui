@@ -1,0 +1,2 @@
+// Prepared observational Item; do not install while the managed provider owns it.
+String Thermal_Model_JSON "Thermal model shadow output"

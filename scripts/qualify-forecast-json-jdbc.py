@@ -57,9 +57,9 @@ def history(container, header, name):
     return rows
 
 
-def main():
+def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-json.items'):
     definitions = {}
-    for name in ITEMS:
+    for name in items:
         live = oh.get('/items/' + name + '?metadata=.*')
         if live.get('editable') not in (True, False) or live.get('type') != 'String':
             raise RuntimeError('production Item preflight failed: ' + name)
@@ -90,8 +90,8 @@ def main():
             aqi.run(['docker', 'exec', container, 'sh', '-c',
                      'while [ ! -f /tmp/bootstrap-ready ]; do sleep 1; done'])
             database.stage(container)
-            aqi.install(container, 'items/forecast-json.items',
-                        (ROOT / 'openhab/file-config/items/forecast-json.items').read_bytes())
+            aqi.install(container, 'items/' + source_path.name,
+                        source_path.read_bytes())
             aqi.install(container, 'persistence/jdbc.persist',
                         (ROOT / 'openhab/file-config/persistence/jdbc.persist').read_bytes())
             aqi.run(['docker', 'exec', container, 'touch',
@@ -116,7 +116,7 @@ def main():
             if len(tokens) != 1:
                 raise RuntimeError('isolated API token unavailable; output withheld')
             header = ('Authorization: Bearer ' + tokens[0] + '\n').encode()
-            if not all(item(container, header, name) for name in ITEMS):
+            if not all(item(container, header, name) for name in items):
                 raise RuntimeError('isolated file forecast Items not available')
             for _ in range(90):
                 ready = aqi.run(['docker', 'exec', database.cid, 'psql', '-U', 'postgres',
@@ -135,7 +135,7 @@ def main():
                 raise RuntimeError('isolated JDBC mapping or strategy not ready')
             print('isolated_jdbc_and_file_strategy_ready=true', flush=True)
             before = {}
-            for name, value in ITEMS.items():
+            for name, value in items.items():
                 code, _ = aqi.request(container, header, '/items/' + name + '/state', 'PUT', value)
                 if code != 202 or not item(container, header, name, value=value):
                     raise RuntimeError('isolated state write failed for ' + name)
@@ -150,11 +150,11 @@ def main():
                     time.sleep(2)
                 if name not in before:
                     raise RuntimeError('isolated JDBC write failed for ' + name)
-            print('three_synthetic_states_persisted=true', flush=True)
+            print('synthetic_states_persisted=' + str(len(items)), flush=True)
             aqi.run(['docker', 'exec', container, 'mv',
-                     '/openhab/conf/items/forecast-json.items', '/tmp/forecast.items.parked'])
+                     '/openhab/conf/items/' + source_path.name, '/tmp/forecast.items.parked'])
             if not all(item(container, header, name, present=False, seconds=90)
-                       for name in ITEMS):
+                       for name in items):
                 raise RuntimeError('file Items did not withdraw cleanly')
             for name, definition in definitions.items():
                 code, _ = aqi.request(container, header, '/items/' + name, 'PUT',
@@ -162,7 +162,7 @@ def main():
                 if code not in (200, 201):
                     raise RuntimeError('isolated managed restore refused: ' + name)
             deadline = time.monotonic() + 90
-            for name, value in ITEMS.items():
+            for name, value in items.items():
                 while time.monotonic() < deadline:
                     code, payload = aqi.request(container, header, '/items/' + name)
                     if code == 200:
@@ -174,27 +174,27 @@ def main():
                     raise RuntimeError('managed rollback state not restored: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history changed at managed rollback: ' + name)
-            for name in ITEMS:
+            for name in items:
                 code, _ = aqi.request(container, header, '/items/' + name, 'DELETE')
                 if code not in (200, 202, 204) or not item(container, header, name,
                                                              present=False, seconds=60):
                     raise RuntimeError('isolated managed Item withdrawal failed: ' + name)
             print('managed_rollback_and_forward_transfer_restored=true', flush=True)
             aqi.run(['docker', 'exec', container, 'mv', '/tmp/forecast.items.parked',
-                     '/openhab/conf/items/forecast-json.items'])
-            for name, value in ITEMS.items():
+                     '/openhab/conf/items/' + source_path.name])
+            for name, value in items.items():
                 if not item(container, header, name, value=value, seconds=90):
                     raise RuntimeError('state not restored at hot file reload: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history prefix changed at file reload: ' + name)
             print('hot_file_reload_history_prefix_preserved=true', flush=True)
             aqi.run(['docker', 'restart', container])
-            for name, value in ITEMS.items():
+            for name, value in items.items():
                 if not item(container, header, name, value=value, seconds=240):
                     raise RuntimeError('state not restored at JVM restart: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history prefix changed at restart: ' + name)
-            print('full_restart_three_states_and_history_restored=true', flush=True)
+            print('full_restart_states_and_history_restored=' + str(len(items)), flush=True)
         finally:
             if container is not None:
                 owner = aqi.run(['docker', 'inspect', '--format',
