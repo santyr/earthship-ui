@@ -2,11 +2,38 @@
 
 from datetime import datetime, timezone
 
-from .forecast_history import SOURCE, _window
+from .forecast_history import SOURCE, _utc, _window
+from .schema import ACTION_KINDS, SOURCE_WEIGHTS
 from .temperature_history import STREAMS, _validate_receipt
 
 
-def assemble_origin(origin, *, horizon_hours, forecast_reader, temperature_reader):
+def _validate_actions(snapshot, at):
+    if (not isinstance(snapshot, dict) or
+            set(snapshot) != {'source', 'origin', 'actions', 'mode', 'missing_actions', 'status'} or
+            snapshot['source'] != 'thermal_intel_append_only_journal' or
+            snapshot['origin'] != at or
+            snapshot['status'] != 'as_of_snapshot_not_outcome_confirmation' or
+            not isinstance(snapshot['actions'], dict) or
+            not set(snapshot['actions']) <= set(ACTION_KINDS) or
+            snapshot['missing_actions'] != sorted(set(ACTION_KINDS) - set(snapshot['actions']))):
+        raise ValueError('invalid origin-time action snapshot')
+    for event in [*snapshot['actions'].values(), snapshot['mode']]:
+        if event is None:
+            continue
+        if (not isinstance(event, dict) or set(event) != {
+                'state', 'source', 'confidence', 'effective_at', 'received_at',
+                'created_at', 'event_id'} or event['source'] not in SOURCE_WEIGHTS or
+                any(event.get(key) is None for key in
+                    ('effective_at', 'received_at', 'created_at'))):
+            raise ValueError('action knowledge is not available at origin')
+        effective, received, created = (_utc(event[key]) for key in
+                                        ('effective_at', 'received_at', 'created_at'))
+        if not effective <= received <= created <= at:
+            raise ValueError('action knowledge is not available at origin')
+
+
+def assemble_origin(origin, *, horizon_hours, forecast_reader, temperature_reader,
+                    action_reader=None):
     """Return observed-at-origin inputs only; no model score or action authority."""
     at, targets = _window(origin, horizon_hours)
     if at.second or at.microsecond or at.minute % 5:
@@ -41,6 +68,11 @@ def assemble_origin(origin, *, horizon_hours, forecast_reader, temperature_reade
             'stored_at': receipt['storedAt'].astimezone(timezone.utc),
             'snapshot_sha256': receipt['snapshotSha256'],
         }
+    actions = None if action_reader is None else action_reader(origin=at)
+    if actions is not None:
+        _validate_actions(actions, at)
     return {'status': 'available', 'origin': at, 'horizon_hours': horizon_hours,
             'initial': current, 'receipts': receipts, 'forecast': forecast,
-            'action_knowledge': 'not_qualified'}
+            'action_knowledge': ('not_qualified' if actions is None else
+                                 'as_of_snapshot_not_qualified'),
+            'action_snapshot': actions}

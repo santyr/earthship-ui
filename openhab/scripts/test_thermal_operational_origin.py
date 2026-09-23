@@ -38,6 +38,29 @@ def test_complete_origin_preserves_capture_receipts_without_scoring_actions():
     assert result['receipts']['air']['stored_at'] < ORIGIN
     assert result['forecast']['captured_at'] < ORIGIN
     assert result['action_knowledge'] == 'not_qualified'
+    assert result['action_snapshot'] is None
+
+
+def test_action_snapshot_is_available_as_of_but_not_qualified_outcome():
+    event = {'state': 'installed', 'source': 'manual_dm', 'confidence': 1.0,
+             'effective_at': ORIGIN - timedelta(hours=2),
+             'received_at': ORIGIN - timedelta(hours=1),
+             'created_at': ORIGIN - timedelta(minutes=50), 'event_id': 'a'}
+    snapshot = {'source': 'thermal_intel_append_only_journal', 'origin': ORIGIN,
+                'actions': {'outdoor_shade': event}, 'mode': None,
+                'missing_actions': ['indoor_shade', 'kiva', 'vent'],
+                'status': 'as_of_snapshot_not_outcome_confirmation'}
+    result = assemble_origin(ORIGIN, horizon_hours=24, forecast_reader=forecast,
+                             temperature_reader=temperatures,
+                             action_reader=lambda **kwargs: snapshot)
+    assert result['action_knowledge'] == 'as_of_snapshot_not_qualified'
+    assert result['action_snapshot'] == snapshot
+    late = {**snapshot, 'actions': {'outdoor_shade':
+            {**event, 'created_at': ORIGIN + timedelta(seconds=1)}}}
+    with pytest.raises(ValueError, match='not available'):
+        assemble_origin(ORIGIN, horizon_hours=24, forecast_reader=forecast,
+                        temperature_reader=temperatures,
+                        action_reader=lambda **kwargs: late)
 
 
 def test_missing_receipt_cannot_borrow_an_older_or_other_sensor_value():

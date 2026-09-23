@@ -29,12 +29,13 @@ Origin-time forecast inventory also exposed a real future-capture leak in
 Solar-PV historical features:49 of97 sampled September22 origins selected a
 snapshot captured after the origin. Solar-PV `64460be` now requires capture time
 as well as issue time in the feature and replayed UI reads;758 analytics tests
-pass. Thermal operational replay still needs to consume the archived forecast
-source under the same as-of rule and later qualified indoor/action evidence.
-The Earthship source now includes a bounded capture-safe weather reader and
-same-origin qualified temperature assembler; a live read-only 24-hour assembly
-passed for September23 14:45Z. It remains an input prerequisite, not a scored
-operational replay or shadow exit.
+pass. Thermal operational replay still needs scored outcomes and qualified
+future action evidence. The Earthship source now includes bounded capture-safe
+weather and action-journal readers with a same-origin qualified temperature
+assembler; a live read-only 24-hour assembly passed for September23 14:45Z.
+Its action snapshot knows Kiva and outdoor shade, but lacks vent and indoor-shade
+history and is not an outcome confirmation. This remains an input prerequisite,
+not a scored operational replay or shadow exit.
 
 Later September23 checkpoint: the production JDBC persistence strategy was
 transferred from managed to Git-owned file configuration. The exact file-owned

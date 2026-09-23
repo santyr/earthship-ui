@@ -44,6 +44,18 @@ A bounded source-only forecast archive reader now enforces `captured_at` and
 `issued_at` cutoffs for complete single-issuance weather forcing. Integrating it
 with origin-time indoor state, action knowledge and scored outcomes remains open.
 
+September23 follow-up: `thermal_model/action_history.py` now reads action and
+mode journal rows in one bounded, read-only repeatable-read snapshot, requiring
+both reported `received_at` and actual receipt-row `created_at` to precede the
+origin. Corrections arriving later cannot rewrite historical knowledge. The
+operational-origin assembler accepts this as an explicitly unqualified action
+snapshot alongside the existing captured weather and three qualified temperature
+receipts. A live read-only 14:45Z assembly returned26 weather bracket rows,
+all three initial temperature roles, known Kiva/outdoor-shade history and no
+vent/indoor-shade history. The Kiva entry is model-inferred; this does not prove
+the actions happened or establish future action forcing. Scored operational
+replay, outcome evidence and advisory graduation remain open.
+
 ### Confirmed-action collection audit, September20
 
 Read-only aggregate journal queries still find ten action events: eight
