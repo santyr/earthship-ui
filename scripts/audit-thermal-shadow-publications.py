@@ -8,6 +8,7 @@ not independent days, causal action evidence, or a graduation decision.
 import argparse
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 import json
 from math import isfinite
 from pathlib import Path
@@ -19,10 +20,34 @@ sys.path.insert(0, str(ROOT / 'openhab/scripts'))
 import openhab_sanity_check as oh  # noqa: E402
 from thermal_temperature_runtime import collect  # noqa: E402
 from thermal_model.temperature_history import _validate_receipt  # noqa: E402
+from thermal_model.forcing_capture import (  # noqa: E402
+    _canonical, _private_directory, verify_capture,
+)
 
 ITEM = 'Thermal_Model_JSON'
 CONFIG = '/home/sat/.config/hex/weather-temperature-db.json'
 POLICY = '/home/sat/.config/hex/weather-temperature-policy.json'
+CAPTURE_ROOT = '/home/sat/.local/state/thermal-intel/forcing-captures'
+
+
+def capture_for_publication(publication, root=CAPTURE_ROOT):
+    """Verify the exact private forcing archive for one persisted publication."""
+    issued = aware(publication['generatedAt'])
+    digest = sha256(_canonical(publication)).hexdigest()
+    month = _private_directory(Path(root)) / issued.strftime('%Y-%m')
+    try:
+        _private_directory(month)
+    except FileNotFoundError:
+        return None
+    path = month / (issued.strftime('%Y%m%dT%H%M%SZ') + '-' +
+                    digest[:16] + '.json.gz')
+    try:
+        record = verify_capture(path)
+    except FileNotFoundError:
+        return None
+    if record['sha256']['output'] != digest or record['output'] != publication:
+        raise ValueError('forcing capture does not match persisted publication')
+    return record
 
 
 def aware(value):
@@ -87,7 +112,7 @@ def select_pair(row, *, now):
             'confidence': publication['confidence']['grade']}, None
 
 
-def score(rows, *, now, outcome_reader):
+def score(rows, *, now, outcome_reader, capture_reader=None):
     counts = Counter()
     groups = defaultdict(list)
     for row in rows:
@@ -95,6 +120,12 @@ def score(rows, *, now, outcome_reader):
         if reason:
             counts[reason] += 1
             continue
+        if capture_reader is not None:
+            capture = capture_reader(json.loads(row['state']))
+            if capture is None:
+                counts['forcing_capture_missing'] += 1
+                continue
+            counts['forcing_capture_verified'] += 1
         receipt = outcome_reader(pair['target'])
         if receipt is None:
             counts['qualified_outcome_unavailable'] += 1
@@ -127,6 +158,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--since', default='2026-09-20T00:00:00+00:00')
     parser.add_argument('--until', default=None)
+    parser.add_argument('--require-capture', action='store_true',
+                        help='score only publications with an exact private forcing archive')
     args = parser.parse_args()
     now = datetime.now(timezone.utc)
     start = aware(args.since)
@@ -144,7 +177,9 @@ def main():
         if not isinstance(rows, list) or len(rows) != 1 or rows[0][0] != target:
             raise ValueError('qualified outcome reader returned unexpected target')
         return rows[0][1]
-    print(json.dumps(score(rows, now=now, outcome_reader=outcome), sort_keys=True))
+    print(json.dumps(score(rows, now=now, outcome_reader=outcome,
+                           capture_reader=capture_for_publication if args.require_capture else None),
+                     sort_keys=True))
 
 
 if __name__ == '__main__':

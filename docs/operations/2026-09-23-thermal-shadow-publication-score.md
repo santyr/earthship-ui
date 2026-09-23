@@ -36,12 +36,22 @@ current value is the model's own baseline and is freshness-checked here; it is
 not substituted with a later measurement. The separate
 [origin census](2026-09-23-thermal-origin-census.md) uses a different hourly
 grid, so its persistence MAE is not directly paired with these publications.
-The live v4 shadow command timestamps `generatedAt` at command start, before
-its direct Open-Meteo fetch completes. Persistence confirms delivery before
-each scored target, but this audit cannot claim the exact weather forcing was
-known at the printed `generatedAt` to the second. The repository's future
-runtime source now stamps the decision after input retrieval; it has not been
-deployed alone against the current accepted v4 artifact.
+The legacy live v4 shadow command timestamped `generatedAt` at command start,
+before its direct Open-Meteo fetch completed. Persistence confirms delivery
+before each scored target, but this audit cannot claim the exact weather forcing
+was known at the printed legacy `generatedAt` to the second. On September 23,
+the compatible installed v4 publisher received a narrow post-input timestamp
+and private forcing-capture backport; its first verified archive is documented
+in [the live activation receipt](2026-09-23-thermal-forcing-capture-live.md).
+No archive was retroactively manufactured for historical publications.
+
+The audit now accepts `--require-capture`, which verifies an exact private
+archive and persisted-output digest before scoring a mature pair. At 09:57 MDT,
+strict mode found 31 mature legacy publications without captures and 14 targets
+not yet due, so it correctly emitted **zero capture-qualified scores**. The
+non-strict observational score remained 31 pairs, model MAE 2.4565°F versus
+same-origin persistence 2.0265°F. Capture-qualified scoring must wait for the
+first archived 24-hour target to mature; missing archives remain explicit gaps.
 
 This live score does not support shadow exit: overall near24-hour
 MAE trails persistence by0.4300°F, and interval coverage is below the nominal

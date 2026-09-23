@@ -70,13 +70,15 @@ baseline; nominal90% interval coverage was87.1%. All scored outputs were
 low-confidence and three revisions were mixed. This is direct operational
 evidence against graduating the current shadow output, not a release gate
 derived from a few overlapping warm-season days.
-The direct publisher also stamped `generatedAt` before completing its weather
-fetch. Source-only `thermal_intel._shadow` now takes an injectable post-input
-decision clock, rejects rollback/naive timestamps and uses the post-fetch time
-for the modeled output. Ninety-five focused thermal publish/pipeline/receipt
-tests passed. The installed v4 runtime was not hot-patched; the next compatible
-runtime/model cutover must include this timing correction and exact forcing
-capture/provenance before claiming strict operational as-of replay.
+The direct publisher originally stamped `generatedAt` before completing its
+weather fetch. A narrow timestamp/capture backport is now live on the compatible
+installed v4 runtime, preserving the post-input decision time at full precision
+and archiving exact raw and normalized forcing for successful publications.
+The first attended archive matched the live OpenHAB output digest. The strict
+published-shadow scorer requires that archive and deliberately excludes all
+pre-capture legacy pairs; its first mature capture-qualified target is still
+pending. This fixes a provenance prerequisite, not the model's accuracy or
+shadow-exit gates.
 
 ### Confirmed-action collection audit, September20
 

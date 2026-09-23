@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
+import os
 from pathlib import Path
+import tempfile
 import unittest
 
 SOURCE = Path(__file__).with_name('audit-thermal-shadow-publications.py')
 SPEC = importlib.util.spec_from_file_location('thermal_publication_audit', SOURCE)
 audit = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(audit)
+from thermal_model.forcing_capture import capture_shadow_inputs
 ISSUE = datetime(2026, 9, 20, 1, 25, tzinfo=timezone.utc)
 TARGET = datetime(2026, 9, 21, 1, 0, tzinfo=timezone.utc)
 
@@ -66,6 +69,36 @@ class PublicationAuditTests(unittest.TestCase):
                              outcome_reader=lambda _: None)
         self.assertEqual(result['counts'], {'qualified_outcome_unavailable': 1})
         self.assertEqual(result['groups'], {})
+
+    def test_capture_required_excludes_missing_and_verifies_exact_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            os.chmod(directory, 0o700)
+            reader = lambda value: audit.capture_for_publication(value, directory)
+            result = audit.score([row()], now=TARGET + timedelta(minutes=10),
+                                 outcome_reader=receipt, capture_reader=reader)
+            self.assertEqual(result['counts'], {'forcing_capture_missing': 1})
+            self.assertEqual(result['groups'], {})
+            capture_shadow_inputs(
+                directory, output=published(), snapshot={'hourly': {'time': []}},
+                rows=[], current={}, inputs_available_at=ISSUE,
+                published_at=ISSUE + timedelta(seconds=2),
+            )
+            result = audit.score([row()], now=TARGET + timedelta(minutes=10),
+                                 outcome_reader=receipt, capture_reader=reader)
+            self.assertEqual(result['counts']['forcing_capture_verified'], 1)
+            self.assertEqual(result['counts']['scored'], 1)
+            self.assertEqual(result['groups']['overall']['model_mae_f'], 2.0)
+
+    def test_capture_identity_cannot_match_changed_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            os.chmod(directory, 0o700)
+            capture_shadow_inputs(
+                directory, output=published(), snapshot={}, rows=[], current={},
+                inputs_available_at=ISSUE, published_at=ISSUE + timedelta(seconds=2),
+            )
+            changed = published()
+            changed['current']['hallwayF'] = 69.0
+            self.assertIsNone(audit.capture_for_publication(changed, directory))
 
 
 if __name__ == '__main__':
