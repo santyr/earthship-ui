@@ -267,8 +267,10 @@ channel source, and JDBC identity587 advanced by one matching changed-value
 row. See the [cutover receipt](2026-09-23-openmeteo-aqi-item-cutover.md).
 The separate managed `Forecast_AQI` Item/link now has an exact prepared Git
 source and passed networkless OpenHAB 5.2.1 first-boot, full-restart and
-managed-rollback rehearsal. It is not installed or declared file-owned;
-JDBC/history and attended live transfer remain open. See the
+managed-rollback rehearsal. A second isolated OpenHAB/PostgreSQL run verified
+synthetic String-state persistence and history prefix across file reload and
+full restart. Live `REFRESH`/future-series semantics and attended transfer
+remain open; it is not installed or declared file-owned. See the
 [preflight receipt](2026-09-23-openmeteo-forecast-aqi-preflight.md).
 
 ### Explicit active goal: graduate the thermal model from shadow

@@ -26,7 +26,9 @@ provider on another host.
 `items/openmeteo-forecast-aqi.items` is prepared for the separate managed
 `Forecast_AQI` hourly observation and link, but is **not installed** or declared
 file-owned. Networkless provider/full-restart/managed-rollback rehearsal passed;
-state/JDBC history and a reversible live cutover remain open. See
+isolated synthetic-state/JDBC reload and full-restart checks also passed.
+The live Item currently reports `REFRESH` with no exposed JDBC history, so
+binding future-series behavior and a reversible live cutover remain open. See
 `docs/operations/2026-09-23-openmeteo-forecast-aqi-preflight.md`.
 Three observational forecast JSON Items now share
 `items/forecast-json.items`; their isolated provider/JDBC/full-restart checks,

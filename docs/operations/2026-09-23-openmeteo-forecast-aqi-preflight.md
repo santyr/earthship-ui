@@ -24,13 +24,27 @@ nullable-field assumption was fixed and covered by a unit test; the complete
 rerun passed. Both owned containers were removed and absence verified. No
 production Item/link or state was changed.
 
-This is **not** a live migration or a JDBC/history qualification. Before an
-attended cutover, verify persisted state and forecast-series prefix across
-file reload/full restart in isolation; privately snapshot the exact live
-managed Item/link and JDBC mapping/history; then perform a reversible,
-single-provider transfer and verify the next natural binding refresh. Do not
+At this provider checkpoint, this was **not** a live migration or a
+JDBC/history qualification. The separate state/JDBC follow-up is below. Before
+an attended cutover, the actual forecast-series behavior and live recovery
+semantics must be resolved, then the exact managed Item/link and available
+JDBC mapping/history must be privately snapshotted. The single-provider
+transfer must be reversible and followed by a natural binding refresh. Do not
 declare file ownership or alter the live link until those gates pass.
 
-Verification: 1,697 UI/source tests, three qualifier selector tests and the
-complete isolated provider/restart/rollback run passed. The Git-owned source
-has not been installed on the production host.
+Follow-up: the closed `--candidate forecast` mode of the isolated
+OpenHAB/PostgreSQL recovery harness passed. A synthetic String state written
+only inside the disposable OpenHAB instance produced one JDBC row. File
+withdrawal/reload restored that state and retained the row prefix; a full JVM
+restart did the same. The owned OpenHAB and PostgreSQL containers were removed,
+with zero production writes. Live read-only checks show the managed Item state
+is the special value `REFRESH`; OpenHAB's JDBC persistence endpoint currently
+returns zero rows for this Item. The restricted SQL reader denied access to its
+underlying Item table, as expected. This isolated synthetic-state result does
+not prove future hourly series delivery through the real binding, nor does it
+establish a live state-restoration requirement for `REFRESH`. Those semantics,
+the private live snapshot and a reversible attended cutover remain open.
+
+Verification: 1,697 UI/source tests, four qualifier selector tests and both
+isolated provider/restart/rollback and state/JDBC restore runs passed. The
+Git-owned source has not been installed on the production host.

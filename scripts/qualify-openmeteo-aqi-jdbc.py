@@ -5,6 +5,7 @@ Two disposable containers share only their loopback network. They have no
 ports, mounts, host database credentials, external network or live writes.
 """
 import importlib.util
+import argparse
 import io
 import json
 from pathlib import Path
@@ -23,6 +24,10 @@ run = isolated.run
 IMAGE = isolated.provider.isolated.IMAGE
 ITEM = 'Current_US_AQI'
 VALUE = '42.5'  # Disposable test value, never sent to production.
+CANDIDATES = {
+    'current': ('Current_US_AQI', ROOT / 'openhab/file-config/items/openmeteo-current-aqi.items'),
+    'forecast': ('Forecast_AQI', ROOT / 'openhab/file-config/items/openmeteo-forecast-aqi.items'),
+}
 
 
 def install(container, name, body):
@@ -75,6 +80,11 @@ def rows(container, header):
 
 
 def main():
+    global ITEM
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--candidate', choices=tuple(CANDIDATES), default='current')
+    args = parser.parse_args()
+    ITEM, source = CANDIDATES[args.candidate]
     marker = secrets.token_hex(8)
     with Database() as database:
         container = None
@@ -99,8 +109,7 @@ def main():
             run(['docker', 'exec', container, 'sh', '-c',
                  'while [ ! -f /tmp/bootstrap-ready ]; do sleep 1; done'])
             database.stage(container)
-            install(container, 'items/openmeteo-current-aqi.items',
-                    (ROOT / 'openhab/file-config/items/openmeteo-current-aqi.items').read_bytes())
+            install(container, 'items/' + source.name, source.read_bytes())
             install(container, 'persistence/jdbc.persist',
                     (ROOT / 'openhab/file-config/persistence/jdbc.persist').read_bytes())
             run(['docker', 'exec', container, 'touch', '/openhab/conf/.aqi-jdbc-ready'])
@@ -166,11 +175,11 @@ def main():
                 raise RuntimeError('isolated AQI state did not persist in JDBC')
             print(json.dumps({'phase': 'jdbc_write', 'history_rows': len(before)}), flush=True)
             run(['docker', 'exec', container, 'mv',
-                 '/openhab/conf/items/openmeteo-current-aqi.items', '/tmp/aqi.items.parked'])
+                 '/openhab/conf/items/' + source.name, '/tmp/aqi.items.parked'])
             if not wait_item(container, header, present=False, seconds=90):
                 raise RuntimeError('isolated AQI file Item did not disappear')
             run(['docker', 'exec', container, 'mv', '/tmp/aqi.items.parked',
-                 '/openhab/conf/items/openmeteo-current-aqi.items'])
+                 '/openhab/conf/items/' + source.name])
             hot_restore = wait_item(container, header, present=True, value=VALUE, seconds=45)
             if rows(container, header)[:len(before)] != before:
                 raise RuntimeError('AQI JDBC history prefix changed across hot reload')
