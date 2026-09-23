@@ -7,6 +7,13 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 23, 2026
 
+The first natural thermal shadow run after the installed-v4 confirmation-CLI
+hardening succeeded at 15:51 MDT. Its verified private forcing archive exactly
+matched the live shadow Item and the timer rescheduled. The result remained
+low-confidence shadow with no candidate. This closes a runtime regression
+check, not the accuracy or action-outcome gates for leaving shadow mode; see
+the [backport receipt](2026-09-23-thermal-journal-cli-backport.md).
+
 The [read-first AC UI v4 contract](ac-load-ui-v4.md) is now implemented and
 tested without activating an AC publisher. It accepts a distinct observed
 inverter-output day with coverage, revision, cutover and topology provenance,

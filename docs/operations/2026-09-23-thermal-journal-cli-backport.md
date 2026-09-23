@@ -35,3 +35,13 @@ hash-checked private prior script over only this executable while the service
 is inactive. This hardening is an ingestion prerequisite, **not** authenticated
 operator transport, confirmed ventilation/shade outcomes, a model score, or
 shadow graduation.
+
+The next natural timer actually fired at 15:51:37 MDT and the installed-v4
+service exited successfully at 15:51:41 (status 0, invocation
+`4aa218d5fc8a4078b5617a5c96d662e5`). Its 8,780-byte private forcing
+archive `20260923T215139Z-cda7ce48f3ff2074.json.gz` passed all four digest
+checks, records 240 forecast rows, and exactly matches the live
+`Thermal_Model_JSON` state. Decision time was 21:51:39.217273Z; publication
+was 21:51:41.468304Z. The result stayed low-confidence `shadow`, with no
+candidate. The timer rescheduled for 17:51:37 MDT. This closes the immediate
+natural-run regression check; no 1-hour or 24-hour accuracy claim follows.
