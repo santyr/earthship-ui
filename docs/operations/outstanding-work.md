@@ -227,7 +227,12 @@ and protected-resource rollback remain outstanding.
   was subsequently deployed in `af93fb1`, with atomic SoC evidence, independent
   coverage, unknown-versus-zero handling and no extrapolation. All 743 analytics
   tests passed. Follow-up `a4d402b` verifies 23/25-hour Denver DST exposure windows
-  (27 targeted tests); the first nonempty completed qualified day is still pending.
+  (27 targeted tests). September23 read-only restricted reporting now verifies
+  naturally written September20–22 snapshots: observed period EFC0.434789,
+  power coverage60.39% on the cutover day and above99.98% on both later
+  completed days, with separate valid atomic-SoC exposure on all three days.
+  This closes the first nonempty completed-day readback, not temperature
+  exposure, independent BMS comparison or winter qualification.
 
 - Qualified power feature export is now available in the deployed Solar_PV
   `1a013f3` via explicit `export-features --power-evidence-policy`. CSV v3 labels
