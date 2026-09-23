@@ -99,6 +99,19 @@ a 52,640-row natural 25-hour window below the 60,000-row reader bound. This
 closes full-day durability/volume for those two days, not physical source-fault,
 restart/DST, AC-load or retention qualification.
 
+The September 23 [SoC sanity release](2026-09-23-soc-sanity-atomic-freshness.md)
+replaced heartbeat-only `fresh:bms` authority with validated atomic SoC
+receipts. Sixteen focused tests, read-only live evaluation and guarded
+one-file deployment passed; the first natural post-release sanity run at
+12:56 MDT exited 0 with all checks passed. This fixes the checker's
+source-validity gap without changing
+OpenHAB control, persistence or notification cadence.
+
+The file-owned Current_US_AQI Item passed its first natural post-transfer
+binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
+channel source, and JDBC identity587 advanced by one matching changed-value
+row. See the [cutover receipt](2026-09-23-openmeteo-aqi-item-cutover.md).
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing

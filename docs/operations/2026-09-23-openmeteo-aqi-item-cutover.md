@@ -40,7 +40,12 @@ non-managed Items, 260 managed/two non-managed links, 81 managed/three
 non-managed Things, one file-owned JDBC strategy and zero issues. The restored
 unchanged state did not create an extra JDBC change row.
 
-The next natural OpenMeteo binding fetch and changed-value JDBC receipt remain
-the production writer acceptance gate. Until observed, this is a verified
-provider/state transfer, not proof of a later scheduled publication. The
-private snapshot is same-host rollback material, not off-host recovery.
+The next natural OpenMeteo binding fetch completed at 12:51:20 MDT. OpenHAB
+logged a `Current_US_AQI` change from 37.708336 to 37.75463 with source
+`org.openhab.core.thing$openmeteo:air-quality:local:aq:current#us-aqi`.
+The file-owned Item read 37.75463 afterward, and JDBC identity 587 advanced
+from 581 to 582 rows with the matching value at
+2026-09-23T18:51:20.448051Z. The same fetch updated the `Forecast_AQI`
+time series with 48 values. This closes the natural production-writer gate
+for the transferred Item/link; it does not qualify indefinite operation or
+off-host recovery. The private snapshot remains same-host rollback material.
