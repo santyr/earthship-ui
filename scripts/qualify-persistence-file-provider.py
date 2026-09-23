@@ -34,6 +34,7 @@ def main(database=None):
     for path, size in [('tmp', '64m'), ('openhab/conf', '64m'), ('openhab/userdata', '512m'), ('openhab/addons', '32m')]:
         command += ['--tmpfs', '/' + path + ':rw,exec,nosuid,nodev,size=' + size + ',uid=9001,gid=9001']
     command += ['-e', 'EXTRA_JAVA_OPTS=-Xmx512m -Duser.timezone=America/Denver -Duser.home=/openhab/userdata',
+        '-e', 'HEX_JDBC_ISOLATED=1' if database else 'HEX_JDBC_ISOLATED=0',
         '--entrypoint', '/bin/sh', isolated.IMAGE, '-c',
         'cp -a /openhab/dist/conf/. /openhab/conf/; cp -a /openhab/dist/userdata/. /openhab/userdata/; '
         'touch /tmp/bootstrap-ready; while [ ! -f /tmp/ready ]; do sleep 1; done; '
@@ -141,9 +142,14 @@ def main(database=None):
             print('exact_file_managed_file_roundtrip_' + str(cycle + 1) + '=verified', flush=True)
         if database:
             database.restore(cid, header)
+            database.power_write(cid, header)
             database.restart(cid, header)
+            if database.forecast_verified != 5 or not database.power_restore_verified:
+                raise RuntimeError('isolated forecast or power restoration qualification incomplete')
             wait_for(expected)
             boundaries.complete()
+            boundaries.forecast_timeseries_behavior = 'verified_with_negative_control_and_restart'
+            boundaries.independently_written_power_restore = 'verified_after_jvm_restart'
             print('exact_file_strategy_after_jvm_restart=verified', flush=True)
         else:
             print('database_writes_and_restore=not_tested', flush=True)

@@ -53,6 +53,8 @@ class BoundaryLedger:
         self.completed = []
         self.pending = None
         self.suite_complete = False
+        self.forecast_timeseries_behavior = "not_tested"
+        self.independently_written_power_restore = "not_tested"
 
     def begin(self, label, before):
         if self.pending is not None or self.suite_complete:
@@ -153,6 +155,6 @@ class BoundaryLedger:
                 "injected_updates_not_persisted": len(self.completed),
                 "production_migration_authorized": False,
                 "natural_source_continuity": "not_tested",
-                "forecast_timeseries_behavior": "not_tested",
-                "independently_written_power_restore": "not_tested",
+                "forecast_timeseries_behavior": self.forecast_timeseries_behavior,
+                "independently_written_power_restore": self.independently_written_power_restore,
                 "whole_host_recovery": "not_tested"}

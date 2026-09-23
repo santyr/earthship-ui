@@ -38,9 +38,13 @@ The candidate is shadow-only and was not promoted. The 1, 12, 48 and 72-hour
 horizons also failed to beat persistence; only the 6-hour horizon beat both
 persistence and the recent-state baseline. Confirmed-action training and
 evaluation counts were both zero, so this run does not qualify action advice.
-Retain the private report for diagnosis, then remove the owned temporary source
-and transient unit after evidence is archived. Do not loosen the gate to accept
-this candidate.
+On September23 the complete 2.8MiB private run directory, including frozen
+source, candidate, report and refusal log, was moved to
+`/home/sat/.local/state/thermal-intel/qualification-runs/thermal-v5-qualification-AsBEbyXN`.
+Candidate/report hashes matched before and after the move. The original `/tmp`
+directory is absent, and resetting the failed transient unit left it unloaded.
+The command above describes the original audit path; use the archived `models`
+directory for subsequent analysis. Do not loosen the gate to accept this candidate.
 
 ## Historical evidence boundary confirmed from source
 

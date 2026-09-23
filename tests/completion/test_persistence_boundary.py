@@ -48,6 +48,9 @@ class Database:
         self.persist_during_gap = False
         self.requests = []
         self.restart_failure = False
+        self.forecast_verified = 0
+        self.power_restore_verified = False
+        self.power_write_called = False
     def request(self, cid, header, path, method="GET", body=None, content_type="application/json"):
         self.requests.append((cid, path, method, body))
         assert cid == "synthetic-openhab"
@@ -69,11 +72,17 @@ class Database:
         self.clock.sleep(0.2)
         self.state = str(10 + len(self.previous))
         self.previous.append({"time": self.clock.millis(), "state": self.state})
+        if label in {"initial-file", "managed-1", "file-1", "managed-2", "file-2"}:
+            self.forecast_verified += 1
     def restore(self, *_):
         pass
+    def power_write(self, *_):
+        self.power_write_called = True
     def restart(self, *_):
         if self.restart_failure:
             raise RuntimeError("synthetic restart failed")
+        assert self.power_write_called
+        self.power_restore_verified = True
 
 
 @pytest.fixture
@@ -282,6 +291,8 @@ def test_actual_provider_main_exercises_four_gaps_and_cleans_up(tmp_path, setup,
     report = parse_report(capsys.readouterr().out)
     assert report["status"] == "verified_with_collection_gaps"
     assert len(report["boundaries"]) == 4
+    assert report["forecast_timeseries_behavior"] == "verified_with_negative_control_and_restart"
+    assert report["independently_written_power_restore"] == "verified_after_jvm_restart"
     assert docker.removed and docker.provider == "file"
     assert len(setup.database.previous) == 5  # Existing JDBC roundtrip contract preserved.
     updates = [row for row in setup.database.requests if row[2] == "PUT"]

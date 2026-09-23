@@ -130,3 +130,67 @@ accounting remain required before production persistence migration.
 
 This qualification does not authorize or claim production persistence migration,
 whole-host recovery or protected-control restart safety.
+
+### September 23 isolated collection-boundary run
+
+The extended `scripts/qualify-persistence-jdbc.py` completed successfully against
+the pinned OpenHAB 5.2.1 image, active JDBC 5.2.1/PostgreSQL 42.7.11 bundles and
+a disposable PostgreSQL 16 database. It again verified exact file-provider DTOs,
+two file/managed/file roundtrips, five ordered Number history writes with exact
+prefixes, change-only suppression, Power_Evidence_JSON exclusion, Item recreation
+restore and a different Java PID after full JVM stop/start. The restart restored
+the last Number value without adding a history row.
+
+At each of the four provider-free handoffs, the test observed provider absence,
+applied one synthetic Item update inside the disposable runtime and verified that
+it was **not** persisted. The next positive write succeeded and preserved the
+earlier history exactly. Each unqualified synthetic interval was approximately
+9–10 seconds. The final boundary report was
+`verified_with_collection_gaps`, with four deliberately unpersisted updates.
+This establishes an explicit gap policy for the handoff; it does not establish
+uninterrupted natural source collection. Both owned containers, the ephemeral
+database and credentials were removed; label-based Docker readback found none.
+
+Forecast time-series behavior and restoration of history written by the
+independent power writer were still untested at this checkpoint. The next run
+below closes these two isolated-runtime gates. Production is still managed.
+
+### September 23 complete isolated JDBC policy-branch run
+
+The final combined run completed successfully against the pinned image and
+disposable database. A guarded, temporary OSGi probe published two future Number
+states using OpenHAB's real TimeSeries event API. The member of `gForecast`
+persisted exactly those future states under initial file ownership and after
+each of four file/managed/file handoffs. Repeating the same target with REPLACE
+policy yielded the new values rather than retaining old forecast values. An
+otherwise identical Number Item outside `gForecast` had no future history. The
+last two forecast values (45,46) were present after a full JVM stop/start.
+The final confirmation run also required the exact requested future timestamps,
+not just two values inside the queried interval; it passed at all five
+checkpoints and after restart.
+
+A separate guarded probe used the exact `PersistenceExtensions.persist(item,
+timestamp, state, "jdbc")` overload used by the production power observer. It
+wrote one synthetic `Power_Evidence_JSON` history row without posting an Item
+update. Before restart, Item state differed from the written history; after a
+new JVM started, `restoreOnStartup` restored the independently written state.
+The power history still had exactly one row. The ordinary change-only exclusion
+check had passed at all five checkpoints. This covers the coexistence of the
+excluded automatic writer and explicit immutable writer in the isolated runtime.
+
+The run also repeated exact DTO matching, both ownership roundtrips, five-row
+Number history prefix preservation, four observed provider-free gaps with one
+deliberately unpersisted update each, Item recreation restore, and unchanged
+history on JVM restart. The final report marks forecast and independent-power
+restore verified; natural source continuity and whole-host recovery remain
+untested. Both owned containers, the temporary probe bundles, database and
+credentials were removed. Offline boundary/source tests passed:33 tests and10
+parameterized subtests. No production provider, source, credential or rule changed.
+
+The remaining production cutover decision must account for a real collection
+gap: each isolated handoff took roughly13–15 seconds and dropped its synthetic
+update. Record exact live start/end boundaries and propagate them to relevant
+learning/coverage readers; do not imply the missing interval was observed.
+Verify backup/rollback and live writer readiness immediately before transferring
+the single provider. The isolated result does not by itself authorize or prove
+that production transfer.

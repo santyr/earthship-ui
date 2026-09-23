@@ -5,7 +5,26 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
-## Current checkpoint — September 20, 2026
+## Current checkpoint — September 23, 2026
+
+September23 live follow-up: the existing qualified daily power job naturally
+materialized September20,21,22; the UI publication reports three present days,
+zero missing days, and latest PV/battery coverage above99.98%. Daily high/low
+temperature learning naturally scored complete qualified coverage on September22
+and23; hourly qualified targets scored24/24 on both days. The first day-3 target
+is September24 and its assessment is not due until September25. Completed trough
+assessment logged one and then two samples; this is still insufficient to claim
+bandit reward attribution or tune advisory thresholds. The September23
+[isolated persistence rehearsal](2026-09-20-persistence-provider-qualification.md)
+passed with four explicitly unpersisted provider-gap updates. Its final combined
+run also passed future forecast-series replacement, nonmember exclusion, and
+independently written power-history restoration after a full JVM restart. A
+production gap accounting/rollback procedure and live transfer remain open. The
+Bitcoin feed was restored
+after a Java-upgrade spawn failure and disabled Thing; see the
+[incident receipt](2026-09-10-bitcoin-feed-validation.md). The v5 thermal candidate
+was refused on 24-hour accuracy and was not promoted; see the
+[qualification result](2026-09-20-thermal-v5-qualification.md).
 
 ### Explicit active goal: graduate the thermal model from shadow
 
