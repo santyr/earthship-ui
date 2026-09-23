@@ -1245,6 +1245,57 @@ def test_cli_shadow_queries_journal_for_effective_mode_timeline(tmp_path, monkey
     assert journal.calls == [(NOW, rows[-1]["at"] + timedelta(microseconds=1))]
 
 
+def test_cli_shadow_stamps_decision_after_forecast_input(tmp_path, monkeypatch):
+    import thermal_intel
+
+    events = []
+    decision_at = NOW + timedelta(minutes=1)
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: None)
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast",
+                        lambda: events.append("fetched") or {})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows",
+                        lambda snapshot, now: forecast_hours(24))
+    monkeypatch.setattr(thermal_intel, "ArtifactRegistry", lambda path: AcceptedRegistry())
+    observed = {}
+    def run(**kwargs):
+        observed['now'] = kwargs['now']
+        return thermal_intel.build_unavailable_shadow(
+            now=kwargs['now'], reasons=("test output",))
+    monkeypatch.setattr(thermal_intel, "run_shadow", run)
+
+    status = thermal_intel._shadow(
+        SimpleNamespace(output=tmp_path / "shadow.json", publish=False), NOW,
+        decision_clock=lambda: events.append("decision") or decision_at,
+    )
+
+    assert events == ["fetched", "decision"]
+    assert observed['now'] == decision_at
+    assert status == 1
+    assert json.loads((tmp_path / "shadow.json").read_text())["generatedAt"] == decision_at.isoformat()
+
+
+@pytest.mark.parametrize("decision_at", [
+    NOW - timedelta(seconds=1), NOW.replace(tzinfo=None),
+])
+def test_cli_shadow_refuses_invalid_decision_clock(tmp_path, monkeypatch, decision_at):
+    import thermal_intel
+
+    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: None)
+    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: current_states())
+    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
+    monkeypatch.setattr(thermal_intel, "_forecast_rows",
+                        lambda snapshot, now: forecast_hours(24))
+    destination = tmp_path / "shadow.json"
+    status = thermal_intel._shadow(
+        SimpleNamespace(output=destination, publish=False), NOW,
+        decision_clock=lambda: decision_at,
+    )
+
+    assert status == 1
+    assert "decision clock" in destination.read_text()
+
+
 def test_cli_shadow_journal_operational_error_is_sanitized_and_never_published(
     tmp_path, monkeypatch
 ):

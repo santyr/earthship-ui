@@ -70,6 +70,13 @@ baseline; nominal90% interval coverage was87.1%. All scored outputs were
 low-confidence and three revisions were mixed. This is direct operational
 evidence against graduating the current shadow output, not a release gate
 derived from a few overlapping warm-season days.
+The direct publisher also stamped `generatedAt` before completing its weather
+fetch. Source-only `thermal_intel._shadow` now takes an injectable post-input
+decision clock, rejects rollback/naive timestamps and uses the post-fetch time
+for the modeled output. Ninety-five focused thermal publish/pipeline/receipt
+tests passed. The installed v4 runtime was not hot-patched; the next compatible
+runtime/model cutover must include this timing correction and exact forcing
+capture/provenance before claiming strict operational as-of replay.
 
 ### Confirmed-action collection audit, September20
 

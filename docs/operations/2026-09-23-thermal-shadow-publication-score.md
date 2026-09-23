@@ -36,6 +36,12 @@ current value is the model's own baseline and is freshness-checked here; it is
 not substituted with a later measurement. The separate
 [origin census](2026-09-23-thermal-origin-census.md) uses a different hourly
 grid, so its persistence MAE is not directly paired with these publications.
+The live v4 shadow command timestamps `generatedAt` at command start, before
+its direct Open-Meteo fetch completes. Persistence confirms delivery before
+each scored target, but this audit cannot claim the exact weather forcing was
+known at the printed `generatedAt` to the second. The repository's future
+runtime source now stamps the decision after input retrieval; it has not been
+deployed alone against the current accepted v4 artifact.
 
 This live score does not support shadow exit: overall near24-hour
 MAE trails persistence by0.4300°F, and interval coverage is below the nominal

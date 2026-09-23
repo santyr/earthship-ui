@@ -473,7 +473,7 @@ def publish_shadow_output(payload, put_state=None):
     return encoded
 
 
-def _shadow(args, now, put_state=None, journal=None):
+def _shadow(args, now, put_state=None, journal=None, decision_clock=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     started = time.monotonic()
     current = None
@@ -510,6 +510,14 @@ def _shadow(args, now, put_state=None, journal=None):
                 now, horizon_end + timedelta(microseconds=1)
             )
             rows = _apply_mode_timeline(rows, modes, now)
+        # The forecast fetch (and optional mode read) occurs after the command
+        # starts. Stamp the decision only after those inputs are available; a
+        # start-time stamp would falsely place them in the past for replay.
+        decision_at = now if decision_clock is None else decision_clock()
+        if (not isinstance(decision_at, datetime) or decision_at.tzinfo is None
+                or decision_at.utcoffset() is None or decision_at < now):
+            raise ValueError('shadow decision clock is invalid or moved backward')
+        now = decision_at.astimezone(timezone.utc)
         failed_input = "accepted artifact input"
         output = run_shadow(
             registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
@@ -559,7 +567,7 @@ def main(argv=None):
         if args.subcommand == "backtest":
             return _backtest(args, parser, now)
         if args.subcommand == "shadow":
-            return _shadow(args, now)
+            return _shadow(args, now, decision_clock=lambda: datetime.now(timezone.utc))
     except (OSError, RuntimeError, TypeError, ValueError) as exc:
         print(
             json.dumps(
