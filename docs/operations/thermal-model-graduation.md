@@ -70,6 +70,14 @@ three disjoint 24-hour windows remain, with MAE 1.32°F. The audit does not
 score a model or action benefit. Its restricted read-only path is a prerequisite
 for future frozen-candidate replay, not evidence for leaving shadow.
 
+An [exact-forcing air-bias sensitivity check](2026-09-23-thermal-bias-sensitivity.md)
+reproduced four published v4 trajectories before trying in-memory coefficient
+variants. Reducing the negative air bias improved a handful of matured
+short-horizon errors while leaving substantial low bias, and some variants
+changed the schedule. This is a physical-fit hypothesis only; no artifact or
+production advice was changed. Chronological, capture-safe candidate tuning
+and an untouched seasonal holdout remain required.
+
 The [actual published-shadow audit](2026-09-23-thermal-shadow-publication-score.md)
 then paired31 matured near24-hour trajectories with qualified indoor outcomes.
 The model's MAE was2.4565°F versus2.0265°F for its own same-origin persistence

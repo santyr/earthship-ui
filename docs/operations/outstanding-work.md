@@ -30,6 +30,11 @@ model MAE 2.162°F versus persistence 0.840°F. Its first six-hour pair missed
 low by 6.529°F and fell outside the published interval, versus a 3.420°F
 persistence error. No capture-qualified 24-hour target is mature. These are
 diagnostics for historical/physical-model tuning, not grounds to leave shadow.
+An [exact-forcing bias sensitivity check](2026-09-23-thermal-bias-sensitivity.md)
+later reproduced four v4 captured publications in memory. Reducing the
+negative air-bias coefficient improved a few short-horizon misses, but the
+errors remained low and some variants changed the selected schedule. No live
+artifact, threshold or advice was changed; this is not a fitted candidate.
 
 The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-preactivation.md)
 records a default-off daily command and opt-in v4 publisher path pushed to
