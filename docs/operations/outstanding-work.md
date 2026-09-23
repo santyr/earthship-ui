@@ -127,8 +127,11 @@ provider rehearsals passed. All three are now online/file-owned with exact
 1/38/12 channel sets, supported setting parity and 12 retained links. The
 managed definitions were backed up privately and removed; the link JSONDB is
 unchanged. The ownership inventory has 81 managed plus three file Things and
-zero issues. Natural post-cutover bound Item updates remain to be observed;
-the immediate readback had valid states but no new JDBC receipt yet.
+zero issues. Live events at 10:51:18 MDT also show file-provider startup
+publication of 48 hourly and seven daily forecast values, 48 AQI forecast
+values and an AQI Item update. A later scheduled refresh remains to be
+observed; immediate JDBC readback had no new AQI receipt because the state
+was unchanged and forecast rows use target timestamps.
 
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:

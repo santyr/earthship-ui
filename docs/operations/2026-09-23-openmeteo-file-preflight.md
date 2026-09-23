@@ -1,7 +1,7 @@
 # OpenMeteo Thing file-first preflight
 
-September 23, 2026. Source-only preparation; no live Thing, link, Item,
-binding, polling schedule or forecast publisher was changed.
+September 23, 2026. This began as source-only preparation; the superseding
+production transfer and post-cutover observations are recorded below.
 
 The three managed Things are `openmeteo:openmeteo:local` (bridge),
 `openmeteo:forecast:local:site`, and `openmeteo:air-quality:local:aq`.
@@ -81,12 +81,16 @@ separate direct-publisher `Forecast_10Day_JSON` have valid Item states. The
 ownership inventory reports **81 managed / 3 non-managed Things** and zero
 structural issues. No forecast or AQI value was manufactured.
 
-At immediate post-cutover readback, no new JDBC row for the bound forecast/AQI
-Items had yet appeared after 16:51:01Z. This is a pending natural refresh
-check, not a failed binding: the Things were online and their Items retained
-valid states. Confirm a new natural update later, including the expected
-change-only persistence behavior. Off-host recovery of the private snapshot
-remains a separate installation-wide gap.
+The live event log at **10:51:18 MDT**, after file-provider registration,
+records updated Item time series for 48 forecast hours, seven daily values,
+48 AQI forecast hours, and a `Current_US_AQI` state update. This proves the
+file-owned binding published after cutover, but is a provider-startup fetch,
+not yet an independently observed later scheduled refresh. At immediate
+readback, no new JDBC receipt row for the bound forecast/AQI Items had appeared
+after 16:51:01Z; forecast rows carry future target timestamps and AQI was
+unchanged under change-only persistence. Confirm the next scheduled fetch and
+its persistence behavior. Off-host recovery of the private snapshot remains
+a separate installation-wide gap.
 
 Syntax and bridge reference conventions were checked against the
 [official openHAB Thing file documentation](https://www.openhab.org/docs/configuration/things).
