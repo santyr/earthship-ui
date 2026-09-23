@@ -25,6 +25,9 @@ states, exposes the available daily discharge field, and does not substitute
 legacy winter/SoH/curtailment values into qualified fields. The Battery Vitals
 row gives Analytics two columns on the primary Lenovo M9 layout. The UI payload,
 publisher, database, BMS Items and control paths are unchanged.
+Nearby labels now distinguish the BMS-reported cycle count from EFC, identify
+remaining amp-hours rather than nominal capacity, and mark today's curtailment
+hours as predicted rather than observed.
 
 Verification: 1,694 UI tests, production build and six Energy browser checks
 passed, including a 1340x800 card/modal overflow regression. This release does

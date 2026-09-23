@@ -144,7 +144,7 @@
   </div>
 
   <div class="cell curtail-cell">
-    <Tile label="Curtailment (today)" accent={colors.advisory}>
+    <Tile label="Predicted Curtailment (today)" accent={colors.advisory}>
       <div class="curtail-body">
         <div class="curtail-value">{curtailText}</div>
         <div class="curtail-bar-track">
@@ -182,11 +182,11 @@
           <div class="vital-value">{battTemp}</div>
         </div>
         <div class="vital">
-          <div class="vital-label">Cycles</div>
-          <div class="vital-value">{battCycles}</div>
+          <div class="vital-label">BMS cycles</div>
+          <div class="vital-value" title="BMS-reported counter; separate from estimated EFC">{battCycles}</div>
         </div>
         <div class="vital">
-          <div class="vital-label">Capacity</div>
+          <div class="vital-label">BMS remaining</div>
           <div class="vital-value">{battCapacity}</div>
         </div>
         <div class="vital">
