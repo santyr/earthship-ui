@@ -261,7 +261,12 @@ and protected-resource rollback remain outstanding.
   power coverage60.39% on the cutover day and above99.98% on both later
   completed days, with separate valid atomic-SoC exposure on all three days.
   This closes the first nonempty completed-day readback, not temperature
-  exposure, independent BMS comparison or winter qualification.
+  exposure, independent BMS comparison or winter qualification. A September 23
+  [counter preflight](2026-09-23-bms-counter-comparison-preflight.md) found both
+  Discover counter Things ONLINE with unchanged Item updates each minute, while
+  change-only JDBC has no new rows since July 18. Thus missing persistence is
+  not sensor staleness; register/reset semantics and atomic receipt history
+  are prerequisites to a same-bank EFC comparison.
 
 - Qualified power feature export is now available in the deployed Solar_PV
   `1a013f3` via explicit `export-features --power-evidence-policy`. CSV v3 labels
