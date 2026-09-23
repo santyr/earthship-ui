@@ -36,6 +36,20 @@ describe('EnergyAnalyticsDetail observational presentation', () => {
     expect(container.textContent).toContain('DC PV and AC load cannot be subtracted');
     expect(container.textContent).toContain('without bypass or generator supplementation');
   });
+  it('shows a qualified AC day when the separate PV/battery series is empty', async () => {
+    const payload = energyAnalyticsV4Fixture();
+    payload.throughDate = null;
+    payload.energy.latest = null;
+    payload.status = 'degraded';
+    for (const key of Object.keys(payload.battery)) payload.battery[key] = key === 'status' ? 'unavailable' : null;
+    Object.assign(payload.lifecycle, { periodEfc: null, chargeKwh: null, dischargeKwh: null });
+    Object.assign(payload.accounting, { daysPresent: 0, missingDays: 2, latestRevision: null,
+      latestBatteryCoverage: null, latestPvCoverage: null });
+    render(EnergyAnalyticsDetail, { result: result(payload) });
+    expect(screen.getByText('12.5 kWh AC')).toBeTruthy();
+    expect(screen.getByText('AC through Aug 19')).toBeTruthy();
+    expect(screen.queryByText('No daily data')).toBeNull();
+  });
   it('exposes a validated empty qualified series without inventing totals', async () => {
     const payload=energyAnalyticsV3Fixture();
     payload.status='unavailable';payload.throughDate=null;payload.energy.latest=null;

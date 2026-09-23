@@ -17,9 +17,10 @@ and v4 writer activation are still required.
 
 The [AC-day revision schema](2026-09-23-ac-day-revision-schema.md) is now live
 and empty after a backed-up, isolated-test-qualified additive migration. The
-matching Solar_PV v4 payload validator is also pushed. Append-only AC storage
-is therefore ready but has no scheduled writer or selected-revision reader;
-the remaining runtime and publication gates above still apply.
+matching Solar_PV v4 payload validator, selected-revision reader and source-only
+projector are also pushed, with 829 analytics tests passing. Append-only AC
+storage is ready but has no scheduled writer or publisher; the remaining
+runtime and first-complete-day gates above still apply.
 
 September23 live follow-up: the existing qualified daily power job naturally
 materialized September20,21,22; the UI publication reports three present days,

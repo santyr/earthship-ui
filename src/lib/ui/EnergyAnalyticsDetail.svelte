@@ -11,7 +11,7 @@
 
   const available = $derived(!!result?.accounting || (result?.state && result.state !== 'unavailable'));
   const badge = $derived(
-    result?.state === 'stale' ? 'STALE' : result?.accounting?.daysPresent === 0 ? 'WAITING' : result?.state === 'ready' ? 'CURRENT' : 'PARTIAL'
+    result?.state === 'stale' ? 'STALE' : result?.accounting?.daysPresent === 0 && !result?.acLoad?.latest ? 'WAITING' : result?.state === 'ready' ? 'CURRENT' : 'PARTIAL'
   );
 
   function metric(value, suffix = '', digits = 1) {
@@ -81,8 +81,8 @@
     <div class="analytics-copy">
       <div class="analytics-label">Analytics <span class="analytics-badge">{badge}</span></div>
       <div class="analytics-meta">
-        <span class="analytics-value">{result.accounting?.daysPresent === 0 ? 'No daily data' : metric(result.accounting ? result.lifecycle?.periodEfc : result.lifecycle?.endingCumulativeEfc, result.accounting ? ' observed EFC' : ' EFC', 2)}</span>
-        <span class="analytics-through">{result.throughDate ? `through ${shortDate(result.throughDate)}` : 'qualified accounting'}</span>
+        <span class="analytics-value">{result.accounting?.daysPresent === 0 ? result.acLoad?.latest ? metric(result.acLoad.latest.observedKwh, ' kWh AC') : 'No daily data' : metric(result.accounting ? result.lifecycle?.periodEfc : result.lifecycle?.endingCumulativeEfc, result.accounting ? ' observed EFC' : ' EFC', 2)}</span>
+        <span class="analytics-through">{result.throughDate ? `through ${shortDate(result.throughDate)}` : result.acLoad?.latest?.date ? `AC through ${shortDate(result.acLoad.latest.date)}` : 'qualified accounting'}</span>
       </div>
     </div>
     <button class="analytics-open" type="button" aria-label="Open energy analytics details" onclick={openDetail}>
@@ -112,7 +112,7 @@
       <header>
         <div>
           <h2 id="energy-analytics-title">Energy analytics details</h2>
-          <p>{badge} · {result.throughDate ? `through ${shortDate(result.throughDate)}` : 'No completed daily records'} · {result.epochId}</p>
+          <p>{badge} · {result.throughDate ? `through ${shortDate(result.throughDate)}` : result.acLoad?.latest?.date ? `AC through ${shortDate(result.acLoad.latest.date)}` : 'No completed daily records'} · {result.epochId}</p>
         </div>
         <button bind:this={closeEl} type="button" aria-label="Close energy analytics details" onclick={closeDetail}>×</button>
       </header>
