@@ -397,6 +397,13 @@ and protected-resource rollback remain outstanding.
   live now has one-minute cron plus manual request, no fixed-hour condition and
   unchanged safety/SoC/cycle timing. Natural07:38evaluation correctly kept pumps
   OFF at84%SoC under partly cloudy skies. See [activation](2026-09-20-greywater-daylight-activation.md).
+  September23 [timer fail-safe follow-up](2026-09-23-greywater-timer-watchdog.md)
+  found one September21 South cycle that switched OFF after 6m42s without a
+  completion marker; the old callback later failed because its JS context was
+  closed. The live rule now invalidates an early-OFF timer and enforces a
+  next-minute duration cutoff if a callback is lost while a pump stays ON.
+  Exact guarded release, private rollback and natural idle evaluation passed;
+  no post-release interrupted cycle was manufactured or claimed.
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
   timestamped UNDEF/NULL/bad states remain invalid rather than being dropped and
   bridged by interpolation/hold.10regressions failed before the fix;118focused
