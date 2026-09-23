@@ -7,6 +7,12 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 23, 2026
 
+The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
+isolated OpenHAB/JDBC restore and live managed rollback/return qualification.
+Its state, stable JDBC mapping/history and shadow timer were preserved; a
+natural post-transfer publication remains to be observed. See the
+[thermal Item cutover receipt](2026-09-23-thermal-item-file-cutover.md).
+
 The next [strict forcing-capture score](2026-09-23-thermal-forcing-capture-live.md)
 has three matured non-overlapping one-hour pairs for the current revision:
 model MAE 2.162°F versus persistence 0.840°F. Its first six-hour pair missed

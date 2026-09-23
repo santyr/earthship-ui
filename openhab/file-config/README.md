@@ -70,6 +70,12 @@ Its actual provider rollback and return were subsequently rehearsed successfully
 see `docs/operations/2026-09-20-item-provider-rollback.md`. This is specific to the
 unlinked observational analytics Item, not general protected-control recovery.
 
+`Thermal_Model_JSON` is also file-owned after isolated OpenHAB/JDBC provider,
+rollback, hot-reload and full-restart rehearsal and an attended live provider
+round trip. Its Item name, shadow-only publisher, restored state and JDBC identity
+610/history prefix were preserved. A natural post-transfer publication remains
+to be checked; see `docs/operations/2026-09-23-thermal-item-file-cutover.md`.
+
 ## Read-only inventory
 
 Run `python3 openhab/scripts/config_inventory.py` from the repository root.

@@ -125,6 +125,15 @@
       "state_writer": "energy-ui-publish.service"
     },
     {
+      "kind": "item",
+      "id": "Thermal_Model_JSON",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/thermal-model-shadow.items",
+      "destination": "/etc/openhab/items/thermal-model-shadow.items",
+      "state_writer": "thermal-model-shadow.service"
+    },
+    {
       "kind": "rule",
       "id": "1f692c798b",
       "provider": "managed",
