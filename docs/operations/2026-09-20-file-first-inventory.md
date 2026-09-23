@@ -50,6 +50,16 @@ installed or declared file-owned: provider/link behavior, state recovery,
 JDBC continuity and rollback still need isolated qualification and an attended
 cutover. No second Item/link provider was created.
 
+Follow-up: `scripts/qualify-openmeteo-aqi-item.py` restored the protected
+September 20 OpenHAB snapshot into a disposable networkless 5.2.1 container,
+removed only the managed AQI Item/link there, and loaded the prepared source.
+Exact Item identity, presentation fields, one file-owned link and channel target
+matched on first boot and after a full container restart. Removing the file
+withdrew both resources before the managed Item/link were restored through REST
+and matched again. The owned container and its snapshot overlay were removed.
+Production writes: zero. This qualifies provider/link reversibility in isolation,
+not production state restoration, JDBC continuity, or the attended cutover.
+
 14:16 MDT extension: `config_inventory.py --extended --summary` now also
 verifies explicit link ownership and inventories 18 installed add-ons, 12 UI
 pages and 15 registered transformations without reading their settings into

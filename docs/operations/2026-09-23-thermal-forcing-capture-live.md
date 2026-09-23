@@ -38,3 +38,11 @@ out of shadow, and no actuation authority changed.
 Future thermal qualification must use the exact per-publication forcing archive,
 qualified action/outcome receipts, and scored shadow forecasts. This archive
 alone does not demonstrate a useful model or justify leaving shadow mode.
+
+The next **natural** thermal shadow timer ran at 11:51:12 MDT on September 23
+and exited successfully at 11:51:16. Its private 8,686-byte archive records a
+17:51:14.111111Z decision and 17:51:16.392209Z publication. The capture
+verifier accepted all four content digests and 240 exact forecast rows. The
+output remained low-confidence shadow with no candidate because minimum
+modeled improvement was not met. Its 1-hour and 24-hour outcomes were not yet
+due at this checkpoint; no accuracy or graduation claim follows from capture.

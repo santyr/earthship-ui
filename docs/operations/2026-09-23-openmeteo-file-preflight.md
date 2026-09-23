@@ -92,6 +92,14 @@ unchanged under change-only persistence. Confirm the next scheduled fetch and
 its persistence behavior. Off-host recovery of the private snapshot remains
 a separate installation-wide gap.
 
+At **11:51:18–19 MDT**, a later natural binding refresh (not the 10:51 startup
+fetch) published 48 `Forecast_Temp` hourly values and 48 `Forecast_AQI` values;
+`Current_US_AQI` changed from 37.314816 to 37.708336. Read-only JDBC history
+then returned the changed AQI row at 17:51:19.072Z and future forecast-temperature
+rows at 18:00, 19:00 and 20:00Z. This verifies a scheduled post-cutover
+publication and persistence for those sampled paths, not every channel or a
+future outage/restart. The three Things remained file-owned and online.
+
 Syntax and bridge reference conventions were checked against the
 [official openHAB Thing file documentation](https://www.openhab.org/docs/configuration/things).
 The binding's [own configuration documentation](https://github.com/obones/openhab-binding-openmeteo)
