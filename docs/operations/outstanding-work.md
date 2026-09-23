@@ -120,6 +120,13 @@ are retained as evidence, not current-state claims.
 
 ### Started: file-first configuration migration
 
+September 23 OpenMeteo follow-up: the bridge, forecast Thing and air-quality
+Thing are all online and credential-free at the inspected configuration keys.
+A [Git-owned candidate](2026-09-23-openmeteo-file-preflight.md) now preserves
+their current UIDs, locations and effective settings; the installed 5.2.1 Thing
+grammar accepts it. The live Things and their 12 managed links remain unchanged
+pending isolated dynamic-channel, restart and rollback qualification.
+
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:
 finish the in-flight temperature-learning and power-evidence work, then replace

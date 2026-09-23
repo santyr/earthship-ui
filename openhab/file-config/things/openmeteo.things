@@ -1,0 +1,19 @@
+// Prepared only: keep the existing managed Things authoritative until an
+// isolated provider/links rehearsal and an attended live ownership transfer.
+Bridge openmeteo:openmeteo:local "Open Meteo Bridge" []
+
+Thing openmeteo:forecast:local:site "Site Forecast" (openmeteo:openmeteo:local) [
+    location="38.3739919,-105.7744931",
+    dailyDays=7,
+    includePrecipitation=true,
+    includeCloudCover=true,
+    includeTemperatureMin=true,
+    includeTemperatureMax=true,
+    includeShortwaveRadiation=true
+]
+
+Thing openmeteo:air-quality:local:aq "Site Air Quality" (openmeteo:openmeteo:local) [
+    location="38.3739919,-105.7744931",
+    airQualityIndicatorsAsNumber=true,
+    current=true
+]
