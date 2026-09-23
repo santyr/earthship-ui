@@ -45,6 +45,12 @@ subsequently scored31 matured near24-hour targets against qualified indoor
 receipts: model MAE2.4565°F, same-origin persistence MAE2.0265°F, interval
 coverage87.1%. All outputs were low-confidence, spanning three revisions.
 The current published model has not earned shadow exit.
+The September 23 configured Nostr keyer self-check passed for signing and local
+encryption/decryption with zero publication and journal writes. This clears a
+thermal confirmation transport prerequisite, not operator reply collection;
+the private collector policy, reviewed routes and genuine action reports remain
+absent from the checked host locations. See
+[the delivery runbook](thermal-messaging-delivery.md).
 The September 23 [forcing-capture activation](2026-09-23-thermal-forcing-capture-live.md)
 now records exact raw Open-Meteo inputs alongside successful shadow
 publications. Its first natural run exposed a sub-second provenance gap;

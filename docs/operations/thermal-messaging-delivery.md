@@ -59,6 +59,17 @@ plaintext state is not a tamper-proof ledger against an administrator.
 
 ## Next host step: configured-keyer check only
 
+September 23 host readback: the configured-keyer self-check completed with
+`status=passed`, `scope=configured-keyer-self-roundtrip`, and true signing,
+encryption and decryption flags using the pinned v0.20.7 binary. It reported
+`message_published=false`, `journal_writes=0`, `relay_delivery_verified=false`,
+`bunker_verified=false`, and `production_ready=false`. The expected public
+identity came from the existing private Nostr environment; no key, address,
+rumor, ciphertext or policy was printed or saved. This closes the local-key
+self-check only. No private thermal collector policy or reviewed route inventory
+was found in the checked host locations, so do not infer an operator identity,
+select relays, send a question, or enable a listener from this result.
+
 Use the existing private signer environment on the host. `NOSTR_SECRET_KEY`
 selects the intended keyer; for a remote signer this is the existing bunker URL.
 An explicitly configured `NOSTR_CLIENT_KEY` is preserved. Do not paste either
