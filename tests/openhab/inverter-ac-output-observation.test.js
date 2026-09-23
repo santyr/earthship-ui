@@ -18,6 +18,17 @@ describe('prepared inverter AC output observation', () => {
       expect(encoded).toBe(JSON.stringify(JSON.parse(encoded)));
     });
 
+  it('emits a fresh receipt for an unchanged channel value', () => {
+    const first = JSON.parse(vm.runInNewContext(source, {
+      input: '209 W', Date: { now: () => 1800000000123 },
+    }, { timeout: 1000 }));
+    const next = JSON.parse(vm.runInNewContext(source, {
+      input: '209 W', Date: { now: () => 1800000005123 },
+    }, { timeout: 1000 }));
+    expect(first.value).toBe(next.value);
+    expect(next.observedAt).toBeGreaterThan(first.observedAt);
+  });
+
   it('adds only a read-side link to the existing inverter channel', () => {
     expect(item).toContain('Observation only');
     expect(item).toContain('String Inverter_AC_Output_Observation_JSON');

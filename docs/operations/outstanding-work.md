@@ -135,8 +135,12 @@ passed and removed its disposable container. The bounded live trial verified
 natural binding-sourced transformed events, canonical JDBC rows and exact
 two-file withdrawal/restoration without altering the original inverter link;
 the ownership inventory has zero issues. No consecutive unchanged-Watt receipt
-was observed. Fault and full-restart behavior, durable qualified-source
-persistence, topology-epoch controls and reader integration remain open;
+was observed in the initial bounded window; later natural events supplied two
+binding-sourced consecutive unchanged-Watt receipts with newer timestamps.
+The observation currently adds about 15,840 JDBC rows/day at its measured
+cadence, so retention/stream transition needs explicit follow-up. Fault and
+full-restart behavior, durable qualified-source persistence, topology-epoch
+controls and reader integration remain open;
 AC-load energy publication is still withheld. See
 [AC-load qualification](2026-09-20-ac-load-qualification.md).
 
