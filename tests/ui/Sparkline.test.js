@@ -99,4 +99,27 @@ describe('Sparkline', () => {
     expect(points.map(point => point[0])).toEqual(times.map(Date.parse));
     expect(points[1][0] - points[0][0]).toBe(3_600_000);
   });
+
+  it('draws a carried single value to the wall clock only as a dashed held tail', async () => {
+    const start = Date.UTC(2026, 8, 23, 12);
+    const end = start + 6 * 3_600_000;
+    render(Sparkline, { props: { data: [{ time: start, state: 72 }], heldUntil: end } });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series[0].data).toEqual([[start, 72]]);
+    expect(option.series[1].data).toEqual([[start, 72], [end, 72]]);
+    expect(option.series[1].lineStyle.type).toBe('dashed');
+    expect(option.series[1].areaStyle).toBeUndefined();
+  });
+
+  it('does not invent a held tail for empty, invalid, or earlier end times', async () => {
+    const start = Date.UTC(2026, 8, 23, 12);
+    const { rerender } = render(Sparkline, { props: { data: [], heldUntil: start + 1 } });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    expect(mocks.chart.setOption.mock.calls.at(-1)[0].series[1].data).toEqual([]);
+    await rerender({ data: [{ time: start, state: 72 }], heldUntil: start });
+    expect(mocks.chart.setOption.mock.calls.at(-1)[0].series[1].data).toEqual([]);
+    await rerender({ data: [{ time: start, state: 72 }], heldUntil: Number.NaN });
+    expect(mocks.chart.setOption.mock.calls.at(-1)[0].series[1].data).toEqual([]);
+  });
 });

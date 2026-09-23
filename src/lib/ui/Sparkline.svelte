@@ -5,7 +5,7 @@
   import { observeElementSize } from './observeElementSize.js';
   import { echartsTheme } from './tokens.js';
 
-  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25 } = $props();
+  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, heldUntil = null } = $props();
 
   let el;
   let chart;
@@ -16,7 +16,7 @@
     return Number.isFinite(alpha) && alpha > 0 && alpha <= 1 ? alpha : 0.25;
   });
 
-  function buildOption(points, lineColor, width, renderWidth, alpha) {
+  function buildOption(points, lineColor, width, renderWidth, alpha, heldEnd) {
     let prepared = [];
     try {
       prepared = prepareSparklineSeries(points, { widthPx: renderWidth, alpha });
@@ -25,6 +25,11 @@
       // row is encountered; full charts surface that validation as an error.
       prepared = [];
     }
+    const last = prepared.at(-1);
+    const endTime = typeof heldEnd === 'number' ? heldEnd : Date.parse(heldEnd);
+    const heldTail = last && Number.isFinite(endTime) && endTime > last.time
+      ? [[last.time, last.value], [endTime, last.value]]
+      : [];
     return {
       ...echartsTheme,
       grid: { left: 0, right: 0, top: 4, bottom: 0, containLabel: false },
@@ -42,6 +47,13 @@
         connectNulls: true,
         lineStyle: { width, color: lineColor },
         areaStyle: { color: lineColor, opacity: 0.12 },
+      }, {
+        type: 'line',
+        data: heldTail,
+        showSymbol: false,
+        smooth: false,
+        lineStyle: { width, color: lineColor, type: 'dashed', opacity: 0.65 },
+        silent: true,
       }],
       tooltip: { show: false },
       animation: false,
@@ -50,7 +62,7 @@
 
   function update() {
     if (!chart) return;
-    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha), true);
+    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, heldUntil), true);
   }
 
   onMount(() => {
@@ -74,6 +86,7 @@
     void color;
     void lineWidth;
     void appliedSmoothingAlpha;
+    void heldUntil;
     void widthPx;
     update();
   });
@@ -85,7 +98,7 @@
   });
 </script>
 
-<div bind:this={el} class="sparkline" aria-hidden="true"></div>
+<div bind:this={el} class="sparkline" aria-hidden="true" title="Dashed tail is a held historical value, not a fresh sensor reading"></div>
 
 <style>
   .sparkline {

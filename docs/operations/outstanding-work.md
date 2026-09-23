@@ -1246,12 +1246,14 @@ September 23 source follow-up: Home and temperature-modal local-day extrema now
 request `includeStartState`, and the shared client filters OpenHAB's end
 look-ahead to the half-open requested window. This resolves the earlier
 start-carry/extrema reproduction for those paths; the preflight above is
-historical. The six-hour Home outdoor/indoor/SoC/barometer sparklines still call
-`fetchHistorySafe` without start carry. An unchanged value may therefore yield
-no plotted point, while the last change may leave the line ending before now.
-Do not infer sensor staleness from that shape or extend it to now as if a fresh
-observation occurred. Any visual repair needs held-state and independently
-qualified update evidence, plus the Lenovo tablet regression checks.
+historical. The six-hour Home outdoor/indoor/SoC/barometer sparklines were then
+updated to request the bounded start carry. Their post-observation tail is a
+separate dashed held-value segment through the wall clock, not a fabricated
+sensor update; an empty or invalid history still renders no line. The source
+freshness alert path remains independent. Verification passed 1,691 UI tests,
+the production build, and all 23 Home browser checks, including a single-value
+plateau with an excluded end look-ahead on the Lenovo M9 1340x800 fixture.
+This does not qualify source health or complete the wider algorithm audit.
 
 September 10 sparkline follow-up replaces the category axis with a hidden time
 axis and timestamp/value pairs. Irregular change-only events now retain elapsed

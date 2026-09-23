@@ -609,9 +609,10 @@ describe('Home signed card state colors', () => {
 
   it('uses stronger smoothing only for the compact Baro sparkline', () => {
     expect(home).toMatch(
-      /<Sparkline\s+data=\{baroSpark\}\s+color=\{colors\.label\}\s+lineWidth=\{2\}\s+smoothingAlpha=\{0\.12\}/
+      /<Sparkline\s+data=\{baroSpark\}\s+color=\{colors\.label\}\s+lineWidth=\{2\}\s+smoothingAlpha=\{0\.12\}\s+heldUntil=\{wallClock\}/
     );
-    expect(home).toMatch(/<Sparkline\s+data=\{outdoorSpark\}\s+color=\{outdoorIconColor\}\s+lineWidth=\{2\}\s*\/>/);
-    expect(home).toMatch(/<Sparkline\s+data=\{battSpark\}\s+color=\{socColor\}\s+lineWidth=\{2\}\s*\/>/);
+    expect(home).toMatch(/<Sparkline\s+data=\{outdoorSpark\}\s+color=\{outdoorIconColor\}\s+lineWidth=\{2\}\s+heldUntil=\{wallClock\}\s*\/>/);
+    expect(home).toMatch(/<Sparkline\s+data=\{battSpark\}\s+color=\{socColor\}\s+lineWidth=\{2\}\s+heldUntil=\{wallClock\}\s*\/>/);
+    expect(home).toContain('includeStartState: true });');
   });
 });

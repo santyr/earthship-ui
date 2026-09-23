@@ -65,7 +65,7 @@
         const starttime = new Date(now - hours * 3600 * 1000).toISOString();
         const endtime = new Date(now).toISOString();
         try {
-          return await client.getHistory(name, { starttime, endtime, signal });
+          return await client.getHistory(name, { starttime, endtime, signal, includeStartState: true });
         } catch {
           return [];
         }
@@ -600,7 +600,7 @@
             H {fmt(outdoorToday.high, '°')} &nbsp;/&nbsp; L {fmt(outdoorToday.low, '°')}
           </div>
         </div>
-        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={outdoorIconColor} lineWidth={2} /></div>
+        <div class="outdoor-spark"><Sparkline data={outdoorSpark} color={outdoorIconColor} lineWidth={2} heldUntil={wallClock} /></div>
       </div>
     </Tile>
   </div>
@@ -628,7 +628,7 @@
           </div>
         </div>
         <div class="indoor-spark">
-          <Sparkline data={indoorSpark} color={indoorIconColor} lineWidth={2} />
+          <Sparkline data={indoorSpark} color={indoorIconColor} lineWidth={2} heldUntil={wallClock} />
         </div>
       </div>
     </Tile>
@@ -659,7 +659,7 @@
             <span class="batt-runtime batt-runtime-full"><strong>Full</strong> {battRuntimeFull}</span>
           </div>
         </div>
-        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} /></div>
+        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} heldUntil={wallClock} /></div>
       </div>
     </Tile>
   </div>
@@ -729,7 +729,7 @@
             {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)} <span class="unit">inHg</span>
           </div>
         </div>
-        <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} smoothingAlpha={0.12} /></div>
+        <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} smoothingAlpha={0.12} heldUntil={wallClock} /></div>
         <div class="baro-trend" style="color: {pressureStatus.color}">{pressureStatus.label}</div>
       </div>
     </Tile>

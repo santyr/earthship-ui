@@ -431,10 +431,49 @@ for (const target of TARGETS) {
   });
 }
 
+test('Lenovo Home shows a change-only temperature plateau as held history, not an update', async ({ page }) => {
+  const runtime = await openHomeFixture(page, TARGETS[0], {
+    historyRows: ({ name, startMs, endMs, url }) => [OUTDOOR, INDOOR].includes(name)
+      && endMs - startMs <= 6 * 3_600_000 + 1_000
+      ? url.searchParams.get('boundary') === 'true'
+        ? [{ time: startMs, state: '70' }, { time: endMs, state: '99' }]
+        : []
+      : undefined,
+  });
+  await expect(page.locator('.indoor-spark svg')).toBeVisible();
+  const charts = await page.evaluate(async () => {
+    const { echarts } = await import('/src/lib/charts/echarts.js');
+    return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {
+      const chart = echarts.getInstanceByDom(document.querySelector(selector));
+      const option = chart.getOption();
+      return {
+        observed: option.series[0].data,
+        held: option.series[1].data,
+        heldType: option.series[1].lineStyle.type,
+      };
+    });
+  });
+  for (const chart of charts) {
+    expect(chart.observed).toHaveLength(1);
+    expect(chart.observed[0][1]).toBe(70);
+    expect(chart.held).toHaveLength(2);
+    expect(chart.held[0][1]).toBe(70);
+    expect(chart.held[1][1]).toBe(70);
+    expect(chart.held[1][0]).toBeGreaterThan(chart.held[0][0]);
+    expect(chart.heldType).toBe('dashed');
+  }
+  expect(runtime.historyRequests.some(({ name, startMs, endMs, url }) =>
+    [OUTDOOR, INDOOR].includes(name)
+      && endMs - startMs <= 6 * 3_600_000 + 1_000
+      && new URL(url).searchParams.get('boundary') === 'true')).toBe(true);
+  expect(runtime.pageErrors).toEqual([]);
+  expect(runtime.attemptedNonGetRequests).toEqual([]);
+});
+
 test.describe('Home local-day temperature history ownership', () => {
   test.use({ timezoneId: 'America/Denver' });
 
-  test('includes native start states, clips end states, and opts in only daily temperatures, load and gust', async ({ page }) => {
+  test('includes native start states, clips end states, and bounds daily and sparkline requests', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
     const runtime = await openHomeFixture(page, { width: 1340, height: 800 }, {
       historyRows: ({ name, startMs, endMs }) => {
@@ -454,8 +493,13 @@ test.describe('Home local-day temperature history ownership', () => {
     expect(await page.locator('body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
     expect(runtime.attemptedNonGetRequests).toEqual([]);
     const boundaryRequests = runtime.historyRequests.filter(({ url }) => new URL(url).searchParams.get('boundary') === 'true');
-    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([INDOOR, OUTDOOR, LOAD, GUST].sort());
-    expect(runtime.historyRequests.filter(({ name, url }) => ![INDOOR, OUTDOOR, LOAD, GUST].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
+    expect(boundaryRequests.map(({ name }) => name).sort()).toEqual([
+      INDOOR, INDOOR, OUTDOOR, OUTDOOR, LOAD, GUST,
+      'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 'BMS_SOC',
+    ].sort());
+    expect(runtime.historyRequests.filter(({ name, url }) => ![
+      INDOOR, OUTDOOR, LOAD, GUST, 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 'BMS_SOC',
+    ].includes(name) && new URL(url).searchParams.has('boundary'))).toEqual([]);
     expect(runtime.pageErrors).toEqual([]);
     expect(runtime.unexpectedExternalRequests).toEqual([]);
   });
@@ -557,8 +601,10 @@ test.describe('Home local-day temperature history ownership', () => {
   test('refreshes a changed day on visibility restoration and removes the listener on destroy', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-09-10T23:59:10-06:00') });
     const runtime = await openHomeFixture(page, { width: 1340, height: 800 });
-    const dailyCount = () => runtime.historyRequests.filter(({ name, url }) =>
-      [OUTDOOR, INDOOR].includes(name) && new URL(url).searchParams.get('boundary') === 'true').length;
+    const dailyCount = () => runtime.historyRequests.filter(({ name, startMs, url }) =>
+      [OUTDOOR, INDOOR].includes(name)
+      && [DAY_START, NEXT_DAY_START, NEXT_DAY_START + 86_400_000].includes(startMs)
+      && new URL(url).searchParams.get('boundary') === 'true').length;
     await expect.poll(dailyCount).toBe(2);
     await page.clock.setSystemTime(new Date('2026-09-11T00:00:10-06:00'));
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
