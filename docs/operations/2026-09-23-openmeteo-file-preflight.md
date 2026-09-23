@@ -14,9 +14,13 @@ this binding still supplies several Item-level weather and AQI channels.
 The proposed Git-owned definition is
 `openhab/file-config/things/openmeteo.things`. It preserves the three UIDs,
 labels, bridge relationship and location currently in the live registry.
-Its ten explicit overrides plus the installed binding's current defaults
-match all non-secret effective live settings: zero mismatches across the three
-Things. The existing live coordinates were preserved; no coordinate change was
+Its eight explicit supported overrides plus the installed binding's current
+defaults match all non-secret effective live settings recognized by that
+binding. Two extra managed forecast keys, `includeTemperatureMin` and
+`includeTemperatureMax`, are absent from the installed Thing-type metadata and
+from the binding JAR's class constants. They are stale configuration entries,
+not supported behavior, and are intentionally not copied into the file.
+The existing live coordinates were preserved; no coordinate change was
 smuggled into the provider migration. This comparison does not establish
 channel runtime equivalence after provider loading.
 
@@ -24,6 +28,18 @@ The installed OpenHAB 5.2.1 Thing DSL parser accepted exactly one bridge and
 two Thing declarations and rejected malformed syntax. Run the bounded offline
 check with `python3 scripts/check-openmeteo-things-parser.py`. This does not
 create a second provider or contact OpenMeteo.
+
+An attempted networkless, disposable clean-image provider boot on September 23
+did **not** qualify the provider. The first harness variant hid the image's
+required Karaf configuration; a later variant hit an image/host
+`no-new-privileges` entrypoint incompatibility. With those harness faults
+isolated, the pinned image reached its startup sequence and remained healthy,
+but `/rest/things` did not return a successful registry response within the
+bounded 180-second observation. The HTTP status was not captured, so neither
+Thing creation nor a provider error is inferred. All owned test containers and
+their overlays were removed; live OpenHAB and its thermal timer stayed active.
+Use the proven restore-based isolated runtime with authenticated REST readback
+for the next qualification; do not repeat this bare-image result as a pass.
 
 Before production ownership transfer, qualify the file in an isolated 5.2.1
 runtime without duplicate managed UIDs. Require exact Thing UID/config and

@@ -7,8 +7,6 @@ Thing openmeteo:forecast:local:site "Site Forecast" (openmeteo:openmeteo:local) 
     dailyDays=7,
     includePrecipitation=true,
     includeCloudCover=true,
-    includeTemperatureMin=true,
-    includeTemperatureMax=true,
     includeShortwaveRadiation=true
 ]
 
