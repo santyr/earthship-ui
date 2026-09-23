@@ -47,7 +47,7 @@ def prepare(root):
     return repo
 
 
-def test_exact_manifest_contains_complete_runtime_and_four_units():
+def test_exact_manifest_contains_complete_runtime_and_capture_unit():
     entries = thermal_model_files.MANIFEST
     assert [entry["source"] for entry in entries if entry["phase"] == "verify"] == [
         "openhab/scripts/forecast_intel.py"
@@ -67,7 +67,7 @@ def test_exact_manifest_contains_complete_runtime_and_four_units():
             f"openhab/scripts/thermal_model/{name}.py"
             for name in (
                 "__init__", "actions", "artifacts", "behavior", "dataset",
-                "dynamics", "evaluation", "journal", "pipeline", "schema", "solar",
+                "dynamics", "evaluation", "forcing_capture", "journal", "pipeline", "schema", "solar",
                 "temperature_history",
             )
         ],
@@ -77,12 +77,15 @@ def test_exact_manifest_contains_complete_runtime_and_four_units():
         for entry in entries
         if entry["phase"] in {"verify", "code"}
     )
-    assert len(deployed_runtime) == len(thermal_intel.RUNTIME_REVISION_PATHS)
-    assert set(deployed_runtime) == set(thermal_intel.RUNTIME_REVISION_PATHS)
+    # Observational capture is deployed but does not affect the model revision.
+    assert set(deployed_runtime) == (
+        set(thermal_intel.RUNTIME_REVISION_PATHS) | {"thermal_model/forcing_capture.py"}
+    )
     assert [entry["source"] for entry in entries if entry["phase"] == "unit"] == [
         "deploy/thermal-model-train.service",
         "deploy/thermal-model-train.timer",
         "deploy/thermal-model-shadow.service",
+        "deploy/thermal-model-shadow.service.d/forcing-capture.conf",
         "deploy/thermal-model-shadow.timer",
     ]
 

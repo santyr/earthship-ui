@@ -56,6 +56,7 @@ MANIFEST = (
             "dataset",
             "dynamics",
             "evaluation",
+            "forcing_capture",
             "journal",
             "pipeline",
             "schema",
@@ -78,6 +79,12 @@ MANIFEST = (
     {
         "source": "deploy/thermal-model-shadow.service",
         "target": "/home/sat/.config/systemd/user/thermal-model-shadow.service",
+        "phase": "unit",
+        "mode": 0o644,
+    },
+    {
+        "source": "deploy/thermal-model-shadow.service.d/forcing-capture.conf",
+        "target": "/home/sat/.config/systemd/user/thermal-model-shadow.service.d/forcing-capture.conf",
         "phase": "unit",
         "mode": 0o644,
     },
@@ -1153,6 +1160,14 @@ def install_phase(
     if phase not in {"code", "unit"}:
         raise ValueError("phase must be code or unit")
     os.umask(0o077)
+    if phase == "unit" and any(
+        entry["source"] == "deploy/thermal-model-shadow.service.d/forcing-capture.conf"
+        for entry in manifest
+    ):
+        secure_directory(
+            ALLOWED_STATE_ROOT / "forcing-captures", 0o700,
+            create=True, enforce_mode=True,
+        )
     repo_root = Path(repo_root)
     receipt = _load_receipt(receipt_dir, manifest)
     _assert_no_recovery(receipt_dir, receipt)

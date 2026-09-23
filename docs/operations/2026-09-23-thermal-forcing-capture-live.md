@@ -14,12 +14,14 @@ out of shadow, and no actuation authority changed.
   publisher backup is
   `/home/sat/.local/state/thermal-intel/runtime-backups/thermal_intel-v4-pre-capture-20260923.py`
   (mode `0600`). Neither private capture data nor this backup is in Git.
+  The helper and drop-in now have Git-owned deployment sources in the fixed
+  thermal manifest; unit installation creates the private capture root.
 - The natural 09:48 MDT run published successfully but recorded a capture gap:
   `generatedAt` had been truncated to seconds, preceding the actual
   post-input decision time by less than one second. The publisher now retains
   full decision-clock precision in `generatedAt`. A fractional-second
   regression test covers that contract.
-- After the fix, 77 focused publisher/capture tests passed. An attended
+- After the fix, 160 focused publisher/capture/deployment tests passed. An attended
   09:50 MDT shadow run exited `0` and wrote one 8,770-byte archive. Its
   verifier accepted the private file and all four content digests. The archive
   contains 240 raw Open-Meteo forecast hours and 240 normalized rows.
