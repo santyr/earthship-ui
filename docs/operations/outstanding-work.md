@@ -45,8 +45,11 @@ provider-free window is explicitly unqualified. Event/history comparison found
 three MPPT-derived changes inside that window without corresponding JDBC rows;
 the independent power-evidence sequence remained contiguous. See the
 [handoff receipt](2026-09-20-persistence-provider-qualification.md). Propagating
-this known collection boundary into all affected historical quality/learning
-readers remains open.
+this known collection boundary into any future readers of automatic MPPT numeric
+history remains a standing constraint. Current-consumer audit found the missing
+MPPT output row, but the deployed qualified-power path uses independent
+Power_Evidence_JSON intervals; AC load and its freshness companion persisted.
+No thermal temperature or BMS SoC Item change appears in the OpenHAB event gap.
 The natural Open-Meteo refresh at09:12MDT subsequently published48 hourly and
 seven daily forecast-series values; JDBC served47 future hourly rows under the
 file provider. The separate forecast-JSON timer then completed naturally at

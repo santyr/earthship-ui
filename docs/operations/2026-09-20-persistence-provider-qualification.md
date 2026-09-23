@@ -251,3 +251,28 @@ JDBC history row in the 09:15–09:18 MDT window. The detailed payload's
 `generatedAt` advanced from07:15:49 to09:16:06 MDT. This verifies the normal
 corrected-forecast JSON publisher and automatic change-only persistence after
 the file transfer, independently of the binding's `gForecast` time series.
+
+### Collection-gap consumer audit
+
+The 1.311231-second boundary contained18 OpenHAB `ItemStateChangedEvent`s.
+Only two of those Item names are canonical Solar-PV analytics metrics:
+MPPT60_DC_OutputPower (`pv.output_power_w`) and
+ConextGateway_ACPowerValue (`house.ac_power_w`). The former's automatic JDBC
+change at14:55:30.552Z is absent, but the live September23 qualified-power
+path uses the independently persisted `Power_Evidence_JSON` intervals after
+the September20 cutover, not this numeric Item history. The power stream has
+contiguous sequence numbers across the boundary. The latter's change at
+14:55:31.035Z and its Schneider_ACLoad_LastUpdate companion both have JDBC
+rows after file ownership loaded. Other changes were display/derived/forecast
+Items, including provider restore events; no thermal temperature or BMS SoC
+Item change was observed in this OpenHAB event interval. The detailed forecast JSON
+and binding time series subsequently refreshed naturally as verified above.
+
+Thus the known missing MPPT numeric row remains a real historical hole, but
+the currently deployed qualified daily power and thermal origin readers do not
+bridge it as if it were observed. No synthetic backfill or global algorithmic
+blackout was applied; that would discard qualified independent power evidence.
+Any future reader using automatic MPPT numeric history across this timestamp
+must honor the private receipt's collection boundary and not interpolate it as
+fully observed. This is an audit of current consumers, not proof that every
+possible future or external consumer is covered.
