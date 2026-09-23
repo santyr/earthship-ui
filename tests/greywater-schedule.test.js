@@ -24,6 +24,13 @@ describe('greywater next eligibility presentation', () => {
     expect(greywaterSchedule({ ...input, status: blocked + 'after_dark' }).next).toBe('Waiting for daylight');
     expect(greywaterSchedule({ ...input, status: blocked + 'low_soc' }).next).toBe('Waiting for SoC');
   });
+  it('identifies an interrupted or lost pump timer as a hold', () => {
+    const blocked = 'scheduleVersion=1,evaluatedAt=2026-09-20T18:30:00Z,scheduling=blocked,reason=';
+    expect(greywaterSchedule({ ...input, south: 'OFF', status: blocked + 'cycle_interrupted' }).next)
+      .toBe('Cycle interrupted');
+    expect(greywaterSchedule({ ...input, south: 'OFF', status: blocked + 'cycle_timer_expired' }).next)
+      .toBe('Safety hold');
+  });
   it('distinguishes eligibility from a scheduled command', () => {
     expect(greywaterSchedule({ ...input, status: status.replace('19:24:00Z', '18:30:00Z') }).next).toBe('East eligible now');
   });

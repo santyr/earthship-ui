@@ -21,13 +21,14 @@ function harness({ token, overrides = {}, clock = now, script = source } = {}) {
 }
 
 describe('September 19 live greywater clock and expired-busy repair', () => {
-  it('reproduces the old getHour exception and subsequent busy latch', () => {
+  it('reproduces the old getHour exception but clears its unactuated token', () => {
     const h = harness({ script: source.replace('now().hour()', 'now().getHour()') });
     expect(() => h.execute()).toThrow(/getHour/);
     h.advance(1000);
     h.execute();
     expect(ons(h)).toHaveLength(0);
-    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=busy');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_interrupted');
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
   });
   it.each([[0, 'SouthOutlet_Outlet2_Switch'], [3600000, 'East_Bed_Socket_Outlet_2_Power']])(
     'selects local-hour pump and completes the live fifteen-minute cycle', (offset, pump) => {
@@ -56,14 +57,51 @@ describe('September 19 live greywater clock and expired-busy repair', () => {
     const h = harness({ token: 'auto:2026-09-16T21:00:00Z', overrides });
     h.execute(); expect(ons(h)).toHaveLength(0);
   });
-  it('does not bypass a running pump with an old token', () => {
+  it('forces a running pump OFF when its timer token is expired', () => {
     const h = harness({ token: 'auto:2026-09-16T21:00:00Z', overrides: { SouthOutlet_Outlet2_Switch: 'ON' } });
     h.execute(); expect(ons(h)).toHaveLength(0);
-    expect(h.state('SouthOutlet_AutoStatus')).toContain('cycle_active');
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_timer_expired');
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+  });
+  it('keeps a single pump ON while its timer token is still fresh', () => {
+    const h = harness({ token: 'auto:2026-09-19T17:55:00Z', overrides: { SouthOutlet_Outlet2_Switch: 'ON' } });
+    h.execute();
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('ON');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_active');
+  });
+  it('fails closed on an unparseable timer token with a pump ON', () => {
+    const h = harness({ token: 'unparseable', overrides: { SouthOutlet_Outlet2_Switch: 'ON' } });
+    h.execute();
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_timer_invalid');
   });
 });
 
 describe('cycle timer ownership after interruption', () => {
+  it('invalidates a timer when its pump turns OFF before completion', () => {
+    const h = harness(); h.execute();
+    h.advance(7 * 60000); h.setState('SouthOutlet_Outlet2_Switch', 'OFF');
+    h.execute();
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_interrupted');
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+    const count = h.events.length;
+    h.runNextTimer();
+    expect(h.events).toHaveLength(count);
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+  });
+
+  it('stops a pump whose timer did not complete by the next cron', () => {
+    const h = harness(); h.execute();
+    h.advance(16 * 60000); h.execute();
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_timer_expired');
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+    const count = h.events.length;
+    h.runNextTimer();
+    expect(h.events).toHaveLength(count);
+  });
+
   it.each([
     ['Sun_Position_Elevation', '-1'],
     ['BMS_SOC', '40'],

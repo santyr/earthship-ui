@@ -63,7 +63,7 @@ const CFG = {
   defaultSocMin: 98,
   requiredGapMs: 60 * 60 * 1000, // One pump start every hour
   fallbackMaxGapMs: 24 * 60 * 60 * 1000,
-  cycleMs: 15 * 60 * 1000, // run for 10 minutes
+  cycleMs: 15 * 60 * 1000, // run for 15 minutes
 };
 
 const BUSY_KEY = 'earthship.southoutlet.busy';
@@ -543,15 +543,21 @@ function beginCycle({
 // ---- automatic path -------------------------------------------------------
 
 function runAutomatic() {
-  // Recover only an expired invocation token with every pump confirmed OFF.
-  // Unknown, future or recent tokens retain the interlock.
+  // A timer belongs to this invocation only while its pump is still running.
+  // An external OFF must invalidate the callback before it can report a false
+  // completion. A missed callback must not leave an energized pump indefinitely.
   const busyToken = cache.shared.get(BUSY_KEY);
   const busyStamp = typeof busyToken === 'string'
     ? busyToken.match(/:(\d{4}-\d{2}-\d{2}T.+)$/)?.[1] : null;
   const busyAt = busyStamp === null ? Number.NaN : epochMillis(busyStamp);
-  if (pumpItems().every((name) => state(name) === 'OFF')
-      && Number.isFinite(busyAt) && nowMillis() - busyAt > CFG.cycleMs) {
-    releaseBusy(busyToken);
+  const busyAge = nowMillis() - busyAt;
+  if (pumpItems().every((name) => state(name) === 'OFF') && Number.isFinite(busyAt)) {
+    if (busyAge >= 0 && busyAge < CFG.cycleMs - 5000) {
+      releaseBusy(busyToken);
+      status('cycle_interrupted', { elapsedSec: Math.floor(busyAge / 1000) });
+      return;
+    }
+    if (busyAge > CFG.cycleMs) releaseBusy(busyToken);
   }
   // Best-effort ledger recovery: a restart between accept and completion leaves
   // an 'accepted' entry that must never be replayed. Non-fatal so ledger
@@ -587,6 +593,14 @@ function runAutomatic() {
 
   if (activePumps.length > 0) {
     if (cache.shared.get(BUSY_KEY) !== null && activePumps.length === 1) {
+      if (!Number.isFinite(busyAt) || busyAge < -5000) {
+        forceOff('cycle_timer_invalid', { pump: pumpLabel(activePumps[0]) });
+        return;
+      }
+      if (busyAge > CFG.cycleMs + 5000) {
+        forceOff('cycle_timer_expired', { pump: pumpLabel(activePumps[0]) });
+        return;
+      }
       status('cycle_active', {
         voltage: voltage.toFixed(2),
         soc: soc.toFixed(1),

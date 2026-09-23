@@ -6,6 +6,8 @@ const blocks = {
   invalid_soc: 'Waiting for telemetry', absurd_voltage: 'Safety hold',
   busy: 'Controller busy', multiple_pumps_on: 'Safety hold',
   orphan_outlet_off: 'Safety hold', ledger_recovered: 'Recovery hold',
+  cycle_timer_expired: 'Safety hold', cycle_timer_invalid: 'Safety hold',
+  cycle_interrupted: 'Cycle interrupted',
 };
 const instant = value => typeof value === 'string' &&
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
