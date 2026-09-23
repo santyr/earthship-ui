@@ -63,6 +63,14 @@ Their naive persistence MAE is2.0314°F, but these are overlapping warm-season
 samples and no physical model or action benefit was scored. This establishes
 replay input availability, not a graduation pass.
 
+The [actual published-shadow audit](2026-09-23-thermal-shadow-publication-score.md)
+then paired31 matured near24-hour trajectories with qualified indoor outcomes.
+The model's MAE was2.4565°F versus2.0265°F for its own same-origin persistence
+baseline; nominal90% interval coverage was87.1%. All scored outputs were
+low-confidence and three revisions were mixed. This is direct operational
+evidence against graduating the current shadow output, not a release gate
+derived from a few overlapping warm-season days.
+
 ### Confirmed-action collection audit, September20
 
 Read-only aggregate journal queries still find ten action events: eight

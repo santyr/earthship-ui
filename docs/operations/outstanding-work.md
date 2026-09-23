@@ -40,6 +40,11 @@ The [capture-safe 24-hour origin census](2026-09-23-thermal-origin-census.md)
 subsequently found63/63 hourly origins with full as-of inputs and qualified
 indoor outcomes; naive persistence MAE was2.0314°F on overlapping warm-season
 samples. No physical model score or action-benefit claim follows from this.
+An [audit of actual persisted shadow publications](2026-09-23-thermal-shadow-publication-score.md)
+subsequently scored31 matured near24-hour targets against qualified indoor
+receipts: model MAE2.4565°F, same-origin persistence MAE2.0265°F, interval
+coverage87.1%. All outputs were low-confidence, spanning three revisions.
+The current published model has not earned shadow exit.
 
 Later September23 checkpoint: the production JDBC persistence strategy was
 transferred from managed to Git-owned file configuration. The exact file-owned
