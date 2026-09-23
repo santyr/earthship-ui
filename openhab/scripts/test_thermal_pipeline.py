@@ -1320,7 +1320,7 @@ def test_cli_shadow_capture_is_default_off_and_failure_does_not_unpublish(
     assert status == 0 and len(published) == 1 and captured == []
 
     monkeypatch.setenv('THERMAL_SHADOW_CAPTURE_DIR', '/private/test-capture')
-    decision = NOW + timedelta(minutes=1)
+    decision = NOW + timedelta(minutes=1, microseconds=345678)
     status = thermal_intel._shadow(
         args, NOW, put_state=lambda *values: published.append(values),
         decision_clock=lambda: decision,

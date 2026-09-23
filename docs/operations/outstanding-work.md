@@ -45,6 +45,12 @@ subsequently scored31 matured near24-hour targets against qualified indoor
 receipts: model MAE2.4565°F, same-origin persistence MAE2.0265°F, interval
 coverage87.1%. All outputs were low-confidence, spanning three revisions.
 The current published model has not earned shadow exit.
+The September 23 [forcing-capture activation](2026-09-23-thermal-forcing-capture-live.md)
+now records exact raw Open-Meteo inputs alongside successful shadow
+publications. Its first natural run exposed a sub-second provenance gap;
+the decision timestamp was corrected and an attended publication produced a
+verified private archive matching the live item. This is prospective input
+evidence, not a model score or shadow graduation.
 
 Later September23 checkpoint: the production JDBC persistence strategy was
 transferred from managed to Git-owned file configuration. The exact file-owned

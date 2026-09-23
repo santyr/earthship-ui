@@ -528,6 +528,10 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             now=now,
             site_timezone=forecast_intel.MOUNTAIN,
         )
+        # The model serializes to whole seconds. Preserve the post-input
+        # decision clock's full precision for capture-safe provenance.
+        if output.get('status') == 'shadow':
+            output['generatedAt'] = now.isoformat()
         validate_shadow_receipt_expiry(
             current, now + timedelta(seconds=max(0, time.monotonic()-started)))
     except (JournalUnavailable, psycopg2.Error):
