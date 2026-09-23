@@ -63,6 +63,13 @@ Their naive persistence MAE is2.0314°F, but these are overlapping warm-season
 samples and no physical model or action benefit was scored. This establishes
 replay input availability, not a graduation pass.
 
+The repeatable [capture-safe persistence audit](2026-09-23-thermal-operational-baseline.md)
+now pairs those origin-time inputs with qualified later indoor outcomes. All
+63 hourly origins pair, reproducing the 2.0314°F overlapping baseline; only
+three disjoint 24-hour windows remain, with MAE 1.32°F. The audit does not
+score a model or action benefit. Its restricted read-only path is a prerequisite
+for future frozen-candidate replay, not evidence for leaving shadow.
+
 The [actual published-shadow audit](2026-09-23-thermal-shadow-publication-score.md)
 then paired31 matured near24-hour trajectories with qualified indoor outcomes.
 The model's MAE was2.4565°F versus2.0265°F for its own same-origin persistence

@@ -95,6 +95,10 @@ The [capture-safe 24-hour origin census](2026-09-23-thermal-origin-census.md)
 subsequently found63/63 hourly origins with full as-of inputs and qualified
 indoor outcomes; naive persistence MAE was2.0314°F on overlapping warm-season
 samples. No physical model score or action-benefit claim follows from this.
+The repeatable [operational baseline audit](2026-09-23-thermal-operational-baseline.md)
+subsequently paired all 63 origins with qualified later outcomes and reproduced
+that overlapping MAE; greedy disjoint 24-hour windows left only three pairs
+(MAE 1.32°F). No model or action benefit was scored, so shadow exit remains open.
 The first two natural forcing-captured one-hour thermal targets matured later
 September 23. Their strict [paired score](2026-09-23-thermal-forcing-capture-live.md)
 is model MAE2.171°F versus same-origin persistence1.080°F; both outputs are

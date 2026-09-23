@@ -1,6 +1,8 @@
 """Assemble captured weather and receipt-qualified initial states at one origin."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from math import isfinite
+import re
 
 from .forecast_history import SOURCE, _utc, _window
 from .schema import ACTION_KINDS, SOURCE_WEIGHTS
@@ -43,7 +45,9 @@ def assemble_origin(origin, *, horizon_hours, forecast_reader, temperature_reade
         return {'status': 'unavailable', 'reason': 'forecast_unavailable', 'origin': at}
     if (forecast['source'] != SOURCE or forecast['origin'] != at
             or forecast['horizon_hours'] != horizon_hours
-            or forecast['issued_at'] > at or forecast['captured_at'] > at):
+            or forecast['issued_at'] > at or forecast['captured_at'] > at
+            or not isinstance(forecast.get('rows_sha256'), str)
+            or re.fullmatch('[0-9a-f]{64}', forecast['rows_sha256']) is None):
         raise ValueError('forecast is not available at origin')
     rows = forecast.get('rows')
     if (not isinstance(rows, list) or len(rows) != len(targets)
@@ -76,3 +80,50 @@ def assemble_origin(origin, *, horizon_hours, forecast_reader, temperature_reade
             'action_knowledge': ('not_qualified' if actions is None else
                                  'as_of_snapshot_not_qualified'),
             'action_snapshot': actions}
+
+
+def pair_persistence_outcome(origin, *, horizon_hours, assessed_at,
+                             forecast_reader, temperature_reader, action_reader=None):
+    """Score only same-origin air persistence against a qualified later receipt.
+
+    This replay seam does not simulate a physical model, infer action compliance,
+    or use future observed weather as origin-time forcing. A target not yet due
+    is reported before any reader is called.
+    """
+    at, _ = _window(origin, horizon_hours)
+    if at.second or at.microsecond or at.minute % 5:
+        raise ValueError('origin must align to five minutes')
+    assessed = _utc(assessed_at)
+    target = at + timedelta(hours=horizon_hours)
+    if assessed < target:
+        return {'status': 'pending', 'origin': at, 'target': target}
+    assembled = assemble_origin(at, horizon_hours=horizon_hours,
+        forecast_reader=forecast_reader, temperature_reader=temperature_reader,
+        action_reader=action_reader)
+    if assembled['status'] != 'available':
+        return assembled
+    stream = STREAMS['air'][0]
+    rows = temperature_reader(stream=stream, targets=[target], assessed_at=assessed)
+    if not isinstance(rows, list) or len(rows) != 1 or rows[0][0] != target:
+        raise ValueError('temperature reader returned an invalid outcome target')
+    receipt = rows[0][1]
+    if receipt is None:
+        return {'status': 'unavailable', 'reason': 'outcome_receipt_unavailable',
+                'origin': at, 'target': target}
+    _validate_receipt(receipt, target)
+    initial = assembled['initial']['air_f']
+    observed = receipt['temperatureF']
+    if any(type(value) not in (int, float) or not isfinite(value)
+           for value in (initial, observed)):
+        raise ValueError('nonfinite qualified temperature')
+    error = initial - observed
+    return {'status': 'paired', 'origin': at, 'target': target,
+            'baseline': 'same_origin_air_persistence',
+            'initial_air_f': initial, 'observed_air_f': observed,
+            'signed_error_f': error, 'absolute_error_f': abs(error),
+            'forecast_sha256': assembled['forecast']['rows_sha256'],
+            'action_knowledge': assembled['action_knowledge'],
+            'outcome_receipt': {
+                'received_at': receipt['receivedAt'].astimezone(timezone.utc),
+                'stored_at': receipt['storedAt'].astimezone(timezone.utc),
+                'snapshot_sha256': receipt['snapshotSha256']}}
