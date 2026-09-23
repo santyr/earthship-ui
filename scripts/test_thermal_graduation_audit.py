@@ -63,3 +63,15 @@ def test_raw_schema_cannot_be_treated_as_historically_blended(tmp_path):
     (tmp_path/'backtest-report.json').write_text('{"schema":"earthship-thermal-backtest/v3"}')
     with pytest.raises(ValueError, match='raw backtest schema cannot be unblended'):
         m.audit(tmp_path, .15)
+
+
+def test_artifact_selection_is_explicit_and_bounded(tmp_path):
+    with pytest.raises(ValueError, match='explicit accepted or candidate'):
+        m.audit(tmp_path, artifact_name='../candidate.json')
+    (tmp_path/'candidate.json').write_text('{}')
+    (tmp_path/'backtest-report.json').write_text('{}')
+    with pytest.raises(FileNotFoundError):
+        m.audit(tmp_path)
+    with pytest.raises(ValueError):
+        m.audit(tmp_path, artifact_name='candidate.json')
+    assert not (tmp_path/'accepted.json').exists()

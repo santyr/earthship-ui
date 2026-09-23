@@ -57,8 +57,10 @@ def rescore_raw_errors(records, alpha):
             for (hours, state), errors in sorted(groups.items())]}
 
 
-def audit(directory, historical_shrinkage_alpha=None):
-    paths = [directory / 'accepted.json', directory / 'backtest-report.json']
+def audit(directory, historical_shrinkage_alpha=None, *, artifact_name='accepted.json'):
+    if artifact_name not in ('accepted.json', 'candidate.json'):
+        raise ValueError('explicit accepted or candidate artifact required')
+    paths = [directory / artifact_name, directory / 'backtest-report.json']
     bodies = [path.read_bytes() for path in paths]
     model, report = map(json.loads, bodies)
     if report.get('schema') == BACKTEST_SCHEMA and historical_shrinkage_alpha not in (None, 0):
@@ -66,8 +68,9 @@ def audit(directory, historical_shrinkage_alpha=None):
     validate_artifact(_artifact_from_payload(model))
     _validate_backtest_report(report)
     if model['metrics'] != report['metrics']:
-        raise ValueError('accepted artifact and backtest metrics differ')
+        raise ValueError('model artifact and backtest metrics differ')
     result = summarize(report['metrics'])
+    result['artifact_file'] = artifact_name
     result['inputs_sha256'] = {path.name: hashlib.sha256(body).hexdigest() for path, body in zip(paths, bodies)}
     result['trained_through'] = model['trained_through']
     result['data_range'] = report['data_range']
@@ -84,5 +87,8 @@ if __name__ == '__main__':
     parser.add_argument('--model-dir', type=Path, default=Path('/home/sat/.local/state/thermal-intel/models'))
     parser.add_argument('--historical-shrinkage-alpha', type=float,
         help='Explicit historical blend assumption for optional raw-error rescore; verify producer source first.')
+    parser.add_argument('--artifact', choices=['accepted.json', 'candidate.json'], default='accepted.json',
+        help='Read a specific artifact without promotion, copying or implicit fallback.')
     args = parser.parse_args()
-    print(json.dumps(audit(args.model_dir, args.historical_shrinkage_alpha), indent=2, sort_keys=True, allow_nan=False))
+    print(json.dumps(audit(args.model_dir, args.historical_shrinkage_alpha, artifact_name=args.artifact),
+        indent=2, sort_keys=True, allow_nan=False))

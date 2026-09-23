@@ -182,3 +182,21 @@ The live Strike script hash remains
 No live feed, credential, rule or polling configuration changed. CoinMarketCap
 provider-side rotation/revocation and cleanup of any historical copies remain
 outstanding: externalization does not invalidate an already exposed credential.
+
+## September 23 Java upgrade outage and recovery
+
+At 06:36 MDT the host upgraded `openjdk-21-jre-headless` from
+21.0.12+8-1~24.04 to 21.0.12.1+1-1~24.04.4. Immediately afterward, the running
+OpenHAB JVM logged `Failed to exec spawn helper` on the scheduled Bitcoin command.
+The output receipt became `price:null` while the price Item retained its last
+value. The Exec Thing was disabled at 07:08; the logs do not establish who or
+what disabled it. OpenHAB restarted at 07:11, but the Thing stayed disabled.
+
+Read-only checks found the installed Bitcoin script still matched this repo's
+SHA256 above, with the existing 30-second interval and 15-second timeout. At
+07:59, the existing Thing was enabled through OpenHAB REST; it went ONLINE and
+natural scheduled output changed `BTC_USD_Price` from 85456 to 85760 with a
+matching valid receipt. The next scheduled run at 07:59:36 updated it to 85765
+with another matching receipt. No script, credential or Thing configuration was
+changed. For a recurrence after a Java package upgrade, check the JVM's process
+spawn errors and Thing status before attributing a retained price to the provider.

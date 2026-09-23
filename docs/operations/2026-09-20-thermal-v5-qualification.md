@@ -1,4 +1,4 @@
-# Thermal v5 qualification — in progress
+# Thermal v5 qualification — refused candidate
 
 Source revision: `e7dd34e`. This run does not deploy the v5 runtime or replace
 production artifacts. The existing shadow runtime/model pair stays authoritative.
@@ -21,18 +21,26 @@ GETs and journal SELECTs; it does not invoke shadow publication or action comman
 CPU is limited to one core, numerical libraries to one worker, memory to2GiB,
 runtime to3hours, and scheduling nice10. Output goes to a private `run.log`.
 
-The production scheduled trainer was inactive at launch; its next timer is
-September21 at06:50MDT. The isolated unit was confirmed active with MainPID3346405
-and about380MB memory. These are launch observations, not completion evidence.
-Recheck this exact unit before continuing; never restart merely because a tool
-observation timed out. Inspect sanitized failure evidence if terminal. Do not
-print raw environment or unreviewed logs.
+The production scheduled trainer was inactive at launch; its next timer was
+September21 at06:50MDT. The isolated run finished on September20 at about
+20:06MDT with exit status1 and a refusal receipt:
+`{"reasons":["air_24h_beats_persistence"],"status":"refused"}`.
+Its private model directory contains `candidate.json` and `backtest-report.json`,
+but no `accepted.json`. On September23 the exact candidate/report bytes passed
+the read-only v5/v3 schema and metric-consistency audit using
+`scripts/audit-thermal-graduation.py --model-dir /tmp/thermal-v5-qualification-AsBEbyXN/models --artifact candidate.json`.
+SHA256: candidate `c4791b12e8fd53d0aa330f231791a368f2df9be339205ff371c03c15065b1905`;
+report `dbcff6e3a03376a7229285a9869632cf05a32b61d1c90764f4dbd36ac1760128`.
 
-On completion, validate the report/artifact schema, exact data manifest and raw
-residual metrics, acceptance result and production artifact hashes. If accepted,
-that qualifies only this isolated shadow candidate, not deployment or advisory
-graduation. Retain useful model/report/receipt evidence, then remove the owned
-temporary source copy and transient unit after qualification work is finished.
+At 24 hours, model air MAE was 2.470023°F versus persistence 1.689895°F
+on 119 scored origins. The 24-hour gate failed; other structural gates passed.
+The candidate is shadow-only and was not promoted. The 1, 12, 48 and 72-hour
+horizons also failed to beat persistence; only the 6-hour horizon beat both
+persistence and the recent-state baseline. Confirmed-action training and
+evaluation counts were both zero, so this run does not qualify action advice.
+Retain the private report for diagnosis, then remove the owned temporary source
+and transient unit after evidence is archived. Do not loosen the gate to accept
+this candidate.
 
 ## Historical evidence boundary confirmed from source
 
