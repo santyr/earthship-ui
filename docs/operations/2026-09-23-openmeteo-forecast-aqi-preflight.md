@@ -55,6 +55,15 @@ that selector and its `REFRESH` state. A file-provider cutover must preserve
 the real 48-value binding event stream, not invent historic JDBC rows or
 reclassify `REFRESH` as a measured AQI value. Live cutover remains deferred.
 
+A later read-only check through the configured JDBC connection resolved the
+underlying `public.items` mapping to Item ID 582 and found two older rows in
+`public.item0582`, last written July 17. The zero-row REST response therefore
+must not be treated as proof of an empty SQL table. A live cutover must retain
+that exact historical prefix while withholding any claim that it represents
+the current 48-value forecast series. At 17:51:27 MDT on September 23 the
+managed binding again emitted both 48-value time-series events, and the Thing
+was ONLINE; the Item state remained the special value `REFRESH`.
+
 Verification: 1,697 UI/source tests, four qualifier selector tests and both
 isolated provider/restart/rollback and state/JDBC restore runs passed. The
 Git-owned source has not been installed on the production host.
