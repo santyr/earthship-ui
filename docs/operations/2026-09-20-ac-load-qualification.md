@@ -73,3 +73,21 @@ physical freshness. AC-load energy, balances and winter replay remain withheld
 until the acquisition receipt and topology-period gates are satisfied. A future
 report should retain an explicit inverter-output basis so it cannot silently
 be read as whole-house load after a topology change.
+
+## Prepared, not activated: acquisition-adjacent observation
+
+The source tree now contains a draft file-owned `Inverter_AC_Output_Observation_JSON`
+Item linked *additively* to the existing AC-power channel using the documented
+`transform:JS` to-Item profile. Its transform emits version, field name, host
+transform timestamp and the exact incoming state text, including invalid text.
+It is an observation format only: the timestamp is not a device timestamp, and
+the JSON is not a qualified power receipt or household-load authority. The
+existing `ConextGateway_ACPowerValue` link and Modbus Thing are untouched.
+Seven focused tests cover preservation of valid and invalid input text and the
+read-side link configuration. The disposable networkless 5.2.1 check passed:
+the file Item and exact transform-profile link loaded as non-editable, the
+installed script bytes matched source, and the labeled container and tmpfs
+were removed. This did not exercise binding-to-profile execution or JDBC.
+Production installation is deliberately withheld until actual
+binding-to-profile execution, original source attribution, unchanged-value
+delivery, offline/invalid barriers, restart behavior and rollback are checked.
