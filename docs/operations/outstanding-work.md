@@ -128,14 +128,17 @@ binding-sourced state events at roughly5.12-second intervals, but all values
 changed; source-less updated events and absent native read-success channel
 require a source-bound receipt design and unchanged-value/fault qualification.
 See [AC-load qualification](2026-09-20-ac-load-qualification.md).
-An additive file-owned AC-output observation Item and JS profile are prepared
-in source only. The timestamp is host transform time, not device acquisition
-time; neither the draft nor its isolated provider check authorizes AC-load
-energy publication or changes the installed inverter binding. Live execution,
-unchanged update, fault, restart and rollback checks remain open.
-The isolated, networkless 5.2.1 file-provider check passed for the exact
-non-editable Item/profile link and script bytes; its disposable container and
-tmpfs were removed. This is not a live-acquisition or persistence check.
+An additive file-owned AC-output observation Item and JS profile are now active
+for non-authoritative collection. The timestamp is host transform time, not
+device acquisition time. The isolated, networkless 5.2.1 file-provider check
+passed and removed its disposable container. The bounded live trial verified
+natural binding-sourced transformed events, canonical JDBC rows and exact
+two-file withdrawal/restoration without altering the original inverter link;
+the ownership inventory has zero issues. No consecutive unchanged-Watt receipt
+was observed. Fault and full-restart behavior, durable qualified-source
+persistence, topology-epoch controls and reader integration remain open;
+AC-load energy publication is still withheld. See
+[AC-load qualification](2026-09-20-ac-load-qualification.md).
 
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo

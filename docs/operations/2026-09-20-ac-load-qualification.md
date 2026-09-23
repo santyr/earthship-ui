@@ -74,9 +74,9 @@ until the acquisition receipt and topology-period gates are satisfied. A future
 report should retain an explicit inverter-output basis so it cannot silently
 be read as whole-house load after a topology change.
 
-## Prepared, not activated: acquisition-adjacent observation
+## Active non-authoritative acquisition-adjacent observation
 
-The source tree now contains a draft file-owned `Inverter_AC_Output_Observation_JSON`
+The source tree now contains a file-owned `Inverter_AC_Output_Observation_JSON`
 Item linked *additively* to the existing AC-power channel using the documented
 `transform:JS` to-Item profile. Its transform emits version, field name, host
 transform timestamp and the exact incoming state text, including invalid text.
@@ -88,6 +88,33 @@ read-side link configuration. The disposable networkless 5.2.1 check passed:
 the file Item and exact transform-profile link loaded as non-editable, the
 installed script bytes matched source, and the labeled container and tmpfs
 were removed. This did not exercise binding-to-profile execution or JDBC.
-Production installation is deliberately withheld until actual
-binding-to-profile execution, original source attribution, unchanged-value
-delivery, offline/invalid barriers, restart behavior and rollback are checked.
+September23 bounded production trial: exact files were installed under
+`/etc/openhab/items/` and `/etc/openhab/transform/`; the original managed
+`ConextGateway_ACPowerValue` Item/link and ONLINE inverter Thing were unchanged.
+Natural binding-to-profile execution produced canonical JSON with a recent host
+timestamp and Watt-valued raw text. In a 70-second read-only sample, REST
+observed 14 distinct receipt timestamps with no invalid envelopes; the log
+recorded 13 candidate changes and 13 original-Item changes. A separate
+candidate-event audit found ten consecutively parsed changes with the exact
+Modbus channel source and monotonic receipt times, no mismatches. The sample
+did **not** show a consecutive unchanged Watt value with a new receipt: 13
+distinct values among the 14 observed timestamps could include a nonadjacent
+repeat. Do not claim that gate passed.
+
+The new Item's first JDBC readback had 33 canonical rows because the current
+wildcard strategy persists every change, including transform timestamps. This
+is observational history, not a qualified energy stream; its roughly five-second
+cadence needs volume/retention review before indefinite reliance. The exact
+two-file withdrawal was tested live: OpenHAB removed only the candidate Item
+and link, left the original link intact, then reinstallation restored a fresh
+natural receipt. JDBC still returned 78 canonical rows afterward, retaining
+the earlier observations. The file-ownership inventory again reported zero issues.
+No Item command, synthetic state, poller change, binding refresh, service
+restart or hardware disruption was used.
+
+The observation remains active solely for evidence collection. Invalid/offline
+barriers, an actual unchanged-value read, restart behavior and independent
+qualified persistence are unproven. AC-load energy/balances remain withheld;
+any future consumer must authenticate the original binding source, validate
+the canonical envelope and expiration, and carry the explicit inverter-output
+basis plus the operator-confirmed topology period.

@@ -91,6 +91,23 @@
     },
     {
       "kind": "item",
+      "id": "Inverter_AC_Output_Observation_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/inverter-ac-output-observation.items",
+      "destination": "/etc/openhab/items/inverter-ac-output-observation.items",
+      "state_writer": "modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power via transform:JS inverter_ac_output_observation.js"
+    },
+    {
+      "kind": "link",
+      "id": "Inverter_AC_Output_Observation_JSON -> modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/inverter-ac-output-observation.items",
+      "destination": "/etc/openhab/items/inverter-ac-output-observation.items"
+    },
+    {
+      "kind": "item",
       "id": "Energy_Analytics_JSON",
       "provider": "file",
       "migration": "verified",

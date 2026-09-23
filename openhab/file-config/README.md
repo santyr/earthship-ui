@@ -28,6 +28,13 @@ Three observational forecast JSON Items now share
 live managed rollback and return, state preservation and unchanged history are
 recorded in `docs/operations/2026-09-23-forecast-json-item-cutover.md`.
 Their first natural post-transfer publisher run remains to be observed.
+`items/inverter-ac-output-observation.items` is an additional file-owned,
+read-only link to the existing inverter AC-power channel. Its canonical JS
+transform is `openhab/transform/inverter_ac_output_observation.js`. This
+observation is active for provenance qualification only; it is not a load
+accounting source. The bounded live binding event, JDBC readback and
+withdrawal/restoration trial are recorded in
+`docs/operations/2026-09-20-ac-load-qualification.md`.
 
 ## Staged migration and rollback
 

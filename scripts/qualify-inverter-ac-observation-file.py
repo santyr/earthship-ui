@@ -18,7 +18,7 @@ import openhab_sanity_check as oh  # noqa: E402
 ITEM = 'Inverter_AC_Output_Observation_JSON'
 ORIGINAL = 'ConextGateway_ACPowerValue'
 CHANNEL = 'modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power'
-SOURCE = ROOT / 'openhab/file-config/drafts/inverter-ac-output-observation.items'
+SOURCE = ROOT / 'openhab/file-config/items/inverter-ac-output-observation.items'
 TRANSFORM = ROOT / 'openhab/transform/inverter_ac_output_observation.js'
 IMAGE = 'openhab/openhab@sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f0351e471a2e938d6c3c'
 
@@ -42,21 +42,33 @@ def install(container, name, body):
 
 
 def main():
+    source = SOURCE.read_bytes()
+    transform = TRANSFORM.read_bytes()
     try:
-        oh.get('/items/' + ITEM)
+        live_item = oh.get('/items/' + ITEM)
     except HTTPError as error:
         if error.code != 404:
             raise
-    else:
-        raise RuntimeError('proposed Item already exists on production host')
+        live_item = None
     links = oh.get('/links')
     original = [entry for entry in links if entry.get('itemName') == ORIGINAL]
     if len(original) != 1 or original[0].get('channelUID') != CHANNEL:
         raise RuntimeError('original inverter link changed')
-    if any(entry.get('itemName') == ITEM for entry in links):
-        raise RuntimeError('proposed Item already linked on production host')
-    source = SOURCE.read_bytes()
-    transform = TRANSFORM.read_bytes()
+    candidate = [entry for entry in links if entry.get('itemName') == ITEM]
+    if live_item is None:
+        if candidate:
+            raise RuntimeError('proposed Item absent but link exists on production host')
+    else:
+        if (live_item.get('editable') is not False or live_item.get('type') != 'String'
+                or len(candidate) != 1 or candidate[0].get('editable') is not False
+                or candidate[0].get('channelUID') != CHANNEL
+                or candidate[0].get('configuration') != {
+                    'profile': 'transform:JS',
+                    'toItemScript': 'inverter_ac_output_observation.js'}):
+            raise RuntimeError('live observation provider differs from source intent')
+        if (Path('/etc/openhab/items/inverter-ac-output-observation.items').read_bytes() != source
+                or Path('/etc/openhab/transform/inverter_ac_output_observation.js').read_bytes() != transform):
+            raise RuntimeError('live observation file bytes differ from source')
     marker = secrets.token_hex(8)
     container = run(['docker', 'run', '-d', '--label', 'hex.ac.profile=' + marker,
         '--network', 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',

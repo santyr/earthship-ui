@@ -1,5 +1,0 @@
-// PREPARED ONLY. Do not install until profile syntax, original-channel source,
-// unchanged updates, expiry/fault barriers and rollback pass qualification.
-// This is an additional observation link; it must not replace the existing
-// ConextGateway_ACPowerValue Item or change the inverter Thing/poller.
-String Inverter_AC_Output_Observation_JSON "Inverter AC output acquisition observation" { channel="modbus:inverter-split-phase:1ed74db72c:e853aec444:acGeneral#ac-power" [profile="transform:JS", toItemScript="inverter_ac_output_observation.js"] }
