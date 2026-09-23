@@ -489,7 +489,10 @@ and protected-resource rollback remain outstanding.
   A same-day follow-up also prevents the callback itself from claiming
   completion if its pump turned OFF just before the deadline.
   Exact guarded release, private rollback and natural idle evaluation passed;
-  no post-release interrupted cycle was manufactured or claimed.
+  no post-release interrupted cycle was manufactured or claimed. A September23
+  13:23–13:38 natural East cycle under the final rule hash completed at its
+  15-minute deadline with no intervening OFF transition; both pumps ended OFF.
+  The interruption fallback and sunset case remain unobserved.
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
   timestamped UNDEF/NULL/bad states remain invalid rather than being dropped and
   bridged by interpolation/hold.10regressions failed before the fix;118focused

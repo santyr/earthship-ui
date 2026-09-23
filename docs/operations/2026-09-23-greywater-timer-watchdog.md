@@ -86,3 +86,18 @@ qualification. The 11:16 MDT natural minute evaluation then reported a
 low-SoC hold under the final installed hash, with both pumps OFF and the rule
 `IDLE/NONE`. A naturally interrupted cycle under the final revision remains
 unobserved.
+
+## Natural full-cycle follow-up
+
+At 13:23 MDT on September23, the final installed revision naturally started
+the East pump. Its exact live rule-script SHA256 remained
+`312cf24ceba5c63e30c4ecd0104bbf3bcf646f1e203b8c6c9c964e58dd7b84df`.
+The rotated and current OpenHAB event logs together show the pump's OFF→ON
+transition at13:23:00.014 and ON→OFF at13:38:00.017, with no intervening
+state-change-to-OFF event in that interval. The rule-origin OFF command was
+at13:38:00.016; `SouthOutlet_LastCycle` advanced to19:38:00.015Z and
+`SouthOutlet_AutoStatus` reported `cycle_completed`, nextPump=south and
+nextEligibleAt=20:23:00.013Z. Both pump Items were OFF at readback and the
+rule was IDLE/NONE. This is controller/Item evidence for a normal full cycle,
+not independent flow measurement and not a test of the early-OFF or lost-timer
+fallback. No manual run or test command was issued.

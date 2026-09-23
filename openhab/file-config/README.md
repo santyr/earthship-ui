@@ -19,10 +19,15 @@ provider and loads the file definition. Never create overlapping definitions.
 `Current_US_AQI` and its OpenMeteo channel link. Isolated provider/link,
 state/JDBC and full-restart checks passed before the attended cutover; live
 provider/state and historical-prefix readback passed afterward. The private
-rollback snapshot and remaining natural-writer check are recorded in
+rollback snapshot and completed natural-writer check are recorded in
 `docs/operations/2026-09-23-openmeteo-aqi-item-cutover.md`. The source file's
 pre-cutover warning remains a guard against installing it alongside a managed
 provider on another host.
+Three observational forecast JSON Items now share
+`items/forecast-json.items`; their isolated provider/JDBC/full-restart checks,
+live managed rollback and return, state preservation and unchanged history are
+recorded in `docs/operations/2026-09-23-forecast-json-item-cutover.md`.
+Their first natural post-transfer publisher run remains to be observed.
 
 ## Staged migration and rollback
 
