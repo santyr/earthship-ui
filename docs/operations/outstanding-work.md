@@ -20,8 +20,10 @@ qualification remain unfinished.
 
 The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
 isolated OpenHAB/JDBC restore and live managed rollback/return qualification.
-Its state, stable JDBC mapping/history and shadow timer were preserved; a
-natural post-transfer publication remains to be observed. See the
+Its state, stable JDBC mapping/history and shadow timer were preserved. The
+first natural post-transfer publication at 17:51 MDT wrote a new file-owned
+Item state and JDBC row 231 under unchanged Item ID 610; the row equals the
+live state and its private forcing capture verifies exactly. See the
 [thermal Item cutover receipt](2026-09-23-thermal-item-file-cutover.md).
 
 The next [strict forcing-capture score](2026-09-23-thermal-forcing-capture-live.md)
@@ -181,6 +183,12 @@ one-file deployment passed; the first natural post-release sanity run at
 12:56 MDT exited 0 with all checks passed. This fixes the checker's
 source-validity gap without changing
 OpenHAB control, persistence or notification cadence.
+The UI's separate stale-SoC alert now uses that same atomic receipt instead
+of the scaler heartbeat (`6ab6941`). Live receipt encoding was verified,
+1,713 UI tests, the build and all 23 Home browser tests passed, and the UI
+service was restarted and read back locally. An unchanged SoC remains healthy
+only while fresh source evidence continues; advancing the scaler heartbeat
+alone cannot clear the alert.
 
 September23 AC-load scope clarification: the operator confirms all current
 household load is inverter-served, without bypass or generator supplementation.

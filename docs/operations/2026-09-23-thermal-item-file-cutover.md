@@ -28,5 +28,15 @@ tracked file share SHA256
 The inventory now declares this file-owned resource; the next natural shadow
 publication must still be checked against the unchanged JDBC mapping.
 
+The first natural post-transfer timer fired at 17:51:47 MDT. The publisher
+exited successfully at 17:51:51, and the file-owned Item remained
+`editable:false` with a new `shadow` state generated at
+`2026-09-23T23:51:48.930701+00:00`. The existing JDBC Item ID stayed 610;
+its row count advanced from 230 to 231 with a new row at
+`2026-09-23T23:51:51.168242+00:00`. That row exactly matched the live Item
+state, and the corresponding private forcing capture passed exact verification.
+The timer remained active with its next run scheduled for 19:51:47 MDT. No
+manual publication or synthetic production value was used.
+
 This Item transfer does not qualify model accuracy, thermal advisory action
 evidence, protected-control recovery or whole-installation file migration.
