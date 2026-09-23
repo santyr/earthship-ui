@@ -16,10 +16,10 @@ Preparing a source file does not transfer runtime ownership. Existing managed
 resources remain managed until a verified, receipt-backed cutover removes that
 provider and loads the file definition. Never create overlapping definitions.
 `items/openmeteo-current-aqi.items` is prepared only. `Current_US_AQI` and its
-OpenMeteo channel link remain managed. An isolated provider/link and full-restart
-round trip has passed; do not install the file until state/JDBC recovery and a
-private rollback snapshot are qualified. The ownership manifest must change
-only after live readback.
+OpenMeteo channel link remain managed. Isolated provider/link, state/JDBC and
+full-restart round trips have passed; do not install the file until a private
+production rollback snapshot and attended cutover are ready. The ownership
+manifest must change only after live readback and a natural writer receipt.
 
 ## Staged migration and rollback
 

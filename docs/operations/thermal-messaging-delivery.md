@@ -73,7 +73,7 @@ authorized thermal-confirmation operator. Host readback matched the public key
 in the current OpenHAB DM notifier with that approved identity; the configured
 Hex public identity is available for a collector policy. Read-only kind-10050
 queries against all three relays already configured for the OpenHAB notifier
-returned no signed recipient relay-list event for either identity. Connectivity
+initially returned no signed recipient relay-list event for either identity. Connectivity
 to at least one relay was confirmed separately. The notifier's existing relay
 arguments are not signed recipient inbox routes and must not be silently
 substituted for them. No private policy, reviewed route inventory, production
@@ -83,6 +83,17 @@ Before an attended household trial, arrange and verify signed kind-10050
 announcements for both identities, review their endpoints, install the private
 policy and route inventory, and qualify the real journal and encrypted-state
 backup. The operator-identity approval does not authorize guessing those routes.
+
+Later September 23, the operator approved those three existing relay endpoints
+as Hex's collector inbox routes. Hex signed and published one kind-10050 route
+announcement, event ID
+`f75b3a5fd8fc5a6734af6cee3a4c5a64009e86bc0efd57e6926b9ec434a16c84`.
+The pinned nak verified its signature, expected collector author, empty content
+and exact three relay tags before publication; independent read-only requests
+returned that same event from each relay afterward. The disposable nak config
+directory was removed. No operator-signed kind-10050 announcement was found at
+the final readback, so the complete reviewed route inventory still cannot be
+installed. No prompt, listener, outbox or journal action was enabled.
 
 ## Earlier configured-keyer check
 

@@ -46,9 +46,9 @@ definition is a Number labeled “Current US AQI,” category `airquality`, with
 `Measurement` tag and a single managed link to the file-owned OpenMeteo AQI
 Thing. A prepared Git source preserves those identifiers and passed the
 installed OpenHAB 5.2.1 Item grammar and a focused source test. It is **not**
-installed or declared file-owned: provider/link behavior, state recovery,
-JDBC continuity and rollback still need isolated qualification and an attended
-cutover. No second Item/link provider was created.
+installed or declared file-owned: at this staging point, provider/link behavior,
+state recovery, JDBC continuity and rollback still needed isolated qualification
+and an attended cutover. No second Item/link provider was created.
 
 Follow-up: `scripts/qualify-openmeteo-aqi-item.py` restored the protected
 September 20 OpenHAB snapshot into a disposable networkless 5.2.1 container,
@@ -59,6 +59,19 @@ withdrew both resources before the managed Item/link were restored through REST
 and matched again. The owned container and its snapshot overlay were removed.
 Production writes: zero. This qualifies provider/link reversibility in isolation,
 not production state restoration, JDBC continuity, or the attended cutover.
+
+`scripts/qualify-openmeteo-aqi-jdbc.py` then used a separate disposable OpenHAB
+5.2.1 instance and PostgreSQL 16 peer sharing only loopback. After confirming
+the actual JDBC mapping table and file-owned strategy were ready, a synthetic
+AQI value written **only inside isolation** produced one JDBC history row. A
+file Item removal/reload restored the same state and preserved the history
+prefix; a full isolated JVM/container restart did likewise. Both containers
+and their private test database were removed. Two earlier test-harness runs
+failed before this result: one sent the synthetic value before JDBC readiness,
+and one put the restart marker on a tmpfs that Docker cleared. Both failures
+cleaned up; neither was a production AQI or JDBC failure. This qualifies
+isolated state/history recovery but not the live provider transfer, its private
+rollback snapshot, or natural post-cutover writer receipt.
 
 14:16 MDT extension: `config_inventory.py --extended --summary` now also
 verifies explicit link ownership and inventories 18 installed add-ons, 12 UI
