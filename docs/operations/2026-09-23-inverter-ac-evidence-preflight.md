@@ -28,22 +28,33 @@ observational and has no hardware action path. The draft file-owned output
 Item, disabled create-only rule descriptor and 26 focused producer tests are
 in source control. These tests include offline/recovery, ambiguous enqueue,
 same-millisecond persistence ordering, and superseded pending UI posts. This
-is source-level evidence only, not production qualification.
+was initially source-level evidence only.
+
+The September23 disposable OpenHAB 5.2.1 runtime check has now passed with
+the locally cached JS/Graal bundles copied only into a networkless container's
+tmpfs. The file-owned output Item loaded, the exact candidate triggers
+registered, and a run-now invocation returned to IDLE after the rule body
+posted a canonical `source_unavailable` envelope (the isolated instance has
+no inverter Thing). All owned containers and tmpfs data were removed, including
+earlier failed dependency/timing trials. This proves script compilation and
+basic execution under that runtime, not Modbus event delivery, fault behavior
+against real hardware, JDBC durability, or restart recovery. The repeatable
+qualifier is `scripts/qualify-inverter-ac-evidence-runtime.py`.
 
 ## Gates before activation or accounting
 
-1. Qualify OpenHAB 5.2.1 rule compilation and trigger behavior in an isolated
-   runtime, including inverter/bridge status transitions and the original
-   event object. The existing live observation must not be used to send a
-   synthetic value or hardware command.
+1. Isolated compilation, trigger registration and basic execution passed.
+   Still qualify inverter/bridge status transitions and the original event
+   object in a suitable isolated or attended runtime. The existing live
+   observation must not be used to send a synthetic value or hardware command.
 2. Add the exact output-Item exclusion to the file-owned JDBC strategy and
    rehearse immutable write/readback, restart and rollback. Install the
    file-owned Item and disabled rule only after that exclusion is verified.
 3. Deploy a strict Solar-PV reader for this **separate** stream, with invalid-row,
    gap, epoch, expired-field and topology-period barriers. Its current v1
-   three-field parser must remain unchanged. The Solar-PV repository requires
-   Hexmem context before writes; that service was unavailable during this
-   preflight, so no cross-repo edit was made.
+   three-field parser must remain unchanged. No cross-repo edit was made in
+   this preflight. The operator subsequently directed that Hexmem not be used;
+   verify future changes against current source, tests and live state instead.
 4. Observe natural production receipts, loss/recovery behavior when safely
    available, and bounded durable coverage before any daily AC-load balance.
    An operator-confirmed inverter-only topology is current, not a historical
