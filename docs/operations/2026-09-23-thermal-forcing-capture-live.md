@@ -46,3 +46,17 @@ verifier accepted all four content digests and 240 exact forecast rows. The
 output remained low-confidence shadow with no candidate because minimum
 modeled improvement was not met. Its 1-hour and 24-hour outcomes were not yet
 due at this checkpoint; no accuracy or graduation claim follows from capture.
+
+The next eligible strict one-hour audit ran after the selected 13:00 MDT target
+and five-minute maturity margin. This exact 11:51 forcing capture scored one
+qualified indoor outcome: model absolute error **2.801°F** versus same-origin
+persistence **1.620°F**. The published 10.414°F-wide interval covered the
+outcome. Its archived outdoor forcing was **1.14°F cooler** than the qualified
+outdoor observation. The earlier captured 09:50 publication scored 1.541°F
+versus 0.540°F persistence, with outdoor forcing 5.12°F warmer than observed.
+Together the two mature, capture-qualified one-hour points have model MAE
+**2.171°F** versus persistence **1.080°F**; both remain low confidence. The
+09:48 legacy publication remains a missing-capture gap. Opposite outdoor
+forecast error signs alongside two indoor underpredictions do not prove a
+specific physical-model cause. Neither 24-hour captured target is mature,
+and no shadow graduation, tuning or advisory change follows from two points.

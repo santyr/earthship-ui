@@ -76,9 +76,11 @@ installed v4 runtime, preserving the post-input decision time at full precision
 and archiving exact raw and normalized forcing for successful publications.
 The first attended archive matched the live OpenHAB output digest. The strict
 published-shadow scorer requires that archive and deliberately excludes all
-pre-capture legacy pairs; its first mature capture-qualified target is still
-pending. This fixes a provenance prerequisite, not the model's accuracy or
-shadow-exit gates.
+pre-capture legacy pairs. Two natural captured one-hour targets have since
+matured: model MAE 2.171°F versus same-origin persistence 1.080°F, both
+low-confidence and with wide intervals. Their 24-hour targets remain pending.
+This fixes a provenance prerequisite and adds early diagnostic scores, not a
+model-accuracy pass or a shadow-exit gate.
 
 ### Confirmed-action collection audit, September20
 
