@@ -77,3 +77,14 @@ single case points to a high-priority physical-model diagnosis but cannot
 identify a coefficient or regime correction. The strict 24-hour scorer found
 five publications with outcomes not yet due and zero capture-qualified scores.
 The model remains in shadow; no tuning, release gate or advice was changed.
+
+The scorer now offers opt-in `--include-pairs` only with `--require-capture`.
+It reports bounded issue/target times, signed indoor and outdoor errors,
+interval inclusion and non-overlap selection; the default aggregate output is
+unchanged. Thirteen scorer tests pass. The three one-hour model errors were
+−1.541°F, −2.801°F and −2.144°F; the paired outdoor forcing errors were
++5.12°F, −1.14°F and +4.22°F. The six-hour error was −6.529°F with a +1.26°F
+outdoor error. Consistent indoor underprediction across mixed outdoor-error
+signs supports investigating the thermal dynamics and mode/action assumptions,
+but is not a causal attribution or a justified fitted offset from this tiny
+sample. The actual installed v4 shadow model was not modified.

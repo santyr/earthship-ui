@@ -61,6 +61,13 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a' * 12]['n'], 2)
         self.assertEqual(result['nonoverlap_policy'],
                          'greedy_by_issue_time; next_issue_at_or_after_prior_target')
+        details = audit.score([shifted(0), shifted(12), shifted(24)],
+                              now=TARGET + timedelta(days=3),
+                              outcome_reader=receipt,
+                              capture_reader=lambda _: {'forecast_rows': []},
+                              include_pairs=True)['pairs']
+        self.assertEqual([item['nonoverlap_selected'] for item in details],
+                         [True, False, True])
 
     def test_paired_published_baseline_and_qualified_outcome(self):
         result = audit.score([row()], now=TARGET + timedelta(minutes=10),
@@ -69,6 +76,7 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['overall']['model_mae_f'], 2.0)
         self.assertEqual(result['groups']['overall']['persistence_mae_f'], 2.0)
         self.assertEqual(result['groups']['overall']['interval_coverage'], 1.0)
+        self.assertNotIn('pairs', result)
 
     def test_future_target_and_stale_initial_are_excluded(self):
         pair, reason = audit.select_pair(row(), now=TARGET + timedelta(minutes=1))
@@ -100,11 +108,23 @@ class PublicationAuditTests(unittest.TestCase):
         outdoor = lambda target: {**receipt(target), 'temperatureF': 72.0}
         result = audit.score([row()], now=TARGET + timedelta(minutes=10),
                              outcome_reader=receipt, capture_reader=lambda _: captured,
-                             outdoor_reader=outdoor)
+                             outdoor_reader=outdoor, include_pairs=True)
         self.assertEqual(result['counts']['scored'], 1)
         self.assertEqual(result['weather']['n'], 1)
         self.assertEqual(result['weather']['outdoor_forecast_mae_f'], 3.0)
         self.assertEqual(result['weather']['paired_indoor_model_mae_f'], 2.0)
+        self.assertEqual(result['pairs'], [{
+            'issue_at': ISSUE.isoformat(), 'target_at': TARGET.isoformat(),
+            'revision': 'a'*12, 'confidence': 'low', 'model_error_f': 2.0,
+            'persistence_error_f': -2.0, 'interval_covered': True,
+            'interval_width_f': 6.0, 'outdoor_forecast_error_f': 3.0,
+            'nonoverlap_selected': True,
+        }])
+
+    def test_pair_details_require_exact_capture(self):
+        with self.assertRaisesRegex(ValueError, 'require exact forcing capture'):
+            audit.score([row()], now=TARGET + timedelta(minutes=10),
+                        outcome_reader=receipt, include_pairs=True)
 
     def test_missing_outdoor_target_does_not_invalidate_indoor_score(self):
         result = audit.score([row()], now=TARGET + timedelta(minutes=10),
