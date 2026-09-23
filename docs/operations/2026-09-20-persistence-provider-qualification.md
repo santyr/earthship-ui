@@ -222,3 +222,14 @@ recovery; `--recover RECEIPT_DIR` restores managed ownership only for an
 interrupted, unverified handoff. No rollback was needed or performed in
 production. The file-owned JDBC provider is now authoritative; connection
 settings, strategies, rules, Items and hardware controls were unchanged.
+
+Post-transfer event/history comparison confirmed that the gap was real, not
+only theoretical. `events.log` contains MPPT60_DC_OutputCurrent,
+MPPT60_DC_OutputPower and MPPT60_Native_Expansion_Status changes at
+**14:55:30.552–.555Z**; fixed-window JDBC queries for those Items have no
+rows from **14:55:29Z to14:55:33Z**. The independent
+`Power_Evidence_JSON` stream retained contiguous sequence numbers 3642–3643
+across the boundary; this does **not** recover the three absent automatic
+Item-history rows or prove every other stream continuous. Coverage/learning
+consumers must treat the recorded interval as unqualified, even where a held
+value can be interpolated across it.
