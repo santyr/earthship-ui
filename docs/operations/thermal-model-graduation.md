@@ -140,6 +140,13 @@ later receipt date to turn a plan into evidence. Tests cover current and past
 confirmations, duplicate retries, future receipts, modes and overnight intervals.
 Production ingestion/runtime remains unchanged pending coordinated deployment.
 
+September23 follow-up: the acknowledgement and future-plan guards were
+narrowly backported to the installed compatible v4 CLI without installing the
+refused v5 model/runtime. The [live backport receipt](2026-09-23-thermal-journal-cli-backport.md)
+records the exact hashes, 28 staged-v4 tests, private rollback copy and
+no-production-journal-write check. Authenticated inbound collection, genuine
+operator confirmations and next natural shadow verification remain open.
+
 Broader regression verification at source revision `e7af4f2`: all633 local
 thermal tests passed in137.87seconds with single-thread numerical libraries.
 This includes every `test_thermal*.py` suite except container-backed

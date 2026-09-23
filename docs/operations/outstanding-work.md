@@ -177,6 +177,12 @@ immutable JDBC rows; the new reader also passed a bounded live diagnostic
 read without publishing load. Fault/recovery, long-run durability, retention,
 topology-period policy and daily/UI accounting remain open.
 
+The [thermal confirmation CLI backport](2026-09-23-thermal-journal-cli-backport.md)
+then installed only the tested future-plan and exact-readback guards into the
+compatible live v4 CLI. The refused v5 model/runtime was not installed.
+Authenticated operator transport and genuine action/outcome evidence remain
+open; the next natural shadow run must still be checked.
+
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
 channel source, and JDBC identity587 advanced by one matching changed-value
