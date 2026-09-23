@@ -1,0 +1,4 @@
+// Observational forecast payloads; forecast-json.service owns state publication.
+String Forecast_Hourly_JSON "Hourly Forecast JSON" ["forecast-intel"]
+String Forecast_Daily_JSON "Daily Forecast JSON" ["forecast-intel"]
+String Forecast_10Day_JSON "10-Day Forecast Detail" <weather>

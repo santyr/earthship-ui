@@ -178,8 +178,16 @@ back. After separate isolated Item/link and JDBC restore/restart qualification,
 the [AQI observation Item and link were transferred](2026-09-23-openmeteo-aqi-item-cutover.md)
 to a Git-owned file at 12:18 MDT. Exact state and 581-row history prefix were
 preserved, both resources are non-managed, and the registry inventory reports
-zero issues. A later natural writer update under the new Item provider is still
-required before closing this resource's publication gate.
+zero issues. The subsequent 12:51 natural binding update and matching JDBC row
+closed this resource's publication gate.
+
+September23 13:18 MDT: three direct-published forecast JSON Items were
+[transferred to file ownership](2026-09-23-forecast-json-item-cutover.md) after
+isolated provider, JDBC restore, managed rollback, hot reload and full restart
+rehearsals. The actual live cutover also verified managed rollback and return
+to file ownership, exact states and unchanged item580/581/588 histories. The
+forecast timer is active; next natural file-provider publication remains to be
+observed at about15:16 MDT. No synthetic production values were posted.
 
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:
