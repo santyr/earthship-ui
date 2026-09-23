@@ -17,6 +17,7 @@ class SourceTests(unittest.TestCase):
     def test_exact_prepared_source(self):
         path = Path(__file__).resolve().parents[1] / 'file-config/persistence/jdbc.persist'
         self.assertEqual(render(fixture()), path.read_text())
+        self.assertEqual(render({**fixture(), 'editable': False}, allow_file=True), path.read_text())
 
     def test_refuses_silent_loss(self):
         for key, value in [('aliases', {'I': 'alias'}), ('cronStrategies', [{}]),

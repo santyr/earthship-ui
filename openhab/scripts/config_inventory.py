@@ -17,7 +17,7 @@ def provider(row):
     return 'managed' if value is True else 'non-managed' if value is False else 'unknown'
 
 
-def inventory(items, things, rules, links, manifest):
+def inventory(items, things, rules, links, manifest, persistence=()):
     result = {'schema': 'openhab-config-inventory/v1', 'atomic': False}
     result['items'] = sorted([
         {'id': x['name'], 'type': x['type'], 'provider': provider(x),
@@ -42,8 +42,12 @@ def inventory(items, things, rules, links, manifest):
         {'item': x['itemName'], 'channel': x['channelUID'], 'provider': provider(x),
          'configuration_keys': sorted(x.get('configuration', {}))}
         for x in links], key=lambda x: (x['item'], x['channel']))
+    result['persistence'] = sorted([
+        {'id': x['serviceId'], 'provider': provider(x),
+         'configuration_count': len(x.get('configs', []))}
+        for x in persistence], key=lambda x: x['id'])
     issues = []
-    for kind in ('items', 'things', 'rules'):
+    for kind in ('items', 'things', 'rules', 'persistence'):
         counts = Counter(x['id'] for x in result[kind])
         issues.extend(f'duplicate {kind}: {name}' for name, n in counts.items() if n > 1)
     link_counts = Counter((x['item'], x['channel']) for x in result['links'])
@@ -68,7 +72,7 @@ def inventory(items, things, rules, links, manifest):
         key = (x['kind'], x['id'])
         if key in declared:
             raise ValueError('duplicate ownership declaration')
-        if x['kind'] not in ('item', 'thing', 'rule', 'link') or x['provider'] not in ('file', 'managed'):
+        if x['kind'] not in ('item', 'thing', 'rule', 'link', 'persistence') or x['provider'] not in ('file', 'managed'):
             raise ValueError('unsupported ownership declaration')
         declared[key] = x['provider']
     observed = {}
@@ -98,11 +102,22 @@ def inventory(items, things, rules, links, manifest):
         elif x['provider'] != 'managed':
             issues.append(f'unverified provider: link {identity}')
         observed[key] = x['provider']
+    for x in result['persistence']:
+        key = ('persistence', x['id'])
+        observed[key] = x['provider']
+        expected = declared.get(key)
+        if expected:
+            x['declared_provider'] = expected
+            required = 'non-managed' if expected == 'file' else 'managed'
+            if x['provider'] != required:
+                issues.append(f'ownership mismatch: persistence {x["id"]}')
+        elif x['provider'] != 'managed':
+            issues.append(f'unverified provider: persistence {x["id"]}')
     for key in declared.keys() - observed.keys():
         issues.append(f'declared resource absent: {key[0]} {key[1]}')
     result['issues'] = sorted(issues)
     result['counts'] = {k: dict(sorted(Counter(x['provider'] for x in result[k]).items()))
-                        for k in ('items', 'things', 'rules', 'links')}
+                        for k in ('items', 'things', 'rules', 'links', 'persistence')}
     return result
 
 
@@ -132,8 +147,10 @@ def main():
     args = parser.parse_args()
     from openhab_sanity_check import get
     started = datetime.now(timezone.utc).isoformat()
+    services = get('/persistence')
     result = inventory(get('/items?metadata=all'), get('/things'), get('/rules'),
-                       get('/links'), json.loads(args.manifest.read_text()))
+                       get('/links'), json.loads(args.manifest.read_text()),
+                       [get('/persistence/' + x['id']) for x in services])
     if args.extended:
         result['extended'] = extended_inventory(get('/addons'), get('/ui/components/ui:page'), get('/transformations'))
         result['extended_counts'] = {k: len(v) for k, v in result['extended'].items()}

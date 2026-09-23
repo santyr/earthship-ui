@@ -1,4 +1,4 @@
-// PREPARED ONLY: managed JDBC remains authoritative until attended cutover.
+// Canonical JDBC strategy; exactly one provider must own this service.
 // Preserve change-only collection and explicit immutable power writes.
 Strategies {
 }

@@ -194,3 +194,31 @@ learning/coverage readers; do not imply the missing interval was observed.
 Verify backup/rollback and live writer readiness immediately before transferring
 the single provider. The isolated result does not by itself authorize or prove
 that production transfer.
+
+### September 23 production provider transfer
+
+The attended `scripts/migrate-jdbc-persistence.py --apply` transfer succeeded
+after its first invocation refused to start while `energy-ui-publish.service`
+was activating. That job then finished successfully. The second invocation
+revalidated the live managed DTO, exact repository source, idle affected jobs,
+and read-only JDBC history controls before deleting the managed provider. It
+observed HTTP404 before atomically installing the file; there was no intended
+overlap. OpenHAB then reported the exact strategy DTO with `editable:false`.
+The installed file matches the repository source byte-for-byte, and fixed
+pre-boundary BMS SoC and explicit power-evidence history queries were unchanged.
+Subsequent explicit power-evidence rows appeared after the handoff. This is
+live service evidence, not a production JVM-restart qualification.
+
+The private, mode-600 receipt is
+`/home/sat/.local/state/earthship-ui/persistence-transfer/jdbc-20260923T145529889842Z/receipt.json`.
+It records provider removal starting **2026-09-23T14:55:29.893206Z**,
+absence observed **14:55:29.906494Z**, file provider observed
+**14:55:31.184954Z**, and verification ending **14:55:31.204437Z**. The
+conservative **1.311231-second** interval is an unqualified natural-event
+collection boundary; it is not counted as verified continuity and must not be
+backfilled or silently assumed covered by learning/outcome readers. The receipt
+preserves the exact pre-transfer DTO and fixed-window history controls for
+recovery; `--recover RECEIPT_DIR` restores managed ownership only for an
+interrupted, unverified handoff. No rollback was needed or performed in
+production. The file-owned JDBC provider is now authoritative; connection
+settings, strategies, rules, Items and hardware controls were unchanged.

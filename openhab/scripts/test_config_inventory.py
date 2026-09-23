@@ -83,6 +83,20 @@ class InventoryTests(unittest.TestCase):
         args[3].clear()
         self.assertIn('declared resource absent: link I -> t:c', inventory(*args)['issues'])
 
+    def test_persistence_file_ownership_requires_declaration(self):
+        args = self.fixture()
+        service = {'serviceId': 'jdbc', 'editable': False,
+                   'configs': [{'items': ['*'], 'strategies': ['everyChange'],
+                                'filters': [{'secret': 'SECRET'}]}]}
+        result = inventory(*args, [service])
+        self.assertIn('unverified provider: persistence jdbc', result['issues'])
+        args[-1]['resources'].append({'kind': 'persistence', 'id': 'jdbc', 'provider': 'file'})
+        result = inventory(*args, [service])
+        self.assertEqual(result['issues'], [])
+        self.assertNotIn('SECRET', json.dumps(result))
+        service['editable'] = True
+        self.assertIn('ownership mismatch: persistence jdbc', inventory(*args, [service])['issues'])
+
     def test_extended_inventory_excludes_bodies_and_uninstalled_addons(self):
         result = extended_inventory(
             [{'uid': 'a', 'type': 'binding', 'installed': True, 'version': '5', 'properties': {'password': 'SECRET'}},

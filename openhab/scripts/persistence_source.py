@@ -7,17 +7,18 @@ does not export JDBC connection settings, which contain credentials.
 import re
 
 
-def render(dto):
+def render(dto, *, allow_file=False):
     keys = {'serviceId', 'configs', 'aliases', 'cronStrategies', 'thresholdFilters',
             'timeFilters', 'equalsFilters', 'includeFilters', 'editable'}
-    if set(dto) != keys or dto['serviceId'] != 'jdbc' or dto['editable'] is not True:
-        raise ValueError('expected complete managed JDBC strategy DTO')
+    if (set(dto) != keys or dto['serviceId'] != 'jdbc' or
+            dto['editable'] is not True and not (allow_file and dto['editable'] is False)):
+        raise ValueError('expected complete JDBC strategy DTO from the selected provider')
     if dto['aliases'] != {} or any(dto[k] != [] for k in keys -
                                   {'serviceId', 'configs', 'aliases', 'editable'}):
         raise ValueError('aliases, custom strategies and filters require explicit support')
     if not isinstance(dto['configs'], list) or not dto['configs']:
         raise ValueError('nonempty configuration list required')
-    lines = ['// PREPARED ONLY: managed JDBC remains authoritative until attended cutover.',
+    lines = ['// Canonical JDBC strategy; exactly one provider must own this service.',
              '// Preserve change-only collection and explicit immutable power writes.',
              'Strategies {', '}', '', 'Items {']
     for config in dto['configs']:
@@ -39,4 +40,4 @@ def render(dto):
 
 if __name__ == '__main__':
     from openhab_sanity_check import get
-    print(render(get('/persistence/jdbc')), end='')
+    print(render(get('/persistence/jdbc'), allow_file=True), end='')

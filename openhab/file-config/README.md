@@ -103,32 +103,33 @@ installed registry after provider hot reload. Check current canonical sources
 before using this dated snapshot. This archive excludes credentials, unregistered
 files, add-on binaries and external scripts; it is not a complete OpenHAB backup.
 
-## Prepared persistence source (not deployed)
+## JDBC persistence source (deployed September 23)
 
-`persistence/jdbc.persist` reproduces the live September 20 managed JDBC strategy
-configuration. `python3 openhab/scripts/persistence_source.py` reads only the
+`persistence/jdbc.persist` reproduces the former managed JDBC strategy and is
+installed at `/etc/openhab/persistence/jdbc.persist`. The private transfer
+receipt is under `/home/sat/.local/state/earthship-ui/persistence-transfer/`;
+the exact live provider readback is `editable:false`.
+`python3 openhab/scripts/persistence_source.py` reads only the
 strategy endpoint and renders it; unsupported fields, filters, aliases or custom
 strategies are refused rather than omitted. It never reads connection settings.
-The checked-in file is preparation, not a provider transfer: do not bulk-copy this
-directory into `/etc/openhab`. The ownership manifest still records only the
-verified Item transfer.
+Do not bulk-copy this directory into `/etc/openhab`. The ownership manifest
+records this exact provider transfer and the inventory checks for provider drift.
 
 Preserve the power observer's explicit immutable JDBC writes, its automatic
 write exclusion and restore strategy. Preserve existing forecast behavior during
 migration, including the existing `forecast, everyChange` combination. The
 [official persistence documentation](https://www.openhab.org/docs/configuration/persistence)
 discourages that combination; reviewing it is separate from reproducing current
-behavior. JDBC provider cutover needs syntax/load qualification, exact strategy
-readback, rollback and real acquisition/persistence verification. No live
-persistence change is claimed by renderer unit tests. Separately,
+behavior. The transfer passed isolated syntax/load, strategy, rollback, restart,
+forecast-series and power-writer qualification, then live exact strategy and
+history readback. Its provider-free interval remains unqualified for natural
+sensor coverage. Separately,
 `python3 scripts/check-persistence-parser.py` has passed with the installed
 OpenHAB 5.2.1 parser in a bounded, offline JVM. It verifies syntax, selector types
-and strategy tokens; malformed syntax was rejected. Runtime built-in strategy
-resolution, provider transfer and restore/rollback still need live qualification.
+and strategy tokens; malformed syntax was rejected. Whole-host restart/restore
+and protected-control behavior are not proven by this provider transfer.
 The harness uses installed jars, never the running OpenHAB process or REST writes.
 
-The exact prepared JDBC strategy DTO has subsequently passed actual file-provider
-readback in a disconnected disposable OpenHAB5.2.1 instance. See
-`docs/operations/2026-09-20-persistence-provider-qualification.md`. Production
-remains managed. Actual JDBC write/restore behavior, provider rollback and
-collection-gap handling still require qualification before production cutover.
+See `docs/operations/2026-09-20-persistence-provider-qualification.md` for the
+isolated and live receipts. Continue observing the natural forecast publisher
+and independent power writer; do not fill or silently score the collection gap.
