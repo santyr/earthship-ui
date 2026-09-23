@@ -507,7 +507,15 @@ function beginCycle({
     // Safety stops and recovery invalidate ownership; old callbacks must be inert.
     if (cache.shared.get(BUSY_KEY) !== invocationToken) return;
     const actuator = items.getItem(pump);
+    let failureReason = 'execution_error';
     try {
+      // The minute watchdog can miss an external OFF in the final seconds.
+      // Never count that shortened run as a completed fifteen-minute cycle.
+      if (state(pump) !== 'ON') {
+        failureReason = 'cycle_interrupted';
+        status('cycle_interrupted', { pump: pumpName });
+        throw new Error('pump no longer ON at cycle deadline');
+      }
       actuator.sendCommand('OFF');
       post(CFG.lastCycleItem, nowInstantText());
       status('cycle_completed', {
@@ -523,13 +531,13 @@ function beginCycle({
       if (isManual) {
         try {
           const failed = terminalLedger(
-            ledger, request.requestId, 'failed', 'execution_error', nowInstantText(),
+            ledger, request.requestId, 'failed', failureReason, nowInstantText(),
           );
           writeLedger(items.getItem(CFG.requestItem), failed, request.requestId, 'failed');
         } catch {
           // The failed result remains the only safe receipt without persistence.
         }
-        safeResult(request.requestId, 'failed', 'execution_error');
+        safeResult(request.requestId, 'failed', failureReason);
       }
     } finally {
       safeOff(actuator);

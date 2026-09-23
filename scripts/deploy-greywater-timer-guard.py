@@ -19,8 +19,8 @@ import openhab_sanity_check as oh
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'openhab/rules/southoutlet-cycle-current.js'
 UID = 'hex_southoutlet_cycle'
-OLD_SHA = 'de49ccfafbdf1263da6691d653c4bd6dde7c607f7d33f934c9abc17431eebe09'
-NEW_SHA = '358c5c1131b731ee944c7cd45769cbc29b191fe42d28186d5020345fed1ff0ab'
+OLD_SHA = '358c5c1131b731ee944c7cd45769cbc29b191fe42d28186d5020345fed1ff0ab'
+NEW_SHA = '312cf24ceba5c63e30c4ecd0104bbf3bcf646f1e203b8c6c9c964e58dd7b84df'
 PUMPS = ('SouthOutlet_Outlet2_Switch', 'East_Bed_Socket_Outlet_2_Power')
 PRIVATE_ROOT = Path('/home/sat/.local/state/greywater-rule-release')
 DTO_KEYS = ('uid', 'name', 'description', 'tags', 'visibility', 'configuration',

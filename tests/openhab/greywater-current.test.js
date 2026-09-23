@@ -91,6 +91,30 @@ describe('cycle timer ownership after interruption', () => {
     expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
   });
 
+  it('does not complete when the pump turns OFF just before its callback', () => {
+    const h = harness(); h.execute();
+    h.advance(15 * 60000); h.setState('SouthOutlet_Outlet2_Switch', 'OFF');
+    h.runNextTimer();
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=cycle_interrupted');
+  });
+
+  it('fails an interrupted manual request without a completion receipt', () => {
+    const h = harness();
+    h.execute({ itemName: 'SouthOutlet_ManualRequest', receivedCommand: JSON.stringify({
+      requestId: 'manual-early-off-20260919', requestedAt: new Date(now).toISOString(),
+    }) });
+    h.advance(15 * 60000); h.setState('SouthOutlet_Outlet2_Switch', 'OFF');
+    h.runNextTimer();
+    expect(h.state('SouthOutlet_LastCycle')).toBe('NULL');
+    expect(JSON.parse(h.state('SouthOutlet_ManualRequest')).entries[0]).toMatchObject({
+      status: 'failed', reason: 'cycle_interrupted',
+    });
+    expect(JSON.parse(h.state('SouthOutlet_ManualResult'))).toMatchObject({
+      status: 'failed', reason: 'cycle_interrupted',
+    });
+  });
+
   it('stops a pump whose timer did not complete by the next cron', () => {
     const h = harness(); h.execute();
     h.advance(16 * 60000); h.execute();
