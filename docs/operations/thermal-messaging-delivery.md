@@ -57,7 +57,34 @@ than silently pruning evidence. Retention and encrypted, SQLite-consistent
 backup procedures must be reviewed before long-running deployment. Its private
 plaintext state is not a tamper-proof ledger against an administrator.
 
-## Next host step: configured-keyer check only
+## September 23 host delivery checkpoint
+
+The installed pinned nak passed `scripts/qualify-thermal-delivery.py` with
+`websockets==16.0` in a disposable virtual environment. All eight real-keyer
+and loopback-relay checks passed, including signed recipient routes, bounded
+NIP-42 authentication, exact relay OKs for both encrypted copies, authenticated
+reply/receipt content, and no republishing after restart. This test used only
+disposable identities and an in-memory journal double. It made zero production
+journal writes and verified neither household keys nor external relay delivery.
+The disposable environment was removed after the run.
+
+The operator approved the existing recipient of Hex's Nostr DMs as the sole
+authorized thermal-confirmation operator. Host readback matched the public key
+in the current OpenHAB DM notifier with that approved identity; the configured
+Hex public identity is available for a collector policy. Read-only kind-10050
+queries against all three relays already configured for the OpenHAB notifier
+returned no signed recipient relay-list event for either identity. Connectivity
+to at least one relay was confirmed separately. The notifier's existing relay
+arguments are not signed recipient inbox routes and must not be silently
+substituted for them. No private policy, reviewed route inventory, production
+outbox, listener, question, or journal write was created or enabled.
+
+Before an attended household trial, arrange and verify signed kind-10050
+announcements for both identities, review their endpoints, install the private
+policy and route inventory, and qualify the real journal and encrypted-state
+backup. The operator-identity approval does not authorize guessing those routes.
+
+## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with
 `status=passed`, `scope=configured-keyer-self-roundtrip`, and true signing,
@@ -67,8 +94,9 @@ encryption and decryption flags using the pinned v0.20.7 binary. It reported
 identity came from the existing private Nostr environment; no key, address,
 rumor, ciphertext or policy was printed or saved. This closes the local-key
 self-check only. No private thermal collector policy or reviewed route inventory
-was found in the checked host locations, so do not infer an operator identity,
-select relays, send a question, or enable a listener from this result.
+was found in the checked host locations. This check alone did not establish an
+operator identity or authorize selecting relays, sending a question, or enabling
+a listener; the later identity approval and route query are recorded above.
 
 Use the existing private signer environment on the host. `NOSTR_SECRET_KEY`
 selects the intended keyer; for a remote signer this is the existing bunker URL.

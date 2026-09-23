@@ -51,6 +51,14 @@ thermal confirmation transport prerequisite, not operator reply collection;
 the private collector policy, reviewed routes and genuine action reports remain
 absent from the checked host locations. See
 [the delivery runbook](thermal-messaging-delivery.md).
+The real-nak loopback delivery qualification subsequently passed all eight
+checks with disposable identities and no household delivery or journal write.
+The existing Hex DM recipient was approved as the sole thermal-confirmation
+operator and its public key matched the OpenHAB notifier configuration. Neither
+that operator nor the configured Hex identity had a signed kind-10050 inbox
+announcement returned by read-only queries to the notifier's three relays.
+The collector therefore remains disabled pending reviewed signed routes,
+private policy, real journal/backup qualification, and an attended trial.
 The September 23 [forcing-capture activation](2026-09-23-thermal-forcing-capture-live.md)
 now records exact raw Open-Meteo inputs alongside successful shadow
 publications. Its first natural run exposed a sub-second provenance gap;
