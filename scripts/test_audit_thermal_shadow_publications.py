@@ -76,6 +76,35 @@ class PublicationAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'supported horizon'):
             audit.select_pair(row(), now=TARGET + timedelta(minutes=10), horizon_hours=3)
 
+    def test_exact_captured_weather_is_compared_with_qualified_outdoor(self):
+        captured = {'forecast_rows': [{'at': TARGET.isoformat(), 'tempF': 75.0}]}
+        outdoor = lambda target: {**receipt(target), 'temperatureF': 72.0}
+        result = audit.score([row()], now=TARGET + timedelta(minutes=10),
+                             outcome_reader=receipt, capture_reader=lambda _: captured,
+                             outdoor_reader=outdoor)
+        self.assertEqual(result['counts']['scored'], 1)
+        self.assertEqual(result['weather']['n'], 1)
+        self.assertEqual(result['weather']['outdoor_forecast_mae_f'], 3.0)
+        self.assertEqual(result['weather']['paired_indoor_model_mae_f'], 2.0)
+
+    def test_missing_outdoor_target_does_not_invalidate_indoor_score(self):
+        result = audit.score([row()], now=TARGET + timedelta(minutes=10),
+                             outcome_reader=receipt,
+                             capture_reader=lambda _: {'forecast_rows': []},
+                             outdoor_reader=receipt)
+        self.assertEqual(result['counts']['scored'], 1)
+        self.assertEqual(result['counts']['weather_forcing_target_unavailable'], 1)
+        self.assertEqual(result['weather']['n'], 0)
+
+    def test_unqualified_outdoor_does_not_invalidate_indoor_score(self):
+        captured = {'forecast_rows': [{'at': TARGET.isoformat(), 'tempF': 75.0}]}
+        result = audit.score([row()], now=TARGET + timedelta(minutes=10),
+                             outcome_reader=receipt, capture_reader=lambda _: captured,
+                             outdoor_reader=lambda _: None)
+        self.assertEqual(result['counts']['scored'], 1)
+        self.assertEqual(result['counts']['qualified_outdoor_unavailable'], 1)
+        self.assertEqual(result['weather']['n'], 0)
+
     def test_postdated_issue_is_refused(self):
         invalid = published(); invalid['generatedAt'] = (ISSUE + timedelta(minutes=1)).isoformat()
         with self.assertRaisesRegex(ValueError, 'not available'):

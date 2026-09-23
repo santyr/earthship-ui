@@ -63,6 +63,13 @@ scored one qualified indoor target. Its 1-hour model absolute error was
 interval contained the outcome but was 10.414°F wide. Both publications'
 24-hour targets were not yet due. This first exact-forcing point is a useful
 early diagnostic, not a trend, independent-day sample or shadow-exit pass.
+The strict scorer now also pairs the exact captured hourly outdoor forcing with
+a separately qualified outdoor receipt at the same target. For this one point,
+the captured outdoor forecast was 70.6°F versus 65.48°F observed, an error of
++5.12°F; the indoor shadow prediction erred −1.541°F. Opposite signs on one
+sample do not establish causation or rule out weather influence. Missing
+outdoor receipts or a missing exact forcing target remain explicit diagnostic
+gaps and do not turn a valid indoor score into a fabricated weather score.
 
 This live score does not support shadow exit: overall near24-hour
 MAE trails persistence by0.4300°F, and interval coverage is below the nominal

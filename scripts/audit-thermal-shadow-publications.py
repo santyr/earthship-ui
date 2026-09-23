@@ -115,16 +115,21 @@ def select_pair(row, *, now, horizon_hours=24):
             'confidence': publication['confidence']['grade']}, None
 
 
-def score(rows, *, now, outcome_reader, capture_reader=None, horizon_hours=24):
+def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None,
+          horizon_hours=24):
     if type(horizon_hours) is not int or horizon_hours not in SUPPORTED_HORIZONS:
         raise ValueError('supported horizon required')
+    if outdoor_reader is not None and capture_reader is None:
+        raise ValueError('outdoor diagnostic requires exact forcing capture')
     counts = Counter()
     groups = defaultdict(list)
+    weather_errors = []
     for row in rows:
         pair, reason = select_pair(row, now=now, horizon_hours=horizon_hours)
         if reason:
             counts[reason] += 1
             continue
+        capture = None
         if capture_reader is not None:
             capture = capture_reader(json.loads(row['state']))
             if capture is None:
@@ -143,6 +148,23 @@ def score(rows, *, now, outcome_reader, capture_reader=None, horizon_hours=24):
         groups['overall'].append(error)
         groups['revision:' + pair['revision'][:12]].append(error)
         groups['issue_day:' + pair['issue'].date().isoformat()].append(error)
+        if outdoor_reader is not None:
+            forcing_rows = capture.get('forecast_rows')
+            if not isinstance(forcing_rows, list):
+                raise ValueError('forcing capture has no hourly rows')
+            matching = [entry for entry in forcing_rows if isinstance(entry, dict)
+                        and aware(entry.get('at')) == pair['target']]
+            if len(matching) != 1:
+                counts['weather_forcing_target_unavailable'] += 1
+            else:
+                outdoor_receipt = outdoor_reader(pair['target'])
+                if outdoor_receipt is None:
+                    counts['qualified_outdoor_unavailable'] += 1
+                else:
+                    _validate_receipt(outdoor_receipt, pair['target'])
+                    forecast_outdoor = finite_temperature(matching[0].get('tempF'))
+                    observed_outdoor = finite_temperature(outdoor_receipt['temperatureF'])
+                    weather_errors.append((forecast_outdoor - observed_outdoor, error[0]))
         counts['scored'] += 1
         counts['confidence:' + str(pair['confidence'])] += 1
     def metrics(errors):
@@ -154,10 +176,20 @@ def score(rows, *, now, outcome_reader, capture_reader=None, horizon_hours=24):
                 'persistence_bias_f': round(sum(x[1] for x in errors) / n, 4),
                 'interval_coverage': round(sum(x[2] for x in errors) / n, 4),
                 'mean_interval_width_f': round(sum(x[3] for x in errors) / n, 4)}
-    return {'scope': 'observational_shadow_publications_not_graduation',
+    result = {'scope': 'observational_shadow_publications_not_graduation',
             'horizon_hours': horizon_hours,
             'publication_rows': len(rows), 'counts': dict(sorted(counts.items())),
             'groups': {key: metrics(value) for key, value in sorted(groups.items())}}
+    if outdoor_reader is not None:
+        n = len(weather_errors)
+        result['weather'] = {'n': n}
+        if n:
+            result['weather'].update({
+                'outdoor_forecast_mae_f': round(sum(abs(x[0]) for x in weather_errors) / n, 4),
+                'outdoor_forecast_bias_f': round(sum(x[0] for x in weather_errors) / n, 4),
+                'paired_indoor_model_mae_f': round(sum(abs(x[1]) for x in weather_errors) / n, 4),
+            })
+    return result
 
 
 def main():
@@ -178,14 +210,17 @@ def main():
     rows = oh.get('/persistence/items/' + ITEM + '?' + query)['data']
     if len(rows) > 1000:
         raise ValueError('publication row bound exceeded')
-    def outcome(target):
-        rows = collect({'stream': 'indoor', 'targets': [target], 'assessed_at': target},
+    def qualified(stream, target):
+        receipts = collect({'stream': stream, 'targets': [target], 'assessed_at': target},
                        config_path=CONFIG, policy_path=POLICY)
-        if not isinstance(rows, list) or len(rows) != 1 or rows[0][0] != target:
+        if not isinstance(receipts, list) or len(receipts) != 1 or receipts[0][0] != target:
             raise ValueError('qualified outcome reader returned unexpected target')
-        return rows[0][1]
-    print(json.dumps(score(rows, now=now, outcome_reader=outcome,
+        return receipts[0][1]
+    print(json.dumps(score(rows, now=now,
+                           outcome_reader=lambda target: qualified('indoor', target),
                            capture_reader=capture_for_publication if args.require_capture else None,
+                           outdoor_reader=(lambda target: qualified('outdoor', target))
+                           if args.require_capture else None,
                            horizon_hours=args.horizon_hours),
                      sort_keys=True))
 

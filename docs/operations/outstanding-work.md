@@ -60,8 +60,9 @@ evidence, not a 24-hour model score or shadow graduation. The new explicit
 1-hour strict scorer paired that first captured publication with a qualified
 target: model error1.541°F versus same-origin persistence0.540°F, with the
 wide interval covering one point. The legacy publication remained excluded;
-both 24-hour targets were not yet due. This is one diagnostic, not a release
-gate or a reason to graduate the model.
+the same exact forcing overforecast outdoor temperature by5.12°F on its
+qualified target. Both 24-hour targets were not yet due. This is one diagnostic,
+not causal weather attribution or a release gate for graduating the model.
 
 Later September23 checkpoint: the production JDBC persistence strategy was
 transferred from managed to Git-owned file configuration. The exact file-owned
