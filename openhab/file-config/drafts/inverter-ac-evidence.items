@@ -1,0 +1,4 @@
+// PREPARED ONLY. Install only after excluding this Item from automatic JDBC
+// everyChange and qualifying immutable writer/reader persistence end to end.
+// This is inverter output, not unconditional whole-house load.
+String Inverter_AC_Evidence_JSON "Validated inverter AC output evidence"

@@ -143,6 +143,12 @@ full-restart behavior, durable qualified-source persistence, topology-epoch
 controls and reader integration remain open;
 AC-load energy publication is still withheld. See
 [AC-load qualification](2026-09-20-ac-load-qualification.md).
+The [independent AC evidence preflight](2026-09-23-inverter-ac-evidence-preflight.md)
+adds a disabled, source-only producer and file-owned Item draft with 26
+fail-closed tests. It preserves the existing three-field stream and labels
+the new basis as inverter output. Runtime compilation, persistence exclusion,
+Solar-PV strict reader, fault/restart/rollback and topology-period gates remain
+open; the candidate is not deployed.
 
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo

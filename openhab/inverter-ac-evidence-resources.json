@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "itemSource": "openhab/file-config/drafts/inverter-ac-evidence.items",
+  "persistenceExclusion": "!Inverter_AC_Evidence_JSON",
+  "rule": {
+    "uid":"hex_inverter_ac_evidence","name":"Validated inverter AC output evidence","enabled":false,
+    "source":"openhab/rules/inverter-ac-evidence.js",
+    "triggers": [
+      {"id":"ac","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/Inverter_AC_Output_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"inverter_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:inverter-split-phase:1ed74db72c:e853aec444"}},
+      {"id":"bridge_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:tcp:1ed74db72c"}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/10 * * * * ?"}},
+      {"id":"startup","type":"core.SystemStartlevelTrigger","configuration":{"startlevel":100}}
+    ]
+  }
+}
