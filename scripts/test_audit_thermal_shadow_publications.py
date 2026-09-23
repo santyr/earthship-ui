@@ -43,6 +43,25 @@ def receipt(target):
 
 
 class PublicationAuditTests(unittest.TestCase):
+    def test_nonoverlapping_group_excludes_shared_forecast_windows(self):
+        def shifted(hours):
+            value = published()
+            shift = timedelta(hours=hours)
+            value['generatedAt'] = (ISSUE + shift).isoformat()
+            for point in value['forecast']['trajectory']:
+                point['at'] = (datetime.fromisoformat(point['at']) + shift).isoformat()
+            return {'time': int((ISSUE + shift + timedelta(seconds=3)).timestamp() * 1000),
+                    'state': json.dumps(value)}
+
+        result = audit.score([shifted(0), shifted(12), shifted(24)],
+                             now=TARGET + timedelta(days=3),
+                             outcome_reader=receipt)
+        self.assertEqual(result['groups']['overall']['n'], 3)
+        self.assertEqual(result['groups']['nonoverlap:overall']['n'], 2)
+        self.assertEqual(result['groups']['nonoverlap:revision:' + 'a' * 12]['n'], 2)
+        self.assertEqual(result['nonoverlap_policy'],
+                         'greedy_by_issue_time; next_issue_at_or_after_prior_target')
+
     def test_paired_published_baseline_and_qualified_outcome(self):
         result = audit.score([row()], now=TARGET + timedelta(minutes=10),
                              outcome_reader=receipt)

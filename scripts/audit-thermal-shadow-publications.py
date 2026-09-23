@@ -124,6 +124,7 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     counts = Counter()
     groups = defaultdict(list)
     weather_errors = []
+    scored_windows = []
     for row in rows:
         pair, reason = select_pair(row, now=now, horizon_hours=horizon_hours)
         if reason:
@@ -148,6 +149,7 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
         groups['overall'].append(error)
         groups['revision:' + pair['revision'][:12]].append(error)
         groups['issue_day:' + pair['issue'].date().isoformat()].append(error)
+        scored_windows.append((pair['issue'], pair['target'], pair['revision'][:12], error))
         if outdoor_reader is not None:
             forcing_rows = capture.get('forecast_rows')
             if not isinstance(forcing_rows, list):
@@ -167,6 +169,23 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                     weather_errors.append((forecast_outdoor - observed_outdoor, error[0]))
         counts['scored'] += 1
         counts['confidence:' + str(pair['confidence'])] += 1
+    def non_overlapping(windows):
+        """Greedily retain chronological forecast windows with no shared time."""
+        selected = []
+        previous_target = None
+        for issue, target, revision, error in sorted(windows, key=lambda row: (row[0], row[1])):
+            if previous_target is None or issue >= previous_target:
+                selected.append((issue, target, revision, error))
+                previous_target = target
+        return selected
+
+    for _, _, revision, error in non_overlapping(scored_windows):
+        groups['nonoverlap:overall'].append(error)
+    revisions = sorted({window[2] for window in scored_windows})
+    for revision in revisions:
+        for _, _, _, error in non_overlapping(
+                [window for window in scored_windows if window[2] == revision]):
+            groups['nonoverlap:revision:' + revision].append(error)
     def metrics(errors):
         n = len(errors)
         return {'n': n,
@@ -179,7 +198,8 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     result = {'scope': 'observational_shadow_publications_not_graduation',
             'horizon_hours': horizon_hours,
             'publication_rows': len(rows), 'counts': dict(sorted(counts.items())),
-            'groups': {key: metrics(value) for key, value in sorted(groups.items())}}
+            'groups': {key: metrics(value) for key, value in sorted(groups.items())},
+            'nonoverlap_policy': 'greedy_by_issue_time; next_issue_at_or_after_prior_target'}
     if outdoor_reader is not None:
         n = len(weather_errors)
         result['weather'] = {'n': n}

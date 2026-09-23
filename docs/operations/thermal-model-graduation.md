@@ -82,6 +82,14 @@ low-confidence and with wide intervals. Their 24-hour targets remain pending.
 This fixes a provenance prerequisite and adds early diagnostic scores, not a
 model-accuracy pass or a shadow-exit gate.
 
+A [non-overlapping window audit](2026-09-23-thermal-nonoverlap-score.md)
+now separates repeated two-hourly forecasts from disjoint 24-hour windows.
+The current read-only result remains unfavorable to the model: three selected
+non-overlapping, mixed-revision windows have MAE2.5417°F versus1.5600°F
+same-origin persistence. The two strict forcing-captured one-hour pairs also
+remain worse than persistence. This is diagnostic evidence, not enough
+seasonal or stable-revision support to graduate or retune a control threshold.
+
 ### Confirmed-action collection audit, September20
 
 Read-only aggregate journal queries still find ten action events: eight

@@ -51,6 +51,11 @@ subsequently scored31 matured near24-hour targets against qualified indoor
 receipts: model MAE2.4565°F, same-origin persistence MAE2.0265°F, interval
 coverage87.1%. All outputs were low-confidence, spanning three revisions.
 The current published model has not earned shadow exit.
+The September23 [non-overlap audit](2026-09-23-thermal-nonoverlap-score.md)
+now distinguishes33 overlapping 24-hour pairs from only three selected
+disjoint forecast windows; those windows still favor same-origin persistence
+(MAE1.5600°F versus model2.5417°F) and span three revisions. The two strict
+captured one-hour pairs remain worse than persistence. No graduation follows.
 The September 23 configured Nostr keyer self-check passed for signing and local
 encryption/decryption with zero publication and journal writes. This clears a
 thermal confirmation transport prerequisite, not operator reply collection;
