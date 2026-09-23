@@ -179,8 +179,17 @@ topology-period policy and daily/UI accounting remain open.
 Solar-PV `e36e54f` subsequently added a strict, source-only AC activation
 policy: complete finished Denver-local days only, resolved Item table, evidence
 cutover and explicit topology period. Its full analytics suite passed 778
-tests. No production topology policy or load accounting is enabled; the
-operator's validity-period preference is being confirmed.
+tests. No production load accounting is enabled. The operator subsequently
+chose "valid until I report a topology change"; Solar-PV `2576222` records
+the corresponding open-ended, non-backdated policy from the first durable AC
+barrier at20:55:12.284Z. The earliest candidate full day is September24,
+assessable only after September25 06:00Z.
+Solar-PV `9b94a2a` subsequently added a source-only, read-only completed-day
+AC load integration using both strict evidence readers and the explicit
+topology gate. Simultaneous PV-DC and AC quantities remain separately labeled;
+energy balance is withheld across those electrical domains. All 786 analytics
+tests passed. Versioned storage, reader-first UI support and prospective
+publication remain unfinished.
 
 The [thermal confirmation CLI backport](2026-09-23-thermal-journal-cli-backport.md)
 then installed only the tested future-plan and exact-readback guards into the

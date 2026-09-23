@@ -52,11 +52,22 @@ This is an early durability/volume sample, not a full-day retention release.
 Natural source loss/recovery and a full OpenHAB restart have not been observed;
 do not induce an inverter fault or restart solely to test them. Longer-run
 durability/volume and raw-observation retention remain to be measured. The
-operator reports current inverter-only household topology, but no finite
-period policy has been recorded for daily accounting; no load or balance
+operator reports current inverter-only household topology; no load or balance
 publisher was enabled. The existing v3 UI withholding contract is unchanged.
 Solar-PV `e36e54f` subsequently added a source-only, strict topology/complete-
-local-day policy loader. No actual policy file or daily consumer is active.
+local-day policy loader. The operator then chose for the current inverter-only,
+no-bypass/no-generator topology to remain valid until they report a change.
+Solar-PV `2576222` records that open-ended attestation in the checked-in policy,
+beginning at the first durable unavailable AC barrier,
+`2026-09-23T20:55:12.284000Z`. It does not backdate September23 or enable a
+scheduled consumer; the first possible full local day is September24 after
+its 06:00Z September25 end. Each reader request remains finite.
+Solar-PV `9b94a2a` then added the read-only day consumer. It resolves both
+source Item identities, integrates only qualified inverter-output intervals,
+and reports simultaneous MPPT-DC/AC observations with coverage. It does not
+subtract DC PV output from AC load or publish a household surplus; the full
+analytics suite passed 786 tests. No scheduled job, stored AC daily revision,
+v4 UI reader or load publication was enabled.
 
 To stop collection, disable only `hex_inverter_ac_evidence` via its REST
 `/enable` endpoint with body `false`; verify `UNINITIALIZED/DISABLED`. The
