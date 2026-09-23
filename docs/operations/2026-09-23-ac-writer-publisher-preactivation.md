@@ -1,5 +1,7 @@
 # AC writer and v4 publisher preactivation
 
+The operator confirmed on September 23 that the home currently runs solely on inverter output, with no bypass or generator supplementation, and that this topology attestation remains valid until the operator reports a change. The checked-in AC policy's `effective_until: null` represents that open-ended attestation; it is not a substitute for source-health evidence or a guarantee against an unreported topology change. If a change is reported, stop qualifying new AC-load days under this policy until the topology and effective interval are revised.
+
 Solar_PV `235e0c3` adds an explicit, unscheduled `energy-data ac-day` dry-run/apply command. It requires both checked-in evidence policies, a completed America/Denver day within the AC cutover and operator-attested topology, and no pending migrations before an apply. It re-reads the topology policy before a write. The live September 24 dry-run correctly refused the unfinished day before database access. No daily AC revision was written.
 
 Solar_PV `519c2f7` adds an opt-in `energy-ui-publish --ac-evidence-policy` path. It requires the existing qualified power policy, reads bounded latest AC revisions, projects a separate v4 AC field and validates before the single OpenHAB write. The installed publisher's actual `ExecStart` lacks this flag, and the live `Energy_Analytics_JSON` remains v3 with no `acLoad` field. The source change therefore has not published AC load. The Solar_PV full suite passed 838 tests.
