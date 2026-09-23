@@ -42,5 +42,6 @@ The existing `energy-ui-publish.timer` picked up the source at 17:00:29 MDT on
 September 23 (exit 0). Read-only OpenHAB UI-proxy readback showed throughDate
 September 22, battery status `ok`, latestReached99 `true`, and both streak
 fields `0`. The focused analytics/UI contract suite passed 53 tests. The full
-analytics suite cannot collect nine unrelated advisory/trough test modules
-because `advisory_records` and `advisory_windows` are absent from that checkout.
+Solar_PV analytics suite passed 845 tests when run with both
+`earthship-ui/openhab/scripts` and `Solar_PV/analytics/src` on `PYTHONPATH`;
+the advisory worker integration test launches a child that needs both paths.
