@@ -121,13 +121,14 @@ are retained as evidence, not current-state claims.
 ### Started: file-first configuration migration
 
 September 23 OpenMeteo follow-up: the bridge, forecast Thing and air-quality
-Thing are all online and have no populated API/proxy credentials.
-A [Git-owned candidate](2026-09-23-openmeteo-file-preflight.md) now preserves
-their current UIDs, locations and supported effective settings; the installed
-5.2.1 Thing grammar accepts it. Two stale forecast config keys were omitted
-after installed-binding inspection. The bare-image provider attempt remained
-incomplete, so the live Things and their 12 managed links remain unchanged
-pending restore-based dynamic-channel, restart and rollback qualification.
+Thing were [transferred to the Git-owned file](2026-09-23-openmeteo-file-preflight.md)
+after restore-based dynamic-channel, full-restart and live-like forward/reverse
+provider rehearsals passed. All three are now online/file-owned with exact
+1/38/12 channel sets, supported setting parity and 12 retained links. The
+managed definitions were backed up privately and removed; the link JSONDB is
+unchanged. The ownership inventory has 81 managed plus three file Things and
+zero issues. Natural post-cutover bound Item updates remain to be observed;
+the immediate readback had valid states but no new JDBC receipt yet.
 
 September20 operator instruction: change the OpenHAB configuration policy and
 start migration after current tasks are finished. Execution order communicated:

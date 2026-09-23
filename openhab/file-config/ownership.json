@@ -3,6 +3,18 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "thing", "id": "openmeteo:openmeteo:local", "provider": "file", "migration": "verified",
+      "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
+    },
+    {
+      "kind": "thing", "id": "openmeteo:forecast:local:site", "provider": "file", "migration": "verified",
+      "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
+    },
+    {
+      "kind": "thing", "id": "openmeteo:air-quality:local:aq", "provider": "file", "migration": "verified",
+      "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
+    },
+    {
       "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",
       "source": "persistence/jdbc.persist", "destination": "/etc/openhab/persistence/jdbc.persist"
     },

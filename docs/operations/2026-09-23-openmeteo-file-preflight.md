@@ -49,6 +49,45 @@ restart. Then take a private managed-definition/state backup and execute a
 bounded attended cutover without deleting Item or JDBC history. Keep the
 current managed Things authoritative until those checks pass.
 
+## Superseding qualification and production transfer
+
+The later restore-based, networkless rehearsal passed every required provider
+phase using the pinned OpenHAB 5.2.1 image and the installed OpenMeteo 0.5.0
+binding. First file-owned boot, full JVM restart, managed-definition restore,
+REST `force=true` managed removal followed by file creation, and the online
+file-to-managed REST rollback all produced the same three UIDs, supported
+effective configuration, 1/38/12 channel sets, and all 12 Item/channel links.
+Normal REST DELETE had returned success without removing the Things while the
+networkless handler was awaiting cleanup; immediate force removal was therefore
+qualified in isolation. The test container and overlay were removed. No
+synthetic weather measurement or external API receipt was claimed.
+
+At approximately **10:51 MDT on September 23**, the attended production
+transfer passed its preflight and installed the Git-owned file. A fresh private
+rollback snapshot is at
+`/home/sat/.local/state/openhab-config-migration/openmeteo-20260923T165101Z`:
+directory mode `0700`, REST definition and original Thing/link JSONDB files
+mode `0600`. It contains sensitive configuration from other Things and must
+not be committed or exposed. The installed `.things` file is mode `0644`,
+SHA-256 `2d0f1fc402a23115a54bc0e3ce110eacc4424581903fcaed77f4923535d6b585`,
+identical to the tracked source. No OpenHAB JVM restart was made.
+
+Independent REST and filesystem readback at 10:51–10:53 MDT found all three
+Things `ONLINE`, `editable:false`, with 1/38/12 channels. Exactly 12 unique
+managed links remain, and the live link JSONDB hash is byte-identical to its
+private pre-transfer backup. None of the three UIDs remains in managed Thing
+JSONDB. `Forecast_Temp`, both bound daily extrema, `Current_US_AQI`, and the
+separate direct-publisher `Forecast_10Day_JSON` have valid Item states. The
+ownership inventory reports **81 managed / 3 non-managed Things** and zero
+structural issues. No forecast or AQI value was manufactured.
+
+At immediate post-cutover readback, no new JDBC row for the bound forecast/AQI
+Items had yet appeared after 16:51:01Z. This is a pending natural refresh
+check, not a failed binding: the Things were online and their Items retained
+valid states. Confirm a new natural update later, including the expected
+change-only persistence behavior. Off-host recovery of the private snapshot
+remains a separate installation-wide gap.
+
 Syntax and bridge reference conventions were checked against the
 [official openHAB Thing file documentation](https://www.openhab.org/docs/configuration/things).
 The binding's [own configuration documentation](https://github.com/obones/openhab-binding-openmeteo)
