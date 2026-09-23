@@ -56,6 +56,13 @@ vent/indoor-shade history. The Kiva entry is model-inferred; this does not prove
 the actions happened or establish future action forcing. Scored operational
 replay, outcome evidence and advisory graduation remain open.
 
+A [read-only operational-origin census](2026-09-23-thermal-origin-census.md)
+then found63/63 hourly origins with complete 24-hour captured weather,
+receipt-qualified initial/outcome temperatures and as-of journal snapshots.
+Their naive persistence MAE is2.0314°F, but these are overlapping warm-season
+samples and no physical model or action benefit was scored. This establishes
+replay input availability, not a graduation pass.
+
 ### Confirmed-action collection audit, September20
 
 Read-only aggregate journal queries still find ten action events: eight

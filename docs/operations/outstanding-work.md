@@ -36,6 +36,10 @@ assembler; a live read-only 24-hour assembly passed for September23 14:45Z.
 Its action snapshot knows Kiva and outdoor shade, but lacks vent and indoor-shade
 history and is not an outcome confirmation. This remains an input prerequisite,
 not a scored operational replay or shadow exit.
+The [capture-safe 24-hour origin census](2026-09-23-thermal-origin-census.md)
+subsequently found63/63 hourly origins with full as-of inputs and qualified
+indoor outcomes; naive persistence MAE was2.0314°F on overlapping warm-season
+samples. No physical model score or action-benefit claim follows from this.
 
 Later September23 checkpoint: the production JDBC persistence strategy was
 transferred from managed to Git-owned file configuration. The exact file-owned
