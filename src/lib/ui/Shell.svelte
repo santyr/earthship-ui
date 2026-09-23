@@ -7,7 +7,7 @@
 
   const navItems = [
     { name: 'home', label: 'Home', icon: '⌂' },
-    { name: 'energy', label: 'Energy', icon: '⚡' },
+    { name: 'energy', label: 'Energy' },
     { name: 'weather', label: 'Weather', icon: '☁' },
     { name: 'earthship', label: 'Earthship', icon: '◆' },
     { name: 'controls', label: 'Controls', icon: '⏻' },
@@ -24,7 +24,15 @@
         aria-current={$currentRoute === item.name ? 'page' : undefined}
         onclick={() => navigate(item.name)}
       >
-        <span class="icon">{item.icon}</span>
+        <span class="icon" aria-hidden="true">
+          {#if item.name === 'energy'}
+            <svg class="energy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2 4.5 13h6.2L10 22l9.5-12h-6.2L13 2Z" />
+            </svg>
+          {:else}
+            {item.icon}
+          {/if}
+        </span>
         <span class="label">{item.label}</span>
       </button>
     {/each}
@@ -42,7 +50,15 @@
         aria-current={$currentRoute === item.name ? 'page' : undefined}
         onclick={() => navigate(item.name)}
       >
-        <span class="icon">{item.icon}</span>
+        <span class="icon" aria-hidden="true">
+          {#if item.name === 'energy'}
+            <svg class="energy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2 4.5 13h6.2L10 22l9.5-12h-6.2L13 2Z" />
+            </svg>
+          {:else}
+            {item.icon}
+          {/if}
+        </span>
         <span class="label">{item.label}</span>
       </button>
     {/each}
@@ -108,6 +124,11 @@
   .rail-item .icon {
     font-size: 1.1rem;
     line-height: 1;
+  }
+  .energy-icon {
+    display: block;
+    width: 1em;
+    height: 1em;
   }
   .rail-item .label {
     font-size: 0.62rem;

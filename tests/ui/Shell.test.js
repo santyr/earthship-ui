@@ -36,4 +36,16 @@ describe('bounded target shell', () => {
     }
     expect(container.querySelector('.shell')).toHaveAttribute('data-bounded-shell');
   });
+
+  it('renders the energy navigation icon as a monochrome outline in both layouts', () => {
+    const { container } = render(Shell);
+    for (const energy of screen.getAllByRole('button', { name: 'Energy' })) {
+      const icon = energy.querySelector('.energy-icon');
+      expect(icon).toBeInTheDocument();
+      expect(icon).toHaveAttribute('fill', 'none');
+      expect(icon).toHaveAttribute('stroke', 'currentColor');
+      expect(energy.querySelector('.icon')).not.toHaveTextContent('⚡');
+    }
+    expect(container.querySelectorAll('.energy-icon')).toHaveLength(2);
+  });
 });
