@@ -12,8 +12,11 @@ qualified observed-window EFC on the Energy card with its date range and shows
 the preserved 9.809 pre-cutover estimate separately and explicitly dated in
 Details for the same bank epoch. The figures are not added. The modal now
 displays qualified daily discharge and concise pending states instead of rows
-of unsupported numbers; Lenovo layout tests pass. Source-side winter, SoH,
-high-SoC, curtailment and AC-load qualification remain unfinished.
+of unsupported numbers; Lenovo layout tests pass. Qualified, atomic-BMS
+high-SoC exposure is now shown as observed hours over the selected window,
+with complete-day and per-day coverage gates; the September 23 17:10 publisher
+readback verified both values. Source-side winter, SoH, curtailment and AC-load
+qualification remain unfinished.
 
 The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
 isolated OpenHAB/JDBC restore and live managed rollback/return qualification.

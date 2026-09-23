@@ -45,3 +45,15 @@ fields `0`. The focused analytics/UI contract suite passed 53 tests. The full
 Solar_PV analytics suite passed 845 tests when run with both
 `earthship-ui/openhab/scripts` and `Solar_PV/analytics/src` on `PYTHONPATH`;
 the advisory worker integration test launches a child that needs both paths.
+
+Solar_PV `c0854c7` subsequently projected atomic BMS SoC exposure into the
+qualified UI payload only when every selected day has a source-qualified
+observation and at least 90% atomic-source coverage, with no missing day.
+Earthship UI `0e1b97d` labels the 90% and 95% figures as observed window
+hours, not lifetime exposure. The September 23 17:10:17 MDT natural publisher
+exited 0; exact OpenHAB readback for September 20–22 showed zero missing days,
+49.589780374166665 hours above 90% and 32.48532843694444 hours above 95%,
+matching the read-only qualified lifecycle report. Validation passed all 849
+analytics tests, 1,696 UI tests, production build and six Energy browser checks
+including the Lenovo modal overflow check. Winter, SoH, observed curtailment
+and AC-load fields remain pending their separate evidence gates.
