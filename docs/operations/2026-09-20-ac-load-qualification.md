@@ -26,6 +26,14 @@ describes this as inverter AC power across phases. Treating it as household
 consumption additionally requires verifying the site's operating topology and
 import/export/bypass semantics; a channel label is not that proof.
 
+September23 operator clarification: the site currently runs entirely on
+inverter output, with no bypass or generator supplementation. Under that
+current topology, qualified inverter-output power can represent the load being
+served to the household. This is conditional on the topology remaining true;
+the channel by itself does not prove that bypass, supplementation or export is
+absent at a future time. No existing historical period was retroactively
+qualified by this statement.
+
 ## Natural observation and remaining gates
 
 A 33.4-second REST event observation saw six ItemStateEvents approximately5.12s
@@ -41,4 +49,7 @@ timestamp semantics, unchanged receipts, invalid/offline barriers and restart
 behavior without issuing hardware commands. Preserve the current three-field
 stream/cutover until a versioned extension and its consumers are verified.
 Do not guess a new raw register or count a generic numeric update as independent
-physical freshness. AC-load energy, balances and winter replay remain withheld.
+physical freshness. AC-load energy, balances and winter replay remain withheld
+until the acquisition receipt and topology-period gates are satisfied. A future
+report should retain an explicit inverter-output basis so it cannot silently
+be read as whole-house load after a topology change.

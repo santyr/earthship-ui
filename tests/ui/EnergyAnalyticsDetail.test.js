@@ -49,6 +49,8 @@ describe('EnergyAnalyticsDetail observational presentation', () => {
     expect(container.textContent).toContain('1 days present; 1 missing');
     expect(container.textContent).toContain('80.0%');
     expect(container.textContent).toContain('Legacy estimates are excluded');
+    expect(container.textContent).toContain('Load balance is unavailable pending qualified inverter-output receipts');
+    expect(container.textContent).toContain('only while all loads remain inverter-served');
     expect(screen.queryByText('Ending estimated EFC')).toBeNull();
   });
   it('shows compact evidence and opens all six labeled detail sections', async () => {

@@ -178,7 +178,7 @@
       </div>
       {#if result.accounting}
         <p class="analytics-note">Qualified observations: {result.accounting.windowStart} to {result.accounting.windowEndExclusive} (end exclusive). {result.accounting.daysPresent} days present; {result.accounting.missingDays} missing. Latest battery coverage {metric(result.accounting.latestBatteryCoverage === null ? null : result.accounting.latestBatteryCoverage * 100, '%')}; PV coverage {metric(result.accounting.latestPvCoverage === null ? null : result.accounting.latestPvCoverage * 100, '%')}.</p>
-        <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded. Load balance remains unavailable until AC-load evidence is qualified.</p>
+        <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded. Load balance is unavailable pending qualified inverter-output receipts; inverter output represents household load only while all loads remain inverter-served.</p>
       {:else}
         <p class="analytics-note">EFC uses measured charge/discharge energy over available bank-epoch history, not the BMS lifetime cycle count. Daily SoC range does not count repeated partial cycles.</p>
       {/if}

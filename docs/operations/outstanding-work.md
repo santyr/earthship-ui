@@ -118,6 +118,13 @@ one-file deployment passed; the first natural post-release sanity run at
 source-validity gap without changing
 OpenHAB control, persistence or notification cadence.
 
+September23 AC-load scope clarification: the operator confirms all current
+household load is inverter-served, without bypass or generator supplementation.
+The Conext Gateway AC Power channel can be considered a candidate for current
+household load only under that topology; it still lacks qualified acquisition
+receipts, invalid/offline and restart evidence, so energy/balance publication
+remains withheld. See [AC-load qualification](2026-09-20-ac-load-qualification.md).
+
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
 channel source, and JDBC identity587 advanced by one matching changed-value
