@@ -92,6 +92,13 @@ file provider. The separate forecast-JSON timer then completed naturally at
 and each new value had a JDBC history row. Both forecast publication paths are
 verified under the file-owned provider.
 
+The September 23 [full-day qualified-power audit](2026-09-23-power-full-day-persistence.md)
+verified September 21–22 natural persistence: 101,058 strict-parser-valid rows,
+one contiguous epoch, no sequence gaps/reversals or duplicate timestamps, and
+a 52,640-row natural 25-hour window below the 60,000-row reader bound. This
+closes full-day durability/volume for those two days, not physical source-fault,
+restart/DST, AC-load or retention qualification.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
@@ -346,9 +353,11 @@ and protected-resource rollback remain outstanding.
   without changing existing data. See [release preflight](2026-09-20-power-release-preflight.md).
   Reference verification, monitor routing, restricted roles, policy flags,
   source/schema cutover and production accounting activation are complete; see
-  the activation receipt above. **Remaining:** full-day persistence qualification,
-  first natural completed-day write, scheduled monthly execution, independent
-  AC-load qualification and the specific unfinished lifecycle/winter consumers.
+  the activation receipt above. **Remaining:** scheduled monthly execution,
+  independent AC-load qualification, restart/DST and physical-fault durability
+  checks, retention planning, and the specific unfinished lifecycle/winter
+  consumers. Two natural full-day writes and their persistence integrity are
+  verified above.
   Do not repeat completed migrations, grants or backup rehearsals.
 
 - Qualified daily/day-3 temperature learning is now deployed and enabled with
