@@ -78,3 +78,13 @@ an incomplete-issuance case. A read-only live 24-hour lookup returned26 hourly
 bracket rows from the September23 13:15:49Z issuance, captured by14:10:07Z.
 The reader is not yet wired into thermal evaluation or publication; no model
 score, accepted artifact or advice changed.
+
+`thermal_model/operational_origin.py` now combines one complete archived
+forecast with the existing receipt-qualified indoor, north-wall and outdoor
+temperature readers at the same five-minute origin. It refuses missing or
+post-origin receipts and an incomplete forecast bracket. A live read-only
+assembly at September23 14:45Z found all three qualified receipts and26
+captured forecast hours from one issuance. Its action knowledge is explicitly
+`not_qualified`; it does not simulate, score or publish an advisory. Twelve
+focused archive/assembly tests pass. Action-as-of reconstruction and later
+outcome scoring remain the next integration work.

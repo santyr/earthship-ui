@@ -31,6 +31,10 @@ snapshot captured after the origin. Solar-PV `64460be` now requires capture time
 as well as issue time in the feature and replayed UI reads;758 analytics tests
 pass. Thermal operational replay still needs to consume the archived forecast
 source under the same as-of rule and later qualified indoor/action evidence.
+The Earthship source now includes a bounded capture-safe weather reader and
+same-origin qualified temperature assembler; a live read-only 24-hour assembly
+passed for September23 14:45Z. It remains an input prerequisite, not a scored
+operational replay or shadow exit.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
