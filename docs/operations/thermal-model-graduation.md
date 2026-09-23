@@ -32,10 +32,14 @@ gates, and retain the old runtime/model pair for rollback. If the candidate
 fails, continue tuning rather than deploying this incompatible runtime alone.
 Historical weather/action provenance and live no-candidate replay remain open.
 
-An [isolated qualification run](2026-09-20-thermal-v5-qualification.md) now uses
+An [isolated qualification run](2026-09-20-thermal-v5-qualification.md) used
 the frozen parity revision and original historical window. Its source audit
 confirms conditional hindcast inputs, not operational forecast replay; retain
 that distinction when interpreting any successful training result.
+The run was refused on 24-hour error. An
+[exploratory chronological blend audit](2026-09-23-thermal-historical-blend-audit.md)
+found a possible 24-hour ensemble improvement in a later warm-only segment;
+it is a tuning hypothesis, not graduation evidence or a winter result.
 
 ### Confirmed-action collection audit, September20
 
