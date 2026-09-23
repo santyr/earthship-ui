@@ -53,11 +53,13 @@ qualifier is `scripts/qualify-inverter-ac-evidence-runtime.py`.
    output Item and rule are still absent. Install the file-owned Item and
    disabled rule only after preserving this exclusion and validating the
    remaining source/reader gates.
-3. Deploy a strict Solar-PV reader for this **separate** stream, with invalid-row,
-   gap, epoch, expired-field and topology-period barriers. Its current v1
-   three-field parser must remain unchanged. No cross-repo edit was made in
-   this preflight. The operator subsequently directed that Hexmem not be used;
-   verify future changes against current source, tests and live state instead.
+3. Solar-PV `24d2e89` now contains a strict, source-only reader for this
+   **separate** stream, with invalid-row, gap, epoch, expired-field and finite
+   topology-period barriers. The v1 three-field schema and its active reader
+   remain unchanged. The full analytics suite passed (763 tests). No AC policy
+   period, actual production stream, daily consumer or UI promotion is active.
+   The operator directed that Hexmem not be used; verify subsequent changes
+   against current source, tests and live state instead.
 4. Observe natural production receipts, loss/recovery behavior when safely
    available, and bounded durable coverage before any daily AC-load balance.
    An operator-confirmed inverter-only topology is current, not a historical

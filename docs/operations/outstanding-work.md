@@ -146,9 +146,9 @@ AC-load energy publication is still withheld. See
 The [independent AC evidence preflight](2026-09-23-inverter-ac-evidence-preflight.md)
 adds a disabled, source-only producer and file-owned Item draft with 26
 fail-closed tests. It preserves the existing three-field stream and labels
-the new basis as inverter output. Persistence exclusion, Solar-PV strict reader,
-fault/restart/rollback and topology-period gates remain open; the candidate is
-not deployed.
+the new basis as inverter output. The subsequent persistence exclusion and
+Solar-PV strict reader work is recorded below; fault/restart, production writer
+and topology-period gates remain open, and the candidate is not deployed.
 An isolated networkless OpenHAB 5.2.1 run subsequently loaded the file Item,
 registered the exact triggers and executed the candidate rule body to an
 unavailable evidence envelope. The disposable container was removed. Runtime
@@ -161,6 +161,12 @@ readback found exact selectors, zero ownership issues, ten of ten AC observer
 events persisted in the reload minute and no sequence gaps among 42 existing
 power-evidence rows. The AC evidence Item/rule remain absent; physical-source,
 fault, reader, topology-period and actual production writer gates remain open.
+Solar-PV `24d2e89` subsequently added and published a separate strict AC
+history reader. Its full analytics suite passed 763 tests. The reader is
+source-only and requires an explicitly finite inverter-only topology period;
+the operator's current no-bypass/no-generator statement is not backdated.
+Production Item/rule activation, natural durable receipts, fault/restart
+behavior, topology period recording and daily/UI load accounting remain open.
 
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
