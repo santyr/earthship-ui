@@ -129,6 +129,10 @@ files, add-on binaries and external scripts; it is not a complete OpenHAB backup
 installed at `/etc/openhab/persistence/jdbc.persist`. The private transfer
 receipt is under `/home/sat/.local/state/earthship-ui/persistence-transfer/`;
 the exact live provider readback is `editable:false`.
+The September 23 AC evidence exclusion added `Inverter_AC_Evidence_JSON` to
+the restore-only exceptions without activating its Item or rule. Its isolated
+explicit-write/restart and bounded live hot-reload checks are in
+`docs/operations/2026-09-23-ac-evidence-jdbc-exclusion.md`.
 `python3 openhab/scripts/persistence_source.py` reads only the
 strategy endpoint and renders it; unsupported fields, filters, aliases or custom
 strategies are refused rather than omitted. It never reads connection settings.

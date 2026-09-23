@@ -7,10 +7,11 @@ def fixture():
     return {'serviceId': 'jdbc', 'editable': True, 'aliases': {},
             'cronStrategies': [], 'thresholdFilters': [], 'timeFilters': [],
             'equalsFilters': [], 'includeFilters': [], 'configs': [
-                {'items': ['*', '!Power_Evidence_JSON'],
+                {'items': ['*', '!Power_Evidence_JSON', '!Inverter_AC_Evidence_JSON'],
                  'strategies': ['everyChange', 'restoreOnStartup'], 'filters': []},
                 {'items': ['gForecast*'], 'strategies': ['forecast', 'everyChange'], 'filters': []},
-                {'items': ['Power_Evidence_JSON'], 'strategies': ['restoreOnStartup'], 'filters': []}]}
+                {'items': ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON'],
+                 'strategies': ['restoreOnStartup'], 'filters': []}]}
 
 
 class SourceTests(unittest.TestCase):

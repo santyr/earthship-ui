@@ -47,9 +47,12 @@ qualifier is `scripts/qualify-inverter-ac-evidence-runtime.py`.
    Still qualify inverter/bridge status transitions and the original event
    object in a suitable isolated or attended runtime. The existing live
    observation must not be used to send a synthetic value or hardware command.
-2. Add the exact output-Item exclusion to the file-owned JDBC strategy and
-   rehearse immutable write/readback, restart and rollback. Install the
-   file-owned Item and disabled rule only after that exclusion is verified.
+2. The exact output-Item exclusion, isolated immutable write/readback,
+   restart/rollback and live file hot reload now pass; see
+   [JDBC exclusion receipt](2026-09-23-ac-evidence-jdbc-exclusion.md). The
+   output Item and rule are still absent. Install the file-owned Item and
+   disabled rule only after preserving this exclusion and validating the
+   remaining source/reader gates.
 3. Deploy a strict Solar-PV reader for this **separate** stream, with invalid-row,
    gap, epoch, expired-field and topology-period barriers. Its current v1
    three-field parser must remain unchanged. No cross-repo edit was made in

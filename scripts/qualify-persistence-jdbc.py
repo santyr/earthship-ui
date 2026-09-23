@@ -60,6 +60,9 @@ def same_number(left, right):
 
 
 class Database:
+    def __init__(self, *, candidate_ac=False):
+        self.candidate_ac = candidate_ac
+
     def __enter__(self):
         # Fail before allocating resources if the required cached code is absent.
         self.bundles = {Path(name).name: (CACHE/name).read_bytes() for name in BUNDLES}
@@ -70,6 +73,10 @@ class Database:
         self.power_probe = compile_probe('HexPowerRestoreProbe', [
             'org.osgi.framework', 'org.openhab.core.items',
             'org.openhab.core.persistence.extensions'])
+        if self.candidate_ac:
+            self.ac_probe = compile_probe('HexAcEvidenceProbe', [
+                'org.osgi.framework', 'org.openhab.core.items',
+                'org.openhab.core.persistence.extensions'])
         self.forecast_target = (datetime.now(timezone.utc) + timedelta(days=7)).replace(microsecond=0)
         self.forecast_verified = 0
         self.power_restore_verified = False
@@ -101,6 +108,11 @@ class Database:
             'password=' + self.password + '\n').encode()
         files['tmp/hex-jdbc-forecast-probe.jar'] = self.forecast_probe
         files['tmp/hex-jdbc-power-probe.jar'] = self.power_probe
+        if self.candidate_ac:
+            files['tmp/hex-jdbc-ac-probe.jar'] = self.ac_probe
+            files['openhab/conf/items/inverter-ac-evidence.items'] = (
+                Path(__file__).resolve().parents[1]
+                / 'openhab/file-config/drafts/inverter-ac-evidence.items').read_bytes()
         archive = io.BytesIO()
         with tarfile.open(fileobj=archive, mode='w') as tar:
             for name, body in files.items():
@@ -189,6 +201,11 @@ class Database:
         status, _ = self.request(cid, header, '/items/Power_Evidence_JSON/state', 'PUT', excluded, 'text/plain')
         if status != 202:
             raise RuntimeError('isolated excluded update failed')
+        if self.candidate_ac:
+            status, _ = self.request(cid, header, '/items/Inverter_AC_Evidence_JSON/state',
+                                     'PUT', excluded, 'text/plain')
+            if status != 202:
+                raise RuntimeError('isolated AC excluded update failed')
         status, body = self.request(cid, header, '/items/Power_Evidence_JSON/state')
         if status != 200 or body != excluded:
             raise RuntimeError('excluded test update was not applied to isolated Item')
@@ -202,6 +219,11 @@ class Database:
             status, body = self.request(cid, header, '/persistence/items/Power_Evidence_JSON?serviceId=jdbc')
             if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
                 raise RuntimeError('excluded power Item persisted or its history check failed')
+            if self.candidate_ac:
+                status, body = self.request(cid, header,
+                    '/persistence/items/Inverter_AC_Evidence_JSON?serviceId=jdbc')
+                if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
+                    raise RuntimeError('excluded AC Item persisted or its history check failed')
         print('change_only_and_power_exclusion_' + label + '=verified', flush=True)
 
     def forecast_checkpoint(self, cid, header, label):
@@ -287,6 +309,38 @@ class Database:
             print('independent_power_writer_history=verified', flush=True)
         finally:
             run(client + ['bundle:uninstall ' + bundle_id], b'\n')
+        if self.candidate_ac:
+            self.ac_write(cid, header)
+
+    def ac_write(self, cid, header):
+        self.ac_expected = '{"isolatedQualification":"explicit-ac-writer"}'
+        client = ['docker', 'exec', '-i', cid, '/openhab/runtime/bin/client',
+            '-h', '127.0.0.1', '-u', 'openhab', '-p', 'habopen', '-r', '5', '-d', '2']
+        installed = run(client + ['bundle:install file:/tmp/hex-jdbc-ac-probe.jar'], b'\n').decode()
+        match = re.search(r'Bundle IDs?:\s*(\d+)', installed)
+        if not match:
+            raise RuntimeError('isolated AC bundle install failed: ' + installed[-300:])
+        bundle_id = match.group(1)
+        try:
+            started = run(client + ['bundle:start ' + bundle_id], b'\n').decode()
+            if 'Error executing command' in started:
+                raise RuntimeError('isolated AC bundle did not start: ' + started[-300:])
+            for _ in range(30):
+                status, body = self.request(cid, header,
+                    '/persistence/items/Inverter_AC_Evidence_JSON?serviceId=jdbc')
+                if status == 200:
+                    rows = json.loads(body).get('data', [])
+                    if len(rows) == 1 and rows[0]['state'] == self.ac_expected:
+                        break
+                time.sleep(1)
+            else:
+                raise RuntimeError('explicit isolated AC history did not appear')
+            status, current = self.request(cid, header, '/items/Inverter_AC_Evidence_JSON/state')
+            if status != 200 or current == self.ac_expected:
+                raise RuntimeError('AC probe unexpectedly changed live Item state')
+            print('independent_ac_writer_history=verified', flush=True)
+        finally:
+            run(client + ['bundle:uninstall ' + bundle_id], b'\n')
 
     def restore(self, cid, header):
         status, _ = self.request(cid, header, '/items/' + PROBE, 'DELETE')
@@ -344,6 +398,16 @@ class Database:
                 if status != 200 or len(json.loads(body).get('data', [])) != 1 \
                         or json.loads(body)['data'][0]['state'] != self.power_expected:
                     continue
+                if self.candidate_ac:
+                    status, ac_state = self.request(cid, header,
+                        '/items/Inverter_AC_Evidence_JSON/state')
+                    if status != 200 or ac_state != self.ac_expected:
+                        continue
+                    status, body = self.request(cid, header,
+                        '/persistence/items/Inverter_AC_Evidence_JSON?serviceId=jdbc')
+                    if status != 200 or len(json.loads(body).get('data', [])) != 1 \
+                            or json.loads(body)['data'][0]['state'] != self.ac_expected:
+                        continue
                 start = (self.forecast_target - timedelta(seconds=1)).isoformat().replace('+00:00', 'Z')
                 end = (self.forecast_target + timedelta(hours=1, seconds=1)).isoformat().replace('+00:00', 'Z')
                 query = '?serviceId=jdbc&starttime=' + start + '&endtime=' + end
@@ -361,6 +425,8 @@ class Database:
                 print('isolated_jvm_restart_and_jdbc_restore=verified', flush=True)
                 print('forecast_future_series_after_restart=verified', flush=True)
                 print('independently_written_power_restore=verified', flush=True)
+                if self.candidate_ac:
+                    print('independently_written_ac_restore=verified', flush=True)
                 print('restore_generated_history_rows=' + str(len(rows)-len(self.previous)), flush=True)
                 return
             except RuntimeError:

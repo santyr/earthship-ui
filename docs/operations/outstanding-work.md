@@ -154,6 +154,13 @@ registered the exact triggers and executed the candidate rule body to an
 unavailable evidence envelope. The disposable container was removed. Runtime
 compilation/basic execution is now cleared; physical-source, fault, JDBC and
 consumer gates remain open.
+The [AC evidence JDBC exclusion](2026-09-23-ac-evidence-jdbc-exclusion.md)
+subsequently passed disconnected provider/JDBC/explicit-writer/restart tests
+and was hot-reloaded into the file-owned production strategy. Bounded live
+readback found exact selectors, zero ownership issues, ten of ten AC observer
+events persisted in the reload minute and no sequence gaps among 42 existing
+power-evidence rows. The AC evidence Item/rule remain absent; physical-source,
+fault, reader, topology-period and actual production writer gates remain open.
 
 The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo

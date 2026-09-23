@@ -4,7 +4,7 @@ Strategies {
 }
 
 Items {
-    *, !Power_Evidence_JSON : strategy = everyChange, restoreOnStartup
+    *, !Power_Evidence_JSON, !Inverter_AC_Evidence_JSON : strategy = everyChange, restoreOnStartup
     gForecast* : strategy = forecast, everyChange
-    Power_Evidence_JSON : strategy = restoreOnStartup
+    Power_Evidence_JSON, Inverter_AC_Evidence_JSON : strategy = restoreOnStartup
 }

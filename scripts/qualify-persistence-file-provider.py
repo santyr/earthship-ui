@@ -21,10 +21,21 @@ import openhab_sanity_check as oh
 from persistence_boundary import BoundaryLedger
 
 
-def main(database=None):
-    source = (ROOT / 'openhab/file-config/persistence/jdbc.persist').read_bytes()
+def main(database=None, candidate=None):
+    source = (candidate or ROOT / 'openhab/file-config/persistence/jdbc.persist').read_bytes()
     expected = oh.get('/persistence/jdbc')
-    if render(expected).encode() != source:
+    if candidate:
+        expected = json.loads(json.dumps(expected))
+        selectors = [c['items'] for c in expected['configs']]
+        prior = [['*', '!Power_Evidence_JSON'], ['gForecast*'], ['Power_Evidence_JSON']]
+        qualified = [['*', '!Power_Evidence_JSON', '!Inverter_AC_Evidence_JSON'],
+                     ['gForecast*'], ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON']]
+        if selectors not in (prior, qualified):
+            raise RuntimeError('live strategy selectors changed; refuse candidate rewrite')
+        if selectors == prior:
+            expected['configs'][0]['items'].append('!Inverter_AC_Evidence_JSON')
+            expected['configs'][2]['items'].append('Inverter_AC_Evidence_JSON')
+    if render(expected, allow_file=True).encode() != source:
         raise RuntimeError('prepared/live strategy drift')
     boundaries = BoundaryLedger() if database else None
     marker = str(uuid.uuid4())
@@ -173,4 +184,10 @@ def main(database=None):
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--candidate', action='store_true',
+                        help='Qualify the prepared AC evidence exclusion without live mutation')
+    args = parser.parse_args()
+    main(candidate=(ROOT / 'openhab/file-config/persistence/jdbc.persist'
+                    if args.candidate else None))
