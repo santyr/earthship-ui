@@ -45,6 +45,16 @@ not prove future hourly series delivery through the real binding, nor does it
 establish a live state-restoration requirement for `REFRESH`. Those semantics,
 the private live snapshot and a reversible attended cutover remain open.
 
+Read-only event-log follow-up resolves the current managed-provider behavior:
+at 16:51:26 MDT the binding emitted `ItemTimeSeriesEvent` and
+`ItemTimeSeriesUpdatedEvent` for `Forecast_AQI`, each reporting 48 values;
+earlier hourly refreshes did the same. The Item has no `gForecast` membership,
+so the file-owned JDBC strategy's forecast selector does not apply. The
+OpenHAB JDBC REST endpoint reports zero rows for this Item, consistent with
+that selector and its `REFRESH` state. A file-provider cutover must preserve
+the real 48-value binding event stream, not invent historic JDBC rows or
+reclassify `REFRESH` as a measured AQI value. Live cutover remains deferred.
+
 Verification: 1,697 UI/source tests, four qualifier selector tests and both
 isolated provider/restart/rollback and state/JDBC restore runs passed. The
 Git-owned source has not been installed on the production host.

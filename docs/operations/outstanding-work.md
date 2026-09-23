@@ -269,9 +269,13 @@ The separate managed `Forecast_AQI` Item/link now has an exact prepared Git
 source and passed networkless OpenHAB 5.2.1 first-boot, full-restart and
 managed-rollback rehearsal. A second isolated OpenHAB/PostgreSQL run verified
 synthetic String-state persistence and history prefix across file reload and
-full restart. Live `REFRESH`/future-series semantics and attended transfer
-remain open; it is not installed or declared file-owned. See the
+full restart. File-provider behavior for the live `REFRESH`/future-series path
+and attended transfer remain open; it is not installed or declared file-owned. See the
 [preflight receipt](2026-09-23-openmeteo-forecast-aqi-preflight.md).
+Read-only events confirm the managed binding currently emits a 48-value
+Forecast_AQI time series hourly; this Item is not in `gForecast`, and its JDBC
+REST history is empty. The cutover must preserve that event behavior without
+inventing a state or historical prefix.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
