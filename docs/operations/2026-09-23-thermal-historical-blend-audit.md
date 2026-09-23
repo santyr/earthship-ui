@@ -41,3 +41,40 @@ receipt-qualified initial states, reserve prospective observations (including
 winter), then score confirmed actions and outcomes. Any blend used in the gate
 must also be applied to the published trajectory and daily extrema; evaluation
 only correction would repeat the parity defect already repaired in v5.
+
+## Archived origin-time forecast prerequisite
+
+Solar-PV already stores immutable hourly temperature, radiation, wind and
+weather-code forecasts in `energy_analytics.forecast_snapshots`. Read-only
+inventory on September23 found 299 distinct issuances from August20 through
+September23, with roughly 232 hourly targets in the latest issuance. The table
+also records `captured_at`, which is essential: its median lag after `issued_at`
+for hourly temperature was about71minutes, with a maximum around2hours.
+Selecting only `issued_at <= origin` can therefore use a forecast not yet
+available to the household.
+
+In a September22 15-minute grid of97 origins, Solar-PV's former historical
+feature query selected49 hourly temperature snapshots whose `captured_at` was
+later than the origin. The corrected query selected an earlier captured snapshot
+at all49 origins; none became unavailable in that sample. Solar-PV commit
+`64460be` adds `captured_at <= origin` for hourly temperature, matching radiation
+and daily PV, and for replayed UI forecast reads. All758 Solar-PV tests passed;
+a read-only live four-row feature read succeeded. This repairs the feature export
+contract, not thermal backtesting itself.
+
+Thermal operational replay must select a complete, single issuance only when
+both issue and capture times precede the origin. Its initial indoor state and
+action timeline need their own origin-time receipt cutoffs. The present archive
+spans only late summer and early fall, so it cannot qualify winter advice or
+replace a prospective seasonal holdout.
+
+Source-only `thermal_model/forecast_history.py` now provides that bounded
+read-only weather selection primitive. It requires one complete issuance for
+every hourly bracket target, checks both issue and capture cutoffs, and returns
+no forecast when the available snapshots cannot cover the requested horizon.
+The query runs in a dedicated read-only repeatable-read transaction with a row
+limit. Seven focused tests pass, including a late-captured newer issuance and
+an incomplete-issuance case. A read-only live 24-hour lookup returned26 hourly
+bracket rows from the September23 13:15:49Z issuance, captured by14:10:07Z.
+The reader is not yet wired into thermal evaluation or publication; no model
+score, accepted artifact or advice changed.

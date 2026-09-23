@@ -25,6 +25,12 @@ after a Java-upgrade spawn failure and disabled Thing; see the
 [incident receipt](2026-09-10-bitcoin-feed-validation.md). The v5 thermal candidate
 was refused on 24-hour accuracy and was not promoted; see the
 [qualification result](2026-09-20-thermal-v5-qualification.md).
+Origin-time forecast inventory also exposed a real future-capture leak in
+Solar-PV historical features:49 of97 sampled September22 origins selected a
+snapshot captured after the origin. Solar-PV `64460be` now requires capture time
+as well as issue time in the feature and replayed UI reads;758 analytics tests
+pass. Thermal operational replay still needs to consume the archived forecast
+source under the same as-of rule and later qualified indoor/action evidence.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
