@@ -18,9 +18,9 @@ bandit reward attribution or tune advisory thresholds. The September23
 [isolated persistence rehearsal](2026-09-20-persistence-provider-qualification.md)
 passed with four explicitly unpersisted provider-gap updates. Its final combined
 run also passed future forecast-series replacement, nonmember exclusion, and
-independently written power-history restoration after a full JVM restart. A
-production gap accounting/rollback procedure and live transfer remain open. The
-Bitcoin feed was restored
+independently written power-history restoration after a full JVM restart. The
+production gap accounting/rollback procedure and live transfer subsequently
+completed as described below. The Bitcoin feed was restored
 after a Java-upgrade spawn failure and disabled Thing; see the
 [incident receipt](2026-09-10-bitcoin-feed-validation.md). The v5 thermal candidate
 was refused on 24-hour accuracy and was not promoted; see the
@@ -35,6 +35,17 @@ The Earthship source now includes a bounded capture-safe weather reader and
 same-origin qualified temperature assembler; a live read-only 24-hour assembly
 passed for September23 14:45Z. It remains an input prerequisite, not a scored
 operational replay or shadow exit.
+
+Later September23 checkpoint: the production JDBC persistence strategy was
+transferred from managed to Git-owned file configuration. The exact file-owned
+DTO and live independent power-evidence writes were verified; the inventory
+now records the provider and reports no ownership issues. A 1.311231-second
+provider-free window is explicitly unqualified. Event/history comparison found
+three MPPT-derived changes inside that window without corresponding JDBC rows;
+the independent power-evidence sequence remained contiguous. See the
+[handoff receipt](2026-09-20-persistence-provider-qualification.md). Propagating
+this known collection boundary into all affected historical quality/learning
+readers, and observing the next natural forecast-series publication, remain open.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
