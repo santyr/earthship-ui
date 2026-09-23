@@ -133,7 +133,7 @@
           <h3>Energy</h3>
           <dl>
             <div><dt>PV</dt><dd>{metric(result.energy.latest?.pvKwh, ' kWh')}</dd></div>
-            <div><dt>Load</dt><dd>{metric(result.energy.latest?.loadKwh, ' kWh')}</dd></div>
+            <div><dt>{result.acLoad ? 'Observed AC load' : 'Load'}</dt><dd>{metric(result.acLoad?.latest?.observedKwh ?? result.energy.latest?.loadKwh, ' kWh')}</dd></div>
             <div><dt>Charge</dt><dd>{metric(result.energy.latest?.chargeKwh, ' kWh')}</dd></div>
             <div><dt>Observed curtailment</dt><dd>{metric(result.energy.observedCurtailmentKwh, ' kWh')}</dd></div>
           </dl>
@@ -178,7 +178,10 @@
       </div>
       {#if result.accounting}
         <p class="analytics-note">Qualified observations: {result.accounting.windowStart} to {result.accounting.windowEndExclusive} (end exclusive). {result.accounting.daysPresent} days present; {result.accounting.missingDays} missing. Latest battery coverage {metric(result.accounting.latestBatteryCoverage === null ? null : result.accounting.latestBatteryCoverage * 100, '%')}; PV coverage {metric(result.accounting.latestPvCoverage === null ? null : result.accounting.latestPvCoverage * 100, '%')}.</p>
-        <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded. Load balance is unavailable pending qualified inverter-output receipts; inverter output represents household load only while all loads remain inverter-served.</p>
+        <p class="analytics-note">Policy {result.accounting.policy}; collection began {result.accounting.cutover}. Revision {result.accounting.latestRevision?.id ?? 'unavailable'}. EFC is observed throughput within this window, not lifetime use. Legacy estimates are excluded. {result.acLoad ? 'DC PV and AC load cannot be subtracted into a valid balance.' : 'Load balance is unavailable pending qualified inverter-output receipts; inverter output represents household load only while all loads remain inverter-served.'}</p>
+        {#if result.acLoad}
+          <p class="analytics-note">AC load {result.acLoad.status}: {result.acLoad.latest?.date ?? 'no completed day'}; coverage {metric(result.acLoad.latest === null ? null : result.acLoad.latest.coverage * 100, '%')}; revision {result.acLoad.latest?.revision.id ?? 'unavailable'}. Inverter output represents household load only while all loads remain inverter-served, without bypass or generator supplementation.</p>
+        {/if}
       {:else}
         <p class="analytics-note">EFC uses measured charge/discharge energy over available bank-epoch history, not the BMS lifetime cycle count. Daily SoC range does not count repeated partial cycles.</p>
       {/if}

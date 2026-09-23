@@ -71,3 +71,18 @@ export function energyAnalyticsV3Fixture() {
   };
   return value;
 }
+
+export function energyAnalyticsV4Fixture() {
+  const value = energyAnalyticsV3Fixture();
+  value.schema = 'earthship-energy-ui/v4';
+  value.acLoad = {
+    policy: 'qualified_inverter_ac_output_v1',
+    cutover: '2026-08-18T12:00:00Z',
+    topologyFrom: '2026-08-18T12:00:00Z', topologyUntil: null,
+    status: 'observed',
+    latest: { date: '2026-08-19', observedKwh: 12.5, coverage: 0.95,
+      windowStart: '2026-08-19T06:00:00Z', windowEnd: '2026-08-20T06:00:00Z',
+      revision: { id: 7, sha256: 'b'.repeat(64), computedAt: GENERATED_AT } },
+  };
+  return value;
+}

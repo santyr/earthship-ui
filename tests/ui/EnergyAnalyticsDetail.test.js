@@ -12,6 +12,7 @@ import {
   GENERATED_AT_MS,
   energyAnalyticsFixture,
   energyAnalyticsV3Fixture,
+  energyAnalyticsV4Fixture,
 } from '../fixtures/energyAnalytics.js';
 
 
@@ -26,6 +27,15 @@ afterEach(() => {
 });
 
 describe('EnergyAnalyticsDetail observational presentation', () => {
+  it('shows observed AC load with coverage and keeps DC/AC balance withheld', async () => {
+    const { container } = render(EnergyAnalyticsDetail, { result: result(energyAnalyticsV4Fixture()) });
+    await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+    expect(screen.getByText('Observed AC load')).toBeTruthy();
+    expect(screen.getByText('12.5 kWh')).toBeTruthy();
+    expect(container.textContent).toContain('coverage 95.0%');
+    expect(container.textContent).toContain('DC PV and AC load cannot be subtracted');
+    expect(container.textContent).toContain('without bypass or generator supplementation');
+  });
   it('exposes a validated empty qualified series without inventing totals', async () => {
     const payload=energyAnalyticsV3Fixture();
     payload.status='unavailable';payload.throughDate=null;payload.energy.latest=null;

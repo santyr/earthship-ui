@@ -7,6 +7,14 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 23, 2026
 
+The [read-first AC UI v4 contract](ac-load-ui-v4.md) is now implemented and
+tested without activating an AC publisher. It accepts a distinct observed
+inverter-output day with coverage, revision, cutover and topology provenance,
+while keeping the existing v3 load and DC/AC balance fields withheld. The
+first complete AC day is not due until September25 06:00Z. Append-only AC
+storage, selected-revision reader, long-run/fault/restart/retention evidence,
+and v4 writer activation are still required.
+
 September23 live follow-up: the existing qualified daily power job naturally
 materialized September20,21,22; the UI publication reports three present days,
 zero missing days, and latest PV/battery coverage above99.98%. Daily high/low

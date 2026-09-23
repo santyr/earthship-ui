@@ -10,6 +10,7 @@ import {
   energyAnalyticsFixture,
   energyAnalyticsV2Fixture,
   energyAnalyticsV3Fixture,
+  energyAnalyticsV4Fixture,
 } from './fixtures/energyAnalytics.js';
 
 
@@ -19,6 +20,57 @@ function parse(payload = energyAnalyticsFixture(), nowMs = GENERATED_AT_MS + 60_
 
 
 describe('Energy analytics closed payload parser', () => {
+  it('accepts a separate qualified AC observation without inventing a DC-to-AC balance', () => {
+    const result = parse(energyAnalyticsV4Fixture());
+    expect(result.acLoad.latest.observedKwh).toBe(12.5);
+    expect(result.energy.latest.loadKwh).toBeNull();
+    expect(Object.isFrozen(result.acLoad.latest.revision)).toBe(true);
+  });
+
+  it.each([
+    ['extra field', p => { p.acLoad.extra = 1; }],
+    ['wrong policy', p => { p.acLoad.policy = 'estimate'; }],
+    ['partial day at cutover', p => { p.acLoad.latest.date = '2026-08-18'; }],
+    ['future observation', p => { p.acLoad.latest.date = '2026-08-21'; }],
+    ['bad coverage', p => { p.acLoad.latest.coverage = 1.01; }],
+    ['partial marked observed', p => { p.acLoad.latest.coverage = 0.7; }],
+    ['fabricated zero coverage', p => { p.acLoad.latest.coverage = 0; }],
+    ['negative load', p => { p.acLoad.latest.observedKwh = -1; }],
+    ['bad digest', p => { p.acLoad.latest.revision.sha256 = 'bad'; }],
+    ['older topology than evidence', p => { p.acLoad.topologyFrom = '2026-08-17T00:00:00Z'; }],
+    ['unqualified legacy load', p => { p.energy.latest.loadKwh = 12.5; }],
+  ])('rejects v4 %s', (_label, mutate) => {
+    const payload = energyAnalyticsV4Fixture();
+    mutate(payload);
+    expect(parse(payload).state).toBe('unavailable');
+  });
+
+  it('accepts a v4 unavailable AC series without a synthetic zero', () => {
+    const payload = energyAnalyticsV4Fixture();
+    payload.acLoad.status = 'unavailable';
+    payload.acLoad.latest = null;
+    expect(parse(payload).acLoad.latest).toBeNull();
+  });
+
+  it('accepts an exact midnight topology boundary and a partially covered completed day', () => {
+    const payload = energyAnalyticsV4Fixture();
+    payload.acLoad.topologyFrom = payload.acLoad.latest.windowStart;
+    payload.acLoad.topologyUntil = payload.acLoad.latest.windowEnd;
+    payload.acLoad.status = 'partial';
+    payload.acLoad.latest.coverage = 0.75;
+    expect(parse(payload).acLoad.status).toBe('partial');
+  });
+
+  it.each([
+    ['non-midnight start', p => { p.acLoad.latest.windowStart = '2026-08-19T07:00:00Z'; }],
+    ['unfinished day', p => { p.acLoad.latest.windowEnd = '2026-08-20T05:00:00Z'; }],
+    ['topology change before day end', p => { p.acLoad.topologyUntil = '2026-08-20T05:59:00Z'; }],
+    ['revision before day end', p => { p.acLoad.latest.revision.computedAt = '2026-08-19T23:00:00Z'; }],
+  ])('rejects AC day with %s', (_label, mutate) => {
+    const payload = energyAnalyticsV4Fixture();
+    mutate(payload);
+    expect(parse(payload).state).toBe('unavailable');
+  });
   it('accepts qualified v3 provenance without legacy or lifetime totals', () => {
     const result = parse(energyAnalyticsV3Fixture());
     expect(result.state).toBe('degraded');

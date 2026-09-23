@@ -1,7 +1,7 @@
 export const ENERGY_ANALYTICS_MAX_BYTES = 16 * 1024;
 export const ENERGY_ANALYTICS_STALE_MS = 15 * 60_000;
 export const ENERGY_ANALYTICS_REFRESH_MS = 30_000;
-const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2', 'earthship-energy-ui/v3']);
+const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2', 'earthship-energy-ui/v3', 'earthship-energy-ui/v4']);
 const STATUS = new Set(['ok', 'degraded', 'unavailable', 'stale', 'fault']);
 const FORECAST_STATUS = new Set(['current', 'stale', 'unavailable', 'degraded']);
 
@@ -10,6 +10,8 @@ const TOP = ['battery', 'energy', 'epochId', 'forecast', 'generatedAt', 'health'
 const ACCOUNTING = ['basis', 'cutover', 'daysPresent', 'latestBatteryCoverage',
   'latestPvCoverage', 'latestRevision', 'loadStatus', 'missingDays', 'policy',
   'windowEndExclusive', 'windowStart'];
+const AC_LOAD = ['cutover', 'latest', 'policy', 'status', 'topologyFrom', 'topologyUntil'];
+const AC_LATEST = ['coverage', 'date', 'observedKwh', 'revision', 'windowEnd', 'windowStart'];
 const BATTERY = ['currentNoFullDays', 'daysSinceFull', 'endingCumulativeEfc',
   'latestMinSocPct', 'latestReached99', 'status'];
 const BATTERY_V2 = [...BATTERY, 'latestDepthOfDischargePct', 'latestEfc'].sort();
@@ -35,7 +37,7 @@ function unavailable(reason) {
   return Object.freeze({
     state: 'unavailable', generatedAtMs: null, throughDate: null, epochId: null,
     battery: null, energy: null, winter: null, lifecycle: null, forecast: null,
-    health: null, accounting: null, reasons: Object.freeze([reason]),
+    health: null, accounting: null, acLoad: null, reasons: Object.freeze([reason]),
   });
 }
 
@@ -103,6 +105,15 @@ function localDate(ms, timezone) {
   return byType.year + "-" + byType.month + "-" + byType.day;
 }
 
+function localMidnight(ms, timezone) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone, hourCycle: 'h23', hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(new Date(ms));
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return byType.hour === '00' && byType.minute === '00' && byType.second === '00'
+    && ms % 1000 === 0;
+}
+
 function boundedText(value, path, optional = true) {
   if (value === null && optional) return null;
   if (typeof value !== 'string' || new TextEncoder().encode(value).byteLength > 256
@@ -111,8 +122,9 @@ function boundedText(value, path, optional = true) {
 }
 
 function validatePayload(payload) {
-  const qualified = payload?.schema === 'earthship-energy-ui/v3';
-  exact(payload, qualified ? ['accounting', ...TOP] : TOP, 'payload');
+  const qualified = ['earthship-energy-ui/v3', 'earthship-energy-ui/v4'].includes(payload?.schema);
+  exact(payload, payload?.schema === 'earthship-energy-ui/v4'
+    ? ['acLoad', 'accounting', ...TOP] : qualified ? ['accounting', ...TOP] : TOP, 'payload');
   if (!SCHEMAS.has(payload.schema)) throw new Error('schema');
   const generatedAtMs = timestamp(payload.generatedAt, 'generatedAt');
   if (typeof payload.timezone !== 'string' || payload.timezone !== 'America/Denver') {
@@ -215,7 +227,51 @@ function validatePayload(payload) {
   if (!Array.isArray(health.reasons) || health.reasons.length > 16) throw new Error('health_reasons');
   health.reasons.forEach((reason, index) => boundedText(reason, `health_reason_${index}`, false));
   if (qualified) validateAccounting(payload, generatedAtMs);
+  if (payload.schema === 'earthship-energy-ui/v4') validateAcLoad(payload, generatedAtMs);
   return generatedAtMs;
+}
+
+function validateAcLoad(payload, generatedAtMs) {
+  const ac = exact(payload.acLoad, AC_LOAD, 'acLoad');
+  if (ac.policy !== 'qualified_inverter_ac_output_v1'
+      || !['observed', 'partial', 'unavailable'].includes(ac.status)) {
+    throw new Error('acLoad_policy');
+  }
+  const cutover = timestamp(ac.cutover, 'acLoad_cutover');
+  const from = timestamp(ac.topologyFrom, 'acLoad_topologyFrom');
+  const until = timestamp(ac.topologyUntil, 'acLoad_topologyUntil', true);
+  if (cutover > from || from > generatedAtMs || (until !== null && until <= from)) {
+    throw new Error('acLoad_topology');
+  }
+  if (ac.latest === null) {
+    if (ac.status !== 'unavailable') throw new Error('acLoad_empty');
+    return;
+  }
+  const latest = exact(ac.latest, AC_LATEST, 'acLoad_latest');
+  date(latest.date, 'acLoad_date');
+  const coverage = number(latest.coverage, 'acLoad_coverage', false);
+  const observed = number(latest.observedKwh, 'acLoad_observedKwh', false);
+  const windowStart = timestamp(latest.windowStart, 'acLoad_windowStart');
+  const windowEnd = timestamp(latest.windowEnd, 'acLoad_windowEnd');
+  const revision = exact(latest.revision, ['computedAt', 'id', 'sha256'], 'acLoad_revision');
+  const computed = timestamp(revision.computedAt, 'acLoad_computedAt');
+  if (coverage <= 0 || coverage > 1 || observed < 0
+      || !Number.isSafeInteger(revision.id) || revision.id <= 0
+      || typeof revision.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(revision.sha256)
+      || computed < cutover || computed > generatedAtMs
+      || windowStart < cutover || windowStart < from || windowEnd > computed
+      || windowEnd <= windowStart || windowEnd - windowStart < 23 * 3600000
+      || windowEnd - windowStart > 25 * 3600000
+      || !localMidnight(windowStart, payload.timezone)
+      || !localMidnight(windowEnd, payload.timezone)
+      || localDate(windowStart, payload.timezone) !== latest.date
+      || localDate(windowEnd - 1, payload.timezone) !== latest.date
+      || localDate(windowEnd, payload.timezone) <= latest.date
+      || (until !== null && windowEnd > until)
+      || latest.date >= localDate(generatedAtMs, payload.timezone)
+      || ac.status !== (coverage >= 0.9 ? 'observed' : 'partial')) {
+    throw new Error('acLoad_revision');
+  }
 }
 
 function validateAccounting(payload, generatedAtMs) {
@@ -306,6 +362,7 @@ export function parseEnergyAnalyticsResult(raw, nowMs = Date.now()) {
       throughDate: payload.throughDate,
       epochId: payload.epochId,
       accounting: payload.accounting ? structuredClone(payload.accounting) : null,
+      acLoad: payload.acLoad ? structuredClone(payload.acLoad) : null,
       battery: {
         latestDepthOfDischargePct: null,
         latestEfc: null,

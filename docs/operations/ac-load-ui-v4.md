@@ -1,0 +1,9 @@
+# Read-first AC-load UI v4 contract
+
+The dashboard accepts `earthship-energy-ui/v4` before any AC publisher is enabled. V1–v3 remain accepted unchanged. V4 is exactly the v3 payload plus one top-level `acLoad` object. The v3 `energy.latest.loadKwh` remains `null` and `accounting.loadStatus` remains `ac_load_evidence_unqualified`; this prevents a separate AC day from being mistaken for the latest PV/battery day or for an energy balance.
+
+`acLoad` has exact keys `policy`, `cutover`, `topologyFrom`, `topologyUntil`, `status`, and `latest`. Its policy is `qualified_inverter_ac_output_v1`. `latest` is `null` only with status `unavailable`, or an object with exact keys `date`, `windowStart`, `windowEnd`, `observedKwh`, `coverage`, and `revision`. Revision has exact `id`, `sha256`, and `computedAt` fields. The value is measured inverter AC output integrated over available intervals, not a full-day extrapolation. Status is `observed` when coverage is at least 90%, otherwise `partial`. No day with zero coverage has a numeric value.
+
+The reader rejects days outside the evidence cutover or attested inverter-only topology, non-midnight/DST-invalid local windows, unfinished days, future revisions, and bad identifiers or values. The UI explicitly labels coverage and says that DC PV and AC load cannot be subtracted into a valid balance. Open-ended `topologyUntil` means the operator's current attestation remains in force until a reported change; the publisher must read the current policy on each run and select completed days only.
+
+This is presentation readiness, not AC publication. The first eligible complete local day is September 24, 2026, assessable after September 25 06:00Z. Before publishing, Solar_PV still needs an append-only AC-day revision store, strict selected-revision reader, production fault/restart/retention evidence, and a v4 writer using this exact contract. No existing v3 payload is converted or silently given a load value.
