@@ -1,0 +1,4 @@
+// Staged only: preserve managed ownership until the natural qualified-SoC
+// forecast run and an attended file-provider handoff are verified.
+Number Predicted_PV_Today_kWh "Predicted PV Production Today" ["forecast-intel"]
+Number Predicted_SoC_Trough_Tomorrow "Predicted Overnight SoC Trough" ["forecast-intel"]

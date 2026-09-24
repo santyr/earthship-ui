@@ -113,6 +113,11 @@ reload/full-restart preservation, and a live read-only preflight for stable
 Item ID 574/eight rows all passed. The guarded live adapter refuses `--apply`.
 The managed provider and forecast timer remain unchanged until after the
 natural 06:40 qualified-SoC run and a separate attended cutover check.
+The same writer's unlinked PV-today and SoC-trough Number Items are also
+[staged for file ownership](2026-09-24-forecast-energy-item-staging.md).
+Both passed live read-only state/JDBC preflight and isolated provider,
+rollback, hot-reload and restart tests. Their guarded adapter refuses live
+`--apply`; neither managed provider nor the timer has changed.
 
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
