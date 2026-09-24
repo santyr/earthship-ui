@@ -4,6 +4,15 @@ Status: approved for one attended cutover on September 24. The operator
 approved this exact Item/link transfer; the adapter's release gate is on.
 The preflight still must pass immediately before `--apply`.
 
+Execution receipt, 06:24 MDT: the focused suite passed 21 tests and the
+immediate live preflight passed. The attended `--apply` created a private
+current Item34 custom archive and JSONDB/REST snapshots, preserved the exact
+1,090,946-row fixed JDBC prefix, and returned `file_provider_verified` with
+a new natural Exec receipt. An independent readback found the file-owned
+Item/link, unchanged two-member managed Group and matching natural receipt.
+The private archive is retained. No OpenHAB restart or synthetic price write
+was performed.
+
 ## Exact scope and preflight
 
 Transfer only the managed `BTC_USD_Price` Number Item and its empty-config

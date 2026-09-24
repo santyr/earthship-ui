@@ -201,15 +201,17 @@ def series(item, start, end):
     fmt = "%Y-%m-%dT%H:%M:%SZ"
 
     def as_utc(dt):
-        return dt if dt.tzinfo is None else dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
 
-    d = oh_get(f"/persistence/items/{item}?starttime={as_utc(start).strftime(fmt)}"
-               f"&endtime={as_utc(end).strftime(fmt)}")
+    start_utc, end_utc = as_utc(start), as_utc(end)
+    d = oh_get(f"/persistence/items/{item}?starttime={start_utc.strftime(fmt)}"
+               f"&endtime={end_utc.strftime(fmt)}")
     pts = []
     for p in d.get("data", []):
         try:
-            pts.append((datetime.fromtimestamp(p["time"] / 1000, tz=timezone.utc),
-                        float(str(p["state"]).split()[0])))
+            at = datetime.fromtimestamp(p["time"] / 1000, tz=timezone.utc)
+            if start_utc <= at < end_utc:
+                pts.append((at, float(str(p["state"]).split()[0])))
         except (KeyError, TypeError, ValueError, IndexError):
             continue
     return pts

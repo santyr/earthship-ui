@@ -155,6 +155,22 @@ def test_series_formats_true_utc_and_skips_unparseable(monkeypatch):
     assert all(ts.tzinfo == UTC for ts, _ in pts)
 
 
+def test_series_excludes_boundary_carry_and_end_lookahead(monkeypatch):
+    start = datetime(2026, 9, 22, 6, 0, tzinfo=UTC)
+    end = datetime(2026, 9, 23, 6, 0, tzinfo=UTC)
+    start_ms, end_ms = (int(at.timestamp() * 1000) for at in (start, end))
+    monkeypatch.setattr(fi, "oh_get", lambda path: {"data": [
+        {"time": start_ms - 1, "state": "99"},
+        {"time": start_ms, "state": "0"},
+        {"time": end_ms - 1, "state": "7.25"},
+        {"time": end_ms, "state": "100"},
+        {"time": end_ms + 1, "state": "101"},
+    ]})
+    assert fi.series("MPPT60_EnergyFromPV_Today", start, end) == [
+        (start, 0.0), (end - timedelta(milliseconds=1), 7.25),
+    ]
+
+
 # ---------------------------------------------------------------- state file safety
 
 def _state_paths(tmp_path, monkeypatch):

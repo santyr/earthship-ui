@@ -69,6 +69,13 @@ read-only in that mode. Do not grant the UI reader raw evidence access solely
 to satisfy that diagnostic. This does not waive first-day, fault/restart,
 recovery-point, or v4 publication gates.
 
+The operator subsequently approved that exact raw-evidence read privilege.
+On September 24 `energy_power_reader` was granted SELECT on only
+`public.item0653`. Fresh readback returned SELECT=true and
+INSERT/UPDATE/DELETE=false, and an actual restricted-role query could read the
+table. This did not activate the daily writer or v4 publisher, or relax their
+evidence gates.
+
 At 22:18 MDT, a new read-only production census found 5,189 `item0653`
 receipts since the 20:55:12Z cutover, in one epoch with no sequence gaps:
 5,188 valid and the original startup-unavailable barrier. The latest receipt

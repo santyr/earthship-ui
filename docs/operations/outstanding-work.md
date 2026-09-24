@@ -13,14 +13,22 @@ PV-today ID 573/71 rows, tomorrow trough ID 575/68 rows, and trough-error
 ID 584/67 rows. Their release guards remain off and all providers remain
 managed pending the natural 06:40 qualified-SoC run. The `gForecast` Group
 read-only preflight also passed with ten members and unchanged IDs 563–572;
-its proposed production stop/restart still awaits a separate operator decision,
-and the 06:40/06:50 jobs plus 06:53 sunrise make this morning an unsuitable
-maintenance window. The current file/managed ownership inventory has zero
+its attended production stop/restart is approved only after the 06:40 writer
+gate and both pumps are OFF. The 06:40/06:50 jobs plus 06:53 sunrise may make
+this morning an unsuitable maintenance window. The current file/managed ownership inventory has zero
 issues. A fresh AC evidence census from activation through 12:17Z found
 10,799 sequential receipts in one epoch, one original startup barrier and
 10,798 valid rows; the longest inter-receipt gap was 7.167 seconds. This is
 ongoing observational continuity, not a completed AC day, fault/restart proof,
 or authority to publish load.
+
+The forecast-intelligence `series()` source now enforces its documented
+half-open history window so a persistence boundary carry or end lookahead
+cannot enter a daily PV maximum. A five-row boundary regression and 115
+focused forecast/temperature tests passed. This source change is **not yet
+installed**; keep the previously installed, hash-verified script unchanged
+through the natural 06:40 writer check, then deploy the tested source while
+the timer is idle.
 
 The Weather "Next 14 Hours" panel now selects the current hour plus thirteen
 later hours from fresh `Forecast_10Day_JSON` detail, which is generated from
@@ -352,14 +360,14 @@ sequence and `item0653`; they are now applied and independently read back.
 The AC table remains empty and no writer or v4 publisher was activated. A
 restricted-reader diagnostic later found one additional missing privilege:
 `energy_power_reader` cannot SELECT the exact raw evidence table `public.item0653`.
-That separate grant was requested but not applied. A September 24 call-path
-review and live bounded read verified it is unnecessary for the intended
-production path: `ac-day --apply` uses the already-approved writer role, which
-read both strict AC and PV streams in read-only transactions, while the v4 UI
-reader successfully queried the empty daily AC revision table. Use the writer
-credential for the completed-day `--dry-run`; do not expand the UI reader's raw
-source access just to make the earlier reader-role diagnostic pass. The day,
-restart and publication gates remain.
+The operator separately approved this exact SELECT grant on September 24;
+it is now applied and verified by privilege readback and an actual restricted-
+role query, with no INSERT/UPDATE/DELETE. A call-path review and bounded live
+read had shown the grant is not required for the intended production path:
+`ac-day --apply` uses the writer role, which read both strict AC and PV streams
+in read-only transactions, while the v4 UI reader queried the empty daily AC
+revision table. Use the writer credential for the completed-day `--dry-run`.
+The day, restart and publication gates remain.
 The September 24 retention review elects to retain both transform-stage and
 validated AC evidence streams without JDBC exclusion or pruning. Both were
 present in the verified component-restore point; the live validated stream
@@ -1011,6 +1019,14 @@ writer gate and guarded managed rollback. A fresh September 24 read-only
 `--check` passed with 1,090,544 Item34 rows before its two-minute cutoff.
 The plan is proposed, not yet specifically approved or executed; the release
 gate and live price provider remain unchanged.
+September 24 06:24 MDT supersession: the operator approved the exact attended
+plan, the adapter's focused suite passed 21 tests, and the immediate preflight
+passed. Production `--apply` returned `file_provider_verified`: the price
+Item/link are file-owned, the 1,090,946-row fixed Item34 JDBC prefix was
+unchanged, a new natural Exec receipt arrived, and independent readback found
+the original managed Group metadata/two members and matching current price.
+The private current backup is retained; no OpenHAB restart or synthetic price
+write occurred. The older managed-provider statements above are historical.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
