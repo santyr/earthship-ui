@@ -1,0 +1,4 @@
+// Prepared only: do not install while these Items or their Astro links are managed.
+// Preserve the existing Sun/Moon group memberships and MAP-profile channel links.
+String SunPhaseIcon "Sun Phase Icon" <sun> (Sun) { channel="astro:sun:local:phase#name" [profile="transform:MAP", function="astro.map"] }
+String MoonPhaseicon "Moon Phase Icon" <moon> (Moon) { channel="astro:moon:local:phase#name" [profile="transform:MAP", function="astro.map"] }

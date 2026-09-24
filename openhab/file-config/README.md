@@ -142,6 +142,13 @@ on September 23. No live reload or overwrite was needed. It supplies the
 Sun/Moon Astro MAP-profile links, including all eight moon phases and the
 explicit night icon. The similarly named `astro.map~` is not an approved
 deployment target.
+`items/astro-icons.items` prepares the exact `SunPhaseIcon` and
+`MoonPhaseicon` names, categories, Sun/Moon group memberships and Astro
+MAP-profile channel links for a later one-provider transfer. It is not
+installed or declared file-owned. Preserve both Items' existing JDBC
+identities/history and verify a real transformed update before any cutover;
+the Moon phase Item changes infrequently, so a file-load check alone is not
+natural-writer proof.
 
 Recovery must select an explicitly reviewed entry, verify its stored content
 hash and destination, preserve a private current-file backup, and verify the
