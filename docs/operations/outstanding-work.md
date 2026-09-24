@@ -33,6 +33,11 @@ the next natural run would still use the old algorithm. Before enabling,
 verify Number-Item `UNDEF` publication in the disconnected recovery and
 observe the next natural 06:40 run. Do not infer freshness from unchanged
 numeric persistence or enable on code tests alone.
+The exact opt-in user-service drop-in is staged at
+`openhab/systemd/user/forecast-intel.service.d/qualified-soc.conf`; it is not
+installed. After the isolated gate passes, install only that file under the
+matching user-service drop-in path, reload the user manager, read back the
+effective environment and timer, and retain the pre-existing source rollback.
 
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
