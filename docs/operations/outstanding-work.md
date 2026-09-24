@@ -1163,6 +1163,24 @@ history-related text. The targeted analytical calls are:
 These identify review targets, not proven defects or verified change-aware
 behavior. Other matches include comments/guard terminology in the sky,
 scaler and household-owner rules; keyword matching alone is not a full audit.
+September 23 follow-up verified the current `hex_bms_ttd_smooth` rule body
+matches tracked `bms-runtime-estimator.js` byte-for-byte (SHA-256
+`8698b16a5e07a5fde653c6e74219886f78c2b6ec7740e5a8a8608c32c205a7940`).
+The current code caches only a completed 20:30–06:00 window and uses
+`averageBetween`; [openHAB's persistence contract](https://www.openhab.org/docs/configuration/persistence)
+defines this as a time-weighted LEFT Riemann average suited to change-only
+step states, not an unweighted average of changed rows. This resolves the
+suspected sample-frequency bias for that specific API call, but it does not
+prove physical source freshness or full-window coverage; its fallback remains
+an estimate, not acquisition evidence.
+At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
+Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
+in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
+the published `IndoorTemp_24h_High` was 76.46°F. Thus the live
+`maximumSince` path did include the held boundary value in this observed case;
+the outdoor source likewise matched its carry-aware 55.22–73.4°F extrema.
+This disproves a missing-carry claim for this natural window, not a general
+source-health or gap-coverage guarantee for the rule.
 Main-page temperatures use `localDayHistoryRange` already. Weather still displays
 the outdoor 24-hour Items, and Earthship's buffering metric explicitly compares
 24-hour indoor/outdoor swings. Do not silently redefine those Item contracts as
