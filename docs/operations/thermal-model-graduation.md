@@ -105,6 +105,16 @@ same-origin persistence. The two strict forcing-captured one-hour pairs also
 remain worse than persistence. This is diagnostic evidence, not enough
 seasonal or stable-revision support to graduate or retune a control threshold.
 
+September 24 07:00 MDT read-only refresh of the exact-forcing-captured
+publications: ten disjoint one-hour pairs under one v4 revision have model
+MAE 1.3949°F versus 0.5580°F for same-origin persistence. Eight overlapping
+six-hour pairs have model MAE 4.1949°F versus 2.3400°F persistence; the two
+disjoint six-hour pairs are 4.9995°F versus 3.1500°F. All scored forecasts
+remain low-confidence. The five-minute maturity gate still withheld one
+one-hour target and three six-hour targets; no 24-hour captured target has
+matured. This is further evidence to retain shadow status, not permission to
+change the model, intervals, advice or control thresholds.
+
 ### Confirmed-action collection audit, September20
 
 Read-only aggregate journal queries still find ten action events: eight
