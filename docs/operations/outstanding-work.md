@@ -48,10 +48,24 @@ selects dated forecast detail for the Energy PV comparison and outlook;
 95 focused tests, the build and seven Energy browser tests passed. The
 04:55 publisher correctly withheld the old misdated value as unavailable.
 At the 04:56 read-only checkpoint, the corrected collector mapped the live
-September 24 detail to 3.3 kWh through September 25 local midnight. Await a
-new natural forecast issuance, capture and publisher readback before
-claiming a corrected non-null Energy Analytics forecast. The once-daily
-forecast-intelligence Items remain separately dated only by their schedule.
+September 24 detail to 3.3 kWh through September 25 local midnight. At that
+checkpoint a new natural issuance, capture and publisher readback were still
+needed. The once-daily forecast-intelligence Items remain separately dated
+only by their schedule.
+
+That PV recovery gate subsequently passed at 05:21 MDT: the natural 05:20
+forecast-json timer exited successfully and published September 24=3.3 kWh,
+September 25=5.5 kWh. An attended run of the existing observational snapshot
+service inserted its newly issued detail; read-only PostgreSQL readback found
+`forecast_day=2026-09-24`, `valid_for=2026-09-25T06:00:00Z`, value 3.3 and
+capture at 11:21:01Z. The existing v3 UI publisher then exited zero and live
+`Energy_Analytics_JSON` reported current `pv24hKwh=3.3` with that exact
+day-end target, forecast health ok and no `acLoad` field. A text-only live
+1340×800 browser check showed the Energy PV card and its Analytics detail
+both display 3.3. The next natural timer activation at 05:25:27 exited zero
+and published another v3 payload with the same correctly dated 3.3 kWh value.
+This closes the PV source-date and recurring-publication checks, not the
+separate AC-load, forecast-intelligence or thermal-model gates.
 
 September 24 full restore rehearsal: fresh recovery point
 `full-restore-h2d2mt0w` passed exact 514-table isolated data fingerprints.
