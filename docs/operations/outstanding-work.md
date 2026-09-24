@@ -392,9 +392,19 @@ prefix is historical from the shared adapter and does not imply temperature
 content. Readback found file ownership, unchanged source hash, original scalar
 states at the transfer (1, 0 W/m², 0.17), IDs 565/566/567 and all 711 rows
 each preserved after JDBC settling. The ownership inventory has zero issues.
-This transfer remains provisional until a scheduled natural 48/48/48 binding
-update under file ownership and post-update historical-row preservation are
-observed; reload-generated series do not satisfy that gate.
+At the transfer checkpoint this remained provisional pending a scheduled
+natural 48/48/48 binding update and historical-row preservation; the
+reload-generated series did not satisfy that gate.
+
+The 20:51:31 MDT scheduled binding fetch subsequently emitted all three
+48-value series through the file-owned Items and links. JDBC IDs 565/566/567
+retained every pre-transfer timestamp and all values at or before cutover;
+each table grew from 711 to 712 rows. Cloudiness revised 13 future values and
+radiation revised 22 future values at existing timestamps, with no timestamp
+lost; precipitation probability had no revised values. The forecast Thing
+remained ONLINE and the live ownership inventory had zero issues. The six
+Item/link declarations are now verified, not a claim that every old future
+forecast value remains immutable after a natural forecast revision.
 
 The remaining four bound OpenMeteo daily series are
 `Forecast_Daily_PrecipSum`, `Forecast_Daily_PrecipProbMax`,
@@ -418,8 +428,23 @@ next gate is an attended transfer with exact private backup and rollback;
 neither a synthetic production update nor a live cutover has occurred.
 The guarded four-Item transfer adapter now passes its pure unit tests and a
 fresh live `--check`: managed definitions/links, ONLINE Thing, fixed source
-digest, JDBC IDs 569–572 and 40 rows each match. Its `--apply` has not run;
-the earlier hourly meteorology group must first pass a natural binding update.
+digest, JDBC IDs 569–572 and 40 rows each match. At that checkpoint its
+`--apply` had not run because the earlier hourly meteorology group still
+needed a natural binding update.
+
+After that hourly gate passed, a fresh daily `--check` passed and the attended
+daily `--apply` at 20:53 MDT privately backed up the managed definitions,
+links and 160 JDBC rows under
+`/home/sat/.local/state/openhab-config-migration/forecast-daily-20260924T025355Z`.
+All four exact Item/link pairs are now file-owned from the prepared source
+(SHA-256 `9f1236706f3e33748e9a6069ce01fe44dfebc111d699bbaa6c34f4f77f957fea`),
+and the original 40 rows per JDBC ID 569–572 survived the transfer. As in the
+isolated rehearsal, precipitation sum, probability maximum and weather-code
+scalar states restored to their latest past JDBC values instead of the
+pre-transfer binding states; UV index stayed 2.9. This is provisional until
+the next scheduled natural seven-value series update under file ownership
+and post-update historical-row/ownership checks. No daily-series writer
+success is claimed from the reload-generated events.
 
 The `gForecast` Group itself remains REST-managed and has no JDBC Item
 identity; its ten members are the forecast persistence selector. The prepared
