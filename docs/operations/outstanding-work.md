@@ -245,6 +245,14 @@ ends on September 19; recent health derives from embedded
 evidence gap, not evidence that qualified PV or battery coverage failed. Do
 not mark these eight `ok` merely because their numeric or switch values exist;
 source-specific freshness and carry-in semantics must be qualified first.
+Solar_PV's source-only September 24 Astro correction now qualifies the two
+deterministic sunrise/sunset DateTime schedules from their own original
+persisted timestamps and matching Denver local event dates. An unchanged,
+read-only September 23 dry-run returned 15/21 `ok` source-quality rows and
+left six optional room/north-wall/switch rows `freshness_unverified`; 855
+analytics tests passed. No old snapshot was re-materialized or UI health
+masked. The next natural daily aggregate and v3 publisher remain runtime
+gates; see `Solar_PV/docs/operations/2026-09-24-astro-daily-source-quality.md`.
 
 The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
 overnight minima and included the current incomplete 20:00–11:00 night in its
