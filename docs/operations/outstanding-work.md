@@ -316,6 +316,14 @@ Provider migration must preserve those future rows, scalar state recovery,
 group membership and the unaffected forecast JSON consumers; it requires
 an isolated JDBC/file reload and full-restart rehearsal before an attended
 transfer. No live provider change was made in this preflight.
+The exact three-line source is now prepared in
+`openhab/file-config/items/openmeteo-forecast-temperature.items`. A
+networkless restored-registry OpenHAB 5.2.1 run verified all three file-owned
+Item/link DTOs on first boot and full restart, then withdrew the file and
+restored the exact managed definitions. The owned disposable container was
+removed and production was untouched. This clears provider syntax and
+managed rollback only; numeric state recovery and future JDBC series still
+need their separate isolated rehearsal before any live transfer.
 
 ### Explicit active goal: graduate the thermal model from shadow
 

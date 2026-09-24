@@ -1,0 +1,5 @@
+// Prepared only: do not install while these three Items or links are managed.
+// Preserve the gForecast group, units, channel identities and future series.
+Number:Temperature Forecast_Temp "Forecast Temperature" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastHourly#temperature" }
+Number:Temperature Forecast_Daily_High "Forecast Daily High" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastDaily#temperature-max" }
+Number:Temperature Forecast_Daily_Low "Forecast Daily Low" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastDaily#temperature-min" }
