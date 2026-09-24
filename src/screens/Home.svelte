@@ -668,7 +668,7 @@
             <span class="batt-runtime batt-runtime-full"><strong>Full</strong> {battRuntimeFull}</span>
           </div>
         </div>
-        <div class="battery-spark"><Sparkline data={shownBattSpark.data} color={socColor} lineWidth={2} smoothingAlpha={1} curveSmooth={0.25} heldUntil={shownBattSpark.heldUntil} heldLineType="solid" /></div>
+        <div class="battery-spark"><Sparkline data={shownBattSpark.data} color={socColor} lineWidth={2} curveSmooth={0.25} preserveSamples={true} heldUntil={shownBattSpark.heldUntil} heldLineType="solid" /></div>
       </div>
     </Tile>
   </div>

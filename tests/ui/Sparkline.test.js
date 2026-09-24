@@ -68,9 +68,9 @@ describe('Sparkline', () => {
   it('draws the battery curve smoothly without changing its actual sample values', async () => {
     render(Sparkline, {
       props: {
-        data: [75, 74, 73].map((state, index) => ({ time: index * 1_000, state })),
-        smoothingAlpha: 1,
+        data: [75, 90, 73].map((state, index) => ({ time: index * 1_000, state })),
         curveSmooth: 0.25,
+        preserveSamples: true,
       },
     });
     await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
@@ -78,7 +78,7 @@ describe('Sparkline', () => {
     expect(option.series[0].smooth).toBe(0.25);
     expect(option.series[0].smoothMonotone).toBe('x');
     expect(option.series[0].step).toBeUndefined();
-    expect(option.series[0].data).toEqual([[0, 75], [1_000, 74], [2_000, 73]]);
+    expect(option.series[0].data).toEqual([[0, 75], [1_000, 90], [2_000, 73]]);
   });
 
   it.each([0, -0.1, 1.01, Number.NaN])('falls back to alpha 0.25 for invalid alpha %s', async (smoothingAlpha) => {

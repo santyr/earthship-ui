@@ -1,11 +1,11 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { getEcharts } from '../charts/loadEcharts.js';
-  import { prepareSparklineSeries } from '../charts/historyPipeline.js';
+  import { prepareHistorySeries, prepareSparklineSeries } from '../charts/historyPipeline.js';
   import { observeElementSize } from './observeElementSize.js';
   import { echartsTheme } from './tokens.js';
 
-  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, curveSmooth = 0, heldUntil = null, heldLineType = 'dashed' } = $props();
+  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, curveSmooth = 0, preserveSamples = false, heldUntil = null, heldLineType = 'dashed' } = $props();
 
   let el;
   let chart;
@@ -16,10 +16,12 @@
     return Number.isFinite(alpha) && alpha > 0 && alpha <= 1 ? alpha : 0.25;
   });
 
-  function buildOption(points, lineColor, width, renderWidth, alpha, curve, heldEnd, tailType) {
+  function buildOption(points, lineColor, width, renderWidth, alpha, curve, rawSamples, heldEnd, tailType) {
     let prepared = [];
     try {
-      prepared = prepareSparklineSeries(points, { widthPx: renderWidth, alpha });
+      prepared = rawSamples
+        ? prepareHistorySeries(points, { widthPx: renderWidth, allowedUnits: ['', '%'] }).displaySegments.flat()
+        : prepareSparklineSeries(points, { widthPx: renderWidth, alpha });
     } catch {
       // The compact card remains available even if one malformed persisted
       // row is encountered; full charts surface that validation as an error.
@@ -63,7 +65,7 @@
 
   function update() {
     if (!chart) return;
-    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, curveSmooth, heldUntil, heldLineType), true);
+    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, curveSmooth, preserveSamples, heldUntil, heldLineType), true);
   }
 
   onMount(() => {
@@ -88,6 +90,7 @@
     void lineWidth;
     void appliedSmoothingAlpha;
     void curveSmooth;
+    void preserveSamples;
     void heldUntil;
     void heldLineType;
     void widthPx;
