@@ -88,3 +88,16 @@ outdoor error. Consistent indoor underprediction across mixed outdoor-error
 signs supports investigating the thermal dynamics and mode/action assumptions,
 but is not a causal attribution or a justified fitted offset from this tiny
 sample. The actual installed v4 shadow model was not modified.
+
+At 18:25 MDT the same read-only strict scorer found a fourth matured,
+non-overlapping one-hour pair from the accepted revision: model error
+−1.599°F versus same-origin persistence +0.180°F. Across all four pairs,
+model MAE was 2.0213°F versus persistence 0.6750°F; all published intervals
+covered their targets but averaged 10.414°F wide. The four paired outdoor
+forcing errors had mixed signs (+5.12, −1.14, +4.22 and +2.90°F), while all
+indoor model errors were low. A second six-hour target also matured: model
+error −6.530°F versus persistence −2.880°F, outside its 10.413°F interval.
+It overlaps the first six-hour target, so two misses are not two independent
+days; the greedy non-overlap selection still contains only the first. Both
+six-hour outdoor errors also have opposite signs. No coefficient, threshold,
+artifact, control authority or advice was changed on these diagnostics.
