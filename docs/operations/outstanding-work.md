@@ -560,6 +560,15 @@ comparison; the completed rerun used numeric equivalence and exercised the
 entire path. This is isolated recovery evidence, not a backup or verification
 of the production Item34 history or the natural Exec writer under file
 ownership. The live Bitcoin feed remains managed and unchanged.
+A bounded-memory, read-only history verifier is now prepared at
+`scripts/bitcoin-price-history-digest.py`. At the fixed exclusive cutoff
+2026-09-24 03:12:00Z, it streamed 1,089,880 Item34 rows/39,452,387 CSV bytes
+under one repeatable-read transaction and returned the same SHA-256 digest
+`5b500b573644a48cac707461be15cce17b78882307e5bbd156a172c0e872208e`
+on two runs while new prices continued arriving. The digest also matched an
+independent `psql COPY | sha256sum` calculation. This provides a scalable
+before/after preservation check, not a recoverable backup, a live migration or
+natural writer qualification.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
