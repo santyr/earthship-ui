@@ -27,9 +27,9 @@ def canonical_definition(endpoint, entry, fields):
     return definition
 
 
-def verify_number_undef(run, cid, header, marker):
-    """Exercise a disposable Number Item inside the disconnected runtime."""
-    name = 'Hex_Isolated_Undef_' + marker[:12]
+def verify_number_undef(run, cid, header, *, sleep=time.sleep, attempts=20):
+    """Round-trip UNDEF on an existing diagnostic Number in the clone only."""
+    name = 'Forecast_Trough_Error_7d'
     endpoint = 'http://127.0.0.1:8080/rest/items/' + name
 
     def request(method, suffix='', body=None, content_type=None):
@@ -39,22 +39,43 @@ def verify_number_undef(run, cid, header, marker):
             command += ['-H', 'Content-Type: ' + content_type, '--data-binary', body]
         return run(command, data=header)
 
-    created = False
+    def read_state(expected=None):
+        for index in range(attempts):
+            try:
+                item = json.loads(request('GET'))
+                if item.get('name') != name or item.get('type') != 'Number':
+                    raise RuntimeError('isolated diagnostic Item identity changed')
+                state = item.get('state')
+                if expected is None or state == expected:
+                    return state
+            except (RuntimeError, ValueError, UnicodeError):
+                pass  # REST may disappear briefly during isolated bundle startup.
+            if index + 1 < attempts:
+                sleep(1)
+        raise RuntimeError('isolated Number Item state readback failed')
+
+    def put_state(value):
+        for index in range(attempts):
+            try:
+                request('PUT', '/state', value, 'text/plain')
+                return
+            except RuntimeError:
+                if index + 1 == attempts:
+                    raise
+                sleep(1)
+
+    original = read_state()
+    if original in (None, 'NULL', 'UNDEF'):
+        raise RuntimeError('isolated diagnostic Item has no restorable numeric state')
     try:
-        definition = json.dumps({'name': name, 'type': 'Number',
-                                 'label': 'Isolated UNDEF qualification'})
-        request('PUT', body=definition, content_type='application/json')
-        created = True
-        request('PUT', '/state', '42', 'text/plain')
-        if request('GET', '/state').decode().strip() != '42':
-            raise RuntimeError('isolated Number Item did not accept a numeric state')
-        request('PUT', '/state', 'UNDEF', 'text/plain')
-        if request('GET', '/state').decode().strip() != 'UNDEF':
-            raise RuntimeError('isolated Number Item did not accept UNDEF')
+        put_state('42')
+        read_state('42')
+        put_state('UNDEF')
+        read_state('UNDEF')
         return True
     finally:
-        if created:
-            request('DELETE')
+        put_state(original)
+        read_state(original)
 
 
 def main():
@@ -176,7 +197,7 @@ def main():
         services = json.loads(run(['docker', 'exec', '-i', cid, 'curl', '-fsS', '--max-time', '30',
                                    '-H', '@-', 'http://127.0.0.1:8080/rest/persistence'], data=header))
         result['persistence_services'] = [x.get('id') for x in services]
-        result['numeric_undef_publication_verified'] = verify_number_undef(run, cid, header, marker)
+        result['numeric_undef_publication_verified'] = verify_number_undef(run, cid, header)
         result['status'] = ('integrated_boot_tested'
                             if result.get('observational_state_matches_backup')
                             and 'jdbc' in result['persistence_services']

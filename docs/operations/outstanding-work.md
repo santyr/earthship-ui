@@ -5,7 +5,19 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
-## Current checkpoint — September 23, 2026
+## Current checkpoint — September 24, 2026
+
+September 24 full restore rehearsal: fresh recovery point
+`full-restore-h2d2mt0w` passed exact 514-table isolated data fingerprints.
+The first integrated rehearsal then restored roles/ACLs and all 514 tables,
+and matched 75 config, 1,337 userdata, and two add-on files byte-for-byte.
+It did **not** pass the integrated OpenHAB gate: a temporary REST-managed
+Number-Item `UNDEF` probe lost its state endpoint during isolated boot, and
+its DELETE cleanup failed. The parent removed all owned test containers and
+volumes; production OpenHAB was not restarted. The probe now uses the
+existing diagnostic Number Item in the disconnected clone, retries transient
+REST reads and restores its original state. A new integrated run is required
+before claiming full runtime recovery or enabling qualified forecast SoC.
 
 The [EFC display clarification](2026-09-23-energy-efc-display.md) now keeps
 qualified observed-window EFC on the Energy card with its date range and shows
