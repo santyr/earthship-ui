@@ -3,6 +3,7 @@ import {
   FORECAST_DETAIL_MAX_BYTES,
   parseForecast10Day,
   parseLegacyDailyForecast,
+  pvForecastDaysFromToday,
   selectForecastWindow,
   todayPvForecastKwh,
 } from '../src/lib/weather/forecastDetail.js';
@@ -86,6 +87,7 @@ describe('ten-day forecast contract', () => {
       { ...day('2026-09-24', 'Today'), summary: { ...day('2026-09-24', 'Today').summary, pvKwh: 3.3 } },
     ], '2026-09-24T03:20:00-06:00'), { nowMs: Date.parse('2026-09-24T04:46:00-06:00') });
     expect(todayPvForecastKwh(result, { nowMs: Date.parse('2026-09-24T04:46:00-06:00') })).toBe(3.3);
+    expect(pvForecastDaysFromToday(result, { nowMs: Date.parse('2026-09-24T04:46:00-06:00') }).map(({ date }) => date)).toEqual(['2026-09-24']);
     expect(todayPvForecastKwh(result, { nowMs: Date.parse('2026-09-24T07:21:00-06:00') })).toBeNull();
   });
 
@@ -93,6 +95,7 @@ describe('ten-day forecast contract', () => {
     const nowMs = Date.parse('2026-09-24T04:46:00-06:00');
     const result = parseForecast10Day(payload([day('2026-09-23', 'Yesterday')], '2026-09-24T03:20:00-06:00'), { nowMs });
     expect(todayPvForecastKwh(result, { nowMs })).toBeNull();
+    expect(pvForecastDaysFromToday(result, { nowMs })).toEqual([]);
   });
 
   it('normalizes ten ordered days and preserves provider nulls', () => {

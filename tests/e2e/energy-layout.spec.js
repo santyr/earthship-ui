@@ -46,7 +46,7 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openEnergyFixture(page, target, analytics = energyAnalyticsFixture()) {
+async function openEnergyFixture(page, target, analytics = energyAnalyticsFixture(), states = {}) {
   const historyRequests = [];
   await page.setViewportSize({ width: target.width, height: target.height });
   await page.addInitScript(() => {
@@ -66,7 +66,7 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
     json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture-only', staleBannerSeconds: 90 },
   }));
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
-    json: Object.entries({ ...STATES, Energy_Analytics_JSON: JSON.stringify(analytics) })
+    json: Object.entries({ ...STATES, ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
       .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (route) => {
@@ -89,6 +89,25 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
   await page.locator('.pv-chart svg').waitFor({ timeout: 20_000 });
   return historyRequests;
 }
+
+test('Energy PV comparison and outlook use the current dated forecast', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-24T04:46:00-06:00') });
+  const summary = (pvKwh) => ({ highF: null, lowF: null, precipPct: null, weatherCode: null, pvKwh });
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    Predicted_PV_Today_kWh: '3.42',
+    Forecast_10Day_JSON: JSON.stringify({
+      version: 1,
+      generatedAt: '2026-09-24T03:20:00-06:00',
+      timezone: 'America/Denver',
+      days: [
+        { date: '2026-09-24', label: 'Today', summary: summary(3.3), hours: [] },
+        { date: '2026-09-25', label: 'Tomorrow', summary: summary(5.5), hours: [] },
+      ],
+    }),
+  });
+  await expect(page.locator('.pv-sub')).toHaveText('of 3.3 kWh predicted');
+  await expect(page.locator('.outlook-value')).toHaveText(['3.3', '5.5']);
+});
 
 for (const target of TARGETS) {
   test(`Energy keeps both history plots readable at ${target.name}`, async ({ page }) => {

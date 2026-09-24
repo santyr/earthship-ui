@@ -9,8 +9,11 @@
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
   import EnergyAnalyticsDetail from '../lib/ui/EnergyAnalyticsDetail.svelte';
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
+  import { parseForecast10Day, pvForecastDaysFromToday, todayPvForecastKwh } from '../lib/weather/forecastDetail.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
+
+  let analyticsNowMs = $state(Date.now());
 
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(num($items.BMS_SOC));
@@ -45,7 +48,8 @@
 
   // ---- PV production --------------------------------------------------------
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
-  const pvPredicted = $derived(num($items.Predicted_PV_Today_kWh));
+  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: analyticsNowMs }));
+  const pvPredicted = $derived(todayPvForecastKwh(forecastDetail, { nowMs: analyticsNowMs }));
   const pvError = $derived(num($items.Forecast_PV_Error_7d));
   const pvAccuracyBadge = $derived(pvError === null ? 'calibrating' : `±${Math.round(Math.abs(pvError))}% (7d)`);
 
@@ -55,25 +59,9 @@
   const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
 
   // ---- 7-day PV outlook -------------------------------------------------
-  const forecastDaily = $derived.by(() => {
-    try {
-      const raw = $items.Forecast_Daily_JSON;
-      if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-  });
-
-  function dayLabel(i, dStr) {
-    if (i === 1) return 'Tomorrow';
-    if (!dStr || dStr === 'NULL' || dStr === 'UNDEF') return i === 0 ? 'Today' : `D${i + 1}`;
-    return String(dStr);
-  }
-
   const pvOutlook = $derived.by(() => {
-    const days = forecastDaily.slice(0, 7).map((d, i) => ({ label: dayLabel(i, d.d), pv: num(d.pv) }));
+    const days = pvForecastDaysFromToday(forecastDetail, { nowMs: analyticsNowMs })
+      .map((day, index) => ({ label: index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : day.label, pv: day.summary.pvKwh }));
     const maxPv = Math.max(1, ...days.map((d) => d.pv ?? 0));
     return days.map((d) => ({ ...d, pct: d.pv === null ? 0 : Math.max(2, (d.pv / maxPv) * 100) }));
   });
@@ -88,7 +76,6 @@
   const commsOk = $derived($items.BMS_Comms_Status === 'OK');
   const devicePresent = $derived($items.BMS_DevicePresent === '1');
   const bmsHealthy = $derived(commsOk && devicePresent);
-  let analyticsNowMs = $state(Date.now());
   onMount(() => {
     const refresh = setInterval(() => {
       analyticsNowMs = Date.now();
@@ -121,7 +108,7 @@
             <span class="pv-today">{pvToday === null ? '—' : pvToday.toFixed(1)}</span>
             <span class="pv-unit">kWh today</span>
           </div>
-          <div class="pv-sub">of {pvPredicted === null ? '—' : pvPredicted.toFixed(1)} kWh predicted</div>
+          <div class="pv-sub">{pvPredicted === null ? 'prediction unavailable' : `of ${pvPredicted.toFixed(1)} kWh predicted`}</div>
           <span class="pv-badge">{pvAccuracyBadge}</span>
         </div>
         <div class="pv-chart">

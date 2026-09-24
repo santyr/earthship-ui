@@ -211,6 +211,14 @@ export function todayPvForecastKwh(result, { nowMs = Date.now() } = {}) {
   return result.days.find(({ date }) => date === today)?.summary.pvKwh ?? null;
 }
 
+export function pvForecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
+  if (result?.status !== 'ready' || !Number.isFinite(result.generatedAtMs)
+      || nowMs - result.generatedAtMs > FORECAST_DETAIL_STALE_MS) return [];
+  const today = localDateAt(nowMs, result.timezone);
+  const days = result.days.filter(({ date }) => date >= today).slice(0, 7);
+  return days[0]?.date === today ? days : [];
+}
+
 export function selectForecastWindow(result, selectedDate, { nowMs = Date.now() } = {}) {
   const allHours = result.days
     .flatMap(({ hours }) => hours)
