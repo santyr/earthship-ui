@@ -1,0 +1,3 @@
+// Direct-published learned temperature corrections; observational only.
+Number Forecast_HighCorrection_F "Forecast high Kalman correction (F)"
+Number Forecast_LowCorrection_F "Forecast low Kalman correction (F)"

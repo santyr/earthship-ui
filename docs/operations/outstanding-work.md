@@ -7,6 +7,17 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 16:46 MDT the two direct-published learned temperature correction Items,
+`Forecast_HighCorrection_F` and `Forecast_LowCorrection_F`, moved from
+REST-managed to exact Git-owned file definitions. A networkless provider
+test and disconnected JDBC/rollback/restart rehearsal passed first; the
+guarded live transfer preserved original states, JDBC IDs 596/597 and all
+53 rows per Item, exercised managed rollback, and resumed the forecast timer.
+Independent REST and ownership-inventory readback found both file-owned and
+zero issues. The next natural forecast writer is September 25 06:40 MDT;
+its new receipts remain the publication gate. See the
+[cutover receipt](2026-09-24-forecast-correction-item-cutover.md).
+
 At 11:45 MDT the natural Energy publisher exited zero and the live
 `Energy_Analytics_JSON` Item read back the same 17:45:24Z v3 publication for
 September 23. Battery status is `ok` and latest qualified PV is 6.5555 kWh;
