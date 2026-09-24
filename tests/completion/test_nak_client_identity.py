@@ -32,27 +32,33 @@ def adapter(tmp_path, monkeypatch):
     rumor = {"pubkey": "a" * 64, "created_at": 1789990001, "kind": 14,
              "tags": [["p", RECIPIENT]], "content": "yes"}
     rumor["id"] = m.event_id(rumor)
+    seal = {"pubkey": "a" * 64, "created_at": 1789990000, "kind": 13,
+            "tags": [], "content": "encrypted-rumor", "sig": "0" * 128}
+    seal["id"] = m.event_id(seal)
     calls = []
 
     def run(argv, payload, environment, **kwargs):
         # Retain the object too: later mutation must not add secrets to verify.
         calls.append((argv, payload, environment))
-        return b"" if argv[-1] == "verify" else m.canonical(rumor)
+        if argv[-1] == "verify":
+            return b""
+        return m.canonical(seal) if len(calls) == 2 else m.canonical(rumor)
 
     decoder = m.NakDecoder(path, sha256(data).hexdigest(), runner=run)
     return decoder, m.canonical(wrap), calls
 
 
-def test_configured_client_identity_reaches_only_unwrap(adapter, monkeypatch):
+def test_configured_client_identity_reaches_only_decrypt_children(adapter, monkeypatch):
     decoder, wrap, calls = adapter
     monkeypatch.setenv("NOSTR_CLIENT_KEY", CLIENT)
     assert decoder.decode(wrap, RECIPIENT)["pubkey"] == "a" * 64
-    assert [argv[1:] for argv, _, _ in calls] == [["verify"], ["gift", "unwrap"]]
-    assert calls[0][1] == calls[1][1]
+    assert [argv[1] for argv, _, _ in calls] == ["verify", "decrypt", "verify", "decrypt"]
+    assert calls[1][1] == calls[3][1] == b""
     assert calls[0][2] is not calls[1][2]
-    assert {"NOSTR_SECRET_KEY", "NOSTR_CLIENT_KEY"}.isdisjoint(calls[0][2])
-    assert calls[1][2]["NOSTR_SECRET_KEY"] == SIGNER
-    assert calls[1][2]["NOSTR_CLIENT_KEY"] == CLIENT
+    assert all({"NOSTR_SECRET_KEY", "NOSTR_CLIENT_KEY"}.isdisjoint(calls[index][2])
+               for index in (0, 2))
+    assert all(calls[index][2]["NOSTR_SECRET_KEY"] == SIGNER
+               and calls[index][2]["NOSTR_CLIENT_KEY"] == CLIENT for index in (1, 3))
     assert all(CLIENT not in arg and SIGNER not in arg
                for argv, _, _ in calls for arg in argv)
 
@@ -85,7 +91,7 @@ def test_client_key_is_not_a_substitute_for_signer_configuration(adapter, monkey
     assert calls == []
 
 
-def test_failed_outer_verification_never_exposes_keys_to_unwrap(adapter, monkeypatch):
+def test_failed_outer_verification_never_exposes_keys_to_decrypt(adapter, monkeypatch):
     decoder, wrap, calls = adapter
     monkeypatch.setenv("NOSTR_CLIENT_KEY", CLIENT)
 

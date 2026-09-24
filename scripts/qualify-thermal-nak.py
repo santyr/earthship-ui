@@ -161,9 +161,9 @@ def qualify(path: Path, digest: str):
             forged_author = deepcopy(rumor)
             forged_author['pubkey'] = RECIPIENT
             forged_author['id'] = thermal.event_id(forged_author)
-            rebound = decode(wrapped(forged_author))
-            require(expected_fields(rebound) == rumor, 'rumor author was not bound to the seal signer')
-            checks.append('rumor_author_and_id_bound_to_seal')
+            expect_refused(lambda: decode(wrapped(forged_author)),
+                           'mismatched raw rumor author was accepted')
+            checks.append('mismatched_raw_rumor_author_rejected')
 
             corrupt = wrapped(rumor, corrupt_ciphertext=True)
             expect_refused(lambda: decode(corrupt), 'corrupt ciphertext was accepted')

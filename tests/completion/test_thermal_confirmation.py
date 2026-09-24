@@ -432,6 +432,13 @@ def signed_wrap():
     return m.canonical(wrap)
 
 
+def signed_seal(*, author=OPERATOR, tags=(), content="encrypted-rumor-fixture"):
+    seal = {"pubkey": author, "kind": 13, "created_at": int(NOW.timestamp()),
+            "tags": list(tags), "content": content, "sig": "0" * 128}
+    seal["id"] = m.event_id(seal)
+    return m.canonical(seal)
+
+
 @pytest.fixture
 def binary(tmp_path):
     path = tmp_path / "nak-fixture"
@@ -440,22 +447,85 @@ def binary(tmp_path):
     return path, sha256(path.read_bytes()).hexdigest()
 
 
-def test_nak_adapter_verifies_outer_before_unwrap_and_scrubs_db_secret(binary, monkeypatch):
+def test_nak_adapter_verifies_both_signed_layers_and_scrubs_db_secret(binary, monkeypatch):
     monkeypatch.setenv("NOSTR_SECRET_KEY", "test-only-bunker-configuration")
     monkeypatch.setenv("THERMAL_DATABASE_URL", "private-dsn-fixture")
     calls = []
     def run(argv, payload, environment, **kwargs):
         calls.append((argv, payload, environment.copy()))
-        return b"" if argv[-1] == "verify" else m.canonical(event())
+        if argv[-1] == "verify":
+            return b""
+        return signed_seal() if len(calls) == 2 else m.canonical(event())
     decoder = m.NakDecoder(*binary, runner=run)
     assert decoder.decode(signed_wrap(), RECIPIENT)["pubkey"] == OPERATOR
     assert calls[0][0] == [str(binary[0]), "verify"]
-    assert calls[1][0] == [str(binary[0]), "gift", "unwrap"]
-    assert calls[0][1] == calls[1][1]
+    assert calls[1][0][:4] == [str(binary[0]), "decrypt", "--sender-pubkey", "e" * 64]
+    assert calls[1][0][4] == "encrypted-fixture"
+    assert calls[2][0] == [str(binary[0]), "verify"]
+    assert calls[3][0][:4] == [str(binary[0]), "decrypt", "--sender-pubkey", OPERATOR]
+    assert calls[3][0][4] == "encrypted-rumor-fixture"
+    assert calls[1][1] == calls[3][1] == b""
     assert "NOSTR_SECRET_KEY" not in calls[0][2]
     assert calls[1][2]["NOSTR_SECRET_KEY"] == "test-only-bunker-configuration"
+    assert "NOSTR_SECRET_KEY" not in calls[2][2]
     assert all("THERMAL_DATABASE_URL" not in env for _, _, env in calls)
     assert all("test-only-bunker-configuration" not in arg for argv, _, _ in calls for arg in argv)
+
+
+def test_nak_seal_signature_failure_never_decrypts_rumor(binary, monkeypatch):
+    monkeypatch.setenv("NOSTR_SECRET_KEY", "fixture")
+    calls = []
+    def run(argv, *_args, **_kwargs):
+        calls.append(argv)
+        if len(calls) == 2:
+            return signed_seal()
+        if len(calls) == 3:
+            raise m.Refused("Nostr cryptographic verification failed")
+        return b""
+    with pytest.raises(m.Refused, match="verification"):
+        m.NakDecoder(*binary, runner=run).decode(signed_wrap(), RECIPIENT)
+    assert len(calls) == 3
+
+
+def test_nak_rejects_raw_rumor_author_mismatch(binary, monkeypatch):
+    monkeypatch.setenv("NOSTR_SECRET_KEY", "fixture")
+    calls = []
+    def run(argv, *_args, **_kwargs):
+        calls.append(argv)
+        if len(calls) == 2:
+            return signed_seal()
+        if len(calls) == 4:
+            return m.canonical(event(operator=OTHER))
+        return b""
+    with pytest.raises(m.Refused, match="author"):
+        m.NakDecoder(*binary, runner=run).decode(signed_wrap(), RECIPIENT)
+    assert len(calls) == 4
+
+
+def test_nak_rejects_nonempty_seal_tags_before_seal_verify(binary, monkeypatch):
+    monkeypatch.setenv("NOSTR_SECRET_KEY", "fixture")
+    calls = []
+    def run(argv, *_args, **_kwargs):
+        calls.append(argv)
+        return signed_seal(tags=[["p", RECIPIENT]]) if len(calls) == 2 else b""
+    with pytest.raises(m.Refused, match="seal tags"):
+        m.NakDecoder(*binary, runner=run).decode(signed_wrap(), RECIPIENT)
+    assert len(calls) == 2
+
+
+def test_signed_rumor_is_not_accepted(binary, monkeypatch):
+    monkeypatch.setenv("NOSTR_SECRET_KEY", "fixture")
+    signed = {**event(), "sig": "0" * 128}
+    calls = []
+    def run(argv, *_args, **_kwargs):
+        calls.append(argv)
+        if len(calls) == 2:
+            return signed_seal()
+        if len(calls) == 4:
+            return m.canonical(signed)
+        return b""
+    with pytest.raises(m.Refused, match="unsigned"):
+        m.NakDecoder(*binary, runner=run).decode(signed_wrap(), RECIPIENT)
 
 
 def test_nak_verification_failure_never_unwraps(binary, monkeypatch):
@@ -625,7 +695,8 @@ def test_modified_outer_content_rejected_before_crypto_subprocess(binary, monkey
 def test_nak_multi_document_decryption_output_is_rejected(binary, monkeypatch):
     monkeypatch.setenv("NOSTR_SECRET_KEY", "fixture")
     def run(argv, *_args, **_kwargs):
-        return b"" if argv[-1] == "verify" else m.canonical(event()) + b"\n" + m.canonical(event())
+        return (b"" if argv[-1] == "verify"
+                else signed_seal() + b"\n" + signed_seal())
     with pytest.raises(m.Refused, match="document"):
         m.NakDecoder(*binary, runner=run).decode(signed_wrap(), RECIPIENT)
 

@@ -171,3 +171,24 @@ Sources reviewed: upstream [v0.20.7 release](https://github.com/fiatjaf/nak/rele
 [tagged encryption CLI](https://github.com/fiatjaf/nak/blob/v0.20.7/encrypt_decrypt.go),
 [tagged signer settings](https://github.com/fiatjaf/nak/blob/v0.20.7/main.go)
 and [NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md).
+
+## September 24 stricter-decoder follow-up
+
+The source-only thermal decoder no longer trusts `nak gift unwrap` to rewrite
+the rumor author. It separately verifies both signed layers and rejects an
+original unsigned rumor whose author differs from the verified seal signer.
+The existing release-pinned harness was preserved and its forged-author check
+now requires refusal, rather than successful rebinding. On this host, all
+eight disposable-key checks passed against the same exact v0.20.7 digest;
+175 focused confirmation, qualification, client-key, receipt and disposable
+PostgreSQL journal tests passed. The earlier operator-submitted receipt and CI result above are
+historical evidence for the former decoder, not proof of this new source
+revision. No production collector or keyer was activated.
+
+The new decoder uses two `nak verify` and two `nak decrypt` children. Only the
+decrypt children receive the configured signer and optional NIP-46 client
+identity; neither receives the database credential. Because this nak CLI takes
+encrypted payloads as positional arguments, local process-list confidentiality
+is an additional production review gate. Actual household bunker operation,
+signed operator inbox routes, relay delivery, restricted journal readback and
+an attended trial remain open.

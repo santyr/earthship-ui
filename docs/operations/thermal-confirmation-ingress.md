@@ -1,6 +1,6 @@
 # Scoped thermal confirmation ingress
 
-**Status: source-only; not deployed or cryptographically/database-qualified on the household host.**
+**Status: source-only; not deployed or end-to-end bunker/relay/database-qualified on the household host.**
 The new module is `openhab/scripts/thermal_confirmation.py`. Its tests live in
 `tests/completion/test_thermal_confirmation.py`. Nothing enables a service,
 subscribes to a relay, sends a message, changes an Item, runs a control, promotes
@@ -19,22 +19,36 @@ sender, not the ephemeral outer wrapper author, is checked. Identity-addressed
 NIP-17 is supported; NIP-04 and decoupled-key-addressed routing are not enabled.
 
 Cryptographic work is delegated to an explicitly selected, SHA-256-pinned `nak`
-binary. The adapter first runs `nak verify` on the original wrapper, then
-`nak gift unwrap`. The required upstream contract is that unwrap verifies the
-seal and derives the output rumor author from the authenticated seal author.
-The adapter additionally checks canonical event hashes, types, recipient, sender,
-and exactly one prompt reference. The approved binary must be qualified against
-this contract before deployment. Unit-test doubles are **not** proof of actual
-Schnorr verification, NIP-44 decryption, bunker behavior, or relay compatibility.
+binary. The source-only decoder now verifies the original wrapper signature,
+decrypts its seal, verifies the seal signature, decrypts the raw rumor, and
+requires the rumor's original author to equal the verified seal author. It
+does **not** rely on `nak gift unwrap` rewriting the returned author's identity.
+It additionally checks canonical event hashes, types, recipient, sender and
+exactly one prompt reference. The exact binary must be qualified against this
+contract before deployment. Unit-test doubles are **not** proof of actual
+Schnorr verification, NIP-44 decryption, bunker behavior or relay compatibility.
 
 The `NOSTR_SECRET_KEY` environment setting is mandatory: there is no fallback to
 nak's machine-default identity. It may identify an already configured supported
 keyer. Credentials are never put in command arguments, acknowledgements, or
 forwarded diagnostics. The crypto child does not receive the PostgreSQL DSN.
-The two nak subprocesses have bounded time/output and fail closed. Nak itself may
-consult its configured network/keyer; no real keyer was invoked in local tests.
+The two verification and two decryption subprocesses have bounded time/output
+and fail closed. `nak decrypt` accepts ciphertext positionally, so the two
+encrypted payloads and public sender keys are briefly visible in the host
+process list. Local process-list confidentiality must be reviewed before
+collector activation. No household keyer was invoked by the disposable test.
 
-## Household nak inventory and qualification blocker
+September 24 source-only follow-up: the installed `/home/sat/.local/bin/nak`
+is now v0.20.7, regular mode `0755`, digest
+`ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e`.
+The updated disposable-key harness passed a valid round-trip and seven
+negative checks against that exact binary, including rejection of a raw rumor
+author different from the verified seal author. No relay, household key,
+journal, service or control was used. This is local crypto behavior evidence,
+not a bunker/relay/collector deployment pass. The v0.18.2 inventory and
+blockers below are retained as historical evidence, not current host state.
+
+## Historical v0.18.2 inventory and qualification blocker
 
 On September 22, 2026, Sat reported:
 
@@ -49,10 +63,10 @@ On September 22, 2026, Sat reported:
 This is supplied host inventory, not a remotely executed binary qualification.
 The digest is recorded as **unqualified**, not an approved ingestion pin.
 
-Two independent blockers remain:
+At that v0.18.2 checkpoint, two independent blockers remained:
 
 1. Mode `0775` permits group writes. The decoder rejects group/world-writable
-   executables even when their digest matches. As `sat`, remove that permission:
+   executables even when their digest matches. The then-proposed repair was:
 
    ```bash
    chmod 755 /home/sat/.local/bin/nak
@@ -76,7 +90,7 @@ The tag-source review does not establish that the reported binary was built
 from those exact source bytes; it establishes why this supplied build cannot
 be approved on the available evidence.
 
-The next crypto qualification must use a separately reviewed build or adapter
+The next crypto qualification from that checkpoint required a separately reviewed build or adapter
 that verifies the seal and authenticates the returned sender. Exercise genuine
 valid and invalid messages with disposable keys before granting it production
 journal access. Do not replace the working binary underneath unrelated
@@ -179,8 +193,9 @@ records. Use a connection with bounded connection/query/lock timeouts and verify
 that the existing append-only schema, restricted role, and backup are qualified.
 Do not deploy an incompatible thermal runtime/model pair to obtain this module.
 
-Only after replacing or separately qualifying the crypto dependency (the reported
-v0.18.2 build above is refused), an attended invocation is below. Supply credentials
+Only after the current decoder and configured household keyer, routes, private
+storage and restricted journal are separately qualified, an attended invocation
+is below. The old v0.18.2 build above remains refused. Supply credentials
 through an existing private environment rather than pasted in the command:
 
 ```bash

@@ -28,6 +28,7 @@ from zoneinfo import ZoneInfo
 UTC = timezone.utc
 DENVER = ZoneInfo("America/Denver")
 MAX_INPUT = 65536
+MAX_SEAL = 32768
 MAX_RUMOR = 16384
 MAX_AGE = timedelta(hours=48)
 # Operator-reported v0.18.2 binary. Its tagged unwrap implementation lacks
@@ -129,6 +130,8 @@ def validate_event(event, *, kind: int, signed: bool):
     if signed and (not isinstance(event.get("sig"), str)
                    or re.fullmatch(r"[0-9a-f]{128}", event["sig"]) is None):
         raise Refused("invalid signature representation")
+    if not signed and "sig" in event:
+        raise Refused("rumor must be unsigned")
     if event_id(event) != event["id"]:
         raise Refused("event hash mismatch")
     return event
@@ -320,11 +323,11 @@ def run_bounded(argv: list[str], payload: bytes, env: dict[str, str], *,
 
 
 class NakDecoder:
-    """Trust boundary: nak verifies the outer signature AND authenticated seal.
+    """Verify both signed layers, then bind the raw rumor to the seal author.
 
-    The supported `gift unwrap` contract sets rumor.pubkey from seal.pubkey and
-    recomputes rumor.id. Qualify the approved binary against the runbook before
-    production. No generic caller-supplied executable arguments are accepted.
+    Do not rely on `gift unwrap`: some builds rewrite rumor authors instead of
+    exposing mismatches. Qualify the exact pinned nak binary and its NIP-44
+    decrypt contract before production. No caller-supplied commands are used.
     """
     def __init__(self, executable: Path, expected_sha256: str,
                  *, runner: Callable = run_bounded):
@@ -365,9 +368,23 @@ class NakDecoder:
         client_key = os.environ.get("NOSTR_CLIENT_KEY")
         if client_key:
             identity_environment["NOSTR_CLIENT_KEY"] = client_key
-        clear = self.runner([str(self.executable), "gift", "unwrap"], payload,
-                            identity_environment, limit=MAX_RUMOR)
-        return validate_event(strict_json(clear, MAX_RUMOR), kind=14, signed=False)
+        # nak decrypt takes its ciphertext positionally. This reveals only
+        # encrypted payloads to local process inspection, but the collector
+        # still requires a separate host confidentiality review before use.
+        seal_clear = self.runner([str(self.executable), "decrypt", "--sender-pubkey",
+                                  wrap["pubkey"], wrap["content"]], b"",
+                                 identity_environment, limit=MAX_SEAL)
+        seal = validate_event(strict_json(seal_clear, MAX_SEAL), kind=13, signed=True)
+        if seal["tags"]:
+            raise Refused("seal tags must be empty")
+        self.runner([str(self.executable), "verify"], canonical(seal) + b"\n", environment)
+        rumor_clear = self.runner([str(self.executable), "decrypt", "--sender-pubkey",
+                                   seal["pubkey"], seal["content"]], b"",
+                                  identity_environment, limit=MAX_RUMOR)
+        rumor = validate_event(strict_json(rumor_clear, MAX_RUMOR), kind=14, signed=False)
+        if rumor["pubkey"] != seal["pubkey"]:
+            raise Refused("rumor author is not authenticated seal author")
+        return rumor
 
 
 def resolve_reply(content: str, signed_at: datetime):
