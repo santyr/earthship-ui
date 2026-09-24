@@ -57,3 +57,16 @@ matching the read-only qualified lifecycle report. Validation passed all 849
 analytics tests, 1,696 UI tests, production build and six Energy browser checks
 including the Lenovo modal overflow check. Winter, SoH, observed curtailment
 and AC-load fields remain pending their separate evidence gates.
+
+September 23 evening PV-day correction: the Solar_PV Energy UI reader had
+selected `daily_pv_kwh` snapshots with `valid_for >=` the start of the
+current Denver day. At local midnight this admitted yesterday's forecast,
+whose end timestamp equals that start. A read-only hourly replay over the
+preceding seven days found 21 wrong-day selections among 169 origins, all in
+the early local-day hours. The reader now requires `valid_for` to equal the
+*next* local midnight, calculated as a calendar date rather than adding a
+fixed 24 hours; spring/fall DST boundaries are tested. The same historical
+replay selects today's row at all 169 origins without a missing result. The
+Energy modal labels that field “Today's PV forecast.” This corrects target-day
+selection and presentation, not the forecast's meteorological accuracy or
+other pending qualified-energy fields.

@@ -41,6 +41,7 @@ describe('EnergyAnalyticsDetail observational presentation', () => {
     expect(container.textContent).toContain('not added to observed EFC');
     expect(screen.getByText('Awaiting qualified AC day')).toBeTruthy();
     expect(screen.getByText('Discharge')).toBeTruthy();
+    expect(screen.getByText("Today's PV forecast")).toBeTruthy();
     expect(screen.getByText('Qualified winter analysis is pending.')).toBeTruthy();
     expect(screen.queryByText('State of health')).toBeNull();
   });

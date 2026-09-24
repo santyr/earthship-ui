@@ -166,7 +166,7 @@
         <section>
           <h3>Forecast</h3>
           <dl>
-            <div><dt>PV forecast day</dt><dd>{metric(result.forecast.pv24hKwh, ' kWh')}</dd></div>
+            <div><dt>Today's PV forecast</dt><dd>{metric(result.forecast.pv24hKwh, ' kWh')}</dd></div>
             {#if result.forecast.nextMorningSocPct !== null}<div><dt>Next morning SoC</dt><dd>{metric(result.forecast.nextMorningSocPct, '%')}</dd></div>{/if}
             {#if result.forecast.fullToday !== null}<div><dt>Full today</dt><dd>{yesNo(result.forecast.fullToday)}</dd></div>{/if}
             {#if result.forecast.fullTomorrow !== null}<div><dt>Full tomorrow</dt><dd>{yesNo(result.forecast.fullTomorrow)}</dd></div>{/if}
