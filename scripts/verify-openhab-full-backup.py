@@ -18,6 +18,9 @@ import tempfile
 import time
 import uuid
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from private_receipt import save_private_json
+
 
 def fingerprint_query(schema, table):
     for name in (schema, table):
@@ -54,10 +57,7 @@ def main():
         return result.stdout
 
     def save(name, value):
-        body = json.dumps(value, indent=2, sort_keys=True) + '\n'
-        patch = '*** Begin Patch\n*** Add File: ' + str(dest / name) + '\n'
-        patch += ''.join('+' + line + '\n' for line in body.splitlines()) + '*** End Patch\n'
-        run(['apply_patch'], data=patch.encode())
+        save_private_json(dest, name, value)
 
     sys.path.insert(0, '/home/sat/Solar_PV/analytics/src')
     from earthship_energy.db import parse_openhab_jdbc_config

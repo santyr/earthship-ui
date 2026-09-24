@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Attended, private, networkless OpenHAB recovery test. Never deploys to production.
 
-Uses the already verified database recovery point; captures current runtime files.
-Those two recovery times are explicitly NOT an atomic whole-system snapshot.
+Uses an explicitly selected verified database point and captures current
+runtime files. Those two recovery times are NOT an atomic whole-system snapshot.
 """
+import argparse
 import hashlib
 import importlib.util
 import json
@@ -18,10 +19,11 @@ import tempfile
 import time
 import uuid
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from private_receipt import save_private_json
+
 ROOT = Path('/home/sat/backups/earthship-energy')
-DATABASE = ROOT / 'full-restore-0lnrkogj'
 IMAGE = 'openhab/openhab@sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f0351e471a2e938d6c3c'
-PATCH = '/home/sat/.codex/tmp/arg0/codex-arg0eauJfY/apply_patch'
 
 
 def archive_fingerprints(path):
@@ -50,6 +52,13 @@ def archive_fingerprints(path):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--database-recovery-point', type=Path, required=True,
+                        help='explicit private full-restore-* directory under the established backup root')
+    args = parser.parse_args()
+    database = args.database_recovery_point.resolve(strict=True)
+    if database.parent != ROOT or not re.fullmatch(r'full-restore-[a-zA-Z0-9_-]+', database.name):
+        parser.error('database recovery point must be under the private backup root')
     os.umask(0o077)
     if shutil.disk_usage(ROOT).free < 40 * 1024**3:
         raise RuntimeError('40 GiB free disk space required')
@@ -58,7 +67,7 @@ def main():
     log = (dest / 'commands.log').open('xb')
     containers = []
     marker = uuid.uuid4().hex
-    report = {'status': 'incomplete', 'database_recovery_point': str(DATABASE),
+    report = {'status': 'incomplete', 'database_recovery_point': str(database),
               'atomic_system_snapshot': False, 'integrated_jdbc_boot_verified': False,
               'hardware_validation': False, 'external_services_restored': False,
               'omitted_rebuildable_userdata': ['tmp', 'cache', '.cache', 'backups', '*.log'],
@@ -72,10 +81,7 @@ def main():
         return p.stdout
 
     def save(name, value):
-        body = json.dumps(value, indent=2, sort_keys=True)
-        patch = '*** Begin Patch\n*** Add File: ' + str(dest / name) + '\n'
-        patch += ''.join('+' + line + '\n' for line in body.splitlines()) + '*** End Patch\n'
-        run([PATCH], data=patch.encode())
+        save_private_json(dest, name, value)
 
     def container(args):
         cid = run(['docker', 'run', '-d', '--label', 'hex.recovery=' + marker,
@@ -112,8 +118,10 @@ def main():
         for name, _, _ in scopes:
             with (dest / (name + '.tar')).open('rb') as f:
                 report['runtime_archive_sha256'][name] = hashlib.file_digest(f, 'sha256').hexdigest()
-        db_manifest = json.loads((DATABASE / 'backup-manifest.json').read_text())
-        with (DATABASE / 'openhab.dump').open('rb') as f:
+        db_manifest = json.loads((database / 'backup-manifest.json').read_text())
+        if db_manifest.get('status') != 'restore_verified' or db_manifest.get('scope') != 'full_database':
+            raise RuntimeError('selected database point is not restore-verified')
+        with (database / 'openhab.dump').open('rb') as f:
             if hashlib.file_digest(f, 'sha256').hexdigest() != db_manifest['archive_sha256']:
                 raise RuntimeError('database archive hash mismatch')
         roles = run(['sudo', '-n', '-u', 'postgres', 'pg_dumpall', '--roles-only'])
@@ -131,7 +139,7 @@ def main():
         else:
             raise RuntimeError('database startup timeout')
         query(pg, roles.decode(), 'postgres')
-        with (DATABASE / 'openhab.dump').open('rb') as f:
+        with (database / 'openhab.dump').open('rb') as f:
             run(['docker', 'exec', '-i', pg, 'pg_restore', '--exit-on-error',
                  '--create', '-U', 'postgres', '-d', 'postgres'], stdin=f)
         print('database_restored_with_owners_and_acls=true', flush=True)

@@ -796,6 +796,13 @@ from role/configuration recovery. The scheduled monitor now selects the new
 verified archive (Solar_PV `6f5d914`); exact deployed unit readback and active
 weekly timer verified, with no manual job or DM. Off-host recovery remains
 deferred and Actionable.
+September23 follow-up removed a vanished, session-local `apply_patch`
+executable from the full OpenHAB recovery script and the analogous PATH-only
+dependency from the full-database verifier. Both now create exclusive,
+mode-0600 JSON receipts inside their owned mode-0700 private backup directory;
+15 focused recovery/receipt tests and five subtests pass. This repairs the
+rehearsal tooling but is **not** a new full backup, restore run or off-host
+recovery proof.
 
 Preserve stable resource IDs and exactly one configuration provider per resource.
 Start with observational resources; qualify restore/restart/rollback before
