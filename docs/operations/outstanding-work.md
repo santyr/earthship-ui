@@ -17,6 +17,12 @@ then installed while the service was idle; live/source SHA-256 both equal
 `47d8df4b77bdb71789dac244ac6fb0e261069e0db78c88e34981a2b5028eef60`,
 with the prior installed script privately retained. Its next natural execution
 is September 25 06:40; do not claim live post-fix scoring before then.
+The September 23 daily temperature window had 86,358.799925 of 86,400
+qualified seconds: one real 41.200075-second receipt gap from 07:11:04.900488
+to 07:11:46.100563 MDT. A repeat read through the restricted, read-only
+qualified history path reproduced the skip. The 24 hourly targets were
+individually covered; they do not prove complete daily coverage. Do not fill
+the gap with a held numeric Item or loosen the complete-day learning gate.
 
 The operator-approved, post-writer file-provider transfers of
 `Predicted_Curtailment_Hours`, `Predicted_PV_Today_kWh`,
