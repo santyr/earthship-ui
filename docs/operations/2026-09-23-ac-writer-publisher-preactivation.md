@@ -27,6 +27,17 @@ the forensic transform-stage history. A retention/exclusion decision needs an
 explicit recovery and source-provenance review before changing the file-owned
 JDBC strategy.
 
-The real restricted credentials lack the new-table grants. Read-only inspection showed `energy_power_reader` has no SELECT on `energy_analytics.daily_ac_snapshots`; `energy_power_writer` has no SELECT/INSERT on that table, no USAGE on its identity sequence, and no SELECT on exact AC source table `public.item0653`. The existing writer does have SELECT on `Power_Evidence_JSON` (`public.item0648`) and `public.items`. An attempted exact-scope production grant was rejected by the approval gate before command execution. A fresh readback confirmed all five missing privileges remain false; there was no partial grant or workaround.
-
-The proposed least-privilege additions are: SELECT on `energy_analytics.daily_ac_snapshots` for `energy_power_reader`; SELECT and INSERT on that table, USAGE on `energy_analytics.daily_ac_snapshots_snapshot_id_seq`, and SELECT on `public.item0653` for `energy_power_writer`. No table UPDATE/DELETE/TRUNCATE, schema DDL, raw-table write, hardware-control or wider role grant is requested. Explicit operator approval for these exact production privilege changes is required before reattempting them. Even after grants, AC publication remains off until the first complete day after September 25 06:00Z and the remaining source fault/restart/retention checks are qualified.
+The initial restricted credentials lacked the new-table grants. The first
+exact-scope attempt was rejected before execution and confirmed to make no
+partial change. The operator subsequently approved only those grants. On
+September 23 at approximately 19:38 MDT, a single PostgreSQL transaction
+granted SELECT on `energy_analytics.daily_ac_snapshots` to
+`energy_power_reader`; SELECT and INSERT on that table, USAGE on
+`energy_analytics.daily_ac_snapshots_snapshot_id_seq`, and SELECT on the exact
+AC source table `public.item0653` to `energy_power_writer`. Fresh readback
+found all five approved privileges true, UPDATE/DELETE on the AC table and
+INSERT on the raw source table false, and zero AC daily rows. No writer,
+publisher, table UPDATE/DELETE/TRUNCATE, raw-source write or hardware control
+was activated. AC publication remains off until the first complete day after
+September 25 06:00Z and the remaining source fault/restart/retention checks
+are qualified.

@@ -60,10 +60,10 @@ The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-p
 records a default-off daily command and opt-in v4 publisher path pushed to
 Solar_PV, with 838 analytics tests passing. The live service still emits v3.
 An 828-row AC stream audit has one startup barrier and no sequence gaps, but
-not full-day or fault/restart evidence. Four scoped restricted-role
-grants are required for the new table, identity sequence and `item0653`; the
-approval gate rejected that production privilege change, and readback proves
-no partial grant. Do not retry without explicit operator approval.
+not full-day or fault/restart evidence. The operator subsequently approved
+the four exact-scope restricted-role grants for the new table, identity
+sequence and `item0653`; they are now applied and independently read back.
+The AC table remains empty and no writer or v4 publisher was activated.
 
 The first natural thermal shadow run after the installed-v4 confirmation-CLI
 hardening succeeded at 15:51 MDT. Its verified private forcing archive exactly
@@ -77,8 +77,8 @@ tested without activating an AC publisher. It accepts a distinct observed
 inverter-output day with coverage, revision, cutover and topology provenance,
 while keeping the existing v3 load and DC/AC balance fields withheld. The
 first complete AC day is not due until September25 06:00Z. Long-run,
-fault/restart and retention evidence, restricted-role grants and explicit
-v4 publication activation are still required.
+fault/restart and retention evidence and explicit v4 publication activation
+are still required; the restricted-role grant gate is complete.
 
 The [AC-day revision schema](2026-09-23-ac-day-revision-schema.md) is now live
 and empty after a backed-up, isolated-test-qualified additive migration. The
@@ -353,9 +353,16 @@ an independent SQL comparison found all 790 original rows again. The guard
 now requires four stable history-preservation reads after asynchronous JDBC
 settling. At 19:32 MDT a third attended transfer reached file ownership with
 exact pre-transfer state readback and all prior rows under IDs 563/564/568.
-This is provisional: do not call the file cutover complete until a natural
-48/7/7 binding update has been observed under file ownership with Item
-identities and prior rows preserved.
+The first scheduled binding fetch after transfer at 19:51:29 MDT emitted a
+new 48/7/7 series under the exact file-owned Items and links. The forecast
+Thing stayed ONLINE, the ownership inventory reported zero issues, JDBC
+IDs remained 563/564/568, and all 790 pre-transfer rows were still present;
+`Forecast_Temp` gained one row. The two high/low scalar states did not change
+on this natural series fetch, so the persisted-value restoration is a known
+scalar-state semantic difference from the pre-transfer snapshot, not evidence
+of a fresh scalar update. No live rule or UI direct consumer uses those two
+scalars; the UI uses the separately verified daily forecast JSON. File-provider
+and time-series writer cutover is verified, without claiming scalar freshness.
 
 ### Explicit active goal: graduate the thermal model from shadow
 

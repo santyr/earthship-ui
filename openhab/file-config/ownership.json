@@ -25,6 +25,21 @@
       "state_writer": "openmeteo:air-quality:local:aq:forecastHourly#us-aqi-as-string"
     },
     {
+      "kind": "item", "id": "Forecast_Temp", "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items",
+      "state_writer": "openmeteo:forecast:local:site:forecastHourly#temperature"
+    },
+    {
+      "kind": "item", "id": "Forecast_Daily_High", "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items",
+      "state_writer": "openmeteo:forecast:local:site:forecastDaily#temperature-max"
+    },
+    {
+      "kind": "item", "id": "Forecast_Daily_Low", "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items",
+      "state_writer": "openmeteo:forecast:local:site:forecastDaily#temperature-min"
+    },
+    {
       "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "verified",
       "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
       "state_writer": "forecast-json.service"
@@ -48,6 +63,21 @@
       "kind": "link", "id": "Forecast_AQI -> openmeteo:air-quality:local:aq:forecastHourly#us-aqi-as-string",
       "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-aqi.items", "destination": "/etc/openhab/items/openmeteo-forecast-aqi.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_Temp -> openmeteo:forecast:local:site:forecastHourly#temperature",
+      "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_Daily_High -> openmeteo:forecast:local:site:forecastDaily#temperature-max",
+      "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_Daily_Low -> openmeteo:forecast:local:site:forecastDaily#temperature-min",
+      "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
     },
     {
       "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",
