@@ -27,6 +27,36 @@ def canonical_definition(endpoint, entry, fields):
     return definition
 
 
+def verify_number_undef(run, cid, header, marker):
+    """Exercise a disposable Number Item inside the disconnected runtime."""
+    name = 'Hex_Isolated_Undef_' + marker[:12]
+    endpoint = 'http://127.0.0.1:8080/rest/items/' + name
+
+    def request(method, suffix='', body=None, content_type=None):
+        command = ['docker', 'exec', '-i', cid, 'curl', '-fsS', '--max-time', '10',
+                   '-X', method, '-H', '@-', endpoint + suffix]
+        if body is not None:
+            command += ['-H', 'Content-Type: ' + content_type, '--data-binary', body]
+        return run(command, data=header)
+
+    created = False
+    try:
+        definition = json.dumps({'name': name, 'type': 'Number',
+                                 'label': 'Isolated UNDEF qualification'})
+        request('PUT', body=definition, content_type='application/json')
+        created = True
+        request('PUT', '/state', '42', 'text/plain')
+        if request('GET', '/state').decode().strip() != '42':
+            raise RuntimeError('isolated Number Item did not accept a numeric state')
+        request('PUT', '/state', 'UNDEF', 'text/plain')
+        if request('GET', '/state').decode().strip() != 'UNDEF':
+            raise RuntimeError('isolated Number Item did not accept UNDEF')
+        return True
+    finally:
+        if created:
+            request('DELETE')
+
+
 def main():
     os.umask(0o077)
     directory = Path(sys.argv[1]).resolve(strict=True)
@@ -74,7 +104,8 @@ def main():
                 'exec /openhab/start.sh server']
     cid = run(command).decode().strip()
     result = {'status': 'incomplete', 'database_read_only': readonly == 'on', 'hardware_connected': False,
-              'host_path_aliases': True, 'container': cid}
+              'host_path_aliases': True, 'container': cid,
+              'numeric_undef_publication_verified': False}
     try:
         isolated = json.loads(run(['docker', 'inspect', cid]))[0]
         host = isolated['HostConfig']
@@ -145,7 +176,12 @@ def main():
         services = json.loads(run(['docker', 'exec', '-i', cid, 'curl', '-fsS', '--max-time', '30',
                                    '-H', '@-', 'http://127.0.0.1:8080/rest/persistence'], data=header))
         result['persistence_services'] = [x.get('id') for x in services]
-        result['status'] = 'integrated_boot_tested' if result.get('observational_state_matches_backup') and 'jdbc' in result['persistence_services'] else 'booted_without_qualified_state_recovery'
+        result['numeric_undef_publication_verified'] = verify_number_undef(run, cid, header, marker)
+        result['status'] = ('integrated_boot_tested'
+                            if result.get('observational_state_matches_backup')
+                            and 'jdbc' in result['persistence_services']
+                            and result['numeric_undef_publication_verified']
+                            else 'booted_without_qualified_state_recovery')
     finally:
         with (receipt / 'runtime-private.log').open('xb') as f:
             subprocess.run(['docker', 'logs', cid], stdout=f, stderr=f)
