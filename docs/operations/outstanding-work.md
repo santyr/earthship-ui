@@ -551,6 +551,15 @@ file and restored the original managed Item/link. Its owned container was
 removed. This qualifies provider syntax and reversibility only; production
 price Item/link/Group ownership, JDBC history and feed are unchanged. A
 bounded history/restart qualification is still required before any live cutover.
+The separate disconnected OpenHAB/PostgreSQL rehearsal then persisted one
+synthetic numeric Bitcoin price, restored the same state and exact JDBC history
+prefix after managed rollback, forward file transfer, hot reload and full JVM
+restart. Both owned disposable containers and their test database were
+removed. The first attempt exposed a harness-only string-versus-number JDBC
+comparison; the completed rerun used numeric equivalence and exercised the
+entire path. This is isolated recovery evidence, not a backup or verification
+of the production Item34 history or the natural Exec writer under file
+ownership. The live Bitcoin feed remains managed and unchanged.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.

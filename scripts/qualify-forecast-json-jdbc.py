@@ -29,6 +29,10 @@ ITEMS = {
 }
 
 
+def same_state(actual, expected):
+    return actual == expected
+
+
 def item(container, header, name, *, present=True, value=None, seconds=120):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
@@ -38,7 +42,7 @@ def item(container, header, name, *, present=True, value=None, seconds=120):
                 return True
             if present and code == 200:
                 state = json.loads(payload)
-                if state.get('editable') is False and (value is None or state.get('state') == value):
+                if state.get('editable') is False and (value is None or same_state(state.get('state'), value)):
                     return True
         except (RuntimeError, ValueError):
             pass
@@ -57,11 +61,13 @@ def history(container, header, name):
     return rows
 
 
-def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-json.items'):
+def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-json.items',
+         types=None, setup_sources=()):
+    types = types or {name: 'String' for name in items}
     definitions = {}
     for name in items:
         live = oh.get('/items/' + name + '?metadata=.*')
-        if live.get('editable') not in (True, False) or live.get('type') != 'String':
+        if live.get('editable') not in (True, False) or live.get('type') != types[name]:
             raise RuntimeError('production Item preflight failed: ' + name)
         definitions[name] = {key: live[key] for key in ('name', 'type', 'label')}
         for key in ('category', 'tags', 'groupNames'):
@@ -90,6 +96,8 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
             aqi.run(['docker', 'exec', container, 'sh', '-c',
                      'while [ ! -f /tmp/bootstrap-ready ]; do sleep 1; done'])
             database.stage(container)
+            for relative_path, body in setup_sources:
+                aqi.install(container, relative_path, body)
             aqi.install(container, 'items/' + source_path.name,
                         source_path.read_bytes())
             aqi.install(container, 'persistence/jdbc.persist',
@@ -142,7 +150,7 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                 for _ in range(45):
                     try:
                         rows = history(container, header, name)
-                        if rows and rows[-1].get('state') == value:
+                        if rows and same_state(rows[-1].get('state'), value):
                             before[name] = rows
                             break
                     except (RuntimeError, ValueError):
@@ -167,7 +175,7 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                     code, payload = aqi.request(container, header, '/items/' + name)
                     if code == 200:
                         actual = json.loads(payload)
-                        if actual.get('editable') is True and actual.get('state') == value:
+                        if actual.get('editable') is True and same_state(actual.get('state'), value):
                             break
                     time.sleep(2)
                 else:
