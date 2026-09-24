@@ -101,3 +101,18 @@ nextEligibleAt=20:23:00.013Z. Both pump Items were OFF at readback and the
 rule was IDLE/NONE. This is controller/Item evidence for a normal full cycle,
 not independent flow measurement and not a test of the early-OFF or lost-timer
 fallback. No manual run or test command was issued.
+
+## September 23 natural daylight cutoff
+
+Read-only September 24 JDBC reconstruction under the final deployed rule hash
+`312cf24ceba5c63e30c4ecd0104bbf3bcf646f1e203b8c6c9c964e58dd7b84df`
+found a South cycle completed at 18:43 MDT, with its pump switched OFF and
+`SouthOutlet_LastCycle` advanced. Minute status remained `cooldown_wait` through
+18:55, then changed to `after_dark,sunElev=-0.1,scheduling=blocked` at 18:56.
+The next eligible cycle was 19:28; minute statuses at 19:26–19:31 all remained
+`after_dark`, and neither persisted pump switch changed between 18:56 and
+20:00. Live rule readback matched the tracked source, had two triggers, and
+was `IDLE/NONE`. This verifies the natural **no-new-cycle after-dark gate**
+under the final revision. The South pump was already OFF when the gate changed,
+so an active-cycle sunset interruption and the early-OFF/lost-callback fallback
+remain unobserved. No pump command or manual rule run was issued by this audit.

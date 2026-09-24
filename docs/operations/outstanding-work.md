@@ -1234,7 +1234,12 @@ and protected-resource rollback remain outstanding.
   no post-release interrupted cycle was manufactured or claimed. A September23
   13:23–13:38 natural East cycle under the final rule hash completed at its
   15-minute deadline with no intervening OFF transition; both pumps ended OFF.
-  The interruption fallback and sunset case remain unobserved.
+  A September24 bounded JDBC review verified the final rule's natural
+  no-new-cycle after-dark gate: South completed at18:43 MDT September23,
+  minute status switched from cooldown to `after_dark` at18:56, remained
+  blocked across the next19:28 eligibility, and neither pump switched ON.
+  Active-cycle sunset interruption and the post-release fallback remain
+  unobserved; no pump was forced to test them.
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
   timestamped UNDEF/NULL/bad states remain invalid rather than being dropped and
   bridged by interpolation/hold.10regressions failed before the fix;118focused
