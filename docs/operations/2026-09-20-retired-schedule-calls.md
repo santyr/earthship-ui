@@ -28,3 +28,15 @@ The exact resulting managed definitions are tracked under
 are not a completed file migration. The next natural 21:00/09:00 executions must
 still be observed to confirm absence of these log errors. Rollback uses the exact
 private before definitions through REST, not re-enabling the retired children.
+
+## Natural execution follow-up — September 24
+
+Read-only JDBC history for `OverrideSwitch` (`items` ID 98, `public.item0098`)
+shows natural OFF transitions at 09:00:02 MDT on September 22 and 23, and ON
+transitions at 21:00:01 MDT on both dates. The surviving September 23 events
+log also records the 21:00 command and the replacement
+`hex_night_load_override` rule's resulting state change. The September 23
+OpenHAB application log has no ERROR or WARN in the 09:00 or 21:00 minute.
+This verifies the scheduled owner path on those natural executions and finds
+no recurrence of the retired-child call errors in the available log window.
+It is not a simulated failure-path, hardware, or whole-service-restart test.

@@ -1022,7 +1022,10 @@ and protected-resource rollback remain outstanding.
   two schedules still called three deliberately disabled child rules. Only those
   references were removed; live readback preserves schedules, OverrideSwitch and
   GoatCamOff actions, other definitions and disabled retirement. Four tests pass;
-  natural next executions remain to be observed. See the
+  read-only JDBC now confirms natural 09:00 OFF and 21:00 ON transitions on
+  September 22 and 23, and the surviving September 23 application log has no
+  ERROR/WARN in either schedule minute. This closes the natural-execution
+  regression check, not restart or hardware qualification. See the
   [repair receipt](2026-09-20-retired-schedule-calls.md).
 - Continuous observational power collection is now enabled with actual cutover
   `2026-09-20T15:18:58.261099Z`; all three new data Things ONLINE, observer ready,
