@@ -17,3 +17,4 @@ def test_prepared_price_item_matches_live_identity_and_link():
     assert module.provider.GROUPS == {'BTC_USD_Price': ['BTC_Price']}
     assert module.provider.BINDING is None
     assert module.provider.FILE_LABELS == {'BTC_USD_Price': 'Bitcoin Price'}
+    assert module.provider.FILE_PATTERNS == {'BTC_USD_Price': '%.0f USD'}

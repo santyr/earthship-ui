@@ -29,6 +29,7 @@ GROUPS = {name: ['gForecast'] for name in CHANNELS}
 BINDING = aqi.BINDING
 BINDING_TARGET = 'openmeteo.jar'
 FILE_LABELS = {}
+FILE_PATTERNS = {}
 FIELDS = ('name', 'type', 'label', 'category', 'tags', 'groupNames')
 
 
@@ -45,6 +46,10 @@ def definitions_match(container, header, originals, *, file_owned):
             return False
         if any((item.get(key) or None) != (expected.get(key) or None)
                for key in FIELDS):
+            return False
+        if (file_owned and name in FILE_PATTERNS
+                and (item.get('stateDescription') or {}).get('pattern')
+                != FILE_PATTERNS[name]):
             return False
         link = matches[0]
         if (link.get('editable') is not (not file_owned)

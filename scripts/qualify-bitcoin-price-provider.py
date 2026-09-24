@@ -20,6 +20,7 @@ provider.TYPES = {'BTC_USD_Price': 'Number'}
 provider.GROUPS = {'BTC_USD_Price': ['BTC_Price']}
 provider.BINDING = None
 provider.FILE_LABELS = {'BTC_USD_Price': 'Bitcoin Price'}
+provider.FILE_PATTERNS = {'BTC_USD_Price': '%.0f USD'}
 
 
 if __name__ == '__main__':

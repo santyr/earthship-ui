@@ -616,6 +616,17 @@ passed with 1,089,962 rows before its two-minute cutoff. The preflight
 explicitly reports `file_transfer:not_qualified`; no price provider or feed
 changed. A private recoverable backup, guarded live handoff, natural writer
 and Group metadata handling remain required.
+The staged `scripts/migrate-bitcoin-price-item.py` adds a read-only `--check`
+and a release-gated `--apply` path. It prepares a private Item34 custom dump
+and JSONDB/REST snapshots, removes an incomplete backup if preparation fails,
+checks an unchanged fixed history prefix, and defines exact managed rollback
+plus a fresh natural Exec receipt gate. `RELEASE_READY` remains false: this
+adapter has **not** transferred the production Item/link. Twelve focused
+tests pass, including refusal before mutation, backup-failure cleanup and
+rollback. The 22:09 MDT live `--check` passed with Item34 and 1,089,985
+historical rows. Before any live `--apply`, review the backup and rollback
+path, verify recovery from the private archive, and keep the Group's managed
+semantic metadata and two-member references intact.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.

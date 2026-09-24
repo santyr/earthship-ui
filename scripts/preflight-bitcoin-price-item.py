@@ -43,7 +43,7 @@ def finite_number(value):
         return False
 
 
-def main():
+def check():
     require(not TARGET.exists() and not TARGET.is_symlink(),
             'Bitcoin price file target already exists')
     source_hash = sha256(SOURCE.read_bytes()).hexdigest()
@@ -96,10 +96,14 @@ def main():
     prefix = history.digest_history(cutoff)
     require(prefix['jdbc_item_id'] == 34,
             'Bitcoin JDBC identity changed')
-    print(json.dumps({'status': 'preflight_passed', 'production_writes': 0,
+    return {'status': 'preflight_passed', 'production_writes': 0,
         'file_transfer': 'not_qualified', 'item': ITEM,
         'managed_group_members': sorted(members),
-        'source_sha256': source_hash, 'history_prefix': prefix}, sort_keys=True))
+        'source_sha256': source_hash, 'history_prefix': prefix}
+
+
+def main():
+    print(json.dumps(check(), sort_keys=True))
 
 
 if __name__ == '__main__':
