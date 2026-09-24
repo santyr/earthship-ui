@@ -1015,8 +1015,13 @@ and protected-resource rollback remain outstanding.
   A naturally unchanged price produced a distinct persisted receipt timestamp.
   These are local output receipts, not provider quote timestamps or execution IDs;
   a read-only Home warning now handles unknown/invalid/stale/mismatched receipts
-  and unchanged-price recovery without extra polling. Failure/restart source
-  qualification and historical coverage remain outstanding; UI status is not
+  and unchanged-price recovery without extra polling. A September24 bounded
+  reconstruction of the natural Java-upgrade incident found 64 consecutive
+  null receipts with a retained price, then a 51-minute receipt gap and
+  matching valid receipt/price recovery after re-enable. This closes observed
+  local-output failure and recovery, not active-Thing restart, execution
+  correlation or provider quote freshness. Historical coverage remains open;
+  UI status is not
   provider quote freshness or a control gate.
   See [deployment evidence](2026-09-10-bitcoin-feed-validation.md).
   The operator subsequently approved normalization; the percent-change Item is

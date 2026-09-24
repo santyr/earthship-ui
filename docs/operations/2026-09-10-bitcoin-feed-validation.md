@@ -214,3 +214,26 @@ followed by a valid value on the next 30-second poll; the latest receipt age
 was approximately30 seconds. This is a recovered transient sample, not a
 stuck-price condition. The incidental `BTC_Price` Item is NULL; the UI's active
 price source is `BTC_USD_Price` with `BTC_Output_Receipt_JSON` freshness.
+
+## September 24 read-only outage-receipt reconstruction
+
+A bounded JDBC read of `item0651` (local output receipts) and Item34 (displayed
+price) reconstructed the natural September 23 Java-upgrade outage. Twelve
+valid receipts ended at 06:35:57 MDT. Sixty-four consecutive `price:null`
+receipts ran from 06:36:26 through 07:07:59; Item34 had **zero** price rows
+in the failure-to-recovery interval and retained its last pre-failure 85456.
+No receipt was persisted from 07:07:59 to 07:59:06, spanning the disabled
+Thing and OpenHAB restart. The last null receipt's embedded local time was
+07:07:59.569; under the existing 90-second UI contract it becomes `stale` at
+07:09:29.569, not refreshed by the retained price. At 07:59:06 a new valid
+receipt coincided with Item34 changing to 85760, followed by a second valid
+receipt and 85765 at 07:59:36. The source-only UI receipt tests cover invalid,
+stale and later recovery states; this historical read did not replay a browser
+at the outage time.
+
+This establishes naturally observed **local-output failure, retained-price and
+post-enable recovery** without injecting a provider fault. It does not provide
+provider quote timestamps, prove every 30-second execution was correlated,
+or qualify an OpenHAB restart while the Exec Thing remained enabled: the Thing
+was disabled during the actual restart. Those narrower restart/coverage claims
+remain open. No script, Item, Thing, credential or poll schedule was changed.
