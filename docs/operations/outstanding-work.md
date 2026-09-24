@@ -16,7 +16,8 @@ fields are expected until their separate evidence gates pass. The compact
 Home SoC chart now joins the Energy and battery-modal charts as a smooth,
 non-stepped curve through actual samples; it only carries its latest value to
 the current clock when a fresh, matching atomic BMS receipt exists. All 1,738
-UI tests and the production build passed, commit `d0796a7` is on `origin/main`,
+UI tests and the production build passed, commits `d0796a7` and `74b54cc`
+are on `origin/main`,
 and the local Vite UI returned HTTP 200.
 
 At the same checkpoint, a read-only exact-forcing thermal rescore found 13
@@ -26,6 +27,9 @@ sets are negative; only three six-hour windows are disjoint. The sole mature
 captured 24-hour result remains the adverse −6.286°F model error. This
 strengthens the shadow-only decision, not a tuning or graduation claim. See the
 [readiness audit](2026-09-24-thermal-historical-operational-readiness.md).
+The 11:56 MDT natural shadow job then exited zero; its live low-confidence,
+no-candidate output exactly matched a verified private 240-row forcing
+archive under the current accepted revision. The timer rescheduled for 13:56.
 
 At 09:42 MDT a fresh full PostgreSQL recovery point, captured after the
 morning Item migrations, passed an isolated 515-table data restore and a

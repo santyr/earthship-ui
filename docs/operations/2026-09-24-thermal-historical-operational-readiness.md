@@ -63,5 +63,13 @@ adverse mature captured pair described above; twelve targets are not due.
 The one-hour sample spans two artifact revisions (twelve old, one current),
 and all scored outputs remain low-confidence. These observations strengthen
 the no-graduation decision but do not isolate a causal coefficient or provide
-an untouched seasonal validation set. The next natural shadow publisher is
-scheduled for 11:55 MDT; this checkpoint did not trigger it or write outcomes.
+an untouched seasonal validation set. This scoring checkpoint did not trigger
+the publisher or write outcomes.
+
+The next natural shadow timer fired at 11:56 MDT and exited zero. Its live
+`Thermal_Model_JSON` has a 17:56:11.975024Z decision time, accepted revision
+`507748cee9ca`, `status=shadow`, low confidence and no candidate schedule.
+The strict archive verifier accepted its exact matching private forcing
+capture with 240 forecast rows. The timer rescheduled for 13:56 MDT. This
+closes a current-artifact publication/capture check, not its future outcome
+scores, action provenance, seasonal holdout or shadow-exit criteria.
