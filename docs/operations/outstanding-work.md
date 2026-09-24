@@ -84,7 +84,10 @@ forecast opt-in flag. Commit `9381e84` passed 73 focused tests and is pushed to
 `7b93eb485d5581f6cdaba841838f6f490636af2c1d2de32067d53513d93d5b37`.
 The previous installed script is recoverable under
 `/home/sat/backups/earthship-energy/forecast-backfill-Ak5IYJ`. No backfill
-export or live forecast run was triggered by this deployment.
+export or live forecast run was triggered by this deployment. A September 24
+read-only call through the installed wrapper and existing private assessment
+environment returned four qualified ending dates, September 20–23, without
+printing values or writing a new dataset.
 
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
