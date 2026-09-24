@@ -57,6 +57,24 @@ describe('history chart option adapter', () => {
     }
   });
 
+  it('shows sparse change-only SoC observations without drawing across long gaps', () => {
+    const option = buildHistoryOption({
+      series: [{ name: 'BMS_SOC', label: 'SoC', color: '#8b5cf6' }],
+      pointsPerSeries: [[
+        { time: 0, state: '85 %' },
+        { time: 60_000, state: '84 %' },
+        { time: 60 * 60_000, state: '83 %' },
+      ]],
+      widthPx: 300,
+    });
+
+    expect(option.series[0].showSymbol).toBe(true);
+    expect(option.series[0].connectNulls).toBe(false);
+    expect(option.series[0].data.map((point) => point[1])).toEqual([85, 84, null, 83]);
+    expect(option.series[0].data[2][0]).toBeGreaterThan(60_000);
+    expect(option.series[0].data[2][0]).toBeLessThan(60 * 60_000);
+  });
+
   it('renders scalar trough history plus a dashed projection through tonight', () => {
     const nowMs = Date.UTC(2026, 6, 18, 12);
     const option = buildHistoryOption({

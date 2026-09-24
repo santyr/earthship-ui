@@ -30,10 +30,17 @@ export function formatHistoryTooltip(params) {
     .join('');
 }
 
-function flattenSegments(segments) {
-  return segments.flatMap((segment) => (
-    segment.map((point) => [point.time, point.value, point.rawValue])
-  ));
+function flattenSegments(segments, { breakGaps = false } = {}) {
+  const data = [];
+  for (const segment of segments) {
+    if (!segment.length) continue;
+    if (breakGaps && data.length) {
+      const previousTime = data.at(-1)[0];
+      data.push([previousTime + (segment[0].time - previousTime) / 2, null, null]);
+    }
+    data.push(...segment.map((point) => [point.time, point.value, point.rawValue]));
+  }
+  return data;
 }
 
 function lineOption(source, data, {
@@ -44,7 +51,9 @@ function lineOption(source, data, {
   return {
     name: name || source.label || source.name,
     type: 'line',
-    showSymbol: false,
+    // Sparse change-only SoC points must remain visible when a gap is broken.
+    showSymbol: source.name === 'BMS_SOC',
+    ...(source.name === 'BMS_SOC' ? { symbolSize: 3 } : {}),
     smooth: false,
     connectNulls: false,
     dimensions: ['time', 'display', 'raw'],
@@ -131,7 +140,7 @@ export function buildHistoryOption({
     } else {
       renderedSeries.push(lineOption(
         source,
-        flattenSegments(prepared.displaySegments),
+        flattenSegments(prepared.displaySegments, { breakGaps: policy.gapPolicy === 'break' }),
         { markPoint },
       ));
     }

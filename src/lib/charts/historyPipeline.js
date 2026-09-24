@@ -177,6 +177,7 @@ function downsampleSegment(points, budget) {
 export function prepareHistorySeries(rows, {
   expectedCadenceMs,
   maxGapMs,
+  gapPolicy = 'continuous',
   allowedUnits,
   widthPx,
   pointBudget,
@@ -190,6 +191,15 @@ export function prepareHistorySeries(rows, {
   const renderBudget = Math.max(1, Math.floor(pointBudget ?? widthPx * 2));
   const fragments = splitAtGaps(raw, gapMs);
   if (fragments.length > renderBudget) throw new HistoryFragmentationError();
+  if (gapPolicy === 'break') {
+    // Keep the original gap boundaries before downsampling. Downsampling a
+    // combined series first could create apparent gaps inside valid segments.
+    const perFragmentBudget = Math.max(1, Math.floor(renderBudget / fragments.length));
+    return {
+      raw,
+      displaySegments: fragments.map((fragment) => downsampleSegment(fragment, perFragmentBudget)),
+    };
+  }
   const display = downsampleSegment(raw, renderBudget);
   return {
     raw,

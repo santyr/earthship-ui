@@ -99,6 +99,22 @@ describe('bounded history pipeline', () => {
     });
   });
 
+  it('keeps change-only history gaps when explicitly requested', () => {
+    const input = [
+      ...rows([85, 84], { start: 0, cadence: 1_000 }),
+      ...rows([83, 82], { start: 10_000, cadence: 1_000 }),
+    ];
+    const result = prepareHistorySeries(input, {
+      expectedCadenceMs: 1_000,
+      gapPolicy: 'break',
+      widthPx: 200,
+    });
+
+    expect(result.displaySegments).toHaveLength(2);
+    expect(result.displaySegments.map((segment) => segment.map((point) => point.value)))
+      .toEqual([[85, 84], [83, 82]]);
+  });
+
   it('leaves numeric step lines byte-for-byte unchanged', () => {
     const input = rows([0, 0, 100, 100]);
     const result = prepareHistorySeries(input, {

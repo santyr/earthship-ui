@@ -17,7 +17,9 @@ const SERIES = new Map([
   ['AmbientWeatherWS2902A_WindGust', { expectedCadenceMs: ONE_MINUTE_MS, allowedUnits: ['', 'mph', 'km/h', 'm/s'] }],
   ['AmbientWeatherWS2902A_RainFallDay', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'in', '″', 'mm'] }],
   ['MPPT60_PV_Power', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'W', 'kW'] }],
-  ['BMS_SOC', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS }],
+  // Numeric SoC persistence is change-only. A long interval between rows is
+  // not proof that the value stayed valid throughout that interval.
+  ['BMS_SOC', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS, gapPolicy: 'break' }],
   ['Predicted_SoC_Trough_Tomorrow', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS }],
   ['BTC_USD_Price', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'USD', '$'] }],
 ]);
@@ -30,5 +32,6 @@ export function getSeriesPolicy(seriesOrName) {
     domain: policy?.domain || 'history',
     expectedCadenceMs: policy?.expectedCadenceMs || FIVE_MINUTES_MS,
     allowedUnits: [...(policy?.allowedUnits || [''])],
+    gapPolicy: policy?.gapPolicy || 'continuous',
   };
 }
