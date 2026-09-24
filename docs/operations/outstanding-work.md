@@ -412,6 +412,10 @@ for precipitation.
 Both disposable containers were removed and production remains managed. The
 next gate is an attended transfer with exact private backup and rollback;
 neither a synthetic production update nor a live cutover has occurred.
+The guarded four-Item transfer adapter now passes its pure unit tests and a
+fresh live `--check`: managed definitions/links, ONLINE Thing, fixed source
+digest, JDBC IDs 569–572 and 40 rows each match. Its `--apply` has not run;
+the earlier hourly meteorology group must first pass a natural binding update.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
