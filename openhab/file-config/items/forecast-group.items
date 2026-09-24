@@ -1,0 +1,2 @@
+// Forecast persistence selector. Keep this Group identity and tag unchanged.
+Group gForecast "Forecast Items" ["forecast"]

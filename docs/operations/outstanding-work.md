@@ -421,6 +421,15 @@ fresh live `--check`: managed definitions/links, ONLINE Thing, fixed source
 digest, JDBC IDs 569–572 and 40 rows each match. Its `--apply` has not run;
 the earlier hourly meteorology group must first pass a natural binding update.
 
+The `gForecast` Group itself remains REST-managed and has no JDBC Item
+identity; its ten members are the forecast persistence selector. The prepared
+`forecast-group.items` source passed a restored-registry, networkless OpenHAB
+5.2.1 rehearsal: all ten member references and exact file Group fields matched
+on first boot and full restart, then the file was withdrawn and the managed
+Group plus references restored. The owned container was removed. Production
+Group ownership was untouched; a live transfer and persistence-selector
+continuity check must wait until the daily member group is complete.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
