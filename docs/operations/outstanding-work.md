@@ -7,6 +7,23 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 09:42 MDT a fresh full PostgreSQL recovery point, captured after the
+morning Item migrations, passed an isolated 515-table data restore and a
+separate integrated OpenHAB recovery rehearsal. The latter restored owners
+and ACLs, verified 81 configuration, 1,337 userdata and two add-on files,
+booted OpenHAB with JDBC and matched all material Item, Thing, Rule and Link
+definitions. Its owned containers and volumes were removed; the production
+OpenHAB PID did not change. Private point:
+`/home/sat/backups/earthship-energy/full-restore-w41acaz2`; integrated report:
+`/home/sat/backups/earthship-energy/runtime-recovery-j2q3iqn3/recovery-report.json`.
+This is same-host component recovery, not an atomic system snapshot or
+hardware validation. The natural thermal trainer finished at 08:42 MDT and
+accepted a new internal artifact, but it remains `shadow_only=true` with
+24-hour air MAE 2.1785°F versus 1.6899°F persistence and no confirmed
+action-evidence targets. The `gForecast` cold cutover remains gated on an
+attended 10:00 MDT-or-later window, both pumps OFF and fresh protected-control
+health; no production restart has occurred.
+
 At 07:10 MDT, the seven remaining direct-published forecast quality metrics
 were transferred to exact Git-owned file definitions after networkless
 provider and disconnected JDBC/state/rollback/restart rehearsals passed.
