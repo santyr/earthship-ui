@@ -26,6 +26,13 @@ is on `origin/main`; the running local Vite service hot-loaded it. A text-only
 1340×800 live browser readback showed H 54°/L 51° with no page error; the
 same day's persisted history had high 53.6°F and low 51.26°F, matching the
 card's whole-degree display.
+The shared day-range helper is now explicitly pinned to `America/Denver`
+rather than the viewer's timezone. Its UTC-viewer and both DST-boundary tests
+pass; all 1,729 UI tests, the production build and 31 affected browser checks
+pass. A text-only live UTC-viewer browser requested
+`2026-09-24T06:00:00Z` as the Weather history start (Denver midnight) and
+rendered the same 54°/51° H/L. Home, Weather, chart-modal temperature extrema,
+gust and daily-load ranges share this corrected day identity.
 
 Home and Weather now stop presenting a detail forecast as current once its
 four-hour freshness window expires, even if the older undated legacy JSON

@@ -686,7 +686,9 @@ test.describe('Home local-day temperature history ownership', () => {
     await page.clock.setSystemTime(new Date('2026-09-11T00:00:10-06:00'));
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     await expect.poll(dailyCount).toBe(4);
-    await page.goto(`${baseURL}#/weather`, { waitUntil: 'domcontentloaded' });
+    // Controls does not independently request the same outdoor day history;
+    // Weather now does, so it cannot isolate Home's teardown by request count.
+    await page.goto(`${baseURL}#/controls`, { waitUntil: 'domcontentloaded' });
     const afterDestroy = dailyCount();
     await page.clock.setSystemTime(new Date('2026-09-12T00:00:10-06:00'));
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import {
   HOME_AQI_COLORS,
@@ -212,6 +213,21 @@ describe('Home signed card state colors', () => {
     expect(fall.starttime).toBe('2026-11-01T06:00:00.000Z');
     expect(fallNext.starttime).toBe('2026-11-02T07:00:00.000Z');
     expect(Date.parse(fallNext.starttime) - Date.parse(fall.starttime)).toBe(25 * 60 * 60 * 1000);
+  });
+
+  it('uses the Earthship day even when the viewing device is in UTC', () => {
+    const moduleUrl = new URL('../src/lib/ui/homeCardState.js', import.meta.url).href;
+    const script = 'const {localDayHistoryRange}=await import(process.argv[1]);' +
+      'console.log(JSON.stringify(process.argv.slice(2).map(at=>localDayHistoryRange(new Date(at)).starttime)))';
+    const output = execFileSync(process.execPath, [
+      '--input-type=module', '-e', script, moduleUrl,
+      '2026-09-24T05:30:00Z', '2026-09-24T06:30:00Z',
+      '2026-03-08T12:00:00Z', '2026-11-01T12:00:00Z',
+    ], { env: { ...process.env, TZ: 'UTC' }, encoding: 'utf8' });
+    expect(JSON.parse(output)).toEqual([
+      '2026-09-23T06:00:00.000Z', '2026-09-24T06:00:00.000Z',
+      '2026-03-08T07:00:00.000Z', '2026-11-01T06:00:00.000Z',
+    ]);
   });
 
   it('falls back to current-only extrema for invalid clock or day identity', () => {

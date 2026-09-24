@@ -74,11 +74,38 @@ export function relativeAgeText(raw, nowMs = Date.now()) {
   return `${Math.round(hours / 24)} d ago`;
 }
 
+const EARTHSHIP_DAY = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+let cachedDay = null;
+let cachedDayStartMs = null;
+
+function earthshipDayKey(atMs) {
+  const fields = Object.fromEntries(EARTHSHIP_DAY.formatToParts(new Date(atMs))
+    .filter(({ type }) => ['year', 'month', 'day'].includes(type))
+    .map(({ type, value }) => [type, value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
+}
+
 export function localDayHistoryRange(now = new Date()) {
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) return null;
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const nowMs = now.getTime();
+  const day = earthshipDayKey(nowMs);
+  if (day !== cachedDay) {
+    // Find the first instant of this Denver calendar day. An elapsed day may
+    // be 23 or 25 hours, and the browser's own timezone is not authoritative.
+    let earlier = nowMs - 48 * 3_600_000;
+    let current = nowMs;
+    while (earlier + 1 < current) {
+      const middle = Math.floor((earlier + current) / 2);
+      if (earthshipDayKey(middle) < day) earlier = middle;
+      else current = middle;
+    }
+    cachedDay = day;
+    cachedDayStartMs = current;
+  }
   return {
-    starttime: start.toISOString(),
+    starttime: new Date(cachedDayStartMs).toISOString(),
     endtime: now.toISOString(),
   };
 }
