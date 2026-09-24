@@ -118,6 +118,7 @@ test('Energy displays current-day curtailment and trough only with a dated recei
     Forecast_Prediction_Receipt_JSON: JSON.stringify({
       version: 1, predictionDay: '2026-09-24', issuedAt: '2026-09-24T06:40:29-06:00',
       pvTodayKwh: 3.3, curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
+      thermalAdvisory: 'none|No thermal action needed',
     }),
   });
   await expect(page.locator('.curtail-value')).toHaveText('1.5 h');

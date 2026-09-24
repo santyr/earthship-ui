@@ -13,6 +13,7 @@
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { parseThermalModelResult } from '../lib/thermal/modelResult.js';
+  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { items, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
 
@@ -123,7 +124,9 @@
   });
 
   // ---- Thermal Advisory ------------------------------------------------------
-  const advisoryParts = $derived(String($items.Thermal_Advisory || '').split('|'));
+  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON,
+    { nowMs: wallClock }));
+  const advisoryParts = $derived(String(predictionReceipt?.thermalAdvisory || '').split('|'));
   const advisoryCode = $derived(advisoryParts[0] || 'none');
   const advisoryText = $derived(advisoryParts.slice(1).join('|'));
   const advisoryActive = $derived(
@@ -199,10 +202,10 @@
         <div class="advisory-main">
           <span class="advisory-dot" class:active={advisoryActive}></span>
           <span class="advisory-text" class:active={advisoryActive}>
-            {advisoryActive ? advisoryText || '—' : 'All good'}
+            {predictionReceipt ? advisoryActive ? advisoryText || '—' : 'All good' : 'Forecast unavailable'}
           </span>
         </div>
-        <div class="advisory-footer">Tomorrow {tomorrowHiLo}</div>
+        <div class="advisory-footer">{predictionReceipt ? `Tomorrow ${tomorrowHiLo}` : 'Tomorrow forecast unavailable'}</div>
       </div>
     </Tile>
   </div>

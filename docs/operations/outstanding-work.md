@@ -12,10 +12,12 @@ Once-daily forecast display provenance: the live curtailment Item's
 the unchanged `0.0`; PV and trough Items last updated September 23. OpenHAB's
 change-only timestamp is not proof of today's forecast issuance. Commit
 `c235e67` adds a bounded, dated, observational
-`Forecast_Prediction_Receipt_JSON`, posted only after all three prediction
-Item writes succeed. Home curtailment and Energy curtailment/trough now show
-values only from a receipt for the current Denver day, otherwise unavailable.
-Seventy producer tests, seventeen focused UI tests, the build and three browser
+`Forecast_Prediction_Receipt_JSON`. Its follow-up also gates publication on
+the thermal advisory and tomorrow high/low writes. Home curtailment, Energy
+curtailment/trough, Earthship advisory and header thermal/low-trough alerts
+now show values only from a receipt for the current Denver day, otherwise
+unavailable. An absent receipt does not mean "All good."
+Seventy producer tests, 32 focused UI tests, the build and four browser
 tests passed. The new file-owned Item hot-loaded with `NULL` state and
 `editable:false`; the tested source was installed at the existing forecast
 script path with matching SHA-256. The live ownership graph has no issues.
@@ -23,8 +25,8 @@ The prior script is privately recoverable under
 `/home/sat/backups/earthship-energy/forecast-receipt-93bSMS`. No early run,
 synthetic receipt or DM was emitted. Verify the natural September 24 06:40
 run's receipt, three direct Items, output effects and UI before calling this
-runtime gate complete. Until then these two display forecasts intentionally
-show unavailable.
+runtime gate complete. Until then these daily prediction and advisory displays
+intentionally show unavailable.
 
 Thermal-confirmation route recheck at 05:07 MDT: signature-verifying public
 queries to all three approved relays completed and found zero operator-authored

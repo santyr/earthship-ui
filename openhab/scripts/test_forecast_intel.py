@@ -265,17 +265,23 @@ def test_prediction_receipt_commits_dated_values_only_after_required_items_succe
 
     issued = "2026-09-24T12:40:29+00:00"
     assert fi.publish_prediction_receipt(date(2026, 9, 24), issued,
-                                         3.3, 0.0, None, [], put) is True
+                                         3.3, 0.0, None, "none|No thermal action needed",
+                                         [], put) is True
     assert [name for name, _ in writes] == ["Forecast_Prediction_Receipt_JSON"]
     assert json.loads(writes[0][1]) == {
         "version": 1, "predictionDay": "2026-09-24", "issuedAt": issued,
         "pvTodayKwh": 3.3, "curtailmentHoursToday": 0.0,
         "overnightTroughSocPct": None,
+        "thermalAdvisory": "none|No thermal action needed",
     }
     writes.clear()
     assert fi.publish_prediction_receipt(date(2026, 9, 24), issued,
-                                         3.3, 0.0, 59,
+                                         3.3, 0.0, 59, "none|No thermal action needed",
                                          ["Predicted_Curtailment_Hours"], put) is False
+    assert writes == []
+    assert fi.publish_prediction_receipt(date(2026, 9, 24), issued,
+                                         3.3, 0.0, 59, "none|No thermal action needed",
+                                         ["Thermal_Advisory"], put) is False
     assert writes == []
 
 

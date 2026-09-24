@@ -11,6 +11,7 @@ import Earthship from '../../src/screens/Earthship.svelte';
 import { items } from '../../src/lib/openhab/store.js';
 import { chartStore, closeChart } from '../../src/lib/ui/chartStore.js';
 import validShadow from '../fixtures/thermal-shadow-v1-available.json';
+import { localDateAt } from '../../src/lib/weather/forecastDetail.js';
 
 beforeEach(() => {
   items.set({
@@ -55,12 +56,28 @@ describe('Earthship four-zone thermal contract', () => {
 });
 
 describe('Earthship thermal model integration', () => {
+  it('withholds yesterday\'s advisory and tomorrow temperatures without a current receipt', () => {
+    setItems({ Thermal_Advisory: 'close_up_tomorrow|Stale advice',
+      Forecast_Tomorrow_High: '81', Forecast_Tomorrow_Low: '54' });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.advisory-text')?.textContent).toBe('Forecast unavailable');
+    expect(container.querySelector('.advisory-footer')?.textContent).toBe('Tomorrow forecast unavailable');
+  });
+
   it('adds the shadow model beside existing displays without changing advisory or zone order', () => {
     vi.useFakeTimers();
     vi.setSystemTime(Date.parse(validShadow.generatedAt) + 10 * 60_000);
     setItems({
       Thermal_Model_JSON: JSON.stringify(validShadow),
       Thermal_Advisory: 'vent|Existing thermal advisory remains authoritative',
+      Forecast_Prediction_Receipt_JSON: JSON.stringify({
+        version: 1,
+        predictionDay: localDateAt(Date.parse(validShadow.generatedAt) + 10 * 60_000,
+          'America/Denver'),
+        issuedAt: validShadow.generatedAt, pvTodayKwh: 3.3,
+        curtailmentHoursToday: 0, overnightTroughSocPct: 59,
+        thermalAdvisory: 'vent|Existing thermal advisory remains authoritative',
+      }),
       Forecast_Tomorrow_High: '81',
       Forecast_Tomorrow_Low: '54',
     });

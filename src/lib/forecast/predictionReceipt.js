@@ -20,13 +20,16 @@ export function parsePredictionReceipt(raw, { nowMs = Date.now() } = {}) {
       || localDateAt(nowMs, 'America/Denver') !== receipt.predictionDay) return null;
     if (!bounded(receipt.pvTodayKwh, 100)
       || !bounded(receipt.curtailmentHoursToday, 24)
-      || !bounded(receipt.overnightTroughSocPct, 100)) return null;
+      || !bounded(receipt.overnightTroughSocPct, 100)
+      || typeof receipt.thermalAdvisory !== 'string'
+      || !receipt.thermalAdvisory || receipt.thermalAdvisory.length > 256) return null;
     return Object.freeze({
       predictionDay: receipt.predictionDay,
       issuedAtMs,
       pvTodayKwh: receipt.pvTodayKwh,
       curtailmentHoursToday: receipt.curtailmentHoursToday,
       overnightTroughSocPct: receipt.overnightTroughSocPct,
+      thermalAdvisory: receipt.thermalAdvisory,
     });
   } catch {
     return null;

@@ -10,6 +10,7 @@ const valid = {
   pvTodayKwh: 3.3,
   curtailmentHoursToday: 0,
   overnightTroughSocPct: null,
+  thermalAdvisory: 'none|No thermal action needed',
 };
 
 const parse = (value, nowMs = NOW) => parsePredictionReceipt(JSON.stringify(value), { nowMs });
@@ -18,7 +19,8 @@ describe('dated once-daily forecast receipt', () => {
   it('accepts current-day provenance and retains valid zero and null values', () => {
     expect(parse(valid)).toEqual({ predictionDay: DAY,
       issuedAtMs: Date.parse(valid.issuedAt), pvTodayKwh: 3.3,
-      curtailmentHoursToday: 0, overnightTroughSocPct: null });
+      curtailmentHoursToday: 0, overnightTroughSocPct: null,
+      thermalAdvisory: 'none|No thermal action needed' });
   });
 
   it('withholds yesterday after local midnight, even if direct Items hold values', () => {
@@ -30,6 +32,7 @@ describe('dated once-daily forecast receipt', () => {
     expect(parse({ ...valid, predictionDay: '2026-09-23' })).toBeNull();
     expect(parse({ ...valid, curtailmentHoursToday: 25 })).toBeNull();
     expect(parse({ ...valid, overnightTroughSocPct: undefined })).toBeNull();
+    expect(parse({ ...valid, thermalAdvisory: undefined })).toBeNull();
     expect(parsePredictionReceipt('UNDEF', { nowMs: NOW })).toBeNull();
     expect(parsePredictionReceipt('x'.repeat(1025), { nowMs: NOW })).toBeNull();
   });

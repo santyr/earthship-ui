@@ -91,6 +91,16 @@ function socReceipt(at, soc = 62) {
     scaleObservedAt: at - 1000, validUntil: at + 119000, soc });
 }
 
+function datedPredictionReceipt(now, thermalAdvisory = 'none|No thermal action needed') {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now);
+  const date = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return JSON.stringify({ version: 1, predictionDay: `${date.year}-${date.month}-${date.day}`,
+    issuedAt: new Date(now - 10_000).toISOString(), pvTodayKwh: 3.3,
+    curtailmentHoursToday: 1.5, overnightTroughSocPct: 59, thermalAdvisory });
+}
+
 function itemSnapshot(overrides = {}) {
   const sourceAt = Date.now() - 1000;
   return Object.entries({ ...BASE_STATES, BMS_SOC_Evidence_JSON: socReceipt(sourceAt), ...overrides })
@@ -233,7 +243,8 @@ test('Home curtailment follows the dated daily prediction receipt', async ({ pag
   await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
   const receipt = JSON.stringify({ version: 1, predictionDay: '2026-09-24',
     issuedAt: '2026-09-24T06:40:29-06:00', pvTodayKwh: 3.3,
-    curtailmentHoursToday: 1.5, overnightTroughSocPct: 59 });
+    curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
+    thermalAdvisory: 'none|No thermal action needed' });
   await openHomeFixture(page, TARGETS[0], {
     states: { Predicted_Curtailment_Hours: '0', Forecast_Prediction_Receipt_JSON: receipt },
   });
@@ -1303,6 +1314,8 @@ for (const target of TARGETS) {
         SouthOutlet_Outlet2_Switch: 'NULL',
         Moon_MoonPhaseName: 'Waxing gibbous approaching the full moon',
         Thermal_Advisory: 'close_up_tomorrow|Close every south opening before tomorrow morning to retain thermal mass',
+        Forecast_Prediction_Receipt_JSON: datedPredictionReceipt(Date.now(),
+          'close_up_tomorrow|Close every south opening before tomorrow morning to retain thermal mass'),
       },
     });
 

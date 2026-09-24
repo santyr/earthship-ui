@@ -1,5 +1,6 @@
 import { num } from '../openhab/values.js';
 import { adaptCurrentAqi } from '../ui/homeCardState.js';
+import { parsePredictionReceipt } from '../forecast/predictionReceipt.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
 
 export const CONTROL_OUTCOME_TTL_MS = 15 * 60_000;
@@ -151,7 +152,9 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     }));
   }
 
-  const thermalParts = clean(items.Thermal_Advisory).split('|');
+  const predictionReceipt = parsePredictionReceipt(items.Forecast_Prediction_Receipt_JSON,
+    { nowMs: now });
+  const thermalParts = clean(predictionReceipt?.thermalAdvisory).split('|');
   const thermalCode = clean(thermalParts.shift()).toLowerCase();
   const thermalText = clean(thermalParts.join('|'));
   if (thermalCode === 'close_up_tomorrow') {
@@ -179,7 +182,7 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     });
   }
 
-  const trough = numeric(items.Predicted_SoC_Trough_Tomorrow);
+  const trough = predictionReceipt?.overnightTroughSocPct ?? null;
   if (trough !== null && trough < 40) {
     const rounded = Math.round(trough);
     alerts.push(baseAlert({

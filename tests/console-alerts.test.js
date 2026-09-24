@@ -18,6 +18,18 @@ const healthyItems = Object.freeze({
   Thermal_Advisory: 'none',
 });
 
+function predictionReceipt(now, trough, thermalAdvisory = 'none') {
+  const issuedAt = new Date(now - 10_000).toISOString();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now);
+  const date = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return JSON.stringify({ version: 1,
+    predictionDay: `${date.year}-${date.month}-${date.day}`,
+    issuedAt, pvTodayKwh: 3.3, curtailmentHoursToday: 0,
+    overnightTroughSocPct: trough, thermalAdvisory });
+}
+
 describe('console alert projection', () => {
   it('exposes the typed deterministic projection API', async () => {
     const subject = await loadSubject();
@@ -35,6 +47,7 @@ describe('console alert projection', () => {
       items: {
         ...healthyItems,
         Predicted_SoC_Trough_Tomorrow: '35',
+        Forecast_Prediction_Receipt_JSON: predictionReceipt(10_000, 35),
         Current_US_AQI: '119',
         Forecast_AQI: '501',
       },
@@ -96,6 +109,8 @@ describe('console alert projection', () => {
         ...healthyItems,
         Thermal_Advisory: 'close_up_tomorrow|Close the south shades tomorrow',
         Predicted_SoC_Trough_Tomorrow: '39.6',
+        Forecast_Prediction_Receipt_JSON: predictionReceipt(100_000, 39.6,
+          'close_up_tomorrow|Close the south shades tomorrow'),
         Current_US_AQI: '101',
       },
       outcomes: [
@@ -130,6 +145,8 @@ describe('console alert projection', () => {
       items: {
         ...healthyItems,
         Predicted_SoC_Trough_Tomorrow: '12',
+        Forecast_Prediction_Receipt_JSON: predictionReceipt(100_000, 12,
+          'vent_tonight|Vent after sunset'),
         Thermal_Advisory: 'vent_tonight|Vent after sunset',
       },
       now: 100_000,
@@ -140,6 +157,18 @@ describe('console alert projection', () => {
     ]);
     expect(critical.alerts[0].severity).toBe('critical');
     expect(critical.alerts[1].severity).toBe('advisory');
+  });
+
+  it('does not alert on a held low trough without a current-day receipt', async () => {
+    const { projectConsoleAlerts } = await loadSubject();
+    const today = Date.parse('2026-09-25T00:01:00-06:00');
+    const yesterday = Date.parse('2026-09-24T07:00:00-06:00');
+    for (const raw of [undefined, predictionReceipt(yesterday, 12)]) {
+      const { alerts } = projectConsoleAlerts({ connection: 'live', now: today,
+        items: { ...healthyItems, Predicted_SoC_Trough_Tomorrow: '12',
+          Forecast_Prediction_Receipt_JSON: raw } });
+      expect(alerts.some(({ id }) => id === 'soc-trough')).toBe(false);
+    }
   });
 
   it('uses the shared rounded current-AQI classification for alert thresholds', async () => {
@@ -180,7 +209,9 @@ describe('console alert projection', () => {
 
     const unknown = projectConsoleAlerts({
       connection: 'live',
-      items: { ...healthyItems, Thermal_Advisory: 'unexpected_code|Review thermal rule' },
+      items: { ...healthyItems, Thermal_Advisory: 'unexpected_code|Review thermal rule',
+        Forecast_Prediction_Receipt_JSON: predictionReceipt(50_000, null,
+          'unexpected_code|Review thermal rule') },
       now: 50_000,
     });
     expect(unknown.alerts[0]).toMatchObject({
@@ -195,7 +226,8 @@ describe('console alert projection', () => {
     for (const thermal of ['', 'none', 'NULL', 'UNDEF']) {
       const result = projectConsoleAlerts({
         connection: 'live',
-        items: { ...healthyItems, Thermal_Advisory: thermal },
+        items: { ...healthyItems, Thermal_Advisory: thermal,
+          Forecast_Prediction_Receipt_JSON: predictionReceipt(50_000, null, thermal === 'UNDEF' || thermal === 'NULL' || thermal === '' ? 'none' : thermal) },
         now: 50_000,
       });
       expect(result.alerts).toEqual([]);

@@ -150,10 +150,12 @@ def safe_put(item, value, failures=None, *, observer=None):
     return succeeded
 
 
-def publish_prediction_receipt(today, issued_at, pv, curtail, trough, failures, put_state):
-    """Commit the day's display provenance only after its three Items succeeded."""
+def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
+                               failures, put_state):
+    """Commit today's display provenance only after all source Items succeeded."""
     required = {"Predicted_PV_Today_kWh", "Predicted_Curtailment_Hours",
-                "Predicted_SoC_Trough_Tomorrow"}
+                "Predicted_SoC_Trough_Tomorrow", "Thermal_Advisory",
+                "Forecast_Tomorrow_High", "Forecast_Tomorrow_Low"}
     if required.intersection(failures):
         return False
     receipt = {
@@ -163,6 +165,7 @@ def publish_prediction_receipt(today, issued_at, pv, curtail, trough, failures, 
         "pvTodayKwh": pv,
         "curtailmentHoursToday": curtail,
         "overnightTroughSocPct": trough,
+        "thermalAdvisory": advisory,
     }
     return put_state("Forecast_Prediction_Receipt_JSON", json.dumps(receipt, separators=(",", ":")))
 
@@ -1221,7 +1224,7 @@ def main():
         put(item, "UNDEF" if val is None else val)
 
     publish_prediction_receipt(today, forecast_issued_at, pv_pred, curtail,
-                               trough_pred, put_failed, put)
+                               trough_pred, advisory, put_failed, put)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
