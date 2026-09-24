@@ -77,6 +77,16 @@ to-PV ratios vary too much to justify retuning either from this one day.
 Preserve the as-issued forecast for scoring and qualify a separate intraday
 estimate or origin-linked calibration before changing advice or display.
 
+A four-origin read-only comparison shows Sep 20–22 PV forecasts were close
+to the corresponding daily Item maxima while troughs still ran 1, 7 and 7
+points low. Commit `85b1d83` therefore adds only diagnostic as-issued
+SoC-reference/dusk/drop components to the forecast state; 143 focused tests
+passed, the idle installed producer matches the source hash, and its private
+rollback copy is retained. No forecast, alert or advisory threshold changed.
+The next natural Sep 25 06:40 run must verify those fields and persist the
+Sep 23 completed-night outcome before any calibration is considered. See the
+[attribution receipt](2026-09-24-trough-origin-components.md).
+
 At 07:10 MDT, the seven remaining direct-published forecast quality metrics
 were transferred to exact Git-owned file definitions after networkless
 provider and disconnected JDBC/state/rollback/restart rehearsals passed.
