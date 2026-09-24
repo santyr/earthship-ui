@@ -28,7 +28,10 @@ found all four file-owned with values 0.0, 2.82, 58.0 and 5.0 respectively;
 the ownership inventory reports zero issues. The separate `gForecast` Group
 still passes its read-only ten-member/ID preflight, but remains managed:
 do not start a whole-OpenHAB outage during the 06:50 thermal job and 06:53
-sunrise/pump-control transition. Its attended restart needs a safe window.
+sunrise/pump-control transition. The operator offered 10:00 MDT or later as
+the earliest attended window. Reconfirm physical availability, completed
+thermal training, both pumps OFF, and healthy protected controls before any
+stop; no restart was initiated at this checkpoint.
 
 At 06:11–06:17 MDT, read-only live preflights for the four staged
 forecast-intelligence Number Items all passed: curtailment ID 574/eight rows,
