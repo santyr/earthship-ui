@@ -73,3 +73,16 @@ The strict archive verifier accepted its exact matching private forcing
 capture with 240 forecast rows. The timer rescheduled for 13:56 MDT. This
 closes a current-artifact publication/capture check, not its future outcome
 scores, action provenance, seasonal holdout or shadow-exit criteria.
+
+At 12:05 MDT, the next captured 24-hour target passed the scorer's five-minute
+maturity margin. Its September 23 11:51 MDT publication missed the qualified
+hallway outcome by **−7.565°F**, versus **+0.18°F** for same-origin
+persistence. The 10.414°F model interval missed; archived outdoor forcing
+was **4.02°F cooler** than the qualified outdoor outcome, opposite the sign
+of the first 24-hour pair's outdoor error. Both 24-hour model errors are low,
+both intervals miss, and their overlapping windows leave only **one**
+non-overlapping selection. The paired two-publication MAE is 6.9255°F for
+the model versus 0.36°F for persistence; it is diagnostic, not two independent
+days or a validated coefficient correction. Twelve captured 24-hour targets
+remain immature. Shadow-only and existing advice/control authority remain
+unchanged.

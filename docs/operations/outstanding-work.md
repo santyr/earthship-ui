@@ -30,6 +30,11 @@ strengthens the shadow-only decision, not a tuning or graduation claim. See the
 The 11:56 MDT natural shadow job then exited zero; its live low-confidence,
 no-candidate output exactly matched a verified private 240-row forcing
 archive under the current accepted revision. The timer rescheduled for 13:56.
+At 12:05 MDT, a second capture-qualified 24-hour target matured: model error
+−7.565°F versus +0.18°F same-origin persistence, with another interval miss.
+Its outdoor forcing error was −4.02°F, opposite the first pair's +1.64°F.
+The two 24-hour targets overlap, leaving one disjoint window; do not treat
+their joint MAE as independent seasonal validation or fit a correction from it.
 
 At 09:42 MDT a fresh full PostgreSQL recovery point, captured after the
 morning Item migrations, passed an isolated 515-table data restore and a
@@ -358,6 +363,14 @@ ends on September 19; recent health derives from embedded
 evidence gap, not evidence that qualified PV or battery coverage failed. Do
 not mark these eight `ok` merely because their numeric or switch values exist;
 source-specific freshness and carry-in semantics must be qualified first.
+At September 24 noon, read-only OpenHAB events showed the Dishwasher and
+Cistern Pump Switch Items receiving unchanged OFF/ON `ItemStateUpdatedEvent`
+entries every roughly 30 seconds; both TP-Link Things were ONLINE. Their
+daily JDBC histories remain change-only, and the log entries alone do not
+prove binding-origin identity or provide a durable fault/restart-qualified
+freshness stream. Keep these two supporting rows `freshness_unverified` until
+a source-bound, persisted receipt contract is qualified; do not infer a full
+day from current Item state or Thing status.
 Solar_PV's source-only September 24 Astro correction now qualifies the two
 deterministic sunrise/sunset DateTime schedules from their own original
 persisted timestamps and matching Denver local event dates. An unchanged,
