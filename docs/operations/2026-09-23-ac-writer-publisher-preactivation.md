@@ -53,6 +53,22 @@ before computing coverage. A separate exact SELECT grant for
 applied without approval. The stored AC daily table remains empty and the
 live publisher remains v3 without the opt-in AC flag.
 
+September 24 clarification: that additional reader-role source grant is **not
+required** by the intended production path. `ac-day --apply` uses the writer
+credential, and its separate AC/PV history readers each open a read-only
+database transaction. A bounded live diagnostic under `energy_power_writer`
+resolved `item0653` and read 119 qualified AC intervals over ten minutes; the
+same role read 119 intervals in each of the three qualified power streams from
+`item0648`. Independently, `energy_power_reader` queried the approved daily
+AC revision table through the exact v4 reader (zero rows, as expected). The
+v4 UI publisher selects that daily table, not raw `item0653`. Therefore the
+earlier failure was specific to testing an unfinished `ac-day --dry-run` with
+the UI reader credential. Use the existing writer credential with `--dry-run`
+when the first day completes; the command and source transports remain
+read-only in that mode. Do not grant the UI reader raw evidence access solely
+to satisfy that diagnostic. This does not waive first-day, fault/restart,
+recovery-point, or v4 publication gates.
+
 At 22:18 MDT, a new read-only production census found 5,189 `item0653`
 receipts since the 20:55:12Z cutover, in one epoch with no sequence gaps:
 5,188 valid and the original startup-unavailable barrier. The latest receipt

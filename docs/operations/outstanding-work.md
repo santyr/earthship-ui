@@ -212,7 +212,14 @@ sequence and `item0653`; they are now applied and independently read back.
 The AC table remains empty and no writer or v4 publisher was activated. A
 restricted-reader diagnostic later found one additional missing privilege:
 `energy_power_reader` cannot SELECT the exact raw evidence table `public.item0653`.
-That separate grant is requested, not applied; source reading remains withheld.
+That separate grant was requested but not applied. A September 24 call-path
+review and live bounded read verified it is unnecessary for the intended
+production path: `ac-day --apply` uses the already-approved writer role, which
+read both strict AC and PV streams in read-only transactions, while the v4 UI
+reader successfully queried the empty daily AC revision table. Use the writer
+credential for the completed-day `--dry-run`; do not expand the UI reader's raw
+source access just to make the earlier reader-role diagnostic pass. The day,
+restart and publication gates remain.
 The September 24 retention review elects to retain both transform-stage and
 validated AC evidence streams without JDBC exclusion or pruning. Both were
 present in the verified component-restore point; the live validated stream
@@ -233,8 +240,8 @@ inverter-output day with coverage, revision, cutover and topology provenance,
 while keeping the existing v3 load and DC/AC balance fields withheld. The
 first complete AC day is not due until September25 06:00Z. Long-run,
 fault/restart and retention evidence and explicit v4 publication activation
-are still required; the approved table/writer grants are complete but the
-reader's raw-source SELECT gate remains open.
+are still required. The intended writer and daily-reader grants are complete;
+raw-source SELECT for the UI reader is not a production requirement.
 
 The [AC-day revision schema](2026-09-23-ac-day-revision-schema.md) is now live
 and empty after a backed-up, isolated-test-qualified additive migration. The
