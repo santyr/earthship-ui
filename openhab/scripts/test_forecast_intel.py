@@ -605,6 +605,39 @@ def _run_main(monkeypatch, tmp_path, st, series_data):
     return saved, puts
 
 
+def test_qualified_soc_forecast_uses_only_atomic_inputs(monkeypatch, tmp_path):
+    monkeypatch.setenv("FORECAST_QUALIFIED_SOC_ENABLED", "1")
+    monkeypatch.setattr(fi, "measured_trough", lambda *_: pytest.fail("legacy SoC read"))
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, "qualified_soc_inputs",
+                        lambda today, now: (85, {yesterday: 80}))
+    saved, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday.isoformat()), {})
+    prediction = saved["predictions"][date.today().isoformat()]
+    assert prediction["pv"] is not None
+    assert prediction["trough"] is not None
+    assert prediction["deficit_kwh"] == pytest.approx(round(15 / 100 * fi.BANK_KWH / fi.ETA_RT, 2))
+
+
+def test_qualified_soc_forecast_withholds_energy_without_atomic_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("FORECAST_QUALIFIED_SOC_ENABLED", "1")
+    monkeypatch.setattr(fi, "measured_trough", lambda *_: pytest.fail("legacy SoC read"))
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (None, {}))
+    published = {}
+    monkeypatch.setattr(fi, "safe_put", lambda item, value, *_args, **_kwargs:
+                        published.setdefault(item, value) is not None)
+    yesterday = date.today() - timedelta(days=1)
+    saved, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday.isoformat()), {})
+    prediction = saved["predictions"][date.today().isoformat()]
+    assert prediction["pv"] is None
+    assert prediction["trough"] is None
+    assert prediction["demand"] is None
+    assert "Thermal_Advisory" in published
+    assert published["Predicted_PV_Today_kWh"] == "UNDEF"
+    assert published["Predicted_Curtailment_Hours"] == "UNDEF"
+    assert published["Predicted_SoC_Trough_Tomorrow"] == "UNDEF"
+    assert "qualified atomic SoC unavailable" in (tmp_path / "log").read_text()
+
+
 def _scoring_state(ykey):
     return {
         "k_res": 1.0, "d_direct": 4.0,

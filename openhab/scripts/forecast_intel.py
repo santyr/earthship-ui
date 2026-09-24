@@ -385,6 +385,30 @@ def measured_trough(for_night_ending_today):
     return min((v for _, v in pts), default=None)
 
 
+def qualified_soc_inputs(today, now):
+    """Current atomic SoC plus prior completed, coverage-qualified nights.
+
+    Failures return no numerical evidence; callers must not fall back to
+    change-only BMS_SOC persistence or an unqualified live numeric state.
+    """
+    from qualified_soc_forecast import current_valid_soc, completed_night_troughs
+    try:
+        raw = oh_get("/items/BMS_SOC_Evidence_JSON")["state"]
+        current = current_valid_soc(raw, now)
+    except Exception:
+        current = None
+    if current is None:
+        return None, {}
+    try:
+        nights = completed_night_troughs(
+            [today - timedelta(days=back) for back in range(1, 5)],
+            now=now, site_timezone=SITE_TZ_NAME,
+        )
+    except Exception:
+        nights = {}
+    return current, nights
+
+
 OUTDOOR_TEMP_ITEM = "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature"
 RAIN_DAY_ITEM = "AmbientWeatherWS2902A_RainFallDay"
 
@@ -1080,19 +1104,25 @@ def main():
     precip_sum = om.get("precipitation_sum", [])
     cloud_mean = om.get("cloud_cover_mean", [None] * len(highs))
 
-    dawn_trough = measured_trough(today)
-    soc_now = None
-    try:
-        soc_now = float(oh_get("/items/BMS_SOC")["state"])
-    except Exception:
-        pass
-    trough_ref = dawn_trough if dawn_trough is not None else (soc_now or 60)
-
-    deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT
-    demand = st["d_direct"] + deficit_kwh
     resource = st["k_res"] * radsum_kwh
-    pv_pred = round(min(resource, demand), 2)
-    curtail = round(clamp((resource - demand) / 1.0, 0, 8) * 2) / 2 if resource > demand else 0.0
+    qualified_soc = os.environ.get("FORECAST_QUALIFIED_SOC_ENABLED") == "1"
+    if qualified_soc:
+        trough_ref, measured_nights = qualified_soc_inputs(today, datetime.now(timezone.utc))
+    else:
+        dawn_trough = measured_trough(today)
+        soc_now = None
+        try:
+            soc_now = float(oh_get("/items/BMS_SOC")["state"])
+        except Exception:
+            pass
+        trough_ref = dawn_trough if dawn_trough is not None else (soc_now if soc_now is not None else 60)
+        measured_nights = None
+
+    deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT if trough_ref is not None else None
+    demand = st["d_direct"] + deficit_kwh if deficit_kwh is not None else None
+    pv_pred = round(min(resource, demand), 2) if demand is not None else None
+    curtail = (round(clamp((resource - demand) / 1.0, 0, 8) * 2) / 2
+               if resource > demand else 0.0) if demand is not None else None
 
     # tonight's trough: dusk SoC estimate minus the MEASURED typical overnight
     # drop (trailing 3 nights of dusk->trough from persistence — the real
@@ -1105,19 +1135,24 @@ def main():
     # scaled by the 4x capacity increase.
     drops = []
     for back in range(1, 5):
-        night = today - timedelta(days=back - 1)
+        night = today - timedelta(days=back if qualified_soc else back - 1)
         if night < date(2026, 7, 19):       # first full-bank overnight measurement
             break
-        tr = measured_trough(night)
+        tr = measured_nights.get(night) if qualified_soc else measured_trough(night)
         if tr is not None and 12 <= tr <= 99:
             drops.append(max(99 - tr, 1.0))
         if len(drops) == 3:
             break
     drop_pct = (sum(drops) / len(drops)) if drops else 12.0
-    dusk_soc = 99 if resource >= demand - 0.3 else clamp(trough_ref + (pv_pred - st["d_direct"]) / BANK_KWH * 100 * ETA_RT, 12, 99)
+    dusk_soc = (99 if resource >= demand - 0.3 else
+                clamp(trough_ref + (pv_pred - st["d_direct"]) / BANK_KWH * 100 * ETA_RT, 12, 99)) if demand is not None else None
     if cloud_mean[1] is not None and cloud_mean[1] > 70:
         drop_pct += 2   # cloudy tomorrow morning -> later charge crossover
-    trough_pred = round(clamp(dusk_soc - drop_pct, 12, 99))
+    trough_pred = round(clamp(dusk_soc - drop_pct, 12, 99)) if dusk_soc is not None else None
+    if qualified_soc and trough_ref is None:
+        log.append("qualified atomic SoC unavailable; energy predictions withheld")
+    elif qualified_soc and not drops:
+        log.append("qualified completed-night SoC unavailable; overnight drop uses configured baseline")
 
     # thermal advisory (thresholds from 45-day indoor/outdoor analysis).
     # ML v3a: advisory decisions and the Tomorrow items use Kalman
@@ -1136,9 +1171,9 @@ def main():
     else:
         advisory = "none|No thermal action needed"
 
-    notification_eligible = trough_pred < TROUGH_DM_THRESHOLD
+    notification_eligible = trough_pred is not None and trough_pred < TROUGH_DM_THRESHOLD
     notification_suppressed = notification_eligible and st["dm_sent"].get(today.isoformat()) == True
-    if os.environ.get("ADVISORY_CAPTURE_ENABLED") == "1":
+    if os.environ.get("ADVISORY_CAPTURE_ENABLED") == "1" and trough_pred is not None:
         try:
             from advisory_capture import start_capture
             capture = start_capture(diagnostics=log, source_path=__file__, decision={
@@ -1159,17 +1194,20 @@ def main():
             })
         except Exception:
             log.append("advisory capture gap: setup")
+    elif os.environ.get("ADVISORY_CAPTURE_ENABLED") == "1":
+        log.append("advisory capture withheld: qualified SoC unavailable")
 
     for item, val in [("Predicted_PV_Today_kWh", pv_pred), ("Predicted_Curtailment_Hours", curtail),
                       ("Predicted_SoC_Trough_Tomorrow", trough_pred), ("Thermal_Advisory", advisory),
                       ("Forecast_Tomorrow_High", round(highs[1] - b_hi, 1)), ("Forecast_Tomorrow_Low", round(lows[1] - b_lo, 1)),
                       ("Forecast_Tomorrow_PrecipProb", precip_prob[1] if precip_prob[1] is not None else 0)]:
-        put(item, val)
+        put(item, "UNDEF" if val is None else val)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
         "pv": pv_pred, "trough": trough_pred, "curtail": curtail, "advisory": advisory.split("|")[0],
-        "radsum": radsum_kwh, "demand": round(demand, 2), "deficit_kwh": round(deficit_kwh, 2),
+        "radsum": radsum_kwh, "demand": round(demand, 2) if demand is not None else None,
+        "deficit_kwh": round(deficit_kwh, 2) if deficit_kwh is not None else None,
         "k_res": round(st["k_res"], 3), "d_direct": round(st["d_direct"], 2),
         "hi": highs[0], "lo": lows[0],
         "precip_in": (precip_sum[0] if precip_sum and precip_sum[0] is not None else 0)}
@@ -1183,9 +1221,10 @@ def main():
         }
 
     # DM policy: deep-cycling warning only, once per day
-    notification_status = ("not_eligible" if not notification_eligible else
+    notification_status = ("unknown" if trough_pred is None else
+                           "not_eligible" if not notification_eligible else
                            "suppressed" if notification_suppressed else "attempted_unknown")
-    if trough_pred < TROUGH_DM_THRESHOLD and st["dm_sent"].get(today.isoformat()) != True:
+    if notification_eligible and st["dm_sent"].get(today.isoformat()) != True:
         try:
             out = subprocess.run([NOTIFY, f"🔋 Forecast: tonight's SoC trough predicted at {trough_pred}% "
                                   f"(below {TROUGH_DM_THRESHOLD}%). Cloudy day ahead ({radsum_kwh:.1f} kWh/m²) — "

@@ -18,6 +18,17 @@ with complete-day and per-day coverage gates; the September 23 17:10 publisher
 readback verified both values. Source-side winter, SoH, curtailment and AC-load
 qualification remain unfinished.
 
+The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
+overnight minima and included the current incomplete 20:00–11:00 night in its
+morning trailing-drop sample. An opt-in `FORECAST_QUALIFIED_SOC_ENABLED=1`
+path now reads current atomic evidence and only completed, coverage-qualified
+nights; unavailable current evidence clears the three energy predictions to
+`UNDEF` and suppresses the trough DM, while thermal output continues. Source
+tests pass, but this path remains disabled until a bounded live read-only
+qualification and attended deployment verify its DB mapping, bank boundary,
+OpenHAB publication semantics, and next natural 06:40 run. Do not infer
+freshness from unchanged numeric persistence or enable on code tests alone.
+
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
 exactly at midnight). The exact-next-Denver-midnight fix passed 850 analytics
