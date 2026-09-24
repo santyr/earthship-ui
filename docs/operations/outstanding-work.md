@@ -551,6 +551,19 @@ the installed Java is now 21.0.12.1 and it has emitted no further mismatch
 messages, but that does **not** prove the Jetty stop wait is fixed or another
 restart is safe. Both pump outputs were OFF at this read-only check. No service
 restart, timeout change or Group transfer was attempted.
+A later networkless rehearsal tested the *current* topology: managed
+`gForecast` with all ten members loaded from their three file-owned Item
+sources. Unlike the earlier managed-member live-like test, REST deletion of
+the Group left all ten file-owned member references intact. File Group load,
+member-file reload, an isolated full restart, file withdrawal and managed
+rollback all retained exactly ten references. The first exploratory run had
+an incorrect zero-member expectation; the second exposed a tmpfs test-auth
+header lost on restart. After correcting both harness issues, the final
+forward/restart/rollback run passed and its container was removed. This
+topology-specific result may permit a hot Group handoff without a production
+restart, but does **not** yet prove JDBC selector continuity or safe event-gap
+behavior. Production `gForecast` remains managed; an isolated JDBC/event-gap
+rehearsal and a guarded live rollback are still required before transfer.
 A fresh read-only Group `--check` in the same pass still found exactly ten
 members, JDBC IDs 563–572 and the verified daily natural-writer gate.
 
