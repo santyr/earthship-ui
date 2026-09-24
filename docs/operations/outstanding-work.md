@@ -7,6 +7,17 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+The Weather "Next 14 Hours" panel now selects the current hour plus thirteen
+later hours from fresh `Forecast_10Day_JSON` detail, which is generated from
+the same learned hourly corrections as the compact JSON. It no longer keeps
+the issuance-time first hour visible as the clock advances; a timestamped
+legacy fallback is also filtered to current/future hours. The 12-hour weather
+modal remains unchanged. All 1,731 UI tests, the build and nine affected
+browser checks passed. A text-only live 1340×800 browser check at 06:06 MDT
+showed 14 plotted hours from 06:00 to 19:00 with no page error, while the
+compact Item still began at 05:00. This corrects display timing, not the
+learning weights or their separate warm/cool validation gate.
+
 The natural 05:55 thermal shadow service exited zero and rescheduled. Its
 private forcing archive verified all four digests and 240 rows, with output
 exactly matching the live low-confidence shadow Item. The latest bounded

@@ -85,6 +85,7 @@
     parseForecast10Day,
     parseLegacyDailyForecast,
     forecastDaysFromToday,
+    hourlyForecastFromDetail,
   } from '../lib/weather/forecastDetail.js';
 
   function hasItem(name) {
@@ -125,20 +126,28 @@
   const aqi = $derived(currentAqi($items.Current_US_AQI));
 
   // ---- Hourly (14h) ------------------------------------------------------
+  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON,
+    { nowMs: wallClock }));
   const forecastHourly = $derived.by(() => {
+    if (forecastDetail.status === 'ready') {
+      return hourlyForecastFromDetail(forecastDetail, { nowMs: wallClock });
+    }
     try {
       const raw = $items.Forecast_Hourly_JSON;
       if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
       const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr.slice(0, 14) : [];
+      const currentHourMs = Math.floor(wallClock / 3_600_000) * 3_600_000;
+      return Array.isArray(arr) ? arr.filter((hour) => {
+        if (!hour?.at) return true; // Compatibility with undated legacy payloads.
+        const atMs = Date.parse(hour.at);
+        return Number.isFinite(atMs) && atMs >= currentHourMs;
+      }).slice(0, 14) : [];
     } catch {
       return [];
     }
   });
 
   // ---- 10-day controls with null-safe legacy fallback ---------------------
-  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON,
-    { nowMs: wallClock }));
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
     forecastDetail.status === 'stale' ? []

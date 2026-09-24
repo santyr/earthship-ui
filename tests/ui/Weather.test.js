@@ -110,6 +110,29 @@ describe('Weather current AQI', () => {
     })).toBeTruthy();
   });
 
+  it('uses corrected detail hours for the strip when compact hourly data is absent', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T13:19:00-06:00'));
+    const detail = JSON.parse(forecastDetail());
+    for (const index of [0, 1]) {
+      const date = detail.days[index].date;
+      detail.days[index].hours = Array.from({ length: 24 }, (_, hour) => ({
+        at: `${date}T${String(hour).padStart(2, '0')}:00:00-06:00`,
+        isDay: hour >= 7 && hour < 19,
+        tempF: 55 + hour,
+        precipPct: 10,
+        precipIn: 0,
+        radiationWm2: 0,
+        windMph: 3,
+        weatherCode: 1,
+      }));
+    }
+    items.set({ ...BASE_ITEMS, Forecast_Hourly_JSON: '[]',
+      Forecast_10Day_JSON: JSON.stringify(detail) });
+    const { container } = render(Weather);
+    expect(container.querySelectorAll('.hourly-cell .hs-icon-col')).toHaveLength(14);
+  });
+
   it('withholds stale detail and legacy rows from both forecast panels', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-18T17:01:00-06:00'));

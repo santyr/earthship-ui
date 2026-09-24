@@ -230,6 +230,30 @@ export function forecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
   }));
 }
 
+export function hourlyForecastFromDetail(result, { nowMs = Date.now() } = {}) {
+  if (result?.status !== 'ready' || !Number.isFinite(nowMs)
+      || !Number.isFinite(result.generatedAtMs)
+      || nowMs - result.generatedAtMs > FORECAST_DETAIL_STALE_MS) return [];
+  const currentHourMs = Math.floor(nowMs / 3_600_000) * 3_600_000;
+  return result.days.flatMap(({ hours }) => hours)
+    .filter(({ atMs }) => atMs >= currentHourMs)
+    .sort((left, right) => left.atMs - right.atMs)
+    .slice(0, 14)
+    .map((hour) => {
+      const localHour = Number(hour.at.slice(11, 13));
+      return {
+        at: hour.at,
+        isDay: hour.isDay,
+        h: `${localHour % 12 || 12}${localHour < 12 ? 'a' : 'p'}`,
+        t: hour.tempF,
+        p: hour.precipPct,
+        a: hour.precipIn,
+        r: hour.radiationWm2,
+        w: hour.weatherCode,
+      };
+    });
+}
+
 export function selectForecastWindow(result, selectedDate, { nowMs = Date.now() } = {}) {
   const allHours = result.days
     .flatMap(({ hours }) => hours)

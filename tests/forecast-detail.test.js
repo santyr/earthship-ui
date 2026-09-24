@@ -4,6 +4,7 @@ import {
   parseForecast10Day,
   parseLegacyDailyForecast,
   forecastDaysFromToday,
+  hourlyForecastFromDetail,
   pvForecastDaysFromToday,
   selectForecastWindow,
   todayPvForecastKwh,
@@ -82,6 +83,19 @@ function v2Payload(
 }
 
 describe('ten-day forecast contract', () => {
+  it('rolls the corrected Weather strip forward from the current hour across midnight', () => {
+    const nowMs = Date.parse('2026-07-18T13:19:00-06:00');
+    const result = parseForecast10Day(payload([
+      day('2026-07-18', 'Today'), day('2026-07-19', 'Tomorrow'),
+    ], '2026-07-18T12:00:00-06:00'), { nowMs });
+    const hours = hourlyForecastFromDetail(result, { nowMs });
+    expect(hours).toHaveLength(14);
+    expect(hours[0]).toMatchObject({ at: '2026-07-18T13:00:00-06:00', h: '1p', t: 73 });
+    expect(hours.at(-1)).toMatchObject({ at: '2026-07-19T02:00:00-06:00', h: '2a', t: 62 });
+    expect(hourlyForecastFromDetail(result, { nowMs: Date.parse('2026-07-18T17:01:00-06:00') }))
+      .toEqual([]);
+  });
+
   it('selects the current local date PV prediction, not yesterday after midnight', () => {
     const result = parseForecast10Day(payload([
       { ...day('2026-09-23', 'Yesterday'), summary: { ...day('2026-09-23', 'Yesterday').summary, pvKwh: 3.42 } },
