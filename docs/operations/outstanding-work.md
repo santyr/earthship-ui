@@ -253,6 +253,13 @@ left six optional room/north-wall/switch rows `freshness_unverified`; 855
 analytics tests passed. No old snapshot was re-materialized or UI health
 masked. The next natural daily aggregate and v3 publisher remain runtime
 gates; see `Solar_PV/docs/operations/2026-09-24-astro-daily-source-quality.md`.
+A separate read-only north-wall audit found the existing atomic weather
+temperature stream for sensor ID 193 covers 85,954.173886 of 86,400 seconds
+on September 23, with a 373.823224-second maximum gap. That strict receipt
+source is a candidate to qualify `thermal.north_wall_temperature_c`, but the
+Solar_PV daily source-quality reader does not yet consume its closed evidence
+contract. Do not relabel the north-wall row from its held numeric Item or
+the general weather-station health status; integration and failure tests remain.
 
 The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
 overnight minima and included the current incomplete 20:00–11:00 night in its
