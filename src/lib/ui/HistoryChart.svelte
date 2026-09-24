@@ -5,11 +5,13 @@
   import { loadHistorySeries } from '../charts/historyRequest.js';
   import { HISTORY_PERIOD_PRESETS, snapHistoryPeriod } from '../charts/periods.js';
   import { getClientOnce, clientReady } from '../openhab/index.js';
+  import { items } from '../openhab/store.js';
   import { observeElementSize } from './observeElementSize.js';
 
   let { series = [], initialHours, hours = 24 } = $props();
 
   const REFRESH_MS = 5 * 60 * 1_000;
+  const SOC_REDRAW_MS = 30_000;
   let el = $state();
   let chart;
   let loadState = $state('idle');
@@ -19,11 +21,11 @@
   let activeHours = $state(untrack(() => snapHistoryPeriod(initialHours ?? hours)));
   let loadGen = 0;
   let refreshTimer;
+  let socRedrawTimer;
   let requestController;
   let stopObserving = () => {};
   let latestResults = [];
   let latestSeries = [];
-  let latestNowMs = 0;
   let latestWidthPx = 0;
 
   function selectPeriod(selectedHours) {
@@ -50,7 +52,8 @@
         series: latestSeries,
         pointsPerSeries: latestResults,
         widthPx,
-        nowMs: latestNowMs,
+        nowMs: Date.now(),
+        socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
       }), true);
       chart.resize();
     } catch (error) {
@@ -105,7 +108,6 @@
 
     latestResults = result.pointsPerSeries;
     latestSeries = seriesList;
-    latestNowMs = nowMs;
     unavailableCount = result.errors.length;
     timedOutCount = result.errors.filter(
       ({ error }) => error?.code === 'history-request-timeout',
@@ -142,12 +144,16 @@
 
   onMount(() => {
     refreshTimer = setInterval(() => untrack(() => load(series, activeHours)), REFRESH_MS);
+    socRedrawTimer = setInterval(() => {
+      if (chart && latestSeries.some(({ name }) => name === 'BMS_SOC')) renderLatest(latestWidthPx);
+    }, SOC_REDRAW_MS);
   });
 
   onDestroy(() => {
     loadGen += 1;
     cancelPending();
     if (refreshTimer) clearInterval(refreshTimer);
+    if (socRedrawTimer) clearInterval(socRedrawTimer);
     disposeChart();
   });
 </script>

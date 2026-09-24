@@ -4,6 +4,15 @@ import {
   formatHistoryTooltip,
 } from '../src/lib/charts/options.js';
 
+const SOC_NOW = Date.parse('2026-09-24T17:00:00Z');
+function socReceipt(changes = {}) {
+  return JSON.stringify({ version: 1,
+    streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+    recordedAt: SOC_NOW - 1_000, status: 'valid', reason: 'ok',
+    observedAt: SOC_NOW - 2_000, scaleObservedAt: SOC_NOW - 2_000,
+    validUntil: SOC_NOW + 118_000, soc: 75, ...changes });
+}
+
 describe('history chart option adapter', () => {
   it('renders unsmoothed source values without ECharts interpolation or visible gap markers', () => {
     const option = buildHistoryOption({
@@ -34,7 +43,7 @@ describe('history chart option adapter', () => {
     }])).toContain('100');
   });
 
-  it('does not soften SoC, gust, rain, or other step-like numeric lines', () => {
+  it('smooths only SoC while retaining raw samples and other unsmoothed lines', () => {
     const points = [
       { time: 0, state: 0 },
       { time: 1_000, state: 100 },
@@ -50,14 +59,14 @@ describe('history chart option adapter', () => {
       widthPx: 300,
     });
 
-    for (const rendered of option.series) {
-      expect(rendered.smooth).toBe(false);
+    option.series.forEach((rendered, index) => {
+      expect(rendered.smooth).toBe(index === 0 ? 0.2 : false);
       expect(rendered.data.map((point) => point[1])).toEqual([0, 100, 0]);
       expect(rendered.data.map((point) => point[2])).toEqual([0, 100, 0]);
-    }
+    });
   });
 
-  it('draws sparse change-only SoC as a solid held-state step line', () => {
+  it('draws sparse change-only SoC as a solid smooth trend without step jumps', () => {
     const option = buildHistoryOption({
       series: [{ name: 'BMS_SOC', label: 'SoC', color: '#8b5cf6' }],
       pointsPerSeries: [[
@@ -69,11 +78,51 @@ describe('history chart option adapter', () => {
     });
 
     expect(option.series[0].showSymbol).toBe(true);
-    expect(option.series[0].step).toBe('end');
+    expect(option.series[0].smooth).toBe(0.2);
+    expect(option.series[0].smoothMonotone).toBe('x');
+    expect(option.series[0].step).toBeUndefined();
     expect(option.series[0].lineStyle.type).toBeUndefined();
     expect(option.series[0].connectNulls).toBe(false);
     expect(option.series[0].data.map((point) => point[1])).toEqual([85, 84, 83]);
     expect(option.series[0].data.map((point) => point[0])).toEqual([0, 60_000, 60 * 60_000]);
+  });
+
+  it('reaches now only when fresh atomic SoC evidence confirms the endpoint', () => {
+    const start = SOC_NOW - 60_000;
+    const input = {
+      series: [{ name: 'BMS_SOC', label: 'SoC', color: '#8b5cf6' }],
+      pointsPerSeries: [[{ time: start, state: '75 %' }]],
+      widthPx: 300,
+      nowMs: SOC_NOW,
+    };
+    const fresh = buildHistoryOption({ ...input, socEvidenceRaw: socReceipt() });
+    expect(fresh.series[0].data).toEqual([
+      [start, 75, 75], [SOC_NOW, 75, 75],
+    ]);
+    expect(fresh.series[0].smooth).toBe(0.2);
+    const stale = buildHistoryOption({ ...input, socEvidenceRaw: socReceipt({ validUntil: SOC_NOW }) });
+    expect(stale.series[0].data).toEqual([[start, 75, 75]]);
+  });
+
+  it('places a newly confirmed SoC at receipt time, without inventing earlier history', () => {
+    const start = SOC_NOW - 60_000;
+    const option = buildHistoryOption({
+      series: [{ name: 'BMS_SOC', label: 'SoC' }],
+      pointsPerSeries: [[{ time: start, state: 76 }]],
+      widthPx: 300,
+      nowMs: SOC_NOW,
+      socEvidenceRaw: socReceipt(),
+    });
+    expect(option.series[0].data).toEqual([
+      [start, 76, 76],
+      [SOC_NOW - 1_000, 75, 75],
+      [SOC_NOW, 75, 75],
+    ]);
+    const noHistory = buildHistoryOption({
+      series: [{ name: 'BMS_SOC' }], pointsPerSeries: [[]], widthPx: 300,
+      nowMs: SOC_NOW, socEvidenceRaw: socReceipt(),
+    });
+    expect(noHistory.series[0].data).toEqual([]);
   });
 
   it('renders scalar trough history plus a dashed projection through tonight', () => {

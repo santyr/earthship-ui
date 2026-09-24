@@ -17,9 +17,9 @@ const SERIES = new Map([
   ['AmbientWeatherWS2902A_WindGust', { expectedCadenceMs: ONE_MINUTE_MS, allowedUnits: ['', 'mph', 'km/h', 'm/s'] }],
   ['AmbientWeatherWS2902A_RainFallDay', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'in', '″', 'mm'] }],
   ['MPPT60_PV_Power', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'W', 'kW'] }],
-  // Numeric SoC persistence is change-only: draw its stored state as a solid
-  // step line rather than treating each missing repeat as a sensor gap. This
-  // is a history visualization, not evidence that acquisition stayed healthy.
+  // Numeric SoC persistence is change-only: connect its stored changes as a
+  // trend instead of treating each missing repeat as a sensor gap. This is a
+  // history visualization, not evidence that acquisition stayed healthy.
   ['BMS_SOC', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS }],
   ['Predicted_SoC_Trough_Tomorrow', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: PERCENT_UNITS }],
   ['BTC_USD_Price', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'USD', '$'] }],

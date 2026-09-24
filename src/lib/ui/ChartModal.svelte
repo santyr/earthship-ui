@@ -22,6 +22,7 @@
   let forecastSummary = $state('');
 
   const REFRESH_MS = 5 * 60 * 1_000;
+  const SOC_REDRAW_MS = 30_000;
   const TITLE_ID = 'history-chart-modal-title';
   const DESCRIPTION_ID = 'history-chart-modal-description';
 
@@ -45,6 +46,7 @@
   let requestController;
   let stopObserving = () => {};
   let refreshTimer;
+  let socRedrawTimer;
 
   const description = $derived.by(() => {
     const labels = ($chartStore.series || []).map((source) => source.label || source.name).join(', ')
@@ -83,7 +85,9 @@
 
   function stopRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
+    if (socRedrawTimer) clearInterval(socRedrawTimer);
     refreshTimer = null;
+    socRedrawTimer = null;
   }
 
   function startRefresh(openId) {
@@ -92,6 +96,10 @@
       if (!$chartStore.open || $chartStore.openId !== openId) return;
       loadAndRender($chartStore.series || [], activeHours, openId);
     }, REFRESH_MS);
+    socRedrawTimer = setInterval(() => {
+      if ($chartStore.open && $chartStore.openId === openId && chart
+          && latestSeries.some(({ name }) => name === 'BMS_SOC')) renderLatest(latestWidthPx);
+    }, SOC_REDRAW_MS);
   }
 
   function disposeChart() {
@@ -127,7 +135,8 @@
           series: latestSeries,
           pointsPerSeries,
           widthPx,
-          nowMs: latestNowMs,
+          nowMs: Date.now(),
+          socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
           grid: { left: 52, right: 24, top: 56, bottom: 40 },
           legendTop: 8,
           legendFontSize: 12,

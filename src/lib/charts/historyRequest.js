@@ -64,6 +64,7 @@ export async function loadHistorySeries({
       const policy = getSeriesPolicy(source);
       const request = Promise.resolve().then(() => client.getHistory(source.name, {
         ...getSeriesRequestWindow(policy, window),
+        ...(source.name === 'BMS_SOC' ? { includeStartState: true } : {}),
         signal: controller.signal,
       }));
       return Promise.race([request, cancellation]);

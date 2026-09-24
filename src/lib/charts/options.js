@@ -1,7 +1,8 @@
 import { buildExtremaMarkPoint, formatHistoryValue } from './extremaMarkers.js';
-import { prepareHistorySeries } from './historyPipeline.js';
+import { normalizeHistory, prepareHistorySeries } from './historyPipeline.js';
 import { getSeriesPolicy } from './seriesPolicy.js';
 import { colors, echartsTheme } from '../ui/tokens.js';
+import { atomicSocFreshness } from '../alerts/atomicSoc.js';
 
 // Shared HTML escaping for ECharts tooltip formatters (ECharts renders
 // formatter strings as HTML, so any item-derived text must pass through
@@ -51,11 +52,11 @@ function lineOption(source, data, {
   return {
     name: name || source.label || source.name,
     type: 'line',
-    // Sparse change-only SoC points must remain visible when a gap is broken.
+    // Keep the actual change-only samples visible along the smoothed trend.
     showSymbol: source.name === 'BMS_SOC',
     ...(source.name === 'BMS_SOC' ? { symbolSize: 3 } : {}),
-    smooth: false,
-    ...(source.name === 'BMS_SOC' ? { step: 'end' } : {}),
+    smooth: source.name === 'BMS_SOC' ? 0.2 : false,
+    ...(source.name === 'BMS_SOC' ? { smoothMonotone: 'x' } : {}),
     connectNulls: false,
     dimensions: ['time', 'display', 'raw'],
     encode: { x: 'time', y: 'display' },
@@ -92,6 +93,21 @@ function scalarProjection(source, nowMs) {
   return [[nowMs, value, value], [endMs, value, value]];
 }
 
+function withFreshSocEndpoint(source, rows, policy, rawEvidence, nowMs) {
+  if (source.name !== 'BMS_SOC') return rows;
+  const receipt = atomicSocFreshness(rawEvidence, nowMs);
+  if (!receipt) return rows;
+  const normalized = normalizeHistory(rows, { allowedUnits: policy.allowedUnits });
+  const last = normalized.at(-1);
+  if (!last || last.time > receipt.recordedAt || last.time >= nowMs) return rows;
+  const endpoint = [];
+  if (last.value !== receipt.soc && last.time < receipt.recordedAt) {
+    endpoint.push({ time: receipt.recordedAt, state: receipt.soc });
+  }
+  endpoint.push({ time: nowMs, state: receipt.soc });
+  return [...rows, ...endpoint];
+}
+
 export function buildHistoryOption({
   series = [],
   pointsPerSeries = [],
@@ -100,6 +116,7 @@ export function buildHistoryOption({
   grid = { left: 44, right: 16, top: 28, bottom: 28 },
   legendTop = 0,
   legendFontSize = 10,
+  socEvidenceRaw = null,
 } = {}) {
   const perSeriesBudget = series.length
     ? Math.min(
@@ -111,7 +128,8 @@ export function buildHistoryOption({
 
   series.forEach((source, index) => {
     const policy = getSeriesPolicy(source);
-    const prepared = prepareHistorySeries(pointsPerSeries[index] || [], {
+    const rows = withFreshSocEndpoint(source, pointsPerSeries[index] || [], policy, socEvidenceRaw, nowMs);
+    const prepared = prepareHistorySeries(rows, {
       ...policy,
       widthPx,
       pointBudget: perSeriesBudget,

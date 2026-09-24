@@ -26,6 +26,7 @@ describe('history request generation', () => {
     expect(getHistory.mock.calls[0][1]).toMatchObject({
       starttime: new Date(NOW - 24 * HOUR).toISOString(),
       endtime: new Date(NOW).toISOString(),
+      includeStartState: true,
     });
     expect(getHistory.mock.calls[1][1]).toMatchObject({
       starttime: new Date(NOW).toISOString(),
