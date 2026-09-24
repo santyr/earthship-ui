@@ -182,8 +182,8 @@
           <div class="vital-value">{battTemp}</div>
         </div>
         <div class="vital">
-          <div class="vital-label">BMS cycles</div>
-          <div class="vital-value" title="BMS-reported counter; separate from estimated EFC">{battCycles}</div>
+          <div class="vital-label">Charge cycles</div>
+          <div class="vital-value" title="Gateway-reported charge-cycle count. Not equivalent full cycles; reset behavior is unverified.">{battCycles}</div>
         </div>
         <div class="vital">
           <div class="vital-label">BMS remaining</div>

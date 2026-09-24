@@ -462,6 +462,10 @@ and protected-resource rollback remain outstanding.
   change-only JDBC has no new rows since July 18. Thus missing persistence is
   not sensor staleness; register/reset semantics and atomic receipt history
   are prerequisites to a same-bank EFC comparison.
+  The official Schneider 990-6278A gateway map now confirms registers 110 and
+  112 as unscaled charge-cycle and discharge-count fields, respectively. The
+  LYNK II's emulation/reset semantics remain unverified, so neither count is
+  treated as EFC; the Energy card labels register 110 more precisely.
 
 - Qualified power feature export is now available in the deployed Solar_PV
   `1a013f3` via explicit `export-features --power-evidence-policy`. CSV v3 labels

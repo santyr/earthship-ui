@@ -145,7 +145,8 @@ test('Lenovo Energy shows dated observed and earlier estimated EFC without horiz
   await openEnergyFixture(page, TARGETS[0], analytics);
   await expect(page.locator('.analytics-value')).toHaveText('0.43 observed EFC');
   await expect(page.locator('.analytics-through')).toHaveText('since Sep 20 · through Sep 22');
-  await expect(page.getByText('BMS cycles', { exact: true })).toBeVisible();
+  await expect(page.getByText('Charge cycles', { exact: true })).toBeVisible();
+  await expect(page.locator('.vital-value[title*="Not equivalent full cycles"]')).toHaveText('2');
   await expect(page.getByText('BMS remaining', { exact: true })).toBeVisible();
   await expect(page.getByText('Predicted Curtailment (today)', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Open energy analytics details' }).click();
