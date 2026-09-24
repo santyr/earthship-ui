@@ -6,6 +6,7 @@ networkless container and a mode-0700 temporary directory. A REST deletion is
 never used because it removes the ten member references.
 """
 import importlib.util
+import argparse
 import json
 from pathlib import Path
 import secrets
@@ -56,7 +57,14 @@ def edit_stopped_registry(container, temporary, *, remove, original):
     copy_in(container, path, REGISTRY)
 
 
-def main():
+def stop(container, *, abrupt):
+    if abrupt:
+        aqi.run(['docker', 'kill', container], timeout=45)
+    else:
+        aqi.run(['docker', 'stop', '-t', '30', container], timeout=45)
+
+
+def main(*, abrupt=False):
     source = SOURCE.read_bytes()
     if source.count(b'Group gForecast "Forecast Items" ["forecast"]') != 1:
         raise RuntimeError('prepared forecast Group source changed')
@@ -102,7 +110,7 @@ def main():
                 raise RuntimeError('managed Group baseline or members failed')
             print('managed_baseline_members_verified=true', flush=True)
 
-            aqi.run(['docker', 'stop', '-t', '30', container], timeout=45)
+            stop(container, abrupt=abrupt)
             edit_stopped_registry(container, temporary, remove=True,
                                   original=original_record)
             source_path = temporary / SOURCE.name
@@ -117,7 +125,7 @@ def main():
                 raise RuntimeError('full restart lost file Group or members')
             print('full_restart_members_verified=true', flush=True)
 
-            aqi.run(['docker', 'stop', '-t', '30', container], timeout=45)
+            stop(container, abrupt=abrupt)
             edit_stopped_registry(container, temporary, remove=False,
                                   original=original_record)
             source_path.write_bytes(b'')
@@ -138,4 +146,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--abrupt-stop', action='store_true',
+                        help='exercise SIGKILL before both offline registry edits')
+    main(abrupt=parser.parse_args().abrupt_stop)

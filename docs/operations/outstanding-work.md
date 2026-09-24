@@ -483,6 +483,13 @@ handoff in isolation, not live maintenance, JDBC continuity or a natural
 writer after cutover. Wait for the provisional daily Items' natural series
 gate before any production Group transfer.
 
+The same networkless Group rehearsal now also passes with an intentional
+SIGKILL before both offline JSONDB edits: file ownership, all ten memberships,
+full restart and managed rollback remained exact. Its owned container and
+private temporary directory were removed. This narrows file-provider recovery
+risk from the last production stop's forced-kill behavior, but does not qualify
+protected hardware controls across another live OpenHAB restart.
+
 The guarded `scripts/migrate-forecast-group-offline.py` adapter is now staged
 for that later attended maintenance. Its read-only `--check` verifies the
 exact managed Group, ten file-owned members/links, ONLINE forecast Thing,
@@ -497,8 +504,7 @@ OpenHAB unless both greywater pump output Items are explicitly OFF, with a
 second check immediately before the stop. Nine focused tests pass, including
 the no-service-stop, pump-state and unrelated-JSONDB-preserving rollback
 guards. The adapter has not yet been executed against production; the natural
-Group writer
-and rollback gates remain live obligations.
+Group writer and rollback gates remain live obligations.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
