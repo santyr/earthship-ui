@@ -1,0 +1,8 @@
+// Direct-published forecast learning diagnostics; no channel links or controls.
+Number Forecast_PV_Error_7d "PV Forecast Error (7d rolling)" ["forecast-intel"]
+Number Forecast_Precip_Error_7d "Forecast precip error 7d (in)"
+Number Forecast_TempHigh_Error_7d "Forecast high error 7d (F)"
+Number Forecast_TempHigh_Bias_7d "Forecast high bias 7d (F)"
+Number Forecast_TempLow_Error_7d "Forecast low error 7d (F)"
+Number Forecast_Day3_High_Error_7d "Day-3 high error 7d (F)"
+Number Forecast_Day3_Precip_Error_7d "Day-3 precip error 7d (in)"
