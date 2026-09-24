@@ -56,9 +56,18 @@ September 25 daily aggregate and publisher remain the live gate. See
 
 The September 23 morning PV forecast of 3.42 kWh was 48% below the measured
 6.557 kWh; its predicted overnight SoC trough was 59%, while atomic SoC
-had stayed at or above 84% through 08:12 MDT on September 24. The now-closed
-20:00–11:00 window has an Item-history minimum of 83%, but its strict atomic
-evidence assessment and immutable as-issued score remain pending. Forecast shortwave radiation was
+had stayed at or above 84% through 08:12 MDT on September 24. A read-only,
+origin-aware atomic assessment of the now-complete 20:00–11:00 window found
+890 evidence rows, 99.8454% qualified coverage, a measured 83% minimum and
+a −24 percentage-point signed forecast residual. No outcome was stored or
+learning update made by that check; the ordinary assessment/publisher is
+still the live persistence gate. The forecast formula implies approximately
+75% dusk SoC from its 85% issuance reference, 3.42 kWh predicted PV and
+5.49 kWh direct demand, versus an observed Item state around 97% at 20:00.
+The 3.137 kWh PV miss would account for roughly 14.6 SoC points under the
+formula's efficiency/capacity assumptions; the rest of the daytime miss
+requires separate demand, charge-efficiency, curtailment and BMS-state
+attribution. These are diagnostic estimates, not causal proof. Forecast shortwave radiation was
 2.675 kWh/m², versus approximately 2.321 kWh/m² integrated from the on-site
 solar-radiation Item over the local day. Thus the PV miss was not simply a
 lower irradiance forecast than the site sensor observed. The learned PV
