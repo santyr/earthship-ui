@@ -7,6 +7,13 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 17:20 MDT, read-only signed-event queries returned zero operator-authored
+kind-10050 inbox announcements from each of the three approved relays. The
+collector remains off. The source-only poller now tolerates either order of
+NIP-42 `auth-required` closure and challenge without signing unless explicitly
+enabled; 68 focused messaging and 358 completion tests pass. No public
+message, household signer, private policy or journal write was used.
+
 The thermal confirmation transport now includes a bounded, manual inbound
 relay poll seam, but its live CLI release gate is closed. It uses only reviewed
 signed collector inbox routes, requires a complete EOSE page and funnels

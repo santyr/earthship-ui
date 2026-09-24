@@ -273,6 +273,7 @@ class Relay:
                 events = []
                 auth_id = None
                 challenged = False
+                authenticated = False
                 ws.send(t.canonical(request).decode())
                 for _ in range(MAX_INBOX_FRAMES):
                     left = deadline - time.monotonic()
@@ -300,12 +301,15 @@ class Relay:
                         require(auth_id is not None and message[1] == auth_id and message[2],
                                 'inbox authentication refused')
                         auth_id = None
+                        authenticated = True
                         events.clear()
                         ws.send(t.canonical(request).decode())
                     elif message[0] == 'CLOSED':
                         require(len(message) == 3 and message[1] == subscription
                                 and isinstance(message[2], str), 'malformed inbox closure')
-                        if self.auth and message[2].startswith('auth-required:') and challenged:
+                        # NIP-42 allows AUTH to arrive before or after CLOSED.
+                        # Wait for at most one explicitly approved challenge.
+                        if self.auth and message[2].startswith('auth-required:') and not authenticated:
                             continue
                         raise t.Retryable('inbox subscription closed')
                     elif message[0] == 'EVENT':

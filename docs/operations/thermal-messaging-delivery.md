@@ -2,6 +2,23 @@
 
 ## September 24 source-only inbound poll checkpoint
 
+At 17:20 MDT, a fresh public, read-only kind-10050 query used only the
+existing notifier's approved recipient **public** key. `nos.lol`,
+`relay.primal.net` and `relay.damus.io` each completed successfully and
+returned zero operator-authored inbox announcements. The public key, route
+events, message bodies and private notifier configuration were not printed;
+no signing key was loaded. This confirms the operator route is still absent
+on those three proposed relays at this checkpoint, not on every possible
+relay. The collector remains disabled.
+
+The disabled inbound poller's NIP-42 handling now accepts either ordering of
+an `auth-required` CLOSED frame and the matching AUTH challenge. It still
+signs only when `--relay-auth` is explicit, accepts one challenge, requires
+the exact positive auth OK, and retries the same bounded REQ. A real loopback
+regression covers CLOSED-before-AUTH. The focused messaging suite now passes
+68 tests and the full source-only completion suite passes 358 tests. This
+does not qualify a household key or public relay for collection.
+
 The missing relay-to-ingress seam now has an attended `--poll-replies` source
 path, but `POLL_RELEASE_READY` remains **false**. The CLI refuses this mode
 before opening a private policy, spool, keyer or journal. No household relay,

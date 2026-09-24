@@ -470,6 +470,32 @@ def test_real_loopback_inbox_auth_retries_same_query():
     assert seen[1][0] == 'AUTH' and ['relay', url] in seen[1][1]['tags']
 
 
+def test_real_loopback_inbox_closed_before_auth_challenge():
+    from websockets.sync.server import serve
+    seen = []
+    def handler(ws):
+        first = json.loads(ws.recv(timeout=2))
+        seen.append(first)
+        ws.send(json.dumps(['CLOSED', first[1], 'auth-required: sign first']))
+        ws.send(json.dumps(['AUTH', 'late-challenge']))
+        auth = json.loads(ws.recv(timeout=2))
+        seen.append(auth)
+        ws.send(json.dumps(['OK', auth[1]['id'], True, '']))
+        retry = json.loads(ws.recv(timeout=2))
+        seen.append(retry)
+        ws.send(json.dumps(['EOSE', retry[1]]))
+    with serve(handler, '127.0.0.1', 0, compression=None) as server:
+        th = threading.Thread(target=server.serve_forever, daemon=True)
+        th.start()
+        url = f'ws://127.0.0.1:{server.socket.getsockname()[1]}'
+        assert m.Relay(FakeKeyer(), C, auth=True, local_test=True).fetch(
+            url, since=int(datetime.now(timezone.utc).timestamp()) - 60) == []
+        server.shutdown()
+        th.join(timeout=3)
+    assert seen[0] == seen[2]
+    assert seen[1][0] == 'AUTH' and ['challenge', 'late-challenge'] in seen[1][1]['tags']
+
+
 def test_saturated_inbox_page_is_not_claimed_complete(monkeypatch):
     monkeypatch.setattr(m.secrets, 'token_hex', lambda _: 'fixed-subscription')
     monkeypatch.setattr(m, 'MAX_INBOX_EVENTS', 1)
