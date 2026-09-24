@@ -18,6 +18,15 @@ with complete-day and per-day coverage gates; the September 23 17:10 publisher
 readback verified both values. Source-side winter, SoH, curtailment and AC-load
 qualification remain unfinished.
 
+An evening Energy forecast audit found the daily PV selector could show
+yesterday's value after local midnight (`valid_for >=` admitted a row ending
+exactly at midnight). The exact-next-Denver-midnight fix passed 850 analytics
+tests, eliminated 21 wrong-day selections in a 169-origin read-only replay,
+and was pushed to Solar_PV `5516c6d`. Earthship UI `b44312c` labels the field
+“Today's PV forecast”; six Energy browser checks passed. The natural 18:35
+publisher run and restarted UI both passed live readback. This fixes day
+selection, not winter/SoH/curtailment or AC qualification.
+
 The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
 isolated OpenHAB/JDBC restore and live managed rollback/return qualification.
 Its state, stable JDBC mapping/history and shadow timer were preserved. The

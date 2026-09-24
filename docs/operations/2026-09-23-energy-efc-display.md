@@ -70,3 +70,15 @@ replay selects today's row at all 169 origins without a missing result. The
 Energy modal labels that field “Today's PV forecast.” This corrects target-day
 selection and presentation, not the forecast's meteorological accuracy or
 other pending qualified-energy fields.
+
+Deployment readback: Solar_PV `5516c6d` and Earthship UI `b44312c` were
+pushed to their respective `main` branches. The Solar_PV analytics suite
+passed 850 tests; the focused Energy modal suite passed nine, the production
+UI build passed, and all six Energy browser checks passed, including the
+Lenovo 1340x800 layout. The existing `energy-ui-publish.timer` ran naturally
+at 18:35:27 MDT, exited 0 and published a new v3 payload generated at
+`2026-09-24T00:35:27.697898Z`. OpenHAB readback selected 3.3 kWh with
+`validFor=2026-09-24T06:00:00Z`, the end of September 23 in Denver. The UI
+service was restarted and its served source contained the revised label.
+This is a production release receipt, not an accuracy score for that PV
+forecast.
