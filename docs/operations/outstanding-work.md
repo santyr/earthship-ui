@@ -118,6 +118,11 @@ The same writer's unlinked PV-today and SoC-trough Number Items are also
 Both passed live read-only state/JDBC preflight and isolated provider,
 rollback, hot-reload and restart tests. Their guarded adapter refuses live
 `--apply`; neither managed provider nor the timer has changed.
+The completed-trough scorer's formatted Number diagnostic is likewise
+[staged, not transferred](2026-09-24-forecast-trough-error-item-staging.md):
+exact provider parity, stable JDBC ID 584/67 rows, synthetic-only rollback and
+restart, and the existing restore-probe tests passed. Its adapter remains
+locked until natural scorer verification and an attended handoff.
 
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
