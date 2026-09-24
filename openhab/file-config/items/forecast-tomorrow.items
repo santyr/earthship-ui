@@ -1,0 +1,4 @@
+// Direct-published tomorrow forecast display values; no channel links.
+Number Forecast_Tomorrow_High "Forecast Tomorrow High" ["forecast-intel"]
+Number Forecast_Tomorrow_Low "Forecast Tomorrow Low" ["forecast-intel"]
+Number Forecast_Tomorrow_PrecipProb "Forecast Tomorrow Precip Probability" ["forecast-intel"]

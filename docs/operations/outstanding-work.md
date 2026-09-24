@@ -7,6 +7,16 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 16:53 MDT the direct-published tomorrow high, low and precipitation
+probability Items moved to Git-owned file definitions. Their exact source
+passed networkless provider and disconnected JDBC/rollback/restart tests;
+the guarded live transfer preserved states and JDBC IDs 577–579 with their
+74/73/71 history rows, exercised managed rollback and resumed the forecast
+timer. Independent REST and ownership-inventory readback found all three
+file-owned with zero inventory issues. The September 25 06:40 MDT natural
+writer and prediction receipt remain the publication gate. See the
+[cutover receipt](2026-09-24-forecast-tomorrow-item-cutover.md).
+
 At 16:46 MDT the two direct-published learned temperature correction Items,
 `Forecast_HighCorrection_F` and `Forecast_LowCorrection_F`, moved from
 REST-managed to exact Git-owned file definitions. A networkless provider
