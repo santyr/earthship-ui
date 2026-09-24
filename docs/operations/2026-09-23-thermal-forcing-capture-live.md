@@ -137,3 +137,13 @@ the first. All eight captured 24-hour targets in the bounded audit were not
 yet due. This is evidence against early graduation, not a validated thermal
 coefficient change. The read-only scorer, action-as-of and operational-origin
 contracts passed 26 focused tests; no live model or advice was changed.
+
+At September 23 23:05 MDT, the next captured one-hour target at 05:00Z
+had matured. The bounded strict rescore now has seven non-overlapping
+one-hour pairs for revision `c87551f92f02`: model MAE **1.6211°F** versus
+same-origin persistence **0.6429°F**, model bias −1.6211°F, and 7/7 broad
+interval coverage at 10.4139°F mean width. The new point erred −0.962°F
+versus +0.540°F persistence. The six-hour captured set remains four
+overlapping pairs (model MAE 5.4265°F versus persistence 2.2500°F), only one
+non-overlapping pair. No captured 24-hour target was scored. These are
+observational, not independent action outcomes or evidence for promotion.

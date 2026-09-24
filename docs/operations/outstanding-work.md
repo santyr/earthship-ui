@@ -64,6 +64,10 @@ six-hour target: four six-hour pairs now show model MAE 5.4265°F versus
 persistence 2.2500°F, with only one non-overlapping pair and no due 24-hour
 target. The model remains in shadow; see the
 [forcing-capture score](2026-09-23-thermal-forcing-capture-live.md).
+At 23:05 MDT, one further independent captured one-hour target brought the
+strict model/persistence MAEs to 1.6211°F/0.6429°F across seven pairs; the
+four overlapping six-hour scores and absence of due captured 24-hour targets
+were unchanged. No threshold, artifact or advice changed.
 The new bounded, read-only
 [operational-origin census](2026-09-23-thermal-historical-blend-audit.md)
 paired 11/12 six-hourly origins with 24-hour qualified indoor outcomes and

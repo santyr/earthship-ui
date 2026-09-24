@@ -118,3 +118,11 @@ tuning, or move the production model out of shadow. Next model replay must
 fail closed on missing action forcing or restrict itself to a separately
 qualified passive interval, then use prospective confirmed actions and
 held-out outcomes for release evidence.
+
+At September 23 23:04 MDT, one additional six-hour-grid origin at
+September 23 00:00Z had a matured qualified 24-hour indoor target. Its
+same-origin persistence absolute error was 1.98°F, with captured forecast
+digest `ff29774353131ec9f0a714f0a7027694a3a50d4bf8c408e355db8ebaeb98f117`.
+This read used no action-journal credential, so its action knowledge is
+explicitly unqualified. It is an extra historical baseline observation,
+not a physical-model or action-benefit score.
