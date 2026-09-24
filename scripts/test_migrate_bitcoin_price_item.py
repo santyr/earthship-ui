@@ -55,6 +55,7 @@ def test_natural_receipt_must_be_new_and_match_file_state(monkeypatch):
 
 
 def test_apply_refuses_before_any_backup_or_mutation(monkeypatch):
+    monkeypatch.setattr(module, 'RELEASE_READY', False)
     monkeypatch.setattr(module.preflight, 'check', lambda: {'status': 'preflight_passed'})
     monkeypatch.setattr(module, 'backup', lambda *args:
                         pytest.fail('backup started despite release gate'))

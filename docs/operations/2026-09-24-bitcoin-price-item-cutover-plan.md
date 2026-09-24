@@ -1,7 +1,8 @@
 # Attended Bitcoin price Item file-ownership cutover plan
 
-Status: proposed, **not released**. `scripts/migrate-bitcoin-price-item.py`
-keeps `RELEASE_READY = False`; this document does not authorize changing it.
+Status: approved for one attended cutover on September 24. The operator
+approved this exact Item/link transfer; the adapter's release gate is on.
+The preflight still must pass immediately before `--apply`.
 
 ## Exact scope and preflight
 

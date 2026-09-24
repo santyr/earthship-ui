@@ -36,7 +36,7 @@ SOURCE_SHA256 = preflight.SOURCE_SHA256
 BACKUP_ROOT = Path('/home/sat/.local/state/openhab-config-migration')
 ITEM_DB = Path('/var/lib/openhab/jsondb/org.openhab.core.items.Item.json')
 LINK_DB = Path('/var/lib/openhab/jsondb/org.openhab.core.thing.link.ItemChannelLink.json')
-RELEASE_READY = False  # Flip only after backup and rollback path review.
+RELEASE_READY = True  # Operator-approved attended Item/link cutover only.
 
 
 def require(ok, reason):
