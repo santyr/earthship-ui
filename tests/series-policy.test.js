@@ -29,6 +29,7 @@ describe('chart series policy', () => {
 
   it('defines exact history versus forecast domains', () => {
     expect(getSeriesPolicy('BMS_SOC').domain).toBe('history');
+    expect(getSeriesPolicy('BMS_SOC').gapPolicy).toBe('continuous');
     expect(getSeriesPolicy('Forecast_Temp').domain).toBe('forecast');
     expect(getSeriesPolicy('Predicted_SoC_Trough_Tomorrow').domain).toBe('history');
   });

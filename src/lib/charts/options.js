@@ -55,6 +55,7 @@ function lineOption(source, data, {
     showSymbol: source.name === 'BMS_SOC',
     ...(source.name === 'BMS_SOC' ? { symbolSize: 3 } : {}),
     smooth: false,
+    ...(source.name === 'BMS_SOC' ? { step: 'end' } : {}),
     connectNulls: false,
     dimensions: ['time', 'display', 'raw'],
     encode: { x: 'time', y: 'display' },
