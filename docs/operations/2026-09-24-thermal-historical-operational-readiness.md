@@ -86,3 +86,25 @@ the model versus 0.36°F for persistence; it is diagnostic, not two independent
 days or a validated coefficient correction. Twelve captured 24-hour targets
 remain immature. Shadow-only and existing advice/control authority remain
 unchanged.
+
+At 16:55 MDT, the same bounded capture-strict scorer was rerun read-only
+from September 23 15:45Z. Four captured 24-hour targets had matured under
+the previous `c87551f92f02` revision. All four model errors were low
+(−6.286, −7.565, −5.977 and −5.548°F), and all four 10.414°F nominal
+intervals missed. Their overlapping MAE was 6.344°F versus 1.35°F for
+same-origin persistence; greedy non-overlap still selected only one target
+(6.286 versus 0.54°F). The paired outdoor forecast errors changed sign
+(+1.64, −4.02, −4.10 and −3.40°F), so weather error alone does not explain
+the shared low indoor miss. Twelve newer captured 24-hour targets remained
+immature. This is stronger adverse diagnostic evidence, not four independent
+days or an identified calibration offset.
+
+The refreshed one-hour set has 15 disjoint pairs, model/persistence MAE
+1.2254/0.444°F. Only three use the current `507748cee9ca` artifact;
+their MAE is 1.063/0.300°F. The six-hour set has 13 overlapping pairs;
+four disjoint pairs have MAE 4.0977/2.295°F. Only one six-hour pair uses
+the current artifact (3.966/1.62°F). All scored publications remain
+low-confidence. The latest natural shadow service exited zero and its
+15:57 MDT output still reports `shadow` with no candidate schedule. Continue
+capture and independent current-revision scoring; do not fit from these
+overlapping warm-season targets or change advisory/control authority.

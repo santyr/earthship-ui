@@ -7,6 +7,16 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 16:55 MDT a bounded read-only strict thermal rescore found four mature
+captured 24-hour targets. All four model predictions missed low and all four
+nominal intervals missed; model/persistence overlapping MAE was
+6.344/1.35°F, but non-overlap still has only one independent 24-hour pair.
+Three current-artifact one-hour targets scored 1.063/0.300°F, and its sole
+mature six-hour target scored 3.966/1.62°F. The latest natural shadow
+publisher exited zero and remains low-confidence `shadow` without a candidate.
+No model or advice authority changed; see the
+[readiness audit](2026-09-24-thermal-historical-operational-readiness.md).
+
 At 16:53 MDT the direct-published tomorrow high, low and precipitation
 probability Items moved to Git-owned file definitions. Their exact source
 passed networkless provider and disconnected JDBC/rollback/restart tests;
