@@ -77,6 +77,19 @@ def same_state(actual, expected):
         return False
 
 
+def state_matches(actual, expected):
+    candidates = (expected,) if isinstance(expected, str) else expected
+    return any(same_state(actual, candidate) for candidate in candidates)
+
+
+def restore_state_from_history(rows, at):
+    past = [(stamp, value) for stamp, value in rows if stamp <= at]
+    require(bool(past), 'no past JDBC forecast value available for state restore')
+    _, value = max(past, key=lambda row: row[0])
+    require(type(value) in (float, int, Decimal), 'non-numeric JDBC forecast state')
+    return str(value) + ' °F'
+
+
 def exact_item(row, name, managed, original_state=None):
     return (isinstance(row, dict) and row.get('editable') is managed
             and row.get('name') == name
@@ -88,7 +101,7 @@ def exact_item(row, name, managed, original_state=None):
             and not row.get('metadata')
             and isinstance(row.get('state'), str)
             and STATE.fullmatch(row['state']) is not None
-            and (original_state is None or same_state(row['state'], original_state)))
+            and (original_state is None or state_matches(row['state'], original_state)))
 
 
 def exact_link(row, name, managed):
@@ -155,6 +168,22 @@ def preserved(before, after):
     return not (Counter(before) - Counter(after))
 
 
+def settled_history_preserved(db, identities, before, seconds=90):
+    """Allow asynchronous JDBC series replacement to finish before judging rows."""
+    deadline = time.monotonic() + seconds
+    consecutive = 0
+    while time.monotonic() < deadline:
+        if all(preserved(before[name], history(db, identities[name]))
+               for name in CHANNELS):
+            consecutive += 1
+            if consecutive == 4:
+                return True
+        else:
+            consecutive = 0
+        time.sleep(2)
+    return False
+
+
 def private_file(directory, name, body):
     descriptor = os.open(directory / name,
                          os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -213,7 +242,7 @@ def restore_managed(directory, originals, original_links, source_hash, states):
             require(len(found[name]) == 1 and exact_link(found[name][0], name, True),
                     'unexpected link during managed rollback: ' + name)
     require(wait_for(lambda: ready(True, states), 90),
-            'managed rollback Item/link/state did not recover')
+            'managed rollback Item/link/database-backed state did not recover')
 
 
 def main(apply):
@@ -252,6 +281,9 @@ def main(apply):
                 'jdbc_rows': {name: len(rows) for name, rows in before.items()},
                 'source_sha256': source_hash}, sort_keys=True), flush=True)
             return
+        cutover_at = datetime.now(timezone.utc)
+        accepted_states = {name: (states[name], restore_state_from_history(before[name], cutover_at))
+                           for name in CHANNELS}
         directory = backup(originals, original_links, identities, before, source_hash)
         print('private_backup=' + str(directory), flush=True)
         changed = False
@@ -278,21 +310,26 @@ def main(apply):
                            check=True, timeout=15)
             require(sha256(TARGET.read_bytes()).hexdigest() == source_hash,
                     'installed source differs')
-            require(wait_for(lambda: ready(False, states), 90),
-                    'file Item/link/state readback failed')
-            require(all(preserved(before[name], history(db, identities[name]))
-                        for name in CHANNELS), 'historical JDBC rows changed')
+            require(wait_for(lambda: ready(False, accepted_states), 90),
+                    'file Item/link/database-backed state readback failed')
+            require(settled_history_preserved(db, identities, before),
+                    'historical JDBC rows changed after settling')
             require(healthy_thing(), 'OpenMeteo forecast Thing degraded')
         except BaseException:
             if changed:
-                restore_managed(directory, originals, original_links, source_hash, states)
-                require(all(preserved(before[name], history(db, identities[name]))
-                            for name in CHANNELS), 'JDBC rows changed during rollback')
-                print('managed_rollback_verified=true', flush=True)
+                restore_managed(directory, originals, original_links, source_hash,
+                                accepted_states)
+                require(settled_history_preserved(db, identities, before),
+                        'JDBC rows changed during rollback')
+                print('managed_rollback_metadata_history_and_database_backed_state_verified=true',
+                      flush=True)
             raise
         print(json.dumps({'status': 'file_provider_provisional',
             'items': list(CHANNELS), 'jdbc_item_ids': identities,
             'jdbc_rows_preserved': {name: len(rows) for name, rows in before.items()},
+            'state_readback': {name: item(name)['state'] for name in CHANNELS},
+            'original_states': states,
+            'database_restore_states': {name: accepted_states[name][1] for name in CHANNELS},
             'source_sha256': source_hash, 'backup': str(directory),
             'natural_series_pending': True}, sort_keys=True), flush=True)
     finally:

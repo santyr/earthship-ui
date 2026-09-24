@@ -28,6 +28,9 @@ SCALARS = {'Forecast_Temp': '68 °F', 'Forecast_Daily_High': '75 °F',
 SERIES = {'Forecast_Temp': (48, 3600, 40),
           'Forecast_Daily_High': (7, 86400, 70),
           'Forecast_Daily_Low': (7, 86400, 30)}
+PAST_SERIES_STATES = {'Forecast_Temp': '67 °F',
+                      'Forecast_Daily_High': '70 °F',
+                      'Forecast_Daily_Low': '55 °F'}
 
 
 def same_temperature(actual, expected):
@@ -276,6 +279,43 @@ def main():
                    for name in NAMES):
                 raise RuntimeError('JDBC prefix changed at full restart')
             print('full_restart_states_and_series_preserved=3', flush=True)
+            # Production has past forecast-series rows newer than the scalar
+            # state rows. Reproduce that distinct restore path in isolated JDBC.
+            for name in NAMES:
+                identity = aqi.run(['docker', 'exec', database.cid, 'psql',
+                    '-U', 'postgres', '-d', 'postgres', '-Atc',
+                    "SELECT itemid FROM public.items WHERE itemname='" + name + "'"]
+                    ).decode().strip()
+                if not re.fullmatch(r'[1-9][0-9]*', identity):
+                    raise RuntimeError('isolated JDBC identity drift: ' + name)
+                table = 'public.item' + identity.zfill(4)
+                value = int(PAST_SERIES_STATES[name].split(' ', 1)[0])
+                stored = (str(value) if observed_units[name] == '°F'
+                          else str((Decimal(value) - 32) * 5 / 9))
+                aqi.run(['docker', 'exec', database.cid, 'psql', '-v',
+                    'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'postgres', '-c',
+                    'DELETE FROM ' + table + ' WHERE time < now(); '
+                    'INSERT INTO ' + table + ' (time,value) VALUES '
+                    "(now() - interval '1 minute'," + stored + ')'])
+                changed = database_rows(database, name)
+                if not assert_series(changed, name, first, observed_units[name]):
+                    raise RuntimeError('future series changed in past-state fixture')
+                if len(changed) != SERIES[name][0] + 1:
+                    raise RuntimeError('past-state fixture row count mismatch: ' + name)
+            aqi.run(['docker', 'exec', container, 'mv',
+                '/openhab/conf/items/' + SOURCE.name,
+                '/tmp/forecast-temperature.items.parked'])
+            if not all(item(container, header, name, present=False, seconds=90)
+                       for name in NAMES):
+                raise RuntimeError('past-state fixture Items did not withdraw')
+            aqi.run(['docker', 'exec', container, 'mv',
+                '/tmp/forecast-temperature.items.parked',
+                '/openhab/conf/items/' + SOURCE.name])
+            if not all(item(container, header, name,
+                            value=PAST_SERIES_STATES[name], seconds=90)
+                       for name in NAMES):
+                raise RuntimeError('latest past JDBC values did not restore')
+            print('past_series_state_restore_verified=3', flush=True)
         finally:
             if container is not None:
                 try:

@@ -49,6 +49,43 @@ def test_preserved_requires_every_historical_row_including_duplicates():
     assert not m.preserved([row], [(stamp, 69.0)])
 
 
+def test_state_restore_accepts_only_original_or_latest_past_jdbc_value():
+    name = 'Forecast_Daily_High'
+    now = datetime(2026, 9, 23, 19, tzinfo=timezone.utc)
+    rows = [(now.replace(hour=0), 72.3074),
+            (now.replace(hour=18), 68.3473982),
+            (now.replace(day=24, hour=0), 66.0)]
+    restored = m.restore_state_from_history(rows, now)
+    assert restored == '68.3473982 °F'
+    candidates = ('68.2574 °F', restored)
+    assert m.exact_item(managed(name, candidates[0]), name, True, candidates)
+    assert m.exact_item(managed(name, candidates[1]), name, True, candidates)
+    assert not m.exact_item(managed(name, '66 °F'), name, True, candidates)
+    assert not m.exact_item(managed(name, 'NULL'), name, True, candidates)
+    with pytest.raises(RuntimeError, match='no past JDBC'):
+        m.restore_state_from_history(rows[2:], now)
+
+
+def test_history_guard_waits_through_transient_jdbc_series_replacement(monkeypatch):
+    stamp = datetime(2026, 9, 23, tzinfo=timezone.utc)
+    before = {name: [(stamp, 68.0)] for name in m.CHANNELS}
+    identities = {name: index for index, name in enumerate(m.CHANNELS)}
+    attempts = {'count': 0}
+
+    def transient(_, identity):
+        name = list(m.CHANNELS)[identity]
+        if name == 'Forecast_Temp':
+            attempts['count'] += 1
+            if attempts['count'] <= 2:
+                return []
+        return before[name]
+
+    monkeypatch.setattr(m, 'history', transient)
+    monkeypatch.setattr(m.time, 'sleep', lambda _: None)
+    assert m.settled_history_preserved(None, identities, before)
+    assert attempts['count'] == 6
+
+
 def test_rollback_refuses_unknown_file_without_moving_it(tmp_path, monkeypatch):
     target = tmp_path / 'unknown.items'
     target.write_text('unknown source')

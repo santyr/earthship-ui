@@ -334,6 +334,29 @@ the completed run retested the entire path. This establishes isolated
 recovery, not production permission to transfer without fresh live
 preflight, private rollback material and a natural 48/7/7 writer check.
 
+An attended live transfer on 2026-09-23 at 19:20 MDT stopped at the scalar
+state guard and rolled the exact three managed Items and links back; all
+710/40/40 preexisting JDBC rows under IDs 563/564/568 were retained, and
+the production file Item definition was withdrawn. The high/low scalar
+states did not return to their pre-transfer values: OpenHAB restored the
+latest past JDBC forecast-series values (68.3473982/53.3173982 °F) instead
+of the earlier binding scalar states (68.2574/54.3974 °F). A bounded scan of
+all 36 live rule bodies found no consumer of these three Item names. The
+private recovery backup is under
+`/home/sat/.local/state/openhab-config-migration/forecast-temperature-20260924T012005Z`.
+The transfer guard now accepts only the exact pre-transfer value or the
+latest past JDBC value as provisional. The isolated qualifier passed that
+second restore path and removed both disposable containers. A second live
+attempt briefly saw absent older JDBC rows while the replacement time series
+was being written; the guarded rollback restored the managed definitions and
+an independent SQL comparison found all 790 original rows again. The guard
+now requires four stable history-preservation reads after asynchronous JDBC
+settling. At 19:32 MDT a third attended transfer reached file ownership with
+exact pre-transfer state readback and all prior rows under IDs 563/564/568.
+This is provisional: do not call the file cutover complete until a natural
+48/7/7 binding update has been observed under file ownership with Item
+identities and prior rows preserved.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
