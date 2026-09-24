@@ -1,0 +1,3 @@
+// Prepared observation definition. Normalize the managed label-only format string.
+// The live Exec Thing and BTC_Price Group stay managed.
+Number BTC_USD_Price "Bitcoin Price [%.0f USD]" (BTC_Price) { channel="exec:command:BTC_Price:output" }

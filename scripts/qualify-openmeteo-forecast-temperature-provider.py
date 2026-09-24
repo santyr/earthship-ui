@@ -25,6 +25,10 @@ CHANNELS = {
     'Forecast_Daily_Low': 'openmeteo:forecast:local:site:forecastDaily#temperature-min',
 }
 TYPES = {name: 'Number:Temperature' for name in CHANNELS}
+GROUPS = {name: ['gForecast'] for name in CHANNELS}
+BINDING = aqi.BINDING
+BINDING_TARGET = 'openmeteo.jar'
+FILE_LABELS = {}
 FIELDS = ('name', 'type', 'label', 'category', 'tags', 'groupNames')
 
 
@@ -84,18 +88,20 @@ def main():
         if source.count(declaration) != 1 or source.count(channel.encode()) != 1:
             raise RuntimeError('prepared forecast Item source is not exact')
     originals = {}
+    file_expected = {}
     live_links = aqi.oh.get('/links')
     for name, channel in CHANNELS.items():
         item = aqi.oh.get('/items/' + name + '?metadata=.*')
         matches = [row for row in live_links if row.get('itemName') == name]
         if (item.get('editable') is not True
                 or item.get('type') != TYPES[name]
-                or item.get('groupNames') != ['gForecast']
+                or item.get('groupNames') != GROUPS[name]
                 or len(matches) != 1 or matches[0].get('editable') is not True
                 or matches[0].get('channelUID') != channel
                 or matches[0].get('configuration')):
             raise RuntimeError('live forecast Item/link preflight changed: ' + name)
         originals[name] = item
+        file_expected[name] = {**item, 'label': FILE_LABELS.get(name, item.get('label'))}
     marker = secrets.token_hex(8)
     container = None
     try:
@@ -129,15 +135,16 @@ def main():
         aqi.install_bytes(container, '/openhab/userdata/jsondb',
             'org.openhab.core.thing.link.ItemChannelLink.json',
             json.dumps(links, separators=(',', ':')).encode())
-        aqi.install_bytes(container, '/openhab/addons', 'openmeteo.jar',
-                          aqi.BINDING.read_bytes())
+        if BINDING is not None:
+            aqi.install_bytes(container, '/openhab/addons', BINDING_TARGET,
+                              BINDING.read_bytes())
         header = ('Authorization: Bearer ' + aqi.oh.token() + '\n').encode()
         aqi.install_bytes(container, '/openhab/conf/items', SOURCE.name, source)
-        if not wait(container, header, originals, file_owned=True):
+        if not wait(container, header, file_expected, file_owned=True):
             raise RuntimeError('file provider did not match all forecast Items/links')
         print('first_boot_exact_file_items_and_links=' + str(len(CHANNELS)), flush=True)
         aqi.run(['docker', 'restart', container], timeout=90)
-        if not wait(container, header, originals, file_owned=True):
+        if not wait(container, header, file_expected, file_owned=True):
             raise RuntimeError('full restart lost forecast Item/link definition')
         print('full_restart_exact_file_items_and_links=' + str(len(CHANNELS)), flush=True)
         aqi.run(['docker', 'exec', container, 'rm',

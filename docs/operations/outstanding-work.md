@@ -541,6 +541,16 @@ check, exact link/provider and writer verification, and separate Group metadata
 and membership handling. No Bitcoin provider or feed setting changed in this
 inventory; do not reuse a small-forecast Item adapter that loads all history
 into memory.
+The prepared `openhab/file-config/items/bitcoin-price.items` source now uses
+the explicit label “Bitcoin Price” with a whole-dollar state format; the
+managed label-only `[%.0f ]` string parsed as an empty label in an isolated
+`.items` provider and could not be transferred as-is. A networkless restored-
+registry rehearsal verified the exact Number Item, `BTC_Price` membership and
+empty-config Exec link after first boot and full restart, then withdrew the
+file and restored the original managed Item/link. Its owned container was
+removed. This qualifies provider syntax and reversibility only; production
+price Item/link/Group ownership, JDBC history and feed are unchanged. A
+bounded history/restart qualification is still required before any live cutover.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
