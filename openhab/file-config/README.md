@@ -38,6 +38,10 @@ recorded in `docs/operations/2026-09-23-forecast-json-item-cutover.md`.
 Their first natural post-transfer publisher run succeeded at 15:17 MDT with
 exact live Item/JDBC state matches under preserved identities; see the cutover
 receipt.
+The additive observational `Forecast_Prediction_Receipt_JSON` is file-owned
+in `items/forecast-prediction-receipt.items`. Its dated values prevent unchanged
+once-daily prediction Items from being mistaken for today's forecast. The
+first natural producer write remains a separate runtime verification gate.
 `items/inverter-ac-output-observation.items` is an additional file-owned,
 read-only link to the existing inverter AC-power channel. Its canonical JS
 transform is `openhab/transform/inverter_ac_output_observation.js`. This

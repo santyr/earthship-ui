@@ -7,6 +7,25 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+Once-daily forecast display provenance: the live curtailment Item's
+`lastStateUpdate` was September 11 despite daily runs that repeatedly posted
+the unchanged `0.0`; PV and trough Items last updated September 23. OpenHAB's
+change-only timestamp is not proof of today's forecast issuance. Commit
+`c235e67` adds a bounded, dated, observational
+`Forecast_Prediction_Receipt_JSON`, posted only after all three prediction
+Item writes succeed. Home curtailment and Energy curtailment/trough now show
+values only from a receipt for the current Denver day, otherwise unavailable.
+Seventy producer tests, seventeen focused UI tests, the build and three browser
+tests passed. The new file-owned Item hot-loaded with `NULL` state and
+`editable:false`; the tested source was installed at the existing forecast
+script path with matching SHA-256. The live ownership graph has no issues.
+The prior script is privately recoverable under
+`/home/sat/backups/earthship-energy/forecast-receipt-93bSMS`. No early run,
+synthetic receipt or DM was emitted. Verify the natural September 24 06:40
+run's receipt, three direct Items, output effects and UI before calling this
+runtime gate complete. Until then these two display forecasts intentionally
+show unavailable.
+
 September 24 pre-dawn PV forecast date correction: the Solar_PV collector
 previously stored a `daily_pv_kwh` summary for a named local day at that
 day's **start**, while both analytics readers select the day-end timestamp.
