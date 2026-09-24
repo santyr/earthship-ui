@@ -50,6 +50,16 @@ high-SoC exposure is now shown as observed hours over the selected window,
 with complete-day and per-day coverage gates; the September 23 17:10 publisher
 readback verified both values. Source-side winter, SoH, curtailment and AC-load
 qualification remain unfinished.
+At September 24 03:20 MDT, the live v3 Energy publication was current for the
+September 23 completed day and its forecast selected today's Denver day.
+`health.analytics=degraded` came from eight supporting daily sources marked
+`freshness_unverified` (load-switch, sun and room telemetry), while the
+qualified battery/PV and weather source rows were `ok`. This does not qualify
+AC load: its separate v4 source gate remains off. The Energy detail modal now
+explains `daily_source_quality_not_ok` in one sentence and points to the
+separate battery/PV coverage and withheld fields, without changing any
+backend quality status or filling missing values. Ten focused UI tests and
+the production build passed; the existing large-chunk warning remains.
 
 The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
 overnight minima and included the current incomplete 20:00–11:00 night in its

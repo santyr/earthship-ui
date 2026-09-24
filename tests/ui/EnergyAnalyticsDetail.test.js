@@ -28,6 +28,18 @@ afterEach(() => {
 });
 
 describe('EnergyAnalyticsDetail observational presentation', () => {
+  it('explains a daily-source health warning without hiding qualified coverage', async () => {
+    const payload = energyAnalyticsCurrentV3Fixture();
+    payload.health.analytics = 'degraded';
+    payload.health.reasons = ['daily_source_quality_not_ok'];
+    const parsed = parseEnergyAnalyticsResult(JSON.stringify(payload), Date.parse(payload.generatedAt) + 60_000);
+    const { container } = render(EnergyAnalyticsDetail, { result: parsed });
+    await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+    expect(container.textContent).toContain('At least one daily source did not meet its quality policy.');
+    expect(container.textContent).toContain('Latest battery coverage');
+    expect(container.textContent).toContain('PV coverage');
+  });
+
   it('separates current observed EFC from a dated earlier estimate and explains pending fields', async () => {
     const payload = energyAnalyticsCurrentV3Fixture();
     const parsed = parseEnergyAnalyticsResult(JSON.stringify(payload), Date.parse(payload.generatedAt) + 60_000);

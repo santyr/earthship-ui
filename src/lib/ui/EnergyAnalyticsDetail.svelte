@@ -181,6 +181,9 @@
             <div><dt>Weather / forecast</dt><dd>{result.health.weather} / {result.health.forecast}</dd></div>
             <div><dt>Collector / publisher</dt><dd>{result.health.collector} / {result.health.publisher}</dd></div>
           </dl>
+          {#if result.reasons.includes('daily_source_quality_not_ok')}
+            <p class="analytics-note">At least one daily source did not meet its quality policy. Check battery and PV coverage, and any withheld fields, separately below.</p>
+          {/if}
         </section>
       </div>
       {#if result.accounting}
