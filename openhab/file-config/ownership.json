@@ -345,7 +345,7 @@
       "kind": "item",
       "id": "gForecast",
       "provider": "file",
-      "migration": "provisional",
+      "migration": "verified",
       "source": "items/forecast-group.items",
       "destination": "/etc/openhab/items/forecast-group.items"
     },

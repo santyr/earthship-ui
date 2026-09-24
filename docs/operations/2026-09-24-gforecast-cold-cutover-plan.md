@@ -1,7 +1,7 @@
 # Attended `gForecast` cold cutover
 
-Status: attended transfer completed provisionally at 10:18 MDT on September 24;
-the next natural forecast-series JDBC gate remains pending. See the
+Status: attended transfer completed at 10:18 MDT on September 24 and its
+natural OpenMeteo series/JDBC gate passed at 11:17:49 MDT. See the
 [cutover receipt](2026-09-24-gforecast-cold-cutover-receipt.md). The adapter
 `scripts/migrate-forecast-group-offline.py` has been re-locked with
 `RELEASE_READY = False` after the one approved stop/restart. Its `--check`

@@ -25,14 +25,48 @@ provisionally at 10:18 MDT after the operator confirmed both pumps physically
 OFF. The old OpenHAB JVM timed out and was SIGKILLed; the replacement is
 active, the Group and ten members are file-owned, protected controls pass,
 JDBC IDs/history are preserved, and ownership inventory has zero issues.
-The next natural 11:20 MDT forecast series remains the final persistence
-gate; see the [cutover receipt](2026-09-24-gforecast-cold-cutover-receipt.md).
+The natural OpenMeteo 11:17:49 MDT binding refresh subsequently published
+all ten series and contiguous 48-hour/seven-day JDBC horizons under stable
+IDs 563–572; the Group is now `file`/`verified`. The separate 11:21 JSON
+timer also succeeded but was not the Group's series writer. See the
+[cutover receipt](2026-09-24-gforecast-cold-cutover-receipt.md).
 At 10:05 MDT the first capture-qualified 24-hour thermal target matured:
 model error −6.286°F versus same-origin persistence +0.54°F, with the model's
 10.414°F interval missing the qualified indoor outcome. The paired outdoor
 forcing error was +1.64°F. Twelve later captured 24-hour targets are still
 immature; thermal advice remains shadow-only. See the
 [readiness audit](2026-09-24-thermal-historical-operational-readiness.md).
+
+At 11:04 MDT the Energy and battery-modal SoC charts were changed from
+fragmented change-only points, then from a step line, to one gently smoothed
+solid trend through actual persisted samples. A fresh atomic BMS receipt may
+extend the trend to the current time; an expired receipt cannot. The SoC
+history request now includes the window-boundary state, and both views redraw
+the receipt-qualified endpoint without refetching history every 30 seconds.
+All 1,734 UI tests, the build and two text-only Energy layout checks passed;
+commit `31588d5` is pushed and the local Vite UI hot-loaded it.
+
+The optional Living Office illuminance, occupancy and temperature daily
+source-quality rows now have an exact-identity, 30-minute same-device sample
+TTL intersected with valid primary Item state. All 862 Solar_PV analytics
+tests and a restricted September 23 dry-run passed with 99.3238494% bounded
+coverage for each row. Commit `1ab984e` is pushed, but the next natural
+September 25 daily aggregate and publisher remain the live gate. See
+`Solar_PV/docs/operations/2026-09-24-living-office-room-quality.md`.
+
+The September 23 morning PV forecast of 3.42 kWh was 48% below the measured
+6.557 kWh; its predicted overnight SoC trough was 59%, while atomic SoC
+had stayed at or above 84% through 08:12 MDT on September 24. The now-closed
+20:00–11:00 window has an Item-history minimum of 83%, but its strict atomic
+evidence assessment and immutable as-issued score remain pending. Forecast shortwave radiation was
+2.675 kWh/m², versus approximately 2.321 kWh/m² integrated from the on-site
+solar-radiation Item over the local day. Thus the PV miss was not simply a
+lower irradiance forecast than the site sensor observed. The learned PV
+conversion factor reached its configured 1.3 ceiling on the next natural
+run, while direct demand remained at 5.49 kWh; seven recent site-radiation
+to-PV ratios vary too much to justify retuning either from this one day.
+Preserve the as-issued forecast for scoring and qualify a separate intraday
+estimate or origin-linked calibration before changing advice or display.
 
 At 07:10 MDT, the seven remaining direct-published forecast quality metrics
 were transferred to exact Git-owned file definitions after networkless

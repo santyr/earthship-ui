@@ -20,10 +20,10 @@ def test_source_has_one_exact_group_declaration():
     ownership = json.loads((root / 'ownership.json').read_text())
     assert [row for row in ownership['resources']
             if row['kind'] == 'item' and row['id'] == 'gForecast'] == [{
-                'kind': 'item', 'id': 'gForecast', 'provider': 'managed',
-                'migration': 'deferred_selector_continuity',
-                'source': 'managed-exceptions/gForecast.json',
-                'rest_path': '/items/gForecast'}]
+                'kind': 'item', 'id': 'gForecast', 'provider': 'file',
+                'migration': 'verified',
+                'source': 'items/forecast-group.items',
+                'destination': '/etc/openhab/items/forecast-group.items'}]
 
 
 def test_group_match_requires_provider_fields_and_all_members(monkeypatch):
