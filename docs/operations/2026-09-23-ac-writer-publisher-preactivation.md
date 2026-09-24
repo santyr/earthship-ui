@@ -106,3 +106,15 @@ growth and recoverability after the first completed AC day and again with a
 longer observation window before proposing any deletion or partition policy.
 The complete-day, physical-fault, restart, and post-first-day restore gates
 remain open; this decision alone does not enable the writer or v4 publisher.
+
+## September 24 rule restart regression
+
+Read-only REST inspection found the active `hex_inverter_ac_evidence` rule's
+script SHA-256 exactly matches the tested Git source
+`880b492e2d0d13b6d1d12c34a6a437f13ef2a58745acaa10c3cb1f9c4134a4ab`;
+its status was `IDLE/NONE` with five triggers. The focused harness now asserts
+that loss of the private cache creates a new stream epoch and an unavailable
+barrier even if the next Watt value is numerically unchanged; only a later
+original binding receipt can make the new epoch valid. All 27 focused tests
+passed. This is isolated rule-contract evidence, **not** a live OpenHAB restart,
+physical fault, full-day coverage, or permission to activate AC publication.

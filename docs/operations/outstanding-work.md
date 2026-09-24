@@ -226,6 +226,10 @@ present in the verified component-restore point; the live validated stream
 reached 9,019 sequential receipts with one original startup barrier and no
 sequence break. The first complete day, restart/fault evidence and a recovery
 point containing its daily revision remain separate gates.
+The active AC rule's script matches the tested source hash; a new focused
+cache-restart regression passed with an unavailable new-epoch barrier and a
+fresh-receipt recovery even at unchanged Watts (27 focused tests). A physical
+source fault and live OpenHAB restart remain unobserved; neither was induced.
 
 The first natural thermal shadow run after the installed-v4 confirmation-CLI
 hardening succeeded at 15:51 MDT. Its verified private forcing archive exactly

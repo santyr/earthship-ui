@@ -153,6 +153,24 @@ describe('independent inverter AC evidence producer', () => {
     }
   });
 
+  it('does not carry an unchanged pre-restart Watt value into the new epoch', () => {
+    const h = ready();
+    const oldEpoch = h.latest.streamEpoch;
+    h.cache.clear();
+    h.advance();
+    h.run(h.receipt('100 W'));
+    expect(h.latest.streamEpoch).not.toBe(oldEpoch);
+    expect(h.latest.sequence).toBe(1);
+    expect(h.latest.fields[field]).toMatchObject({ status: 'unavailable', watts: null });
+    h.advance();
+    h.run(h.receipt('100 W'));
+    expect(h.latest.sequence).toBe(2);
+    expect(h.latest.fields[field]).toMatchObject({ status: 'valid', watts: 100 });
+    expect(h.queued.map(({ body }) => JSON.parse(body).streamEpoch)).toEqual([
+      oldEpoch, oldEpoch, h.latest.streamEpoch, h.latest.streamEpoch,
+    ]);
+  });
+
   it('persists immutable snapshots with monotonic same-millisecond timestamps', () => {
     const h = ready(); h.run(h.receipt('200 W'));
     expect(h.queued.map(x => JSON.parse(x.body).fields[field].watts)).toEqual([null, 100, null]);
