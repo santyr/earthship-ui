@@ -20,6 +20,11 @@
       "state_writer": "openmeteo:air-quality:local:aq:current#us-aqi"
     },
     {
+      "kind": "item", "id": "Forecast_AQI", "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-aqi.items", "destination": "/etc/openhab/items/openmeteo-forecast-aqi.items",
+      "state_writer": "openmeteo:air-quality:local:aq:forecastHourly#us-aqi-as-string"
+    },
+    {
       "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "verified",
       "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
       "state_writer": "forecast-json.service"
@@ -38,6 +43,11 @@
       "kind": "link", "id": "Current_US_AQI -> openmeteo:air-quality:local:aq:current#us-aqi",
       "provider": "file", "migration": "verified",
       "source": "items/openmeteo-current-aqi.items", "destination": "/etc/openhab/items/openmeteo-current-aqi.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_AQI -> openmeteo:air-quality:local:aq:forecastHourly#us-aqi-as-string",
+      "provider": "file", "migration": "verified",
+      "source": "items/openmeteo-forecast-aqi.items", "destination": "/etc/openhab/items/openmeteo-forecast-aqi.items"
     },
     {
       "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",

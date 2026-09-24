@@ -1,5 +1,9 @@
 # Forecast_AQI file-first preflight — September 23
 
+This dated preflight is superseded for production ownership by the attended
+[cutover receipt](2026-09-23-openmeteo-forecast-aqi-item-cutover.md). The
+natural post-transfer binding-series check remains open.
+
 `Forecast_AQI` remains REST-managed. Read-only live registry checks found one
 String Item labeled “US Air Quality Index,” tag `forecast`, no category/group
 or Item metadata, and one managed link to

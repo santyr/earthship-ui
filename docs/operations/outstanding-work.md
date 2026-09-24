@@ -273,17 +273,15 @@ The file-owned Current_US_AQI Item passed its first natural post-transfer
 binding write at 12:51 MDT: value 37.708336→37.75463, exact OpenMeteo
 channel source, and JDBC identity587 advanced by one matching changed-value
 row. See the [cutover receipt](2026-09-23-openmeteo-aqi-item-cutover.md).
-The separate managed `Forecast_AQI` Item/link now has an exact prepared Git
-source and passed networkless OpenHAB 5.2.1 first-boot, full-restart and
-managed-rollback rehearsal. A second isolated OpenHAB/PostgreSQL run verified
-synthetic String-state persistence and history prefix across file reload and
-full restart. File-provider behavior for the live `REFRESH`/future-series path
-and attended transfer remain open; it is not installed or declared file-owned. See the
-[preflight receipt](2026-09-23-openmeteo-forecast-aqi-preflight.md).
-Read-only events confirm the managed binding currently emits a 48-value
-Forecast_AQI time series hourly; this Item is not in `gForecast`, and its JDBC
-REST history is empty. The cutover must preserve that event behavior without
-inventing a state or historical prefix.
+The separate `Forecast_AQI` Item/link is now file-owned after networkless
+OpenHAB provider/rollback and isolated exact `REFRESH`-state/JDBC recovery
+qualification. The attended cutover preserved the special state and two
+older `REFRESH` JDBC rows under Item ID 582; the exact source and link are
+noneditable and declared in the ownership inventory. The first natural
+post-transfer 48-value binding event remains to be observed. This Item is not
+in `gForecast`, and its JDBC REST history remains an incomplete view of the
+two older SQL rows; no numeric AQI or forecast series was invented. See the
+[cutover receipt](2026-09-23-openmeteo-forecast-aqi-item-cutover.md).
 
 ### Explicit active goal: graduate the thermal model from shadow
 

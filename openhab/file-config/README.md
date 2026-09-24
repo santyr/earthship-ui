@@ -23,13 +23,14 @@ rollback snapshot and completed natural-writer check are recorded in
 `docs/operations/2026-09-23-openmeteo-aqi-item-cutover.md`. The source file's
 pre-cutover warning remains a guard against installing it alongside a managed
 provider on another host.
-`items/openmeteo-forecast-aqi.items` is prepared for the separate managed
-`Forecast_AQI` hourly observation and link, but is **not installed** or declared
-file-owned. Networkless provider/full-restart/managed-rollback rehearsal passed;
-isolated synthetic-state/JDBC reload and full-restart checks also passed.
-The live Item currently reports `REFRESH` with no exposed JDBC history, so
-binding future-series behavior and a reversible live cutover remain open. See
-`docs/operations/2026-09-23-openmeteo-forecast-aqi-preflight.md`.
+`items/openmeteo-forecast-aqi.items` is now the sole file provider for
+`Forecast_AQI` and its hourly OpenMeteo channel link. Networkless provider,
+managed-rollback and exact `REFRESH`-state/JDBC recovery checks passed before
+the attended one-Item/one-link transfer. The live Item and link are noneditable,
+the special `REFRESH` state recovered, and the two older JDBC rows retained Item
+ID 582. The next natural 48-value binding series after transfer is still a
+separate verification gate; see
+`docs/operations/2026-09-23-openmeteo-forecast-aqi-item-cutover.md`.
 Three observational forecast JSON Items now share
 `items/forecast-json.items`; their isolated provider/JDBC/full-restart checks,
 live managed rollback and return, state preservation and unchanged history are
@@ -82,8 +83,9 @@ unlinked observational analytics Item, not general protected-control recovery.
 `Thermal_Model_JSON` is also file-owned after isolated OpenHAB/JDBC provider,
 rollback, hot-reload and full-restart rehearsal and an attended live provider
 round trip. Its Item name, shadow-only publisher, restored state and JDBC identity
-610/history prefix were preserved. A natural post-transfer publication remains
-to be checked; see `docs/operations/2026-09-23-thermal-item-file-cutover.md`.
+610/history prefix were preserved. The first natural post-transfer publication
+matched live Item state, JDBC row 231 and its private forcing capture; see
+`docs/operations/2026-09-23-thermal-item-file-cutover.md`.
 
 ## Read-only inventory
 
