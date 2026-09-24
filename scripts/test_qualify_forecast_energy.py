@@ -18,7 +18,7 @@ def test_staged_forecast_energy_items_are_exact_and_unlinked():
 
 
 def test_live_adapter_is_guarded_and_preserves_numeric_state():
-    assert migration.RELEASE_READY is False
+    assert migration.RELEASE_READY is True
     assert migration.migration.ITEM_TYPE == 'Number'
     assert migration.migration.NAMES == (
         'Predicted_PV_Today_kWh', 'Predicted_SoC_Trough_Tomorrow')

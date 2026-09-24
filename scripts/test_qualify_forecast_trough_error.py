@@ -18,7 +18,7 @@ def test_staged_trough_error_item_has_exact_format_and_no_link():
 
 
 def test_live_adapter_remains_guarded_and_numeric():
-    assert migration.RELEASE_READY is False
+    assert migration.RELEASE_READY is True
     assert migration.migration.ITEM_TYPE == 'Number'
     assert migration.migration.NAMES == ('Forecast_Trough_Error_7d',)
     assert migration.migration.same_state('4', '4.0')

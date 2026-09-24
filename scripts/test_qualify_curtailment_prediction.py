@@ -29,7 +29,7 @@ def test_staged_curtailment_item_is_unlinked_and_observational():
 
 
 def test_live_number_item_adapter_is_guarded_and_preserves_numeric_state():
-    assert migration.RELEASE_READY is False
+    assert migration.RELEASE_READY is True
     assert migration.migration.ITEM_TYPE == 'Number'
     assert migration.migration.NAMES == ('Predicted_Curtailment_Hours',)
     assert migration.migration.same_state('0', '0.0')

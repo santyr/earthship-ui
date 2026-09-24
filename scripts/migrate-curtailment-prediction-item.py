@@ -17,7 +17,7 @@ migration.TARGET = Path('/etc/openhab/items/predicted-curtailment.items')
 migration.TIMER = 'forecast-intel.timer'
 migration.SERVICE = 'forecast-intel.service'
 migration.BACKUP_PREFIX = 'predicted-curtailment'
-RELEASE_READY = False
+RELEASE_READY = True  # Natural 2026-09-24 06:40 writer and receipt verified.
 
 if __name__ == '__main__':
     if sys.argv[1:] not in (['--check'], ['--apply']):
