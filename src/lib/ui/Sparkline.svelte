@@ -5,7 +5,7 @@
   import { observeElementSize } from './observeElementSize.js';
   import { echartsTheme } from './tokens.js';
 
-  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, heldUntil = null, heldLineType = 'dashed' } = $props();
+  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, curveSmooth = 0, heldUntil = null, heldLineType = 'dashed' } = $props();
 
   let el;
   let chart;
@@ -16,7 +16,7 @@
     return Number.isFinite(alpha) && alpha > 0 && alpha <= 1 ? alpha : 0.25;
   });
 
-  function buildOption(points, lineColor, width, renderWidth, alpha, heldEnd, tailType) {
+  function buildOption(points, lineColor, width, renderWidth, alpha, curve, heldEnd, tailType) {
     let prepared = [];
     try {
       prepared = prepareSparklineSeries(points, { widthPx: renderWidth, alpha });
@@ -43,7 +43,8 @@
         type: 'line',
         data: prepared.map((point) => [point.time, point.value]),
         showSymbol: false,
-        smooth: false,
+        smooth: curve || false,
+        ...(curve ? { smoothMonotone: 'x' } : {}),
         connectNulls: true,
         lineStyle: { width, color: lineColor },
         areaStyle: { color: lineColor, opacity: 0.12 },
@@ -62,7 +63,7 @@
 
   function update() {
     if (!chart) return;
-    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, heldUntil, heldLineType), true);
+    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, curveSmooth, heldUntil, heldLineType), true);
   }
 
   onMount(() => {
@@ -86,6 +87,7 @@
     void color;
     void lineWidth;
     void appliedSmoothingAlpha;
+    void curveSmooth;
     void heldUntil;
     void heldLineType;
     void widthPx;

@@ -17,6 +17,7 @@
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
+  import { freshSocSparkline } from '../lib/charts/socSparkline.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
@@ -350,6 +351,7 @@
   const indoorIconColor = $derived(indoorTemperatureIconColor(indoorTemp));
 
   const soc = $derived(num($items.BMS_SOC));
+  const shownBattSpark = $derived(freshSocSparkline(battSpark, $items.BMS_SOC_Evidence_JSON, wallClock, soc));
   const socColor = $derived(socBands(soc));
   const batteryStatusIcon = $derived(selectBatteryIcon($items.BatteryIcon));
   const batteryChartLabel = $derived(
@@ -666,7 +668,7 @@
             <span class="batt-runtime batt-runtime-full"><strong>Full</strong> {battRuntimeFull}</span>
           </div>
         </div>
-        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} heldUntil={wallClock} heldLineType="solid" /></div>
+        <div class="battery-spark"><Sparkline data={shownBattSpark.data} color={socColor} lineWidth={2} smoothingAlpha={1} curveSmooth={0.25} heldUntil={shownBattSpark.heldUntil} heldLineType="solid" /></div>
       </div>
     </Tile>
   </div>
