@@ -20,8 +20,9 @@ timeout and the JVM was SIGKILLed before restarting. Current Java no longer
 has the earlier `jspawnhelper` version mismatch, but that does not prove a
 clean future stop. During a real outage, OpenHAB rules and safety interlocks
 are unavailable. The adapter refuses to stop unless both greywater pump
-output Items read `OFF`, and checks them again immediately before the stop;
-that is a necessary but **not sufficient** protected-control safety gate.
+output Items read `OFF` and the independent BMS/Schneider and critical-rule
+checks pass, then repeats these checks immediately before the stop. These are
+necessary but **not sufficient** protected-control safety gates.
 
 ## Required attended decision and preflight
 
@@ -36,6 +37,14 @@ then run a fresh `--check`; it must find the managed Group, ten exact file-owned
 members/links, ONLINE forecast Thing, pinned source hash, verified daily
 natural writer gate and stable JDBC IDs 563–572. The September 24 03:13 MDT
 read-only check passed but must not substitute for this fresh preflight.
+
+The adapter now also refuses a stop unless the BMS communications watchdog,
+Schneider safety and SouthOutlet control rules have healthy runtime status,
+the atomic SoC receipt is fresh, and Schneider DC telemetry has an original
+update within five minutes. It checks these again immediately before the stop,
+alongside both pump outputs. This read-only guard does not substitute for
+physical monitoring. Focused tests and one live read-only guard check passed
+while `RELEASE_READY` remained false.
 
 ## One attended transfer
 

@@ -22,6 +22,10 @@ spec = spec_from_file_location('forecast_transfer',
     ROOT / 'scripts/migrate-openmeteo-forecast-temperature-items.py')
 transfer = module_from_spec(spec)
 spec.loader.exec_module(transfer)
+sanity_spec = spec_from_file_location('openhab_sanity',
+    ROOT / 'openhab/scripts/openhab_sanity_check.py')
+sanity = module_from_spec(sanity_spec)
+sanity_spec.loader.exec_module(sanity)
 
 SOURCE = ROOT / 'openhab/file-config/items/forecast-group.items'
 SOURCE_SHA256 = 'a9816041107155acbaa7683208a32d82a0d31a5698e53e4400209b1cd6146506'
@@ -31,6 +35,8 @@ BACKUP_ROOT = Path('/home/sat/.local/state/openhab-config-migration')
 MANIFEST = ROOT / 'openhab/file-config/ownership.json'
 GROUP = 'gForecast'
 PUMP_ITEMS = ('SouthOutlet_Outlet2_Switch', 'East_Bed_Socket_Outlet_2_Power')
+SAFETY_RULES = ('hex_bms_comms_watchdog', 'hex_schneider_safety',
+                'hex_southoutlet_cycle')
 MEMBERS = frozenset({
     'Forecast_Temp', 'Forecast_Daily_High', 'Forecast_Daily_Low',
     'Forecast_Cloudiness', 'Forecast_Radiation', 'Forecast_PrecipProb',
@@ -97,6 +103,29 @@ def member_providers_match():
 def pumps_off():
     return all(transfer.oh.get('/items/' + name).get('state') == 'OFF'
                for name in PUMP_ITEMS)
+
+
+def protected_controls_healthy(now=None):
+    """Read-only health gate; never substitutes for physical operator review."""
+    now = datetime.now(timezone.utc) if now is None else now
+    require(now.tzinfo is not None and now.utcoffset() is not None,
+            'aware protected-control assessment required')
+    for uid in SAFETY_RULES:
+        status = transfer.oh.get('/rules/' + uid).get('status', {})
+        require((status.get('status'), status.get('statusDetail'))
+                in (('IDLE', 'NONE'), ('RUNNING', 'NONE')),
+                'protected rule unhealthy: ' + uid)
+    raw_soc = transfer.oh.get('/items/BMS_SOC_Evidence_JSON').get('state')
+    require(sanity.atomic_soc_freshness(raw_soc, now.timestamp()) is None,
+            'atomic BMS SoC evidence unavailable or stale')
+    raw_stamp = transfer.oh.get('/items/Schneider_DCData_LastUpdate').get('state')
+    try:
+        stamp = datetime.fromisoformat(str(raw_stamp).replace('Z', '+00:00'))
+        age = (now - stamp).total_seconds()
+    except (TypeError, ValueError):
+        age = float('inf')
+    require(0 <= age <= 300, 'Schneider DC telemetry unavailable or stale')
+    return True
 
 
 def group_matches(*, file_owned):
@@ -221,6 +250,7 @@ def main(apply):
     require(eligible, 'daily natural writer gate not verified in ownership manifest')
     require(RELEASE_READY, 'forecast Group live transfer is not release-qualified')
     require(pumps_off(), 'greywater pump active or state unknown; refuse OpenHAB stop')
+    protected_controls_healthy()
     root = BACKUP_ROOT.lstat()
     require(stat.S_ISDIR(root.st_mode) and root.st_uid == os.getuid()
             and stat.S_IMODE(root.st_mode) == 0o700,
@@ -233,6 +263,7 @@ def main(apply):
     cutover = datetime.now(timezone.utc)
     try:
         require(pumps_off(), 'greywater pump changed before OpenHAB stop')
+        protected_controls_healthy()
         command('sudo', '-n', 'systemctl', 'stop', 'openhab.service', timeout=180)
         stopped = True
         require(not active(), 'OpenHAB did not stop for Group handoff')
