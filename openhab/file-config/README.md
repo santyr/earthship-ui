@@ -149,6 +149,11 @@ installed or declared file-owned. Preserve both Items' existing JDBC
 identities/history and verify a real transformed update before any cutover;
 the Moon phase Item changes infrequently, so a file-load check alone is not
 natural-writer proof.
+The networkless, disposable `scripts/qualify-astro-icon-provider.py` rehearsal
+passed exact file Item/link readback on first boot and full restart, then
+file withdrawal and managed Item/link rollback. It removed its owned
+container; it did not write to production or establish natural-update/JDBC
+recovery.
 
 Recovery must select an explicitly reviewed entry, verify its stored content
 hash and destination, preserve a private current-file backup, and verify the

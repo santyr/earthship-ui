@@ -690,6 +690,11 @@ byte-for-byte, and a focused test covers all moon and night-phase keys. No
 live transform was overwritten or reloaded. `SunPhaseIcon` and
 `MoonPhaseicon` remain managed Items with their existing Astro MAP links;
 adopting the transform source does not silently transfer those providers.
+Their exact file definitions are now prepared in Git. A disposable networkless
+OpenHAB rehearsal verified both Item/link definitions on first boot and after
+full restart, plus withdrawal and managed rollback; its container was removed.
+Live provider transfer, JDBC identity/history preservation and a natural Astro
+update are still separate gates.
 
 September 23 OpenMeteo follow-up: the bridge, forecast Thing and air-quality
 Thing were [transferred to the Git-owned file](2026-09-23-openmeteo-file-preflight.md)
