@@ -52,3 +52,13 @@ before computing coverage. A separate exact SELECT grant for
 `energy_power_reader` on `public.item0653` has been requested; it has not been
 applied without approval. The stored AC daily table remains empty and the
 live publisher remains v3 without the opt-in AC flag.
+
+At 22:18 MDT, a new read-only production census found 5,189 `item0653`
+receipts since the 20:55:12Z cutover, in one epoch with no sequence gaps:
+5,188 valid and the original startup-unavailable barrier. The latest receipt
+was 04:18:27Z. The `item0652` observation table occupied 928 KiB and the
+`item0653` evidence table 1,776 KiB including indexes; the daily AC table
+still held zero rows. This extends passive continuity evidence to roughly
+7h23m, but is not a completed Denver day, fault or restart test. A fresh
+readback confirmed all five approved privilege checks true, the additional
+reader SELECT on `public.item0653` false, and no AC publisher activation.

@@ -125,3 +125,15 @@ persistence 3.420°F). All seven 24-hour targets in this bounded audit
 were still not due. These mixed-sign outdoor errors and persistent indoor low
 bias justify further physical-model diagnosis, not a fitted offset or shadow
 graduation.
+
+At 22:17 MDT, a further read-only strict score found the same six independent
+one-hour pairs (model MAE 1.731°F versus persistence 0.660°F) and one
+additional matured six-hour target. Four six-hour targets now have model MAE
+5.4265°F versus persistence 2.2500°F, with 2/4 interval coverage. The new
+target at 04:00Z erred −3.852°F versus +1.980°F persistence, and its exact
+archived outdoor forcing was +5.62°F warmer than the qualified observation.
+These six-hour targets overlap; the greedy non-overlap set still contains only
+the first. All eight captured 24-hour targets in the bounded audit were not
+yet due. This is evidence against early graduation, not a validated thermal
+coefficient change. The read-only scorer, action-as-of and operational-origin
+contracts passed 26 focused tests; no live model or advice was changed.

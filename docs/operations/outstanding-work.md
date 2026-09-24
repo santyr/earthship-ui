@@ -59,6 +59,11 @@ later reproduced four v4 captured publications in memory. Reducing the
 negative air-bias coefficient improved a few short-horizon misses, but the
 errors remained low and some variants changed the selected schedule. No live
 artifact, threshold or advice was changed; this is not a fitted candidate.
+At 22:17 MDT a further strict read-only rescore added one overlapping
+six-hour target: four six-hour pairs now show model MAE 5.4265°F versus
+persistence 2.2500°F, with only one non-overlapping pair and no due 24-hour
+target. The model remains in shadow; see the
+[forcing-capture score](2026-09-23-thermal-forcing-capture-live.md).
 
 The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-preactivation.md)
 records a default-off daily command and opt-in v4 publisher path pushed to
