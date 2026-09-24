@@ -59,3 +59,9 @@ an installed file alone. Do not prune recovery artifacts during the trial.
 No battery, pump, feeder, Bitcoin or forecast acquisition rule is intentionally
 changed. The operational risk is the whole OpenHAB interruption, not just the
 forecast Group's label or membership.
+
+The restart also offers a passive check of the independent inverter-output
+receipt stream: record the pre-stop epoch/sequence, then require a new epoch's
+unavailable startup barrier followed by a fresh valid receipt and bounded
+read-only JDBC continuity after OpenHAB returns. This is observational only;
+it does not authorize AC-load publication or justify inducing a physical fault.
