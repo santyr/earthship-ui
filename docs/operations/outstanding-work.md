@@ -305,6 +305,18 @@ remains an incomplete view of the
 two older SQL rows; no numeric AQI or forecast series was invented. See the
 [cutover receipt](2026-09-23-openmeteo-forecast-aqi-item-cutover.md).
 
+The next file-first weather candidate is the coupled managed
+`Forecast_Temp`/`Forecast_Daily_High`/`Forecast_Daily_Low` group, not an
+unlinked scalar. Read-only preflight found exact empty-config managed links
+to the file-owned OpenMeteo forecast Thing, all three members of
+`gForecast`, live temperature states, and JDBC Item IDs 563/564/568 with
+710/40/40 rows respectively, including future hourly/daily series. The
+18:51 MDT binding fetch naturally emitted 48/7/7-value time-series pairs.
+Provider migration must preserve those future rows, scalar state recovery,
+group membership and the unaffected forecast JSON consumers; it requires
+an isolated JDBC/file reload and full-restart rehearsal before an attended
+transfer. No live provider change was made in this preflight.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
