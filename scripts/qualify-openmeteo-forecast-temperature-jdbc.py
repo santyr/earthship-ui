@@ -23,6 +23,8 @@ spec.loader.exec_module(aqi)
 
 SOURCE = ROOT / 'openhab/file-config/items/openmeteo-forecast-temperature.items'
 NAMES = ('Forecast_Temp', 'Forecast_Daily_High', 'Forecast_Daily_Low')
+TYPES = {name: 'Number:Temperature' for name in NAMES}
+PROBE_CLASS = 'HexForecastTemperatureProbe'
 SCALARS = {'Forecast_Temp': '68 °F', 'Forecast_Daily_High': '75 °F',
            'Forecast_Daily_Low': '52 °F'}
 SERIES = {'Forecast_Temp': (48, 3600, 40),
@@ -31,6 +33,16 @@ SERIES = {'Forecast_Temp': (48, 3600, 40),
 PAST_SERIES_STATES = {'Forecast_Temp': '67 °F',
                       'Forecast_Daily_High': '70 °F',
                       'Forecast_Daily_Low': '55 °F'}
+
+
+def series_value(name, index):
+    return str(SERIES[name][2] + index) + ' °F'
+
+
+def stored_past_value(name, observed_unit):
+    value = int(PAST_SERIES_STATES[name].split(' ', 1)[0])
+    return (str(value) if observed_unit == '°F'
+            else str((Decimal(value) - 32) * 5 / 9))
 
 
 def same_temperature(actual, expected):
@@ -106,7 +118,7 @@ def wait_history(database, name, predicate, seconds=90):
 
 
 def assert_series(rows, name, first, stored_unit='°F'):
-    count, step, base = SERIES[name]
+    count, step, _ = SERIES[name]
     first_ms = int(first.timestamp() * 1000)
     future = [row for row in rows if datetime.fromisoformat(row[0]).timestamp() * 1000 >= first_ms]
     if len(future) != count:
@@ -115,17 +127,18 @@ def assert_series(rows, name, first, stored_unit='°F'):
         if (int(datetime.fromisoformat(stamp).timestamp() * 1000)
                 != first_ms + index * step * 1000):
             return False
-        if not (same_temperature(value, str(base + index) + ' °F')
+        expected = series_value(name, index)
+        if not (same_temperature(value, expected)
                 if isinstance(value, str) and ' ' in value
                 else stored_temperature(value, stored_unit,
-                                        str(base + index) + ' °F')):
+                                        expected)):
             return False
     return True
 
 
 def main():
     source = SOURCE.read_bytes()
-    if not all(source.count(('Number:Temperature ' + name + ' ').encode()) == 1
+    if not all(source.count((TYPES[name] + ' ' + name + ' ').encode()) == 1
                for name in NAMES):
         raise RuntimeError('prepared forecast source changed')
     marker = secrets.token_hex(8)
@@ -219,7 +232,7 @@ def main():
             print('isolated_numeric_states_persisted=3', flush=True)
             first = (datetime.now(timezone.utc) + timedelta(days=7)).replace(
                 hour=0, minute=0, second=0, microsecond=0)
-            probe = aqi.isolated.compile_probe('HexForecastTemperatureProbe', [
+            probe = aqi.isolated.compile_probe(PROBE_CLASS, [
                 'org.osgi.framework', 'org.openhab.core.events',
                 'org.openhab.core.items.events', 'org.openhab.core.library.types',
                 'org.openhab.core.types'])
@@ -254,7 +267,8 @@ def main():
             finally:
                 aqi.run(client + ['bundle:uninstall ' + bundle_id], b'\n')
             before = {name: database_rows(database, name) for name in NAMES}
-            print('isolated_future_series_persisted=48,7,7', flush=True)
+            print('isolated_future_series_persisted='
+                  + ','.join(str(SERIES[name][0]) for name in NAMES), flush=True)
             aqi.run(['docker', 'exec', container, 'mv',
                 '/openhab/conf/items/' + SOURCE.name,
                 '/tmp/forecast-temperature.items.parked'])
@@ -289,9 +303,7 @@ def main():
                 if not re.fullmatch(r'[1-9][0-9]*', identity):
                     raise RuntimeError('isolated JDBC identity drift: ' + name)
                 table = 'public.item' + identity.zfill(4)
-                value = int(PAST_SERIES_STATES[name].split(' ', 1)[0])
-                stored = (str(value) if observed_units[name] == '°F'
-                          else str((Decimal(value) - 32) * 5 / 9))
+                stored = stored_past_value(name, observed_units[name])
                 aqi.run(['docker', 'exec', database.cid, 'psql', '-v',
                     'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'postgres', '-c',
                     'DELETE FROM ' + table + ' WHERE time < now(); '

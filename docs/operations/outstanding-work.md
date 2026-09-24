@@ -375,9 +375,22 @@ these Items. The exact source is prepared in
 networkless restored-registry OpenHAB 5.2.1 run verified the three exact
 file-owned Item/link definitions on first boot and full restart, then removed
 the file and restored the original managed definitions. Its owned container
-was removed; production remained managed with a clean ownership inventory.
-JDBC scalar/history and 48/48/48 future-series recovery, private backup and
-an attended natural-writer gate remain required before live transfer.
+was removed; production remained managed with a clean ownership inventory at
+that checkpoint. A second disconnected OpenHAB/PostgreSQL rehearsal then
+persisted all three synthetic scalar states and 48/48/48 future-series values,
+preserved them through hot reload and full restart, and exercised latest-past
+JDBC state restoration. Both owned containers were removed. At 20:07 MDT an
+attended live transfer placed all three Items/links under the exact file
+source. Private backup
+`/home/sat/.local/state/openhab-config-migration/forecast-temperature-20260924T020713Z`
+contains the original managed definitions and 2,133 JDBC rows; the backup
+prefix is historical from the shared adapter and does not imply temperature
+content. Readback found file ownership, unchanged source hash, original scalar
+states at the transfer (1, 0 W/m², 0.17), IDs 565/566/567 and all 711 rows
+each preserved after JDBC settling. The ownership inventory has zero issues.
+This transfer remains provisional until a scheduled natural 48/48/48 binding
+update under file ownership and post-update historical-row preservation are
+observed; reload-generated series do not satisfy that gate.
 
 ### Explicit active goal: graduate the thermal model from shadow
 

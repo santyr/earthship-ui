@@ -40,6 +40,21 @@
       "state_writer": "openmeteo:forecast:local:site:forecastDaily#temperature-min"
     },
     {
+      "kind": "item", "id": "Forecast_Cloudiness", "provider": "file", "migration": "provisional",
+      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items",
+      "state_writer": "openmeteo:forecast:local:site:forecastHourly#cloudiness"
+    },
+    {
+      "kind": "item", "id": "Forecast_Radiation", "provider": "file", "migration": "provisional",
+      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items",
+      "state_writer": "openmeteo:forecast:local:site:forecastHourly#shortwave-radiation"
+    },
+    {
+      "kind": "item", "id": "Forecast_PrecipProb", "provider": "file", "migration": "provisional",
+      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items",
+      "state_writer": "openmeteo:forecast:local:site:forecastHourly#precipitation-probability"
+    },
+    {
       "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "verified",
       "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
       "state_writer": "forecast-json.service"
@@ -78,6 +93,21 @@
       "kind": "link", "id": "Forecast_Daily_Low -> openmeteo:forecast:local:site:forecastDaily#temperature-min",
       "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_Cloudiness -> openmeteo:forecast:local:site:forecastHourly#cloudiness",
+      "provider": "file", "migration": "provisional",
+      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_Radiation -> openmeteo:forecast:local:site:forecastHourly#shortwave-radiation",
+      "provider": "file", "migration": "provisional",
+      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items"
+    },
+    {
+      "kind": "link", "id": "Forecast_PrecipProb -> openmeteo:forecast:local:site:forecastHourly#precipitation-probability",
+      "provider": "file", "migration": "provisional",
+      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items"
     },
     {
       "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",

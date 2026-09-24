@@ -32,6 +32,7 @@ SOURCE = ROOT / 'openhab/file-config/items/openmeteo-forecast-temperature.items'
 SOURCE_SHA256 = '10d702cba64f1bca213f4db9229107ed04bd12db5d28448026fe9200f118e9fc'
 TARGET = Path('/etc/openhab/items/openmeteo-forecast-temperature.items')
 BACKUP_ROOT = Path('/home/sat/.local/state/openhab-config-migration')
+BACKUP_PREFIX = 'forecast-temperature-'
 ITEM_DB = Path('/var/lib/openhab/jsondb/org.openhab.core.items.Item.json')
 LINK_DB = Path('/var/lib/openhab/jsondb/org.openhab.core.thing.link.ItemChannelLink.json')
 THING = 'openmeteo:forecast:local:site'
@@ -40,6 +41,7 @@ CHANNELS = {
     'Forecast_Daily_High': 'openmeteo:forecast:local:site:forecastDaily#temperature-max',
     'Forecast_Daily_Low': 'openmeteo:forecast:local:site:forecastDaily#temperature-min',
 }
+TYPES = {name: 'Number:Temperature' for name in CHANNELS}
 LABELS = {'Forecast_Temp': 'Forecast Temperature',
           'Forecast_Daily_High': 'Forecast Daily High',
           'Forecast_Daily_Low': 'Forecast Daily Low'}
@@ -82,25 +84,33 @@ def state_matches(actual, expected):
     return any(same_state(actual, candidate) for candidate in candidates)
 
 
-def restore_state_from_history(rows, at):
+def valid_state(name, value):
+    return STATE.fullmatch(value) is not None
+
+
+def format_history_state(name, value):
+    return str(value) + ' °F'
+
+
+def restore_state_from_history(rows, at, name=None):
     past = [(stamp, value) for stamp, value in rows if stamp <= at]
     require(bool(past), 'no past JDBC forecast value available for state restore')
     _, value = max(past, key=lambda row: row[0])
     require(type(value) in (float, int, Decimal), 'non-numeric JDBC forecast state')
-    return str(value) + ' °F'
+    return format_history_state(name, value)
 
 
 def exact_item(row, name, managed, original_state=None):
     return (isinstance(row, dict) and row.get('editable') is managed
             and row.get('name') == name
-            and row.get('type') == 'Number:Temperature'
+            and row.get('type') == TYPES[name]
             and row.get('label') == LABELS[name]
             and (row.get('category') or None) is None
             and row.get('tags') == ['forecast']
             and row.get('groupNames') == ['gForecast']
             and not row.get('metadata')
             and isinstance(row.get('state'), str)
-            and STATE.fullmatch(row['state']) is not None
+            and valid_state(name, row['state'])
             and (original_state is None or state_matches(row['state'], original_state)))
 
 
@@ -197,7 +207,7 @@ def backup(originals, original_links, identities, before, source_hash):
     root = BACKUP_ROOT.lstat()
     require(stat.S_ISDIR(root.st_mode) and root.st_uid == os.getuid()
             and stat.S_IMODE(root.st_mode) == 0o700, 'private backup root unsafe')
-    directory = BACKUP_ROOT / ('forecast-temperature-'
+    directory = BACKUP_ROOT / (BACKUP_PREFIX
         + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     directory.mkdir(mode=0o700)
     private_file(directory, 'managed-and-history.json', json.dumps({
@@ -282,7 +292,7 @@ def main(apply):
                 'source_sha256': source_hash}, sort_keys=True), flush=True)
             return
         cutover_at = datetime.now(timezone.utc)
-        accepted_states = {name: (states[name], restore_state_from_history(before[name], cutover_at))
+        accepted_states = {name: (states[name], restore_state_from_history(before[name], cutover_at, name))
                            for name in CHANNELS}
         directory = backup(originals, original_links, identities, before, source_hash)
         print('private_backup=' + str(directory), flush=True)
