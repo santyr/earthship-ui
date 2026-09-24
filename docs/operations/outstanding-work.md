@@ -26,6 +26,12 @@ and was pushed to Solar_PV `5516c6d`. Earthship UI `b44312c` labels the field
 “Today's PV forecast”; six Energy browser checks passed. The natural 18:35
 publisher run and restarted UI both passed live readback. This fixes day
 selection, not winter/SoH/curtailment or AC qualification.
+The historical feature export had the same end-exclusive day error in a
+different join: a live as-of example selected the previous day's 5.9 kWh
+instead of today's 3.3 kWh. Solar_PV `fde6ab0` now uses the exact next local
+midnight while preserving issue/capture as-of guards; 850 analytics tests
+pass. No scheduled feature consumer was found, and older explicit exports
+must be regenerated before using their daily-PV-forecast field.
 
 The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
 isolated OpenHAB/JDBC restore and live managed rollback/return qualification.

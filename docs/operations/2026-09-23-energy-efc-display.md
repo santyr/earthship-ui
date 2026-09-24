@@ -82,3 +82,16 @@ at 18:35:27 MDT, exited 0 and published a new v3 payload generated at
 service was restarted and its served source contained the revised label.
 This is a production release receipt, not an accuracy score for that PV
 forecast.
+
+The same end-exclusive daily forecast timestamp had a separate historical
+feature-reader defect. Its `forecast_daily_pv_kwh` join compared the
+`valid_for` local date to the origin's local date, selecting the previous
+day's daily PV forecast. At a September 23 18:00 MDT as-of origin, the old
+join returned the September 22 forecast ending September 23 00:00 MDT
+(5.9 kWh); the corrected exact-next-midnight join returned the September 23
+forecast ending September 24 00:00 MDT (3.3 kWh). Solar_PV `fde6ab0` fixes
+only that join, retaining both issue-time and capture-time as-of guards.
+All 850 analytics tests pass and the equivalent real SQL returns the intended
+row. Feature export is an explicit CLI, not a scheduled consumer on this host;
+no historical CSV was rewritten, and any older export's daily-PV-forecast
+column must be regenerated before using it for learning or evaluation.
