@@ -688,6 +688,13 @@ second check immediately before the stop. Nine focused tests pass, including
 the no-service-stop, pump-state and unrelated-JSONDB-preserving rollback
 guards. The adapter has not yet been executed against production; the natural
 Group writer and rollback gates remain live obligations.
+A fresh September 24 03:13 MDT read-only `--check` passed: managed Group and
+all ten file-owned member Item/link pairs matched, the daily natural-writer
+gate was verified, source SHA-256 was pinned, and JDBC IDs 563–572 were
+unchanged. No service stop or ownership transfer followed this preflight.
+The previous production shutdown timed out and required SIGKILL, so the
+stopped-service path still requires an attended restart decision and
+protected-control safety coverage; a passing preflight alone is insufficient.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
