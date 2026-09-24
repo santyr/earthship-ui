@@ -7,6 +7,13 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+The natural 05:55 thermal shadow service exited zero and rescheduled. Its
+private forcing archive verified all four digests and 240 rows, with output
+exactly matching the live low-confidence shadow Item. The latest bounded
+captured score still favors persistence at one and six hours; 24-hour captured
+targets remain immature. No model, advice or action authority changed; see the
+[forcing-capture receipt](2026-09-23-thermal-forcing-capture-live.md).
+
 Weather Current Conditions now uses the same Denver-local midnight-to-now
 outdoor temperature history as Home for its unlabeled H/L, instead of the
 rolling 24-hour extrema Items. The live persistence API supplied a synthesized

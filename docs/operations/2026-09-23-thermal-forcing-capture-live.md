@@ -161,3 +161,15 @@ Six overlapping six-hour pairs remain at model MAE 4.7023°F versus persistence
 capture-qualified 24-hour targets in the bounded audit were not yet due.
 This is verified natural publication and another unfavorable short-horizon
 score, not action compliance, model tuning or grounds to leave shadow mode.
+
+At September 24 05:55 MDT, the next natural shadow timer exited zero and
+rescheduled for 07:55 MDT. The private archive for its
+11:55:11.160418Z decision passed the bounded verifier with all four digests
+and 240 forecast rows; its output digest matched the live `Thermal_Model_JSON`
+exactly. The Item remains low-confidence `shadow`, with no candidate schedule
+because minimum modeled improvement was not met. A read-only strict score
+shortly before this run had ten non-overlapping captured one-hour outcomes:
+model MAE 1.3949°F versus same-origin persistence 0.5580°F. Two independent
+six-hour outcomes scored 4.9995°F versus 3.1500°F. Ten captured 24-hour
+targets were not yet due in that bounded query. The newly published target is
+not retroactively scored; no graduation or tuning follows from these results.
