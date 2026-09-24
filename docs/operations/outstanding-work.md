@@ -7,6 +7,15 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+Weather Current Conditions now uses the same Denver-local midnight-to-now
+outdoor temperature history as Home for its unlabeled H/L, instead of the
+rolling 24-hour extrema Items. The live persistence API supplied a synthesized
+midnight boundary state, so an unchanged overnight reading is retained. The
+Weather browser regression distinguishes today's 71°/62° from fixture 24-hour
+74°/41°; all five affected Weather/Earthship browser checks, all 1,728 UI
+tests and the production build passed. Earthship's explicitly labeled 24-hour
+thermal-buffering ratio still uses rolling extrema by design.
+
 Home and Weather now stop presenting a detail forecast as current once its
 four-hour freshness window expires, even if the older undated legacy JSON
 still contains values. Weather advances that status on its minute clock, not

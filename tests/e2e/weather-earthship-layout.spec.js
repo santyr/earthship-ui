@@ -250,6 +250,22 @@ async function expectRouteBounded(page, route) {
   }
 }
 
+test('Weather current high and low use today, not the rolling 24-hour Items', async ({ page }) => {
+  await page.route('**/fixture-openhab/rest/persistence/items/AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature?*', (request) => {
+    const url = new URL(request.request().url());
+    const start = Date.parse(url.searchParams.get('starttime'));
+    const end = Date.parse(url.searchParams.get('endtime'));
+    expect(url.searchParams.get('boundary')).toBe('true');
+    return request.fulfill({ json: { data: [
+      { time: start - 60_000, state: '41' },
+      { time: start, state: '61.5' },
+      { time: start + Math.floor((end - start) / 2), state: '70.5' },
+    ] } });
+  });
+  await openFixture(page, 'weather', TARGETS[0]);
+  await expect(page.locator('.current-cell .cur-hilo')).toHaveText(/H 71°.*L 62°/);
+});
+
 for (const target of TARGETS) {
   test(`Weather is fully bounded at ${target.name}`, async ({ page }, testInfo) => {
     await openFixture(page, 'weather', target);

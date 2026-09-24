@@ -1,12 +1,67 @@
 <script>
   import { onMount } from 'svelte';
-  import { outdoorConditionIcon } from '../lib/ui/homeCardState.js';
+  import {
+    historyExtremaForDay,
+    localDayHistoryRange,
+    outdoorConditionIcon,
+  } from '../lib/ui/homeCardState.js';
+  import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
+  import { getClientOnce } from '../lib/openhab';
   let wallClock = $state(Date.now());
+  let outdoorTodayHistory = $state([]);
+  let temperatureHistoryDay = $state(null);
+  const temperatureRefresh = createLatestRefreshCoordinator();
+  const outdoorToday = $derived(historyExtremaForDay(
+    outdoorTodayHistory, temperatureHistoryDay, wallClock,
+    $items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature,
+  ));
+
+  async function refreshOutdoorToday() {
+    const range = localDayHistoryRange(new Date());
+    if (!range) return;
+    return temperatureRefresh.run(async (signal) => {
+      for (let attempt = 0; attempt < 10; attempt++) {
+        if (signal.aborted) return [];
+        const client = getClientOnce();
+        if (client) {
+          try {
+            return await client.getHistory('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', {
+              ...range, includeStartState: true, signal,
+            });
+          } catch {
+            return [];
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+      return [];
+    }, (points) => {
+      if (range.starttime !== localDayHistoryRange(new Date())?.starttime) return;
+      temperatureHistoryDay = range.starttime;
+      outdoorTodayHistory = points;
+    });
+  }
+
   onMount(() => {
-    const update = () => { wallClock = Date.now(); };
+    const update = () => {
+      const priorDay = localDayHistoryRange(new Date(wallClock))?.starttime;
+      wallClock = Date.now();
+      if (localDayHistoryRange(new Date(wallClock))?.starttime !== priorDay) {
+        temperatureHistoryDay = null;
+        outdoorTodayHistory = [];
+        refreshOutdoorToday();
+      }
+    };
+    refreshOutdoorToday();
     const timer = setInterval(update, 60000);
+    const historyTimer = setInterval(refreshOutdoorToday, 300000);
     document.addEventListener('visibilitychange', update);
-    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', update); };
+    return () => {
+      temperatureRefresh.destroy();
+      clearInterval(timer);
+      clearInterval(historyTimer);
+      document.removeEventListener('visibilitychange', update);
+    };
   });
   const skyIcon = $derived(outdoorConditionIcon($items.SkyConditionIcon, {
     at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
@@ -163,7 +218,7 @@
               feels like {fmt($items.AmbientWeatherWS2902A_ApparentTemperature, '°')}
             </div>
             <div class="cur-hilo">
-              H {fmt($items.OutdoorTemp_24h_High, '°')} &nbsp;/&nbsp; L {fmt($items.OutdoorTemp_24h_Low, '°')}
+              H {fmt(outdoorToday.high, '°')} &nbsp;/&nbsp; L {fmt(outdoorToday.low, '°')}
             </div>
             <div class="cur-hum">
               {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
