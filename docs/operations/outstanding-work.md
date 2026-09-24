@@ -51,6 +51,17 @@ installed. After the isolated gate passes, install only that file under the
 matching user-service drop-in path, reload the user manager, read back the
 effective environment and timer, and retain the pre-existing source rollback.
 
+The offline historical forecast backfill also treated the minimum of sparse
+change-only `BMS_SOC` rows as a measured trough. Its source now uses the same
+completed-night, bank-epoch and coverage-qualified atomic assessment in bounded
+four-night batches; pre-epoch, incomplete and unavailable nights export blank,
+not a fabricated minimum. The existing July 22 backfill CSV is retained as a
+historical artifact and its trough column is **not** a qualified training
+target; the live forecast only reads that CSV's temperature columns for seed
+biases. A fresh export must be generated before using historical troughs for
+training. This source correction does not enable the separate live forecast
+opt-in flag.
+
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
 exactly at midnight). The exact-next-Denver-midnight fix passed 850 analytics

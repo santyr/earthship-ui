@@ -14,7 +14,9 @@ Measured reconstruction notes:
 - rain_in: daily diff of the lifetime accumulator RainFallTotal (negative
   diffs = counter reset -> clamped to the day's closing value, flagged).
 - rad_kwh_m2: trapezoidal integral of the pyranometer (W/m2 -> kWh/m2/day).
-- pv_kwh / trough: post-cutover regime only; included where data exists.
+- pv_kwh: post-cutover regime only; included where data exists.
+- trough: completed, coverage-qualified overnight atomic SoC evidence only;
+  change-only numeric BMS_SOC rows cannot prove a daily or overnight minimum.
 """
 import csv
 import json
@@ -22,7 +24,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # reuse auth'd persistence reader + DST-exact local-day windows
@@ -40,7 +42,42 @@ TEMP_ITEM = "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature"
 RAD_ITEM = "AmbientWeatherWS2902A_SolarRadiation"
 RAIN_TOTAL_ITEM = "AmbientWeatherWS2902A_RainFallTotal"
 PV_ITEM = "MPPT60_EnergyFromPV_Today"
-SOC_ITEM = "BMS_SOC"
+
+def qualified_trough_days(start, end, *, now=None):
+    """Qualified overnight minima keyed by the local day each night ends.
+
+    Historical days before the current bank's start cannot be reconstructed
+    from the change-only numeric Item and remain missing in the export.
+    """
+    if os.environ.get("ADVISORY_ASSESS_ENABLED") != "1":
+        return {}
+    try:
+        from earthship_energy.materialize import load_epoch_config
+        from qualified_soc_forecast import completed_night_troughs
+        epoch_id = os.environ.get("ADVISORY_ASSESS_BANK_EPOCH")
+        bank = next((epoch for epoch in load_epoch_config()
+                     if epoch.epoch_id == epoch_id and epoch.current_analytics), None)
+        if bank is None or bank.start_local_date is None:
+            return {}
+        first = max(start, bank.start_local_date + timedelta(days=1))
+        last = min(end, bank.end_local_date_exclusive
+                   if bank.end_local_date_exclusive is not None else end)
+        instant = now or datetime.now(timezone.utc)
+        out = {}
+        batch = []
+        day = first
+        while day <= last:
+            batch.append(day)
+            if len(batch) == 4 or day == last:
+                out.update(completed_night_troughs(
+                    batch, now=instant, site_timezone=forecast_intel.SITE_TZ_NAME))
+                batch = []
+            day += timedelta(days=1)
+        return out
+    except Exception:
+        # Training exports must withhold uncertain troughs, never silently
+        # fall back to sparse numeric persistence or partial coverage.
+        return {}
 
 def site_zone():
     return forecast_intel.MOUNTAIN
@@ -178,7 +215,7 @@ def measured_dailies():
     rad_days = bucket_daily(month_series(RAD_ITEM, START, END))
     rain_days = bucket_daily(month_series(RAIN_TOTAL_ITEM, START, END))
     pv_days = bucket_daily(month_series(PV_ITEM, START, END))
-    soc_days = bucket_daily(month_series(SOC_ITEM, START, END))
+    troughs = qualified_trough_days(START, END)
 
     rain_last = {d: pts[-1][1] for d, pts in sorted(rain_days.items())}
     prev_total = None
@@ -205,8 +242,8 @@ def measured_dailies():
             prev_total = total
         pvs = [v for _, v in pv_days.get(key, [])]
         row["m_pv_kwh"] = round(max(pvs), 2) if pvs else None
-        socs = [v for _, v in soc_days.get(key, [])]
-        row["m_trough_soc"] = round(min(socs), 1) if socs else None
+        trough = troughs.get(day)
+        row["m_trough_soc"] = round(trough, 1) if trough is not None else None
         out[key] = row
         day += timedelta(days=1)
     return out, rain_resets
@@ -269,6 +306,8 @@ def main():
         f"paired radiation:   {len(paired_rad)}  mean bias fc-m: "
         f"{mean([f - m for f, m in paired_rad])} kWh/m2  mean |err|: {mean([abs(f - m) for f, m in paired_rad])} kWh/m2",
         f"rain counter resets clamped: {rain_resets or 'none'}",
+        "m_trough_soc: qualified overnight minimum ending on the listed local day;"
+        " missing means evidence unavailable or incomplete, never zero",
     ]
     text = "\n".join(report)
     with open(os.path.join(OUT_DIR, "report.txt"), "w") as f:

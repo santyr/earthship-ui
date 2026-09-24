@@ -858,6 +858,63 @@ def test_backfill_urls_follow_resolved_site_settings(site_globals, monkeypatch):
     assert "start_date=2026-01-01&end_date=2026-01-02" in hist
     assert bf.site_zone() is fi.MOUNTAIN
 
+
+def test_backfill_troughs_use_qualified_completed_nights_only(site_globals, monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    bf = _backfill_module(monkeypatch)
+    monkeypatch.setenv("ADVISORY_ASSESS_ENABLED", "1")
+    monkeypatch.setenv("ADVISORY_ASSESS_BANK_EPOCH", "test_bank")
+    bank = SimpleNamespace(epoch_id="test_bank", current_analytics=True,
+                           start_local_date=date(2026, 9, 20),
+                           end_local_date_exclusive=None)
+    calls = []
+
+    def qualified(days, *, now, site_timezone):
+        calls.append((list(days), now, site_timezone))
+        return {days[-1]: 82.5}
+
+    monkeypatch.setitem(sys.modules, "earthship_energy.materialize",
+                        SimpleNamespace(load_epoch_config=lambda: [bank]))
+    monkeypatch.setitem(sys.modules, "qualified_soc_forecast",
+                        SimpleNamespace(completed_night_troughs=qualified))
+    instant = datetime(2026, 9, 28, tzinfo=timezone.utc)
+    result = bf.qualified_trough_days(date(2026, 9, 19), date(2026, 9, 26), now=instant)
+
+    assert result == {date(2026, 9, 24): 82.5, date(2026, 9, 26): 82.5}
+    assert [row[0] for row in calls] == [
+        [date(2026, 9, 21), date(2026, 9, 22), date(2026, 9, 23), date(2026, 9, 24)],
+        [date(2026, 9, 25), date(2026, 9, 26)],
+    ]
+    assert all(row[1] == instant and row[2] == fi.SITE_TZ_NAME for row in calls)
+
+
+def test_backfill_never_reads_change_only_numeric_soc(site_globals, monkeypatch):
+    bf = _backfill_module(monkeypatch)
+    monkeypatch.setattr(bf, "START", date(2026, 9, 21))
+    monkeypatch.setattr(bf, "END", date(2026, 9, 22))
+    seen = []
+
+    def source(item, _start, _end):
+        seen.append(item)
+        return []
+
+    monkeypatch.setattr(bf, "month_series", source)
+    monkeypatch.setattr(bf, "qualified_trough_days",
+                        lambda start, end: {date(2026, 9, 22): 81.25})
+    rows, _resets = bf.measured_dailies()
+
+    assert "BMS_SOC" not in seen
+    assert rows["2026-09-21"]["m_trough_soc"] is None
+    assert rows["2026-09-22"]["m_trough_soc"] == 81.2
+
+
+def test_backfill_troughs_withheld_without_assessment_policy(site_globals, monkeypatch):
+    bf = _backfill_module(monkeypatch)
+    monkeypatch.delenv("ADVISORY_ASSESS_ENABLED", raising=False)
+    assert bf.qualified_trough_days(date(2026, 9, 20), date(2026, 9, 22)) == {}
+
 # ---------------------------------------------------------------- hourly temperature learning
 
 def test_load_state_migrates_hourly_defaults_without_overwriting_prior_bucket(
