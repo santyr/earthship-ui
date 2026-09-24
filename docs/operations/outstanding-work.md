@@ -2185,12 +2185,16 @@ SouthOutlet, feeder and night-load owners. They do not calculate a sensor
 freshness age or numeric average from a change-only sample count. This closes
 the live rule-body call inventory for these API names, not the separate
 Python/JS service algorithms or physical-source freshness qualification.
-Main-page temperatures use `localDayHistoryRange` already. Weather still displays
-the outdoor 24-hour Items, and Earthship's buffering metric explicitly compares
-24-hour indoor/outdoor swings. Do not silently redefine those Item contracts as
+At this September 5 inventory, main-page temperatures used
+`localDayHistoryRange` while Weather still displayed the outdoor 24-hour
+Items. That Weather observation is historical: the current Weather page now
+requests local-day temperature history, and its September 24 browser regression
+verified today's high/low against a prior-day carry and a distinct current-day
+range. Earthship's buffering metric intentionally compares 24-hour
+indoor/outdoor swings; do not silently redefine those Item contracts as
 local-day values. Carry-in, source health and persistence API aggregation
-semantics remain to be verified for the three analytical consumers. No live
-rule was invoked or changed during this inventory.
+semantics remain separate questions for the analytical consumers. No live
+rule was invoked or changed during the original inventory.
 
 September 10 follow-up confirms an incomplete-night cache defect in the exact
 live runtime estimator: the first call before06:00 queries a future-ending
