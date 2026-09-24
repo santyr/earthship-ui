@@ -28,3 +28,18 @@ The new file-owned resources must be declared in the ownership manifest only
 after live verification. Preserve the private recovery directory until a
 separate retention decision. The next natural daily writer is an additional
 publication gate, not replaceable by synthetic production updates.
+
+## Live result, 07:10 MDT
+
+The immediate `--check` and two adapter/source tests passed. The attended
+`--apply` returned `file_owned_verified` for all seven Items, with exact JDBC
+histories preserved, live managed rollback verified and the daily timer active.
+Its private backup is retained under
+`/home/sat/.local/state/openhab-config-migration/forecast-quality-20260924T131039Z`.
+Independent REST readback found all seven `editable:false` with the same
+numeric states as before transfer. The updated ownership manifest yields
+zero live inventory issues (392 managed and 40 non-managed Items); the timer
+is next due September 25 06:40 MDT. Both disconnected rehearsal containers
+were independently absent afterward. No synthetic production Item write,
+OpenHAB restart or control change occurred. The next natural writer remains
+the final publication gate for this batch.

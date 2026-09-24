@@ -135,6 +135,41 @@
       "state_writer": "forecast-intel.service"
     },
     {
+      "kind": "item", "id": "Forecast_PV_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_Precip_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_TempHigh_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_TempHigh_Bias_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_TempLow_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_Day3_High_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_Day3_Precip_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
       "kind": "link", "id": "Current_US_AQI -> openmeteo:air-quality:local:aq:current#us-aqi",
       "provider": "file", "migration": "verified",
       "source": "items/openmeteo-current-aqi.items", "destination": "/etc/openhab/items/openmeteo-current-aqi.items"

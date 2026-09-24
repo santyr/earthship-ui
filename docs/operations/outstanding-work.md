@@ -7,6 +7,16 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 07:10 MDT, the seven remaining direct-published forecast quality metrics
+were transferred to exact Git-owned file definitions after networkless
+provider and disconnected JDBC/state/rollback/restart rehearsals passed.
+The live adapter preserved each Item's state and JDBC history, exercised
+managed rollback, returned to file ownership and resumed `forecast-intel.timer`.
+Independent readback and the ownership manifest show zero issues, with 392
+managed and 40 non-managed Items. No synthetic production score was posted;
+the next natural writer on September 25 is still the publication gate. See
+the [cutover receipt](2026-09-24-forecast-quality-item-cutover.md).
+
 At 06:40 MDT the natural forecast-intelligence service exited successfully.
 Its current-day receipt matches the direct Items: PV 2.82 kWh, curtailment
 0.0 h, overnight trough 58%, advisory `none`; the 7-day trough error Item is
