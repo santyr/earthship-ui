@@ -51,6 +51,7 @@
   import {
     parseForecast10Day,
     parseLegacyDailyForecast,
+    forecastDaysFromToday,
     todayPvForecastKwh,
   } from '../lib/weather/forecastDetail.js';
 
@@ -417,7 +418,9 @@
   const solarTodayForecast = $derived(todayPvForecastKwh(forecastDetail, { nowMs: wallClock }));
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
-    forecastDetail.days.length > 0 ? forecastDetail.days : legacyForecast
+    forecastDetail.status === 'stale' ? []
+      : forecastDetail.days.length > 0
+        ? forecastDaysFromToday(forecastDetail, { nowMs: wallClock }) : legacyForecast
   );
 
   function selectForecastDay(day) {

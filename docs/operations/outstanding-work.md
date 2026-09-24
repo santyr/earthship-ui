@@ -7,6 +7,17 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+Home and Weather now stop presenting a detail forecast as current once its
+four-hour freshness window expires, even if the older undated legacy JSON
+still contains values. Weather advances that status on its minute clock, not
+only on Item changes; the daily strips show an explicit unavailable state and
+the hourly Weather panel says stale. A still-fresh forecast spanning local
+midnight now drops yesterday and relabels today's dated row correctly before
+the next two-hour refresh. The hourly detail modal retains its explicit stale
+warning for an already-open selected forecast. All 1,728 UI tests, production
+build and 34 affected browser tests passed after synchronizing two sparkline
+tests to actual history arrival rather than merely SVG mount.
+
 Once-daily forecast display provenance: the live curtailment Item's
 `lastStateUpdate` was September 11 despite daily runs that repeatedly posted
 the unchanged `0.0`; PV and trough Items last updated September 23. OpenHAB's

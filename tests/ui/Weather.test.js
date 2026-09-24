@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
@@ -64,6 +65,7 @@ describe('Weather current AQI', () => {
   afterEach(() => {
     cleanup();
     items.set({});
+    vi.useRealTimers();
   });
 
   it('ignores Forecast_AQI and names missing current AQI as unavailable', () => {
@@ -92,6 +94,8 @@ describe('Weather current AQI', () => {
   });
 
   it('renders all ten additive forecast days with the shared weather layout', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T13:00:00-06:00'));
     items.set({
       ...BASE_ITEMS,
       Forecast_10Day_JSON: forecastDetail(),
@@ -104,5 +108,30 @@ describe('Weather current AQI', () => {
     expect(screen.getByRole('button', {
       name: /Today.*high 83 degrees.*low 41 degrees/i,
     })).toBeTruthy();
+  });
+
+  it('withholds stale detail and legacy rows from both forecast panels', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T17:01:00-06:00'));
+    items.set({ ...BASE_ITEMS, Forecast_10Day_JSON: forecastDetail(),
+      Forecast_Daily_JSON: '[{"d":"Today","hi":80,"lo":50}]',
+      Forecast_Hourly_JSON: '[{"h":"8:00","t":70,"p":0,"r":20,"w":1}]' });
+    const { container } = render(Weather);
+    expect(container.querySelectorAll('[data-forecast-day]')).toHaveLength(0);
+    expect(screen.getByText('Forecast stale')).toBeTruthy();
+    expect(screen.getByText('Forecast unavailable')).toBeTruthy();
+  });
+
+  it('expires an unchanged forecast on the wall clock without an Item event', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T15:59:00-06:00'));
+    items.set({ ...BASE_ITEMS, Forecast_10Day_JSON: forecastDetail(),
+      Forecast_Daily_JSON: '[{"d":"Today","hi":80,"lo":50}]' });
+    const { container } = render(Weather);
+    expect(container.querySelectorAll('[data-forecast-day]')).toHaveLength(10);
+    await vi.advanceTimersByTimeAsync(2 * 60_000);
+    await tick();
+    expect(container.querySelectorAll('[data-forecast-day]')).toHaveLength(0);
+    expect(screen.getByText('Forecast unavailable')).toBeTruthy();
   });
 });

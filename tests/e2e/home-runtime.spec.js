@@ -266,9 +266,24 @@ test('Solar comparison follows the dated forecast across local midnight', async 
     states: { Forecast_10Day_JSON: detail, Predicted_PV_Today_kWh: '3.42' },
   });
   await expect(page.locator('.solar-sub')).toHaveText('of 3.4 predicted');
+  await expect(page.locator('.forecast-cell [data-forecast-day]').first()).toHaveAttribute('data-forecast-day', '2026-09-23');
   await page.clock.runFor(60_000);
   await expect(page.locator('.solar-sub')).toHaveText('of 3.3 predicted');
+  await expect(page.locator('.forecast-cell [data-forecast-day]').first()).toHaveAttribute('data-forecast-day', '2026-09-24');
+  await expect(page.locator('.forecast-cell .day-label').first()).toHaveText('Today');
   expect(runtime.pageErrors).toEqual([]);
+});
+
+test('Home does not present a stale detail or undated legacy forecast as current', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-24T17:01:00-06:00') });
+  await openHomeFixture(page, TARGETS[0], { states: {
+    Forecast_10Day_JSON: JSON.stringify({ version: 1,
+      generatedAt: '2026-09-24T12:00:00-06:00', timezone: 'America/Denver',
+      days: [{ date: '2026-09-24', summary: { highF: 80, lowF: 50,
+        precipPct: 0, weatherCode: 1, pvKwh: 3.3 }, hours: [] }] }),
+  } });
+  await expect(page.locator('.forecast-cell .forecast-empty')).toHaveText('Forecast unavailable');
+  await expect(page.locator('.forecast-cell [data-forecast-day]')).toHaveCount(0);
 });
 
 test('Bitcoin receipt warning expires and recovers without a price change', async ({ page }) => {
@@ -445,6 +460,13 @@ for (const target of TARGETS) {
         : undefined,
     });
     await expect(page.locator('.indoor-spark svg')).toBeVisible();
+    await expect.poll(async () => page.evaluate(async () => {
+      const { echarts } = await import('/src/lib/charts/echarts.js');
+      return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {
+        const chart = echarts.getInstanceByDom(document.querySelector(selector));
+        return chart?.getOption().series[0].data.length ?? 0;
+      });
+    })).toEqual([3, 3]);
     const charts = await page.evaluate(async () => {
       const { echarts } = await import('/src/lib/charts/echarts.js');
       return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {
@@ -489,6 +511,13 @@ test('Lenovo Home shows a change-only temperature plateau as held history, not a
       : undefined,
   });
   await expect(page.locator('.indoor-spark svg')).toBeVisible();
+  await expect.poll(async () => page.evaluate(async () => {
+    const { echarts } = await import('/src/lib/charts/echarts.js');
+    return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {
+      const chart = echarts.getInstanceByDom(document.querySelector(selector));
+      return chart?.getOption().series[0].data.length ?? 0;
+    });
+  })).toEqual([1, 1]);
   const charts = await page.evaluate(async () => {
     const { echarts } = await import('/src/lib/charts/echarts.js');
     return ['.outdoor-spark .sparkline', '.indoor-spark .sparkline'].map((selector) => {

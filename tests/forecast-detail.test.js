@@ -3,6 +3,7 @@ import {
   FORECAST_DETAIL_MAX_BYTES,
   parseForecast10Day,
   parseLegacyDailyForecast,
+  forecastDaysFromToday,
   pvForecastDaysFromToday,
   selectForecastWindow,
   todayPvForecastKwh,
@@ -87,6 +88,8 @@ describe('ten-day forecast contract', () => {
       { ...day('2026-09-24', 'Today'), summary: { ...day('2026-09-24', 'Today').summary, pvKwh: 3.3 } },
     ], '2026-09-24T03:20:00-06:00'), { nowMs: Date.parse('2026-09-24T04:46:00-06:00') });
     expect(todayPvForecastKwh(result, { nowMs: Date.parse('2026-09-24T04:46:00-06:00') })).toBe(3.3);
+    expect(forecastDaysFromToday(result, { nowMs: Date.parse('2026-09-24T04:46:00-06:00') })
+      .map(({ date, label }) => [date, label])).toEqual([['2026-09-24', 'Today']]);
     expect(pvForecastDaysFromToday(result, { nowMs: Date.parse('2026-09-24T04:46:00-06:00') }).map(({ date }) => date)).toEqual(['2026-09-24']);
     expect(todayPvForecastKwh(result, { nowMs: Date.parse('2026-09-24T07:21:00-06:00') })).toBeNull();
   });

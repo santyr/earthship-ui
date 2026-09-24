@@ -157,6 +157,7 @@ async function openFixture(page, route, target) {
 for (const target of TARGETS) {
   for (const route of ['home', 'weather']) {
     test(`${route} opens bounded twelve-hour weather detail at ${target.name}`, async ({ page }) => {
+      await page.clock.install({ time: new Date('2026-07-18T13:00:00-06:00') });
       const errors = await openFixture(page, route, target);
       const buttons = page.locator('[data-forecast-day]');
       await expect(buttons).toHaveCount(10);

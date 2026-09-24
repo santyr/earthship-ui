@@ -219,6 +219,17 @@ export function pvForecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
   return days[0]?.date === today ? days : [];
 }
 
+export function forecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
+  if (result?.status !== 'ready') return [];
+  const today = localDateAt(nowMs, result.timezone);
+  const tomorrow = new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000)
+    .toISOString().slice(0, 10);
+  return result.days.filter(({ date }) => date >= today).map((day) => ({
+    ...day,
+    label: day.date === today ? 'Today' : day.date === tomorrow ? 'Tomorrow' : day.label,
+  }));
+}
+
 export function selectForecastWindow(result, selectedDate, { nowMs = Date.now() } = {}) {
   const allHours = result.days
     .flatMap(({ hours }) => hours)

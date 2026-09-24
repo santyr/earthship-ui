@@ -20,6 +20,9 @@
 </script>
 
 <div class="daily-forecast" data-forecast-variant={variant}>
+  {#if days.length === 0}
+    <div class="forecast-empty" role="status">Forecast unavailable</div>
+  {/if}
   {#each days as day, index (`${day.date ?? 'legacy'}-${day.label}-${index}`)}
     <button
       type="button"
@@ -53,6 +56,14 @@
     height: 100%;
     min-width: 0;
     min-height: 0;
+  }
+
+  .forecast-empty {
+    grid-column: 1 / -1;
+    align-self: center;
+    justify-self: center;
+    color: #94a3b8;
+    font-size: 0.75rem;
   }
 
   .daily-forecast[data-forecast-variant='home'] {

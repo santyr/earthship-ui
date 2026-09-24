@@ -29,6 +29,7 @@
   import {
     parseForecast10Day,
     parseLegacyDailyForecast,
+    forecastDaysFromToday,
   } from '../lib/weather/forecastDetail.js';
 
   function hasItem(name) {
@@ -81,10 +82,13 @@
   });
 
   // ---- 10-day controls with null-safe legacy fallback ---------------------
-  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON));
+  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON,
+    { nowMs: wallClock }));
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
-    forecastDetail.days.length > 0 ? forecastDetail.days : legacyForecast
+    forecastDetail.status === 'stale' ? []
+      : forecastDetail.days.length > 0
+        ? forecastDaysFromToday(forecastDetail, { nowMs: wallClock }) : legacyForecast
   );
 
   function selectForecastDay(day) {
@@ -186,7 +190,11 @@
   <div class="cell hourly-cell">
     <Tile label="Next 14 Hours" accent={colors.forecast}>
       <div class="hourly-wrap">
-        <HourlyStrip hours={forecastHourly} height={96} />
+        {#if forecastDetail.status === 'stale'}
+          <div class="forecast-unavailable" role="status">Forecast stale</div>
+        {:else}
+          <HourlyStrip hours={forecastHourly} height={96} />
+        {/if}
       </div>
     </Tile>
   </div>
@@ -382,6 +390,13 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
+  }
+  .forecast-unavailable {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    color: #94a3b8;
+    font-size: 0.75rem;
   }
 
 </style>
