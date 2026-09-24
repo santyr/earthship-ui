@@ -479,6 +479,19 @@ handoff in isolation, not live maintenance, JDBC continuity or a natural
 writer after cutover. Wait for the provisional daily Items' natural series
 gate before any production Group transfer.
 
+The guarded `scripts/migrate-forecast-group-offline.py` adapter is now staged
+for that later attended maintenance. Its read-only `--check` verifies the
+exact managed Group, ten file-owned members/links, ONLINE forecast Thing,
+fixed file-source digest and JDBC identities 563–572; the current check
+reports the daily natural-writer gate **pending**. Its `--apply` refuses that
+state. If eventually eligible, it stops OpenHAB, takes a private exact JSONDB
+backup, removes only the stopped Group record, installs the file definition,
+restarts, and verifies Group membership and historical JDBC rows. A failed
+handoff attempts a stopped-service return to the original managed record and
+removes only the pinned file source. Five focused tests pass, but this source
+adapter has not yet been executed against production; the natural Group writer
+and rollback gates remain live obligations.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
