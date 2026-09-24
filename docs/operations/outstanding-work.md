@@ -517,6 +517,18 @@ IDLE/NONE. Both greywater pump outputs are OFF, the controller reports
 These current-state and later-operation observations show recovery of the
 inspected rule path, not safe behavior throughout the restart or all protected
 controls. An attended live Group restart remains a separate decision.
+The 22:23 MDT read-only shutdown review found the September23 07:09:24
+stop's Equinox framework thread waiting in Jetty `ManagedSelector.doStop` /
+`CountDownLatch.await` at 07:09:55; systemd killed the JVM at 07:11:25 under
+the configured 120-second stop timeout. The old JVM also logged repeated
+`jspawnhelper` version mismatches shortly before the stop (running Java
+21.0.12 versus installed helper 21.0.12.1). The service restarted afterward;
+the installed Java is now 21.0.12.1 and it has emitted no further mismatch
+messages, but that does **not** prove the Jetty stop wait is fixed or another
+restart is safe. Both pump outputs were OFF at this read-only check. No service
+restart, timeout change or Group transfer was attempted.
+A fresh read-only Group `--check` in the same pass still found exactly ten
+members, JDBC IDs 563–572 and the verified daily natural-writer gate.
 
 The guarded `scripts/migrate-forecast-group-offline.py` adapter is now staged
 for that later attended maintenance. Its read-only `--check` verifies the
