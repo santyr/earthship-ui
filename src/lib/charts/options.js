@@ -1,5 +1,5 @@
 import { buildExtremaMarkPoint, formatHistoryValue } from './extremaMarkers.js';
-import { normalizeHistory, prepareHistorySeries } from './historyPipeline.js';
+import { normalizeHistory, prepareHistorySeries, smoothSocDisplay } from './historyPipeline.js';
 import { getSeriesPolicy } from './seriesPolicy.js';
 import { colors, echartsTheme } from '../ui/tokens.js';
 import { atomicSocFreshness } from '../alerts/atomicSoc.js';
@@ -134,13 +134,16 @@ export function buildHistoryOption({
       widthPx,
       pointBudget: perSeriesBudget,
     });
+    const displaySegments = source.name === 'BMS_SOC'
+      ? prepared.displaySegments.map((segment) => smoothSocDisplay(segment))
+      : prepared.displaySegments;
     const markPoint = buildExtremaMarkPoint(prepared.raw, {
       markers: source.markers,
       unit: source.markerUnit,
       color: source.color,
     });
     if (source.dashedFromNow) {
-      const split = splitForecastSegments(prepared.displaySegments, nowMs);
+      const split = splitForecastSegments(displaySegments, nowMs);
       const persistedFuture = flattenSegments(split.future);
       const projectedFuture = scalarProjection(source, nowMs);
       const futureData = persistedFuture.length ? persistedFuture : projectedFuture;
@@ -159,7 +162,7 @@ export function buildHistoryOption({
     } else {
       renderedSeries.push(lineOption(
         source,
-        flattenSegments(prepared.displaySegments, { breakGaps: policy.gapPolicy === 'break' }),
+        flattenSegments(displaySegments, { breakGaps: policy.gapPolicy === 'break' }),
         { markPoint },
       ));
     }

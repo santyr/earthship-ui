@@ -135,6 +135,26 @@ export function ema(points, alpha = DEFAULT_ALPHA) {
   });
 }
 
+// SoC is persisted on change, so rapid quantization chatter can draw a
+// sawtooth even with a curved line. Smooth only the plotted ordinate using
+// elapsed time; leave rawValue and timestamps untouched for tooltips/markers.
+export function smoothSocDisplay(points, timeConstantMs = 3 * 60 * 1_000) {
+  if (!points.length) return [];
+  let previous = points[0].value;
+  let previousTime = points[0].time;
+  return points.map((point, index) => {
+    if (index > 0) {
+      const elapsed = Math.max(0, point.time - previousTime);
+      // A genuine change after a quiet period must land on its exact value;
+      // only sub-30-second chatter is blended for presentation.
+      const alpha = elapsed >= 30_000 ? 1 : 1 - Math.exp(-elapsed / timeConstantMs);
+      previous += alpha * (point.value - previous);
+    }
+    previousTime = point.time;
+    return { ...point, value: previous };
+  });
+}
+
 function downsampleSegment(points, budget) {
   if (points.length <= budget) return points;
   if (budget <= 0) return [];

@@ -43,7 +43,7 @@ describe('history chart option adapter', () => {
     }])).toContain('100');
   });
 
-  it('smooths only SoC while retaining raw samples and other unsmoothed lines', () => {
+  it('smooths only SoC display values while retaining raw tooltip values and other lines', () => {
     const points = [
       { time: 0, state: 0 },
       { time: 1_000, state: 100 },
@@ -61,9 +61,33 @@ describe('history chart option adapter', () => {
 
     option.series.forEach((rendered, index) => {
       expect(rendered.smooth).toBe(index === 0 ? 0.2 : false);
-      expect(rendered.data.map((point) => point[1])).toEqual([0, 100, 0]);
+      if (index === 0) {
+        expect(rendered.data[1][1]).toBeGreaterThan(0);
+        expect(rendered.data[1][1]).toBeLessThan(100);
+      } else {
+        expect(rendered.data.map((point) => point[1])).toEqual([0, 100, 0]);
+      }
       expect(rendered.data.map((point) => point[2])).toEqual([0, 100, 0]);
     });
+  });
+
+  it('damps rapid quantization chatter but catches up across sparse SoC changes', () => {
+    const option = buildHistoryOption({
+      series: [{ name: 'BMS_SOC', label: 'SoC' }],
+      pointsPerSeries: [[
+        { time: 0, state: 99 },
+        { time: 5_000, state: 100 },
+        { time: 10_000, state: 99 },
+        { time: 60 * 60_000, state: 98 },
+      ]],
+      widthPx: 300,
+    });
+    const rendered = option.series[0].data;
+    expect(rendered.map((point) => point[2])).toEqual([99, 100, 99, 98]);
+    expect(rendered[1][1]).toBeLessThan(99.05);
+    expect(rendered[2][1]).toBeLessThan(99.05);
+    expect(rendered[3][1]).toBeCloseTo(98, 5);
+    expect(rendered[3][0]).toBe(60 * 60_000);
   });
 
   it('draws sparse change-only SoC as a solid smooth trend without step jumps', () => {

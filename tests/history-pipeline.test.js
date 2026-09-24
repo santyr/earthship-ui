@@ -3,6 +3,7 @@ import {
   normalizeHistory,
   prepareHistorySeries,
   prepareSparklineSeries,
+  smoothSocDisplay,
 } from '../src/lib/charts/historyPipeline.js';
 
 function rows(values, { start = 0, cadence = 1_000 } = {}) {
@@ -79,6 +80,21 @@ describe('bounded history pipeline', () => {
       4,
       5,
     ]);
+  });
+
+  it('keeps SoC smoothing visual-only and time-aware', () => {
+    const source = normalizeHistory([
+      { time: 0, state: 99 },
+      { time: 5_000, state: 100 },
+      { time: 10_000, state: 99 },
+      { time: 60 * 60_000, state: 98 },
+    ]);
+    const plotted = smoothSocDisplay(source);
+    expect(source.map((point) => point.value)).toEqual([99, 100, 99, 98]);
+    expect(plotted.map((point) => point.rawValue)).toEqual([99, 100, 99, 98]);
+    expect(plotted.map((point) => point.time)).toEqual(source.map((point) => point.time));
+    expect(plotted[1].value).toBeLessThan(99.05);
+    expect(plotted[3].value).toBeCloseTo(98, 5);
   });
 
   it('renders one continuous source line across telemetry gaps', () => {

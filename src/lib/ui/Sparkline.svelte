@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { getEcharts } from '../charts/loadEcharts.js';
-  import { prepareHistorySeries, prepareSparklineSeries } from '../charts/historyPipeline.js';
+  import { prepareHistorySeries, prepareSparklineSeries, smoothSocDisplay } from '../charts/historyPipeline.js';
   import { observeElementSize } from './observeElementSize.js';
   import { echartsTheme } from './tokens.js';
 
@@ -27,10 +27,11 @@
       // row is encountered; full charts surface that validation as an error.
       prepared = [];
     }
-    const last = prepared.at(-1);
     const endTime = typeof heldEnd === 'number' ? heldEnd : Date.parse(heldEnd);
-    const heldTail = last && Number.isFinite(endTime) && endTime > last.time
-      ? [[last.time, last.value], [endTime, last.value]]
+    const plotted = rawSamples ? smoothSocDisplay(prepared) : prepared;
+    const plottedLast = plotted.at(-1);
+    const plottedTail = plottedLast && Number.isFinite(endTime) && endTime > plottedLast.time
+      ? [[plottedLast.time, plottedLast.value], [endTime, plottedLast.value]]
       : [];
     return {
       ...echartsTheme,
@@ -43,7 +44,7 @@
       yAxis: { type: 'value', show: false, scale: true },
       series: [{
         type: 'line',
-        data: prepared.map((point) => [point.time, point.value]),
+        data: plotted.map((point) => [point.time, point.value]),
         showSymbol: false,
         smooth: curve || false,
         ...(curve ? { smoothMonotone: 'x' } : {}),
@@ -52,7 +53,7 @@
         areaStyle: { color: lineColor, opacity: 0.12 },
       }, {
         type: 'line',
-        data: heldTail,
+        data: plottedTail,
         showSymbol: false,
         smooth: false,
         lineStyle: { width, color: lineColor, type: tailType === 'solid' ? 'solid' : 'dashed', opacity: 0.65 },
