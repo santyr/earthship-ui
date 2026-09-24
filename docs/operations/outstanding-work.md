@@ -1400,6 +1400,14 @@ remain in Git.
 
 ## Weather temperature evidence implementation
 
+This section records the September 10 foundation checkpoint, not current
+production state. The later September 19 activation and September 23 natural
+hourly-learning audit above supersede its deployment and indoor-ID caveats:
+the receiver, three-stream OpenHAB evidence history, and qualified hourly
+scoring are active, indoor sensor ID 235 is operator-confirmed, and 55 natural
+qualified score receipts were independently reconciled to model counts.
+Seasonal and outcome-calibration gates remain separate.
+
 Additive temperature receipt evidence is implemented through fe4ec7f, with an
 explicit model/ID/range/expiry policy, atomic value/receipt/expiry records,
 process epochs, clock-rollback and expiry handling, loopback-only capture/read,
@@ -1621,6 +1629,12 @@ strategy. No persistence configuration was changed. The outcome specification
 now separates held value state from independently verified telemetry freshness.
 
 ## Change-only semantics and notification audit
+
+The September 5 pre-release findings below are historical. The later alert
+release checkpoint in this tracker records the deployed atomic-SoC UI check
+and basis-dwell sanity correction; these old findings must not be read as
+currently unpatched. The broader source-by-source historical-algorithm audit
+remains open.
 
 Corrective alert design: `docs/superpowers/specs/2026-09-05-change-only-alerts-design.md`.
 Written review is pending; no corrective alert code has been deployed. September 5
