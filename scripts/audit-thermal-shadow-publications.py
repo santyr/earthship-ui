@@ -220,6 +220,23 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
             'publication_rows': len(rows), 'counts': dict(sorted(counts.items())),
             'groups': {key: metrics(value) for key, value in sorted(groups.items())},
             'nonoverlap_policy': 'greedy_by_issue_time; next_issue_at_or_after_prior_target'}
+    independent = groups.get('nonoverlap:overall', [])
+    blockers = []
+    if capture_reader is None:
+        blockers.append('exact_forcing_capture_not_required_for_this_run')
+    if not independent:
+        blockers.append('no_independent_qualified_operational_pairs')
+    elif sum(abs(error[0]) for error in independent) >= sum(abs(error[1]) for error in independent):
+        blockers.append('independent_operational_model_not_better_than_persistence')
+    if counts['confidence:low']:
+        blockers.append('low_confidence_shadow_publications_scored')
+    # This observational scorer has no operator-confirmed action outcomes or
+    # approved numerical release thresholds. A good MAE here alone is never
+    # permission to change advisory authority.
+    blockers.extend(('confirmed_action_outcomes_not_scored_here',
+                     'approved_operational_graduation_thresholds_not_supplied'))
+    result['advisory_graduation_claimed'] = False
+    result['operational_readiness_blockers'] = blockers
     if include_pairs:
         selected = {(issue.isoformat(), target.isoformat(), revision)
                     for issue, target, revision, _ in selected_overall}

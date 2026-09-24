@@ -237,3 +237,15 @@ The separate exact-forcing operational scorer at about 12:35 MDT still found
 only two overlapping mature 24h targets (model/persistence MAE
 6.9255/0.36°F, zero interval coverage); twelve captured targets were not yet
 due. Thus neither the source audit nor the live score supports shadow exit.
+
+The exact-forcing operational scorer now also emits
+`operational_readiness_blockers` and an explicit false graduation claim. It
+distinguishes absent independent pairs from paired model skill worse than
+persistence, flags low-confidence outputs, and always states that this scorer
+does not verify confirmed action outcomes or supply approved numerical release
+thresholds. All 32 focused audit tests pass, including a better-than-persistence
+case that still cannot authorize graduation. A live 24h read-only invocation
+reported the current independent-window miss (model 6.286°F versus persistence
+0.54°F), low confidence, and both unscored action/threshold gates. The next
+natural shadow timer and later matured qualified outcomes remain observational
+checkpoints; no model, publisher, control, or advisory mode was changed.

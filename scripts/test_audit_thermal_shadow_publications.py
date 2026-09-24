@@ -61,6 +61,9 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a' * 12]['n'], 2)
         self.assertEqual(result['nonoverlap_policy'],
                          'greedy_by_issue_time; next_issue_at_or_after_prior_target')
+        self.assertFalse(result['advisory_graduation_claimed'])
+        self.assertIn('exact_forcing_capture_not_required_for_this_run',
+                      result['operational_readiness_blockers'])
         details = audit.score([shifted(0), shifted(12), shifted(24)],
                               now=TARGET + timedelta(days=3),
                               outcome_reader=receipt,
@@ -76,7 +79,39 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['overall']['model_mae_f'], 2.0)
         self.assertEqual(result['groups']['overall']['persistence_mae_f'], 2.0)
         self.assertEqual(result['groups']['overall']['interval_coverage'], 1.0)
+        self.assertIn('independent_operational_model_not_better_than_persistence',
+                      result['operational_readiness_blockers'])
+        self.assertIn('low_confidence_shadow_publications_scored',
+                      result['operational_readiness_blockers'])
         self.assertNotIn('pairs', result)
+
+    def test_better_captured_forecast_still_cannot_graduate_from_this_score(self):
+        forecast = published()
+        for point in forecast['forecast']['trajectory']:
+            point['hallwayF'] = 70.0
+        result = audit.score([row(forecast)], now=TARGET + timedelta(minutes=10),
+                             outcome_reader=receipt,
+                             capture_reader=lambda _: {'forecast_rows': []})
+        self.assertEqual(result['groups']['nonoverlap:overall']['model_mae_f'], 0.0)
+        self.assertNotIn('independent_operational_model_not_better_than_persistence',
+                         result['operational_readiness_blockers'])
+        self.assertEqual(result['operational_readiness_blockers'][-2:], [
+            'confirmed_action_outcomes_not_scored_here',
+            'approved_operational_graduation_thresholds_not_supplied'])
+        self.assertFalse(result['advisory_graduation_claimed'])
+
+    def test_skill_blocker_uses_unrounded_paired_errors(self):
+        forecast = published()
+        for point in forecast['forecast']['trajectory']:
+            point['hallwayF'] = 68.00001
+            point['lowF'] = 67.0
+        result = audit.score([row(forecast)], now=TARGET + timedelta(minutes=10),
+                             outcome_reader=receipt,
+                             capture_reader=lambda _: {'forecast_rows': []})
+        self.assertEqual(result['groups']['nonoverlap:overall']['model_mae_f'], 2.0)
+        self.assertEqual(result['groups']['nonoverlap:overall']['persistence_mae_f'], 2.0)
+        self.assertNotIn('independent_operational_model_not_better_than_persistence',
+                         result['operational_readiness_blockers'])
 
     def test_future_target_and_stale_initial_are_excluded(self):
         pair, reason = audit.select_pair(row(), now=TARGET + timedelta(minutes=1))
@@ -154,6 +189,8 @@ class PublicationAuditTests(unittest.TestCase):
                              outcome_reader=lambda _: None)
         self.assertEqual(result['counts'], {'qualified_outcome_unavailable': 1})
         self.assertEqual(result['groups'], {})
+        self.assertIn('no_independent_qualified_operational_pairs',
+                      result['operational_readiness_blockers'])
 
     def test_capture_required_excludes_missing_and_verifies_exact_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -173,6 +210,10 @@ class PublicationAuditTests(unittest.TestCase):
             self.assertEqual(result['counts']['forcing_capture_verified'], 1)
             self.assertEqual(result['counts']['scored'], 1)
             self.assertEqual(result['groups']['overall']['model_mae_f'], 2.0)
+            self.assertNotIn('exact_forcing_capture_not_required_for_this_run',
+                             result['operational_readiness_blockers'])
+            self.assertIn('approved_operational_graduation_thresholds_not_supplied',
+                          result['operational_readiness_blockers'])
 
     def test_capture_identity_cannot_match_changed_publication(self):
         with tempfile.TemporaryDirectory() as directory:
