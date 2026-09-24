@@ -257,9 +257,18 @@ A separate read-only north-wall audit found the existing atomic weather
 temperature stream for sensor ID 193 covers 85,954.173886 of 86,400 seconds
 on September 23, with a 373.823224-second maximum gap. That strict receipt
 source is a candidate to qualify `thermal.north_wall_temperature_c`, but the
-Solar_PV daily source-quality reader does not yet consume its closed evidence
-contract. Do not relabel the north-wall row from its held numeric Item or
-the general weather-station health status; integration and failure tests remain.
+Solar_PV daily source-quality reader did not yet consume its closed evidence
+contract. The default-off cross-repo integration is now pushed as Earthship
+`af0684f` plus Solar_PV `9afc46f`: it adds exact three-gap provenance to the
+shared receipt reader and an optional north-wall daily quality flag, with
+858 Solar_PV tests and 52 affected scheduled/shared-reader tests passed. The
+September 23 restricted read-only receipt recheck found three distinct gaps,
+85,954.173886 qualified seconds and a 373.823224-second maximum gap. This
+would qualify the supporting row under the existing 90% daily threshold,
+not prove complete-day learning coverage. Live activation remains off:
+`energy_power_writer` lacks SELECT on only `public.item0646`; the exact grant
+was requested, and a dry-run, service wiring and natural publication remain.
+Do not relabel from its held numeric Item or general station health status.
 
 The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
 overnight minima and included the current incomplete 20:00–11:00 night in its
