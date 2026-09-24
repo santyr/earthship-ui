@@ -14,11 +14,22 @@ overall status remains `degraded` for `daily_source_quality_not_ok`, while
 AC load remains explicitly `ac_load_evidence_unqualified`. These withheld
 fields are expected until their separate evidence gates pass. The compact
 Home SoC chart now joins the Energy and battery-modal charts as a smooth,
-non-stepped curve through actual samples; it only carries its latest value to
-the current clock when a fresh, matching atomic BMS receipt exists. All 1,738
-UI tests and the production build passed, commits `d0796a7` and `74b54cc`
-are on `origin/main`,
-and the local Vite UI returned HTTP 200.
+non-stepped curve. Commit `5a37a1e` further damps sub-30-second change-only
+quantization chatter in the plotted ordinate while retaining timestamps and
+exact raw values for the main-chart tooltip and extrema. A change after a
+quiet interval still lands on its exact value; a fresh, matching atomic BMS
+receipt is required to carry the Home tail to now. All 1,740 UI tests and the
+production build passed; `5a37a1e` is on `origin/main` and the local Vite UI
+returned HTTP 200.
+
+The source-only thermal confirmation decoder in `f26f49f` now verifies both
+signed Nostr layers and rejects a raw rumor whose author differs from the
+verified seal signer. Its exact installed `nak` v0.20.7 digest passed eight
+disposable-key checks; 175 focused tests, including a disposable PostgreSQL
+journal integration, passed with no leftover test container. The collector
+remains off: the operator-signed inbox route, household signer/relay trial,
+private journal/backup qualification and attended action confirmation are
+still separate gates. No household key, question or journal write was used.
 
 At the same checkpoint, a read-only exact-forcing thermal rescore found 13
 disjoint one-hour targets with model/persistence MAE 1.2166/0.4846°F and ten
@@ -813,7 +824,20 @@ AC load integration using both strict evidence readers and the explicit
 topology gate. Simultaneous PV-DC and AC quantities remain separately labeled;
 energy balance is withheld across those electrical domains. All 786 analytics
 tests passed. Versioned storage, reader-first UI support and prospective
-publication remain unfinished.
+publication were still unfinished at that source-only checkpoint; the storage
+and reader-first UI paths were added subsequently, while publication remains
+gated.
+
+September 24 12:29 MDT read-only partial-day follow-up: the current strict AC
+reader accepted 8,747 qualified intervals from local midnight through the
+check, yielding 99.73% coverage and 121.392 seconds of missing time. The
+largest gap, 118.247 seconds at 10:15:48–10:17:46 MDT, coincides with the
+attended whole-OpenHAB restart; every other individual gap was at most six
+milliseconds. The 2.543 kWh integrated so far is a diagnostic partial-window
+quantity, **not** a published daily load total or a complete-day qualification.
+The first eligible full day still closes at September 25 00:00 MDT. Recheck
+strict full-day evidence, topology, storage and UI publication separately;
+do not backfill the restart gap or publish early.
 
 The [thermal confirmation CLI backport](2026-09-23-thermal-journal-cli-backport.md)
 then installed only the tested future-plan and exact-readback guards into the
