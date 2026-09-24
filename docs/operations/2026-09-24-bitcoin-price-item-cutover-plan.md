@@ -13,6 +13,10 @@ Item/link, unchanged two-member managed Group and matching natural receipt.
 The private archive is retained. No OpenHAB restart or synthetic price write
 was performed. The exact Item/link ownership entries were added to the Git
 manifest; the post-cutover live inventory now reports zero issues.
+At 07:03 MDT, a later independent live readback found the file-owned price
+Item at 83,660 USD with an exactly matching natural Exec receipt only
+22.8 seconds old. This confirms continued feed updates after the handoff,
+not merely the first successful receipt.
 
 ## Exact scope and preflight
 
