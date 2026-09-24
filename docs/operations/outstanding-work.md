@@ -30,8 +30,10 @@ The historical feature export had the same end-exclusive day error in a
 different join: a live as-of example selected the previous day's 5.9 kWh
 instead of today's 3.3 kWh. Solar_PV `fde6ab0` now uses the exact next local
 midnight while preserving issue/capture as-of guards; 850 analytics tests
-pass. No scheduled feature consumer was found, and older explicit exports
-must be regenerated before using their daily-PV-forecast field.
+pass. A seven-day hourly replay found 169/169 old target-day mismatches and
+112 numeric differences. No scheduled feature consumer was found, and older
+explicit exports must be regenerated before using their daily-PV-forecast
+field.
 
 The unlinked observational `Thermal_Model_JSON` Item is now file-owned after
 isolated OpenHAB/JDBC restore and live managed rollback/return qualification.

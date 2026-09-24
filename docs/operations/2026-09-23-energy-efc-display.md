@@ -95,3 +95,8 @@ All 850 analytics tests pass and the equivalent real SQL returns the intended
 row. Feature export is an explicit CLI, not a scheduled consumer on this host;
 no historical CSV was rewritten, and any older export's daily-PV-forecast
 column must be regenerated before using it for learning or evaluation.
+In a bounded seven-day hourly replay, both old and corrected joins returned a
+row at all 169 origins, but the old target day differed at **all 169** and
+the numeric forecast differed at 112. This is a material historical-feature
+correction, not a harmless label mismatch. Other feature columns were not
+changed by this patch.
