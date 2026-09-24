@@ -175,6 +175,11 @@ that operator nor the configured Hex identity had a signed kind-10050 inbox
 announcement returned by read-only queries to the notifier's three relays.
 The collector therefore remains disabled pending reviewed signed routes,
 private policy, real journal/backup qualification, and an attended trial.
+Hex's collector kind-10050 route was later signed and remains readable;
+the approved operator's signed route was still absent on all three queried
+relays at 22:37 MDT. Existing Hex-to-operator encrypted DM events are
+retrievable, but they neither supply the operator's signing key nor prove
+receipt or action compliance. See the [delivery runbook](thermal-messaging-delivery.md).
 The September 23 [forcing-capture activation](2026-09-23-thermal-forcing-capture-live.md)
 now records exact raw Open-Meteo inputs alongside successful shadow
 publications. Its first natural run exposed a sub-second provenance gap;

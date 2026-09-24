@@ -102,6 +102,21 @@ The existing DM notifier's local key signs as Hex, not as the recipient; it
 cannot create the missing operator-signed announcement. Collector activation
 remains withheld, while independent storage and accounting work continues.
 
+At September23 22:37 MDT, another **read-only** public-event check returned
+zero operator-authored kind-10050 announcements from each of the three
+notifier relays. The previously signed Hex collector announcement remained
+available with the same event ID on `nos.lol` and `relay.primal.net`.
+The installed OpenHAB notifier uses Hex's key to send legacy encrypted
+kind-4 DMs to the approved recipient; it does not possess the recipient's
+signing key. A bounded metadata-only query found 100 recent Hex-to-recipient
+events at `nos.lol` (the query cap, **not** an all-time count) and five at
+`relay.primal.net`; a separate DM query to `relay.damus.io` returned HTTP 503,
+so no absence claim is made for that relay. No ciphertext, plaintext, signing
+material, prompt or reply was printed, sent or stored by this check. Existing
+DM traffic shows that some encrypted events are retrievable; it does not
+replace an operator-signed inbox route, prove operator reading, or verify
+advisory compliance. Thermal collector activation remains withheld.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with
