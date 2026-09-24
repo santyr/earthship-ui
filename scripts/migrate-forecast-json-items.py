@@ -5,6 +5,7 @@ No synthetic production updates. The publisher timer is paused only during the
 brief handoff; each Item keeps its name, persisted state and JDBC history.
 """
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from hashlib import sha256
 import json
 import os
@@ -24,6 +25,7 @@ import psycopg2  # noqa: E402
 from psycopg2 import sql  # noqa: E402
 
 NAMES = ('Forecast_Hourly_JSON', 'Forecast_Daily_JSON', 'Forecast_10Day_JSON')
+ITEM_TYPE = 'String'
 SOURCE = ROOT / 'openhab/file-config/items/forecast-json.items'
 TARGET = Path('/etc/openhab/items/forecast-json.items')
 ITEM_DB = Path('/var/lib/openhab/jsondb/org.openhab.core.items.Item.json')
@@ -84,6 +86,18 @@ def definition(actual, original, provider):
     return True
 
 
+def same_state(actual, expected):
+    if ITEM_TYPE != 'Number':
+        return actual == expected
+    if not isinstance(actual, str) or not isinstance(expected, str):
+        return False
+    try:
+        left, right = Decimal(actual), Decimal(expected)
+        return left.is_finite() and right.is_finite() and left == right
+    except InvalidOperation:
+        return False
+
+
 def wait(name, original, provider, seconds=90):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
@@ -91,7 +105,7 @@ def wait(name, original, provider, seconds=90):
         if provider is None and current is None:
             return
         if provider is not None and definition(current, original, provider):
-            if current.get('state') == original.get('state'):
+            if same_state(current.get('state'), original.get('state')):
                 return
         time.sleep(1)
     raise RuntimeError('provider, definition or state recovery failed: ' + name)
@@ -148,11 +162,11 @@ def main(apply):
     require(not TARGET.exists() and not TARGET.is_symlink(), 'target already exists')
     source = SOURCE.read_bytes()
     source_hash = sha256(source).hexdigest()
-    require(all(source.count(('String ' + name + ' ').encode()) == 1 for name in NAMES),
+    require(all(source.count((ITEM_TYPE + ' ' + name + ' ').encode()) == 1 for name in NAMES),
             'source Item set unexpected')
     originals = {name: item(name) for name in NAMES}
     require(all(entry is not None and entry.get('editable') is True
-                and entry.get('type') == 'String' and entry.get('state') not in (None, 'NULL')
+                and entry.get('type') == ITEM_TYPE and entry.get('state') not in (None, 'NULL')
                 for entry in originals.values()), 'managed Item/state preflight failed')
     require(not any(link.get('itemName') in NAMES for link in oh.get('/links')),
             'forecast Item unexpectedly linked')
@@ -166,7 +180,7 @@ def main(apply):
     db.set_session(readonly=True, autocommit=True)
     try:
         histories = {name: history(db, name) for name in NAMES}
-        require(all(histories[name]['last_state'] == originals[name]['state']
+        require(all(same_state(histories[name]['last_state'], originals[name]['state'])
                     for name in NAMES), 'current state disagrees with persisted state')
         if not apply:
             print(json.dumps({'status': 'preflight_passed', 'items': {name: {

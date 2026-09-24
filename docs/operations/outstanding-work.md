@@ -106,6 +106,14 @@ read-only call through the installed wrapper and existing private assessment
 environment returned four qualified ending dates, September 20–23, without
 printing values or writing a new dataset.
 
+The observational `Predicted_Curtailment_Hours` Number Item has a
+[staged file-provider path](2026-09-24-curtailment-prediction-item-staging.md):
+exact disconnected provider parity, synthetic-only JDBC/managed-rollback/hot-
+reload/full-restart preservation, and a live read-only preflight for stable
+Item ID 574/eight rows all passed. The guarded live adapter refuses `--apply`.
+The managed provider and forecast timer remain unchanged until after the
+natural 06:40 qualified-SoC run and a separate attended cutover check.
+
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
 exactly at midnight). The exact-next-Denver-midnight fix passed 850 analytics

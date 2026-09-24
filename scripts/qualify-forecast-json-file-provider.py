@@ -30,12 +30,12 @@ def run(args, data=None, timeout=45):
     return result.stdout
 
 
-def main(names=NAMES, source_path=SOURCE):
+def main(names=NAMES, source_path=SOURCE, item_type='String'):
     source = source_path.read_bytes()
-    if any(source.count(('String ' + name + ' ').encode()) != 1 for name in names):
+    if any(source.count((item_type + ' ' + name + ' ').encode()) != 1 for name in names):
         raise ValueError('prepared file does not define exactly the expected Items')
     originals = {name: oh.get('/items/' + name + '?metadata=.*') for name in names}
-    if any(item.get('editable') not in (True, False) or item.get('type') != 'String'
+    if any(item.get('editable') not in (True, False) or item.get('type') != item_type
            for item in originals.values()):
         raise ValueError('live forecast Item preflight failed')
     if any(link.get('itemName') in names for link in oh.get('/links')):

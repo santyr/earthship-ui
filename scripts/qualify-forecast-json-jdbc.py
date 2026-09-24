@@ -6,6 +6,7 @@ production state, credentials, network, ports, or host volumes enter the test.
 """
 import importlib.util
 import json
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import re
 import secrets
@@ -29,11 +30,19 @@ ITEMS = {
 }
 
 
-def same_state(actual, expected):
-    return actual == expected
+def same_state(actual, expected, item_type='String'):
+    if item_type != 'Number':
+        return actual == expected
+    if not isinstance(actual, str) or not isinstance(expected, str):
+        return False
+    try:
+        left, right = Decimal(actual), Decimal(expected)
+        return left.is_finite() and right.is_finite() and left == right
+    except InvalidOperation:
+        return False
 
 
-def item(container, header, name, *, present=True, value=None, seconds=120):
+def item(container, header, name, *, present=True, value=None, item_type='String', seconds=120):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         try:
@@ -42,7 +51,8 @@ def item(container, header, name, *, present=True, value=None, seconds=120):
                 return True
             if present and code == 200:
                 state = json.loads(payload)
-                if state.get('editable') is False and (value is None or same_state(state.get('state'), value)):
+                if state.get('editable') is False and (value is None or
+                        same_state(state.get('state'), value, item_type)):
                     return True
         except (RuntimeError, ValueError):
             pass
@@ -145,12 +155,13 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
             before = {}
             for name, value in items.items():
                 code, _ = aqi.request(container, header, '/items/' + name + '/state', 'PUT', value)
-                if code != 202 or not item(container, header, name, value=value):
+                if code != 202 or not item(container, header, name, value=value,
+                                           item_type=types[name]):
                     raise RuntimeError('isolated state write failed for ' + name)
                 for _ in range(45):
                     try:
                         rows = history(container, header, name)
-                        if rows and same_state(rows[-1].get('state'), value):
+                        if rows and same_state(rows[-1].get('state'), value, types[name]):
                             before[name] = rows
                             break
                     except (RuntimeError, ValueError):
@@ -175,7 +186,8 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                     code, payload = aqi.request(container, header, '/items/' + name)
                     if code == 200:
                         actual = json.loads(payload)
-                        if actual.get('editable') is True and same_state(actual.get('state'), value):
+                        if actual.get('editable') is True and same_state(
+                                actual.get('state'), value, types[name]):
                             break
                     time.sleep(2)
                 else:
@@ -191,14 +203,16 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
             aqi.run(['docker', 'exec', container, 'mv', '/tmp/forecast.items.parked',
                      '/openhab/conf/items/' + source_path.name])
             for name, value in items.items():
-                if not item(container, header, name, value=value, seconds=90):
+                if not item(container, header, name, value=value,
+                            item_type=types[name], seconds=90):
                     raise RuntimeError('state not restored at hot file reload: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history prefix changed at file reload: ' + name)
             print('hot_file_reload_history_prefix_preserved=true', flush=True)
             aqi.run(['docker', 'restart', container])
             for name, value in items.items():
-                if not item(container, header, name, value=value, seconds=240):
+                if not item(container, header, name, value=value,
+                            item_type=types[name], seconds=240):
                     raise RuntimeError('state not restored at JVM restart: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history prefix changed at restart: ' + name)
