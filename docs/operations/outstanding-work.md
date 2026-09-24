@@ -194,6 +194,12 @@ The AC table remains empty and no writer or v4 publisher was activated. A
 restricted-reader diagnostic later found one additional missing privilege:
 `energy_power_reader` cannot SELECT the exact raw evidence table `public.item0653`.
 That separate grant is requested, not applied; source reading remains withheld.
+The September 24 retention review elects to retain both transform-stage and
+validated AC evidence streams without JDBC exclusion or pruning. Both were
+present in the verified component-restore point; the live validated stream
+reached 9,019 sequential receipts with one original startup barrier and no
+sequence break. The first complete day, restart/fault evidence and a recovery
+point containing its daily revision remain separate gates.
 
 The first natural thermal shadow run after the installed-v4 confirmation-CLI
 hardening succeeded at 15:51 MDT. Its verified private forcing archive exactly

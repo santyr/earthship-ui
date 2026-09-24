@@ -62,3 +62,31 @@ still held zero rows. This extends passive continuity evidence to roughly
 7h23m, but is not a completed Denver day, fault or restart test. A fresh
 readback confirmed all five approved privilege checks true, the additional
 reader SELECT on `public.item0653` false, and no AC publisher activation.
+
+## September 24 storage and retention decision
+
+A new read-only census at approximately 03:45 MDT found 9,019 validated-stage
+`item0653` receipts since cutover: 9,018 `valid`, the original startup barrier,
+one epoch, sequence 1–9,019 with no break, and strictly increasing JDBC times.
+`item0652` held 9,728 transform-stage rows. PostgreSQL total relation sizes
+were approximately 1.44 MiB and 2.96 MiB respectively; the AC daily revision
+table remained empty. At this early rate the combined stream is on the order
+of single-digit MiB per day, low single-digit GiB per year, against 599 GiB
+currently free on the host filesystem. This is a capacity estimate, not a
+retention or backup guarantee.
+
+The September 24 verified full-component recovery point includes both streams
+and the AC daily table in its exact 514-table restore. Its fixed source
+fingerprints counted 6,791 transform-stage rows and 6,064 evidence rows;
+the daily table was still empty at capture. This proves both streams are in
+the current database recovery scope, not that later rows or the first completed
+AC revision are backed up off-host.
+
+Current retention decision: retain **both** raw streams and all append-only
+daily revisions; do not exclude either Item from JDBC, prune rows, or collapse
+the transform stage into the validated stage. The former is the rule input and
+forensic provenance, while the latter is the qualified reader's source. Review
+growth and recoverability after the first completed AC day and again with a
+longer observation window before proposing any deletion or partition policy.
+The complete-day, physical-fault, restart, and post-first-day restore gates
+remain open; this decision alone does not enable the writer or v4 publisher.
