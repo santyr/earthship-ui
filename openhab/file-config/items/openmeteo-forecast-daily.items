@@ -1,0 +1,5 @@
+// Four bound OpenMeteo daily forecast series; transfer as one coupled group.
+Number:Length Forecast_Daily_PrecipSum "Forecast Daily Precipitation" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastDaily#precipitation-sum" }
+Number:Dimensionless Forecast_Daily_PrecipProbMax "Forecast Daily Precip Probability" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastDaily#precipitation-probability-max" }
+Number Forecast_Daily_WeatherCode "Forecast Weather Code" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastDaily#weather-code" }
+Number Forecast_Daily_UVIndex "Forecast UV Index" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastDaily#uv-index" }

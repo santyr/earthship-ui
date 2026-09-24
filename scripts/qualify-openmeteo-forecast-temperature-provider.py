@@ -18,6 +18,7 @@ aqi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aqi)
 
 SOURCE = ROOT / 'openhab/file-config/items/openmeteo-forecast-temperature.items'
+CONTAINER_LABEL = 'hex.forecast.temperature.qualification'
 CHANNELS = {
     'Forecast_Temp': 'openmeteo:forecast:local:site:forecastHourly#temperature',
     'Forecast_Daily_High': 'openmeteo:forecast:local:site:forecastDaily#temperature-max',
@@ -99,7 +100,7 @@ def main():
     container = None
     try:
         container = aqi.run(['docker', 'run', '-d',
-            '--label', 'hex.forecast.temperature.qualification=' + marker,
+            '--label', CONTAINER_LABEL + '=' + marker,
             '--network', 'none', '--hostname', 'localhost', '--cap-drop', 'ALL',
             '--pids-limit', '384', '--memory', '4g',
             '--tmpfs', '/tmp:rw,nosuid,nodev,size=128m',
@@ -108,7 +109,7 @@ def main():
             'while [ ! -f /openhab/conf/items/' + SOURCE.name + ' ]; do sleep 1; done; '
             'exec /openhab/start.sh server']).stdout.decode().strip()
         owner = aqi.run(['docker', 'inspect', '--format',
-            '{{index .Config.Labels "hex.forecast.temperature.qualification"}}',
+            '{{index .Config.Labels "' + CONTAINER_LABEL + '"}}',
             container]).stdout.decode().strip()
         if owner != marker:
             raise RuntimeError('isolated container ownership mismatch')
@@ -133,12 +134,12 @@ def main():
         header = ('Authorization: Bearer ' + aqi.oh.token() + '\n').encode()
         aqi.install_bytes(container, '/openhab/conf/items', SOURCE.name, source)
         if not wait(container, header, originals, file_owned=True):
-            raise RuntimeError('file provider did not match all three Items/links')
-        print('first_boot_exact_file_items_and_links=3', flush=True)
+            raise RuntimeError('file provider did not match all forecast Items/links')
+        print('first_boot_exact_file_items_and_links=' + str(len(CHANNELS)), flush=True)
         aqi.run(['docker', 'restart', container], timeout=90)
         if not wait(container, header, originals, file_owned=True):
             raise RuntimeError('full restart lost forecast Item/link definition')
-        print('full_restart_exact_file_items_and_links=3', flush=True)
+        print('full_restart_exact_file_items_and_links=' + str(len(CHANNELS)), flush=True)
         aqi.run(['docker', 'exec', container, 'rm',
                  '/openhab/conf/items/' + SOURCE.name])
         deadline = time.monotonic() + 90
@@ -158,11 +159,11 @@ def main():
                          'configuration': {}})
         if not wait(container, header, originals, file_owned=False, seconds=90):
             raise RuntimeError('managed rollback did not match all definitions')
-        print('managed_rollback_exact_items_and_links=3', flush=True)
+        print('managed_rollback_exact_items_and_links=' + str(len(CHANNELS)), flush=True)
     finally:
         if container is not None:
             owner = aqi.run(['docker', 'inspect', '--format',
-                '{{index .Config.Labels "hex.forecast.temperature.qualification"}}',
+                '{{index .Config.Labels "' + CONTAINER_LABEL + '"}}',
                 container], check=False).stdout.decode().strip()
             if owner == marker:
                 aqi.run(['docker', 'rm', '-f', '-v', container], timeout=90)

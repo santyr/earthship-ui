@@ -392,6 +392,18 @@ This transfer remains provisional until a scheduled natural 48/48/48 binding
 update under file ownership and post-update historical-row preservation are
 observed; reload-generated series do not satisfy that gate.
 
+The remaining four bound OpenMeteo daily series are
+`Forecast_Daily_PrecipSum`, `Forecast_Daily_PrecipProbMax`,
+`Forecast_Daily_WeatherCode` and `Forecast_Daily_UVIndex`. Read-only preflight
+found one empty-config managed link each, JDBC IDs 569–572 with 40 rows each,
+and the exact Item types/units/labels. The prepared
+`openmeteo-forecast-daily.items` source passed a networkless restored-registry
+OpenHAB 5.2.1 first-boot, full-restart and managed-rollback rehearsal. The
+owned container was removed and production remains managed for these four.
+Their mixed-unit JDBC recovery and future daily-series preservation still need
+isolated qualification before any live transfer; no daily-group cutover was
+attempted.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
