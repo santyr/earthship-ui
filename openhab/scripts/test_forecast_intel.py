@@ -660,6 +660,13 @@ def test_qualified_soc_forecast_uses_only_atomic_inputs(monkeypatch, tmp_path):
     assert prediction["pv"] is not None
     assert prediction["trough"] is not None
     assert prediction["deficit_kwh"] == pytest.approx(round(15 / 100 * fi.BANK_KWH / fi.ETA_RT, 2))
+    assert prediction["soc_reference_pct"] == 85
+    assert prediction["dusk_soc_estimate_pct"] is not None
+    assert prediction["overnight_drop_samples_pct"] == [19.0]
+    assert prediction["overnight_drop_sample_days"] == [yesterday.isoformat()]
+    assert prediction["overnight_drop_base_pct"] == 19.0
+    assert prediction["overnight_drop_final_pct"] == pytest.approx(
+        prediction["overnight_drop_base_pct"] + prediction["tomorrow_cloud_drop_penalty_pct"])
 
 
 def test_qualified_soc_forecast_withholds_energy_without_atomic_state(monkeypatch, tmp_path):
@@ -675,6 +682,8 @@ def test_qualified_soc_forecast_withholds_energy_without_atomic_state(monkeypatc
     assert prediction["pv"] is None
     assert prediction["trough"] is None
     assert prediction["demand"] is None
+    assert prediction["soc_reference_pct"] is None
+    assert prediction["dusk_soc_estimate_pct"] is None
     assert "Thermal_Advisory" in published
     assert published["Predicted_PV_Today_kWh"] == "UNDEF"
     assert published["Predicted_Curtailment_Hours"] == "UNDEF"

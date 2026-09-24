@@ -1156,6 +1156,7 @@ def main():
     # floor each drop at 1 pt. Fallback 12 ≈ the old 100 Ah-era 47-pt drop
     # scaled by the 4x capacity increase.
     drops = []
+    drop_sample_days = []
     for back in range(1, 5):
         night = today - timedelta(days=back if qualified_soc else back - 1)
         if night < date(2026, 7, 19):       # first full-bank overnight measurement
@@ -1163,13 +1164,14 @@ def main():
         tr = measured_nights.get(night) if qualified_soc else measured_trough(night)
         if tr is not None and 12 <= tr <= 99:
             drops.append(max(99 - tr, 1.0))
+            drop_sample_days.append(night.isoformat())
         if len(drops) == 3:
             break
-    drop_pct = (sum(drops) / len(drops)) if drops else 12.0
+    drop_base_pct = (sum(drops) / len(drops)) if drops else 12.0
     dusk_soc = (99 if resource >= demand - 0.3 else
                 clamp(trough_ref + (pv_pred - st["d_direct"]) / BANK_KWH * 100 * ETA_RT, 12, 99)) if demand is not None else None
-    if cloud_mean[1] is not None and cloud_mean[1] > 70:
-        drop_pct += 2   # cloudy tomorrow morning -> later charge crossover
+    cloud_drop_penalty_pct = 2 if cloud_mean[1] is not None and cloud_mean[1] > 70 else 0
+    drop_pct = drop_base_pct + cloud_drop_penalty_pct  # cloudy morning -> later charge crossover
     trough_pred = round(clamp(dusk_soc - drop_pct, 12, 99)) if dusk_soc is not None else None
     if qualified_soc and trough_ref is None:
         log.append("qualified atomic SoC unavailable; energy predictions withheld")
@@ -1234,6 +1236,16 @@ def main():
         "radsum": radsum_kwh, "demand": round(demand, 2) if demand is not None else None,
         "deficit_kwh": round(deficit_kwh, 2) if deficit_kwh is not None else None,
         "k_res": round(st["k_res"], 3), "d_direct": round(st["d_direct"], 2),
+        # Diagnostic-only as-issued components. These never alter the forecast,
+        # notification threshold or the separately captured advisory decision.
+        "soc_reference_pct": trough_ref,
+        "pv_resource_kwh": round(resource, 3),
+        "dusk_soc_estimate_pct": round(dusk_soc, 3) if dusk_soc is not None else None,
+        "overnight_drop_samples_pct": drops,
+        "overnight_drop_sample_days": drop_sample_days,
+        "overnight_drop_base_pct": round(drop_base_pct, 3),
+        "tomorrow_cloud_drop_penalty_pct": cloud_drop_penalty_pct,
+        "overnight_drop_final_pct": round(drop_pct, 3),
         "hi": highs[0], "lo": lows[0],
         "precip_in": (precip_sum[0] if precip_sum and precip_sum[0] is not None else 0)}
     st["predictions"] = {k: v for k, v in sorted(st["predictions"].items())[-30:]}
