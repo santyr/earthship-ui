@@ -445,10 +445,24 @@ All four exact Item/link pairs are now file-owned from the prepared source
 and the original 40 rows per JDBC ID 569–572 survived the transfer. As in the
 isolated rehearsal, precipitation sum, probability maximum and weather-code
 scalar states restored to their latest past JDBC values instead of the
-pre-transfer binding states; UV index stayed 2.9. This is provisional until
+pre-transfer binding states; UV index stayed 2.9. This was provisional until
 the next scheduled natural seven-value series update under file ownership
-and post-update historical-row/ownership checks. No daily-series writer
-success is claimed from the reload-generated events.
+and post-update historical-row/ownership checks. The reload-generated events
+did not satisfy that gate.
+
+The 21:51:32 MDT natural binding fetch emitted seven-value series for all four
+file-owned daily Items. Their exact links remained file-owned, the forecast
+Thing ONLINE, all ten `gForecast` member references intact, JDBC IDs 569–572
+unchanged, and the ownership inventory clean. Each table still had 40 target
+timestamps and none disappeared. All 33 rows per Item with target dates before
+the current seven-day forecast's first timestamp (2026-09-24 00:00Z) retained
+their exact earlier values. The binding legitimately revised the active
+forecast at that first timestamp for precipitation sum, probability maximum
+and weather code, plus six later probability values; UV values were unchanged.
+The first timestamp was already earlier than the transfer clock but remained
+part of the current, mutable seven-day forecast. The gate is therefore met for
+natural writer and prior-day history preservation, not immutable preservation
+of active forecast values. All eight daily Item/link declarations are verified.
 
 The `gForecast` Group itself remains REST-managed and has no JDBC Item
 identity; its ten members are the forecast persistence selector. The prepared
@@ -456,8 +470,8 @@ identity; its ten members are the forecast persistence selector. The prepared
 5.2.1 rehearsal: all ten member references and exact file Group fields matched
 on first boot and full restart, then the file was withdrawn and the managed
 Group plus references restored. The owned container was removed. Production
-Group ownership was untouched; a live transfer and persistence-selector
-continuity check must wait until the daily member group is complete.
+Group ownership was untouched; at that stage a live transfer and
+persistence-selector continuity check had to wait for the daily member group.
 An added live-like isolated test revealed that REST-deleting the managed Group
 removes all ten member references. Reloading the file Group produced a valid
 file-owned Group with **zero** members after the bounded wait; the owned
@@ -480,8 +494,8 @@ withdrawn source; rollback also preserved all ten references. The owned
 container and private temporary directory were removed, and the live Group
 remains managed with ten members. This qualifies the provider/membership
 handoff in isolation, not live maintenance, JDBC continuity or a natural
-writer after cutover. Wait for the provisional daily Items' natural series
-gate before any production Group transfer.
+writer after cutover. The daily Items' natural series gate has since passed;
+the live restart decision remains separate.
 
 The same networkless Group rehearsal now also passes with an intentional
 SIGKILL before both offline JSONDB edits: file ownership, all ten memberships,
@@ -502,13 +516,15 @@ controls. An attended live Group restart remains a separate decision.
 The guarded `scripts/migrate-forecast-group-offline.py` adapter is now staged
 for that later attended maintenance. Its read-only `--check` verifies the
 exact managed Group, ten file-owned members/links, ONLINE forecast Thing,
-fixed file-source digest and JDBC identities 563–572; the current check
-reports the daily natural-writer gate **pending**. Its `--apply` refuses that
-state. If eventually eligible, it stops OpenHAB, takes a private exact JSONDB
-backup, removes only the stopped Group record, installs the file definition,
-restarts, and verifies Group membership and historical JDBC rows. A failed
-handoff attempts a stopped-service return to the original managed record and
-removes only the pinned file source. The apply path now also refuses to stop
+fixed file-source digest and JDBC identities 563–572. Before the daily natural
+fetch, `--check` reported that gate pending and `--apply` refused it. With the
+daily gate verified, a fresh `--check` is required before any attended apply.
+If approved and otherwise eligible, the adapter stops OpenHAB, takes a private
+backup of the exact JSONDB, removes only the stopped Group record, installs the
+file definition, restarts, and verifies Group membership and historical JDBC
+rows. A failed handoff attempts a stopped-service return to the original managed
+record, and removes only the pinned file source. The apply path also refuses to
+stop
 OpenHAB unless both greywater pump output Items are explicitly OFF, with a
 second check immediately before the stop. Nine focused tests pass, including
 the no-service-stop, pump-state and unrelated-JSONDB-preserving rollback

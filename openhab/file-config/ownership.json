@@ -55,22 +55,22 @@
       "state_writer": "openmeteo:forecast:local:site:forecastHourly#precipitation-probability"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_PrecipSum", "provider": "file", "migration": "provisional",
+      "kind": "item", "id": "Forecast_Daily_PrecipSum", "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
       "state_writer": "openmeteo:forecast:local:site:forecastDaily#precipitation-sum"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_PrecipProbMax", "provider": "file", "migration": "provisional",
+      "kind": "item", "id": "Forecast_Daily_PrecipProbMax", "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
       "state_writer": "openmeteo:forecast:local:site:forecastDaily#precipitation-probability-max"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_WeatherCode", "provider": "file", "migration": "provisional",
+      "kind": "item", "id": "Forecast_Daily_WeatherCode", "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
       "state_writer": "openmeteo:forecast:local:site:forecastDaily#weather-code"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_UVIndex", "provider": "file", "migration": "provisional",
+      "kind": "item", "id": "Forecast_Daily_UVIndex", "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
       "state_writer": "openmeteo:forecast:local:site:forecastDaily#uv-index"
     },
@@ -131,22 +131,22 @@
     },
     {
       "kind": "link", "id": "Forecast_Daily_PrecipSum -> openmeteo:forecast:local:site:forecastDaily#precipitation-sum",
-      "provider": "file", "migration": "provisional",
+      "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
     },
     {
       "kind": "link", "id": "Forecast_Daily_PrecipProbMax -> openmeteo:forecast:local:site:forecastDaily#precipitation-probability-max",
-      "provider": "file", "migration": "provisional",
+      "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
     },
     {
       "kind": "link", "id": "Forecast_Daily_WeatherCode -> openmeteo:forecast:local:site:forecastDaily#weather-code",
-      "provider": "file", "migration": "provisional",
+      "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
     },
     {
       "kind": "link", "id": "Forecast_Daily_UVIndex -> openmeteo:forecast:local:site:forecastDaily#uv-index",
-      "provider": "file", "migration": "provisional",
+      "provider": "file", "migration": "verified",
       "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
     },
     {
