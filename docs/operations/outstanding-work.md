@@ -17,8 +17,10 @@ the thermal advisory and tomorrow high/low writes. Home curtailment, Energy
 curtailment/trough, Earthship advisory and header thermal/low-trough alerts
 now show values only from a receipt for the current Denver day, otherwise
 unavailable. An absent receipt does not mean "All good."
-Seventy producer tests, 32 focused UI tests, the build and four browser
-tests passed. The new file-owned Item hot-loaded with `NULL` state and
+Ninety-seven forecast/advisory producer tests, all 1,726 UI tests, the build
+and all 37 Home/Energy/Weather/Earthship browser tests passed. The new
+file-owned Item hot-loaded
+with `NULL` state and
 `editable:false`; the tested source was installed at the existing forecast
 script path with matching SHA-256. The live ownership graph has no issues.
 The prior script is privately recoverable under
