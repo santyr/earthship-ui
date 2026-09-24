@@ -4,6 +4,7 @@ import {
   parseForecast10Day,
   parseLegacyDailyForecast,
   selectForecastWindow,
+  todayPvForecastKwh,
 } from '../src/lib/weather/forecastDetail.js';
 
 function hour(date, hourValue, offset = '-06:00') {
@@ -79,6 +80,21 @@ function v2Payload(
 }
 
 describe('ten-day forecast contract', () => {
+  it('selects the current local date PV prediction, not yesterday after midnight', () => {
+    const result = parseForecast10Day(payload([
+      { ...day('2026-09-23', 'Yesterday'), summary: { ...day('2026-09-23', 'Yesterday').summary, pvKwh: 3.42 } },
+      { ...day('2026-09-24', 'Today'), summary: { ...day('2026-09-24', 'Today').summary, pvKwh: 3.3 } },
+    ], '2026-09-24T03:20:00-06:00'), { nowMs: Date.parse('2026-09-24T04:46:00-06:00') });
+    expect(todayPvForecastKwh(result, { nowMs: Date.parse('2026-09-24T04:46:00-06:00') })).toBe(3.3);
+    expect(todayPvForecastKwh(result, { nowMs: Date.parse('2026-09-24T07:21:00-06:00') })).toBeNull();
+  });
+
+  it('withholds a PV comparison when the dated forecast is absent', () => {
+    const nowMs = Date.parse('2026-09-24T04:46:00-06:00');
+    const result = parseForecast10Day(payload([day('2026-09-23', 'Yesterday')], '2026-09-24T03:20:00-06:00'), { nowMs });
+    expect(todayPvForecastKwh(result, { nowMs })).toBeNull();
+  });
+
   it('normalizes ten ordered days and preserves provider nulls', () => {
     const days = Array.from({ length: 10 }, (_, index) => {
       const date = `2026-07-${String(18 + index).padStart(2, '0')}`;

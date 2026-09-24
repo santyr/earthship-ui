@@ -229,6 +229,26 @@ const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
 const LOAD = 'ConextGateway_ACPowerValue';
 const GUST = 'AmbientWeatherWS2902A_WindGust';
 
+test('Solar comparison follows the dated forecast across local midnight', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-23T23:59:10-06:00') });
+  const detail = JSON.stringify({
+    version: 1,
+    generatedAt: '2026-09-23T23:20:00-06:00',
+    timezone: 'America/Denver',
+    days: [
+      { date: '2026-09-23', summary: { highF: null, lowF: null, precipPct: null, weatherCode: null, pvKwh: 3.42 }, hours: [] },
+      { date: '2026-09-24', summary: { highF: null, lowF: null, precipPct: null, weatherCode: null, pvKwh: 3.3 }, hours: [] },
+    ],
+  });
+  const runtime = await openHomeFixture(page, TARGETS[0], {
+    states: { Forecast_10Day_JSON: detail, Predicted_PV_Today_kWh: '3.42' },
+  });
+  await expect(page.locator('.solar-sub')).toHaveText('of 3.4 predicted');
+  await page.clock.runFor(60_000);
+  await expect(page.locator('.solar-sub')).toHaveText('of 3.3 predicted');
+  expect(runtime.pageErrors).toEqual([]);
+});
+
 test('Bitcoin receipt warning expires and recovers without a price change', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-20T14:00:00-06:00') });
   const runtime = await openHomeFixture(page, TARGETS[0]);

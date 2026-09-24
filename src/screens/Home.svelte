@@ -50,6 +50,7 @@
   import {
     parseForecast10Day,
     parseLegacyDailyForecast,
+    todayPvForecastKwh,
   } from '../lib/weather/forecastDetail.js';
 
   // ---- History fetch helper for hero sparklines ----------------------------
@@ -410,7 +411,8 @@
     ];
   });
 
-  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON));
+  const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: wallClock }));
+  const solarTodayForecast = $derived(todayPvForecastKwh(forecastDetail, { nowMs: wallClock }));
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
     forecastDetail.days.length > 0 ? forecastDetail.days : legacyForecast
@@ -792,7 +794,7 @@
           <span class="solar-icon" style="color: {solarColor}"><OhIcon icon="iconify:mdi:solar-power-variant" size="1.25rem" /></span>
           <div class="solar-main">{fmt($items.MPPT60_EnergyFromPV_Today, '', 1)}<span class="unit"> kWh</span></div>
         </div>
-        <div class="solar-sub">of {fmt($items.Predicted_PV_Today_kWh, '', 1)} predicted</div>
+        <div class="solar-sub">{solarTodayForecast === null ? 'prediction unavailable' : `of ${fmt(solarTodayForecast, '', 1)} predicted`}</div>
         <div class="solar-current" style="color: {solarColor}">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
         <div class="curtail-lamp" style="color: {curtailColor}">
           <span class="lamp-dot" class:active={curtailActive}></span>

@@ -204,6 +204,13 @@ function localDateAt(nowMs, timezone) {
   return `${value.year}-${value.month}-${value.day}`;
 }
 
+export function todayPvForecastKwh(result, { nowMs = Date.now() } = {}) {
+  if (result?.status !== 'ready' || !Number.isFinite(result.generatedAtMs)
+      || nowMs - result.generatedAtMs > FORECAST_DETAIL_STALE_MS) return null;
+  const today = localDateAt(nowMs, result.timezone);
+  return result.days.find(({ date }) => date === today)?.summary.pvKwh ?? null;
+}
+
 export function selectForecastWindow(result, selectedDate, { nowMs = Date.now() } = {}) {
   const allHours = result.days
     .flatMap(({ hours }) => hours)
