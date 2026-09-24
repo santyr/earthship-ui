@@ -779,6 +779,12 @@ The adapter now checks that the managed `BTC_Price` Group retains its semantic
 The live `RELEASE_READY` gate is still false. The environment's safety review
 rejected enabling that gate without a specifically approved attended
 production Item/link cutover plan; no alternate activation path was used.
+The [exact attended plan](2026-09-24-bitcoin-price-item-cutover-plan.md) now
+spells out scope, current backup, fixed-prefix/JDBC identity proof, natural
+writer gate and guarded managed rollback. A fresh September 24 read-only
+`--check` passed with 1,090,544 Item34 rows before its two-minute cutoff.
+The plan is proposed, not yet specifically approved or executed; the release
+gate and live price provider remain unchanged.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
