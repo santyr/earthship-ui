@@ -155,6 +155,16 @@ eleven paired origins had as-of mode knowledge, but none had a complete action
 snapshot (`indoor_shade` and `vent` were missing). This is a historical
 baseline and a concrete qualification gap, not a scored physical model or
 evidence to graduate it from shadow.
+A September 24 read-only live OpenHAB Item-name inventory found six names
+matching shade/vent/window/Kiva terms, all weather, sun/moon shade-length or
+LivingOffice illuminance/occupancy/temperature sensors. None directly reports
+the household indoor-shade or ventilation action state. Do not fill the action
+gap with those environmental sensors or current telemetry; collect genuine
+operator/action receipts prospectively or qualify a passive interval before
+fitting operational dynamics.
+Live `Thermal_Model_JSON` readback at 03:04 MDT still reports `status=shadow`
+and low confidence; its two-hour timer remains active. No model artifact or
+advisory threshold changed in this inventory.
 
 The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-preactivation.md)
 records a default-off daily command and opt-in v4 publisher path pushed to
