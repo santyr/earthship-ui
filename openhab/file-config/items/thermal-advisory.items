@@ -1,0 +1,2 @@
+// Forecast-intelligence advisory display; no channel link or control action.
+String Thermal_Advisory "Earthship Thermal Advisory" ["forecast-intel"]

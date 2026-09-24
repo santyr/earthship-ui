@@ -7,6 +7,17 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 17:08 MDT `Thermal_Advisory`, the legacy forecast-intelligence display
+Item, moved to a Git-owned file definition after networkless provider and
+disconnected JDBC/rollback/restart tests. The guarded live transfer preserved
+its `none` advisory state, JDBC ID 576 and 48 history rows, exercised managed
+rollback, and resumed the forecast timer. The UI alert contract's ten tests
+passed; independent REST and ownership-inventory readback found the file
+provider and zero issues. This does not change the physical thermal model's
+shadow status. The September 25 06:40 natural publisher and prediction
+receipt remain the post-cutover gate. See the
+[cutover receipt](2026-09-24-thermal-advisory-item-cutover.md).
+
 At 17:02 MDT the new read-only rule-reference census found 179 literal Item
 names in live rule configurations and only 17 managed Items without a link,
 Group membership or literal rule mention. Sixteen of those are Lightning
