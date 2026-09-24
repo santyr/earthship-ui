@@ -130,6 +130,16 @@ must publish their own signed inbox announcement before this collector can use
 that identity; the two successful negative queries do not prove absence on
 every relay.
 
+At September 24 05:07 MDT, a fresh bounded, read-only query used the approved
+operator public key from the existing notifier configuration without printing
+it or loading an operator signer. Signature verification remained enabled.
+`nos.lol`, `relay.primal.net` and `relay.damus.io` all completed successfully;
+each returned zero matching kind-10050 operator-authored events. This now
+establishes absence on all three proposed routes at that checkpoint, not
+absence on every Nostr relay. The configured DM signer remains Hex's distinct
+identity and cannot make the operator's announcement. No prompt, listener,
+outbox, private policy or journal write was activated.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

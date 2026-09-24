@@ -26,6 +26,12 @@ run's receipt, three direct Items, output effects and UI before calling this
 runtime gate complete. Until then these two display forecasts intentionally
 show unavailable.
 
+Thermal-confirmation route recheck at 05:07 MDT: signature-verifying public
+queries to all three approved relays completed and found zero operator-authored
+kind-10050 inbox announcements. Hex's existing DM key cannot sign as that
+distinct operator. The collector remains off; this is an external signing
+prerequisite, not evidence to relax the model's accuracy gates.
+
 September 24 pre-dawn PV forecast date correction: the Solar_PV collector
 previously stored a `daily_pv_kwh` summary for a named local day at that
 day's **start**, while both analytics readers select the day-end timestamp.
