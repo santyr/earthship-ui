@@ -60,7 +60,13 @@ historical artifact and its trough column is **not** a qualified training
 target; the live forecast only reads that CSV's temperature columns for seed
 biases. A fresh export must be generated before using historical troughs for
 training. This source correction does not enable the separate live forecast
-opt-in flag.
+opt-in flag. Commit `9381e84` passed 73 focused tests and is pushed to
+`origin/main`; the exact source was installed at
+`/home/sat/openhab/scripts/forecast_backfill.py` with matching SHA-256
+`7b93eb485d5581f6cdaba841838f6f490636af2c1d2de32067d53513d93d5b37`.
+The previous installed script is recoverable under
+`/home/sat/backups/earthship-energy/forecast-backfill-Ak5IYJ`. No backfill
+export or live forecast run was triggered by this deployment.
 
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
