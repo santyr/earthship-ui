@@ -8,7 +8,7 @@ a relay, never read by the operator. Credentials are read only from environment.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import os
@@ -26,6 +26,9 @@ DEFAULT_NAK = Path('/home/sat/.local/bin/nak')
 DEFAULT_SHA256 = 'ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e'
 MAX_ROWS = 4096
 MAX_BATCH = 16
+MAX_INBOX_EVENTS = 64
+MAX_INBOX_FRAMES = 128
+POLL_RELEASE_READY = False  # Household route/keyer/journal/backup trial pending.
 
 
 def require(condition, reason):
@@ -251,6 +254,86 @@ class Relay:
             # No relay text, message plaintext, URLs or credentials in diagnostics.
             raise t.Retryable('relay delivery unavailable') from error
 
+    def fetch(self, url, *, since):
+        """Read one bounded stored-event page from a reviewed collector inbox."""
+        relay_url(url, local_test=self.local_test)
+        current = int(time.time())
+        require(type(since) is int and current - 4 * 86400 <= since <= current,
+                'invalid inbox query boundary')
+        connect = self.connect
+        if connect is None:
+            from websockets.sync.client import connect
+        subscription = secrets.token_hex(8)
+        request = ['REQ', subscription, {'kinds': [1059], '#p': [self.collector],
+                                         'since': since, 'limit': MAX_INBOX_EVENTS}]
+        try:
+            with connect(url, open_timeout=10, close_timeout=2, max_size=t.MAX_INPUT,
+                         max_queue=8, compression=None, proxy=None) as ws:
+                deadline = time.monotonic() + 45
+                events = []
+                auth_id = None
+                challenged = False
+                ws.send(t.canonical(request).decode())
+                for _ in range(MAX_INBOX_FRAMES):
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        raise t.Retryable('inbox query timed out')
+                    raw = ws.recv(timeout=left)
+                    require(isinstance(raw, str), 'relay requires JSON text frames')
+                    message = t.strict_json(raw.encode())
+                    require(isinstance(message, list) and message and isinstance(message[0], str),
+                            'malformed inbox relay message')
+                    if message[0] == 'AUTH':
+                        require(self.auth and not challenged and len(message) == 2
+                                and isinstance(message[1], str) and 0 < len(message[1]) <= 512,
+                                'inbox authentication requires explicit approval or exceeded bound')
+                        challenged = True
+                        signed = self.keyer.sign({'kind': 22242, 'created_at': int(time.time()),
+                            'tags': [['relay', url], ['challenge', message[1]]], 'content': ''},
+                            self.collector)
+                        auth_id = signed['id']
+                        ws.send(t.canonical(['AUTH', signed]).decode())
+                    elif message[0] == 'OK':
+                        require(len(message) == 4 and isinstance(message[1], str)
+                                and type(message[2]) is bool and isinstance(message[3], str),
+                                'malformed inbox auth acknowledgement')
+                        require(auth_id is not None and message[1] == auth_id and message[2],
+                                'inbox authentication refused')
+                        auth_id = None
+                        events.clear()
+                        ws.send(t.canonical(request).decode())
+                    elif message[0] == 'CLOSED':
+                        require(len(message) == 3 and message[1] == subscription
+                                and isinstance(message[2], str), 'malformed inbox closure')
+                        if self.auth and message[2].startswith('auth-required:') and challenged:
+                            continue
+                        raise t.Retryable('inbox subscription closed')
+                    elif message[0] == 'EVENT':
+                        require(len(message) == 3 and message[1] == subscription,
+                                'unrelated inbox subscription event')
+                        event = self.keyer.verify(message[2], 1059)
+                        require(t.tag_value(event, 'p') == self.collector,
+                                'inbox envelope recipient mismatch')
+                        require(since <= event['created_at'] <= int(time.time()) + 60,
+                                'inbox event outside requested window')
+                        events.append(event)
+                        require(len(events) <= MAX_INBOX_EVENTS, 'inbox event budget exceeded')
+                    elif message[0] == 'EOSE':
+                        require(len(message) == 2 and message[1] == subscription and auth_id is None,
+                                'invalid inbox end-of-stored-events marker')
+                        if len(events) == MAX_INBOX_EVENTS:
+                            raise t.Retryable('inbox page saturated; pagination review required')
+                        return events
+                    elif message[0] == 'NOTICE':
+                        raise t.Retryable('inbox relay notice')
+                    else:
+                        raise t.Refused('unsupported inbox relay message')
+                raise t.Retryable('inbox frame budget exceeded')
+        except (t.Refused, t.Retryable):
+            raise
+        except Exception as error:
+            raise t.Retryable('inbox relay unavailable') from error
+
 
 class Outbox:
     """Private SQLite delivery intents. Persist ciphertext BEFORE publishing it."""
@@ -376,6 +459,43 @@ class Delivery:
                           self.policy.recipient, row['operator'])
         return receipt
 
+    def poll_replies(self, now=None):
+        """Attended read of signed-route inboxes; all writes use receive()."""
+        fixed_now = now
+        now = t.aware(now or datetime.now(timezone.utc))
+        counts = {'accepted': 0, 'retryable': 0, 'withheld': 0, 'deferred': 0,
+                  'relay_failures': 0}
+        active = [prompt for prompt in self.policy.prompts
+                  if prompt.issued_at <= now <= prompt.expires_at]
+        if not active:
+            return counts
+        # NIP-17 gift-wrap timestamps can be randomized up to two days before
+        # the reply. Prompts are bounded to 48 hours; never query unbounded history.
+        since = max(min(p.issued_at for p in active) - timedelta(days=2),
+                    now - timedelta(days=4))
+        seen = set()
+        for url in self.routes.for_recipient(self.policy.recipient):
+            try:
+                events = self.relay.fetch(url, since=int(since.timestamp()))
+            except (t.Refused, t.Retryable):
+                counts['relay_failures'] += 1
+                continue
+            for event in events:
+                if event['id'] in seen:
+                    continue
+                seen.add(event['id'])
+                if len(seen) > MAX_BATCH:
+                    counts['deferred'] += 1
+                    continue
+                try:
+                    self.receive(t.canonical(event), fixed_now)
+                    counts['accepted'] += 1
+                except t.Refused:
+                    counts['withheld'] += 1
+                except t.Retryable:
+                    counts['retryable'] += 1
+        return counts
+
     def recover_acks(self, now=None):
         # Recover even if the process died after journal commit but before the
         # local receipt or outbox commit. Replaying uses the preserved arrival.
@@ -470,6 +590,8 @@ def main(argv=None):
     mode.add_argument('--check-keyer', action='store_true')
     mode.add_argument('--send-prompts', action='store_true')
     mode.add_argument('--process-reply', action='store_true')
+    mode.add_argument('--poll-replies', action='store_true',
+                      help='attended bounded relay inbox poll; release-gated')
     mode.add_argument('--flush', action='store_true')
     parser.add_argument('--nak', type=Path, default=DEFAULT_NAK)
     parser.add_argument('--nak-sha256', default=DEFAULT_SHA256)
@@ -482,6 +604,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     spool = outbox = None
     try:
+        if args.poll_replies:
+            require(POLL_RELEASE_READY, 'thermal inbox polling is not release-qualified')
         keyer = Keyer(args.nak, args.nak_sha256)
         if args.check_keyer:
             collector = args.collector
@@ -506,13 +630,16 @@ def main(argv=None):
         if args.process_reply:
             require(args.event_file is not None, '--process-reply requires --event-file')
             delivery.receive(read_private(args.event_file))
+        poll = delivery.poll_replies() if args.poll_replies else {}
         recovery = delivery.recover_acks()
         result = delivery.flush()
         for name, value in recovery.items():
             result[name] += value
+        for name, value in poll.items():
+            result[name] = result.get(name, 0) + value
         result.update(version=1, operator_read_verified=False, production_ready=False)
         print(t.canonical(result).decode())
-        return 3 if result['retryable'] or result['deferred'] else (2 if result['withheld'] else 0)
+        return 3 if result['retryable'] or result['deferred'] or result.get('relay_failures') else (2 if result['withheld'] else 0)
     except t.Refused as error:
         print('thermal messaging refused: ' + str(error), file=sys.stderr)
         return 2

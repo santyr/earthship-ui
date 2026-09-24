@@ -7,6 +7,16 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+The thermal confirmation transport now includes a bounded, manual inbound
+relay poll seam, but its live CLI release gate is closed. It uses only reviewed
+signed collector inbox routes, requires a complete EOSE page and funnels
+envelopes through the existing authenticated decoder and journal path.
+Loopback and source checks passed (357 completion tests and 37 adjacent
+confirmation/journal tests); no household key, relay, question, journal or
+service was used. Operator route, household trial, private backup and
+pagination/spam-liveness review remain open. See the
+[delivery checkpoint](thermal-messaging-delivery.md).
+
 At 17:08 MDT `Thermal_Advisory`, the legacy forecast-intelligence display
 Item, moved to a Git-owned file definition after networkless provider and
 disconnected JDBC/rollback/restart tests. The guarded live transfer preserved

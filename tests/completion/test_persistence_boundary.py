@@ -271,7 +271,7 @@ def provider_main_environment(tmp_path, setup):
     path.write_text("synthetic exact config")
     docker = Docker(setup.database, expected)
     namespace = {"ROOT": tmp_path, "oh": SimpleNamespace(get=lambda _: expected),
-                 "render": lambda _: "synthetic exact config", "uuid": uuid,
+                 "render": lambda _, *, allow_file=False: "synthetic exact config", "uuid": uuid,
                  "isolated": SimpleNamespace(IMAGE="synthetic-isolated-image"),
                  "run": docker.run, "io": io, "tarfile": tarfile, "json": json,
                  "time": SimpleNamespace(sleep=setup.clock.sleep), "secrets": secrets, "re": re,

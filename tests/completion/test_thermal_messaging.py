@@ -45,7 +45,7 @@ class FakeKeyer:
         # The varying wrapper identity exercises persistence of randomized envelopes.
         return event(1059, str(len(self.wraps) % 10) * 64, [['p', target]], t.canonical(rumor).decode())
     def decode(self, raw, recipient):
-        return t.strict_json(raw)  # explicit test double, not a Nostr decoder
+        return m.rumor_fields(t.strict_json(raw))  # unsigned-rumor test double, not crypto
     def sign(self, obj, expected):
         self.signs.append(deepcopy(obj))
         return event(obj['kind'], expected, obj['tags'], obj['content'],
@@ -326,6 +326,7 @@ def test_plaintext_is_stdin_not_command_argument(monkeypatch, tmp_path):
     k = m.Keyer(tmp_path / 'nak', 'a' * 64)
     seen = []
     r = event()
+    del r['sig']
     wrapped = event(1059, C, [['p', O]])
     monkeypatch.setattr(k, 'call', lambda a, p=b'', **kw: seen.append((a, p)) or t.canonical(wrapped))
     monkeypatch.setattr(k, 'verify', lambda *a: None)
@@ -379,6 +380,149 @@ def test_real_loopback_nip42_handshake_retries_exact_event():
         th.join(timeout=3)
     assert seen[0] == seen[2] == ['EVENT', obj]
     assert ['relay', url] in seen[1][1]['tags']
+
+
+def test_bounded_inbox_fetch_accepts_only_verified_matching_events(monkeypatch):
+    monkeypatch.setattr(m.secrets, 'token_hex', lambda _: 'fixed-subscription')
+    wrapped = event(1059, 'c' * 64, [['p', C]], 'encrypted',
+                    datetime.now(timezone.utc))
+    responses = [['EVENT', 'fixed-subscription', wrapped],
+                 ['EOSE', 'fixed-subscription']]
+    relay, sock = publisher(responses)
+    since = int(datetime.now(timezone.utc).timestamp()) - 60
+    assert relay.fetch('wss://relay.example', since=since) == [wrapped]
+    assert sock.sent == [['REQ', 'fixed-subscription',
+                          {'kinds': [1059], '#p': [C], 'since': since,
+                           'limit': m.MAX_INBOX_EVENTS}]]
+
+
+@pytest.mark.parametrize('responses', [
+    [['EVENT', 'wrong-subscription', event(1059, 'c' * 64, [['p', C]], 'encrypted')]],
+    [['EVENT', 'fixed-subscription', event(1059, 'c' * 64, [['p', O]], 'encrypted')]],
+    [['CLOSED', 'fixed-subscription', 'restricted: no access']],
+    [['NOTICE', 'PRIVATE_RELAY_MESSAGE']],
+])
+def test_inbox_fetch_refuses_wrong_scope_or_incomplete_reply(monkeypatch, responses):
+    monkeypatch.setattr(m.secrets, 'token_hex', lambda _: 'fixed-subscription')
+    relay, _ = publisher(responses)
+    with pytest.raises((t.Refused, t.Retryable)) as raised:
+        relay.fetch('wss://relay.example', since=int(datetime.now(timezone.utc).timestamp()) - 86400)
+    assert 'PRIVATE_RELAY_MESSAGE' not in str(raised.value)
+
+
+def test_inbox_fetch_does_not_sign_unapproved_auth(monkeypatch):
+    monkeypatch.setattr(m.secrets, 'token_hex', lambda _: 'fixed-subscription')
+    relay, _ = publisher([['AUTH', 'challenge']])
+    with pytest.raises(t.Refused, match='explicit'):
+        relay.fetch('wss://relay.example', since=int(datetime.now(timezone.utc).timestamp()) - 86400)
+    assert relay.keyer.signs == []
+
+
+def test_real_loopback_inbox_fetch_and_eose():
+    from websockets.sync.server import serve
+    seen = []
+    wrapped = event(1059, 'c' * 64, [['p', C]], 'encrypted',
+                    datetime.now(timezone.utc))
+    def handler(ws):
+        request = json.loads(ws.recv(timeout=2))
+        seen.append(request)
+        ws.send(json.dumps(['EVENT', request[1], wrapped]))
+        ws.send(json.dumps(['EOSE', request[1]]))
+    with serve(handler, '127.0.0.1', 0, compression=None) as server:
+        th = threading.Thread(target=server.serve_forever, daemon=True)
+        th.start()
+        url = f'ws://127.0.0.1:{server.socket.getsockname()[1]}'
+        result = m.Relay(FakeKeyer(), C, local_test=True).fetch(
+            url, since=int(datetime.now(timezone.utc).timestamp()) - 60)
+        server.shutdown()
+        th.join(timeout=3)
+    assert result == [wrapped]
+    assert seen[0][0] == 'REQ' and seen[0][2]['#p'] == [C]
+
+
+def test_real_loopback_inbox_auth_retries_same_query():
+    from websockets.sync.server import serve
+    seen = []
+    wrapped = event(1059, 'c' * 64, [['p', C]], 'encrypted',
+                    datetime.now(timezone.utc))
+    def handler(ws):
+        first = json.loads(ws.recv(timeout=2))
+        seen.append(first)
+        ws.send(json.dumps(['AUTH', 'fixed-inbox-challenge']))
+        ws.send(json.dumps(['CLOSED', first[1], 'auth-required: sign first']))
+        auth = json.loads(ws.recv(timeout=2))
+        seen.append(auth)
+        ws.send(json.dumps(['OK', auth[1]['id'], True, '']))
+        retry = json.loads(ws.recv(timeout=2))
+        seen.append(retry)
+        ws.send(json.dumps(['EVENT', retry[1], wrapped]))
+        ws.send(json.dumps(['EOSE', retry[1]]))
+    with serve(handler, '127.0.0.1', 0, compression=None) as server:
+        th = threading.Thread(target=server.serve_forever, daemon=True)
+        th.start()
+        url = f'ws://127.0.0.1:{server.socket.getsockname()[1]}'
+        result = m.Relay(FakeKeyer(), C, auth=True, local_test=True).fetch(
+            url, since=int(datetime.now(timezone.utc).timestamp()) - 60)
+        server.shutdown()
+        th.join(timeout=3)
+    assert result == [wrapped]
+    assert seen[0] == seen[2]
+    assert seen[1][0] == 'AUTH' and ['relay', url] in seen[1][1]['tags']
+
+
+def test_saturated_inbox_page_is_not_claimed_complete(monkeypatch):
+    monkeypatch.setattr(m.secrets, 'token_hex', lambda _: 'fixed-subscription')
+    monkeypatch.setattr(m, 'MAX_INBOX_EVENTS', 1)
+    wrapped = event(1059, 'c' * 64, [['p', C]], 'encrypted',
+                    datetime.now(timezone.utc))
+    relay, _ = publisher([['EVENT', 'fixed-subscription', wrapped],
+                          ['EOSE', 'fixed-subscription']])
+    with pytest.raises(t.Retryable, match='saturated'):
+        relay.fetch('wss://relay.example', since=int(datetime.now(timezone.utc).timestamp()) - 60)
+
+
+def test_poll_replies_deduplicates_across_reviewed_routes(tmp_path):
+    class InboundKeyer(FakeKeyer):
+        def decode(self, raw, recipient):
+            assert recipient == C
+            return t.strict_json(t.strict_json(raw)['content'].encode())
+    class InboxRelay(FakeRelay):
+        def __init__(self, envelope):
+            super().__init__()
+            self.envelope = envelope
+            self.queries = []
+        def fetch(self, url, *, since):
+            self.queries.append((url, since))
+            return [self.envelope]
+    p, keyer, sink = policy(), InboundKeyer(), Sink()
+    route_list = announcements()
+    route_list['announcements'][0] = event(10050, C,
+        [['relay', 'wss://relay.example'], ['relay', 'wss://second.example']], '',
+        datetime(2020, 1, 1, tzinfo=timezone.utc))
+    routes = m.Routes(t.canonical(route_list), p, keyer)
+    rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]])
+    del rumor['sig']
+    wrapped = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode())
+    relay = InboxRelay(wrapped)
+    spool, outbox = t.Spool(tmp_path / 'private'), m.Outbox(tmp_path / 'private')
+    try:
+        delivery = m.Delivery(p, routes, spool, outbox, keyer, relay, sink)
+        result = delivery.poll_replies(NOW)
+        assert result == dict(accepted=1, retryable=0, withheld=0,
+                              deferred=0, relay_failures=0)
+        assert len(relay.queries) == 2
+        assert len(sink.stores) == 1
+        assert len(outbox.rows()) == 2
+        assert spool.get(rumor['id'])['first_received_at'] == NOW.isoformat()
+    finally:
+        outbox.close()
+        spool.close()
+
+
+def test_poll_cli_remains_release_gated(capsys):
+    assert m.POLL_RELEASE_READY is False
+    assert m.main(['--poll-replies']) == 2
+    assert 'not release-qualified' in capsys.readouterr().err
 
 
 def test_recover_pending_receipt_after_journal_failure(delivery):

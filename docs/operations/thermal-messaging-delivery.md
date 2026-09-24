@@ -1,5 +1,39 @@
 # Attended thermal messaging and keyer qualification
 
+## September 24 source-only inbound poll checkpoint
+
+The missing relay-to-ingress seam now has an attended `--poll-replies` source
+path, but `POLL_RELEASE_READY` remains **false**. The CLI refuses this mode
+before opening a private policy, spool, keyer or journal. No household relay,
+question, acknowledgement, collector state or production journal was touched.
+
+The poller reads only the collector's reviewed, signed kind-10050 inbox
+routes, selects kind-1059 envelopes addressed to that collector, validates
+their signatures through the pinned keyer and waits for the matching NIP-01
+EOSE before treating a stored-event page as complete. Each successful
+envelope then goes through the existing authenticated NIP-59/NIP-17 decoder,
+durable first-receipt spool, exact journal readback and acknowledgement
+outbox. Optional NIP-42 challenge signing remains an explicit identity-
+disclosure choice. Reads have a four-day maximum lookback, 64-event and
+128-frame caps, a 45-second response budget, and a 16-envelope ingestion
+batch cap. A saturated page is reported incomplete rather than silently
+claiming coverage; pagination/retention and spam-starvation handling remain
+release blockers for any unattended listener.
+
+The focused messaging suite passed 67 tests, including actual loopback
+WebSocket EOSE and NIP-42 read flows, duplicate envelopes on two reviewed
+routes, bounded-page refusal and the closed CLI gate. The full source-only
+completion suite passed 357 tests, and 37 adjacent confirmation/journal
+tests passed. A stale persistence test double was updated to accept the
+current renderer's `allow_file` keyword. The host's system Python lacks
+`websockets.sync`; tests used an existing cached websockets 15.0.1 package
+through a temporary `PYTHONPATH` only, without installing or leaving a test
+environment.
+
+These are source and loopback results, not household-key, public-relay,
+signed-operator-route, restricted-database, backup or real-operator evidence.
+Keep polling off until those gates and an attended end-to-end trial pass.
+
 ## September 22, 2026 checkpoint
 
 The operator's `/home/sat/.local/bin/nak` v0.20.7 passed the installed-binary
