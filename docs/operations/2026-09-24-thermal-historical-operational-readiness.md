@@ -1,0 +1,34 @@
+# Thermal historical versus operational readiness — September 24
+
+Read-only checkpoint before the natural September 24 trainer completed. The
+accepted artifact was trained through September 23 12:50Z with code revision
+`c87551f92f02`. Its `promotion.eligible=true` is **internal shadow-artifact
+acceptance**, not approval to enable advice: `shadow_only=true` remains an
+explicit invariant. The operator-approved provisional gate allows 24-hour
+model MAE up to 0.5°F above same-fold persistence to collect divergence data.
+
+| Historical 24-hour air MAE | Model | Persistence | Recent-cycle |
+| --- | ---: | ---: | ---: |
+| Overall, 119 paired folds | 2.179°F | 1.690°F | 1.834°F |
+| Warm, 46 | 1.927°F | 1.734°F | 1.764°F |
+| Winter, 46 | 2.375°F | 1.759°F | 1.978°F |
+| Shoulder, 27 | 2.272°F | 1.497°F | 1.708°F |
+
+Thus the model was worse than persistence in every scored regime; the overall
+0.489°F deficit only just fits the 0.5°F provisional tolerance. The separate
+capture-qualified operational score before today's 07:55 shadow publication
+had ten non-overlapping one-hour targets at model/persistence MAE
+1.3949/0.5580°F and two independent six-hour targets at 4.9995/3.1500°F.
+No captured 24-hour target had matured. The natural 07:55 publication exited
+zero and remained low-confidence shadow with no candidate because the
+minimum modeled improvement was not met. The daily trainer was still active
+at this checkpoint; its result must be re-read after completion.
+
+This evidence supports continued historical tuning but not shadow exit.
+Before fitting an operational correction, freeze chronological training,
+validation and untouched later test periods; use exact as-issued weather
+forcing and qualified indoor outcomes; compare against both same-origin
+persistence and recent-cycle baselines; and obtain real shade/vent action-state
+provenance (or a genuinely qualified passive interval). Reconstructed actions
+cannot be silently relabeled as observed. Keep the existing advisory/action
+authority unchanged while these data and accuracy gates remain open.

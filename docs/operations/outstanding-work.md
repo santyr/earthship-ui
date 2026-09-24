@@ -89,6 +89,15 @@ exactly matching the live low-confidence shadow Item. The latest bounded
 captured score still favors persistence at one and six hours; 24-hour captured
 targets remain immature. No model, advice or action authority changed; see the
 [forcing-capture receipt](2026-09-23-thermal-forcing-capture-live.md).
+The 07:55 natural shadow service also exited zero and remained low-confidence
+`shadow` with no candidate. A [read-only historical-versus-operational audit](2026-09-24-thermal-historical-operational-readiness.md) found that the
+September 23 accepted artifact's internal promotion used the explicitly
+provisional +0.5°F tolerance: historical 24-hour model MAE 2.179°F versus
+1.690°F persistence overall, worse in warm, winter and shoulder regimes.
+This is artifact acceptance for divergence collection, not authorization to
+leave shadow; captured live short-horizon scores remain worse, 24-hour
+operational targets are immature and action-state provenance is incomplete.
+The September 24 natural trainer was still running at this checkpoint.
 
 Weather Current Conditions now uses the same Denver-local midnight-to-now
 outdoor temperature history as Home for its unlabeled H/L, instead of the
