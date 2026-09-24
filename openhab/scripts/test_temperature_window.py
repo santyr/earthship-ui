@@ -24,14 +24,22 @@ def test_short_lived_extreme_between_grid_points_is_not_lost():
     result = window(rows)
     assert result == dict(observed_high_f=95, observed_low_f=65,
                          covered_seconds=300, total_seconds=300,
-                         maximum_gap_seconds=0, fully_covered=True)
+                         maximum_gap_seconds=0, gap_count=0, fully_covered=True)
 
 
 def test_expiry_is_exact_and_unchanged_numeric_value_cannot_renew_it():
     result = window([(0, raw()), (110, raw()), (250, raw(250))])
     assert result['covered_seconds'] == 170
     assert result['maximum_gap_seconds'] == 130
+    assert result['gap_count'] == 1
     assert not result['fully_covered']
+
+
+def test_separated_expiry_gaps_are_counted_once_each():
+    result = window([(0, raw()), (200, raw(200)), (400, raw(400))], seconds=520)
+    assert result['covered_seconds'] == 360
+    assert result['maximum_gap_seconds'] == 80
+    assert result['gap_count'] == 2
 
 
 def test_invalid_barriers_and_restored_old_receipts_extend_one_gap():

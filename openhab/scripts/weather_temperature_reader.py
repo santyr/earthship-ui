@@ -185,6 +185,7 @@ def select_temperature_window(rows, *, start, end, assessed_at, history_start,
     covered = timedelta(0)
     gap = timedelta(0)
     maximum_gap = timedelta(0)
+    gap_count = 0
     high = low = None
     for (at, evidence), stop in zip(selected, targets[1:] + [end]):
         valid_stop = at if evidence is None else min(stop, evidence['validUntil'])
@@ -194,10 +195,14 @@ def select_temperature_window(rows, *, start, end, assessed_at, history_start,
             high = value if high is None else max(high, value)
             low = value if low is None else min(low, value)
             gap = timedelta(0)
-        gap += stop - valid_stop
+        uncovered = stop - valid_stop
+        if uncovered > timedelta(0) and gap == timedelta(0):
+            gap_count += 1
+        gap += uncovered
         maximum_gap = max(maximum_gap, gap)
     return dict(observed_high_f=high, observed_low_f=low,
                 covered_seconds=covered.total_seconds(),
                 total_seconds=(end - start).total_seconds(),
                 maximum_gap_seconds=maximum_gap.total_seconds(),
+                gap_count=gap_count,
                 fully_covered=covered == end - start)
