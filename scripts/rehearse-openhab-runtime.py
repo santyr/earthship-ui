@@ -10,6 +10,8 @@ import sys
 import tempfile
 import time
 
+from private_receipt import save_private_json
+
 spec = importlib.util.spec_from_file_location('recovery', Path(__file__).with_name('rehearse-openhab-recovery.py'))
 r = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r)
@@ -133,10 +135,7 @@ def main():
                 result[endpoint + '_mismatched_fields'] = {k: [field for field in fields
                     if source_definitions.get(k, {}).get(field) != restored_definitions.get(k, {}).get(field)] for k in mismatches}
                 private = {k: {'source': source_definitions.get(k), 'restored': restored_definitions.get(k)} for k in mismatches}
-                body = json.dumps(private, indent=2, sort_keys=True)
-                patch = '*** Begin Patch\n*** Add File: ' + str(receipt / (endpoint + '-differences-private.json')) + '\n'
-                patch += ''.join('+' + line + '\n' for line in body.splitlines()) + '*** End Patch\n'
-                run([r.PATCH], data=patch.encode())
+                save_private_json(receipt, endpoint + '-differences-private.json', private)
             if endpoint == 'items':
                 result['items_with_restored_or_computed_state'] = sum(x.get('state') not in (None, 'NULL', 'UNDEF') for x in data)
                 state = next((x.get('state', '') for x in data if x['name'] == 'Energy_Analytics_JSON'), '')
@@ -158,10 +157,7 @@ def main():
             raise RuntimeError('cleanup ownership mismatch')
         run(['docker', 'rm', '-f', '-v', cid])
         result['container_removed'] = True
-        body = json.dumps(result, indent=2, sort_keys=True)
-        patch = '*** Begin Patch\n*** Add File: ' + str(receipt / 'report.json') + '\n'
-        patch += ''.join('+' + line + '\n' for line in body.splitlines()) + '*** End Patch\n'
-        run([r.PATCH], data=patch.encode())
+        save_private_json(receipt, 'report.json', result)
         log.close()
         print(json.dumps(result), flush=True)
 
