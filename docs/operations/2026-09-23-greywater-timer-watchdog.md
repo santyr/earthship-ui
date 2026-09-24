@@ -116,3 +116,12 @@ was `IDLE/NONE`. This verifies the natural **no-new-cycle after-dark gate**
 under the final revision. The South pump was already OFF when the gate changed,
 so an active-cycle sunset interruption and the early-OFF/lost-callback fallback
 remain unobserved. No pump command or manual rule run was issued by this audit.
+
+The same read-only status history shows the September 23 **sunrise gate** under
+this final rule: minute evaluations at 06:40–06:55 MDT reported `after_dark`
+as sun elevation rose from −3.1° to −0.2°. At 06:56, the reason changed to
+`low_soc` with 85% SoC, a 98% threshold and `sky=TWILIGHT`; subsequent minute
+checks remained blocked by the separate SoC/sky policy. Neither pump switch
+changed in the bounded 06:40–07:20 window. This verifies dynamic removal of
+the night block before the old 08:00 fixed start, not a pump start at sunrise
+or permission to bypass battery and sunlight gates.

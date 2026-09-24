@@ -1238,6 +1238,10 @@ and protected-resource rollback remain outstanding.
   no-new-cycle after-dark gate: South completed at18:43 MDT September23,
   minute status switched from cooldown to `after_dark` at18:56, remained
   blocked across the next19:28 eligibility, and neither pump switched ON.
+  The same persisted rule trace changed from `after_dark` to a separate
+  low-SoC hold at06:56 MDT, before the old08:00 start time; no pump was
+  eligible under the 85% SoC/TWILIGHT conditions. Thus both daylight boundary
+  gates ran naturally, while an actual sunrise pump start is not claimed.
   Active-cycle sunset interruption and the post-release fallback remain
   unobserved; no pump was forced to test them.
 - Thermal invalid-history barrier correction5fc437a is merged and deployed:
