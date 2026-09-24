@@ -52,6 +52,17 @@ def test_member_provider_guard_rejects_one_managed_link(monkeypatch):
     assert not group.member_providers_match()
 
 
+def test_maintenance_refuses_active_or_unknown_greywater_pump(monkeypatch):
+    states = {name: 'OFF' for name in group.PUMP_ITEMS}
+    monkeypatch.setattr(group.transfer.oh, 'get',
+                        lambda path: {'state': states[path.split('/')[-1]]})
+    assert group.pumps_off()
+    states[group.PUMP_ITEMS[1]] = 'ON'
+    assert not group.pumps_off()
+    states[group.PUMP_ITEMS[1]] = 'NULL'
+    assert not group.pumps_off()
+
+
 def test_apply_refuses_pending_daily_gate_before_service_stop(tmp_path, monkeypatch):
     source = tmp_path / 'forecast-group.items'
     source.write_text('Group gForecast "Forecast Items" ["forecast"]\n')

@@ -30,6 +30,7 @@ REGISTRY = Path('/var/lib/openhab/jsondb/org.openhab.core.items.Item.json')
 BACKUP_ROOT = Path('/home/sat/.local/state/openhab-config-migration')
 MANIFEST = ROOT / 'openhab/file-config/ownership.json'
 GROUP = 'gForecast'
+PUMP_ITEMS = ('SouthOutlet_Outlet2_Switch', 'East_Bed_Socket_Outlet_2_Power')
 MEMBERS = frozenset({
     'Forecast_Temp', 'Forecast_Daily_High', 'Forecast_Daily_Low',
     'Forecast_Cloudiness', 'Forecast_Radiation', 'Forecast_PrecipProb',
@@ -90,6 +91,11 @@ def member_providers_match():
                 or matches[0].get('configuration')):
             return False
     return True
+
+
+def pumps_off():
+    return all(transfer.oh.get('/items/' + name).get('state') == 'OFF'
+               for name in PUMP_ITEMS)
 
 
 def group_matches(*, file_owned):
@@ -212,6 +218,7 @@ def main(apply):
             'source_sha256': source_hash}, sort_keys=True), flush=True)
         return
     require(eligible, 'daily natural writer gate not verified in ownership manifest')
+    require(pumps_off(), 'greywater pump active or state unknown; refuse OpenHAB stop')
     root = BACKUP_ROOT.lstat()
     require(stat.S_ISDIR(root.st_mode) and root.st_uid == os.getuid()
             and stat.S_IMODE(root.st_mode) == 0o700,
@@ -223,6 +230,7 @@ def main(apply):
     changed = False
     cutover = datetime.now(timezone.utc)
     try:
+        require(pumps_off(), 'greywater pump changed before OpenHAB stop')
         command('sudo', '-n', 'systemctl', 'stop', 'openhab.service', timeout=180)
         stopped = True
         require(not active(), 'OpenHAB did not stop for Group handoff')
