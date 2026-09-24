@@ -19,7 +19,7 @@ def test_astro_map_covers_all_moon_phases_and_day_night_states():
         'FULL', 'WANING_GIBBOUS', 'THIRD_QUARTER', 'WANING_CRESCENT',
         'CIVIL_DAWN', 'ASTRO_DAWN', 'NAUTIC_DAWN', 'SUN_RISE',
         'SUN_SET', 'CIVIL_DUSK', 'NAUTIC_DUSK', 'ASTRO_DUSK',
-        'DAYLIGHT', 'NOON', 'NIGHT', 'MORNING_NIGHT', 'EVENING_NIGHT',
+        'DAYLIGHT', 'NOON', 'NIGHT', 'MIDNIGHT', 'MORNING_NIGHT', 'EVENING_NIGHT',
     }
     assert all(mapping[key] == 'iconify:mdi:weather-night'
-               for key in ('NIGHT', 'MORNING_NIGHT', 'EVENING_NIGHT'))
+               for key in ('NIGHT', 'MIDNIGHT', 'MORNING_NIGHT', 'EVENING_NIGHT'))

@@ -26,5 +26,6 @@ NOON=iconify:mdi:white-balance-sunny
 
 # Night Icons (added 2026-07-11 — NIGHT was unmapped, ~1240 warns/day)
 NIGHT=iconify:mdi:weather-night
+MIDNIGHT=iconify:mdi:weather-night
 MORNING_NIGHT=iconify:mdi:weather-night
 EVENING_NIGHT=iconify:mdi:weather-night

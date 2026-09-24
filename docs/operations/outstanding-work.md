@@ -850,6 +850,11 @@ full restart, plus withdrawal and managed rollback; its container was removed.
 The later [attended live transfer](2026-09-23-astro-icon-item-cutover.md)
 verified file ownership and preserved JDBC identities/history. A natural Astro
 update after transfer remains a separate gate.
+At September 24 00:56 MDT, a natural Sun `MIDNIGHT` transition reached the
+file-owned Item and JDBC ID 90, but exposed a missing `astro.map` key and four
+transform warnings. The canonical/deployed map now includes `MIDNIGHT` as a
+night icon with exact hash readback and one focused test. Verify the next
+natural `MIDNIGHT` after hot-load; a natural Moon-phase change is still pending.
 
 September 23 OpenMeteo follow-up: the bridge, forecast Thing and air-quality
 Thing were [transferred to the Git-owned file](2026-09-23-openmeteo-file-preflight.md)

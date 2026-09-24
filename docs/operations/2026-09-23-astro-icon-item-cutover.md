@@ -31,3 +31,26 @@ update after transfer. The next natural Sun transition and Moon-phase change
 must be checked against the Item state and JDBC history separately; the Moon
 phase can take days to change. Do not claim that gate from hot-load state
 restoration alone.
+
+## Natural Sun follow-up and MIDNIGHT map correction — September 24
+
+After the transfer, Astro naturally reported `MIDNIGHT` at 00:56:33 MDT.
+`SunPhaseIcon` changed with source `astro:sun:local:phase#name` and JDBC
+`public.item0090` retained the transient value; at 00:57:37 it returned to
+`iconify:mdi:weather-night`, again with a matching JDBC row. This proves a
+post-transfer Sun channel-to-Item-to-JDBC update, but exposed a real mapping
+gap: the existing `astro.map` lacked `MIDNIGHT` and OpenHAB logged four
+transformation warnings during that phase. Available logs contained 106
+`MIDNIGHT` map warnings and no other unmapped Astro phase names.
+
+The canonical map and focused regression now map `MIDNIGHT` to the existing
+monochrome night icon. The one focused test passed. A guarded, atomic
+deployment replaced only `/etc/openhab/transform/astro.map` after checking its
+old SHA-256 `25f76f802ab403d97bcf4608ffce41529455a1de79a7964fd805ba7d8f8dc7ad`;
+the installed file matches Git at
+`54b74cc4a17a96890e5d4594321516c40afa4832742da55ef26e3f6c64dc04c4`
+and retains `openhab:openhab` ownership and mode 0664. No Thing, Item, link,
+service, command, or hardware state changed. The archived initial map remains
+an exact recovery snapshot, not the current deployed version. A future natural
+`MIDNIGHT` transition must still verify that OpenHAB hot-loads the new map;
+the Moon-phase natural-change gate also remains open.
