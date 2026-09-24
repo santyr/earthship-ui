@@ -7,6 +7,14 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 17:28 MDT the restricted read-only AC evidence reader found 12,250
+qualified intervals since Denver midnight, with 99.80592% coverage and
+122.116 seconds missing. The observed partial-window output was 4.089576
+kWh; it was neither stored as a daily revision nor published. The evidence
+Item had a fresh `inverter_output` receipt. The first full day closes at
+September 25 00:00 MDT; the AC-day writer and v4 publisher are still off.
+See the [read-first UI gate](ac-load-ui-v4.md).
+
 At 17:20 MDT, read-only signed-event queries returned zero operator-authored
 kind-10050 inbox announcements from each of the three approved relays. The
 collector remains off. The source-only poller now tolerates either order of
