@@ -530,6 +530,18 @@ rollback passed. See [migration receipt](2026-09-20-temperature-extrema-migratio
 Natural17:30scheduled writer confirmation passed for both indoor and outdoor
 calculations; this batch's post-transfer checks are complete.
 
+September 23 21:12 MDT read-only next-candidate inventory: the live
+`BTC_USD_Price` Number Item and its empty-config Exec output link remain
+managed, with JDBC Item ID34 and 1,089,881 rows (about70 MB) since May2025.
+The binding naturally changes the price about every30seconds; the already
+file-owned percentage-change Item is a separate member of the managed
+`BTC_Price` Group. That Group also has semantic `Equipment` metadata. A price
+Item migration therefore needs a bounded/streaming history-preservation
+check, exact link/provider and writer verification, and separate Group metadata
+and membership handling. No Bitcoin provider or feed setting changed in this
+inventory; do not reuse a small-forecast Item adapter that loads all history
+into memory.
+
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
 
