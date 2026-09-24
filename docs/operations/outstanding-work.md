@@ -20,9 +20,13 @@ This is same-host component recovery, not an atomic system snapshot or
 hardware validation. The natural thermal trainer finished at 08:42 MDT and
 accepted a new internal artifact, but it remains `shadow_only=true` with
 24-hour air MAE 2.1785°F versus 1.6899°F persistence and no confirmed
-action-evidence targets. The `gForecast` cold cutover remains gated on an
-attended 10:00 MDT-or-later window, both pumps OFF and fresh protected-control
-health; no production restart has occurred.
+action-evidence targets. The attended `gForecast` cold cutover completed
+provisionally at 10:18 MDT after the operator confirmed both pumps physically
+OFF. The old OpenHAB JVM timed out and was SIGKILLed; the replacement is
+active, the Group and ten members are file-owned, protected controls pass,
+JDBC IDs/history are preserved, and ownership inventory has zero issues.
+The next natural 11:20 MDT forecast series remains the final persistence
+gate; see the [cutover receipt](2026-09-24-gforecast-cold-cutover-receipt.md).
 At 10:05 MDT the first capture-qualified 24-hour thermal target matured:
 model error −6.286°F versus same-origin persistence +0.54°F, with the model's
 10.414°F interval missing the qualified indoor outcome. The paired outdoor

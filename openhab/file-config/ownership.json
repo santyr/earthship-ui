@@ -344,10 +344,10 @@
     {
       "kind": "item",
       "id": "gForecast",
-      "provider": "managed",
-      "migration": "deferred_selector_continuity",
-      "source": "managed-exceptions/gForecast.json",
-      "rest_path": "/items/gForecast"
+      "provider": "file",
+      "migration": "provisional",
+      "source": "items/forecast-group.items",
+      "destination": "/etc/openhab/items/forecast-group.items"
     },
     {
       "kind": "rule",

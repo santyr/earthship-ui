@@ -1,9 +1,11 @@
-# Proposed attended `gForecast` cold cutover
+# Attended `gForecast` cold cutover
 
-Status: proposed, **not released**. The adapter
-`scripts/migrate-forecast-group-offline.py` keeps `RELEASE_READY = False`.
-Its `--check` is read-only; `--apply` is blocked before any backup, pump check
-or OpenHAB stop until a specific attended maintenance decision is made.
+Status: attended transfer completed provisionally at 10:18 MDT on September 24;
+the next natural forecast-series JDBC gate remains pending. See the
+[cutover receipt](2026-09-24-gforecast-cold-cutover-receipt.md). The adapter
+`scripts/migrate-forecast-group-offline.py` has been re-locked with
+`RELEASE_READY = False` after the one approved stop/restart. Its `--check`
+describes the former managed-state preflight and is not a post-cutover check.
 
 ## Why a stopped-service handoff is necessary
 
