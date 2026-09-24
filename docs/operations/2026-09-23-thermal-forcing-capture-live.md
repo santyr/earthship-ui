@@ -121,7 +121,7 @@ targets now score model MAE **5.9513°F** versus persistence **2.3400°F** and
 interval coverage 1/3; the third model error was −4.795°F versus +0.720°F
 persistence, with a paired outdoor forcing error of +8.38°F. Only the first
 six-hour target is selected by the non-overlap rule (model 6.529°F versus
-persistence 3.420°F). All seven captured 24-hour targets in this bounded audit
+persistence 3.420°F). All seven 24-hour targets in this bounded audit
 were still not due. These mixed-sign outdoor errors and persistent indoor low
 bias justify further physical-model diagnosis, not a fitted offset or shadow
 graduation.
