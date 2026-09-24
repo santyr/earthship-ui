@@ -27,6 +27,97 @@ def canonical_definition(endpoint, entry, fields):
     return definition
 
 
+_DYNAMIC_TAG_THINGS = frozenset((
+    'tplinksmarthome:kl125:E62B6D',
+    'tplinksmarthome:kl125:E7CAD9',
+    'tplinksmarthome:kl125:E7FA31',
+))
+_RETIRED_DISABLED_RULES = frozenset(('4e234eabea', 'e647476610', 'ab8a59e1da'))
+_SYSTEMINFO_STORAGE_FIELDS = frozenset((
+    'available', 'availablePercent', 'description', 'name',
+    'total', 'type', 'used', 'usedPercent',
+))
+
+
+def _clone_only_storage_channel(thing, uid):
+    if thing != 'systeminfo:computer:ogsatoth' or not isinstance(uid, str):
+        return False
+    prefix = thing + ':storage'
+    if not uid.startswith(prefix):
+        return False
+    number, marker, field = uid[len(prefix):].partition('#')
+    return marker == '#' and number.isdigit() and field in _SYSTEMINFO_STORAGE_FIELDS
+
+
+def _allowed_dynamic_channel_fields(thing, channel):
+    if thing == 'systeminfo:computer:ogsatoth':
+        if channel.startswith(thing + ':network') and channel.endswith('#mac'):
+            return frozenset(('label', 'description'))
+        if channel in (thing + ':sensors#cpuTemp', thing + ':sensors#cpuVoltage'):
+            return frozenset(('description',))
+    if thing in _DYNAMIC_TAG_THINGS and channel in (
+            thing + ':colorTemperature', thing + ':colorTemperatureAbs'):
+        return frozenset(('defaultTags',))
+    return frozenset()
+
+
+def classify_thing_drift(source, restored):
+    """Separate exact approved dynamic metadata from material restore drift.
+
+    Channel identity, configuration, properties and every other Thing field
+    must still match. This is intentionally narrower than ignoring channels.
+    """
+    material = set()
+    dynamic = []
+    for thing in source.keys() | restored.keys():
+        left, right = source.get(thing), restored.get(thing)
+        if left is None or right is None:
+            material.add(thing)
+            continue
+        if ({k: v for k, v in left.items() if k != 'channels'} !=
+                {k: v for k, v in right.items() if k != 'channels'}):
+            material.add(thing)
+            continue
+        left_channels, right_channels = left.get('channels'), right.get('channels')
+        if not isinstance(left_channels, list) or not isinstance(right_channels, list):
+            if left_channels != right_channels:
+                material.add(thing)
+            continue
+        before = {row.get('uid'): row for row in left_channels}
+        after = {row.get('uid'): row for row in right_channels}
+        if (len(before) != len(left_channels) or len(after) != len(right_channels)
+                or None in before or None in after or before.keys() - after.keys()):
+            material.add(thing)
+            continue
+        extras = after.keys() - before.keys()
+        if any(not _clone_only_storage_channel(thing, uid) for uid in extras):
+            material.add(thing)
+            continue
+        for uid in extras:
+            dynamic.append({'thing': thing, 'channel': uid,
+                            'fields': ['clone_only_storage_channel']})
+        for uid in before:
+            fields = set(before[uid]) | set(after[uid])
+            changed = {field for field in fields if before[uid].get(field) != after[uid].get(field)}
+            if not changed:
+                continue
+            if changed <= _allowed_dynamic_channel_fields(thing, uid):
+                dynamic.append({'thing': thing, 'channel': uid,
+                                'fields': sorted(changed)})
+            else:
+                material.add(thing)
+    return sorted(material), sorted(dynamic, key=lambda row: (row['thing'], row['channel']))
+
+
+def integrated_boot_qualified(result):
+    return (result.get('observational_state_matches_backup') is True
+            and 'jdbc' in result.get('persistence_services', ())
+            and result.get('numeric_undef_publication_verified') is True
+            and result.get('unexpected_uninitialized_rules') == []
+            and all(result.get(endpoint + '_material_definition_mismatches') == []
+                    for endpoint in ('items', 'things', 'rules', 'links')))
+
+
 def verify_number_undef(run, cid, header, *, sleep=time.sleep, attempts=20):
     """Round-trip UNDEF on an existing diagnostic Number in the clone only."""
     name = 'Forecast_Trough_Error_7d'
@@ -178,10 +269,17 @@ def main():
                 def identity(entry):
                     return (entry.get('itemName', '') + ' -> ' + entry.get('channelUID', '')) if endpoint == 'links' else entry[fields[0]]
                 return {identity(x): canonical_definition(endpoint, x, fields) for x in entries}
-            source_definitions = index(sanity.get('/' + endpoint))
+            source_entries = sanity.get('/' + endpoint)
+            source_definitions = index(source_entries)
             restored_definitions = index(data)
             result[endpoint + '_definition_mismatches'] = sorted(k for k in source_definitions.keys() | restored_definitions.keys()
                 if source_definitions.get(k) != restored_definitions.get(k))
+            if endpoint == 'things':
+                material, dynamic = classify_thing_drift(source_definitions, restored_definitions)
+                result['things_material_definition_mismatches'] = material
+                result['things_expected_dynamic_channel_metadata'] = dynamic
+            else:
+                result[endpoint + '_material_definition_mismatches'] = result[endpoint + '_definition_mismatches']
             mismatches = result[endpoint + '_definition_mismatches']
             if mismatches:
                 result[endpoint + '_mismatched_fields'] = {k: [field for field in fields
@@ -194,14 +292,15 @@ def main():
                 result['observational_state_matches_backup'] = hashlib.sha256(state.encode()).hexdigest() == expected_state_hash
             if endpoint == 'rules':
                 result['uninitialized_rules'] = [x['uid'] for x in data if x.get('status', {}).get('status') == 'UNINITIALIZED']
+                source_status = {x['uid']: x.get('status') for x in source_entries}
+                result['unexpected_uninitialized_rules'] = sorted(uid for uid in result['uninitialized_rules']
+                    if uid not in _RETIRED_DISABLED_RULES or source_status.get(uid) !=
+                    {'status': 'UNINITIALIZED', 'statusDetail': 'DISABLED'})
         services = json.loads(run(['docker', 'exec', '-i', cid, 'curl', '-fsS', '--max-time', '30',
                                    '-H', '@-', 'http://127.0.0.1:8080/rest/persistence'], data=header))
         result['persistence_services'] = [x.get('id') for x in services]
         result['numeric_undef_publication_verified'] = verify_number_undef(run, cid, header)
-        result['status'] = ('integrated_boot_tested'
-                            if result.get('observational_state_matches_backup')
-                            and 'jdbc' in result['persistence_services']
-                            and result['numeric_undef_publication_verified']
+        result['status'] = ('integrated_boot_tested' if integrated_boot_qualified(result)
                             else 'booted_without_qualified_state_recovery')
     finally:
         with (receipt / 'runtime-private.log').open('xb') as f:
