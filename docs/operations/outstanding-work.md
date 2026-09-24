@@ -24,10 +24,15 @@ morning trailing-drop sample. An opt-in `FORECAST_QUALIFIED_SOC_ENABLED=1`
 path now reads current atomic evidence and only completed, coverage-qualified
 nights; unavailable current evidence clears the three energy predictions to
 `UNDEF` and suppresses the trough DM, while thermal output continues. Source
-tests pass, but this path remains disabled until a bounded live read-only
-qualification and attended deployment verify its DB mapping, bank boundary,
-OpenHAB publication semantics, and next natural 06:40 run. Do not infer
-freshness from unchanged numeric persistence or enable on code tests alone.
+tests pass. On September 24 the exact tested source and helper were installed
+with matching SHA-256 digests and a private prior-source rollback copy at
+`/home/sat/backups/earthship-energy/forecast-soc-x9cjbG`. The installed path's
+read-only check returned a currently valid atomic SoC and four qualified
+completed nights. The service remains idle and the enable flag is absent, so
+the next natural run would still use the old algorithm. Before enabling,
+verify Number-Item `UNDEF` publication in the disconnected recovery and
+observe the next natural 06:40 run. Do not infer freshness from unchanged
+numeric persistence or enable on code tests alone.
 
 An evening Energy forecast audit found the daily PV selector could show
 yesterday's value after local midnight (`valid_for >=` admitted a row ending
