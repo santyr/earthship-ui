@@ -115,6 +115,26 @@
       "state_writer": "forecast-intel.service"
     },
     {
+      "kind": "item", "id": "Predicted_Curtailment_Hours", "provider": "file", "migration": "verified",
+      "source": "items/predicted-curtailment.items", "destination": "/etc/openhab/items/predicted-curtailment.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Predicted_PV_Today_kWh", "provider": "file", "migration": "verified",
+      "source": "items/forecast-energy.items", "destination": "/etc/openhab/items/forecast-energy.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Predicted_SoC_Trough_Tomorrow", "provider": "file", "migration": "verified",
+      "source": "items/forecast-energy.items", "destination": "/etc/openhab/items/forecast-energy.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_Trough_Error_7d", "provider": "file", "migration": "verified",
+      "source": "items/forecast-trough-error.items", "destination": "/etc/openhab/items/forecast-trough-error.items",
+      "state_writer": "forecast-intel.service"
+    },
+    {
       "kind": "link", "id": "Current_US_AQI -> openmeteo:air-quality:local:aq:current#us-aqi",
       "provider": "file", "migration": "verified",
       "source": "items/openmeteo-current-aqi.items", "destination": "/etc/openhab/items/openmeteo-current-aqi.items"

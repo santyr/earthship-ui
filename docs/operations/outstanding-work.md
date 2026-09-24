@@ -7,11 +7,35 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 06:40 MDT the natural forecast-intelligence service exited successfully.
+Its current-day receipt matches the direct Items: PV 2.82 kWh, curtailment
+0.0 h, overnight trough 58%, advisory `none`; the 7-day trough error Item is
+5.0. The service scored 24 hourly temperature targets and accepted the third
+completed trough sample. Daily temperature scoring was correctly withheld for
+incomplete receipt coverage. The tested half-open persistence-window fix was
+then installed while the service was idle; live/source SHA-256 both equal
+`47d8df4b77bdb71789dac244ac6fb0e261069e0db78c88e34981a2b5028eef60`,
+with the prior installed script privately retained. Its next natural execution
+is September 25 06:40; do not claim live post-fix scoring before then.
+
+The operator-approved, post-writer file-provider transfers of
+`Predicted_Curtailment_Hours`, `Predicted_PV_Today_kWh`,
+`Predicted_SoC_Trough_Tomorrow` and `Forecast_Trough_Error_7d` all returned
+`file_owned_verified`. Their private backups were retained, exact JDBC
+histories preserved, actual managed rollback exercised, original states
+restored, and the forecast timer remained active. An independent readback
+found all four file-owned with values 0.0, 2.82, 58.0 and 5.0 respectively;
+the ownership inventory reports zero issues. The separate `gForecast` Group
+still passes its read-only ten-member/ID preflight, but remains managed:
+do not start a whole-OpenHAB outage during the 06:50 thermal job and 06:53
+sunrise/pump-control transition. Its attended restart needs a safe window.
+
 At 06:11–06:17 MDT, read-only live preflights for the four staged
 forecast-intelligence Number Items all passed: curtailment ID 574/eight rows,
 PV-today ID 573/71 rows, tomorrow trough ID 575/68 rows, and trough-error
-ID 584/67 rows. Their release guards remain off and all providers remain
-managed pending the natural 06:40 qualified-SoC run. The `gForecast` Group
+ID 584/67 rows. At that earlier checkpoint their release guards were off and
+the providers remained managed pending the natural 06:40 qualified-SoC run;
+the completed transfers are recorded above. The `gForecast` Group
 read-only preflight also passed with ten members and unchanged IDs 563–572;
 its attended production stop/restart is approved only after the 06:40 writer
 gate and both pumps are OFF. The 06:40/06:50 jobs plus 06:53 sunrise may make
@@ -25,10 +49,9 @@ or authority to publish load.
 The forecast-intelligence `series()` source now enforces its documented
 half-open history window so a persistence boundary carry or end lookahead
 cannot enter a daily PV maximum. A five-row boundary regression and 115
-focused forecast/temperature tests passed. This source change is **not yet
-installed**; keep the previously installed, hash-verified script unchanged
-through the natural 06:40 writer check, then deploy the tested source while
-the timer is idle.
+focused forecast/temperature tests passed. This source change was **not yet
+installed** in the pre-06:40 checkpoint described here; it was subsequently
+installed while the timer was idle, as recorded at the top of this section.
 
 The Weather "Next 14 Hours" panel now selects the current hour plus thirteen
 later hours from fresh `Forecast_10Day_JSON` detail, which is generated from
