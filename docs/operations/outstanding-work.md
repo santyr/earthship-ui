@@ -429,6 +429,17 @@ on first boot and full restart, then the file was withdrawn and the managed
 Group plus references restored. The owned container was removed. Production
 Group ownership was untouched; a live transfer and persistence-selector
 continuity check must wait until the daily member group is complete.
+An added live-like isolated test revealed that REST-deleting the managed Group
+removes all ten member references. Reloading the file Group produced a valid
+file-owned Group with **zero** members after the bounded wait; the owned
+container was removed and production was untouched. A simple hot provider
+handoff would therefore silently break the `gForecast*` JDBC selector and is
+refused. The exact current Group definition is now inventoried as a managed
+exception in `managed-exceptions/gForecast.json`; the prepared `.items` source
+is inactive. Any future file transfer needs a separately qualified
+restart/registry migration that preserves all ten references atomically, plus
+history and natural-writer checks. Do not REST-delete this live Group merely
+because the member Items have become file-owned.
 
 ### Explicit active goal: graduate the thermal model from shadow
 

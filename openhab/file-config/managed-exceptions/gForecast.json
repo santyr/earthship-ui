@@ -1,0 +1,8 @@
+{
+  "name": "gForecast",
+  "type": "Group",
+  "label": "Forecast Items",
+  "category": null,
+  "tags": ["forecast"],
+  "groupNames": []
+}

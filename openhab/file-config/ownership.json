@@ -212,6 +212,14 @@
       "rest_path": "/rules/1f692c798b"
     },
     {
+      "kind": "item",
+      "id": "gForecast",
+      "provider": "managed",
+      "migration": "deferred_selector_continuity",
+      "source": "managed-exceptions/gForecast.json",
+      "rest_path": "/items/gForecast"
+    },
+    {
       "kind": "rule",
       "id": "b1501047a9",
       "provider": "managed",

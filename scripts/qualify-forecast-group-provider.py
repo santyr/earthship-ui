@@ -115,6 +115,60 @@ def main():
                     file_owned=False, seconds=90):
             raise RuntimeError('managed Group rollback or member references drifted')
         print('managed_group_rollback_and_members_verified=true', flush=True)
+        # A running OpenHAB may treat REST deletion differently from removing
+        # its JSONDB record before boot. Rehearse that exact live-like handoff.
+        deleted = aqi.run(['docker', 'exec', container, 'curl', '-sS',
+            '--max-time', '8', '-o', '/dev/null', '-w', '%{http_code}', '-X', 'DELETE',
+            '-H', '@/tmp/forecast-auth-header',
+            'http://127.0.0.1:8080/rest/items/' + GROUP], timeout=12)
+        if deleted.stdout.decode().strip() not in ('200', '202', '204'):
+            raise RuntimeError('isolated live-like managed Group deletion refused')
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            if aqi.isolated_get(container, '/items/' + GROUP, header)[0] == 404:
+                break
+            time.sleep(3)
+        else:
+            raise RuntimeError('managed Group did not withdraw for live-like handoff')
+        aqi.install_bytes(container, '/openhab/conf/items', SOURCE.name, source)
+        if not wait(container, header, original, members,
+                    file_owned=True, seconds=90):
+            group_code, group = aqi.isolated_get(
+                container, '/items/' + GROUP + '?metadata=.*', header)
+            item_code, current_items = aqi.isolated_get(
+                container, '/items?recursive=false', header)
+            current_members = ({row['name'] for row in current_items
+                                if GROUP in row.get('groupNames', [])}
+                               if item_code == 200 and isinstance(current_items, list)
+                               else set())
+            print('live_like_handoff_diagnostic=' + json.dumps({
+                'group_code': group_code,
+                'file_owned': group.get('editable') is False if isinstance(group, dict) else None,
+                'member_count': len(current_members),
+                'original_member_count': len(members),
+            }, sort_keys=True), flush=True)
+            raise RuntimeError('live-like file Group handoff lost definition or member references')
+        print('live_like_rest_to_file_group_and_members_verified=true', flush=True)
+        aqi.run(['docker', 'exec', container, 'rm',
+            '/openhab/conf/items/' + SOURCE.name])
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            if aqi.isolated_get(container, '/items/' + GROUP, header)[0] == 404:
+                break
+            time.sleep(3)
+        else:
+            raise RuntimeError('live-like file Group did not withdraw')
+        restored = aqi.run(['docker', 'exec', '-i', container, 'curl', '-sS',
+            '--max-time', '8', '-o', '/dev/null', '-w', '%{http_code}', '-X', 'PUT',
+            '-H', '@/tmp/forecast-auth-header', '-H', 'Content-Type: application/json',
+            '--data-binary', '@-',
+            'http://127.0.0.1:8080/rest/items/' + GROUP], payload, timeout=12)
+        if restored.stdout.decode().strip() not in ('200', '201', '202', '204'):
+            raise RuntimeError('isolated final managed Group restore refused')
+        if not wait(container, header, original, members,
+                    file_owned=False, seconds=90):
+            raise RuntimeError('live-like Group rollback lost member references')
+        print('live_like_final_managed_rollback_verified=true', flush=True)
     finally:
         if container is not None:
             owner = aqi.run(['docker', 'inspect', '--format',
