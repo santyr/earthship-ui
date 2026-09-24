@@ -23,6 +23,12 @@ accepted a new internal artifact, but it remains `shadow_only=true` with
 action-evidence targets. The `gForecast` cold cutover remains gated on an
 attended 10:00 MDT-or-later window, both pumps OFF and fresh protected-control
 health; no production restart has occurred.
+At 10:05 MDT the first capture-qualified 24-hour thermal target matured:
+model error −6.286°F versus same-origin persistence +0.54°F, with the model's
+10.414°F interval missing the qualified indoor outcome. The paired outdoor
+forcing error was +1.64°F. Twelve later captured 24-hour targets are still
+immature; thermal advice remains shadow-only. See the
+[readiness audit](2026-09-24-thermal-historical-operational-readiness.md).
 
 At 07:10 MDT, the seven remaining direct-published forecast quality metrics
 were transferred to exact Git-owned file definitions after networkless

@@ -24,8 +24,14 @@ forcing bias is +3.2327°F. Eight overlapping six-hour targets also all err
 low, model/persistence MAE 4.1949/2.3400°F, with paired outdoor forcing bias
 +2.8500°F. Only two six-hour targets are independent (4.9995/3.1500°F).
 This pattern does not isolate weather forcing as the cause of low indoor
-predictions; action reconstruction and dynamics remain confounded. No
-captured 24-hour target had matured. The natural 07:55 publication exited
+predictions; action reconstruction and dynamics remain confounded. At 10:05
+MDT, the first captured 24-hour target matured: the September 23 09:50 MDT
+publication predicted today's 10:00 MDT hallway temperature 6.286°F below
+the qualified outcome, while same-origin persistence was 0.54°F above it.
+The 10.414°F prediction interval missed; paired outdoor forecast error was
++1.64°F. This is one independent operational pair, not a root-cause estimate,
+but it is adverse evidence for shadow exit. Twelve later captured 24-hour
+targets were still immature. The natural 07:55 publication exited
 zero and remained low-confidence shadow with no candidate because the
 minimum modeled improvement was not met. The daily trainer later exited
 successfully and reported an internally promoted artifact, but the new
