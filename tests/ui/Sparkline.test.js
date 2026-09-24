@@ -112,6 +112,17 @@ describe('Sparkline', () => {
     expect(option.series[1].areaStyle).toBeUndefined();
   });
 
+  it('allows the battery card to draw its held SoC tail as a solid line', async () => {
+    const start = Date.UTC(2026, 8, 23, 12);
+    const end = start + 6 * 3_600_000;
+    render(Sparkline, { props: { data: [{ time: start, state: 72 }], heldUntil: end, heldLineType: 'solid' } });
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series[0].lineStyle.type).toBeUndefined();
+    expect(option.series[1].lineStyle.type).toBe('solid');
+    expect(option.series[1].data).toEqual([[start, 72], [end, 72]]);
+  });
+
   it('does not invent a held tail for empty, invalid, or earlier end times', async () => {
     const start = Date.UTC(2026, 8, 23, 12);
     const { rerender } = render(Sparkline, { props: { data: [], heldUntil: start + 1 } });

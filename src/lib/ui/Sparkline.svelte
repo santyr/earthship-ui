@@ -5,7 +5,7 @@
   import { observeElementSize } from './observeElementSize.js';
   import { echartsTheme } from './tokens.js';
 
-  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, heldUntil = null } = $props();
+  let { data = [], color = '#22c55e', lineWidth = 2, smoothingAlpha = 0.25, heldUntil = null, heldLineType = 'dashed' } = $props();
 
   let el;
   let chart;
@@ -16,7 +16,7 @@
     return Number.isFinite(alpha) && alpha > 0 && alpha <= 1 ? alpha : 0.25;
   });
 
-  function buildOption(points, lineColor, width, renderWidth, alpha, heldEnd) {
+  function buildOption(points, lineColor, width, renderWidth, alpha, heldEnd, tailType) {
     let prepared = [];
     try {
       prepared = prepareSparklineSeries(points, { widthPx: renderWidth, alpha });
@@ -52,7 +52,7 @@
         data: heldTail,
         showSymbol: false,
         smooth: false,
-        lineStyle: { width, color: lineColor, type: 'dashed', opacity: 0.65 },
+        lineStyle: { width, color: lineColor, type: tailType === 'solid' ? 'solid' : 'dashed', opacity: 0.65 },
         silent: true,
       }],
       tooltip: { show: false },
@@ -62,7 +62,7 @@
 
   function update() {
     if (!chart) return;
-    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, heldUntil), true);
+    chart.setOption(buildOption(data ?? [], color, lineWidth, widthPx, appliedSmoothingAlpha, heldUntil, heldLineType), true);
   }
 
   onMount(() => {
@@ -87,6 +87,7 @@
     void lineWidth;
     void appliedSmoothingAlpha;
     void heldUntil;
+    void heldLineType;
     void widthPx;
     update();
   });
@@ -98,7 +99,7 @@
   });
 </script>
 
-<div bind:this={el} class="sparkline" aria-hidden="true" title="Dashed tail is a held historical value, not a fresh sensor reading"></div>
+<div bind:this={el} class="sparkline" aria-hidden="true" title="Tail is a held historical value, not a fresh sensor reading"></div>
 
 <style>
   .sparkline {

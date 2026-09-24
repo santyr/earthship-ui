@@ -666,7 +666,7 @@
             <span class="batt-runtime batt-runtime-full"><strong>Full</strong> {battRuntimeFull}</span>
           </div>
         </div>
-        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} heldUntil={wallClock} /></div>
+        <div class="battery-spark"><Sparkline data={battSpark} color={socColor} lineWidth={2} heldUntil={wallClock} heldLineType="solid" /></div>
       </div>
     </Tile>
   </div>
