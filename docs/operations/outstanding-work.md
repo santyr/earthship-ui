@@ -321,9 +321,18 @@ The exact three-line source is now prepared in
 networkless restored-registry OpenHAB 5.2.1 run verified all three file-owned
 Item/link DTOs on first boot and full restart, then withdrew the file and
 restored the exact managed definitions. The owned disposable container was
-removed and production was untouched. This clears provider syntax and
-managed rollback only; numeric state recovery and future JDBC series still
-need their separate isolated rehearsal before any live transfer.
+removed and production was untouched. That provider-only rehearsal cleared
+syntax and managed rollback. A separate disconnected OpenHAB/PostgreSQL run
+has now passed with the host-equivalent US
+measurement system: three synthetic temperature states persisted, then a
+test-only Java bundle published 48 hourly and two seven-day future series.
+All three scalar values and the exact JDBC history prefixes survived file
+withdrawal/reload and a full JVM restart. Both owned disposable containers
+were removed. The first two attempts exposed harness-only assumptions about
+Fahrenheit-to-Celsius normalization and cleanup/timeout helper signatures;
+the completed run retested the entire path. This establishes isolated
+recovery, not production permission to transfer without fresh live
+preflight, private rollback material and a natural 48/7/7 writer check.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
