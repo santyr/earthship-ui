@@ -199,6 +199,16 @@
       "state_writer": "temp-highlow-24h"
     },
     {
+      "kind": "item", "id": "BTC_USD_Price", "provider": "file", "migration": "verified",
+      "source": "items/bitcoin-price.items", "destination": "/etc/openhab/items/bitcoin-price.items",
+      "state_writer": "exec:command:BTC_Price:output"
+    },
+    {
+      "kind": "link", "id": "BTC_USD_Price -> exec:command:BTC_Price:output",
+      "provider": "file", "migration": "verified",
+      "source": "items/bitcoin-price.items", "destination": "/etc/openhab/items/bitcoin-price.items"
+    },
+    {
       "kind": "item",
       "id": "BTC_Price_24h_PercentChange",
       "provider": "file",

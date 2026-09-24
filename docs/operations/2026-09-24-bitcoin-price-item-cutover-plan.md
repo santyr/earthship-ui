@@ -11,7 +11,8 @@ current Item34 custom archive and JSONDB/REST snapshots, preserved the exact
 a new natural Exec receipt. An independent readback found the file-owned
 Item/link, unchanged two-member managed Group and matching natural receipt.
 The private archive is retained. No OpenHAB restart or synthetic price write
-was performed.
+was performed. The exact Item/link ownership entries were added to the Git
+manifest; the post-cutover live inventory now reports zero issues.
 
 ## Exact scope and preflight
 
