@@ -186,6 +186,14 @@ records this exact provider transfer and the inventory checks for provider drift
 Preserve the power observer's explicit immutable JDBC writes, its automatic
 write exclusion and restore strategy. Preserve existing forecast behavior during
 migration, including the existing `forecast, everyChange` combination. The
+prepared `items/forecast-group.items` is **not installed**: in a disconnected
+OpenHAB/PostgreSQL rehearsal, `gForecast*` failed to persist 48/7/7 synthetic
+forecast series while the Group provider was absent, even though its ten
+file-owned member references remained visible. Series before and after the
+gap persisted and the missing gap series did not backfill. Do not hot-transfer
+this Group; the stopped-service alternative still requires an attended live
+restart decision. See the [gap receipt](../../docs/operations/2026-09-23-forecast-group-hot-jdbc-gap.md).
+Preserve the existing managed Group until that safe transfer is qualified. The
 [official persistence documentation](https://www.openhab.org/docs/configuration/persistence)
 discourages that combination; reviewing it is separate from reproducing current
 behavior. The transfer passed isolated syntax/load, strategy, rollback, restart,

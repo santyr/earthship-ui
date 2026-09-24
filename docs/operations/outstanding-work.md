@@ -564,6 +564,14 @@ topology-specific result may permit a hot Group handoff without a production
 restart, but does **not** yet prove JDBC selector continuity or safe event-gap
 behavior. Production `gForecast` remains managed; an isolated JDBC/event-gap
 rehearsal and a guarded live rollback are still required before transfer.
+The subsequent [disconnected PostgreSQL rehearsal](2026-09-23-forecast-group-hot-jdbc-gap.md)
+closed that question negatively: synthetic 48/7/7 forecast series persisted
+before the handoff, after file Group load and after managed rollback, but all
+three series posted while the Group provider was absent were missing from JDBC
+and did not backfill. Membership readback alone was not a persistence contract.
+The restart-free Group handoff is therefore **refused**; do not run it live.
+The stopped-service path remains staged but requires its separate attended
+restart decision and protected-control safety gate.
 A fresh read-only Group `--check` in the same pass still found exactly ten
 members, JDBC IDs 563–572 and the verified daily natural-writer gate.
 
