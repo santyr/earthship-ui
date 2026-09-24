@@ -7,6 +7,23 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+September 24 pre-dawn PV forecast date correction: the Solar_PV collector
+previously stored a `daily_pv_kwh` summary for a named local day at that
+day's **start**, while both analytics readers select the day-end timestamp.
+The live Energy payload consequently labeled September 25's 5.5 kWh value
+as September 24's forecast, although the dated weather detail showed 3.3
+kWh for September 24. Solar_PV `e37ae17` now stores local day-end timestamps
+and explicit `forecast_day` provenance; the UI and feature readers exclude
+legacy misdated rows. Its 850-test suite passed. Earthship UI `2d7154c`
+selects dated forecast detail for the Energy PV comparison and outlook;
+95 focused tests, the build and seven Energy browser tests passed. The
+04:55 publisher correctly withheld the old misdated value as unavailable.
+At the 04:56 read-only checkpoint, the corrected collector mapped the live
+September 24 detail to 3.3 kWh through September 25 local midnight. Await a
+new natural forecast issuance, capture and publisher readback before
+claiming a corrected non-null Energy Analytics forecast. The once-daily
+forecast-intelligence Items remain separately dated only by their schedule.
+
 September 24 full restore rehearsal: fresh recovery point
 `full-restore-h2d2mt0w` passed exact 514-table isolated data fingerprints.
 The first integrated rehearsal then restored roles/ACLs and all 514 tables,
