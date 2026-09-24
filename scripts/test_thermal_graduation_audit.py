@@ -21,11 +21,38 @@ def test_shadow_acceptance_is_not_baseline_superiority(values,expected):
     assert report['air_forecast_comparisons'][0]['strictly_beats_both_baselines'] is expected
     assert report['advisory_graduation_claimed'] is False
     assert report['air_forecast_comparisons'][0]['interval_coverage']==.8
+    assert 'artifact_is_shadow_only' in report['advisory_graduation_blockers']
+    assert 'advisory_graduation_thresholds_unapproved' in report['advisory_graduation_blockers']
+    assert 'confirmed_action_outcomes_absent' in report['advisory_graduation_blockers']
+    assert 'qualified_operational_shadow_scores_not_in_artifact' in report['advisory_graduation_blockers']
+    assert ('historical_24h_air_not_better_than_both_baselines'
+            in report['advisory_graduation_blockers']) is not expected
 
 
 def test_unpaired_counts_do_not_pass_comparison():
     report=m.summarize(metrics(1,2,3,(30,29,30)))
     assert report['air_forecast_comparisons'][0]['strictly_beats_both_baselines'] is False
+    assert report['air_forecast_comparisons'][0]['paired_comparable'] is False
+    assert 'historical_24h_air_baseline_counts_unpaired' in report['advisory_graduation_blockers']
+    assert 'historical_24h_air_not_better_than_both_baselines' not in report['advisory_graduation_blockers']
+
+
+def test_unscored_historical_24h_is_explicitly_blocked():
+    data=metrics(1,2,3,(0,0,0))
+    report=m.summarize(data)
+    assert 'historical_24h_air_unscored' in report['advisory_graduation_blockers']
+    assert 'historical_24h_air_not_better_than_both_baselines' not in report['advisory_graduation_blockers']
+
+
+def test_historical_success_alone_never_claims_operational_graduation():
+    data=metrics(1,2,3)
+    data['promotion']['shadow_only']=False
+    data['promotion']['graduation_thresholds']={'reviewed': True}
+    data['action_evidence']['confirmed']['disjoint_fold_count']=10
+    report=m.summarize(data)
+    assert report['advisory_graduation_blockers']==[
+        'qualified_operational_shadow_scores_not_in_artifact']
+    assert report['advisory_graduation_claimed'] is False
 
 
 def test_invalid_artifact_is_refused_without_registry_mutation(tmp_path):

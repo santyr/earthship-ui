@@ -24,12 +24,31 @@ def summarize(metrics):
         rows.append({'hours': int(horizon), 'count': model['count'],
             'model_mae_f': model['mae'], 'persistence_mae_f': persistence['mae'],
             'recent_cycle_mae_f': recent['mae'], 'bias_f': model['bias'],
+            'paired_comparable': comparable,
             'strictly_beats_both_baselines': comparable and model['mae'] < min(persistence['mae'], recent['mae']),
             'interval_coverage': interval.get('fraction'), 'nominal_coverage': interval.get('nominal'),
             'interval_count': interval.get('count', 0)})
     regimes = {name: {method: values[method]['air']['24'] for method in ('model', 'persistence', 'recent_cycle')}
                for name, values in metrics['by_regime'].items()}
+    blockers = []
+    if metrics['promotion'].get('shadow_only') is True:
+        blockers.append('artifact_is_shadow_only')
+    if metrics['promotion'].get('graduation_thresholds') is None:
+        blockers.append('advisory_graduation_thresholds_unapproved')
+    h24 = next((row for row in rows if row['hours'] == 24), None)
+    if h24 is None or h24['count'] == 0:
+        blockers.append('historical_24h_air_unscored')
+    elif not h24['paired_comparable']:
+        blockers.append('historical_24h_air_baseline_counts_unpaired')
+    elif not h24['strictly_beats_both_baselines']:
+        blockers.append('historical_24h_air_not_better_than_both_baselines')
+    if metrics['action_evidence']['confirmed'].get('disjoint_fold_count', 0) == 0:
+        blockers.append('confirmed_action_outcomes_absent')
+    # This artifact report cannot prove prospective origin-time skill, even if
+    # historical metrics later improve. Keep that separate gate explicit.
+    blockers.append('qualified_operational_shadow_scores_not_in_artifact')
     return {'advisory_graduation_claimed': False,
+        'advisory_graduation_blockers': blockers,
         'shadow_acceptance': metrics['promotion'],
         'shadow_mae_tolerance_f': PERSISTENCE_MAE_TOLERANCE_F,
         'air_forecast_comparisons': rows, 'air_24h_by_regime': regimes,

@@ -219,3 +219,21 @@ completed outcome windows. When a gate is waiting on observations, record the
 specific missing evidence and next review opportunity; continue implementable
 work in parallel. Do not mark task99 or the overall goal complete merely because
 collection is active or the UI badge was changed.
+
+September 24 source-only audit follow-up: `audit-thermal-graduation.py` now
+reports explicit advisory blockers for a compatible v5/v3 artifact: shadow-only
+status, unapproved graduation thresholds, missing or inferior historical 24h
+air skill, absent confirmed action outcomes, and the fact that prospective
+qualified operational scores are **not contained** in a backtest artifact.
+Seventeen focused tests pass. This is a fail-closed evidence report, not a release
+threshold or advice activation. The live accepted artifact remains v4/v2;
+the v5/v3 source audit correctly refuses it rather than relabeling its schema.
+The matching installed v4/v2 validator separately accepted the current model
+and report at revision `507748cee9ca`: 119 paired 24h folds score model
+2.17855°F, persistence 1.68989°F and recent-cycle 1.83416°F MAE, with zero
+confirmed disjoint action folds and `shadow_only=true`. This validates the
+artifact pair, not advisory readiness.
+The separate exact-forcing operational scorer at about 12:35 MDT still found
+only two overlapping mature 24h targets (model/persistence MAE
+6.9255/0.36°F, zero interval coverage); twelve captured targets were not yet
+due. Thus neither the source audit nor the live score supports shadow exit.
