@@ -41,3 +41,14 @@ publisher, table UPDATE/DELETE/TRUNCATE, raw-source write or hardware control
 was activated. AC publication remains off until the first complete day after
 September 25 06:00Z and the remaining source fault/restart/retention checks
 are qualified.
+
+At 20:22 MDT a strict, read-only AC day-reader diagnostic exposed a separate
+permission gap: `energy_power_reader` can resolve Item ID 653 but its
+information-schema inventory does not see `public.item0653`, and a direct
+`has_table_privilege` check returned false for SELECT. The earlier approved
+grant assigned that exact source-table SELECT only to the writer role. The
+strict reader therefore refuses with “AC evidence persistence table missing”
+before computing coverage. A separate exact SELECT grant for
+`energy_power_reader` on `public.item0653` has been requested; it has not been
+applied without approval. The stored AC daily table remains empty and the
+live publisher remains v3 without the opt-in AC flag.

@@ -63,7 +63,10 @@ An 828-row AC stream audit has one startup barrier and no sequence gaps, but
 not full-day or fault/restart evidence. The operator subsequently approved
 the four exact-scope restricted-role grants for the new table, identity
 sequence and `item0653`; they are now applied and independently read back.
-The AC table remains empty and no writer or v4 publisher was activated.
+The AC table remains empty and no writer or v4 publisher was activated. A
+restricted-reader diagnostic later found one additional missing privilege:
+`energy_power_reader` cannot SELECT the exact raw evidence table `public.item0653`.
+That separate grant is requested, not applied; source reading remains withheld.
 
 The first natural thermal shadow run after the installed-v4 confirmation-CLI
 hardening succeeded at 15:51 MDT. Its verified private forcing archive exactly
@@ -78,7 +81,8 @@ inverter-output day with coverage, revision, cutover and topology provenance,
 while keeping the existing v3 load and DC/AC balance fields withheld. The
 first complete AC day is not due until September25 06:00Z. Long-run,
 fault/restart and retention evidence and explicit v4 publication activation
-are still required; the restricted-role grant gate is complete.
+are still required; the approved table/writer grants are complete but the
+reader's raw-source SELECT gate remains open.
 
 The [AC-day revision schema](2026-09-23-ac-day-revision-schema.md) is now live
 and empty after a backed-up, isolated-test-qualified additive migration. The
