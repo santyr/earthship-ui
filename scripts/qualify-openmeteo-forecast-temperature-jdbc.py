@@ -229,7 +229,7 @@ def main():
                 wait_history(database, name,
                              lambda rows: any(stored_temperature(
                                  row[1], observed_units[name], value) for row in rows))
-            print('isolated_numeric_states_persisted=3', flush=True)
+            print('isolated_numeric_states_persisted=' + str(len(NAMES)), flush=True)
             first = (datetime.now(timezone.utc) + timedelta(days=7)).replace(
                 hour=0, minute=0, second=0, microsecond=0)
             probe = aqi.isolated.compile_probe(PROBE_CLASS, [
@@ -284,7 +284,7 @@ def main():
             if any(database_rows(database, name)[:len(before[name])] != before[name]
                    for name in NAMES):
                 raise RuntimeError('JDBC prefix changed at file reload')
-            print('hot_reload_states_and_series_preserved=3', flush=True)
+            print('hot_reload_states_and_series_preserved=' + str(len(NAMES)), flush=True)
             aqi.run(['docker', 'restart', container])
             if not all(item(container, header, name, value=SCALARS[name], seconds=240)
                        for name in NAMES):
@@ -292,7 +292,7 @@ def main():
             if any(database_rows(database, name)[:len(before[name])] != before[name]
                    for name in NAMES):
                 raise RuntimeError('JDBC prefix changed at full restart')
-            print('full_restart_states_and_series_preserved=3', flush=True)
+            print('full_restart_states_and_series_preserved=' + str(len(NAMES)), flush=True)
             # Production has past forecast-series rows newer than the scalar
             # state rows. Reproduce that distinct restore path in isolated JDBC.
             for name in NAMES:
@@ -327,7 +327,7 @@ def main():
                             value=PAST_SERIES_STATES[name], seconds=90)
                        for name in NAMES):
                 raise RuntimeError('latest past JDBC values did not restore')
-            print('past_series_state_restore_verified=3', flush=True)
+            print('past_series_state_restore_verified=' + str(len(NAMES)), flush=True)
         finally:
             if container is not None:
                 try:

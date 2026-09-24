@@ -404,6 +404,15 @@ Their mixed-unit JDBC recovery and future daily-series preservation still need
 isolated qualification before any live transfer; no daily-group cutover was
 attempted.
 
+A separate disconnected OpenHAB/PostgreSQL rehearsal subsequently persisted
+four synthetic scalar states and seven future values per daily Item. It passed
+exact JDBC series checks, hot file reload, full JVM restart and latest-past
+JDBC state restoration; a separate pure guard checks inch/millimeter conversion
+for precipitation.
+Both disposable containers were removed and production remains managed. The
+next gate is an attended transfer with exact private backup and rollback;
+neither a synthetic production update nor a live cutover has occurred.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
