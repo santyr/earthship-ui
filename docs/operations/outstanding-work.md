@@ -136,6 +136,14 @@ At 23:05 MDT, one further independent captured one-hour target brought the
 strict model/persistence MAEs to 1.6211°F/0.6429°F across seven pairs; the
 four overlapping six-hour scores and absence of due captured 24-hour targets
 were unchanged. No threshold, artifact or advice changed.
+At September 24 02:57 MDT, a read-only capture-strict rescore found eight
+non-overlapping one-hour pairs from revision `c87551f92f02`: model MAE
+1.5445°F versus same-origin persistence 0.6075°F, with negative model bias
+and broad 10.4139°F intervals. Six overlapping six-hour pairs had model MAE
+4.7023°F versus persistence 2.43°F; only two were non-overlapping (4.9995°F
+versus 3.15°F). Both horizons still argue against shadow exit. No model,
+threshold, advice or action authority was changed. The strict 24-hour audit
+found all ten queried publication targets not yet due and scored none.
 The new bounded, read-only
 [operational-origin census](2026-09-23-thermal-historical-blend-audit.md)
 paired 11/12 six-hourly origins with 24-hour qualified indoor outcomes and
