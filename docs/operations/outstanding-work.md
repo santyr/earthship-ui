@@ -14,7 +14,11 @@ midnight boundary state, so an unchanged overnight reading is retained. The
 Weather browser regression distinguishes today's 71°/62° from fixture 24-hour
 74°/41°; all five affected Weather/Earthship browser checks, all 1,728 UI
 tests and the production build passed. Earthship's explicitly labeled 24-hour
-thermal-buffering ratio still uses rolling extrema by design.
+thermal-buffering ratio still uses rolling extrema by design. Commit `a4bccb5`
+is on `origin/main`; the running local Vite service hot-loaded it. A text-only
+1340×800 live browser readback showed H 54°/L 51° with no page error; the
+same day's persisted history had high 53.6°F and low 51.26°F, matching the
+card's whole-degree display.
 
 Home and Weather now stop presenting a detail forecast as current once its
 four-hour freshness window expires, even if the older undated legacy JSON
