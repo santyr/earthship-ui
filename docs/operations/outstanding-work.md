@@ -489,6 +489,15 @@ full restart and managed rollback remained exact. Its owned container and
 private temporary directory were removed. This narrows file-provider recovery
 risk from the last production stop's forced-kill behavior, but does not qualify
 protected hardware controls across another live OpenHAB restart.
+Read-only maintenance risk check at 21:42 MDT: systemd shows production
+OpenHAB was stopped at 07:09 MDT on September23, reached its two-minute
+`TimeoutStopSec`, was SIGKILLed, and restarted at 07:11 MDT. It is now active;
+the SouthOutlet controller and four inspected BMS/Schneider safety rules report
+IDLE/NONE. Both greywater pump outputs are OFF, the controller reports
+`after_dark`, and `SouthOutlet_LastCycle` records a later 18:43 MDT cycle.
+These current-state and later-operation observations show recovery of the
+inspected rule path, not safe behavior throughout the restart or all protected
+controls. An attended live Group restart remains a separate decision.
 
 The guarded `scripts/migrate-forecast-group-offline.py` adapter is now staged
 for that later attended maintenance. Its read-only `--check` verifies the
