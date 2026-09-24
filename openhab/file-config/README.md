@@ -142,13 +142,14 @@ on September 23. No live reload or overwrite was needed. It supplies the
 Sun/Moon Astro MAP-profile links, including all eight moon phases and the
 explicit night icon. The similarly named `astro.map~` is not an approved
 deployment target.
-`items/astro-icons.items` prepares the exact `SunPhaseIcon` and
-`MoonPhaseicon` names, categories, Sun/Moon group memberships and Astro
-MAP-profile channel links for a later one-provider transfer. It is not
-installed or declared file-owned. Preserve both Items' existing JDBC
-identities/history and verify a real transformed update before any cutover;
-the Moon phase Item changes infrequently, so a file-load check alone is not
-natural-writer proof.
+`items/astro-icons.items` is installed as the sole provider for
+`SunPhaseIcon`, `MoonPhaseicon` and their Astro MAP-profile channel links.
+The September 23 attended hot-load transfer preserved names, categories,
+Sun/Moon group memberships, states, JDBC identities 90/60 and all existing
+history rows. It did not restart the production service. The first natural
+post-transfer Astro update remains a separate verification gate, especially
+for the infrequently changing Moon phase Item; see the
+[cutover receipt](../../docs/operations/2026-09-23-astro-icon-item-cutover.md).
 The networkless, disposable `scripts/qualify-astro-icon-provider.py` rehearsal
 passed exact file Item/link readback on first boot and full restart, then
 file withdrawal and managed Item/link rollback. It removed its owned

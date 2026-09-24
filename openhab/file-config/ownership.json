@@ -3,6 +3,26 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "item", "id": "SunPhaseIcon", "provider": "file", "migration": "verified",
+      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items",
+      "state_writer": "astro:sun:local:phase#name"
+    },
+    {
+      "kind": "item", "id": "MoonPhaseicon", "provider": "file", "migration": "verified",
+      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items",
+      "state_writer": "astro:moon:local:phase#name"
+    },
+    {
+      "kind": "link", "id": "SunPhaseIcon -> astro:sun:local:phase#name",
+      "provider": "file", "migration": "verified",
+      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items"
+    },
+    {
+      "kind": "link", "id": "MoonPhaseicon -> astro:moon:local:phase#name",
+      "provider": "file", "migration": "verified",
+      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items"
+    },
+    {
       "kind": "thing", "id": "openmeteo:openmeteo:local", "provider": "file", "migration": "verified",
       "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
     },
