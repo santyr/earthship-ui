@@ -1,9 +1,10 @@
 # Thermal historical versus operational readiness — September 24
 
-Read-only checkpoint before the natural September 24 trainer completed. The
-accepted artifact was trained through September 23 12:50Z with code revision
-`c87551f92f02`. Its `promotion.eligible=true` is **internal shadow-artifact
-acceptance**, not approval to enable advice: `shadow_only=true` remains an
+Read-only checkpoint updated after the natural September 24 trainer completed
+at 08:42 MDT. The accepted artifact is trained through September 24 12:50Z
+with code revision `507748cee9ca`. Its `promotion.eligible=true` is
+**internal shadow-artifact acceptance**, not approval to enable advice:
+`shadow_only=true` remains an
 explicit invariant. The operator-approved provisional gate allows 24-hour
 model MAE up to 0.5°F above same-fold persistence to collect divergence data.
 
@@ -26,8 +27,12 @@ This pattern does not isolate weather forcing as the cause of low indoor
 predictions; action reconstruction and dynamics remain confounded. No
 captured 24-hour target had matured. The natural 07:55 publication exited
 zero and remained low-confidence shadow with no candidate because the
-minimum modeled improvement was not met. The daily trainer was still active
-at this checkpoint; its result must be re-read after completion.
+minimum modeled improvement was not met. The daily trainer later exited
+successfully and reported an internally promoted artifact, but the new
+artifact still records `shadow_only=true`, the same 119-fold 24-hour air
+comparison (model 2.1785°F versus persistence 1.6899°F), and zero confirmed
+action-evidence evaluation targets. Training completion does not satisfy the
+operational shadow-exit gate.
 
 This evidence supports continued historical tuning but not shadow exit.
 Before fitting an operational correction, freeze chronological training,
