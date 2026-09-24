@@ -1199,6 +1199,18 @@ the published `IndoorTemp_24h_High` was 76.46°F. Thus the live
 the outdoor source likewise matched its carry-aware 55.22–73.4°F extrema.
 This disproves a missing-carry claim for this natural window, not a general
 source-health or gap-coverage guarantee for the rule.
+At 18:43 MDT a fresh authenticated scan of all 36 registered OpenHAB rules
+found nine rule bodies with persistence-history calls. The only analytical
+consumers were the three above: BMS `averageBetween`, temperature
+`minimumSince`/`maximumSince`, and Bitcoin `persistedState` (whose held-state
+carry was independently verified September 10). The other six bodies use
+`previousState(false, 'jdbc')` to cross-check explicitly persisted request,
+counter or journal state against live state during recovery/write-readback;
+three are Lightning Goats fixtures and the remaining three are the
+SouthOutlet, feeder and night-load owners. They do not calculate a sensor
+freshness age or numeric average from a change-only sample count. This closes
+the live rule-body call inventory for these API names, not the separate
+Python/JS service algorithms or physical-source freshness qualification.
 Main-page temperatures use `localDayHistoryRange` already. Weather still displays
 the outdoor 24-hour Items, and Earthship's buffering metric explicitly compares
 24-hour indoor/outdoor swings. Do not silently redefine those Item contracts as
