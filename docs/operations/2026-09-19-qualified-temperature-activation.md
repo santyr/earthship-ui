@@ -84,6 +84,14 @@ mature before a normal scoring run. Pre-cutover queued targets are not promoted.
 Thermal-model training/authority, completed-night outcome scoring, and bandit
 threshold tuning are separate work and are not claimed activated here.
 
+Later September 23 follow-up supersedes only the first-update observation:
+55 natural qualified hourly score receipts are now durable, and the 55 total
+model-count increments since the private pre-cutover backup match those
+receipts in every local-hour bucket. A read-only Kalman replay reproduces the
+live model exactly. See the [hourly learning audit](2026-09-23-hourly-temperature-learning-audit.md)
+for bounded pre-update error diagnostics and its short-sample caveats. The
+original activation and scope boundaries above are unchanged.
+
 ## Verification and operational recovery
 
 Feature suite:966passed,42subtests,1expected disposable-PostgreSQL skip.

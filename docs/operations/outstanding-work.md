@@ -116,6 +116,13 @@ and23; hourly qualified targets scored24/24 on both days. The first day-3 target
 is September24 and its assessment is not due until September25. Completed trough
 assessment logged one and then two samples; this is still insufficient to claim
 bandit reward attribution or tune advisory thresholds. The September23
+[hourly-learning audit](2026-09-23-hourly-temperature-learning-audit.md)
+verified 55 natural qualified target updates against the pre-cutover model:
+all 24 per-hour count deltas match their receipts, and a read-only replay
+reproduces every live bucket. The pre-update correction rule slightly improved
+all-target MAE but worsened MAE for the 32 measured temperatures at or above
+60°F; five sub-50°F targets are insufficient to tune the cool regime. No
+learned state or forecast publication was changed by that audit. The September23
 [isolated persistence rehearsal](2026-09-20-persistence-provider-qualification.md)
 passed with four explicitly unpersisted provider-gap updates. Its final combined
 run also passed future forecast-series replacement, nonmember exclusion, and
