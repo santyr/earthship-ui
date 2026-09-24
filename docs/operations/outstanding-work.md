@@ -64,6 +64,14 @@ six-hour target: four six-hour pairs now show model MAE 5.4265°F versus
 persistence 2.2500°F, with only one non-overlapping pair and no due 24-hour
 target. The model remains in shadow; see the
 [forcing-capture score](2026-09-23-thermal-forcing-capture-live.md).
+The new bounded, read-only
+[operational-origin census](2026-09-23-thermal-historical-blend-audit.md)
+paired 11/12 six-hourly origins with 24-hour qualified indoor outcomes and
+origin-captured forecasts; same-origin persistence MAE was 2.0782°F. All
+eleven paired origins had as-of mode knowledge, but none had a complete action
+snapshot (`indoor_shade` and `vent` were missing). This is a historical
+baseline and a concrete qualification gap, not a scored physical model or
+evidence to graduate it from shadow.
 
 The [AC writer/publisher preactivation receipt](2026-09-23-ac-writer-publisher-preactivation.md)
 records a default-off daily command and opt-in v4 publisher path pushed to

@@ -123,6 +123,11 @@ def pair_persistence_outcome(origin, *, horizon_hours, assessed_at,
             'signed_error_f': error, 'absolute_error_f': abs(error),
             'forecast_sha256': assembled['forecast']['rows_sha256'],
             'action_knowledge': assembled['action_knowledge'],
+            'action_snapshot_coverage': (
+                {'known_actions': len(assembled['action_snapshot']['actions']),
+                 'missing_actions': assembled['action_snapshot']['missing_actions'],
+                 'mode_known': assembled['action_snapshot']['mode'] is not None}
+                if assembled['action_snapshot'] is not None else None),
             'outcome_receipt': {
                 'received_at': receipt['receivedAt'].astimezone(timezone.utc),
                 'stored_at': receipt['storedAt'].astimezone(timezone.utc),

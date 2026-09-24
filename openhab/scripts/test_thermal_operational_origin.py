@@ -127,7 +127,31 @@ def test_persistence_pair_uses_only_origin_air_and_qualified_later_outcome():
     assert pair['signed_error_f'] == 2.5 and pair['absolute_error_f'] == 2.5
     assert pair['outcome_receipt']['snapshot_sha256'] == 'c' * 64
     assert pair['action_knowledge'] == 'not_qualified'
+    assert pair['action_snapshot_coverage'] is None
     assert not any('model' in key or 'action_benefit' in key for key in pair)
+
+
+def test_persistence_pair_reports_action_knowledge_coverage_not_execution():
+    target = ORIGIN + timedelta(hours=24)
+    def with_outcome(*, stream, targets, assessed_at):
+        if targets == [target]:
+            return [(target, {'temperatureF': 67.5,
+                              'receivedAt': target - timedelta(seconds=40),
+                              'storedAt': target - timedelta(seconds=30),
+                              'validUntil': target + timedelta(seconds=80),
+                              'streamEpoch': EPOCH, 'snapshotSha256': 'c' * 64})]
+        return temperatures(stream=stream, targets=targets, assessed_at=assessed_at)
+    snapshot = {'source': 'thermal_intel_append_only_journal', 'origin': ORIGIN,
+                'actions': {}, 'mode': None,
+                'missing_actions': ['indoor_shade', 'kiva', 'outdoor_shade', 'vent'],
+                'status': 'as_of_snapshot_not_outcome_confirmation'}
+    pair = pair_persistence_outcome(ORIGIN, horizon_hours=24,
+        assessed_at=target + timedelta(minutes=5), forecast_reader=forecast,
+        temperature_reader=with_outcome, action_reader=lambda **kwargs: snapshot)
+    assert pair['action_knowledge'] == 'as_of_snapshot_not_qualified'
+    assert pair['action_snapshot_coverage'] == {
+        'known_actions': 0, 'missing_actions': snapshot['missing_actions'],
+        'mode_known': False}
 
 
 def test_pending_target_does_not_read_origin_or_outcome():

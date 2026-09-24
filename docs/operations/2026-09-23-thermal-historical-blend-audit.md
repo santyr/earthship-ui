@@ -86,5 +86,35 @@ post-origin receipts and an incomplete forecast bracket. A live read-only
 assembly at September23 14:45Z found all three qualified receipts and26
 captured forecast hours from one issuance. Its action knowledge is explicitly
 `not_qualified`; it does not simulate, score or publish an advisory. Twelve
-focused archive/assembly tests pass. Action-as-of reconstruction and later
-outcome scoring remain the next integration work.
+focused archive/assembly tests pass. The subsequent action-as-of/persistence
+census is recorded below; physical-model outcome scoring remains open.
+
+## Read-only operational-origin persistence census, September 23 evening
+
+`scripts/audit-thermal-operational-origins.py` now connects the existing
+capture-safe forecast, qualified-temperature and optional restricted
+action-journal readers. It scores only same-origin indoor persistence, never
+the physical model or an action benefit. The CLI bounds its elapsed origin
+window to 14 days and 96 origins and refuses naive/off-grid timestamps.
+Twenty-four focused audit/reader tests pass. It uses separate restricted
+connection paths for the forecast archive and thermal action journal;
+credentials are neither printed nor committed.
+
+At six-hourly origins from September20 00:00Z through September23 00:00Z
+(end exclusive), the live read-only 24-hour census found 11 qualified pairs
+among 12 origins. One origin lacked a qualified initial indoor-air receipt.
+The same-origin persistence MAE was **2.0782°F** on those 11 *overlapping*
+pairs. A repeated run with the restricted action journal returned the same
+forecast digests, coverage and error. It found mode knowledge for all 11
+paired origins but complete action knowledge for **zero**: every origin had
+two known actions and lacked `indoor_shade` and `vent`. The action snapshot
+records what had been received by the origin, not whether an action actually
+occurred. No action state was imputed from current telemetry or a later DM.
+
+This establishes a reproducible historical persistence comparator and a
+concrete action-coverage gap. It does **not** make the v5 physical backtest
+operational, furnish an untouched validation set, justify thermal coefficient
+tuning, or move the production model out of shadow. Next model replay must
+fail closed on missing action forcing or restrict itself to a separately
+qualified passive interval, then use prospective confirmed actions and
+held-out outcomes for release evidence.
