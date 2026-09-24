@@ -144,6 +144,17 @@ explains `daily_source_quality_not_ok` in one sentence and points to the
 separate battery/PV coverage and withheld fields, without changing any
 backend quality status or filling missing values. Ten focused UI tests and
 the production build passed; the existing large-chunk warning remains.
+At the September 24 05:45 MDT live v3 publication, the September 23 qualified
+snapshot again had ten battery/PV/house-power and three weather source-quality
+rows `ok`, while exactly eight optional supporting rows remained
+`freshness_unverified`: dishwasher and cistern-pump switch state, sunrise and
+sunset, LivingOffice illuminance/occupancy/temperature and north-wall
+temperature. The current `energy_analytics.daily_source_quality` legacy table
+ends on September 19; recent health derives from embedded
+`daily_power_snapshots.payload.source_quality`. This is an explicit companion-
+evidence gap, not evidence that qualified PV or battery coverage failed. Do
+not mark these eight `ok` merely because their numeric or switch values exist;
+source-specific freshness and carry-in semantics must be qualified first.
 
 The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
 overnight minima and included the current incomplete 20:00–11:00 night in its
