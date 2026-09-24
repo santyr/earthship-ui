@@ -1,6 +1,6 @@
 import json
 import unittest
-from config_inventory import inventory, extended_inventory
+from config_inventory import inventory, extended_inventory, rule_item_reference_census
 
 
 class InventoryTests(unittest.TestCase):
@@ -108,6 +108,32 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual([x['id'] for x in result['addons']], ['a'])
         self.assertEqual(result['pages'][0]['configuration_keys'], ['password'])
         self.assertEqual(result['transformations'][0]['configuration_keys'], ['script'])
+
+    def test_rule_reference_census_is_literal_and_redacted(self):
+        items = [{'name': name, 'type': 'String', 'editable': True}
+                 for name in ('SOC', 'SOC_Alert', 'Unlinked', 'Linked')]
+        rules = [{'uid': 'r', 'triggers': [
+            {'configuration': {'itemName': 'SOC_Alert'}}],
+            'actions': [{'configuration': {'script':
+                'items.getItem("SOC"); const secret = "PRIVATE_VALUE";'}}]}]
+        links = [{'itemName': 'Linked', 'channelUID': 't:c'}]
+        result = rule_item_reference_census(items, rules, links)
+        self.assertEqual(result['rule_item_mentions'], [
+            {'item': 'SOC', 'rules': ['r']},
+            {'item': 'SOC_Alert', 'rules': ['r']}])
+        self.assertEqual(result['unlinked_ungrouped_unmentioned_managed_items'],
+                         ['Unlinked'])
+        self.assertTrue(result['not_migration_approval'])
+        self.assertNotIn('PRIVATE_VALUE', json.dumps(result))
+
+    def test_rule_reference_census_excludes_grouped_and_group_items(self):
+        items = [{'name': 'gForecast', 'type': 'Group', 'editable': True},
+                 {'name': 'Child', 'type': 'Number', 'editable': True,
+                  'groupNames': ['gForecast']},
+                 {'name': 'Solo', 'type': 'Number', 'editable': True}]
+        result = rule_item_reference_census(items, [], [])
+        self.assertEqual(result['unlinked_ungrouped_unmentioned_managed_items'],
+                         ['Solo'])
 
 
 if __name__ == '__main__':

@@ -7,6 +7,14 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 17:02 MDT the new read-only rule-reference census found 179 literal Item
+names in live rule configurations and only 17 managed Items without a link,
+Group membership or literal rule mention. Sixteen of those are Lightning
+Goats canary/hold surfaces; the other is externally published
+`Thermal_Advisory`. None is an automatic bulk-migration candidate. The census
+does not expose rule bodies or raw configuration values, and its 13 inventory
+tests pass. See the [census receipt](2026-09-24-file-first-rule-reference-census.md).
+
 At 16:55 MDT a bounded read-only strict thermal rescore found four mature
 captured 24-hour targets. All four model predictions missed low and all four
 nominal intervals missed; model/persistence overlapping MAE was

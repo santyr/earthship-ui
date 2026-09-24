@@ -10,6 +10,7 @@ from collections import Counter
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 
 
 def provider(row):
@@ -138,26 +139,81 @@ def extended_inventory(addons, pages, transformations):
     }
 
 
+def rule_item_reference_census(items, rules, links):
+    """Conservative literal-name census; absence never proves an Item unused.
+
+    Only exact Item-name tokens from rule module configuration values are
+    reported. Script bodies and all configuration values stay in memory.
+    Dynamically assembled names and external publishers are not discoverable.
+    """
+    names = {item['name'] for item in items}
+    mentions = {name: set() for name in names}
+
+    def strings(value):
+        if isinstance(value, str):
+            yield value
+        elif isinstance(value, dict):
+            for child in value.values():
+                yield from strings(child)
+        elif isinstance(value, (list, tuple)):
+            for child in value:
+                yield from strings(child)
+
+    for rule in rules:
+        uid = rule['uid']
+        for section in ('triggers', 'conditions', 'actions'):
+            for module in rule.get(section, []):
+                for value in strings(module.get('configuration', {})):
+                    for token in set(re.findall(r'[A-Za-z_][A-Za-z0-9_]*', value)) & names:
+                        mentions[token].add(uid)
+
+    linked = {link['itemName'] for link in links}
+    candidates = sorted(item['name'] for item in items
+                        if item.get('editable') is True and item.get('type') != 'Group'
+                        and not item.get('groupNames') and item['name'] not in linked
+                        and not mentions[item['name']])
+    return {
+        'scope': 'literal_rule_names_only; external_writers_and_dynamic_names_not_covered',
+        'not_migration_approval': True,
+        'rule_item_mentions': [
+            {'item': name, 'rules': sorted(uids)} for name, uids in sorted(mentions.items())
+            if uids],
+        'unlinked_ungrouped_unmentioned_managed_items': candidates,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, default=Path(__file__).resolve().parents[1]
                         / 'file-config' / 'ownership.json')
     parser.add_argument('--extended', action='store_true', help='Include installed add-ons, UI pages and registered transformations')
+    parser.add_argument('--rule-references', action='store_true',
+                        help='Census literal Item-name mentions in live rules; not a safety classification')
     parser.add_argument('--summary', action='store_true', help='Print only counts and issues')
     args = parser.parse_args()
     from openhab_sanity_check import get
     started = datetime.now(timezone.utc).isoformat()
     services = get('/persistence')
-    result = inventory(get('/items?metadata=all'), get('/things'), get('/rules'),
-                       get('/links'), json.loads(args.manifest.read_text()),
+    items, things, rules, links = (get('/items?metadata=all'), get('/things'),
+                                  get('/rules'), get('/links'))
+    result = inventory(items, things, rules,
+                       links, json.loads(args.manifest.read_text()),
                        [get('/persistence/' + x['id']) for x in services])
+    if args.rule_references:
+        census = rule_item_reference_census(items, rules, links)
+        result['rule_references'] = census
+        result['rule_reference_counts'] = {
+            'items_mentioned': len(census['rule_item_mentions']),
+            'structural_candidates': len(census['unlinked_ungrouped_unmentioned_managed_items']),
+        }
     if args.extended:
         result['extended'] = extended_inventory(get('/addons'), get('/ui/components/ui:page'), get('/transformations'))
         result['extended_counts'] = {k: len(v) for k, v in result['extended'].items()}
     result['started_at'] = started
     result['finished_at'] = datetime.now(timezone.utc).isoformat()
     output = ({k: v for k, v in result.items() if k in
-               ('schema', 'atomic', 'counts', 'extended_counts', 'issues', 'started_at', 'finished_at')}
+              ('schema', 'atomic', 'counts', 'extended_counts', 'rule_reference_counts',
+               'issues', 'started_at', 'finished_at')}
               if args.summary else result)
     print(json.dumps(output, indent=2, sort_keys=True))
     return 1 if result['issues'] else 0
