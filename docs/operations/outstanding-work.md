@@ -607,6 +607,15 @@ on two runs while new prices continued arriving. The digest also matched an
 independent `psql COPY | sha256sum` calculation. This provides a scalable
 before/after preservation check, not a recoverable backup, a live migration or
 natural writer qualification.
+The read-only `scripts/preflight-bitcoin-price-item.py` now pins the prepared
+source, managed price Item and empty-config output link, companion file-owned
+receipt link's JS transform, ONLINE Exec Thing, two-member managed Group with
+semantic metadata, and IDLE percentage-change rule triggered by price updates.
+It also streams a fixed-time Item34 JDBC digest. A live check at 21:57 MDT
+passed with 1,089,962 rows before its two-minute cutoff. The preflight
+explicitly reports `file_transfer:not_qualified`; no price provider or feed
+changed. A private recoverable backup, guarded live handoff, natural writer
+and Group metadata handling remain required.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
