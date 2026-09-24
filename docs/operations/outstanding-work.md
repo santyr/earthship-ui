@@ -44,8 +44,8 @@ live state and its private forcing capture verifies exactly. See the
 [thermal Item cutover receipt](2026-09-23-thermal-item-file-cutover.md).
 
 The next [strict forcing-capture score](2026-09-23-thermal-forcing-capture-live.md)
-has four matured non-overlapping one-hour pairs for the current revision:
-model MAE 2.0213°F versus persistence 0.6750°F. Two overlapping six-hour
+has five matured non-overlapping one-hour pairs for the current revision:
+model MAE 1.8656°F versus persistence 0.6480°F. Two overlapping six-hour
 targets missed low by about 6.53°F and fell outside their published intervals;
 the paired persistence errors were 3.42°F and 2.88°F. No capture-qualified
 24-hour target is mature. These are

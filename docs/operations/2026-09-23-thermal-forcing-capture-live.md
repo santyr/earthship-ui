@@ -101,3 +101,13 @@ It overlaps the first six-hour target, so two misses are not two independent
 days; the greedy non-overlap selection still contains only the first. Both
 six-hour outdoor errors also have opposite signs. No coefficient, threshold,
 artifact, control authority or advice was changed on these diagnostics.
+
+The next natural shadow timer completed successfully at 19:51:52 MDT. A
+read-only strict rescore after its preceding one-hour target matured found
+five capture-qualified, non-overlapping one-hour pairs from the same accepted
+revision: model MAE 1.8656°F versus same-origin persistence 0.6480°F, model
+bias −1.8656°F and nominal interval coverage 5/5 with 10.4138°F mean width.
+The two overlapping six-hour pairs remain model MAE 6.5295°F versus
+persistence 3.1500°F, both outside their intervals; only one is independent
+under the greedy non-overlap rule. Fourteen captured 24-hour targets are not
+yet due and none is scored. The current model therefore remains in shadow.
