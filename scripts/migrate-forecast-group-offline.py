@@ -41,6 +41,7 @@ DAILY = frozenset({
     'Forecast_Daily_PrecipSum', 'Forecast_Daily_PrecipProbMax',
     'Forecast_Daily_WeatherCode', 'Forecast_Daily_UVIndex',
 })
+RELEASE_READY = False  # Attended production restart and protected-control review required.
 
 
 def require(ok, reason):
@@ -218,6 +219,7 @@ def main(apply):
             'source_sha256': source_hash}, sort_keys=True), flush=True)
         return
     require(eligible, 'daily natural writer gate not verified in ownership manifest')
+    require(RELEASE_READY, 'forecast Group live transfer is not release-qualified')
     require(pumps_off(), 'greywater pump active or state unknown; refuse OpenHAB stop')
     root = BACKUP_ROOT.lstat()
     require(stat.S_ISDIR(root.st_mode) and root.st_uid == os.getuid()

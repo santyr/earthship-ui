@@ -695,6 +695,11 @@ unchanged. No service stop or ownership transfer followed this preflight.
 The previous production shutdown timed out and required SIGKILL, so the
 stopped-service path still requires an attended restart decision and
 protected-control safety coverage; a passing preflight alone is insufficient.
+The migration adapter now enforces `RELEASE_READY = False` before any pump
+gate, backup or service stop on `--apply`; a new regression verifies this
+refusal. All eight focused adapter tests pass, and live read-only `--check`
+continues to pass. The release gate must remain off until the attended
+restart/protected-control plan is specifically approved and qualified.
 
 ### Explicit active goal: graduate the thermal model from shadow
 

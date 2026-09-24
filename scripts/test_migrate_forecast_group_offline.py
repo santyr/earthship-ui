@@ -88,6 +88,34 @@ def test_apply_refuses_pending_daily_gate_before_service_stop(tmp_path, monkeypa
     assert not (tmp_path / 'target.items').exists()
 
 
+def test_apply_refuses_unreleased_live_restart_before_pump_or_service_work(
+        tmp_path, monkeypatch):
+    source = tmp_path / 'forecast-group.items'
+    source.write_text('Group gForecast "Forecast Items" ["forecast"]\n')
+    registry = tmp_path / 'items.json'
+    registry.write_text(json.dumps({group.GROUP: {
+        'class': 'org.openhab.core.items.ManagedItemProvider$PersistedItem',
+        'value': {'groupNames': [], 'itemType': 'Group',
+                  'tags': ['forecast'], 'label': 'Forecast Items'}}}))
+    monkeypatch.setattr(group, 'SOURCE', source)
+    monkeypatch.setattr(group, 'SOURCE_SHA256', sha256(source.read_bytes()).hexdigest())
+    monkeypatch.setattr(group, 'TARGET', tmp_path / 'target.items')
+    monkeypatch.setattr(group, 'REGISTRY', registry)
+    monkeypatch.setattr(group, 'active', lambda: True)
+    monkeypatch.setattr(group, 'group_matches', lambda **kwargs: True)
+    monkeypatch.setattr(group, 'member_providers_match', lambda: True)
+    monkeypatch.setattr(group.transfer, 'healthy_thing', lambda: True)
+    monkeypatch.setattr(group, 'jdbc_baseline', lambda: {})
+    monkeypatch.setattr(group, 'daily_gate', lambda: True)
+    monkeypatch.setattr(group, 'pumps_off', lambda:
+                        pytest.fail('pump gate reached despite unreleased restart'))
+    monkeypatch.setattr(group, 'command', lambda *args, **kwargs:
+                        pytest.fail('service command ran despite unreleased restart'))
+    with pytest.raises(RuntimeError, match='not release-qualified'):
+        group.main(apply=True)
+    assert not (tmp_path / 'target.items').exists()
+
+
 def test_history_verifier_preserves_past_but_allows_future_revisions(monkeypatch):
     cutover = datetime(2026, 9, 24, 3, tzinfo=timezone.utc)
     old = [(cutover - timedelta(hours=1), 1.0),
