@@ -17,7 +17,21 @@ its DELETE cleanup failed. The parent removed all owned test containers and
 volumes; production OpenHAB was not restarted. The probe now uses the
 existing diagnostic Number Item in the disconnected clone, retries transient
 REST reads and restores its original state. A new integrated run is required
-before claiming full runtime recovery or enabling qualified forecast SoC.
+to qualify component recovery and the forecast `UNDEF` path; that rerun is
+recorded below.
+
+The second full integrated run subsequently exited zero with report
+`/home/sat/backups/earthship-energy/runtime-recovery-1ml519on/recovery-report.json`:
+514/514 tables, owners/ACLs, 75 config files, 1,337 userdata files and two
+add-ons verified; disconnected OpenHAB restored JDBC, observational state,
+431 Items, 84 Things, 36 Rules and 263 Links, and the existing diagnostic
+Number Item completed an `UNDEF`/numeric round-trip with state restored.
+All owned test containers/volumes were removed and the production PID was
+unchanged. Four Thing channel differences are host-dependent System Info
+labels/descriptions or TP-Link default tags; three uninitialized clone Rules
+are the intentionally retired legacy schedules. The test is a qualified
+component restore, **not** an atomic whole-host/off-host recovery or hardware
+validation; those gates remain open.
 
 The [EFC display clarification](2026-09-23-energy-efc-display.md) now keeps
 qualified observed-window EFC on the Energy card with its date range and shows
@@ -40,16 +54,20 @@ tests pass. On September 24 the exact tested source and helper were installed
 with matching SHA-256 digests and a private prior-source rollback copy at
 `/home/sat/backups/earthship-energy/forecast-soc-x9cjbG`. The installed path's
 read-only check returned a currently valid atomic SoC and four qualified
-completed nights. The service remains idle and the enable flag is absent, so
-the next natural run would still use the old algorithm. Before enabling,
-verify Number-Item `UNDEF` publication in the disconnected recovery and
-observe the next natural 06:40 run. Do not infer freshness from unchanged
-numeric persistence or enable on code tests alone.
-The exact opt-in user-service drop-in is staged at
-`openhab/systemd/user/forecast-intel.service.d/qualified-soc.conf`; it is not
-installed. After the isolated gate passes, install only that file under the
-matching user-service drop-in path, reload the user manager, read back the
-effective environment and timer, and retain the pre-existing source rollback.
+completed nights. At that checkpoint, the service was idle and the enable
+flag was absent, so a natural run would still have used the old algorithm.
+Do not infer freshness from unchanged numeric persistence or code tests alone.
+
+After the successful second rehearsal, a fresh read-only preflight found
+current atomic SoC valid and four qualified completed nights (September 20–23).
+The exact drop-in is now installed at
+`/home/sat/.config/systemd/user/forecast-intel.service.d/qualified-soc.conf`;
+user-manager readback confirms `FORECAST_QUALIFIED_SOC_ENABLED=1` and the
+unchanged natural September 24 06:40 MDT timer. The service was idle and was
+not manually run. Check that next natural publication, output Items and DM
+behavior before claiming live algorithm qualification. Removing this one
+drop-in and reloading the user manager is the config rollback; the private
+pre-cutover script backup remains available separately.
 
 The offline historical forecast backfill also treated the minimum of sparse
 change-only `BMS_SOC` rows as a measured trough. Its source now uses the same
@@ -59,8 +77,8 @@ not a fabricated minimum. The existing July 22 backfill CSV is retained as a
 historical artifact and its trough column is **not** a qualified training
 target; the live forecast only reads that CSV's temperature columns for seed
 biases. A fresh export must be generated before using historical troughs for
-training. This source correction does not enable the separate live forecast
-opt-in flag. Commit `9381e84` passed 73 focused tests and is pushed to
+training. The backfill deployment itself did not enable the separate live
+forecast opt-in flag. Commit `9381e84` passed 73 focused tests and is pushed to
 `origin/main`; the exact source was installed at
 `/home/sat/openhab/scripts/forecast_backfill.py` with matching SHA-256
 `7b93eb485d5581f6cdaba841838f6f490636af2c1d2de32067d53513d93d5b37`.
