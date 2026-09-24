@@ -118,10 +118,33 @@ describe('Earthship greywater honesty', () => {
   });
 
   it('carries fallback minutes into hours without a "1h 60m" boundary', () => {
-    setItems({ SouthOutlet_AutoStatus: 'reason=waiting_for_solar,fallbackInMin=119.6' });
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse('2026-09-20T18:00:00Z'));
+    setItems({ SouthOutlet_Outlet2_Switch: 'OFF', East_Bed_Socket_Outlet_2_Power: 'OFF',
+      SouthOutlet_AutoStatus: 'reason=waiting_for_solar,fallbackInMin=119.6,scheduleVersion=1,evaluatedAt=2026-09-20T18:00:00Z,scheduling=blocked' });
     const { container } = render(Earthship);
-    expect(container.querySelector('.gw-status').textContent)
+    expect(container.querySelector('.gw-reason').textContent)
       .toBe('waiting for solar · fallback in 2h 0m');
+  });
+
+  it('shows the controller-authored next pump and time without promising a start', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse('2026-09-20T18:00:00Z'));
+    setItems({ SouthOutlet_Outlet2_Switch: 'OFF', East_Bed_Socket_Outlet_2_Power: 'OFF',
+      SouthOutlet_AutoStatus: 'reason=idle,scheduleVersion=1,evaluatedAt=2026-09-20T18:00:00Z,scheduling=conditional,nextPump=east,nextEligibleAt=2026-09-20T19:24:00Z' });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-next').textContent).toBe('Earliest East · 1:24 PM');
+    expect(container.querySelector('.gw-status').title).toContain('conditions must still permit');
+  });
+
+  it('withholds the next-pump estimate and old reason when controller status is stale', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse('2026-09-20T18:05:00Z'));
+    setItems({ SouthOutlet_Outlet2_Switch: 'OFF', East_Bed_Socket_Outlet_2_Power: 'OFF',
+      SouthOutlet_AutoStatus: 'reason=idle,scheduleVersion=1,evaluatedAt=2026-09-20T18:00:00Z,scheduling=conditional,nextPump=east,nextEligibleAt=2026-09-20T19:24:00Z' });
+    const { container } = render(Earthship);
+    expect(container.querySelector('.gw-next').textContent).toBe('Next unavailable');
+    expect(container.querySelector('.gw-reason')).toBeNull();
   });
 });
 

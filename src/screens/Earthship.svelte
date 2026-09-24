@@ -11,6 +11,7 @@
   import ThermalModelCard from '../lib/ui/ThermalModelCard.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
+  import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { parseThermalModelResult } from '../lib/thermal/modelResult.js';
   import { items, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
@@ -141,6 +142,12 @@
   const gwState = $derived(greywaterState($items.SouthOutlet_Outlet2_Switch));
   const gwRunning = $derived(gwState.label === 'Running');
   const gwEastState = $derived(greywaterState($items.East_Bed_Socket_Outlet_2_Power));
+  const gwSchedule = $derived(greywaterSchedule({
+    south: $items.SouthOutlet_Outlet2_Switch,
+    east: $items.East_Bed_Socket_Outlet_2_Power,
+    status: $items.SouthOutlet_AutoStatus,
+    now: Math.max(wallClock, Date.now()),
+  }));
 
   function parseKV(raw) {
     if (!raw || raw === 'NULL' || raw === 'UNDEF') return {};
@@ -260,7 +267,12 @@
           </div>
         </div>
         </div>
-        <div class="gw-status">{gwStatusText}</div>
+        <div class="gw-status" title={gwSchedule.detail}>
+          <span class="gw-next">{gwSchedule.next}</span>
+          {#if gwSchedule.next !== 'Next unavailable' && gwStatusText !== '—'}
+            <span class="gw-reason">{gwStatusText}</span>
+          {/if}
+        </div>
         <div class="gw-footer">
           <span>last run {gwLastAgo}</span>
           <span class="gw-caption">South + East in service &middot; West planter planned</span>
@@ -472,12 +484,20 @@
     line-height: 1.2;
   }
   .gw-status {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     font-size: 0.72rem;
     color: #8b93a1;
+  }
+  .gw-next {
+    color: #cbd5e1;
+    font-weight: 600;
+  }
+  .gw-next, .gw-reason {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .gw-footer {
     display: flex;

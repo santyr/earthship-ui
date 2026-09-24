@@ -90,6 +90,7 @@ const ITEMS = [
   { name: 'Forecast_Tomorrow_High', state: '76', type: 'Number' },
   { name: 'Forecast_Tomorrow_Low', state: '45', type: 'Number' },
   { name: 'SouthOutlet_Outlet2_Switch', state: 'OFF', type: 'Switch' },
+  { name: 'East_Bed_Socket_Outlet_2_Power', state: 'OFF', type: 'Switch' },
   {
     name: 'SouthOutlet_AutoStatus',
     state: 'reason=soil moisture recovery cycle delayed,fallbackInMin=127',
@@ -124,9 +125,14 @@ async function openFixture(page, route, target) {
       staleBannerSeconds: 90,
     },
   }));
-  await page.route('**/fixture-openhab/rest/items?*', (request) => request.fulfill({
-    json: ITEMS,
-  }));
+  await page.route('**/fixture-openhab/rest/items?*', (request) => {
+    const now = Date.now();
+    const status = `reason=idle,scheduleVersion=1,evaluatedAt=${new Date(now).toISOString()},scheduling=conditional,nextPump=east,nextEligibleAt=${new Date(now + 45 * 60_000).toISOString()}`;
+    return request.fulfill({
+      json: ITEMS.map((item) => item.name === 'SouthOutlet_AutoStatus'
+        ? { ...item, state: status } : item),
+    });
+  });
   await page.route('**/fixture-openhab/rest/events?*', (request) => request.fulfill({
     status: 200,
     contentType: 'text/event-stream',
@@ -248,7 +254,7 @@ for (const target of TARGETS) {
   test(`Weather is fully bounded at ${target.name}`, async ({ page }, testInfo) => {
     await openFixture(page, 'weather', target);
     await expect(page.getByText('Modeled US AQI')).toBeVisible();
-    await expect(page.getByText('Unavailable')).toBeVisible();
+    await expect(page.getByText('Unavailable', { exact: true })).toBeVisible();
     await expectRouteBounded(page, 'weather');
     await expect(page.locator('.hs-chart svg, .hs-chart canvas')).toBeVisible();
 
@@ -297,6 +303,11 @@ for (const target of TARGETS) {
   test(`Earthship is bounded and ordered north-to-south at ${target.name}`, async ({ page }, testInfo) => {
     await openFixture(page, 'earthship', target);
     await expectRouteBounded(page, 'earthship');
+    await expect(page.locator('.greywater-cell .gw-next')).toContainText('Earliest East');
+    const nextPumpFits = await page.locator('.greywater-cell .gw-next').evaluate(
+      (node) => node.scrollWidth <= node.clientWidth,
+    );
+    expect(nextPumpFits).toBe(true);
     await expect(page.locator('.earthship-grid .tile-label')).toHaveText([
       'Thermal Advisory',
       'Thermal Model',
