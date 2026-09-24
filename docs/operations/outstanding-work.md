@@ -466,6 +466,19 @@ restart/registry migration that preserves all ten references atomically, plus
 history and natural-writer checks. Do not REST-delete this live Group merely
 because the member Items have become file-owned.
 
+An additional networkless, restored-registry rehearsal now covers the exact
+stopped-service alternative. `scripts/qualify-forecast-group-offline.py`
+started the managed Group with all ten members, stopped isolated OpenHAB,
+removed only the Group's JSONDB record, installed the prepared file source,
+and verified file ownership plus all ten member references after start and
+full restart. A second stopped-service edit restored the managed record and
+withdrawn source; rollback also preserved all ten references. The owned
+container and private temporary directory were removed, and the live Group
+remains managed with ten members. This qualifies the provider/membership
+handoff in isolation, not live maintenance, JDBC continuity or a natural
+writer after cutover. Wait for the provisional daily Items' natural series
+gate before any production Group transfer.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing
