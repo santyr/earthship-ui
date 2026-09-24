@@ -1,7 +1,10 @@
 """Pure guards for the stopped-service forecast Group transfer."""
 from importlib.util import module_from_spec, spec_from_file_location
+from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 import json
 from pathlib import Path
+import pytest
 
 spec = spec_from_file_location('forecast_group_offline',
     Path(__file__).with_name('migrate-forecast-group-offline.py'))
@@ -47,3 +50,78 @@ def test_member_provider_guard_rejects_one_managed_link(monkeypatch):
     assert group.member_providers_match()
     links[0]['editable'] = True
     assert not group.member_providers_match()
+
+
+def test_apply_refuses_pending_daily_gate_before_service_stop(tmp_path, monkeypatch):
+    source = tmp_path / 'forecast-group.items'
+    source.write_text('Group gForecast "Forecast Items" ["forecast"]\n')
+    registry = tmp_path / 'items.json'
+    registry.write_text(json.dumps({group.GROUP: {
+        'class': 'org.openhab.core.items.ManagedItemProvider$PersistedItem',
+        'value': {'groupNames': [], 'itemType': 'Group',
+                  'tags': ['forecast'], 'label': 'Forecast Items'}}}))
+    monkeypatch.setattr(group, 'SOURCE', source)
+    monkeypatch.setattr(group, 'SOURCE_SHA256', sha256(source.read_bytes()).hexdigest())
+    monkeypatch.setattr(group, 'TARGET', tmp_path / 'target.items')
+    monkeypatch.setattr(group, 'REGISTRY', registry)
+    monkeypatch.setattr(group, 'active', lambda: True)
+    monkeypatch.setattr(group, 'group_matches', lambda **kwargs: True)
+    monkeypatch.setattr(group, 'member_providers_match', lambda: True)
+    monkeypatch.setattr(group.transfer, 'healthy_thing', lambda: True)
+    monkeypatch.setattr(group, 'jdbc_baseline', lambda: {})
+    monkeypatch.setattr(group, 'daily_gate', lambda: False)
+    monkeypatch.setattr(group, 'command', lambda *args, **kwargs:
+                        pytest.fail('service command ran despite pending gate'))
+    with pytest.raises(RuntimeError, match='daily natural writer gate'):
+        group.main(apply=True)
+    assert not (tmp_path / 'target.items').exists()
+
+
+def test_history_verifier_preserves_past_but_allows_future_revisions(monkeypatch):
+    cutover = datetime(2026, 9, 24, 3, tzinfo=timezone.utc)
+    old = [(cutover - timedelta(hours=1), 1.0),
+           (cutover + timedelta(hours=1), 2.0)]
+    monkeypatch.setattr(group, 'jdbc_baseline', lambda: {
+        'Forecast_Temp': (563, [(old[0][0], 1.0), (old[1][0], 3.0)])})
+    group.verify_history({'Forecast_Temp': (563, old)}, cutover)
+    monkeypatch.setattr(group, 'jdbc_baseline', lambda: {
+        'Forecast_Temp': (563, [(old[1][0], 3.0)])})
+    with pytest.raises(RuntimeError, match='historical forecast JDBC rows lost'):
+        group.verify_history({'Forecast_Temp': (563, old)}, cutover)
+
+
+def test_rollback_restores_group_without_replacing_other_registry_rows(
+        tmp_path, monkeypatch):
+    record = {'class': 'org.openhab.core.items.ManagedItemProvider$PersistedItem',
+              'value': {'groupNames': [], 'itemType': 'Group',
+                        'tags': ['forecast'], 'label': 'Forecast Items'}}
+    registry = tmp_path / 'items.json'
+    registry.write_text(json.dumps({'unrelated_live_item': {'value': 42}}))
+    source = b'Group gForecast "Forecast Items" ["forecast"]\n'
+    target = tmp_path / 'forecast-group.items'
+    target.write_bytes(source)
+    monkeypatch.setattr(group, 'REGISTRY', registry)
+    monkeypatch.setattr(group, 'TARGET', target)
+    monkeypatch.setattr(group, 'SOURCE_SHA256', sha256(source).hexdigest())
+    state = {'active': True}
+
+    def command(*args, **kwargs):
+        if args[2] == 'systemctl':
+            state['active'] = args[3] == 'start'
+        elif args[2] == 'rm':
+            target.unlink()
+        else:
+            pytest.fail('unexpected rollback command')
+
+    def install_registry(directory, items, name):
+        registry.write_text(json.dumps(items))
+
+    monkeypatch.setattr(group, 'command', command)
+    monkeypatch.setattr(group, 'active', lambda: state['active'])
+    monkeypatch.setattr(group, 'install_registry', install_registry)
+    monkeypatch.setattr(group, 'wait_group', lambda **kwargs: True)
+    group.rollback(tmp_path, record)
+    assert state['active']
+    assert not target.exists()
+    assert json.loads(registry.read_text()) == {
+        'unrelated_live_item': {'value': 42}, group.GROUP: record}

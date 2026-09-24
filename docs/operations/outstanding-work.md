@@ -488,7 +488,8 @@ state. If eventually eligible, it stops OpenHAB, takes a private exact JSONDB
 backup, removes only the stopped Group record, installs the file definition,
 restarts, and verifies Group membership and historical JDBC rows. A failed
 handoff attempts a stopped-service return to the original managed record and
-removes only the pinned file source. Five focused tests pass, but this source
+removes only the pinned file source. Eight focused tests pass, including a
+no-service-stop guard and unrelated-JSONDB-preserving rollback, but this source
 adapter has not yet been executed against production; the natural Group writer
 and rollback gates remain live obligations.
 
