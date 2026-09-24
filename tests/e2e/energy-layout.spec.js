@@ -107,6 +107,21 @@ test('Energy PV comparison and outlook use the current dated forecast', async ({
   });
   await expect(page.locator('.pv-sub')).toHaveText('of 3.3 kWh predicted');
   await expect(page.locator('.outlook-value')).toHaveText(['3.3', '5.5']);
+  await expect(page.locator('.curtail-value')).toHaveText('—');
+  await expect(page.locator('.hero-trough')).toContainText('—');
+});
+
+test('Energy displays current-day curtailment and trough only with a dated receipt', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    Predicted_Curtailment_Hours: '0', Predicted_SoC_Trough_Tomorrow: '52',
+    Forecast_Prediction_Receipt_JSON: JSON.stringify({
+      version: 1, predictionDay: '2026-09-24', issuedAt: '2026-09-24T06:40:29-06:00',
+      pvTodayKwh: 3.3, curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
+    }),
+  });
+  await expect(page.locator('.curtail-value')).toHaveText('1.5 h');
+  await expect(page.locator('.hero-trough')).toContainText('59%');
 });
 
 for (const target of TARGETS) {

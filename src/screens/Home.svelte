@@ -19,6 +19,7 @@
   import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
+  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     adaptCurrentAqi,
@@ -389,7 +390,8 @@
       : `Week ${rainWeekInches.toFixed(2)}″ / ${rainWeekGallons.toLocaleString('en-US')} gal`
   );
 
-  const curtailHours = $derived(num($items.Predicted_Curtailment_Hours));
+  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: wallClock }));
+  const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
   const curtailActive = $derived(curtailHours !== null && curtailHours > 0);
   const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
   const curtailColor = $derived(curtailmentColor(curtailHours));

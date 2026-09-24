@@ -10,15 +10,17 @@
   import EnergyAnalyticsDetail from '../lib/ui/EnergyAnalyticsDetail.svelte';
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
   import { parseForecast10Day, pvForecastDaysFromToday, todayPvForecastKwh } from '../lib/weather/forecastDetail.js';
+  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
 
   let analyticsNowMs = $state(Date.now());
+  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
 
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(num($items.BMS_SOC));
   const socColor = $derived(socBands(soc));
-  const trough = $derived(num($items.Predicted_SoC_Trough_Tomorrow));
+  const trough = $derived(predictionReceipt?.overnightTroughSocPct ?? null);
   const troughText = $derived(trough === null ? '—' : `${Math.round(trough)}%`);
 
   const socSeries = $derived([
@@ -54,7 +56,7 @@
   const pvAccuracyBadge = $derived(pvError === null ? 'calibrating' : `±${Math.round(Math.abs(pvError))}% (7d)`);
 
   // ---- Curtailment ------------------------------------------------------
-  const curtailHours = $derived(num($items.Predicted_Curtailment_Hours));
+  const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
   const curtailPct = $derived(curtailHours === null ? 0 : Math.max(0, Math.min(100, (curtailHours / 24) * 100)));
   const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
 

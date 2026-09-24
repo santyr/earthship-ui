@@ -150,6 +150,23 @@ def safe_put(item, value, failures=None, *, observer=None):
     return succeeded
 
 
+def publish_prediction_receipt(today, issued_at, pv, curtail, trough, failures, put_state):
+    """Commit the day's display provenance only after its three Items succeeded."""
+    required = {"Predicted_PV_Today_kWh", "Predicted_Curtailment_Hours",
+                "Predicted_SoC_Trough_Tomorrow"}
+    if required.intersection(failures):
+        return False
+    receipt = {
+        "version": 1,
+        "predictionDay": today.isoformat(),
+        "issuedAt": issued_at,
+        "pvTodayKwh": pv,
+        "curtailmentHoursToday": curtail,
+        "overnightTroughSocPct": trough,
+    }
+    return put_state("Forecast_Prediction_Receipt_JSON", json.dumps(receipt, separators=(",", ":")))
+
+
 def fetch_forecast(url=None, attempts=3, delays=(10, 30), opener=None, sleep=None):
     """Fetch the Open-Meteo snapshot with a small retry (transient net flaps)."""
     # Resolved at call time, not as a default arg: a `url=OM_URL` default binds
@@ -1202,6 +1219,9 @@ def main():
                       ("Forecast_Tomorrow_High", round(highs[1] - b_hi, 1)), ("Forecast_Tomorrow_Low", round(lows[1] - b_lo, 1)),
                       ("Forecast_Tomorrow_PrecipProb", precip_prob[1] if precip_prob[1] is not None else 0)]:
         put(item, "UNDEF" if val is None else val)
+
+    publish_prediction_receipt(today, forecast_issued_at, pv_pred, curtail,
+                               trough_pred, put_failed, put)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,

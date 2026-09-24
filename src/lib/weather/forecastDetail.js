@@ -193,7 +193,7 @@ export function parseLegacyDailyForecast(raw) {
   }
 }
 
-function localDateAt(nowMs, timezone) {
+export function localDateAt(nowMs, timezone) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',

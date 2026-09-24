@@ -229,6 +229,17 @@ const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
 const LOAD = 'ConextGateway_ACPowerValue';
 const GUST = 'AmbientWeatherWS2902A_WindGust';
 
+test('Home curtailment follows the dated daily prediction receipt', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
+  const receipt = JSON.stringify({ version: 1, predictionDay: '2026-09-24',
+    issuedAt: '2026-09-24T06:40:29-06:00', pvTodayKwh: 3.3,
+    curtailmentHoursToday: 1.5, overnightTroughSocPct: 59 });
+  await openHomeFixture(page, TARGETS[0], {
+    states: { Predicted_Curtailment_Hours: '0', Forecast_Prediction_Receipt_JSON: receipt },
+  });
+  await expect(page.locator('.curtail-lamp')).toContainText('curtail 1.5 h');
+});
+
 test('Solar comparison follows the dated forecast across local midnight', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-23T23:59:10-06:00') });
   const detail = JSON.stringify({

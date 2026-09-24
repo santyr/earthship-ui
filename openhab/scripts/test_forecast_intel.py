@@ -257,6 +257,28 @@ def test_safe_put_collects_failures_and_never_raises(monkeypatch, capsys):
     assert "PUT failed for Bad" in capsys.readouterr().err
 
 
+def test_prediction_receipt_commits_dated_values_only_after_required_items_succeed():
+    writes = []
+    def put(item, value):
+        writes.append((item, value))
+        return True
+
+    issued = "2026-09-24T12:40:29+00:00"
+    assert fi.publish_prediction_receipt(date(2026, 9, 24), issued,
+                                         3.3, 0.0, None, [], put) is True
+    assert [name for name, _ in writes] == ["Forecast_Prediction_Receipt_JSON"]
+    assert json.loads(writes[0][1]) == {
+        "version": 1, "predictionDay": "2026-09-24", "issuedAt": issued,
+        "pvTodayKwh": 3.3, "curtailmentHoursToday": 0.0,
+        "overnightTroughSocPct": None,
+    }
+    writes.clear()
+    assert fi.publish_prediction_receipt(date(2026, 9, 24), issued,
+                                         3.3, 0.0, 59,
+                                         ["Predicted_Curtailment_Hours"], put) is False
+    assert writes == []
+
+
 # ---------------------------------------------------------------- pv_days alignment
 
 def test_align_pv_days():

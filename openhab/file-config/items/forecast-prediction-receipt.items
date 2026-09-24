@@ -1,0 +1,2 @@
+// Dated observational receipt for the once-daily forecast-intel predictions.
+String Forecast_Prediction_Receipt_JSON "Forecast Prediction Receipt" ["forecast-intel"]
