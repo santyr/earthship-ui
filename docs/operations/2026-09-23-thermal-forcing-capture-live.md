@@ -111,3 +111,17 @@ The two overlapping six-hour pairs remain model MAE 6.5295°F versus
 persistence 3.1500°F, both outside their intervals; only one is independent
 under the greedy non-overlap rule. Fourteen captured 24-hour targets are not
 yet due and none is scored. The current model therefore remains in shadow.
+
+At 21:37 MDT a fresh read-only strict score found six forcing-captured,
+non-overlapping one-hour pairs for revision `c87551f92f02`: model MAE
+**1.731°F** versus same-origin persistence **0.660°F**, model bias −1.731°F,
+with 6/6 interval coverage at 10.4138°F mean width. The newly matured point
+itself erred −1.058°F versus +0.720°F persistence. Three overlapping six-hour
+targets now score model MAE **5.9513°F** versus persistence **2.3400°F** and
+interval coverage 1/3; the third model error was −4.795°F versus +0.720°F
+persistence, with a paired outdoor forcing error of +8.38°F. Only the first
+six-hour target is selected by the non-overlap rule (model 6.529°F versus
+persistence 3.420°F). All seven captured 24-hour targets in this bounded audit
+were still not due. These mixed-sign outdoor errors and persistent indoor low
+bias justify further physical-model diagnosis, not a fitted offset or shadow
+graduation.

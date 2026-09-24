@@ -50,6 +50,10 @@ targets missed low by about 6.53°F and fell outside their published intervals;
 the paired persistence errors were 3.42°F and 2.88°F. No capture-qualified
 24-hour target is mature. These are
 diagnostics for historical/physical-model tuning, not grounds to leave shadow.
+The subsequent 21:37 MDT strict rescore has six non-overlapping one-hour
+pairs (model 1.731°F versus persistence 0.660°F), three overlapping six-hour
+pairs (model 5.9513°F versus persistence 2.3400°F), and no due captured
+24-hour target. The model remains worse than persistence on these diagnostics.
 An [exact-forcing bias sensitivity check](2026-09-23-thermal-bias-sensitivity.md)
 later reproduced four v4 captured publications in memory. Reducing the
 negative air-bias coefficient improved a few short-horizon misses, but the
