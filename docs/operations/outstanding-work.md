@@ -7,6 +7,26 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 11:45 MDT the natural Energy publisher exited zero and the live
+`Energy_Analytics_JSON` Item read back the same 17:45:24Z v3 publication for
+September 23. Battery status is `ok` and latest qualified PV is 6.5555 kWh;
+overall status remains `degraded` for `daily_source_quality_not_ok`, while
+AC load remains explicitly `ac_load_evidence_unqualified`. These withheld
+fields are expected until their separate evidence gates pass. The compact
+Home SoC chart now joins the Energy and battery-modal charts as a smooth,
+non-stepped curve through actual samples; it only carries its latest value to
+the current clock when a fresh, matching atomic BMS receipt exists. All 1,738
+UI tests and the production build passed, commit `d0796a7` is on `origin/main`,
+and the local Vite UI returned HTTP 200.
+
+At the same checkpoint, a read-only exact-forcing thermal rescore found 13
+disjoint one-hour targets with model/persistence MAE 1.2166/0.4846°F and ten
+overlapping six-hour targets at 3.8390/1.9980°F. All model errors in both
+sets are negative; only three six-hour windows are disjoint. The sole mature
+captured 24-hour result remains the adverse −6.286°F model error. This
+strengthens the shadow-only decision, not a tuning or graduation claim. See the
+[readiness audit](2026-09-24-thermal-historical-operational-readiness.md).
+
 At 09:42 MDT a fresh full PostgreSQL recovery point, captured after the
 morning Item migrations, passed an isolated 515-table data restore and a
 separate integrated OpenHAB recovery rehearsal. The latter restored owners

@@ -48,3 +48,20 @@ persistence and recent-cycle baselines; and obtain real shade/vent action-state
 provenance (or a genuinely qualified passive interval). Reconstructed actions
 cannot be silently relabeled as observed. Keep the existing advisory/action
 authority unchanged while these data and accuracy gates remain open.
+
+At 11:45 MDT, the bounded read-only strict scorer was rerun against the
+September 23 15:45Z onward persisted publications, requiring each exact private
+forcing archive and qualified later temperature receipts. Thirteen
+non-overlapping one-hour pairs scored model/persistence MAE **1.2166/0.4846°F**;
+all thirteen model errors were low and their nominal intervals covered all
+thirteen outcomes, though the intervals averaged 10.4138°F wide. Ten
+overlapping six-hour pairs scored **3.8390/1.9980°F**; only three disjoint
+windows remain and score **4.1417/2.5200°F**, with two of three intervals
+covering. All ten six-hour model errors were low, while their paired outdoor
+forecast errors had mixed signs. The 24-hour set still has only the one
+adverse mature captured pair described above; twelve targets are not due.
+The one-hour sample spans two artifact revisions (twelve old, one current),
+and all scored outputs remain low-confidence. These observations strengthen
+the no-graduation decision but do not isolate a causal coefficient or provide
+an untouched seasonal validation set. The next natural shadow publisher is
+scheduled for 11:55 MDT; this checkpoint did not trigger it or write outcomes.
