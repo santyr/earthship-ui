@@ -134,6 +134,15 @@ it does not make it an authority for the Discover lithium bank. `astro.map~` is
 an editor-backup artifact that happens to be registered; preserve that fact
 without treating it as an approved new transform. No live files were changed.
 
+`openhab/transform/astro.map` is now the canonical source for the existing
+`/etc/openhab/transform/astro.map`. Its initial Git version matched the live
+file byte-for-byte (SHA-256
+`25f76f802ab403d97bcf4608ffce41529455a1de79a7964fd805ba7d8f8dc7ad`)
+on September 23. No live reload or overwrite was needed. It supplies the
+Sun/Moon Astro MAP-profile links, including all eight moon phases and the
+explicit night icon. The similarly named `astro.map~` is not an approved
+deployment target.
+
 Recovery must select an explicitly reviewed entry, verify its stored content
 hash and destination, preserve a private current-file backup, and verify the
 installed registry after provider hot reload. Check current canonical sources

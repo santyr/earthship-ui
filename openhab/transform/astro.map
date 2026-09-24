@@ -1,0 +1,30 @@
+# OpenHAB Icon Map File
+# These icon definitions are intended to display well on a black background.
+# Moon Phase Icons (using Material Design Icons - better for dark backgrounds)
+NEW=iconify:mdi:moon-new
+FIRST_QUARTER=iconify:mdi:moon-first-quarter
+WAXING_CRESCENT=iconify:mdi:moon-waxing-crescent
+WAXING_GIBBOUS=iconify:mdi:moon-waxing-gibbous
+FULL=iconify:mdi:moon-full
+WANING_GIBBOUS=iconify:mdi:moon-waning-gibbous
+THIRD_QUARTER=iconify:mdi:moon-last-quarter
+WANING_CRESCENT=iconify:mdi:moon-waning-crescent
+
+# Sunrise and Sunset Icons (Material Design Icons)
+CIVIL_DAWN=iconify:mdi:weather-sunset-up
+ASTRO_DAWN=iconify:mdi:weather-sunset-up
+NAUTIC_DAWN=iconify:mdi:weather-sunset-up
+SUN_RISE=iconify:mdi:weather-sunset-up
+SUN_SET=iconify:mdi:weather-sunset-down
+CIVIL_DUSK=iconify:mdi:weather-sunset-down
+NAUTIC_DUSK=iconify:mdi:weather-sunset-down
+ASTRO_DUSK=iconify:mdi:weather-sunset-down
+
+# Daytime Icons
+DAYLIGHT=iconify:mdi:white-balance-sunny
+NOON=iconify:mdi:white-balance-sunny
+
+# Night Icons (added 2026-07-11 — NIGHT was unmapped, ~1240 warns/day)
+NIGHT=iconify:mdi:weather-night
+MORNING_NIGHT=iconify:mdi:weather-night
+EVENING_NIGHT=iconify:mdi:weather-night

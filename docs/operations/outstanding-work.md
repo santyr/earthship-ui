@@ -684,6 +684,13 @@ are retained as evidence, not current-state claims.
 
 ### Started: file-first configuration migration
 
+The existing `/etc/openhab/transform/astro.map` now has an exact canonical
+source at `openhab/transform/astro.map`. Source/live/archive SHA-256 matched
+byte-for-byte, and a focused test covers all moon and night-phase keys. No
+live transform was overwritten or reloaded. `SunPhaseIcon` and
+`MoonPhaseicon` remain managed Items with their existing Astro MAP links;
+adopting the transform source does not silently transfer those providers.
+
 September 23 OpenMeteo follow-up: the bridge, forecast Thing and air-quality
 Thing were [transferred to the Git-owned file](2026-09-23-openmeteo-file-preflight.md)
 after restore-based dynamic-channel, full-restart and live-like forward/reverse
