@@ -117,6 +117,19 @@ DM traffic shows that some encrypted events are retrievable; it does not
 replace an operator-signed inbox route, prove operator reading, or verify
 advisory compliance. Thermal collector activation remains withheld.
 
+At September 24 03:40 MDT, a new bounded read-only `nak req` for kind-10050
+used the notifier's approved recipient public key. Signature verification
+remained enabled and no signing key was supplied to the query. `nos.lol` and
+`relay.primal.net` completed successfully and returned zero operator-authored
+inbox announcements. `relay.damus.io` returned a query error (exit 3), so its
+current state is unknown. A local metadata-only comparison also confirmed the
+configured Hex signer and approved DM recipient are distinct 64-character
+public identities; the notifier cannot sign for the recipient. No message,
+policy, outbox, listener or journal write was created. The approved operator
+must publish their own signed inbox announcement before this collector can use
+that identity; the two successful negative queries do not prove absence on
+every relay.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

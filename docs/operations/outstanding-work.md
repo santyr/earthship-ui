@@ -297,6 +297,10 @@ the approved operator's signed route was still absent on all three queried
 relays at 22:37 MDT. Existing Hex-to-operator encrypted DM events are
 retrievable, but they neither supply the operator's signing key nor prove
 receipt or action compliance. See the [delivery runbook](thermal-messaging-delivery.md).
+At September 24 03:40 MDT, two approved relays again completed verified
+kind-10050 reads with no operator announcement; the third query failed and
+cannot support an absence claim. The configured Hex signer remains a distinct
+identity from the operator recipient. Collector activation stays withheld.
 The September 23 [forcing-capture activation](2026-09-23-thermal-forcing-capture-live.md)
 now records exact raw Open-Meteo inputs alongside successful shadow
 publications. Its first natural run exposed a sub-second provenance gap;
