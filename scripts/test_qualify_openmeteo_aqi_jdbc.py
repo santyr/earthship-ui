@@ -15,3 +15,4 @@ def test_closed_aqi_jdbc_candidates_preserve_the_default():
     assert module.CANDIDATES['forecast'] == (
         'Forecast_AQI', module.ROOT / 'openhab/file-config/items/openmeteo-forecast-aqi.items')
     assert module.ITEM == module.CANDIDATES['current'][0]
+    assert module.TEST_VALUES == {'current': '42.5', 'forecast': 'REFRESH'}

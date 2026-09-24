@@ -24,6 +24,7 @@ run = isolated.run
 IMAGE = isolated.provider.isolated.IMAGE
 ITEM = 'Current_US_AQI'
 VALUE = '42.5'  # Disposable test value, never sent to production.
+TEST_VALUES = {'current': '42.5', 'forecast': 'REFRESH'}
 CANDIDATES = {
     'current': ('Current_US_AQI', ROOT / 'openhab/file-config/items/openmeteo-current-aqi.items'),
     'forecast': ('Forecast_AQI', ROOT / 'openhab/file-config/items/openmeteo-forecast-aqi.items'),
@@ -80,11 +81,12 @@ def rows(container, header):
 
 
 def main():
-    global ITEM
+    global ITEM, VALUE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', choices=tuple(CANDIDATES), default='current')
     args = parser.parse_args()
     ITEM, source = CANDIDATES[args.candidate]
+    VALUE = TEST_VALUES[args.candidate]
     marker = secrets.token_hex(8)
     with Database() as database:
         container = None
