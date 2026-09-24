@@ -265,9 +265,20 @@ shared receipt reader and an optional north-wall daily quality flag, with
 September 23 restricted read-only receipt recheck found three distinct gaps,
 85,954.173886 qualified seconds and a 373.823224-second maximum gap. This
 would qualify the supporting row under the existing 90% daily threshold,
-not prove complete-day learning coverage. Live activation remains off:
-`energy_power_writer` lacks SELECT on only `public.item0646`; the exact grant
-was requested, and a dry-run, service wiring and natural publication remain.
+not prove complete-day learning coverage. The source-only stage was off at
+that checkpoint:
+`energy_power_writer` lacks SELECT on `public.item0646`; a follow-up uses the
+existing private `weather_temperature_reader` credential instead, so the
+earlier requested grant is unnecessary and must not be applied. A full adapter
+read returned quality `ok`, coverage 0.9948399755 and three gaps with no
+database write. A full September 23 aggregate dry-run subsequently returned
+the same quality and gap result, all 858 Solar_PV tests passed, and a new
+repo-managed user-service drop-in was installed with matching source/installed
+hash `79783e6f031372a31cf1e947153bae68ca7fc347852b9feb7a093add06b58b48`.
+Systemd readback shows the existing power flag plus both restricted temperature
+flags and shared module path; the service remains idle until its natural
+September 25 00:21 MDT timer. No early aggregate or UI publication occurred.
+That natural writer and publisher readback remain the live completion gate.
 Do not relabel from its held numeric Item or general station health status.
 
 The forecast-intelligence SoC path still used change-only `BMS_SOC` rows for
