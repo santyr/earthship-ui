@@ -147,3 +147,17 @@ versus +0.540°F persistence. The six-hour captured set remains four
 overlapping pairs (model MAE 5.4265°F versus persistence 2.2500°F), only one
 non-overlapping pair. No captured 24-hour target was scored. These are
 observational, not independent action outcomes or evidence for promotion.
+
+At September 24 03:54 MDT, the next natural timer invocation exited 0 after
+four seconds. Its 09:54:53.209493Z decision produced a private archive with
+240 forecast rows; the archive verifier accepted its complete digest set and
+the archived output matched the live `Thermal_Model_JSON` exactly. The Item
+remained `shadow`, low confidence, with no candidate schedule. A read-only
+strict rescore now has nine non-overlapping, one-hour pairs from the current
+revision: model MAE 1.4667°F versus same-origin persistence 0.5800°F, with
+negative model bias and 9/9 broad interval coverage (mean width 10.4139°F).
+Six overlapping six-hour pairs remain at model MAE 4.7023°F versus persistence
+2.4300°F; only two are non-overlapping (4.9995°F versus 3.1500°F). All eleven
+capture-qualified 24-hour targets in the bounded audit were not yet due.
+This is verified natural publication and another unfavorable short-horizon
+score, not action compliance, model tuning or grounds to leave shadow mode.

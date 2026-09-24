@@ -164,6 +164,12 @@ and broad 10.4139°F intervals. Six overlapping six-hour pairs had model MAE
 versus 3.15°F). Both horizons still argue against shadow exit. No model,
 threshold, advice or action authority was changed. The strict 24-hour audit
 found all ten queried publication targets not yet due and scored none.
+The September 24 03:54 MDT natural shadow invocation exited 0; its exact
+240-row forcing archive verified and matched the live low-confidence shadow
+Item, still with no candidate. Nine independent one-hour pairs now score
+model/persistence MAE 1.4667°F/0.5800°F; six overlapping six-hour pairs remain
+4.7023°F/2.4300°F, and all eleven captured 24-hour targets are not yet due.
+This strengthens the no-graduation evidence without changing the model.
 The new bounded, read-only
 [operational-origin census](2026-09-23-thermal-historical-blend-audit.md)
 paired 11/12 six-hourly origins with 24-hour qualified indoor outcomes and
