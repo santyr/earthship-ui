@@ -7,6 +7,21 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 24, 2026
 
+At 06:11–06:17 MDT, read-only live preflights for the four staged
+forecast-intelligence Number Items all passed: curtailment ID 574/eight rows,
+PV-today ID 573/71 rows, tomorrow trough ID 575/68 rows, and trough-error
+ID 584/67 rows. Their release guards remain off and all providers remain
+managed pending the natural 06:40 qualified-SoC run. The `gForecast` Group
+read-only preflight also passed with ten members and unchanged IDs 563–572;
+its proposed production stop/restart still awaits a separate operator decision,
+and the 06:40/06:50 jobs plus 06:53 sunrise make this morning an unsuitable
+maintenance window. The current file/managed ownership inventory has zero
+issues. A fresh AC evidence census from activation through 12:17Z found
+10,799 sequential receipts in one epoch, one original startup barrier and
+10,798 valid rows; the longest inter-receipt gap was 7.167 seconds. This is
+ongoing observational continuity, not a completed AC day, fault/restart proof,
+or authority to publish load.
+
 The Weather "Next 14 Hours" panel now selects the current hour plus thirteen
 later hours from fresh `Forecast_10Day_JSON` detail, which is generated from
 the same learned hourly corrections as the compact JSON. It no longer keeps
