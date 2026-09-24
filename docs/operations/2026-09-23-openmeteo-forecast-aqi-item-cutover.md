@@ -38,10 +38,22 @@ and the same two historical rows. The source's old “prepared only” comment
 remains a guard against installing it on another host while managed providers
 still exist; it does not describe this host after the verified transfer.
 
-This is a provider/state/history cutover receipt, not yet a natural-writer
-receipt. The first post-transfer hourly OpenMeteo refresh must produce the
-paired 48-value `ItemTimeSeriesEvent` and `ItemTimeSeriesUpdatedEvent` for
-`Forecast_AQI` under the file-owned link. `REFRESH` must not be presented as a
-numeric AQI, and no new JDBC row is expected merely from an unchanged special
-state. No synthetic production state, REFRESH command, binding fetch or full
-OpenHAB restart was used to claim that behavior.
+An 18:01:14 MDT 48-value time-series pair occurred during the provider
+transfer, so it was not counted as natural binding recovery. The next hourly
+OpenMeteo fetch at **18:51:28 MDT** emitted the natural
+`ItemTimeSeriesEvent`/`ItemTimeSeriesUpdatedEvent` pair for `Forecast_AQI`,
+each with 48 values. The same fetch emitted a 48-value `Forecast_Temp` pair
+and changed file-owned `Current_US_AQI` from 34.884262 to 35.598328 with
+the binding channel named as source. This closes the first natural
+post-transfer forecast-series writer gate without a forced refresh.
+
+Subsequent readback found installed/source SHA-256 still identical, mode
+0644, `Forecast_AQI` and its one exact link both `editable:false`, AQI Thing
+ONLINE, Item state still `REFRESH`, and stable JDBC Item identity 582 with
+the same two legacy `REFRESH` rows. The time series is not represented by
+those scalar JDBC rows and no numeric AQI is inferred from `REFRESH`.
+The read-only file-first inventory returned zero issues (416 managed/15
+nonmanaged Items, 259/4 links, 81/3 Things, 36 managed rules and one
+file-owned persistence service). No synthetic production state, REFRESH
+command, binding fetch or full OpenHAB restart was used. This qualifies the
+first natural writer, not indefinite operation or off-host recovery.

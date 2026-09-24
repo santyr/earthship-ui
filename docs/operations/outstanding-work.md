@@ -296,8 +296,12 @@ OpenHAB provider/rollback and isolated exact `REFRESH`-state/JDBC recovery
 qualification. The attended cutover preserved the special state and two
 older `REFRESH` JDBC rows under Item ID 582; the exact source and link are
 noneditable and declared in the ownership inventory. The first natural
-post-transfer 48-value binding event remains to be observed. This Item is not
-in `gForecast`, and its JDBC REST history remains an incomplete view of the
+post-transfer hourly binding fetch at 18:51:28 MDT emitted both expected
+48-value time-series events; the same fetch updated current AQI from its
+binding channel. The Item/link remained file-owned, `REFRESH` and ONLINE,
+JDBC ID 582/two older rows stayed unchanged, and the ownership inventory
+had zero issues. This Item is not in `gForecast`, and its JDBC REST history
+remains an incomplete view of the
 two older SQL rows; no numeric AQI or forecast series was invented. See the
 [cutover receipt](2026-09-23-openmeteo-forecast-aqi-item-cutover.md).
 
