@@ -364,6 +364,21 @@ of a fresh scalar update. No live rule or UI direct consumer uses those two
 scalars; the UI uses the separately verified daily forecast JSON. File-provider
 and time-series writer cutover is verified, without claiming scalar freshness.
 
+The next observational OpenMeteo candidate is the coupled hourly
+`Forecast_Cloudiness`/`Forecast_Radiation`/`Forecast_PrecipProb` group. Read-only
+preflight found three managed `gForecast` Items, one empty-config managed link
+each to the file-owned forecast Thing, JDBC IDs 565/566/567 with 711 rows each,
+and natural 48-value series events at 19:51 MDT. Their states are 1,
+0 W/m² and 0.16 respectively; no registered live rule body directly names
+these Items. The exact source is prepared in
+`openhab/file-config/items/openmeteo-forecast-meteorology.items`. A disposable
+networkless restored-registry OpenHAB 5.2.1 run verified the three exact
+file-owned Item/link definitions on first boot and full restart, then removed
+the file and restored the original managed definitions. Its owned container
+was removed; production remained managed with a clean ownership inventory.
+JDBC scalar/history and 48/48/48 future-series recovery, private backup and
+an attended natural-writer gate remain required before live transfer.
+
 ### Explicit active goal: graduate the thermal model from shadow
 
 Operator reaffirmed that Hex must perform the requisite work, without rushing

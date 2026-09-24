@@ -23,6 +23,7 @@ CHANNELS = {
     'Forecast_Daily_High': 'openmeteo:forecast:local:site:forecastDaily#temperature-max',
     'Forecast_Daily_Low': 'openmeteo:forecast:local:site:forecastDaily#temperature-min',
 }
+TYPES = {name: 'Number:Temperature' for name in CHANNELS}
 FIELDS = ('name', 'type', 'label', 'category', 'tags', 'groupNames')
 
 
@@ -78,7 +79,7 @@ def put(container, path, header, payload):
 def main():
     source = SOURCE.read_bytes()
     for name, channel in CHANNELS.items():
-        declaration = (f'Number:Temperature {name} ').encode()
+        declaration = (f'{TYPES[name]} {name} ').encode()
         if source.count(declaration) != 1 or source.count(channel.encode()) != 1:
             raise RuntimeError('prepared forecast Item source is not exact')
     originals = {}
@@ -87,7 +88,7 @@ def main():
         item = aqi.oh.get('/items/' + name + '?metadata=.*')
         matches = [row for row in live_links if row.get('itemName') == name]
         if (item.get('editable') is not True
-                or item.get('type') != 'Number:Temperature'
+                or item.get('type') != TYPES[name]
                 or item.get('groupNames') != ['gForecast']
                 or len(matches) != 1 or matches[0].get('editable') is not True
                 or matches[0].get('channelUID') != channel

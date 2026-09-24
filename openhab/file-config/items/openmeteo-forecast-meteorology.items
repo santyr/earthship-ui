@@ -1,0 +1,5 @@
+// Bound OpenMeteo hourly forecast series. Keep these three Items together so
+// their file-provider transfer preserves the current gForecast/JDBC contract.
+Number:Dimensionless Forecast_Cloudiness "Forecast Cloud Cover" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastHourly#cloudiness" }
+Number:Intensity Forecast_Radiation "Forecast Solar Radiation" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastHourly#shortwave-radiation" }
+Number:Dimensionless Forecast_PrecipProb "Forecast Precipitation Probability" (gForecast) ["forecast"] { channel="openmeteo:forecast:local:site:forecastHourly#precipitation-probability" }
