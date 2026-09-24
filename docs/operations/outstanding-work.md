@@ -700,6 +700,10 @@ gate, backup or service stop on `--apply`; a new regression verifies this
 refusal. All eight focused adapter tests pass, and live read-only `--check`
 continues to pass. The release gate must remain off until the attended
 restart/protected-control plan is specifically approved and qualified.
+The [proposed attended cutover checklist](2026-09-24-gforecast-cold-cutover-plan.md)
+now makes the possible multi-minute whole-OpenHAB outage, physical monitoring,
+stopped JSONDB edit, exact rollback and post-restart natural JDBC writer gate
+explicit. It is a proposal, not authority to flip the release gate.
 
 ### Explicit active goal: graduate the thermal model from shadow
 
