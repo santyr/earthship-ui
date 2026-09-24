@@ -136,6 +136,7 @@ def test_apply_refuses_unreleased_live_restart_before_pump_or_service_work(
     monkeypatch.setattr(group.transfer, 'healthy_thing', lambda: True)
     monkeypatch.setattr(group, 'jdbc_baseline', lambda: {})
     monkeypatch.setattr(group, 'daily_gate', lambda: True)
+    monkeypatch.setattr(group, 'RELEASE_READY', False)
     monkeypatch.setattr(group, 'pumps_off', lambda:
                         pytest.fail('pump gate reached despite unreleased restart'))
     monkeypatch.setattr(group, 'command', lambda *args, **kwargs:

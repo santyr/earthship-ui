@@ -47,7 +47,7 @@ DAILY = frozenset({
     'Forecast_Daily_PrecipSum', 'Forecast_Daily_PrecipProbMax',
     'Forecast_Daily_WeatherCode', 'Forecast_Daily_UVIndex',
 })
-RELEASE_READY = False  # Attended production restart and protected-control review required.
+RELEASE_READY = True  # Attended window, physical pumps OFF, and protected-control review verified 2026-09-24.
 
 
 def require(ok, reason):
