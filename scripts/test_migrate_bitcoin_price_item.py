@@ -30,6 +30,15 @@ def test_number_and_exact_provider_guards():
     assert not module.exact_link(link, file_owned=True)
 
 
+def test_group_semantics_must_survive_item_transfer(monkeypatch):
+    group = {'editable': True, 'type': 'Group', 'label': 'BTC Price',
+             'metadata': {'semantics': {'value': 'Equipment', 'editable': False}}}
+    monkeypatch.setattr(module.oh, 'get', lambda path: group)
+    assert module.group_unchanged()
+    group['metadata'] = {}
+    assert not module.group_unchanged()
+
+
 def test_natural_receipt_must_be_new_and_match_file_state(monkeypatch):
     at = datetime(2026, 9, 24, 4, tzinfo=timezone.utc)
     monkeypatch.setattr(module, 'get_item', lambda: {'state': '84242'})
@@ -133,6 +142,7 @@ def test_rollback_restores_exact_managed_item_and_link(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'links', lambda: current['links'])
     monkeypatch.setattr(module, 'members',
                         lambda: {module.ITEM, 'BTC_Price_24h_PercentChange'})
+    monkeypatch.setattr(module, 'group_unchanged', lambda: True)
     monkeypatch.setattr(module, 'request', request)
     monkeypatch.setattr(module, 'wait', lambda predicate, seconds=90: predicate())
     module.rollback(tmp_path, item, link)

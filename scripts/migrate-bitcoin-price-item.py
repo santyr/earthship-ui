@@ -70,6 +70,14 @@ def members():
             if 'BTC_Price' in entry.get('groupNames', [])}
 
 
+def group_unchanged():
+    group = oh.get('/items/BTC_Price?metadata=.*')
+    return (group.get('editable') is True and group.get('type') == 'Group'
+            and group.get('label') == 'BTC Price'
+            and group.get('metadata') == {
+                'semantics': {'value': 'Equipment', 'editable': False}})
+
+
 def exact_item(entry, *, file_owned):
     return (isinstance(entry, dict)
             and entry.get('editable') is (not file_owned)
@@ -95,7 +103,8 @@ def ready(*, file_owned):
     found = links()
     return (exact_item(entry, file_owned=file_owned)
             and len(found) == 1 and exact_link(found[0], file_owned=file_owned)
-            and members() == {ITEM, 'BTC_Price_24h_PercentChange'})
+            and members() == {ITEM, 'BTC_Price_24h_PercentChange'}
+            and group_unchanged())
 
 
 def absent():

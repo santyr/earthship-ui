@@ -627,6 +627,20 @@ rollback. The 22:09 MDT live `--check` passed with Item34 and 1,089,985
 historical rows. Before any live `--apply`, review the backup and rollback
 path, verify recovery from the private archive, and keep the Group's managed
 semantic metadata and two-member references intact.
+The private production Item34 snapshot at
+`/home/sat/.local/state/openhab-config-migration/bitcoin-price-20260924T041023Z`
+was then restored into a networkless disposable PostgreSQL 16 container.
+The restored fixed cutoff contained 1,089,986 rows and exactly matched its
+saved SHA-256 prefix digest
+`ef0f628b85404fd0ddb313a931a1fd346bae7558cee66d789ef4a437c9f5909d`.
+The archive hash matched its private proof, and the disposable container was
+removed. The private recovery archive was retained. This closes the actual
+production-archive restore prerequisite, but not the live Item cutover.
+The adapter now checks that the managed `BTC_Price` Group retains its semantic
+`Equipment` metadata during provider readback; thirteen focused tests pass.
+The live `RELEASE_READY` gate is still false. The environment's safety review
+rejected enabling that gate without a specifically approved attended
+production Item/link cutover plan; no alternate activation path was used.
 
 This section supersedes older deployment snapshots below; historical receipts
 are retained as evidence, not current-state claims.
