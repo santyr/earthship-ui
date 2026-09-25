@@ -14,6 +14,12 @@ cutover, and no inferred DC/AC balance. The missing intervals remain excluded.
 This is not an appended AC-day revision or a v4 publication; the AC writer and
 publisher remain off pending their separate fault/restart, retention/restore,
 and activation gates. See the [read-first UI gate](ac-load-ui-v4.md).
+At 08:40 MDT a new write-free `energy-ui-publish --dry-run` validated the
+current v4 projection against live read-only data. It reported AC unavailable
+because the revision table is still empty, emitted no payload body, and left
+the live `Energy_Analytics_JSON` v3 Item unchanged. The Solar_PV full suite
+passed 862 tests. This closes only the empty-table preview path; a populated
+v4 revision and production fault/restart recovery remain separate gates.
 
 The September 25 06:40 natural `forecast-intel.service` run exited zero. Its
 `Forecast_Prediction_Receipt_JSON` reports today's prediction issued at

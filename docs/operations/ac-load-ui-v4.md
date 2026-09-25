@@ -29,3 +29,12 @@ The output explicitly withheld `balance_kwh` as cross-domain. This closes the
 first-day dry-run gate only: no daily AC revision was appended or published.
 Review the revision backup, fault/restart/retention gates and UI semantics
 separately before activating the writer or v4 publisher.
+
+Solar_PV now has a separate `energy-ui-publish --dry-run` path that performs
+the production read, v4 projection and exact payload encoding without a token
+or OpenHAB write. The September 25 read-only trial validated a 2,403-byte v4
+payload with AC status `unavailable`, as expected while the daily revision
+table is empty; immediate readback left `Energy_Analytics_JSON` unchanged on
+v3. The full analytics suite passed 862 tests. This validates the preview
+contract, not a populated AC day or authority to switch the installed
+publisher to v4.
