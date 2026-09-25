@@ -95,7 +95,7 @@ def ephemeral_postgres():
         yield EphemeralPostgres(admin_dsn, runtime_dsn, runtime_role, "postgres")
     finally:
         subprocess.run(
-            ["docker", "rm", "--force", container],
+            ["docker", "rm", "--force", "--volumes", container],
             check=False,
             capture_output=True,
             text=True,

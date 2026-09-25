@@ -142,7 +142,9 @@ def main():
             label = run(['docker', 'inspect', '--format', '{{index .Config.Labels "hex.full.restore"}}', container]).decode().strip()
             if label != marker:
                 raise RuntimeError('container ownership mismatch; cleanup refused')
-            run(['docker', 'rm', '--force', container])
+            # postgres:16 declares an anonymous data volume. Remove only the
+            # verified owned container and its attached anonymous volumes.
+            run(['docker', 'rm', '--force', '--volumes', container])
             print('owned_restore_container_removed=true', flush=True)
         log.close()
 

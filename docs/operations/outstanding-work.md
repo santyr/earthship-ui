@@ -7,6 +7,14 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 25, 2026
 
+A new [qualified-day recovery point](2026-09-25-qualified-day-recovery-point.md)
+captured after daily snapshot ID 5 passed a full 515-table isolated data
+restore, with exact source/restore fingerprints and a private hash-verified
+2.2 GB archive. The monitored manifest now points to this point; the timer
+remains active. Its same-host-only status is still Actionable, not disaster
+recovery. Restore/test containers and their exact anonymous volumes were
+cleaned, and the two leaking disposable-database fixtures were corrected.
+
 The September 25 00:21 qualified daily aggregate failed closed on
 `source reference drift: solar.sunrise_at`; its dry run had not checked the
 apply-only reference precondition. A first preimage-checked two-row repair
