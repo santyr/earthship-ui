@@ -7,6 +7,23 @@ outside this Earthship workstream.
 
 ## Current checkpoint — September 25, 2026
 
+The September 25 00:21 qualified daily aggregate failed closed on
+`source reference drift: solar.sunrise_at`; its dry run had not checked the
+apply-only reference precondition. A first preimage-checked two-row repair
+rolled back when full verification found three additional Living Office
+source drifts. Read-only census established that exactly five of 21 source
+references differed, only in the reviewed Astro self-freshness and room
+sample-TTL fields. A second guarded transaction changed those five exact
+rows and verified all 21 source and three bank references before commit.
+The unchanged September 24 aggregate dry run passed, and a single missed-day
+apply inserted qualified snapshot ID 5 with 21 source-quality rows. Readback
+found Astro, Living Office and north-wall rows `ok` with explicit coverage;
+the normal 08:50 v3 publisher exited zero and advanced `Energy_Analytics_JSON`
+to September 24. No AC-load revision or v4 publication was enabled. Solar_PV
+now checks references in qualified dry runs as well as applies; its 863 tests
+and a restricted live dry run pass. A recovery point including snapshot 5
+remains a separate backup gate.
+
 At 08:20 MDT the first completed September 24 AC day passed the restricted
 reader `ac-day --dry-run`: 99.857528935% qualified AC coverage, 5.517215904
 kWh observed inverter output, the exact attested inverter-only topology and
