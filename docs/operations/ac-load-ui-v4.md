@@ -18,11 +18,14 @@ household load. The evidence Item continued to publish a fresh
 as zero Watts. The increase in missing time since the 12:29 MDT checkpoint
 was under one second; no second material outage was detected by this check.
 
-After local midnight, run the existing `ac-day --dry-run` for **2026-09-24**
-with `analytics/config/ac-evidence.json`,
-`analytics/config/power-evidence.json` and the restricted reader JDBC
-configuration. Confirm the closed Denver day, exact Item table and topology
-period, AC/PV coverage, positive observed quantities, and retained gaps.
-Do not run `--apply` or switch the publisher to v4 based on a pre-midnight
-partial interval. Review the first complete-day result, revision backup,
-fault/restart/retention gates and UI semantics separately before activation.
+The first completed-day restricted-reader `ac-day --dry-run` for **2026-09-24**
+passed on September 25 at 08:20 MDT. It selected the exact
+`Inverter_AC_Evidence_JSON` Item, midnight-to-midnight Denver window,
+September 23 20:55:12.284Z evidence/topology cutover and still-open topology
+attestation. Qualified AC coverage was 0.9985752893518797, observed inverter
+output 5.5172159036110715 kWh, common AC/PV coverage 0.9985123148148157,
+common-window AC 5.516895523888905 kWh and DC PV 4.415048876388867 kWh.
+The output explicitly withheld `balance_kwh` as cross-domain. This closes the
+first-day dry-run gate only: no daily AC revision was appended or published.
+Review the revision backup, fault/restart/retention gates and UI semantics
+separately before activating the writer or v4 publisher.

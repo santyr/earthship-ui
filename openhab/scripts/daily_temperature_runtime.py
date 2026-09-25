@@ -19,7 +19,8 @@ COVERAGE_POLICY = 'complete_receipt_coverage_v1'
 SOURCE_POLICY = dict(model='Fineoffset-WH65B', sensor_id=206,
                      minimum_f=-40, maximum_f=140, validity_seconds=120)
 SUMMARY_FIELDS = {'observed_high_f', 'observed_low_f', 'covered_seconds',
-                  'total_seconds', 'maximum_gap_seconds', 'fully_covered', 'history_sha256'}
+                  'total_seconds', 'maximum_gap_seconds', 'gap_count',
+                  'fully_covered', 'history_sha256'}
 SITE_ZONE = ZoneInfo('America/Denver')
 
 
@@ -74,9 +75,12 @@ def validate_result(result, request):
     for key in ('covered_seconds', 'total_seconds', 'maximum_gap_seconds'):
         if not finite(summary[key]): raise ValueError('finite coverage required')
     total, covered, gap = (summary[k] for k in ('total_seconds', 'covered_seconds', 'maximum_gap_seconds'))
+    gaps = summary['gap_count']
     if (total != (end-start).total_seconds() or not 0 <= covered <= total
             or gap < 0 or round(gap * 1000000) > round(total * 1000000) - round(covered * 1000000)
             or (gap == 0) != (covered == total)
+            or type(gaps) is not int or not 0 <= gaps <= 10001
+            or (gaps == 0) != (covered == total)
             or type(summary['fully_covered']) is not bool
             or summary['fully_covered'] != (covered == total)):
         raise ValueError('inconsistent coverage')

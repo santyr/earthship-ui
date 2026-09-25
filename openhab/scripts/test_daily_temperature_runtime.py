@@ -19,7 +19,8 @@ def payload():
     return dict(version=1, request=dict(REQUEST), stream='outdoor',
                 source_policy=dict(runtime.SOURCE_POLICY), coverage_policy=runtime.COVERAGE_POLICY,
                 summary=dict(observed_high_f=80, observed_low_f=40, covered_seconds=86400,
-                             total_seconds=86400, maximum_gap_seconds=0, fully_covered=True,
+                             total_seconds=86400, maximum_gap_seconds=0, gap_count=0,
+                             fully_covered=True,
                              history_sha256='a' * 64))
 
 
@@ -60,7 +61,8 @@ def test_invalid_activation_never_reads_or_falls_back(monkeypatch, update):
 
 def test_partial_coverage_is_not_a_daily_training_actual(monkeypatch):
     result = payload()
-    result['summary'].update(covered_seconds=86399, maximum_gap_seconds=1, fully_covered=False)
+    result['summary'].update(covered_seconds=86399, maximum_gap_seconds=1,
+                             gap_count=1, fully_covered=False)
     child(monkeypatch, result)
     assert runtime.read_daily_actuals(START, END, ASSESSED, ENV) == (None, None, None)
 
@@ -68,6 +70,7 @@ def test_partial_coverage_is_not_a_daily_training_actual(monkeypatch):
 @pytest.mark.parametrize('key,value', [
     ('covered_seconds', True), ('covered_seconds', float('nan')),
     ('total_seconds', 86401), ('maximum_gap_seconds', 1),
+    ('gap_count', 1), ('gap_count', True), ('gap_count', -1), ('gap_count', 10002),
     ('fully_covered', 1), ('fully_covered', False),
     ('observed_high_f', 141), ('observed_low_f', 81),
     ('observed_low_f', None), ('history_sha256', 'invalid'),
@@ -75,6 +78,13 @@ def test_partial_coverage_is_not_a_daily_training_actual(monkeypatch):
 def test_invalid_summary_refuses_both_actuals(monkeypatch, key, value):
     result = payload()
     result['summary'][key] = value
+    child(monkeypatch, result)
+    assert runtime.read_daily_actuals(START, END, ASSESSED, ENV) == (None, None, None)
+
+
+def test_missing_gap_count_refuses_both_actuals(monkeypatch):
+    result = payload()
+    del result['summary']['gap_count']
     child(monkeypatch, result)
     assert runtime.read_daily_actuals(START, END, ASSESSED, ENV) == (None, None, None)
 

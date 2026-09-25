@@ -5,7 +5,33 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
-## Current checkpoint — September 24, 2026
+## Current checkpoint — September 25, 2026
+
+At 08:20 MDT the first completed September 24 AC day passed the restricted
+reader `ac-day --dry-run`: 99.857528935% qualified AC coverage, 5.517215904
+kWh observed inverter output, the exact attested inverter-only topology and
+cutover, and no inferred DC/AC balance. The missing intervals remain excluded.
+This is not an appended AC-day revision or a v4 publication; the AC writer and
+publisher remain off pending their separate fault/restart, retention/restore,
+and activation gates. See the [read-first UI gate](ac-load-ui-v4.md).
+
+The September 25 06:40 natural `forecast-intel.service` run exited zero. Its
+`Forecast_Prediction_Receipt_JSON` reports today's prediction issued at
+12:40:30Z. REST `lastStateUpdate` advanced for all six September 24 cutover
+Items. JDBC returned one new receipt each for the changed tomorrow high, low
+and precipitation probability. The two learned correction values and
+`Thermal_Advisory` did not change; the canonical `everyChange` persistence
+strategy correctly wrote no new rows for those three. Do not treat unchanged
+JDBC history as stale telemetry or require a new row to prove a successful
+unchanged-value publication. The forecast log also reports 24/24 hourly
+qualified targets scored, but skipped daily high/low scoring for incomplete
+receipt coverage. A read-only closed-day replay quantified 86,339.748246 of
+86,400 seconds covered, three gaps and a maximum gap of 46.218774 seconds;
+the strict complete-coverage policy correctly withheld daily extrema. The
+repository's newer reader reports `gap_count`, while the installed reader did
+not. The daily consumer now validates that field before the two-file install;
+183 forecast/evidence regression tests passed. This schema compatibility fix
+does not relax the daily scoring threshold or backfill an unqualified day.
 
 At 17:28 MDT the restricted read-only AC evidence reader found 12,250
 qualified intervals since Denver midnight, with 99.80592% coverage and
