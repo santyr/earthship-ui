@@ -29,9 +29,13 @@ receipt coverage. A read-only closed-day replay quantified 86,339.748246 of
 86,400 seconds covered, three gaps and a maximum gap of 46.218774 seconds;
 the strict complete-coverage policy correctly withheld daily extrema. The
 repository's newer reader reports `gap_count`, while the installed reader did
-not. The daily consumer now validates that field before the two-file install;
-183 forecast/evidence regression tests passed. This schema compatibility fix
-does not relax the daily scoring threshold or backfill an unqualified day.
+not. The daily consumer now validates that field; 185 forecast/evidence
+regression tests passed. Both reviewed modules were installed byte-for-byte
+at their production paths while the forecast and thermal services were idle.
+An installed-path read-only replay returned the expected incomplete-coverage
+skip. This schema compatibility fix does not relax the daily scoring threshold
+or backfill an unqualified day; tomorrow's natural run remains the runtime
+gate for the new installed pair.
 
 At 17:28 MDT the restricted read-only AC evidence reader found 12,250
 qualified intervals since Denver midnight, with 99.80592% coverage and
