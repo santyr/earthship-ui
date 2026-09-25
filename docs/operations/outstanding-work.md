@@ -2178,6 +2178,19 @@ and basis-dwell sanity correction; these old findings must not be read as
 currently unpatched. The broader source-by-source historical-algorithm audit
 remains open.
 
+September 25 live read-only follow-up: installed
+`openhab_sanity_check.py` still matches the tracked atomic-freshness source
+SHA-256 `8f1b2b2ede369a3cc725a898f6e177aad5126fd42d2811bd9e36d50841b805af`.
+At about 08:33 MDT the `BMS_SOC` value had not changed for roughly 23 minutes,
+but the independent `BMS_SOC_Evidence_JSON` reported a new valid acquisition
+for the same 77% value; the checker's pure validator returned no freshness
+problem. Natural sanity runs through 08:31 reported all checks passed, with
+no `fresh:bms` warning in that day's service journal. The tracked UI alert,
+SoC chart endpoint, qualified forecast and Solar_PV source paths use atomic
+evidence rather than the age of the change-only SoC row. This closes the
+current false-stale-SoC notification check, not the broader physical-source
+or historical-algorithm audit.
+
 Corrective alert design: `docs/superpowers/specs/2026-09-05-change-only-alerts-design.md`.
 Written review is pending; no corrective alert code has been deployed. September 5
 read-only verification confirmed live bulk REST lastStateUpdate and targeted
