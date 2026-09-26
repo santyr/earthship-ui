@@ -1165,6 +1165,33 @@ def test_multihorizon_gradient_matches_centered_difference():
     )
 
 
+def test_multihorizon_prepared_forcings_preserve_objective_and_gradient(monkeypatch):
+    training, _ = synthetic_2r2c_days(days=4, seed=117)
+    endpoints = dynamics._select_multihorizon_endpoints(training)
+    vector = dynamics._coefficient_vector(
+        dynamics.DynamicsModel(
+            version=2,
+            step_minutes=5,
+            air_coefficients=TRUE_AIR_COEFFICIENTS,
+            mass_coefficients=TRUE_MASS_COEFFICIENTS,
+            glazing_observation_coefficients=TRUE_GLAZING_COEFFICIENTS,
+        )
+    )
+    original = dynamics._multihorizon_objective_and_gradient(vector, endpoints)
+    prepared = dynamics._prepare_multihorizon_forcings(endpoints)
+
+    def unexpected_recalculation(_row):
+        raise AssertionError("solar forcing was recalculated during optimization")
+
+    monkeypatch.setattr(dynamics, "_solar_terms", unexpected_recalculation)
+    for _ in range(2):
+        cached = dynamics._multihorizon_objective_and_gradient(
+            vector, endpoints, prepared_forcings=prepared
+        )
+        assert cached[0] == original[0]
+        np.testing.assert_array_equal(cached[1], original[1])
+
+
 def test_multihorizon_refinement_reduces_latent_observer_open_loop_drift():
     training, holdout = synthetic_latent_observer_days(days=28, seed=127)
     initial, _ = dynamics._fit_five_minute_dynamics(

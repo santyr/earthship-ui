@@ -683,8 +683,24 @@ def _model_from_vector(vector, glazing):
     )
 
 
+def _prepare_multihorizon_forcings(endpoints):
+    """Compute coefficient-independent forcing features once per fit."""
+    prepared = {}
+    for group in endpoints.values():
+        for endpoint in group:
+            for forcing in endpoint.forcings:
+                key = id(forcing)
+                if key not in prepared:
+                    prepared[key] = (
+                        float(_value(forcing, "outdoor_f")),
+                        _vent_forcing(forcing),
+                        _solar_terms(forcing),
+                    )
+    return prepared
+
+
 def _multihorizon_objective_and_gradient(
-    vector, endpoints, *, sensitivity_rows=None
+    vector, endpoints, *, sensitivity_rows=None, prepared_forcings=None
 ):
     values = np.asarray(vector, dtype=float)
     expected = len(AIR_NAMES) + len(MASS_NAMES)
@@ -710,9 +726,12 @@ def _multihorizon_objective_and_gradient(
             )
             sensitivity = np.zeros((2, expected), dtype=float)
             for forcing in endpoint.forcings:
-                outdoor = float(_value(forcing, "outdoor_f"))
-                vent = _vent_forcing(forcing)
-                solar = _solar_terms(forcing)
+                if prepared_forcings is None:
+                    outdoor = float(_value(forcing, "outdoor_f"))
+                    vent = _vent_forcing(forcing)
+                    solar = _solar_terms(forcing)
+                else:
+                    outdoor, vent, solar = prepared_forcings[id(forcing)]
                 state_jacobian = np.asarray(
                     (
                         (
@@ -877,6 +896,7 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
             )
 
     initial_vector = _coefficient_vector(initial)
+    prepared_forcings = _prepare_multihorizon_forcings(endpoints)
     inactive = set(inactive_features)
     active_indices = tuple(
         index
@@ -896,7 +916,8 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
     ) / spans[active]
     sensitivity_rows = []
     initial_objective, _ = _multihorizon_objective_and_gradient(
-        initial_vector, endpoints, sensitivity_rows=sensitivity_rows
+        initial_vector, endpoints, sensitivity_rows=sensitivity_rows,
+        prepared_forcings=prepared_forcings,
     )
     _validate_multihorizon_rank(sensitivity_rows, active_indices)
     cache = {}
@@ -908,7 +929,9 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
         key = candidate.tobytes()
         if key not in cache:
             loss, physical_gradient = (
-                _multihorizon_objective_and_gradient(candidate, endpoints)
+                _multihorizon_objective_and_gradient(
+                    candidate, endpoints, prepared_forcings=prepared_forcings
+                )
             )
             cache[key] = (
                 loss,
