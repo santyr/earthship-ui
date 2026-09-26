@@ -5,6 +5,22 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
+## Standing efficiency requirement — September 26, 2026
+
+Efficiency is part of the Earthship UI/OpenHAB goal across algorithms, data
+pipelines, and UI work. Profile or measure meaningful bottlenecks, reduce
+unnecessary CPU, memory, I/O and repeated work, and preserve model quality,
+functional behavior, safety gates and reproducible evidence. Do not trade
+correctness for a faster headline number. The broader goal remains paused
+until the user resumes it.
+
+The thermal trainer's coefficient-independent forcing cache was committed and
+deployed after the September 26 natural run finished; synthetic full-fit timing
+improved from 5.12 to 3.98 seconds, with exact objective/gradient parity and
+153 thermal tests passing. The natural September 26 trainer used 0 B swap at
+peak; its nearly full host swap allocation was not active swapping in the
+sampled interval. Future live-run timing and further profiling remain open.
+
 ## Current checkpoint — September 25, 2026
 
 A new [qualified-day recovery point](2026-09-25-qualified-day-recovery-point.md)
