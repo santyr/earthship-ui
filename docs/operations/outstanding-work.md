@@ -65,6 +65,13 @@ conversion, while the live PV gain is pinned at its 1.3 upper bound. Keep the
 current alert policy unchanged until origin-linked, qualified chronological
 calibration tests cover both PV and the remaining dusk/overnight residual.
 
+A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
+finds 12-hour skill on eight independent mixed-revision windows but worse
+1- and 24-hour skill; all four independent 24-hour errors remain low despite
+mixed-sign outdoor forecast errors. This directs further diagnosis toward
+lead-time state/action drift, not a blanket weather offset or premature
+graduation.
+
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint
 windows). The first exact as-issued closed-vent replay improved one 24-hour

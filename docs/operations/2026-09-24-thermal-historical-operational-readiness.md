@@ -138,3 +138,29 @@ of that miss. It is not a causal training label, a broader vent calibration,
 or evidence to relax the shadow gate. Investigate model dynamics and forcing
 with chronological held-out data and confirmed actions before changing the
 baseline or promotion policy.
+
+## September 27 lead-time diagnostic
+
+A fresh read-only `--require-capture` score paired exact private forcing
+archives with qualified later indoor outcomes. The greedy non-overlapping
+windows score as follows; these are mixed artifact revisions and warm-season
+observations, not a randomized or untouched validation set.
+
+| Horizon | Independent pairs | Model MAE | Same-origin persistence MAE | Model signed bias |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 50 | 1.1875°F | 0.5472°F | -0.9893°F |
+| 6 hours | 15 | 3.4504°F | 3.1680°F | -2.7496°F |
+| 12 hours | 8 | 3.0833°F | 4.5900°F | -2.7445°F |
+| 24 hours | 4 | 4.1582°F | 1.4850°F | -4.1582°F |
+
+The 12-hour model advantage does not override the failed 1- and 24-hour
+comparison or low-confidence status. All four independent 24-hour model
+errors were low (-6.286, -6.877, -3.021 and -0.449°F), spanning four artifact
+revisions. Paired outdoor forecast errors changed sign (+1.64, -0.72, -8.58
+and +1.06°F), so a single outdoor-forecast offset cannot explain the common
+indoor sign. The eight independent 12-hour targets alternate day/night and
+also have mixed outdoor error signs. Investigate accumulated physical-state
+drift and action forcing by lead time with confirmed action states and a
+chronological holdout; do not fit a global constant correction to these four
+overlapping-season days. No model, interval, schedule, alert or control was
+changed by this audit.
