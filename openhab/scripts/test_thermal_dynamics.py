@@ -1097,6 +1097,22 @@ def test_rollout_confidence_is_minimum_over_complete_prefix():
     assert endpoint.confidence == 0.35
 
 
+def test_daily_endpoint_confidence_matches_naive_prefix_for_all_horizons():
+    training, _ = synthetic_2r2c_days(days=8, seed=107)
+    for index in range(0, len(training), 37):
+        training[index] = replace(
+            training[index], action_confidence=round((index % 11 + 1) / 12, 6)
+        )
+    training[390] = replace(training[390], vent_open=None)
+    for steps in dynamics.IDENTIFICATION_HORIZON_STEPS:
+        endpoints = dynamics._eligible_daily_endpoints(training, steps, ())
+        assert endpoints
+        for endpoint in endpoints:
+            assert endpoint.confidence == min(
+                float(row.action_confidence) for row in endpoint.forcings
+            )
+
+
 def test_inactive_forcing_activation_excludes_only_affected_horizon():
     training, _ = synthetic_2r2c_days(days=4, seed=109)
     activation = training[20].at

@@ -1,5 +1,6 @@
 """Pure fitting and simulation for the two-state Earthship thermal model."""
 
+from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -162,6 +163,26 @@ def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
         ):
             run_lengths[index] = 1 + run_lengths[index + 1]
 
+    # Every eligible prefix uses the minimum confidence of its next
+    # horizon_steps rows. Compute those overlapping minima once, rather than
+    # rescanning up to 288 rows for every candidate origin.
+    confidences = [
+        float(row.action_confidence) if valid else math.inf
+        for row, valid in zip(ordered, valid_rows)
+    ]
+    confidence_window = deque()
+    prefix_minimum = [None] * len(ordered)
+    for end_index in range(1, len(ordered)):
+        start_index = end_index - horizon_steps + 1
+        while confidence_window and confidence_window[0] < start_index:
+            confidence_window.popleft()
+        while (confidence_window
+               and confidences[end_index] <= confidences[confidence_window[-1]]):
+            confidence_window.pop()
+        confidence_window.append(end_index)
+        if end_index >= horizon_steps:
+            prefix_minimum[end_index - horizon_steps] = confidences[confidence_window[0]]
+
     best_by_day = {}
     for origin_index, origin in enumerate(ordered):
         if not valid_rows[origin_index]:
@@ -176,7 +197,7 @@ def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
             origin=origin,
             forcings=forcings,
             target=forcings[-1],
-            confidence=min(float(row.action_confidence) for row in forcings),
+            confidence=prefix_minimum[origin_index],
         )
         local_day = origin.at.astimezone(SITE_TIMEZONE).date()
         current = best_by_day.get(local_day)
