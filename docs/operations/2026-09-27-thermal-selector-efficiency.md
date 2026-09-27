@@ -54,3 +54,12 @@ The private rollback receipt is
 The installed module imports successfully and both timers again pass
 `timers-enabled`. The next natural shadow publication and September 28 trainer
 remain the runtime gates; no shadow-exit claim follows from this optimization.
+
+The natural September 27 16:15 MDT shadow service subsequently exited zero
+with 1.048 seconds CPU time. Live `Thermal_Model_JSON` advanced to a
+22:15:50.065912Z publication with `status=shadow`, low confidence, no
+candidate schedule and the accepted artifact's existing code revision.
+`Thermal_Advisory` remained `none|No thermal action needed`. This closes the
+post-install publisher/import compatibility check only. The optimized
+endpoint selection and rollout objective are exercised by tomorrow's 06:50
+training run, whose timing and artifact gates remain unverified.

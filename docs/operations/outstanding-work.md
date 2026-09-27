@@ -43,6 +43,9 @@ An additional scalar finite-state check in the same guarded runtime reduced
 the representative two-fit profile from 14.680 to 13.173 seconds without
 changing the physical objective or gradient. All 691 thermal tests passed;
 the next natural trainer still has to establish whole-run performance.
+The natural 16:15 shadow publisher then exited zero and refreshed the live
+shadow Item without a candidate or advisory change; tomorrow's training run
+remains the first whole-run performance gate for both optimizations.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and
