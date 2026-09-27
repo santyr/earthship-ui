@@ -50,6 +50,14 @@ coverage. The first natural AC-day timer execution remains to be observed.
 The recovery point is same-host only and predates the last two revisions;
 off-host disaster recovery remains Actionable.
 
+The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
+joins six frozen completed-night outcomes to their as-issued PV forecasts.
+The last three trough misses are -24, -19 and -21 points. Their PV misses
+explain only part of those gaps even under an optimistic linear battery
+conversion, while the live PV gain is pinned at its 1.3 upper bound. Keep the
+current alert policy unchanged until origin-linked, qualified chronological
+calibration tests cover both PV and the remaining dusk/overnight residual.
+
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint
 windows). The first exact as-issued closed-vent replay improved one 24-hour
