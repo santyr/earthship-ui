@@ -96,6 +96,26 @@ percentage validation, post-command Report correlation, broker/bridge/restart
 resilience, correct physical direction and limits, and all-shade inventory.
 Neither this page nor this handoff changes those requirements.
 
+## Source-only motor interval foundation
+
+`openhab/scripts/thermal_model/shade_observations.py` now accepts one shade's
+already-joined, chronological diagnostic JSON, availability, scalar-position
+and persistence-time rows. It requires a matching fresh `motor_report`, keeps
+the original report timestamp, derives percent open without binarizing partial
+positions, and emits only intervals knowable after their persistence time.
+Repeated publications of one report do not refresh its 30-minute limit;
+offline, unknown, malformed, stale, cache-only, scalar-mismatched and
+out-of-order rows break coverage. A prior valid report can carry into a later
+window only until its original expiry. Queries are capped at 10,000 rows and
+two days per call; even a streaming input stops after one over-limit row.
+Twelve focused tests and all 703 thermal Python tests pass.
+
+This pure reader does **not** query JDBC, prove the three Item histories share
+an atomic observation boundary, collect hardware events, join temperatures,
+fit a model, publish an advisory, or command a motor. Those stages require the
+installed inventory and natural report evidence. In particular, the existing
+coarse `indoor_shade_closed` feature remains unchanged.
+
 ## Source verification
 
 The revised 27-slot, zone-paired version passed all 1,755 UI unit tests in

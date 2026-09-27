@@ -76,6 +76,12 @@ Bathroom zone temperature remains unobserved pending another sensor.
 The running local UI showed 17 Kitchen/Living Room and 10 Bathroom/Bedroom
 cards, all/zone movement disabled and no non-GET requests or browser errors;
 the existing Vite service required no restart.
+A source-only per-shade motor-report interval reader now preserves percent-open
+history as known at each persistence time, with stale/offline/cache and
+change-only replay barriers. Twelve focused and all 703 thermal tests pass.
+The JDBC join, installed inventory, real report qualification, temperature
+pairing and learned/shadow policy are not yet active; no thermal artifact or
+motor control was changed.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and
