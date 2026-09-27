@@ -812,7 +812,8 @@ def _multihorizon_objective_and_gradient(
                 sensitivity = state_jacobian @ sensitivity + direct
                 state = next_state
                 if (
-                    not np.isfinite(state).all()
+                    not math.isfinite(state[0])
+                    or not math.isfinite(state[1])
                     or not np.isfinite(sensitivity).all()
                 ):
                     raise ValueError(
