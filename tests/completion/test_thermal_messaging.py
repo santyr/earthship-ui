@@ -261,6 +261,25 @@ def test_existing_world_readable_outbox_database_refused(tmp_path):
         m.Outbox(tmp_path)
 
 
+def test_v1_outbox_migrates_without_losing_queued_delivery(tmp_path):
+    private = tmp_path / 'private'
+    outbox = m.Outbox(private)
+    outbox.queue('prompt:old', t.prompt_event(policy().prompts[0], C), C, O)
+    before = outbox.rows()
+    outbox.db.execute('DROP TABLE inbox_ingested')
+    outbox.db.execute('PRAGMA user_version=1')
+    outbox.db.commit()
+    outbox.close()
+
+    migrated = m.Outbox(private)
+    try:
+        assert migrated.rows() == before
+        assert migrated.db.execute('PRAGMA user_version').fetchone()[0] == 2
+        assert migrated.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 0
+    finally:
+        migrated.close()
+
+
 class Socket:
     def __init__(self, responses): self.responses, self.sent = iter(responses), []
     def __enter__(self): return self
@@ -540,6 +559,84 @@ def test_poll_replies_deduplicates_across_reviewed_routes(tmp_path):
         assert len(sink.stores) == 1
         assert len(outbox.rows()) == 2
         assert spool.get(rumor['id'])['first_received_at'] == NOW.isoformat()
+    finally:
+        outbox.close()
+        spool.close()
+
+
+def test_poll_replies_advances_past_accepted_batch_after_restart(tmp_path, monkeypatch):
+    monkeypatch.setattr(m, 'MAX_BATCH', 2)
+
+    class InboundKeyer(FakeKeyer):
+        def decode(self, raw, recipient):
+            assert recipient == C
+            return t.strict_json(t.strict_json(raw)['content'].encode())
+
+    class InboxRelay(FakeRelay):
+        def __init__(self, envelopes):
+            super().__init__()
+            self.envelopes = envelopes
+        def fetch(self, url, *, since):
+            assert url == 'wss://relay.example'
+            return self.envelopes
+
+    p, keyer, sink = policy(), InboundKeyer(), Sink()
+    routes = m.Routes(t.canonical(announcements()), p, keyer)
+    envelopes = []
+    for seconds in (3, 2, 1):
+        stamp = NOW - timedelta(seconds=seconds)
+        rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]],
+                      content='not yet', stamp=stamp)
+        del rumor['sig']
+        envelopes.append(event(1059, 'c' * 64, [['p', C]],
+                               t.canonical(rumor).decode(), stamp))
+    relay = InboxRelay(envelopes)
+    private = tmp_path / 'private'
+    spool, outbox = t.Spool(private), m.Outbox(private)
+    try:
+        first = m.Delivery(p, routes, spool, outbox, keyer, relay, sink).poll_replies(NOW)
+        assert first == dict(accepted=2, retryable=0, withheld=0,
+                             deferred=1, relay_failures=0)
+    finally:
+        outbox.close()
+        spool.close()
+
+    spool, outbox = t.Spool(private), m.Outbox(private)
+    try:
+        second = m.Delivery(p, routes, spool, outbox, keyer, relay, sink).poll_replies(NOW)
+        assert second == dict(accepted=1, retryable=0, withheld=0,
+                              deferred=0, relay_failures=0)
+        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 3
+        assert spool.db.execute('SELECT count(*) FROM receipts').fetchone()[0] == 3
+        assert len(outbox.rows()) == 6
+    finally:
+        outbox.close()
+        spool.close()
+
+
+def test_poll_replies_does_not_skip_retryable_ingress(tmp_path):
+    class InboundKeyer(FakeKeyer):
+        def decode(self, raw, recipient):
+            return t.strict_json(t.strict_json(raw)['content'].encode())
+    class InboxRelay(FakeRelay):
+        def fetch(self, url, *, since):
+            return [envelope]
+
+    p, keyer, sink = policy(), InboundKeyer(), Sink()
+    routes = m.Routes(t.canonical(announcements()), p, keyer)
+    rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]])
+    del rumor['sig']
+    envelope = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode())
+    spool, outbox = t.Spool(tmp_path / 'private'), m.Outbox(tmp_path / 'private')
+    try:
+        delivery = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink)
+        sink.fail = True
+        assert delivery.poll_replies(NOW)['retryable'] == 1
+        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 0
+        sink.fail = False
+        assert delivery.poll_replies(NOW)['accepted'] == 1
+        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 1
+        assert len(sink.stores) == 1
     finally:
         outbox.close()
         spool.close()

@@ -357,7 +357,7 @@ class Outbox:
                     and not stat.S_IMODE(info.st_mode) & 0o077, 'outbox file must be private')
         self.db = sqlite3.connect(path, timeout=10)
         self.db.row_factory = sqlite3.Row
-        require(self.db.execute('PRAGMA user_version').fetchone()[0] in (0, 1), 'unknown outbox schema')
+        require(self.db.execute('PRAGMA user_version').fetchone()[0] in (0, 1, 2), 'unknown outbox schema')
         self.db.execute('PRAGMA synchronous=FULL')
         self.db.executescript('''
             CREATE TABLE IF NOT EXISTS delivery (
@@ -365,7 +365,10 @@ class Outbox:
               wrapped TEXT, accepted TEXT NOT NULL DEFAULT '[]',
               attempts INTEGER NOT NULL DEFAULT 0, next_attempt REAL NOT NULL DEFAULT 0,
               PRIMARY KEY(intent, target));
-            PRAGMA user_version=1;
+            CREATE TABLE IF NOT EXISTS inbox_ingested (
+              event_id TEXT PRIMARY KEY, digest TEXT NOT NULL,
+              recorded_at INTEGER NOT NULL);
+            PRAGMA user_version=2;
         ''')
         self.db.commit()
 
@@ -397,6 +400,37 @@ class Outbox:
 
     def rows(self):
         return [dict(row) for row in self.db.execute('SELECT * FROM delivery ORDER BY rowid')]
+
+    def ingress_recorded(self, event):
+        """Skip only envelopes whose journal/outbox path previously completed."""
+        event_id = t.identifier(event['id'])
+        digest = sha256(t.canonical(event)).hexdigest()
+        row = self.db.execute('SELECT digest FROM inbox_ingested WHERE event_id=?',
+                              (event_id,)).fetchone()
+        if row is None:
+            return False
+        require(row['digest'] == digest, 'inbox envelope identity changed')
+        return True
+
+    def record_ingress(self, event):
+        """Durably record successful ingress; a crash before this replays safely."""
+        event_id = t.identifier(event['id'])
+        digest = sha256(t.canonical(event)).hexdigest()
+        self.db.execute('BEGIN IMMEDIATE')
+        try:
+            row = self.db.execute('SELECT digest FROM inbox_ingested WHERE event_id=?',
+                                  (event_id,)).fetchone()
+            if row is not None:
+                require(row['digest'] == digest, 'inbox envelope identity changed')
+            else:
+                require(self.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] < MAX_ROWS,
+                        'inbox ingress quota reached; reviewed retention required')
+                self.db.execute('INSERT INTO inbox_ingested(event_id,digest,recorded_at) VALUES (?,?,?)',
+                                (event_id, digest, int(time.time())))
+            self.db.commit()
+        except BaseException:
+            self.db.rollback()
+            raise
 
     def ciphertext(self, row, keyer):
         if row['wrapped'] is None:
@@ -478,6 +512,7 @@ class Delivery:
         since = max(min(p.issued_at for p in active) - timedelta(days=2),
                     now - timedelta(days=4))
         seen = set()
+        attempted = 0
         for url in self.routes.for_recipient(self.policy.recipient):
             try:
                 events = self.relay.fetch(url, since=int(since.timestamp()))
@@ -488,16 +523,23 @@ class Delivery:
                 if event['id'] in seen:
                     continue
                 seen.add(event['id'])
-                if len(seen) > MAX_BATCH:
+                if self.outbox.ingress_recorded(event):
+                    continue
+                if attempted >= MAX_BATCH:
                     counts['deferred'] += 1
                     continue
+                attempted += 1
                 try:
                     self.receive(t.canonical(event), fixed_now)
-                    counts['accepted'] += 1
                 except t.Refused:
                     counts['withheld'] += 1
                 except t.Retryable:
                     counts['retryable'] += 1
+                else:
+                    # Failure to mark progress must surface, never be reported
+                    # as a withheld operator reply after journal acceptance.
+                    self.outbox.record_ingress(event)
+                    counts['accepted'] += 1
         return counts
 
     def recover_acks(self, now=None):

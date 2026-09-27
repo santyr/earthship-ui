@@ -1,5 +1,25 @@
 # Attended thermal messaging and keyer qualification
 
+## September 27 source-only backlog checkpoint
+
+The disabled inbound collector now keeps a private, durable ledger of envelope
+IDs only after the existing journal-and-acknowledgement path succeeds. A later
+attended poll skips those completed envelopes before applying its 16-attempt
+batch cap, so a backlog can advance across process restarts. An incomplete or
+retryable ingress is not marked complete and is retried. The existing outbox
+schema migrates from version 1 to 2 without dropping queued delivery intents.
+The ledger has the same 4,096-row refuse-on-full policy as the outbox; it is
+not an automatic retention or pruning mechanism.
+
+Focused thermal messaging/confirmation tests passed (182), including restart,
+retry and version-1 migration cases; the full source-only completion suite
+passed (361). Tests used the existing cached WebSocket package without an
+installation. No household key, relay, private journal or production collector
+was used. `POLL_RELEASE_READY` remains **false**. Saturated-page pagination,
+spam/refused-envelope starvation, consistent private spool/outbox backup,
+signed operator inbox routes and an attended end-to-end trial remain release
+blockers. This change does not make unattended collection safe.
+
 ## September 27 route recheck
 
 A bounded, signature-verifying, read-only `nak req` queried kind-10050 events

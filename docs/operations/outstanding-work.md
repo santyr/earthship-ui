@@ -75,6 +75,13 @@ The September 27 read-only relay recheck still finds no signed kind-10050
 operator inbox announcement on any of the three approved relays. Existing
 Hex DM signing keys cannot create the operator's announcement; thermal
 confirmation collection remains off while independent modeling work continues.
+The disabled collector's source now persists successful ingress progress and
+skips completed envelopes before its 16-attempt cap, allowing a bounded
+backlog to advance after restart. Its version-1 outbox migration, retry and
+restart cases pass with 182 focused and 361 completion tests. No live poll was
+enabled; saturated-page pagination, spam/refused-envelope starvation,
+consistent private backup, signed operator route and attended trial are still
+release blockers. See [the delivery runbook](thermal-messaging-delivery.md).
 
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint
