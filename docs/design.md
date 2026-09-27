@@ -68,6 +68,12 @@ service keeps the Vite server running. Time-of-day auto-dim (console-style
 
 ## Screens (bottom tab bar on phone; left rail on tablet/laptop)
 
+The sixth Shades page reserves 26 numbered positions until hardware and Item
+IDs are commissioned. It is read-only, split into two 13-shade tablet views,
+and never presents missing motor reports as open or closed. The Dooya adapter
+remains a separate transport project; per-shade thermal learning and later
+shadow automation belong to the Earthship workstream.
+
 ### 1. Home — the full console (fits 1340×800, no scroll)
 
 Tile grid (indicative 4×3 landscape arrangement):

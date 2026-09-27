@@ -1,6 +1,6 @@
 <script>
   // Task 6.1 — Earthship console: the passive-thermal loop and greywater
-  // circulation, last of the five screens. North Mass (WH31E ch-193, the
+  // circulation. North Mass (WH31E ch-193, the
   // earth-bermed thermal store) -> Room Air (WS2902A indoor console) -> South
   // Wall (Shelly H&T) -> Outdoor (WS2902A ambient sensor).
   // Mirrors the dark-console aesthetic (Tile chrome, tokens.colors,

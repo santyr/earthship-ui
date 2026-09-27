@@ -337,7 +337,7 @@ for (const target of TARGETS) {
     await expect(page.getByText('Candidate vent window')).toBeVisible();
     await expect(page.locator('nav.rail')).toBeVisible();
     await expect(page.locator('nav.rail .label')).toHaveText([
-      'Home', 'Energy', 'Weather', 'Earthship', 'Controls',
+      'Home', 'Energy', 'Weather', 'Earthship', 'Shades', 'Controls',
     ]);
     await page.locator('.thermal-model-cell summary').click();
     await expect(page.locator('.thermal-model-cell .thermal-model-plot')).toBeVisible();

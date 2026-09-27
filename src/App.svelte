@@ -5,6 +5,7 @@
   import Energy from './screens/Energy.svelte';
   import Weather from './screens/Weather.svelte';
   import Earthship from './screens/Earthship.svelte';
+  import Shades from './screens/Shades.svelte';
   import Controls from './screens/Controls.svelte';
   import ChartModal from './lib/ui/ChartModal.svelte';
   import WeatherDetailModal from './lib/ui/WeatherDetailModal.svelte';
@@ -20,9 +21,8 @@
     return startStalenessMonitor();
   });
 
-  // Home (Task 3.1), Energy (Task 4.1), Weather (Task 5.1), and Earthship
-  // (Task 6.1) are live. Controls (Task 3.2) is the live household switch
-  // board, moved off Home so Home stays a data-only dashboard.
+  // Home, Energy, Weather, Earthship, Shades, and Controls are routed here.
+  // The Shades page remains read-only until the hardware is commissioned.
 </script>
 
 <Shell>
@@ -34,6 +34,8 @@
     <Weather />
   {:else if $currentRoute === 'earthship'}
     <Earthship />
+  {:else if $currentRoute === 'shades'}
+    <Shades />
   {:else if $currentRoute === 'controls'}
     <Controls />
   {/if}

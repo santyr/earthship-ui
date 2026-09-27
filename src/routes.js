@@ -1,8 +1,7 @@
-// Tiny hash router — no dependency. Five screens: home, energy, weather,
-// earthship, controls.
+// Tiny hash router — no dependency.
 import { writable } from 'svelte/store';
 
-export const ROUTES = ['home', 'energy', 'weather', 'earthship', 'controls'];
+export const ROUTES = ['home', 'energy', 'weather', 'earthship', 'shades', 'controls'];
 const DEFAULT_ROUTE = 'home';
 
 // Pure: hash string -> route name. Unknown/empty hash falls back to default.
