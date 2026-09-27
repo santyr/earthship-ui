@@ -68,9 +68,12 @@ service keeps the Vite server running. Time-of-day auto-dim (console-style
 
 ## Screens (bottom tab bar on phone; left rail on tablet/laptop)
 
-The sixth Shades page reserves 26 numbered positions until hardware and Item
-IDs are commissioned. It is read-only, split into two 13-shade tablet views,
-and never presents missing motor reports as open or closed. The Dooya adapter
+The sixth Shades page reserves 27 zone-labeled positions until hardware and
+Item IDs are commissioned. Kitchen and Living Room share one tablet view;
+Bathroom and Bedroom share the other. Percentages are displayed as percent
+open, while the adapter's 0=open/100=closed position remains unchanged.
+Sliders and all/zone movement controls remain disabled until commissioned;
+missing motor reports are never presented as open or closed. The Dooya adapter
 remains a separate transport project; per-shade thermal learning and later
 shadow automation belong to the Earthship workstream.
 

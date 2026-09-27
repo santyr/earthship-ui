@@ -49,23 +49,33 @@ remains the first whole-run performance gate for both optimizations.
 An additional source-only small-array reuse in the thermal objective matched
 the committed objective and gradient bit-for-bit on an isolated 30-day fit;
 691 thermal tests passed and the profiled fit fell from 7.234 to 6.149 seconds.
-The source was pushed, but runtime still has the prior `dynamics.py` hash;
-the two briefly paused thermal timers were restored and passed their enabled
-state check when the new shade request arrived. Deployment and the natural
-trainer check remain separate gates.
+The source was pushed; after the new shade request interrupted the first
+installation window, both briefly paused thermal timers were restored.
+A subsequent guarded one-file transaction installed the exact optimized
+`dynamics.py` with a private rollback receipt. Source/runtime SHA equality,
+installed import, an isolated synthetic fit and both enabled timers passed.
+The natural September 28 trainer still has to establish whole-run speed and
+accepted-artifact continuity.
 
-September 27 Dooya integration: the 26 motorized window shades have not arrived.
+September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
-a read-only, 26-slot sixth page; all slots are explicitly unconfigured, with
-no guessed positions or movement POST paths. Its conservative future mapping
+a read-only, 27-slot sixth page, organized as Kitchen 1–8 and Living Room 9–17
+on one view, Bathroom 18–22 and Bedroom 23–27 on the other. Every card carries
+its room name. All slots are explicitly unconfigured, with no guessed positions
+or movement POST paths; percent open is derived from the adapter's percent-closed
+report. The visible sliders and all/zone movement controls stay disabled until
+commissioning. Its conservative future mapping
 requires availability, a matching scalar position and a fresh original motor
 Report. The [integration handoff](2026-09-27-dooya-shades-earthship-handoff.md)
 defines per-shade observation and thermal-learning evidence without conflating
 the current coarse indoor-shade model feature. Hardware commissioning, Item
 mapping, durable report history, chronological learning and shadow automation
-are open; no motor or broker configuration was changed. The running local
-UI served `#/shades` with 13 first-page slots, 0 mappings and no browser
-commands or page errors; the existing service required no restart.
+are open; no motor or broker configuration was changed. The Hallway sensor is
+the Kitchen-area reference and a labeled proxy for Living Room and Bedroom;
+Bathroom zone temperature remains unobserved pending another sensor.
+The running local UI showed 17 Kitchen/Living Room and 10 Bathroom/Bedroom
+cards, all/zone movement disabled and no non-GET requests or browser errors;
+the existing Vite service required no restart.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and

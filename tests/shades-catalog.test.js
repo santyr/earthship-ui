@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SHADE_COUNT, SHADE_SLOTS, SHADES_PER_PAGE, parseShadeReport, shadePosition, shadePresentation } from '../src/lib/shades/catalog.js';
+import { HALLWAY_TEMPERATURE_ITEM, SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, parseShadeReport, shadePosition, shadePresentation } from '../src/lib/shades/catalog.js';
 
 const NOW = Date.parse('2026-09-27T23:00:00Z');
 const state = (position, received = NOW / 1000) => JSON.stringify({
@@ -8,11 +8,26 @@ const state = (position, received = NOW / 1000) => JSON.stringify({
 });
 
 describe('shade inventory and report presentation', () => {
-  it('reserves exactly 26 unique numbered slots without guessed hardware mappings', () => {
-    expect(SHADE_COUNT).toBe(26);
-    expect(SHADES_PER_PAGE).toBe(13);
-    expect(SHADE_SLOTS.map((slot) => slot.number)).toEqual(Array.from({ length: 26 }, (_, i) => i + 1));
+  it('reserves 27 unique numbered slots in the operator-approved rooms without guessed mappings', () => {
+    expect(SHADE_COUNT).toBe(27);
+    expect(SHADE_GROUPS.map((group) => [group.label, group.first, group.last])).toEqual([
+      ['Kitchen', 1, 8], ['Living Room', 9, 17], ['Bathroom', 18, 22], ['Bedroom', 23, 27],
+    ]);
+    expect(SHADE_VIEWS.map((view) => view.rooms)).toEqual([['kitchen', 'living'], ['bathroom', 'bedroom']]);
+    expect(SHADE_SLOTS.map((slot) => slot.number)).toEqual(Array.from({ length: 27 }, (_, i) => i + 1));
+    expect(SHADE_GROUPS.map((group) => SHADE_SLOTS.filter((slot) => slot.room === group.id).length)).toEqual([8, 9, 5, 5]);
+    expect(SHADE_SLOTS[8].label).toBe('Living Room Shade 09');
+    expect(SHADE_SLOTS[26].label).toBe('Bedroom Shade 27');
     expect(SHADE_SLOTS.every((slot) => slot.positionItem === null && slot.availabilityItem === null && slot.stateItem === null)).toBe(true);
+  });
+
+  it('labels the Hallway reference as a proxy outside Kitchen and leaves Bathroom unobserved', () => {
+    expect(SHADE_GROUPS.map((group) => [group.temperatureItem, group.temperatureRole])).toEqual([
+      [HALLWAY_TEMPERATURE_ITEM, 'hallway_kitchen_reference'],
+      [HALLWAY_TEMPERATURE_ITEM, 'hallway_proxy'],
+      [null, 'unavailable'],
+      [HALLWAY_TEMPERATURE_ITEM, 'hallway_proxy'],
+    ]);
   });
 
   it.each([['0', 0], ['100', 100], ['48.5', 48.5], ['UNDEF', null], ['NULL', null], ['', null], ['-1', null], ['101', null], ['42 %', null], [null, null]])(
@@ -43,8 +58,10 @@ describe('shade inventory and report presentation', () => {
 
   it('uses the adapter openHAB convention only for live, available reports', () => {
     expect(shadePresentation(mapped, { Shade_Example: '0', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(0) }, 'live', NOW))
-      .toEqual({ state: 'reported', label: 'Open', position: 0, observedAtMs: NOW });
+      .toEqual({ state: 'reported', label: 'Open', position: 0, openPercent: 100, observedAtMs: NOW });
     expect(shadePresentation(mapped, { Shade_Example: '100', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(100) }, 'live', NOW))
-      .toEqual({ state: 'reported', label: 'Closed', position: 100, observedAtMs: NOW });
+      .toEqual({ state: 'reported', label: 'Closed', position: 100, openPercent: 0, observedAtMs: NOW });
+    expect(shadePresentation(mapped, { Shade_Example: '25', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(25) }, 'live', NOW))
+      .toEqual({ state: 'reported', label: '75% open', position: 25, openPercent: 75, observedAtMs: NOW });
   });
 });

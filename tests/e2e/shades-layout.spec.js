@@ -18,7 +18,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => { await server?.close(); });
 
 for (const target of TARGETS) {
-  test(`${target.name}: 26 uncommissioned shades fit and never submit movement`, async ({ page }) => {
+  test(`${target.name}: 27 room-grouped uncommissioned shades fit and never submit movement`, async ({ page }) => {
     const writes = [];
     const errors = [];
     page.on('request', (request) => { if (request.method() !== 'GET') writes.push(request.url()); });
@@ -30,25 +30,36 @@ for (const target of TARGETS) {
     await page.goto(`${baseURL}#/shades`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: 'Window shades' })).toBeVisible();
-    await expect(page.getByText('26 planned · 0 mapped · 0 reporting')).toBeVisible();
-    await expect(page.locator('.shade-card')).toHaveCount(13);
-    await expect(page.getByRole('article', { name: /Shade 01: Awaiting Item mapping/ })).toBeVisible();
-    await page.getByRole('button', { name: '14–26' }).click();
-    await expect(page.locator('.shade-card')).toHaveCount(13);
-    await expect(page.getByRole('article', { name: /Shade 26: Awaiting Item mapping/ })).toBeVisible();
+    await expect(page.getByText('27 planned · 0 mapped · 0 reporting')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open all' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Close all' })).toBeDisabled();
+    for (const [view, zones, count, last] of [
+      ['Kitchen + Living Room', ['Kitchen', 'Living Room'], 17, 'Living Room Shade 17'],
+      ['Bathroom + Bedroom', ['Bathroom', 'Bedroom'], 10, 'Bedroom Shade 27'],
+    ]) {
+      await page.getByRole('button', { name: view }).click();
+      await expect(page.locator('.shade-card')).toHaveCount(count);
+      await expect(page.getByRole('article', { name: `${last}: Awaiting Item mapping` })).toBeVisible();
+      for (const zone of zones) {
+        await expect(page.getByRole('heading', { name: zone, exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: `Open ${zone}` })).toBeDisabled();
+        await expect(page.getByRole('button', { name: `Close ${zone}` })).toBeDisabled();
+      }
+      await expect(page.locator('input[type="range"]')).toHaveCount(0);
 
-    const geometry = await page.evaluate(() => {
-      const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
-      const cards = [...document.querySelectorAll('.shade-card')].map((card) => {
-        const box = card.getBoundingClientRect();
-        return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, scrollWidth: card.scrollWidth, clientWidth: card.clientWidth };
+      const geometry = await page.evaluate(() => {
+        const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+        const cards = [...document.querySelectorAll('.shade-card')].map((card) => {
+          const box = card.getBoundingClientRect();
+          return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, scrollWidth: card.scrollWidth, clientWidth: card.clientWidth };
+        });
+        return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, cards };
       });
-      return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, cards };
-    });
-    expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport.width);
-    expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
-    expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
-    expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
+      expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport.width);
+      expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
+      expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
+      expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
+    }
     expect(writes).toEqual([]);
     expect(errors).toEqual([]);
   });

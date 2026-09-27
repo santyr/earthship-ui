@@ -77,5 +77,16 @@ bit-for-bit on the same 30-day evidence, and all 691 thermal Python tests
 passed. No model equation, coefficient bound, scoring gate, or control policy
 changed. The installed runtime still has the prior `dynamics.py` hash
 `59ae03f91afc4e0d51e7c24cdd8e2f3a7f477beb0052ce1201e67260e4b8ee7a`
-at this source-only checkpoint; deployment and the September 28 natural trainer
-verification are separate gates.
+at the initial source-only checkpoint. At 17:29 MDT, both services were idle
+and their enabled timers were briefly stopped for an exact one-file transaction.
+The private receipt at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/array-one-20260927-3oieQT/files/`
+pins that prior hash and the source hash
+`2c8012d5c750a25f72b9cda5a0e5e241958ad7f3ee8334c96385e3fb2a864b0f`.
+The guarded installer changed only installed `thermal_model/dynamics.py`;
+receipt verification and source/runtime SHA equality passed. Both timers were
+restarted and passed `timers-enabled`. The installed module imported and an
+isolated 30-day synthetic fit completed with objective decreasing from
+0.00017959468716428502 to 0.0001582665101962629. No production model artifact
+or control was changed. The September 28 natural trainer remains the
+whole-run timing and accepted-artifact gate.

@@ -1,15 +1,16 @@
 <script>
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
-  import { SHADE_SLOTS, SHADES_PER_PAGE, shadePresentation } from '../lib/shades/catalog.js';
+  import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadePresentation } from '../lib/shades/catalog.js';
 
-  let page = $state(0);
+  let viewIndex = $state(0);
   let nowMs = $state(Date.now());
   onMount(() => {
     const timer = setInterval(() => nowMs = Date.now(), 60_000);
     return () => clearInterval(timer);
   });
-  const cards = $derived(SHADE_SLOTS.slice(page * SHADES_PER_PAGE, (page + 1) * SHADES_PER_PAGE));
+  const view = $derived(SHADE_VIEWS[viewIndex]);
+  const rooms = $derived(SHADE_GROUPS.filter((room) => view.rooms.includes(room.id)));
   const mapped = $derived(SHADE_SLOTS.filter((slot) => slot.positionItem && slot.availabilityItem && slot.stateItem).length);
   const reporting = $derived(SHADE_SLOTS.filter((slot) => shadePresentation(slot, $items, $connection, nowMs).state === 'reported').length);
 </script>
@@ -18,62 +19,95 @@
   <header class="page-heading">
     <div>
       <h1>Window shades</h1>
-      <p>26 planned · {mapped} mapped · {reporting} reporting</p>
+      <p>{SHADE_COUNT} planned · {mapped} mapped · {reporting} reporting</p>
     </div>
-    <div class="release-state" role="status">Adapter not commissioned · movement disabled</div>
+    <div class="release-state" role="status">Hardware not commissioned · movement disabled</div>
   </header>
 
-  <div class="page-selector" aria-label="Shade groups">
-    <span class="selector-title">Individual shades</span>
+  <div class="page-selector" aria-label="Shade views">
     <div class="selector-actions">
-      <button type="button" class:active={page === 0} aria-pressed={page === 0} onclick={() => page = 0}>01–13</button>
-      <button type="button" class:active={page === 1} aria-pressed={page === 1} onclick={() => page = 1}>14–26</button>
+      {#each SHADE_VIEWS as option, index (option.id)}
+        <button type="button" class:active={viewIndex === index} aria-pressed={viewIndex === index} onclick={() => viewIndex = index}>{option.label}</button>
+      {/each}
+    </div>
+    <div class="all-actions" aria-label="All shade controls">
+      <span>All {SHADE_COUNT} shades</span>
+      <button type="button" disabled title="Movement remains disabled until commissioning">Open all</button>
+      <button type="button" disabled title="Movement remains disabled until commissioning">Close all</button>
     </div>
   </div>
 
-  <div class="shade-grid" aria-label="Shades {page === 0 ? '1 through 13' : '14 through 26'}">
-    {#each cards as slot (slot.number)}
-      {@const display = shadePresentation(slot, $items, $connection, nowMs)}
-      <article class="shade-card" class:reported={display.state === 'reported'} aria-label={`${slot.label}: ${display.label}`}>
-        <div class="card-top">
-          <span class="shade-number">{String(slot.number).padStart(2, '0')}</span>
-          <span class="shade-status" class:online={display.state === 'reported'}>{display.state === 'reported' ? 'MOTOR REPORT' : 'UNAVAILABLE'}</span>
+  <div class="zones" aria-label="{view.label} shade zones">
+    {#each rooms as room (room.id)}
+      {@const cards = SHADE_SLOTS.filter((slot) => slot.room === room.id)}
+      <section class="zone" aria-label="{room.label} shades">
+        <div class="zone-heading">
+          <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : room.temperatureRole === 'hallway_proxy' ? 'Hallway temperature proxy' : 'Hallway temperature reference'}</span></div>
+          <div class="zone-actions" aria-label="{room.label} controls">
+            <button type="button" disabled title="Movement remains disabled until commissioning">Open {room.label}</button>
+            <button type="button" disabled title="Movement remains disabled until commissioning">Close {room.label}</button>
+          </div>
         </div>
-        <div class="card-name">{slot.label}</div>
-        <div class="position-row">
-          <span class="position-value">{display.position === null ? '—' : `${display.position}%`}</span>
-          <span class="position-caption">{display.label}</span>
+        <div class="shade-grid" style:--rows={Math.ceil(cards.length / 5)}>
+          {#each cards as slot (slot.number)}
+            {@const display = shadePresentation(slot, $items, $connection, nowMs)}
+            <article class="shade-card" class:reported={display.state === 'reported'} aria-label={`${slot.label}: ${display.label}`}>
+              <div class="card-top">
+                <span class="shade-number">{String(slot.number).padStart(2, '0')}</span>
+                <span class="shade-status" class:online={display.state === 'reported'}>{display.state === 'reported' ? 'MOTOR REPORT' : 'UNAVAILABLE'}</span>
+              </div>
+              <div class="card-name">{slot.label}</div>
+              <div class="position-row">
+                <span class="position-value">{display.openPercent === undefined ? '—' : `${display.openPercent}%`}</span>
+                <span class="position-caption">open</span>
+              </div>
+              {#if display.openPercent === undefined}
+                <div class="range-unavailable" aria-label="{slot.label} slider unavailable until a qualified position is reported"></div>
+              {:else}
+                <input type="range" min="0" max="100" value={display.openPercent} disabled aria-label="{slot.label} percent open; movement disabled" />
+              {/if}
+            </article>
+          {/each}
         </div>
-        <div class="position-track" aria-hidden="true"><span style:width={display.position === null ? '0%' : `${display.position}%`}></span></div>
-      </article>
+      </section>
     {/each}
   </div>
 </div>
 
 <style>
-  .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .58rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
+  .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .48rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
   .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 54px; }
   h1 { margin: 0; font-size: 1.26rem; font-weight: 650; letter-spacing: .01em; }
   .page-heading p { margin: .18rem 0 0; color: #9aa7b8; font-size: .76rem; }
   .release-state { color: #d5b677; border: 1px solid #564529; background: #211b12; border-radius: .38rem; padding: .4rem .62rem; font-size: .7rem; letter-spacing: .02em; text-align: right; }
-  .page-selector { display: flex; align-items: center; justify-content: space-between; min-height: 38px; }
-  .selector-title { color: #aeb9c8; font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; }
+  .page-selector { display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-height: 38px; }
   .selector-actions { display: flex; gap: .35rem; }
-  .selector-actions button { min-width: 5rem; min-height: 36px; border: 1px solid #323d4d; border-radius: .35rem; color: #aeb9c8; background: #111823; font: inherit; font-size: .79rem; cursor: pointer; }
+  .selector-actions button { min-height: 36px; padding: 0 .65rem; border: 1px solid #323d4d; border-radius: .35rem; color: #aeb9c8; background: #111823; font: inherit; font-size: .79rem; cursor: pointer; white-space: nowrap; }
   .selector-actions button.active { color: #e6edf3; border-color: #65819a; background: #1a2a38; }
   .selector-actions button:focus-visible { outline: 2px solid #9fc8e5; outline-offset: 2px; }
-  .shade-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: .5rem; min-width: 0; min-height: 0; overflow: hidden; }
-  .shade-card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .72rem .8rem .68rem; box-sizing: border-box; overflow: hidden; }
+  .all-actions, .zone-actions { display: flex; align-items: center; gap: .38rem; }
+  .all-actions span { color: #9aa7b8; font-size: .72rem; margin-right: .2rem; white-space: nowrap; }
+  .all-actions button, .zone-actions button { min-height: 34px; border: 1px solid #3b4654; border-radius: .35rem; background: #1a222d; color: #aab5c1; font: inherit; font-size: .72rem; padding: 0 .55rem; white-space: nowrap; }
+  .all-actions button:disabled, .zone-actions button:disabled { opacity: .58; cursor: not-allowed; }
+  .zones { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: .55rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .zone { display: grid; grid-template-rows: 34px minmax(0, 1fr); gap: .25rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .zone-heading { display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-width: 0; }
+  .zone-title { display: flex; align-items: baseline; gap: .48rem; }
+  h2 { margin: 0; font-size: .96rem; font-weight: 650; }
+  .zone-title span { color: #91a1b2; font-size: .7rem; }
+  .zone-title .sensor-evidence { color: #75889b; }
+  .shade-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: .42rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .shade-card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .58rem; box-sizing: border-box; overflow: hidden; }
   .shade-card.reported { border-color: #315a6b; }
   .card-top, .position-row { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem; min-width: 0; }
   .shade-number { color: #6f8397; font-size: .7rem; font-weight: 650; letter-spacing: .08em; }
   .shade-status { color: #8f9cac; font-size: .57rem; font-weight: 650; letter-spacing: .09em; }
   .shade-status.online { color: #79c1cd; }
-  .card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; font-weight: 600; }
-  .position-value { flex: 0 0 auto; color: #edf3f8; font-size: 1.45rem; line-height: 1; font-weight: 600; }
+  .card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; font-weight: 600; }
+  .position-value { flex: 0 0 auto; color: #edf3f8; font-size: 1.25rem; line-height: 1; font-weight: 600; }
   .position-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: #9aa7b8; font-size: .7rem; }
-  .position-track { height: 3px; width: 100%; background: #2a3745; border-radius: 3px; overflow: hidden; }
-  .position-track span { display: block; height: 100%; background: #78b8c8; }
-  @media (max-width: 899px) { .shades-page { overflow-y: auto; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 118px; } .page-heading { align-items: flex-start; } }
+  .shade-card input[type='range'] { width: 100%; min-height: 28px; margin: 0; accent-color: #78b8c8; }
+  .range-unavailable { height: 3px; margin: 12px 2px; border-radius: 3px; background: #2a3745; }
+  @media (max-width: 899px) { .shades-page { overflow-y: auto; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 118px; } .page-heading { align-items: flex-start; } }
   @media (max-width: 520px) { .page-heading { flex-direction: column; gap: .4rem; } .release-state { text-align: left; } .shade-grid { grid-template-columns: 1fr; } }
 </style>

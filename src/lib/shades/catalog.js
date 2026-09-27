@@ -1,17 +1,35 @@
 // The adapter remains in santyr/dooya_blinds_openhab. Populate these Item
 // mappings only from the commissioned device inventory, never guessed RF IDs.
 // A Rollershutter report uses 0=open and 100=closed; no optimistic state.
-export const SHADE_COUNT = 26;
-export const SHADES_PER_PAGE = 13;
+export const HALLWAY_TEMPERATURE_ITEM = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
+export const SHADE_GROUPS = Object.freeze([
+  Object.freeze({ id: 'kitchen', label: 'Kitchen', first: 1, last: 8,
+    temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_kitchen_reference' }),
+  Object.freeze({ id: 'living', label: 'Living Room', first: 9, last: 17,
+    temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_proxy' }),
+  Object.freeze({ id: 'bathroom', label: 'Bathroom', first: 18, last: 22,
+    temperatureItem: null, temperatureRole: 'unavailable' }),
+  Object.freeze({ id: 'bedroom', label: 'Bedroom', first: 23, last: 27,
+    temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_proxy' }),
+]);
+export const SHADE_COUNT = 27;
+export const SHADE_VIEWS = Object.freeze([
+  Object.freeze({ id: 'living-zones', label: 'Kitchen + Living Room', rooms: Object.freeze(['kitchen', 'living']) }),
+  Object.freeze({ id: 'private-zones', label: 'Bathroom + Bedroom', rooms: Object.freeze(['bathroom', 'bedroom']) }),
+]);
 export const MAX_REPORT_AGE_MS = 30 * 60 * 1000;
 
-export const SHADE_SLOTS = Object.freeze(Array.from({ length: SHADE_COUNT }, (_, index) =>
-  Object.freeze({
-    number: index + 1,
-    label: `Shade ${String(index + 1).padStart(2, '0')}`,
-    positionItem: null,
-    availabilityItem: null,
-    stateItem: null,
+export const SHADE_SLOTS = Object.freeze(SHADE_GROUPS.flatMap((group) =>
+  Array.from({ length: group.last - group.first + 1 }, (_, index) => {
+    const number = group.first + index;
+    return Object.freeze({
+      number,
+      room: group.id,
+      label: `${group.label} Shade ${String(number).padStart(2, '0')}`,
+      positionItem: null,
+      availabilityItem: null,
+      stateItem: null,
+    });
   }),
 ));
 
@@ -57,8 +75,9 @@ export function shadePresentation(slot, states, connection, nowMs = Date.now()) 
   }
   return {
     state: 'reported',
-    label: position === 0 ? 'Open' : position === 100 ? 'Closed' : `${position}% closed`,
+    label: position === 0 ? 'Open' : position === 100 ? 'Closed' : `${100 - position}% open`,
     position,
+    openPercent: 100 - position,
     observedAtMs: report.observedAtMs,
   };
 }

@@ -10,7 +10,7 @@ commissioning authority. It targets the existing OpenHAB host and publishes
 per-shade MQTT reports; 0 means open and 100 means closed. It has simulated
 tests, but has not been commissioned against household hardware.
 
-The operator confirmed September 27 that the 26 shades have **not arrived**.
+The operator confirmed September 27 that the 27 shades have **not arrived**.
 Read-only host inventory found Mosquitto active and an ONLINE OpenHAB MQTT
 broker Thing, but no Dooya/shade control Items; the existing `Moon_ShadeLengthRatio`,
 `Sun_ShadeLengthRatio`, and Living Office sensor Items are unrelated and must
@@ -21,10 +21,17 @@ changed for this UI foundation.
 
 ## Earthship UI foundation
 
-`src/screens/Shades.svelte` adds a sixth primary page with
-26 numbered slots, 13 per view, sized for Lenovo Tab M9 1340×800 and the
-1280×720 laptop floor. No location names or RF IDs are guessed. The page has
-no movement controls and adds no POST route. Slot mapping lives in
+`src/screens/Shades.svelte` adds a sixth primary page with 27 numbered slots,
+sized for Lenovo Tab M9 1340×800 and the 1280×720 laptop floor. The owner
+confirmed Kitchen 1–8 and Living Room 9–17 on the first view, Bathroom 18–22
+and Bedroom 23–27 on the second. Cards and zone controls use room names so
+operators never need to infer the zone from a number. No individual window
+location or RF ID is guessed. The page shows percent **open** as
+`100 - reported_position`, while preserving the adapter's 0=open, 100=closed
+contract. Slider presentation and all/zone open/close controls are present but
+disabled; no movement POST route exists yet. Enabling them requires an owner
+path that serializes/group-staggers commands and verifies post-command motor
+Reports under supervised commissioning. Slot mapping lives in
 `src/lib/shades/catalog.js`: after commissioning, set each slot's label and
 the exact OpenHAB Rollershutter position, availability, and diagnostic-state
 Item names. Do not mark a slot mapped from a partial pair.
@@ -35,11 +42,12 @@ original `report_received_at` is at most 30 minutes old, and the scalar
 Rollershutter position matches the JSON reported position. NULL/UNDEF,
 cache/acknowledgement, future or expired reports, mismatches and an offline
 service display as unavailable—not 0% or completed motion. This conservative
-UI check is not itself a durable training receipt.
+UI check is not itself a durable training receipt. An unavailable position
+has no slider thumb or fabricated percentage.
 
 ## Observation and learning path
 
-The purpose of the 26-shade data is to learn when opening or closing a
+The purpose of the 27-shade data is to learn when opening or closing a
 particular window helps heat or cool the Earthship by season, sun position,
 time and environmental conditions. The next implementation stage belongs in
 the Earthship thermal data pipeline, after one-shade hardware qualification:
@@ -51,19 +59,31 @@ the Earthship thermal data pipeline, after one-shade hardware qualification:
    cache and acknowledgement events are separate evidence, never observed
    positions. Change-only positions need held-state carry only within a
    qualified, covered interval; never infer a transition time from a later
-   periodic re-publication.
+   periodic re-publication. Store both raw percent-closed and derived percent-
+   open so the UI and model share an unambiguous conversion; a partial position
+   is not forced into a binary open/closed class.
 2. Inventory each shade's window/zone, orientation, glazed area and any
    effective inversion. Join qualified position intervals as-of each model
    origin with indoor/outdoor temperature, solar radiation, cloud/weather,
    season, time, existing vent/shade actions and other thermal disturbances.
    Historical corrections must not leak future knowledge into earlier folds.
    Missing shade coverage must remain unknown rather than assuming all open or
-   all closed.
-3. Evaluate shade-specific or area-weighted solar-gain and insulation effects
-   chronologically against the existing persistence and thermal baselines,
-   stratified by heating/cooling season and daylight/night. The current model
+   all closed. The existing Hallway temperature Item is the Kitchen-area
+   reference and a *provisional proxy* for Living Room and Bedroom. Bathroom
+   has no qualified temperature source yet. The catalog labels these distinct
+   roles; future in-zone sensors replace proxies prospectively, preserving
+   historical source provenance. Do not claim Bathroom thermal outcomes from
+   the Hallway series or silently label proxy measurements as direct.
+3. Build time-weighted percent-open intervals only within qualified source
+   coverage. Pair each room's interval with its labeled temperature source and
+   delayed temperature outcomes; test solar-gain effects in daylight and
+   insulation effects at night, conditioned on season, sun angle, outdoor
+   weather and other actions. Evaluate shade-specific or area-weighted effects
+   chronologically against persistence and thermal baselines, with held-out
+   origins and no future report leakage. A proxy sensor is lower-quality
+   evidence, not a direct room outcome. The current model
    has one coarse `indoor_shade_closed` feature from manual action history;
-   do **not** silently map 26 motor reports into that binary feature or treat
+   do **not** silently map 27 motor reports into that binary feature or treat
    correlation with weather and human decisions as a proven causal benefit.
 4. Run any future policy in shadow first. Require measured per-shade outcomes,
    confidence and coverage gates, manual override/hold, explicit command
@@ -78,14 +98,11 @@ Neither this page nor this handoff changes those requirements.
 
 ## Source verification
 
-The Earthship UI suite passed 1,754 unit tests in 115 files and the production
-build completed. Browser tests passed for the Shades, Controls, Weather and
-Earthship layouts (9 tests), including 1340×800 and 1280×720. The shade tests
-checked both 13-slot views, viewport containment and zero command requests.
-These checks use fixtures and prove no physical shade behavior.
-The running local Earthship UI on port 5190 was then opened read-only at
-`#/shades`: its navigation selected Shades, the first 13 cards and
-`26 planned · 0 mapped · 0 reporting` rendered, and the browser observed zero
-non-GET requests or page errors. The UI service was not restarted because its
-existing Vite runtime served the committed source directly. This is a UI
-deployment check, not a Dooya adapter installation.
+The revised 27-slot, zone-paired version passed all 1,755 UI unit tests in
+115 files, the production build and nine affected browser checks at 1340×800
+and 1280×720. The tablet browser confirmed both view layouts, disabled
+all/zone controls and zero command requests. A read-only visit to the running
+local `#/shades` route then showed Kitchen/Living Room with 17 cards,
+Bathroom/Bedroom with 10, `27 planned · 0 mapped · 0 reporting`, disabled
+all-shade control, zero non-GET requests and no page errors. These checks prove
+UI deployment, not physical shade behavior or Dooya adapter installation.
