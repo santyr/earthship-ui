@@ -11,8 +11,8 @@ Efficiency is part of the Earthship UI/OpenHAB goal across algorithms, data
 pipelines, and UI work. Profile or measure meaningful bottlenecks, reduce
 unnecessary CPU, memory, I/O and repeated work, and preserve model quality,
 functional behavior, safety gates and reproducible evidence. Do not trade
-correctness for a faster headline number. The broader goal remains paused
-until the user resumes it.
+correctness for a faster headline number. The operator resumed the broader
+goal on September 27.
 
 The thermal trainer's coefficient-independent forcing cache was committed and
 deployed after the September 26 natural run finished; synthetic full-fit timing
@@ -23,6 +23,24 @@ sampled interval. The first natural run with the cache on September 27 finished
 in 1h 10m 32s CPU time, versus 1h 27m 12s on September 26; changing data and
 folds prevent attributing that whole difference to the patch. Further profiling
 remains open.
+
+A September 27 live check found 4 GiB of host swap allocated but no active
+swap-in/out in a two-second `vmstat` sample. The trainer's September 24 and
+26 systemd records each reported 0 B peak swap and 375/462 MB peak memory;
+September 27 ran in 1h 10m 32s. Allocated host swap alone does not establish
+that the trainer is swap-bound. Continue profiling repeated chronological
+fold fitting before adding cross-run caching; exact source/correction,
+code and policy identity must be preserved if fits are ever reused.
+
+September 27 AC analytics release: the first qualified daily AC revision was
+included in a 515-table isolated restore with exact source/restore matches and
+owned-container cleanup. September 25 and 26 then requalified and were
+appended; fresh-process retries were idempotent. The 00:40 AC-day timer is
+enabled, and the natural 15:15 publisher emitted live v4 Energy Analytics
+with September 26 observed inverter AC load 6.12246 kWh at 99.9471%
+coverage. The first natural AC-day timer execution remains to be observed.
+The recovery point is same-host only and predates the last two revisions;
+off-host disaster recovery remains Actionable.
 
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint
