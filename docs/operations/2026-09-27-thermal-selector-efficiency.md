@@ -63,3 +63,19 @@ candidate schedule and the accepted artifact's existing code revision.
 post-install publisher/import compatibility check only. The optimized
 endpoint selection and rollout objective are exercised by tomorrow's 06:50
 training run, whose timing and artifact gates remain unverified.
+
+## Third measured source-only allocation reduction
+
+A fresh isolated 30-day synthetic fit profile spent 6.035 of 7.234 seconds in
+61 multihorizon objective/gradient evaluations, with 914,808 small-array
+finite reductions and repeated two-by-two Jacobian and direct-gradient
+allocations. Reusing those two scratch arrays within each endpoint and updating
+the two-element state in place reduced that same profiled fit to 6.149 seconds
+overall and 4.947 seconds in the objective (one run each; not a whole-trainer
+claim). The objective and gradient matched the prior committed implementation
+bit-for-bit on the same 30-day evidence, and all 691 thermal Python tests
+passed. No model equation, coefficient bound, scoring gate, or control policy
+changed. The installed runtime still has the prior `dynamics.py` hash
+`59ae03f91afc4e0d51e7c24cdd8e2f3a7f477beb0052ce1201e67260e4b8ee7a`
+at this source-only checkpoint; deployment and the September 28 natural trainer
+verification are separate gates.
