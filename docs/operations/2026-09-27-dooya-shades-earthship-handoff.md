@@ -83,3 +83,9 @@ build completed. Browser tests passed for the Shades, Controls, Weather and
 Earthship layouts (9 tests), including 1340×800 and 1280×720. The shade tests
 checked both 13-slot views, viewport containment and zero command requests.
 These checks use fixtures and prove no physical shade behavior.
+The running local Earthship UI on port 5190 was then opened read-only at
+`#/shades`: its navigation selected Shades, the first 13 cards and
+`26 planned · 0 mapped · 0 reporting` rendered, and the browser observed zero
+non-GET requests or page errors. The UI service was not restarted because its
+existing Vite runtime served the committed source directly. This is a UI
+deployment check, not a Dooya adapter installation.

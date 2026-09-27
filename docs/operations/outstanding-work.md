@@ -63,7 +63,9 @@ Report. The [integration handoff](2026-09-27-dooya-shades-earthship-handoff.md)
 defines per-shade observation and thermal-learning evidence without conflating
 the current coarse indoor-shade model feature. Hardware commissioning, Item
 mapping, durable report history, chronological learning and shadow automation
-are open; no motor or broker configuration was changed.
+are open; no motor or broker configuration was changed. The running local
+UI served `#/shades` with 13 first-page slots, 0 mappings and no browser
+commands or page errors; the existing service required no restart.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and
