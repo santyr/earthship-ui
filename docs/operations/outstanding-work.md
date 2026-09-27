@@ -39,6 +39,10 @@ was atomically installed with a private rollback receipt; the source-only v5
 runtime files were deliberately not installed. Both thermal timers are back
 on schedule. The next natural publication and trainer run remain verification
 gates; see the [efficiency receipt](2026-09-27-thermal-selector-efficiency.md).
+An additional scalar finite-state check in the same guarded runtime reduced
+the representative two-fit profile from 14.680 to 13.173 seconds without
+changing the physical objective or gradient. All 691 thermal tests passed;
+the next natural trainer still has to establish whole-run performance.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and

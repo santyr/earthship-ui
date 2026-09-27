@@ -32,3 +32,25 @@ exact 516 KiB contents. Both timers were restarted and passed the
 `timers-enabled` state check. The next natural shadow publication and the
 September 28 06:50 trainer are the runtime gates. Do not infer shadow-exit
 readiness or swap relief from this isolated CPU profile.
+
+## Second measured numerical-loop optimization
+
+The same two-fit profile showed roughly 3.15 million NumPy `all()` reductions
+in the rollout's per-step finite checks. Replacing only the two-element state
+array reduction with two scalar `math.isfinite` checks left the sensitivity
+array check, state transition arithmetic, objective, gradient and optimizer
+unchanged. The representative profiled run fell from 14.680 to 13.173 seconds;
+this is an isolated timing, not a measured 400-day trainer speedup. A new
+overflow regression confirms a nonfinite state still refuses the rollout.
+All 691 thermal Python tests passed.
+
+Both services were idle and both timers briefly stopped for a second exact
+one-file transaction. The expected installed preimage was
+`82117c224b9fcfb6819a6b3dfa5fc14d60690e131813561b48b979dc8d7947b9`;
+the installed/source SHA-256 is now
+`59ae03f91afc4e0d51e7c24cdd8e2f3a7f477beb0052ce1201e67260e4b8ee7a`.
+The private rollback receipt is
+`/home/sat/.local/state/thermal-intel/deploy-receipts/finite-one-20260927-5EFjQC/files/`.
+The installed module imports successfully and both timers again pass
+`timers-enabled`. The next natural shadow publication and September 28 trainer
+remain the runtime gates; no shadow-exit claim follows from this optimization.
