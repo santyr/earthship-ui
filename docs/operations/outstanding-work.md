@@ -32,6 +32,14 @@ that the trainer is swap-bound. Continue profiling repeated chronological
 fold fitting before adding cross-run caching; exact source/correction,
 code and policy identity must be preserved if fits are ever reused.
 
+A September 27 endpoint-selector profile isolated repeated confidence-prefix
+scans. A tested linear-time sliding minimum reduced that substep from 2.208
+to 1.477 seconds in the same two-fit profile. The compatible one-file runtime
+was atomically installed with a private rollback receipt; the source-only v5
+runtime files were deliberately not installed. Both thermal timers are back
+on schedule. The next natural publication and trainer run remain verification
+gates; see the [efficiency receipt](2026-09-27-thermal-selector-efficiency.md).
+
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and
 owned-container cleanup. September 25 and 26 then requalified and were
