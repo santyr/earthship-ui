@@ -71,6 +71,10 @@ finds 12-hour skill on eight independent mixed-revision windows but worse
 mixed-sign outdoor forecast errors. This directs further diagnosis toward
 lead-time state/action drift, not a blanket weather offset or premature
 graduation.
+The September 27 read-only relay recheck still finds no signed kind-10050
+operator inbox announcement on any of the three approved relays. Existing
+Hex DM signing keys cannot create the operator's announcement; thermal
+confirmation collection remains off while independent modeling work continues.
 
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint

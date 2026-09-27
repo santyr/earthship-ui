@@ -1,5 +1,18 @@
 # Attended thermal messaging and keyer qualification
 
+## September 27 route recheck
+
+A bounded, signature-verifying, read-only `nak req` queried kind-10050 events
+authored by the existing approved DM recipient on `nos.lol`,
+`relay.primal.net` and `relay.damus.io`. All three relay connections completed
+and each returned zero announcements. The query used only the recipient's
+public key; no operator or Hex signing key was loaded, no message was sent,
+and no collector state or journal changed. This is absence on those three
+approved routes at this time, not a global Nostr absence claim. The collector
+release gate remains closed until the operator publishes a signed inbox
+announcement and its event/endpoints are verified, followed by the already
+documented household, backup and spam-liveness gates.
+
 ## September 24 source-only inbound poll checkpoint
 
 At 17:20 MDT, a fresh public, read-only kind-10050 query used only the
