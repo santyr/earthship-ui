@@ -19,7 +19,18 @@ deployed after the September 26 natural run finished; synthetic full-fit timing
 improved from 5.12 to 3.98 seconds, with exact objective/gradient parity and
 153 thermal tests passing. The natural September 26 trainer used 0 B swap at
 peak; its nearly full host swap allocation was not active swapping in the
-sampled interval. Future live-run timing and further profiling remain open.
+sampled interval. The first natural run with the cache on September 27 finished
+in 1h 10m 32s CPU time, versus 1h 27m 12s on September 26; changing data and
+folds prevent attributing that whole difference to the patch. Further profiling
+remains open.
+
+September 27 thermal follow-up: capture-strict independent 24-hour scoring is
+still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint
+windows). The first exact as-issued closed-vent replay improved one 24-hour
+forecast by only 0.809°F while 4.096°F low error remained. The operator's
+closed-vent report is diagnostic context, not a signed training label. Keep
+shadow mode; continue chronological dynamics/forcing diagnosis and action
+verification. See [operational readiness](2026-09-24-thermal-historical-operational-readiness.md).
 
 ## Current checkpoint — September 25, 2026
 

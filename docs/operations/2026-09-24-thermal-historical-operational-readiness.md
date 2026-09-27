@@ -108,3 +108,33 @@ low-confidence. The latest natural shadow service exited zero and its
 15:57 MDT output still reports `shadow` with no candidate schedule. Continue
 capture and independent current-revision scoring; do not fit from these
 overlapping warm-season targets or change advisory/control authority.
+
+## September 27 read-only operational checkpoint
+
+The natural September 27 06:50 trainer exited successfully at 08:01, but this
+is still internal shadow-artifact promotion, not approval for advice or
+actuation. The capture-strict scorer now has 48 independent one-hour pairs
+(model/persistence MAE 1.1113/0.5100°F), 15 non-overlapping six-hour pairs
+(3.4504/3.1680°F), and four non-overlapping 24-hour pairs
+(4.1582/1.4850°F). All scored publications have low confidence. The 37
+overlapping 24-hour pairs are not 37 independent days; their MAE is
+3.8614/1.5519°F. Approved numerical operational graduation thresholds and
+confirmed action-outcome scoring are still absent. Shadow-only remains the
+correct state.
+
+The operator reported that vents stayed closed on the nights of September
+23–25 and that no venting was planned for September 26. Treat these reports as
+diagnostic context, not signed action-history or training labels. A read-only
+replay of the exact September 26 16:08:50Z forcing archive and the matching
+`01b0eda24b6e` accepted artifact reproduced the entire published hourly
+trajectory exactly. Its published baseline assumed venting from September 26
+18:45 to September 27 10:00 MDT. With only the vent schedule set to closed,
+keeping the same as-issued weather, initial state, shade schedule and dynamics,
+the September 27 10:00 hallway prediction rose from 64.535°F to 65.344°F.
+The qualified outcome was 69.44°F: the closed-vent counterfactual still missed
+low by 4.096°F, versus 4.905°F for the issued forecast. This one replay
+shows the vent assumption contributed about 0.809°F but does not explain most
+of that miss. It is not a causal training label, a broader vent calibration,
+or evidence to relax the shadow gate. Investigate model dynamics and forcing
+with chronological held-out data and confirmed actions before changing the
+baseline or promotion policy.
