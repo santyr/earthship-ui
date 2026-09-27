@@ -114,6 +114,67 @@ longer observation window before proposing any deletion or partition policy.
 The complete-day, physical-fault, restart, and post-first-day restore gates
 remain open; this decision alone does not enable the writer or v4 publisher.
 
+## September 27 storage and natural-restart follow-up
+
+Completed September 24, 25 and 26 local days passed strict read-only AC-day
+qualification. The September 24 day was requalified immediately before a
+restricted append-only apply, which stored snapshot ID 1 with SHA-256
+`e774316ef29dbf50c0536191ba3c306894ace16e013199b96af714aca4038deb`.
+A fresh-process retry returned `inserted=false`, the same ID and digest. The
+restricted v4 preview now selects September 24 as `observed`; the live Energy
+Analytics Item remains v3. The source-only 00:40 local AC-day unit is not
+installed or enabled. A second full database snapshot and isolated restore
+at `/home/sat/backups/earthship-energy/full-restore-e66yrzn3/` passed on
+September 27: all 515 tables matched, including the first AC daily row;
+the archive SHA-256 is
+`3addab90dfc970294c04c111581f6120a0844c7acd5460559667063937279a38`.
+The owned restore container was removed and Docker volumes returned to 819.
+The recovery point is same-host only; off-host disaster recovery remains
+Actionable in the read-only backup checker.
+
+The natural attended OpenHAB restart on September 24 supplies live restart
+evidence without another control outage. A bounded read of `item0653` from
+15:45–17:00Z found 853/853 parse-valid receipts across two epochs. The new
+epoch began at 16:17:40.422Z with `source_unavailable`, followed at
+16:17:41.750Z by `input_unavailable`. The strict AC interval reader left
+16:15:48.518–16:17:46.765Z (118.247 seconds) uncovered, rather than carrying
+the old Watt value over the restart. This closes the observed restart-boundary
+behavior check, not the physical-source fault gate. As of September 27, raw
+`item0653` still contains 66,881 rows from the original cutover through
+20:40:19.999Z and occupies about 23.2 MB; no pruning policy was activated.
+
+A separate natural source-connectivity fault occurred on September 26 while
+OpenHAB itself stayed up. At 04:12:47 MDT, OpenHAB logged Modbus TCP connect
+timeouts to the inverter gateway endpoint; at 04:13:17 it logged `No route to
+host` on ports 502/503. In the same stream epoch, the AC evidence Item stored
+`source_unavailable` at 10:12:47.614Z and `input_unavailable` at
+10:13:19.406Z, then a new valid source receipt at 10:13:24.620Z. All 223
+bounded 10:05–10:25Z records parse under the strict schema, and the interval
+reader leaves 10:12:42.174–10:13:24.620Z (42.446 seconds) uncovered. This
+qualifies the observed Modbus source-loss and recovery path without inducing
+equipment failure; it does not prove behavior for every physical fault mode.
+
+## September 27 guarded activation
+
+After the first-revision 515-table restore passed, September 25 and 26 were
+requalified and appended as AC revisions 3 and 4. Fresh-process retries
+returned `inserted=false` with matching IDs and digests. The restricted v4
+publication preview selected September 26 as `observed`, with no DC/AC
+balance. The reviewed `energy-ac-day` service and 00:40 local timer, v4
+publisher drop-in, and updated backup-check manifest were installed. Loaded
+systemd `ExecStart` readback matched the reviewed commands; the AC timer is
+enabled with its next run September 28 at 00:40 MDT.
+
+The existing five-minute publisher timer naturally ran at 15:15 MDT and
+completed successfully. Live `Energy_Analytics_JSON` then read back as
+`earthship-energy-ui/v4` with September 26 observed inverter AC load
+6.122461860277783 kWh, 99.947118055556% coverage and revision 4. The
+first natural AC-day timer run remains unobserved. This activation relies on
+the current inverter-only topology attestation and observed Modbus-loss
+behavior; it is not a claim that every possible physical source failure has
+been tested. The recovery point predates revisions 3 and 4 and is same-host
+only; off-host disaster recovery remains deferred.
+
 ## September 24 rule restart regression
 
 Read-only REST inspection found the active `hex_inverter_ac_evidence` rule's
