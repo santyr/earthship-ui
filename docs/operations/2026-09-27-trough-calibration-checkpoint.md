@@ -32,7 +32,13 @@ measurement and overnight-drop assumptions can interact.
 The live producer's `k_res` is at its configured 1.3 upper bound. Its Sep 24
 and 25 natural logs still classified the PV days as resource-limited and
 recorded large negative PV errors, yet `k_res` stayed at 1.3. The current
-calibration cannot learn beyond that ceiling. The Sep 27 origin predicts
+calibration cannot learn beyond that ceiling. However, dividing the six
+observed Item maxima by each as-issued radiation sum yields approximately
+1.18, 1.26 and 1.30 for Sep 20–22, then 2.45, 2.15 and 2.01 for Sep 23–25.
+These are diagnostic ratios, not fitted coefficients or independently
+qualified irradiance. A blanket increase of the global gain could damage the
+earlier near-accurate days; check forecast cloud/radiation bias and charge
+limits by regime before changing its bound. The Sep 27 origin predicts
 6.42 kWh PV and 71% trough, with an 86% qualified SoC reference, 90.716%
 estimated dusk and 19.667-point estimated overnight drop. Those values are
 as-issued diagnostics, not an outcome; no live coefficient, DM threshold,
