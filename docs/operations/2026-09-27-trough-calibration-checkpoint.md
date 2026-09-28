@@ -68,20 +68,19 @@ or a qualified daily total. Before deployment, it needs isolated OpenHAB
 runtime and persistence/rollback qualification, natural unchanged-value poll
 verification, a strict historical day reader, and a reviewed activation.
 
-The September 28 isolated OpenHAB 5.2.1 attempt remains **inconclusive**.
-The qualifier was extended to stage the PV candidate in a networkless,
-read-only container with a private tmpfs and no host bindings. Two initial
-PV runs registered the rule but Graal reported that JavaScript was not
-initialized before its body ran. The previously qualified inverter rule
-passed as a control in the same harness. A follow-up run deferred loading the
-PV transform-linked Item until after scripting-bundle activation, but that
-isolated boot left the bundle `Waiting` before the observation Item was
-installed. These are runtime-bootstrap
-failures, not evidence that the PV rule body executes correctly or incorrectly.
-All owned containers and their tmpfs state were removed. The qualifier now
-distinguishes the two candidates and captures bundle/body diagnostics; do
-not activate the PV resources until a deterministic isolated run, persistence
-exclusion/rollback and natural source-event checks pass.
+The first September 28 isolated OpenHAB 5.2.1 attempts were inconclusive:
+Graal reported JavaScript uninitialized or the scripting bundle stayed
+`Waiting`. The networkless, read-only qualifier now stages the Graal language
+bundles first and waits for the JavaScript language bundle to become Active
+before installing the scripting add-on. That ordering matters because the
+add-on creates its shared Graal Engine when its factory activates. Two fresh
+PV container boots now compile the rule, register its triggers, return from
+`runnow` to IDLE and publish a `source_unavailable` Item receipt. The existing
+inverter rule passed as a control under the revised bootstrap. Each owned
+container and its tmpfs state was removed. This closes only the isolated
+rule-body bootstrap gate; no physical Modbus event, JDBC persistence,
+rollback or natural poll was exercised. Keep production PV resources off
+until those remaining gates pass.
 
 A separate source-only pure reader in `openhab/scripts/pv_day_evidence.py`
 now parses exact native-Wh receipts and calculates a completed local day's

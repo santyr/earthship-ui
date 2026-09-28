@@ -175,11 +175,13 @@ requires original binding events and post-restart receipts rather than
 assuming change-only persistence proves freshness. No production Item, link,
 Thing, rule, persistence strategy or forecast was changed; isolated runtime,
 rollback, natural poll and strict day-reader gates remain.
-An isolated PV rule preflight did not pass: two networkless OpenHAB boots
-reported Graal language uninitialized, and a later boot left the scripting
-bundle `Waiting`. The existing AC rule passed as a control in the same
-harness; the PV rule itself is not qualified. All disposable containers were
-removed and no production PV resource was installed.
+The isolated PV rule bootstrap gate now passes twice on fresh, networkless
+OpenHAB 5.2.1 containers after staging Graal's language bundles before the
+JavaScript add-on. Both runs compiled the rule, registered its triggers,
+returned from `runnow` to IDLE and published `source_unavailable`; the
+existing AC rule passed as a control. All disposable containers were removed.
+Physical Modbus events, JDBC persistence/rollback and natural source polls
+remain unqualified; no production PV resource was installed.
 A source-only strict PV-day reader now rejects malformed or missing source
 receipts, sequence gaps, unbarriered restarts, mid-day counter resets,
 incomplete days and long coverage gaps; 15 focused tests include both DST

@@ -113,7 +113,10 @@ def main(kind='ac', *, installed_control=False):
             raise RuntimeError('isolated container policy mismatch')
         install(container, 'conf/items/' + candidate['item_source'].name,
                 candidate['item_source'].read_bytes())
-        install_bundles(container, [ADDON, *bundles])
+        # Graal's language inventory is frozen when the JSS factory creates
+        # its shared Engine. Fileinstalling all bundles together races that
+        # activation and can leave an Active JSS bundle with no JS language.
+        install_bundles(container, bundles)
         run(['docker', 'exec', container, 'touch', '/tmp/ready'])
         for _ in range(80):
             try:
@@ -127,6 +130,16 @@ def main(kind='ac', *, installed_control=False):
         time.sleep(20)
         client = ['docker', 'exec', '-i', container, '/openhab/runtime/bin/client',
                   '-h', '127.0.0.1', '-u', 'openhab', '-p', 'habopen', '-r', '5', '-d', '2']
+        for _ in range(20):
+            bundle_listing = run(client + ['bundle:list -s'], b'\n').decode(errors='replace')
+            js_language = [line for line in bundle_listing.splitlines()
+                           if 'org.graalvm.js.js-language' in line]
+            if js_language and any('Active' in line for line in js_language):
+                break
+            time.sleep(3)
+        else:
+            raise RuntimeError('isolated Graal JavaScript language bundle unavailable')
+        install_bundles(container, [ADDON])
         js_bundles = []
         for _ in range(12):
             bundle_listing = run(client + ['bundle:list -s'], b'\n').decode(errors='replace')
