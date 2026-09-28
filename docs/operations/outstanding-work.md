@@ -164,6 +164,24 @@ the live Item timestamp nor change-only JDBC history is a durable,
 binding-origin freshness receipt. Keep both rows unqualified; next work is a
 source-bound, persisted observation contract with fault/restart continuity,
 not relabeling the existing values `ok` or masking the Energy warning.
+September 28 installed-binding inspection narrowed the safe path: the two
+HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
+The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
+whose supplier queries the plug; a successful non-`REFRESH` command forces a
+new cache read and can also update the switch channel. The original controlled
+Switch Items therefore remain unsuitable as acquisition receipts, even when
+their updates are frequent. A source-only candidate now defines two separate
+String observation Items linked through inbound-only JS transforms to the
+existing switch channels. The profile has no outbound script, so it cannot
+command either plug; the transform stamps the host observation time and keeps
+the raw ON/OFF text. The canonical JDBC source now excludes these 30-second
+raw Items, but its changed configuration has not been installed. Apply and
+read back that exclusion before installing the Items. Then verify original
+channel-source events, normal unchanged polling, controlled-command overlap,
+fault/restart gaps and removal
+without disturbing the protected Items. Only a validated, explicitly persisted
+receipt and day-reader may clear `freshness_unverified`; no analytics quality
+or live control state was changed by this source preparation.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
