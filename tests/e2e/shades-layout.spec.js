@@ -63,17 +63,17 @@ for (const target of TARGETS) {
         return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
           cards, window: { width: window.width, height: window.height },
           vertical: getComputedStyle(document.querySelector('input[type="range"]')).writingMode,
-          truncatedRoomLabels: [...document.querySelectorAll('.card-name span:first-child')]
+          truncatedCardLabels: [...document.querySelectorAll('.card-name')]
             .filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent) };
       });
       expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport.width);
       expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
-      expect(geometry.cards.every((card) => card.width <= 73)).toBe(true);
-      expect(geometry.window).toEqual(target.width < 900 ? { width: 22, height: 61 } : { width: 26, height: 72 });
+      expect(geometry.cards.every((card) => card.width <= 59)).toBe(true);
+      expect(geometry.window).toEqual(target.width < 900 ? { width: 18, height: 50 } : { width: 20, height: 55 });
       expect(geometry.vertical).toBe('vertical-lr');
-      expect(geometry.truncatedRoomLabels).toEqual([]);
+      expect(geometry.truncatedCardLabels).toEqual([]);
     }
     expect(writes).toEqual([]);
     expect(errors).toEqual([]);

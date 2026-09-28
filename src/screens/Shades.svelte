@@ -54,7 +54,7 @@
             <div class="card-top">
               <span class="shade-number">ZONE</span>
             </div>
-            <div class="card-name"><span>{room.label}</span><span>Group</span></div>
+            <div class="card-name">All {cards.length}</div>
             <div class="position-row">
               <span class="position-value">{groupDisplay.openPercent === null ? '—' : `${groupDisplay.openPercent}%`}</span>
               <span class="position-caption">{groupDisplay.state === 'mixed' ? 'mixed' : 'open'}</span>
@@ -72,7 +72,6 @@
                 <span class="shade-number">{String(slot.number).padStart(2, '0')}</span>
                 <span class="shade-status" class:online={display.state === 'reported'}>{display.state === 'reported' ? 'REPORT' : 'PENDING'}</span>
               </div>
-              <div class="card-name"><span>{room.label}</span><span>Shade {String(slot.number).padStart(2, '0')}</span></div>
               <div class="position-row">
                 <span class="position-value">{display.openPercent === undefined ? '—' : `${display.openPercent}%`}</span>
                 <span class="position-caption">open</span>
@@ -112,39 +111,36 @@
   h2 { margin: 0; font-size: .96rem; font-weight: 650; }
   .zone-title span { color: #91a1b2; font-size: .7rem; }
   .zone-title .sensor-evidence { color: #75889b; }
-  .shade-grid { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 72px)); grid-template-rows: minmax(0, 1fr); justify-content: space-between; gap: .38rem; min-width: 0; min-height: 0; overflow: hidden; }
-  .shade-card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .3rem; box-sizing: border-box; overflow: hidden; }
+  .shade-grid { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 58px)); grid-template-rows: minmax(0, 1fr); justify-content: space-evenly; align-items: center; gap: .3rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .shade-card { display: flex; flex-direction: column; justify-content: space-between; height: 100%; max-height: 190px; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .2rem; box-sizing: border-box; overflow: hidden; }
   .shade-card.reported { border-color: #315a6b; }
   .group-card { border-color: #41566b; background: #15212c; }
   .card-top, .position-row { display: flex; align-items: baseline; justify-content: space-between; gap: .2rem; min-width: 0; }
   .shade-number { color: #6f8397; font-size: .7rem; font-weight: 650; letter-spacing: .08em; }
-  .shade-status { color: #8f9cac; font-size: .52rem; font-weight: 650; letter-spacing: .03em; }
-  .shade-status.online { color: #79c1cd; }
-  .card-name { display: flex; flex-direction: column; gap: .08rem; min-width: 0; font-size: .65rem; font-weight: 600; line-height: 1.15; }
-  .card-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card-name span:first-child { overflow: visible; text-overflow: clip; white-space: normal; }
-  .card-name span + span { color: #b6c4d0; font-size: .65rem; font-weight: 500; }
-  .position-value { flex: 0 0 auto; color: #edf3f8; font-size: 1.25rem; line-height: 1; font-weight: 600; }
-  .position-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: #9aa7b8; font-size: .65rem; }
-  .window-control { display: flex; align-items: center; justify-content: center; gap: .25rem; min-height: 80px; padding-top: .15rem; }
-  .window-glass { position: relative; width: 26px; height: 72px; flex: none; border: 2px solid #7890a4; background: linear-gradient(180deg, #233e4a, #1b313d); box-sizing: border-box; overflow: hidden; }
+  .shade-status { width: 6px; height: 6px; flex: none; border-radius: 50%; background: #8f9cac; font-size: 0; }
+  .shade-status.online { background: #79c1cd; }
+  .card-name { min-width: 0; font-size: .64rem; font-weight: 600; line-height: 1.15; white-space: nowrap; }
+  .position-row { flex-direction: column; align-items: flex-start; gap: .1rem; }
+  .position-value { color: #edf3f8; font-size: 1.12rem; line-height: 1; font-weight: 600; }
+  .position-caption { color: #9aa7b8; font-size: .62rem; }
+  .window-control { display: flex; align-items: center; justify-content: center; gap: .2rem; min-height: 65px; padding-top: .15rem; }
+  .window-glass { position: relative; width: 20px; height: 55px; flex: none; border: 2px solid #7890a4; background: linear-gradient(180deg, #233e4a, #1b313d); box-sizing: border-box; overflow: hidden; }
   .window-glass::after { content: ''; position: absolute; inset: 0; border: 2px solid #23313c; pointer-events: none; }
   .shade-fabric { width: 100%; height: var(--closed-percent); background: repeating-linear-gradient(180deg, #8b9aa3 0, #8b9aa3 7px, #778791 8px); }
   .window-control.unknown .window-glass { border-color: #3c4b59; background: #1b2732; }
   .window-control.unknown .shade-fabric { display: none; }
-  .window-control input[type='range'] { width: 22px; height: 72px; margin: 0; padding: 0; writing-mode: vertical-lr; direction: rtl; accent-color: #78b8c8; cursor: not-allowed; }
+  .window-control input[type='range'] { width: 16px; height: 55px; margin: 0; padding: 0; writing-mode: vertical-lr; direction: rtl; accent-color: #78b8c8; cursor: not-allowed; }
   .window-control input[type='range']:disabled { opacity: .68; }
   .window-control.unknown input[type='range'] { opacity: .27; }
   .window-control.unknown input[type='range']::-webkit-slider-thumb { opacity: 0; }
   .window-control.unknown input[type='range']::-moz-range-thumb { opacity: 0; }
   @media (max-width: 899px) and (min-width: 700px) {
-    .shade-grid { gap: .25rem; }
-    .shade-card { padding: .35rem .2rem; }
-    .window-control { gap: .15rem; min-height: 64px; }
-    .window-glass { width: 22px; height: 61px; }
-    .window-control input[type='range'] { width: 17px; height: 61px; }
+    .shade-grid { gap: .2rem; }
+    .shade-card { padding: .35rem .15rem; }
+    .window-control { gap: .1rem; min-height: 57px; }
+    .window-glass { width: 18px; height: 50px; }
+    .window-control input[type='range'] { width: 15px; height: 50px; }
   }
-  @media (max-width: 749px) and (min-width: 700px) { .shade-status { width: 6px; height: 6px; flex: none; border-radius: 50%; background: #8f9cac; font-size: 0; } .shade-status.online { background: #79c1cd; } }
   @media (max-height: 540px) { .shades-page { grid-template-rows: auto auto auto; overflow-y: auto; } .zones { grid-template-rows: repeat(2, auto); min-height: max-content; overflow: visible; } .zone { grid-template-rows: auto auto; min-height: max-content; overflow: visible; } .shade-grid { grid-template-rows: auto; min-height: 155px; overflow: visible; } .shade-card { min-height: 155px; } }
   @media (max-width: 699px) { .shades-page { overflow-y: auto; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 155px; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .page-heading { align-items: flex-start; } }
   @media (max-width: 520px) { .page-heading { flex-direction: column; gap: .4rem; } .release-state { text-align: left; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
