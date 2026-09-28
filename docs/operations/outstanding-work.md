@@ -197,6 +197,18 @@ independent full-day reader, natural fault/restart qualification, an observed
 complete local day and the Solar_PV quality consumer are still required before
 clearing `freshness_unverified`; no analytics quality or live control state was
 changed by this collection activation.
+The September 28 source-only strict day reader now parses exact versioned
+receipts, rejects missing/duplicate/oversized rows, wrong Item identity,
+sequence gaps, unbarriered epochs and incomplete/pre-cutover days, and computes
+per-switch closed-window coverage and observed ON seconds from validated
+receipts. Its bounded JDBC adapter uses a separate read-only repeatable-read
+transaction, an exact Item/table mapping and a 90-second midnight carry-in.
+Twenty-seven parser/transport tests pass, including the 25-hour DST fall-back
+day. It independently parsed the first 21 live partial-day rows as one
+contiguous epoch but did not qualify September 28. The existing restricted
+`energy_power_reader` role has no SELECT on the exact new evidence table
+`public.item0656`; an exact read-only grant is pending approval. No Solar_PV
+consumer, historical aggregate rewrite or quality promotion has occurred.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
