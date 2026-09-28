@@ -248,8 +248,21 @@ preserves those source bytes, all five current model files and 57 forcing
 captures, including four v2 archives. Its manifest and every member were
 hash-checked, extracted to an isolated temporary tree, compared byte-for-byte
 and rehashed to the accepted code revision; the temporary tree was removed.
-This is same-host recoverability of evidence, not an executed full as-issued
-replay, an automatic backup schedule, or off-host disaster recovery.
+At creation this established same-host recoverability of evidence, not yet an
+executed full as-issued replay, an automatic backup schedule, or off-host
+disaster recovery.
+An isolated September 28 replay then loaded the 20-file historical source
+manifest from that bundle, verified its exact accepted revision, validated
+each v2 capture member digest, and simulated all four captured publications
+with their embedded accepted artifacts, current readings and as-issued
+forecast rows. All forecast, state, schedule, confidence and other output
+fields matched the captured publications exactly. `run_shadow` emits a
+whole-second `generatedAt`; applying the publisher's documented full-precision
+decision timestamp made the complete JSON objects equal in all four cases.
+The disposable restore workspace was removed. This closes exact as-issued
+reproduction for those four captures only; it does not validate subsequent
+outcomes, improve the model's 24-hour accuracy, qualify action labels,
+schedule ongoing backups or provide off-host recovery.
 
 ## Current checkpoint — September 25, 2026
 
