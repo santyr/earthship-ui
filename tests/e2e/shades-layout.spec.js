@@ -67,7 +67,7 @@ for (const target of TARGETS) {
       expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
-      if (target.name === 'lenovo-m9') expect(geometry.cards.every((card) => card.width <= 101)).toBe(true);
+      if (target.name === 'lenovo-m9') expect(geometry.cards.every((card) => card.width <= 89)).toBe(true);
       expect(geometry.window).toEqual({ width: 32, height: 88 });
       expect(geometry.vertical).toBe('vertical-lr');
       expect(geometry.truncatedRoomLabels).toEqual([]);

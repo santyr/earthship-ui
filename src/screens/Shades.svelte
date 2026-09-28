@@ -53,7 +53,6 @@
           <article class="shade-card group-card" aria-label="{room.label} group: {groupDisplay.label}">
             <div class="card-top">
               <span class="shade-number">ZONE</span>
-              <span class="shade-status">GROUP</span>
             </div>
             <div class="card-name"><span>{room.label}</span><span>Group</span></div>
             <div class="position-row">
@@ -113,8 +112,8 @@
   h2 { margin: 0; font-size: .96rem; font-weight: 650; }
   .zone-title span { color: #91a1b2; font-size: .7rem; }
   .zone-title .sensor-evidence { color: #75889b; }
-  .shade-grid { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 100px)); grid-template-rows: minmax(0, 1fr); justify-content: space-between; gap: .42rem; min-width: 0; min-height: 0; overflow: hidden; }
-  .shade-card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .58rem; box-sizing: border-box; overflow: hidden; }
+  .shade-grid { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 88px)); grid-template-rows: minmax(0, 1fr); justify-content: space-between; gap: .42rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .shade-card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .42rem; box-sizing: border-box; overflow: hidden; }
   .shade-card.reported { border-color: #315a6b; }
   .group-card { border-color: #41566b; background: #15212c; }
   .card-top, .position-row { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem; min-width: 0; }
@@ -123,6 +122,7 @@
   .shade-status.online { color: #79c1cd; }
   .card-name { display: flex; flex-direction: column; gap: .08rem; min-width: 0; font-size: .69rem; font-weight: 600; line-height: 1.15; }
   .card-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-name span:first-child { overflow: visible; text-overflow: clip; white-space: normal; }
   .card-name span + span { color: #b6c4d0; font-size: .7rem; font-weight: 500; }
   .position-value { flex: 0 0 auto; color: #edf3f8; font-size: 1.25rem; line-height: 1; font-weight: 600; }
   .position-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: #9aa7b8; font-size: .7rem; }
