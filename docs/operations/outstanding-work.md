@@ -95,6 +95,10 @@ duplicate timestamp, oversize/NULL barrier or future-origin request withholds
 history. All 723 thermal tests pass. No shade Items, credential grant or live
 caller exist yet: actual motor-report continuity, room sensor pairing and
 learning/automation remain unqualified until hardware commissioning.
+An isolated PostgreSQL integration test also passed against a disposable
+restricted role; it verified the actual three-table query, oversized-record
+barrier and revoked-SELECT failure. The fixture cleaned its container and
+volumes, with no production shade Item or database change.
 The tablet shade revision now draws 32×88-proportion vertical window controls,
 caps Lenovo cards at 88 CSS pixels, and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be

@@ -138,6 +138,12 @@ partial percentages, cross-Item ordering and future-origin refusal; all 723
 thermal tests pass. This is not a configured production reader: there are no
 commissioned Item names or restricted grant yet, and real Report continuity,
 temperature pairing and chronological learning remain separate gates.
+One additional test used Solar_PV's disposable PostgreSQL fixture to exercise
+the actual three-table SQL with a restricted reader: partial positions joined
+at their stored times, an oversized diagnostic became a barrier, revoking one
+table's SELECT withheld the entire result, and every reader connection closed.
+The fixture container and volumes were removed by the harness; no household
+database or shade hardware was used.
 
 ## Source verification
 
