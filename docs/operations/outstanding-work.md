@@ -180,8 +180,13 @@ OpenHAB 5.2.1 containers after staging Graal's language bundles before the
 JavaScript add-on. Both runs compiled the rule, registered its triggers,
 returned from `runnow` to IDLE and published `source_unavailable`; the
 existing AC rule passed as a control. All disposable containers were removed.
-Physical Modbus events, JDBC persistence/rollback and natural source polls
+Physical Modbus events, JDBC write/readback/restart and natural source polls
 remain unqualified; no production PV resource was installed.
+The source-only PV JDBC candidate now also passes an exact-DTO isolated
+file→managed→file provider rehearsal twice, with absence observed between
+owners. Its container was removed. Disconnected PostgreSQL explicit-write,
+negative-control exclusion, new-JVM restore and production hot-reload gates
+remain; the live strategy has not changed.
 A source-only strict PV-day reader now rejects malformed or missing source
 receipts, sequence gaps, unbarriered restarts, mid-day counter resets,
 incomplete days and long coverage gaps; 15 focused tests include both DST

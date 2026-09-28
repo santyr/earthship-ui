@@ -79,8 +79,16 @@ PV container boots now compile the rule, register its triggers, return from
 inverter rule passed as a control under the revised bootstrap. Each owned
 container and its tmpfs state was removed. This closes only the isolated
 rule-body bootstrap gate; no physical Modbus event, JDBC persistence,
-rollback or natural poll was exercised. Keep production PV resources off
+production rollback or natural poll was exercised. Keep production PV resources off
 until those remaining gates pass.
+The PV JDBC strategy candidate was then rendered byte-for-byte from the
+current file-owned live DTO with only the PV Item's everyChange exclusion and
+restore-only selector additions. A networkless OpenHAB 5.2.1 fixture loaded
+the exact candidate DTO and completed two file→managed→file roundtrips, each
+with observed provider absence between owners. Its owned container and tmpfs
+were removed. This qualifies parser/provider ownership and rollback in the
+isolated fixture, **not** PostgreSQL write/readback, restore after a new JVM,
+or production hot reload. The current live JDBC strategy is unchanged.
 
 A separate source-only pure reader in `openhab/scripts/pv_day_evidence.py`
 now parses exact native-Wh receipts and calculates a completed local day's

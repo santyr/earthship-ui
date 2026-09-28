@@ -1,5 +1,5 @@
-// Candidate only; do not install before isolated JDBC exclusion and rollback checks.
-// Preserve existing change-only collection; evidence rows are explicit writes.
+// Canonical JDBC strategy; exactly one provider must own this service.
+// Preserve change-only collection and explicit immutable power writes.
 Strategies {
 }
 

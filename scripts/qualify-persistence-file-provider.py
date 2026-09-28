@@ -21,7 +21,7 @@ import openhab_sanity_check as oh
 from persistence_boundary import BoundaryLedger
 
 
-def main(database=None, candidate=None):
+def main(database=None, candidate=None, candidate_kind='ac'):
     source = (candidate or ROOT / 'openhab/file-config/persistence/jdbc.persist').read_bytes()
     expected = oh.get('/persistence/jdbc')
     if candidate:
@@ -30,11 +30,19 @@ def main(database=None, candidate=None):
         prior = [['*', '!Power_Evidence_JSON'], ['gForecast*'], ['Power_Evidence_JSON']]
         qualified = [['*', '!Power_Evidence_JSON', '!Inverter_AC_Evidence_JSON'],
                      ['gForecast*'], ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON']]
-        if selectors not in (prior, qualified):
-            raise RuntimeError('live strategy selectors changed; refuse candidate rewrite')
-        if selectors == prior:
-            expected['configs'][0]['items'].append('!Inverter_AC_Evidence_JSON')
-            expected['configs'][2]['items'].append('Inverter_AC_Evidence_JSON')
+        if candidate_kind == 'pv-day':
+            if selectors != qualified:
+                raise RuntimeError('live strategy selectors changed; refuse PV candidate rewrite')
+            expected['configs'][0]['items'].append('!MPPT60_PV_Day_Evidence_JSON')
+            expected['configs'][2]['items'].append('MPPT60_PV_Day_Evidence_JSON')
+        elif candidate_kind == 'ac':
+            if selectors not in (prior, qualified):
+                raise RuntimeError('live strategy selectors changed; refuse candidate rewrite')
+            if selectors == prior:
+                expected['configs'][0]['items'].append('!Inverter_AC_Evidence_JSON')
+                expected['configs'][2]['items'].append('Inverter_AC_Evidence_JSON')
+        else:
+            raise ValueError('unknown candidate kind')
     if render(expected, allow_file=True).encode() != source:
         raise RuntimeError('prepared/live strategy drift')
     boundaries = BoundaryLedger() if database else None
@@ -186,8 +194,14 @@ def main(database=None, candidate=None):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--candidate', action='store_true',
-                        help='Qualify the prepared AC evidence exclusion without live mutation')
+    candidates = parser.add_mutually_exclusive_group()
+    candidates.add_argument('--candidate', action='store_true',
+                            help='Qualify the prepared AC evidence exclusion without live mutation')
+    candidates.add_argument('--pv-day-candidate', action='store_true',
+                            help='Qualify the prepared PV evidence exclusion without live mutation')
     args = parser.parse_args()
-    main(candidate=(ROOT / 'openhab/file-config/persistence/jdbc.persist'
-                    if args.candidate else None))
+    main(candidate=(ROOT / 'openhab/candidates/mppt60-pv-day-jdbc.persist'
+                    if args.pv_day_candidate else
+                    ROOT / 'openhab/file-config/persistence/jdbc.persist'
+                    if args.candidate else None),
+         candidate_kind='pv-day' if args.pv_day_candidate else 'ac')
