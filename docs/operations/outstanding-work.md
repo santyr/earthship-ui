@@ -78,8 +78,9 @@ runtime; the repo's uninstalled v5-only validator rejects this v4 artifact.
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
 a read-only, 27-slot sixth page, organized as Kitchen 1–8 and Living Room 9–17
-on one view, Bathroom 18–22 and Bedroom 23–27 on the other. Every card carries
-its room name. All slots are explicitly unconfigured, with no guessed positions
+on one view, Bathroom 18–22 and Bedroom 23–27 on the other. Zone headings
+name each room and individual cards retain their numbered slots. All slots
+are explicitly unconfigured, with no guessed positions
 or movement POST paths; percent open is derived from the adapter's percent-closed
 report. The visible sliders and all/zone movement controls stay disabled until
 commissioning. Its conservative future mapping
@@ -118,12 +119,16 @@ restricted role; it verified the actual three-table query, oversized-record
 barrier and revoked-SELECT failure. The fixture cleaned its container and
 volumes, with no production shade Item or database change.
 The tablet shade revision now draws near-32:88-proportion vertical window
-controls, caps cards at 72 CSS pixels, and provides a separate room-group slider
+controls, caps cards at 58 CSS pixels on the Lenovo layout, and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be
 displayed; mixed or unknown groups remain unknown. Both supported browser
 viewports, plus a 900-pixel compact tablet viewport, show full room labels,
 no overflow and zero movement requests. All
 movement controls remain disabled until commissioning and command ownership.
+The September 28 Lenovo revision also caps card height at 190 pixels, removes
+the redundant room label from each slot, and passes five landscape viewport
+checks plus the short-tablet scroll check; the local 1340×800 render has no
+clipped card labels or horizontal overflow.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and
