@@ -286,6 +286,18 @@ The disposable restore workspace was removed. This closes exact as-issued
 reproduction for those four captures only; it does not validate subsequent
 outcomes, improve the model's 24-hour accuracy, qualify action labels,
 schedule ongoing backups or provide off-host recovery.
+The natural September 28 06:20 MDT shadow service then exited zero in 2.123
+CPU seconds. Its new verified 240-row v2 capture
+`20260928T122030Z-e8d207eba5f51e47.json.gz` embeds the accepted artifact
+and exactly equals the live `Thermal_Model_JSON` publication. An isolated
+replay using the preserved historical source and this *new live capture*
+reproduced the complete output exactly, including the publisher's
+full-precision decision timestamp; its temporary restore tree was removed.
+This fifth v2 capture postdates the earlier private bundle and is not in it.
+The Item remains `shadow`/low confidence with no candidate; the advisory
+remains `none|No thermal action needed`. This closes the next natural
+publisher/import/replay gate, not the 06:50 trainer speed, model accuracy,
+action-confirmation or recovery schedule gates.
 
 ## Current checkpoint — September 25, 2026
 
