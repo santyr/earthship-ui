@@ -179,12 +179,24 @@ from the file provider before both observational Items were installed. Live
 readback then showed distinct file-owned String Items and inbound-only links
 alongside the unchanged original controlled Switch Items. Both observations
 advanced by 30 seconds with unchanged OFF/ON values, and JDBC reported zero
-raw-observation datapoints. Public SSE Item events omit source attribution;
-an in-rule channel-source check, controlled-command overlap, fault/restart gaps
-and a withdrawal/restoration trial remain before these observations qualify.
-Those checks must not disturb protected Items. Only a validated, explicitly persisted
-receipt and day-reader may clear `freshness_unverified`; no analytics quality
-or live control state was changed by this source preparation.
+raw-observation datapoints. Public SSE Item events omit source attribution.
+A temporary rule then confirmed that `dishwasher.event` and `cistern.event`
+each carry the exact `org.openhab.core.thing$...:switch` source on natural
+channel updates; both disposable probe rules were deleted. The separate
+`TPLink_Switch_Evidence_JSON` producer now verifies those original event
+sources, ON/OFF envelopes, Thing ONLINE status, 90-second TTL, restart epochs
+and sequence-contiguous explicit JDBC receipts. Its output Item was excluded
+from wildcard JDBC persistence and given restore-only behavior before creation.
+The rule was created with zero triggers, disabled, populated from the reviewed
+source, read back still disabled, and then enabled. Its first five natural
+JDBC rows were one unavailable startup barrier, partial-valid transitions,
+then fully valid unchanged-value receipts in one epoch with sequences 1–5;
+the live rule was `IDLE/NONE`. The original controlled Switch Items and links
+were unchanged, and the temporary JDBC rollback copy was removed. A strict
+independent full-day reader, natural fault/restart qualification, an observed
+complete local day and the Solar_PV quality consumer are still required before
+clearing `freshness_unverified`; no analytics quality or live control state was
+changed by this collection activation.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.

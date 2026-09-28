@@ -1,0 +1,2 @@
+// Validated observational evidence only; never a switch command target.
+String TPLink_Switch_Evidence_JSON "Validated TP-Link switch evidence"

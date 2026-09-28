@@ -407,6 +407,23 @@
     },
     {
       "kind": "item",
+      "id": "TPLink_Switch_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/tplink-switch-evidence.items",
+      "destination": "/etc/openhab/items/tplink-switch-evidence.items",
+      "state_writer": "hex_tplink_switch_evidence explicit JDBC and state post"
+    },
+    {
+      "kind": "rule",
+      "id": "hex_tplink_switch_evidence",
+      "provider": "managed",
+      "migration": "observational",
+      "source": "openhab/rules/tplink-switch-evidence.js",
+      "rest_path": "/rules/hex_tplink_switch_evidence"
+    },
+    {
+      "kind": "item",
       "id": "Energy_Analytics_JSON",
       "provider": "file",
       "migration": "verified",

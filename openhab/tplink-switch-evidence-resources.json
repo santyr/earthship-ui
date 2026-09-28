@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "itemSource": "openhab/file-config/items/tplink-switch-evidence.items",
+  "persistenceExclusion": "!TPLink_Switch_Evidence_JSON",
+  "persistenceCandidate": "openhab/file-config/persistence/jdbc.persist",
+  "rule": {
+    "uid": "hex_tplink_switch_evidence",
+    "name": "Validated TP-Link switch acquisition evidence",
+    "enabled": false,
+    "source": "openhab/rules/tplink-switch-evidence.js",
+    "triggers": [
+      {"id":"dishwasher","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/Dishwasher_Switch_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"cistern","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/Cistern_Pump_Switch_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"dishwasher_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"tplinksmarthome:hs103:a34b4957dc"}},
+      {"id":"cistern_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"tplinksmarthome:hs103:08482dd378"}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/10 * * * * ?"}},
+      {"id":"startup","type":"core.SystemStartlevelTrigger","configuration":{"startlevel":100}}
+    ]
+  }
+}

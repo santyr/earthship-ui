@@ -49,6 +49,15 @@ observation is active for provenance qualification only; it is not a load
 accounting source. The bounded live binding event, JDBC readback and
 withdrawal/restoration trial are recorded in
 `docs/operations/2026-09-20-ac-load-qualification.md`.
+The two TP-Link switch observation Items and their inbound-only JS profile
+links are file-owned in `items/tplink-switch-observation.items`. Their raw
+30-second states are excluded from wildcard JDBC history. The unlinked
+`TPLink_Switch_Evidence_JSON` output Item is also file-owned and excluded from
+automatic writes; only the managed observational
+`hex_tplink_switch_evidence` rule explicitly persists and posts its validated
+receipts. This collector does not command either plug or qualify daily Energy
+Analytics by itself; see `docs/operations/outstanding-work.md` for the
+remaining full-day and fault/restart gates.
 
 ## Staged migration and rollback
 

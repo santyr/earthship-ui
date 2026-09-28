@@ -9,11 +9,12 @@ def fixture():
             'equalsFilters': [], 'includeFilters': [], 'configs': [
                 {'items': ['*', '!Power_Evidence_JSON', '!Inverter_AC_Evidence_JSON',
                            '!MPPT60_PV_Day_Evidence_JSON', '!MPPT60_PV_Day_Observation_JSON',
-                           '!Dishwasher_Switch_Observation_JSON', '!Cistern_Pump_Switch_Observation_JSON'],
+                           '!Dishwasher_Switch_Observation_JSON', '!Cistern_Pump_Switch_Observation_JSON',
+                           '!TPLink_Switch_Evidence_JSON'],
                  'strategies': ['everyChange', 'restoreOnStartup'], 'filters': []},
                 {'items': ['gForecast*'], 'strategies': ['forecast', 'everyChange'], 'filters': []},
                 {'items': ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON',
-                           'MPPT60_PV_Day_Evidence_JSON'],
+                           'MPPT60_PV_Day_Evidence_JSON', 'TPLink_Switch_Evidence_JSON'],
                  'strategies': ['restoreOnStartup'], 'filters': []}]}
 
 
