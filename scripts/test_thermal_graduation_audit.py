@@ -1,9 +1,25 @@
 import importlib.util
 from pathlib import Path
+import subprocess
+import sys
 import pytest
 
 spec = importlib.util.spec_from_file_location('audit', Path(__file__).with_name('audit-thermal-graduation.py'))
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+
+
+def test_cli_selects_explicit_validator_runtime_without_registry_access():
+    source = Path(__file__).with_name('audit-thermal-graduation.py')
+    runtime = source.resolve().parents[1] / 'openhab/scripts'
+    result = subprocess.run([sys.executable, str(source), '--runtime-root',
+                             str(runtime), '--help'], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert '--runtime-root RUNTIME_ROOT' in result.stdout
+    missing = subprocess.run([sys.executable, str(source), '--runtime-root',
+                              str(runtime / 'missing'), '--help'],
+                             capture_output=True, text=True)
+    assert missing.returncode != 0
+    assert 'runtime root required' in missing.stderr
 
 
 def metrics(model_mae, persistence_mae, recent_mae, counts=(30,30,30)):

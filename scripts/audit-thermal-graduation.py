@@ -7,7 +7,15 @@ import math
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'openhab/scripts'))
+DEFAULT_RUNTIME_ROOT = Path(__file__).resolve().parents[1] / 'openhab/scripts'
+_bootstrap = argparse.ArgumentParser(add_help=False)
+_bootstrap.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT)
+_bootstrap_args, _ = _bootstrap.parse_known_args()
+RUNTIME_ROOT = _bootstrap_args.runtime_root.resolve()
+if (not RUNTIME_ROOT.is_dir()
+        or not (RUNTIME_ROOT / 'thermal_model/artifacts.py').is_file()):
+    raise ValueError('complete thermal graduation runtime root required')
+sys.path.insert(0, str(RUNTIME_ROOT))
 from thermal_model.artifacts import (
     BACKTEST_SCHEMA, PERSISTENCE_MAE_TOLERANCE_F, _artifact_from_payload,
     _validate_backtest_report, validate_artifact,
@@ -108,6 +116,11 @@ if __name__ == '__main__':
         help='Explicit historical blend assumption for optional raw-error rescore; verify producer source first.')
     parser.add_argument('--artifact', choices=['accepted.json', 'candidate.json'], default='accepted.json',
         help='Read a specific artifact without promotion, copying or implicit fallback.')
+    parser.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT,
+        help='coherent thermal validator source; use installed v4 for live v4 artifacts')
     args = parser.parse_args()
-    print(json.dumps(audit(args.model_dir, args.historical_shrinkage_alpha, artifact_name=args.artifact),
-        indent=2, sort_keys=True, allow_nan=False))
+    result = audit(args.model_dir, args.historical_shrinkage_alpha, artifact_name=args.artifact)
+    result['validator_runtime_root'] = str(RUNTIME_ROOT)
+    result['validator_source_sha256'] = hashlib.sha256(
+        (RUNTIME_ROOT / 'thermal_model/artifacts.py').read_bytes()).hexdigest()
+    print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))

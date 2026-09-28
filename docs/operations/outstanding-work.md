@@ -362,6 +362,15 @@ capture verifier and 59 forcing captures. The private archive was hash-verified,
 extracted, compared with installed source/artifact bytes, and all 59 captures
 passed semantic verification under its extracted v4 runtime. This closes the
 same-host staleness gap, not automatic/off-host recovery or shadow graduation.
+The [coherent installed-v4 score](2026-09-28-thermal-installed-v4-score.md)
+then used an explicit runtime root after the repo's v5 validator refused the
+production v4 artifact. Across non-overlapping captured origins, model versus
+same-origin persistence MAE is 1.105/0.516°F at one hour (59 pairs),
+3.532/3.230°F at six hours (18), 3.112/4.720°F at 12 hours (9), and
+4.158/1.485°F at 24 hours (4). The accepted artifact's historical 24-hour
+MAE is 2.179°F versus 1.690°F persistence, with zero confirmed-action folds.
+The 12-hour observational improvement does not overcome the short/long lead
+failures or justify leaving shadow mode; exact-origin cause diagnosis remains.
 
 ## Current checkpoint — September 25, 2026
 

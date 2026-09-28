@@ -16,7 +16,16 @@ import sys
 from urllib.parse import urlencode
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'openhab/scripts'))
+DEFAULT_RUNTIME_ROOT = ROOT / 'openhab/scripts'
+_bootstrap = argparse.ArgumentParser(add_help=False)
+_bootstrap.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT)
+_bootstrap_args, _ = _bootstrap.parse_known_args()
+RUNTIME_ROOT = _bootstrap_args.runtime_root.resolve()
+if (not RUNTIME_ROOT.is_dir()
+        or not (RUNTIME_ROOT / 'thermal_temperature_runtime.py').is_file()
+        or not (RUNTIME_ROOT / 'thermal_model/forcing_capture.py').is_file()):
+    raise ValueError('complete thermal audit runtime root required')
+sys.path.insert(0, str(RUNTIME_ROOT))
 import openhab_sanity_check as oh  # noqa: E402
 from thermal_temperature_runtime import collect  # noqa: E402
 from thermal_model.temperature_history import _validate_receipt  # noqa: E402
@@ -266,6 +275,8 @@ def main():
     parser.add_argument('--horizon-hours', type=int, choices=SUPPORTED_HORIZONS, default=24)
     parser.add_argument('--include-pairs', action='store_true',
                         help='bounded signed-error details; requires --require-capture')
+    parser.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT,
+                        help='coherent thermal runtime source; use installed v4 for live v4 captures')
     args = parser.parse_args()
     if args.include_pairs and not args.require_capture:
         parser.error('--include-pairs requires --require-capture')
@@ -285,14 +296,19 @@ def main():
         if not isinstance(receipts, list) or len(receipts) != 1 or receipts[0][0] != target:
             raise ValueError('qualified outcome reader returned unexpected target')
         return receipts[0][1]
-    print(json.dumps(score(rows, now=now,
+    result = score(rows, now=now,
                            outcome_reader=lambda target: qualified('indoor', target),
                            capture_reader=capture_for_publication if args.require_capture else None,
                            outdoor_reader=(lambda target: qualified('outdoor', target))
                            if args.require_capture else None,
                            horizon_hours=args.horizon_hours,
-                           include_pairs=args.include_pairs),
-                     sort_keys=True))
+                           include_pairs=args.include_pairs)
+    result['verifier_runtime_root'] = str(RUNTIME_ROOT)
+    result['verifier_source_sha256'] = {
+        name: sha256((RUNTIME_ROOT / name).read_bytes()).hexdigest()
+        for name in ('thermal_model/artifacts.py', 'thermal_model/forcing_capture.py',
+                     'thermal_temperature_runtime.py')}
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == '__main__':

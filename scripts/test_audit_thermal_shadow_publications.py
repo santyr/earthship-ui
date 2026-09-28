@@ -3,6 +3,8 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -13,6 +15,19 @@ SPEC.loader.exec_module(audit)
 from thermal_model.forcing_capture import capture_shadow_inputs
 ISSUE = datetime(2026, 9, 20, 1, 25, tzinfo=timezone.utc)
 TARGET = datetime(2026, 9, 21, 1, 0, tzinfo=timezone.utc)
+
+
+def test_cli_selects_explicit_coherent_runtime_without_live_queries():
+    runtime = SOURCE.resolve().parents[1] / 'openhab/scripts'
+    result = subprocess.run([sys.executable, str(SOURCE), '--runtime-root',
+                             str(runtime), '--help'], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert '--runtime-root RUNTIME_ROOT' in result.stdout
+    missing = subprocess.run([sys.executable, str(SOURCE), '--runtime-root',
+                              str(runtime / 'missing'), '--help'],
+                             capture_output=True, text=True)
+    assert missing.returncode != 0
+    assert 'runtime root required' in missing.stderr
 
 
 def published():
