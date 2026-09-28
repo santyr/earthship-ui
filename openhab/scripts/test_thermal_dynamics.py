@@ -1062,6 +1062,29 @@ def test_uniform_origin_indices_are_exact_and_include_boundaries():
     assert indices == tuple((index * 99) // 63 for index in range(64))
 
 
+@pytest.mark.parametrize("inactive", [(), ("solar_outdoor",)])
+def test_multihorizon_selector_prepares_rows_once_with_exact_daily_choices(
+    monkeypatch, inactive
+):
+    training, _ = synthetic_2r2c_days(days=4, seed=103)
+    expected = {
+        steps: dynamics._eligible_daily_endpoints(training, steps, inactive)
+        for steps in dynamics.IDENTIFICATION_HORIZON_STEPS
+    }
+    original = dynamics._valid_rollout_row
+    calls = 0
+
+    def count_validation(row):
+        nonlocal calls
+        calls += 1
+        return original(row)
+
+    monkeypatch.setattr(dynamics, "_valid_rollout_row", count_validation)
+    actual = dynamics._select_multihorizon_endpoints(training, inactive)
+    assert calls == len(training)
+    assert actual == expected
+
+
 @pytest.mark.parametrize(
     "mutation", ("gap", "unknown_action", "unknown_mode", "kiva")
 )

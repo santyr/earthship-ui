@@ -134,9 +134,8 @@ def _inactive_forcing_is_safe(row, inactive_features):
     return all(features[name] == 0.0 for name in inactive_features)
 
 
-def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
-    if horizon_steps < 1:
-        raise ValueError("identification horizon must be positive")
+def _prepare_endpoint_rows(samples, inactive_features):
+    """Validate and derive horizon-independent endpoint inputs once."""
     ordered = tuple(sorted(samples, key=lambda row: row.at))
     if len({row.at for row in ordered}) != len(ordered):
         raise ValueError("duplicate thermal sample timestamp")
@@ -155,6 +154,17 @@ def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
         valid and _inactive_forcing_is_safe(row, inactive)
         for row, valid in zip(ordered, valid_rows)
     )
+    confidences = [
+        float(row.action_confidence) if valid else math.inf
+        for row, valid in zip(ordered, valid_rows)
+    ]
+    return ordered, valid_rows, forcing_safe, confidences
+
+
+def _eligible_daily_endpoints_from_prepared(prepared, horizon_steps):
+    if horizon_steps < 1:
+        raise ValueError("identification horizon must be positive")
+    ordered, valid_rows, forcing_safe, confidences = prepared
     run_lengths = [0] * len(ordered)
     for index in range(len(ordered) - 2, -1, -1):
         if (
@@ -166,10 +176,6 @@ def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
     # Every eligible prefix uses the minimum confidence of its next
     # horizon_steps rows. Compute those overlapping minima once, rather than
     # rescanning up to 288 rows for every candidate origin.
-    confidences = [
-        float(row.action_confidence) if valid else math.inf
-        for row, valid in zip(ordered, valid_rows)
-    ]
     confidence_window = deque()
     prefix_minimum = [None] * len(ordered)
     for end_index in range(1, len(ordered)):
@@ -212,10 +218,19 @@ def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
     )
 
 
+def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):
+    if horizon_steps < 1:
+        raise ValueError("identification horizon must be positive")
+    return _eligible_daily_endpoints_from_prepared(
+        _prepare_endpoint_rows(samples, inactive_features), horizon_steps
+    )
+
+
 def _select_multihorizon_endpoints(samples, inactive_features=()):
+    prepared = _prepare_endpoint_rows(samples, inactive_features)
     selected = {}
     for steps in IDENTIFICATION_HORIZON_STEPS:
-        eligible = _eligible_daily_endpoints(samples, steps, inactive_features)
+        eligible = _eligible_daily_endpoints_from_prepared(prepared, steps)
         indices = _uniform_origin_indices(
             len(eligible), MAX_ORIGINS_PER_HORIZON
         )

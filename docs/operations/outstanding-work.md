@@ -74,6 +74,12 @@ The output remains `shadow`/low confidence with no candidate. This closes
 post-training publication continuity, not action-label, accuracy or
 operational graduation. The capture was verified with the installed v4
 runtime; the repo's uninstalled v5-only validator rejects this v4 artifact.
+An additional source-only September 28 selector optimization prepares
+horizon-independent row inputs once. Exact selected endpoints, fitted
+coefficients and objective evidence matched the committed module on a 30-day
+fixture; the selector profile fell from 0.797s to 0.222s in one comparison.
+This is not installed-runtime or natural-trainer evidence; see the
+[efficiency receipt](2026-09-27-thermal-selector-efficiency.md).
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has

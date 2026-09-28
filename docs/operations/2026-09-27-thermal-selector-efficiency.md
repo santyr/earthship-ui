@@ -118,3 +118,21 @@ new 240-row v2 capture embeds that accepted code revision and exactly equals
 the live `Thermal_Model_JSON` under the installed v4 verifier. It is still
 `shadow`/low confidence with no candidate. This closes the publisher-
 continuity gate, not the independent accuracy or action-confirmation gates.
+
+## September 28 horizon-independent row preparation
+
+A fresh deterministic 30-day fit profile of the current source spent 0.797s
+selecting endpoints, including five repeated passes over the same row validity,
+inactive-forcing and confidence inputs. Preparing those inputs once for all
+five horizons reduced that selector substep to 0.222s in one like-for-like
+`cProfile` run; total profiled fit time was 6.483s before and 5.680s after.
+These are single-run measurements, not a natural-trainer speedup claim. A
+read-only comparison against the exact committed pre-change module found
+identical per-horizon origin/target/confidence selections and bit-for-bit
+identical fitted coefficients and objective evidence on the same 30-day data.
+The existing 58 dynamics tests passed before the new regression test was added;
+the seven selector-focused cases, including both active and inactive forcing
+paths, passed afterward. A broader thermal-suite attempt was externally
+terminated with exit 143 before completion, without a reported assertion
+failure; it does not count as a full-suite pass. This change is source-only
+until an exact-version runtime installation and natural-run verification.
