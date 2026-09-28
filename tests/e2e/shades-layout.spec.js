@@ -70,7 +70,7 @@ for (const target of TARGETS) {
       expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
-      expect(geometry.cards.every((card) => card.width <= 59)).toBe(true);
+      expect(geometry.cards.every((card) => card.width <= (target.width < 900 ? 47 : 53))).toBe(true);
       expect(geometry.window).toEqual(target.width < 900 ? { width: 18, height: 50 } : { width: 20, height: 55 });
       expect(geometry.vertical).toBe('vertical-lr');
       expect(geometry.truncatedCardLabels).toEqual([]);

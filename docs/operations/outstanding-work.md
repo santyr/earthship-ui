@@ -119,7 +119,7 @@ restricted role; it verified the actual three-table query, oversized-record
 barrier and revoked-SELECT failure. The fixture cleaned its container and
 volumes, with no production shade Item or database change.
 The tablet shade revision now draws near-32:88-proportion vertical window
-controls, caps cards at 58 CSS pixels on the Lenovo layout, and provides a separate room-group slider
+controls, caps cards at 52 CSS pixels on the Lenovo layout (46 CSS pixels at 700–899 pixels), and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be
 displayed; mixed or unknown groups remain unknown. Both supported browser
 viewports, plus a 900-pixel compact tablet viewport, show full room labels,

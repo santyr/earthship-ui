@@ -173,3 +173,9 @@ are narrower; the five-column wrap now begins only below that range. A short
 landscape viewport can scroll within the Shades page to reach both complete
 zones, while 800×600 and the documented 1340×800 Lenovo canvas show both zones
 without scrolling. These are CSS viewport checks, not a physical-device signoff.
+The later September 28 compactness pass reduces the card cap from 58 to 52 CSS
+pixels at the 1340×800 Lenovo reference viewport, and to 46 CSS pixels at
+700–899 pixels. The individual window outline and vertical slider remain
+separate. Six focused browser cases pass across the five landscape sizes and
+the short-tablet scroll case; physical Lenovo readability still needs operator
+confirmation.
