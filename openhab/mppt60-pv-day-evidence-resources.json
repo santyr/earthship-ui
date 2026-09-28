@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "itemSource": "openhab/candidates/mppt60-pv-day-evidence.items",
+  "observationItemSource": "openhab/candidates/mppt60-pv-day-observation.items",
+  "persistenceExclusion": "!MPPT60_PV_Day_Evidence_JSON",
+  "persistenceCandidate": "openhab/candidates/mppt60-pv-day-jdbc.persist",
+  "rule": {
+    "uid": "hex_mppt60_pv_day_evidence",
+    "name": "Validated MPPT60 daily PV counter evidence",
+    "enabled": false,
+    "source": "openhab/rules/mppt60-pv-day-evidence.js",
+    "triggers": [
+      {"id":"pv","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/MPPT60_PV_Day_Observation_JSON/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"data_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:data:9eb978a141:mppt60Energy:energyFromPVTodayWh"}},
+      {"id":"poller_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:poller:9eb978a141:mppt60Energy"}},
+      {"id":"bridge_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:tcp:9eb978a141"}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/10 * * * * ?"}},
+      {"id":"startup","type":"core.SystemStartlevelTrigger","configuration":{"startlevel":100}}
+    ]
+  }
+}

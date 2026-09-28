@@ -50,6 +50,24 @@ it. Next evidence work is a source-bound PV poll receipt with restart-safe
 coverage, followed by chronological PV/dusk/trough calibration; no live
 coefficient, forecast, alert threshold or DM behavior changed here.
 
+## Source-only PV acquisition candidate
+
+The live MPPT energy data Thing, its 30-second poller and TCP bridge were all
+ONLINE at the September 28 read-only check. `openhab/transform/mppt60_pv_day_observation.js`
+and the disabled `openhab/mppt60-pv-day-evidence-resources.json` candidate
+prepare a separate, read-side String observation on that exact native Wh
+channel. The source-only rule requires the original source-attributed
+`ItemStateEvent`, all three Things ONLINE and a post-start/post-recovery
+receipt; it expires a receipt after three poll intervals, rejects invalid or
+replayed Wh values, and proposes explicit immutable JDBC snapshots with
+sequence/epoch barriers. Candidate Item and JDBC files live under
+`openhab/candidates/`; the canonical live `jdbc.persist` and all installed
+Items, links, Things, rules and forecast code remain unchanged. Focused PV
+and adjacent inverter tests pass. This is **not** an active PV evidence stream
+or a qualified daily total. Before deployment, it needs isolated OpenHAB
+runtime and persistence/rollback qualification, natural unchanged-value poll
+verification, a strict historical day reader, and a reviewed activation.
+
 The last three PV under-forecasts were approximately 3.137, 1.85 and 2.92
 kWh. At the model's 20.48 kWh bank and 0.95 efficiency, these are 14.6, 8.6
 and 13.5 SoC points **if** every extra kWh translated linearly into stored

@@ -169,6 +169,12 @@ PV-day counter and derived Item both peaked at 8.298 kWh, versus 7.30 kWh
 predicted. Even the optimistic full-storage conversion explains only about
 4.6 of the 11-point low miss; change-only counter history is not a source
 freshness receipt. See the [checkpoint extension](2026-09-27-trough-calibration-checkpoint.md).
+The next PV evidence step has a source-only observation transform, disabled
+native-channel validator rule and separately staged JDBC exclusion. It
+requires original binding events and post-restart receipts rather than
+assuming change-only persistence proves freshness. No production Item, link,
+Thing, rule, persistence strategy or forecast was changed; isolated runtime,
+rollback, natural poll and strict day-reader gates remain.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

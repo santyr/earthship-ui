@@ -1,0 +1,3 @@
+// Candidate only; observational native Wh-counter receipts, no forecast or actuator path.
+// Explicit JDBC writes; exclude this Item from automatic everyChange first.
+String MPPT60_PV_Day_Evidence_JSON "Validated MPPT60 daily PV counter evidence"

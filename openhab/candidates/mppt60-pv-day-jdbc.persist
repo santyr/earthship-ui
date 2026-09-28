@@ -1,0 +1,10 @@
+// Candidate only; do not install before isolated JDBC exclusion and rollback checks.
+// Preserve existing change-only collection; evidence rows are explicit writes.
+Strategies {
+}
+
+Items {
+    *, !Power_Evidence_JSON, !Inverter_AC_Evidence_JSON, !MPPT60_PV_Day_Evidence_JSON : strategy = everyChange, restoreOnStartup
+    gForecast* : strategy = forecast, everyChange
+    Power_Evidence_JSON, Inverter_AC_Evidence_JSON, MPPT60_PV_Day_Evidence_JSON : strategy = restoreOnStartup
+}
