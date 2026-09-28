@@ -173,3 +173,24 @@ without turning the operator's closed-vent report into training evidence or
 changing the model, schedule, advisory, or shadow-exit gate. Both tablet/laptop
 Earthship browser regressions and the live Lenovo-width text-containment check
 passed.
+
+## September 27 evening capture-strict rescore
+
+At 18:55 MDT, the existing read-only scorer rechecked exact archived forcing
+and qualified indoor outcomes for the four supported lead times. Greedy
+non-overlapping pairs remained mixed-revision, low-confidence evidence:
+
+| Horizon | Independent pairs | Model MAE | Same-origin persistence MAE |
+| --- | ---: | ---: | ---: |
+| 1 hour | 51 | 1.1980°F | 0.5365°F |
+| 6 hours | 16 | 3.7555°F | 3.1612°F |
+| 12 hours | 8 | 3.0833°F | 4.5900°F |
+| 24 hours | 4 | 4.1582°F | 1.4850°F |
+
+The newly matured, *overlapping* September 26 18:10-to-September 27 18:00
+24-hour pair missed **high** by 5.678°F, while same-origin persistence missed
+high by 1.26°F. It was not selected as a fifth independent 24-hour pair.
+That sign reversal makes a global positive offset especially inappropriate;
+the independent 24-hour deficit, unverified action states and low confidence
+still block shadow exit. No model, artifact, alert, or control was changed by
+this rescore.

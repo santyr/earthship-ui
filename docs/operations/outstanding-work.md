@@ -127,6 +127,11 @@ explicit, non-observed assumption. Its 18:16 live shadow output assumed vents
 open 6:45 PM–7:00 AM, while the operator has reported no venting for recent
 nights. This UI transparency does not resolve the remaining 24-hour low bias or
 qualify any action label for training.
+The 18:55 capture-strict rescore found 51/16/8/4 independent 1/6/12/24-hour
+pairs. The model still lost to same-origin persistence at 1, 6 and 24 hours;
+one newly matured but overlapping 24-hour miss was high, not low. This blocks
+a blanket positive temperature offset as well as shadow graduation. See the
+[operational readiness checkpoint](2026-09-24-thermal-historical-operational-readiness.md).
 The disabled collector's source now persists successful ingress progress and
 skips completed envelopes before its 16-attempt cap, allowing a bounded
 backlog to advance after restart. Its version-1 outbox migration, retry and
