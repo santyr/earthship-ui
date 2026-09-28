@@ -83,6 +83,18 @@ distinguishes the two candidates and captures bundle/body diagnostics; do
 not activate the PV resources until a deterministic isolated run, persistence
 exclusion/rollback and natural source-event checks pass.
 
+A separate source-only pure reader in `openhab/scripts/pv_day_evidence.py`
+now parses exact native-Wh receipts and calculates a completed local day's
+counter maximum only with source-qualified coverage of at least 99.5%, a
+fresh terminal poll, contiguous sequences within each epoch, explicit
+restart barriers and no counter decrease outside a brief midnight reset.
+It fails closed on duplicate/out-of-order rows, missing sequence numbers,
+malformed evidence, incomplete days, long outages or excessive row volume.
+Fifteen focused tests cover those boundaries, including 23- and 25-hour DST
+days. No JDBC table resolver, database read, learning update or live producer
+calls this reader yet; its threshold and boundary assumptions still require
+validation against natural receipts after a reviewed activation.
+
 The last three PV under-forecasts were approximately 3.137, 1.85 and 2.92
 kWh. At the model's 20.48 kWh bank and 0.95 efficiency, these are 14.6, 8.6
 and 13.5 SoC points **if** every extra kWh translated linearly into stored

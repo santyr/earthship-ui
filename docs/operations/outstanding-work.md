@@ -180,6 +180,12 @@ reported Graal language uninitialized, and a later boot left the scripting
 bundle `Waiting`. The existing AC rule passed as a control in the same
 harness; the PV rule itself is not qualified. All disposable containers were
 removed and no production PV resource was installed.
+A source-only strict PV-day reader now rejects malformed or missing source
+receipts, sequence gaps, unbarriered restarts, mid-day counter resets,
+incomplete days and long coverage gaps; 15 focused tests include both DST
+transitions. It has no live JDBC adapter or forecast caller. Qualification
+still requires the runtime bootstrap gate, isolated persistence/rollback,
+natural source receipts and a reviewed calibration holdout.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
