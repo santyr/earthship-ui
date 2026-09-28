@@ -163,6 +163,12 @@ the two completed forecasts 63→65 and 73→77%, still below the directly
 measured 84% troughs. Keep live numerical forecasts unchanged until the
 PV/dusk residual and 20:00-versus-sunset offset are validated on a larger
 chronological holdout.
+The first newly completed, read-only September 26 target night independently
+measured an 84% trough versus its as-issued 73% forecast. Its native Modbus
+PV-day counter and derived Item both peaked at 8.298 kWh, versus 7.30 kWh
+predicted. Even the optimistic full-storage conversion explains only about
+4.6 of the 11-point low miss; change-only counter history is not a source
+freshness receipt. See the [checkpoint extension](2026-09-27-trough-calibration-checkpoint.md).
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

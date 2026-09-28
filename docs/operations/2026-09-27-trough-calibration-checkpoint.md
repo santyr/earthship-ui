@@ -21,6 +21,35 @@ prior [origin-components audit](2026-09-24-trough-origin-components.md).
 Sep 26/27 trough target windows are not yet stored as completed outcomes;
 do not fill them from a partial window.
 
+## September 28 read-only extension
+
+After the September 26 target window completed, the existing restricted
+atomic-SoC assessor measured an 84% minimum for the night ending September
+27. The as-issued September 26 trough forecast was 73%, an 11-point low miss.
+The natural September 27 producer log scored its September 26 PV prediction
+of 7.30 kWh against 8.30 kWh from the daily Item. A separate read-only check
+of the directly Modbus-linked
+`MPPT60_Native_EnergyFromPV_Today_Wh` history found a September 26 maximum of
+8,298 Wh, exactly matching the derived Item's 8.298 kWh maximum. Across
+September 20–26, the native and derived daily maxima matched at the Wh level
+and neither queried series contained duplicate timestamps. The native Item's
+link is `modbus:data:9eb978a141:mppt60Energy:energyFromPVTodayWh:number`;
+the derived kWh Item has no direct channel link. These are corroborating
+counter histories, not source-bound freshness receipts: each history had a
+roughly five-hour maximum gap overnight, which cannot distinguish unchanged
+counter state from missed source polls.
+
+Even if the extra 0.998 kWh all became stored charge at 95% efficiency, it
+would add only about 4.6 SoC points to a 20.48 kWh bank, leaving at least
+about 6.4 of the 11 missed points outside that simple PV-only explanation.
+This is a diagnostic upper-bound calculation, not a causal allocation. The
+natural producer classified the day as demand-limited and updated `d_direct`,
+not the already capped `k_res`. The September 26 night is not added to the
+frozen-outcome table above until the ordinary selection/assessment path stores
+it. Next evidence work is a source-bound PV poll receipt with restart-safe
+coverage, followed by chronological PV/dusk/trough calibration; no live
+coefficient, forecast, alert threshold or DM behavior changed here.
+
 The last three PV under-forecasts were approximately 3.137, 1.85 and 2.92
 kWh. At the model's 20.48 kWh bank and 0.95 efficiency, these are 14.6, 8.6
 and 13.5 SoC points **if** every extra kWh translated linearly into stored
