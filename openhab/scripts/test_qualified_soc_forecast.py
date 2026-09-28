@@ -10,7 +10,8 @@ from earthship_energy import advisory_store, materialize, reader
 from earthship_energy.materialize import SystemEpoch
 from advisory_windows import trough_window
 
-from qualified_soc_forecast import completed_night_troughs, current_valid_soc
+from qualified_soc_forecast import (completed_night_troughs, current_valid_soc,
+                                    qualified_night_start_drop)
 
 
 BASE = datetime(2026, 9, 22, 12, tzinfo=timezone.utc)
@@ -39,6 +40,57 @@ def test_current_atomic_soc_rejects_expiry_fault_and_bad_clock():
     assert current_valid_soc("{}", BASE) is None
     with pytest.raises(ValueError):
         current_valid_soc(evidence(), BASE.replace(tzinfo=None))
+
+
+def test_qualified_night_start_drop_uses_actual_covered_start_not_99_proxy():
+    day = date(2026, 9, 20)
+    window = trough_window(day, "America/Denver")
+    rows = [(window.start + timedelta(minutes=minute),
+             evidence(window.start + timedelta(minutes=minute),
+                      soc=80 if minute == 300 else 90))
+            for minute in range(15 * 60)]
+    profile = qualified_night_start_drop(
+        day, now=window.end + timedelta(minutes=1),
+        site_timezone="America/Denver", observations=rows,
+        epoch_start=window.start - timedelta(days=60),
+    )
+    assert profile is not None
+    assert profile["window_start_soc_pct"] == 90
+    assert profile["trough_soc_pct"] == 80
+    assert profile["drop_pct"] == 10
+    assert profile["coverage"] > 0.99
+
+
+def test_qualified_night_start_drop_refuses_missing_start_or_incomplete_night():
+    day = date(2026, 9, 20)
+    window = trough_window(day, "America/Denver")
+    rows = [(window.start + timedelta(minutes=minute),
+             evidence(window.start + timedelta(minutes=minute), soc=80))
+            for minute in range(10, 15 * 60)]
+    kwargs = dict(site_timezone="America/Denver", observations=rows,
+                  epoch_start=window.start - timedelta(days=60))
+    assert qualified_night_start_drop(
+        day, now=window.end - timedelta(seconds=1), **kwargs) is None
+    assert qualified_night_start_drop(
+        day, now=window.end + timedelta(minutes=1), **kwargs) is None
+
+
+def test_qualified_night_start_drop_bounds_stream_before_assessment():
+    day = date(2026, 9, 20)
+    window = trough_window(day, "America/Denver")
+    seen = []
+
+    def stream():
+        for index in range(10_100):
+            seen.append(index)
+            yield window.start + timedelta(microseconds=index), "{}"
+
+    assert qualified_night_start_drop(
+        day, now=window.end + timedelta(minutes=1),
+        site_timezone="America/Denver", observations=stream(),
+        epoch_start=window.start - timedelta(days=60),
+    ) is None
+    assert len(seen) == 10_001
 
 
 def test_completed_nights_require_explicit_assessor_configuration():

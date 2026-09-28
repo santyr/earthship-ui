@@ -50,3 +50,45 @@ chronological holdout. Score the resulting dusk/trough chain as well as PV,
 and separately test the 7–10-point residual before any live numerical change.
 Do not use future actual PV to correct a past issued forecast or infer that
 removing the gain cap alone fixes the trough.
+
+## September 27 qualified overnight-drop diagnostic
+
+The installed forecast's `overnight_drop_samples_pct` are currently calculated
+as `99 - qualified trough`, a *proxy* rather than a measured dusk-to-trough
+decline. A restricted, transaction-read-only query used the same atomic SoC
+evidence, physical-bank epoch, completed-night window and coverage assessor as
+the forecast's qualified trough reader. It additionally required a valid SoC
+interval at exactly 20:00 local, the trough-window start. All six September
+21–26 prediction-day nights qualified at 99.85–99.99% coverage:
+
+| Prediction day | 20:00 / trough SoC | Observed 20:00-to-trough drop | Current 99-to-trough proxy |
+| --- | ---: | ---: | ---: |
+| Sep 21 | 96 / 84% | 12 pp | 15 pp |
+| Sep 22 | 96 / 83% | 13 pp | 16 pp |
+| Sep 23 | 97 / 83% | 14 pp | 16 pp |
+| Sep 24 | 92 / 77% | 15 pp | 22 pp |
+| Sep 25 | 96 / 84% | 12 pp | 15 pp |
+| Sep 26 | 97 / 84% | 13 pp | 15 pp |
+
+For the September 25 and 26 as-issued origins, substituting the prior three
+qualified 20:00 drops while leaving their issued dusk estimate and cloud
+penalty unchanged would raise the rounded trough forecasts from 63 to 65%
+and from 73 to 77%, respectively. The corresponding measured troughs are
+84% on both nights. The September 27 issued 71% would become 75%, but its
+outcome is not complete. This is a component counterfactual, **not** an
+accepted forecast replay or a policy change: 20:00 is not necessarily solar
+dusk, earlier evidence may include later-arriving rows, and the PV/dusk
+residual remains large. No live coefficient, numerical forecast, DM policy or
+learned state changed.
+
+The local OpenHAB REST persistence response repeated one identical timestamp
+on each of the Sep 24 and 25 nights. The strict evidence sequence correctly
+refused those REST series; no sorting or deduplication was used to make them
+qualify. The figures above instead come from the existing restricted JDBC
+reader, which returned original ordered evidence. A source-only pure helper
+`qualified_night_start_drop` now refuses a missing 20:00 sample even when
+the rest of a night passes 90% coverage and bounds a streaming input after
+10,001 rows. Seven focused qualified-SoC tests and all 78 adjacent
+forecast/SoC tests pass. Before changing the forecast, replay
+this candidate with frozen origins, strict as-of receipts and a later held-out
+set; evaluate PV, dusk and trough together.

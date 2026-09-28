@@ -111,6 +111,13 @@ explain only part of those gaps even under an optimistic linear battery
 conversion, while the live PV gain is pinned at its 1.3 upper bound. Keep the
 current alert policy unchanged until origin-linked, qualified chronological
 calibration tests cover both PV and the remaining dusk/overnight residual.
+The later restricted read-only night-profile check found `99 - trough`
+overstated the qualified 20:00-to-trough decline by 2–7 SoC points across six
+recent nights. A source-only helper now requires both a qualified 20:00 sample
+and completed-window coverage; the two recent completed origin counterfactuals
+improve but remain materially low. This is not dusk-equivalent or a live
+calibration. The REST history's duplicate timestamps were refused, not
+deduplicated; only restricted JDBC evidence supported the figures.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

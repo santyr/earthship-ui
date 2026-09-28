@@ -6,6 +6,7 @@ daily energy and completed-night outcome readers. It never writes Items.
 """
 
 from datetime import date, datetime, timedelta, timezone
+from itertools import islice
 import os
 
 
@@ -21,6 +22,45 @@ def current_valid_soc(raw, now):
             or not record.recorded_at <= instant < record.valid_until):
         return None
     return record.soc
+
+
+def qualified_night_start_drop(prediction_day, *, now, site_timezone,
+                               observations, epoch_start, epoch_end=None):
+    """Measure 20:00-to-trough decline only with a qualified start and night.
+
+    This is an observational calibration input, not a forecast correction.
+    The trough window starts at 20:00 local; that is not necessarily sunset.
+    Never replace its missing start with 99%, a later receipt, or a numeric
+    change-only BMS_SOC row.
+    """
+    from advisory_windows import trough_window
+    from earthship_energy.bms_evidence import build_soc_intervals, soc_at
+    from earthship_energy.trough_assessment import assess_trough_measurement, MAX_OBSERVATIONS
+
+    window = trough_window(prediction_day, site_timezone)
+    rows = tuple(islice(observations, MAX_OBSERVATIONS + 1))
+    measured = assess_trough_measurement(
+        prediction_day=prediction_day, site_timezone=site_timezone,
+        assessed_at=now, observations=rows,
+        epoch_start=epoch_start, epoch_end=epoch_end,
+    )
+    if measured["status"] != "measured":
+        return None
+    intervals = build_soc_intervals(
+        rows, window.start, window.end,
+        epoch_start=epoch_start, epoch_end=epoch_end,
+    )
+    start_soc = soc_at(intervals, window.start)
+    if start_soc is None:
+        return None
+    return {
+        "window_start": window.start.isoformat(),
+        "window_end": window.end.isoformat(),
+        "window_start_soc_pct": start_soc,
+        "trough_soc_pct": measured["min_soc_pct"],
+        "drop_pct": start_soc - measured["min_soc_pct"],
+        "coverage": measured["coverage"],
+    }
 
 
 def completed_night_troughs(ending_days, *, now, site_timezone, environ=None):
