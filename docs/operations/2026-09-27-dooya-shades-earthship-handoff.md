@@ -142,7 +142,7 @@ UI deployment, not physical shade behavior or Dooya adapter installation.
 The September 27 vertical-control revision adds one percentage track per shade
 and one per room group. The drawn window uses the actual 32:88 width-to-height
 ratio at 32×88 CSS pixels. On the 1340×800 Lenovo canvas, each card is capped
-at 100 CSS pixels wide, with full visible room and shade labels; the four
+at 88 CSS pixels wide, with full visible room and shade labels; the four
 groups remain on the two established views. The group display shows a single
 percentage only when every member has the same fresh qualified motor report;
 mixed or missing members never produce a fabricated aggregate position. All
