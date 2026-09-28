@@ -112,9 +112,19 @@ owned-container cleanup. September 25 and 26 then requalified and were
 appended; fresh-process retries were idempotent. The 00:40 AC-day timer is
 enabled, and the natural 15:15 publisher emitted live v4 Energy Analytics
 with September 26 observed inverter AC load 6.12246 kWh at 99.9471%
-coverage. The first natural AC-day timer execution remains to be observed.
+coverage. At that release checkpoint, the first natural AC-day timer execution
+had not yet been observed.
 The recovery point is same-host only and predates the last two revisions;
 off-host disaster recovery remains Actionable.
+The first natural September 28 00:41 MDT AC-day timer subsequently exited zero
+and inserted exactly one September 27 `daily_ac_snapshots` row, ID 7, policy
+`qualified_inverter_ac_output_v1`, SHA-256
+`f925facd26e188defaaa13da2945cbd2035391af088c8b04a6d345867669543f`.
+Its direct inverter-AC evidence covers 99.9961875% of the day and records
+6.7728373975 kWh. The natural 04:25 Energy v4 publication displays that
+same September 27 observed AC value. The first natural writer/publication gate
+is closed; same-host-only recovery and the two supporting TP-Link source
+quality rows remain separate open items.
 
 September 27 live Energy quality recheck: the latest completed September 26
 daily snapshot has 19/21 supporting source rows `ok`; only
@@ -205,11 +215,19 @@ were then installed as one guarded, receipt-backed transaction from private
 receipt `/home/sat/.local/state/thermal-intel/deploy-receipts/artifact-capture-v2-20260927-1EaLxc`.
 Source/runtime hashes match on all three, both thermal timers are enabled,
 and an installed-v4 temporary v2 archive verified at 18,224 bytes. No model,
-advice, control, or Item was changed by the deployment. The next natural
-shadow publication is the production archive gate: verify the exact new
-capture is v2, binds the published artifact, and remains shadow-only without
-advisory/control authority change. Do **not** install the v5-only
+advice, control, or Item was changed by the deployment. At that checkpoint,
+the next natural shadow publication was the production archive gate: verify
+the exact new capture is v2, binds the published artifact, and remains
+shadow-only without advisory/control authority change. Do **not** install the v5-only
 artifact/evaluation files wholesale.
+Four subsequent natural shadow services, from September 27 22:18 through
+September 28 04:20 MDT, exited zero and each produced a verified 240-row v2
+archive containing the exact `831893709152` accepted artifact revision. The
+04:20 archive exactly matches the live `Thermal_Model_JSON` publication;
+status remains `shadow`, confidence low and candidate absent. The live
+`Thermal_Advisory` remains `none|No thermal action needed`. This closes the
+capture-format publication gate, **not** the separate shadow-exit, model
+accuracy, action-confirmation or off-host recovery gates.
 
 ## Current checkpoint — September 25, 2026
 
