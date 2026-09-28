@@ -419,6 +419,13 @@ same-origin persistence MAE is 1.105/0.516°F at one hour (59 pairs),
 MAE is 2.179°F versus 1.690°F persistence, with zero confirmed-action folds.
 The 12-hour observational improvement does not overcome the short/long lead
 failures or justify leaving shadow mode; exact-origin cause diagnosis remains.
+The September 28 11:30 MDT read-only refresh reached 60 independent one-hour
+pairs at model/persistence MAE 1.0896/0.5070°F. Only two belong to the newly
+accepted revision; their mean model error is +0.4015°F, opposite the pooled
+negative bias. The independent six-, twelve- and 24-hour counts remain
+18/9/4, with no mature 24-hour target under the current revision. This does
+not support using the pooled bias as a blanket correction and leaves shadow gating
+unchanged; see the [current-revision checkpoint](2026-09-28-thermal-installed-v4-score.md).
 The [same audit](2026-09-28-thermal-installed-v4-score.md) now records exact
 source coverage: only one of four independent 24-hour origin revisions matches
 a complete Git tree, and those early v1 captures lack embedded artifacts.

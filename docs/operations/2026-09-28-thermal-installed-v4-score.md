@@ -79,3 +79,22 @@ model sensitivities only; the associated 24-hour outcomes are not mature and
 no vent state has been qualified. This sets a reproducible source-matched
 path for later outcome scoring without retroactively treating recollections
 as signed actions.
+
+## September 28 11:30 MDT current-revision checkpoint
+
+The installed-v4, exact-capture-only scorer was rerun read-only across 61
+publication rows. The independent one-hour set grew to 60 pairs:
+model/persistence MAE **1.0896/0.5070°F**, with model signed bias **−0.8921°F**.
+Only **two** pairs use the currently accepted `53d96e5e9637` revision; their
+model/persistence MAE is **0.5705/0.0000°F** and their mean model error is
+**+0.4015°F**. These two outcomes cannot establish skill, but their error sign
+differs from the pooled low bias, so the pooled sample cannot license a
+constant upward correction to the current artifact.
+
+The independent six-, twelve- and 24-hour counts remain 18, 9 and 4.
+Their model/persistence MAE remains 3.5322/3.2300, 3.1119/4.7200 and
+4.1582/1.4850°F respectively; no 24-hour target from the current revision
+has matured. All scored publications are low-confidence. Continue exact-origin
+current-revision scoring and forcing/action diagnosis; do not graduate,
+relabel remembered vent states as confirmations, or retune a global offset
+from mixed-revision observations.
