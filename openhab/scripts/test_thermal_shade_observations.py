@@ -3,7 +3,8 @@ import json
 
 import pytest
 
-from thermal_model.shade_observations import MAX_ROWS, qualified_shade_intervals
+from thermal_model.shade_observations import (MAX_ROWS, join_change_only_shade_rows,
+                                              qualified_shade_intervals)
 
 
 T = datetime(2026, 9, 27, 18, 0, tzinfo=timezone.utc)
@@ -17,6 +18,14 @@ def row(stored, position=0, *, received=None, available=True, source='motor_repo
     return dict(stored_at=stored, diagnostic_state=json.dumps(report),
                 availability=available,
                 scalar_position=str(position) if scalar is None else scalar)
+
+
+def change(stored, state):
+    return dict(stored_at=stored, state=state)
+
+
+def diagnostic(stored, position, *, received=None):
+    return change(stored, row(stored, position, received=received)['diagnostic_state'])
 
 
 def test_percent_open_intervals_follow_motor_receipts_and_offline_barriers():
@@ -101,4 +110,86 @@ def test_unbounded_input_is_stopped_after_one_over_limit_row():
             yield row(T + timedelta(minutes=1))
     with pytest.raises(ValueError, match='row bound'):
         qualified_shade_intervals(stream(), start=T, end=T + timedelta(minutes=5))
+    assert len(seen) == MAX_ROWS + 1
+
+
+def test_change_only_join_waits_for_all_three_persisted_values_and_never_backdates():
+    joined = join_change_only_shade_rows(
+        [diagnostic(T + timedelta(seconds=2), 25),
+         diagnostic(T + timedelta(seconds=4), 50)],
+        [change(T, 'ON')],
+        [change(T + timedelta(seconds=1), '25'),
+         change(T + timedelta(seconds=5), '50')],
+        start=T, end=T + timedelta(seconds=10),
+    )
+    intervals = qualified_shade_intervals(joined, start=T, end=T + timedelta(seconds=10))
+    assert [(part.start, part.end, part.percent_open) for part in intervals] == [
+        (T + timedelta(seconds=2), T + timedelta(seconds=4), 75),
+        (T + timedelta(seconds=5), T + timedelta(seconds=10), 50),
+    ]
+
+
+def test_change_only_join_offline_and_return_to_on_require_a_later_diagnostic():
+    joined = join_change_only_shade_rows(
+        [diagnostic(T + timedelta(seconds=2), 25),
+         diagnostic(T + timedelta(seconds=5), 25, received=T + timedelta(seconds=2)),
+         diagnostic(T + timedelta(seconds=6), 0)],
+        [change(T, 'ON'), change(T + timedelta(seconds=3), 'OFF'),
+         change(T + timedelta(seconds=4), 'ON')],
+        [change(T + timedelta(seconds=1), '25'), change(T + timedelta(seconds=6, milliseconds=500), '0')],
+        start=T, end=T + timedelta(seconds=10),
+    )
+    intervals = qualified_shade_intervals(joined, start=T, end=T + timedelta(seconds=10))
+    assert [(part.start, part.end, part.percent_open) for part in intervals] == [
+        (T + timedelta(seconds=2), T + timedelta(seconds=3), 75),
+        (T + timedelta(seconds=6, milliseconds=500), T + timedelta(seconds=10), 100),
+    ]
+
+
+def test_cross_item_timestamp_tie_is_a_barrier_until_a_later_diagnostic():
+    joined = join_change_only_shade_rows(
+        [diagnostic(T, 25), diagnostic(T + timedelta(seconds=2), 25)],
+        [change(T, 'ON')],
+        [change(T, '25'), change(T + timedelta(seconds=1), '25')],
+        start=T, end=T + timedelta(seconds=5),
+    )
+    assert joined[0]['availability'] is False
+    assert joined[1]['availability'] is False
+    intervals = qualified_shade_intervals(joined, start=T, end=T + timedelta(seconds=5))
+    assert [(part.start, part.percent_open) for part in intervals] == [
+        (T + timedelta(seconds=2), 75),
+    ]
+
+
+def test_change_only_join_preserves_one_pre_window_carry_per_item():
+    joined = join_change_only_shade_rows(
+        [diagnostic(T - timedelta(seconds=10), 25)],
+        [change(T - timedelta(seconds=30), 'ON')],
+        [change(T - timedelta(seconds=20), '25')],
+        start=T, end=T + timedelta(seconds=10),
+    )
+    intervals = qualified_shade_intervals(joined, start=T, end=T + timedelta(seconds=10))
+    assert len(intervals) == 1
+    assert (intervals[0].start, intervals[0].end, intervals[0].percent_open) == (
+        T, T + timedelta(seconds=10), 75)
+
+
+def test_change_only_join_refuses_future_duplicates_excess_carry_and_unbounded_input():
+    with pytest.raises(ValueError, match='future'):
+        join_change_only_shade_rows([diagnostic(T + timedelta(seconds=10), 25)], [], [],
+                                    start=T, end=T + timedelta(seconds=10))
+    with pytest.raises(ValueError, match='strictly ordered'):
+        join_change_only_shade_rows([diagnostic(T, 25), diagnostic(T, 25)], [], [],
+                                    start=T, end=T + timedelta(seconds=10))
+    with pytest.raises(ValueError, match='pre-window carry'):
+        join_change_only_shade_rows([diagnostic(T - timedelta(seconds=2), 25),
+                                     diagnostic(T - timedelta(seconds=1), 25)], [], [],
+                                    start=T, end=T + timedelta(seconds=10))
+    seen = []
+    def stream():
+        for index in range(MAX_ROWS + 100):
+            seen.append(index)
+            yield change(T + timedelta(microseconds=index), 'ON')
+    with pytest.raises(ValueError, match='row bound'):
+        join_change_only_shade_rows([], stream(), [], start=T, end=T + timedelta(seconds=10))
     assert len(seen) == MAX_ROWS + 1

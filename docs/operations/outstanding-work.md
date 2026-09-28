@@ -82,6 +82,11 @@ change-only replay barriers. Twelve focused and all 703 thermal tests pass.
 The JDBC join, installed inventory, real report qualification, temperature
 pairing and learned/shadow policy are not yet active; no thermal artifact or
 motor control was changed.
+A source-only change-only Item-history join now gates per-shade coverage on the
+last persisted diagnostic, availability and scalar position. Cross-Item
+timestamp ties and offline transitions are barriers; staggered writes are not
+backdated. All 708 thermal Python tests pass. The restricted JDBC acquisition
+and continuity proof remain open.
 The tablet shade revision now draws 32×88-proportion vertical window controls,
 caps Lenovo cards at 100 CSS pixels, and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be

@@ -1,7 +1,7 @@
 """Source-only Dooya motor-report intervals; no listener, learning or actuation.
 
-Rows are one shade's already-joined OpenHAB diagnostic, availability and scalar
-position history. A future reader must prove that join and persistence coverage.
+Rows are one shade's OpenHAB diagnostic, availability and scalar position
+histories. A future JDBC reader must prove source coverage and correct Item IDs.
 This module never substitutes bridge cache or command acknowledgements for a
 motor Report, and never extends an old report with periodic re-publication.
 """
@@ -18,6 +18,7 @@ MAX_WINDOW = timedelta(days=2)
 MAX_REPORT_AGE = timedelta(minutes=30)
 CLOCK_SKEW = timedelta(seconds=60)
 ROW_KEYS = frozenset(('stored_at', 'diagnostic_state', 'availability', 'scalar_position'))
+CHANGE_KEYS = frozenset(('stored_at', 'state'))
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,64 @@ def _motor_report(row, stored_at):
     if not -CLOCK_SKEW <= stored_at - received_at <= MAX_REPORT_AGE:
         return None
     return received_at, position
+
+
+def join_change_only_shade_rows(diagnostics, availability, positions, *, start, end):
+    """Join three bounded Item histories as known at each persistence timestamp.
+
+    Each stream supplies at most one last pre-window carry row and changes before
+    end. Unknown values stay unknown. Cross-Item timestamp ties are barriers:
+    separate Item writes cannot be assumed atomic merely because their stored
+    timestamps have the same resolution. No transition is backdated.
+    """
+    start, end = _utc(start), _utc(end)
+    if not start < end or end - start > MAX_WINDOW:
+        raise ValueError('bounded shade window required')
+    events = []
+    for name, stream in (('diagnostic_state', diagnostics),
+                         ('availability', availability),
+                         ('scalar_position', positions)):
+        previous = None
+        carries = 0
+        for row in stream:
+            if not isinstance(row, dict) or set(row) != CHANGE_KEYS:
+                raise ValueError('closed shade change row required')
+            at = _utc(row['stored_at'])
+            if previous is not None and at <= previous:
+                raise ValueError('shade Item history must be strictly ordered')
+            if at >= end:
+                raise ValueError('future shade Item history row')
+            if at < start:
+                carries += 1
+                if carries > 1:
+                    raise ValueError('one pre-window carry per shade Item required')
+            previous = at
+            events.append((at, name, row['state']))
+            if len(events) > MAX_ROWS:
+                raise ValueError('shade row bound exceeded')
+    events.sort(key=lambda event: event[0])
+    states = dict.fromkeys(('diagnostic_state', 'availability', 'scalar_position'))
+    needs_diagnostic = True
+    joined = []
+    index = 0
+    while index < len(events):
+        at = events[index][0]
+        changed = set()
+        prior_availability = states['availability']
+        while index < len(events) and events[index][0] == at:
+            _, name, value = events[index]
+            states[name] = value
+            changed.add(name)
+            index += 1
+        if (len(changed) > 1 or states['availability'] != 'ON'
+                or ('availability' in changed and prior_availability != 'ON')):
+            needs_diagnostic = True
+        elif changed == {'diagnostic_state'}:
+            needs_diagnostic = False
+        joined.append(dict(stored_at=at, diagnostic_state=states['diagnostic_state'],
+                           availability=states['availability'] == 'ON' and not needs_diagnostic,
+                           scalar_position=states['scalar_position']))
+    return tuple(joined)
 
 
 def qualified_shade_intervals(rows, *, start, end):

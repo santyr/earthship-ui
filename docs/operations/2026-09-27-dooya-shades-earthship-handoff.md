@@ -116,6 +116,18 @@ fit a model, publish an advisory, or command a motor. Those stages require the
 installed inventory and natural report evidence. In particular, the existing
 coarse `indoor_shade_closed` feature remains unchanged.
 
+The next source-only step joins separately persisted diagnostic, availability
+and scalar-position Item changes at their actual persistence timestamps. It
+allows at most one pre-window carry per Item, admits no future rows, and refuses
+more than 10,000 total changes. A cross-Item timestamp tie is a coverage
+barrier, not proof of atomic publication; an offline-to-online transition
+requires a later diagnostic before position coverage resumes. A scalar value
+arriving after a motor diagnostic starts coverage only when that scalar was
+stored, with no backdating. Seventeen focused shade tests and all 708 thermal
+Python tests pass. This pure join
+still requires a restricted JDBC source reader, exact commissioned Item IDs,
+per-Item history continuity and real motor-report evidence before live learning.
+
 ## Source verification
 
 The revised 27-slot, zone-paired version passed all 1,755 UI unit tests in
