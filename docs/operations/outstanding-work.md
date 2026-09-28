@@ -104,6 +104,21 @@ coverage. The first natural AC-day timer execution remains to be observed.
 The recovery point is same-host only and predates the last two revisions;
 off-host disaster recovery remains Actionable.
 
+September 27 live Energy quality recheck: the latest completed September 26
+daily snapshot has 19/21 supporting source rows `ok`; only
+`load.dishwasher_state` and `load.shurflo_pump_state` remain
+`freshness_unverified`. The current v4 Energy Item is fresh, with observed
+September 26 AC load and qualified battery/PV evidence; its aggregate
+`daily_source_quality_not_ok` reason is specifically those two optional
+TP-Link switch rows, not an AC or battery failure. Both Switch Items
+received unchanged updates roughly every 30 seconds, but an item-specific
+live SSE `ItemStateUpdatedEvent` carried no source field. The event log also
+showed an optimistic dishwasher command prediction before one update. Neither
+the live Item timestamp nor change-only JDBC history is a durable,
+binding-origin freshness receipt. Keep both rows unqualified; next work is a
+source-bound, persisted observation contract with fault/restart continuity,
+not relabeling the existing values `ok` or masking the Energy warning.
+
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
 The last three trough misses are -24, -19 and -21 points. Their PV misses
