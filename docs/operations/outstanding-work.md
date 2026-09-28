@@ -186,6 +186,11 @@ incomplete days and long coverage gaps; 15 focused tests include both DST
 transitions. It has no live JDBC adapter or forecast caller. Qualification
 still requires the runtime bootstrap gate, isolated persistence/rollback,
 natural source receipts and a reviewed calibration holdout.
+The PV source-only JDBC adapter now uses one bounded repeatable-read snapshot
+and exact Item identity; 27 adjacent Python tests and one disposable
+PostgreSQL restricted-role integration pass. Revoked SELECT and oversized
+history withhold a day. The test container and volume were removed. This is
+not a live credential grant, production collection or PV calibration release.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

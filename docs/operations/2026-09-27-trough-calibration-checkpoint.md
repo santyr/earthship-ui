@@ -94,6 +94,17 @@ Fifteen focused tests cover those boundaries, including 23- and 25-hour DST
 days. No JDBC table resolver, database read, learning update or live producer
 calls this reader yet; its threshold and boundary assumptions still require
 validation against natural receipts after a reviewed activation.
+A source-only `pv_day_history.py` adapter now resolves exactly
+`MPPT60_PV_Day_Evidence_JSON` to one JDBC table inside a dedicated
+repeatable-read, read-only transaction. It bounds original rows and value
+size, refuses ambiguous identity or failed privileges, and feeds the pure
+reader without sorting, deduplicating or filling gaps. All 27 adjacent
+Python tests pass. A separate disposable PostgreSQL 16 test exercised the
+real SQL with a restricted role: one complete synthetic day qualified,
+revoked SELECT failed closed, and an oversized persisted value failed closed.
+Its owned container and volume were removed. No production PV Item, table,
+grant, connection factory or forecast caller exists yet; the actual stream
+cutover and natural day coverage still require qualification.
 
 The last three PV under-forecasts were approximately 3.137, 1.85 and 2.92
 kWh. At the model's 20.48 kWh bank and 0.95 efficiency, these are 14.6, 8.6
