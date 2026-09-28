@@ -122,7 +122,7 @@ class Database:
             files['tmp/hex-jdbc-pv-probe.jar'] = self.pv_probe
             files['openhab/conf/items/mppt60-pv-day-evidence.items'] = (
                 Path(__file__).resolve().parents[1]
-                / 'openhab/candidates/mppt60-pv-day-evidence.items').read_bytes()
+                / 'openhab/file-config/items/mppt60-pv-day-evidence.items').read_bytes()
         archive = io.BytesIO()
         with tarfile.open(fileobj=archive, mode='w') as tar:
             for name, body in files.items():

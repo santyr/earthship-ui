@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('../../openhab/rules/mppt60-pv-day-evidence.js', import.meta.url), 'utf8');
 const resources = JSON.parse(readFileSync(new URL('../../openhab/mppt60-pv-day-evidence-resources.json', import.meta.url), 'utf8'));
-const persistence = readFileSync(new URL('../../openhab/candidates/mppt60-pv-day-jdbc.persist', import.meta.url), 'utf8');
-const livePersistence = readFileSync(new URL('../../openhab/file-config/persistence/jdbc.persist', import.meta.url), 'utf8');
+const persistence = readFileSync(new URL('../../openhab/file-config/persistence/jdbc.persist', import.meta.url), 'utf8');
 const item = 'MPPT60_PV_Day_Observation_JSON';
 const output = 'MPPT60_PV_Day_Evidence_JSON';
 const field = 'mppt60.pv_day_wh';
@@ -177,11 +176,10 @@ describe('source-only MPPT daily PV evidence producer', () => {
     ]);
     expect(resources.persistenceExclusion).toBe('!MPPT60_PV_Day_Evidence_JSON');
     expect(resources.observationPersistenceExclusion).toBe('!MPPT60_PV_Day_Observation_JSON');
-    expect(resources.persistenceCandidate).toBe('openhab/candidates/mppt60-pv-day-jdbc.persist');
+    expect(resources.persistenceCandidate).toBe('openhab/file-config/persistence/jdbc.persist');
     expect(persistence).toContain('!MPPT60_PV_Day_Evidence_JSON');
     expect(persistence).toContain('!MPPT60_PV_Day_Observation_JSON');
     expect(persistence).toContain('MPPT60_PV_Day_Evidence_JSON : strategy = restoreOnStartup');
-    expect(livePersistence).not.toContain('MPPT60_PV_Day_Evidence_JSON');
     expect(source).not.toMatch(/sendCommand|oh_put|\/rest\/items/);
   });
 });

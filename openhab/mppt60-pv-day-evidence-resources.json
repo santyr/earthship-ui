@@ -1,11 +1,11 @@
 {
   "version": 1,
   "createOnly": true,
-  "itemSource": "openhab/candidates/mppt60-pv-day-evidence.items",
-  "observationItemSource": "openhab/candidates/mppt60-pv-day-observation.items",
+  "itemSource": "openhab/file-config/items/mppt60-pv-day-evidence.items",
+  "observationItemSource": "openhab/file-config/items/mppt60-pv-day-observation.items",
   "persistenceExclusion": "!MPPT60_PV_Day_Evidence_JSON",
   "observationPersistenceExclusion": "!MPPT60_PV_Day_Observation_JSON",
-  "persistenceCandidate": "openhab/candidates/mppt60-pv-day-jdbc.persist",
+  "persistenceCandidate": "openhab/file-config/persistence/jdbc.persist",
   "rule": {
     "uid": "hex_mppt60_pv_day_evidence",
     "name": "Validated MPPT60 daily PV counter evidence",

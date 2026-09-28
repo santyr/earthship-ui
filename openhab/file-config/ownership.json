@@ -347,6 +347,32 @@
     },
     {
       "kind": "item",
+      "id": "MPPT60_PV_Day_Observation_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/mppt60-pv-day-observation.items",
+      "destination": "/etc/openhab/items/mppt60-pv-day-observation.items",
+      "state_writer": "modbus:data:9eb978a141:mppt60Energy:energyFromPVTodayWh:number via transform:JS mppt60_pv_day_observation.js"
+    },
+    {
+      "kind": "item",
+      "id": "MPPT60_PV_Day_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/mppt60-pv-day-evidence.items",
+      "destination": "/etc/openhab/items/mppt60-pv-day-evidence.items",
+      "state_writer": "hex_mppt60_pv_day_evidence explicit JDBC and state post"
+    },
+    {
+      "kind": "link",
+      "id": "MPPT60_PV_Day_Observation_JSON -> modbus:data:9eb978a141:mppt60Energy:energyFromPVTodayWh:number",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/mppt60-pv-day-observation.items",
+      "destination": "/etc/openhab/items/mppt60-pv-day-observation.items"
+    },
+    {
+      "kind": "item",
       "id": "Energy_Analytics_JSON",
       "provider": "file",
       "migration": "verified",

@@ -14,12 +14,14 @@ result = subprocess.run(['java', '-Xmx256m', '--class-path', ':'.join(jars),
                         capture_output=True, text=True, timeout=45)
 expected = [
     'strategy_tokens=[everyChange, restoreOnStartup]',
-    'selector_type=AllConfig', 'selector_type=ItemExcludeConfig',
+    'selector_type=AllConfig', *(['selector_type=ItemExcludeConfig'] * 4),
     'strategy_tokens=[forecast, everyChange]', 'selector_type=GroupConfig',
-    'strategy_tokens=[restoreOnStartup]', 'selector_type=ItemConfig', 'syntax_errors=0']
+    'strategy_tokens=[restoreOnStartup]', *(['selector_type=ItemConfig'] * 3),
+    'syntax_errors=0']
 actual = [line for line in result.stdout.splitlines()
           if line.startswith(('strategy_tokens=', 'selector_type=', 'syntax_errors='))]
 if result.returncode or actual != expected:
-    raise SystemExit('offline parser qualification failed; inspect parser/dependencies')
+    raise SystemExit('offline parser qualification failed; actual=' + repr(actual)
+                     + '; inspect parser/dependencies')
 print('OpenHAB 5.2.1 offline syntax, selector types and strategy tokens match')
-print('Runtime strategy resolution and provider transfer remain unverified')
+print('Parser-only result; runtime provider and collection require separate checks')

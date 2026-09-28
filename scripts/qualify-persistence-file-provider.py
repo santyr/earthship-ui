@@ -30,14 +30,19 @@ def main(database=None, candidate=None, candidate_kind='ac'):
         prior = [['*', '!Power_Evidence_JSON'], ['gForecast*'], ['Power_Evidence_JSON']]
         qualified = [['*', '!Power_Evidence_JSON', '!Inverter_AC_Evidence_JSON'],
                      ['gForecast*'], ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON']]
+        pv_qualified = [['*', '!Power_Evidence_JSON', '!Inverter_AC_Evidence_JSON',
+                         '!MPPT60_PV_Day_Evidence_JSON', '!MPPT60_PV_Day_Observation_JSON'],
+                        ['gForecast*'], ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON',
+                                         'MPPT60_PV_Day_Evidence_JSON']]
         if candidate_kind == 'pv-day':
-            if selectors != qualified:
+            if selectors not in (qualified, pv_qualified):
                 raise RuntimeError('live strategy selectors changed; refuse PV candidate rewrite')
-            expected['configs'][0]['items'].append('!MPPT60_PV_Day_Evidence_JSON')
-            expected['configs'][0]['items'].append('!MPPT60_PV_Day_Observation_JSON')
-            expected['configs'][2]['items'].append('MPPT60_PV_Day_Evidence_JSON')
+            if selectors == qualified:
+                expected['configs'][0]['items'].append('!MPPT60_PV_Day_Evidence_JSON')
+                expected['configs'][0]['items'].append('!MPPT60_PV_Day_Observation_JSON')
+                expected['configs'][2]['items'].append('MPPT60_PV_Day_Evidence_JSON')
         elif candidate_kind == 'ac':
-            if selectors not in (prior, qualified):
+            if selectors not in (prior, qualified, pv_qualified):
                 raise RuntimeError('live strategy selectors changed; refuse candidate rewrite')
             if selectors == prior:
                 expected['configs'][0]['items'].append('!Inverter_AC_Evidence_JSON')
@@ -201,7 +206,7 @@ if __name__ == '__main__':
     candidates.add_argument('--pv-day-candidate', action='store_true',
                             help='Qualify the prepared PV evidence exclusion without live mutation')
     args = parser.parse_args()
-    main(candidate=(ROOT / 'openhab/candidates/mppt60-pv-day-jdbc.persist'
+    main(candidate=(ROOT / 'openhab/file-config/persistence/jdbc.persist'
                     if args.pv_day_candidate else
                     ROOT / 'openhab/file-config/persistence/jdbc.persist'
                     if args.candidate else None),

@@ -52,6 +52,10 @@ coefficient, forecast, alert threshold or DM behavior changed here.
 
 ## Source-only PV acquisition candidate
 
+This section preserves the pre-activation qualification sequence. The
+[September 28 activation receipt](2026-09-28-pv-day-evidence-activation.md)
+records the subsequent live observational stream and canonical file ownership.
+
 The live MPPT energy data Thing, its 30-second poller and TCP bridge were all
 ONLINE at the September 28 read-only check. `openhab/transform/mppt60_pv_day_observation.js`
 and the disabled `openhab/mppt60-pv-day-evidence-resources.json` candidate
@@ -114,9 +118,9 @@ restart barriers and no counter decrease outside a brief midnight reset.
 It fails closed on duplicate/out-of-order rows, missing sequence numbers,
 malformed evidence, incomplete days, long outages or excessive row volume.
 Fifteen focused tests cover those boundaries, including 23- and 25-hour DST
-days. No JDBC table resolver, database read, learning update or live producer
-calls this reader yet; its threshold and boundary assumptions still require
-validation against natural receipts after a reviewed activation.
+days. At that source-only checkpoint, no JDBC table resolver, database read,
+learning update or live producer called this reader; its threshold and
+boundary assumptions still required natural-receipt validation.
 A source-only `pv_day_history.py` adapter now resolves exactly
 `MPPT60_PV_Day_Evidence_JSON` to one JDBC table inside a dedicated
 repeatable-read, read-only transaction. It bounds original rows and value
@@ -125,9 +129,11 @@ reader without sorting, deduplicating or filling gaps. All 27 adjacent
 Python tests pass. A separate disposable PostgreSQL 16 test exercised the
 real SQL with a restricted role: one complete synthetic day qualified,
 revoked SELECT failed closed, and an oversized persisted value failed closed.
-Its owned container and volume were removed. No production PV Item, table,
-grant, connection factory or forecast caller exists yet; the actual stream
-cutover and natural day coverage still require qualification.
+Its owned container and volume were removed. At that test checkpoint, no
+production PV Item, table, grant, connection factory or forecast caller
+existed. The [September 28 live observation receipt](2026-09-28-pv-day-evidence-activation.md)
+records subsequent source-bound activation; it does not qualify a complete
+day, create the restricted reader grant or change forecast calibration.
 
 The last three PV under-forecasts were approximately 3.137, 1.85 and 2.92
 kWh. At the model's 20.48 kWh bank and 0.95 efficiency, these are 14.6, 8.6

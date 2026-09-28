@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('../../openhab/transform/mppt60_pv_day_observation.js', import.meta.url), 'utf8');
-const item = readFileSync(new URL('../../openhab/candidates/mppt60-pv-day-observation.items', import.meta.url), 'utf8');
+const item = readFileSync(new URL('../../openhab/file-config/items/mppt60-pv-day-observation.items', import.meta.url), 'utf8');
 
 describe('prepared MPPT daily PV acquisition observation', () => {
   it.each(['0', '8298', '8298.0', 'UNDEF', 'NULL', '-1', 'not a number'])

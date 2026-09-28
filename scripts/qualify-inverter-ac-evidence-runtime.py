@@ -32,8 +32,8 @@ CANDIDATES = {
     'pv-day': {
         'item': 'MPPT60_PV_Day_Evidence_JSON',
         'source': ROOT / 'openhab/rules/mppt60-pv-day-evidence.js',
-        'item_source': ROOT / 'openhab/candidates/mppt60-pv-day-evidence.items',
-        'observation_source': ROOT / 'openhab/candidates/mppt60-pv-day-observation.items',
+        'item_source': ROOT / 'openhab/file-config/items/mppt60-pv-day-evidence.items',
+        'observation_source': ROOT / 'openhab/file-config/items/mppt60-pv-day-observation.items',
         'transform_source': ROOT / 'openhab/transform/mppt60_pv_day_observation.js',
         'resource': ROOT / 'openhab/mppt60-pv-day-evidence-resources.json',
         'basis': 'mppt60_native_pv_day_wh', 'field': 'mppt60.pv_day_wh',

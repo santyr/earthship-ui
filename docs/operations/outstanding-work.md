@@ -54,8 +54,26 @@ installation window, both briefly paused thermal timers were restored.
 A subsequent guarded one-file transaction installed the exact optimized
 `dynamics.py` with a private rollback receipt. Source/runtime SHA equality,
 installed import, an isolated synthetic fit and both enabled timers passed.
-The natural September 28 trainer still has to establish whole-run speed and
-accepted-artifact continuity.
+At that deployment checkpoint, the natural September 28 trainer still had to
+establish whole-run speed and accepted-artifact continuity.
+The natural September 28 06:50–07:49 MDT trainer has now exited zero with
+58m 56.671s CPU, 366.3 MB peak memory and 0 B swap peak. It accepted a v4
+artifact under the installed optimized code revision `53d96e5e9637`.
+Compared with September 27's 1h 10m 32s CPU, this is about 16% lower but
+not a causal speedup estimate because folds/data changed. The artifact is
+explicitly shadow-only, has zero confirmed-action rows, and remains worse
+than persistence at 24 hours (2.179 versus 1.690°F air MAE). The provisional
+promotion's 0.75°F tolerance is not operational graduation. Verify the next
+natural shadow publication binds this new artifact before closing the
+publisher-continuity gate; shadow exit and off-host recovery remain open.
+The natural 08:20 MDT shadow publisher then exited zero in 2.116s CPU. Its
+verified 240-row v2 forcing capture
+`20260928T142030Z-3034481311f6ab0f.json.gz` embeds the new accepted
+`53d96e5e9637` artifact and exactly matches the live `Thermal_Model_JSON`.
+The output remains `shadow`/low confidence with no candidate. This closes
+post-training publication continuity, not action-label, accuracy or
+operational graduation. The capture was verified with the installed v4
+runtime; the repo's uninstalled v5-only validator rejects this v4 artifact.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
@@ -209,6 +227,18 @@ and exact Item identity; 27 adjacent Python tests and one disposable
 PostgreSQL restricted-role integration pass. Revoked SELECT and oversized
 history withhold a day. The test container and volume were removed. This is
 not a live credential grant, production collection or PV calibration release.
+The [September 28 observational PV activation](2026-09-28-pv-day-evidence-activation.md)
+then installed only the dual-exclusion file-owned JDBC strategy, read-side
+transform and two file-owned Items, plus an observational managed rule. The
+first 11 natural JDBC receipts all passed the strict parser, with a durable
+startup barrier, ten valid native-Wh rows, one epoch and no sequence gap.
+The existing power/AC evidence streams also stayed continuous in a bounded
+hot-reload readback. No forecast, MPPT control or thermal action changed.
+September 28 is a partial collection day; first possible complete PV day is
+September 29, assessable no earlier than September 30. Natural restart/fault
+behavior, complete-day coverage, restricted day-reader integration,
+chronological calibration, retention and file ownership of the new rule
+remain open.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

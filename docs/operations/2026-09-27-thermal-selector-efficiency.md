@@ -97,3 +97,24 @@ Read-only live `Thermal_Model_JSON` showed generation at
 same accepted artifact revision. This verifies publication after the one-file
 runtime installation, but does not exercise the next full training run or
 support exiting shadow mode.
+
+The first full natural training run with both the selector/finite-state work
+and small-array reuse finished September 28 at 07:49 MDT, exit 0, with
+58m 56.671s CPU, 366.3 MB memory peak and 0 B swap peak. The September 27
+run consumed 1h 10m 32s CPU; that is about 16% less, but the training window
+and scored folds changed, so the whole difference is not attributed to these
+patches. The accepted v4 artifact was atomically promoted at 07:49 with the
+installed 20-file code revision `53d96e5e9637d9c0c427afaffa35b29350243bf295ec6ed6f8a38f631d686396`;
+its accepted file SHA-256 is `a9f608d638b5e450e4d0a6f53c7b887bbfdb74290f8d21b78364a313a5fcfc8a`.
+This closes the natural whole-run completion and source-continuity gate, not
+the causal performance attribution or shadow-exit gate. The artifact still
+sets `shadow_only=true`, has zero confirmed-action training/evaluation rows,
+and its 24-hour air MAE is 2.179°F versus 1.690°F for persistence. Its
+provisional internal promotion tolerates up to 0.75°F worse 24-hour MAE; that
+is not an approved operational graduation threshold. The next natural shadow
+publisher must still demonstrate publication from this new accepted artifact.
+The natural 08:20 MDT publisher subsequently exited zero in 2.116s CPU. The
+new 240-row v2 capture embeds that accepted code revision and exactly equals
+the live `Thermal_Model_JSON` under the installed v4 verifier. It is still
+`shadow`/low confidence with no candidate. This closes the publisher-
+continuity gate, not the independent accuracy or action-confirmation gates.
