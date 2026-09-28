@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Disposable, networkless OpenHAB 5.2.1 rule compile/trigger qualifier."""
+"""Disposable, networkless OpenHAB 5.2.1 evidence-rule qualifier."""
+import argparse
 import io
 import json
 from pathlib import Path
@@ -19,11 +20,26 @@ IMAGE = 'openhab/openhab@sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f035
 ADDON = Path('/var/lib/openhab/tmp/kar/openhab-addons-5.2.1/org/openhab/addons/bundles/'
              'org.openhab.automation.jsscripting/5.2.1/org.openhab.automation.jsscripting-5.2.1.jar')
 GRAAL = Path('/var/lib/openhab/tmp/kar/openhab-addons-5.2.1/org/openhab/osgiify')
-ITEM = 'Inverter_AC_Evidence_JSON'
-RULE = 'isolated_hex_inverter_ac_evidence'
-SOURCE = ROOT / 'openhab/rules/inverter-ac-evidence.js'
-ITEM_SOURCE = ROOT / 'openhab/file-config/items/inverter-ac-evidence.items'
-RESOURCE = ROOT / 'openhab/inverter-ac-evidence-resources.json'
+CANDIDATES = {
+    'ac': {
+        'item': 'Inverter_AC_Evidence_JSON',
+        'source': ROOT / 'openhab/rules/inverter-ac-evidence.js',
+        'item_source': ROOT / 'openhab/file-config/items/inverter-ac-evidence.items',
+        'resource': ROOT / 'openhab/inverter-ac-evidence-resources.json',
+        'basis': 'inverter_output', 'field': 'inverter.ac_output_w',
+        'warning': 'Inverter AC evidence persistence enqueue failed',
+    },
+    'pv-day': {
+        'item': 'MPPT60_PV_Day_Evidence_JSON',
+        'source': ROOT / 'openhab/rules/mppt60-pv-day-evidence.js',
+        'item_source': ROOT / 'openhab/candidates/mppt60-pv-day-evidence.items',
+        'observation_source': ROOT / 'openhab/candidates/mppt60-pv-day-observation.items',
+        'transform_source': ROOT / 'openhab/transform/mppt60_pv_day_observation.js',
+        'resource': ROOT / 'openhab/mppt60-pv-day-evidence-resources.json',
+        'basis': 'mppt60_native_pv_day_wh', 'field': 'mppt60.pv_day_wh',
+        'warning': 'MPPT60 PV evidence persistence enqueue failed',
+    },
+}
 
 
 def run(args, data=None, *, timeout=45):
@@ -56,22 +72,28 @@ def install_bundles(container, files):
         archive.getvalue(), timeout=90)
 
 
-def main():
-    for endpoint in ('/items/' + ITEM, '/rules/hex_inverter_ac_evidence'):
+def main(kind='ac', *, installed_control=False):
+    candidate = CANDIDATES[kind]
+    item_name = candidate['item']
+    definition = json.loads(candidate['resource'].read_text())
+    rule_uid = definition['rule']['uid']
+    isolated_rule = 'isolated_' + rule_uid
+    for endpoint in ('/items/' + item_name, '/rules/' + rule_uid):
         try:
             oh.get(endpoint)
         except HTTPError as error:
             if error.code != 404:
                 raise
         else:
+            if kind == 'ac' and installed_control:
+                continue
             raise RuntimeError('candidate already installed on production host')
-    source = SOURCE.read_text()
-    definition = json.loads(RESOURCE.read_text())
+    source = candidate['source'].read_text()
     bundles = sorted(GRAAL.glob('org.graalvm.*/25.0.1/*.jar'))
     if not ADDON.is_file() or len(bundles) != 22 or 'sendCommand' in source:
         raise RuntimeError('runtime add-on missing or action path in source')
     marker = secrets.token_hex(8)
-    container = run(['docker', 'run', '-d', '--label', 'hex.ac.rule=' + marker,
+    container = run(['docker', 'run', '-d', '--label', 'hex.evidence.rule=' + marker,
         '--network', 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',
         '--memory', '2048m', '--cpus', '2', '--pids-limit', '256',
         '--tmpfs', '/tmp:rw,exec,nosuid,nodev,size=64m,uid=9001,gid=9001',
@@ -89,13 +111,14 @@ def main():
                 or host.get('Devices') or host.get('PortBindings')
                 or info['AppArmorProfile'] != 'docker-default'):
             raise RuntimeError('isolated container policy mismatch')
-        install(container, 'conf/items/inverter-ac-evidence.items', ITEM_SOURCE.read_bytes())
+        install(container, 'conf/items/' + candidate['item_source'].name,
+                candidate['item_source'].read_bytes())
         install_bundles(container, [ADDON, *bundles])
         run(['docker', 'exec', container, 'touch', '/tmp/ready'])
         for _ in range(80):
             try:
                 run(['docker', 'exec', container, 'curl', '-fsS', '--max-time', '3',
-                     'http://127.0.0.1:8080/rest/items/' + ITEM])
+                     'http://127.0.0.1:8080/rest/items/' + item_name])
                 break
             except RuntimeError:
                 time.sleep(3)
@@ -125,7 +148,7 @@ def main():
             'Active' if 'Active' in line else 'not_active' for line in js_bundles), flush=True)
         if not any('Active' in line for line in js_bundles):
             print('isolated_js_bundle_listing=' + js_bundles[0][:250], flush=True)
-            bundle_id = re.match(r'\s*(\d+)\s*\|', js_bundles[0])
+            bundle_id = re.match(r'\s*(\d+)\s*[|│]', js_bundles[0])
             if bundle_id:
                 diagnosis = run(client + ['bundle:diag ' + bundle_id.group(1)],
                                 b'\n').decode(errors='replace')
@@ -160,58 +183,88 @@ def main():
             payload, status = raw.rsplit(b'\n', 1)
             return int(status), json.loads(payload) if payload else None
 
-        candidate = definition['rule']
-        rule = {'uid': RULE, 'name': candidate['name'], 'description': 'Isolated observational qualification',
-                'triggers': candidate['triggers'], 'conditions': [],
+        # Keep transform-linked Item loading separate from bundle startup so a
+        # failure can be attributed to the bundle or the candidate Item.
+        # This is isolated-container installation, never production.
+        if candidate.get('transform_source'):
+            install(container, 'conf/transform/' + candidate['transform_source'].name,
+                    candidate['transform_source'].read_bytes())
+        if candidate.get('observation_source'):
+            install(container, 'conf/items/' + candidate['observation_source'].name,
+                    candidate['observation_source'].read_bytes())
+            for _ in range(15):
+                status, _ = rest('GET', '/items/MPPT60_PV_Day_Observation_JSON')
+                if status == 200:
+                    break
+                time.sleep(2)
+            else:
+                raise RuntimeError('isolated observation Item provider timeout')
+
+        rule_definition = definition['rule']
+        rule = {'uid': isolated_rule, 'name': rule_definition['name'],
+                'description': 'Isolated observational qualification',
+                'triggers': rule_definition['triggers'], 'conditions': [],
                 'actions': [{'id': 'evidence', 'type': 'script.ScriptAction',
                              'configuration': {'type': 'application/javascript', 'script': source}}]}
         status, _ = rest('POST', '/rules', rule)
         if status != 201:
             raise RuntimeError('isolated rule creation refused: HTTP ' + str(status))
         for _ in range(20):
-            status, loaded = rest('GET', '/rules/' + RULE)
+            status, loaded = rest('GET', '/rules/' + isolated_rule)
             if status == 200 and loaded.get('status', {}).get('status') == 'IDLE':
                 break
             time.sleep(2)
         else:
             raise RuntimeError('isolated rule failed to become IDLE')
-        status, _ = rest('POST', '/rules/' + RULE + '/runnow', {})
+        status, _ = rest('POST', '/rules/' + isolated_rule + '/runnow', {})
         if status != 200:
             raise RuntimeError('isolated rule execution request refused')
         time.sleep(5)
-        status, loaded = rest('GET', '/rules/' + RULE)
+        status, loaded = rest('GET', '/rules/' + isolated_rule)
         if status != 200 or loaded.get('status', {}).get('status') != 'IDLE':
             raise RuntimeError('isolated rule did not return to IDLE')
         installed = loaded.get('triggers', [])
         if {(x.get('id'), x.get('type')) for x in installed} != {
-                (x['id'], x['type']) for x in candidate['triggers']}:
+                (x['id'], x['type']) for x in rule_definition['triggers']}:
             raise RuntimeError('isolated trigger registration differs')
-        status, item = rest('GET', '/items/' + ITEM)
+        if candidate.get('observation_source'):
+            observation_name = definition['observationItemSource'].split('/')[-1]
+            if observation_name != candidate['observation_source'].name:
+                raise RuntimeError('observation source does not match descriptor')
+        status, item = rest('GET', '/items/' + item_name)
         try:
             body = json.loads(item['state']) if status == 200 else None
         except (ValueError, TypeError, KeyError):
             body = None
         log = run(['docker', 'exec', container, 'cat',
                    '/openhab/userdata/logs/openhab.log']).decode(errors='replace')
-        item_receipt = (isinstance(body, dict) and body.get('basis') == 'inverter_output'
-                        and body.get('fields', {}).get('inverter.ac_output_w', {}).get('reason')
+        item_receipt = (isinstance(body, dict) and body.get('basis') == candidate['basis']
+                        and body.get('fields', {}).get(candidate['field'], {}).get('reason')
                         == 'source_unavailable')
-        logger_receipt = 'Inverter AC evidence persistence enqueue failed' in log
+        logger_receipt = candidate['warning'] in log
         if not (item_receipt or logger_receipt):
+            print('isolated_item_status=' + str(status), flush=True)
+            print('isolated_item_state=' + str(item.get('state') if isinstance(item, dict)
+                                                 else type(item).__name__)[:180], flush=True)
+            print('isolated_rule_status=' + str(loaded.get('status', {}))[:180], flush=True)
             clues = [line for line in log.splitlines()
                      if any(term in line.lower() for term in
-                            ('isolated_hex_inverter_ac_evidence', 'jsscripting', 'script exception',
-                             'script execution', 'inverter ac evidence'))]
+                            (isolated_rule.lower(), 'jsscripting', 'script exception',
+                             'script execution', 'evidence', 'error', 'exception'))]
             print('isolated_rule_diagnostic_lines=' + str(len(clues)), flush=True)
-            for line in clues[-6:]:
+            for line in clues[-12:]:
                 print('isolated_rule_diagnostic=' + line[:260], flush=True)
+            docker_log = run(['docker', 'logs', '--tail', '40', container]).decode(errors='replace')
+            for line in docker_log.splitlines()[-10:]:
+                print('isolated_container_diagnostic=' + line[:260], flush=True)
             raise RuntimeError('isolated rule body execution receipt absent')
         print('isolated_rule_compiled_trigger_registered_and_runnow_idle=true', flush=True)
         print('isolated_rule_body_receipt=' + ('item' if item_receipt else 'no_jdbc_warning'), flush=True)
+        print('isolated_candidate=' + kind, flush=True)
         print('physical_thing_and_jdbc_execution=not_tested', flush=True)
     finally:
         owner = run(['docker', 'inspect', '--format',
-            '{{index .Config.Labels "hex.ac.rule"}}', container]).decode().strip()
+            '{{index .Config.Labels "hex.evidence.rule"}}', container]).decode().strip()
         if owner != marker:
             raise RuntimeError('isolated container ownership mismatch')
         run(['docker', 'rm', '-f', '-v', container])
@@ -219,4 +272,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--candidate', choices=sorted(CANDIDATES), default='ac')
+    parser.add_argument('--installed-control', action='store_true',
+                        help='read-only AC control when its production rule is already installed')
+    args = parser.parse_args()
+    if args.installed_control and args.candidate != 'ac':
+        parser.error('--installed-control is only available for the AC control')
+    main(args.candidate, installed_control=args.installed_control)

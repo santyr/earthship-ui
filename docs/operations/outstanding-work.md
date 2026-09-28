@@ -175,6 +175,11 @@ requires original binding events and post-restart receipts rather than
 assuming change-only persistence proves freshness. No production Item, link,
 Thing, rule, persistence strategy or forecast was changed; isolated runtime,
 rollback, natural poll and strict day-reader gates remain.
+An isolated PV rule preflight did not pass: two networkless OpenHAB boots
+reported Graal language uninitialized, and a later boot left the scripting
+bundle `Waiting`. The existing AC rule passed as a control in the same
+harness; the PV rule itself is not qualified. All disposable containers were
+removed and no production PV resource was installed.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

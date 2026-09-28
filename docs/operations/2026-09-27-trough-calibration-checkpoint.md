@@ -68,6 +68,21 @@ or a qualified daily total. Before deployment, it needs isolated OpenHAB
 runtime and persistence/rollback qualification, natural unchanged-value poll
 verification, a strict historical day reader, and a reviewed activation.
 
+The September 28 isolated OpenHAB 5.2.1 attempt remains **inconclusive**.
+The qualifier was extended to stage the PV candidate in a networkless,
+read-only container with a private tmpfs and no host bindings. Two initial
+PV runs registered the rule but Graal reported that JavaScript was not
+initialized before its body ran. The previously qualified inverter rule
+passed as a control in the same harness. A follow-up run deferred loading the
+PV transform-linked Item until after scripting-bundle activation, but that
+isolated boot left the bundle `Waiting` before the observation Item was
+installed. These are runtime-bootstrap
+failures, not evidence that the PV rule body executes correctly or incorrectly.
+All owned containers and their tmpfs state were removed. The qualifier now
+distinguishes the two candidates and captures bundle/body diagnostics; do
+not activate the PV resources until a deterministic isolated run, persistence
+exclusion/rollback and natural source-event checks pass.
+
 The last three PV under-forecasts were approximately 3.137, 1.85 and 2.92
 kWh. At the model's 20.48 kWh bank and 0.95 efficiency, these are 14.6, 8.6
 and 13.5 SoC points **if** every extra kWh translated linearly into stored
