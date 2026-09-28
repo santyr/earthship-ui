@@ -45,3 +45,37 @@ and *assumed* vent/shade schedules without treating operator recollection as
 signed action labels. A new candidate needs chronological holdout and
 prospective score against both baselines before any thermal advice authority
 is considered. No coefficient or schedule was changed in this audit.
+
+## Exact-source replayability and vent hypothesis
+
+The four selected independent 24-hour origins use revisions
+`c87551f92f02`, `507748cee9ca`, `6084d8f6034e`, and `01b0eda24b6e`.
+A bounded read-only search of 76 Git runtime-source commits found a complete
+tree matching only the first (`ce34dee19073`, also present in two later
+commits). The other three are not reconstructible from a single matching Git
+tree in that search. These earlier captures are v1 and do not embed their
+accepted artifacts; a source match alone is not an exact-replay license.
+
+`scripts/replay-thermal-forcing.py` now requires a v2 capture with embedded
+artifact, a matching runtime-manifest revision, and bit-for-bit as-issued
+output replay before it can compare an in-memory assumed-closed vent schedule.
+The hypothetical is explicitly not an action confirmation or training label.
+Five focused tests cover CLI runtime selection, schedule isolation, target
+alignment, v1/source refusal, and the exact-replay gate. A live read-only
+replay of the September 28 08:20 MDT capture under installed revision
+`53d96e5e9637` matched its publication exactly. Assuming closed vents changed
+its 1-hour prediction by 0.000°F and its *not-yet-scored* 24-hour prediction
+by +0.708°F. Its first mature qualified one-hour outcome had issued model
+error +0.972°F versus 0.000°F persistence error; that miss cannot be assigned
+to tonight's later vent window.
+
+A second isolated replay of the September 28 04:20 MDT v2 capture used the
+historical `831893709152` source bundle. Its preserved v2 verifier was
+overlaid into the disposable source tree because the historical importable
+module predated v2; the 21-file revision hash was unchanged. Exact publication
+equality passed, and the assumed-closed schedule raised its unscored 24-hour
+prediction by +0.996°F. The disposable tree was removed. Those deltas are
+model sensitivities only; the associated 24-hour outcomes are not mature and
+no vent state has been qualified. This sets a reproducible source-matched
+path for later outcome scoring without retroactively treating recollections
+as signed actions.

@@ -371,6 +371,15 @@ same-origin persistence MAE is 1.105/0.516°F at one hour (59 pairs),
 MAE is 2.179°F versus 1.690°F persistence, with zero confirmed-action folds.
 The 12-hour observational improvement does not overcome the short/long lead
 failures or justify leaving shadow mode; exact-origin cause diagnosis remains.
+The [same audit](2026-09-28-thermal-installed-v4-score.md) now records exact
+source coverage: only one of four independent 24-hour origin revisions matches
+a complete Git tree, and those early v1 captures lack embedded artifacts.
+A source-bound v2 replay CLI reproduces today's 08:20 and archived 04:20
+publications exactly before an optional, non-authorizing closed-vent
+counterfactual. Its 24-hour prediction deltas are +0.708°F and +0.996°F;
+targets are not mature and no vent action label was inferred. The first
+new-revision qualified one-hour outcome missed by +0.972°F versus exact
+persistence; the later vent window cannot explain that short-lead miss.
 
 ## Current checkpoint — September 25, 2026
 
