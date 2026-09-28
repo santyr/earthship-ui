@@ -1,5 +1,5 @@
-// Source-only candidate: deploy the prepared JDBC exclusions before these
-// Items. Qualify the live link/fault behavior before a quality consumer uses it.
+// The matching JDBC exclusions must be live before these Items are installed.
+// Qualify event origin and fault/restart behavior before a quality consumer uses it.
 // These additional links do not replace the controlled Switch Items. The JS
 // profile deliberately has no outbound command/state script, so commands to
 // these observation Items are discarded by the profile, never sent to a plug.

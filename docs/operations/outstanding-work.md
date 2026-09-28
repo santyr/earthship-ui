@@ -170,16 +170,19 @@ The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
 whose supplier queries the plug; a successful non-`REFRESH` command forces a
 new cache read and can also update the switch channel. The original controlled
 Switch Items therefore remain unsuitable as acquisition receipts, even when
-their updates are frequent. A source-only candidate now defines two separate
-String observation Items linked through inbound-only JS transforms to the
-existing switch channels. The profile has no outbound script, so it cannot
+their updates are frequent. Two additive file-owned String observation Items
+are linked through inbound-only JS transforms to the existing switch channels.
+The profile has no outbound script, so it cannot
 command either plug; the transform stamps the host observation time and keeps
-the raw ON/OFF text. The canonical JDBC source now excludes these 30-second
-raw Items, but its changed configuration has not been installed. Apply and
-read back that exclusion before installing the Items. Then verify original
-channel-source events, normal unchanged polling, controlled-command overlap,
-fault/restart gaps and removal
-without disturbing the protected Items. Only a validated, explicitly persisted
+the raw ON/OFF text. The canonical JDBC exclusions were deployed and read back
+from the file provider before both observational Items were installed. Live
+readback then showed distinct file-owned String Items and inbound-only links
+alongside the unchanged original controlled Switch Items. Both observations
+advanced by 30 seconds with unchanged OFF/ON values, and JDBC reported zero
+raw-observation datapoints. Public SSE Item events omit source attribution;
+an in-rule channel-source check, controlled-command overlap, fault/restart gaps
+and a withdrawal/restoration trial remain before these observations qualify.
+Those checks must not disturb protected Items. Only a validated, explicitly persisted
 receipt and day-reader may clear `freshness_unverified`; no analytics quality
 or live control state was changed by this source preparation.
 

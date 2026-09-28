@@ -373,6 +373,40 @@
     },
     {
       "kind": "item",
+      "id": "Dishwasher_Switch_Observation_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/tplink-switch-observation.items",
+      "destination": "/etc/openhab/items/tplink-switch-observation.items",
+      "state_writer": "tplinksmarthome:hs103:a34b4957dc:switch via inbound-only transform:JS tplink_switch_observation.js"
+    },
+    {
+      "kind": "item",
+      "id": "Cistern_Pump_Switch_Observation_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/tplink-switch-observation.items",
+      "destination": "/etc/openhab/items/tplink-switch-observation.items",
+      "state_writer": "tplinksmarthome:hs103:08482dd378:switch via inbound-only transform:JS tplink_switch_observation.js"
+    },
+    {
+      "kind": "link",
+      "id": "Dishwasher_Switch_Observation_JSON -> tplinksmarthome:hs103:a34b4957dc:switch",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/tplink-switch-observation.items",
+      "destination": "/etc/openhab/items/tplink-switch-observation.items"
+    },
+    {
+      "kind": "link",
+      "id": "Cistern_Pump_Switch_Observation_JSON -> tplinksmarthome:hs103:08482dd378:switch",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/tplink-switch-observation.items",
+      "destination": "/etc/openhab/items/tplink-switch-observation.items"
+    },
+    {
+      "kind": "item",
       "id": "Energy_Analytics_JSON",
       "provider": "file",
       "migration": "verified",
