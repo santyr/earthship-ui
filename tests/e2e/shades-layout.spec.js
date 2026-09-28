@@ -38,27 +38,39 @@ for (const target of TARGETS) {
       ['Bathroom + Bedroom', ['Bathroom', 'Bedroom'], 10, 'Bedroom Shade 27'],
     ]) {
       await page.getByRole('button', { name: view }).click();
-      await expect(page.locator('.shade-card')).toHaveCount(count);
+      await expect(page.locator('.shade-card')).toHaveCount(count + zones.length);
       await expect(page.getByRole('article', { name: `${last}: Awaiting Item mapping` })).toBeVisible();
       for (const zone of zones) {
         await expect(page.getByRole('heading', { name: zone, exact: true })).toBeVisible();
         await expect(page.getByRole('button', { name: `Open ${zone}` })).toBeDisabled();
         await expect(page.getByRole('button', { name: `Close ${zone}` })).toBeDisabled();
+        await expect(page.getByRole('slider', { name: `${zone} group percent open; movement disabled until commissioning` })).toBeDisabled();
       }
-      await expect(page.locator('input[type="range"]')).toHaveCount(0);
+      await expect(page.locator('input[type="range"]')).toHaveCount(count + zones.length);
+      await expect(page.locator('input[type="range"]:not(:disabled)')).toHaveCount(0);
 
       const geometry = await page.evaluate(() => {
         const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
         const cards = [...document.querySelectorAll('.shade-card')].map((card) => {
           const box = card.getBoundingClientRect();
-          return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, scrollWidth: card.scrollWidth, clientWidth: card.clientWidth };
+          return { left: box.left, top: box.top, right: box.right, bottom: box.bottom,
+            width: box.width, scrollWidth: card.scrollWidth, clientWidth: card.clientWidth };
         });
-        return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight, cards };
+        const window = document.querySelector('.window-glass').getBoundingClientRect();
+        return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
+          cards, window: { width: window.width, height: window.height },
+          vertical: getComputedStyle(document.querySelector('input[type="range"]')).writingMode,
+          truncatedRoomLabels: [...document.querySelectorAll('.card-name span:first-child')]
+            .filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent) };
       });
       expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport.width);
       expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
+      if (target.name === 'lenovo-m9') expect(geometry.cards.every((card) => card.width <= 101)).toBe(true);
+      expect(geometry.window).toEqual({ width: 32, height: 88 });
+      expect(geometry.vertical).toBe('vertical-lr');
+      expect(geometry.truncatedRoomLabels).toEqual([]);
     }
     expect(writes).toEqual([]);
     expect(errors).toEqual([]);

@@ -81,3 +81,15 @@ export function shadePresentation(slot, states, connection, nowMs = Date.now()) 
     observedAtMs: report.observedAtMs,
   };
 }
+
+export function shadeGroupPresentation(slots, states, connection, nowMs = Date.now()) {
+  const reports = slots.map((slot) => shadePresentation(slot, states, connection, nowMs));
+  if (reports.length === 0 || reports.some((report) => report.state !== 'reported')) {
+    return { state: 'unavailable', openPercent: null, label: 'Position unavailable' };
+  }
+  const first = reports[0].openPercent;
+  if (reports.some((report) => report.openPercent !== first)) {
+    return { state: 'mixed', openPercent: null, label: 'Mixed positions' };
+  }
+  return { state: 'reported', openPercent: first, label: `${first}% open` };
+}

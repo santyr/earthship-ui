@@ -90,3 +90,10 @@ isolated 30-day synthetic fit completed with objective decreasing from
 0.00017959468716428502 to 0.0001582665101962629. No production model artifact
 or control was changed. The September 28 natural trainer remains the
 whole-run timing and accepted-artifact gate.
+
+The subsequent natural September 27 18:16 MDT shadow publisher exited zero.
+Read-only live `Thermal_Model_JSON` showed generation at
+`2026-09-28T00:16:51.147299+00:00`, `status=shadow`, low confidence and the
+same accepted artifact revision. This verifies publication after the one-file
+runtime installation, but does not exercise the next full training run or
+support exiting shadow mode.

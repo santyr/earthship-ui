@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HALLWAY_TEMPERATURE_ITEM, SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, parseShadeReport, shadePosition, shadePresentation } from '../src/lib/shades/catalog.js';
+import { HALLWAY_TEMPERATURE_ITEM, SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, parseShadeReport, shadeGroupPresentation, shadePosition, shadePresentation } from '../src/lib/shades/catalog.js';
 
 const NOW = Date.parse('2026-09-27T23:00:00Z');
 const state = (position, received = NOW / 1000) => JSON.stringify({
@@ -63,5 +63,23 @@ describe('shade inventory and report presentation', () => {
       .toEqual({ state: 'reported', label: 'Closed', position: 100, openPercent: 0, observedAtMs: NOW });
     expect(shadePresentation(mapped, { Shade_Example: '25', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(25) }, 'live', NOW))
       .toEqual({ state: 'reported', label: '75% open', position: 25, openPercent: 75, observedAtMs: NOW });
+  });
+
+  it('shows a group position only when every shade has the same qualified report', () => {
+    const slots = [
+      { ...mapped, positionItem: 'Shade_1', availabilityItem: 'Available_1', stateItem: 'State_1' },
+      { ...mapped, positionItem: 'Shade_2', availabilityItem: 'Available_2', stateItem: 'State_2' },
+    ];
+    const states = { Shade_1: '25', Available_1: 'ON', State_1: state(25),
+      Shade_2: '25', Available_2: 'ON', State_2: state(25) };
+    expect(shadeGroupPresentation(slots, states, 'live', NOW)).toEqual({
+      state: 'reported', openPercent: 75, label: '75% open',
+    });
+    expect(shadeGroupPresentation(slots, { ...states, Shade_2: '50', State_2: state(50) }, 'live', NOW))
+      .toEqual({ state: 'mixed', openPercent: null, label: 'Mixed positions' });
+    expect(shadeGroupPresentation(slots, { ...states, Available_2: 'OFF' }, 'live', NOW))
+      .toEqual({ state: 'unavailable', openPercent: null, label: 'Position unavailable' });
+    expect(shadeGroupPresentation(slots, states, 'offline', NOW).openPercent).toBeNull();
+    expect(shadeGroupPresentation([], states, 'live', NOW).openPercent).toBeNull();
   });
 });

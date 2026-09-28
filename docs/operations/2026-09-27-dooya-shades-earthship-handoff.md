@@ -126,3 +126,15 @@ local `#/shades` route then showed Kitchen/Living Room with 17 cards,
 Bathroom/Bedroom with 10, `27 planned · 0 mapped · 0 reporting`, disabled
 all-shade control, zero non-GET requests and no page errors. These checks prove
 UI deployment, not physical shade behavior or Dooya adapter installation.
+
+The September 27 vertical-control revision adds one percentage track per shade
+and one per room group. The drawn window uses the actual 32:88 width-to-height
+ratio at 32×88 CSS pixels. On the 1340×800 Lenovo canvas, each card is capped
+at 100 CSS pixels wide, with full visible room and shade labels; the four
+groups remain on the two established views. The group display shows a single
+percentage only when every member has the same fresh qualified motor report;
+mixed or missing members never produce a fabricated aggregate position. All
+sliders and open/close buttons remain disabled until hardware commissioning and
+a reviewed command owner exist. Browser regressions at 1340×800 and 1280×720
+passed with zero movement requests, no room-label truncation, no horizontal
+overflow, and all 27 individual plus four group sliders present across views.

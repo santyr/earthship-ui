@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
-  import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadePresentation } from '../lib/shades/catalog.js';
+  import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation } from '../lib/shades/catalog.js';
 
   let viewIndex = $state(0);
   let nowMs = $state(Date.now());
@@ -40,6 +40,7 @@
   <div class="zones" aria-label="{view.label} shade zones">
     {#each rooms as room (room.id)}
       {@const cards = SHADE_SLOTS.filter((slot) => slot.room === room.id)}
+      {@const groupDisplay = shadeGroupPresentation(cards, $items, $connection, nowMs)}
       <section class="zone" aria-label="{room.label} shades">
         <div class="zone-heading">
           <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : room.temperatureRole === 'hallway_proxy' ? 'Hallway temperature proxy' : 'Hallway temperature reference'}</span></div>
@@ -48,24 +49,40 @@
             <button type="button" disabled title="Movement remains disabled until commissioning">Close {room.label}</button>
           </div>
         </div>
-        <div class="shade-grid" style:--rows={Math.ceil(cards.length / 5)}>
+        <div class="shade-grid" style:--columns={cards.length + 1}>
+          <article class="shade-card group-card" aria-label="{room.label} group: {groupDisplay.label}">
+            <div class="card-top">
+              <span class="shade-number">ZONE</span>
+              <span class="shade-status">GROUP</span>
+            </div>
+            <div class="card-name"><span>{room.label}</span><span>Group</span></div>
+            <div class="position-row">
+              <span class="position-value">{groupDisplay.openPercent === null ? '—' : `${groupDisplay.openPercent}%`}</span>
+              <span class="position-caption">{groupDisplay.state === 'mixed' ? 'mixed' : 'open'}</span>
+            </div>
+            <div class="window-control" class:unknown={groupDisplay.openPercent === null} style:--closed-percent={`${groupDisplay.openPercent === null ? 0 : 100 - groupDisplay.openPercent}%`}>
+              <div class="window-glass" aria-hidden="true"><div class="shade-fabric"></div></div>
+              <input type="range" min="0" max="100" value={groupDisplay.openPercent ?? 0} disabled
+                aria-label="{room.label} group percent open; movement disabled until commissioning" />
+            </div>
+          </article>
           {#each cards as slot (slot.number)}
             {@const display = shadePresentation(slot, $items, $connection, nowMs)}
             <article class="shade-card" class:reported={display.state === 'reported'} aria-label={`${slot.label}: ${display.label}`}>
               <div class="card-top">
                 <span class="shade-number">{String(slot.number).padStart(2, '0')}</span>
-                <span class="shade-status" class:online={display.state === 'reported'}>{display.state === 'reported' ? 'MOTOR REPORT' : 'UNAVAILABLE'}</span>
+                <span class="shade-status" class:online={display.state === 'reported'}>{display.state === 'reported' ? 'REPORT' : 'PENDING'}</span>
               </div>
-              <div class="card-name">{slot.label}</div>
+              <div class="card-name"><span>{room.label}</span><span>Shade {String(slot.number).padStart(2, '0')}</span></div>
               <div class="position-row">
                 <span class="position-value">{display.openPercent === undefined ? '—' : `${display.openPercent}%`}</span>
                 <span class="position-caption">open</span>
               </div>
-              {#if display.openPercent === undefined}
-                <div class="range-unavailable" aria-label="{slot.label} slider unavailable until a qualified position is reported"></div>
-              {:else}
-                <input type="range" min="0" max="100" value={display.openPercent} disabled aria-label="{slot.label} percent open; movement disabled" />
-              {/if}
+              <div class="window-control" class:unknown={display.openPercent === undefined} style:--closed-percent={`${display.openPercent === undefined ? 0 : 100 - display.openPercent}%`}>
+                <div class="window-glass" aria-hidden="true"><div class="shade-fabric"></div></div>
+                <input type="range" min="0" max="100" value={display.openPercent ?? 0} disabled
+                  aria-label="{slot.label} percent open; movement disabled until commissioning" />
+              </div>
             </article>
           {/each}
         </div>
@@ -96,18 +113,31 @@
   h2 { margin: 0; font-size: .96rem; font-weight: 650; }
   .zone-title span { color: #91a1b2; font-size: .7rem; }
   .zone-title .sensor-evidence { color: #75889b; }
-  .shade-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); gap: .42rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .shade-grid { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 100px)); grid-template-rows: minmax(0, 1fr); justify-content: space-between; gap: .42rem; min-width: 0; min-height: 0; overflow: hidden; }
   .shade-card { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .58rem; box-sizing: border-box; overflow: hidden; }
   .shade-card.reported { border-color: #315a6b; }
+  .group-card { border-color: #41566b; background: #15212c; }
   .card-top, .position-row { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem; min-width: 0; }
   .shade-number { color: #6f8397; font-size: .7rem; font-weight: 650; letter-spacing: .08em; }
   .shade-status { color: #8f9cac; font-size: .57rem; font-weight: 650; letter-spacing: .09em; }
   .shade-status.online { color: #79c1cd; }
-  .card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; font-weight: 600; }
+  .card-name { display: flex; flex-direction: column; gap: .08rem; min-width: 0; font-size: .69rem; font-weight: 600; line-height: 1.15; }
+  .card-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-name span + span { color: #b6c4d0; font-size: .7rem; font-weight: 500; }
   .position-value { flex: 0 0 auto; color: #edf3f8; font-size: 1.25rem; line-height: 1; font-weight: 600; }
   .position-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: #9aa7b8; font-size: .7rem; }
-  .shade-card input[type='range'] { width: 100%; min-height: 28px; margin: 0; accent-color: #78b8c8; }
-  .range-unavailable { height: 3px; margin: 12px 2px; border-radius: 3px; background: #2a3745; }
-  @media (max-width: 899px) { .shades-page { overflow-y: auto; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 118px; } .page-heading { align-items: flex-start; } }
+  .window-control { display: flex; align-items: center; justify-content: center; gap: .48rem; min-height: 98px; padding-top: .15rem; }
+  .window-glass { position: relative; width: 32px; height: 88px; flex: none; border: 2px solid #7890a4; background: linear-gradient(180deg, #233e4a, #1b313d); box-sizing: border-box; overflow: hidden; }
+  .window-glass::after { content: ''; position: absolute; inset: 0; border: 2px solid #23313c; pointer-events: none; }
+  .shade-fabric { width: 100%; height: var(--closed-percent); background: repeating-linear-gradient(180deg, #8b9aa3 0, #8b9aa3 7px, #778791 8px); }
+  .window-control.unknown .window-glass { border-color: #3c4b59; background: #1b2732; }
+  .window-control.unknown .shade-fabric { display: none; }
+  .window-control input[type='range'] { width: 22px; height: 88px; margin: 0; padding: 0; writing-mode: vertical-lr; direction: rtl; accent-color: #78b8c8; cursor: not-allowed; }
+  .window-control input[type='range']:disabled { opacity: .68; }
+  .window-control.unknown input[type='range'] { opacity: .27; }
+  .window-control.unknown input[type='range']::-webkit-slider-thumb { opacity: 0; }
+  .window-control.unknown input[type='range']::-moz-range-thumb { opacity: 0; }
+  @media (max-width: 1199px) { .shades-page { overflow-y: auto; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 155px; } }
+  @media (max-width: 899px) { .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .page-heading { align-items: flex-start; } }
   @media (max-width: 520px) { .page-heading { flex-direction: column; gap: .4rem; } .release-state { text-align: left; } .shade-grid { grid-template-columns: 1fr; } }
 </style>

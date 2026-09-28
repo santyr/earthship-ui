@@ -82,6 +82,12 @@ change-only replay barriers. Twelve focused and all 703 thermal tests pass.
 The JDBC join, installed inventory, real report qualification, temperature
 pairing and learned/shadow policy are not yet active; no thermal artifact or
 motor control was changed.
+The tablet shade revision now draws 32×88-proportion vertical window controls,
+caps Lenovo cards at 100 CSS pixels, and provides a separate room-group slider
+alongside every individual slider. Qualified unanimous group positions may be
+displayed; mixed or unknown groups remain unknown. Both supported browser
+viewports show full room labels, no overflow and zero movement requests. All
+movement controls remain disabled until commissioning and command ownership.
 
 September 27 AC analytics release: the first qualified daily AC revision was
 included in a 515-table isolated restore with exact source/restore matches and
