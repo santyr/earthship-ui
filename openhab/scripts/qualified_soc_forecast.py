@@ -37,8 +37,15 @@ def qualified_night_start_drop(prediction_day, *, now, site_timezone,
     from earthship_energy.bms_evidence import build_soc_intervals, soc_at
     from earthship_energy.trough_assessment import assess_trough_measurement, MAX_OBSERVATIONS
 
+    if not isinstance(now, datetime) or now.utcoffset() is None:
+        raise ValueError("qualified night profile requires an aware as-of clock")
     window = trough_window(prediction_day, site_timezone)
     rows = tuple(islice(observations, MAX_OBSERVATIONS + 1))
+    # An assessor can correctly ignore post-window rows, but a historical
+    # replay must not accept any receipt that was unavailable at its origin.
+    if any(not isinstance(persisted, datetime) or persisted.utcoffset() is None
+           or persisted > now for persisted, _ in rows):
+        return None
     measured = assess_trough_measurement(
         prediction_day=prediction_day, site_timezone=site_timezone,
         assessed_at=now, observations=rows,

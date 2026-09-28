@@ -88,7 +88,7 @@ qualify. The figures above instead come from the existing restricted JDBC
 reader, which returned original ordered evidence. A source-only pure helper
 `qualified_night_start_drop` now refuses a missing 20:00 sample even when
 the rest of a night passes 90% coverage and bounds a streaming input after
-10,001 rows. Seven focused qualified-SoC tests and all 78 adjacent
+10,001 rows. Eight focused qualified-SoC tests and all 79 adjacent
 forecast/SoC tests pass. Before changing the forecast, replay
 this candidate with frozen origins, strict as-of receipts and a later held-out
 set; evaluate PV, dusk and trough together.
@@ -122,3 +122,9 @@ they locate the larger unresolved Sep 25 miss upstream of the corrected drop.
 Two completed origins are insufficient to accept a live calibration. Retain
 the current numerical forecast while accumulating a chronological holdout and
 separately validating the PV/dusk chain and the 20:00-versus-sunset offset.
+The source-only night-profile helper now also rejects any supplied persistence
+receipt later than its explicit as-of clock, even if that receipt falls beyond
+the target night and the assessor would otherwise ignore it. This prevents a
+future replay caller from silently admitting post-origin evidence; eight
+focused and 79 adjacent forecast/SoC tests pass. No live forecast path calls
+this helper yet.

@@ -75,6 +75,25 @@ def test_qualified_night_start_drop_refuses_missing_start_or_incomplete_night():
         day, now=window.end + timedelta(minutes=1), **kwargs) is None
 
 
+def test_qualified_night_start_drop_rejects_receipts_after_asof_origin():
+    day = date(2026, 9, 20)
+    window = trough_window(day, "America/Denver")
+    issued = window.end + timedelta(minutes=1)
+    rows = [(window.start + timedelta(minutes=minute),
+             evidence(window.start + timedelta(minutes=minute), soc=80))
+            for minute in range(15 * 60)]
+    kwargs = dict(site_timezone="America/Denver", epoch_start=window.start - timedelta(days=60))
+    assert qualified_night_start_drop(day, now=issued, observations=rows, **kwargs) is not None
+    assert qualified_night_start_drop(
+        day, now=issued, observations=rows + [(issued + timedelta(seconds=1), "{}")],
+        **kwargs,
+    ) is None
+    with pytest.raises(ValueError, match="as-of clock"):
+        qualified_night_start_drop(
+            day, now=issued.replace(tzinfo=None), observations=rows, **kwargs,
+        )
+
+
 def test_qualified_night_start_drop_bounds_stream_before_assessment():
     day = date(2026, 9, 20)
     window = trough_window(day, "America/Denver")
