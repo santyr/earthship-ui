@@ -99,11 +99,12 @@ An isolated PostgreSQL integration test also passed against a disposable
 restricted role; it verified the actual three-table query, oversized-record
 barrier and revoked-SELECT failure. The fixture cleaned its container and
 volumes, with no production shade Item or database change.
-The tablet shade revision now draws 32×88-proportion vertical window controls,
-caps Lenovo cards at 88 CSS pixels, and provides a separate room-group slider
+The tablet shade revision now draws near-32:88-proportion vertical window
+controls, caps cards at 72 CSS pixels, and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be
 displayed; mixed or unknown groups remain unknown. Both supported browser
-viewports show full room labels, no overflow and zero movement requests. All
+viewports, plus a 900-pixel compact tablet viewport, show full room labels,
+no overflow and zero movement requests. All
 movement controls remain disabled until commissioning and command ownership.
 
 September 27 AC analytics release: the first qualified daily AC revision was

@@ -4,6 +4,7 @@ import { createServer } from 'vite';
 const TARGETS = [
   { name: 'lenovo-m9', width: 1340, height: 800 },
   { name: 'laptop-floor', width: 1280, height: 720 },
+  { name: 'compact-tablet', width: 900, height: 800 },
 ];
 
 let server;
@@ -67,8 +68,8 @@ for (const target of TARGETS) {
       expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
-      if (target.name === 'lenovo-m9') expect(geometry.cards.every((card) => card.width <= 89)).toBe(true);
-      expect(geometry.window).toEqual({ width: 32, height: 88 });
+      expect(geometry.cards.every((card) => card.width <= 73)).toBe(true);
+      expect(geometry.window).toEqual({ width: 26, height: 72 });
       expect(geometry.vertical).toBe('vertical-lr');
       expect(geometry.truncatedRoomLabels).toEqual([]);
     }
