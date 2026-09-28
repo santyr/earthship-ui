@@ -203,7 +203,8 @@ verification. See [operational readiness](2026-09-24-thermal-historical-operatio
 The forcing-capture v2 path binds a successful publication to the exact
 in-memory accepted artifact used by its simulation, including a validated
 artifact digest, while the verifier still reads old v1 archives. This closes
-a future replay gap after accepted/previous model files rotate. All 709
+the model-artifact rotation gap, but exact replay also needs the historical
+runtime source. All 709
 thermal source tests pass. A real-v4, temporary v2 archive round-trip passed.
 Before installation, a private same-host snapshot of the current model files
 and 53 forcing captures was written to
@@ -229,6 +230,26 @@ status remains `shadow`, confidence low and candidate absent. The live
 `Thermal_Advisory` remains `none|No thermal action needed`. This closes the
 capture-format publication gate, **not** the separate shadow-exit, model
 accuracy, action-confirmation or off-host recovery gates.
+
+September 28 replay-source audit: the accepted artifact records code revision
+`831893709152f9563575bcbdfc8f7fdc04f5cfe52e79cab575408c3af9341ca0`,
+while the currently installed 20-file runtime manifest hashes to
+`53d96e5e9637d9c0c427afaffa35b29350243bf295ec6ed6f8a38f631d686396`.
+None of the 64 relevant Git commits since September 20 matched the accepted
+revision, because production used a guarded mixed-file runtime. Replacing
+`dynamics.py` from the selector install's verified preimage and
+`thermal_intel.py` and `pipeline.py` from the capture-v2 install's verified
+preimages reconstructs the accepted manifest digest exactly. The historical
+`forcing_capture.py` preimage was preserved separately; it is not part of that
+20-file revision hash. A new mode-0600 private bundle at
+`/home/sat/backups/earthship-energy/thermal-replay-source-20260928T105753Z-531f119a.tar.gz`
+(SHA-256 `f2331d8a26d3b26331bb15dfa2e729cba5016e6fbfb42819c1bcd679a75e0fe8`)
+preserves those source bytes, all five current model files and 57 forcing
+captures, including four v2 archives. Its manifest and every member were
+hash-checked, extracted to an isolated temporary tree, compared byte-for-byte
+and rehashed to the accepted code revision; the temporary tree was removed.
+This is same-host recoverability of evidence, not an executed full as-issued
+replay, an automatic backup schedule, or off-host disaster recovery.
 
 ## Current checkpoint — September 25, 2026
 
