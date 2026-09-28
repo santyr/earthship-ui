@@ -85,8 +85,16 @@ motor control was changed.
 A source-only change-only Item-history join now gates per-shade coverage on the
 last persisted diagnostic, availability and scalar position. Cross-Item
 timestamp ties and offline transitions are barriers; staggered writes are not
-backdated. All 708 thermal Python tests pass. The restricted JDBC acquisition
-and continuity proof remain open.
+backdated. All 708 thermal Python tests passed at that checkpoint.
+A default-off shade JDBC adapter now resolves exactly three distinct
+commissioned Item names inside one dedicated read-only repeatable-read
+PostgreSQL snapshot. It reads one pre-window carry and bounded original
+diagnostic/availability/position rows, then feeds the strict join and
+percent-open interval reader. Any missing/ambiguous mapping, query failure,
+duplicate timestamp, oversize/NULL barrier or future-origin request withholds
+history. All 723 thermal tests pass. No shade Items, credential grant or live
+caller exist yet: actual motor-report continuity, room sensor pairing and
+learning/automation remain unqualified until hardware commissioning.
 The tablet shade revision now draws 32×88-proportion vertical window controls,
 caps Lenovo cards at 88 CSS pixels, and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be

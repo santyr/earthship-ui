@@ -124,9 +124,20 @@ barrier, not proof of atomic publication; an offline-to-online transition
 requires a later diagnostic before position coverage resumes. A scalar value
 arriving after a motor diagnostic starts coverage only when that scalar was
 stored, with no backdating. Seventeen focused shade tests and all 708 thermal
-Python tests pass. This pure join
-still requires a restricted JDBC source reader, exact commissioned Item IDs,
-per-Item history continuity and real motor-report evidence before live learning.
+Python tests passed at that checkpoint.
+
+`openhab/scripts/thermal_model/shade_history.py` now supplies the source-only
+JDBC acquisition boundary. It requires three exact, distinct commissioned Item
+names, resolves their unique IDs inside a dedicated read-only repeatable-read
+transaction, and bounds the combined original history to 10,000 rows over at
+most two elapsed days. It retains one pre-window carry per Item and NULL or
+oversized values as barriers, then applies the same change-only join and
+motor-report qualification. Queries do not extend past the explicit as-of
+origin. Fourteen new focused tests cover mapping, transport, row bounds,
+partial percentages, cross-Item ordering and future-origin refusal; all 723
+thermal tests pass. This is not a configured production reader: there are no
+commissioned Item names or restricted grant yet, and real Report continuity,
+temperature pairing and chronological learning remain separate gates.
 
 ## Source verification
 
