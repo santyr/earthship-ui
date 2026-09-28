@@ -521,12 +521,14 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             raise ValueError('shadow decision clock is invalid or moved backward')
         now = decision_at.astimezone(timezone.utc)
         failed_input = "accepted artifact input"
+        artifact_used = []
         output = run_shadow(
             registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
             current=current,
             forecast=rows,
             now=now,
             site_timezone=forecast_intel.MOUNTAIN,
+            artifact_observer=artifact_used.append,
         )
         # The model serializes to whole seconds. Preserve the post-input
         # decision clock's full precision for capture-safe provenance.
@@ -556,11 +558,14 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
         capture_dir = os.environ.get('THERMAL_SHADOW_CAPTURE_DIR')
         if capture_dir:
             try:
+                if len(artifact_used) != 1:
+                    raise ValueError('published artifact was not retained for capture')
                 capture_shadow_inputs(
                     capture_dir, output=output, snapshot=snapshot, rows=rows,
                     current=current, inputs_available_at=now,
                     published_at=(published_clock() if published_clock else
                                   datetime.now(timezone.utc)),
+                    artifact=artifact_used[0],
                 )
             except (OSError, RuntimeError, TypeError, ValueError):
                 # An observational archive failure cannot revoke an already

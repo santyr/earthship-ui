@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
@@ -5,6 +6,7 @@ import tempfile
 import unittest
 
 from thermal_model.forcing_capture import capture_shadow_inputs, verify_capture
+from test_thermal_artifacts import valid_artifact
 
 DECISION = datetime(2026, 9, 23, 15, 0, tzinfo=timezone.utc)
 
@@ -52,6 +54,32 @@ class ForcingCaptureTests(unittest.TestCase):
             kwargs['inputs_available_at'] = DECISION + timedelta(seconds=1)
             with self.assertRaisesRegex(ValueError, 'not available'):
                 capture_shadow_inputs(**kwargs)
+
+    def test_v2_preserves_exact_published_artifact_and_refuses_mismatch(self):
+        artifact = replace(valid_artifact(), created_at='2026-08-13T12:00:00.123456Z')
+        with tempfile.TemporaryDirectory() as directory:
+            os.chmod(directory, 0o700)
+            data = inputs()
+            data['output']['model'] = {
+                'codeRevision': artifact.code_revision,
+                'createdAt': '2026-08-13T12:00:00Z',
+                'trainedThrough': artifact.trained_through,
+            }
+            kwargs = dict(directory=directory, output=data['output'],
+                          snapshot=data['snapshot'], rows=data['rows'],
+                          current=data['current'], artifact=artifact,
+                          inputs_available_at=DECISION - timedelta(seconds=1),
+                          published_at=DECISION + timedelta(seconds=2))
+            path = capture_shadow_inputs(**kwargs)
+            record = verify_capture(path)
+            self.assertEqual(record['schema'], 'earthship-thermal-shadow-forcing-capture/v2')
+            self.assertEqual(record['artifact']['code_revision'], artifact.code_revision)
+            self.assertEqual(set(record['sha256']),
+                             {'output', 'raw_forecast', 'forecast_rows', 'current', 'artifact'})
+            self.assertEqual(len(list(path.parent.iterdir())), 1)
+            with self.assertRaisesRegex(ValueError, 'does not match'):
+                capture_shadow_inputs(**{**kwargs, 'artifact': replace(
+                    artifact, code_revision='f' * 40)})
 
 
 if __name__ == '__main__':

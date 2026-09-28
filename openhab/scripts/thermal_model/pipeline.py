@@ -1221,13 +1221,16 @@ def build_unavailable_shadow(
     )
 
 
-def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE):
+def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE,
+               artifact_observer=None):
     """Return a bounded shadow result; invalid dependencies fail soft."""
     now = _aware(now, "now")
     artifact = None
     failed_input = "accepted artifact input"
     try:
         artifact = registry.load_accepted()
+        if artifact_observer is not None:
+            artifact_observer(artifact)
         registry_reason = (
             "accepted model recovered from verified prior accepted generation"
             if getattr(registry, "last_load_source", None) == "previous_restored"

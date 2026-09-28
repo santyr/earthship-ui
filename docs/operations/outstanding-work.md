@@ -177,6 +177,18 @@ closed-vent report is diagnostic context, not a signed training label. Keep
 shadow mode; continue chronological dynamics/forcing diagnosis and action
 verification. See [operational readiness](2026-09-24-thermal-historical-operational-readiness.md).
 
+The source-only forcing-capture v2 path now binds a successful publication to
+the exact in-memory accepted artifact used by its simulation, including a
+validated artifact digest, while the verifier still reads old v1 archives.
+This closes a future replay gap after accepted/previous model files rotate.
+All 709 thermal source tests pass. A temporary, automatically removed rehearsal
+with the current v4 accepted artifact and an exact archived publication made
+an 18,159-byte v2 archive and verified its identity. Production remains on
+the compatible v4 runtime and still emits v1; do **not** install the v5 source
+pipeline wholesale. Qualify the three-file v4-compatible observational backport
+and backup/restore coverage before activation; no advice or control authority
+changes with this archive format.
+
 ## Current checkpoint — September 25, 2026
 
 A new [qualified-day recovery point](2026-09-25-qualified-day-recovery-point.md)

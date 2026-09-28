@@ -338,12 +338,17 @@ def test_shadow_groups_sunny_evenings_by_site_day_not_utc_midnight():
 
 
 def test_shadow_output_is_bounded_versioned_and_never_advisory():
+    artifacts_used = []
     output = run_shadow(
         registry=AcceptedRegistry(),
         current=current_states(),
         forecast=forecast_hours(),
         now=NOW,
+        artifact_observer=artifacts_used.append,
     )
+
+    assert len(artifacts_used) == 1
+    assert artifacts_used[0].code_revision == output['model']['codeRevision']
 
     assert set(output) == {
         "version", "status", "generatedAt", "model", "current", "forecast",
@@ -1331,6 +1336,7 @@ def test_cli_shadow_capture_is_default_off_and_failure_does_not_unpublish(
     assert captured[0][1]['snapshot'] == {'source': 'test'}
     assert captured[0][1]['inputs_available_at'] == decision
     assert captured[0][1]['output']['generatedAt'] == decision.isoformat()
+    assert captured[0][1]['artifact'].code_revision == captured[0][1]['output']['model']['codeRevision']
     if archive_failure:
         assert 'thermal forcing capture gap' in capsys.readouterr().err
 

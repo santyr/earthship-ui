@@ -3,6 +3,7 @@
 No directory is created or state changed unless the caller explicitly supplies
 an existing, private capture root. This is observational replay evidence only.
 """
+from dataclasses import asdict
 from datetime import datetime, timezone
 import gzip
 from hashlib import sha256
@@ -39,8 +40,33 @@ def _private_directory(path):
     return path
 
 
+def _artifact_payload(artifact, output):
+    from .artifacts import validate_artifact
+
+    def published_second(value, *, output_field=False):
+        parsed = datetime.fromisoformat(value)
+        if parsed.utcoffset() is None or (output_field and parsed.microsecond):
+            raise ValueError('published model timestamp must be aware and whole-second')
+        return parsed.astimezone(timezone.utc).replace(microsecond=0)
+
+    validate_artifact(artifact, require_eligible=True)
+    model = output.get('model')
+    if (not isinstance(model, dict) or any(type(model.get(key)) is not str
+            for key in ('codeRevision', 'createdAt', 'trainedThrough'))):
+        raise ValueError('captured artifact does not match published model')
+    if (model['codeRevision'] != artifact.code_revision
+            or published_second(model['createdAt'], output_field=True) !=
+               published_second(artifact.created_at)
+            or published_second(model['trainedThrough'], output_field=True) !=
+               published_second(artifact.trained_through)
+            or datetime.fromisoformat(artifact.created_at).astimezone(timezone.utc) >
+               datetime.fromisoformat(output['generatedAt']).astimezone(timezone.utc)):
+        raise ValueError('captured artifact does not match published model')
+    return asdict(artifact)
+
+
 def capture_shadow_inputs(directory, *, output, snapshot, rows, current,
-                          inputs_available_at, published_at):
+                          inputs_available_at, published_at, artifact=None):
     """Atomically preserve one successful published output and its exact inputs."""
     root = _private_directory(directory)
     issued = datetime.fromisoformat(output['generatedAt'])
@@ -53,8 +79,11 @@ def capture_shadow_inputs(directory, *, output, snapshot, rows, current,
         raise ValueError('only successfully available shadow output can be captured')
     values = {'output': output, 'raw_forecast': snapshot,
               'forecast_rows': rows, 'current': current}
+    if artifact is not None:
+        values['artifact'] = _artifact_payload(artifact, output)
     digests = {name: sha256(_canonical(value)).hexdigest() for name, value in values.items()}
-    record = {'schema': 'earthship-thermal-shadow-forcing-capture/v1',
+    version = 2 if artifact is not None else 1
+    record = {'schema': f'earthship-thermal-shadow-forcing-capture/v{version}',
               'decision_at': _iso(issued), 'inputs_available_at': _iso(available),
               'published_at': _iso(published), 'sha256': digests,
               **values}
@@ -109,21 +138,31 @@ def verify_capture(path):
     if len(raw) > 1_000_000:
         raise ValueError('forcing capture exceeds decoded bound')
     record = json.loads(raw)
-    if (not isinstance(record, dict) or set(record) != {
-            'schema', 'decision_at', 'inputs_available_at', 'published_at', 'sha256',
-            'output', 'raw_forecast', 'forecast_rows', 'current'} or
-            record['schema'] != 'earthship-thermal-shadow-forcing-capture/v1'):
+    if not isinstance(record, dict):
         raise ValueError('invalid forcing-capture schema')
-    if (not isinstance(record['sha256'], dict) or
-            set(record['sha256']) != {'output', 'raw_forecast', 'forecast_rows', 'current'}):
+    base = {'output', 'raw_forecast', 'forecast_rows', 'current'}
+    version = record.get('schema')
+    if version == 'earthship-thermal-shadow-forcing-capture/v2':
+        values = base | {'artifact'}
+    elif version == 'earthship-thermal-shadow-forcing-capture/v1':
+        values = base
+    else:
+        raise ValueError('invalid forcing-capture schema')
+    if set(record) != values | {
+            'schema', 'decision_at', 'inputs_available_at', 'published_at', 'sha256'}:
+        raise ValueError('invalid forcing-capture schema')
+    if not isinstance(record['sha256'], dict) or set(record['sha256']) != values:
         raise ValueError('invalid forcing-capture digest set')
     if not (datetime.fromisoformat(record['inputs_available_at']) <=
             datetime.fromisoformat(record['decision_at']) <=
             datetime.fromisoformat(record['published_at'])):
         raise ValueError('invalid forcing-capture chronology')
-    for name in ('output', 'raw_forecast', 'forecast_rows', 'current'):
+    for name in values:
         if sha256(_canonical(record[name])).hexdigest() != record['sha256'].get(name):
             raise ValueError('forcing-capture digest mismatch')
     if record['decision_at'] != _iso(datetime.fromisoformat(record['output']['generatedAt'])):
         raise ValueError('forcing-capture output timestamp mismatch')
+    if 'artifact' in values:
+        from .artifacts import _artifact_from_payload
+        _artifact_payload(_artifact_from_payload(record['artifact']), record['output'])
     return record
