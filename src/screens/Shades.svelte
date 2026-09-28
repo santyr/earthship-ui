@@ -137,7 +137,15 @@
   .window-control.unknown input[type='range'] { opacity: .27; }
   .window-control.unknown input[type='range']::-webkit-slider-thumb { opacity: 0; }
   .window-control.unknown input[type='range']::-moz-range-thumb { opacity: 0; }
-  @media (max-width: 899px) { .shades-page { overflow-y: auto; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 155px; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .page-heading { align-items: flex-start; } }
-  @media (max-width: 699px) { .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 520px) { .page-heading { flex-direction: column; gap: .4rem; } .release-state { text-align: left; } .shade-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 899px) and (min-width: 700px) {
+    .shade-grid { gap: .25rem; }
+    .shade-card { padding: .35rem .2rem; }
+    .window-control { gap: .15rem; min-height: 64px; }
+    .window-glass { width: 22px; height: 61px; }
+    .window-control input[type='range'] { width: 17px; height: 61px; }
+  }
+  @media (max-width: 749px) and (min-width: 700px) { .shade-status { width: 6px; height: 6px; flex: none; border-radius: 50%; background: #8f9cac; font-size: 0; } .shade-status.online { background: #79c1cd; } }
+  @media (max-height: 540px) { .shades-page { grid-template-rows: auto auto auto; overflow-y: auto; } .zones { grid-template-rows: repeat(2, auto); min-height: max-content; overflow: visible; } .zone { grid-template-rows: auto auto; min-height: max-content; overflow: visible; } .shade-grid { grid-template-rows: auto; min-height: 155px; overflow: visible; } .shade-card { min-height: 155px; } }
+  @media (max-width: 699px) { .shades-page { overflow-y: auto; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 155px; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .page-heading { align-items: flex-start; } }
+  @media (max-width: 520px) { .page-heading { flex-direction: column; gap: .4rem; } .release-state { text-align: left; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

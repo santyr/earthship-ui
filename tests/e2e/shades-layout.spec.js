@@ -5,6 +5,8 @@ const TARGETS = [
   { name: 'lenovo-m9', width: 1340, height: 800 },
   { name: 'laptop-floor', width: 1280, height: 720 },
   { name: 'compact-tablet', width: 900, height: 800 },
+  { name: 'scaled-lenovo-landscape', width: 800, height: 600 },
+  { name: 'narrow-landscape', width: 700, height: 600 },
 ];
 
 let server;
@@ -69,7 +71,7 @@ for (const target of TARGETS) {
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
       expect(geometry.cards.every((card) => card.width <= 73)).toBe(true);
-      expect(geometry.window).toEqual({ width: 26, height: 72 });
+      expect(geometry.window).toEqual(target.width < 900 ? { width: 22, height: 61 } : { width: 26, height: 72 });
       expect(geometry.vertical).toBe('vertical-lr');
       expect(geometry.truncatedRoomLabels).toEqual([]);
     }
@@ -77,3 +79,18 @@ for (const target of TARGETS) {
     expect(errors).toEqual([]);
   });
 }
+
+test('short landscape tablets can scroll to the last vertical control', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 480 });
+  await page.goto(`${baseURL}#/shades`, { waitUntil: 'domcontentloaded' });
+  const pageLayout = page.locator('.shades-page');
+  await expect(pageLayout).toBeVisible();
+  const scroll = await pageLayout.evaluate((element) => ({ height: element.clientHeight, content: element.scrollHeight }));
+  expect(scroll.content).toBeGreaterThan(scroll.height);
+  await pageLayout.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  const lastWindow = page.locator('.zone').last().locator('.window-glass').last();
+  const windowBox = await lastWindow.boundingBox();
+  const screenBottom = await page.locator('.screen').evaluate((element) => element.getBoundingClientRect().bottom);
+  expect(windowBox.y + windowBox.height).toBeLessThanOrEqual(screenBottom);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(800);
+});

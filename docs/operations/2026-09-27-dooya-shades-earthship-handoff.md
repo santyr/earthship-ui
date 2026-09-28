@@ -167,3 +167,9 @@ sliders and open/close buttons remain disabled until hardware commissioning and
 a reviewed command owner exist. Browser regressions at 1340×800, 1280×720 and
 900×800 passed with zero movement requests, no room-label truncation, no horizontal
 overflow, and all 27 individual plus four group sliders present across views.
+The September 28 tablet-width correction keeps each zone on a single row down
+to 700 CSS pixels. At 700–899 pixels the cards, window outlines and sliders
+are narrower; the five-column wrap now begins only below that range. A short
+landscape viewport can scroll within the Shades page to reach both complete
+zones, while 800×600 and the documented 1340×800 Lenovo canvas show both zones
+without scrolling. These are CSS viewport checks, not a physical-device signoff.
