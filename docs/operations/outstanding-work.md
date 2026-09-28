@@ -117,6 +117,11 @@ The September 27 read-only relay recheck still finds no signed kind-10050
 operator inbox announcement on any of the three approved relays. Existing
 Hex DM signing keys cannot create the operator's announcement; thermal
 confirmation collection remains off while independent modeling work continues.
+The Earthship thermal card now shows the validated baseline vent window as an
+explicit, non-observed assumption. Its 18:16 live shadow output assumed vents
+open 6:45 PM–7:00 AM, while the operator has reported no venting for recent
+nights. This UI transparency does not resolve the remaining 24-hour low bias or
+qualify any action label for training.
 The disabled collector's source now persists successful ingress progress and
 skips completed envelopes before its 16-attempt cap, allowing a bounded
 backlog to advance after restart. Its version-1 outbox migration, retry and

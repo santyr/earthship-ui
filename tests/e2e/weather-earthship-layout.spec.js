@@ -334,6 +334,7 @@ for (const target of TARGETS) {
       'Zone Humidity',
     ]);
     await expect(page.getByText('SHADOW')).toBeVisible();
+    await expect(page.getByText('Baseline vent assumption · not observed')).toBeVisible();
     await expect(page.getByText('Candidate vent window')).toBeVisible();
     await expect(page.locator('nav.rail')).toBeVisible();
     await expect(page.locator('nav.rail .label')).toHaveText([

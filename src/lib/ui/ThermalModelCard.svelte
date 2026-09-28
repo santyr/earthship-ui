@@ -69,6 +69,12 @@
         </div>
 
         <div class="model-row">
+          {#if result.baselineVentAssumption}
+            <div class="window baseline-window">
+              <span>Baseline vent assumption · not observed</span>
+              <strong>{result.baselineVentAssumption}</strong>
+            </div>
+          {/if}
           {#if result.ventWindow}
             <div class="window">
               <span>Candidate vent window</span>

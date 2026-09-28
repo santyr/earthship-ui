@@ -164,3 +164,12 @@ drift and action forcing by lead time with confirmed action states and a
 chronological holdout; do not fit a global constant correction to these four
 overlapping-season days. No model, interval, schedule, alert or control was
 changed by this audit.
+
+The September 27 Earthship UI now displays the publisher's validated baseline
+vent window as **"Baseline vent assumption · not observed"** (or "No venting
+assumed" when its schedule is empty). The live 18:16 shadow output displayed
+6:45 PM–7:00 AM as an assumption. This makes the modeled action forcing visible
+without turning the operator's closed-vent report into training evidence or
+changing the model, schedule, advisory, or shadow-exit gate. Both tablet/laptop
+Earthship browser regressions and the live Lenovo-width text-containment check
+passed.

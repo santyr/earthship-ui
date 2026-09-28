@@ -63,6 +63,7 @@ function unavailableResult(reasons = []) {
     hallwayHigh: null,
     hallwayLow: null,
     morningMass: null,
+    baselineVentAssumption: null,
     ventWindow: null,
     effect: { morningMassDeltaF: null, hallwayPeakDeltaF: null },
     confidence: 'unavailable',
@@ -289,12 +290,13 @@ function validatePayload(payload) {
     return { atMs, hallwayF: finiteNumber(row.hallwayF), massF: finiteNumber(row.massF) };
   });
 
+  let baselineWindow = null;
   let candidateWindow = null;
   let effect = { morningMassDeltaF: null, hallwayPeakDeltaF: null };
   const schedule = payload.schedule;
   if (Object.keys(exactObject(schedule, new Set(Object.keys(schedule)))).length > 0) {
     exactObject(schedule, SCHEDULE_FIELDS);
-    const baselineWindow = validateScheduleWindow(schedule.baseline, horizonStart, horizonEnd);
+    baselineWindow = validateScheduleWindow(schedule.baseline, horizonStart, horizonEnd);
     if (schedule.candidate !== null) {
       candidateWindow = validateScheduleWindow(schedule.candidate, horizonStart, horizonEnd);
     }
@@ -309,7 +311,6 @@ function validatePayload(payload) {
     if (candidateWindow !== null && sameExactObject(schedule.candidate, schedule.baseline)) {
       throw new TypeError('candidate duplicates baseline');
     }
-    void baselineWindow;
   }
 
   const confidence = exactObject(payload.confidence, CONFIDENCE_FIELDS);
@@ -385,6 +386,7 @@ function validatePayload(payload) {
     forecast,
     trajectory,
     observed,
+    baselineWindow,
     candidateWindow,
     effect,
     confidence: confidence.grade,
@@ -416,6 +418,9 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
       hallwayHigh: parsed.forecast.hallwayHighF,
       hallwayLow: parsed.forecast.hallwayLowF,
       morningMass: parsed.forecast.morningMassF,
+      baselineVentAssumption: parsed.baselineWindow.opened === null
+        ? 'No venting assumed'
+        : `${formatLocalTime(parsed.baselineWindow.opened)}–${formatLocalTime(parsed.baselineWindow.closed)}`,
       ventWindow: parsed.candidateWindow === null
         ? null
         : `${formatLocalTime(parsed.candidateWindow.opened)}–${formatLocalTime(parsed.candidateWindow.closed)}`,

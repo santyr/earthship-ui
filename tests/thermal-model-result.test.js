@@ -57,6 +57,7 @@ describe('parseThermalModelResult', () => {
       hallwayHigh: 80,
       hallwayLow: 68,
       morningMass: 70,
+      baselineVentAssumption: `${new Date(validShadow.schedule.baseline.ventOpenAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}–${new Date(validShadow.schedule.baseline.ventCloseAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
       ventWindow: null,
       effect: { morningMassDeltaF: 0, hallwayPeakDeltaF: 0 },
       confidence: 'low',
@@ -128,6 +129,14 @@ describe('parseThermalModelResult', () => {
     });
   });
 
+  it('labels a baseline with no scheduled venting as an assumption, not an observation', () => {
+    const payload = fixture((value) => {
+      value.schedule.baseline = { ventOpenAt: null, ventCloseAt: null };
+    });
+    expect(parseThermalModelResult(JSON.stringify(payload), GENERATED_AT_MS).baselineVentAssumption)
+      .toBe('No venting assumed');
+  });
+
   it('marks results stale only after three hours', () => {
     expect(parseThermalModelResult(
       JSON.stringify(validShadow),
@@ -162,6 +171,7 @@ describe('parseThermalModelResult', () => {
       hallwayHigh: null,
       hallwayLow: null,
       morningMass: null,
+      baselineVentAssumption: null,
       ventWindow: null,
       effect: { morningMassDeltaF: null, hallwayPeakDeltaF: null },
       confidence: 'unavailable',

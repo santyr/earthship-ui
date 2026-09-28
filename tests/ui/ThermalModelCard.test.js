@@ -24,6 +24,7 @@ function readyResult(overrides = {}) {
     hallwayHigh: 80,
     hallwayLow: 68,
     morningMass: 70,
+    baselineVentAssumption: '8:30 PM–5:00 AM',
     ventWindow: '9:00 PM–4:30 AM',
     effect: { morningMassDeltaF: -1.5, hallwayPeakDeltaF: 0 },
     confidence: 'low',
@@ -55,6 +56,8 @@ describe('ThermalModelCard shadow-only presentation', () => {
     expect(getByText('68°F')).toBeTruthy();
     expect(getByText('70°F')).toBeTruthy();
     expect(getByText('9:00 PM–4:30 AM')).toBeTruthy();
+    expect(getByText('Baseline vent assumption · not observed')).toBeTruthy();
+    expect(getByText('8:30 PM–5:00 AM')).toBeTruthy();
     expect(getByText('0°F modeled')).toBeTruthy();
     expect(getByText('−1.5°F modeled')).toBeTruthy();
     expect(getByText(/Low confidence/i)).toBeTruthy();
