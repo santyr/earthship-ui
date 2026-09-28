@@ -176,8 +176,10 @@ describe('source-only MPPT daily PV evidence producer', () => {
       'timer.GenericCronTrigger', 'core.SystemStartlevelTrigger',
     ]);
     expect(resources.persistenceExclusion).toBe('!MPPT60_PV_Day_Evidence_JSON');
+    expect(resources.observationPersistenceExclusion).toBe('!MPPT60_PV_Day_Observation_JSON');
     expect(resources.persistenceCandidate).toBe('openhab/candidates/mppt60-pv-day-jdbc.persist');
     expect(persistence).toContain('!MPPT60_PV_Day_Evidence_JSON');
+    expect(persistence).toContain('!MPPT60_PV_Day_Observation_JSON');
     expect(persistence).toContain('MPPT60_PV_Day_Evidence_JSON : strategy = restoreOnStartup');
     expect(livePersistence).not.toContain('MPPT60_PV_Day_Evidence_JSON');
     expect(source).not.toMatch(/sendCommand|oh_put|\/rest\/items/);

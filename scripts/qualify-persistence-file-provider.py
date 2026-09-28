@@ -34,6 +34,7 @@ def main(database=None, candidate=None, candidate_kind='ac'):
             if selectors != qualified:
                 raise RuntimeError('live strategy selectors changed; refuse PV candidate rewrite')
             expected['configs'][0]['items'].append('!MPPT60_PV_Day_Evidence_JSON')
+            expected['configs'][0]['items'].append('!MPPT60_PV_Day_Observation_JSON')
             expected['configs'][2]['items'].append('MPPT60_PV_Day_Evidence_JSON')
         elif candidate_kind == 'ac':
             if selectors not in (prior, qualified):

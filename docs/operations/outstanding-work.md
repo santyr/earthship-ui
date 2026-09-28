@@ -180,16 +180,19 @@ OpenHAB 5.2.1 containers after staging Graal's language bundles before the
 JavaScript add-on. Both runs compiled the rule, registered its triggers,
 returned from `runnow` to IDLE and published `source_unavailable`; the
 existing AC rule passed as a control. All disposable containers were removed.
-Physical Modbus events, JDBC write/readback/restart and natural source polls
-remain unqualified; no production PV resource was installed.
-The source-only PV JDBC candidate now also passes an exact-DTO isolated
-file→managed→file provider rehearsal twice, with absence observed between
+At that bootstrap checkpoint, physical Modbus events, JDBC write/readback,
+restart and natural source polls remained unqualified; no production PV
+resource was installed. The source-only PV JDBC candidate excludes the
+evidence Item from automatic writes (retaining restore-only) and the transient
+observation Item from automatic persistence entirely. It passes an exact-DTO
+isolated file→managed→file provider rehearsal twice, with absence observed between
 owners. Its container was removed. At that checkpoint, disconnected PostgreSQL
 explicit-write, negative-control exclusion, new-JVM restore and production
 hot-reload gates remained; the live strategy had not changed.
 The disconnected OpenHAB/PostgreSQL PV JDBC rehearsal subsequently passed all
-five file/managed checkpoints plus a new-JVM restart: automatic PV writes were
-excluded, one explicit PV history row persisted and restored the Item, and
+five file/managed checkpoints plus a new-JVM restart: ordinary updates to
+both PV Items were excluded, one explicit evidence-history row persisted and
+restored its Item, and the transient observation still had no JDBC history;
 power, AC, forecast and change-only controls stayed correct. Four measured
 provider gaps were not treated as continuous source coverage. Both owned
 containers and their database were removed. Production hot reload and natural
@@ -198,8 +201,9 @@ A source-only strict PV-day reader now rejects malformed or missing source
 receipts, sequence gaps, unbarriered restarts, mid-day counter resets,
 incomplete days and long coverage gaps; 15 focused tests include both DST
 transitions. It has no live JDBC adapter or forecast caller. Qualification
-still requires the runtime bootstrap gate, isolated persistence/rollback,
-natural source receipts and a reviewed calibration holdout.
+still requires production hot reload, natural source receipts and a reviewed
+calibration holdout. Isolated runtime and persistence/rollback gates have
+passed; they do not substitute for those live observations.
 The PV source-only JDBC adapter now uses one bounded repeatable-read snapshot
 and exact Item identity; 27 adjacent Python tests and one disposable
 PostgreSQL restricted-role integration pass. Revoked SELECT and oversized

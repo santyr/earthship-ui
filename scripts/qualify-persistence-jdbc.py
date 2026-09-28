@@ -172,6 +172,12 @@ class Database:
                 json.dumps({'type': 'String', 'name': 'Power_Evidence_JSON', 'label': 'Isolated excluded probe'}))
             if status != 201:
                 raise RuntimeError('isolated exclusion Item creation failed')
+            if self.candidate_pv:
+                status, _ = self.request(cid, header, '/items/MPPT60_PV_Day_Observation_JSON', 'PUT',
+                    json.dumps({'type': 'String', 'name': 'MPPT60_PV_Day_Observation_JSON',
+                                'label': 'Isolated transient PV observation'}))
+                if status != 201:
+                    raise RuntimeError('isolated PV observation Item creation failed')
             for definition in [
                 {'type': 'Group', 'name': 'gForecast', 'label': 'Isolated forecast group'},
                 {'type': 'Number', 'name': FORECAST, 'label': 'Isolated forecast member',
@@ -221,6 +227,10 @@ class Database:
                                      'PUT', excluded, 'text/plain')
             if status != 202:
                 raise RuntimeError('isolated PV excluded update failed')
+            status, _ = self.request(cid, header, '/items/MPPT60_PV_Day_Observation_JSON/state',
+                                     'PUT', excluded, 'text/plain')
+            if status != 202:
+                raise RuntimeError('isolated transient PV observation update failed')
         status, body = self.request(cid, header, '/items/Power_Evidence_JSON/state')
         if status != 200 or body != excluded:
             raise RuntimeError('excluded test update was not applied to isolated Item')
@@ -240,10 +250,11 @@ class Database:
                 if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
                     raise RuntimeError('excluded AC Item persisted or its history check failed')
             if self.candidate_pv:
-                status, body = self.request(cid, header,
-                    '/persistence/items/MPPT60_PV_Day_Evidence_JSON?serviceId=jdbc')
-                if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
-                    raise RuntimeError('excluded PV Item persisted or its history check failed')
+                for name in ('MPPT60_PV_Day_Evidence_JSON', 'MPPT60_PV_Day_Observation_JSON'):
+                    status, body = self.request(cid, header,
+                        '/persistence/items/' + name + '?serviceId=jdbc')
+                    if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
+                        raise RuntimeError('excluded PV Item persisted or its history check failed: ' + name)
         print('change_only_and_power_exclusion_' + label + '=verified', flush=True)
 
     def forecast_checkpoint(self, cid, header, label):
@@ -469,6 +480,10 @@ class Database:
                         '/persistence/items/MPPT60_PV_Day_Evidence_JSON?serviceId=jdbc')
                     if status != 200 or len(json.loads(body).get('data', [])) != 1 \
                             or json.loads(body)['data'][0]['state'] != self.pv_expected:
+                        continue
+                    status, body = self.request(cid, header,
+                        '/persistence/items/MPPT60_PV_Day_Observation_JSON?serviceId=jdbc')
+                    if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
                         continue
                 start = (self.forecast_target - timedelta(seconds=1)).isoformat().replace('+00:00', 'Z')
                 end = (self.forecast_target + timedelta(hours=1, seconds=1)).isoformat().replace('+00:00', 'Z')

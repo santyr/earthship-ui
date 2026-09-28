@@ -82,8 +82,9 @@ rule-body bootstrap gate; no physical Modbus event, JDBC persistence,
 production rollback or natural poll was exercised. Keep production PV resources off
 until those remaining gates pass.
 The PV JDBC strategy candidate was then rendered byte-for-byte from the
-current file-owned live DTO with only the PV Item's everyChange exclusion and
-restore-only selector additions. A networkless OpenHAB 5.2.1 fixture loaded
+current file-owned live DTO with the PV evidence Item's everyChange exclusion,
+its restore-only selector and a complete automatic-persistence exclusion for
+the transient observation Item. A networkless OpenHAB 5.2.1 fixture loaded
 the exact candidate DTO and completed two file→managed→file roundtrips, each
 with observed provider absence between owners. Its owned container and tmpfs
 were removed. This qualifies parser/provider ownership and rollback in the
@@ -91,12 +92,14 @@ isolated fixture, **not** PostgreSQL write/readback, restore after a new JVM,
 or production hot reload. The current live JDBC strategy is unchanged.
 A second disconnected OpenHAB 5.2.1/PostgreSQL 16 rehearsal used that exact
 candidate through five file/managed provider checkpoints and a new JVM. At
-each checkpoint, ordinary PV Item updates produced no JDBC rows while a
-change-only positive control and forecast future series persisted as expected;
-existing power and AC evidence exclusions remained intact. A guarded
+each checkpoint, ordinary PV evidence and transient-observation Item updates
+produced no JDBC rows while a change-only positive control and forecast future
+series persisted as expected; existing power and AC evidence exclusions
+remained intact. A guarded
 isolated-only Java probe explicitly persisted one PV row without changing the
 Item state. After JVM restart, exactly that PV history row remained and the
-Item restored from it; power, AC, forecast and ordinary history controls also
+evidence Item restored from it; the transient observation still had no JDBC
+history, and power, AC, forecast and ordinary history controls also
 passed. Four provider handoffs had measured collection gaps rather than
 fabricated continuity. Both owned containers and their disposable PostgreSQL
 data were removed. This completes isolated JDBC exclusion, explicit-write and
