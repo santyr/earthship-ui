@@ -314,7 +314,7 @@ accuracy, action-confirmation or off-host recovery gates.
 
 September 28 replay-source audit: the accepted artifact records code revision
 `831893709152f9563575bcbdfc8f7fdc04f5cfe52e79cab575408c3af9341ca0`,
-while the currently installed 20-file runtime manifest hashes to
+while the currently installed 21-file runtime manifest hashes to
 `53d96e5e9637d9c0c427afaffa35b29350243bf295ec6ed6f8a38f631d686396`.
 None of the 64 relevant Git commits since September 20 matched the accepted
 revision, because production used a guarded mixed-file runtime. Replacing
@@ -322,7 +322,7 @@ revision, because production used a guarded mixed-file runtime. Replacing
 `thermal_intel.py` and `pipeline.py` from the capture-v2 install's verified
 preimages reconstructs the accepted manifest digest exactly. The historical
 `forcing_capture.py` preimage was preserved separately; it is not part of that
-20-file revision hash. A new mode-0600 private bundle at
+21-file revision hash. A new mode-0600 private bundle at
 `/home/sat/backups/earthship-energy/thermal-replay-source-20260928T105753Z-531f119a.tar.gz`
 (SHA-256 `f2331d8a26d3b26331bb15dfa2e729cba5016e6fbfb42819c1bcd679a75e0fe8`)
 preserves those source bytes, all five current model files and 57 forcing
@@ -332,7 +332,7 @@ and rehashed to the accepted code revision; the temporary tree was removed.
 At creation this established same-host recoverability of evidence, not yet an
 executed full as-issued replay, an automatic backup schedule, or off-host
 disaster recovery.
-An isolated September 28 replay then loaded the 20-file historical source
+An isolated September 28 replay then loaded the 21-file historical source
 manifest from that bundle, verified its exact accepted revision, validated
 each v2 capture member digest, and simulated all four captured publications
 with their embedded accepted artifacts, current readings and as-issued
@@ -356,6 +356,12 @@ The Item remains `shadow`/low confidence with no candidate; the advisory
 remains `none|No thermal action needed`. This closes the next natural
 publisher/import/replay gate, not the 06:50 trainer speed, model accuracy,
 action-confirmation or recovery schedule gates.
+The [September 28 replay recovery point](2026-09-28-thermal-replay-recovery.md)
+now includes the new accepted artifact, installed 21-file runtime, importable
+capture verifier and 59 forcing captures. The private archive was hash-verified,
+extracted, compared with installed source/artifact bytes, and all 59 captures
+passed semantic verification under its extracted v4 runtime. This closes the
+same-host staleness gap, not automatic/off-host recovery or shadow graduation.
 
 ## Current checkpoint — September 25, 2026
 

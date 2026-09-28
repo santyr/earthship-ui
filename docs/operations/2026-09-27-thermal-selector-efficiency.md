@@ -104,7 +104,7 @@ and small-array reuse finished September 28 at 07:49 MDT, exit 0, with
 run consumed 1h 10m 32s CPU; that is about 16% less, but the training window
 and scored folds changed, so the whole difference is not attributed to these
 patches. The accepted v4 artifact was atomically promoted at 07:49 with the
-installed 20-file code revision `53d96e5e9637d9c0c427afaffa35b29350243bf295ec6ed6f8a38f631d686396`;
+installed 21-file code revision `53d96e5e9637d9c0c427afaffa35b29350243bf295ec6ed6f8a38f631d686396`;
 its accepted file SHA-256 is `a9f608d638b5e450e4d0a6f53c7b887bbfdb74290f8d21b78364a313a5fcfc8a`.
 This closes the natural whole-run completion and source-continuity gate, not
 the causal performance attribution or shadow-exit gate. The artifact still
