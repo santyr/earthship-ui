@@ -207,8 +207,11 @@ Twenty-seven parser/transport tests pass, including the 25-hour DST fall-back
 day. It independently parsed the first 21 live partial-day rows as one
 contiguous epoch but did not qualify September 28. The existing restricted
 `energy_power_reader` role has no SELECT on the exact new evidence table
-`public.item0656`; an exact read-only grant is pending approval. No Solar_PV
-consumer, historical aggregate rewrite or quality promotion has occurred.
+`public.item0656`; an exact read-only grant is pending approval. Solar_PV
+`c4b6d72` now contains an opt-in, paired-policy consumer and dated cutover,
+with 871 analytics tests passing, but no production flag, historical aggregate
+rewrite or quality promotion has occurred. Partial receipt days withhold the
+load-switch ON-hour number instead of presenting an undercount as a total.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
