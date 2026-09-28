@@ -88,7 +88,7 @@ timestamp ties and offline transitions are barriers; staggered writes are not
 backdated. All 708 thermal Python tests pass. The restricted JDBC acquisition
 and continuity proof remain open.
 The tablet shade revision now draws 32×88-proportion vertical window controls,
-caps Lenovo cards at 100 CSS pixels, and provides a separate room-group slider
+caps Lenovo cards at 88 CSS pixels, and provides a separate room-group slider
 alongside every individual slider. Qualified unanimous group positions may be
 displayed; mixed or unknown groups remain unknown. Both supported browser
 viewports show full room labels, no overflow and zero movement requests. All
@@ -118,6 +118,13 @@ and completed-window coverage; the two recent completed origin counterfactuals
 improve but remain materially low. This is not dusk-equivalent or a live
 calibration. The REST history's duplicate timestamps were refused, not
 deduplicated; only restricted JDBC evidence supported the figures.
+An origin-as-of replay then confirmed all nine sampled prior-night evidence
+sets were complete before the Sep 25–27 issue timestamps, with no later rows
+and matching stored trough proxies. Replacing only the proxy drop would move
+the two completed forecasts 63→65 and 73→77%, still below the directly
+measured 84% troughs. Keep live numerical forecasts unchanged until the
+PV/dusk residual and 20:00-versus-sunset offset are validated on a larger
+chronological holdout.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

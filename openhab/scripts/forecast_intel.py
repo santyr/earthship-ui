@@ -1146,11 +1146,10 @@ def main():
     curtail = (round(clamp((resource - demand) / 1.0, 0, 8) * 2) / 2
                if resource > demand else 0.0) if demand is not None else None
 
-    # tonight's trough: dusk SoC estimate minus the MEASURED typical overnight
-    # drop (trailing 3 nights of dusk->trough from persistence — the real
-    # discharge window is ~14 h, dusk to charge crossover, which a fixed
-    # 20:30-06:00 load integral underestimated badly: modeled 32 pts vs
-    # observed 44-50 on the first attempt 2026-07-17)
+    # Tonight's trough: estimated dusk SoC minus a trailing-night drop proxy.
+    # A sample is currently 99 minus a coverage-qualified 20:00-to-11:00
+    # minimum; 99 is not a measured start or dusk value. The actual discharge
+    # interval can extend beyond the fixed 20:30-06:00 load integral.
     # Full 400 Ah bank (2026-07-19): shallow troughs (>=90) are the normal
     # signal now, not cutover artifacts — sample every measured night and
     # floor each drop at 1 pt. Fallback 12 ≈ the old 100 Ah-era 47-pt drop

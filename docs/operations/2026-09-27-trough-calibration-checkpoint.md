@@ -92,3 +92,33 @@ the rest of a night passes 90% coverage and bounds a streaming input after
 forecast/SoC tests pass. Before changing the forecast, replay
 this candidate with frozen origins, strict as-of receipts and a later held-out
 set; evaluate PV, dusk and trough together.
+
+## September 27 origin-as-of replay
+
+The three available qualified-sample origins in the producer's as-issued
+private state were replayed against the restricted JDBC atomic-SoC source in a
+transaction-read-only session. Each input row was additionally constrained to
+its origin's recorded `temperature_issued_at` (06:40 MDT). All nine prior-night
+sample sets were already complete at issuance: 890–897 original rows per
+night, **zero** rows excluded as later-arriving, 99.845–99.990% coverage, and
+each remeasured trough matched the corresponding stored `99 - trough` sample.
+No duplicate timestamp was normalized or removed. This validates as-of input
+availability for this limited comparison; it does not establish that the
+forecast's dusk estimate is accurate.
+
+| Origin | Prior-night observed 20:00 drops (pp) | Issued / replay trough (%) | Direct completed target trough (%) |
+| --- | --- | ---: | ---: |
+| Sep 25 | 14, 13, 12 | 63 / 65 | 84 |
+| Sep 26 | 15, 14, 13 | 73 / 77 | 84 |
+| Sep 27 | 12, 15, 14 | 71 / 75 | Pending |
+
+The replay holds each origin's issued dusk estimate and cloud penalty fixed;
+only the trailing-drop input changes. It reduces the signed low miss from
+21 to 19 points on Sep 25 and from 11 to 7 on Sep 26. The target nights'
+measured 20:00 starts were 96% and 97%, respectively, versus the issued
+*estimated dusk* values 78.411% and 93.41%. These are different clock points,
+so their differences cannot be assigned entirely to a dusk-model error, but
+they locate the larger unresolved Sep 25 miss upstream of the corrected drop.
+Two completed origins are insufficient to accept a live calibration. Retain
+the current numerical forecast while accumulating a chronological holdout and
+separately validating the PV/dusk chain and the 20:00-versus-sunset offset.
