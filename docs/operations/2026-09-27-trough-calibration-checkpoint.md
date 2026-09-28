@@ -89,6 +89,19 @@ with observed provider absence between owners. Its owned container and tmpfs
 were removed. This qualifies parser/provider ownership and rollback in the
 isolated fixture, **not** PostgreSQL write/readback, restore after a new JVM,
 or production hot reload. The current live JDBC strategy is unchanged.
+A second disconnected OpenHAB 5.2.1/PostgreSQL 16 rehearsal used that exact
+candidate through five file/managed provider checkpoints and a new JVM. At
+each checkpoint, ordinary PV Item updates produced no JDBC rows while a
+change-only positive control and forecast future series persisted as expected;
+existing power and AC evidence exclusions remained intact. A guarded
+isolated-only Java probe explicitly persisted one PV row without changing the
+Item state. After JVM restart, exactly that PV history row remained and the
+Item restored from it; power, AC, forecast and ordinary history controls also
+passed. Four provider handoffs had measured collection gaps rather than
+fabricated continuity. Both owned containers and their disposable PostgreSQL
+data were removed. This completes isolated JDBC exclusion, explicit-write and
+restart/rollback qualification, **not** live Modbus source provenance,
+production hot reload, natural polling or a qualified full PV day.
 
 A separate source-only pure reader in `openhab/scripts/pv_day_evidence.py`
 now parses exact native-Wh receipts and calculates a completed local day's

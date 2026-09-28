@@ -184,9 +184,16 @@ Physical Modbus events, JDBC write/readback/restart and natural source polls
 remain unqualified; no production PV resource was installed.
 The source-only PV JDBC candidate now also passes an exact-DTO isolated
 file→managed→file provider rehearsal twice, with absence observed between
-owners. Its container was removed. Disconnected PostgreSQL explicit-write,
-negative-control exclusion, new-JVM restore and production hot-reload gates
-remain; the live strategy has not changed.
+owners. Its container was removed. At that checkpoint, disconnected PostgreSQL
+explicit-write, negative-control exclusion, new-JVM restore and production
+hot-reload gates remained; the live strategy had not changed.
+The disconnected OpenHAB/PostgreSQL PV JDBC rehearsal subsequently passed all
+five file/managed checkpoints plus a new-JVM restart: automatic PV writes were
+excluded, one explicit PV history row persisted and restored the Item, and
+power, AC, forecast and change-only controls stayed correct. Four measured
+provider gaps were not treated as continuous source coverage. Both owned
+containers and their database were removed. Production hot reload and natural
+Modbus-source receipts remain open; no live PV resource changed.
 A source-only strict PV-day reader now rejects malformed or missing source
 receipts, sequence gaps, unbarriered restarts, mid-day counter resets,
 incomplete days and long coverage gaps; 15 focused tests include both DST
