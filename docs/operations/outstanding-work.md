@@ -447,6 +447,14 @@ capture verifier and 59 forcing captures. The private archive was hash-verified,
 extracted, compared with installed source/artifact bytes, and all 59 captures
 passed semantic verification under its extracted v4 runtime. This closes the
 same-host staleness gap, not automatic/off-host recovery or shadow graduation.
+After the training-only selector deployment changed the installed code hash
+without changing the accepted artifact, the bundle creator correctly refused
+to combine them. An explicit verified-prior-source option now produced a new
+private recovery point at `thermal-replay-source-20260929T014041Z.tar.gz`:
+64 captures passed semantic verification under the included accepted runtime.
+The earlier archive was retained and the disposable extraction removed.
+Automatic scheduling, retention and off-host recovery remain open; see the
+[recovery receipt](2026-09-28-thermal-replay-recovery.md).
 The [coherent installed-v4 score](2026-09-28-thermal-installed-v4-score.md)
 then used an explicit runtime root after the repo's v5 validator refused the
 production v4 artifact. Across non-overlapping captured origins, model versus

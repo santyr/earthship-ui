@@ -2,7 +2,7 @@
 """Create or verify a private, source-bound thermal replay recovery bundle.
 
 This copies evidence only. It does not train, publish, restore, or authorize
-thermal actions. The accepted artifact must name the exact installed runtime.
+thermal actions. The accepted artifact must name the exact included runtime.
 """
 
 import argparse
@@ -37,11 +37,11 @@ def _private_directory(path):
     return path
 
 
-def _read(path, *, private=False):
+def _read(path, *, private=False, max_size=MAX_FILE):
     path = Path(path)
     info = path.lstat()
     if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
-            or info.st_size > MAX_FILE or info.st_nlink != 1
+            or info.st_size > max_size or info.st_nlink != 1
             or (private and stat.S_IMODE(info.st_mode) != 0o600)):
         raise ValueError(f'unexpected source file: {path}')
     data = path.read_bytes()
@@ -100,7 +100,7 @@ def _manifest(entries, paths, accepted):
     }
 
 
-def create(output, *, runtime_root, state_root):
+def create(output, *, runtime_root, state_root, source_bundle=None):
     output = Path(output)
     _private_directory(output.parent)
     if output.exists() or output.is_symlink():
@@ -109,12 +109,21 @@ def create(output, *, runtime_root, state_root):
     models = _private_directory(Path(state_root) / 'models')
     captures = _private_directory(Path(state_root) / 'forcing-captures')
     entries = {}
-    main = _read(runtime_root / 'thermal_intel.py')
-    paths = _paths(main)
-    for name in paths:
-        entries['code/' + name] = main if name == 'thermal_intel.py' else _read(runtime_root / name)
-    entries['code/thermal_model/forcing_capture.py'] = _read(
-        runtime_root / 'thermal_model/forcing_capture.py')
+    if source_bundle is None:
+        main = _read(runtime_root / 'thermal_intel.py')
+        paths = _paths(main)
+        for name in paths:
+            entries['code/' + name] = main if name == 'thermal_intel.py' else _read(runtime_root / name)
+        entries['code/thermal_model/forcing_capture.py'] = _read(
+            runtime_root / 'thermal_model/forcing_capture.py')
+    else:
+        source_data = _read(source_bundle, private=True, max_size=MAX_TOTAL)
+        _, verified_source = _verify_archive_data(source_data)
+        paths = _paths(verified_source['code/thermal_intel.py'])
+        for name in paths:
+            entries['code/' + name] = verified_source['code/' + name]
+        entries['code/thermal_model/forcing_capture.py'] = verified_source[
+            'code/thermal_model/forcing_capture.py']
     for name in MODEL_NAMES:
         path = models / name
         if path.exists():
@@ -124,7 +133,8 @@ def create(output, *, runtime_root, state_root):
         raise ValueError('accepted thermal artifact missing')
     accepted = json.loads(accepted_data)['code_revision']
     if accepted != _revision(paths, entries):
-        raise ValueError('accepted artifact does not match installed runtime')
+        runtime_label = 'included' if source_bundle is not None else 'installed'
+        raise ValueError(f'accepted artifact does not match {runtime_label} runtime')
     for month in sorted(captures.iterdir()):
         _private_directory(month)
         if len(month.name) != 7 or month.name[4] != '-' or not month.name.replace('-', '').isdigit():
@@ -167,10 +177,10 @@ def create(output, *, runtime_root, state_root):
     return verified
 
 
-def verify(archive_path):
+def _verify_archive_data(data):
     entries = {}
     total = 0
-    with tarfile.open(archive_path, mode='r:gz') as archive:
+    with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
         for member in archive:
             if (not member.isfile() or not _safe_name(member.name)
                     or member.name in entries or not 0 <= member.size <= MAX_FILE):
@@ -205,9 +215,21 @@ def verify(archive_path):
     accepted = json.loads(entries['state/models/accepted.json'])['code_revision']
     if accepted != manifest['accepted_code_revision'] or accepted != _revision(paths, entries):
         raise ValueError('replay source does not match accepted artifact')
-    return {'members': len(entries), 'accepted_code_revision': accepted,
-            'captures': len(captures),
-            'sha256': hashlib.sha256(Path(archive_path).read_bytes()).hexdigest()}
+    return ({'members': len(entries), 'accepted_code_revision': accepted,
+             'captures': len(captures),
+             'sha256': hashlib.sha256(data).hexdigest()}, entries)
+
+
+def verify(archive_path):
+    archive_path = Path(archive_path)
+    info = archive_path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_TOTAL:
+        raise ValueError(f'unexpected replay archive file: {archive_path}')
+    data = archive_path.read_bytes()
+    if len(data) != info.st_size:
+        raise ValueError(f'archive changed while reading: {archive_path}')
+    result, _ = _verify_archive_data(data)
+    return result
 
 
 def main():
@@ -217,9 +239,16 @@ def main():
     parser.add_argument('--runtime-root', type=Path, default=Path('/home/sat/openhab/scripts'))
     parser.add_argument('--state-root', type=Path,
                         default=Path('/home/sat/.local/state/thermal-intel'))
+    parser.add_argument('--source-bundle', type=Path,
+                        help='private verified prior bundle containing accepted code')
     args = parser.parse_args()
-    result = (create(args.archive, runtime_root=args.runtime_root, state_root=args.state_root)
-              if args.action == 'create' else verify(args.archive))
+    if args.action != 'create' and args.source_bundle is not None:
+        parser.error('--source-bundle is only valid with create')
+    if args.action == 'create':
+        result = create(args.archive, runtime_root=args.runtime_root,
+                        state_root=args.state_root, source_bundle=args.source_bundle)
+    else:
+        result = verify(args.archive)
     print(json.dumps(result, sort_keys=True))
 
 

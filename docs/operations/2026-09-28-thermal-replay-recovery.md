@@ -29,3 +29,29 @@ This establishes an up-to-date same-host replay evidence point, not a full
 whole-host restore rehearsal or an off-host copy. It does not fix the model's
 24-hour skill deficit, create action confirmations, or relax the shadow gate.
 An automatic schedule, retention policy and off-host destination remain open.
+
+## September 28 training-only runtime drift recovery
+
+The subsequently installed selector-efficiency edit changed the 21-file
+installed runtime revision to `30e91ec94f0ab2ae`, while the accepted model
+still names `53d96e5e9637d9c0`. The original creator correctly refused to
+represent those bytes as a coherent accepted-model bundle. The recovery tool
+now has an explicit `--source-bundle` option: it verifies a private mode-0600
+prior bundle, copies only its exact accepted code and capture verifier, then
+reads current private model and forcing-capture evidence. It refuses if the
+current accepted artifact no longer matches that included source revision;
+there is no implicit stale-code fallback. Four focused tests pass, including
+the runtime-drift recovery and mismatch refusal.
+
+The source archive was the independently verified September 28 recovery point
+above. A new no-overwrite, mode-0600 same-host bundle is
+`/home/sat/backups/earthship-energy/thermal-replay-source-20260929T014041Z.tar.gz`,
+SHA-256 `49794aaa48d1658217ea159a4cc3058b01ae57f138a1696430de3d0bf1e90b22`.
+It contains 90 data members including 64 forcing captures, all under the
+accepted `53d96e5e9637d9c0` revision. Its archive digest/inventory passed
+verification, and an isolated extraction using only the bundled accepted
+runtime semantically verified all 64 captures. The disposable extraction
+tree was removed and absence checked. The prior archive remains intact.
+This closes the post-optimization same-host replay staleness gap, not an
+automatic backup schedule, retention/off-host disaster recovery, new model
+accuracy or action-confirmation evidence.

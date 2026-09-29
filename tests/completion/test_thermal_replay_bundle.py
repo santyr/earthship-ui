@@ -70,6 +70,44 @@ def test_mismatched_accepted_artifact_fails_without_output(tmp_path):
     assert not list(output.parent.glob('.thermal-replay-*'))
 
 
+def test_verified_prior_bundle_can_preserve_accepted_code_after_runtime_change(tmp_path):
+    runtime, state, prior, accepted = fixture(tmp_path)
+    bundle.create(prior, runtime_root=runtime, state_root=state)
+    old_dynamics = (runtime / 'thermal_model/dynamics.py').read_bytes()
+    (runtime / 'thermal_model/dynamics.py').write_bytes(b'# training-only update\n')
+    capture = state / 'forcing-captures/2026-09/20260928T020000Z-0123456789abcdef.json.gz'
+    capture.write_bytes(b'new private capture bytes')
+    capture.chmod(0o600)
+    current = prior.parent / 'current.tar.gz'
+
+    with pytest.raises(ValueError, match='does not match installed runtime'):
+        bundle.create(current, runtime_root=runtime, state_root=state)
+    assert not current.exists()
+    created = bundle.create(current, runtime_root=runtime, state_root=state,
+                            source_bundle=prior)
+    assert created == bundle.verify(current)
+    assert created['accepted_code_revision'] == accepted
+    assert created['captures'] == 2
+    with tarfile.open(current, 'r:gz') as archive:
+        assert archive.extractfile('code/thermal_model/dynamics.py').read() == old_dynamics
+
+    prior.chmod(0o644)
+    assert bundle.verify(prior)['accepted_code_revision'] == accepted
+    unprivate = prior.parent / 'unprivate.tar.gz'
+    with pytest.raises(ValueError, match='unexpected source file'):
+        bundle.create(unprivate, runtime_root=runtime, state_root=state,
+                      source_bundle=prior)
+    prior.chmod(0o600)
+
+    (state / 'models/accepted.json').write_text(
+        json.dumps({'code_revision': '0' * 64}))
+    changed = prior.parent / 'changed.tar.gz'
+    with pytest.raises(ValueError, match='does not match included runtime'):
+        bundle.create(changed, runtime_root=runtime, state_root=state,
+                      source_bundle=prior)
+    assert not changed.exists()
+
+
 def test_member_tampering_is_rejected(tmp_path):
     runtime, state, output, _ = fixture(tmp_path)
     bundle.create(output, runtime_root=runtime, state_root=state)
