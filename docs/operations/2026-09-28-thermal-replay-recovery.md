@@ -55,3 +55,29 @@ tree was removed and absence checked. The prior archive remains intact.
 This closes the post-optimization same-host replay staleness gap, not an
 automatic backup schedule, retention/off-host disaster recovery, new model
 accuracy or action-confirmation evidence.
+
+## September 29 accepted-revision recovery
+
+The September 29 accepted model names revision
+`00611a5ef1e5b64347143b3dc04b423d519f7ccbd7bc237bd029b69b7ef2cd5a`.
+The installed runtime instead hashes to
+`483bf454f9a534a7cecab64fc18697082de511b3ae56465888e18fb2a292b054`
+after the 11:12 MDT `forecast_intel.py` update, so a replay against the
+installed tree correctly refuses to run. The pre-update helper was recovered
+from the private exact-file rollback copy and combined in an isolated tree
+with the installed thermal files; the resulting 21-file manifest exactly
+matches the accepted artifact. The September 29 14:27 MDT forcing capture
+replayed to the exact as-issued payload against that source. An
+assumed-closed-vents diagnostic raised its modeled 12-hour hallway forecast
+by 0.656°F; this is a counterfactual, not a vent observation or training label.
+
+A new no-overwrite private recovery archive is
+`/home/sat/backups/earthship-energy/thermal-replay-source-20260929T213455Z.tar.gz`.
+The corrected verifier reports 100 members, including 74 forcing captures,
+accepted revision `00611a5e...`, and full **archive** SHA-256
+`a57b66249e3e518e7a56f4adc03ab47107f0528b58995a02145d260160b2dcd1`.
+The verifier previously reported the digest of the last member because its
+loop reused the archive-data variable; a regression test now checks the
+reported digest against the actual archive bytes. The archive is same-host
+only and does not by itself establish that all captured forecasts have skill
+or authorize leaving shadow mode.

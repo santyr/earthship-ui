@@ -197,8 +197,8 @@ def _verify_archive_data(data):
                          'code_revision_paths', 'entries'} or manifest['schema'] != SCHEMA
             or set(manifest['entries']) != set(entries)):
         raise ValueError('replay manifest mismatch')
-    for name, data in entries.items():
-        if hashlib.sha256(data).hexdigest() != manifest['entries'][name]:
+    for name, member_data in entries.items():
+        if hashlib.sha256(member_data).hexdigest() != manifest['entries'][name]:
             raise ValueError(f'replay member digest mismatch: {name}')
     paths = _paths(entries['code/thermal_intel.py'])
     if list(paths) != manifest['code_revision_paths']:

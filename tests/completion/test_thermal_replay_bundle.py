@@ -1,6 +1,7 @@
 """Source-bound, private thermal replay bundle regression checks."""
 
 import importlib.util
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -53,6 +54,7 @@ def test_private_roundtrip_binds_accepted_runtime_and_captures(tmp_path):
     assert created == verified
     assert verified['accepted_code_revision'] == accepted
     assert verified['captures'] == 1
+    assert verified['sha256'] == hashlib.sha256(output.read_bytes()).hexdigest()
     assert output.stat().st_mode & 0o777 == 0o600
     with tarfile.open(output, 'r:gz') as archive:
         assert archive.getmember('code/thermal_model/forcing_capture.py').isfile()
