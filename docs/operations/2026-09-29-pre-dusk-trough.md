@@ -118,6 +118,9 @@ stream/digest, recorded time, percent and unexpired source receipt. It also
 requires one numeric write matching the dated late receipt and its explicit
 morning origin. Before the eligible window it returned one archived morning
 issue and `pending_natural_issue`, with zero late issues; no worker was run.
+An independent read-only database preflight resolved the unique atomic SoC
+mapping to Item 613 under `energy_power_reader` and confirmed SELECT on
+`public.item0613`; it did not read or publish a forecast value.
 The script deliberately reports `display_selection_verified=false` and
 `night_outcome_scored=false` even after an archive pass. After the natural
 timer firing, rerun this command, check the actual Energy display separately,
