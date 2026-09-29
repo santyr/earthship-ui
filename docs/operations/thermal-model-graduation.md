@@ -31,6 +31,10 @@ The accepted artifact's exact source was recovered and preserved in the
 exact as-issued replay found that assuming closed vents raises one 12-hour
 hallway forecast by 0.656°F. This is modeled sensitivity, not confirmation
 that vents were closed, and does not explain the entire operational low bias.
+The current `vent_open` forcing is a single coarse state and does not
+distinguish window from skylight airflow. Its physical mapping must be
+resolved before a partly open configuration is turned into a signed action
+label through the collector. Chat reports alone remain diagnostic context.
 The approved operator bunker passed a client signing challenge and both
 signed inbox routes were verified, but the thermal confirmation collector
 remains off pending a reviewed private prompt policy, journal/SQLite recovery,
