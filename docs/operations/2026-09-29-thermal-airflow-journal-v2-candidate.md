@@ -35,11 +35,23 @@ The v1 reader rejects unexpected v2 rows instead of silently discarding them.
 The migration, existing journal, schema, origin and action-history suites pass
 84 tests; no production model forcing or action label changed.
 
+A later full **synthetic** recovery rehearsal used the existing private v3
+thermal state bundle format: two SQLite databases, private policy/route
+fixtures, and a `pg_dump` custom archive of a populated exact-v1 PostgreSQL
+journal. The bundle's five files passed digest/structure verification; both
+SQLite snapshots reopened with their original rows. `pg_restore` loaded the
+journal into a second disposable database with the original runtime-role ACLs
+and legacy action row intact. That restored database passed the exact v1 audit,
+then the guarded v2 migration and exact v2 audit. The migration and legacy
+journal/history suites passed 42 tests. The test's private temporary tree and
+all owned PostgreSQL containers were removed. This proves the recovery code
+path on synthetic data, **not** a backup or restore of the household journal.
+
 This is **not ready for household application**. The installed v4 trainer and
 publisher still use the v1 journal/runtime contract. After a production v2
 schema change, their old exact schema-audit command would reject the journal.
 Before live migration, qualify a coordinated runtime/reader upgrade and
-rollback, a private full journal/ACL backup and isolated restore, exact
+rollback, a private full **household** journal/ACL backup and isolated restore, exact
 production owner/role preflight, and an attended maintenance window. Only
 then enable the migration under specific authorization. Keep the v2
 confirmation sender and ingress gated until their own genuine signed
