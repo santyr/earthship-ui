@@ -14,6 +14,29 @@ labels, no physically valid bounded candidate and no alternate schedule.
 Forecast temperatures already appear in the UI. Advisory graduation is distinct
 from training-artifact acceptance and from automatic actuation.
 
+## September 29 operational checkpoint
+
+The capture-strict read-only 24-hour scorer has 62 matured published pairs,
+but only six independent, non-overlapping targets across several runtime
+revisions. On those six, model MAE is 3.5438°F versus 2.6100°F for
+same-origin persistence; nominal interval coverage is 4/6. All scored
+publications are low-confidence. No 24-hour target from today's accepted
+revision has matured, so neither pooled bias nor a six-day result licenses a
+coefficient change or shadow exit. The next target from today's captured
+14:27 MDT publication is due after September 30 14:00 MDT plus the scorer's
+five-minute maturity lag.
+
+The accepted artifact's exact source was recovered and preserved in the
+[private replay recovery point](2026-09-28-thermal-replay-recovery.md). An
+exact as-issued replay found that assuming closed vents raises one 12-hour
+hallway forecast by 0.656°F. This is modeled sensitivity, not confirmation
+that vents were closed, and does not explain the entire operational low bias.
+The approved operator bunker passed a client signing challenge and both
+signed inbox routes were verified, but the thermal confirmation collector
+remains off pending a reviewed private prompt policy, journal/SQLite recovery,
+and an attended genuine reply/acknowledgement trial. Do not count an operator
+recollection or an unanswered question as a training label.
+
 ## Required work and evidence
 
 The [September20 baseline audit](2026-09-20-thermal-graduation-baseline.md)
