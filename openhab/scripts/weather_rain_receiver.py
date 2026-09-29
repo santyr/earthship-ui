@@ -14,14 +14,54 @@ from uuid import uuid4
 from weather_rain_evidence import RainPolicy, rain_counter_receipt
 
 
+# Temporary, bounded source diagnosis. Stops automatically after one day.
+ANOMALY_DIAGNOSTIC_UNTIL = datetime(2026, 9, 30, 6, tzinfo=timezone.utc)
+
+
+def _one(packet, key):
+    if hasattr(packet, 'getlist'):
+        values = packet.getlist(key)
+        return values[0] if len(values) == 1 else None
+    return packet.get(key)
+
+
+def _metadata(packet):
+    result = {'model': _one(packet, 'model')}
+    for key, lower, upper in (('tempf', -60, 160), ('humidity', 0, 100),
+                              ('solarradiation', 0, 1500)):
+        raw = _one(packet, key)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError, OverflowError):
+            value = None
+        result[key] = value if value is not None and math.isfinite(value) and lower <= value <= upper else None
+    battery = _one(packet, 'battery_ok')
+    result['battery_ok'] = battery if type(battery) is bool else None
+    return result
+
+
+def _diagnostic(current, previous, delta, sensor_id):
+    report = {'sensor_id': sensor_id, 'model': current['model'],
+              'rain_delta_in': round(delta, 3)}
+    for key in ('tempf', 'humidity', 'solarradiation'):
+        before, after = previous.get(key), current.get(key)
+        report[key + '_delta'] = (round(after - before, 2)
+                                  if before is not None and after is not None else None)
+    before, after = previous.get('battery_ok'), current.get('battery_ok')
+    report['battery_flip'] = (before != after if before is not None and after is not None else None)
+    return report
+
+
 class RainCollector:
-    def __init__(self, policy, *, clock=None, monotonic=None, process_id=None):
+    def __init__(self, policy, *, clock=None, monotonic=None, process_id=None,
+                 on_jump=None):
         if not isinstance(policy, RainPolicy):
             raise ValueError('explicit rain policy required')
         self.policy = policy
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.monotonic = monotonic or time.monotonic
         self.process_id = process_id or os.getpid
+        self.on_jump = on_jump
         self.lock = RLock()
         self.clear()
 
@@ -38,6 +78,8 @@ class RainCollector:
             self.counter_drops = 0
             self.counter_jumps = 0
             self.last_valid_counter = None
+            self.last_good_metadata = None
+            self.logged_spikes = set()
 
     def _now(self):
         if self.pid != self.process_id():
@@ -79,8 +121,19 @@ class RainCollector:
                                       'reason': 'counter_jump',
                                       'receivedAt': None, 'validUntil': None,
                                       'totalRainIn': None}
+                            if (self.on_jump is not None and at < ANOMALY_DIAGNOSTIC_UNTIL
+                                    and value not in self.logged_spikes
+                                    and len(self.logged_spikes) < 8):
+                                self.logged_spikes.add(value)
+                                try:
+                                    self.on_jump(_diagnostic(
+                                        _metadata(packet), self.last_good_metadata or {},
+                                        delta, self.policy.sensor_id))
+                                except Exception:
+                                    pass  # Diagnostics cannot affect acquisition.
                     if record['status'] == 'valid':
                         self.last_valid_counter = value
+                        self.last_good_metadata = _metadata(packet)
                 self.record = record
                 self.received_tick = tick
 
@@ -117,7 +170,9 @@ def install_rain_evidence(app, *, enabled=False, policy=None, clock=None,
             any(rule.rule == '/rain_evidence' for rule in app.url_map.iter_rules())):
         raise ValueError('rain evidence already installed')
     collector = RainCollector(policy, clock=clock, monotonic=monotonic,
-                              process_id=process_id)
+                              process_id=process_id,
+                              on_jump=lambda report: app.logger.warning(
+                                  'rain source anomaly metadata %s', report))
 
     @app.before_request
     def capture_rain_receipt():

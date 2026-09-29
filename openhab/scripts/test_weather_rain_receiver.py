@@ -5,7 +5,8 @@ import json
 from test_weather_receiver_characterization import load_isolated_receiver
 from test_weather_temperature_receiver_integration import FrozenDateTime
 from weather_rain_evidence import RainPolicy
-from weather_rain_receiver import RainCollector, install_rain_evidence
+from weather_rain_receiver import (ANOMALY_DIAGNOSTIC_UNTIL,
+                                   RainCollector, install_rain_evidence)
 
 
 AT = datetime(2026, 9, 29, 1, tzinfo=timezone.utc)
@@ -110,6 +111,36 @@ def test_impossible_jump_is_invalid_and_recovery_does_not_become_counter_drop():
     assert recovered['record']['totalRainIn'] == 102.7497945
     assert recovered['counterDrops'] == 0
     assert recovered['counterJumps'] == 1
+
+
+def test_anomaly_metadata_is_bounded_once_and_expires_without_affecting_capture():
+    now = [AT]
+    reports = []
+    collector = RainCollector(POLICY, clock=lambda: now[0], monotonic=lambda: 100,
+                              on_jump=reports.append)
+    def observe(counter, temp):
+        collector.observe({'model': 'Fineoffset-WH65B', 'id': '206',
+                           'totalrainin': str(counter), 'tempf': str(temp),
+                           'humidity': '42', 'solarradiation': '0'})
+    observe(102.7497945, 68)
+    observe(121.358025, 92)
+    observe(121.358025, 92)
+    assert reports == [{'sensor_id': 206, 'model': 'Fineoffset-WH65B',
+                        'rain_delta_in': 18.608, 'tempf_delta': 24.0,
+                        'humidity_delta': 0.0, 'solarradiation_delta': 0.0,
+                        'battery_flip': None}]
+    assert collector.snapshot()['counterJumps'] == 2
+    now[0] = ANOMALY_DIAGNOSTIC_UNTIL
+    observe(121.36, 92)
+    assert len(reports) == 1
+    assert collector.snapshot()['counterJumps'] == 3
+
+    # A failing diagnostic sink must not clear or corrupt source capture.
+    collector = RainCollector(POLICY, clock=lambda: AT, monotonic=lambda: 100,
+                              on_jump=lambda _report: (_ for _ in ()).throw(RuntimeError('sink')))
+    collector.observe({'model': 'Fineoffset-WH65B', 'id': '206', 'totalrainin': '1'})
+    collector.observe({'model': 'Fineoffset-WH65B', 'id': '206', 'totalrainin': '2'})
+    assert collector.snapshot()['counterJumps'] == 1
 
 
 def test_capture_failure_does_not_break_legacy_receiver(monkeypatch, tmp_path):
