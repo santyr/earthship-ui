@@ -71,7 +71,16 @@ class RainCollector:
                             self.counter_drops += 1
                         elif delta > 0.5:
                             self.counter_jumps += 1
-                    self.last_valid_counter = value
+                            self.invalid_packets += 1
+                            # Match the existing weather app's physical jump
+                            # guard: a rejected spike cannot become the next
+                            # baseline or a qualified source observation.
+                            record = {**record, 'status': 'invalid',
+                                      'reason': 'counter_jump',
+                                      'receivedAt': None, 'validUntil': None,
+                                      'totalRainIn': None}
+                    if record['status'] == 'valid':
+                        self.last_valid_counter = value
                 self.record = record
                 self.received_tick = tick
 

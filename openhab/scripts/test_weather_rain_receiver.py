@@ -85,9 +85,31 @@ def test_latched_fault_counts_survive_new_valid_packet_and_skip_foreign_sensor()
     state = collector.snapshot()
     assert state['record']['status'] == 'valid'
     assert state['packetCount'] == 6
-    assert state['invalidPackets'] == 1
+    assert state['invalidPackets'] == 2
     assert state['counterDrops'] == 2
     assert state['counterJumps'] == 1
+
+
+def test_impossible_jump_is_invalid_and_recovery_does_not_become_counter_drop():
+    collector = RainCollector(POLICY, clock=lambda: AT, monotonic=lambda: 100)
+    def observe(value):
+        collector.observe({'model': 'Fineoffset-WH65B', 'id': '206',
+                           'totalrainin': str(value)})
+    observe(102.7497945)
+    observe(121.358025)
+    spike = collector.snapshot()
+    assert spike['record']['status'] == 'invalid'
+    assert spike['record']['reason'] == 'counter_jump'
+    assert spike['record']['totalRainIn'] is None
+    assert spike['invalidPackets'] == spike['counterJumps'] == 1
+    assert spike['counterDrops'] == 0
+    assert collector.last_valid_counter == 102.7497945
+    observe(102.7497945)
+    recovered = collector.snapshot()
+    assert recovered['record']['status'] == 'valid'
+    assert recovered['record']['totalRainIn'] == 102.7497945
+    assert recovered['counterDrops'] == 0
+    assert recovered['counterJumps'] == 1
 
 
 def test_capture_failure_does_not_break_legacy_receiver(monkeypatch, tmp_path):
