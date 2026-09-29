@@ -79,6 +79,18 @@ passed 370 tests with the cached WebSocket package. This is operator-visible
 local retry state, not evidence that a relay retained or delivered every
 message. The poll CLI release gate remains false and no live inbox was polled.
 
+### Source-only bounded inbox batch fairness
+
+Within each already-bounded newest-first relay result, the attended poll now
+alternates attempts from the newest and oldest ends before the middle. A test
+with 20 distinct newer invalid envelopes and one older valid reply confirms
+that the older reply reaches the journal in the first 16-attempt batch, while
+unattempted envelopes remain deferred. The full completion suite passed 371
+tests. This mitigates a single-sided burst; a hostile stream at both ends,
+under-limit relay omissions, or a saturated relay result can still prevent
+progress. It does not relax the page, total-event, time, signature or release
+gates, and no household inbox was polled.
+
 ## September 27 source-only backlog checkpoint
 
 The disabled inbound collector now keeps a private, durable ledger of envelope

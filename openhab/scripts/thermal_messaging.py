@@ -559,6 +559,17 @@ def acknowledgement(row, receipt, collector):
     return event
 
 
+def balanced_inbox_order(events):
+    """Try both ends of a newest-first page before its middle under a batch cap."""
+    left, right = 0, len(events) - 1
+    while left <= right:
+        yield events[left]
+        left += 1
+        if left <= right:
+            yield events[right]
+            right -= 1
+
+
 class Delivery:
     def __init__(self, policy, routes, spool, outbox, keyer, relay, sink):
         self.policy, self.routes, self.spool = policy, routes, spool
@@ -599,7 +610,7 @@ class Delivery:
             except (t.Refused, t.Retryable):
                 counts['relay_failures'] += 1
                 continue
-            for event in events:
+            for event in balanced_inbox_order(events):
                 if event['id'] in seen:
                     continue
                 seen.add(event['id'])

@@ -603,6 +603,11 @@ tests pass. Refusals remain retryable, unacknowledged and bounded. Rotating-ID s
 under-limit relay omissions, a reviewed retry/remediation workflow, signed routes, private
 backup and household trial still block collector release; see the same
 checkpoint.
+The disabled poller now interleaves newest and oldest fetched envelopes within
+its existing 16-attempt cap. A 20-new-invalid-ID regression reaches an older
+valid reply on the first poll; all 371 completion tests pass. This mitigates
+one-sided rotating-ID bursts, but two-sided spam and incomplete relay results
+remain release blockers. No live inbox or collector state was used.
 
 At 17:08 MDT `Thermal_Advisory`, the legacy forecast-intelligence display
 Item, moved to a Git-owned file definition after networkless provider and

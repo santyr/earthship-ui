@@ -692,19 +692,20 @@ def test_refused_envelopes_back_off_and_do_not_starve_older_valid_reply(tmp_path
     p, keyer, sink = policy(), InboundKeyer(), Sink()
     routes = m.Routes(t.canonical(announcements()), p, keyer)
     bad = [event(1059, 'c' * 64, [['p', C]], 'not-json',
-                 NOW - timedelta(seconds=seconds)) for seconds in (2, 1)]
+                 NOW - timedelta(seconds=seconds)) for seconds in (1, 2)]
     rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]])
     del rumor['sig']
-    valid = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode(), NOW)
+    valid = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode(),
+                  NOW - timedelta(seconds=3))
     envelopes = bad + [valid]
     private = tmp_path / 'private'
     spool, outbox = t.Spool(private), m.Outbox(private)
     try:
         first = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink).poll_replies(NOW)
-        assert first == dict(accepted=0, retryable=0, withheld=2, deferred=1,
+        assert first == dict(accepted=1, retryable=0, withheld=1, deferred=1,
                              refusal_backoff=0, relay_failures=0)
-        assert outbox.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 2
-        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 0
+        assert outbox.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 1
+        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 1
     finally:
         outbox.close()
         spool.close()
@@ -712,10 +713,42 @@ def test_refused_envelopes_back_off_and_do_not_starve_older_valid_reply(tmp_path
     spool, outbox = t.Spool(private), m.Outbox(private)
     try:
         second = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink).poll_replies(NOW)
-        assert second == dict(accepted=1, retryable=0, withheld=0, deferred=2,
-                              refusal_backoff=2, relay_failures=0)
+        assert second == dict(accepted=0, retryable=0, withheld=1, deferred=1,
+                              refusal_backoff=1, relay_failures=0)
         assert outbox.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 2
         assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 1
+        assert len(sink.stores) == 1
+    finally:
+        outbox.close()
+        spool.close()
+
+
+def test_new_invalid_id_burst_cannot_hide_oldest_valid_reply(tmp_path):
+    class InboundKeyer(FakeKeyer):
+        def decode(self, raw, recipient):
+            assert recipient == C
+            return t.strict_json(t.strict_json(raw)['content'].encode())
+
+    class InboxRelay(FakeRelay):
+        def fetch(self, url, *, since):
+            return envelopes
+
+    p, keyer, sink = policy(), InboundKeyer(), Sink()
+    routes = m.Routes(t.canonical(announcements()), p, keyer)
+    bad = [event(1059, 'c' * 64, [['p', C]], 'not-json',
+                 NOW - timedelta(seconds=seconds)) for seconds in range(1, 21)]
+    rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]])
+    del rumor['sig']
+    valid = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode(),
+                  NOW - timedelta(seconds=21))
+    envelopes = bad + [valid]  # Real relay.fetch returns newest first.
+    private = tmp_path / 'private'
+    spool, outbox = t.Spool(private), m.Outbox(private)
+    try:
+        result = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink).poll_replies(NOW)
+        assert result == dict(accepted=1, retryable=0, withheld=15, deferred=5,
+                              refusal_backoff=0, relay_failures=0)
+        assert outbox.ingress_recorded(valid)
         assert len(sink.stores) == 1
     finally:
         outbox.close()
