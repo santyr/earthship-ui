@@ -167,3 +167,19 @@ and its embedded accepted-artifact SHA-256 was
 This closes the first natural publisher-continuity gate after the row-prep
 installation. The output remains `shadow`, low confidence, with no candidate;
 the next natural trainer and all accuracy/action gates remain open.
+
+## September 29 per-endpoint derivative finite check
+
+A fresh deterministic 30-day fit profile spent 0.799 seconds in about
+929,800 NumPy `all()` reductions, largely checking the two-by-twelve
+sensitivity matrix after every five-minute forcing step. Nonfinite
+derivatives propagate through the linear recurrence, so the source now
+checks that matrix once at each endpoint while retaining scalar state checks
+at every step. A direct regression forces derivative overflow with finite
+state and confirms refusal. The same fixture's complete fitted-result digest
+was identical before and after (`5801674fe8452ed81de5aef506cbb4863d545bae8bb0115b94210cceb333e401`);
+one profiled fit fell from 5.662 to 4.424 seconds. This is a single-run
+profile, not an asserted whole-trainer gain. All 726 thermal Python tests
+passed, with one PostgreSQL-dependent skip. At this checkpoint the edit is
+source-only; production's next natural trainer and artifact continuity
+remain separate release gates.

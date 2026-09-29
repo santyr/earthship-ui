@@ -1249,6 +1249,28 @@ def test_multihorizon_rollout_rejects_nonfinite_state():
             dynamics._multihorizon_objective_and_gradient(vector, endpoints)
 
 
+def test_multihorizon_rollout_rejects_nonfinite_sensitivity_with_finite_state():
+    endpoints = {}
+    prepared = {}
+    origin = SimpleNamespace(air_f=0.0, mass_f=0.0)
+    for steps in dynamics.IDENTIFICATION_HORIZON_STEPS:
+        forcings = tuple(object() for _ in range(steps))
+        endpoints[steps] = (
+            dynamics.RolloutEndpoint(origin, forcings, origin, 1.0),
+        )
+        prepared.update(
+            (id(forcing), (0.0, 0.0, (1e308, 0.0, 0.0)))
+            for forcing in forcings
+        )
+    with np.errstate(over="ignore", invalid="ignore"):
+        with pytest.raises(ValueError, match="rollout state or sensitivity is invalid"):
+            dynamics._multihorizon_objective_and_gradient(
+                np.zeros(len(dynamics.AIR_NAMES) + len(dynamics.MASS_NAMES)),
+                endpoints,
+                prepared_forcings=prepared,
+            )
+
+
 def test_multihorizon_refinement_reduces_latent_observer_open_loop_drift():
     training, holdout = synthetic_latent_observer_days(days=28, seed=127)
     initial, _ = dynamics._fit_five_minute_dynamics(

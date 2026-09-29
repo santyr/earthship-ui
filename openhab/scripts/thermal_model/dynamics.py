@@ -817,14 +817,18 @@ def _multihorizon_objective_and_gradient(
                 )
                 sensitivity = state_jacobian @ sensitivity + direct
                 state[0], state[1] = next_air, next_mass
-                if (
-                    not math.isfinite(state[0])
-                    or not math.isfinite(state[1])
-                    or not np.isfinite(sensitivity).all()
-                ):
+                if not math.isfinite(state[0]) or not math.isfinite(state[1]):
                     raise ValueError(
                         "multihorizon rollout state or sensitivity is invalid"
                     )
+
+            # Nonfinite derivatives propagate through the linear recurrence.
+            # Check once per endpoint rather than allocating a boolean array
+            # and reducing it after every five-minute forcing step.
+            if not np.isfinite(sensitivity).all():
+                raise ValueError(
+                    "multihorizon rollout state or sensitivity is invalid"
+                )
 
             target = np.asarray(
                 (endpoint.target.air_f, endpoint.target.mass_f), dtype=float
