@@ -3721,6 +3721,21 @@ persisted numeric Item history, a difference of about 0.0013 W. This tight
 agreement supports the overnight-load diagnostic in this one window; it is
 not a full strict-reader run, a direct Java `averageBetween` readback, or a
 representative dusk/night candidate transition. No Item or rule was changed.
+The follow-up used Solar-PV's **restricted PostgreSQL strict AC reader** on
+the exact same September 28–29 night, resolving the uniquely mapped
+`Inverter_AC_Evidence_JSON` table (`item0653`) and applying the explicit
+inverter-only topology policy. It returned 6,562 qualified half-open power
+intervals and 34,198.724/34,200 seconds of source-bound coverage
+(99.996269%). The 1.276 seconds withheld are 1,262 separate 1–4 ms edges,
+not a single sustained outage. The **covered-time** mean is 166.629440 W;
+the independent numeric-Item mean is 166.630832 W, about 0.001392 W higher.
+An earlier scratch calculation multiplied kWh by `1e6` rather than `3.6e6`
+to convert to watts and printed 46.285956 W; that value is invalid and must
+not be used. This stronger original-receipt check corroborates one completed
+night's diagnostic load magnitude. It is still not a direct live Java
+`averageBetween` parity check, does not close the 1.276 seconds of strictly
+uncovered time, and does not qualify the guarded BMS runtime estimator for
+promotion; dusk/night transition replay and source-freshness gates remain.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
