@@ -46,6 +46,17 @@ coefficient change or alert-policy change was part of this installation.
 Before the first natural 06:40 run, a review exposed one remaining publication
 edge: a failed prediction receipt could leave an unconfirmed computed PV value
 in the detailed JSON. The source was tightened to require receipt success for
-day zero; 102 adjacent tests pass. This follow-up needs exact-file installation
-before the natural run. The prior installed source remains safe and idle until
-that replacement, but it lacks this extra failure gate.
+day zero; 102 adjacent tests pass.
+
+At 03:20 MDT, commit `b856f22` was on `origin/main`. The idle service, active
+timer and installed preimage SHA-256
+`b4a2301e3ad0e6c5781024a6a2873611bacae34ae3f13e1f29139c6c8f9062c8`
+were checked before a second exact one-file atomic installation. The private
+mode-0700 rollback directory is
+`/home/sat/.local/state/forecast-intel/pv-receipt-20260929-qVwb7T`, holding a
+mode-0600 copy of that preimage. Installed and Git source now both hash to
+`58cca68ef7154e065362770a70bf3a7c234a198e94dbba47b8ecc3e3b1e8b508`.
+An installed-path import checked both the issued and withheld helper cases.
+`k_res=1.3`, `d_direct=5.40326272` and the closed calibration release remain
+unchanged; the service is inactive/success, and the natural timer remains due
+at 06:40 MDT. Neither deployment ran the worker or wrote forecast Items.
