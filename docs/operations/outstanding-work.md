@@ -542,6 +542,14 @@ qualified source-bound provenance and the open release flag. The 121-test
 forecast/PV suite passed, and the exact one-file idle-worker deployment
 preserved `k_res=1.3`, `d_direct=5.40326272`, the closed release gate and the
 September 29 06:40 natural timer. See the [PV activation receipt](2026-09-28-pv-day-evidence-activation.md).
+At the first natural source-bound daily-counter reset, the restricted reader
+parsed 1,463 September 28 PV receipts plus the first September 29 receipt.
+The only valid-value drop was 2,425→0 at 23:58:13 MDT, followed by zero
+through 23:59 and 00:00:14; the only restart had an unavailable sequence-1
+barrier and all same-epoch sequences were contiguous. This closes the
+terminal-reset observation gate, not September 28 day qualification because
+collection began after midnight. Assess September 29 only after its midnight
+on September 30; physical fault/recovery and calibration release remain open.
 
 September 28 change-only rain-learning audit: `forecast_intel.py` scores
 precipitation against `max(RainFallDay)` in the local day. The live weather

@@ -197,3 +197,21 @@ false, coefficients remain `k_res=1.3` and `d_direct=5.40326272`, the worker
 is idle, and the enabled natural timer is next due September 29 06:40 MDT.
 No forecast job or Item write was manually invoked. That natural run and a
 complete source-bound day remain separate verification gates.
+
+## First natural source-bound terminal reset — September 28, 23:58 MDT
+
+A restricted `energy_power_reader` read parsed all 1,463 persisted
+`MPPT60_PV_Day_Evidence_JSON` receipts from the September 28 local day, plus
+the first September 29 receipt. Within-epoch sequence numbers were
+contiguous. The only epoch transition was the already documented unavailable
+sequence-1 barrier at 19:30 MDT. The only fall among valid native Wh values
+was 2,425→0 at `2026-09-29T05:58:13.392Z` (23:58:13 MDT), inside the
+reader's final-three-minute reset window. The 23:59 receipt and first
+post-midnight 00:00:14 receipt remained zero. No synthetic source update,
+rule invocation or MPPT command was used.
+
+This closes the natural terminal-reset observation gate, not the complete-day
+qualification gate: collection began at 08:06 MDT on September 28. September
+29 is the first possible full source day and cannot be assessed until after
+its local midnight on September 30. The separate physical Thing/fault
+recovery, retention, chronological calibration and release-flag gates remain.
