@@ -216,12 +216,23 @@ transaction, an exact Item/table mapping and a 90-second midnight carry-in.
 Twenty-seven parser/transport tests pass, including the 25-hour DST fall-back
 day. It independently parsed the first 21 live partial-day rows as one
 contiguous epoch but did not qualify September 28. The existing restricted
-`energy_power_reader` role has no SELECT on the exact new evidence table
-`public.item0656`; an exact read-only grant is pending approval. Solar_PV
+`energy_power_reader` initially had no SELECT on the exact new evidence table
+`public.item0656`; the later grant and readback are recorded below. Solar_PV
 `c4b6d72` now contains an opt-in, paired-policy consumer and dated cutover,
 with 871 analytics tests passing, but no production flag, historical aggregate
 rewrite or quality promotion has occurred. Partial receipt days withhold the
 load-switch ON-hour number instead of presenting an undercount as a total.
+The operator applied the exact `GRANT SELECT ON TABLE public.item0656 TO energy_power_reader`
+on September 28. Restricted-role readback then found the
+unique `TPLink_Switch_Evidence_JSON` mapping to Item 656, SELECT=true and
+INSERT/UPDATE/DELETE/TRUNCATE=false. The same credential read all 526
+persisted receipts from 16:36:40.989Z through 01:20:09.513Z; the strict
+receipt parser found one contiguous sequence and no unbarriered restart.
+This closes the database privilege gate only. September 28 began before the
+cutover, so no complete local day can qualify yet; the first possible full
+day is September 29, assessable after its local midnight on September 30.
+Production Solar_PV switch-quality flags and publication remain off pending
+that complete-day assessment and fault/restart integration evidence.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
