@@ -73,10 +73,29 @@ RULES = {
         outputs=('SkyCondition', 'SkyConditionIcon'),
         backup_prefix='sky-rule-',
     ),
+    'extrema': DisplayRule(
+        uid='temp-highlow-24h',
+        script_sha='a499269f5aabf7a82de55f9fbc168d7c281c3155d07d91321a2259199b7072db',
+        source=ROOT / 'openhab/file-config/automation/js/temperature-highlow-24h.js',
+        source_sha='4c6c32a4847c93792f9748028ad8d53ac7116bc837a385544b7523fcd5c62297',
+        target=Path('/etc/openhab/automation/js/temperature-highlow-24h.js'),
+        triggers=(('timer.GenericCronTrigger',
+                   (('cronExpression', '0 0/15 * * * ?'),)),),
+        items=(('AmbientWeatherWS2902A_IndoorSensor_Temperature', 'Number'),
+               ('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 'Number'),
+               ('IndoorTemp_24h_Low', 'Number:Temperature'),
+               ('IndoorTemp_24h_High', 'Number:Temperature'),
+               ('OutdoorTemp_24h_Low', 'Number:Temperature'),
+               ('OutdoorTemp_24h_High', 'Number:Temperature')),
+        outputs=('IndoorTemp_24h_Low', 'IndoorTemp_24h_High',
+                 'OutdoorTemp_24h_Low', 'OutdoorTemp_24h_High'),
+        backup_prefix='extrema-rule-',
+    ),
 }
 
 RULE = RULES['season'].uid  # Historical import compatibility for focused tests.
-RELEASE_READY = {'season': True, 'sky': False}  # SkyCondition gates greywater eligibility.
+RELEASE_READY = {'season': True, 'sky': False, 'extrema': True}
+# SkyCondition gates greywater eligibility; its cutover remains held.
 BACKUP_ROOT = Path('/home/sat/.local/state')
 FIELDS = ('uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')
 
@@ -255,7 +274,7 @@ def main():
     action.add_argument('--apply', action='store_true')
     args = parser.parse_args()
     if args.apply and not RELEASE_READY[args.kind]:
-        raise SystemExit('sky control-input cutover is not release-qualified')
+        raise SystemExit(args.kind + ' control-input cutover is not release-qualified')
     config = RULES[args.kind]
     original, state = preflight(config)
     if args.check:

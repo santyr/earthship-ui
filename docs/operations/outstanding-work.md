@@ -61,6 +61,15 @@ The [rule-reference census](2026-09-24-file-first-rule-reference-census.md)
 now flags five live Item-name overlaps between the known greywater controller
 and other rules, including the sky producer. It is a redacted manual-review
 warning only; it cannot infer writers or clear a candidate with no overlap.
+The [temperature-extrema display writer](2026-09-29-temperature-extrema-rule-file-cutover.md)
+has a separate reviewed output-consumer path: its four rolling extrema are
+used by the Earthship page, with no other live rule mention. Three focused
+behavior tests, an isolated managed/file/managed provider rehearsal and seven
+handoff/rollback tests pass. Its guarded no-restart live cutover made the
+file the sole provider, preserving all four states and the 15-minute timer.
+The natural 06:00 timer posted all four outputs, including a changed outdoor
+low attributed to the file script. Ownership remains provisional pending a
+later restart check.
 
 ## Standing efficiency requirement — September 26, 2026
 

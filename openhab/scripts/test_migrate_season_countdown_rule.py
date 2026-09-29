@@ -21,7 +21,7 @@ ORIGINAL = {
     'conditions': [], 'actions': [], 'editable': True,
     'status': {'status': 'IDLE', 'statusDetail': 'NONE'},
 }
-@pytest.mark.parametrize('kind', ['season', 'sky'])
+@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema'])
 @pytest.mark.parametrize('install_fails', [False, True])
 def test_handoff_never_leaves_two_providers_and_restores_managed_on_failure(
         monkeypatch, kind, install_fails):

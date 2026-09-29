@@ -516,6 +516,15 @@
       "source": "automation/js/update_days_until_season.js",
       "destination": "/etc/openhab/automation/js/update_days_until_season.js",
       "state_writer": "DaysUntilNextSeason"
+    },
+    {
+      "kind": "rule",
+      "id": "temp-highlow-24h",
+      "provider": "file",
+      "migration": "provisional",
+      "source": "automation/js/temperature-highlow-24h.js",
+      "destination": "/etc/openhab/automation/js/temperature-highlow-24h.js",
+      "state_writer": "IndoorTemp_24h_Low, IndoorTemp_24h_High, OutdoorTemp_24h_Low, OutdoorTemp_24h_High"
     }
   ]
 }

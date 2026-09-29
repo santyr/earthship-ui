@@ -71,6 +71,22 @@ String SkyCondition_Diagnostic
             ('timer.GenericCronTrigger', (('cronExpression', '0 0/2 * * * ?'),)),
         ),
     ),
+    'extrema': DisplayRule(
+        uid='temp-highlow-24h',
+        source=ROOT / 'openhab/file-config/automation/js/temperature-highlow-24h.js',
+        baseline='a499269f5aabf7a82de55f9fbc168d7c281c3155d07d91321a2259199b7072db',
+        label='hex.extrema.rule.qualification',
+        items=b'''String AmbientWeatherWS2902A_IndoorSensor_Temperature
+String AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature
+String IndoorTemp_24h_Low
+String IndoorTemp_24h_High
+String OutdoorTemp_24h_Low
+String OutdoorTemp_24h_High
+''',
+        startup_item='AmbientWeatherWS2902A_IndoorSensor_Temperature',
+        triggers=(('timer.GenericCronTrigger',
+                   (('cronExpression', '0 0/15 * * * ?'),)),),
+    ),
 }
 
 

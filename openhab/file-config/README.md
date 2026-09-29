@@ -70,6 +70,11 @@ candidate. The initially successful live file handoff was rolled back after
 managed rule is again the sole production provider; a control-input migration
 needs protected-control restart/rollback qualification. See the
 [sky rollback receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
+The rolling `temp-highlow-24h` Earthship display writer is provisionally
+file-owned in `automation/js/temperature-highlow-24h.js` after exact
+consumer review, isolated provider/rollback rehearsal and guarded live
+handoff. Its natural 06:00 writer run passed; a later restart check remains open; see
+the [extrema rule receipt](../../docs/operations/2026-09-29-temperature-extrema-rule-file-cutover.md).
 
 ## Staged migration and rollback
 
