@@ -445,6 +445,24 @@ output streams because `nak bunker` can print a connection secret and
 request/response details. An attended start and actual Sat-client challenge
 remain; no operator bunker or thermal collector is running at this checkpoint.
 
+At 10:42:32 MDT on September 29, the operator completed the verifier and an
+attended start. Repeated systemd readback found the Earthship operator bunker
+active/running with the same PID and zero restarts; boot enablement remains
+disabled. The approved Sat client has not yet performed an authenticated
+challenge, so service liveness does not release any thermal question, listener
+or journal write. The host user's default `nak` key is not the allowlisted
+Sat-client key.
+
+A fresh signer-free read-only kind-10050 check later September 29 found the
+operator's exact signed route on all three approved relays and Hex's exact
+signed route on Primal and Damus, but not nos.lol. Hex's event was nearly six
+days old. The exact already-signed public Hex event was fetched, signature,
+author and relay-set verified, then republished to nos.lol without loading a
+private key; a fresh query returned the identical signed event. The relay's
+reason for dropping the event is unknown. Recheck both identities on every
+approved endpoint immediately before any attended household trial, and do not
+infer long-term retention from this one readback.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

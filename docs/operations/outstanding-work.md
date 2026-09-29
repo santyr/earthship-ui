@@ -31,6 +31,11 @@ minutes later found it active/running with one stable PID, zero restarts and
 boot enablement still disabled. The host user's default `nak` public key is
 not the allowlisted Sat client key. An authenticated challenge from the actual
 Sat client, boot-enable decision, and thermal collector release remain open.
+Later September 29, a read-only route check found the approved operator
+kind-10050 event on all three relays but Hex's almost six-day-old event missing
+again from nos.lol. The exact previously signed Hex event was republished
+without a private key and verified by immediate readback. Relay retention is
+unproven; both signed routes must be rechecked just before any household trial.
 
 September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
 trial completed two short prompts in under four seconds each, establishing
