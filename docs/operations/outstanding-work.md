@@ -317,6 +317,14 @@ enabled. Before activation, verify the requested `public.item0658` SELECT
 grant, a full September 29 local day after midnight September 30, natural
 continuity and derived-temperature parity across actual changes. Keep numeric
 value authorization separate from this evidence-quality score.
+Solar_PV `e67b729` also adds default-off source-bound live health for both
+auxiliary fields in the Energy UI publisher and data-quality checker. It reads
+the exact persisted BMS Item, requires two contiguous receipts in one epoch,
+uses each field's original expiry, and refuses missing/malformed/expired or
+permission-denied history rather than substituting held `BMS_DevicePresent`.
+All 879 analytics tests pass. Production unit flags and Python import paths
+were not changed. A fresh restricted-role check at 23:31 MDT still returned
+`item0658_select=false`; this and the full-day/parity gates keep activation off.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
