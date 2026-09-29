@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
-// OhIcon renders offline-bundled iconify collections that are now loaded as
-// split async chunks (they must not sit in the 4MB main chunk). Rendering is
-// gated on the collections resolving; iconCollectionsReady lets tests (and
-// callers) await that deterministic point.
+// Common icons render from small offline collections; an unanticipated
+// OpenHAB icon can still load the complete offline collection on demand.
 import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,6 +29,13 @@ describe('OhIcon', () => {
 
     await iconCollectionsReady;
     await waitFor(() => expect(container.querySelector('svg')).not.toBeNull());
+  });
+
+  it('loads an unanticipated icon from its full offline collection', async () => {
+    const { container } = render(OhIcon, {
+      props: { icon: 'iconify:mdi:account', size: '1rem' },
+    });
+    await waitFor(() => expect(container.querySelector('svg')).not.toBeNull(), { timeout: 5000 });
   });
 
   it('renders nothing for NULL/UNDEF/missing icon states even after load', async () => {

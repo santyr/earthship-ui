@@ -1,31 +1,35 @@
 <script module>
-  // Offline icon collections — still bundled at build time so the wall
-  // display never depends on network access to render an icon, but loaded
-  // via dynamic import() so the ~4.1MB of icon JSON becomes split async
-  // chunks instead of bloating the main chunk. Icons appear momentarily
-  // after first paint once the chunks resolve (same-origin, no network).
-  //
-  // openHAB icon strings look like 'iconify:mdi:moon-waxing-crescent' or
-  // 'iconify:bi:cloud-sun-fill'; we strip the 'iconify:' prefix and hand
-  // the rest ('mdi:name' / 'bi:name') straight to the offline Icon.
+  // Common wall-display icons render immediately from small local subsets.
+  // Unanticipated OpenHAB icons still load the complete offline collection
+  // on demand; no icon requires an external network request.
   import { addCollection } from '@iconify/svelte/offline';
+  import mdiCommon from './icons/mdi-common.json';
+  import biCommon from './icons/bi-common.json';
 
-  // The offline Icon looks a collection up only when it (re)renders, so
-  // rendering is gated on this module-level state flipping true.
-  let collectionsLoaded = $state(false);
+  addCollection(mdiCommon);
+  addCollection(biCommon);
+  const common = new Set([
+    ...Object.keys(mdiCommon.icons).map(name => `mdi:${name}`),
+    ...Object.keys(biCommon.icons).map(name => `bi:${name}`),
+  ]);
+  let fullLoaded = $state({ mdi: false, bi: false });
+  const loading = {};
 
-  // Exported so tests (or any caller needing determinism) can await the
-  // exact point after which icons render synchronously.
-  export const iconCollectionsReady = Promise.all([
-    import('@iconify-json/mdi/icons.json'),
-    import('@iconify-json/bi/icons.json'),
-  ]).then((modules) => {
-    for (const module of modules) addCollection(module.default ?? module);
-    collectionsLoaded = true;
-  }).catch(() => {
-    // Bundled chunks should never fail to load; if they somehow do, keep
-    // the display alive — icons stay blank, everything else renders.
-  });
+  export const iconCollectionsReady = Promise.resolve();
+
+  function ensureFull(prefix) {
+    if (loading[prefix]) return;
+    loading[prefix] = (prefix === 'mdi'
+      ? import('@iconify-json/mdi/icons.json')
+      : import('@iconify-json/bi/icons.json'))
+      .then(module => {
+        addCollection(module.default ?? module);
+        fullLoaded[prefix] = true;
+      }).catch(() => {
+        // Same-origin chunk failure leaves only this unrecognized icon blank.
+        loading[prefix] = null;
+      });
+  }
 </script>
 
 <script>
@@ -39,8 +43,14 @@
     if (!icon || icon === 'NULL' || icon === 'UNDEF') return null;
     return String(icon).replace(/^iconify:/, '');
   });
+  const prefix = $derived(name?.split(':', 1)[0]);
+  $effect(() => {
+    if (name && !common.has(name) && (prefix === 'mdi' || prefix === 'bi')) {
+      ensureFull(prefix);
+    }
+  });
 </script>
 
-{#if name && collectionsLoaded}
+{#if name && (common.has(name) || fullLoaded[prefix])}
   <Icon icon={name} width={size} height={size} {color} />
 {/if}
