@@ -134,5 +134,23 @@ The existing 58 dynamics tests passed before the new regression test was added;
 the seven selector-focused cases, including both active and inactive forcing
 paths, passed afterward. A broader thermal-suite attempt was externally
 terminated with exit 143 before completion, without a reported assertion
-failure; it does not count as a full-suite pass. This change is source-only
-until an exact-version runtime installation and natural-run verification.
+failure; it does not count as a full-suite pass. The same current 60-case
+dynamics file subsequently passed in two bounded batches (24 and 36 tests).
+The remaining thermal Python files passed in four bounded batches: 258, 222,
+108 and 77 passed, with one PostgreSQL-dependent test skipped. This covers
+all 725 passing tests plus the one skip without relying on the terminated job.
+
+After the natural 18:24 MDT shadow run exited zero, both thermal services were
+idle and both enabled timers were briefly stopped. A one-entry manifest for
+only installed `thermal_model/dynamics.py` checked the expected preimage
+`2c8012d5c750a25f72b9cda5a0e5e241958ad7f3ee8334c96385e3fb2a864b0f`
+and source image
+`90c21d0ba875461486f7cde0de8cbee62a090e166c63618b78fef7d866b7eafc`.
+The receipt-bound installer made a private rollback copy at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/selector-rows-20260928-70o5wbfe/files`,
+installed that exact one file, verified the receipt and source/runtime SHA
+equality, and restored both timers. Both timers read back enabled and active.
+The installed module completed the isolated 30-day fit with the same objective
+decrease and origin counts as the source. No model artifact, advisory policy
+or control was changed. The next natural 20:24 shadow publication and
+September 29 06:50 trainer remain production continuity and whole-run gates.
