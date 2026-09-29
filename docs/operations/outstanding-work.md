@@ -71,6 +71,11 @@ INSERT false, and actual reads of 1,054/468 persisted rows respectively.
 The default-off BMS current-health consumer returned true for remaining-Ah
 and native temperature under this restricted role. Today remains incomplete;
 derived-temperature parity and complete-day gates still block publication.
+The same restricted reader found 428 valid native-temperature receipts since
+local midnight, all with raw value 29300 (20°C), and no new change-only
+`BMS_Temperature` row; its pre-day carry remains 68°F, matching the native
+conversion. Zero actual raw transitions means the strict dynamic scaler-parity
+assessor cannot yet pass, even though the static current value agrees.
 Rain history from local midnight through 06:59 had six receiver epochs and
 early counter-jump/invalid-packet latches; the later 656-row epoch had zero
 fault latches. No September 29 rain score may be inferred from that partial,
