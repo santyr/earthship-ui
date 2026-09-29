@@ -95,6 +95,16 @@ receipt, both thermal timers are active, and the installed fit reproduced that
 digest. Natural shadow publication and the 06:50 trainer remain the runtime
 and whole-run performance gates; the model stays shadow-only.
 
+September 29 read-only file-first inventory: 385 managed and 54 non-managed
+Items, 81/4 Things, 39/0 rules and 246/21 links, with zero graph/ownership
+issues. The rule-reference census found 16 structurally unlinked, ungrouped,
+unmentioned managed Items; all 16 are LightningGoats canary/override/ack
+resources. This is not a safe passive-Item migration batch: the census cannot
+prove absence of generated references or feeder-control semantics. Exclude
+these from automatic transfer and continue reviewed, recoverable cutovers for
+genuinely scoped resources. No OpenHAB definition or control was changed by
+this inventory.
+
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
 a read-only, 27-slot sixth page, organized as Kitchen 1–8 and Living Room 9–17
