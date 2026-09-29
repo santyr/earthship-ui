@@ -1,7 +1,7 @@
 import { adaptCurrentAqi } from '../ui/homeCardState.js';
 import { parsePredictionReceipt } from '../forecast/predictionReceipt.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
-import { atomicSocFreshness } from './atomicSoc.js';
+import { freshCurrentSoc } from '../battery/currentSoc.js';
 
 export const CONTROL_OUTCOME_TTL_MS = 15 * 60_000;
 
@@ -122,9 +122,7 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     }));
   }
 
-  const currentSoc = comms.toUpperCase() === 'OK'
-    && normalizedDevicePresent(items.BMS_DevicePresent) === true
-    ? atomicSocFreshness(items.BMS_SOC_Evidence_JSON, now)?.soc : null;
+  const currentSoc = freshCurrentSoc(items, now);
   if (currentSoc !== null && currentSoc <= 12) {
     const rounded = Math.round(currentSoc);
     alerts.push(baseAlert({

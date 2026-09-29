@@ -48,6 +48,7 @@ test.afterAll(async () => {
 
 async function openEnergyFixture(page, target, analytics = energyAnalyticsFixture(), states = {}) {
   const historyRequests = [];
+  const socObservedAt = (await page.evaluate(() => Date.now())) - 2_000;
   await page.setViewportSize({ width: target.width, height: target.height });
   await page.addInitScript(() => {
     class FixtureEventSource {
@@ -66,7 +67,14 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
     json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture-only', staleBannerSeconds: 90 },
   }));
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
-    json: Object.entries({ ...STATES, ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
+    json: Object.entries({ ...STATES,
+      BMS_SOC_Evidence_JSON: JSON.stringify({
+        version: 1, streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+        recordedAt: socObservedAt + 1_000, status: 'valid', reason: 'ok',
+        observedAt: socObservedAt, scaleObservedAt: socObservedAt,
+        validUntil: socObservedAt + 120_000, soc: 89,
+      }),
+      ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
       .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (route) => {
@@ -89,6 +97,13 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
   await page.locator('.pv-chart svg').waitFor({ timeout: 20_000 });
   return historyRequests;
 }
+
+test('Energy withholds a held numeric SoC when source evidence is unavailable', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    BMS_SOC: '89', BMS_SOC_Evidence_JSON: 'UNDEF',
+  });
+  await expect(page.locator('.hero-soc')).toHaveText('SoC —');
+});
 
 test('Energy PV comparison and outlook use the current dated forecast', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T04:46:00-06:00') });

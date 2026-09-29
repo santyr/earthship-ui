@@ -13,12 +13,13 @@
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
+  import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
 
   let analyticsNowMs = $state(Date.now());
   const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
 
   // ---- Battery / SoC -------------------------------------------------------
-  const soc = $derived(num($items.BMS_SOC));
+  const soc = $derived(freshCurrentSoc($items, Math.max(analyticsNowMs, Date.now())));
   const socColor = $derived(socBands(soc));
   const trough = $derived(predictionReceipt?.overnightTroughSocPct ?? null);
   const troughText = $derived(trough === null ? '—' : `${Math.round(trough)}%`);

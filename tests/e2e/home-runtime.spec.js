@@ -1198,6 +1198,8 @@ for (const target of TARGETS) {
     await expect(page.locator('.batt-runtime-empty')).toHaveText('Empty 10 h 40 m');
     await expect(page.locator('.batt-runtime-full')).toHaveText('Full 17 h 20 m');
     await runtime.emitState('BMS_SOC', '100');
+    await expect(page.locator('.battery-arc .arc-value')).toHaveText('62%');
+    await runtime.emitState('BMS_SOC_Evidence_JSON', socReceipt(await page.evaluate(() => Date.now()), 100));
     await expect(page.locator('.battery-arc .arc-value')).toHaveText('100%');
     const maximumSocGeometry = await homeGeometry(page);
     expectSocValueContained(maximumSocGeometry);
@@ -1334,6 +1336,7 @@ for (const target of TARGETS) {
         BatteryChargingStatus: 'NULL',
         BatteryIcon: 'NULL',
         BMS_SOC: 'UNDEF',
+        BMS_SOC_Evidence_JSON: 'UNDEF',
         BMS_TimeToDischarge_Smoothed: 'UNDEF',
         BMS_TimeToFull_Smoothed: 'UNDEF',
         BTC_Price_24h_PercentChange: 'NULL',
@@ -1351,7 +1354,7 @@ for (const target of TARGETS) {
     });
 
     await expect(page.getByRole('img', { name: 'openHAB connection: stale' })).toBeVisible();
-    await expect(page.locator('[data-header-alert-winner]')).toContainText('Close every south opening');
+    await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
     await expect(page.getByRole('group', { name: 'Power Flow', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Advisory', exact: true })).toHaveCount(0);
     await expect(page.locator('.btc-icon')).toHaveCSS('color', 'rgb(247, 147, 26)');
@@ -1426,6 +1429,7 @@ test('upstream freshness reaches the tablet header without value changes', async
   await page.clock.fastForward(16 * 60000);
   await runtime.emitState('BMS_SOC', '62');
   await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
+  await expect(page.locator('.battery-arc .arc-value')).toHaveText('—');
   await runtime.emitState('BMS_SOC_Evidence_JSON', socReceipt(await page.evaluate(() => Date.now())));
   await page.evaluate(() => {
     const source = window.__fixtureEventSources.at(-1);
@@ -1437,6 +1441,7 @@ test('upstream freshness reaches the tablet header without value changes', async
   await expect(page.locator('.battery-arc .arc-value')).toHaveText('62%');
   await runtime.emitState('BMS_SOC_Evidence_JSON', 'UNDEF');
   await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
+  await expect(page.locator('.battery-arc .arc-value')).toHaveText('—');
   await runtime.emitState('BMS_Comms_Status', 'FAULT');
   await expect(page.locator('[data-header-alert-winner]')).toContainText('BMS communication fault');
   await runtime.emitState('BMS_Comms_Status', 'NULL');

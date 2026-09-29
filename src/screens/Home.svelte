@@ -18,6 +18,7 @@
   import { colors } from '../lib/ui/tokens.js';
   import { createLatestRefreshCoordinator } from '../lib/ui/latestRefresh.js';
   import { freshSocSparkline } from '../lib/charts/socSparkline.js';
+  import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
@@ -350,7 +351,7 @@
   const indoorToday = $derived(historyExtremaForDay(indoorTodayHistory, temperatureHistoryDay, wallClock, indoorTemp));
   const indoorIconColor = $derived(indoorTemperatureIconColor(indoorTemp));
 
-  const soc = $derived(num($items.BMS_SOC));
+  const soc = $derived(freshCurrentSoc($items, Math.max(wallClock, Date.now())));
   const shownBattSpark = $derived(freshSocSparkline(battSpark, $items.BMS_SOC_Evidence_JSON, wallClock, soc));
   const socColor = $derived(socBands(soc));
   const batteryStatusIcon = $derived(selectBatteryIcon($items.BatteryIcon));
