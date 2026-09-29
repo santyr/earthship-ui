@@ -5,6 +5,18 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
+September 29 protected-control follow-up: live `hex_southoutlet_cycle` exactly
+matched the tracked dual-pump source SHA-256 `312cf24c...8dd7b84df`. Its
+automatic and manual gates consumed held, change-only `BMS_SOC` and tolerated
+`BMS_Comms_Status=STALE` for 30 minutes. A source-only candidate now uses the
+source-bound `BMS_SOC_Evidence_JSON` value with the producer's 120-second
+expiry, rejects non-OK comms, and forces an active pump OFF if evidence becomes
+invalid. All 53 dual-pump simulations and the full 1,839-test suite pass.
+This is **not deployed**: a protected-rule replacement needs an attended,
+exact-baseline/rollback transaction and post-change live readback. The source
+is SHA-256 `e697e262...108970d18`; neither the historical timer-guard
+adapter nor the old manifest source may be used to apply it as-is.
+
 ## Standing efficiency requirement — September 26, 2026
 
 Efficiency is part of the Earthship UI/OpenHAB goal across algorithms, data

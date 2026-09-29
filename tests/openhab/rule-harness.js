@@ -310,6 +310,7 @@ export function createRuleHarness({
   return {
     events,
     execute,
+    nowMs: () => nowMs,
     runNextTimer,
     runTimersUntilIdle,
     pendingTimers: () => timers.length,

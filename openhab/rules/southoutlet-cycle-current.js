@@ -15,9 +15,8 @@
  *   therefore scheduled every two hours while one pump is scheduled each hour.
  * - SoC eligibility is sky-conditioned: SkyCondition == 'CLEAR' -> SoC >= 90,
  *   else SoC >= 98. The interim curtailment-only block is removed entirely.
- * - The BMS/voltage fail-closed chain is preserved exactly
- *   (invalid voltage -> comms staleness > 1800s -> invalid SoC -> absolute
- *   low-SoC cutoff -> absurd voltage band).
+ * - The BMS/voltage fail-closed chain requires a fresh source-bound atomic
+ *   SoC receipt. A held, change-only BMS_SOC state is not a fresh sample.
  * - AFTER-DARK CURFEW (operator, 2026-07-19) preserved exactly: cycles require
  *   Sun elevation > 0; it fails closed on missing astro data and gates BOTH the
  *   automatic and the manual paths. A cycle caught running past sunset is forced
@@ -31,8 +30,8 @@
  * automatic-only for compatibility. On first evaluation LastCycleStart is
  * seeded logically from LastAutoRun (read fallback) without moving equipment.
  *
- * NOT DEPLOYED by this task — a later attended maintenance transaction applies
- * it. Simulations only.
+ * Protected-control source. Changes require attended qualification before a
+ * live rule replacement.
  */
 
 const { actions, cache, items, time } = require('openhab');
@@ -42,9 +41,8 @@ const LEDGER_VERSION = 'greywater-request-ledger/v1';
 
 const CFG = {
   voltageItem: 'DCData_Voltage',
-  socItem: 'BMS_SOC',
+  socEvidenceItem: 'BMS_SOC_Evidence_JSON',
   bmsCommsItem: 'BMS_Comms_Status',
-  commsStaleMaxS: 1800,
   lowSocCutoffItem: 'SouthOutlet_LowSocCutoff',
   southPumpItem: 'SouthOutlet_Outlet2_Switch',
   eastPumpItem: 'East_Bed_Socket_Outlet_2_Power',
@@ -423,21 +421,48 @@ function lowSocCutoff() {
   return Number.isFinite(raw) ? raw : CFG.defaultLowSocCutoff;
 }
 
+// The producer binds raw and scale observations to the original Modbus event
+// sources. Never infer freshness from the held BMS_SOC Item or JDBC row age.
+function trustedSoc() {
+  const raw = state(CFG.socEvidenceItem);
+  if (raw.length > 2048) return NaN;
+  try {
+    const row = JSON.parse(raw);
+    const keys = ['observedAt', 'reason', 'recordedAt', 'scaleObservedAt', 'soc',
+      'status', 'streamEpoch', 'validUntil', 'version'];
+    const currentMs = now().toInstant().toEpochMilli();
+    if (!row || typeof row !== 'object' || Array.isArray(row)
+        || JSON.stringify(row) !== raw
+        || Object.keys(row).sort().join(',') !== keys.join(',')
+        || row.version !== 1 || row.status !== 'valid' || row.reason !== 'ok'
+        || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(row.streamEpoch)
+        || ![row.observedAt, row.recordedAt, row.scaleObservedAt, row.validUntil]
+          .every(Number.isSafeInteger)
+        || !(0 < row.observedAt && row.observedAt <= row.recordedAt
+          && row.recordedAt <= currentMs)
+        || !(0 < row.scaleObservedAt && row.scaleObservedAt <= row.recordedAt)
+        || currentMs - row.recordedAt > 180000
+        || row.validUntil !== Math.min(row.observedAt, row.scaleObservedAt) + 120000
+        || currentMs >= row.validUntil
+        || typeof row.soc !== 'number' || !Number.isFinite(row.soc)
+        || row.soc < 0 || row.soc > 100) return NaN;
+    return row.soc;
+  } catch (_) { return NaN; }
+}
+
 // Fail-closed safety chain preserved from the live rule. Returns the first
 // failing gate as { reason, fields } (a force-OFF condition) or null.
-function safetyReason() {
+function safetyReason(soc) {
   const voltage = num(CFG.voltageItem);
   if (!Number.isFinite(voltage)) {
     return { reason: 'invalid_voltage', fields: { voltage: state(CFG.voltageItem) } };
   }
   const comms = state(CFG.bmsCommsItem, 'NO-DATA');
-  const staleM = comms.match(/^STALE age=(\d+)s/);
-  if (comms !== 'OK' && (!staleM || parseInt(staleM[1], 10) > CFG.commsStaleMaxS)) {
+  if (comms !== 'OK') {
     return { reason: 'bms_comms_stale', fields: { comms, voltage: voltage.toFixed(2) } };
   }
-  const soc = num(CFG.socItem);
   if (!Number.isFinite(soc)) {
-    return { reason: 'invalid_soc', fields: { soc: state(CFG.socItem), voltage: voltage.toFixed(2) } };
+    return { reason: 'invalid_soc_evidence', fields: { voltage: voltage.toFixed(2) } };
   }
   const cutoff = lowSocCutoff();
   if (soc <= cutoff) {
@@ -589,14 +614,14 @@ function runAutomatic() {
     // Ledger unreadable on the automatic path: fall through to the safety chain.
   }
 
-  const gate = safetyReason();
+  const soc = trustedSoc();
+  const gate = safetyReason(soc);
   if (gate) {
     forceOff(gate.reason, gate.fields);
     return;
   }
 
   const voltage = num(CFG.voltageItem);
-  const soc = num(CFG.socItem);
   const activePumps = activePumpItems();
 
   if (activePumps.length > 0) {
@@ -732,14 +757,14 @@ function runManual(triggerEvent) {
     return;
   }
 
-  const gate = safetyReason();
+  const soc = trustedSoc();
+  const gate = safetyReason(soc);
   if (gate) {
     forceOff(gate.reason, gate.fields);
     safeResult(request.requestId, 'denied', gate.reason);
     return;
   }
 
-  const soc = num(CFG.socItem);
   const voltage = num(CFG.voltageItem);
   const elig = socEligible(soc);
   if (!elig.eligible) {

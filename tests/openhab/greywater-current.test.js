@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createRuleHarness } from './rule-harness.js';
+import { socEvidence, withGreywaterSocEvidence } from './greywater-evidence.js';
 
 const source = readFileSync(new URL('../../openhab/rules/southoutlet-cycle-current.js', import.meta.url), 'utf8');
 const now = Date.parse('2026-09-19T18:00:00Z'); // local noon, South
@@ -17,8 +18,50 @@ const ons = h => h.events.filter(e => e.type === 'command' && e.value === 'ON');
 function harness({ token, overrides = {}, clock = now, script = source } = {}) {
   if (token !== undefined) script = script.replace('runSouthOutlet(typeof event',
     `cache.shared.put(BUSY_KEY, ${JSON.stringify(token)});\nrunSouthOutlet(typeof event`);
-  return createRuleHarness({ source: script, now: clock, states: { ...states, ...overrides } });
+  return withGreywaterSocEvidence(
+    createRuleHarness({ source: script, now: clock, states: { ...states, ...overrides } }), overrides);
 }
+
+describe('source-bound SoC gate for protected greywater pumps', () => {
+  it('uses fresh receipt SoC, not a lower held numeric Item', () => {
+    const h = harness({ overrides: { BMS_SOC: '40', BMS_SOC_Evidence_JSON: socEvidence(99, now) } });
+    h.execute();
+    expect(ons(h)).toHaveLength(1);
+  });
+  it('rejects low receipt SoC despite a high held numeric Item', () => {
+    const h = harness({ overrides: { BMS_SOC_Evidence_JSON: socEvidence(40, now) } });
+    h.execute();
+    expect(ons(h)).toHaveLength(0);
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=low_soc');
+  });
+  it.each([
+    ['missing', 'NULL'],
+    ['expired', socEvidence(99, now - 121000)],
+    ['unavailable', JSON.stringify({ ...JSON.parse(socEvidence(99, now)), status: 'unavailable' })],
+    ['noncanonical', `${socEvidence(99, now)} `],
+  ])('fails closed with %s atomic evidence', (_label, receipt) => {
+    const h = harness({ overrides: { BMS_SOC_Evidence_JSON: receipt } });
+    h.execute();
+    expect(ons(h)).toHaveLength(0);
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=invalid_soc_evidence');
+  });
+  it('rejects stale BMS comms even if the old valid receipt has not expired', () => {
+    const h = harness({ overrides: {
+      BMS_Comms_Status: 'STALE age=60s', BMS_SOC_Evidence_JSON: socEvidence(99, now),
+    } });
+    h.execute();
+    expect(ons(h)).toHaveLength(0);
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=bms_comms_stale');
+  });
+  it('forces an active pump OFF when SoC evidence expires', () => {
+    const h = harness({ token: 'auto:2026-09-19T17:59:00Z', overrides: {
+      SouthOutlet_Outlet2_Switch: 'ON', BMS_SOC_Evidence_JSON: socEvidence(99, now - 121000),
+    } });
+    h.execute();
+    expect(h.state('SouthOutlet_Outlet2_Switch')).toBe('OFF');
+    expect(h.state('SouthOutlet_AutoStatus')).toContain('reason=invalid_soc_evidence');
+  });
+});
 
 describe('September 19 live greywater clock and expired-busy repair', () => {
   it('reproduces the old getHour exception but clears its unactuated token', () => {
