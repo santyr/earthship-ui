@@ -1,0 +1,4 @@
+// Separate date-bound pre-dusk estimate. The morning forecast and scoring
+// remain untouched; the JSON receipt commits this Number only after success.
+Number Predicted_SoC_Trough_PreDusk "Pre-dusk Overnight SoC Estimate" ["forecast-pre-dusk"]
+String Forecast_PreDusk_Trough_Receipt_JSON "Pre-dusk SoC Estimate Receipt" ["forecast-pre-dusk"]

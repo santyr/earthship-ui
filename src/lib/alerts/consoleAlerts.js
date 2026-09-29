@@ -1,5 +1,5 @@
 import { adaptCurrentAqi } from '../ui/homeCardState.js';
-import { parsePredictionReceipt } from '../forecast/predictionReceipt.js';
+import { parsePredictionReceipt, parsePreDuskTroughReceipt, selectTroughForecast } from '../forecast/predictionReceipt.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
 import { freshCurrentSoc } from '../battery/currentSoc.js';
 
@@ -149,6 +149,8 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
 
   const predictionReceipt = parsePredictionReceipt(items.Forecast_Prediction_Receipt_JSON,
     { nowMs: now });
+  const preDuskReceipt = parsePreDuskTroughReceipt(items.Forecast_PreDusk_Trough_Receipt_JSON,
+    { nowMs: now });
   const thermalParts = clean(predictionReceipt?.thermalAdvisory).split('|');
   const thermalCode = clean(thermalParts.shift()).toLowerCase();
   const thermalText = clean(thermalParts.join('|'));
@@ -177,7 +179,8 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     });
   }
 
-  const trough = predictionReceipt?.overnightTroughSocPct ?? null;
+  const troughForecast = selectTroughForecast(predictionReceipt, preDuskReceipt);
+  const trough = troughForecast?.value ?? null;
   if (trough !== null && trough < 40) {
     const rounded = Math.round(trough);
     alerts.push(baseAlert({

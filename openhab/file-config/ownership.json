@@ -140,6 +140,16 @@
       "state_writer": "forecast-intel.service"
     },
     {
+      "kind": "item", "id": "Predicted_SoC_Trough_PreDusk", "provider": "file", "migration": "observational",
+      "source": "items/forecast-pre-dusk.items", "destination": "/etc/openhab/items/forecast-pre-dusk.items",
+      "state_writer": "forecast-pre-dusk.service"
+    },
+    {
+      "kind": "item", "id": "Forecast_PreDusk_Trough_Receipt_JSON", "provider": "file", "migration": "observational",
+      "source": "items/forecast-pre-dusk.items", "destination": "/etc/openhab/items/forecast-pre-dusk.items",
+      "state_writer": "forecast-pre-dusk.service"
+    },
+    {
       "kind": "item", "id": "Forecast_Trough_Error_7d", "provider": "file", "migration": "verified",
       "source": "items/forecast-trough-error.items", "destination": "/etc/openhab/items/forecast-trough-error.items",
       "state_writer": "forecast-intel.service"

@@ -1,5 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 pre-dusk trough work: the current 06:40 job issued 53% from a
+72% morning atomic SoC reference and 5.36 kWh predicted PV; by 12:45 MDT,
+fresh atomic SoC was 100% and native PV-day evidence was already 7.302 kWh.
+A restricted, origin-as-of four-night counterfactual at sunset minus 75
+minutes reduced mean absolute trough error from 16.25 to 2.5 percentage
+points using the same frozen morning drop assumption. A separate source-only
+pre-dusk worker, timer, Items and UI receipt path are staged and tested; the
+morning forecast/scoring and DM policy remain unchanged. See the
+[pre-dusk release record](2026-09-29-pre-dusk-trough.md). Natural publication,
+installed ownership/JDBC and longer seasonal scoring remain open.
+
 Evidence inventory started 2026-09-05. This is a completion tracker, not an
 implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is

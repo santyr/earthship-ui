@@ -30,6 +30,20 @@ function predictionReceipt(now, trough, thermalAdvisory = 'none') {
     overnightTroughSocPct: trough, thermalAdvisory });
 }
 
+function preDuskReceipt(now, soc, drop) {
+  const issuedAt = new Date(now - 5_000).toISOString();
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const date = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return JSON.stringify({ version: 1, basis: 'atomic_soc_pre_dusk_v1',
+    predictionDay: `${date.year}-${date.month}-${date.day}`, issuedAt,
+    sunsetAt: new Date(now + 75 * 60_000).toISOString(),
+    morningIssuedAt: new Date(now - 11 * 60 * 60_000).toISOString(),
+    socRecordedAt: new Date(now - 20_000).toISOString(),
+    socAtIssuePct: soc, overnightDropPct: drop,
+    overnightTroughSocPct: Math.round(Math.max(12, Math.min(99, soc - drop))) });
+}
+
 function socEvidence(now, soc, observedAt = now - 1_000) {
   return JSON.stringify({ version: 1,
     streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
@@ -39,6 +53,17 @@ function socEvidence(now, soc, observedAt = now - 1_000) {
 }
 
 describe('console alert projection', () => {
+  it('uses a valid pre-dusk trough over the morning alert without changing thermal advice', async () => {
+    const { projectConsoleAlerts } = await loadSubject();
+    const now = Date.parse('2026-09-24T18:00:00-06:00');
+    const items = { ...healthyItems,
+      Forecast_Prediction_Receipt_JSON: predictionReceipt(now, 25, 'vent_tonight|Vent tonight'),
+      Forecast_PreDusk_Trough_Receipt_JSON: preDuskReceipt(now, 99, 19),
+    };
+    const result = projectConsoleAlerts({ connection: 'live', items, now });
+    expect(result.alerts.some(alert => alert.id === 'soc-trough')).toBe(false);
+    expect(result.alerts.some(alert => alert.id === 'thermal-vent')).toBe(true);
+  });
   it('exposes the typed deterministic projection API', async () => {
     const subject = await loadSubject();
 
