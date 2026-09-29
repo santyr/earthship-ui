@@ -1,0 +1,10 @@
+// Canonical JDBC strategy; exactly one provider must own this service.
+// Preserve change-only collection and explicit immutable power writes.
+Strategies {
+}
+
+Items {
+    *, !Power_Evidence_JSON, !Inverter_AC_Evidence_JSON, !MPPT60_PV_Day_Evidence_JSON, !MPPT60_PV_Day_Observation_JSON, !Dishwasher_Switch_Observation_JSON, !Cistern_Pump_Switch_Observation_JSON, !TPLink_Switch_Evidence_JSON, !BMS_Aux_Evidence_JSON : strategy = everyChange, restoreOnStartup
+    gForecast* : strategy = forecast, everyChange
+    Power_Evidence_JSON, Inverter_AC_Evidence_JSON, MPPT60_PV_Day_Evidence_JSON, TPLink_Switch_Evidence_JSON, BMS_Aux_Evidence_JSON : strategy = restoreOnStartup
+}

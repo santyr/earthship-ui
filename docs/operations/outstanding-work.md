@@ -264,6 +264,19 @@ OpenHAB still returned 404 for both `BMS_Aux_Evidence_JSON` and
 `hex_bms_aux_evidence`. This closes isolated script/bootstrap qualification,
 not physical-event, explicit-persistence, provider-restart or consumer release
 gates.
+The disconnected two-container BMS auxiliary JDBC rehearsal then passed the
+byte-exact live-strategy-plus-one-exclusion candidate. Two file→managed→file
+provider cycles preserved normal change-only history and forecast future
+series, while four injected updates during provider absence were explicitly
+unqualified. At every checkpoint the BMS Item remained excluded from
+automatic writes; one isolated Java explicit writer produced exactly one
+JDBC row without changing the live Item state. A fresh OpenHAB JVM restored
+that Item and row, and independent power/forecast controls passed. Both
+labeled OpenHAB/PostgreSQL containers were removed. The candidate persists
+only as `jdbc-bms-aux-candidate.persist` in Git; production's watched
+`jdbc.persist` and all BMS resources remain unchanged. This closes the
+isolated persistence/provider/restart gate, not natural native-event
+collection, protected-control recovery, or quality publication.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
