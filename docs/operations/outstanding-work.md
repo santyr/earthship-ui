@@ -350,6 +350,11 @@ live-health reader returned true for both fields against that current data.
 This is not the restricted `energy_power_reader` role or a full-day score.
 Solar_PV `bccf332` pins that first durable timestamp and exact source identity
 in a secret-free, still-disabled policy file; all 880 analytics tests passed.
+The first Denver-midnight BMS boundary also had valid capacity and native
+temperature receipts at 23:58:30, 23:59:30, 00:00:35 and 00:01:35 MDT,
+sequences 44–47 in one epoch. This is only start-boundary continuity; the
+September 29 day, restricted Item 658 access and temperature-change parity
+are still unqualified.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
