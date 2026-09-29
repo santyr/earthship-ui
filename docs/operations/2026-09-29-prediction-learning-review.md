@@ -178,3 +178,10 @@ receipts are the preferred origin sources. A correction that improves a sunny
 week but fails cloudy, no-full, cold-season or missing-sensor days is not a
 qualified production improvement. These rows are open tuning work, not
 claims that every comparison or fix has already been completed.
+
+The Energy PV card now reads the immutable current-day prediction receipt,
+not the 10-day payload whose weather refresh can carry the frozen morning PV
+estimate. Before the receipt it says the morning forecast is unavailable;
+after actual PV exceeds that issue, it says so rather than presenting an
+impossible `actual of predicted` comparison. The 10-day PV outlook remains
+visible. This presentation change does not recalibrate or revise PV kWh.

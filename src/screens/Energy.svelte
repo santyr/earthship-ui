@@ -9,7 +9,8 @@
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
   import EnergyAnalyticsDetail from '../lib/ui/EnergyAnalyticsDetail.svelte';
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
-  import { parseForecast10Day, pvForecastDaysFromToday, todayPvForecastKwh } from '../lib/weather/forecastDetail.js';
+  import { pvForecastComparison } from '../lib/energy/pvForecastComparison.js';
+  import { parseForecast10Day, pvForecastDaysFromToday } from '../lib/weather/forecastDetail.js';
   import { parsePredictionReceipt, parsePreDuskTroughReceipt, selectTroughForecast } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
@@ -58,7 +59,8 @@
   // ---- PV production --------------------------------------------------------
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
   const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: analyticsNowMs }));
-  const pvPredicted = $derived(todayPvForecastKwh(forecastDetail, { nowMs: analyticsNowMs }));
+  const pvPredicted = $derived(predictionReceipt?.pvTodayKwh ?? null);
+  const pvPredictionText = $derived(pvForecastComparison(pvToday, pvPredicted));
   const pvError = $derived(num($items.Forecast_PV_Error_7d));
   const pvAccuracyBadge = $derived(pvError === null ? 'calibrating' : `±${Math.round(Math.abs(pvError))}% (7d)`);
 
@@ -113,7 +115,7 @@
             <span class="pv-today">{pvToday === null ? '—' : pvToday.toFixed(1)}</span>
             <span class="pv-unit">kWh today</span>
           </div>
-          <div class="pv-sub">{pvPredicted === null ? 'prediction unavailable' : `of ${pvPredicted.toFixed(1)} kWh predicted`}</div>
+          <div class="pv-sub">{pvPredictionText}</div>
           <span class="pv-badge">{pvAccuracyBadge}</span>
         </div>
         <div class="pv-chart">

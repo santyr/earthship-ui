@@ -147,7 +147,7 @@ test('Energy withholds battery temperature when native evidence is unavailable',
   await expect(page.locator('.vitals-cell .vital-value').first()).toHaveText('—');
 });
 
-test('Energy PV comparison and outlook use the current dated forecast', async ({ page }) => {
+test('Energy withholds a morning PV comparison before its dated issue while retaining the outlook', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T04:46:00-06:00') });
   const summary = (pvKwh) => ({ highF: null, lowF: null, precipPct: null, weatherCode: null, pvKwh });
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
@@ -162,10 +162,23 @@ test('Energy PV comparison and outlook use the current dated forecast', async ({
       ],
     }),
   });
-  await expect(page.locator('.pv-sub')).toHaveText('of 3.3 kWh predicted');
+  await expect(page.locator('.pv-sub')).toHaveText('morning forecast unavailable');
   await expect(page.locator('.outlook-value')).toHaveText(['3.3', '5.5']);
   await expect(page.locator('.curtail-value')).toHaveText('—');
   await expect(page.locator('.hero-trough')).toContainText('—');
+});
+
+test('Energy marks realized PV above the immutable morning forecast', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-24T13:00:00-06:00') });
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    MPPT60_EnergyFromPV_Today: '8.4',
+    Forecast_Prediction_Receipt_JSON: JSON.stringify({
+      version: 1, predictionDay: '2026-09-24', issuedAt: '2026-09-24T06:40:29-06:00',
+      pvTodayKwh: 5.36, curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
+      thermalAdvisory: 'none|No thermal action needed',
+    }),
+  });
+  await expect(page.locator('.pv-sub')).toHaveText('above 5.4 kWh morning forecast');
 });
 
 test('Energy displays current-day curtailment and trough only with a dated receipt', async ({ page }) => {
