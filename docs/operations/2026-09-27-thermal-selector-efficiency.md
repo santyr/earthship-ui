@@ -183,3 +183,17 @@ profile, not an asserted whole-trainer gain. All 726 thermal Python tests
 passed, with one PostgreSQL-dependent skip. At this checkpoint the edit is
 source-only; production's next natural trainer and artifact continuity
 remain separate release gates.
+
+At about 01:52 MDT, both thermal services were idle and both enabled timers
+were briefly stopped. The one-entry receipt at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/sensitivity-endpoint-20260929T0151/files`
+pinned installed preimage SHA-256
+`90c21d0ba875461486f7cde0de8cbee62a090e166c63618b78fef7d866b7eafc`
+and desired source SHA-256
+`38144fe75042fe36a1a763c2803774cda547a9b903f89a9a8448b9eeb7419c2d`.
+The existing atomic installer changed only `thermal_model/dynamics.py` and
+verified its receipt. Both timers returned enabled and active; installed and
+source hashes match. An installed-module 30-day synthetic fit reproduced the
+same complete-result digest above. The next natural shadow publication and
+trainer remain required runtime and whole-run performance gates. No artifact,
+advice, Item, control or OpenHAB service was changed.

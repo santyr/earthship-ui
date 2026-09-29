@@ -87,6 +87,13 @@ capture match under the same accepted artifact, closing this selector
 deployment's publisher-continuity gate. The September 29 natural trainer
 still has to verify whole-run behavior; see the
 [efficiency receipt](2026-09-27-thermal-selector-efficiency.md).
+The September 29 per-endpoint derivative finite-check optimization produced an
+identical deterministic 30-day fit digest and reduced one profiled fit from
+5.662 to 4.424 seconds. All 726 thermal Python tests passed with one optional
+PostgreSQL skip. The exact one-file runtime was installed under a private
+receipt, both thermal timers are active, and the installed fit reproduced that
+digest. Natural shadow publication and the 06:50 trainer remain the runtime
+and whole-run performance gates; the model stays shadow-only.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
