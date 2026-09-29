@@ -11,7 +11,9 @@ fixture_module = pytest.importorskip(
 advisory_db = fixture_module.advisory_db
 
 from bms_aux_history import (BmsAuxDayHistoryUnavailable,
-                             fetch_qualified_bms_aux_day)
+                             BmsTemperatureParityUnavailable,
+                             fetch_qualified_bms_aux_day,
+                             fetch_bms_temperature_parity_day)
 from test_bms_aux_evidence import DAY, bounds, day_rows
 
 
@@ -23,10 +25,16 @@ def test_real_sql_exact_item_restricted_role_and_oversize_barrier(advisory_db):
             cursor.execute('CREATE TABLE public.items (itemid integer, itemname text)')
             cursor.execute('INSERT INTO public.items VALUES (%s, %s)',
                            (803, 'BMS_Aux_Evidence_JSON'))
+            cursor.execute('INSERT INTO public.items VALUES (%s, %s)',
+                           (804, 'BMS_Temperature'))
             cursor.execute('CREATE TABLE public.item0803 '
                            '(time timestamptz PRIMARY KEY, value text)')
+            cursor.execute('CREATE TABLE public.item0804 '
+                           '(time timestamptz PRIMARY KEY, value double precision)')
             cursor.executemany('INSERT INTO public.item0803 VALUES (%s, %s)', rows)
-            cursor.execute('GRANT SELECT ON public.items, public.item0803 '
+            cursor.execute('INSERT INTO public.item0804 VALUES (%s, %s)',
+                           (start - timedelta(minutes=1), 68.0))
+            cursor.execute('GRANT SELECT ON public.items, public.item0803, public.item0804 '
                            'TO advisory_assessor')
 
     opened = []
@@ -38,13 +46,29 @@ def test_real_sql_exact_item_restricted_role_and_oversize_barrier(advisory_db):
 
     def fetch():
         return fetch_qualified_bms_aux_day(
-            connect, local_date=DAY, cutover=start, as_of=end)
+            connect, local_date=DAY, cutover=start - timedelta(days=1), as_of=end)
+
+    def parity():
+        return fetch_bms_temperature_parity_day(
+            connect, local_date=DAY, cutover=start - timedelta(days=1), as_of=end)
 
     result = fetch()
     assert result['evidence_rows'] == len(rows)
     assert result['source_item'] == 'BMS_Aux_Evidence_JSON'
     assert all(field['quality'] == 'ok' for field in result['fields'].values())
     assert opened[-1].closed
+    assert parity()['status'] == 'insufficient_changes'
+    assert opened[-1].closed
+
+    with closing(advisory_db.connect_owner()) as connection, connection:
+        with connection.cursor() as cursor:
+            cursor.execute('REVOKE SELECT ON public.item0804 FROM advisory_assessor')
+    with pytest.raises(BmsTemperatureParityUnavailable):
+        parity()
+    assert opened[-1].closed
+    with closing(advisory_db.connect_owner()) as connection, connection:
+        with connection.cursor() as cursor:
+            cursor.execute('GRANT SELECT ON public.item0804 TO advisory_assessor')
 
     with closing(advisory_db.connect_owner()) as connection, connection:
         with connection.cursor() as cursor:
@@ -52,6 +76,8 @@ def test_real_sql_exact_item_restricted_role_and_oversize_barrier(advisory_db):
     with pytest.raises(BmsAuxDayHistoryUnavailable,
                        match='^BMS auxiliary day history unavailable$'):
         fetch()
+    with pytest.raises(BmsTemperatureParityUnavailable):
+        parity()
     assert opened[-1].closed
 
     with closing(advisory_db.connect_owner()) as connection, connection:

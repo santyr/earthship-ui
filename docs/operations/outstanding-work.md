@@ -334,7 +334,14 @@ assessor checks only settled native raw-value transitions against the held or
 new derived Fahrenheit value, validates the strict evidence-day sequence,
 and reports `insufficient_changes` instead of claiming parity when no raw
 change was observed. It has not yet consumed a production full day or earned
-a live release decision; the Item 658 grant and derived-series join remain.
+a live release decision. A bounded dedicated read-only/repeatable-read adapter
+now joins exactly `BMS_Aux_Evidence_JSON` and `BMS_Temperature` in one snapshot,
+including one change-only derived carry. The strict day parser was tightened
+to refuse a pre-cutover carry row. Thirty-one focused BMS tests and a real
+disposable PostgreSQL restricted-role integration pass; revoked SELECT on
+either exact table refuses parity, and the owned test container was removed.
+The production Item 658 grant, first full day, actual changing-temperature
+score and integration with the Energy release decision remain open.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`

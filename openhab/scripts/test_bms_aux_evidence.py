@@ -156,6 +156,9 @@ def test_partial_and_pre_cutover_days_never_qualify():
     with pytest.raises(BmsAuxEvidenceRefused):
         qualify_bms_aux_day(DAY, as_of=bounds()[1],
                             cutover=bounds()[0] + timedelta(seconds=1), observations=rows)
+    with pytest.raises(BmsAuxEvidenceRefused, match='boundary'):
+        qualify_bms_aux_day(DAY, as_of=bounds()[1],
+                            cutover=bounds()[0], observations=rows)
 
 
 def test_temperature_parity_scores_raw_changes_not_unchanged_item_age():

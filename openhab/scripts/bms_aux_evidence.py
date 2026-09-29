@@ -167,7 +167,8 @@ def qualify_bms_aux_day(local_date, *, as_of, cutover, observations,
     zone = ZoneInfo(site_timezone)
     start = datetime.combine(local_date, time.min, zone).astimezone(timezone.utc)
     end = datetime.combine(local_date + timedelta(days=1), time.min, zone).astimezone(timezone.utc)
-    if not _utc(cutover) <= start < end <= _utc(as_of):
+    cutover_at, as_of_at = _utc(cutover), _utc(as_of)
+    if not cutover_at <= start < end <= as_of_at:
         raise BmsAuxEvidenceRefused('auxiliary day precedes cutover or is incomplete')
     rows = tuple(islice(observations, MAX_ROWS + 1))
     if len(rows) > MAX_ROWS or not rows:
@@ -176,7 +177,7 @@ def qualify_bms_aux_day(local_date, *, as_of, cutover, observations,
     previous_persisted = None
     for persisted_at, raw in rows:
         persisted = _utc(persisted_at)
-        if (not start - TTL <= persisted < end
+        if (not max(start - TTL, cutover_at) <= persisted < end
                 or previous_persisted is not None and persisted <= previous_persisted):
             raise BmsAuxEvidenceRefused('evidence row order or boundary invalid')
         receipt = parse_bms_aux_receipt(raw, persisted)
@@ -196,7 +197,7 @@ def qualify_bms_aux_day(local_date, *, as_of, cutover, observations,
         previous_persisted = persisted
     if not any(start <= receipt.persisted_at < end for receipt in receipts):
         raise BmsAuxEvidenceRefused('no in-day auxiliary receipt')
-    return {'source_item': ITEM, 'source_cutover': _utc(cutover).isoformat(),
+    return {'source_item': ITEM, 'source_cutover': cutover_at.isoformat(),
             'local_date': local_date.isoformat(), 'window_start': start.isoformat(),
             'window_end': end.isoformat(), 'evidence_rows': len(receipts),
             'fields': {field: _coverage(receipts, field, start, end) for field in FIELDS}}

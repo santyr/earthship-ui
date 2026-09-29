@@ -4,7 +4,9 @@ import pytest
 
 from bms_aux_evidence import ITEM
 from bms_aux_history import (BmsAuxDayHistoryUnavailable,
-                             fetch_qualified_bms_aux_day)
+                             BmsTemperatureParityUnavailable,
+                             fetch_qualified_bms_aux_day,
+                             fetch_bms_temperature_parity_day)
 from test_bms_aux_evidence import DAY, bounds, day_rows
 
 
@@ -69,7 +71,7 @@ class Connection:
 def read(connection, *, as_of=None):
     start, end = bounds()
     return fetch_qualified_bms_aux_day(
-        lambda: connection, local_date=DAY, cutover=start,
+        lambda: connection, local_date=DAY, cutover=start - timedelta(days=1),
         as_of=end if as_of is None else as_of)
 
 
@@ -118,3 +120,72 @@ def test_incomplete_day_refuses_without_connecting():
     with pytest.raises(BmsAuxDayHistoryUnavailable):
         read(connection, as_of=end - timedelta(seconds=1))
     assert connection.session is None
+
+
+class ParityCursor(Cursor):
+    def execute(self, query, params=None):
+        super().execute(query, params)
+        self.params = params
+        if self.connection.fail_query and 'FROM public.item0559' in query:
+            raise RuntimeError('derived table permission denied')
+
+    def fetchall(self):
+        if 'SELECT itemid' in self.query:
+            return [(658,)] if self.params == (ITEM,) else [(559,)]
+        if 'FROM public.item0658' in self.query:
+            return self.connection.observations
+        if 'FROM public.item0559' in self.query:
+            start, _ = bounds()
+            return ([(start - timedelta(minutes=1), 68.0)]
+                    if 'ORDER BY time DESC' in self.query else [])
+        raise AssertionError('unexpected parity query')
+
+
+class ParityConnection(Connection):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.fail_query = False
+        self.fail_derived = kwargs.get('fail_query', False)
+
+    def cursor(self):
+        outer = self
+        class CursorWithGrant(ParityCursor):
+            def execute(self, query, params=None):
+                super().execute(query, params)
+                if outer.fail_derived and 'FROM public.item0559' in query:
+                    raise RuntimeError('derived table permission denied')
+        return CursorWithGrant(self)
+
+
+def test_parity_adapter_reads_exact_two_items_in_one_readonly_snapshot():
+    connection = ParityConnection()
+    _, end = bounds()
+    result = fetch_bms_temperature_parity_day(
+        lambda: connection, local_date=DAY, as_of=end, cutover=bounds()[0] - timedelta(days=1))
+    assert result['status'] == 'insufficient_changes'
+    assert result['source_temperature_quality'] == 'ok'
+    assert connection.session == {'readonly': True, 'autocommit': False,
+                                  'isolation_level': 'REPEATABLE READ'}
+    assert connection.closed
+    statements = [query for query, _ in connection.queries]
+    assert any('FROM public.item0658' in query and 'LIMIT 5001' in query
+               for query in statements)
+    assert sum('FROM public.item0559' in query for query in statements) == 2
+    assert not any('INSERT' in query or 'UPDATE' in query or 'DELETE' in query
+                   for query in statements)
+
+
+def test_parity_adapter_refuses_missing_derived_grant_and_partial_day():
+    connection = ParityConnection(fail_query=True)
+    _, end = bounds()
+    with pytest.raises(BmsTemperatureParityUnavailable):
+        fetch_bms_temperature_parity_day(
+            lambda: connection, local_date=DAY, as_of=end,
+            cutover=bounds()[0] - timedelta(days=1))
+    assert connection.closed
+    untouched = ParityConnection()
+    with pytest.raises(BmsTemperatureParityUnavailable):
+        fetch_bms_temperature_parity_day(
+            lambda: untouched, local_date=DAY, as_of=end - timedelta(seconds=1),
+            cutover=bounds()[0] - timedelta(days=1))
+    assert untouched.session is None
