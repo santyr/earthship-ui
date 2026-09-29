@@ -165,8 +165,9 @@ def test_origin_cutover_and_forecast_horizons_are_not_relabelled():
 
 def scoring_fixture(monkeypatch, *, qualified=True, old_origin=False):
     # This fixture exercises temperature isolation and historical rain scoring;
-    # rain's dated source-bound cutover has dedicated tests elsewhere.
+    # rain/PV dated source-bound cutovers have dedicated tests elsewhere.
     monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', fi.date.max)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', fi.date.max)
     today = fi.date.today()
     yesterday = today - timedelta(days=1)
     start, end = fi.local_day_window_utc(yesterday)
