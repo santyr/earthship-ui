@@ -278,3 +278,16 @@ independent pair. This adds evidence against graduation, not enough
 current-artifact support to estimate a deployable correction. Prioritize
 action-state evidence and physical/lead-time diagnosis over a global residual
 offset.
+
+September 29 afternoon read-only refresh under the installed v4 runtime:
+62 capture-verified, qualified 24-hour pairs include six non-overlapping
+windows. Their model/persistence MAE is 3.5438/2.6100°F, with 66.7% nominal
+interval coverage; all 62 scored publications have low confidence. Across
+overlapping pairs the indoor model has a −2.7785°F signed bias while its exact
+captured outdoor forcing has a +2.6219°F forecast bias. Opposite signs do not
+identify a causal mechanism; action-state, model physics and lead-time effects
+remain to be tested on origin-safe, disjoint data. Shadow status stays in force.
+The scorer also no longer emits `target_confidence:*` counts when no artifact
+was selected: those counts were previously inflated by missing artifact IDs
+matching an absent target (`None == None`). This was a diagnostic-only defect;
+it did not change the score, blocker logic, or live model.

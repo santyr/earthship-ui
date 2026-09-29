@@ -100,6 +100,7 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['overall']['paired_ties'], 1)
         self.assertEqual(result['groups']['overall']['paired_persistence_wins'], 0)
         self.assertEqual(result['groups']['overall']['interval_coverage'], 1.0)
+        self.assertNotIn('target_confidence:low', result['counts'])
         self.assertIn('independent_operational_model_not_better_than_persistence',
                       result['operational_readiness_blockers'])
         self.assertIn('low_confidence_shadow_publications_scored',
@@ -206,6 +207,8 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['n'], 2)
         self.assertEqual(result['groups']['nonoverlap:artifact:' + first_id]['n'], 1)
         self.assertEqual(result['groups']['nonoverlap:artifact:' + second_id]['n'], 1)
+        self.assertEqual(result['counts']['target_confidence:low'], 1)
+        self.assertNotIn('target_confidence:high', result['counts'])
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['paired_model_wins'], 1)
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['paired_ties'], 1)
         self.assertIn('target_artifact_not_better_than_persistence',
@@ -214,6 +217,8 @@ class PublicationAuditTests(unittest.TestCase):
         better = audit.score(rows, now=TARGET + timedelta(days=3), outcome_reader=receipt,
                              capture_reader=captured,
                              target_artifact_id=second_id)
+        self.assertEqual(better['counts']['target_confidence:high'], 1)
+        self.assertNotIn('target_confidence:low', better['counts'])
         self.assertNotIn('target_artifact_not_better_than_persistence',
                          better['operational_readiness_blockers'])
         self.assertNotIn('low_confidence_shadow_publications_scored',

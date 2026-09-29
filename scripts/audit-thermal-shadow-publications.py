@@ -221,7 +221,7 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
             pair_details.append(detail)
         counts['scored'] += 1
         counts['confidence:' + str(pair['confidence'])] += 1
-        if artifact_id == target_artifact_id:
+        if target_artifact_id is not None and artifact_id == target_artifact_id:
             counts['target_confidence:' + str(pair['confidence'])] += 1
     def non_overlapping(windows):
         """Greedily retain chronological forecast windows with no shared time."""
