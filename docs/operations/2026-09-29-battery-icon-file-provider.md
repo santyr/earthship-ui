@@ -92,3 +92,6 @@ is recorded above. No synthetic production update or control change was made.
 The same read-only whole-registry inventory still reports an unrelated
 `unverified provider: item BMS_Runtime_Input_Evidence_JSON`; this BatteryIcon
 promotion is not a claim that the global file-first inventory is clean.
+That separate Item was later declared `file/observational` after its own
+provider and natural JDBC receipt checks; the BatteryIcon evidence above did
+not supply that qualification.

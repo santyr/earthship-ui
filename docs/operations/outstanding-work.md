@@ -375,6 +375,15 @@ The whole-registry inventory at that check still had one unrelated issue:
 `BMS_Runtime_Input_Evidence_JSON` is live file-owned but lacks an ownership
 manifest declaration. Do not treat the BatteryIcon gate as resolving that
 separate migration inventory gap.
+The separate BMS runtime Item inventory gap was subsequently closed by an
+exact `file/observational` declaration. Read-only live evidence found the
+installed Item and JDBC strategy byte-equal to source, one file-owned String
+Item with no Group/link, the six-trigger observational rule IDLE with its
+pinned script, and unique JDBC Item 659. Its 317 naturally persisted rows from
+13:50:15 to 16:30:30Z shared one epoch and contiguous sequences 1–317; the
+latest four-field valid value exactly matched the live Item. This verifies
+ownership and bounded collector continuity only, not the still-held-input
+`hex_bms_ttd_smooth` estimator or dusk/night accuracy.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
@@ -3607,6 +3616,11 @@ receipt's original-event ages were 0, 5.115, 25.817 and 25.817 seconds for
 current, voltage, TTD and TTF respectively. This is evidence of normal
 coalescing and startup fail-closed behavior in that bounded morning window,
 not dusk/night qualification of the disabled estimator candidate.
+The later 317-row continuity and provider readback support the
+`BMS_Runtime_Input_Evidence_JSON` `file/observational` manifest entry. The
+read-only full registry census then returned zero structural or ownership
+issues. This closes only the Item inventory gap, not runtime-minute freshness
+or estimator release.
 September 29 source-only estimator follow-up: a fresh positive BMS time-to-full
 could previously survive a current reversal, and the charge-current EMA could
 lag through discharge. The disabled candidate now requires source-bound current

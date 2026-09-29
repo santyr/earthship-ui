@@ -484,6 +484,15 @@
       "state_writer": "hex_bms_aux_evidence explicit JDBC and state post"
     },
     {
+      "kind": "item",
+      "id": "BMS_Runtime_Input_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/bms-runtime-input-evidence.items",
+      "destination": "/etc/openhab/items/bms-runtime-input-evidence.items",
+      "state_writer": "hex_bms_runtime_input_evidence explicit JDBC and state post"
+    },
+    {
       "kind": "thing",
       "id": "http:url:weatherRainEvidence",
       "provider": "file",
