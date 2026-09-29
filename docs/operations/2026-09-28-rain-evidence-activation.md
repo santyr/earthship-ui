@@ -331,3 +331,14 @@ expiring and the physical spike guard remains active. September 29 is still
 unqualified because of its earlier faults and evidence-epoch resets; the
 first possible full local source day is September 30 if continuity and both
 midnight brackets pass.
+
+The first expected recurrence window after the radio cutover passed by
+01:22:41 MDT. The unchanged downstream collector epoch had accepted 65
+packets with zero invalid packets, jumps or drops, and remained valid at the
+same 102.7497945-inch counter. Bounded logs contained no new impossible
+rain jump and no radio-adapter ambiguous-unit refusal. Before the cutover,
+the wrong-scale value recurred at 00:42:33 and 01:01:45 MDT, about 19–20
+minutes apart; this first clean window is meaningful but not a proof that a
+raw WH24-labeled packet was received, because the normal weather receipt
+canonicalizes its model label. Continue observing later windows and the
+first complete local day. No rain score or quality gate was relaxed.
