@@ -118,20 +118,30 @@ def select_pair(row, *, now, horizon_hours=24):
     revision = model['codeRevision']
     if not isinstance(revision, str) or len(revision) < 12:
         raise ValueError('model revision missing')
+    artifact_id = sha256(_canonical({
+        'codeRevision': revision,
+        'createdAt': model['createdAt'],
+        'trainedThrough': model['trainedThrough'],
+    })).hexdigest()
     return {'issue': issue, 'target': target, 'model_f': predicted,
             'interval_low_f': low, 'interval_high_f': high,
             'persistence_f': current, 'revision': revision,
+            'artifact_id': artifact_id,
             'confidence': publication['confidence']['grade']}, None
 
 
 def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None,
-          horizon_hours=24, include_pairs=False):
+          horizon_hours=24, include_pairs=False, target_artifact_id=None):
     if type(horizon_hours) is not int or horizon_hours not in SUPPORTED_HORIZONS:
         raise ValueError('supported horizon required')
     if outdoor_reader is not None and capture_reader is None:
         raise ValueError('outdoor diagnostic requires exact forcing capture')
     if type(include_pairs) is not bool or include_pairs and capture_reader is None:
         raise ValueError('pair diagnostics require exact forcing capture')
+    if target_artifact_id is not None and (not isinstance(target_artifact_id, str)
+            or len(target_artifact_id) != 64
+            or any(character not in '0123456789abcdef' for character in target_artifact_id)):
+        raise ValueError('full lowercase artifact identity required')
     counts = Counter()
     groups = defaultdict(list)
     weather_errors = []
@@ -160,13 +170,16 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                  pair['interval_high_f'] - pair['interval_low_f'])
         groups['overall'].append(error)
         groups['revision:' + pair['revision'][:12]].append(error)
+        groups['artifact:' + pair['artifact_id']].append(error)
         groups['issue_day:' + pair['issue'].date().isoformat()].append(error)
-        scored_windows.append((pair['issue'], pair['target'], pair['revision'][:12], error))
+        scored_windows.append((pair['issue'], pair['target'], pair['revision'][:12],
+                               pair['artifact_id'], error))
         detail = None
         if include_pairs:
             detail = {'issue_at': pair['issue'].isoformat(),
                       'target_at': pair['target'].isoformat(),
                       'revision': pair['revision'][:12],
+                      'artifact_id': pair['artifact_id'],
                       'confidence': pair['confidence'],
                       'model_error_f': round(error[0], 3),
                       'persistence_error_f': round(error[1], 3),
@@ -197,24 +210,31 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
             pair_details.append(detail)
         counts['scored'] += 1
         counts['confidence:' + str(pair['confidence'])] += 1
+        if pair['artifact_id'] == target_artifact_id:
+            counts['target_confidence:' + str(pair['confidence'])] += 1
     def non_overlapping(windows):
         """Greedily retain chronological forecast windows with no shared time."""
         selected = []
         previous_target = None
-        for issue, target, revision, error in sorted(windows, key=lambda row: (row[0], row[1])):
+        for issue, target, revision, artifact_id, error in sorted(windows, key=lambda row: (row[0], row[1])):
             if previous_target is None or issue >= previous_target:
-                selected.append((issue, target, revision, error))
+                selected.append((issue, target, revision, artifact_id, error))
                 previous_target = target
         return selected
 
     selected_overall = non_overlapping(scored_windows)
-    for _, _, revision, error in selected_overall:
+    for _, _, revision, artifact_id, error in selected_overall:
         groups['nonoverlap:overall'].append(error)
     revisions = sorted({window[2] for window in scored_windows})
     for revision in revisions:
-        for _, _, _, error in non_overlapping(
+        for _, _, _, _, error in non_overlapping(
                 [window for window in scored_windows if window[2] == revision]):
             groups['nonoverlap:revision:' + revision].append(error)
+    artifacts = sorted({window[3] for window in scored_windows})
+    for artifact_id in artifacts:
+        for _, _, _, _, error in non_overlapping(
+                [window for window in scored_windows if window[3] == artifact_id]):
+            groups['nonoverlap:artifact:' + artifact_id].append(error)
     def metrics(errors):
         n = len(errors)
         return {'n': n,
@@ -225,19 +245,28 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                 'interval_coverage': round(sum(x[2] for x in errors) / n, 4),
                 'mean_interval_width_f': round(sum(x[3] for x in errors) / n, 4)}
     result = {'scope': 'observational_shadow_publications_not_graduation',
-            'horizon_hours': horizon_hours,
+            'horizon_hours': horizon_hours, 'target_artifact_id': target_artifact_id,
             'publication_rows': len(rows), 'counts': dict(sorted(counts.items())),
             'groups': {key: metrics(value) for key, value in sorted(groups.items())},
             'nonoverlap_policy': 'greedy_by_issue_time; next_issue_at_or_after_prior_target'}
     independent = groups.get('nonoverlap:overall', [])
+    target_independent = groups.get('nonoverlap:artifact:' + target_artifact_id, []) \
+        if target_artifact_id else []
     blockers = []
     if capture_reader is None:
         blockers.append('exact_forcing_capture_not_required_for_this_run')
-    if not independent:
-        blockers.append('no_independent_qualified_operational_pairs')
-    elif sum(abs(error[0]) for error in independent) >= sum(abs(error[1]) for error in independent):
-        blockers.append('independent_operational_model_not_better_than_persistence')
-    if counts['confidence:low']:
+    if target_artifact_id is None:
+        if not independent:
+            blockers.append('no_independent_qualified_operational_pairs')
+        elif sum(abs(error[0]) for error in independent) >= sum(abs(error[1]) for error in independent):
+            blockers.append('independent_operational_model_not_better_than_persistence')
+        blockers.append('target_artifact_not_selected')
+    elif not target_independent:
+        blockers.append('no_independent_target_artifact_pairs')
+    elif sum(abs(error[0]) for error in target_independent) >= sum(abs(error[1]) for error in target_independent):
+        blockers.append('target_artifact_not_better_than_persistence')
+    if (counts['target_confidence:low'] if target_artifact_id
+            else counts['confidence:low']):
         blockers.append('low_confidence_shadow_publications_scored')
     # This observational scorer has no operator-confirmed action outcomes or
     # approved numerical release thresholds. A good MAE here alone is never
@@ -247,13 +276,14 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     result['advisory_graduation_claimed'] = False
     result['operational_readiness_blockers'] = blockers
     if include_pairs:
-        selected = {(issue.isoformat(), target.isoformat(), revision)
-                    for issue, target, revision, _ in selected_overall}
+        selected = {(issue.isoformat(), target.isoformat(), revision, artifact_id)
+                    for issue, target, revision, artifact_id, _ in selected_overall}
         for detail in pair_details:
             detail['nonoverlap_selected'] = (
-                detail['issue_at'], detail['target_at'], detail['revision']) in selected
+                detail['issue_at'], detail['target_at'], detail['revision'],
+                detail['artifact_id']) in selected
         result['pairs'] = sorted(pair_details, key=lambda detail: (
-            detail['issue_at'], detail['target_at'], detail['revision']))
+            detail['issue_at'], detail['target_at'], detail['revision'], detail['artifact_id']))
     if outdoor_reader is not None:
         n = len(weather_errors)
         result['weather'] = {'n': n}
@@ -275,6 +305,8 @@ def main():
     parser.add_argument('--horizon-hours', type=int, choices=SUPPORTED_HORIZONS, default=24)
     parser.add_argument('--include-pairs', action='store_true',
                         help='bounded signed-error details; requires --require-capture')
+    parser.add_argument('--artifact-id',
+                        help='full SHA-256 identity of the published model metadata to assess separately')
     parser.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT,
                         help='coherent thermal runtime source; use installed v4 for live v4 captures')
     args = parser.parse_args()
@@ -302,7 +334,8 @@ def main():
                            outdoor_reader=(lambda target: qualified('outdoor', target))
                            if args.require_capture else None,
                            horizon_hours=args.horizon_hours,
-                           include_pairs=args.include_pairs)
+                           include_pairs=args.include_pairs,
+                           target_artifact_id=args.artifact_id)
     result['verifier_runtime_root'] = str(RUNTIME_ROOT)
     result['verifier_source_sha256'] = {
         name: sha256((RUNTIME_ROOT / name).read_bytes()).hexdigest()

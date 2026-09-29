@@ -194,3 +194,27 @@ That sign reversal makes a global positive offset especially inappropriate;
 the independent 24-hour deficit, unverified action states and low confidence
 still block shadow exit. No model, artifact, alert, or control was changed by
 this rescore.
+
+## September 28 published-model identity check
+
+The capture-strict shadow scorer now separates accepted model instances by a
+SHA-256 fingerprint of the **published model metadata** (`codeRevision`,
+`createdAt`, `trainedThrough`). This is not a hash of the private artifact
+file. Previously, revision-only groups could combine daily retrains that used
+unchanged code; mixed-instance skill must not be treated as current-model
+readiness. An explicit full fingerprint can be supplied to the read-only
+scorer, which then uses only that instance's independent windows for its
+target skill and confidence blockers. Overall/revision groups remain
+descriptive. No score, however favorable, bypasses the separate action-outcome
+and approved-threshold gates.
+
+Around 20:00 MDT, 25 naturally captured one-hour publications separated into
+three model instances. The live instance, created September 28 12:50:10Z
+under code revision `53d96e5e9637`, had six disjoint one-hour pairs:
+model MAE 0.352°F versus same-origin persistence 0.000°F. Its full published-
+metadata fingerprint is
+`a7a8ce8c64bab7a5e1625bd6e56acccc3d6491fa745703628b018a6c1bdd9541`.
+Targeted read-only scoring reports inferior skill, low-confidence outputs,
+no confirmed-action outcome score and no approved graduation thresholds.
+The short window is diagnostic, not a release decision; current status remains
+shadow. The next current-instance 24-hour targets have not matured yet.
