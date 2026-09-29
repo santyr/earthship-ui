@@ -188,6 +188,16 @@ prospective capture schedule, not the historical gap. Its first natural
 September 30 run must be checked for exact 06:40 issue identity and values
 before analytics snapshots are treated as complete morning-origin history.
 
+A source-only `pre_dusk_tuning.score_pair` now provides an exact same-target
+comparison for immutable morning and pre-dusk receipts against the existing
+source-bound 20:00–11:00 completed-night assessment. It refuses mismatched
+issue dates, stale SoC at issue, an incomplete or low-coverage night, and an
+outcome with the wrong bank-evidence source or window. It reports signed and
+absolute-error differences but no causal reward. This does not fabricate a
+September 29 outcome: the first natural pre-dusk issue and its following-day
+11:00 completed target are still pending, as is a qualified archive reader for
+repeated chronological comparisons.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.
