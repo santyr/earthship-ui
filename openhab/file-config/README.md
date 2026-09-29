@@ -60,9 +60,10 @@ Analytics by itself; see `docs/operations/outstanding-work.md` for the
 remaining full-day and fault/restart gates.
 The display-only `update_days_until_season` rule is provisionally file-owned
 in `automation/js/update_days_until_season.js` after an isolated provider and
-managed-rollback rehearsal plus a guarded live handoff. Its next natural
-state-change output and later restart check remain open; retain the private
-managed-rule backup until both pass. See the
+managed-rollback rehearsal plus a guarded live handoff. Its natural
+state-change output passed at 14:51 MDT September 29 with matching Astro
+source, file-rule event and JDBC history. A later restart check remains open;
+retain the private managed-rule backup until it passes. See the
 [rule cutover receipt](../../docs/operations/2026-09-29-season-countdown-rule-file-candidate.md).
 `automation/js/sky-condition-calculator.js` is a **staged, uninstalled**
 candidate. The initially successful live file handoff was rolled back after

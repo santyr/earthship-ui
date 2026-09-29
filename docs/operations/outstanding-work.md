@@ -276,8 +276,10 @@ preserves the live rule's trigger, identity and display calculation in a JS
 Scripting file; five focused and 1,845 full JavaScript tests pass. An isolated
 managed/file/managed provider rehearsal passed and cleaned up its container.
 The guarded live cutover made the file the sole rule provider without a restart;
-the private managed backup is retained. Ownership is provisional pending the
-next natural changed `Sun_TimeLeft` output and a later restart check.
+the private managed backup is retained. Ownership is provisional pending a
+later restart check. The natural 14:51 MDT Astro `Sun_TimeLeft` change triggered
+the file rule's expected “82 days until Winter” output with paired event-log
+and JDBC history; no Item was forced or service restarted.
 The [sky-condition rule candidate](2026-09-29-sky-condition-rule-file-candidate.md)
 preserves its four change triggers, two-minute timer and change-only display
 calculation in a staged JS file. Five focused behavior tests and an isolated

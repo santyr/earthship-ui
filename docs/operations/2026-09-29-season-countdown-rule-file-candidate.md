@@ -71,3 +71,18 @@ expected value. The current event log showed unchanged `Sun_TimeLeft` updates
 every roughly 16 seconds; those do not exercise a state-change trigger. Retain
 the private managed-rule backup until the natural-update and later restart
 checks pass.
+
+## Natural writer qualification — 14:51 MDT
+
+The rotated production event log records `Sun_TimeLeft` changing naturally from
+7,171,200 s to 7,084,800 s at 14:51:32.754 MDT, attributed to the Astro
+`season#timeLeft` channel. Four milliseconds later the file-owned
+`update_days_until_season.js` posted `DaysUntilNextSeason`, changing it from
+“83 days until Winter” to “82 days until Winter.” JDBC returned the same
+prior/new display sequence and paired new source/display rows three milliseconds
+apart. Read-only registry inspection still found one file-owned rule with the
+sole `Sun_TimeLeft` state-change trigger, `IDLE/NONE` status, zero inventory
+issues, and an installed source hash identical to Git
+`d101eff0c4acf86ad900637e28cc7b30c1cf1185c5b3bcd116bef65e2114ed36`.
+No Item was forced or OpenHAB restarted. This closes the natural-writer gate;
+ownership remains provisional pending a later restart check. Retain rollback.
