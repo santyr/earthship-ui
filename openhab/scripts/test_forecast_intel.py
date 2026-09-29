@@ -427,6 +427,12 @@ def test_prediction_receipt_commits_dated_values_only_after_required_items_succe
 
 # ---------------------------------------------------------------- pv_days alignment
 
+def test_today_pv_detail_matches_issued_prediction_not_fixed_cap():
+    assert fi.pv_display_days([28.8, 28.8, 3.6], 1.3, 8.25) == [8.25, 6.9, 1.3]
+    assert fi.pv_display_days([28.8, 3.6], 1.3, None) == [None, 1.3]
+    assert fi.pv_display_days([], 1.3, 4.2) == []
+
+
 def test_align_pv_days():
     days = [6.1, 6.2, 6.3, 6.4]
     today = date(2026, 7, 22)
@@ -751,6 +757,7 @@ def test_main_passes_post_scoring_temperature_models_to_json_builder(monkeypatch
     assert adjustment["highCorrectionF"] == pytest.approx(-saved["kalman"]["hi"]["b"])
     assert adjustment["lowCorrectionF"] == pytest.approx(-saved["kalman"]["lo"]["b"])
     assert captured[0]["hourly_model"] == saved["hourly_temp_model"]
+    assert captured[0]["pv_per_day"][0] == saved["predictions"][date.today().isoformat()]["pv"]
     assert saved["predictions"][date.today().isoformat()]["hi"] == 90.0
     assert saved["predictions"][date.today().isoformat()]["lo"] == 60.0
 
@@ -810,6 +817,7 @@ def test_qualified_soc_forecast_withholds_energy_without_atomic_state(monkeypatc
     assert prediction["demand"] is None
     assert prediction["soc_reference_pct"] is None
     assert prediction["dusk_soc_estimate_pct"] is None
+    assert saved["pv_days"][0] is None
     assert "Thermal_Advisory" in published
     assert published["Predicted_PV_Today_kWh"] == "UNDEF"
     assert published["Predicted_Curtailment_Hours"] == "UNDEF"

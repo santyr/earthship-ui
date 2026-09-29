@@ -1082,6 +1082,20 @@ def align_pv_days(pv_days, stored_date, today):
     return None   # future-dated or entirely stale: unusable
 
 
+def pv_display_days(radiation_sums, learned_gain, issued_today):
+    """Keep today's detailed PV value identical to the issued forecast.
+
+    Later days lack an origin-qualified SoC/demand trajectory, so retain their
+    existing indicative resource estimate and cap. If today's prediction is
+    withheld, its detailed value must be withheld too.
+    """
+    days = [round(min(learned_gain * (radiation or 0) / 3.6, 6.9), 1)
+            for radiation in radiation_sums]
+    if days:
+        days[0] = issued_today
+    return days
+
+
 def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
                      temperature_adjustment=None, hourly_model=None):
     """Materialize legacy JSON items plus additive ten-day detail from one fetch."""
@@ -1425,9 +1439,10 @@ def main():
     if capture is not None:
         capture.notification(notification_status)
 
-    # per-day PV estimates for the 7-day view (typical demand cap ~6.9 kWh)
+    # Today's detail matches the issued learned resource/demand prediction;
+    # later days retain the indicative capped resource estimate.
     try:
-        pv_days = [round(min(st["k_res"] * (r or 0) / 3.6, 6.9), 1) for r in om["shortwave_radiation_sum"]]
+        pv_days = pv_display_days(om["shortwave_radiation_sum"], st["k_res"], pv_pred)
         st["pv_days"] = pv_days
         st["pv_days_date"] = today.isoformat()   # lets the 2-hourly json refresh realign after midnight
         build_json_items(

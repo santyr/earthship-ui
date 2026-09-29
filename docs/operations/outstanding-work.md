@@ -501,6 +501,12 @@ fault, a complete local day, or production quality publication.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
+The [September 29 PV detail alignment](2026-09-29-pv-detail-issued-forecast.md)
+removes a separate same-day UI inconsistency: the detailed day-zero PV number
+now uses the exact issued resource/demand prediction, including withholding
+when atomic SoC is unavailable. Later days remain indicative. This does not
+calibrate PV, dusk SoC or the overnight trough; the next natural 06:40 run is
+its live publication gate.
 The last three trough misses are -24, -19 and -21 points. Their PV misses
 explain only part of those gaps even under an optimistic linear battery
 conversion, while the live PV gain is pinned at its 1.3 upper bound. Keep the
