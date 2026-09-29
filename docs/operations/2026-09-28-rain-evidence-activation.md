@@ -170,3 +170,15 @@ epoch had zero new fault latches at the 00:20 readback. This resets the
 observational rain epoch, so September 29 remains unqualified. The next
 actual rejected spike and its bounded metadata—not this deployment—must
 inform the root-cause decision.
+
+At 00:22:17 MDT the next natural packet repeated the exact 121.358025-inch
+value. The bounded diagnostic identified approved sensor ID 206 and model
+`Fineoffset-WH24`; temperature, humidity and solar-radiation deltas from the
+last accepted packet were all zero. The rain conversion in `rtl_weather.py`
+is a direct `rain_mm * 0.03937`, so this report is consistent with an isolated
+raw rain field anomaly, not a temperature-driven unit conversion or a
+foreign-ID packet. The diagnostic cannot distinguish RF decoding from the
+station's transmitted counter; do not label either as the cause yet. The
+collector rejected the jump, subsequently returned to a valid receipt and
+reported one jump, zero drops and one invalid packet in the new epoch. Keep
+the strict day-quality gate; the affected September 29 day is unqualified.
