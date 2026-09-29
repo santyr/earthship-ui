@@ -179,6 +179,15 @@ week but fails cloudy, no-full, cold-season or missing-sensor days is not a
 qualified production improvement. These rows are open tuning work, not
 claims that every comparison or fix has already been completed.
 
+The September 27 06:40 OpenHAB forecast issue exists in JDBC but was absent
+from `energy_analytics.forecast_snapshots`: its two-hour user timer captured
+the preceding and following weather revisions instead. Solar_PV `4dd13ad`
+adds a 06:45 user-timer event alongside the existing two-hour cadence. The
+installed timer loaded both expressions and remains active. This repairs the
+prospective capture schedule, not the historical gap. Its first natural
+September 30 run must be checked for exact 06:40 issue identity and values
+before analytics snapshots are treated as complete morning-origin history.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.

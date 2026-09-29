@@ -38,6 +38,12 @@ audit. Exact captured-forcing verification required the installed v4 runtime
 (the source checkout validates v5). The mixed-revision 24-hour model still
 trails same-origin persistence, and today's artifact has only four mature
 one-hour low-confidence pairs. Shadow exit remains unsupported.
+Solar_PV `4dd13ad` repaired a forecast-learning capture gap prospectively:
+its user-level snapshot timer now also fires at 06:45, after the 06:40
+forecast issue and before the next weather-JSON revision. The installed active
+timer reports both calendars. Historical 06:40 analytics snapshot gaps are
+not backfilled; verify tomorrow's natural issue/capture identity before using
+this as a complete as-issued training source.
 
 Evidence inventory started 2026-09-05. This is a completion tracker, not an
 implementation approval or a claim that historical tasks are finished.
