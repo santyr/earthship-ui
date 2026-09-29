@@ -762,6 +762,20 @@ def test_main_passes_post_scoring_temperature_models_to_json_builder(monkeypatch
     assert saved["predictions"][date.today().isoformat()]["lo"] == 60.0
 
 
+def test_main_withholds_detailed_today_pv_when_receipt_is_not_published(monkeypatch, tmp_path):
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    state = _scoring_state(yesterday)
+    captured = []
+    monkeypatch.setattr(fi, "build_json_items", lambda **kwargs: captured.append(kwargs))
+    monkeypatch.setattr(fi, "publish_prediction_receipt", lambda *_args: False)
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            "MPPT60_EnergyFromPV_Today": [7.0], "BMS_SOC": [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data)
+    assert saved["predictions"][date.today().isoformat()]["pv"] is not None
+    assert saved["pv_days"][0] is None
+    assert captured[0]["pv_per_day"][0] is None
+
+
 def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True):
     """Run main() fully stubbed; returns (state, puts) as saved/put."""
     t = datetime.now(UTC)

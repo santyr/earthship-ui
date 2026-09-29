@@ -1389,8 +1389,9 @@ def main():
                       ("Forecast_Tomorrow_PrecipProb", precip_prob[1] if precip_prob[1] is not None else 0)]:
         put(item, "UNDEF" if val is None else val)
 
-    publish_prediction_receipt(today, forecast_issued_at, pv_pred, curtail,
-                               trough_pred, advisory, put_failed, put)
+    receipt_published = publish_prediction_receipt(
+        today, forecast_issued_at, pv_pred, curtail,
+        trough_pred, advisory, put_failed, put)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
@@ -1442,7 +1443,9 @@ def main():
     # Today's detail matches the issued learned resource/demand prediction;
     # later days retain the indicative capped resource estimate.
     try:
-        pv_days = pv_display_days(om["shortwave_radiation_sum"], st["k_res"], pv_pred)
+        pv_days = pv_display_days(
+            om["shortwave_radiation_sum"], st["k_res"],
+            pv_pred if receipt_published else None)
         st["pv_days"] = pv_days
         st["pv_days_date"] = today.isoformat()   # lets the 2-hourly json refresh realign after midnight
         build_json_items(
