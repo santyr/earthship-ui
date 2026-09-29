@@ -117,3 +117,15 @@ still absent. The first current-revision 24-hour outcome cannot mature before
 the September 29 morning target plus the scorer's five-minute lag. Keep the
 artifact shadow-only and reassess then; these observations do not justify a
 global bias or PV/vent coefficient change.
+
+## September 28 22:30 MDT bounded current-revision check
+
+An exact-capture-only read of the installed-v4 runtime from 14:20Z to 04:20Z
+found seven independent, current-`53d96e5e9637` one-hour pairs. Model MAE was
+0.3549°F with −0.0771°F bias; same-origin persistence MAE was 0.0000°F
+because the qualified indoor target did not change in those seven windows.
+At six hours, only two independent current-revision pairs matured: model MAE
+1.4445°F versus persistence 0.0900°F. No current-revision 24-hour target has
+matured. This is evidence against a short-horizon skill claim, not a basis for
+an offset or coefficient update; retain shadow mode and the planned 24-hour
+checkpoint.

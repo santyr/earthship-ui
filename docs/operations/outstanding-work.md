@@ -177,6 +177,17 @@ the live Item timestamp nor change-only JDBC history is a durable,
 binding-origin freshness receipt. Keep both rows unqualified; next work is a
 source-bound, persisted observation contract with fault/restart continuity,
 not relabeling the existing values `ok` or masking the Energy warning.
+September 28 source audit found a separate live-health change-only gap in
+Solar_PV analytics: `live_health_source_config` deliberately maps SoC to
+`BMS_Comms_Status`, and `ui_reader`/`scheduled` classify a last `OK` status
+or numeric `1` as healthy without an acquisition timestamp or expiry. Daily
+`quality.assess_source_quality` likewise carries these statuses to the window
+end. A current `BMS_SOC_Evidence_JSON` receipt is valid, so this is not a
+present BMS outage; it is a false-freshness risk after a stalled source.
+Before changing live warnings, give SoC live-health consumers the existing
+source-bound atomic evidence and design source-bound receipts for remaining-Ah
+and temperature, whose `BMS_DevicePresent` companion alone does not establish
+sample freshness. Do not treat change-only status row age as source age.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
