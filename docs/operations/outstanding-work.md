@@ -586,6 +586,12 @@ confirmation/journal tests); no household key, relay, question, journal or
 service was used. Operator route, household trial, private backup and
 pagination/spam-liveness review remain open. See the
 [delivery checkpoint](thermal-messaging-delivery.md).
+The September 28 protocol review makes that gate concrete: NIP-01 permits
+under-limit initial responses, so EOSE plus fewer than 64 events cannot prove
+relay archive completeness; repeated rejected envelopes can also exhaust
+every 16-attempt poll before a valid older reply. The collector remains off
+until bounded boundary-safe retrieval, rejection/backlog progress and
+operator-visible retry behavior are qualified; see the same checkpoint.
 
 At 17:08 MDT `Thermal_Advisory`, the legacy forecast-intelligence display
 Item, moved to a Git-owned file definition after networkless provider and

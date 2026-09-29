@@ -1,5 +1,32 @@
 # Attended thermal messaging and keyer qualification
 
+## September 28 inbound backlog review
+
+The source-only collector remains release-gated. Its current relay query asks
+for at most 64 kind-1059 events over up to four days, waits for EOSE, and
+refuses a page of exactly 64 events. This prevents an obviously truncated
+page from being called complete. It is not a pagination solution: the
+[NIP-01 filter contract](https://github.com/nostr-protocol/nips/blob/master/01.md)
+says `limit` is a SHOULD for relays and permits fewer returned events, while
+EOSE marks the end of what the relay chose to send initially. NIP-01 defines
+inclusive second-resolution `since`/`until` and a recommended newest-first
+order with event-ID tie breaking; an overlapping time cursor therefore needs
+an explicit same-second boundary check and a fail-closed response when a
+boundary bucket itself cannot be enumerated. A short page alone cannot prove
+archive completeness across arbitrary relays.
+
+Separately, `poll_replies` counts every not-yet-ingested envelope against its
+16-attempt batch before authenticated decoding. Rejected envelopes are not
+marked ingested, correctly preserving retryability, but the same 16 rejected
+events can consume each later batch and starve an older valid confirmation.
+Do not fix this by treating rejection as a successful journal receipt or by
+silently advancing an unverified cursor. A release design must bound and
+durably explain rejected-envelope retries/quarantine, prove that a valid reply
+can progress under repeated hostile events, and retain an operator-visible
+no-ack/retry path. It must also review encrypted-state backup and relay
+retention. `POLL_RELEASE_READY` stays false; this review sent no question,
+polled no household relay, and changed no private collector or journal state.
+
 ## September 27 source-only backlog checkpoint
 
 The disabled inbound collector now keeps a private, durable ledger of envelope
