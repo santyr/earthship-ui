@@ -116,6 +116,25 @@ test('Energy withholds a held numeric SoC when source evidence is unavailable', 
   await expect(page.locator('.hero-soc')).toHaveText('SoC —');
 });
 
+test('Energy distinguishes stale BMS telemetry from a reported fault', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    BMS_Comms_Status: 'STALE age=120s',
+  });
+  const health = page.locator('.vital').filter({ hasText: 'BMS Health' });
+  await expect(health.locator('.vital-value')).toHaveText('Stale');
+  await expect(health.locator('.lamp-dot')).toHaveClass(/stale/);
+  await expect(page.locator('.hero-soc')).toHaveText('SoC —');
+});
+
+test('Energy does not call an unavailable BMS status a fault', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    BMS_Comms_Status: 'UNDEF', BMS_DevicePresent: 'UNDEF',
+  });
+  const health = page.locator('.vital').filter({ hasText: 'BMS Health' });
+  await expect(health.locator('.vital-value')).toHaveText('Unknown');
+  await expect(health.locator('.lamp-dot')).toHaveClass(/unknown/);
+});
+
 test('Energy battery temperature follows native evidence, not held numeric state', async ({ page }) => {
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), { BMS_Temperature: '90 °F' });
   await expect(page.locator('.vitals-cell .vital-value').first()).toHaveText('77°');

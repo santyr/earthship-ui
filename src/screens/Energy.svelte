@@ -15,6 +15,7 @@
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
   import { freshBmsTemperatureF } from '../lib/battery/auxTemperature.js';
+  import { bmsHealthPresentation } from '../lib/alerts/batteryHealth.js';
 
   let analyticsNowMs = $state(Date.now());
   const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
@@ -75,12 +76,7 @@
     Math.max(analyticsNowMs, Date.now())), '°'));
   const battCycles = $derived(fmt($items.BMS_Charge_Cycles));
   const battCapacity = $derived(fmt($items.BMS_Capacity_Remaining_Ah, ' Ah', 1));
-  // BMS_DevicePresent is a Number/String item whose real "present" value is
-  // the string '1' — it is never 'ON' (that was a bad assumption that made
-  // this lamp show "Fault" even when the BMS was healthy).
-  const commsOk = $derived($items.BMS_Comms_Status === 'OK');
-  const devicePresent = $derived($items.BMS_DevicePresent === '1');
-  const bmsHealthy = $derived(commsOk && devicePresent);
+  const bmsHealth = $derived(bmsHealthPresentation($items.BMS_Comms_Status, $items.BMS_DevicePresent));
   onMount(() => {
     const refresh = setInterval(() => {
       analyticsNowMs = Date.now();
@@ -183,9 +179,9 @@
         </div>
         <div class="vital">
           <div class="vital-label">BMS Health</div>
-          <div class="vital-value vital-lamp">
-            <span class="lamp-dot" class:ok={bmsHealthy}></span>
-            {bmsHealthy ? 'OK' : 'Fault'}
+          <div class="vital-value vital-lamp" title={bmsHealth.detail}>
+            <span class="lamp-dot" class:ok={bmsHealth.state === 'ok'} class:stale={bmsHealth.state === 'stale'} class:unknown={bmsHealth.state === 'unknown'}></span>
+            {bmsHealth.label}
           </div>
         </div>
         <div class="analytics-slot"><EnergyAnalyticsDetail result={analytics} /></div>
@@ -447,6 +443,12 @@
   }
   .lamp-dot.ok {
     background: #22c55e;
+  }
+  .lamp-dot.stale {
+    background: #f59e0b;
+  }
+  .lamp-dot.unknown {
+    background: #94a3b8;
   }
 
   @media (min-width: 1280px) and (max-height: 720px) {
