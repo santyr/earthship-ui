@@ -130,21 +130,40 @@ def test_disposable_journal_and_sqlite_pair_restore_preserves_replay(
     finally:
         outbox.close()
     context.spool.close()  # No state writer remains during the coordinated copy.
-    snapshot = tmp_path / 'paired-snapshot'
-    backup.snapshot_state(state, snapshot)
-    assert backup.verify_snapshot(snapshot)['verified_files'] == 2
+    config = tmp_path / 'reviewed-fixture-config'
+    config.mkdir(mode=0o700)
+    policy_file, routes_file = config / 'policy.json', config / 'routes.json'
+    policy_file.write_bytes(confirmation.canonical(
+        confirmation.policy_object(context.policy)))
+    routes_file.write_bytes(b'{"version":1,"announcements":[]}')
+    policy_file.chmod(0o600)
+    routes_file.chmod(0o600)
 
-    archive = tmp_path / 'journal.dump'
-    archive.touch(mode=0o600)
     admin = psycopg2.extensions.parse_dsn(ephemeral_postgres.admin_dsn)
     environment = {key: value for key, value in os.environ.items()
                    if key in {'PATH', 'LANG', 'LC_ALL'}}
     environment.update(PGHOST=admin['host'], PGPORT=admin['port'],
                        PGUSER=admin['user'], PGPASSWORD=admin['password'],
                        PGDATABASE=admin['dbname'])
-    dumped = subprocess.run(['pg_dump', '-Fc', '--no-owner', '-f', str(archive)],
-                            env=environment, capture_output=True, check=False)
-    assert dumped.returncode == 0, 'disposable journal dump failed'
+    def export_journal(archive):
+        archive.touch(mode=0o600)
+        dumped = subprocess.run(['pg_dump', '-Fc', '--no-owner',
+                                 '--schema=thermal_intel', '-f', str(archive)],
+                                env=environment, capture_output=True, check=False)
+        assert dumped.returncode == 0, 'disposable journal dump failed'
+
+    snapshot = tmp_path / 'paired-snapshot'
+    backup.snapshot_state(state, snapshot, policy=policy_file, routes=routes_file,
+                          journal_exporter=export_journal)
+    assert backup.verify_snapshot(snapshot)['verified_files'] == 5
+    assert (snapshot / 'policy.json').read_bytes() == policy_file.read_bytes()
+    assert (snapshot / 'routes.json').read_bytes() == routes_file.read_bytes()
+    archive = snapshot / 'journal.dump'
+    listing = subprocess.run(['pg_restore', '--list', str(archive)],
+                             capture_output=True, check=True).stdout
+    assert b'SCHEMA - thermal_intel' in listing
+    assert all(b'TABLE DATA thermal_intel ' + table in listing for table in
+               (b'action_events', b'message_receipts', b'mode_events'))
     restored_name = 'thermal_recovery_' + uuid4().hex[:12]
     restored_runtime_dsn = ephemeral_postgres.runtime_dsn.rsplit('/', 1)[0] + '/' + restored_name
     connection = psycopg2.connect(ephemeral_postgres.admin_dsn)

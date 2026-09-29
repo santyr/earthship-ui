@@ -171,6 +171,20 @@ consistent household recovery point, operator key/routes backup, off-host
 destination, live relay delivery or
 collector release. `POLL_RELEASE_READY` remains false.
 
+The source-only recovery API now supports a version-3 five-file bundle under
+one collector-state lock: both SQLite databases, exact private policy and
+signed-route bytes, and a caller-supplied PostgreSQL custom archive. The
+archive verifier requires the `thermal_intel` schema and exactly its three
+journal table-data entries; the manifest binds every file digest. An invalid
+archive leaves no completed manifest, while the private partial directory is
+retained for attended inspection. The disposable real-PostgreSQL test now
+restores this bundle and replays the original confirmation without duplicates.
+The completion and journal-integration suites pass 408 tests. This is **not**
+a household backup command: no production exporter or files were used, and
+the state lock cannot stop independent thermal-journal writers. An attended
+stopped-writer capture/restore and operator-approved off-host destination
+remain release gates. Polling remains disabled.
+
 The follow-up writer census found a second attended source entrypoint,
 `thermal_confirmation.py --apply`, which could otherwise mutate the spool
 outside that lock. It now takes the same lock through spool close and refuses

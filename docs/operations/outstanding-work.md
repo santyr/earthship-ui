@@ -67,6 +67,12 @@ policy and signed-route files to its two SQLite snapshots and verify all four
 digests. It has not captured household files or the PostgreSQL action journal,
 and it does not qualify an off-host or attended household restore. The
 collector release gate stays off.
+Its source-only version-3 API now also binds a caller-supplied, exact-schema
+PostgreSQL journal archive to that locked state/config snapshot. A disposable
+real-PostgreSQL five-file restore and duplicate-free reply replay passed; no
+household backup was taken. Other journal writers are outside the SQLite
+state lock, so a stopped-writer household capture/restore and approved off-host
+destination are still required before collector release.
 Sat's NIP-46 client public key is selected in the Earthship instance. The
 password-store bunker pubkey differs from the verified operator identity;
 the current `nak` launcher has no separate transport-key setting. Bunker

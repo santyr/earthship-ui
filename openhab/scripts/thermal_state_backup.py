@@ -12,15 +12,20 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 import stat
+import subprocess
 
 
 DATABASES = ('confirmations.sqlite3', 'delivery.sqlite3')
 CONFIG_FILES = ('policy.json', 'routes.json')
+JOURNAL_FILE = 'journal.dump'
 MAX_CONFIG_BYTES = 128 * 1024
+MAX_JOURNAL_BYTES = 128 * 1024 * 1024
 SQLITE_SCOPE = 'thermal_sqlite_pair_only_no_postgresql_journal'
 CONFIG_SCOPE = 'thermal_sqlite_pair_and_config_no_postgresql_journal'
+JOURNAL_SCOPE = 'thermal_stopped_writer_journal_sqlite_config_bundle'
 
 
 def _private_directory(path):
@@ -105,7 +110,33 @@ def _copy_private_config(source, target):
         os.close(source_fd)
 
 
-def _snapshot_locked(source, destination, config_paths=None):
+def _check_journal_archive(target):
+    _private_file(target)
+    if not 0 < target.stat().st_size <= MAX_JOURNAL_BYTES:
+        raise ValueError('journal archive size outside bound')
+    checked = subprocess.run(['pg_restore', '--list', str(target)],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                             timeout=30, check=False)
+    if checked.returncode != 0 or len(checked.stdout) > 65536:
+        raise ValueError('journal archive structure invalid')
+    schemas = set()
+    tables = set()
+    for line in checked.stdout.splitlines():
+        if not re.match(rb'^\d+;', line):
+            continue
+        schema = re.search(rb'\bSCHEMA - ([a-z_][a-z_0-9]*)\b', line)
+        data = re.search(rb'\bTABLE DATA ([a-z_][a-z_0-9]*) ([a-z_][a-z_0-9]*)\b', line)
+        if schema:
+            schemas.add(schema.group(1))
+        if data:
+            tables.add((data.group(1), data.group(2)))
+    expected = {(b'thermal_intel', table.encode()) for table in
+                ('action_events', 'message_receipts', 'mode_events')}
+    if schemas != {b'thermal_intel'} or tables != expected:
+        raise ValueError('journal archive schema inventory invalid')
+
+
+def _snapshot_locked(source, destination, config_paths=None, journal_exporter=None):
     """Snapshot both DBs under state_lock; destination must not yet exist.
 
     A failed snapshot leaves its private destination for attended inspection,
@@ -137,8 +168,15 @@ def _snapshot_locked(source, destination, config_paths=None):
     if config_paths is not None:
         for name, original in zip(CONFIG_FILES, config_paths):
             files[name] = _copy_private_config(original, destination / name)
-    manifest = {'version': 2 if config_paths is not None else 1,
-                'scope': CONFIG_SCOPE if config_paths is not None else SQLITE_SCOPE,
+    if journal_exporter is not None:
+        target = destination / JOURNAL_FILE
+        journal_exporter(target)
+        _check_journal_archive(target)
+        files[JOURNAL_FILE] = _digest(target)
+    version = 3 if journal_exporter is not None else 2 if config_paths is not None else 1
+    manifest = {'version': version,
+                'scope': (JOURNAL_SCOPE if version == 3 else CONFIG_SCOPE
+                          if version == 2 else SQLITE_SCOPE),
                 'files_sha256': files}
     path = destination / 'manifest.json'
     fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
@@ -154,14 +192,23 @@ def _snapshot_locked(source, destination, config_paths=None):
     return manifest
 
 
-def snapshot_state(source, destination, *, policy=None, routes=None):
-    """Take an idle-state snapshot, optionally binding exact config bytes."""
+def snapshot_state(source, destination, *, policy=None, routes=None,
+                   journal_exporter=None):
+    """Take an idle-state snapshot; caller must stop external journal writers.
+
+    A journal exporter must write one private pg_dump custom archive to its
+    supplied new path. Holding this lock blocks the two collector CLIs, but
+    cannot by itself stop independent journal writers.
+    """
     if (policy is None) != (routes is None):
         raise ValueError('policy and routes must be captured together')
+    if journal_exporter is not None and (policy is None or not callable(journal_exporter)):
+        raise ValueError('journal snapshot requires both config files and an exporter')
     _private_directory(Path(source))
     with state_lock(source):
         return _snapshot_locked(source, destination,
-                                None if policy is None else (policy, routes))
+                                None if policy is None else (policy, routes),
+                                journal_exporter)
 
 
 def verify_snapshot(directory):
@@ -177,7 +224,9 @@ def verify_snapshot(directory):
         raise ValueError('invalid paired snapshot manifest')
     version, scope = manifest.get('version'), manifest.get('scope')
     expected_files = DATABASES if type(version) is int and version == 1 and scope == SQLITE_SCOPE else (
-        DATABASES + CONFIG_FILES if version == 2 and scope == CONFIG_SCOPE else ())
+        DATABASES + CONFIG_FILES if type(version) is int and version == 2 and scope == CONFIG_SCOPE else (
+            DATABASES + CONFIG_FILES + (JOURNAL_FILE,)
+            if type(version) is int and version == 3 and scope == JOURNAL_SCOPE else ()))
     if (not expected_files or not isinstance(manifest.get('files_sha256'), dict)
             or set(manifest['files_sha256']) != set(expected_files)):
         raise ValueError('invalid paired snapshot manifest')
@@ -194,6 +243,8 @@ def verify_snapshot(directory):
             with sqlite3.connect(f'file:{target}?mode=ro', uri=True) as check:
                 if check.execute('PRAGMA integrity_check').fetchone() != ('ok',):
                     raise ValueError('paired snapshot integrity check failed')
+        elif name == JOURNAL_FILE:
+            _check_journal_archive(target)
         elif not 0 < target.stat().st_size <= MAX_CONFIG_BYTES:
             raise ValueError('private config snapshot size outside bound')
     return {'version': version, 'scope': scope, 'verified_files': len(expected_files)}

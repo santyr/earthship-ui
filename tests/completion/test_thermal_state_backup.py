@@ -169,3 +169,53 @@ def test_config_snapshot_refuses_unsafe_source_before_creating_destination(tmp_p
     with pytest.raises(ValueError):
         backup.snapshot_state(source, destination, policy=policy, routes=routes)
     assert not destination.exists()
+
+
+def test_journal_bundle_refuses_invalid_archive_without_manifest(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    config = tmp_path / 'config'
+    config.mkdir(mode=0o700)
+    policy, routes = config / 'policy.json', config / 'routes.json'
+    policy.write_bytes(b'{"policy":"fixture"}')
+    routes.write_bytes(b'{"routes":"fixture"}')
+    policy.chmod(0o600)
+    routes.chmod(0o600)
+
+    def invalid_exporter(target):
+        target.write_bytes(b'not a PostgreSQL custom archive')
+        target.chmod(0o600)
+
+    with pytest.raises(ValueError, match='archive structure invalid'):
+        backup.snapshot_state(source, destination, policy=policy, routes=routes,
+                              journal_exporter=invalid_exporter)
+    assert destination.exists()  # Private failed snapshot is retained for inspection.
+    assert not (destination / 'manifest.json').exists()
+    with pytest.raises(FileNotFoundError):
+        backup.verify_snapshot(destination)
+
+
+def test_journal_bundle_requires_config_and_refuses_busy_state(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    with pytest.raises(ValueError, match='both config files'):
+        backup.snapshot_state(source, destination, journal_exporter=lambda _: None)
+    assert not destination.exists()
+    config = tmp_path / 'config'
+    config.mkdir(mode=0o700)
+    policy, routes = config / 'policy.json', config / 'routes.json'
+    policy.write_bytes(b'policy')
+    routes.write_bytes(b'routes')
+    policy.chmod(0o600)
+    routes.chmod(0o600)
+    called = False
+
+    def exporter(_):
+        nonlocal called
+        called = True
+
+    with backup.state_lock(source):
+        with pytest.raises(ValueError, match='busy'):
+            backup.snapshot_state(source, destination, policy=policy, routes=routes,
+                                  journal_exporter=exporter)
+    assert not called and not destination.exists()
