@@ -140,6 +140,22 @@ action journal, policy/routes, signing authority, or an off-host recovery
 point. A coordinated stopped-collector journal/SQLite restore rehearsal and
 reviewed destination/retention still block release. `POLL_RELEASE_READY`
 remains false.
+
+September 29 isolated follow-up: a real disposable PostgreSQL 16 journal
+accepted one fixture-authenticated confirmation, while both application
+SQLite databases retained its original receipt and two queued acknowledgement
+copies. With fixture writers closed, the paired SQLite snapshot and a custom
+PostgreSQL dump were restored into fresh private state and a second disposable
+database. Full action-row equality, the original first receipt, two pending
+outbox copies and duplicate-free replay all passed. The disposable restore
+database and labeled PostgreSQL containers were removed. Ninety-four adjacent
+journal, backup and messaging tests and all 390 source-only completion tests
+passed using an existing cached WebSocket package; no runtime package was
+installed. This qualifies a synthetic stopped-writer recovery path, **not** a
+consistent household recovery point, operator key/routes backup, off-host
+destination, live relay delivery or
+collector release. `POLL_RELEASE_READY` remains false.
+
 The follow-up writer census found a second attended source entrypoint,
 `thermal_confirmation.py --apply`, which could otherwise mutate the spool
 outside that lock. It now takes the same lock through spool close and refuses

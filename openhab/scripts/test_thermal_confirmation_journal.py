@@ -7,13 +7,18 @@ is explicitly a test double. SQLite, ActionEvent, ActionJournal and SQL are real
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
+import os
+import subprocess
 from types import SimpleNamespace
 from uuid import uuid4
 
 import psycopg2
+from psycopg2 import sql
 import pytest
 
 import thermal_confirmation as confirmation
+import thermal_messaging as messaging
+import thermal_state_backup as backup
 from thermal_model.journal import ActionJournal
 from thermal_model.schema import ActionEvent
 from test_thermal_journal import ephemeral_postgres  # noqa: F401; pytest fixture
@@ -104,6 +109,82 @@ def test_real_rewrapped_replay_after_restart_preserves_first_receipt(context, tm
     assert again == first
     assert context.journal.events_for_receipt(first["idempotency_key"]) == original
     assert context.spool.get(first["rumor_id"])["original_wrap"] == b"encrypted fixture"
+
+
+def test_disposable_journal_and_sqlite_pair_restore_preserves_replay(
+    context, ephemeral_postgres, tmp_path,
+):
+    """Reopen a stopped-source recovery point without duplicating a confirmation."""
+    first = ingest(context)
+    original_rows = context.journal.events_for_receipt(first['idempotency_key'])
+    original_message = rumor(context)
+    original_wrap = context.spool.get(first['rumor_id'])['original_wrap']
+    state = tmp_path / 'private'
+    outbox = messaging.Outbox(state)
+    try:
+        outbox.queue('ack:' + first['rumor_id'],
+                     messaging.acknowledgement(context.spool.get(first['rumor_id']),
+                                               first, context.policy.recipient),
+                     context.policy.recipient, context.policy.prompts[0].operator)
+        assert len(outbox.rows()) == 2
+    finally:
+        outbox.close()
+    context.spool.close()  # No state writer remains during the coordinated copy.
+    snapshot = tmp_path / 'paired-snapshot'
+    backup.snapshot_state(state, snapshot)
+    assert backup.verify_snapshot(snapshot)['verified_files'] == 2
+
+    archive = tmp_path / 'journal.dump'
+    archive.touch(mode=0o600)
+    admin = psycopg2.extensions.parse_dsn(ephemeral_postgres.admin_dsn)
+    environment = {key: value for key, value in os.environ.items()
+                   if key in {'PATH', 'LANG', 'LC_ALL'}}
+    environment.update(PGHOST=admin['host'], PGPORT=admin['port'],
+                       PGUSER=admin['user'], PGPASSWORD=admin['password'],
+                       PGDATABASE=admin['dbname'])
+    dumped = subprocess.run(['pg_dump', '-Fc', '--no-owner', '-f', str(archive)],
+                            env=environment, capture_output=True, check=False)
+    assert dumped.returncode == 0, 'disposable journal dump failed'
+    restored_name = 'thermal_recovery_' + uuid4().hex[:12]
+    restored_runtime_dsn = ephemeral_postgres.runtime_dsn.rsplit('/', 1)[0] + '/' + restored_name
+    connection = psycopg2.connect(ephemeral_postgres.admin_dsn)
+    try:
+        connection.autocommit = True
+        with connection.cursor() as cursor:
+            cursor.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(restored_name)))
+    finally:
+        connection.close()
+    try:
+        restored = subprocess.run(['pg_restore', '--no-owner', '--exit-on-error',
+                                   '-d', restored_name, str(archive)],
+                                  env=environment, capture_output=True, check=False)
+        assert restored.returncode == 0, 'disposable journal restore failed'
+        restored_journal = ActionJournal(restored_runtime_dsn)
+        assert restored_journal.events_for_receipt(first['idempotency_key']) == original_rows
+        restored_spool = confirmation.Spool(snapshot)
+        restored_outbox = messaging.Outbox(snapshot)
+        try:
+            assert len(restored_outbox.rows()) == 2
+            replayed = confirmation.ingest(
+                original_wrap, context.policy, restored_spool,
+                AuthenticatedRumorFixture(original_message),
+                confirmation.JournalSink(restored_journal, ActionEvent),
+                now=NOW + timedelta(days=3))
+            assert replayed == first
+            assert restored_journal.events_for_receipt(first['idempotency_key']) == original_rows
+            assert len(restored_outbox.rows()) == 2
+        finally:
+            restored_outbox.close()
+            restored_spool.close()
+    finally:
+        connection = psycopg2.connect(ephemeral_postgres.admin_dsn)
+        try:
+            connection.autocommit = True
+            with connection.cursor() as cursor:
+                cursor.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(
+                    sql.Identifier(restored_name)))
+        finally:
+            connection.close()
 
 
 def test_real_commit_then_readback_failure_retries_without_duplicate(context, monkeypatch):
