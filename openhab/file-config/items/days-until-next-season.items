@@ -1,0 +1,2 @@
+// Prepared display-only definition. Do not install alongside the managed Item.
+String DaysUntilNextSeason "Days Until Next Season" <calendar>

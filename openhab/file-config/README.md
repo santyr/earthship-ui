@@ -65,6 +65,10 @@ state-change output passed at 14:51 MDT September 29 with matching Astro
 source, file-rule event and JDBC history. A later restart check remains open;
 retain the private managed-rule backup until it passes. See the
 [rule cutover receipt](../../docs/operations/2026-09-29-season-countdown-rule-file-candidate.md).
+The separate `DaysUntilNextSeason` Item remains managed. Its staged
+`items/days-until-next-season.items` definition passed isolated provider and
+JDBC/rollback/restart checks but is not installed or declared file-owned; see
+the [Item candidate](../../docs/operations/2026-09-29-season-countdown-item-candidate.md).
 `automation/js/sky-condition-calculator.js` is a **staged, uninstalled**
 candidate. The initially successful live file handoff was rolled back after
 `SkyCondition` was identified as a greywater control input. The original
