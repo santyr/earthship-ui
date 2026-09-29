@@ -212,3 +212,14 @@ were made independent of today's PV/rain cutover dates rather than changing
 their production behavior. A real completed source day, restricted reader
 grant, observed fault/recovery chain and release review remain prerequisites
 before any candidate-to-production scoring cutover.
+
+At 00:42:33 MDT the same impossible 121.358025-inch source value recurred.
+The live collector reported two jumps, two invalid packets, zero drops and a
+valid unchanged 102.7497945-inch accepted counter. In Item 657 history,
+00:42:28 was valid with latch counts 1/1 and 00:42:58 was also valid at the
+same counter with latch counts 2/2: this rejected packet occurred *between*
+persistence polls, unlike the explicit invalid row at 00:22. Both naturally
+observed shapes therefore exist. Repeated faults also mean the candidate's
+16-incident daily ceiling may refuse this source even if each incident is
+locally recoverable; that is deliberate until the underlying repeated source
+anomaly is understood, not a reason to silently raise the ceiling.
