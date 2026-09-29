@@ -75,6 +75,11 @@ file-owned in `automation/js/temperature-highlow-24h.js` after exact
 consumer review, isolated provider/rollback rehearsal and guarded live
 handoff. Its natural 06:00 writer run passed; a later restart check remains open; see
 the [extrema rule receipt](../../docs/operations/2026-09-29-temperature-extrema-rule-file-cutover.md).
+The Bitcoin 24-hour percentage display rule is also provisionally file-owned
+at `automation/js/bitcoin-24h-change.js`. Its 06:22:44 natural price update
+and JDBC history gate passed; a later restart check remains. The one-time
+handoff gate is re-locked and its private managed-rule backup is retained; see
+the [Bitcoin rule receipt](../../docs/operations/2026-09-29-bitcoin-change-rule-file-candidate.md).
 
 ## Staged migration and rollback
 

@@ -109,7 +109,7 @@ RULES = {
 }
 
 RULE = RULES['season'].uid  # Historical import compatibility for focused tests.
-RELEASE_READY = {'season': True, 'sky': False, 'extrema': True, 'bitcoin': True}
+RELEASE_READY = {'season': True, 'sky': False, 'extrema': True, 'bitcoin': False}
 # SkyCondition gates greywater eligibility; its cutover remains held.
 BACKUP_ROOT = Path('/home/sat/.local/state')
 FIELDS = ('uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')

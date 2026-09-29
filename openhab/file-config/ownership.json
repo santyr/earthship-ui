@@ -525,6 +525,15 @@
       "source": "automation/js/temperature-highlow-24h.js",
       "destination": "/etc/openhab/automation/js/temperature-highlow-24h.js",
       "state_writer": "IndoorTemp_24h_Low, IndoorTemp_24h_High, OutdoorTemp_24h_Low, OutdoorTemp_24h_High"
+    },
+    {
+      "kind": "rule",
+      "id": "hex_btc_24h_change",
+      "provider": "file",
+      "migration": "provisional",
+      "source": "automation/js/bitcoin-24h-change.js",
+      "destination": "/etc/openhab/automation/js/bitcoin-24h-change.js",
+      "state_writer": "BTC_Price_24h_PercentChange"
     }
   ]
 }

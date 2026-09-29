@@ -31,3 +31,28 @@ and an independent 24-hour carry/value check. Keep ownership managed until
 that receipt, and keep the private backup until later restart verification.
 No OpenHAB restart, test price, synthetic update, or protected control change
 is authorized by this candidate.
+
+## Guarded live handoff and natural writer — September 29
+
+After the exact read-only preflight passed, the reviewed release flag was
+briefly opened in commit `2c60247` and the guarded adapter saved the managed
+rule privately at `/home/sat/.local/state/bitcoin-rule-fzvzhmq5/managed-rule.json`.
+It withdrew the managed provider, installed the exact Git file (SHA-256
+`41893bdbd9eeefb60fab2ffa5bbe12c49ebc1c0f09e91176d285c02d9d719391`),
+and found one file-owned `IDLE/NONE` rule with the original UID and trigger.
+No OpenHAB restart or price-writer pause occurred.
+
+At 06:22:44 MDT the next natural Exec price update posted 84,187, followed
+four milliseconds later by a file-attributed 24-hour change of
+1.0284411376455058%. The calculation matches the held 83,330 price returned
+by OpenHAB's persistence extension: `(84187-83330)/83330*100`. Read-only
+JDBC readback showed seven percentage rows from 06:22:14 through 06:25:14,
+crossing the provider handoff without loss of the existing Item history.
+The exact later prior-day 06:22:44.024 sample was 83,321, but both the old
+DSL and new JS paths selected the preceding 83,330 sample at this same-second
+cutoff. This preserves the live OpenHAB `persistedState` behavior; it does
+**not** establish sub-second 24-hour precision. The file rule continued to
+produce naturally changed values through 06:25:14, and OpenHAB stayed active.
+
+Ownership is `file`/`provisional` pending a later restart check. The private
+managed backup remains; the one-time Bitcoin release flag was re-locked.

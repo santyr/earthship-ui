@@ -71,10 +71,13 @@ The natural 06:00 timer posted all four outputs, including a changed outdoor
 low attributed to the file script. Ownership remains provisional pending a
 later restart check.
 The [Bitcoin 24-hour display rule](2026-09-29-bitcoin-change-rule-file-candidate.md)
-is staged as a same-UID file candidate. Its exact managed baseline, output
-consumers, calculation parity, networkless provider/rollback and ten guarded
-handoff tests passed. The live rule remains managed and the release gate is
-off pending an attended natural-price handoff/verification.
+is now the sole file provider after exact baseline, consumer, calculation,
+isolated rollback and ten guarded handoff checks. A natural 06:22:44 price
+poll produced a file-attributed percentage that matches OpenHAB's held
+persisted price; JDBC percentage history continued through the handoff.
+The percentage preserves OpenHAB's observed one-sample same-second carry
+behavior rather than claiming sub-second precision. Ownership remains
+provisional until a later restart check; the one-time release gate is off.
 
 ## Standing efficiency requirement — September 26, 2026
 
