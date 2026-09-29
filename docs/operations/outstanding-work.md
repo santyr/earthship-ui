@@ -26,6 +26,13 @@ zero issues with 383 managed/59 file-owned Items, 246/21 links, 37/3 rules,
 and 81/4 Things. The previously flagged BMS runtime evidence Item now has
 an exact file-ownership declaration; this inventory does not qualify its
 estimator output as source-fresh or migrate remaining managed objects.
+The first origin-paired outdoor-temperature audit in the
+[tuning review](2026-09-29-prediction-learning-review.md) found that learned
+daily correction materially improves six fully qualified high/low days,
+while corrected next-day hourly errors remain larger and a newer same-day
+issue was worse on September 28. This is evidence to investigate forecast
+revision/sky regimes, not a release of a new bias or a claim that later jobs
+are always better.
 
 Evidence inventory started 2026-09-05. This is a completion tracker, not an
 implementation approval or a claim that historical tasks are finished.

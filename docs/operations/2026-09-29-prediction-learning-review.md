@@ -179,6 +179,26 @@ week but fails cloudy, no-full, cold-season or missing-sensor days is not a
 qualified production improvement. These rows are open tuning work, not
 claims that every comparison or fix has already been completed.
 
+### First as-issued outdoor-temperature comparison
+
+Six fully covered September 20–28 local days had matched 06:40 daily issues.
+The corrected daily high/low MAE was 0.875/1.689°F versus reconstructed
+same-origin raw 3.643/8.050°F. Three other days were withheld because source
+receipt gaps prevented complete-day qualification; no sparse numeric extrema
+were substituted. These results support retaining the learned daily
+correction, but are not a seasonal calibration result.
+
+For next-day hourly issues on September 26–28, 72/72 target hours had strict
+source-bound outcome receipts and retained raw capture records. Corrected
+MAE was 3.273°F versus raw 4.918°F. The Sep 27 corrected next-day issue was
+warm-biased by 3.831°F. On identical 07:00–23:00 target hours, a newer 06:40
+same-day issue was not reliably better: prior-day versus same-day MAE was
+3.371/2.928°F on Sep 26, 2.654/2.685°F on Sep 27, and 2.133/5.779°F on
+Sep 28. The Sep 28 same-day issue was warm-biased by 5.671°F. Do not infer
+that simply moving or rerunning the job later improves hourly weather skill;
+investigate forecast revisions and sky/front regimes on a larger chronological
+sample before changing the correction policy.
+
 The Energy PV card now reads the immutable current-day prediction receipt,
 not the 10-day payload whose weather refresh can carry the frozen morning PV
 estimate. Before the receipt it says the morning forecast is unavailable;
