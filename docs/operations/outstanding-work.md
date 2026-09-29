@@ -21,6 +21,17 @@ production preflight passed with both pumps OFF, and five offline guard tests
 passed. Live replacement still needs separate attended approval and post-change
 rule, pump and natural-cycle verification.
 
+September 29 file-first census: the secret-free live inventory reports 383
+managed and 56 non-managed Items, 81/4 Things, 39/0 rules, 246/21 links, one
+non-managed persistence configuration, and zero structural or manifest issues.
+The 16 unlinked/ungrouped/unmentioned managed Items are all Lightning Goats
+canary or held-fixture surfaces, not bulk Earthship migration candidates. A
+separate structural read of three managed display rules found
+`update_days_until_season` is a single-trigger, 460-byte credential-free
+script, while sky condition and rolling extrema are larger multi-input
+observers. The next migration slice needs an exact provider/UID/rollback
+qualification; this census alone does not authorize moving any rule.
+
 ## Standing efficiency requirement — September 26, 2026
 
 Efficiency is part of the Earthship UI/OpenHAB goal across algorithms, data
