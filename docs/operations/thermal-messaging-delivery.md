@@ -437,6 +437,14 @@ The current `nak bunker` template has no separately configured transport key.
 Resolve which bunker identity Sat's client expects before installing or
 activating the service. This does not alter the verified operator inbox route.
 
+The operator subsequently confirmed Sat's client expects the verified
+operator identity as remote signer. The exact public allowlist, launcher and
+log-safe unit were installed and independently compared to source; systemd
+reported the unit loaded, inactive and disabled. The service now discards both
+output streams because `nak bunker` can print a connection secret and
+request/response details. An attended start and actual Sat-client challenge
+remain; no operator bunker or thermal collector is running at this checkpoint.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

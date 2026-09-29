@@ -23,6 +23,12 @@ differs from the verified operator identity; the current `nak` launcher has no
 separate transport-key setting. Bunker identity and client compatibility must
 be resolved before a live signer trial; client-key selection alone does not
 release the thermal collector.
+The operator later chose the verified operator identity for both NIP-46
+transport and user signing. The exact Sat allowlist, launcher and log-safe
+unit are now staged on the host with root ownership; independent readback
+found a loaded, disabled, inactive service. Starting it requires an attended
+sudo command from the operator, then steady-state and real-client verification.
+No live signer or thermal collector is active at this checkpoint.
 
 September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
 trial completed two short prompts in under four seconds each, establishing

@@ -14,9 +14,11 @@ installed verifier reported that the credential derives to the existing DM
 recipient; the verifier's installed bytes and the qualified root-owned `nak`
 both matched their reviewed source/digest. The operator selected Sat's public
 client key `5302cd2bfe2dcc76c5a9abcba74e6c5f1a07444b35c25e0cd74bac5b453fb5f6`
-for the Earthship signer. It is recorded in `earthship-operator.env.example`,
-but no client was allowlisted on the host and no signer unit was installed or
-started. No thermal listener or question should be enabled because this
+for the Earthship signer. It is recorded in `earthship-operator.env.example`.
+The operator then staged that exact public allowlist, launcher and log-safe
+service template as root-owned files. Independent readback found all three
+byte-identical to this checkout, with the unit loaded, inactive and disabled.
+No thermal listener or question should be enabled merely because this
 template or credential exists.
 The operator subsequently named `npub1v60thnx0gz0wq3n6xdnq46y069l9x70xgmjp6lprdl6fv0eux6mqgjj4rp`
 as the intended DM recipient. A read-only public-key comparison confirmed
@@ -41,10 +43,10 @@ is neither Sat's selected client key nor the verified operator user pubkey
 `669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6`.
 NIP-46 permits a separate remote-signer transport identity, but this `nak`
 template uses the credential supplied through `NOSTR_SECRET_KEY` for its
-bunker identity. Do not start the instance or offer a bunker URI until the
-operator chooses whether to use the verified operator key for both roles or
-qualifies a separate transport-key implementation. Sat's client allowlist
-selection does not resolve that identity choice. The installed
+bunker identity. The operator explicitly chose the verified original operator
+identity for both roles. The old `4bf9...edde` key must not be used as a
+substitute. Sat's client still needs an end-to-end possession and signer trial.
+The installed
 `nak bunker --authorized-keys` option describes clients for which it will
 always respond, not a narrow permission for inbox announcements. Treat a
 selected client as able to request signing and decryption until a separate
@@ -111,14 +113,10 @@ the block stops instead of overwriting another project or an active service.
 
 Any executed `cmp` should exit successfully without output; the last command
 should show `UnitFileState=disabled` and `ActiveState=inactive`. Stop and report any
-different result. Do **not** run `systemctl start` or `enable` yet. The
-verified operator credential would make this `nak` service's remote-signer
-pubkey `669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6`,
-not the old password-store bunker pubkey `4bf9...edde`. First establish which
-identity Sat's client actually expects, and verify that the app controls the
-selected `5302...b5f6` client key. If it expects the old bunker identity, this
-unit is not a drop-in replacement. A later attended start and end-to-end
-client trial need their own reviewed steps.
+different result. The operator has confirmed that Sat's client expects the
+verified operator remote-signer pubkey
+`669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6`,
+not the old password-store bunker pubkey `4bf9...edde`.
 
 The revised unit sends both `nak bunker` output streams to `/dev/null`:
 upstream may print a one-time bunker connection secret and request/response
@@ -126,6 +124,32 @@ bodies. Never start an older unit that journals either stream, and do not
 capture bunker output in tmux, a shell transcript or a support log. Rely on
 systemd state and an actual client challenge for verification; discarded
 output is intentional.
+
+### Attended start after the identity choice
+
+The operator has selected the verified original operator identity for both
+NIP-46 transport and signing. The following starts this instance only; it
+does **not** enable it at boot, start the thermal collector, publish a question
+or change OpenHAB controls. Run it while present, after checking the service
+is still inactive and the three installed files above still match source.
+This assistant's shell cannot satisfy `sudo`'s password prompt.
+
+```sh
+sudo /usr/local/libexec/nostr-bunker/verify-earthship-operator-credential
+sudo systemctl start nostr-bunker@earthship-operator.service
+systemctl show -p ActiveState -p SubState -p MainPID -p NRestarts -p UnitFileState nostr-bunker@earthship-operator.service
+```
+
+Report only those state fields, not `journalctl`, a QR code or a bunker URL.
+Check the same state again after a minute: it should remain `active/running`
+with no restart increase. If it fails, flaps, or presents an unexpected
+identity, stop it immediately with
+`sudo systemctl stop nostr-bunker@earthship-operator.service` and report the
+status fields. A healthy service is not proof that Sat's client possesses
+`5302...b5f6`; perform a separate NIP-46 `get_public_key`/signed challenge
+through the approved client before considering a persistent enable or any
+thermal confirmation release. Do not inspect or share `nak`'s suppressed
+request/response output.
 
 ### Approved operator inbox announcement
 
