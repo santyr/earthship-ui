@@ -418,6 +418,17 @@ revoked SELECT and an oversized raw row. The fixture removed its owned
 container and volume; production PostgreSQL, Item registry, receiver and
 forecast worker were not changed. This closes the SQL/privilege-failure
 rehearsal, not the production collection or complete natural-day gate.
+An isolated, network-none OpenHAB 5.2.1 file-provider boot subsequently
+loaded byte-exact rain Thing/Item files from read-only Git mounts into
+disposable tmpfs. The Item REST DTO returned `editable=false`, correct String
+type and label; both DSL model loads appeared in the log without a rain parse
+warning. Thing and link admin REST endpoints returned 401 without a test
+admin account, so their registry definitions and HTTP channel operation are
+not yet fully verified. The first disposable attempt used `docker cp`, which
+Docker rejected against a read-only root; it was stopped and replaced by the
+read-only bind-mount rehearsal. Both owned containers and volumes were removed.
+No production weather/OpenHAB process or configuration changed. Retain the
+provider/link and natural HTTP/JDBC gates before declaring live collection.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
