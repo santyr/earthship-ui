@@ -307,6 +307,16 @@ complete local day is September 29, assessable after its midnight on
 September 30. Actual Thing/network fault and full-JVM restart behavior,
 longer natural continuity, temperature-output parity over changes, and
 consumer release remain open.
+Solar_PV commit `bb18263` adds a default-off Energy daily-quality consumer for
+the exact source-bound BMS auxiliary receipt. It requires an explicit policy
+and restricted reader configuration, rejects partial option sets and
+incomplete days, and maps the native temperature receipt to the derived
+temperature metric without changing its numeric series. All 877 analytics
+tests passed. No scheduled-unit flag or production quality publication was
+enabled. Before activation, verify the requested `public.item0658` SELECT
+grant, a full September 29 local day after midnight September 30, natural
+continuity and derived-temperature parity across actual changes. Keep numeric
+value authorization separate from this evidence-quality score.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
