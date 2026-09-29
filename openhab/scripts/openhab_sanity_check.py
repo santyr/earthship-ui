@@ -13,9 +13,9 @@ Checks:
   3. Value sanity ranges on mission-critical items
   4. Algorithm cross-verification: BMS_Temperature recomputed from the raw
      register (x0.01 - 273 C -> F), BMS_SOC recomputed from raw x 10^sf
-  5. Runtime estimator consistency (basis vs battery current; smoothed > 0
-     whenever basis says an estimate is active)
-  6. Freshness: BMS_SOC_LastUpdate, Schneider stamps
+  5. Runtime estimator consistency (basis vs source-bound battery current;
+     smoothed > 0 whenever basis says an estimate is active)
+  6. Freshness: atomic BMS SoC evidence and Schneider stamps
 
 Alert prefix is a magnifier so DMs are distinguishable from the watchdog's.
 State: ~/.local/state/openhab-sanity/state.json
@@ -163,6 +163,48 @@ def atomic_soc_freshness(raw, now):
         return problem
 
 
+def qualified_runtime_current(raw, now):
+    """Return source-observed DC amps, never a held change-only Item value."""
+    try:
+        if not isinstance(raw, str) or len(raw) > 8192:
+            return None
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError('duplicate runtime evidence field')
+                result[key] = value
+            return result
+        row = json.loads(raw, object_pairs_hook=unique)
+        if (not isinstance(row, dict) or row.get('version') != 1
+                or type(row.get('version')) is not int
+                or row.get('basis') != 'native_runtime_inputs_v1'
+                or not isinstance(row.get('streamEpoch'), str)
+                or str(UUID(row['streamEpoch'])) != row['streamEpoch']
+                or type(row.get('sequence')) is not int or row['sequence'] <= 0):
+            return None
+        recorded = row.get('recordedAt')
+        now_ms = int(now * 1000)
+        if (type(recorded) is not int or not 0 < recorded <= now_ms
+                or now_ms - recorded > 180000):
+            return None
+        fields = row.get('fields')
+        current = fields.get('battery.dc_current_ca') if isinstance(fields, dict) else None
+        if not isinstance(current, dict) or current.get('status') != 'valid' \
+                or current.get('reason') != 'ok':
+            return None
+        observed, until, centiamps = (current.get(k) for k in
+                                     ('observedAt', 'validUntil', 'value'))
+        if (any(type(value) is not int for value in (observed, until, centiamps))
+                or not 0 < observed <= recorded
+                or until != observed + 90000 or now_ms >= until
+                or not -32767 <= centiamps <= 32767):
+            return None
+        return centiamps / 100
+    except (TypeError, ValueError, OverflowError, KeyError):
+        return None
+
+
 def runtime_checks(st, now, snapshot, problems, unresolved):
     basis = str(snapshot.get("BMS_Runtime_Basis", {}).get("state") or "")
     active_estimate = basis in ("bms", "now", "evening")
@@ -180,7 +222,8 @@ def runtime_checks(st, now, snapshot, problems, unresolved):
     if runtime_bad:
         unresolved.add("algo:basis")
 
-    cur = finite_num(snapshot.get("DCData_Current", {}).get("state"))
+    cur = qualified_runtime_current(
+        snapshot.get("BMS_Runtime_Input_Evidence_JSON", {}).get("state"), now)
     raw_episode = snapshot.get("BMS_Runtime_Basis", {}).get("lastStateChange")
     # OpenHAB bulk DTO lastStateChange is epoch milliseconds. Do not substitute
     # receipt time or lastStateUpdate for a missing transition identity.
@@ -192,7 +235,7 @@ def runtime_checks(st, now, snapshot, problems, unresolved):
     if not basis_available:
         missing.append("BMS_Runtime_Basis unavailable")
     if cur is None:
-        missing.append("DCData_Current unavailable or non-finite")
+        missing.append("source-bound BMS DC current unavailable or stale")
     if basis == "bms" and episode is None:
         missing.append("BMS_Runtime_Basis.lastStateChange unavailable or invalid")
     if missing:

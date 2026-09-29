@@ -62,12 +62,31 @@ class CheckerTests(unittest.TestCase):
         row.update(changes)
         return json.dumps(row)
 
+    def runtime_evidence(self, at=T, amps=16.85, **changes):
+        stamp = int(at * 1000)
+        value = int(round(amps * 100)) if amps is not None else None
+        row = dict(version=1, basis='native_runtime_inputs_v1',
+                   streamEpoch='4bb09d80-9b62-41ed-87a5-3fcc5164ac1e',
+                   sequence=1, recordedAt=stamp,
+                   fields={'battery.dc_current_ca': dict(
+                       status='valid' if value is not None else 'unavailable',
+                       reason='ok' if value is not None else 'input_stale',
+                       observedAt=stamp, validUntil=stamp+90000, value=value)})
+        row.update(changes)
+        return json.dumps(row)
+
     def tick(self, now=T, snapshot=None, fail=None):
         rows = self.snapshot() if snapshot is None else snapshot
         if not any(row['name'] == 'BMS_SOC_Evidence_JSON' for row in rows):
             rows = [*rows, dict(name='BMS_SOC_Evidence_JSON',
                                 state=self.evidence(now),
                                 lastStateChange=(now-60)*1000)]
+        if not any(row['name'] == 'BMS_Runtime_Input_Evidence_JSON' for row in rows):
+            held = next((row.get('state') for row in rows
+                         if row['name'] == 'DCData_Current'), None)
+            rows = [*rows, dict(name='BMS_Runtime_Input_Evidence_JSON',
+                                state=self.runtime_evidence(now, self.c.finite_num(held)),
+                                lastStateChange=now*1000)]
         def get(path, timeout=10):
             self.calls.append(path)
             if fail == "probe" and path == "/items/BMS_SOC":
@@ -176,6 +195,34 @@ class CheckerTests(unittest.TestCase):
                 self.assertNotIn("pending_basis", st)
                 self.assertFalse(any("recovered [algo:basis]" in m for m in self.messages[count:]))
         self.assertEqual(self.tick(T + 1200)[1]["pending_basis"]["first"], T + 1200)
+
+    def test_runtime_basis_uses_source_receipt_not_opposite_held_current(self):
+        rows = self.snapshot(DCData_Current='-3')
+        rows.append(dict(name='BMS_Runtime_Input_Evidence_JSON',
+                         state=self.runtime_evidence(T, 16.85),
+                         lastStateChange=T*1000))
+        self.tick(T, rows)
+        self.assertTrue(self.active(self.tick(T + 600,
+            [*self.snapshot(DCData_Current='-3'),
+             dict(name='BMS_Runtime_Input_Evidence_JSON',
+                  state=self.runtime_evidence(T + 600, 16.85),
+                  lastStateChange=(T + 600)*1000)])[1], 'algo:basis'))
+
+    def test_runtime_current_rejects_stale_and_forged_receipts(self):
+        bad = [
+            self.runtime_evidence(T - 100),
+            self.runtime_evidence(T, basis='wrong'),
+            self.runtime_evidence(T, recordedAt=int(T*1000)+1),
+            self.runtime_evidence(T).replace('"sequence": 1', '"sequence": 1, "sequence": 2'),
+        ]
+        for evidence in bad:
+            with self.subTest(evidence=evidence):
+                rows = self.snapshot(DCData_Current='16.85')
+                rows.append(dict(name='BMS_Runtime_Input_Evidence_JSON',
+                                 state=evidence, lastStateChange=T*1000))
+                st = self.tick(T, rows)[1]
+                self.assertTrue(self.active(st, 'data:runtime'))
+                self.assertNotIn('pending_basis', st)
 
     def test_missing_and_invalid_identity_are_diagnostic(self):
         for identity in (None, 0, -1, "bad", float("nan"), float("inf"), (T + 1) * 1000):

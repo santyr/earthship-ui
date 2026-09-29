@@ -245,3 +245,44 @@ References: https://www.openhab.org/docs/ecosystem/alexa/ ,
 https://www.openhab.org/docs/ecosystem/google-assistant/ ,
 https://www.openhab.org/docs/apps/android , and
 https://digprjsurvey.amazon.com/csad/help/node/201602230 .
+
+September 29 input-path refinement (research, not a provider decision): prefer
+a persistent, labelled **Voice command** push-to-talk button in the Earthship
+UI left navigation on the Lenovo. Show a clear listening indicator and the
+recognized words and target before submission; an uncertain shade name,
+percentage or direction must be rejected rather than guessed. The browser
+microphone/recognizer and its permission model must be tested on the actual
+tablet. The OpenHAB Android app's native voice entry is a possible alternative,
+but do not assume its voice button can be embedded in this separate web UI.
+Neither choice requires a custom speech recognizer; the web-button path may
+still need a small UI-to-OpenHAB command integration. Keep voice input distinct
+from authorization to move a motor.
+The current `Shell.svelte` uses a 60 CSS-pixel left rail above 900 CSS pixels,
+including the 1340×800 Lenovo reference size, and bottom tabs below that
+breakpoint. Treat voice as a separate action in the rail, not a seventh page;
+choose an accessible header or equivalent action for the bottom-tab layout so
+it does not squeeze six existing destinations. Verify touch size and placement
+in both layouts before implementation.
+
+Physical Dooya remotes are a **separate direct control path**, outside OpenHAB
+and the Earthship UI command owner. Software cannot authorize, delay, or block
+their commands. Where the adapter receives their resulting motor Reports, those
+reports must update the same per-shade position history and thermal-learning
+features, even when OpenHAB issued no command. Attribute a remote origin only
+if the adapter actually exposes one; otherwise record `external_or_unknown`,
+not an invented person or control source. Reconcile observed remote movement
+with pending UI/voice/automation requests and avoid automation immediately
+fighting a manual change; the holdoff policy is a commissioning decision. If
+the adapter cannot observe a remote-triggered movement, mark position/history
+unqualified until a later actual motor report instead of assuming state.
+
+The networked NVIDIA SHIELD is another candidate voice entry point. NVIDIA
+documents Google Assistant smart-home control via the SHIELD remote's voice
+button; hands-free activation depends on specific controller hardware, so the
+actual device must be checked. An OpenHAB Google Assistant endpoint could
+receive individual/zone/all commands from it, subject to the same command-owner
+and percent-direction tests. This path uses cloud linkage and should remain an
+option pending privacy and reliability review, not the assumed architecture.
+References: https://support-shield.nvidia.com/shield-tv-user-guide/Google_Assistant_on_SHIELD_TV.htm ,
+https://support-shield.nvidia.com/shield-tv-user-guide/SHIELD_Remote-atv.htm ,
+and https://www.openhab.org/docs/ecosystem/google-assistant/ .

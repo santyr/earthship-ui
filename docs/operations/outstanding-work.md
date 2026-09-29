@@ -3502,6 +3502,19 @@ discharge may be very long. Before cutover, qualify the estimator against
 natural source cadence and the old-versus-new output over representative dawn,
 dusk and night periods; update sanity checks to use qualified current; rehearse
 fault/recovery and protected-rule rollback; then perform attended readback.
+The external `openhab_sanity_check.py` candidate now reads the qualified native
+DC-current receipt for its `bms`-while-charging check, rather than trusting the
+held `DCData_Current` Item. Its validator rejects wrong-stream, future, stale,
+duplicate-key and invalid-field evidence; unit tests cover contradictory held
+and source values plus diagnostic behavior when the receipt is unavailable.
+This does not change the estimator's still-live held-input implementation.
+The 18 checker tests passed, a natural live receipt validated as -1.02 A, and
+the updated script was installed atomically while the one-shot checker was
+idle. Repository and installed SHA-256 both read
+`b9f20a56148ddb7b0f6c9113f2fef5f0db78428002d0278fa666a62deee1f6f0`.
+The 08:21:25 MDT natural timer run reported `OK (all checks passed)`; no manual
+notifier invocation or control command was issued. The temporary rollback copy
+was removed after this result; the prior source remains in Git history.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
