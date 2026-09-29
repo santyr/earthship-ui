@@ -200,6 +200,22 @@ Its aggregate `degraded` status retained only the pre-existing
 `daily_source_quality_not_ok` reason. Separate source-bound remaining-Ah and
 temperature receipts are still required; this change does not qualify those
 two DevicePresent-based values.
+Read-only September 28 native-source preflight resolved the exact direct
+OpenHAB links: `BMS_Capacity_Remaining_Ah` is
+`modbus:data:discoverBms190:bmsMain:capRemainAh:number` (uint32 register 88),
+and `BMS_Temperature_Raw` is
+`modbus:data:discoverBms190:bmsMain:tempRaw:number` (uint32 register 74).
+Both Things and their shared Discover BMS poller are ONLINE; the poller is
+configured for 30-second refresh and each data Thing for 60-second unchanged
+updates. `BMS_Temperature` is not directly linked to either native channel.
+These sources are distinct from the Schneider SunSpec SoC receipt, so extending
+the SoC receipt would conflate source provenance. The next candidate is an
+additive, non-actuating two-field Discover BMS receipt that verifies original
+channel event source, bounds each field's observation time and expiry,
+persists restart/fault barriers, and independently validates its history
+before Energy quality uses it. The actual event source and temperature
+conversion/paired-output contract remain to be qualified; no live BMS
+resource or quality policy was changed in this preflight.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
