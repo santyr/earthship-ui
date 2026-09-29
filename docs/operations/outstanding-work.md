@@ -3607,6 +3607,19 @@ source or an estimator release. Three focused and 1,893 full JS tests pass.
 Commands: `node openhab/scripts/bms_night_load_audit.mjs
 2026-09-28T02:30:00Z 2026-09-28T12:00:00Z` and the same command with
 September 29 UTC dates.
+An epoch-aware read-only cadence check of the native BMS auxiliary receipts
+from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
+median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
+seconds, with 12 intervals exceeding its 120-second original-event expiry.
+Native temperature was similar: 570 intervals, median 60.418 seconds,
+95th percentile 64.407 seconds, maximum 125.935 seconds and 13 above 120.
+Both channels therefore occasionally skip an expected roughly 60-second
+renewal; this is not a change-only JDBC-row-age inference. Two sampled
+runtime-replay off ticks landed roughly two seconds after the actual
+remaining-Ah expiry. A coordinated TTL/schema/consumer change could reduce
+brief display dropouts, but relaxing freshness without a full-day/fault and
+restart analysis would conflate a missed poll with a valid measurement.
+No producer TTL, Energy quality, live estimator or control rule was changed.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
