@@ -196,3 +196,19 @@ prove bounded valid coverage on both sides, unchanged or monotone accepted
 counter, exact paired jump/invalid increments, no drops/restarts/other invalid
 reasons, and no midnight ambiguity. Do not enable it merely because the live
 weather app kept its legacy daily accumulator stable.
+
+A source-only, default-off candidate implementation now lives in
+`openhab/scripts/weather_rain_day_recovery.py`. It preserves the original v1
+reader as production authority. The candidate accepts only exact
+`counter_jump` quarantines (including jumps latched between persistence
+polls) whose invalid/jump counts advance together, whose preceding and
+following accepted counters are identical, whose valid receipts overlap in
+time, and whose incident is away from both midnight boundaries. It refuses
+other faults, resets, replay, a changed accepted counter, unbracketed jumps
+and more than 16 recovered incidents per day. It has no JDBC or forecast
+caller and does not alter live scoring. The adjacent rain and forecast test
+slice passed 159 tests with one optional skip; three older forecast tests
+were made independent of today's PV/rain cutover dates rather than changing
+their production behavior. A real completed source day, restricted reader
+grant, observed fault/recovery chain and release review remain prerequisites
+before any candidate-to-production scoring cutover.

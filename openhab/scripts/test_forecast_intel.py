@@ -832,6 +832,8 @@ def test_rain_scores_once_on_rerun_temps_never_double(monkeypatch, tmp_path):
     # Live failure mode: 06:40 run finds temps but the rain series is empty ->
     # the old whole-day marker locked precip out forever. Now a same-day re-run
     # scores rain exactly once while temps/pv/trough do NOT double-append.
+    # Keep this legacy retry test independent of the calendar's PV cutover.
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', date.max)
     ykey = (date.today() - timedelta(days=1)).isoformat()
     st = _scoring_state(ykey)
     data = {
@@ -1015,6 +1017,7 @@ def test_legacy_change_only_pv_can_score_but_never_calibrates(monkeypatch, tmp_p
 
 
 def test_zero_pv_day_skipped_with_log_not_division_error(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', date.max)
     ykey = (date.today() - timedelta(days=1)).isoformat()
     st = _scoring_state(ykey)
     data = {
@@ -1032,6 +1035,8 @@ def test_zero_pv_day_skipped_with_log_not_division_error(monkeypatch, tmp_path, 
 
 def test_put_failures_collected_not_fatal(monkeypatch, tmp_path):
     # openHAB flapping mid-run must not abort scoring or the state save.
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', date.max)
+    monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', date.max)
     ykey = (date.today() - timedelta(days=1)).isoformat()
     st = _scoring_state(ykey)
     data = {
