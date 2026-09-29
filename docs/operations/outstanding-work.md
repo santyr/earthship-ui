@@ -33,6 +33,11 @@ while corrected next-day hourly errors remain larger and a newer same-day
 issue was worse on September 28. This is evidence to investigate forecast
 revision/sky regimes, not a release of a new bias or a claim that later jobs
 are always better.
+The same tuning review now includes a current strict thermal publication
+audit. Exact captured-forcing verification required the installed v4 runtime
+(the source checkout validates v5). The mixed-revision 24-hour model still
+trails same-origin persistence, and today's artifact has only four mature
+one-hour low-confidence pairs. Shadow exit remains unsupported.
 
 Evidence inventory started 2026-09-05. This is a completion tracker, not an
 implementation approval or a claim that historical tasks are finished.

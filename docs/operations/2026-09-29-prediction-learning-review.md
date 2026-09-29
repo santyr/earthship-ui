@@ -205,3 +205,25 @@ estimate. Before the receipt it says the morning forecast is unavailable;
 after actual PV exceeds that issue, it says so rather than presenting an
 impossible `actual of predicted` comparison. The 10-day PV outlook remains
 visible. This presentation change does not recalibrate or revise PV kWh.
+
+### Current thermal shadow comparison
+
+The September 29 read-only published-shadow scorer was run with
+`--require-capture` and the **installed v4** runtime. The source checkout has
+v5 artifact validation; using it to verify older captured v4 artifacts fails
+schema validation, so the scorer must pin the runtime that produced them.
+Across 56 matured, exact-forcing, overlapping 24-hour publications since
+September 24, model MAE was 2.940°F versus 2.205°F same-origin persistence,
+with 82.14% coverage of its approximately 10.414°F-wide intervals. Five
+non-overlapping selected windows were 4.079°F versus 2.052°F, with 60%
+interval coverage. The selected outdoor forecast's paired MAE/bias was
+4.279/+3.161°F. These publications mix revisions and are not 56 independent
+days or an attribution of indoor error to weather alone.
+
+Today's accepted artifact `00611a5e...ef2cd5a` has four mature, captured
+one-hour publications: model MAE 1.130°F versus 0.810°F persistence; all
+remain low confidence, and no 24-hour target for this artifact has matured.
+Neither this small early sample nor the mixed-revision aggregate qualifies
+thermal advice for shadow exit. The next fit experiment should hold an
+artifact/revision fixed, evaluate exact forcing and confirmed action labels,
+and compare weather forcing versus physical-model residuals by regime.
