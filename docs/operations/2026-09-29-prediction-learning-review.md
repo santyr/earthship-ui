@@ -195,8 +195,21 @@ issue dates, stale SoC at issue, an incomplete or low-coverage night, and an
 outcome with the wrong bank-evidence source or window. It reports signed and
 absolute-error differences but no causal reward. This does not fabricate a
 September 29 outcome: the first natural pre-dusk issue and its following-day
-11:00 completed target are still pending, as is a qualified archive reader for
-repeated chronological comparisons.
+11:00 completed target are still pending.
+
+The complementary source-only history adapters now read only the two exact
+forecast-receipt Items through OpenHAB's bounded local JDBC persistence API
+and assess a completed night from `BMS_SOC_Evidence_JSON` under a dedicated
+read-only PostgreSQL snapshot. The issue reader preserves multiple morning
+origins and selects only the one explicitly linked by a single pre-dusk
+receipt; it never substitutes the current Item state. A live read returned
+one September 29 06:40:17 morning issue and zero pre-dusk issues before the
+eligible window. The restricted outcome reader independently re-assessed the
+completed September 28 night as measured at 70% SoC, 0.99991 coverage from
+886 original in-window receipts. No extra database grant or scheduled scoring
+job was needed for these read-only checks. The first natural same-day pair,
+its completed following-night outcome, and longer chronological/seasonal
+comparisons remain open.
 
 ### First as-issued outdoor-temperature comparison
 
