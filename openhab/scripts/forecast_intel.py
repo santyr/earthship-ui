@@ -1183,7 +1183,10 @@ def main():
                     # ---- Phase 2: calibrate ----
                     demand_y = yp.get("demand")
                     radsum_y = yp.get("radsum")
-                    if pv_basis == 'qualified_source_bound' and not PV_QUALIFIED_CALIBRATION_RELEASE:
+                    if pv_basis != 'qualified_source_bound':
+                        log.append('PV calibration withheld: source day not qualified')
+                        evidence[ykey]['calibration_status'] = 'unqualified_measurement'
+                    elif not PV_QUALIFIED_CALIBRATION_RELEASE:
                         log.append('PV calibration withheld: qualified release gate closed')
                         evidence[ykey]['calibration_status'] = 'release_gate_closed'
                     elif demand_y and radsum_y:

@@ -998,6 +998,22 @@ def test_qualified_pv_error_can_score_while_calibration_release_is_closed(monkey
     assert 'PV calibration withheld: qualified release gate closed' in (tmp_path / 'log').read_text()
 
 
+@pytest.mark.parametrize('release', [False, True])
+def test_legacy_change_only_pv_can_score_but_never_calibrates(monkeypatch, tmp_path, release):
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', date.max)
+    monkeypatch.setattr(fi, 'PV_QUALIFIED_CALIBRATION_RELEASE', release)
+    state = _scoring_state(yesterday.isoformat())
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [7.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data)
+    assert len(saved['pv_errors']) == 1
+    assert saved['k_res'] == 1.0 and saved['d_direct'] == 4.0
+    assert saved['pv_score_evidence'][yesterday.isoformat()]['calibration_status'] == (
+        'unqualified_measurement')
+    assert 'PV calibration withheld: source day not qualified' in (tmp_path / 'log').read_text()
+
+
 def test_zero_pv_day_skipped_with_log_not_division_error(monkeypatch, tmp_path, capsys):
     ykey = (date.today() - timedelta(days=1)).isoformat()
     st = _scoring_state(ykey)
