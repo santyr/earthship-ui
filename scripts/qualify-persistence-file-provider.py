@@ -58,6 +58,14 @@ def main(database=None, candidate=None, candidate_kind='ac'):
             if not bms_excluded:
                 expected['configs'][0]['items'].append('!BMS_Aux_Evidence_JSON')
                 expected['configs'][2]['items'].append('BMS_Aux_Evidence_JSON')
+        elif candidate_kind == 'bms-runtime-input':
+            excluded = '!BMS_Runtime_Input_Evidence_JSON' in selectors[0]
+            restore = 'BMS_Runtime_Input_Evidence_JSON' in selectors[2]
+            if excluded != restore:
+                raise RuntimeError('partial runtime input evidence persistence policy')
+            if not excluded:
+                expected['configs'][0]['items'].append('!BMS_Runtime_Input_Evidence_JSON')
+                expected['configs'][2]['items'].append('BMS_Runtime_Input_Evidence_JSON')
         else:
             raise ValueError('unknown candidate kind')
     if render(expected, allow_file=True).encode() != source:
@@ -218,12 +226,15 @@ if __name__ == '__main__':
                             help='Qualify the prepared PV evidence exclusion without live mutation')
     candidates.add_argument('--bms-aux-candidate', action='store_true',
                             help='Qualify the prepared BMS auxiliary exclusion without live mutation')
+    candidates.add_argument('--bms-runtime-input-candidate', action='store_true',
+                            help='Qualify the prepared BMS runtime input exclusion without live mutation')
     args = parser.parse_args()
     main(candidate=(ROOT / 'openhab/file-config/persistence/jdbc.persist'
-                    if args.bms_aux_candidate else
+                    if args.bms_aux_candidate or args.bms_runtime_input_candidate else
                     ROOT / 'openhab/file-config/persistence/jdbc.persist'
                     if args.pv_day_candidate else
                     ROOT / 'openhab/file-config/persistence/jdbc.persist'
                     if args.candidate else None),
-         candidate_kind='bms-aux' if args.bms_aux_candidate else
+         candidate_kind='bms-runtime-input' if args.bms_runtime_input_candidate else
+                        'bms-aux' if args.bms_aux_candidate else
                         'pv-day' if args.pv_day_candidate else 'ac')

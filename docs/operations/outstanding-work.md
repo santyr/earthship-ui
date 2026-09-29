@@ -3462,6 +3462,33 @@ high-rate trigger overhead. Then update `hex_bms_ttd_smooth` to consume these
 and the existing source-bound SoC, remaining-Ah, PV and inverter receipts;
 preserve the existing dwell/cache behavior and fault/recovery policy. No
 runtime-minute output is newly qualified by this source-only candidate.
+September 29 07:50 MDT observational release: the four-field candidate
+compiled and ran in networkless OpenHAB with all six triggers; its container
+was removed. A separate disposable OpenHAB/PostgreSQL rehearsal verified the
+exact JDBC exclusion, four file/managed provider boundaries (their collection
+gaps explicitly unqualified), ordinary change-only and forecast controls,
+one explicit runtime evidence write, and that row's recovery after an isolated
+JVM restart; both test containers and their data were removed. Guarded live
+preflight found both pumps OFF, BMS comms OK, all eight source Things ONLINE,
+the exact old JDBC SHA `fee8000e505b4a7b9af43e3a979f67475ba59c27efdd4a0029532dc07685fecc`,
+and no prior runtime Item/rule/history. The adapter saved its private rollback
+at `/home/sat/.local/state/openhab-config-migration/bms-runtime-input-p6s2t5cz/`,
+installed the candidate JDBC SHA `4b294cfb7b0e29cf97b5d52a854762d05d2a03260ad7c8603aee0f8772775737`
+and file-owned Item, then enabled only the observational six-trigger rule.
+All four fields renewed from natural events and sequence 6 matched one of six
+explicit JDBC rows; rule IDLE, both pumps OFF, and BMS comms OK on initial
+readback. The live `hex_bms_ttd_smooth` estimator itself remains unchanged;
+collector success is not a claim that its current runtime output is fresh.
+At the follow-up readback, nine persisted rows in one epoch had contiguous
+sequences 1–9, an initial four-field unavailable barrier, and all four fields
+valid in the latest natural receipt. Nine rows across roughly two minutes
+include startup barriers and are consistent with the 30-second healthy-write
+cap; the OpenHAB application log had no collector enqueue/publication warning.
+The rule remained IDLE, OpenHAB active, BMS comms OK, and both pumps OFF.
+`bms-runtime-estimator-evidence.js` is a separate, source-only strict-consumer
+candidate with outage/expiry tests. It must be qualified against natural live
+receipts and its overnight load-history policy before a guarded estimator
+replacement. Monitor collector write rate and source barriers after cutover.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

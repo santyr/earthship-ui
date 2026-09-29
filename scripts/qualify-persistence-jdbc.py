@@ -61,10 +61,11 @@ def same_number(left, right):
 
 class Database:
     def __init__(self, *, candidate_ac=False, candidate_pv=False,
-                 candidate_bms=False):
+                 candidate_bms=False, candidate_runtime=False):
         self.candidate_ac = candidate_ac or candidate_pv
         self.candidate_pv = candidate_pv
         self.candidate_bms = candidate_bms
+        self.candidate_runtime = candidate_runtime
 
     def __enter__(self):
         # Fail before allocating resources if the required cached code is absent.
@@ -86,6 +87,10 @@ class Database:
                 'org.openhab.core.persistence.extensions'])
         if self.candidate_bms:
             self.bms_probe = compile_probe('HexBmsAuxEvidenceProbe', [
+                'org.osgi.framework', 'org.openhab.core.items',
+                'org.openhab.core.persistence.extensions'])
+        if self.candidate_runtime:
+            self.runtime_probe = compile_probe('HexRuntimeInputEvidenceProbe', [
                 'org.osgi.framework', 'org.openhab.core.items',
                 'org.openhab.core.persistence.extensions'])
         self.forecast_target = (datetime.now(timezone.utc) + timedelta(days=7)).replace(microsecond=0)
@@ -134,6 +139,11 @@ class Database:
             files['openhab/conf/items/bms-aux-evidence.items'] = (
                 Path(__file__).resolve().parents[1]
                 / 'openhab/file-config/items/bms-aux-evidence.items').read_bytes()
+        if self.candidate_runtime:
+            files['tmp/hex-jdbc-runtime-input-probe.jar'] = self.runtime_probe
+            files['openhab/conf/items/bms-runtime-input-evidence.items'] = (
+                Path(__file__).resolve().parents[1]
+                / 'openhab/file-config/items/bms-runtime-input-evidence.items').read_bytes()
         archive = io.BytesIO()
         with tarfile.open(fileobj=archive, mode='w') as tar:
             for name, body in files.items():
@@ -247,6 +257,11 @@ class Database:
                                      'PUT', excluded, 'text/plain')
             if status != 202:
                 raise RuntimeError('isolated BMS auxiliary excluded update failed')
+        if self.candidate_runtime:
+            status, _ = self.request(cid, header, '/items/BMS_Runtime_Input_Evidence_JSON/state',
+                                     'PUT', excluded, 'text/plain')
+            if status != 202:
+                raise RuntimeError('isolated runtime input excluded update failed')
         status, body = self.request(cid, header, '/items/Power_Evidence_JSON/state')
         if status != 200 or body != excluded:
             raise RuntimeError('excluded test update was not applied to isolated Item')
@@ -276,6 +291,11 @@ class Database:
                     '/persistence/items/BMS_Aux_Evidence_JSON?serviceId=jdbc')
                 if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
                     raise RuntimeError('excluded BMS auxiliary Item persisted or its history check failed')
+            if self.candidate_runtime:
+                status, body = self.request(cid, header,
+                    '/persistence/items/BMS_Runtime_Input_Evidence_JSON?serviceId=jdbc')
+                if status != 404 and not (status == 200 and json.loads(body).get('data') == []):
+                    raise RuntimeError('excluded runtime input Item persisted or its history check failed')
         print('change_only_and_power_exclusion_' + label + '=verified', flush=True)
 
     def forecast_checkpoint(self, cid, header, label):
@@ -367,6 +387,8 @@ class Database:
             self.pv_write(cid, header)
         if self.candidate_bms:
             self.bms_write(cid, header)
+        if self.candidate_runtime:
+            self.runtime_write(cid, header)
 
     def ac_write(self, cid, header):
         self.ac_expected = '{"isolatedQualification":"explicit-ac-writer"}'
@@ -455,6 +477,36 @@ class Database:
             if status != 200 or current == self.bms_expected:
                 raise RuntimeError('BMS auxiliary probe unexpectedly changed live Item state')
             print('independent_bms_aux_writer_history=verified', flush=True)
+        finally:
+            run(client + ['bundle:uninstall ' + bundle_id], b'\n')
+
+    def runtime_write(self, cid, header):
+        self.runtime_expected = '{"isolatedQualification":"explicit-runtime-input-writer"}'
+        client = ['docker', 'exec', '-i', cid, '/openhab/runtime/bin/client',
+            '-h', '127.0.0.1', '-u', 'openhab', '-p', 'habopen', '-r', '5', '-d', '2']
+        installed = run(client + ['bundle:install file:/tmp/hex-jdbc-runtime-input-probe.jar'], b'\n').decode()
+        match = re.search(r'Bundle IDs?:\s*(\d+)', installed)
+        if not match:
+            raise RuntimeError('isolated runtime input bundle install failed: ' + installed[-300:])
+        bundle_id = match.group(1)
+        try:
+            started = run(client + ['bundle:start ' + bundle_id], b'\n').decode()
+            if 'Error executing command' in started:
+                raise RuntimeError('isolated runtime input bundle did not start: ' + started[-300:])
+            for _ in range(30):
+                status, body = self.request(cid, header,
+                    '/persistence/items/BMS_Runtime_Input_Evidence_JSON?serviceId=jdbc')
+                if status == 200:
+                    rows = json.loads(body).get('data', [])
+                    if len(rows) == 1 and rows[0]['state'] == self.runtime_expected:
+                        break
+                time.sleep(1)
+            else:
+                raise RuntimeError('explicit isolated runtime input history did not appear')
+            status, current = self.request(cid, header, '/items/BMS_Runtime_Input_Evidence_JSON/state')
+            if status != 200 or current == self.runtime_expected:
+                raise RuntimeError('runtime input probe unexpectedly changed live Item state')
+            print('independent_runtime_input_writer_history=verified', flush=True)
         finally:
             run(client + ['bundle:uninstall ' + bundle_id], b'\n')
 
@@ -548,6 +600,16 @@ class Database:
                     if status != 200 or len(json.loads(body).get('data', [])) != 1 \
                             or json.loads(body)['data'][0]['state'] != self.bms_expected:
                         continue
+                if self.candidate_runtime:
+                    status, runtime_state = self.request(cid, header,
+                        '/items/BMS_Runtime_Input_Evidence_JSON/state')
+                    if status != 200 or runtime_state != self.runtime_expected:
+                        continue
+                    status, body = self.request(cid, header,
+                        '/persistence/items/BMS_Runtime_Input_Evidence_JSON?serviceId=jdbc')
+                    if status != 200 or len(json.loads(body).get('data', [])) != 1 \
+                            or json.loads(body)['data'][0]['state'] != self.runtime_expected:
+                        continue
                 start = (self.forecast_target - timedelta(seconds=1)).isoformat().replace('+00:00', 'Z')
                 end = (self.forecast_target + timedelta(hours=1, seconds=1)).isoformat().replace('+00:00', 'Z')
                 query = '?serviceId=jdbc&starttime=' + start + '&endtime=' + end
@@ -571,6 +633,8 @@ class Database:
                     print('independently_written_pv_restore=verified', flush=True)
                 if self.candidate_bms:
                     print('independently_written_bms_aux_restore=verified', flush=True)
+                if self.candidate_runtime:
+                    print('independently_written_runtime_input_restore=verified', flush=True)
                 print('restore_generated_history_rows=' + str(len(rows)-len(self.previous)), flush=True)
                 return
             except RuntimeError:

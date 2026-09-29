@@ -48,6 +48,16 @@ CANDIDATES = {
         'fields': ('battery.remaining_ah', 'battery.temperature_raw'),
         'warning': 'BMS auxiliary evidence persistence enqueue failed',
     },
+    'bms-runtime-input': {
+        'item': 'BMS_Runtime_Input_Evidence_JSON',
+        'source': ROOT / 'openhab/rules/bms-runtime-input-evidence.js',
+        'item_source': ROOT / 'openhab/file-config/items/bms-runtime-input-evidence.items',
+        'resource': ROOT / 'openhab/bms-runtime-input-evidence-resources.json',
+        'basis': 'native_runtime_inputs_v1',
+        'fields': ('battery.dc_current_ca', 'battery.dc_voltage_cv',
+                   'battery.ttd_min', 'battery.ttf_min'),
+        'warning': 'Runtime input evidence persistence enqueue failed',
+    },
 }
 
 

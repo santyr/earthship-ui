@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(new URL('../../openhab/rules/bms-runtime-input-evidence.js', import.meta.url), 'utf8');
 const resources = JSON.parse(readFileSync(new URL('../../openhab/bms-runtime-input-evidence-resources.json', import.meta.url), 'utf8'));
 const item = readFileSync(new URL('../../openhab/file-config/items/bms-runtime-input-evidence.items', import.meta.url), 'utf8');
+const jdbc = readFileSync(new URL('../../openhab/file-config/persistence/jdbc.persist', import.meta.url), 'utf8');
 const OUTPUT = 'BMS_Runtime_Input_Evidence_JSON';
 const SCHNEIDER_POLLER = 'modbus:poller:schneiderBatterySunSpec:battery802Core';
 const SCHNEIDER_BRIDGE = 'modbus:tcp:schneiderBatterySunSpec';
@@ -171,6 +172,8 @@ describe('source-bound battery runtime input evidence', () => {
     expect(resources.rule.enabled).toBe(false);
     expect(resources.rule.triggers.filter(t => t.type === 'core.GenericEventTrigger')).toHaveLength(4);
     expect(resources.persistenceExclusion).toBe('!BMS_Runtime_Input_Evidence_JSON');
+    expect(jdbc).toMatch(/\*,[^\n]*!BMS_Runtime_Input_Evidence_JSON\s*:\s*strategy\s*=\s*everyChange/);
+    expect(jdbc).toMatch(/^[^\n]*BMS_Runtime_Input_Evidence_JSON\s*:\s*strategy\s*=\s*restoreOnStartup/m);
     expect(item).toContain('String BMS_Runtime_Input_Evidence_JSON');
     expect(item).not.toMatch(/channel=/);
     expect(source).not.toMatch(/sendCommand|sendHttp|executeCommandLine/);
