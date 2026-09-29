@@ -163,8 +163,8 @@ each card is capped at 72 CSS pixels wide, with full visible room and shade
 labels; the four groups remain on the two established views. The group display shows a single
 percentage only when every member has the same fresh qualified motor report;
 mixed or missing members never produce a fabricated aggregate position. All
-sliders and open/close buttons remain disabled until hardware commissioning and
-a reviewed command owner exist. Browser regressions at 1340×800, 1280×720 and
+physical movement remains disabled until hardware commissioning and a reviewed
+command owner exist. Browser regressions at 1340×800, 1280×720 and
 900×800 passed with zero movement requests, no room-label truncation, no horizontal
 overflow, and all 27 individual plus four group sliders present across views.
 The September 28 tablet-width correction keeps each zone on a single row down
@@ -188,7 +188,7 @@ least 95, and compact 700–899-pixel landscape views at least 75 without page
 overflow. A separate, narrow all-27-shades column spans both visible room
 rows, providing one master percentage display and vertical slider in addition
 to the existing per-zone and individual sliders. Mixed or unreported positions
-show no fabricated master percentage. All controls remain disabled until
+show no fabricated master percentage. Physical movement remains disabled until
 commissioned; the all-shades slider does not submit movement commands.
 For eventual touch operation, a slider is a useful quick approximate control,
 but not a sufficiently precise *sole* percentage setter on a narrow tablet
@@ -197,6 +197,31 @@ should test touch/assistive interaction and provide an explicit exact-percent
 or small-step adjustment path before enabling movement. A master adjustment
 also needs the command owner's reviewed staggering and per-motor report checks.
 This is a UI decision, not permission to energize the motors.
+
+The September 29 rehearsal enables all, zone and individual vertical sliders,
+plus the all/zone Open and Close buttons, **only while all 27 Item mappings are
+absent**. Cards widen slightly to 56 CSS pixels (48 on compact landscape),
+with 36-pixel shade and zone touch targets (44 pixels for the master). The
+overlapping hit area preserves room for the drawn window. Active/focused cards
+and the live percentage provide touch feedback. A touch/pen drag captures the
+pointer, sets the percent from the full vertical track and keeps the native
+thumb aligned with that value; vertical slider drags do not scroll the page.
+A Vite-local, in-memory preview channel
+shares committed slider positions and button changes between laptop/tablet
+clients via server-sent events. All values are explicitly preview positions,
+not motor reports, OpenHAB Item states, or thermal-learning observations. The
+channel contains no OpenHAB/radio command path, resets if the UI service
+restarts, and returns 409 once Item mappings are populated. If its event stream
+is unavailable, the screen labels the rehearsal local; it does not silently
+claim cross-client synchronization. The real per-shade display path already
+uses OpenHAB snapshot/SSE updates, but physical movement and group commands
+remain disabled pending commissioning and the reviewed command owner.
+The 700–899-pixel landscape layouts now scroll *inside the Shades page* to
+give the taller tracks enough room; the document itself does not overflow.
+Individual cards use a restrained repeating palette of five slate-leaning
+tones, while Zone and All cards have stronger solid fills. Open/Close buttons
+show a brief pressed state after a preview tap; this is visual acknowledgement
+of the local/shared preview update, never a motor acknowledgement.
 
 ## Planned fine control and voice operation (not enabled)
 
