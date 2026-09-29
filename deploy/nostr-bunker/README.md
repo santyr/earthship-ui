@@ -17,7 +17,12 @@ client key `5302cd2bfe2dcc76c5a9abcba74e6c5f1a07444b35c25e0cd74bac5b453fb5f6`
 for the Earthship signer. It is recorded in `earthship-operator.env.example`.
 The operator then staged that exact public allowlist, launcher and log-safe
 service template as root-owned files. Independent readback found all three
-byte-identical to this checkout, with the unit loaded, inactive and disabled.
+byte-identical to this checkout. At 10:42:32 MDT on September 29 the operator
+ran the credential verifier and started the exact Earthship instance. Read-only
+systemd checks after more than two minutes found it `active/running` with the
+same main PID, zero restarts and `UnitFileState=disabled`; the installed public
+files still match source. This is an attended start, not boot enablement or a
+successful NIP-46 client challenge.
 No thermal listener or question should be enabled merely because this
 template or credential exists.
 The operator subsequently named `npub1v60thnx0gz0wq3n6xdnq46y069l9x70xgmjp6lprdl6fv0eux6mqgjj4rp`
@@ -150,6 +155,16 @@ status fields. A healthy service is not proof that Sat's client possesses
 through the approved client before considering a persistent enable or any
 thermal confirmation release. Do not inspect or share `nak`'s suppressed
 request/response output.
+
+The September 29 attended start passed the service-liveness check, but the
+approved Sat client has not yet completed that challenge. The host user's
+default `nak` identity derives to a **different** public key, so running a
+client command with default credentials would not test the allowlisted client.
+Do not use Hex's sender key as a substitute. Keep this instance disabled at
+boot until the holder of Sat's approved client key completes an authenticated
+round trip and the returned operator public key matches the verified DM
+recipient. If the service fails or restarts unexpectedly, stop the instance;
+do not expose a bunker URL or credential to diagnose it in chat or logs.
 
 ### Approved operator inbox announcement
 

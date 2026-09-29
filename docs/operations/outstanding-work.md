@@ -17,18 +17,20 @@ event was republished without a private key and verified on all three. The
 thermal collector is still off: a reviewed private prompt policy, complete
 route snapshot, backup/recovery, and attended NIP-17 action-confirmation trial
 remain open. Route repair does not change signer custody.
-Sat's NIP-46 client public key is selected in a source-only instance example,
-but no local bunker is installed or started. The password-store bunker pubkey
-differs from the verified operator identity; the current `nak` launcher has no
-separate transport-key setting. Bunker identity and client compatibility must
-be resolved before a live signer trial; client-key selection alone does not
-release the thermal collector.
+Sat's NIP-46 client public key is selected in the Earthship instance. The
+password-store bunker pubkey differs from the verified operator identity;
+the current `nak` launcher has no separate transport-key setting. Bunker
+identity and client compatibility must
+be verified before a thermal signer release; client-key selection alone does
+not release the thermal collector.
 The operator later chose the verified operator identity for both NIP-46
 transport and user signing. The exact Sat allowlist, launcher and log-safe
-unit are now staged on the host with root ownership; independent readback
-found a loaded, disabled, inactive service. Starting it requires an attended
-sudo command from the operator, then steady-state and real-client verification.
-No live signer or thermal collector is active at this checkpoint.
+unit are staged on the host with root ownership. At 10:42:32 MDT on September
+29 the operator's attended start succeeded; read-only checks more than two
+minutes later found it active/running with one stable PID, zero restarts and
+boot enablement still disabled. The host user's default `nak` public key is
+not the allowlisted Sat client key. An authenticated challenge from the actual
+Sat client, boot-enable decision, and thermal collector release remain open.
 
 September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
 trial completed two short prompts in under four seconds each, establishing
