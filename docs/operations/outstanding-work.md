@@ -46,15 +46,17 @@ managed/file/managed provider rehearsal passed and cleaned up its container.
 The guarded live cutover made the file the sole rule provider without a restart;
 the private managed backup is retained. Ownership is provisional pending the
 next natural changed `Sun_TimeLeft` output and a later restart check.
-The [sky-condition display rule candidate](2026-09-29-sky-condition-rule-file-candidate.md)
-now preserves its four change triggers, two-minute timer and change-only
-display calculation in a staged JS file. Five focused behavior tests and an
-isolated managed/file/managed OpenHAB provider rehearsal pass; the owned test
-container was removed. A guarded no-restart live handoff then made the file
-the sole provider, preserving the five triggers and display state. Ownership
-is provisional: the 05:34 natural post-install timer and diagnostic were
-attributed to the file script and passed. A later full-restart check remains;
-the managed backup is retained privately.
+The [sky-condition rule candidate](2026-09-29-sky-condition-rule-file-candidate.md)
+preserves its four change triggers, two-minute timer and change-only display
+calculation in a staged JS file. Five focused behavior tests and an isolated
+managed/file/managed OpenHAB provider rehearsal passed. A guarded live file
+handoff also produced one correct natural timer result, but a dependency
+review found `SkyCondition` is a protected greywater eligibility input. The
+source-only candidate was therefore withdrawn and the exact managed rule
+restored with both pumps OFF; one managed healthy rule, unchanged sky state,
+and active OpenHAB were read back. The file-ownership claim was removed.
+Further migration needs protected-control restart/rollback qualification,
+not just display-rule tests.
 
 ## Standing efficiency requirement — September 26, 2026
 
@@ -188,6 +190,11 @@ remained `NIGHT`, source/installed hashes match, and the live ownership
 inventory returned zero issues after a file/provisional declaration. The
 first natural icon change and new JDBC row remain the verification gate; no
 synthetic write, OpenHAB restart or control change was used.
+That gate later passed at 05:30 MDT: the managed sky rule naturally changed
+the file-owned icon at dawn, and the matching value persisted as a new Item
+173 row. The installed/Git icon source still matches; `SkyConditionIcon` is
+now `file/verified`. The distinct sky rule is managed again after its
+control-input safety rollback.
 
 `BatteryIcon` now has a staged, uninstalled `.items` definition. A disposable,
 networkless OpenHAB 5.2.1 provider reproduced its live label, custom

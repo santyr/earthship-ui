@@ -3,6 +3,7 @@
 import importlib.util
 from dataclasses import replace
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -75,3 +76,13 @@ def test_handoff_never_leaves_two_providers_and_restores_managed_on_failure(
         migration.apply(original, expected_states, config)
         assert state['rule'] == file_rule
         assert calls == ['withdraw', 'install']
+
+
+def test_sky_apply_refuses_before_live_preflight_or_backup(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', [str(SCRIPT), '--kind', 'sky', '--apply'])
+    monkeypatch.setattr(migration, 'preflight',
+                        lambda *_: (_ for _ in ()).throw(AssertionError('preflight called')))
+    monkeypatch.setattr(migration, 'backup',
+                        lambda *_: (_ for _ in ()).throw(AssertionError('backup called')))
+    with pytest.raises(SystemExit, match='not release-qualified'):
+        migration.main()

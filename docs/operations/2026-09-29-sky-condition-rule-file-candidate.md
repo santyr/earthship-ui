@@ -57,3 +57,31 @@ The unchanged `TWILIGHT` condition and sunrise icon were correctly not
 reposted. The rule remained `IDLE/NONE`. This closes the natural post-file
 timer/diagnostic gate; a later full restart still needs verification. Retain
 the private managed rollback until that check passes.
+
+## Safety reclassification and managed rollback — 05:40 MDT
+
+The earlier description of this rule as display-only was wrong:
+`SkyCondition` is also the live `hex_southoutlet_cycle` greywater eligibility
+input. Read-only inspection of that **live** rule found two `SkyCondition`
+references and the `CLEAR` gate; this is not inferred only from a Git source
+candidate. Although the exact file rule ran correctly, a change to its provider
+is therefore a protected-control *input* migration. Its isolated provider
+test and one natural timer are insufficient to qualify control recovery after
+a whole-OpenHAB restart. No restart was attempted.
+
+With both `SouthOutlet_Outlet2_Switch` and
+`East_Bed_Socket_Outlet_2_Power` reporting OFF and `SkyCondition=TWILIGHT`,
+`scripts/rollback-sky-condition-rule.py` verified the exact private original
+and installed hashes, withdrew only the sky JS file to
+`/home/sat/.local/state/sky-rule-vxz_cwr2/withdrawn-file.js`, then restored
+the managed DTO. Independent readback found exactly one rule under the
+original UID, `editable=true`, `IDLE/NONE`; the watched sky JS file is absent.
+Both pumps remained OFF, `SkyCondition=TWILIGHT`, the sunrise icon and active
+OpenHAB remained unchanged. The file-ownership manifest claim was removed.
+
+The source candidate and isolated rehearsal remain useful, but **production
+sky-rule ownership is managed**. Do not reapply the file cutover until the
+protected-control restart/rollback behavior and a specifically reviewed
+control-input migration plan are qualified. The distinct
+`SkyConditionIcon` *Item* remains file-owned; this rollback did not alter it
+or its natural Item 173 history.

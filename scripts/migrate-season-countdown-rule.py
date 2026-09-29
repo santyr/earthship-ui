@@ -76,6 +76,7 @@ RULES = {
 }
 
 RULE = RULES['season'].uid  # Historical import compatibility for focused tests.
+RELEASE_READY = {'season': True, 'sky': False}  # SkyCondition gates greywater eligibility.
 BACKUP_ROOT = Path('/home/sat/.local/state')
 FIELDS = ('uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')
 
@@ -253,6 +254,8 @@ def main():
     action.add_argument('--check', action='store_true')
     action.add_argument('--apply', action='store_true')
     args = parser.parse_args()
+    if args.apply and not RELEASE_READY[args.kind]:
+        raise SystemExit('sky control-input cutover is not release-qualified')
     config = RULES[args.kind]
     original, state = preflight(config)
     if args.check:

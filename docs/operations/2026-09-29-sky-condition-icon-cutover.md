@@ -57,3 +57,20 @@ manifest now declares file/provisional, and the live registry inventory has
 zero issues. A later natural icon change plus new Item 173 row is still
 required before upgrading that declaration to verified. The private backup
 is retained; no synthetic icon update was sent.
+
+## Natural icon writer gate — September 29, 05:30 MDT
+
+After the 02:35 Item-only transfer, the managed sky writer naturally changed
+`SkyConditionIcon` from `iconify:mdi:moon-waning-gibbous` to
+`iconify:mdi:weather-sunset-up` at 05:30:08 MDT as dawn began. The event log
+attributes the change to `sky-condition-calculator`; OpenHAB JDBC Item 173
+contains the matching new value at `2026-09-29T11:30:08.159873Z`. Readback
+still shows one file-owned icon Item, the same installed/Git source SHA-256,
+and the current matching state. This closes the planned natural writer/JDBC
+gate, so the Item ownership manifest is now `file/verified`.
+
+The separate sky *rule* was briefly moved to a JS file afterward, then
+restored to its original managed provider when its `SkyCondition` output was
+identified as a greywater control input. That later rule rollback did not
+recreate or withdraw the icon Item or remove its Item 173 row. The private
+Item rollback receipt is retained. No artificial icon update was used.
