@@ -10,6 +10,6 @@ jdbc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jdbc)
 
 if __name__ == '__main__':
-    candidate = ROOT / 'openhab/file-config/persistence/jdbc-bms-aux-candidate.persist'
+    candidate = ROOT / 'openhab/file-config/persistence/jdbc.persist'
     with jdbc.Database(candidate_bms=True) as database:
         jdbc.provider.main(database, candidate=candidate, candidate_kind='bms-aux')

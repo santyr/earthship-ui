@@ -51,8 +51,13 @@ def main(database=None, candidate=None, candidate_kind='ac'):
             base = ROOT / 'openhab/file-config/persistence/jdbc.persist'
             if render(expected, allow_file=True).encode() != base.read_bytes():
                 raise RuntimeError('live JDBC strategy drift; refuse BMS candidate rewrite')
-            expected['configs'][0]['items'].append('!BMS_Aux_Evidence_JSON')
-            expected['configs'][2]['items'].append('BMS_Aux_Evidence_JSON')
+            bms_excluded = '!BMS_Aux_Evidence_JSON' in selectors[0]
+            bms_restore = 'BMS_Aux_Evidence_JSON' in selectors[2]
+            if bms_excluded != bms_restore:
+                raise RuntimeError('partial BMS evidence persistence policy')
+            if not bms_excluded:
+                expected['configs'][0]['items'].append('!BMS_Aux_Evidence_JSON')
+                expected['configs'][2]['items'].append('BMS_Aux_Evidence_JSON')
         else:
             raise ValueError('unknown candidate kind')
     if render(expected, allow_file=True).encode() != source:
@@ -214,7 +219,7 @@ if __name__ == '__main__':
     candidates.add_argument('--bms-aux-candidate', action='store_true',
                             help='Qualify the prepared BMS auxiliary exclusion without live mutation')
     args = parser.parse_args()
-    main(candidate=(ROOT / 'openhab/file-config/persistence/jdbc-bms-aux-candidate.persist'
+    main(candidate=(ROOT / 'openhab/file-config/persistence/jdbc.persist'
                     if args.bms_aux_candidate else
                     ROOT / 'openhab/file-config/persistence/jdbc.persist'
                     if args.pv_day_candidate else

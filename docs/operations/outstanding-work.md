@@ -272,11 +272,41 @@ unqualified. At every checkpoint the BMS Item remained excluded from
 automatic writes; one isolated Java explicit writer produced exactly one
 JDBC row without changing the live Item state. A fresh OpenHAB JVM restored
 that Item and row, and independent power/forecast controls passed. Both
-labeled OpenHAB/PostgreSQL containers were removed. The candidate persists
-only as `jdbc-bms-aux-candidate.persist` in Git; production's watched
-`jdbc.persist` and all BMS resources remain unchanged. This closes the
+labeled OpenHAB/PostgreSQL containers were removed. At that isolated
+checkpoint the candidate remained separate from production's watched
+`jdbc.persist`, and no BMS resource had changed. This closes the
 isolated persistence/provider/restart gate, not natural native-event
 collection, protected-control recovery, or quality publication.
+At 23:14 MDT on September 28, guarded observational collection was activated
+without an OpenHAB restart. The exact preimage of `jdbc.persist` (SHA-256
+`14aa864b407ed1a65bf5bbeed4e13d74d58f7281b7a43fdcefc6fbc4f3d99523`)
+was privately backed up at
+`/home/sat/.local/state/openhab-config-migration/bms-aux-20260928-bd1Eir/`.
+The isolated exclusion candidate was atomically installed; live REST readback
+showed a file-owned strategy with `!BMS_Aux_Evidence_JSON` excluded from
+automatic writes and the Item restore-only. Git's canonical `jdbc.persist`
+now matches the installed SHA-256
+`fee8000e505b4a7b9af43e3a979f67475ba59c27efdd4a0029532dc07685fecc`.
+Only then was the file-owned String Item installed, with zero initial JDBC
+rows; its installed/source SHA-256 is
+`c383813685f549c654f86407c0fbf4f161f5228645fd32ed7fad37ada08ba8e1`.
+The rule was created with zero triggers, disabled, populated with the exact
+reviewed source and eight triggers, read back disabled, then enabled. Its
+first natural explicit JDBC receipt at 23:14:44 MDT had both fields
+unavailable; subsequent native Modbus events made temperature and capacity
+valid. Item 658 maps uniquely to `public.item0658`. A rule-only disable/
+enable then produced a new unavailable sequence-1 epoch, followed by natural
+valid recovery. Eight persisted rows parsed strictly as two contiguous
+four-row epochs; the last has both fields valid. OpenHAB remained active,
+the 23:15 Energy UI publisher exited zero, and current native raw 29300
+matches the derived 68°F temperature. No BMS control, numerical forecast,
+energy quality flag or thermal action changed. The restricted
+`energy_power_reader` has no SELECT on `public.item0658`; the exact read-only
+grant was requested. September 28 is partial collection; first possible
+complete local day is September 29, assessable after its midnight on
+September 30. Actual Thing/network fault and full-JVM restart behavior,
+longer natural continuity, temperature-output parity over changes, and
+consumer release remain open.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
