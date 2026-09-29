@@ -30,7 +30,8 @@ def run(args, data=None, timeout=45):
     return result.stdout
 
 
-def main(names=NAMES, source_path=SOURCE, item_type='String'):
+def main(names=NAMES, source_path=SOURCE, item_type='String',
+         file_owned_metadata=False):
     source = source_path.read_bytes()
     if any(source.count((item_type + ' ' + name + ' ').encode()) != 1 for name in names):
         raise ValueError('prepared file does not define exactly the expected Items')
@@ -94,6 +95,12 @@ def main(names=NAMES, source_path=SOURCE, item_type='String'):
                 # the file provider returns null for the same absent category.
                 if field == 'category':
                     left, right = left or None, right or None
+                if field == 'metadata' and file_owned_metadata:
+                    right = json.loads(json.dumps(right))
+                    for entry in right.values():
+                        if entry.get('editable') is not True:
+                            raise RuntimeError('managed metadata was not editable: ' + name)
+                        entry['editable'] = False
                 if left != right:
                     raise RuntimeError('prepared provider DTO mismatch: ' + name + ':' + field)
             if sorted(actual.get('tags', [])) != sorted(expected.get('tags', [])):

@@ -1,0 +1,2 @@
+// Staged only: exact metadata parity and writer/JDBC rollback must pass before installation.
+String BatteryIcon "BatteryIcon" { stateDescription=" " [pattern="\"Battery Icon [%s]\" <iconify>"] }

@@ -138,6 +138,17 @@ inventory returned zero issues after a file/provisional declaration. The
 first natural icon change and new JDBC row remain the verification gate; no
 synthetic write, OpenHAB restart or control change was used.
 
+`BatteryIcon` now has a staged, uninstalled `.items` definition. A disposable,
+networkless OpenHAB 5.2.1 provider reproduced its live label, custom
+`stateDescription` value/pattern, icon category, tags and Groups; only the
+expected metadata `editable` flag changed from managed `true` to file-owned
+`false`. The disposable container and tmpfs were removed. The live Item remains
+managed, with unique JDBC Item 31 and 136,507 rows at the September 29 check.
+Its 30-second `UpdateBatteryIcon` writer also updates `BatteryChargingStatus`;
+do not pause that rule just to move the icon. A race-safe state/history handoff,
+isolated rollback and natural writer receipt are still required before a live
+transfer. The staged file is not an ownership claim.
+
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
 a read-only, 27-slot sixth page, organized as Kitchen 1–8 and Living Room 9–17
