@@ -11,10 +11,11 @@ from psycopg2 import sql
 import psycopg2
 
 from . import journal
+from .schema import ACTION_KINDS, ACTION_KINDS_V2
 
 
-LEGACY_ACTIONS = ("vent", "indoor_shade", "outdoor_shade", "kiva")
-V2_ACTIONS = LEGACY_ACTIONS + ("window", "skylight")
+LEGACY_ACTIONS = ACTION_KINDS
+V2_ACTIONS = ACTION_KINDS_V2
 LEGACY_FINGERPRINT = journal.EXPECTED_SCHEMA_FINGERPRINT
 # Exact normalized PostgreSQL 16 postimage from a disposable v1 replay.
 V2_FINGERPRINT = "f3e09cdd6cbd82bcd34475485bbf326bbc4789f4bcb1f4e050d9fba213378790"

@@ -5,19 +5,26 @@ from math import isfinite
 import re
 
 from .forecast_history import SOURCE, _utc, _window
-from .schema import ACTION_KINDS, SOURCE_WEIGHTS
+from .schema import ACTION_KINDS, ACTION_KINDS_V2, SOURCE_WEIGHTS
 from .temperature_history import STREAMS, _validate_receipt
 
 
 def _validate_actions(snapshot, at):
+    version = snapshot.get('vocabulary_version', 1) if isinstance(snapshot, dict) else None
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError('invalid origin-time action snapshot')
+    kinds = ACTION_KINDS if version == 1 else ACTION_KINDS_V2
+    expected_keys = {'source', 'origin', 'actions', 'mode', 'missing_actions', 'status'}
+    if version == 2:
+        expected_keys.add('vocabulary_version')
     if (not isinstance(snapshot, dict) or
-            set(snapshot) != {'source', 'origin', 'actions', 'mode', 'missing_actions', 'status'} or
+            set(snapshot) != expected_keys or
             snapshot['source'] != 'thermal_intel_append_only_journal' or
             snapshot['origin'] != at or
             snapshot['status'] != 'as_of_snapshot_not_outcome_confirmation' or
             not isinstance(snapshot['actions'], dict) or
-            not set(snapshot['actions']) <= set(ACTION_KINDS) or
-            snapshot['missing_actions'] != sorted(set(ACTION_KINDS) - set(snapshot['actions']))):
+            not set(snapshot['actions']) <= set(kinds) or
+            snapshot['missing_actions'] != sorted(set(kinds) - set(snapshot['actions']))):
         raise ValueError('invalid origin-time action snapshot')
     for event in [*snapshot['actions'].values(), snapshot['mode']]:
         if event is None:

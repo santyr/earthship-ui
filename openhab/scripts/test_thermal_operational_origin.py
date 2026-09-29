@@ -63,6 +63,27 @@ def test_action_snapshot_is_available_as_of_but_not_qualified_outcome():
                         action_reader=lambda **kwargs: late)
 
 
+def test_distinct_airflow_snapshot_is_observed_not_legacy_vent_forcing():
+    event = {'source': 'nostr_confirmed', 'confidence': 1.0,
+             'effective_at': ORIGIN - timedelta(hours=2),
+             'received_at': ORIGIN - timedelta(hours=1),
+             'created_at': ORIGIN - timedelta(minutes=50)}
+    snapshot = {'source': 'thermal_intel_append_only_journal', 'origin': ORIGIN,
+                'actions': {
+                    'window': {**event, 'state': 'closed', 'event_id': 'window'},
+                    'skylight': {**event, 'state': 'open', 'event_id': 'skylight'},
+                }, 'mode': None, 'vocabulary_version': 2,
+                'missing_actions': ['indoor_shade', 'kiva', 'outdoor_shade', 'vent'],
+                'status': 'as_of_snapshot_not_outcome_confirmation'}
+    result = assemble_origin(ORIGIN, horizon_hours=24, forecast_reader=forecast,
+                             temperature_reader=temperatures,
+                             action_reader=lambda **kwargs: snapshot)
+    assert result['action_snapshot']['actions']['window']['state'] == 'closed'
+    assert result['action_snapshot']['actions']['skylight']['state'] == 'open'
+    assert 'vent' in result['action_snapshot']['missing_actions']
+    assert result['action_knowledge'] == 'as_of_snapshot_not_qualified'
+
+
 def test_missing_receipt_cannot_borrow_an_older_or_other_sensor_value():
     def missing(**kwargs):
         return [(ORIGIN, None)] if kwargs['stream'] == 'north_wall' else temperatures(**kwargs)

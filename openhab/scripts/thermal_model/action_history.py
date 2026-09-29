@@ -7,10 +7,11 @@ actual database creation time; later corrections cannot rewrite past origins.
 from datetime import datetime, timezone
 from math import isfinite
 
-from .schema import ACTION_KINDS, SOURCE_WEIGHTS
+from .schema import ACTION_KINDS, ACTION_KINDS_V2, SOURCE_WEIGHTS
 
 MAX_ROWS = 10000
 MODES = frozenset(('spring', 'warm', 'fall_charge', 'winter'))
+V2_FETCH_RELEASE_READY = False  # Exact household journal/runtime cutover pending.
 
 
 def _utc(value):
@@ -19,7 +20,7 @@ def _utc(value):
     return value.astimezone(timezone.utc)
 
 
-def _select(rows, origin, *, kind):
+def _select(rows, origin, *, kind, action_kinds=ACTION_KINDS):
     candidates = []
     seen = set()
     for row in rows:
@@ -35,7 +36,7 @@ def _select(rows, origin, *, kind):
                                         ('received_at', 'created_at', 'effective_at'))
         if received > created or effective > received:
             raise ValueError('invalid action receipt chronology')
-        if row['name'] not in (ACTION_KINDS if kind == 'action' else MODES):
+        if row['name'] not in (action_kinds if kind == 'action' else MODES):
             raise ValueError('unexpected action or mode')
         if row['source'] not in SOURCE_WEIGHTS or (type(row['confidence']) not in (int, float)
                 or not isfinite(row['confidence']) or not 0 <= row['confidence'] <= 1):
@@ -61,21 +62,31 @@ def _select(rows, origin, *, kind):
     return {name: value for name, (_, value) in latest.items()}
 
 
-def select_origin_actions(action_rows, mode_rows, *, origin):
+def select_origin_actions(action_rows, mode_rows, *, origin, vocabulary_version=1):
     origin = _utc(origin)
-    actions = _select(action_rows, origin, kind='action')
+    if type(vocabulary_version) is not int or vocabulary_version not in (1, 2):
+        raise ValueError('unsupported action vocabulary version')
+    action_kinds = ACTION_KINDS if vocabulary_version == 1 else ACTION_KINDS_V2
+    actions = _select(action_rows, origin, kind='action', action_kinds=action_kinds)
     modes = _select(mode_rows, origin, kind='mode')
     mode = max(modes.values(), key=lambda x: (x['effective_at'], x['received_at'],
                                                x['created_at'], x['event_id'])) if modes else None
-    return {'source': 'thermal_intel_append_only_journal', 'origin': origin,
-            'actions': actions, 'mode': mode,
-            'missing_actions': sorted(set(ACTION_KINDS) - set(actions)),
-            'status': 'as_of_snapshot_not_outcome_confirmation'}
+    result = {'source': 'thermal_intel_append_only_journal', 'origin': origin,
+              'actions': actions, 'mode': mode,
+              'missing_actions': sorted(set(action_kinds) - set(actions)),
+              'status': 'as_of_snapshot_not_outcome_confirmation'}
+    if vocabulary_version == 2:
+        result['vocabulary_version'] = 2
+    return result
 
 
-def fetch_origin_actions(connection_factory, *, origin):
+def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1):
     """Read both journal tables in one bounded, repeatable-read transaction."""
     origin = _utc(origin)
+    if type(vocabulary_version) is not int or vocabulary_version not in (1, 2):
+        raise ValueError('unsupported action vocabulary version')
+    if vocabulary_version == 2 and not V2_FETCH_RELEASE_READY:
+        raise ValueError('v2 action history read is not release-qualified')
     connection = connection_factory()
     try:
         if connection.get_transaction_status() != 0:
@@ -106,6 +117,7 @@ def fetch_origin_actions(connection_factory, *, origin):
                     for row in rows]
             actions = read('action_events', 'action', 'state')
             modes = read('mode_events', 'mode', 'mode')
-        return select_origin_actions(actions, modes, origin=origin)
+        return select_origin_actions(actions, modes, origin=origin,
+                                     vocabulary_version=vocabulary_version)
     finally:
         connection.close()

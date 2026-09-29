@@ -68,6 +68,7 @@ def valid_shadow_payload():
 
 from thermal_model.schema import (
     ACTION_KINDS,
+    ACTION_KINDS_V2,
     SOURCE_WEIGHTS,
     THERMAL_ITEMS,
     ShadowOutput,
@@ -125,6 +126,7 @@ def test_exact_sensor_contract_and_source_precedence():
         "radiation": "AmbientWeatherWS2902A_SolarRadiation",
     }
     assert ACTION_KINDS == ("vent", "indoor_shade", "outdoor_shade", "kiva")
+    assert ACTION_KINDS_V2 == ACTION_KINDS + ("window", "skylight")
     assert SOURCE_WEIGHTS["nostr_confirmed"] > SOURCE_WEIGHTS["photosensor"]
     assert SOURCE_WEIGHTS["photosensor"] > SOURCE_WEIGHTS["historical_reconstruction"]
     assert SOURCE_WEIGHTS["historical_reconstruction"] > SOURCE_WEIGHTS["model_inferred"]

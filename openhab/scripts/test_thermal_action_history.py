@@ -42,6 +42,23 @@ class ActionHistoryTests(unittest.TestCase):
         self.assertEqual(result['actions']['outdoor_shade']['state'], 'removed')
         self.assertEqual(result['mode']['state'], 'warm')
 
+    def test_window_and_skylight_states_stay_distinct_at_origin(self):
+        window = row('window-closed', name='window', state='closed')
+        skylight = row('skylight-open', name='skylight', state='open')
+        later = row('window-later', name='window', state='open',
+                    supersedes='window-closed', received=ORIGIN + timedelta(minutes=1),
+                    created=ORIGIN + timedelta(minutes=2))
+        result = select_origin_actions([window, skylight, later], [], origin=ORIGIN,
+                                       vocabulary_version=2)
+        self.assertEqual(result['vocabulary_version'], 2)
+        self.assertEqual(result['actions']['window']['state'], 'closed')
+        self.assertEqual(result['actions']['skylight']['state'], 'open')
+        self.assertNotIn('window', result['missing_actions'])
+        self.assertNotIn('skylight', result['missing_actions'])
+        self.assertIn('vent', result['missing_actions'])
+        with self.assertRaisesRegex(ValueError, 'unexpected action'):
+            select_origin_actions([window, skylight], [], origin=ORIGIN)
+
     def test_duplicate_and_future_effective_receipt_refused(self):
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             select_origin_actions([row('same'), row('same')], [], origin=ORIGIN)
@@ -64,6 +81,11 @@ class ActionHistoryTests(unittest.TestCase):
             readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
         connection.close.assert_called_once()
         self.assertEqual(cursor.execute.call_count, 5)
+
+    def test_v2_fetch_refuses_before_database_connection(self):
+        with self.assertRaisesRegex(ValueError, 'not release-qualified'):
+            fetch_origin_actions(lambda: self.fail('database connection opened'),
+                                 origin=ORIGIN, vocabulary_version=2)
 
 
 if __name__ == '__main__':

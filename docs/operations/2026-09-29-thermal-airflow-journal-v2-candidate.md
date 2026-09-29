@@ -25,10 +25,19 @@ v2 audit. A deliberately wrong expected fingerprint restored the exact v1
 schema. The migration and existing journal/history suites passed 39 tests;
 the later correction test passed again. All owned test containers were removed.
 
+The source-side as-of-origin reader now preserves its historical v1 output
+shape by default. A pure, explicitly versioned v2 projection keeps window and
+skylight states separate, marks `vocabulary_version: 2`, refuses a later
+correction at an earlier origin, and leaves legacy `vent` missing rather than
+deriving it. The database-backed v2 reader is still default-off; it refuses
+before connecting until a coordinated household cutover qualifies that path.
+The v1 reader rejects unexpected v2 rows instead of silently discarding them.
+The migration, existing journal, schema, origin and action-history suites pass
+84 tests; no production model forcing or action label changed.
+
 This is **not ready for household application**. The installed v4 trainer and
 publisher still use the v1 journal/runtime contract. After a production v2
-schema change, their old exact schema-audit command would reject the journal,
-and the current source origin-action reader still lists only v1 action names.
+schema change, their old exact schema-audit command would reject the journal.
 Before live migration, qualify a coordinated runtime/reader upgrade and
 rollback, a private full journal/ACL backup and isolated restore, exact
 production owner/role preflight, and an attended maintenance window. Only

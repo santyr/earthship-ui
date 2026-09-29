@@ -15,6 +15,7 @@ OPTIONAL_OBSERVATION_ITEMS = {
     "living_office": "LivingOffice_Shade_Temperature",
 }
 ACTION_KINDS = ("vent", "indoor_shade", "outdoor_shade", "kiva")
+ACTION_KINDS_V2 = ACTION_KINDS + ("window", "skylight")
 SOURCE_WEIGHTS = {
     "nostr_confirmed": 1.0,
     "manual_dm": 1.0,
@@ -34,7 +35,7 @@ class ActionEvent:
     idempotency_key: str
     received_at: datetime
     effective_at: datetime
-    action: Literal["vent", "indoor_shade", "outdoor_shade", "kiva"]
+    action: Literal["vent", "indoor_shade", "outdoor_shade", "kiva", "window", "skylight"]
     state: str
     source: str
     confidence: float

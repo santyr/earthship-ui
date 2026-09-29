@@ -81,6 +81,12 @@ def test_v2_migration_preserves_legacy_rows_and_accepts_distinct_airflow(databas
         'vent', 'closed', 'manual_dm', 1.0)
     reader = journal.ActionJournal(database.runtime_dsn)
     assert reader.append(original)
+    early = ActionEvent('too-early-window', 'early-receipt',
+        original.received_at, original.effective_at,
+        'window', 'open', 'nostr_confirmed', 1.0)
+    with pytest.raises(psycopg2.IntegrityError):
+        reader.append(early)
+    assert reader.events_for_receipt('early-receipt') == ()
     candidate = candidate_fingerprint(database)
     assert candidate == migration.V2_FINGERPRINT
     assert candidate != migration.LEGACY_FINGERPRINT
