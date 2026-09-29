@@ -78,6 +78,17 @@ September 29 target captured a day earlier. A same-origin comparison of all
 the displayed values carry the learned hourly bucket corrections to the
 expected 0.1°F rounding. This verifies publication, not tomorrow's realized
 forecast accuracy.
+At 09:24 MDT September 29, a read-only same-day PV receipt preflight parsed
+all 661 persisted `MPPT60_PV_Day_Evidence_JSON` rows with the strict v1 reader:
+one epoch, no sequence gaps or unavailable rows, first receipt at 00:00:14
+local, and a naturally advancing 447 Wh daily maximum. Original-event expiry
+gaps measured 19.466 seconds across the earlier 659-row sample; the largest
+was 3.895 seconds. This is a healthy partial-day observation relative to the
+explicit 99.5% *complete-day* coverage threshold, not a qualified September
+29 total or forecast-calibration result. The terminal midnight poll, reset,
+remaining daylight and restricted-role complete-day reader are still due
+after local midnight September 30. No PV coefficient or trough forecast was
+changed.
 The natural thermal trainer started at 06:50:17 MDT on September 29; its
 initial service state was `activating` with the Python training process alive
 and about 306 MiB resident. No manual run, interruption, or model promotion
