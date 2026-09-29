@@ -87,6 +87,17 @@ String OutdoorTemp_24h_High
         triggers=(('timer.GenericCronTrigger',
                    (('cronExpression', '0 0/15 * * * ?'),)),),
     ),
+    'bitcoin': DisplayRule(
+        uid='hex_btc_24h_change',
+        source=ROOT / 'openhab/file-config/automation/js/bitcoin-24h-change.js',
+        baseline='9e15eb8e7f4e3d3118f12295d7b09f82525ab52f41b951f8809097c98fc369bb',
+        label='hex.bitcoin.rule.qualification',
+        items=b'''Number BTC_USD_Price
+Number BTC_Price_24h_PercentChange
+''',
+        startup_item='BTC_USD_Price',
+        triggers=(('core.ItemStateUpdateTrigger', (('itemName', 'BTC_USD_Price'),)),),
+    ),
 }
 
 

@@ -70,6 +70,11 @@ file the sole provider, preserving all four states and the 15-minute timer.
 The natural 06:00 timer posted all four outputs, including a changed outdoor
 low attributed to the file script. Ownership remains provisional pending a
 later restart check.
+The [Bitcoin 24-hour display rule](2026-09-29-bitcoin-change-rule-file-candidate.md)
+is staged as a same-UID file candidate. Its exact managed baseline, output
+consumers, calculation parity, networkless provider/rollback and ten guarded
+handoff tests passed. The live rule remains managed and the release gate is
+off pending an attended natural-price handoff/verification.
 
 ## Standing efficiency requirement — September 26, 2026
 

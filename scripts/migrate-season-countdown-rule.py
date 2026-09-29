@@ -34,6 +34,7 @@ class DisplayRule:
     items: tuple
     outputs: tuple
     backup_prefix: str
+    outputs_must_hold: bool = True
 
 
 RULES = {
@@ -91,10 +92,24 @@ RULES = {
                  'OutdoorTemp_24h_Low', 'OutdoorTemp_24h_High'),
         backup_prefix='extrema-rule-',
     ),
+    'bitcoin': DisplayRule(
+        uid='hex_btc_24h_change',
+        script_sha='9e15eb8e7f4e3d3118f12295d7b09f82525ab52f41b951f8809097c98fc369bb',
+        source=ROOT / 'openhab/file-config/automation/js/bitcoin-24h-change.js',
+        source_sha='41893bdbd9eeefb60fab2ffa5bbe12c49ebc1c0f09e91176d285c02d9d719391',
+        target=Path('/etc/openhab/automation/js/bitcoin-24h-change.js'),
+        triggers=(('core.ItemStateUpdateTrigger',
+                   (('itemName', 'BTC_USD_Price'),)),),
+        items=(('BTC_USD_Price', 'Number'),
+               ('BTC_Price_24h_PercentChange', 'Number')),
+        outputs=('BTC_Price_24h_PercentChange',),
+        backup_prefix='bitcoin-rule-',
+        outputs_must_hold=False,  # natural price polls continue during handoff
+    ),
 }
 
 RULE = RULES['season'].uid  # Historical import compatibility for focused tests.
-RELEASE_READY = {'season': True, 'sky': False, 'extrema': True}
+RELEASE_READY = {'season': True, 'sky': False, 'extrema': True, 'bitcoin': False}
 # SkyCondition gates greywater eligibility; its cutover remains held.
 BACKUP_ROOT = Path('/home/sat/.local/state')
 FIELDS = ('uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')
@@ -231,8 +246,9 @@ def apply(original, old_state, config=RULES['season']):
     changed = success = False
     try:
         require(rule_or_none(config) == original, 'managed rule changed during backup')
-        require(output_states(config) == old_state,
-                'display output changed during backup')
+        if config.outputs_must_hold:
+            require(output_states(config) == old_state,
+                    'display output changed during backup')
         changed = True
         require(request('DELETE', '/rules/' + config.uid) in (200, 204),
                 'managed display withdrawal refused')
@@ -241,8 +257,9 @@ def apply(original, old_state, config=RULES['season']):
         wait_rule(lambda row: file_rule_ok(row, config), config)
         require(sum(rule.get('uid') == config.uid for rule in oh.get('/rules')) == 1,
                 'display rule duplicated after file install')
-        require(output_states(config) == old_state,
-                'display state changed during handoff')
+        if config.outputs_must_hold:
+            require(output_states(config) == old_state,
+                    'display state changed during handoff')
         success = True
         print('status=file_provider_provisional; natural_update_pending=true', flush=True)
     finally:
@@ -261,8 +278,9 @@ def apply(original, old_state, config=RULES['season']):
             elif not managed_rule_ok(current, original):
                 raise RuntimeError('unknown display provider during rollback')
             wait_rule(lambda row: managed_rule_ok(row, original), config)
-            require(output_states(config) == old_state,
-                    'display output changed during rollback')
+            if config.outputs_must_hold:
+                require(output_states(config) == old_state,
+                        'display output changed during rollback')
             print('managed_display_rollback_verified=true', flush=True)
 
 

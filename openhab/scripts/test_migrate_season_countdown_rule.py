@@ -21,7 +21,7 @@ ORIGINAL = {
     'conditions': [], 'actions': [], 'editable': True,
     'status': {'status': 'IDLE', 'statusDetail': 'NONE'},
 }
-@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema'])
+@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema', 'bitcoin'])
 @pytest.mark.parametrize('install_fails', [False, True])
 def test_handoff_never_leaves_two_providers_and_restores_managed_on_failure(
         monkeypatch, kind, install_fails):
@@ -86,3 +86,26 @@ def test_sky_apply_refuses_before_live_preflight_or_backup(monkeypatch):
                         lambda *_: (_ for _ in ()).throw(AssertionError('backup called')))
     with pytest.raises(SystemExit, match='not release-qualified'):
         migration.main()
+
+
+def test_bitcoin_handoff_tolerates_natural_price_update(monkeypatch):
+    config = replace(migration.RULES['bitcoin'],
+                     target=Path('/tmp/nonexistent-bitcoin-rule-test.js'))
+    original = {**ORIGINAL, 'uid': config.uid,
+                'triggers': [{'type': kind, 'configuration': dict(fields)}
+                             for kind, fields in config.triggers]}
+    state = {'rule': original, 'output': '2.0'}
+    monkeypatch.setattr(migration, 'backup', lambda *_: Path('/tmp'))
+    monkeypatch.setattr(migration, 'rule_or_none', lambda *_: state['rule'])
+    monkeypatch.setattr(migration, 'output_states', lambda *_: {'BTC_Price_24h_PercentChange': state['output']})
+    monkeypatch.setattr(migration.oh, 'get', lambda path: [state['rule']] if path == '/rules' else None)
+    monkeypatch.setattr(migration, 'request', lambda method, *_: state.update(rule=None) or 204)
+
+    def install(_):
+        state['rule'] = {**original, 'editable': False}
+        state['output'] = '2.1'  # A natural update is not a rollback condition.
+
+    monkeypatch.setattr(migration, 'install', install)
+    migration.apply(original, {'BTC_Price_24h_PercentChange': '2.0'}, config)
+    assert state['output'] == '2.1'
+    assert state['rule']['editable'] is False
