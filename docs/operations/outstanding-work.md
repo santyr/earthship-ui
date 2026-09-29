@@ -104,6 +104,16 @@ prove absence of generated references or feeder-control semantics. Exclude
 these from automatic transfer and continue reviewed, recoverable cutovers for
 genuinely scoped resources. No OpenHAB definition or control was changed by
 this inventory.
+One scoped rule-derived display pilot was then staged, not installed:
+`SkyConditionIcon` is a String with the exact live label, `sun_clouds` icon
+and `Status` tag, no link or Group, and only the `sky-condition-calculator`
+rule posts its icon value. Its JDBC mapping is uniquely Item 173 with 21,175
+existing rows at the September 29 preflight. The prepared `.items` source
+and exact-definition test pass, while the ownership manifest remains managed.
+Provider metadata/state restoration, Item 173 history continuity, rule-writer
+handoff and managed rollback still need isolated qualification before any
+attended live cutover. `BatteryIcon` was deliberately excluded because it has
+custom managed state-description metadata that a simple Item line would lose.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
