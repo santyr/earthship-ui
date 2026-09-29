@@ -66,7 +66,8 @@ export function replayRuntime(histories, { startMs, endMs }) {
   const output = { BMS_Runtime_Basis: 'NULL', BMS_TimeToDischarge_Smoothed: 'NULL', BMS_TimeToFull_Smoothed: 'NULL' };
   const memory = new Map();
   let tick = startMs;
-  const basisCounts = {}, disagreements = [], ttfReversalViolations = [];
+  const basisCounts = {}, disagreements = [], disagreementPairs = {}, ttfReversalViolations = [];
+  let firstNonOffAt = null;
   const openhab = {
     cache: { private: {
       get: (key, fallback) => {
@@ -94,9 +95,15 @@ export function replayRuntime(histories, { startMs, endMs }) {
     vm.runInNewContext(source, { require: () => openhab, Date: { now: () => tick } }, { timeout: 1000 });
     const basis = output.BMS_Runtime_Basis;
     basisCounts[basis] = (basisCounts[basis] || 0) + 1;
+    if (basis !== 'off' && firstNonOffAt === null) firstNonOffAt = new Date(tick).toISOString();
     const oldBasis = held.BMS_Runtime_Basis;
-    if (oldBasis !== 'NULL' && oldBasis !== basis && disagreements.length < 12) {
-      disagreements.push({ at: new Date(tick).toISOString(), live: oldBasis, candidate: basis });
+    if (oldBasis !== 'NULL' && oldBasis !== basis) {
+      const at = new Date(tick).toISOString();
+      const key = `${oldBasis} -> ${basis}`;
+      const pair = disagreementPairs[key] || (disagreementPairs[key] = { ticks: 0, firstAt: at, lastAt: at });
+      pair.ticks++;
+      pair.lastAt = at;
+      if (disagreements.length < 12) disagreements.push({ at, live: oldBasis, candidate: basis });
     }
     try {
       const receipt = JSON.parse(held.BMS_Runtime_Input_Evidence_JSON);
@@ -111,6 +118,8 @@ export function replayRuntime(histories, { startMs, endMs }) {
     window: [new Date(startMs).toISOString(), new Date(endMs).toISOString()],
     ticks: Object.values(basisCounts).reduce((a, b) => a + b, 0),
     candidateBasisTicks: basisCounts,
+    firstNonOffAt,
+    disagreementPairs,
     firstBasisDisagreements: disagreements,
     ttfReversalViolations,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttfMin: output.BMS_TimeToFull_Smoothed },

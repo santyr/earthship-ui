@@ -3580,6 +3580,19 @@ not be compared to production or used as promotion evidence. Re-run over
 complete dusk/night windows and qualify the weighted overnight load history
 before estimator release. Command: `node openhab/scripts/bms_runtime_shadow_replay.mjs
 2026-09-29T14:05:00Z 2026-09-29T14:25:00Z`.
+The replay now reports every live/candidate basis-disagreement pair and the
+first non-off candidate time, rather than showing only the first 12 examples.
+All four focused and 1,890 repository tests pass. A read-only 05:00–09:00 MDT
+September 29 replay covered 481 ticks: candidate `off` 345, `evening` 57,
+`bms` 52 and `now` 27. Its first non-off tick was 07:50:30 MDT, just after
+observational input collection began. The 341 pre-collection `bms -> off`
+ticks are expected cutover-boundary refusals, not evidence of a fresh-input
+failure. Four later `evening -> off` ticks remain; at two sampled ticks the
+persisted remaining-Ah field's original 120-second expiry was already past by
+roughly two seconds while the live held-value rule still reported `evening`.
+This supports the strict candidate's fail-closed behavior, not its projected
+minutes or operational readiness. The remaining short gaps, overnight-load
+history and natural dusk/night transitions still require qualification.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

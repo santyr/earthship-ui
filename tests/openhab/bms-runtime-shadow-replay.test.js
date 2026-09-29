@@ -44,6 +44,10 @@ describe('bounded read-only runtime estimator replay', () => {
     expect(result.ticks).toBe(2);
     expect(result.candidateBasisTicks.bms || 0).toBe(0);
     expect(result.candidateBasisTicks.evening).toBe(2);
+    expect(result.firstNonOffAt).toBe(new Date(at).toISOString());
+    expect(result.disagreementPairs['bms -> evening']).toEqual({
+      ticks: 2, firstAt: new Date(at).toISOString(), lastAt: new Date(at + 30000).toISOString(),
+    });
     expect(result.firstBasisDisagreements).toHaveLength(2);
     expect(result.ttfReversalViolations).toEqual([]);
   });
@@ -67,5 +71,14 @@ describe('bounded read-only runtime estimator replay', () => {
     h.Power_Evidence_JSON = [row('future', at + 30001)];
     const result = replayRuntime(h, { startMs: at, endMs: at });
     expect(result.candidateBasisTicks.evening).toBe(1);
+    expect(result.firstNonOffAt).toBe(new Date(at).toISOString());
+  });
+
+  it('counts every disagreement even when the example list is capped', () => {
+    const h = histories();
+    const result = replayRuntime(h, { startMs: at, endMs: at + 10 * 60000 });
+    expect(result.firstBasisDisagreements).toHaveLength(12);
+    expect(Object.values(result.disagreementPairs).reduce((sum, pair) => sum + pair.ticks, 0))
+      .toBeGreaterThan(12);
   });
 });
