@@ -12,10 +12,14 @@ automatic and manual gates consumed held, change-only `BMS_SOC` and tolerated
 source-bound `BMS_SOC_Evidence_JSON` value with the producer's 120-second
 expiry, rejects non-OK comms, and forces an active pump OFF if evidence becomes
 invalid. All 53 dual-pump simulations and the full 1,839-test suite pass.
-This is **not deployed**: a protected-rule replacement needs an attended,
-exact-baseline/rollback transaction and post-change live readback. The source
-is SHA-256 `e697e262...108970d18`; neither the historical timer-guard
-adapter nor the old manifest source may be used to apply it as-is.
+This is **not deployed**. The source is SHA-256
+`e697e262...108970d18`; neither the historical timer-guard adapter nor the
+old manifest source may be used to apply it as-is. A dedicated wrapper now pins
+the old/new hashes, checks live comms and fresh matching atomic SoC, and calls
+the existing exact-baseline, private-backup/rollback adapter. Its read-only
+production preflight passed with both pumps OFF, and five offline guard tests
+passed. Live replacement still needs separate attended approval and post-change
+rule, pump and natural-cycle verification.
 
 ## Standing efficiency requirement — September 26, 2026
 
