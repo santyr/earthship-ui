@@ -244,9 +244,17 @@ adapter uses a dedicated read-only repeatable-read transaction, exact Item
 mapping, bounded 120-second carry and 5,000-row/4,096-byte limits; errors
 fail closed. Twenty-six focused tests, including 23/25-hour local days, and
 53 adjacent BMS/switch tests pass. The source is not connected to production
-Energy quality: disposable PostgreSQL/OpenHAB runtime qualification, live
-collection, exact Item/table grant, a full observed local day, and parity
-between native raw temperature and the derived Fahrenheit Item remain open.
+Energy quality: isolated OpenHAB runtime qualification, live collection, exact
+Item/table grant, a full observed local day, and parity between native raw
+temperature and the derived Fahrenheit Item remain open.
+The BMS auxiliary exact-table reader also passed real SQL against a disposable
+PostgreSQL 16 restricted role: an exact Item 803/`public.item0803` mapping and
+complete synthetic day qualified, while revoked SELECT and an oversized row
+were both refused. The fixture removed its owned container and volume. The
+parser now also converts malformed Unicode and unhashable reason fields into
+explicit refusal. All 27 pure/transport/real-SQL BMS auxiliary tests pass.
+This closes only the isolated database transport gate; no production Item,
+role grant, rule, or Energy quality publication was changed.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`

@@ -72,7 +72,13 @@ def _unique(pairs):
 def parse_bms_aux_receipt(raw, persisted_at):
     """Validate one exact v1 receipt; malformed rows are barriers, not skips."""
     persisted = _utc(persisted_at)
-    if not isinstance(raw, str) or len(raw.encode('utf-8')) > MAX_BYTES:
+    if not isinstance(raw, str):
+        raise BmsAuxEvidenceRefused('missing or oversized evidence row')
+    try:
+        encoded_size = len(raw.encode('utf-8'))
+    except UnicodeEncodeError as exc:
+        raise BmsAuxEvidenceRefused('invalid evidence text') from exc
+    if encoded_size > MAX_BYTES:
         raise BmsAuxEvidenceRefused('missing or oversized evidence row')
     try:
         body = json.loads(raw, object_pairs_hook=_unique)
@@ -103,7 +109,7 @@ def parse_bms_aux_receipt(raw, persisted_at):
                 'status', 'reason', 'observedAt', 'validUntil', 'value'}:
             raise BmsAuxEvidenceRefused('invalid auxiliary field')
         if field['status'] == 'unavailable':
-            if field['reason'] not in UNAVAILABLE or any(
+            if type(field['reason']) is not str or field['reason'] not in UNAVAILABLE or any(
                     field[key] is not None for key in ('observedAt', 'validUntil', 'value')):
                 raise BmsAuxEvidenceRefused('invalid unavailable field')
             fields[name] = Field('unavailable', None, None, None)

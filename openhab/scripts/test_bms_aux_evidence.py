@@ -117,6 +117,12 @@ def test_duplicate_key_and_oversized_row_are_refused():
         parse_bms_aux_receipt(encoded(at, 1).replace('"version":1', '"version":1,"version":1'), at)
     with pytest.raises(BmsAuxEvidenceRefused):
         parse_bms_aux_receipt(' ' * 4097, at)
+    with pytest.raises(BmsAuxEvidenceRefused):
+        parse_bms_aux_receipt('\ud800', at)
+    unavailable = receipt(at, 1, unavailable=FIELDS)
+    unavailable['fields'][FIELDS[0]]['reason'] = []
+    with pytest.raises(BmsAuxEvidenceRefused):
+        parse_bms_aux_receipt(json.dumps(unavailable), at)
 
 
 def test_sequence_gap_and_unbarriered_restart_refuse_entire_day():
