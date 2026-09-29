@@ -188,6 +188,18 @@ Before changing live warnings, give SoC live-health consumers the existing
 source-bound atomic evidence and design source-bound receipts for remaining-Ah
 and temperature, whose `BMS_DevicePresent` companion alone does not establish
 sample freshness. Do not treat change-only status row age as source age.
+Solar_PV `c2e4464` now removes the SoC-only legacy live-health substitution:
+both scheduled quality and Energy UI health read the exact persisted atomic
+`BMS_SOC_Evidence_JSON` row, validate its original source times and expire it
+at `validUntil` instead of carrying `BMS_Comms_Status=OK` indefinitely.
+The restricted production reader resolved Item 613 and returned live BMS,
+Schneider and weather health `ok` in a no-write dry run. All 873 analytics
+tests passed. The first natural 22:40 MDT Energy UI run exited zero and
+published `Energy_Analytics_JSON` at 04:40:24.951Z with BMS health `ok`.
+Its aggregate `degraded` status retained only the pre-existing
+`daily_source_quality_not_ok` reason. Separate source-bound remaining-Ah and
+temperature receipts are still required; this change does not qualify those
+two DevicePresent-based values.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
