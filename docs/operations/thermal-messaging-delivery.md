@@ -134,12 +134,27 @@ Disposable tests reopened both restored application databases, exercised lock
 contention, tamper refusal and missing-source no-cruft behavior; all 377
 completion tests pass.
 
-This is a source-only, same-host SQLite-pair tool. It has not touched the
-household collector or its state and does **not** capture the PostgreSQL
-action journal, policy/routes, signing authority, or an off-host recovery
-point. A coordinated stopped-collector journal/SQLite restore rehearsal and
-reviewed destination/retention still block release. `POLL_RELEASE_READY`
+At that checkpoint this was a source-only, same-host SQLite-pair tool. It had
+not touched the household collector or its state and did **not** capture the
+PostgreSQL action journal, policy/routes, signing authority, or an off-host
+recovery point. A coordinated stopped-collector journal/SQLite restore
+rehearsal and reviewed destination/retention still block release. `POLL_RELEASE_READY`
 remains false.
+
+The snapshot tool now also accepts **both** `--policy` and `--routes` for an
+optional version-2 archive. It copies exact private policy and signed-route
+bytes while holding the same state lock, records their digests with the SQLite
+pair, and verifies all four private files without printing contents. Missing,
+public, symlinked or oversized config files are refused before a destination
+is created. The original SQLite-only version-1 archive remains readable;
+neither format contains a PostgreSQL journal dump. This is source-only recovery
+tooling: no household policy/routes were chosen or snapshotted by this change,
+no off-host destination has been authorized, and byte preservation does not
+prove a policy or route is approved or current. Twelve focused backup tests
+and 202 adjacent messaging/confirmation tests pass; the full source-only
+completion suite passes 396 tests. A stopped-writer,
+consistent journal-plus-state household recovery point and attended restore
+remain separate release gates.
 
 September 29 isolated follow-up: a real disposable PostgreSQL 16 journal
 accepted one fixture-authenticated confirmation, while both application

@@ -97,6 +97,14 @@ def test_snapshot_does_not_create_mistyped_source(tmp_path):
     assert not source.exists() and not destination.exists()
 
 
+def test_snapshot_does_not_leave_directory_for_missing_database(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    source.mkdir(mode=0o700)
+    with pytest.raises(FileNotFoundError):
+        backup.snapshot_state(source, destination)
+    assert not destination.exists()
+
+
 def test_snapshot_verifier_bounds_manifest_before_parsing(tmp_path):
     source, destination = tmp_path / 'state', tmp_path / 'snapshot'
     seeded_state(source)
@@ -104,3 +112,60 @@ def test_snapshot_verifier_bounds_manifest_before_parsing(tmp_path):
     (destination / 'manifest.json').write_bytes(b'x' * 4097)
     with pytest.raises(ValueError, match='exceeds bound'):
         backup.verify_snapshot(destination)
+
+
+def test_snapshot_binds_private_policy_and_routes_without_exposing_contents(tmp_path, capsys):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    config = tmp_path / 'config'
+    config.mkdir(mode=0o700)
+    policy, routes = config / 'approved-policy.json', config / 'signed-routes.json'
+    policy.write_bytes(b'{"operator":"fixture-private"}')
+    routes.write_bytes(b'{"routes":"fixture-private"}')
+    policy.chmod(0o600)
+    routes.chmod(0o600)
+    assert backup.main(['--snapshot', '--source-dir', str(source),
+                        '--snapshot-dir', str(destination), '--policy', str(policy),
+                        '--routes', str(routes)]) == 0
+    output = capsys.readouterr().out
+    assert 'fixture-private' not in output
+    assert 'thermal_sqlite_pair_and_config_no_postgresql_journal' in output
+    assert backup.verify_snapshot(destination)['verified_files'] == 4
+    assert (destination / 'policy.json').read_bytes() == policy.read_bytes()
+    assert (destination / 'routes.json').read_bytes() == routes.read_bytes()
+    assert (destination / 'policy.json').stat().st_mode & 0o077 == 0
+    with (destination / 'routes.json').open('ab') as stream:
+        stream.write(b'changed')
+    with pytest.raises(ValueError, match='digest mismatch'):
+        backup.verify_snapshot(destination)
+
+
+def test_config_snapshot_refuses_missing_pair_before_creating_destination(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    with pytest.raises(ValueError, match='together'):
+        backup.snapshot_state(source, destination, policy=tmp_path / 'policy')
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize('invalid', ['symlink', 'public', 'oversize'])
+def test_config_snapshot_refuses_unsafe_source_before_creating_destination(tmp_path, invalid):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    config = tmp_path / 'config'
+    config.mkdir(mode=0o700)
+    policy, routes = config / 'policy.json', config / 'routes.json'
+    policy.write_bytes(b'{"policy":"fixture"}')
+    routes.write_bytes(b'{"routes":"fixture"}')
+    policy.chmod(0o600)
+    routes.chmod(0o600)
+    if invalid == 'symlink':
+        policy.unlink()
+        policy.symlink_to(routes)
+    elif invalid == 'public':
+        policy.chmod(0o644)
+    else:
+        policy.write_bytes(b'x' * (backup.MAX_CONFIG_BYTES + 1))
+    with pytest.raises(ValueError):
+        backup.snapshot_state(source, destination, policy=policy, routes=routes)
+    assert not destination.exists()

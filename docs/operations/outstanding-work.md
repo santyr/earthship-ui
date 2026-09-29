@@ -62,6 +62,11 @@ event was republished without a private key and verified on all three. The
 thermal collector is still off: a reviewed private prompt policy, complete
 route snapshot, backup/recovery, and attended NIP-17 action-confirmation trial
 remain open. Route repair does not change signer custody.
+The source-only thermal backup tool can now optionally bind exact private
+policy and signed-route files to its two SQLite snapshots and verify all four
+digests. It has not captured household files or the PostgreSQL action journal,
+and it does not qualify an off-host or attended household restore. The
+collector release gate stays off.
 Sat's NIP-46 client public key is selected in the Earthship instance. The
 password-store bunker pubkey differs from the verified operator identity;
 the current `nak` launcher has no separate transport-key setting. Bunker
