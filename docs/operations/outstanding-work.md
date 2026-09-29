@@ -235,6 +235,18 @@ OpenHAB/JDBC, install/read back the exclusion before creating the Item,
 verify a natural original event and restricted history, then build the strict
 daily/live reader and temperature-output parity check. No new BMS resource is
 live at this checkpoint.
+The source-only BMS auxiliary consumer now validates the exact v1 two-field
+receipt, strict integers and physical bounds, canonical stream identity,
+ordered persistence/recording times, contiguous sequence and unavailable
+restart barriers. Its daily coverage starts no earlier than durable JDBC
+persistence, so a delayed receipt cannot backdate freshness. The separate
+adapter uses a dedicated read-only repeatable-read transaction, exact Item
+mapping, bounded 120-second carry and 5,000-row/4,096-byte limits; errors
+fail closed. Twenty-six focused tests, including 23/25-hour local days, and
+53 adjacent BMS/switch tests pass. The source is not connected to production
+Energy quality: disposable PostgreSQL/OpenHAB runtime qualification, live
+collection, exact Item/table grant, a full observed local day, and parity
+between native raw temperature and the derived Fahrenheit Item remain open.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
