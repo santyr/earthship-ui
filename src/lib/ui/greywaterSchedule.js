@@ -3,7 +3,8 @@ const names = { south: 'South', east: 'East' };
 const blocks = {
   after_dark: 'Waiting for daylight', low_soc: 'Waiting for SoC',
   bms_comms_stale: 'Waiting for telemetry', invalid_voltage: 'Waiting for telemetry',
-  invalid_soc: 'Waiting for telemetry', absurd_voltage: 'Safety hold',
+  invalid_soc: 'Waiting for telemetry', invalid_soc_evidence: 'Waiting for telemetry',
+  absurd_voltage: 'Safety hold',
   busy: 'Controller busy', multiple_pumps_on: 'Safety hold',
   orphan_outlet_off: 'Safety hold', ledger_recovered: 'Recovery hold',
   cycle_timer_expired: 'Safety hold', cycle_timer_invalid: 'Safety hold',

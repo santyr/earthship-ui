@@ -28,6 +28,10 @@ largest publication gap was 75.638 seconds (99th percentile 64.592 seconds).
 This supports availability of the stricter gate under recent normal telemetry,
 not hardware qualification, a guarantee of future source uptime, or permission
 to replace the live protected rule without attended approval.
+The Earthship greywater display now maps the candidate's
+`invalid_soc_evidence` status to "Waiting for telemetry" rather than the
+generic controller hold. Its focused rule/UI tests and production UI build
+pass. This is presentation-only; the protected rule is still not deployed.
 
 September 29 file-first census: the secret-free live inventory reports 383
 managed and 56 non-managed Items, 81/4 Things, 39/0 rules, 246/21 links, one

@@ -23,6 +23,8 @@ describe('greywater next eligibility presentation', () => {
     const blocked = 'scheduleVersion=1,evaluatedAt=2026-09-20T18:30:00Z,scheduling=blocked,reason=';
     expect(greywaterSchedule({ ...input, status: blocked + 'after_dark' }).next).toBe('Waiting for daylight');
     expect(greywaterSchedule({ ...input, status: blocked + 'low_soc' }).next).toBe('Waiting for SoC');
+    expect(greywaterSchedule({ ...input, status: blocked + 'invalid_soc_evidence' }).next)
+      .toBe('Waiting for telemetry');
   });
   it('identifies an interrupted or lost pump timer as a hold', () => {
     const blocked = 'scheduleVersion=1,evaluatedAt=2026-09-20T18:30:00Z,scheduling=blocked,reason=';
