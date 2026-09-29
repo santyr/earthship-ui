@@ -329,6 +329,13 @@ Physical Modbus/Thing fault behavior, complete-day coverage and restricted
 day-reader integration,
 chronological calibration, retention and file ownership of the new rule
 remain open.
+At the September 28 19:56 MDT read-only storage check, the PV evidence table
+occupied 499,712 bytes including indexes and had 61 rows (16,406 JSON bytes)
+in the preceding hour. The TP-Link switch evidence table occupied 327,680
+bytes and had 62 rows (25,387 JSON bytes) in that hour. These are short,
+post-activation samples, not a retention-size forecast or authorization to
+purge. They show no immediate capacity emergency; keep original receipts
+while full-day, fault and historical-learning gates are still open.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
