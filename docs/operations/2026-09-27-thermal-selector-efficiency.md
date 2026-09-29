@@ -197,3 +197,13 @@ source hashes match. An installed-module 30-day synthetic fit reproduced the
 same complete-result digest above. The next natural shadow publication and
 trainer remain required runtime and whole-run performance gates. No artifact,
 advice, Item, control or OpenHAB service was changed.
+
+The first scheduled shadow service after this install ran at 02:25:29 MDT on
+September 29 and exited 0 at 02:25:32. Its live `Thermal_Model_JSON`, latest
+Item 610 JDBC row (persisted 08:25:32.138562Z), and verified private v2
+forcing-capture output match exactly. The publication was generated at
+08:25:30.467382Z under the accepted `53d96e5e9637` artifact and remains
+`shadow` with low confidence and no candidate; `Thermal_Advisory` remained
+`none|No thermal action needed`. This closes the one-file deployment's natural
+publisher-continuity gate. The 06:50 natural trainer remains the first
+whole-run CPU and accepted-artifact gate for this optimization.

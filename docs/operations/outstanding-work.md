@@ -94,6 +94,11 @@ PostgreSQL skip. The exact one-file runtime was installed under a private
 receipt, both thermal timers are active, and the installed fit reproduced that
 digest. Natural shadow publication and the 06:50 trainer remain the runtime
 and whole-run performance gates; the model stays shadow-only.
+The natural 02:25 MDT shadow service then exited zero and published an exact
+live Item/Item 610 JDBC/v2 forcing-capture match under the accepted artifact.
+The advisory remained `none` and confidence low. This closes the new
+optimization's publisher-continuity gate; the 06:50 trainer still must verify
+whole-run CPU and accepted-artifact continuity.
 
 September 29 read-only file-first inventory: 385 managed and 54 non-managed
 Items, 81/4 Things, 39/0 rules and 246/21 links, with zero graph/ownership
