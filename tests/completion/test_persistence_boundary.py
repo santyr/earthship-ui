@@ -300,6 +300,26 @@ def test_actual_provider_main_exercises_four_gaps_and_cleans_up(tmp_path, setup,
     assert all(row[1] == "/items/JDBC_Qualification_Probe/state" for row in updates)
 
 
+@pytest.mark.parametrize("kind", ["pv-day", "ac"])
+def test_current_exact_candidate_rehearses_without_stale_selector_rewrite(
+    tmp_path, setup, capsys, kind,
+):
+    main, docker = provider_main_environment(tmp_path, setup)
+    candidate = tmp_path / "openhab/file-config/persistence/jdbc.persist"
+    main(setup.database, candidate=candidate, candidate_kind=kind)
+    assert parse_report(capsys.readouterr().out)["status"] == "verified_with_collection_gaps"
+    assert docker.removed
+
+
+def test_pv_candidate_drift_refuses_before_disposable_container(tmp_path, setup):
+    main, docker = provider_main_environment(tmp_path, setup)
+    candidate = tmp_path / "openhab/file-config/persistence/jdbc.persist"
+    candidate.write_text("unexpected strategy")
+    with pytest.raises(RuntimeError, match="selectors changed"):
+        main(setup.database, candidate=candidate, candidate_kind="pv-day")
+    assert docker.calls == []
+
+
 def test_actual_provider_main_retains_incomplete_report_on_restart_failure(tmp_path, setup, capsys):
     setup.database.restart_failure = True
     main, docker = provider_main_environment(tmp_path, setup)

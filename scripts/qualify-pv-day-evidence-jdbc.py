@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Disconnected PV-exclusion and immutable-JDBC rehearsal; no production writes."""
+import argparse
 import importlib.util
 from pathlib import Path
 
@@ -10,6 +11,7 @@ jdbc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(jdbc)
 
 if __name__ == '__main__':
+    argparse.ArgumentParser(description=__doc__).parse_args()
     candidate = ROOT / 'openhab/file-config/persistence/jdbc.persist'
     with jdbc.Database(candidate_pv=True) as database:
         jdbc.provider.main(database, candidate=candidate, candidate_kind='pv-day')

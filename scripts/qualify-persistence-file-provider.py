@@ -34,17 +34,22 @@ def main(database=None, candidate=None, candidate_kind='ac'):
                          '!MPPT60_PV_Day_Evidence_JSON', '!MPPT60_PV_Day_Observation_JSON'],
                         ['gForecast*'], ['Power_Evidence_JSON', 'Inverter_AC_Evidence_JSON',
                                          'MPPT60_PV_Day_Evidence_JSON']]
+        current_matches_source = render(expected, allow_file=True).encode() == source
         if candidate_kind == 'pv-day':
-            if selectors not in (qualified, pv_qualified):
+            if current_matches_source:
+                pass  # Rehearse the already deployed canonical strategy unchanged.
+            elif selectors not in (qualified, pv_qualified):
                 raise RuntimeError('live strategy selectors changed; refuse PV candidate rewrite')
-            if selectors == qualified:
+            elif selectors == qualified:
                 expected['configs'][0]['items'].append('!MPPT60_PV_Day_Evidence_JSON')
                 expected['configs'][0]['items'].append('!MPPT60_PV_Day_Observation_JSON')
                 expected['configs'][2]['items'].append('MPPT60_PV_Day_Evidence_JSON')
         elif candidate_kind == 'ac':
-            if selectors not in (prior, qualified, pv_qualified):
+            if current_matches_source:
+                pass  # Current source includes later observational exclusions.
+            elif selectors not in (prior, qualified, pv_qualified):
                 raise RuntimeError('live strategy selectors changed; refuse candidate rewrite')
-            if selectors == prior:
+            elif selectors == prior:
                 expected['configs'][0]['items'].append('!Inverter_AC_Evidence_JSON')
                 expected['configs'][2]['items'].append('Inverter_AC_Evidence_JSON')
         elif candidate_kind == 'bms-aux':

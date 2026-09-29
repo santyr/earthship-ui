@@ -233,3 +233,25 @@ daily high/low scoring for incomplete temperature receipt coverage, and
 exited without a forced rerun. This closes the partial-day
 cutover's natural no-calibration gate, not a complete PV day, forecast-skill
 release, or trough-advisory calibration.
+
+## September 29 current-strategy rehearsal refresh
+
+The disconnected PV/JDBC rehearsal still assumed the short selector list from
+its original cutover and refused the now-expanded, canonical live strategy
+before testing. The provider adapter now accepts an already deployed strategy
+only when its complete rendered DTO is byte-for-byte equal to the checked-in
+`jdbc.persist`; an unexpected selector/source mismatch still refuses before
+container creation. The PV wrapper's `--help` now exits before allocating any
+disposable infrastructure. The mocked collection-boundary suite passed 33
+tests, including exact-current acceptance and pre-container drift refusal.
+
+The live strategy read-only render matched the canonical file. A single
+disconnected OpenHAB/PostgreSQL run then passed two file→managed→file cycles,
+JDBC change-only and evidence exclusions, forecast-group future-state
+behavior, independent PV/AC/power writes, a JVM restart, and exact history
+restoration. All four provider-absent windows were reported as roughly
+15-second **collection gaps**, not continuous source coverage. Both labeled
+containers were removed and their absence checked. This restores a current
+rehearsal tool; it neither requalifies a partial PV day nor authorizes live
+coefficient learning, a production persistence cutover, or a whole-host
+restart claim.
