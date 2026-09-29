@@ -18,6 +18,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PATH = ROOT / "openhab/scripts/thermal_confirmation.py"
+sys.path.insert(0, str(PATH.parent))
 spec = importlib.util.spec_from_file_location("completion_thermal", PATH)
 m = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = m
@@ -637,6 +638,23 @@ def test_cli_requires_explicit_apply_mode(tmp_path):
     assert result.returncode == 2
     assert result.stdout == b""
     assert b"--apply" in result.stderr
+
+
+def test_apply_refuses_busy_private_state_before_opening_spool(tmp_path, capsys):
+    from thermal_state_backup import state_lock
+
+    policy = tmp_path / "policy.json"
+    event_file = tmp_path / "event.json"
+    state = tmp_path / "private"
+    policy.write_bytes(m.canonical(policy_data()))
+    event_file.write_bytes(b'{}')
+    with state_lock(state):
+        result = m.main(["--policy", str(policy), "--apply", "--spool-dir", str(state),
+                         "--nak", "/nonexistent/nak", "--nak-sha256", "0" * 64,
+                         "--event-file", str(event_file)])
+    assert result == 3
+    assert "not acknowledged" in capsys.readouterr().err
+    assert not (state / "confirmations.sqlite3").exists()
 
 
 @pytest.mark.parametrize("change", ["source", "effective_at", "action", "state", "supersedes"])

@@ -378,6 +378,11 @@ within all 377 completion tests. This closes only the local paired-SQLite
 snapshot/restore prerequisite. PostgreSQL journal coordination, private
 policy/routes, off-host destination/retention, operator route and household
 trial remain open; the collector release gate remains false.
+The standalone source-only `thermal_confirmation.py --apply` path was then
+found to write the same spool without the new lock. It now shares the lock
+through spool close, and a contention regression refuses before database
+creation. All 378 completion tests pass. Neither source CLI was installed or
+run against household state in this follow-up.
 
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint

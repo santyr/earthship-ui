@@ -111,6 +111,12 @@ action journal, policy/routes, signing authority, or an off-host recovery
 point. A coordinated stopped-collector journal/SQLite restore rehearsal and
 reviewed destination/retention still block release. `POLL_RELEASE_READY`
 remains false.
+The follow-up writer census found a second attended source entrypoint,
+`thermal_confirmation.py --apply`, which could otherwise mutate the spool
+outside that lock. It now takes the same lock through spool close and refuses
+contention before opening the database. A CLI regression and all 378
+completion tests pass. The disposable delivery-qualification harness uses
+its own isolated state; no live collector or installed CLI was changed.
 
 ## September 27 source-only backlog checkpoint
 

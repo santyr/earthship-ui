@@ -25,6 +25,7 @@ import time
 from typing import Callable
 from zoneinfo import ZoneInfo
 
+
 UTC = timezone.utc
 DENVER = ZoneInfo("America/Denver")
 MAX_INPUT = 65536
@@ -621,7 +622,6 @@ def main(argv=None):
     parser.add_argument("--nak-sha256")
     parser.add_argument("--event-file", type=Path, help="otherwise one gift wrap is read from stdin")
     args = parser.parse_args(argv)
-    spool = None
     try:
         with args.policy.open("rb") as handle:
             policy = Policy.load(handle.read(MAX_INPUT + 1), assign_ids=args.prepare_policy)
@@ -640,19 +640,21 @@ def main(argv=None):
         else:
             raw = sys.stdin.buffer.read(MAX_INPUT + 1)
         strict_json(raw)  # Reject oversize input before creating local state.
-        spool = Spool(args.spool_dir)
-        receipt = ingest(raw, policy, spool, NakDecoder(args.nak, args.nak_sha256), JournalSink())
+        from thermal_state_backup import state_lock
+        with state_lock(args.spool_dir):
+            spool = Spool(args.spool_dir)
+            try:
+                receipt = ingest(raw, policy, spool, NakDecoder(args.nak, args.nak_sha256), JournalSink())
+            finally:
+                spool.close()
         print(canonical(receipt).decode())
         return 0
     except Refused as exc:
         print("confirmation refused: " + str(exc), file=sys.stderr)
         return 2
-    except (Retryable, OSError, sqlite3.Error, ImportError):
+    except (Retryable, OSError, sqlite3.Error, ImportError, ValueError):
         print("confirmation not acknowledged; repair the dependency and replay the original event", file=sys.stderr)
         return 3
-    finally:
-        if spool is not None:
-            spool.close()
 
 
 if __name__ == "__main__":
