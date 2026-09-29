@@ -13,6 +13,16 @@ value/config and REST state-description. The sole DTO difference was
 `false` for the isolated file-owned Item. This is an ownership change, not a
 format change. The owned container and tmpfs were removed after the test.
 
+A separate snapshot-based, networkless OpenHAB rehearsal removed both the
+managed Item and its managed `stateDescription` registry entry before boot.
+The file provider reproduced the expected metadata. After file withdrawal,
+REST restored the managed Item and separately restored its `stateDescription`
+metadata; readback matched the original definition, including managed
+`editable:true`. The owned container was removed, and production writes were
+zero. An earlier disposable attempt removed only the Item, exposing that
+surviving managed metadata overrides the file provider; that container was
+also removed.
+
 The live `BatteryIcon` is still REST-managed, unlinked and ungrouped. Its
 unique JDBC mapping is Item 31, with 136,507 rows and a current/persisted
 `iconify:mdi:battery-70` state at the read-only check. The
@@ -24,8 +34,10 @@ icon migration could interrupt another live status signal. Do not do that.
 Before a production transfer, prepare and test a guarded adapter that keeps
 the writer running, handles a natural state/history update during the handoff,
 preserves exact Item 31 history, and restores managed ownership on any
-failure. Exercise provider withdrawal, rollback and restart in a disposable
-OpenHAB/JDBC instance. After an attended handoff, retain the private rollback
-receipt and require a natural `BatteryIcon` writer update plus new Item 31 row
+failure. Provider withdrawal and metadata-preserving managed rollback are now
+qualified in isolation, but JDBC continuity, a complete restart rehearsal
+and the live race-safe transaction are not. After an attended handoff, retain
+the private rollback receipt and require a natural `BatteryIcon` writer update
+plus new Item 31 row
 before declaring file ownership verified. No synthetic production icon update
 is acceptable to satisfy that gate.

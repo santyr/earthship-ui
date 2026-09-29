@@ -146,8 +146,10 @@ expected metadata `editable` flag changed from managed `true` to file-owned
 managed, with unique JDBC Item 31 and 136,507 rows at the September 29 check.
 Its 30-second `UpdateBatteryIcon` writer also updates `BatteryChargingStatus`;
 do not pause that rule just to move the icon. A race-safe state/history handoff,
-isolated rollback and natural writer receipt are still required before a live
-transfer. The staged file is not an ownership claim.
+JDBC/restart rehearsal and natural writer receipt are still required before a
+live transfer. A separate networkless OpenHAB run verified file withdrawal
+and metadata-preserving managed rollback; its owned container was removed.
+The staged file is not an ownership claim.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
