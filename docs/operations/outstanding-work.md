@@ -33,11 +33,14 @@ while corrected next-day hourly errors remain larger and a newer same-day
 issue was worse on September 28. This is evidence to investigate forecast
 revision/sky regimes, not a release of a new bias or a claim that later jobs
 are always better.
-The morning PV worker now has source-only optional as-issued branch diagnostics
+The morning PV worker now has optional as-issued branch diagnostics
 for future persisted prediction receipts. They retain resource, demand and
 SoC-headroom components beyond the worker's 30-day state window without
-changing predictions or the closed PV calibration gate. Natural issuance,
-JDBC retention and qualified outcome pairing remain unverified.
+changing predictions or the closed PV calibration gate. The exact source was
+installed under an idle-service, hash-pinned one-file transaction with a
+private rollback copy; the next natural forecast run is September 30 06:40.
+Natural issuance, JDBC retention and qualified outcome pairing remain
+unverified.
 The same tuning review now includes a current strict thermal publication
 audit. Exact captured-forcing verification required the installed v4 runtime
 (the source checkout validates v5). The mixed-revision 24-hour model still

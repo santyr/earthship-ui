@@ -298,9 +298,17 @@ change; older receipts remain valid and the UI ignores the optional diagnostic
 object. A source-only consistency check refuses nonfinite or contradictory
 components rather than persisting a false decomposition. The SoC percentage
 is diagnostic and still lacks an embedded original-source digest; it must not
-be treated as a newly qualified training label. The first natural issue,
-persistence and later qualified PV-day pairing must be verified before using
-these fields for calibration.
+be treated as a newly qualified training label. The exact prior installed
+worker hash `c1b7a391...5f9bfb45e` was checked while the service was idle;
+the diagnostic-only source was atomically installed at hash
+`849a1253...b208d03` with a private mode-0600 rollback copy at
+`/home/sat/.local/state/forecast-intel/pv-diagnostics-SanI7azs`.
+The 06:40 timer remains active for September 30; no forecast job was run
+manually. The first natural receipt, JDBC persistence and later qualified
+PV-day pairing must be verified before using these fields for calibration.
+Verification before install: 112 focused Python forecast/history tests, 1,910
+UI unit tests and the production UI build passed. No coefficient, predicted
+number, DM threshold, OpenHAB control or existing receipt was changed.
 
 ### Current thermal shadow comparison
 
