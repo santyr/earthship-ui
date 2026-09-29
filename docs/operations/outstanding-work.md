@@ -3546,6 +3546,19 @@ reseeds on a later genuine charge. Two reversal/recharge regressions and all
 1,886 repository unit tests pass. The live rule and display are unchanged;
 overnight history-source coverage and representative transition replay still
 block the guarded estimator cutover.
+A bounded, read-only replay CLI now re-evaluates the disabled rule at 30-second
+ticks using as-persisted evidence Item states and compares its basis with the
+live rule's historical basis. It does not issue commands or post Items and
+caps query windows, response sizes and rows. The first 14:05–14:25Z natural
+morning replay covered 41 ticks: candidate basis `evening` 22, `bms` 17 and
+`off` 2. It exposed two fail-closed candidate ticks where the live rule still
+reported `evening`, and delayed candidate BMS re-entry after 14:22Z; no
+positive time-to-full survived noncharging current. The replay substitutes an
+unqualified 155 W night-load fallback, so its projected minute values must
+not be compared to production or used as promotion evidence. Re-run over
+complete dusk/night windows and qualify the weighted overnight load history
+before estimator release. Command: `node openhab/scripts/bms_runtime_shadow_replay.mjs
+2026-09-29T14:05:00Z 2026-09-29T14:25:00Z`.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
