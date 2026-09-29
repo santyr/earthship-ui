@@ -28,7 +28,9 @@ def _one(packet, key):
 def _metadata(packet):
     result = {'model': _one(packet, 'model')}
     for key, lower, upper in (('tempf', -60, 160), ('humidity', 0, 100),
-                              ('solarradiation', 0, 1500)):
+                              ('solarradiation', 0, 1500), ('winddir', 0, 360),
+                              ('windspeedmph', 0, 150), ('windgustmph', 0, 200),
+                              ('uv', 0, 20)):
         raw = _one(packet, key)
         try:
             value = float(raw)
@@ -36,6 +38,9 @@ def _metadata(packet):
             value = None
         result[key] = value if value is not None and math.isfinite(value) and lower <= value <= upper else None
     battery = _one(packet, 'battery_ok')
+    if isinstance(battery, str):
+        battery = {'true': True, 'false': False, '1': True,
+                   '0': False}.get(battery.lower())
     result['battery_ok'] = battery if type(battery) is bool else None
     return result
 
@@ -43,7 +48,8 @@ def _metadata(packet):
 def _diagnostic(current, previous, delta, sensor_id):
     report = {'sensor_id': sensor_id, 'model': current['model'],
               'rain_delta_in': round(delta, 3)}
-    for key in ('tempf', 'humidity', 'solarradiation'):
+    for key in ('tempf', 'humidity', 'solarradiation', 'winddir',
+                'windspeedmph', 'windgustmph', 'uv'):
         before, after = previous.get(key), current.get(key)
         report[key + '_delta'] = (round(after - before, 2)
                                   if before is not None and after is not None else None)
