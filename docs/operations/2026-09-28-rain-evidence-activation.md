@@ -304,3 +304,30 @@ both labels at 10,275 tips and fail-closed ambiguous values. No live radio
 service has yet been restarted at this source-only checkpoint. Keep the
 rain collector's physical spike guard and strict day reader in place after
 deployment; do not score a day until the next complete, fault-free local day.
+
+### Guarded live radio-adapter cutover — September 29, 01:10 MDT
+
+Commit `b74e83a` became the Git-owned canonical adapter. The installed prior
+file was verified as SHA-256
+`deaf48dc9e35dabb06c93bbd484c8750479f25cc9b3e50f7ea0acebb2df7ade6`,
+and a mode-0600 rollback copy was saved under
+`/home/sat/.local/state/rtl-weather-wh65b-3knU2P/`. `rtl_weather.service`
+was active under sat-owned PID 1974092, with `Restart=always` and the exact
+`/usr/bin/python3 /home/sat/bin/rtl_weather.py` entrypoint. Since unattended
+`systemctl restart` required a password, the tested source was installed
+atomically and only that verified main process received SIGTERM. Systemd
+restarted it as PID 1954630 and relaunched its `rtl_433` child. The new
+source/runtime SHA-256 both equal
+`31a574cc30ebc83c6aa1b69856405707ceb4a8d26da615894261827807352808`.
+The downstream `weather.service` was not restarted.
+
+Natural outdoor and rain packets after the cutover were valid at 01:11:37
+MDT; the accepted counter stayed 102.7497945 inches with zero new jump/drop
+latches. Indoor and north-wall receipts were also valid after the radio
+restart; no adapter warning appeared in the bounded service-log check. This
+closes restart and ordinary-packet recovery, **not** yet the natural
+misclassified-WH24 packet gate. The temporary collector diagnostic remains
+expiring and the physical spike guard remains active. September 29 is still
+unqualified because of its earlier faults and evidence-epoch resets; the
+first possible full local source day is September 30 if continuity and both
+midnight brackets pass.
