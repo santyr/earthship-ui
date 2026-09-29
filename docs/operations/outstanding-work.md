@@ -3702,6 +3702,16 @@ accuracy: the weighted Item-history mean is neither original-acquisition
 freshness nor proven equivalent to OpenHAB's Java `averageBetween` result.
 No live rule, Item, cache or control changed. Nine focused and all 1,904
 UI/OpenHAB JavaScript tests passed.
+Source review of the host's pinned OpenHAB 5.2.1
+[`PersistenceExtensions.averageBetween`](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.persistence/src/main/java/org/openhab/core/persistence/extensions/PersistenceExtensions.java#L1743-L1757)
+shows a default LEFT Riemann/time-weighted average with a retimed persisted
+start carry and end boundary (see the
+[`boundary helper`](https://github.com/openhab/openhab-core/blob/5.2.1/bundles/org.openhab.core.persistence/src/main/java/org/openhab/core/persistence/extensions/PersistenceExtensions.java#L3433-L3473)).
+The audit implements that same mathematical
+shape under stricter gap and carry requirements. This narrows the algorithm
+question, but it is an inference from source, **not** a live Java/JDBC parity
+probe or original-acquisition qualification; keep the estimator release gate
+closed until those checks and representative dusk/night replay pass.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
