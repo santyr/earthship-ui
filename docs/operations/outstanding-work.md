@@ -652,6 +652,14 @@ already unqualified due to the pre-fix faults and restart; the reader still
 refuses faulted days. The exact Item 657 grant, repeat-spike diagnosis and a
 future complete clean day remain open. See the
 [rain activation receipt](2026-09-28-rain-evidence-activation.md).
+The RTL ingest journal contains no accepted raw packet history or coincident
+foreign-ID message for those spikes. A bounded, anomaly-only metadata
+diagnostic was tested (187 weather tests), installed with one guarded worker
+HUP, and recovered all three temperature streams plus rain; it expires at
+September 30 00:00 MDT and must be removed after diagnosis. It does not log
+full URLs or relax the strict rain day reader. The next natural rejected
+spike is needed to distinguish RF/source identity from decoding error; see
+the same [rain receipt](2026-09-28-rain-evidence-activation.md).
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

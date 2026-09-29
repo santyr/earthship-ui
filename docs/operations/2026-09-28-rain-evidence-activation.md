@@ -143,3 +143,30 @@ barrier and earlier spikes make September 29 unqualified. A future full day
 still needs zero unresolved source faults, both midnight brackets, continuous
 coverage, the exact Item 657 SELECT grant and a strict day-reader pass. No
 weather legacy state, forecast coefficients or protected control was changed.
+
+### Temporary source-attribution diagnostic — September 29, 00:20 MDT
+
+`rtl_weather.service` retains no accepted raw packet history, and no foreign-ID
+message coincided with the three repeated spikes. Commit `0748891` adds a
+diagnostic only on rejected jumps: it emits bounded differences in source
+temperature, humidity and solar radiation, plus model, approved sensor ID,
+rain delta and battery-status transition. It never logs a full request URL or
+alters acceptance. It logs each distinct spike value at most once per worker
+epoch (maximum eight) and stops automatically at September 30 00:00 MDT.
+The full weather slice passed 187 tests with two optional skips, including
+callback failure and expiry behavior. Remove the diagnostic code after the
+cause is resolved; no permanent packet logger is intended.
+
+With all temperature streams valid and the same sat-owned master active, the
+tested collector module was atomically installed from exact preimage
+`d47a6a9e038e78f4ca492fe35dc2420a2123edf5431b2c596e36c3acdaee23f4`.
+A private mode-0600 rollback copy is in
+`/home/sat/.local/state/weather-rain-anomaly-6e07jW/`. Installed/source
+SHA-256 is
+`c1b3cb8f15794307dd05b9a305efe17396a93a543d1853d2bc6e4e8db23ea381`.
+One HUP kept Gunicorn master PID 1607215 and booted a new worker. Natural
+outdoor, indoor, north-wall and rain packets all restored valid; the rain
+epoch had zero new fault latches at the 00:20 readback. This resets the
+observational rain epoch, so September 29 remains unqualified. The next
+actual rejected spike and its bounded metadata—not this deployment—must
+inform the root-cause decision.
