@@ -387,8 +387,10 @@ The rain collector now latches counts of invalid expected-sensor packets,
 counter drops and implausible positive jumps across subsequent valid packets
 in the same process epoch. These counters let a future polled/JDBC day-reader
 detect brief faults that a 30-second HTTP poll could otherwise miss. A
-create-only, disabled HTTP/Item/link manifest is staged for a separate
-durable-collection release; it has not been installed. A complete-day reader
+create-only, disabled HTTP/Item/link manifest was initially staged but never
+installed. It has now been replaced by file-owned, additive HTTP Thing and
+String Item definitions consistent with the OpenHAB migration policy; those
+files have not been installed either. A complete-day reader
 still must use the latched counts, original packet times and counter boundary
 uncertainty before any precipitation score is qualified.
 The new source-only pure rain day-reader now does exactly that for supplied

@@ -1,25 +1,18 @@
-import json
 from pathlib import Path
 
 
-MANIFEST = Path(__file__).resolve().parents[1] / 'weather-rain-evidence-resources.json'
+ROOT = Path(__file__).resolve().parents[1] / 'file-config'
 
 
-def test_rain_resources_are_read_only_and_distinct_from_temperature():
-    rain = json.loads(MANIFEST.read_text())
-    temperature = json.loads((MANIFEST.parent /
-                              'weather-temperature-evidence-resources.json').read_text())
-    thing = rain['things'][0]
-    item = rain['items'][0]
-    link = rain['links'][0]
-    assert rain['createOnly'] is True and thing['enabled'] is False
-    assert thing['configuration']['baseURL'] == 'http://127.0.0.1:5000/rain_evidence'
-    assert thing['channels'][0]['configuration'] == {'mode': 'READONLY'}
-    assert thing['configuration']['stateMethod'] == 'GET'
-    assert item['type'] == 'String'
-    assert link['configuration'] == {'profile': 'system:default'}
-    assert link['channelUID'] == thing['channels'][0]['uid']
-    assert link['itemName'] == item['name']
-    assert rain['persistence'] == temperature['persistence']
-    assert thing['UID'] != temperature['things'][0]['UID']
-    assert item['name'] != temperature['items'][0]['name']
+def test_rain_resources_are_file_owned_read_only_and_distinct():
+    thing = (ROOT / 'things/weather-rain-evidence.things').read_text()
+    item = (ROOT / 'items/weather-rain-evidence.items').read_text()
+    assert 'Thing http:url:weatherRainEvidence ' in thing
+    assert 'baseURL="http://127.0.0.1:5000/rain_evidence"' in thing
+    assert 'refresh=30' in thing
+    assert 'stateMethod="GET"' in thing
+    assert 'Type string : snapshot' in thing
+    assert 'mode="READONLY"' in thing
+    assert 'String Weather_Rain_Evidence_JSON ' in item
+    assert 'channel="http:url:weatherRainEvidence:snapshot"' in item
+    assert 'weatherTemperatureEvidence' not in thing + item

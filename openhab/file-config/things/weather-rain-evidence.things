@@ -1,0 +1,11 @@
+// Additive, observational source. Do not link a command-capable channel.
+Thing http:url:weatherRainEvidence "Weather rain-counter receipt evidence" [
+    baseURL="http://127.0.0.1:5000/rain_evidence",
+    refresh=30,
+    timeout=3000,
+    bufferSize=16,
+    stateMethod="GET"
+] {
+    Channels:
+        Type string : snapshot "Complete rain-counter evidence snapshot" [ mode="READONLY" ]
+}

@@ -1,0 +1,2 @@
+// Source-bound, polled rain receipts; never a control or numeric fallback.
+String Weather_Rain_Evidence_JSON "Weather rain-counter receipt evidence" { channel="http:url:weatherRainEvidence:snapshot" }
