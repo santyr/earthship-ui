@@ -14,6 +14,7 @@
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
+  import { freshBmsTemperatureF } from '../lib/battery/auxTemperature.js';
 
   let analyticsNowMs = $state(Date.now());
   const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
@@ -70,7 +71,8 @@
   });
 
   // ---- Battery vitals ------------------------------------------------------
-  const battTemp = $derived(fmt($items.BMS_Temperature, '°'));
+  const battTemp = $derived(fmt(freshBmsTemperatureF($items.BMS_Aux_Evidence_JSON,
+    Math.max(analyticsNowMs, Date.now())), '°'));
   const battCycles = $derived(fmt($items.BMS_Charge_Cycles));
   const battCapacity = $derived(fmt($items.BMS_Capacity_Remaining_Ah, ' Ah', 1));
   // BMS_DevicePresent is a Number/String item whose real "present" value is

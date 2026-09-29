@@ -74,6 +74,17 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
         observedAt: socObservedAt, scaleObservedAt: socObservedAt,
         validUntil: socObservedAt + 120_000, soc: 89,
       }),
+      BMS_Aux_Evidence_JSON: JSON.stringify({
+        version: 1, basis: 'discover_bms_190_native_aux_v1',
+        streamEpoch: '123e4567-e89b-42d3-a456-426614174000', sequence: 1,
+        recordedAt: socObservedAt + 1_000,
+        fields: {
+          'battery.remaining_ah': { status: 'valid', reason: 'ok',
+            observedAt: socObservedAt, validUntil: socObservedAt + 120_000, value: 300 },
+          'battery.temperature_raw': { status: 'valid', reason: 'ok',
+            observedAt: socObservedAt, validUntil: socObservedAt + 120_000, value: 29800 },
+        },
+      }),
       ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
       .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
@@ -103,6 +114,18 @@ test('Energy withholds a held numeric SoC when source evidence is unavailable', 
     BMS_SOC: '89', BMS_SOC_Evidence_JSON: 'UNDEF',
   });
   await expect(page.locator('.hero-soc')).toHaveText('SoC —');
+});
+
+test('Energy battery temperature follows native evidence, not held numeric state', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), { BMS_Temperature: '90 °F' });
+  await expect(page.locator('.vitals-cell .vital-value').first()).toHaveText('77°');
+});
+
+test('Energy withholds battery temperature when native evidence is unavailable', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    BMS_Temperature: '77 °F', BMS_Aux_Evidence_JSON: 'UNDEF',
+  });
+  await expect(page.locator('.vitals-cell .vital-value').first()).toHaveText('—');
 });
 
 test('Energy PV comparison and outlook use the current dated forecast', async ({ page }) => {
