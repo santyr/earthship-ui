@@ -96,6 +96,9 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['counts']['scored'], 1)
         self.assertEqual(result['groups']['overall']['model_mae_f'], 2.0)
         self.assertEqual(result['groups']['overall']['persistence_mae_f'], 2.0)
+        self.assertEqual(result['groups']['overall']['paired_model_wins'], 0)
+        self.assertEqual(result['groups']['overall']['paired_ties'], 1)
+        self.assertEqual(result['groups']['overall']['paired_persistence_wins'], 0)
         self.assertEqual(result['groups']['overall']['interval_coverage'], 1.0)
         self.assertIn('independent_operational_model_not_better_than_persistence',
                       result['operational_readiness_blockers'])
@@ -203,6 +206,8 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['n'], 2)
         self.assertEqual(result['groups']['nonoverlap:artifact:' + first_id]['n'], 1)
         self.assertEqual(result['groups']['nonoverlap:artifact:' + second_id]['n'], 1)
+        self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['paired_model_wins'], 1)
+        self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['paired_ties'], 1)
         self.assertIn('target_artifact_not_better_than_persistence',
                       result['operational_readiness_blockers'])
         self.assertNotIn('target_artifact_not_selected', result['operational_readiness_blockers'])

@@ -253,9 +253,16 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
             groups['nonoverlap:artifact:' + artifact_id].append(error)
     def metrics(errors):
         n = len(errors)
+        paired_differences = [abs(model) - abs(persistence)
+                              for model, persistence, _, _ in errors]
         return {'n': n,
                 'model_mae_f': round(sum(abs(x[0]) for x in errors) / n, 4),
                 'persistence_mae_f': round(sum(abs(x[1]) for x in errors) / n, 4),
+                'paired_mean_absolute_error_difference_f': round(
+                    sum(paired_differences) / n, 4),
+                'paired_model_wins': sum(value < 0 for value in paired_differences),
+                'paired_ties': sum(value == 0 for value in paired_differences),
+                'paired_persistence_wins': sum(value > 0 for value in paired_differences),
                 'model_bias_f': round(sum(x[0] for x in errors) / n, 4),
                 'persistence_bias_f': round(sum(x[1] for x in errors) / n, 4),
                 'interval_coverage': round(sum(x[2] for x in errors) / n, 4),

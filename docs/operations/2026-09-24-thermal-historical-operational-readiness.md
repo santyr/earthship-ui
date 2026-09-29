@@ -216,6 +216,8 @@ under code revision `53d96e5e9637`, had six disjoint one-hour pairs:
 model MAE 0.352°F versus same-origin persistence 0.000°F. Its validated
 captured-artifact SHA-256 is
 `f7c85390f842d91685f88592c7b1e50c84805fd662d5fe7562261aa3eb881e17`.
+The paired independent comparison has zero model wins, zero ties and six
+persistence wins; the mean absolute-error disadvantage is 0.352°F.
 Targeted read-only scoring reports inferior skill, low-confidence outputs,
 no confirmed-action outcome score and no approved graduation thresholds.
 The short window is diagnostic, not a release decision; current status remains
