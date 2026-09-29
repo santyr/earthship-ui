@@ -233,6 +233,17 @@ cutover, so no complete local day can qualify yet; the first possible full
 day is September 29, assessable after its local midnight on September 30.
 Production Solar_PV switch-quality flags and publication remain off pending
 that complete-day assessment and fault/restart integration evidence.
+The September 28 observational-rule restart gate is now qualified without
+touching either controlled Switch Item: the live rule matched the reviewed
+script, both TP-Link Things were ONLINE, and only
+`hex_tplink_switch_evidence` was disabled and re-enabled. Its status returned
+to `IDLE/NONE`. Restricted JDBC readback found the old stream ending at
+sequence 532, then a new epoch at 01:27:05.621Z with sequence 1 and both
+fields unavailable. Natural source reports restored Dishwasher at sequence 2
+and Cistern Pump at sequence 3. All 536 persisted receipts parsed with one
+barriered restart and no sequence gap; the latest receipt had both fields
+valid. This qualifies the rule restart path, not a deliberate Thing/network
+fault, a complete local day, or production quality publication.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
