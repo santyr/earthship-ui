@@ -12,14 +12,19 @@ automatic and manual gates consumed held, change-only `BMS_SOC` and tolerated
 source-bound `BMS_SOC_Evidence_JSON` value with the producer's 120-second
 expiry, rejects non-OK comms, and forces an active pump OFF if evidence becomes
 invalid. All 53 dual-pump simulations and the full 1,839-test suite pass.
-This is **not deployed**. The source is SHA-256
+The reviewed source is SHA-256
 `e697e262...108970d18`; neither the historical timer-guard adapter nor the
 old manifest source may be used to apply it as-is. A dedicated wrapper now pins
 the old/new hashes, checks live comms and fresh matching atomic SoC, and calls
 the existing exact-baseline, private-backup/rollback adapter. Its read-only
 production preflight passed with both pumps OFF, and five offline guard tests
-passed. Live replacement still needs separate attended approval and post-change
-rule, pump and natural-cycle verification.
+passed. At 06:46 MDT on September 29 the operator approved the attended
+protected-rule replacement. The wrapper's fresh preflight passed and its
+guarded apply returned `deployed`, with exact enabled-rule source readback
+`e697e262...108970d18` and both pump Items OFF. The private rollback copy is
+`/home/sat/.local/state/greywater-rule-release/timer-guard-piynkx5r`.
+Natural-cycle and physical pump-behavior verification remain pending; this
+readback alone does not establish them.
 At 04:38 MDT a read-only JDBC replay assessed the preceding 24 hours of
 `BMS_SOC_Evidence_JSON` with a two-hour pre-window carry. All 1,408 in-window
 receipts were `valid/ok`; at all 1,440 simulated minute cron ticks the latest
@@ -31,7 +36,8 @@ to replace the live protected rule without attended approval.
 The Earthship greywater display now maps the candidate's
 `invalid_soc_evidence` status to "Waiting for telemetry" rather than the
 generic controller hold. Its focused rule/UI tests and production UI build
-pass. This is presentation-only; the protected rule is still not deployed.
+pass. The presentation change was source-only until the guarded rule
+deployment recorded above.
 The natural September 29 06:40 forecast worker exited zero. It scored all 24
 qualified hourly temperature targets, withheld yesterday's PV and rain scores
 as `evidence_cutover_partial_day` without fallback or PV coefficient change,
@@ -40,6 +46,16 @@ September 29 prediction receipt persisted in JDBC (5.36 kWh PV, 53% trough),
 and the 10-day payload refreshed with 24 learned hourly buckets. This closes
 the natural partial-day refusal gate, not full-day PV/rain quality or learned
 calibration release.
+The 06:40 September 29 raw hourly capture is for September 30, not the
+September 29 target captured a day earlier. A same-origin comparison of all
+24 September 30 hours against the live 10-day payload found zero mismatches:
+the displayed values carry the learned hourly bucket corrections to the
+expected 0.1°F rounding. This verifies publication, not tomorrow's realized
+forecast accuracy.
+The natural thermal trainer started at 06:50:17 MDT on September 29; its
+initial service state was `activating` with the Python training process alive
+and about 306 MiB resident. No manual run, interruption, or model promotion
+was made. Whole-run duration, swap and acceptance gates remain pending.
 
 September 29 file-first census: the secret-free live inventory reports 383
 managed and 56 non-managed Items, 81/4 Things, 39/0 rules, 246/21 links, one
