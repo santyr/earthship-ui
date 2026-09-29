@@ -50,6 +50,30 @@ describe('bounded read-only runtime estimator replay', () => {
     });
     expect(result.firstBasisDisagreements).toHaveLength(2);
     expect(result.ttfReversalViolations).toEqual([]);
+    expect(result.overnightLoadInputs['2027-01-14']).toEqual({ source: 'rule_fallback_155w', watts: 155 });
+  });
+
+  it('uses an explicitly audited completed-night load without claiming Java parity', () => {
+    const h = histories();
+    const fallback = replayRuntime(h, { startMs: at, endMs: at });
+    const audited = replayRuntime(h, { startMs: at, endMs: at,
+      nightLoadByDay: { '2027-01-14': 200 } });
+    expect(audited.candidateBasisTicks).toEqual(fallback.candidateBasisTicks);
+    expect(audited.overnightLoadInputs['2027-01-14']).toEqual({
+      source: 'as_persisted_weighted_diagnostic', watts: 200,
+    });
+    expect(Number(audited.lastCandidate.ttdMin)).toBeLessThan(Number(fallback.lastCandidate.ttdMin));
+    expect(audited.caveat).toContain('not source-fresh or proven equivalent');
+  });
+
+  it('rejects malformed or unbounded night-load injections', () => {
+    const h = histories();
+    for (const nightLoadByDay of [null, [], { '2027-01-14': -1 },
+      { '2027-01-14': Infinity }, { '2027-01-14': 20001 }, { bogus: 150 },
+      { '2027-01-14': 150, '2027-01-15': 160, '2027-01-16': 170 }]) {
+      expect(() => replayRuntime(h, { startMs: at, endMs: at, nightLoadByDay }))
+        .toThrow('invalid bounded night-load');
+    }
   });
 
   it('admits BMS after a second naturally persisted current observation', () => {

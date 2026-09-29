@@ -3690,6 +3690,18 @@ source or an estimator release. Three focused and 1,893 full JS tests pass.
 Commands: `node openhab/scripts/bms_night_load_audit.mjs
 2026-09-28T02:30:00Z 2026-09-28T12:00:00Z` and the same command with
 September 29 UTC dates.
+The read-only BMS runtime replay can now take an explicit completed-night UTC
+window as two optional arguments. It runs the same strict as-persisted load
+audit before injecting that night-keyed mean into the disabled estimator, and
+reports whether a replay used the audited diagnostic or the rule's 155 W
+fallback. A September 29 14:05–14:25Z replay with the completed 28–29 night
+used 166.631 W; its last candidate evening TTD was 4,120 minutes versus
+4,430 with the fixed fallback. Basis counts remained 22 evening, 17 BMS and
+two off in both runs. This quantifies fallback sensitivity, not estimator
+accuracy: the weighted Item-history mean is neither original-acquisition
+freshness nor proven equivalent to OpenHAB's Java `averageBetween` result.
+No live rule, Item, cache or control changed. Nine focused and all 1,904
+UI/OpenHAB JavaScript tests passed.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543

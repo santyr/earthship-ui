@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
+import { auditNightLoad } from './bms_night_load_audit.mjs';
 
 const source = readFileSync(new URL('../rules/bms-runtime-estimator-evidence.js', import.meta.url), 'utf8');
 const EVIDENCE = [
@@ -55,10 +56,17 @@ function checkedRows(name, rows) {
   });
 }
 
-export function replayRuntime(histories, { startMs, endMs }) {
+export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }) {
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || startMs <= 0 || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) {
     throw new Error('bounded replay window required');
+  }
+  if (!nightLoadByDay || typeof nightLoadByDay !== 'object' || Array.isArray(nightLoadByDay)
+      || Object.keys(nightLoadByDay).length > 2
+      || Object.entries(nightLoadByDay).some(([day, watts]) =>
+        !/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(watts)
+        || watts < 0 || watts > 20000)) {
+    throw new Error('invalid bounded night-load inputs');
   }
   const rows = Object.fromEntries([...EVIDENCE, ...LIVE].map(name => [name, checkedRows(name, histories[name])]));
   const indices = Object.fromEntries(Object.keys(rows).map(name => [name, 0]));
@@ -67,6 +75,7 @@ export function replayRuntime(histories, { startMs, endMs }) {
   const memory = new Map();
   let tick = startMs;
   const basisCounts = {}, disagreements = [], disagreementPairs = {}, ttfReversalViolations = [];
+  const overnightLoadInputs = {};
   let firstNonOffAt = null;
   const openhab = {
     cache: { private: {
@@ -78,7 +87,18 @@ export function replayRuntime(histories, { startMs, endMs }) {
     time: { toZDT: () => new LocalZDT(localTime(tick)) },
     items: { getItem: name => ({
       get state() { return name in output ? output[name] : held[name] ?? 'NULL'; },
-      persistence: { averageBetween: () => 155 },
+      persistence: { averageBetween: (start, end) => {
+        if (name !== 'ConextGateway_ACPowerValue'
+            || start.hour !== 20 || start.minute !== 30
+            || end.hour !== 6 || end.minute !== 0
+            || start.day === end.day) throw new Error('unexpected overnight-load window');
+        const day = end.toLocalDate().toString();
+        const watts = Object.hasOwn(nightLoadByDay, day) ? nightLoadByDay[day] : null;
+        overnightLoadInputs[day] = watts === null
+          ? { source: 'rule_fallback_155w', watts: 155 }
+          : { source: 'as_persisted_weighted_diagnostic', watts };
+        return watts;
+      } },
       postUpdate: value => {
         if (!(name in output)) throw new Error(`unexpected output ${name}`);
         output[name] = String(value);
@@ -122,12 +142,14 @@ export function replayRuntime(histories, { startMs, endMs }) {
     disagreementPairs,
     firstBasisDisagreements: disagreements,
     ttfReversalViolations,
-    lastCandidate: { basis: output.BMS_Runtime_Basis, ttfMin: output.BMS_TimeToFull_Smoothed },
-    caveat: 'Projection minutes use an unqualified 155 W nightly fallback; do not compare numeric TTD or infer operational readiness.',
+    overnightLoadInputs,
+    lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
+      ttfMin: output.BMS_TimeToFull_Smoothed },
+    caveat: 'Nightly loads are as-persisted Item diagnostics or the rule fallback, not source-fresh or proven equivalent to OpenHAB averageBetween; do not use numeric TTD for promotion.',
   };
 }
 
-async function fetchHistory(base, name, startMs, endMs) {
+async function fetchHistory(base, name, startMs, endMs, maxBytes = MAX_RESPONSE_BYTES) {
   const url = new URL(`/rest/persistence/items/${encodeURIComponent(name)}`, base);
   url.searchParams.set('serviceId', 'jdbc');
   url.searchParams.set('starttime', new Date(startMs).toISOString());
@@ -135,22 +157,46 @@ async function fetchHistory(base, name, startMs, endMs) {
   const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
   const body = await response.text();
-  if (body.length > MAX_RESPONSE_BYTES) throw new Error(`${name}: response bound`);
+  if (body.length > maxBytes) throw new Error(`${name}: response bound`);
   const payload = JSON.parse(body);
   return checkedRows(name, payload.data);
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length !== 2) throw new Error('usage: node bms_runtime_shadow_replay.mjs START_UTC END_UTC');
+  if (args.length !== 2 && args.length !== 4) {
+    throw new Error('usage: node bms_runtime_shadow_replay.mjs START_UTC END_UTC [NIGHT_START_UTC NIGHT_END_UTC]');
+  }
   const startMs = Date.parse(args[0]), endMs = Date.parse(args[1]);
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) throw new Error('bounded UTC window required');
   const base = 'http://127.0.0.1:5190';
+  const nightLoadByDay = {};
+  let nightLoadAudit = null;
+  if (args.length === 4) {
+    const nightStartMs = Date.parse(args[2]), nightEndMs = Date.parse(args[3]);
+    if (!Number.isSafeInteger(nightStartMs) || !Number.isSafeInteger(nightEndMs)) {
+      throw new Error('valid completed-night UTC bounds required');
+    }
+    const localStart = localTime(nightStartMs), localEnd = localTime(nightEndMs);
+    const previousDay = new Date(`${localEnd.day}T12:00:00Z`);
+    previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+    if (nightEndMs > startMs || localStart.day !== previousDay.toISOString().slice(0, 10)
+        || localStart.hour !== 20 || localStart.minute !== 30 || localStart.second !== 0
+        || localEnd.hour !== 6 || localEnd.minute !== 0 || localEnd.second !== 0) {
+      throw new Error('completed local 20:30-06:00 night ending before replay required');
+    }
+    const powerRows = await fetchHistory(base, 'ConextGateway_ACPowerValue',
+      nightStartMs - 30 * 60000, nightEndMs, 2 * 1024 * 1024);
+    nightLoadAudit = auditNightLoad(powerRows, { startMs: nightStartMs, endMs: nightEndMs });
+    nightLoadByDay[localEnd.day] = nightLoadAudit.averageW;
+  }
   const histories = {};
   for (const name of EVIDENCE) histories[name] = await fetchHistory(base, name, startMs - 10 * 60000, endMs);
   for (const name of LIVE) histories[name] = await fetchHistory(base, name, startMs - 24 * 3600000, endMs);
-  process.stdout.write(`${JSON.stringify(replayRuntime(histories, { startMs, endMs }), null, 2)}\n`);
+  const result = replayRuntime(histories, { startMs, endMs, nightLoadByDay });
+  if (nightLoadAudit) result.nightLoadAudit = nightLoadAudit;
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
