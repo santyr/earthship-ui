@@ -179,3 +179,21 @@ pixels at the 1340×800 Lenovo reference viewport, and to 46 CSS pixels at
 separate. Six focused browser cases pass across the five landscape sizes and
 the short-tablet scroll case; physical Lenovo readability still needs operator
 confirmation.
+
+The September 29 tablet-control refinement lets the individual and room-group
+vertical tracks use the available card height instead of the old 50–55 CSS
+pixel cap. On the primary 1340×800 Lenovo viewport, browser checks now require
+at least 120 CSS pixels of slider travel; the 1280×720 laptop floor requires at
+least 95, and compact 700–899-pixel landscape views at least 75 without page
+overflow. A separate, narrow all-27-shades column spans both visible room
+rows, providing one master percentage display and vertical slider in addition
+to the existing per-zone and individual sliders. Mixed or unreported positions
+show no fabricated master percentage. All controls remain disabled until
+commissioned; the all-shades slider does not submit movement commands.
+For eventual touch operation, a slider is a useful quick approximate control,
+but not a sufficiently precise *sole* percentage setter on a narrow tablet
+card. Keep the visible percent readout and open/close buttons; commissioning
+should test touch/assistive interaction and provide an explicit exact-percent
+or small-step adjustment path before enabling movement. A master adjustment
+also needs the command owner's reviewed staggering and per-motor report checks.
+This is a UI decision, not permission to energize the motors.

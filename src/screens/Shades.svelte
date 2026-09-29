@@ -13,6 +13,7 @@
   const rooms = $derived(SHADE_GROUPS.filter((room) => view.rooms.includes(room.id)));
   const mapped = $derived(SHADE_SLOTS.filter((slot) => slot.positionItem && slot.availabilityItem && slot.stateItem).length);
   const reporting = $derived(SHADE_SLOTS.filter((slot) => shadePresentation(slot, $items, $connection, nowMs).state === 'reported').length);
+  const allDisplay = $derived(shadeGroupPresentation(SHADE_SLOTS, $items, $connection, nowMs));
 </script>
 
 <div class="shades-page" data-shades-page>
@@ -37,8 +38,22 @@
     </div>
   </div>
 
-  <div class="zones" aria-label="{view.label} shade zones">
-    {#each rooms as room (room.id)}
+  <div class="shades-layout">
+    <article class="shade-card master-card group-card" aria-label={`All ${SHADE_COUNT} shades: ${allDisplay.label}`}>
+      <div class="card-top"><span class="shade-number">ALL</span></div>
+      <div class="card-name">{SHADE_COUNT} shades</div>
+      <div class="position-row">
+        <span class="position-value">{allDisplay.openPercent === null ? '—' : `${allDisplay.openPercent}%`}</span>
+        <span class="position-caption">{allDisplay.state === 'mixed' ? 'mixed' : 'open'}</span>
+      </div>
+      <div class="window-control" class:unknown={allDisplay.openPercent === null} style:--closed-percent={`${allDisplay.openPercent === null ? 0 : 100 - allDisplay.openPercent}%`}>
+        <div class="window-glass" aria-hidden="true"><div class="shade-fabric"></div></div>
+        <input type="range" min="0" max="100" value={allDisplay.openPercent ?? 0} disabled
+          aria-label={`All ${SHADE_COUNT} shades percent open; movement disabled until commissioning`} />
+      </div>
+    </article>
+    <div class="zones" aria-label="{view.label} shade zones">
+      {#each rooms as room (room.id)}
       {@const cards = SHADE_SLOTS.filter((slot) => slot.room === room.id)}
       {@const groupDisplay = shadeGroupPresentation(cards, $items, $connection, nowMs)}
       <section class="zone" aria-label="{room.label} shades">
@@ -85,7 +100,8 @@
           {/each}
         </div>
       </section>
-    {/each}
+      {/each}
+    </div>
   </div>
 </div>
 
@@ -104,6 +120,7 @@
   .all-actions span { color: #9aa7b8; font-size: .72rem; margin-right: .2rem; white-space: nowrap; }
   .all-actions button, .zone-actions button { min-height: 34px; border: 1px solid #3b4654; border-radius: .35rem; background: #1a222d; color: #aab5c1; font: inherit; font-size: .72rem; padding: 0 .55rem; white-space: nowrap; }
   .all-actions button:disabled, .zone-actions button:disabled { opacity: .58; cursor: not-allowed; }
+  .shades-layout { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: .5rem; min-width: 0; min-height: 0; overflow: hidden; }
   .zones { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: .55rem; min-width: 0; min-height: 0; overflow: hidden; }
   .zone { display: grid; grid-template-rows: 34px minmax(0, 1fr); gap: .25rem; min-width: 0; min-height: 0; overflow: hidden; }
   .zone-heading { display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-width: 0; }
@@ -112,7 +129,7 @@
   .zone-title span { color: #91a1b2; font-size: .7rem; }
   .zone-title .sensor-evidence { color: #75889b; }
   .shade-grid { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 52px)); grid-template-rows: minmax(0, 1fr); justify-content: space-evenly; align-items: center; gap: .3rem; min-width: 0; min-height: 0; overflow: hidden; }
-  .shade-card { display: flex; flex-direction: column; justify-content: space-between; height: 100%; max-height: 190px; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .2rem; box-sizing: border-box; overflow: hidden; }
+  .shade-card { display: flex; flex-direction: column; height: 100%; min-width: 0; min-height: 0; border: 1px solid #283342; border-radius: .48rem; background: #111821; padding: .5rem .2rem; box-sizing: border-box; overflow: hidden; }
   .shade-card.reported { border-color: #315a6b; }
   .group-card { border-color: #41566b; background: #15212c; }
   .card-top, .position-row { display: flex; align-items: baseline; justify-content: space-between; gap: .2rem; min-width: 0; }
@@ -123,25 +140,33 @@
   .position-row { flex-direction: column; align-items: flex-start; gap: .1rem; }
   .position-value { color: #edf3f8; font-size: 1.12rem; line-height: 1; font-weight: 600; }
   .position-caption { color: #9aa7b8; font-size: .62rem; }
-  .window-control { display: flex; align-items: center; justify-content: center; gap: .2rem; min-height: 65px; padding-top: .15rem; }
-  .window-glass { position: relative; width: 20px; height: 55px; flex: none; border: 2px solid #7890a4; background: linear-gradient(180deg, #233e4a, #1b313d); box-sizing: border-box; overflow: hidden; }
+  .window-control { display: flex; flex: 1 1 auto; align-items: center; justify-content: center; gap: .2rem; min-height: 72px; padding-top: .35rem; }
+  .window-glass { position: relative; width: 20px; height: 100%; max-height: 160px; flex: none; border: 2px solid #7890a4; background: linear-gradient(180deg, #233e4a, #1b313d); box-sizing: border-box; overflow: hidden; }
   .window-glass::after { content: ''; position: absolute; inset: 0; border: 2px solid #23313c; pointer-events: none; }
   .shade-fabric { width: 100%; height: var(--closed-percent); background: repeating-linear-gradient(180deg, #8b9aa3 0, #8b9aa3 7px, #778791 8px); }
   .window-control.unknown .window-glass { border-color: #3c4b59; background: #1b2732; }
   .window-control.unknown .shade-fabric { display: none; }
-  .window-control input[type='range'] { width: 16px; height: 55px; margin: 0; padding: 0; writing-mode: vertical-lr; direction: rtl; accent-color: #78b8c8; cursor: not-allowed; }
+  .window-control input[type='range'] { width: 16px; height: 100%; max-height: 160px; margin: 0; padding: 0; writing-mode: vertical-lr; direction: rtl; accent-color: #78b8c8; cursor: not-allowed; }
+  .master-card { padding: .5rem .3rem; }
+  .master-card .window-glass, .master-card .window-control input[type='range'] { max-height: none; }
   .window-control input[type='range']:disabled { opacity: .68; }
   .window-control.unknown input[type='range'] { opacity: .27; }
   .window-control.unknown input[type='range']::-webkit-slider-thumb { opacity: 0; }
   .window-control.unknown input[type='range']::-moz-range-thumb { opacity: 0; }
   @media (max-width: 899px) and (min-width: 700px) {
+    .shades-page { gap: .3rem; }
+    .page-heading { min-height: 44px; }
+    .page-selector { min-height: 34px; }
+    .selector-actions button { min-height: 32px; }
+    .all-actions button { min-height: 32px; }
+    .zones { gap: .35rem; }
     .shade-grid { grid-template-columns: repeat(var(--columns), minmax(0, 46px)); gap: .2rem; }
-    .shade-card { padding: .35rem .15rem; }
-    .window-control { gap: .1rem; min-height: 57px; }
-    .window-glass { width: 18px; height: 50px; }
-    .window-control input[type='range'] { width: 15px; height: 50px; }
+    .shade-card { padding: .2rem .15rem; }
+    .window-control { gap: .1rem; min-height: 72px; }
+    .window-glass { width: 18px; }
+    .window-control input[type='range'] { width: 15px; }
   }
-  @media (max-height: 540px) { .shades-page { grid-template-rows: auto auto auto; overflow-y: auto; } .zones { grid-template-rows: repeat(2, auto); min-height: max-content; overflow: visible; } .zone { grid-template-rows: auto auto; min-height: max-content; overflow: visible; } .shade-grid { grid-template-rows: auto; min-height: 155px; overflow: visible; } .shade-card { min-height: 155px; } }
-  @media (max-width: 699px) { .shades-page { overflow-y: auto; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 155px; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .page-heading { align-items: flex-start; } }
+  @media (max-height: 540px) { .shades-page { grid-template-rows: auto auto auto; overflow-y: auto; } .shades-layout { min-height: max-content; overflow: visible; } .zones { grid-template-rows: repeat(2, auto); min-height: max-content; overflow: visible; } .zone { grid-template-rows: auto auto; min-height: max-content; overflow: visible; } .shade-grid { grid-template-rows: auto; min-height: 190px; overflow: visible; } .shade-card { min-height: 190px; } }
+  @media (max-width: 699px) { .shades-page { overflow-y: auto; } .shades-layout { grid-template-columns: minmax(0, 1fr); overflow: visible; } .master-card { min-height: 155px; } .master-card .window-control { min-height: 95px; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 190px; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .page-heading { align-items: flex-start; } }
   @media (max-width: 520px) { .page-heading { flex-direction: column; gap: .4rem; } .release-state { text-align: left; } .shade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

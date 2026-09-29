@@ -36,12 +36,17 @@ for (const target of TARGETS) {
     await expect(page.getByText('27 planned · 0 mapped · 0 reporting')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open all' })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Close all' })).toBeDisabled();
+    const master = page.getByRole('article', { name: 'All 27 shades: Position unavailable' });
+    await expect(master).toBeVisible();
+    await expect(master.locator('.position-value')).toHaveText('—');
+    await expect(page.getByRole('slider', { name: 'All 27 shades percent open; movement disabled until commissioning' })).toBeDisabled();
     for (const [view, zones, count, last] of [
       ['Kitchen + Living Room', ['Kitchen', 'Living Room'], 17, 'Living Room Shade 17'],
       ['Bathroom + Bedroom', ['Bathroom', 'Bedroom'], 10, 'Bedroom Shade 27'],
     ]) {
       await page.getByRole('button', { name: view }).click();
-      await expect(page.locator('.shade-card')).toHaveCount(count + zones.length);
+      await expect(page.locator('.shade-grid .shade-card')).toHaveCount(count + zones.length);
+      await expect(page.locator('.master-card')).toHaveCount(1);
       await expect(page.getByRole('article', { name: `${last}: Awaiting Item mapping` })).toBeVisible();
       for (const zone of zones) {
         await expect(page.getByRole('heading', { name: zone, exact: true })).toBeVisible();
@@ -49,20 +54,25 @@ for (const target of TARGETS) {
         await expect(page.getByRole('button', { name: `Close ${zone}` })).toBeDisabled();
         await expect(page.getByRole('slider', { name: `${zone} group percent open; movement disabled until commissioning` })).toBeDisabled();
       }
-      await expect(page.locator('input[type="range"]')).toHaveCount(count + zones.length);
+      await expect(page.locator('input[type="range"]')).toHaveCount(count + zones.length + 1);
       await expect(page.locator('input[type="range"]:not(:disabled)')).toHaveCount(0);
 
       const geometry = await page.evaluate(() => {
         const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
-        const cards = [...document.querySelectorAll('.shade-card')].map((card) => {
+        const cards = [...document.querySelectorAll('.shade-grid .shade-card')].map((card) => {
           const box = card.getBoundingClientRect();
           return { left: box.left, top: box.top, right: box.right, bottom: box.bottom,
             width: box.width, scrollWidth: card.scrollWidth, clientWidth: card.clientWidth };
         });
-        const window = document.querySelector('.window-glass').getBoundingClientRect();
+        const window = document.querySelector('.shade-grid .window-glass').getBoundingClientRect();
+        const slider = document.querySelector('.shade-grid input[type="range"]').getBoundingClientRect();
+        const master = document.querySelector('.master-card').getBoundingClientRect();
+        const masterSlider = document.querySelector('.master-card input[type="range"]').getBoundingClientRect();
         return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
-          cards, window: { width: window.width, height: window.height },
-          vertical: getComputedStyle(document.querySelector('input[type="range"]')).writingMode,
+          cards, window: { width: window.width, height: window.height }, sliderHeight: slider.height,
+          master: { left: master.left, right: master.right, top: master.top, bottom: master.bottom },
+          masterSliderHeight: masterSlider.height,
+          vertical: getComputedStyle(document.querySelector('.shade-grid input[type="range"]')).writingMode,
           truncatedCardLabels: [...document.querySelectorAll('.card-name')]
             .filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent) };
       });
@@ -71,7 +81,16 @@ for (const target of TARGETS) {
       expect(geometry.cards.every((card) => card.left >= 0 && card.top >= 0 && card.right <= geometry.viewport.width && card.bottom <= geometry.viewport.height)).toBe(true);
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
       expect(geometry.cards.every((card) => card.width <= (target.width < 900 ? 47 : 53))).toBe(true);
-      expect(geometry.window).toEqual(target.width < 900 ? { width: 18, height: 50 } : { width: 20, height: 55 });
+      expect(geometry.window.width).toBe(target.width < 900 ? 18 : 20);
+      expect(geometry.window.height).toBeGreaterThanOrEqual(75);
+      expect(geometry.sliderHeight).toBeGreaterThanOrEqual(75);
+      if (target.name === 'lenovo-m9') expect(geometry.sliderHeight).toBeGreaterThanOrEqual(120);
+      if (target.name === 'laptop-floor') expect(geometry.sliderHeight).toBeGreaterThanOrEqual(95);
+      expect(geometry.masterSliderHeight).toBeGreaterThan(geometry.sliderHeight);
+      expect(geometry.master.left).toBeGreaterThanOrEqual(0);
+      expect(geometry.master.right).toBeLessThanOrEqual(geometry.viewport.width);
+      expect(geometry.master.top).toBeGreaterThanOrEqual(0);
+      expect(geometry.master.bottom).toBeLessThanOrEqual(geometry.viewport.height);
       expect(geometry.vertical).toBe('vertical-lr');
       expect(geometry.truncatedCardLabels).toEqual([]);
     }
