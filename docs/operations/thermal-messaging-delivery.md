@@ -19,6 +19,13 @@ Focused bunker/messaging regressions passed 85 tests using the previously
 documented cached `websockets` 15.0.1 package via temporary `PYTHONPATH`;
 the system Python alone lacks `websockets.sync`. No package was installed.
 
+A later September 29 read-only liveness check returned both exact signed
+kind-10050 event IDs from nos.lol and relay.damus.io. Queries to
+relay.primal.net intermittently timed out; one successful exact-ID query and
+one successful author-filtered query returned no event. The cause is not
+established, so current 3/3 availability and retention are unqualified.
+No route was changed, republished or installed, and no collector was started.
+
 The source-only collector remains release-gated. Its current relay query asks
 for at most 64 kind-1059 events over up to four days, waits for EOSE, and
 refuses a page of exactly 64 events. This prevents an obviously truncated
