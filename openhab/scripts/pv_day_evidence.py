@@ -112,7 +112,9 @@ def qualify_pv_day(local_date, *, as_of, observations, site_timezone='America/De
 
     ``observations`` contains ordered (persisted_at, raw JSON) JDBC rows in
     [local midnight, next local midnight). A short midnight carry may precede
-    the device's zero reset; one reset is allowed only in the first two minutes.
+    a zero reset in the first two minutes. A separate terminal zero reset in
+    the last three minutes is allowed, but the daily peak remains in that day
+    and the counter must not rise again before midnight.
     A producer restart must begin a new epoch with an unavailable seq-1 barrier.
     """
     if not isinstance(local_date, date) or isinstance(local_date, datetime):
@@ -152,17 +154,25 @@ def qualify_pv_day(local_date, *, as_of, observations, site_timezone='America/De
     valid = [receipt for receipt in receipts if receipt.status == 'valid']
     if not valid:
         raise PVDayRefused('no valid PV counter observation')
-    reset_at = None
+    start_reset_at = None
+    terminal_reset_at = None
     previous_wh = None
     for receipt in valid:
         if previous_wh is not None and receipt.wh < previous_wh:
-            if (reset_at is not None or receipt.recorded_at > start + timedelta(minutes=2)
-                    or receipt.wh > 100):
+            if (receipt.recorded_at <= start + timedelta(minutes=2)
+                    and start_reset_at is None and receipt.wh <= 100):
+                start_reset_at = receipt.recorded_at
+            elif (receipt.recorded_at >= end - timedelta(minutes=3)
+                    and terminal_reset_at is None and receipt.wh == 0):
+                # The native counter resets just before local midnight.
+                terminal_reset_at = receipt.recorded_at
+            else:
                 raise PVDayRefused('PV daily counter decreased outside reset window')
-            reset_at = receipt.recorded_at
+        elif terminal_reset_at is not None and receipt.wh != 0:
+            raise PVDayRefused('PV counter rose after terminal reset')
         previous_wh = receipt.wh
-    if reset_at is not None:
-        valid = [receipt for receipt in valid if receipt.recorded_at >= reset_at]
+    if start_reset_at is not None:
+        valid = [receipt for receipt in valid if receipt.recorded_at >= start_reset_at]
     if (valid[0].recorded_at > start + timedelta(minutes=3)
             or valid[-1].recorded_at < end - timedelta(minutes=2)
             or valid[-1].valid_until < end):
@@ -171,8 +181,8 @@ def qualify_pv_day(local_date, *, as_of, observations, site_timezone='America/De
     covered_until = start
     covered = timedelta(0)
     for index, receipt in enumerate(receipts):
-        if receipt.status != 'valid' or (reset_at is not None
-                                          and receipt.recorded_at < reset_at):
+        if receipt.status != 'valid' or (start_reset_at is not None
+                                          and receipt.recorded_at < start_reset_at):
             continue
         left = max(start, receipt.observed_at, covered_until)
         right = min(end, receipt.valid_until)

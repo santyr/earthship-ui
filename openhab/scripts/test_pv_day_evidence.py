@@ -157,6 +157,42 @@ def test_midnight_carry_reset_allowed_once_but_midday_decrease_refused():
         qualify(dropped)
 
 
+def test_zero_reset_in_last_three_minutes_preserves_daily_peak():
+    points = rows()
+    for index in (-2, -1):
+        points = change(points, index, lambda value: value['fields'][
+            'mppt60.pv_day_wh'].update(wh=0))
+    assert qualify(points)['pv_kwh'] == 8.298
+
+    carried = change(points, 0, lambda value: value['fields'][
+        'mppt60.pv_day_wh'].update(wh=12000))
+    assert qualify(carried)['pv_kwh'] == 8.298
+
+
+def test_terminal_reset_refuses_early_or_nonzero_drop_and_later_generation():
+    points = rows()
+    early = list(points)
+    for index in range(len(points) - 4, len(points)):
+        early = change(early, index, lambda value: value['fields'][
+            'mppt60.pv_day_wh'].update(wh=0))
+    with pytest.raises(PVDayRefused, match='decreased'):
+        qualify(early)
+
+    nonzero = list(points)
+    for index in (-2, -1):
+        nonzero = change(nonzero, index, lambda value: value['fields'][
+            'mppt60.pv_day_wh'].update(wh=100))
+    with pytest.raises(PVDayRefused, match='decreased'):
+        qualify(nonzero)
+
+    rising = change(points, -2, lambda value: value['fields'][
+        'mppt60.pv_day_wh'].update(wh=0))
+    rising = change(rising, -1, lambda value: value['fields'][
+        'mppt60.pv_day_wh'].update(wh=1))
+    with pytest.raises(PVDayRefused, match='rose after terminal reset'):
+        qualify(rising)
+
+
 def test_terminal_receipt_and_complete_day_are_required():
     with pytest.raises(PVDayRefused, match='boundary'):
         qualify(rows()[:-3])

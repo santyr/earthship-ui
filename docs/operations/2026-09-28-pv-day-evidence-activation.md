@@ -107,3 +107,21 @@ persisted receipts passed the strict parser with exactly one barriered restart
 and no sequence gap. This closes the observation-rule restart gate, not a
 physical Modbus/Thing fault, a complete local day, restricted-reader grant,
 forecast calibration or production quality publication.
+
+## Native-counter reset timing and restricted read gate
+
+A read-only inspection of the existing native Wh Item history found four
+consecutive falls from positive daily totals to zero around 23:58 MDT
+(September 24–27 local dates). This change-only history diagnoses the device's
+reset timing; it does not prove that the new source-bound evidence stream
+captured a reset. The strict day reader now permits exactly one zero reset in
+the final three minutes of a local day, retains the earlier daily peak, and
+still refuses earlier or nonzero drops and any subsequent rise. Focused reader
+and adapter tests pass. The first source-bound reset must be observed naturally
+and parsed before this exception is trusted for a live daily total.
+
+After an operator reported a successful GRANT, a fresh restricted-role check
+resolved the evidence Item to `public.item0655` but still found
+`energy_power_reader` had no SELECT on that table. That exact read gate remains
+open; no writer or forecast calibration was enabled. The restricted reader
+did have SELECT on `public.item0656`, the TP-Link evidence table.
