@@ -26,6 +26,10 @@ The source-only implementation sequence is:
    production `action_events` check constraint enumerates the old action
    names, and schema/ACL fingerprinting is strict. Preserve all old rows,
    foreign keys and correction semantics; prove rollback and backup readback.
+   A first disposable PostgreSQL candidate now passes the
+   [exact vocabulary rehearsal](2026-09-29-thermal-airflow-journal-v2-candidate.md),
+   but its household release gate remains off pending full-backup/restore and
+   coordinated runtime qualification.
 3. Keep windows and skylights as separate as-of-origin observations. For a
    fresh model revision, qualify their physical forcing through measured
    changes and outcomes, including windows-only, skylights-only and both-open
