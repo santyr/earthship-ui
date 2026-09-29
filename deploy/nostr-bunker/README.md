@@ -196,14 +196,29 @@ The secret is briefly in this shell and `nak`'s process environment, so use a
 trusted local session and close it afterward. A matching public key proves
 only the local key pair; it does not prove the client can authenticate to the
 running bunker, obtain its operator public key, or safely sign a request.
-Do not use Hex's sender key as a substitute. Keep this instance disabled at
-boot until the holder of Sat's approved client key completes an authenticated
-round trip and the returned operator public key matches the verified DM
-recipient. If the service fails or restarts unexpectedly, stop the instance;
-do not expose a bunker URL or credential to diagnose it in chat or logs.
+To complete the attended round trip from a private terminal as `sat`, run:
 
-After a successful authenticated Sat-client round trip returns the approved
-operator identity, make the **already running** instance start on future boots:
+```bash
+python3 /home/sat/earthship-ui/deploy/nostr-bunker/challenge-earthship-operator
+```
+
+Enter the same Sat client nsec at its hidden prompt. The helper checks the
+root-owned pinned `nak`, running service, client allowlist identity, remote
+operator identity, and an actual remote signature. It then publishes **one**
+short, explicitly labelled kind-1 test note (the same signed event) to the
+three approved relays and requires at least one exact event-ID readback.
+It prints only a pass/fail summary and the public test event ID; it neither
+stores the key nor runs a thermal question or control. A local key match alone
+or an active service does not count as challenge completion. Keep the terminal
+private; the nsec is briefly present in the client process environment.
+Do not use Hex's sender key as a substitute. The operator has already enabled
+this service at boot before completing the challenge. Do not treat boot
+enablement as an authentication or thermal release gate. If the service fails,
+restarts unexpectedly, or presents another identity, stop the instance; do
+not expose a bunker URL or credential to diagnose it in chat or logs.
+
+The operator has already enabled the instance at boot. To inspect that
+configuration after the challenge (or re-enable it if intentionally disabled):
 
 ```bash
 sudo systemctl enable nostr-bunker@earthship-operator.service
