@@ -604,15 +604,27 @@ class Delivery:
         # the reply. Prompts are bounded to 48 hours; never query unbounded history.
         since = max(min(p.issued_at for p in active) - timedelta(days=2),
                     now - timedelta(days=4))
-        seen = set()
-        attempted = 0
+        # Fetch the approved routes before spending the shared ingress budget.
+        # A noisy first relay must not consume every attempt before a second
+        # reviewed relay's older valid reply is even considered.
+        route_events = []
         for url in self.routes.for_recipient(self.policy.recipient):
             try:
                 events = self.relay.fetch(url, since=int(since.timestamp()))
             except (t.Refused, t.Retryable):
                 counts['relay_failures'] += 1
                 continue
-            for event in balanced_inbox_order(events):
+            route_events.append(iter(balanced_inbox_order(events)))
+        seen = set()
+        attempted = 0
+        while route_events:
+            remaining = []
+            for route in route_events:
+                try:
+                    event = next(route)
+                except StopIteration:
+                    continue
+                remaining.append(route)
                 if event['id'] in seen:
                     continue
                 seen.add(event['id'])
@@ -638,6 +650,7 @@ class Delivery:
                     # as a withheld operator reply after journal acceptance.
                     self.outbox.record_ingress(event)
                     counts['accepted'] += 1
+            route_events = remaining
         return counts
 
     def recover_acks(self, now=None):

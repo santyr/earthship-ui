@@ -91,6 +91,18 @@ under-limit relay omissions, or a saturated relay result can still prevent
 progress. It does not relax the page, total-event, time, signature or release
 gates, and no household inbox was polled.
 
+September 29 follow-up: the disabled collector now fetches each of at most
+three reviewed recipient routes before spending the common 16-attempt ingress
+budget, then alternates one already-bounded envelope from each route. The
+existing newest/oldest alternation remains within each route. A regression
+with 20 distinct invalid envelopes on the first relay and one valid reply on
+the second confirms the latter reaches the journal on the first attended
+poll. All 78 messaging tests and 379 source-only completion tests pass using
+the existing cached WebSocket package; no package was installed. This closes
+one cross-route starvation case, not adversarial two-sided spam, under-limit
+relay omissions, signed operator route, private journal recovery, or household
+qualification. `POLL_RELEASE_READY` remains false; no live inbox was polled.
+
 ### Source-only private SQLite pair recovery
 
 The attended messaging CLI now holds a nonblocking, private `state.lock`

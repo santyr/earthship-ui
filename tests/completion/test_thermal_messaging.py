@@ -755,6 +755,40 @@ def test_new_invalid_id_burst_cannot_hide_oldest_valid_reply(tmp_path):
         spool.close()
 
 
+def test_noisy_first_relay_cannot_starve_second_reviewed_route(tmp_path):
+    class InboundKeyer(FakeKeyer):
+        def decode(self, raw, recipient):
+            assert recipient == C
+            return t.strict_json(t.strict_json(raw)['content'].encode())
+
+    class InboxRelay(FakeRelay):
+        def fetch(self, url, *, since):
+            return bad if url == 'wss://relay.example' else [valid]
+
+    p, keyer, sink = policy(), InboundKeyer(), Sink()
+    route_list = announcements()
+    route_list['announcements'][0] = event(10050, C,
+        [['relay', 'wss://relay.example'], ['relay', 'wss://second.example']], '',
+        datetime(2020, 1, 1, tzinfo=timezone.utc))
+    routes = m.Routes(t.canonical(route_list), p, keyer)
+    bad = [event(1059, 'c' * 64, [['p', C]], 'not-json',
+                 NOW - timedelta(seconds=seconds)) for seconds in range(1, 21)]
+    rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]])
+    del rumor['sig']
+    valid = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode(),
+                  NOW - timedelta(seconds=21))
+    spool, outbox = t.Spool(tmp_path / 'private'), m.Outbox(tmp_path / 'private')
+    try:
+        result = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink).poll_replies(NOW)
+        assert result == dict(accepted=1, retryable=0, withheld=15, deferred=5,
+                              refusal_backoff=0, relay_failures=0)
+        assert outbox.ingress_recorded(valid)
+        assert len(sink.stores) == 1
+    finally:
+        outbox.close()
+        spool.close()
+
+
 def test_refusal_backoff_is_bounded_retryable_and_quota_limited(tmp_path, monkeypatch):
     outbox = m.Outbox(tmp_path / 'private')
     first = event(1059, 'c' * 64, [['p', C]], 'bad-one')
