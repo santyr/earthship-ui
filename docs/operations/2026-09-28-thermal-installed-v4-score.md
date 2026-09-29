@@ -129,3 +129,18 @@ At six hours, only two independent current-revision pairs matured: model MAE
 matured. This is evidence against a short-horizon skill claim, not a basis for
 an offset or coefficient update; retain shadow mode and the planned 24-hour
 checkpoint.
+
+## September 29 01:55 MDT current-revision 12-hour checkpoint
+
+The installed-v4, exact-capture-only read-only scorer found three mature
+12-hour pairs from the accepted `53d96e5e9637` revision, but only one
+independent pair under its non-overlap policy. That pair had 0.861°F absolute
+model error versus 0.180°F same-origin persistence error; its outdoor
+forecast was 4.34°F warmer than the qualified outdoor outcome while its
+indoor model prediction was 0.861°F low. The two overlapping pairs also lost
+to persistence (three-pair model/persistence MAE 1.3467/0.4800°F), but must
+not be counted as three independent days. The six-hour independent set still
+has two current-revision pairs, model/persistence MAE 1.4445/0.0900°F.
+All scored publications were low-confidence shadow outputs. This adds a
+current-revision lead-time diagnostic, not a 24-hour score, action label,
+weather-offset justification, model retune or shadow-exit evidence.
