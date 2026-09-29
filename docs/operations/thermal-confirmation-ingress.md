@@ -131,7 +131,7 @@ instructions or advice to change the house**.
     "operator": "<operator-64-character-lowercase-hex-public-key>",
     "issued_at": "2026-09-21T08:00:00-06:00",
     "expires_at": "2026-09-21T10:00:00-06:00",
-    "actions": {"vent": "closed", "indoor_shade": "closed"}
+"actions": {"indoor_shade": "closed"}
   }]
 }
 ```
@@ -154,6 +154,12 @@ message identity, and verify that it equals the policy ID. Do not publish the
 unsigned JSON as a public note or silently regenerate its content, timestamp,
 tags, or author. Sending and listening are deliberately not wired to the obsolete
 `nostr-inbox.service` or an unrelated Lightning Goats service.
+
+Do not create new binary `vent` prompts for a partly open house. The operator
+has chosen independent window/skylight states, while this v1 collector and the
+production journal still use a legacy `vent` action. The required versioned
+vocabulary and journal migration are documented in the
+[window/skylight state decision](2026-09-29-thermal-window-skylight-state.md).
 
 A prompt belongs to one operator and is active for at most 48 hours. Replies
 require one matching `e` reference. Multiple recipients or prompt references are

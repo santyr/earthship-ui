@@ -35,6 +35,10 @@ The current `vent_open` forcing is a single coarse state and does not
 distinguish window from skylight airflow. Its physical mapping must be
 resolved before a partly open configuration is turned into a signed action
 label through the collector. Chat reports alone remain diagnostic context.
+The operator has now chosen separate window and skylight action states; see
+the [source-only state decision](2026-09-29-thermal-window-skylight-state.md).
+Neither opening is yet mapped to legacy `vent_open`, and the collector remains
+off while the journal vocabulary and model revision are qualified.
 The approved operator bunker passed a client signing challenge and both
 signed inbox routes were verified, but the thermal confirmation collector
 remains off pending a reviewed private prompt policy, journal/SQLite recovery,
