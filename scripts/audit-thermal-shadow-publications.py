@@ -118,7 +118,7 @@ def select_pair(row, *, now, horizon_hours=24):
     revision = model['codeRevision']
     if not isinstance(revision, str) or len(revision) < 12:
         raise ValueError('model revision missing')
-    artifact_id = sha256(_canonical({
+    model_metadata_id = sha256(_canonical({
         'codeRevision': revision,
         'createdAt': model['createdAt'],
         'trainedThrough': model['trainedThrough'],
@@ -126,7 +126,7 @@ def select_pair(row, *, now, horizon_hours=24):
     return {'issue': issue, 'target': target, 'model_f': predicted,
             'interval_low_f': low, 'interval_high_f': high,
             'persistence_f': current, 'revision': revision,
-            'artifact_id': artifact_id,
+            'model_metadata_id': model_metadata_id,
             'confidence': publication['confidence']['grade']}, None
 
 
@@ -141,7 +141,9 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     if target_artifact_id is not None and (not isinstance(target_artifact_id, str)
             or len(target_artifact_id) != 64
             or any(character not in '0123456789abcdef' for character in target_artifact_id)):
-        raise ValueError('full lowercase artifact identity required')
+        raise ValueError('full lowercase captured-artifact digest required')
+    if target_artifact_id is not None and capture_reader is None:
+        raise ValueError('target artifact requires exact forcing capture')
     counts = Counter()
     groups = defaultdict(list)
     weather_errors = []
@@ -159,6 +161,12 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                 counts['forcing_capture_missing'] += 1
                 continue
             counts['forcing_capture_verified'] += 1
+        artifact_id = None
+        if isinstance(capture, dict):
+            digest = capture.get('sha256', {}).get('artifact')
+            if (isinstance(digest, str) and len(digest) == 64
+                    and all(character in '0123456789abcdef' for character in digest)):
+                artifact_id = digest
         receipt = outcome_reader(pair['target'])
         if receipt is None:
             counts['qualified_outcome_unavailable'] += 1
@@ -170,16 +178,19 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                  pair['interval_high_f'] - pair['interval_low_f'])
         groups['overall'].append(error)
         groups['revision:' + pair['revision'][:12]].append(error)
-        groups['artifact:' + pair['artifact_id']].append(error)
+        groups['model_metadata:' + pair['model_metadata_id']].append(error)
+        if artifact_id is not None:
+            groups['artifact:' + artifact_id].append(error)
         groups['issue_day:' + pair['issue'].date().isoformat()].append(error)
         scored_windows.append((pair['issue'], pair['target'], pair['revision'][:12],
-                               pair['artifact_id'], error))
+                               pair['model_metadata_id'], artifact_id, error))
         detail = None
         if include_pairs:
             detail = {'issue_at': pair['issue'].isoformat(),
                       'target_at': pair['target'].isoformat(),
                       'revision': pair['revision'][:12],
-                      'artifact_id': pair['artifact_id'],
+                      'model_metadata_id': pair['model_metadata_id'],
+                      'artifact_sha256': artifact_id,
                       'confidence': pair['confidence'],
                       'model_error_f': round(error[0], 3),
                       'persistence_error_f': round(error[1], 3),
@@ -210,30 +221,35 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
             pair_details.append(detail)
         counts['scored'] += 1
         counts['confidence:' + str(pair['confidence'])] += 1
-        if pair['artifact_id'] == target_artifact_id:
+        if artifact_id == target_artifact_id:
             counts['target_confidence:' + str(pair['confidence'])] += 1
     def non_overlapping(windows):
         """Greedily retain chronological forecast windows with no shared time."""
         selected = []
         previous_target = None
-        for issue, target, revision, artifact_id, error in sorted(windows, key=lambda row: (row[0], row[1])):
+        for issue, target, revision, metadata_id, artifact_id, error in sorted(windows, key=lambda row: (row[0], row[1])):
             if previous_target is None or issue >= previous_target:
-                selected.append((issue, target, revision, artifact_id, error))
+                selected.append((issue, target, revision, metadata_id, artifact_id, error))
                 previous_target = target
         return selected
 
     selected_overall = non_overlapping(scored_windows)
-    for _, _, revision, artifact_id, error in selected_overall:
+    for _, _, revision, metadata_id, artifact_id, error in selected_overall:
         groups['nonoverlap:overall'].append(error)
     revisions = sorted({window[2] for window in scored_windows})
     for revision in revisions:
-        for _, _, _, _, error in non_overlapping(
+        for _, _, _, _, _, error in non_overlapping(
                 [window for window in scored_windows if window[2] == revision]):
             groups['nonoverlap:revision:' + revision].append(error)
-    artifacts = sorted({window[3] for window in scored_windows})
+    metadata_ids = sorted({window[3] for window in scored_windows})
+    for metadata_id in metadata_ids:
+        for _, _, _, _, _, error in non_overlapping(
+                [window for window in scored_windows if window[3] == metadata_id]):
+            groups['nonoverlap:model_metadata:' + metadata_id].append(error)
+    artifacts = sorted({window[4] for window in scored_windows if window[4] is not None})
     for artifact_id in artifacts:
-        for _, _, _, _, error in non_overlapping(
-                [window for window in scored_windows if window[3] == artifact_id]):
+        for _, _, _, _, _, error in non_overlapping(
+                [window for window in scored_windows if window[4] == artifact_id]):
             groups['nonoverlap:artifact:' + artifact_id].append(error)
     def metrics(errors):
         n = len(errors)
@@ -276,14 +292,14 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     result['advisory_graduation_claimed'] = False
     result['operational_readiness_blockers'] = blockers
     if include_pairs:
-        selected = {(issue.isoformat(), target.isoformat(), revision, artifact_id)
-                    for issue, target, revision, artifact_id, _ in selected_overall}
+        selected = {(issue.isoformat(), target.isoformat(), revision, metadata_id, artifact_id)
+                    for issue, target, revision, metadata_id, artifact_id, _ in selected_overall}
         for detail in pair_details:
             detail['nonoverlap_selected'] = (
                 detail['issue_at'], detail['target_at'], detail['revision'],
-                detail['artifact_id']) in selected
+                detail['model_metadata_id'], detail['artifact_sha256']) in selected
         result['pairs'] = sorted(pair_details, key=lambda detail: (
-            detail['issue_at'], detail['target_at'], detail['revision'], detail['artifact_id']))
+            detail['issue_at'], detail['target_at'], detail['revision'], detail['model_metadata_id']))
     if outdoor_reader is not None:
         n = len(weather_errors)
         result['weather'] = {'n': n}
@@ -306,12 +322,14 @@ def main():
     parser.add_argument('--include-pairs', action='store_true',
                         help='bounded signed-error details; requires --require-capture')
     parser.add_argument('--artifact-id',
-                        help='full SHA-256 identity of the published model metadata to assess separately')
+                        help='full SHA-256 digest of the captured validated artifact to assess separately')
     parser.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT,
                         help='coherent thermal runtime source; use installed v4 for live v4 captures')
     args = parser.parse_args()
     if args.include_pairs and not args.require_capture:
         parser.error('--include-pairs requires --require-capture')
+    if args.artifact_id and not args.require_capture:
+        parser.error('--artifact-id requires --require-capture')
     now = datetime.now(timezone.utc)
     start = aware(args.since)
     end = aware(args.until) if args.until else now

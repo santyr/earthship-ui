@@ -75,7 +75,7 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['groups']['nonoverlap:overall']['n'], 2)
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a' * 12]['n'], 2)
         self.assertEqual(len([key for key in result['groups']
-                              if key.startswith('nonoverlap:artifact:')]), 1)
+                              if key.startswith('nonoverlap:model_metadata:')]), 1)
         self.assertEqual(result['nonoverlap_policy'],
                          'greedy_by_issue_time; next_issue_at_or_after_prior_target')
         self.assertFalse(result['advisory_graduation_claimed'])
@@ -168,7 +168,9 @@ class PublicationAuditTests(unittest.TestCase):
         self.assertEqual(result['weather']['paired_indoor_model_mae_f'], 2.0)
         self.assertEqual(result['pairs'], [{
             'issue_at': ISSUE.isoformat(), 'target_at': TARGET.isoformat(),
-            'revision': 'a'*12, 'artifact_id': result['pairs'][0]['artifact_id'],
+            'revision': 'a'*12,
+            'model_metadata_id': result['pairs'][0]['model_metadata_id'],
+            'artifact_sha256': None,
             'confidence': 'low', 'model_error_f': 2.0,
             'persistence_error_f': -2.0, 'interval_covered': True,
             'interval_width_f': 6.0, 'outdoor_forecast_error_f': 3.0,
@@ -188,11 +190,15 @@ class PublicationAuditTests(unittest.TestCase):
             point['hallwayF'] = 70.0
         rows = [row(first), {'time': int((ISSUE + shift + timedelta(seconds=3)).timestamp()*1000),
                              'state': json.dumps(later)}]
-        first_id = audit.select_pair(rows[0], now=TARGET + timedelta(days=3))[0]['artifact_id']
-        second_id = audit.select_pair(rows[1], now=TARGET + timedelta(days=3))[0]['artifact_id']
-        self.assertNotEqual(first_id, second_id)
+        first_metadata = audit.select_pair(rows[0], now=TARGET + timedelta(days=3))[0]['model_metadata_id']
+        second_metadata = audit.select_pair(rows[1], now=TARGET + timedelta(days=3))[0]['model_metadata_id']
+        self.assertNotEqual(first_metadata, second_metadata)
+        first_id, second_id = '1'*64, '2'*64
+        def captured(publication):
+            digest = first_id if publication['model']['createdAt'] == first['model']['createdAt'] else second_id
+            return {'forecast_rows': [], 'sha256': {'artifact': digest}}
         result = audit.score(rows, now=TARGET + timedelta(days=3), outcome_reader=receipt,
-                             capture_reader=lambda _: {'forecast_rows': []},
+                             capture_reader=captured,
                              target_artifact_id=first_id)
         self.assertEqual(result['groups']['nonoverlap:revision:' + 'a'*12]['n'], 2)
         self.assertEqual(result['groups']['nonoverlap:artifact:' + first_id]['n'], 1)
@@ -201,7 +207,7 @@ class PublicationAuditTests(unittest.TestCase):
                       result['operational_readiness_blockers'])
         self.assertNotIn('target_artifact_not_selected', result['operational_readiness_blockers'])
         better = audit.score(rows, now=TARGET + timedelta(days=3), outcome_reader=receipt,
-                             capture_reader=lambda _: {'forecast_rows': []},
+                             capture_reader=captured,
                              target_artifact_id=second_id)
         self.assertNotIn('target_artifact_not_better_than_persistence',
                          better['operational_readiness_blockers'])
@@ -211,10 +217,15 @@ class PublicationAuditTests(unittest.TestCase):
     def test_target_artifact_must_have_mature_paired_evidence(self):
         missing_id = 'f' * 64
         result = audit.score([row()], now=TARGET + timedelta(minutes=10),
-                             outcome_reader=receipt, target_artifact_id=missing_id)
+                             outcome_reader=receipt,
+                             capture_reader=lambda _: {'forecast_rows': []},
+                             target_artifact_id=missing_id)
         self.assertIn('no_independent_target_artifact_pairs',
                       result['operational_readiness_blockers'])
-        with self.assertRaisesRegex(ValueError, 'full lowercase artifact identity'):
+        with self.assertRaisesRegex(ValueError, 'requires exact forcing capture'):
+            audit.score([row()], now=TARGET + timedelta(minutes=10),
+                        outcome_reader=receipt, target_artifact_id=missing_id)
+        with self.assertRaisesRegex(ValueError, 'full lowercase captured-artifact digest'):
             audit.score([row()], now=TARGET + timedelta(minutes=10),
                         outcome_reader=receipt, target_artifact_id='a' * 12)
 

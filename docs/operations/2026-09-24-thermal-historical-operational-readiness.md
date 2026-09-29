@@ -197,23 +197,25 @@ this rescore.
 
 ## September 28 published-model identity check
 
-The capture-strict shadow scorer now separates accepted model instances by a
-SHA-256 fingerprint of the **published model metadata** (`codeRevision`,
-`createdAt`, `trainedThrough`). This is not a hash of the private artifact
-file. Previously, revision-only groups could combine daily retrains that used
-unchanged code; mixed-instance skill must not be treated as current-model
-readiness. An explicit full fingerprint can be supplied to the read-only
-scorer, which then uses only that instance's independent windows for its
-target skill and confidence blockers. Overall/revision groups remain
-descriptive. No score, however favorable, bypasses the separate action-outcome
-and approved-threshold gates.
+The capture-strict shadow scorer now separates accepted model instances by
+the validated full-artifact SHA-256 in v2 forcing captures. Older captures
+without an embedded artifact retain a separate SHA-256 grouping of their
+**published model metadata** (`codeRevision`, `createdAt`, `trainedThrough`),
+but cannot satisfy an exact-artifact target gate. Previously, revision-only
+groups could combine daily retrains that used unchanged code; mixed-instance
+skill must not be treated as current-model readiness. An explicit full
+artifact digest can be supplied to the read-only scorer, which then uses only
+that artifact's independent windows for target skill and confidence blockers.
+Overall/revision/metadata groups remain descriptive. No score, however
+favorable, bypasses the separate action-outcome and approved-threshold gates.
 
 Around 20:00 MDT, 25 naturally captured one-hour publications separated into
-three model instances. The live instance, created September 28 12:50:10Z
+three metadata instances, two of which have full-artifact v2 capture digests.
+The live instance, created September 28 12:50:10Z
 under code revision `53d96e5e9637`, had six disjoint one-hour pairs:
-model MAE 0.352°F versus same-origin persistence 0.000°F. Its full published-
-metadata fingerprint is
-`a7a8ce8c64bab7a5e1625bd6e56acccc3d6491fa745703628b018a6c1bdd9541`.
+model MAE 0.352°F versus same-origin persistence 0.000°F. Its validated
+captured-artifact SHA-256 is
+`f7c85390f842d91685f88592c7b1e50c84805fd662d5fe7562261aa3eb881e17`.
 Targeted read-only scoring reports inferior skill, low-confidence outputs,
 no confirmed-action outcome score and no approved graduation thresholds.
 The short window is diagnostic, not a release decision; current status remains
