@@ -105,3 +105,41 @@ but is still a partial day and does not qualify a daily total. A separate
 read-only connection as `energy_power_reader` confirmed the unique Item 657
 mapping and `SELECT=false`, `INSERT=false` on `public.item0657`. The exact
 table SELECT grant remains pending; no privilege or scoring state was changed.
+
+## September 29 raw-counter spike diagnosis and collector correction
+
+At the first local midnight, 226 persisted rain snapshots showed one receiver
+epoch and three paired counter-jump/drop latch increments since activation.
+The fault counts increased again at 00:02:28 MDT even though the held accepted
+counter remained 102.7497945 inches. Filtered `weather.service` logs show the
+underlying cause: at 23:18, 23:34 and 00:02 the source supplied the same
+121.358025-inch counter, an impossible +18.61-inch jump. The existing weather
+app rejected those packets and kept its baseline. The new observational
+collector, however, briefly treated each spike as valid and moved its baseline,
+then counted the normal return as a drop. This is a real source-data anomaly,
+not change-only JDBC staleness. The strict rain day reader correctly refuses
+the affected period; no precipitation error was qualified or scored.
+
+Commit `e74132b` makes the collector match the existing physical jump guard:
+an increase greater than 0.5 inch in one packet becomes an invalid
+`counter_jump` barrier, increments the fault latches, and **does not** replace
+the last accepted counter. The next normal packet can recover without an
+artificial drop. The full weather test slice passed 186 tests with two
+optional skips. It does not relax the day reader's refusal of faulted days.
+
+With all three temperature streams valid, `weather.service` active under the
+verified sat-owned Gunicorn master PID 1607215 and the installed collector
+matching old SHA-256
+`aaf8bfff3db82465cfd95a1ede9bfe9479f71b2ee99298134d3b3a83e3c82986`,
+the tested module was installed atomically. Its private exact rollback copy
+is `/home/sat/.local/state/weather-rain-spike-6sbHuB/`; source and installed
+SHA-256 match
+`d47a6a9e038e78f4ca492fe35dc2420a2123edf5431b2c596e36c3acdaee23f4`.
+One HUP retained the master and booted a new worker. Natural packets restored
+valid outdoor, indoor, north-wall and rain receipts. JDBC retained a deliberate
+new-epoch startup-null rain snapshot at 00:09:28, then strictly parsed valid
+natural rows at 00:10:28 and 00:10:58 with zero new fault counts. The startup
+barrier and earlier spikes make September 29 unqualified. A future full day
+still needs zero unresolved source faults, both midnight brackets, continuous
+coverage, the exact Item 657 SELECT grant and a strict day-reader pass. No
+weather legacy state, forecast coefficients or protected control was changed.

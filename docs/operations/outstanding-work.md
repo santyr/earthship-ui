@@ -640,6 +640,18 @@ installed-path partial-day check passed; learned coefficients and prior error
 arrays were retained, and the natural 06:40 timer is unchanged. The reader's
 exact `public.item0657` SELECT grant and first complete-day/fault gates are
 still pending, so no new qualified precipitation score has been claimed.
+September 29 midnight readback found three repeated impossible raw jumps
+(102.7497945→121.358025 inches) between 23:18 and 00:02 MDT. The legacy
+weather app ignored each +18.61-inch packet, but the new collector briefly
+accepted it, then latched an artificial drop on recovery. This is a real raw
+source anomaly, not change-only persistence. `e74132b` now marks such spikes
+invalid without moving the accepted baseline; 186 weather tests passed. The
+tested module was atomically installed and one guarded Gunicorn HUP recovered
+all three temperature streams and natural rain/JDBC receipts. September 29 is
+already unqualified due to the pre-fix faults and restart; the reader still
+refuses faulted days. The exact Item 657 grant, repeat-spike diagnosis and a
+future complete clean day remain open. See the
+[rain activation receipt](2026-09-28-rain-evidence-activation.md).
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
