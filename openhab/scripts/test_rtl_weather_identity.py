@@ -76,3 +76,17 @@ def test_ambiguous_or_nonfinite_rain_count_is_not_forwarded(rain_mm):
     value = packet('Fineoffset-WH24', 206)
     value['rain_mm'] = rain_mm
     assert relay(value) == []
+
+
+@pytest.mark.parametrize('tips', [0, 1, 10275, 65535])
+def test_decoder_label_normalization_matches_at_tip_counter_edges(tips):
+    outputs = []
+    for model, millimeters_per_tip in (('Fineoffset-WH65B', 0.254),
+                                       ('Fineoffset-WH24', 0.3)):
+        value = packet(model, 206)
+        value['rain_mm'] = tips * millimeters_per_tip
+        outputs.append(relay(value)[0])
+    assert outputs[0]['totalrainin'] == outputs[1]['totalrainin']
+    assert outputs[0]['totalrainin'] == tips * 0.254 * 0.03937
+    assert outputs[0]['windspeedmph'] == outputs[1]['windspeedmph']
+    assert outputs[0]['windgustmph'] == outputs[1]['windgustmph']
