@@ -463,6 +463,40 @@
       "migration": "inventoried",
       "source": "managed-exceptions/b1501047a9.json",
       "rest_path": "/rules/b1501047a9"
+    },
+    {
+      "kind": "item",
+      "id": "BMS_Aux_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/bms-aux-evidence.items",
+      "destination": "/etc/openhab/items/bms-aux-evidence.items",
+      "state_writer": "hex_bms_aux_evidence explicit JDBC and state post"
+    },
+    {
+      "kind": "thing",
+      "id": "http:url:weatherRainEvidence",
+      "provider": "file",
+      "migration": "observational",
+      "source": "things/weather-rain-evidence.things",
+      "destination": "/etc/openhab/things/weather-rain-evidence.things"
+    },
+    {
+      "kind": "item",
+      "id": "Weather_Rain_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/weather-rain-evidence.items",
+      "destination": "/etc/openhab/items/weather-rain-evidence.items",
+      "state_writer": "http:url:weatherRainEvidence:snapshot"
+    },
+    {
+      "kind": "link",
+      "id": "Weather_Rain_Evidence_JSON -> http:url:weatherRainEvidence:snapshot",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/weather-rain-evidence.items",
+      "destination": "/etc/openhab/items/weather-rain-evidence.items"
     }
   ]
 }
