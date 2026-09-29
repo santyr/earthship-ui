@@ -29,10 +29,31 @@ the managed Item from the saved definition, verifying state/history. No
 synthetic production update, rule run, OpenHAB restart, control or unrelated
 Item change is part of this transaction.
 
-An `--apply` success is **provisional**. Before changing the ownership manifest
-to file/verified, independently read back the Item, Item 173 history prefix,
+An `--apply` success is **provisional**. Declare the observed provider as
+file/provisional in the ownership manifest, then independently read back the
+Item, Item 173 history prefix,
 the unchanged `SkyCondition` control input and rule status, then observe a
 natural icon change from the existing writer with a new JDBC row. If the
 natural writer gate is not yet due, retain the private rollback receipt and
-leave the manifest managed/pending; do not create an artificial icon update
+leave the manifest file/provisional; do not create an artificial icon update
 to close it.
+
+## Live handoff — September 29, 02:35 MDT
+
+The immediate `--check` passed unchanged: managed Item 173 and 21,175 JDBC
+rows, matching current/persisted icon state, exact staged source and idle
+pinned writer. `--apply` created a private mode-0700 rollback directory at
+`/home/sat/.local/state/openhab-config-migration/sky-condition-icon-20260929T083504Z`
+with the managed registry receipt and a mode-0600 Item 173 CSV copy. The
+guarded transfer returned `file_provider_provisional`; it did not invoke or
+pause the writer or restart OpenHAB. Independent readback found the icon
+file-owned with its original label, category, `Status` semantics and
+`iconify:mdi:moon-waning-gibbous` state. Installed/Git source SHA-256 match.
+The live Item 173 history still has exactly 21,175 rows and its pre/post
+SHA-256 prefix digest matches
+`f30fdb4bc734a9089596fab493fb52a8688eb2859e9fbd66ea3f2cc329787d4a`.
+The writer remained IDLE and `SkyCondition` remained `NIGHT`. The ownership
+manifest now declares file/provisional, and the live registry inventory has
+zero issues. A later natural icon change plus new Item 173 row is still
+required before upgrading that declaration to verified. The private backup
+is retained; no synthetic icon update was sent.

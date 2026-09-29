@@ -129,6 +129,14 @@ zero. This closes isolated provider/JDBC/rollback mechanics only. The live
 Item remains managed, with its current state matching the latest Item 173
 JDBC value. A private production-history backup, guarded attended transfer
 and natural `sky-condition-calculator` writer receipt are still required.
+The guarded 02:35 MDT live transfer subsequently moved only
+`SkyConditionIcon` to file ownership with its original state and exact
+21,175-row Item 173 history digest intact. The private managed-registry and
+CSV rollback point is retained. The writer stayed IDLE, `SkyCondition`
+remained `NIGHT`, source/installed hashes match, and the live ownership
+inventory returned zero issues after a file/provisional declaration. The
+first natural icon change and new JDBC row remain the verification gate; no
+synthetic write, OpenHAB restart or control change was used.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has

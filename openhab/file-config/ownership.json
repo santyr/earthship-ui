@@ -3,6 +3,11 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "item", "id": "SkyConditionIcon", "provider": "file", "migration": "provisional",
+      "source": "items/sky-condition-icon.items", "destination": "/etc/openhab/items/sky-condition-icon.items",
+      "state_writer": "sky-condition-calculator"
+    },
+    {
       "kind": "item", "id": "SunPhaseIcon", "provider": "file", "migration": "verified",
       "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items",
       "state_writer": "astro:sun:local:phase#name"
