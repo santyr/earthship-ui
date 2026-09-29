@@ -98,3 +98,22 @@ has matured. All scored publications are low-confidence. Continue exact-origin
 current-revision scoring and forcing/action diagnosis; do not graduate,
 relabel remembered vent states as confirmations, or retune a global offset
 from mixed-revision observations.
+
+## September 28 19:34 MDT current-revision refresh
+
+The same capture-strict read-only scorer, using the installed v4 runtime and
+qualified temperature outcomes, now has 64 non-overlapping one-hour pairs:
+model/persistence MAE **1.0367/0.4753°F**, with model bias **−0.8515°F**.
+The accepted `53d96e5e9637` revision contributes six of those pairs:
+**0.3520/0.0000°F** MAE and **−0.0280°F** model bias. Their persistence
+targets were unchanged from origin, so six pairs do not establish model skill
+or warrant an offset. At six hours, 20 independent mixed-revision pairs have
+**3.3514/2.9430°F** MAE; the current revision has only one independent pair
+at **1.3610/0.1800°F**. The currently accepted revision has no mature
+24-hour pair. Five independent older-revision 24-hour pairs now have
+**3.3444/2.3400°F** model/persistence MAE. All scored outputs remain low
+confidence, and action outcomes and operational graduation thresholds are
+still absent. The first current-revision 24-hour outcome cannot mature before
+the September 29 morning target plus the scorer's five-minute lag. Keep the
+artifact shadow-only and reassess then; these observations do not justify a
+global bias or PV/vent coefficient change.

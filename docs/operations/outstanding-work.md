@@ -463,6 +463,14 @@ negative bias. The independent six-, twelve- and 24-hour counts remain
 18/9/4, with no mature 24-hour target under the current revision. This does
 not support using the pooled bias as a blanket correction and leaves shadow gating
 unchanged; see the [current-revision checkpoint](2026-09-28-thermal-installed-v4-score.md).
+The 19:34 MDT refresh increased the independent one-hour set to 64 pairs.
+The accepted revision now has six one-hour pairs at model/persistence MAE
+0.352/0.000°F and near-zero model bias, one independent six-hour pair at
+1.361/0.180°F, and still no mature 24-hour pair. Five older-revision
+independent 24-hour pairs remain worse than persistence overall
+(3.344/2.340°F). This explicitly rejects a mixed-revision constant-offset
+retune and leaves the model shadow-only pending mature current-revision
+long-horizon outcomes, confirmed actions and approved graduation thresholds.
 The [same audit](2026-09-28-thermal-installed-v4-score.md) now records exact
 source coverage: only one of four independent 24-hour origin revisions matches
 a complete Git tree, and those early v1 captures lack embedded artifacts.
