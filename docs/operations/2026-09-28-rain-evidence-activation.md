@@ -387,3 +387,14 @@ recurred, but the downstream canonical receipt still does not reveal whether
 a WH24-labeled raw packet occurred. September 29 remains disqualified by the
 earlier faults and restarts; the first complete clean-day and restricted
 Item 657 read gates remain open. No scoring or control changed.
+
+### Natural forecast scoring refusal — September 29, 06:40 MDT
+
+The scheduled forecast worker exited zero and stored September 28 rain score
+provenance as `evidence_cutover_partial_day`, with `measured_in=null`. It
+withheld precipitation scoring rather than using the held `RainFallDay`
+maximum. The dated prediction receipt and hourly temperature payload
+published normally. This verifies the installed strict consumer's natural
+partial-day refusal; the exact Item 657 SELECT grant and a future complete,
+fault-free rain day remain open. September 29 was already disqualified by the
+pre-fix raw spikes and collector restarts.

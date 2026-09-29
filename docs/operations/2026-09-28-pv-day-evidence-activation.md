@@ -215,3 +215,21 @@ qualification gate: collection began at 08:06 MDT on September 28. September
 29 is the first possible full source day and cannot be assessed until after
 its local midnight on September 30. The separate physical Thing/fault
 recovery, retention, chronological calibration and release-flag gates remain.
+
+## Natural forecast-worker gate — September 29, 06:40 MDT
+
+The enabled `forecast-intel.timer` fired naturally at 06:40:16; the installed
+worker matched Git SHA-256 `58cca68ef7154e065362770a70bf3a7c234a198e94dbba47b8ecc3e3b1e8b508`
+and exited zero at 06:40:18. It recorded September 28 PV scoring as
+`evidence_cutover_partial_day`, with `measured_kwh=null`, instead of falling
+back to the held daily-counter Item. `k_res=1.3` and
+`d_direct=5.40326272` were unchanged; qualified calibration remained off.
+The new dated prediction receipt (`predictionDay=2026-09-29`, issued
+12:40:17.987351Z) persisted once in JDBC and reports 5.36 kWh PV today and
+53% overnight SoC trough. The corrected 10-day payload was regenerated at
+06:40:16 with `hourlyMethod=hourly-blend` and 24 learned hour buckets. The
+worker separately scored 24 qualified hourly temperature targets, withheld
+daily high/low scoring for incomplete temperature receipt coverage, and
+exited without a forced rerun. This closes the partial-day
+cutover's natural no-calibration gate, not a complete PV day, forecast-skill
+release, or trough-advisory calibration.

@@ -32,6 +32,14 @@ The Earthship greywater display now maps the candidate's
 `invalid_soc_evidence` status to "Waiting for telemetry" rather than the
 generic controller hold. Its focused rule/UI tests and production UI build
 pass. This is presentation-only; the protected rule is still not deployed.
+The natural September 29 06:40 forecast worker exited zero. It scored all 24
+qualified hourly temperature targets, withheld yesterday's PV and rain scores
+as `evidence_cutover_partial_day` without fallback or PV coefficient change,
+and withheld daily high/low scoring for incomplete receipt coverage. A dated
+September 29 prediction receipt persisted in JDBC (5.36 kWh PV, 53% trough),
+and the 10-day payload refreshed with 24 learned hourly buckets. This closes
+the natural partial-day refusal gate, not full-day PV/rain quality or learned
+calibration release.
 
 September 29 file-first census: the secret-free live inventory reports 383
 managed and 56 non-managed Items, 81/4 Things, 39/0 rules, 246/21 links, one
