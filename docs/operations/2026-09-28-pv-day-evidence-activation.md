@@ -150,3 +150,28 @@ fault/recovery gates are reviewed. The pre-cutover learned coefficients are
 retained, not reset or retroactively labeled source-qualified. Focused PV and
 adjacent forecast suites passed 191 tests. Production installation and the
 next natural forecast run require separate readback below.
+
+### Guarded forecast-worker installation — September 28 evening
+
+The worker was idle with its next natural 06:40 MDT timer enabled. The live
+forecast script matched preimage SHA-256
+`2b15a617a65022336055f6c8bac7840d59d9096d8f87efa97d2cae7ff90ed4ae`;
+an exact mode-0600 rollback copy is retained inside private mode-0700
+`/home/sat/.local/state/forecast-intel/rollback-pv-d0uKxs06`.
+The two read-only strict modules were absent before installation. They were
+installed at `/home/sat/openhab/scripts/pv_day_evidence.py` and
+`pv_day_history.py` with source-matching SHA-256 values
+`b254e0f302aadcbe1c5b417b0b46aa34ee3a7ec912c5b4ae61e6c6818b8af649`
+and `76d53761cb68e95d7dcdd78dedd7c0b7e37a4ef41f1f16e1f120b9b9e347ce66`.
+The forecast script was then atomically replaced after an immediate idle and
+preimage check; its installed/source SHA-256 is
+`af54be82936fd8808dea0002117ef40064c27e42e8cf7858b6bca603624129a7`.
+An installed-path import verified both strict modules, the September 28
+partial-day refusal and `PV_QUALIFIED_CALIBRATION_RELEASE=False`. Ownership
+and modes are sat:sat 0755 for the worker and 0644 for the readers. The
+learned state was unchanged (`k_res=1.3`, `d_direct=5.40326272`, last scored
+September 27); no job, OpenHAB restart, Item write or calibration ran during
+installation. The September 29 natural forecast run must still prove the
+partial-day withholding path and unchanged coefficients. The first possible
+source-qualified PV day is September 29, assessable after its September 30
+local midnight; calibration release remains a separate decision.

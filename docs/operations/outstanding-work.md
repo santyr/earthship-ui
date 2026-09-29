@@ -351,6 +351,17 @@ a separate default-closed release gate. The live pre-change learned state is
 `k_res=1.3` and `d_direct=5.40326272`; neither was reset. All 191 adjacent
 forecast/PV tests passed. Production file installation and natural
 September 29 06:40 no-calibration readback remain pending.
+The source-exact worker and both strict PV reader modules were then installed
+while the forecast service was idle, with a private exact rollback copy of
+the old worker. Installed imports, hashes, September 28 partial-day refusal,
+closed calibration gate, enabled timer and unchanged learned state were read
+back. The next natural 06:40 run and September 29 complete-day qualification
+remain open; no forecast job or Item was manually invoked.
+At 21:19 MDT, restricted read-only receipt parsing found 1,304 PV and 647
+TP-Link rows since their respective activation windows, each across two
+epochs with no within-epoch sequence gap and a correct unavailable restart
+barrier. The latest receipt in each stream was valid and under one minute
+old. This is collection continuity through the check, not a complete day.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
