@@ -8,14 +8,17 @@
   import { items } from '../openhab/store.js';
   import { observeElementSize } from './observeElementSize.js';
 
-  let { series = [], initialHours, hours = 24 } = $props();
+  let { series = [], initialHours, hours = 24, refreshMs = 5 * 60 * 1_000 } = $props();
 
-  const REFRESH_MS = 5 * 60 * 1_000;
   const SOC_REDRAW_MS = 30_000;
+  // Parents may recreate the array on an unrelated state tick. Only a real
+  // series change should restart a history request.
+  const seriesKey = $derived(JSON.stringify(series));
   let el = $state();
   let chart;
   let loadState = $state('idle');
   let errorMessage = $state('');
+  let staleHistory = $state(false);
   let unavailableCount = $state(0);
   let timedOutCount = $state(0);
   let activeHours = $state(untrack(() => snapHistoryPeriod(initialHours ?? hours)));
@@ -63,26 +66,29 @@
     }
   }
 
-  async function load(seriesList = series, hoursVal = activeHours) {
+  async function load(seriesList = series, hoursVal = activeHours, preserve = false) {
     cancelPending();
     const controller = new AbortController();
     requestController = controller;
     const myGen = ++loadGen;
-    disposeChart();
+    if (!preserve) disposeChart();
     unavailableCount = 0;
     timedOutCount = 0;
     errorMessage = '';
-    loadState = 'loading';
+    staleHistory = false;
+    if (!chart) loadState = 'loading';
 
     const client = getClientOnce();
     if (!client) {
       if (requestController === controller) requestController = null;
-      loadState = 'no-client';
+      if (chart) staleHistory = true;
+      else loadState = 'no-client';
       return;
     }
     if (!seriesList.length) {
       if (requestController === controller) requestController = null;
-      loadState = 'empty';
+      if (chart) staleHistory = true;
+      else loadState = 'empty';
       return;
     }
 
@@ -100,33 +106,40 @@
       if (controller.signal.aborted || myGen !== loadGen) return;
       if (requestController === controller) requestController = null;
       errorMessage = error?.message || 'History request failed';
-      loadState = 'error';
+      if (chart) staleHistory = true;
+      else loadState = 'error';
       return;
     }
     if (controller.signal.aborted || myGen !== loadGen) return;
     if (requestController === controller) requestController = null;
 
-    latestResults = result.pointsPerSeries;
-    latestSeries = seriesList;
     unavailableCount = result.errors.length;
     timedOutCount = result.errors.filter(
       ({ error }) => error?.code === 'history-request-timeout',
     ).length;
-    loadState = result.state;
     if (result.state === 'error') {
       errorMessage = result.errors[0]?.error?.message || 'History request failed';
+      if (chart) staleHistory = true;
+      else loadState = 'error';
       return;
     }
+    if (result.state === 'empty' && chart) {
+      staleHistory = true;
+      return;
+    }
+    latestResults = result.pointsPerSeries;
+    latestSeries = seriesList;
+    loadState = result.state;
     if (result.state === 'empty') return;
 
     await tick();
     if (controller.signal.aborted || myGen !== loadGen || !el) return;
     const echarts = await getEcharts();
     if (controller.signal.aborted || myGen !== loadGen || !el) return;
-    chart = echarts.init(el, null, { renderer: 'svg' });
+    if (!chart) chart = echarts.init(el, null, { renderer: 'svg' });
     const parent = el.parentElement;
     renderLatest(parent?.clientWidth || el.clientWidth || 320);
-    if (chart && parent) {
+    if (chart && parent && !preserve) {
       stopObserving = observeElementSize(parent, ({ width }) => {
         if (width > 0 && Math.abs(width - latestWidthPx) >= 8) renderLatest(width);
         else chart?.resize();
@@ -137,13 +150,14 @@
   $effect(() => {
     const ready = $clientReady;
     const hoursSnapshot = activeHours;
-    const seriesSnapshot = series;
+    const key = seriesKey;
+    const seriesSnapshot = untrack(() => series);
     if (ready) untrack(() => load(seriesSnapshot, hoursSnapshot));
     else loadState = 'no-client';
   });
 
   onMount(() => {
-    refreshTimer = setInterval(() => untrack(() => load(series, activeHours)), REFRESH_MS);
+    refreshTimer = setInterval(() => untrack(() => load(series, activeHours, true)), refreshMs);
     socRedrawTimer = setInterval(() => {
       if (chart && latestSeries.some(({ name }) => name === 'BMS_SOC')) renderLatest(latestWidthPx);
     }, SOC_REDRAW_MS);
@@ -193,6 +207,9 @@
             <span>{unavailableCount - timedOutCount} series unavailable</span>
           {/if}
         </div>
+      {/if}
+      {#if staleHistory}
+        <div class="hc-warning" role="status">Update delayed · showing last successful history</div>
       {/if}
       <div bind:this={el} class="hc-canvas" role="img" aria-label="History chart"></div>
     {/if}

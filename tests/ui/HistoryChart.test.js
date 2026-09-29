@@ -51,6 +51,8 @@ describe('HistoryChart', () => {
       { time: 4_000, state: 5 },
     ]);
     mocks.chart.setOption.mockClear();
+    mocks.chart.dispose.mockClear();
+    mocks.init.mockClear();
   });
 
   afterEach(cleanup);
@@ -131,5 +133,42 @@ describe('HistoryChart', () => {
     });
 
     expect(await screen.findByText(/history request timed out after 15 seconds/i)).toBeTruthy();
+  });
+
+  it('keeps the battery chart visible and reuses it during a history refresh', async () => {
+    let finishRefresh;
+    mocks.getHistory
+      .mockResolvedValueOnce([{ time: 0, state: '50 %' }])
+      .mockImplementationOnce(() => new Promise((resolve) => { finishRefresh = resolve; }));
+    const { container } = render(HistoryChart, {
+      props: { series: [{ name: 'BMS_SOC', label: 'SoC' }], refreshMs: 100 },
+    });
+
+    await waitFor(() => expect(mocks.init).toHaveBeenCalledTimes(1));
+    const canvas = container.querySelector('.hc-canvas');
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+    expect(container.querySelector('.hc-canvas')).toBe(canvas);
+    expect(screen.queryByText('Loading…')).toBeNull();
+    expect(mocks.chart.dispose).not.toHaveBeenCalled();
+
+    finishRefresh([{ time: 0, state: '51 %' }]);
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.length).toBeGreaterThan(1));
+    expect(mocks.init).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('.hc-canvas')).toBe(canvas);
+  });
+
+  it('retains the last good battery plot when a scheduled refresh fails', async () => {
+    mocks.getHistory
+      .mockResolvedValueOnce([{ time: 0, state: '50 %' }])
+      .mockRejectedValueOnce(new Error('temporary outage'));
+    const { container } = render(HistoryChart, {
+      props: { series: [{ name: 'BMS_SOC', label: 'SoC' }], refreshMs: 100 },
+    });
+
+    await waitFor(() => expect(mocks.init).toHaveBeenCalledTimes(1));
+    const canvas = container.querySelector('.hc-canvas');
+    expect(await screen.findByText(/showing last successful history/i)).toBeTruthy();
+    expect(container.querySelector('.hc-canvas')).toBe(canvas);
+    expect(mocks.chart.dispose).not.toHaveBeenCalled();
   });
 });
