@@ -401,6 +401,14 @@ database adapter or live forecast caller yet, and cannot prove gauge
 calibration. The durable Item/link, exact restricted read role and natural
 collection are still absent, so no historical day or precipitation score is
 newly qualified.
+The source-only JDBC adapter now resolves only `Weather_Rain_Evidence_JSON`
+inside a dedicated read-only repeatable-read transaction. It selects the last
+pre-day carry and bounded original rows through a post-midnight receipt,
+passes them to the strict day-reader, and refuses ambiguous Item mapping,
+missing SELECT, NULL/oversized rows, incomplete/pre-cutover days, gaps and
+faults with no numeric fallback. Focused transport and day tests pass; a
+real PostgreSQL restricted-role integration, production resources/credential
+grant, natural collection and forecast consumer are still open.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
