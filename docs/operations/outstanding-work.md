@@ -46,6 +46,12 @@ managed/file/managed provider rehearsal passed and cleaned up its container.
 The guarded live cutover made the file the sole rule provider without a restart;
 the private managed backup is retained. Ownership is provisional pending the
 next natural changed `Sun_TimeLeft` output and a later restart check.
+The [sky-condition display rule candidate](2026-09-29-sky-condition-rule-file-candidate.md)
+now preserves its four change triggers, two-minute timer and change-only
+display calculation in a staged JS file. Five focused behavior tests and an
+isolated managed/file/managed OpenHAB provider rehearsal pass; the owned test
+container was removed. Production remains managed pending a sky-specific
+guarded handoff and natural timer output check.
 
 ## Standing efficiency requirement — September 26, 2026
 
