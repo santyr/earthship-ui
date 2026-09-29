@@ -124,14 +124,14 @@ instructions or advice to change the house**.
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "recipient": "<collector-identity-64-character-lowercase-hex-public-key>",
   "operators": ["<operator-64-character-lowercase-hex-public-key>"],
   "prompts": [{
     "operator": "<operator-64-character-lowercase-hex-public-key>",
     "issued_at": "2026-09-21T08:00:00-06:00",
     "expires_at": "2026-09-21T10:00:00-06:00",
-"actions": {"indoor_shade": "closed"}
+    "actions": {"window": "closed", "skylight": "closed"}
   }]
 }
 ```
@@ -148,17 +148,21 @@ python3 openhab/scripts/thermal_confirmation.py \
   --policy "$NORMALIZED_POLICY" --render-prompts > "$UNSIGNED_PROMPTS"
 ```
 
-The separately reviewed outbound sender must encrypt these **exact** rumors to
-the operator under the configured collector identity, retain the returned
+Only after the v2 journal and collector release gates pass, the separately
+reviewed outbound sender must encrypt these **exact** rumors to the operator
+under the configured collector identity, retain the returned
 message identity, and verify that it equals the policy ID. Do not publish the
 unsigned JSON as a public note or silently regenerate its content, timestamp,
 tags, or author. Sending and listening are deliberately not wired to the obsolete
 `nostr-inbox.service` or an unrelated Lightning Goats service.
 
-Do not create new binary `vent` prompts for a partly open house. The operator
-has chosen independent window/skylight states, while this v1 collector and the
-production journal still use a legacy `vent` action. The required versioned
-vocabulary and journal migration are documented in the
+The source-only v2 policy now binds independent `window` and `skylight`
+states and asks what the operator personally verified, not whether two
+actions were both completed. New v1 legacy-vent question preparation and
+rendering are refused; v1 policy loading remains for historical reply
+compatibility. **Do not send a v2 question yet:** v2 ingestion deliberately
+refuses until the production journal accepts the new vocabulary and its exact
+schema/recovery gates pass. The required migration is documented in the
 [window/skylight state decision](2026-09-29-thermal-window-skylight-state.md).
 
 A prompt belongs to one operator and is active for at most 48 hours. Replies

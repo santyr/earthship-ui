@@ -34,6 +34,16 @@ def policy():
     return t.Policy.load(t.canonical(draft), assign_ids=True)
 
 
+def test_position_policy_cannot_construct_outbound_delivery():
+    draft = dict(version=2, recipient=C, operators=[O], prompts=[dict(operator=O,
+        issued_at=(NOW - timedelta(minutes=5)).isoformat(),
+        expires_at=(NOW + timedelta(minutes=5)).isoformat(),
+        actions={'window': 'closed', 'skylight': 'open'})])
+    position = t.Policy.load(t.canonical(draft), assign_ids=True)
+    with pytest.raises(t.Refused, match='journal v2'):
+        m.Delivery(position, None, None, None, None, None, None)
+
+
 class FakeKeyer:
     def __init__(self):
         self.wraps = []

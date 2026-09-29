@@ -39,8 +39,13 @@ UNQUALIFIED_NAK_SHA256 = frozenset({
     "56a97dd08b2a21a7fe4989ebdf321af4ae1a34ec26c5aa195f9a386dfec0ef80",
 })
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
-STATES = {"vent": {"open", "closed"}, "indoor_shade": {"open", "closed"},
-          "outdoor_shade": {"installed", "removed"}, "kiva": {"on", "off"}}
+LEGACY_STATES = {"vent": {"open", "closed"}, "indoor_shade": {"open", "closed"},
+                 "outdoor_shade": {"installed", "removed"}, "kiva": {"on", "off"}}
+POSITION_STATES = {"window": {"open", "closed"},
+                   "skylight": {"open", "closed"},
+                   "indoor_shade": {"open", "closed"},
+                   "outdoor_shade": {"installed", "removed"},
+                   "kiva": {"on", "off"}}
 
 
 class Refused(ValueError):
@@ -153,6 +158,7 @@ class Prompt:
     expires_at: datetime
     actions: tuple[tuple[str, str], ...]
     correction_of: str | None = None
+    version: int = 1
 
     def snapshot(self):
         return {"id": self.event_id, "operator": self.operator,
@@ -165,14 +171,16 @@ class Policy:
     recipient: str
     operators: frozenset[str]
     prompts: tuple[Prompt, ...]
+    version: int = 1
 
     @classmethod
     def load(cls, raw: bytes, *, assign_ids: bool = False):
         obj = strict_json(raw)
         if not isinstance(obj, dict) or set(obj) != {"version", "recipient", "operators", "prompts"}:
             raise Refused("invalid policy fields")
-        if type(obj["version"]) is not int or obj["version"] != 1:
+        if type(obj["version"]) is not int or obj["version"] not in (1, 2):
             raise Refused("unsupported policy version")
+        states = LEGACY_STATES if obj["version"] == 1 else POSITION_STATES
         recipient = identifier(obj["recipient"])
         authors = obj["operators"]
         if (not isinstance(authors, list) or not 1 <= len(authors) <= 16
@@ -199,21 +207,22 @@ class Policy:
                 raise Refused("prompt lifetime outside bound")
             actions = value["actions"]
             if (not isinstance(actions, dict) or not actions
-                    or any(key not in STATES or not isinstance(state, str) or state not in STATES[key]
+                    or any(key not in states or not isinstance(state, str) or state not in states[key]
                            for key, state in actions.items())):
                 raise Refused("invalid prompt action vocabulary")
             correction = value.get("correction_of")
             if correction is not None:
                 identifier(correction)
             prompt = Prompt("0" * 64 if assign_ids else identifier(value["id"]), operator,
-                            issued, expires, tuple(sorted(actions.items())), correction)
+                            issued, expires, tuple(sorted(actions.items())), correction,
+                            obj["version"])
             computed = prompt_event(prompt, recipient)["id"]
             if not assign_ids and prompt.event_id != computed:
                 raise Refused("prompt identity does not bind the configured question and actions")
             prompts.append(replace(prompt, event_id=computed))
         if len({p.event_id for p in prompts}) != len(prompts):
             raise Refused("duplicate prompt identity")
-        return cls(recipient, operators, tuple(prompts))
+        return cls(recipient, operators, tuple(prompts), obj["version"])
 
 
 def prompt_event(prompt: Prompt, recipient: str) -> dict:
@@ -222,17 +231,28 @@ def prompt_event(prompt: Prompt, recipient: str) -> dict:
     Publish this exact rumor through the separately reviewed encrypted sender.
     Binding its hash prevents mapping an operator's `yes` to another question.
     """
-    names = {"vent": "Vents", "indoor_shade": "Indoor shades",
-             "outdoor_shade": "Outdoor shades", "kiva": "Kiva"}
-    lines = ["THERMAL CONFIRMATION v1", "Have you completed ALL these actions?"]
+    names = {"vent": "Vents", "window": "Windows", "skylight": "Skylights",
+             "indoor_shade": "Indoor shades", "outdoor_shade": "Outdoor shades",
+             "kiva": "Kiva"}
+    if prompt.version == 1:
+        lines = ["THERMAL CONFIRMATION v1", "Have you completed ALL these actions?"]
+    elif prompt.version == 2:
+        lines = ["THERMAL STATE CONFIRMATION v2",
+                 "At the time you specify, were ALL these states true?"]
+    else:
+        raise Refused("unsupported prompt version")
     if prompt.correction_of:
         lines.append("Correction of confirmation: " + prompt.correction_of)
     lines.extend(names[action] + ": " + state for action, state in prompt.actions)
     lines.extend(["Question issued: " + iso(prompt.issued_at),
                   "Reply accepted through: " + iso(prompt.expires_at),
-                  "Reply yes only after completion, not for plans.",
+                  ("Reply yes only after completion, not for plans."
+                   if prompt.version == 1 else
+                   "Reply yes only for states you personally verified, not plans."),
                   "Otherwise reply not yet or skip.",
-                  "For an earlier completed action: yes HH:MM (America/Denver today)",
+                  ("For an earlier completed action: yes HH:MM (America/Denver today)"
+                   if prompt.version == 1 else
+                   "For an earlier verified state: yes HH:MM (America/Denver today)"),
                   "or yes YYYY-MM-DDTHH:MM:SS+/-HH:MM with an explicit UTC offset."])
     value = {"pubkey": recipient, "created_at": int(prompt.issued_at.timestamp()),
              "kind": 14, "tags": [["p", prompt.operator]], "content": "\n".join(lines)}
@@ -241,7 +261,8 @@ def prompt_event(prompt: Prompt, recipient: str) -> dict:
 
 
 def policy_object(policy: Policy) -> dict:
-    return {"version": 1, "recipient": policy.recipient, "operators": sorted(policy.operators),
+    return {"version": policy.version, "recipient": policy.recipient,
+            "operators": sorted(policy.operators),
             "prompts": [p.snapshot() for p in policy.prompts]}
 
 
@@ -586,6 +607,8 @@ class JournalSink:
 
 
 def ingest(raw: bytes, policy: Policy, spool: Spool, decoder, sink, *, now=None):
+    if policy.version == 2:
+        raise Refused("position confirmations await qualified journal v2 storage")
     now = aware(now or datetime.now(UTC))
     # Receipt timestamp is fixed BEFORE network/keyer operations, never on retry.
     rumor = validate_event(decoder.decode(raw, policy.recipient), kind=14, signed=False)
@@ -626,9 +649,13 @@ def main(argv=None):
         with args.policy.open("rb") as handle:
             policy = Policy.load(handle.read(MAX_INPUT + 1), assign_ids=args.prepare_policy)
         if args.prepare_policy:
+            if policy.version == 1:
+                raise Refused("new legacy vent prompts are disabled; use position policy v2")
             print(canonical(policy_object(policy)).decode())
             return 0
         if args.render_prompts:
+            if policy.version == 1:
+                raise Refused("new legacy vent prompts are disabled; use position policy v2")
             for prompt in policy.prompts:
                 print(canonical(prompt_event(prompt, policy.recipient)).decode())
             return 0

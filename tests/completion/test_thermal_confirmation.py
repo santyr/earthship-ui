@@ -616,7 +616,10 @@ def test_cli_policy_preparation_and_rendering_are_offline(tmp_path):
     import subprocess
     path = tmp_path / "policy.json"
     data = policy_data()
+    data["version"] = 2
+    data["prompts"][0]["actions"] = {"window": "closed", "skylight": "open"}
     del data["prompts"][0]["id"]
+    expected = m.Policy.load(m.canonical(data), assign_ids=True).prompts[0].event_id
     path.write_bytes(m.canonical(data))
     prepared = subprocess.run([sys.executable, str(PATH), "--policy", str(path), "--prepare-policy"],
                               capture_output=True, timeout=5, env={"PATH": os.environ["PATH"]})
@@ -625,8 +628,41 @@ def test_cli_policy_preparation_and_rendering_are_offline(tmp_path):
     rendered = subprocess.run([sys.executable, str(PATH), "--policy", str(path), "--render-prompts"],
                               capture_output=True, timeout=5, env={"PATH": os.environ["PATH"]})
     assert rendered.returncode == 0
-    assert json.loads(rendered.stdout)["id"] == PROMPT
+    question = json.loads(rendered.stdout)
+    assert question["id"] == expected
+    assert "Windows: closed" in question["content"]
+    assert "Skylights: open" in question["content"]
+    assert "states you personally verified" in question["content"]
     assert not (tmp_path / "confirmations.sqlite3").exists()
+
+
+def test_position_policy_separates_windows_and_skylights_but_cannot_ingest_yet():
+    data = policy_data()
+    data["version"] = 2
+    data["prompts"][0]["actions"] = {"window": "closed", "skylight": "open"}
+    prepared = m.Policy.load(m.canonical(data), assign_ids=True)
+    assert prepared.version == 2
+    assert m.Policy.load(m.canonical(m.policy_object(prepared))) == prepared
+    question = m.prompt_event(prepared.prompts[0], RECIPIENT)
+    assert question["content"].startswith("THERMAL STATE CONFIRMATION v2")
+    assert "Vents" not in question["content"]
+    with pytest.raises(m.Refused, match="journal v2"):
+        m.ingest(b"{}", prepared, None, None, None)
+    data["prompts"][0]["actions"] = {"vent": "open"}
+    with pytest.raises(m.Refused, match="vocabulary"):
+        m.Policy.load(m.canonical(data), assign_ids=True)
+
+
+def test_cli_refuses_new_legacy_vent_prompt(tmp_path):
+    import subprocess
+    path = tmp_path / "legacy-policy.json"
+    data = policy_data()
+    del data["prompts"][0]["id"]
+    path.write_bytes(m.canonical(data))
+    prepared = subprocess.run([sys.executable, str(PATH), "--policy", str(path), "--prepare-policy"],
+                              capture_output=True, timeout=5, env={"PATH": os.environ["PATH"]})
+    assert prepared.returncode == 2
+    assert b"legacy vent prompts are disabled" in prepared.stderr
 
 
 def test_cli_requires_explicit_apply_mode(tmp_path):

@@ -574,6 +574,8 @@ def balanced_inbox_order(events):
 
 class Delivery:
     def __init__(self, policy, routes, spool, outbox, keyer, relay, sink):
+        if policy.version == 2:
+            raise t.Refused('position prompts await qualified journal v2 storage')
         self.policy, self.routes, self.spool = policy, routes, spool
         self.outbox, self.keyer, self.relay, self.sink = outbox, keyer, relay, sink
 

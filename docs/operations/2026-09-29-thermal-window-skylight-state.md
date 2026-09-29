@@ -17,9 +17,11 @@ skylight states.
 The source-only implementation sequence is:
 
 1. Add separate `window` and `skylight` `open|closed` action names and clear
-   human-facing prompt labels. Test independent confirmations, corrections,
-   idempotent replay and refusal of ambiguous new `vent` prompts. Do not
-   activate ingress before the journal accepts the new vocabulary.
+   human-facing prompt labels. The source-only v2 policy now prepares and
+   renders distinct state questions, refuses new v1-vent questions, and
+   refuses v2 ingestion until storage is qualified. Existing v1 replay remains
+   compatible. The journal/migration and genuine v2 confirmation tests remain
+   open; do not send a v2 question yet.
 2. Rehearse a constrained journal migration on an isolated full restore. The
    production `action_events` check constraint enumerates the old action
    names, and schema/ACL fingerprinting is strict. Preserve all old rows,
