@@ -3250,6 +3250,18 @@ step states, not an unweighted average of changed rows. This resolves the
 suspected sample-frequency bias for that specific API call, but it does not
 prove physical source freshness or full-window coverage; its fallback remains
 an estimate, not acquisition evidence.
+September 29 source audit found a separate unresolved freshness gap in that
+runtime estimator: `projection()` and the time-to-full fallback read the held
+numeric `BMS_SOC` and `BMS_Capacity_Remaining_Ah` states, while the deep path
+reads held `BMS_TimeToDischarge_Min`. Its `num()` helper does not inspect the
+source-bound `BMS_SOC_Evidence_JSON` or the newer BMS auxiliary receipt. The
+forecast worker is not the same gap: the live `forecast-intel.service` has
+`FORECAST_QUALIFIED_SOC_ENABLED=1`. Do not describe the estimator's published
+minutes as fresh during a BMS outage. A correction must qualify each BMS
+input and its dependent current/voltage/load inputs, preserve the dwell/cache
+behavior, and exercise fault/recovery in an isolated rule harness before a
+guarded production cutover. No estimator rule or output was changed by this
+audit.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
