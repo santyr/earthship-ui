@@ -114,6 +114,16 @@ Provider metadata/state restoration, Item 173 history continuity, rule-writer
 handoff and managed rollback still need isolated qualification before any
 attended live cutover. `BatteryIcon` was deliberately excluded because it has
 custom managed state-description metadata that a simple Item line would lose.
+The staged sky-icon source then passed the existing networkless OpenHAB 5.2.1
+provider rehearsal with exact live DTO metadata. A separate disposable
+OpenHAB/PostgreSQL rehearsal persisted a synthetic icon state, withdrew the
+file Item, restored managed ownership and history, returned to file ownership,
+and recovered state/history after a full isolated JVM restart. Both owned
+containers and their database/tmpfs were removed; production writes were
+zero. This closes isolated provider/JDBC/rollback mechanics only. The live
+Item remains managed, with its current state matching the latest Item 173
+JDBC value. A private production-history backup, guarded attended transfer
+and natural `sky-condition-calculator` writer receipt are still required.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
