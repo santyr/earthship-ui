@@ -342,3 +342,17 @@ minutes apart; this first clean window is meaningful but not a proof that a
 raw WH24-labeled packet was received, because the normal weather receipt
 canonicalizes its model label. Continue observing later windows and the
 first complete local day. No rain score or quality gate was relaxed.
+
+### Superseded recovery candidate cleanup
+
+The default-off recovered-jump day reader and its separate JDBC assessor were
+never production callers. They were a contingency for unexplained source
+spikes; after the exact WH24/WH65B tip-scale cause was corrected upstream,
+keeping a second policy that can tolerate faulted days would add complexity
+without addressing the source. The two candidate-only modules/tests and the
+candidate JDBC branch were removed; they remain recoverable from Git history.
+The original strict day reader, restricted transport and forecast call path
+are unchanged. Focused radio/rain/forecast tests passed 135/135, the strict
+transport passed its disposable PostgreSQL test, and the fixture left no
+container. The next full, fault-free local source day still has to pass before
+any rain-learning score is released.

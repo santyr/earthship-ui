@@ -7,7 +7,6 @@ from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from weather_rain_day import MAX_BYTES, MAX_ROWS, qualify_rain_day
-from weather_rain_day_recovery import qualify_rain_day_recovery
 from weather_rain_evidence import RainPolicy
 
 
@@ -26,23 +25,6 @@ def _utc(value):
 
 def fetch_qualified_rain_day(connection_factory, *, local_date, as_of,
                              cutover, policy, site_timezone='America/Denver'):
-    """Production strict v1 reader; never substitutes recovered observations."""
-    return _fetch_rain_day(connection_factory, local_date=local_date, as_of=as_of,
-                           cutover=cutover, policy=policy, site_timezone=site_timezone,
-                           qualifier=qualify_rain_day)
-
-
-def fetch_candidate_recovered_rain_day(connection_factory, *, local_date,
-                                       as_of, cutover, policy,
-                                       site_timezone='America/Denver'):
-    """Default-off read-only assessor; not called by the forecast worker."""
-    return _fetch_rain_day(connection_factory, local_date=local_date, as_of=as_of,
-                           cutover=cutover, policy=policy, site_timezone=site_timezone,
-                           qualifier=qualify_rain_day_recovery)
-
-
-def _fetch_rain_day(connection_factory, *, local_date, as_of, cutover, policy,
-                    site_timezone, qualifier):
     """Read last pre-day carry and bounded original rows in one stable snapshot.
 
     A pre-cutover or incomplete day, mapping ambiguity, permission failure,
@@ -95,9 +77,9 @@ def _fetch_rain_day(connection_factory, *, local_date, as_of, cutover, policy,
             if len(rows) + (carry is not None) > MAX_ROWS:
                 raise ValueError('rain evidence row budget exceeded')
         observations = ([] if carry is None else [carry]) + rows
-        result = qualifier(local_date, as_of=assessed_at,
-                           observations=observations, policy=policy,
-                           site_timezone=site_timezone)
+        result = qualify_rain_day(local_date, as_of=assessed_at,
+                                  observations=observations, policy=policy,
+                                  site_timezone=site_timezone)
         return {**result, 'source_item': ITEM,
                 'source_cutover': cutover.isoformat()}
     except Exception:

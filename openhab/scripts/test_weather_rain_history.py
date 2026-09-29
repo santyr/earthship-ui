@@ -3,9 +3,7 @@ from datetime import timedelta
 import pytest
 
 from test_weather_rain_day import DAY, POLICY, bounds, day_rows
-from test_weather_rain_day_recovery import latch, mutate, reject, rows_for_day
 from weather_rain_history import (ITEM, RainDayHistoryUnavailable,
-                                  fetch_candidate_recovered_rain_day,
                                   fetch_qualified_rain_day)
 
 
@@ -150,33 +148,3 @@ def test_null_oversize_duplicate_and_missing_carry_refuse():
         with pytest.raises(RainDayHistoryUnavailable):
             read(connection)
         assert connection.closed
-
-
-def test_default_off_candidate_uses_same_restricted_snapshot_without_changing_strict_reader():
-    rows, end = rows_for_day()
-    rows = mutate(latch(rows, 100), 100, reject)
-    start, _ = bounds()
-    strict = Connection(carry=rows[0], rows=rows[1:])
-    with pytest.raises(RainDayHistoryUnavailable):
-        fetch_qualified_rain_day(lambda: strict, local_date=DAY, cutover=start,
-                                 as_of=end + timedelta(seconds=120), policy=POLICY)
-    assert strict.closed
-
-    candidate = Connection(carry=rows[0], rows=rows[1:])
-    result = fetch_candidate_recovered_rain_day(
-        lambda: candidate, local_date=DAY, cutover=start,
-        as_of=end + timedelta(seconds=120), policy=POLICY)
-    assert result['rain_in'] == 0.1
-    assert result['quarantined_jumps'] == 1
-    assert result['source_item'] == ITEM
-    assert result['source_cutover'] == start.isoformat()
-    assert candidate.closed
-    assert candidate.session == {'readonly': True, 'autocommit': False,
-                                 'isolation_level': 'REPEATABLE READ'}
-
-    denied = Connection(carry=rows[0], rows=rows[1:], fail_source=True)
-    with pytest.raises(RainDayHistoryUnavailable):
-        fetch_candidate_recovered_rain_day(
-            lambda: denied, local_date=DAY, cutover=start,
-            as_of=end + timedelta(seconds=120), policy=POLICY)
-    assert denied.closed
