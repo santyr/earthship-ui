@@ -392,6 +392,32 @@ coordinated recipient-side handling because it changes Hex's public identity.
 No thermal confirmation prompt, listener, route announcement or journal write
 was activated by these checks.
 
+Later September 29, the operator ran the root-owned one-shot route publisher.
+It reported event ID
+`defe6a8571ae87261278bcae968f88d821e304930e7fad5e7e486f46e1fb20d2`
+on all three approved relays. Independent read-only queries returned that same
+event from `nos.lol`, `relay.primal.net` and `relay.damus.io`; its Schnorr
+signature, approved operator author, empty content and exact three relay tags
+all verified. The installed publisher matched the reviewed source digest.
+This closes the operator-signed inbox-route gate only. A fresh read-only query
+for the previously recorded Hex collector route event returned it on
+`relay.damus.io` with a valid signature and exact three-relay set, but returned
+no Hex kind-10050 event from `nos.lol` or `relay.primal.net` at this checkpoint.
+The complete two-identity route inventory and thermal collector remain off;
+the missing Hex copies and sender-key rotation decision need resolution before
+a household NIP-17 confirmation trial.
+
+The operator chose to retain Hex's existing npub after reviewing its
+key-custody implications. The already-signed public Hex event
+`f75b3a5fd8fc5a6734af6cee3a4c5a64009e86bc0efd57e6926b9ec434a16c84`
+was fetched from `relay.damus.io`, signature/author/tag verified and republished
+**without loading a private key** to `nos.lol` and `relay.primal.net`. Both
+relays acknowledged it, and independent readback verified the exact event on
+all three approved endpoints. This repairs current route availability, not
+signer custody, long-term relay retention or the remaining collector
+release gates. The public route should be rechecked immediately before any
+attended household trial.
+
 The operator selected separate identities per project. Source-only
 `deploy/nostr-bunker/` now contains a reusable local systemd instance template,
 launcher and installation boundary. It is not installed, enabled, or proof of

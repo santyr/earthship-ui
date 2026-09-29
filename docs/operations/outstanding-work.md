@@ -5,6 +5,19 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
+September 29 thermal messaging checkpoint: the original operator credential
+passed a root-run identity check against the approved DM recipient. A labelled
+test NIP-04 DM from the current Hex identity received 3/3 relay ACKs and the
+operator confirmed inbox receipt. The operator then published signed kind-10050
+route event `defe6a8571ae87261278bcae968f88d821e304930e7fad5e7e486f46e1fb20d2`;
+independent signature, author, exact-tag and readback checks passed on all
+three approved relays. The older Hex route had survived on only one relay;
+the operator chose to keep Hex's current npub, and its exact already-signed
+event was republished without a private key and verified on all three. The
+thermal collector is still off: a reviewed private prompt policy, complete
+route snapshot, backup/recovery, and attended NIP-17 action-confirmation trial
+remain open. Route repair does not change signer custody.
+
 September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
 trial completed two short prompts in under four seconds each, establishing
 small-model inference feasibility on this host. The first answer suggested

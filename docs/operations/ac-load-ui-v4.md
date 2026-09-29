@@ -6,7 +6,7 @@ The dashboard accepts `earthship-energy-ui/v4` before any AC publisher is enable
 
 The reader rejects days outside the evidence cutover or attested inverter-only topology, non-midnight/DST-invalid local windows, unfinished days, future revisions, and bad identifiers or values. The UI explicitly labels coverage and says that DC PV and AC load cannot be subtracted into a valid balance. Open-ended `topologyUntil` means the operator's current attestation remains in force until a reported change; the publisher must read the current policy on each run and select completed days only.
 
-This is presentation readiness, not AC publication. The first eligible complete local day is September 24, 2026, assessable after September 25 06:00Z. Solar_PV now has an append-only AC-day revision store, strict selected-revision reader, and source-only v4 projector. A scheduled writer/publisher, production fault/restart/retention evidence, and the first complete-day qualification are still required. No existing v3 payload is converted or silently given a load value. If the power series is empty but an AC day is qualified, the compact card labels the AC observation and date rather than saying there is no daily data.
+At the initial presentation-readiness checkpoint, this was not AC publication. The first eligible complete local day was September 24, 2026, assessable after September 25 06:00Z. Solar_PV had an append-only AC-day revision store, strict selected-revision reader, and source-only v4 projector. A scheduled writer/publisher, production fault/restart/retention evidence, and the first complete-day qualification were still required then. No existing v3 payload is converted or silently given a load value. If the power series is empty but an AC day is qualified, the compact card labels the AC observation and date rather than saying there is no daily data.
 
 At September 24 17:28 MDT, the restricted read-only reader found 12,250
 qualified AC intervals from local midnight to the check: 99.80592% coverage,
@@ -38,3 +38,23 @@ table is empty; immediate readback left `Energy_Analytics_JSON` unchanged on
 v3. The full analytics suite passed 862 tests. This validates the preview
 contract, not a populated AC day or authority to switch the installed
 publisher to v4.
+
+## Verified live release, September 29
+
+The source-only and empty-table checkpoints above are historical. The
+September 27 attended release appended the first qualified AC revision,
+installed the 00:40 local `energy-ac-day.timer`, and enabled the v4 publisher.
+Read-only September 29 systemd inspection found the timer enabled and waiting
+for September 30. Its natural runs for September 27 and 28 both exited zero
+and inserted append-only revisions 7 and 8, respectively. The current live
+`Energy_Analytics_JSON` is `earthship-energy-ui/v4` with AC status `observed`,
+September 28 inverter-output observation 4.0010307955555735 kWh, coverage
+0.9999622569444493, and revision 8 SHA-256
+`deb1acfc346934b854505731d30b9b2adae18c4565482797d1086e90babd50a7`.
+The natural publisher was still completing successfully every five minutes.
+This closes the first-natural-writer and current-v4-publication checks; it
+does not qualify an AC/DC energy balance or an off-host disaster-recovery copy.
+The legacy `accounting.loadStatus` intentionally remains
+`ac_load_evidence_unqualified` while the separate `acLoad` observation is
+shown. See the later checkpoint in [outstanding-work.md](outstanding-work.md)
+for supporting switch-state quality and backup gaps.

@@ -59,18 +59,18 @@ path for this already-approved public event; it does not start the NIP-46
 bunker, a thermal collector, or any OpenHAB control. It refuses to replace an
 existing operator route and requires readback from all three relays. Its
 private key exists only in the root process and signing child environment,
-never in an argument or output. Install from an absolute source path so the
-working directory cannot change what is installed:
-
-```sh
-sudo install -o root -g root -m 0755 /home/sat/earthship-ui/deploy/nostr-bunker/publish-earthship-operator-route /usr/local/libexec/nostr-bunker/publish-earthship-operator-route
-sudo /usr/local/libexec/nostr-bunker/publish-earthship-operator-route
-```
-
-Do not blindly rerun after a partial publish: the signed event may already be
-on some relays. First query the public event ID, compare its signature and
-exact relay tags, then repair only missing relay copies. The announcement
-alone does not qualify NIP-17 confirmation delivery or authorize a listener.
+never in an argument or output. The operator ran its root-owned installed copy
+on September 29; independent readback verified event
+`defe6a8571ae87261278bcae968f88d821e304930e7fad5e7e486f46e1fb20d2`
+on all three relays. **Do not rerun** the one-shot publisher: it refuses an
+existing route, and a future route change needs its own review. The Hex
+collector's prior announcement was readable on only one of three relays at
+the next checkpoint. The operator chose to retain the current Hex identity;
+the exact signed Hex event was republished without a private key and then
+read back on all three relays. Both public announcements are now available,
+but relay retention can change and the complete private policy/route inventory,
+backup, and end-to-end trial are still not qualified. The announcements alone
+do not authorize a listener.
 
 ## Installation boundary
 
