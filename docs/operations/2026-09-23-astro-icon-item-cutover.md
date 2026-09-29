@@ -54,3 +54,29 @@ service, command, or hardware state changed. The archived initial map remains
 an exact recovery snapshot, not the current deployed version. A future natural
 `MIDNIGHT` transition must still verify that OpenHAB hot-loads the new map;
 the Moon-phase natural-change gate also remains open.
+
+## Post-fix natural source verification — September 28
+
+Read-only JDBC inspection found `Sun_SunPhaseName` (Item 49) changed to raw
+`MIDNIGHT` at 06:56:04Z September 25, 06:55:48Z September 26,
+06:55:32Z September 27 and 06:55:00Z September 28. The corrected Git and
+installed `astro.map` still match SHA-256
+`54b74cc4a17a96890e5d4594321516c40afa4832742da55ef26e3f6c64dc04c4`.
+The mapped `SunPhaseIcon` retained `iconify:mdi:weather-night` across those
+transitions. Its change-only JDBC table does not add a row when `MIDNIGHT`
+maps to the already-held night icon; that absence is expected, not a failed
+update. The continuous OpenHAB application log from the September 24 restart
+through this check contains no later `astro.map` transformation warning,
+whereas the four earlier September 24 warnings are retained before the fix.
+This closes the natural post-fix `MIDNIGHT` transform gate without claiming a
+new icon-history row for an unchanged value.
+
+`Moon_MoonPhaseName` (Item 59) changed among `WANING_GIBBOUS`, `FULL`, and
+`WANING_GIBBOUS` from September 25–27. `MoonPhaseicon` (Item 60) has matching
+mapped JDBC changes at the same three instants, including
+`iconify:mdi:moon-full` and `iconify:mdi:moon-waning-gibbous`. Live REST still
+reports both icon Items noneditable/file-owned with their expected states;
+authenticated link readback confirms each raw/mapped pair shares its exact
+Astro `phase#name` source channel.
+This closes the natural Moon channel-to-mapped-Item-to-JDBC gate; it does not
+transfer ownership of the parent Sun or Moon Groups.

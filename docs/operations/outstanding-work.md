@@ -1930,6 +1930,14 @@ file-owned Item and JDBC ID 90, but exposed a missing `astro.map` key and four
 transform warnings. The canonical/deployed map now includes `MIDNIGHT` as a
 night icon with exact hash readback and one focused test. Verify the next
 natural `MIDNIGHT` after hot-load; a natural Moon-phase change is still pending.
+September 28 read-only follow-up closes both natural gates: the raw Sun phase
+persisted `MIDNIGHT` on four post-fix nights, while the mapped icon stayed at
+the unchanged night value and the continuously retained application log showed
+no later MAP warning. Raw Moon-phase changes on September 25–27 paired with
+mapped icon JDBC changes at the same instants. Authenticated link readback
+confirmed each raw/mapped pair shares its Astro phase channel, and both icon
+Items remain file-owned. See the updated
+[Astro cutover receipt](2026-09-23-astro-icon-item-cutover.md).
 
 September 23 OpenMeteo follow-up: the bridge, forecast Thing and air-quality
 Thing were [transferred to the Git-owned file](2026-09-23-openmeteo-file-preflight.md)
