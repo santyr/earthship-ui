@@ -223,3 +223,12 @@ observed shapes therefore exist. Repeated faults also mean the candidate's
 16-incident daily ceiling may refuse this source even if each incident is
 locally recoverable; that is deliberate until the underlying repeated source
 anomaly is understood, not a reason to silently raise the ceiling.
+
+The default-off candidate now also has a separate restricted JDBC assessor,
+`fetch_candidate_recovered_rain_day`; the forecast worker still calls only
+the unchanged strict `fetch_qualified_rain_day` entry point. Both share the
+same exact-Item, bounded, read-only repeatable-read transport. Focused unit
+tests pass, and an isolated PostgreSQL test proved real SQL candidate recovery,
+strict-reader refusal of that same faulted history, and candidate refusal
+after SELECT revocation. Its disposable container and volumes were removed by
+the fixture; no production database, writer or publication state changed.
