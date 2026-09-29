@@ -52,8 +52,8 @@ continuity, not a complete local day or fault/restart qualification.
 The OpenHAB PostgreSQL `items` registry maps the new Item uniquely to ID 657,
 `public.item0657`. The restricted `energy_power_reader` currently lacks
 SELECT on that table. No database privilege was changed; an exact-table
-grant has been requested. The pure day reader and JDBC adapter remain
-unconnected to production forecast scoring. September 28 began before
+grant has been requested. At this collection checkpoint, the pure day reader
+and JDBC adapter were unconnected to production forecast scoring. September 28 began before
 collection and cannot qualify; September 29 is the first possible complete
 local day, assessable after September 30 local midnight and only if every
 coverage, source, fault and midnight-bracket gate passes.
@@ -69,3 +69,30 @@ withdraw only the two new exact file-owned rain definitions after checking
 their hashes, and recheck the existing temperature Thing/Item. No forecast
 state, established sensor Item, motor, pump, inverter or protected rule should
 be modified in rain rollback.
+
+## Forecast scoring guard installed before the next natural run
+
+Commit `c0dd094` adds a dated rain-learning cutover at the first persisted
+receipt, `2026-09-29T04:12:48.122Z`. September 28 is explicitly partial and
+withheld. From September 29 onward, both same-day and day-3 precipitation
+errors require the exact restricted, complete-day source-bound counter reader;
+neither falls back to `max(RainFallDay)`. The worker records bounded score
+provenance and preserves retryable forecast targets when evidence is absent.
+The existing rolling precipitation-error arrays are retained as historical
+legacy values; they were not reset or relabeled as qualified. Adjacent
+forecast/weather/SoC validation passed 332 tests with two optional skips.
+
+The forecast service was inactive when the exact worker and four read-only
+rain modules were installed. Installed/source worker SHA-256 is
+`866bd4c2344e0895470818bd5d5cd25b33ad567946caa7e7caa4943f91c491e5`;
+the prior exact worker SHA-256
+`af54be82936fd8808dea0002117ef40064c27e42e8cf7858b6bca603624129a7`
+is retained privately at
+`/home/sat/.local/state/forecast-intel/rollback-rain-qKXNyO`. An installed
+fresh-process import refused September 28 as `evidence_cutover_partial_day`.
+The timer remained enabled for September 29 06:40 MDT; no manual forecast run
+occurred. The learned PV coefficients (`k_res=1.3`, `d_direct=5.40326272`)
+and existing precipitation-error arrays were unchanged at installation.
+The first natural writer readback, restricted SELECT grant and first complete
+rain day remain open. Until they pass, qualified precipitation error scoring
+is withheld; numerical weather forecasts and unrelated learners continue.

@@ -439,6 +439,14 @@ receipt parsing in one epoch with zero fault latches. This closes initial
 collection activation, not a complete day, source fault/restart qualification
 or learner cutover. Item657 maps to `public.item0657`, for which the restricted
 day reader has no SELECT; no grant or precipitation scoring change was made.
+The subsequent tested forecast cutover `c0dd094` was installed exactly while
+the forecast service was idle. It withholds the September 28 partial rain day
+and requires the strict source-bound day reader with no numeric fallback for
+September 29 onward, for both daily and day-3 precipitation errors. The
+installed-path partial-day check passed; learned coefficients and prior error
+arrays were retained, and the natural 06:40 timer is unchanged. The reader's
+exact `public.item0657` SELECT grant and first complete-day/fault gates are
+still pending, so no new qualified precipitation score has been claimed.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
