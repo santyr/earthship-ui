@@ -182,3 +182,17 @@ station's transmitted counter; do not label either as the cause yet. The
 collector rejected the jump, subsequently returned to a valid receipt and
 reported one jump, zero drops and one invalid packet in the new epoch. Keep
 the strict day-quality gate; the affected September 29 day is unqualified.
+
+A bounded read-only query of Item 657 confirms how this particular fault
+appears in durable history: 00:21:28 and 00:21:58 were valid at
+102.7497945 inches with zero faults; 00:22:28 was explicitly invalid with
+`counter_jump`, null counter and the paired `invalidPackets=1`,
+`counterJumps=1`; 00:22:58 and later were valid again at the unchanged
+102.7497945-inch counter, with `counterDrops=0`. Thus the strict reader's
+whole-day refusal is intentional under v1, not a failure to persist the
+quarantine. A possible future recovery-qualified policy must be separate and
+tested against persisted invalid rows as well as latched jumps between polls:
+prove bounded valid coverage on both sides, unchanged or monotone accepted
+counter, exact paired jump/invalid increments, no drops/restarts/other invalid
+reasons, and no midnight ambiguity. Do not enable it merely because the live
+weather app kept its legacy daily accumulator stable.
