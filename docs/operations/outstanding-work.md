@@ -563,7 +563,13 @@ The dedicated observational-rule adapter now pins the live v1 hash
 `40b34d9b...6106f4466d9`, checks both Things ONLINE, preserves the exact
 managed Rule DTO and takes a private pre-change backup. Its default read-only
 production preflight passed, and four offline baseline/rollback tests pass.
-The adapter has **not** run with `--apply` at this checkpoint.
+The guarded [v2 cutover](2026-09-29-tplink-switch-evidence-v2-cutover.md)
+subsequently ran at 04:50 MDT. Exact post-apply readback passed; natural v2
+sequence 1 was an unavailable barrier and sequences 2–3 restored both fields
+with a 95-second TTL. JDBC strictly parsed v1 sequences 563–566 followed by
+the new v2 epoch 1–3. Both Things remain ONLINE; the private original-rule
+backup is mode 0600. September 29 remains mixed/unqualified, and the Solar_PV
+quality flag remains off pending a complete v2 day and fault/recovery checks.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
