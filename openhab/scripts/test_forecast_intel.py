@@ -124,6 +124,71 @@ def test_day_window_dst_transition_days():
     assert e == datetime(2026, 11, 2, 7, 0, tzinfo=UTC)
 
 
+def test_pv_cutover_day_withholds_change_only_max_without_reader(monkeypatch):
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy PV read after cutover'))
+    day = fi.PV_EVIDENCE_REQUIRED_FROM
+    value, basis, detail = fi.measured_pv_day_for_learning(
+        day, as_of=datetime(2026, 9, 30, tzinfo=UTC),
+        qualified_reader=lambda **_: pytest.fail('partial day reached reader'))
+    assert (value, basis) == (None, 'evidence_cutover_partial_day')
+    assert detail == {}
+
+
+def test_pv_evidence_refuses_site_zone_drift(monkeypatch):
+    monkeypatch.setattr(fi, 'SITE_TZ_NAME', 'America/New_York')
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy PV fallback'))
+    assert fi.measured_pv_day_for_learning(
+        fi.PV_EVIDENCE_REQUIRED_FROM + timedelta(days=1),
+        as_of=datetime(2026, 10, 1, tzinfo=UTC),
+        qualified_reader=lambda **_: pytest.fail('wrong-zone evidence read')
+    ) == (None, 'evidence_site_zone_mismatch', {})
+
+
+def test_pv_completed_day_uses_exact_source_qualified_result(monkeypatch):
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy PV read after cutover'))
+    day = fi.PV_EVIDENCE_REQUIRED_FROM + timedelta(days=1)
+    calls = []
+
+    def reader(**kwargs):
+        calls.append(kwargs)
+        return {'local_date': day.isoformat(), 'basis': 'mppt60_native_pv_day_wh',
+                'source_item': 'MPPT60_PV_Day_Evidence_JSON',
+                'source_cutover': fi.PV_EVIDENCE_CUTOVER.isoformat(),
+                'coverage': 0.998, 'pv_kwh': 9.125, 'receipt_count': 2878}
+
+    value, basis, detail = fi.measured_pv_day_for_learning(
+        day, as_of=datetime(2026, 10, 1, tzinfo=UTC), qualified_reader=reader)
+    assert (value, basis) == (9.125, 'qualified_source_bound')
+    assert detail['coverage'] == 0.998 and detail['receipt_count'] == 2878
+    assert calls == [dict(local_date=day, as_of=datetime(2026, 10, 1, tzinfo=UTC),
+                          cutover=fi.PV_EVIDENCE_CUTOVER, site_timezone=fi.SITE_TZ_NAME)]
+
+
+@pytest.mark.parametrize('change', ['missing', 'wrong_item', 'low_coverage', 'missing_count'])
+def test_pv_reader_failure_never_falls_back_to_change_only_max(monkeypatch, change):
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy PV fallback'))
+    day = fi.PV_EVIDENCE_REQUIRED_FROM + timedelta(days=1)
+    result = {'local_date': day.isoformat(), 'basis': 'mppt60_native_pv_day_wh',
+              'source_item': 'MPPT60_PV_Day_Evidence_JSON',
+              'source_cutover': fi.PV_EVIDENCE_CUTOVER.isoformat(),
+              'coverage': 0.998, 'pv_kwh': 9.125, 'receipt_count': 2878}
+    if change == 'wrong_item':
+        result['source_item'] = 'other'
+    if change == 'low_coverage':
+        result['coverage'] = 0.99
+    if change == 'missing_count':
+        del result['receipt_count']
+
+    def reader(**_):
+        if change == 'missing':
+            raise OSError('read unavailable')
+        return result
+
+    assert fi.measured_pv_day_for_learning(
+        day, as_of=datetime(2026, 10, 1, tzinfo=UTC), qualified_reader=reader
+    ) == (None, 'qualified_evidence_unavailable', {})
+
+
 def test_measured_trough_window_mst(monkeypatch):
     # 20:00 Jan 14 MST -> 03:00Z Jan 15; 11:00 Jan 15 MST -> 18:00Z.
     calls = _capture_series(monkeypatch)
@@ -742,6 +807,85 @@ def test_rain_scores_once_on_rerun_temps_never_double(monkeypatch, tmp_path):
     st3, _ = _run_main(monkeypatch, tmp_path, dict(st2), data)
     assert len(st3["precip_errors"]) == 1
     assert len(st3["pv_errors"]) == 1
+
+
+def test_main_withholds_partial_pv_evidence_day_and_learned_coefficients(monkeypatch, tmp_path):
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', yesterday)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_CUTOVER',
+                        fi.local_day_window_utc(yesterday)[0] + timedelta(hours=1))
+    state = _scoring_state(yesterday.isoformat())
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [99.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data)
+    assert saved['pv_errors'] == []
+    assert saved['k_res'] == 1.0 and saved['d_direct'] == 4.0
+    assert saved['pv_score_evidence'][yesterday.isoformat()] == {
+        'basis': 'evidence_cutover_partial_day', 'measured_kwh': None}
+    assert fi.should_score(saved, yesterday.isoformat(), 'pv')
+    assert 'PV scoring withheld: evidence_cutover_partial_day' in (tmp_path / 'log').read_text()
+
+
+def test_main_withholds_pv_learning_when_provenance_state_is_invalid(monkeypatch, tmp_path):
+    yesterday = date.today() - timedelta(days=1)
+    state = _scoring_state(yesterday.isoformat())
+    state['pv_score_evidence'] = 'invalid'
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [7.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data)
+    assert saved['pv_errors'] == [] and saved['k_res'] == 1.0
+    assert fi.should_score(saved, yesterday.isoformat(), 'pv')
+    assert 'PV scoring withheld: provenance_state_invalid' in (tmp_path / 'log').read_text()
+
+
+def test_main_updates_pv_learning_from_qualified_day_only(monkeypatch, tmp_path):
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, 'PV_QUALIFIED_CALIBRATION_RELEASE', True)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', yesterday)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_CUTOVER',
+                        fi.local_day_window_utc(yesterday)[0] - timedelta(seconds=1))
+    calls = []
+
+    def reader(**kwargs):
+        calls.append(kwargs)
+        return {'local_date': yesterday.isoformat(), 'basis': 'mppt60_native_pv_day_wh',
+                'source_item': 'MPPT60_PV_Day_Evidence_JSON',
+                'source_cutover': fi.PV_EVIDENCE_CUTOVER.isoformat(),
+                'coverage': 0.999, 'pv_kwh': 9.0, 'receipt_count': 2878}
+
+    monkeypatch.setattr(fi, '_read_qualified_pv_day', reader)
+    state = _scoring_state(yesterday.isoformat())
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [1.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data)
+    assert len(calls) == 1
+    assert saved['pv_errors'] == [pytest.approx(abs((7.5 - 9.0) / 9.0 * 100))]
+    assert saved['d_direct'] == pytest.approx(4.6)
+    assert saved['pv_score_evidence'][yesterday.isoformat()]['source_item'] == 'MPPT60_PV_Day_Evidence_JSON'
+    assert saved['pv_score_evidence'][yesterday.isoformat()]['receipt_count'] == 2878
+    assert saved['pv_score_evidence'][yesterday.isoformat()]['calibration_status'] == 'updated'
+    assert 'pv' in saved['scored'][yesterday.isoformat()]
+    assert 'PV scored (qualified_source_bound)' in (tmp_path / 'log').read_text()
+
+
+def test_qualified_pv_error_can_score_while_calibration_release_is_closed(monkeypatch, tmp_path):
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', yesterday)
+    monkeypatch.setattr(fi, 'PV_EVIDENCE_CUTOVER',
+                        fi.local_day_window_utc(yesterday)[0] - timedelta(seconds=1))
+    monkeypatch.setattr(fi, '_read_qualified_pv_day', lambda **_: {
+        'local_date': yesterday.isoformat(), 'basis': 'mppt60_native_pv_day_wh',
+        'source_item': 'MPPT60_PV_Day_Evidence_JSON',
+        'source_cutover': fi.PV_EVIDENCE_CUTOVER.isoformat(),
+        'coverage': 0.999, 'pv_kwh': 9.0, 'receipt_count': 2878})
+    state = _scoring_state(yesterday.isoformat())
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [1.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data)
+    assert len(saved['pv_errors']) == 1
+    assert saved['d_direct'] == 4.0 and saved['k_res'] == 1.0
+    assert saved['pv_score_evidence'][yesterday.isoformat()]['calibration_status'] == 'release_gate_closed'
+    assert 'PV calibration withheld: qualified release gate closed' in (tmp_path / 'log').read_text()
 
 
 def test_zero_pv_day_skipped_with_log_not_division_error(monkeypatch, tmp_path, capsys):

@@ -29,6 +29,10 @@ TROUGH_DM_THRESHOLD = 30  # full-bank policy (was 42 on the single 100 Ah bank)
 CLOSE_UP_HIGH_F, CLOSE_UP_STREAK_F, VENT_HIGH_F = 95, 92, 90
 DETAIL_MAX_BYTES = 64 * 1024
 _TOKEN = None
+PV_EVIDENCE_CUTOVER = datetime(2026, 9, 28, 14, 6, 49, 997000, tzinfo=timezone.utc)
+PV_EVIDENCE_REQUIRED_FROM = date(2026, 9, 28)  # partial activation day is withheld
+PV_EVIDENCE_DB_CONFIG = "/home/sat/.config/hex/energy-power-reader.jdbc"
+PV_QUALIFIED_CALIBRATION_RELEASE = False  # complete-day and fault/recovery gates pending
 
 # ---- Site settings -------------------------------------------------------
 # openHAB is authoritative for where and in which zone this site sits
@@ -229,6 +233,58 @@ def local_day_window_utc(day):
     start = datetime.combine(day, datetime.min.time(), tzinfo=MOUNTAIN)
     end = datetime.combine(day + timedelta(days=1), datetime.min.time(), tzinfo=MOUNTAIN)
     return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+def _read_qualified_pv_day(*, local_date, as_of, cutover, site_timezone):
+    """Use only the exact restricted PV evidence Item and read-only day adapter."""
+    import psycopg2
+    from earthship_energy.db import parse_openhab_jdbc_config
+    from pv_day_history import fetch_qualified_pv_day
+
+    settings = parse_openhab_jdbc_config(PV_EVIDENCE_DB_CONFIG)
+    if (settings.host, settings.port, settings.dbname, settings.user) != (
+            '127.0.0.1', 5432, 'openhab', 'energy_power_reader'):
+        raise ValueError('restricted PV day reader required')
+    return fetch_qualified_pv_day(
+        lambda: psycopg2.connect(**settings.connect_kwargs, connect_timeout=3),
+        local_date=local_date, as_of=as_of, cutover=cutover,
+        site_timezone=site_timezone)
+
+
+def measured_pv_day_for_learning(local_date, *, as_of, qualified_reader=None):
+    """Never learn from change-only PV maxima on/after evidence activation."""
+    if local_date < PV_EVIDENCE_REQUIRED_FROM:
+        points = series('MPPT60_EnergyFromPV_Today', *local_day_window_utc(local_date))
+        value = max((value for _, value in points), default=None)
+        return value, 'legacy_change_only', {'source_item': 'MPPT60_EnergyFromPV_Today'}
+    if SITE_TZ_NAME != 'America/Denver':
+        return None, 'evidence_site_zone_mismatch', {}
+    start, end = local_day_window_utc(local_date)
+    if start < PV_EVIDENCE_CUTOVER:
+        return None, 'evidence_cutover_partial_day', {}
+    if as_of.tzinfo is None or as_of.utcoffset() is None or as_of < end:
+        return None, 'evidence_day_incomplete', {}
+    try:
+        result = (qualified_reader or _read_qualified_pv_day)(
+            local_date=local_date, as_of=as_of, cutover=PV_EVIDENCE_CUTOVER,
+            site_timezone=SITE_TZ_NAME)
+        value = result['pv_kwh']
+        coverage = result.get('coverage')
+        receipt_count = result.get('receipt_count')
+        if (result.get('local_date') != local_date.isoformat()
+                or result.get('basis') != 'mppt60_native_pv_day_wh'
+                or result.get('source_item') != 'MPPT60_PV_Day_Evidence_JSON'
+                or result.get('source_cutover') != PV_EVIDENCE_CUTOVER.isoformat()
+                or type(value) not in (int, float) or not math.isfinite(value)
+                or value < 0 or type(coverage) not in (int, float)
+                or not math.isfinite(coverage) or not 0.995 <= coverage <= 1
+                or type(receipt_count) is not int or not 0 < receipt_count <= 5000):
+            raise ValueError('PV day evidence identity or quality mismatch')
+        return float(value), 'qualified_source_bound', {
+            'source_item': result['source_item'], 'source_cutover': result['source_cutover'],
+            'coverage': result['coverage'], 'receipt_count': result['receipt_count']}
+    except Exception:
+        return None, 'qualified_evidence_unavailable', {}
 
 
 
@@ -1027,8 +1083,17 @@ def main():
         log.append('daily temperature origin ineligible; scoring skipped')
     if yp:
         if should_score(st, ykey, "pv"):
-            pv_pts = series("MPPT60_EnergyFromPV_Today", *local_day_window_utc(today - timedelta(days=1)))
-            pv_actual = max((v for _, v in pv_pts), default=None)
+            evidence = st.setdefault('pv_score_evidence', {})
+            if not isinstance(evidence, dict):
+                pv_actual, pv_basis = None, 'provenance_state_invalid'
+            else:
+                pv_actual, pv_basis, pv_detail = measured_pv_day_for_learning(
+                    today - timedelta(days=1), as_of=datetime.now(timezone.utc))
+                evidence[ykey] = {'basis': pv_basis, 'measured_kwh': pv_actual, **pv_detail}
+                for stale in sorted(evidence)[:-30]:
+                    evidence.pop(stale, None)
+            if pv_actual is None:
+                log.append(f"PV scoring withheld: {pv_basis}")
             if pv_actual is not None and yp.get("pv") is not None:
                 if pv_actual < 1e-9:
                     log.append(f"PV scoring skipped: measured {pv_actual:.2f} kWh (zero-production day, no %-error defined)")
@@ -1037,11 +1102,14 @@ def main():
                     err = (yp["pv"] - pv_actual) / pv_actual * 100
                     st["pv_errors"] = (st["pv_errors"] + [abs(err)])[-7:]
                     put("Forecast_PV_Error_7d", round(sum(st["pv_errors"]) / len(st["pv_errors"]), 1))
-                    log.append(f"PV scored: pred {yp['pv']:.2f} vs actual {pv_actual:.2f} kWh (err {err:+.0f}%)")
+                    log.append(f"PV scored ({pv_basis}): pred {yp['pv']:.2f} vs actual {pv_actual:.2f} kWh (err {err:+.0f}%)")
                     # ---- Phase 2: calibrate ----
                     demand_y = yp.get("demand")
                     radsum_y = yp.get("radsum")
-                    if demand_y and radsum_y:
+                    if pv_basis == 'qualified_source_bound' and not PV_QUALIFIED_CALIBRATION_RELEASE:
+                        log.append('PV calibration withheld: qualified release gate closed')
+                        evidence[ykey]['calibration_status'] = 'release_gate_closed'
+                    elif demand_y and radsum_y:
                         if pv_actual < 0.9 * demand_y and radsum_y > 0.5:   # resource-limited day
                             k_imp = pv_actual / radsum_y
                             st["k_res"] = clamp(st["k_res"] * (1 - ALPHA) + k_imp * ALPHA, *K_RES_BOUNDS)
@@ -1051,6 +1119,7 @@ def main():
                             d_imp = pv_actual - deficit
                             st["d_direct"] = clamp(st["d_direct"] * (1 - ALPHA) + d_imp * ALPHA, *D_DIRECT_BOUNDS)
                             log.append(f"calibrated d_direct -> {st['d_direct']:.2f} (demand-limited day)")
+                        evidence[ykey]['calibration_status'] = 'updated'
                     mark_scored(st, ykey, "pv")
         # Legacy trough_errors/scored markers are preserved, never appended here.
         # At 06:40 this target has not ended; completed-window scoring runs below.

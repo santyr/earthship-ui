@@ -132,3 +132,21 @@ and INSERT/UPDATE/DELETE=false. It parsed all 1,274 persisted receipts from
 sequence gap. This closes the PV database privilege gate only; the day began
 before the source-bound cutover, so no qualified full-day PV total or forecast
 calibration was enabled.
+
+## Forecast learner cutover guard
+
+The daily forecast worker previously used the maximum of the change-only
+`MPPT60_EnergyFromPV_Today` Item to score PV and update `k_res`/`d_direct`.
+That history cannot prove a complete fresh source day. The reviewed source
+now withholds the partial September 28 cutover day and, from September 29
+onward, accepts only `fetch_qualified_pv_day` through the restricted
+`energy_power_reader` connection and exact `MPPT60_PV_Day_Evidence_JSON`
+identity. Reader failure, low coverage, wrong Item/cutover/date, site-zone
+drift or missing provenance has no change-only fallback. It preserves a
+bounded score-provenance record. The separate
+`PV_QUALIFIED_CALIBRATION_RELEASE` remains false: a qualified day may score
+forecast error, but cannot yet update coefficients until the complete-day and
+fault/recovery gates are reviewed. The pre-cutover learned coefficients are
+retained, not reset or retroactively labeled source-qualified. Focused PV and
+adjacent forecast suites passed 191 tests. Production installation and the
+next natural forecast run require separate readback below.

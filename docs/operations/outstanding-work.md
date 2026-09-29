@@ -343,6 +343,14 @@ bytes and had 62 rows (25,387 JSON bytes) in that hour. These are short,
 post-activation samples, not a retention-size forecast or authorization to
 purge. They show no immediate capacity emergency; keep original receipts
 while full-day, fault and historical-learning gates are still open.
+The source forecast worker's PV scoring still used the change-only daily Item
+maximum. A tested cutover guard now withholds September 28, requires the
+restricted strict source-bound day reader for later dates with no legacy
+fallback, and records bounded score provenance. Coefficient calibration has
+a separate default-closed release gate. The live pre-change learned state is
+`k_res=1.3` and `d_direct=5.40326272`; neither was reset. All 191 adjacent
+forecast/PV tests passed. Production file installation and natural
+September 29 06:40 no-calibration readback remain pending.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
