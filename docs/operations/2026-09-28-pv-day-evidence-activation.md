@@ -89,3 +89,21 @@ atomically, verify its SHA and full REST DTO, then check existing
 evidence continuity; a provider transition may introduce a collection gap.
 Do not delete native MPPT history, the existing Item/link or the new JDBC
 evidence rows as part of rollback.
+
+## September 28 observation-rule restart qualification
+
+At 19:30 MDT, the live `hex_mppt60_pv_day_evidence` rule exactly matched the
+reviewed source, was `IDLE/NONE`, and its data Thing, poller and bridge were
+all ONLINE. The existing native Wh Item read 2,425 and the transformed
+observation reported the same value. Its first 1,195 JDBC receipts parsed as
+one epoch with contiguous sequences. Only this observational rule was briefly
+disabled and re-enabled; no Modbus Thing, native Item/link, forecast or MPPT
+control was changed. The rule returned to `IDLE/NONE`.
+
+The old epoch ended at sequence 1,195. The new epoch's sequence-1 receipt at
+`2026-09-29T01:30:59.575Z` was unavailable, followed by a naturally acquired
+valid sequence-2 receipt with 2,425 Wh matching the native Item. All 1,197
+persisted receipts passed the strict parser with exactly one barriered restart
+and no sequence gap. This closes the observation-rule restart gate, not a
+physical Modbus/Thing fault, a complete local day, restricted-reader grant,
+forecast calibration or production quality publication.

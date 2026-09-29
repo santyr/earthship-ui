@@ -320,8 +320,13 @@ startup barrier, ten valid native-Wh rows, one epoch and no sequence gap.
 The existing power/AC evidence streams also stayed continuous in a bounded
 hot-reload readback. No forecast, MPPT control or thermal action changed.
 September 28 is a partial collection day; first possible complete PV day is
-September 29, assessable no earlier than September 30. Natural restart/fault
-behavior, complete-day coverage, restricted day-reader integration,
+September 29, assessable no earlier than September 30. The observation-rule
+restart is now qualified: all 1,197 persisted receipts parsed across a new
+unavailable sequence-1 barrier and natural valid sequence-2 recovery, matching
+the native Wh counter; see the
+[activation receipt](2026-09-28-pv-day-evidence-activation.md).
+Physical Modbus/Thing fault behavior, complete-day coverage and restricted
+day-reader integration,
 chronological calibration, retention and file ownership of the new rule
 remain open.
 
