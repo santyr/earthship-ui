@@ -169,11 +169,53 @@ client-key entry or client service. The client-key holder must identify the
 original key location privately. If it is lost, choose and authorize a new
 dedicated client identity before changing the allowlist; never substitute the
 operator or Hex sending credential.
+
+To check a candidate **Sat client** nsec locally, run the following in a
+trusted interactive Bash shell as `sat`. Paste the nsec only at the hidden
+prompt, never into a command, chat, log, or shell-history line. This uses the
+installed pinned `nak` and reports only a public-key match result:
+
+```bash
+set +x
+IFS= read -r -s -p 'Sat client nsec: ' sat_client_nsec; printf '\n'
+if sat_client_pub=$(NOSTR_SECRET_KEY="$sat_client_nsec" /usr/local/libexec/nostr-bunker/nak key public); then
+  unset -v sat_client_nsec
+  if [ "$sat_client_pub" = '5302cd2bfe2dcc76c5a9abcba74e6c5f1a07444b35c25e0cd74bac5b453fb5f6' ]; then
+    printf 'Sat client key matches the bunker allowlist\n'
+  else
+    printf 'Mismatch: this is not the approved Sat client key\n'
+  fi
+  unset -v sat_client_pub
+else
+  unset -v sat_client_nsec sat_client_pub
+  printf 'Could not derive the client public key\n' >&2
+fi
+```
+
+The secret is briefly in this shell and `nak`'s process environment, so use a
+trusted local session and close it afterward. A matching public key proves
+only the local key pair; it does not prove the client can authenticate to the
+running bunker, obtain its operator public key, or safely sign a request.
 Do not use Hex's sender key as a substitute. Keep this instance disabled at
 boot until the holder of Sat's approved client key completes an authenticated
 round trip and the returned operator public key matches the verified DM
 recipient. If the service fails or restarts unexpectedly, stop the instance;
 do not expose a bunker URL or credential to diagnose it in chat or logs.
+
+After a successful authenticated Sat-client round trip returns the approved
+operator identity, make the **already running** instance start on future boots:
+
+```bash
+sudo systemctl enable nostr-bunker@earthship-operator.service
+systemctl is-enabled nostr-bunker@earthship-operator.service
+systemctl show -p ActiveState -p SubState -p NRestarts nostr-bunker@earthship-operator.service
+```
+
+The expected enablement result is `enabled`; the service should remain
+`active/running` with no new restart. `enable` changes boot policy only and
+does not restart the current process. To undo boot enablement without stopping
+the running instance, use
+`sudo systemctl disable nostr-bunker@earthship-operator.service`.
 
 ### Approved operator inbox announcement
 
