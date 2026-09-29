@@ -175,3 +175,25 @@ installation. The September 29 natural forecast run must still prove the
 partial-day withholding path and unchanged coefficients. The first possible
 source-qualified PV day is September 29, assessable after its September 30
 local midnight; calibration release remains a separate decision.
+
+### September 28 legacy calibration guard correction
+
+A read-only code audit found that the closed calibration flag guarded only
+`qualified_source_bound` days. An older `legacy_change_only` day could still
+score and enter the coefficient-update branch on replay, even if the flag was
+closed. Commit `b9ea834` requires *both* qualified source-bound provenance
+and an open release flag before updating `k_res` or `d_direct`; legacy days
+remain diagnostic scores only. The forecast/PV regression suite passed 121
+tests, including both flag positions for a legacy day.
+
+At 23:51 MDT the idle installed worker matched preimage SHA-256
+`866bd4c2344e0895470818bd5d5cd25b33ad567946caa7e7caa4943f91c491e5`.
+It was backed up privately under
+`/home/sat/.local/state/forecast-intel/pv-calibration-KwMRy4/` and atomically
+replaced by the tested source. Installed/source SHA-256 now matches
+`f1bce4a219319ac725239a19842fa643ef6d2b38fe900fbf0efecb1385a3c564`.
+The installed module imports, `PV_QUALIFIED_CALIBRATION_RELEASE` is still
+false, coefficients remain `k_res=1.3` and `d_direct=5.40326272`, the worker
+is idle, and the enabled natural timer is next due September 29 06:40 MDT.
+No forecast job or Item write was manually invoked. That natural run and a
+complete source-bound day remain separate verification gates.

@@ -535,6 +535,13 @@ TP-Link rows since their respective activation windows, each across two
 epochs with no within-epoch sequence gap and a correct unavailable restart
 barrier. The latest receipt in each stream was valid and under one minute
 old. This is collection continuity through the check, not a complete day.
+The installed PV learner's separate calibration flag had a legacy-day replay
+gap: it withheld qualified-day calibration while closed but could still update
+coefficients from an older change-only score. `b9ea834` now requires both
+qualified source-bound provenance and the open release flag. The 121-test
+forecast/PV suite passed, and the exact one-file idle-worker deployment
+preserved `k_res=1.3`, `d_direct=5.40326272`, the closed release gate and the
+September 29 06:40 natural timer. See the [PV activation receipt](2026-09-28-pv-day-evidence-activation.md).
 
 September 28 change-only rain-learning audit: `forecast_intel.py` scores
 precipitation against `max(RainFallDay)` in the local day. The live weather
