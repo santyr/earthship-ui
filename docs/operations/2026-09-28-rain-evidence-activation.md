@@ -356,3 +356,22 @@ are unchanged. Focused radio/rain/forecast tests passed 135/135, the strict
 transport passed its disposable PostgreSQL test, and the fixture left no
 container. The next full, fault-free local source day still has to pass before
 any rain-learning score is released.
+
+### Temporary anomaly logger removed — September 29, 01:31 MDT
+
+The same exact-tip proof and first clean natural recurrence made further
+source-difference logging unnecessary. Commit `63e1b41` removed the temporary
+metadata parser, callback, one-time log state and expiry constant while
+retaining the >0.5-inch physical jump guard and fault latches. Seventy focused
+radio/rain/weather tests passed. With all three temperature streams and rain
+valid, the prior installed module SHA-256
+`b62895777adbab63642311ddf18eddfed09792b73b36e9725e44ae600cf38d51`
+was saved privately at
+`/home/sat/.local/state/weather-rain-cleanup-HcimWY/`. The logger-free source
+was installed atomically and one HUP retained Gunicorn master PID 1607215.
+Source/runtime SHA-256 both equal the previously tested guard-only value
+`d47a6a9e038e78f4ca492fe35dc2420a2123edf5431b2c596e36c3acdaee23f4`.
+Natural indoor, north-wall, outdoor and rain receipts all returned valid;
+both weather and radio services remained active, and the new rain epoch had
+zero jump/drop latches. This final cleanup adds a September 29 epoch barrier,
+not a new qualified day. No temporary packet logger remains installed.
