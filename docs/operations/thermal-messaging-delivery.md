@@ -370,6 +370,13 @@ code across projects, but each signing identity needs separate credentials,
 client allowlists and runtime state. The operator-key provisioning path and
 signed kind-10050 route remain open; no service, secret or message changed.
 
+The operator selected separate identities per project. Source-only
+`deploy/nostr-bunker/` now contains a reusable local systemd instance template,
+launcher and installation boundary. It is not installed, enabled, or proof of
+operator-key custody. Each instance needs its own encrypted key and explicit
+client allowlist; the Hex collector must not be granted the operator signer
+merely to publish the operator's kind-10050 inbox announcement.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

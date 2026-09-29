@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "itemSource": "openhab/file-config/items/bms-runtime-input-evidence.items",
+  "persistenceExclusion": "!BMS_Runtime_Input_Evidence_JSON",
+  "rule": {
+    "uid": "hex_bms_runtime_input_evidence",
+    "name": "Validated battery runtime input evidence",
+    "enabled": false,
+    "source": "openhab/rules/bms-runtime-input-evidence.js",
+    "triggers": [
+      {"id":"current","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/DCData_Native_Current_Raw_cA/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"voltage","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/DCData_Native_Voltage_Raw_cV/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"ttd","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/BMS_TimeToDischarge_Min/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"ttf","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/BMS_TimeToFull_Min/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/10 * * * * ?"}},
+      {"id":"startup","type":"core.SystemStartlevelTrigger","configuration":{"startlevel":100}}
+    ]
+  }
+}

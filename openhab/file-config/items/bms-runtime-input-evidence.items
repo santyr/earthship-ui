@@ -1,0 +1,2 @@
+// Observation only. Do not link to a command-capable channel.
+String BMS_Runtime_Input_Evidence_JSON "Validated battery runtime input evidence"

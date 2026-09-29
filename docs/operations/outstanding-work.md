@@ -3450,6 +3450,18 @@ current/voltage update unchanged as often as once per second; persisting every
 raw event would add unnecessary I/O, so a new collector must coalesce normal
 updates while retaining immediate fault and expiry barriers. No live source,
 rule or runtime output was changed by this read-only map.
+September 29 source-only candidate: `openhab/rules/bms-runtime-input-evidence.js`
+and its disabled resource/Item definitions cover the four missing native
+registers with exact original-event source checks, online bridge/poller/data
+gates, TTL expiry, and 30-second healthy-write coalescing. The focused offline
+tests include spoofed/ambiguous events, fault/recovery, expiry, and ambiguous
+JDBC enqueue. Nothing is installed or active. Before enabling the collector,
+exclude `BMS_Runtime_Input_Evidence_JSON` from automatic JDBC writes, qualify
+its explicit persistence and natural receipts in isolation, and measure
+high-rate trigger overhead. Then update `hex_bms_ttd_smooth` to consume these
+and the existing source-bound SoC, remaining-Ah, PV and inverter receipts;
+preserve the existing dwell/cache behavior and fault/recovery policy. No
+runtime-minute output is newly qualified by this source-only candidate.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

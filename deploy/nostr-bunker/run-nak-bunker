@@ -1,0 +1,78 @@
+#!/bin/sh
+# Each service instance gets its own encrypted key, client allowlist and runtime.
+set -eu
+set -f
+
+: "${CREDENTIALS_DIRECTORY:?missing systemd credentials directory}"
+: "${RUNTIME_DIRECTORY:?missing systemd runtime directory}"
+: "${BUNKER_AUTHORIZED_CLIENTS:?missing client allowlist}"
+: "${BUNKER_RELAYS:?missing relay list}"
+: "${NAK_SHA256:?missing pinned nak digest}"
+NAK_BIN=/usr/local/libexec/nostr-bunker/nak
+
+if [ ! -f "$NAK_BIN" ] || [ -L "$NAK_BIN" ] || [ ! -x "$NAK_BIN" ]; then
+    echo 'pinned nak executable unavailable' >&2
+    exit 1
+fi
+if [ "$(stat -c %u "$NAK_BIN")" != 0 ] || [ -n "$(find "$NAK_BIN" -maxdepth 0 -perm /022 -print)" ]; then
+    echo 'pinned nak ownership or permissions are unsafe' >&2
+    exit 1
+fi
+case "$NAK_SHA256" in
+    *[!0123456789abcdef]*|'') echo 'invalid nak digest' >&2; exit 1 ;;
+esac
+if [ "${#NAK_SHA256}" -ne 64 ] || [ "$(sha256sum "$NAK_BIN" | cut -d ' ' -f 1)" != "$NAK_SHA256" ]; then
+    echo 'pinned nak digest mismatch' >&2
+    exit 1
+fi
+
+key_file="$CREDENTIALS_DIRECTORY/nostr-key"
+if [ ! -r "$key_file" ]; then
+    echo 'signer credential unavailable' >&2
+    exit 1
+fi
+exec 3< "$key_file"
+IFS= read -r NOSTR_SECRET_KEY <&3 || [ -n "${NOSTR_SECRET_KEY:-}" ]
+if [ -z "$NOSTR_SECRET_KEY" ]; then
+    echo 'signer credential empty' >&2
+    exit 1
+fi
+if IFS= read -r extra <&3 || [ -n "${extra:-}" ]; then
+    echo 'signer credential must be one line' >&2
+    exit 1
+fi
+exec 3<&-
+export NOSTR_SECRET_KEY
+
+set -- bunker
+client_count=0
+for client in $BUNKER_AUTHORIZED_CLIENTS; do
+    case "$client" in
+        *[!0123456789abcdefABCDEF]*|'') echo 'invalid client key' >&2; exit 1 ;;
+    esac
+    if [ "${#client}" -ne 64 ]; then
+        echo 'invalid client key length' >&2
+        exit 1
+    fi
+    set -- "$@" --authorized-keys "$client"
+    client_count=$((client_count + 1))
+done
+if [ "$client_count" -eq 0 ]; then
+    echo 'empty client allowlist' >&2
+    exit 1
+fi
+relay_count=0
+for relay in $BUNKER_RELAYS; do
+    case "$relay" in
+        wss://?*) ;;
+        *) echo 'invalid relay URL' >&2; exit 1 ;;
+    esac
+    set -- "$@" "$relay"
+    relay_count=$((relay_count + 1))
+done
+if [ "$relay_count" -eq 0 ]; then
+    echo 'empty relay list' >&2
+    exit 1
+fi
+
+exec "$NAK_BIN" --config-path "$RUNTIME_DIRECTORY" "$@"
