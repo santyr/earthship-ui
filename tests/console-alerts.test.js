@@ -40,6 +40,8 @@ function preDuskReceipt(now, soc, drop) {
     sunsetAt: new Date(now + 75 * 60_000).toISOString(),
     morningIssuedAt: new Date(now - 11 * 60 * 60_000).toISOString(),
     socRecordedAt: new Date(now - 20_000).toISOString(),
+    socStreamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+    socEvidenceSha256: 'a'.repeat(64),
     socAtIssuePct: soc, overnightDropPct: drop,
     overnightTroughSocPct: Math.round(Math.max(12, Math.min(99, soc - drop))) });
 }

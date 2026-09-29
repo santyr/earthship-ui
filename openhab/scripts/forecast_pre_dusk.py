@@ -7,6 +7,7 @@ No command, calibration update, or DM is sent by this worker.
 """
 
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
@@ -92,6 +93,8 @@ def estimate(now, sunset_state, soc_raw, morning):
         'issuedAt': now.isoformat(), 'sunsetAt': sunset.isoformat(),
         'morningIssuedAt': morning_at.isoformat(),
         'socRecordedAt': record.recorded_at.isoformat(),
+        'socStreamEpoch': record.stream_epoch,
+        'socEvidenceSha256': sha256(soc_raw.encode('utf-8')).hexdigest(),
         'socAtIssuePct': soc, 'overnightDropPct': round(drop, 3),
         'overnightTroughSocPct': trough,
     }

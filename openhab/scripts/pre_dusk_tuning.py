@@ -5,8 +5,10 @@ night assessment. This module has no database, Item, model, or control writes.
 """
 
 from datetime import date, datetime, timezone
+from hashlib import sha256
 import math
 import re
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from advisory_windows import trough_window
@@ -18,6 +20,39 @@ DIGEST = re.compile(r'[0-9a-f]{64}\Z')
 
 class PairUnavailable(ValueError):
     """The issues and outcome do not form one qualified comparison."""
+
+
+def verify_issue_soc(pre_dusk, raw_evidence, persisted_at):
+    """Match the late issue to the exact earlier persisted atomic SoC receipt.
+
+    The caller must obtain ``raw_evidence`` from the original JDBC history,
+    not a current held Item. This is issue-input provenance, not a night outcome.
+    """
+    from earthship_energy.bms_evidence import parse_evidence
+
+    try:
+        issue_at = _instant(pre_dusk['issuedAt'])
+        stored_at = _instant(persisted_at)
+        expected_recorded_at = _instant(pre_dusk['socRecordedAt'])
+        expected_epoch = pre_dusk['socStreamEpoch']
+        expected_digest = pre_dusk['socEvidenceSha256']
+        expected_soc = pre_dusk['socAtIssuePct']
+        if (not isinstance(raw_evidence, str) or not isinstance(expected_digest, str)
+                or not DIGEST.fullmatch(expected_digest)
+                or not _number(expected_soc)
+                or sha256(raw_evidence.encode('utf-8')).hexdigest() != expected_digest
+                or stored_at > issue_at):
+            raise ValueError()
+        record = parse_evidence(raw_evidence, stored_at)
+        if (record is None or record.status != 'valid'
+                or record.stream_epoch != expected_epoch
+                or record.recorded_at != expected_recorded_at
+                or record.soc != expected_soc
+                or not record.recorded_at <= issue_at < record.valid_until):
+            raise ValueError()
+    except (KeyError, TypeError, ValueError, UnicodeError) as error:
+        raise PairUnavailable('pre-dusk SoC source receipt unavailable') from error
+    return True
 
 
 def _instant(value):
@@ -54,6 +89,10 @@ def score_pair(morning, pre_dusk, outcome):
         late_at = _instant(pre_dusk['issuedAt'])
         sunset_at = _instant(pre_dusk['sunsetAt'])
         soc_at = _instant(pre_dusk['socRecordedAt'])
+        soc_epoch = pre_dusk['socStreamEpoch']
+        soc_evidence_digest = pre_dusk['socEvidenceSha256']
+        if not isinstance(soc_epoch, str) or str(UUID(soc_epoch)) != soc_epoch:
+            raise ValueError()
         claimed_morning_at = _instant(pre_dusk['morningIssuedAt'])
         assessed_at = _instant(outcome['assessed_at'])
         outcome_start = _instant(outcome['window_start'])
@@ -78,6 +117,8 @@ def score_pair(morning, pre_dusk, outcome):
             or claimed_morning_at != morning_at
             or not morning_at < late_at < window.start
             or not 0 <= (late_at - soc_at).total_seconds() <= 120
+            or not isinstance(soc_evidence_digest, str)
+            or not DIGEST.fullmatch(soc_evidence_digest)
             or not 3600 <= (sunset_at - late_at).total_seconds() < 5400
             or type(morning_value) is not int or not _number(morning_value)
             or not _number(soc) or not _number(drop, 1, 50)

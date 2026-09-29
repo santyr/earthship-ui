@@ -2,6 +2,8 @@ import { localDateAt } from '../weather/forecastDetail.js';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const OFFSET_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const STREAM_EPOCH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const SHA256 = /^[0-9a-f]{64}$/;
 
 function bounded(value, max) {
   return value === null || (typeof value === 'number' && Number.isFinite(value)
@@ -42,6 +44,8 @@ export function parsePreDuskTroughReceipt(raw, { nowMs = Date.now() } = {}) {
     const receipt = JSON.parse(raw);
     if (receipt?.version !== 1 || receipt.basis !== 'atomic_soc_pre_dusk_v1'
       || !DATE.test(receipt.predictionDay)
+      || !STREAM_EPOCH.test(receipt.socStreamEpoch)
+      || !SHA256.test(receipt.socEvidenceSha256)
       || ![receipt.issuedAt, receipt.sunsetAt, receipt.morningIssuedAt,
         receipt.socRecordedAt].every(value => typeof value === 'string'
         && OFFSET_TIMESTAMP.test(value))) return null;

@@ -46,6 +46,8 @@ describe('separate pre-dusk trough receipt', () => {
     sunsetAt: '2026-09-24T18:56:19-06:00',
     morningIssuedAt: valid.issuedAt,
     socRecordedAt: '2026-09-24T17:40:29-06:00',
+    socStreamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+    socEvidenceSha256: 'a'.repeat(64),
     socAtIssuePct: 99, overnightDropPct: 19.333,
     overnightTroughSocPct: 80,
   };
@@ -64,6 +66,8 @@ describe('separate pre-dusk trough receipt', () => {
     expect(parseLate({ ...late, issuedAt: '2026-09-24T18:20:00-06:00' })).toBeNull();
     expect(parseLate({ ...late, sunsetAt: '2026-09-25T18:56:19-06:00' })).toBeNull();
     expect(parseLate({ ...late, overnightTroughSocPct: 79 })).toBeNull();
+    expect(parseLate({ ...late, socStreamEpoch: undefined })).toBeNull();
+    expect(parseLate({ ...late, socEvidenceSha256: 'unverified' })).toBeNull();
     expect(parseLate(late, Date.parse('2026-09-25T00:01:00-06:00'))).toBeNull();
   });
 });

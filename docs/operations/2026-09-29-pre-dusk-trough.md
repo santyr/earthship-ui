@@ -88,3 +88,22 @@ At the first natural 14:00 MDT timer firing, the service exited zero with
 window no-publication path only. The first eligible issue is expected near
 17:30 MDT for today's 18:48:23 sunset; its source, JDBC and UI checks remain
 open until it actually runs.
+
+Before the first eligible issue, the display-only worker was updated to add
+`socStreamEpoch` and `socEvidenceSha256` to its v1 receipt. The digest binds
+the exact atomic SoC JSON read at issue time; it is not itself proof that the
+matching source record persisted. The UI now requires both fields before
+selecting a pre-dusk value, and the origin-pair scorer requires their format.
+`pre_dusk_tuning.verify_issue_soc` can then match the issue to the original
+JDBC evidence bytes, stream epoch, recorded time, value and source expiry,
+refusing a later-persisted or changed receipt. A 41-test Python group, all
+1,909 UI unit tests, the UI build and all 15 Energy browser checks passed.
+The idle installed worker matched the previous tracked SHA-256
+`68e3b61f37ce9dc8c1b608b0d33cf382ba377037f3e56466e4cd8b8949379479`
+before replacement and matched the new tracked digest
+`6e7919e98c0b39fc073cf577525433f924da161c8db5ab3463d8e6aaa5b66365`
+afterward. An exact private rollback copy remains at
+`/home/sat/.local/state/forecast-pre-dusk-provenance-20260929/forecast_pre_dusk.py.before`.
+The timer stayed active; no manual issue or Item write was made. Natural
+publication, matching JDBC source/value receipts, and actual UI selection
+remain release gates, not outcomes of these source tests.

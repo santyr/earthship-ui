@@ -195,6 +195,28 @@ test('Energy displays current-day curtailment and trough only with a dated recei
   await expect(page.locator('.hero-trough')).toContainText('59%');
 });
 
+test('Energy selects a source-identifiable pre-dusk trough over the morning issue', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-24T18:10:00-06:00') });
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    Forecast_Prediction_Receipt_JSON: JSON.stringify({
+      version: 1, predictionDay: '2026-09-24', issuedAt: '2026-09-24T06:40:29-06:00',
+      pvTodayKwh: 5.36, curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
+      thermalAdvisory: 'none|No thermal action needed',
+    }),
+    Forecast_PreDusk_Trough_Receipt_JSON: JSON.stringify({
+      version: 1, basis: 'atomic_soc_pre_dusk_v1', predictionDay: '2026-09-24',
+      issuedAt: '2026-09-24T17:40:40-06:00', sunsetAt: '2026-09-24T18:56:19-06:00',
+      morningIssuedAt: '2026-09-24T06:40:29-06:00',
+      socRecordedAt: '2026-09-24T17:40:29-06:00',
+      socStreamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+      socEvidenceSha256: 'a'.repeat(64),
+      socAtIssuePct: 99, overnightDropPct: 19.333, overnightTroughSocPct: 80,
+    }),
+  });
+  await expect(page.locator('.hero-trough')).toHaveText('pre-dusk estimate: 80%');
+  await expect(page.locator('.pv-sub')).toContainText('morning forecast');
+});
+
 for (const target of TARGETS) {
   test(`Energy keeps both history plots readable at ${target.name}`, async ({ page }) => {
     await openEnergyFixture(page, target);

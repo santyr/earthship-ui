@@ -1,6 +1,7 @@
 """Separate pre-dusk estimate never mutates the morning issue or sends DMs."""
 
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 import json
 from uuid import UUID
 
@@ -8,6 +9,7 @@ import pytest
 
 from forecast_pre_dusk import (RECEIPT_ITEM, VALUE_ITEM, Withheld,
                                already_issued, estimate, run)
+from pre_dusk_tuning import verify_issue_soc
 
 
 NOW = datetime(2026, 9, 29, 23, 33, 23, tzinfo=timezone.utc)
@@ -45,6 +47,8 @@ def test_separate_receipt_uses_fresh_atomic_soc_and_frozen_drop():
         'sunsetAt': '2026-09-30T00:48:23+00:00',
         'morningIssuedAt': '2026-09-29T12:40:17+00:00',
         'socRecordedAt': (NOW - timedelta(seconds=20)).isoformat(),
+        'socStreamEpoch': str(UUID(int=1)),
+        'socEvidenceSha256': sha256(evidence().encode('utf-8')).hexdigest(),
         'socAtIssuePct': 100, 'overnightDropPct': 18.333,
         'overnightTroughSocPct': 82,
     }
@@ -53,6 +57,12 @@ def test_separate_receipt_uses_fresh_atomic_soc_and_frozen_drop():
 def test_rounding_matches_display_at_half_point():
     assert estimate(NOW, SUNSET, evidence(soc=99),
                     morning(overnight_drop_final_pct=18.5))['overnightTroughSocPct'] == 81
+
+
+def test_issued_provenance_matches_original_persisted_atomic_receipt():
+    raw = evidence()
+    issued = estimate(NOW, SUNSET, raw, morning())
+    assert verify_issue_soc(issued, raw, (NOW - timedelta(seconds=10)).isoformat()) is True
 
 
 @pytest.mark.parametrize('kwargs', [
