@@ -287,6 +287,21 @@ after actual PV exceeds that issue, it says so rather than presenting an
 impossible `actual of predicted` comparison. The 10-day PV outlook remains
 visible. This presentation change does not recalibrate or revise PV kWh.
 
+### Durable as-issued PV branch diagnostics
+
+The morning worker previously kept radiation resource, SoC headroom and direct
+demand only in its rolling 30-day state file. Future
+`Forecast_Prediction_Receipt_JSON` records can now carry a bounded, versioned
+`pvDiagnostics` object with those same as-issued components and the
+resource/demand limiting branch. This adds no forecast, coefficient, UI or DM
+change; older receipts remain valid and the UI ignores the optional diagnostic
+object. A source-only consistency check refuses nonfinite or contradictory
+components rather than persisting a false decomposition. The SoC percentage
+is diagnostic and still lacks an embedded original-source digest; it must not
+be treated as a newly qualified training label. The first natural issue,
+persistence and later qualified PV-day pairing must be verified before using
+these fields for calibration.
+
 ### Current thermal shadow comparison
 
 The September 29 read-only published-shadow scorer was run with

@@ -23,6 +23,14 @@ describe('dated once-daily forecast receipt', () => {
       thermalAdvisory: 'none|No thermal action needed' });
   });
 
+  it('keeps diagnostic PV components out of the displayed forecast contract', () => {
+    const withDiagnostics = { ...valid, pvDiagnostics: { version: 1,
+      radiationKwhM2: 4.12, resourceGain: 1.3, resourceKwh: 5.356,
+      directDemandKwh: 4, socReferencePct: 72, chargeDeficitKwh: 6.036,
+      demandKwh: 10.036, limitingBranch: 'resource' } };
+    expect(parse(withDiagnostics)).toEqual(parse(valid));
+  });
+
   it('withholds yesterday after local midnight, even if direct Items hold values', () => {
     expect(parse(valid, Date.parse('2026-09-25T00:01:00-06:00'))).toBeNull();
   });

@@ -158,8 +158,43 @@ def safe_put(item, value, failures=None, *, observer=None):
     return succeeded
 
 
+def pv_issue_diagnostics(radiation, gain, direct_demand, soc, deficit,
+                         resource, demand):
+    """Retain bounded as-issued PV branches; these are not calibration labels."""
+    required = (radiation, gain, direct_demand, resource)
+    optional = (soc, deficit, demand)
+    if (any(type(value) not in (int, float) or not math.isfinite(value) or value < 0
+            for value in required)
+            or any(value is not None and (type(value) not in (int, float)
+                    or not math.isfinite(value) or value < 0)
+                   for value in optional)
+            or (soc is not None and soc > 100)
+            or not math.isclose(resource, radiation * gain, rel_tol=1e-9, abs_tol=1e-6)
+            or ((soc is None) != (deficit is None) or (soc is None) != (demand is None))
+            or (soc is not None and
+                (not math.isclose(deficit, (100 - soc) / 100 * BANK_KWH / ETA_RT,
+                                  rel_tol=1e-9, abs_tol=1e-6)
+                 or not math.isclose(demand, direct_demand + deficit,
+                                     rel_tol=1e-9, abs_tol=1e-6)))):
+        return None
+    branch = ('unavailable' if demand is None else
+              'resource' if resource < demand else
+              'demand' if demand < resource else 'equal')
+    return {
+        'version': 1,
+        'radiationKwhM2': round(radiation, 3),
+        'resourceGain': round(gain, 3),
+        'resourceKwh': round(resource, 3),
+        'directDemandKwh': round(direct_demand, 3),
+        'socReferencePct': round(soc, 3) if soc is not None else None,
+        'chargeDeficitKwh': round(deficit, 3) if deficit is not None else None,
+        'demandKwh': round(demand, 3) if demand is not None else None,
+        'limitingBranch': branch,
+    }
+
+
 def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
-                               failures, put_state):
+                               failures, put_state, pv_diagnostics=None):
     """Commit today's display provenance only after all source Items succeeded."""
     required = {"Predicted_PV_Today_kWh", "Predicted_Curtailment_Hours",
                 "Predicted_SoC_Trough_Tomorrow", "Thermal_Advisory",
@@ -175,6 +210,8 @@ def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
         "overnightTroughSocPct": trough,
         "thermalAdvisory": advisory,
     }
+    if pv_diagnostics is not None:
+        receipt['pvDiagnostics'] = pv_diagnostics
     return put_state("Forecast_Prediction_Receipt_JSON", json.dumps(receipt, separators=(",", ":")))
 
 
@@ -1374,7 +1411,9 @@ def main():
 
     receipt_published = publish_prediction_receipt(
         today, forecast_issued_at, pv_pred, curtail,
-        trough_pred, advisory, put_failed, put)
+        trough_pred, advisory, put_failed, put,
+        pv_issue_diagnostics(radsum_kwh, st['k_res'], st['d_direct'],
+                             trough_ref, deficit_kwh, resource, demand))
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,

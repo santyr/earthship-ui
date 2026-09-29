@@ -416,6 +416,38 @@ def test_prediction_receipt_commits_dated_values_only_after_required_items_succe
     assert writes == []
 
 
+def test_pv_issue_components_are_durable_diagnostics_not_prediction_changes():
+    deficit = 28 / 100 * fi.BANK_KWH / fi.ETA_RT
+    values = fi.pv_issue_diagnostics(4.12, 1.3, 4.0, 72, deficit,
+                                      5.356, 4.0 + deficit)
+    assert values == {
+        'version': 1, 'radiationKwhM2': 4.12, 'resourceGain': 1.3,
+        'resourceKwh': 5.356, 'directDemandKwh': 4.0,
+        'socReferencePct': 72, 'chargeDeficitKwh': round(deficit, 3),
+        'demandKwh': round(4.0 + deficit, 3), 'limitingBranch': 'resource',
+    }
+    writes = []
+    assert fi.publish_prediction_receipt(
+        date(2026, 9, 29), '2026-09-29T12:40:00+00:00', 5.36, 0, 53,
+        'none|No thermal action needed', [], lambda name, value: writes.append((name, value)) or True,
+        values)
+    receipt = json.loads(writes[0][1])
+    assert receipt['pvTodayKwh'] == 5.36
+    assert receipt['overnightTroughSocPct'] == 53
+    assert receipt['pvDiagnostics'] == values
+    assert len(writes[0][1].encode()) < 1024  # strict JDBC history reader bound
+
+
+def test_pv_issue_components_withhold_unknown_and_nonfinite_values():
+    unavailable = fi.pv_issue_diagnostics(4.12, 1.3, 4.0, None, None, 5.356, None)
+    assert unavailable['limitingBranch'] == 'unavailable'
+    assert unavailable['socReferencePct'] is None
+    assert unavailable['demandKwh'] is None
+    assert fi.pv_issue_diagnostics(float('nan'), 1.3, 4.0, 72, 6, 5.356, 10) is None
+    assert fi.pv_issue_diagnostics(4.12, 1.3, 4.0, 101, 6, 5.356, 10) is None
+    assert fi.pv_issue_diagnostics(4.12, 1.3, 4.0, 72, 6, 5.356, 10) is None
+
+
 # ---------------------------------------------------------------- pv_days alignment
 
 def test_today_pv_detail_matches_issued_prediction_not_fixed_cap():
