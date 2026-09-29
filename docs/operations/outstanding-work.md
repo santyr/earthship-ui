@@ -328,6 +328,10 @@ restart is now qualified: all 1,197 persisted receipts parsed across a new
 unavailable sequence-1 barrier and natural valid sequence-2 recovery, matching
 the native Wh counter; see the
 [activation receipt](2026-09-28-pv-day-evidence-activation.md).
+The exact `public.item0655` PV evidence SELECT grant was subsequently applied
+to `energy_power_reader` and verified with INSERT/UPDATE/DELETE denied. That
+restricted role parsed 1,274 live receipts across two contiguous epochs.
+This closes only the database permission gate, not a complete-day total.
 Physical Modbus/Thing fault behavior, complete-day coverage and restricted
 day-reader integration,
 chronological calibration, retention and file ownership of the new rule

@@ -122,6 +122,13 @@ and parsed before this exception is trusted for a live daily total.
 
 After an operator reported a successful GRANT, a fresh restricted-role check
 resolved the evidence Item to `public.item0655` but still found
-`energy_power_reader` had no SELECT on that table. That exact read gate remains
-open; no writer or forecast calibration was enabled. The restricted reader
-did have SELECT on `public.item0656`, the TP-Link evidence table.
+`energy_power_reader` had no SELECT on that table. The restricted reader did
+have SELECT on `public.item0656`, the separate TP-Link evidence table. On
+September 28, the operator approved the exact PV grant. The Item 655 mapping
+and table ownership were rechecked, and `GRANT SELECT ON TABLE public.item0655
+TO energy_power_reader` was applied. Restricted-role readback found SELECT=true
+and INSERT/UPDATE/DELETE=false. It parsed all 1,274 persisted receipts from
+14:06:49.997Z through 02:48:40.524Z across two epochs, with no same-epoch
+sequence gap. This closes the PV database privilege gate only; the day began
+before the source-bound cutover, so no qualified full-day PV total or forecast
+calibration was enabled.
