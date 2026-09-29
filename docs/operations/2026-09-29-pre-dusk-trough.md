@@ -81,3 +81,10 @@ The follow-on charge-timing and prediction-feature review is recorded in
 [prediction learning review](2026-09-29-prediction-learning-review.md). It does
 not authorize moving this issue window or publishing an early full-charge
 estimate from the current short history.
+
+At the first natural 14:00 MDT timer firing, the service exited zero with
+`pre-dusk trough: outside_window`. Both new OpenHAB Item states remained
+`NULL`, and the enabled timer advanced to 14:30. This verifies the outside-
+window no-publication path only. The first eligible issue is expected near
+17:30 MDT for today's 18:48:23 sunset; its source, JDBC and UI checks remain
+open until it actually runs.
