@@ -33,6 +33,11 @@ class RainCollector:
             self.received_tick = None
             self.last_at = None
             self.last_tick = None
+            self.packet_count = 0
+            self.invalid_packets = 0
+            self.counter_drops = 0
+            self.counter_jumps = 0
+            self.last_valid_counter = None
 
     def _now(self):
         if self.pid != self.process_id():
@@ -55,6 +60,18 @@ class RainCollector:
             record = rain_counter_receipt(packet, policy=self.policy,
                                           stream_epoch=self.epoch, received_at=at)
             if record is not None:
+                self.packet_count += 1
+                if record['status'] != 'valid':
+                    self.invalid_packets += 1
+                else:
+                    value = record['totalRainIn']
+                    if self.last_valid_counter is not None:
+                        delta = value - self.last_valid_counter
+                        if delta < 0:
+                            self.counter_drops += 1
+                        elif delta > 0.5:
+                            self.counter_jumps += 1
+                    self.last_valid_counter = value
                 self.record = record
                 self.received_tick = tick
 
@@ -71,7 +88,10 @@ class RainCollector:
                               'validUntil': None, 'totalRainIn': None}
                     self.record = record
             return {'version': 1, 'streamEpoch': self.epoch,
-                    'record': deepcopy(record)}
+                    'record': deepcopy(record), 'packetCount': self.packet_count,
+                    'invalidPackets': self.invalid_packets,
+                    'counterDrops': self.counter_drops,
+                    'counterJumps': self.counter_jumps}
 
 
 def install_rain_evidence(app, *, enabled=False, policy=None, clock=None,

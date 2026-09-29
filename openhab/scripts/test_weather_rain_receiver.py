@@ -65,6 +65,29 @@ def test_expiry_and_process_restart_are_unavailable_barriers():
     restarted = collector.snapshot()
     assert restarted['streamEpoch'] != first['streamEpoch']
     assert restarted['record'] is None
+    assert restarted['packetCount'] == 0
+
+
+def test_latched_fault_counts_survive_new_valid_packet_and_skip_foreign_sensor():
+    collector = RainCollector(POLICY, clock=lambda: AT, monotonic=lambda: 100)
+    def observe(sensor_id, counter=None):
+        packet = {'model': 'Fineoffset-WH65B', 'id': sensor_id}
+        if counter is not None:
+            packet['totalrainin'] = counter
+        collector.observe(packet)
+    observe('206', '10')
+    observe('206')
+    observe('999', '1000')
+    observe('206', '11')
+    observe('206', '9')
+    observe('206', '9.1')
+    observe('206', '9.09')
+    state = collector.snapshot()
+    assert state['record']['status'] == 'valid'
+    assert state['packetCount'] == 6
+    assert state['invalidPackets'] == 1
+    assert state['counterDrops'] == 2
+    assert state['counterJumps'] == 1
 
 
 def test_capture_failure_does_not_break_legacy_receiver(monkeypatch, tmp_path):

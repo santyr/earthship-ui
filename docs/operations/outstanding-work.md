@@ -383,6 +383,14 @@ forecast slice passed (283 tests, one skip). The WSGI hook is source-only;
 `WEATHER_RAIN_EVIDENCE_ENABLE` is not set in production. This closes the
 volatile acquisition-contract implementation, not durable collection,
 source-bound day totals or learning release.
+The rain collector now latches counts of invalid expected-sensor packets,
+counter drops and implausible positive jumps across subsequent valid packets
+in the same process epoch. These counters let a future polled/JDBC day-reader
+detect brief faults that a 30-second HTTP poll could otherwise miss. A
+create-only, disabled HTTP/Item/link manifest is staged for a separate
+durable-collection release; it has not been installed. A complete-day reader
+still must use the latched counts, original packet times and counter boundary
+uncertainty before any precipitation score is qualified.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
