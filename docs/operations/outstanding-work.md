@@ -590,9 +590,11 @@ The September 28 protocol review makes that gate concrete: NIP-01 permits
 under-limit initial responses, so EOSE plus fewer than 64 events cannot prove
 relay archive completeness. A source-only SQLite v3 refusal backoff now lets
 an older valid reply progress on a subsequent attended poll after the same
-rejected envelope IDs exhaust the first batch; 368 completion tests pass.
+rejected envelope IDs exhaust the first batch. Bounded second-window splitting
+now resolves explicitly saturated pages or refuses an unsplittable second,
+page budget or total-event budget; 369 completion tests pass.
 Refusals remain retryable, unacknowledged and bounded. Rotating-ID spam,
-boundary-safe retrieval, operator-visible retry, signed routes, private
+under-limit relay omissions, operator-visible retry, signed routes, private
 backup and household trial still block collector release; see the same
 checkpoint.
 

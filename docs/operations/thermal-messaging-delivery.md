@@ -41,12 +41,32 @@ An isolated restart regression confirms that two repeatedly refused envelopes
 consume a two-attempt first poll, then are skipped on the next poll so an older
 valid confirmation reaches the journal/ack path exactly once. Quota, retry
 timing, migration and clearing tests also pass; the full source-only completion
-suite passed 368 tests with a pre-existing cached WebSocket package, without
+suite passed 368 tests at that checkpoint with a pre-existing cached WebSocket package, without
 installing a new environment. This closes only repeated-*same-ID* starvation.
 An attacker rotating event IDs can still exhaust each batch or the ledger,
 and relay pagination/completeness, operator route, household trial and
 consistent private backup remain open. `POLL_RELEASE_READY` remains false;
 no household relay, prompt, collector state or production journal was used.
+
+### Source-only saturated-window splitting
+
+The read-only relay fetch now fixes an inclusive `until` at poll start. An
+exactly saturated 64-event page is split into disjoint, inclusive second
+windows and each subquery must reach its own matching EOSE. The retrieval is
+bounded to eight pages, 256 distinct envelopes, the existing per-page frame
+cap, and one shared 45-second deadline. A saturated single-second bucket or
+any exhausted budget refuses the whole relay result; no partial page reaches
+ingestion. Tests exercise a multi-page complete result, a saturated second,
+the page budget, NIP-42 retry and ordinary one-page reads. The full source-
+only completion suite passed 369 tests with the existing cached WebSocket
+package and no new installation.
+
+This handles *visible saturation* only. NIP-01 says relays SHOULD apply the
+requested `limit` and may return fewer events, so even a short EOSE-complete
+page is not proof of every stored event. Rotating-ID spam, signed operator
+route, acknowledged delivery/retry, private backup and attended household
+qualification remain open. `POLL_RELEASE_READY` is still false; no production
+relay or collector state was used.
 
 ## September 27 source-only backlog checkpoint
 

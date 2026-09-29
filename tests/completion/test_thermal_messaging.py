@@ -430,9 +430,12 @@ def test_bounded_inbox_fetch_accepts_only_verified_matching_events(monkeypatch):
     relay, sock = publisher(responses)
     since = int(datetime.now(timezone.utc).timestamp()) - 60
     assert relay.fetch('wss://relay.example', since=since) == [wrapped]
-    assert sock.sent == [['REQ', 'fixed-subscription',
-                          {'kinds': [1059], '#p': [C], 'since': since,
-                           'limit': m.MAX_INBOX_EVENTS}]]
+    assert len(sock.sent) == 1
+    assert sock.sent[0][:2] == ['REQ', 'fixed-subscription']
+    assert sock.sent[0][2] == {'kinds': [1059], '#p': [C], 'since': since,
+                                'until': sock.sent[0][2]['until'],
+                                'limit': m.MAX_INBOX_EVENTS}
+    assert sock.sent[0][2]['until'] >= wrapped['created_at']
 
 
 @pytest.mark.parametrize('responses', [
@@ -538,12 +541,52 @@ def test_real_loopback_inbox_closed_before_auth_challenge():
 def test_saturated_inbox_page_is_not_claimed_complete(monkeypatch):
     monkeypatch.setattr(m.secrets, 'token_hex', lambda _: 'fixed-subscription')
     monkeypatch.setattr(m, 'MAX_INBOX_EVENTS', 1)
+    fixed_now = int(datetime.now(timezone.utc).timestamp())
+    monkeypatch.setattr(m.time, 'time', lambda: fixed_now)
     wrapped = event(1059, 'c' * 64, [['p', C]], 'encrypted',
-                    datetime.now(timezone.utc))
+                    datetime.fromtimestamp(fixed_now, timezone.utc))
     relay, _ = publisher([['EVENT', 'fixed-subscription', wrapped],
                           ['EOSE', 'fixed-subscription']])
-    with pytest.raises(t.Retryable, match='saturated'):
-        relay.fetch('wss://relay.example', since=int(datetime.now(timezone.utc).timestamp()) - 60)
+    with pytest.raises(t.Retryable, match='second saturated'):
+        relay.fetch('wss://relay.example', since=fixed_now)
+
+
+def test_saturated_inbox_windows_split_with_bounded_complete_pages(monkeypatch):
+    monkeypatch.setattr(m, 'MAX_INBOX_EVENTS', 2)
+    fixed_now = int(datetime.now(timezone.utc).timestamp())
+    monkeypatch.setattr(m.time, 'time', lambda: fixed_now)
+    envelopes = [event(1059, 'c' * 64, [['p', C]], str(offset),
+                       datetime.fromtimestamp(fixed_now - offset, timezone.utc))
+                 for offset in (11, 6, 1)]
+    requests = []
+
+    class WindowSocket:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def send(self, value):
+            request = json.loads(value)
+            requests.append(request)
+            lower, upper = request[2]['since'], request[2]['until']
+            matching = [wrapped for wrapped in envelopes
+                        if lower <= wrapped['created_at'] <= upper]
+            matching.sort(key=lambda wrapped: (-wrapped['created_at'], wrapped['id']))
+            self.responses = iter([['EVENT', request[1], wrapped]
+                                   for wrapped in matching[:m.MAX_INBOX_EVENTS]]
+                                  + [['EOSE', request[1]]])
+        def recv(self, timeout=None):
+            return json.dumps(next(self.responses))
+
+    relay = m.Relay(FakeKeyer(), C, connect=lambda *args, **kwargs: WindowSocket())
+    result = relay.fetch('wss://relay.example', since=fixed_now - 12)
+    assert result == sorted(envelopes, key=lambda wrapped: (-wrapped['created_at'], wrapped['id']))
+    assert len(requests) == 5
+    assert requests[0][2]['until'] == fixed_now
+    assert all(request[2]['limit'] == 2 for request in requests)
+
+    requests.clear()
+    monkeypatch.setattr(m, 'MAX_INBOX_PAGES', 2)
+    with pytest.raises(t.Refused, match='page budget'):
+        relay.fetch('wss://relay.example', since=fixed_now - 12)
 
 
 def test_poll_replies_deduplicates_across_reviewed_routes(tmp_path):

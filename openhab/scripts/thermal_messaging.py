@@ -28,6 +28,8 @@ MAX_ROWS = 4096
 MAX_BATCH = 16
 MAX_INBOX_EVENTS = 64
 MAX_INBOX_FRAMES = 128
+MAX_INBOX_PAGES = 8
+MAX_INBOX_TOTAL_EVENTS = 256
 POLL_RELEASE_READY = False  # Household route/keyer/journal/backup trial pending.
 
 
@@ -255,21 +257,48 @@ class Relay:
             raise t.Retryable('relay delivery unavailable') from error
 
     def fetch(self, url, *, since):
-        """Read one bounded stored-event page from a reviewed collector inbox."""
+        """Split saturated time windows; never skip an ambiguous same-second page."""
         relay_url(url, local_test=self.local_test)
         current = int(time.time())
         require(type(since) is int and current - 4 * 86400 <= since <= current,
                 'invalid inbox query boundary')
+        deadline = time.monotonic() + 45
+        pending = [(since, current)]
+        gathered = {}
+        pages = 0
+        while pending:
+            require(pages < MAX_INBOX_PAGES, 'inbox page budget exceeded')
+            lower, upper = pending.pop()
+            pages += 1
+            events = self._fetch_page(url, since=lower, until=upper, deadline=deadline)
+            if len(events) == MAX_INBOX_EVENTS:
+                if lower == upper:
+                    raise t.Retryable('inbox second saturated; manual review required')
+                middle = (lower + upper) // 2
+                pending.extend(((lower, middle), (middle + 1, upper)))
+                continue
+            for event in events:
+                old = gathered.setdefault(event['id'], event)
+                require(old == event, 'inbox envelope identity changed across pages')
+                require(len(gathered) <= MAX_INBOX_TOTAL_EVENTS,
+                        'inbox total event budget exceeded')
+        return sorted(gathered.values(), key=lambda event: (-event['created_at'], event['id']))
+
+    def _fetch_page(self, url, *, since, until, deadline):
+        """Read one fixed inclusive second window through its matching EOSE."""
         connect = self.connect
         if connect is None:
             from websockets.sync.client import connect
         subscription = secrets.token_hex(8)
         request = ['REQ', subscription, {'kinds': [1059], '#p': [self.collector],
-                                         'since': since, 'limit': MAX_INBOX_EVENTS}]
+                                         'since': since, 'until': until,
+                                         'limit': MAX_INBOX_EVENTS}]
         try:
-            with connect(url, open_timeout=10, close_timeout=2, max_size=t.MAX_INPUT,
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise t.Retryable('inbox query timed out')
+            with connect(url, open_timeout=min(10, left), close_timeout=2, max_size=t.MAX_INPUT,
                          max_queue=8, compression=None, proxy=None) as ws:
-                deadline = time.monotonic() + 45
                 events = []
                 auth_id = None
                 challenged = False
@@ -318,15 +347,13 @@ class Relay:
                         event = self.keyer.verify(message[2], 1059)
                         require(t.tag_value(event, 'p') == self.collector,
                                 'inbox envelope recipient mismatch')
-                        require(since <= event['created_at'] <= int(time.time()) + 60,
+                        require(since <= event['created_at'] <= until,
                                 'inbox event outside requested window')
                         events.append(event)
                         require(len(events) <= MAX_INBOX_EVENTS, 'inbox event budget exceeded')
                     elif message[0] == 'EOSE':
                         require(len(message) == 2 and message[1] == subscription and auth_id is None,
                                 'invalid inbox end-of-stored-events marker')
-                        if len(events) == MAX_INBOX_EVENTS:
-                            raise t.Retryable('inbox page saturated; pagination review required')
                         return events
                     elif message[0] == 'NOTICE':
                         raise t.Retryable('inbox relay notice')
