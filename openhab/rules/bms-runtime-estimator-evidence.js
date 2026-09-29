@@ -24,8 +24,9 @@ const ENTER_A = -0.5, EXIT_A = -0.25;
 const DEEP_ENTER_A = -1.2, DEEP_EXIT_A = -0.8;
 // Dwell timer (2026-07-15): during dawn/dusk crossover the current bounces
 // across both gates and the basis label flapped ~8x in 40 min. A state may
-// only flip after 8 min in its current state — values stay coherent with
-// the label because dwell applies to the state machine, not the display.
+// normally flips only after 8 min in its current state. Confirmed charging or
+// two distinct non-discharge receipts exit early so a BMS discharge basis is
+// not held through a genuine current reversal.
 const DWELL_MS = 8 * 60 * 1000;
 const ETA = 0.90, RESERVE_PCT = 10, P_FLOOR_W = 60;
 // Idle evening/now hysteresis (2026-07-16): a single margin flapped the
@@ -80,10 +81,9 @@ function remainingAh() {
   return nativeField('BMS_Aux_Evidence_JSON', 'discover_bms_190_native_aux_v1',
     'battery.remaining_ah', 120000, 'value', 0, 450)?.value ?? NaN;
 }
-function currentA() {
-  const centiamps = nativeField('BMS_Runtime_Input_Evidence_JSON',
+function currentSample() {
+  return nativeField('BMS_Runtime_Input_Evidence_JSON',
     'native_runtime_inputs_v1', 'battery.dc_current_ca', 90000, 'value', -32767, 32767);
-  return centiamps ? centiamps.value / 100 : NaN;
 }
 function voltageV() {
   const centivolts = nativeField('BMS_Runtime_Input_Evidence_JSON',
@@ -169,13 +169,15 @@ function projection(forceEvening) {
   else publish(usableWh / Math.max(pLoad, P_FLOOR_W) * 60, "now");
 }
 
-const i = currentA();
+const current = currentSample();
+const i = current ? current.value / 100 : NaN;
 const bankSoc = soc(), bankRemaining = remainingAh();
 const bankReady = [i, bankSoc, bankRemaining].every(Number.isFinite);
 const st = cache.private.get("ttd_state", () => ({ discharging: false, deep: false, buf: [], tsDisch: 0, tsDeep: 0 }));
 if (!bankReady) {
   // A held numeric Item or cached EMA must never authorize an active basis.
   st.discharging = false; st.deep = false; st.deepStreak = 0;
+  st.exitStreak = 0; st.lastCurrentAt = null; st.lastDeepCurrentAt = null;
   st.buf.length = 0; st.lastTtdAt = null;
   cache.private.put("p_load", null);
   cache.private.put("p_pv", null);
@@ -184,18 +186,27 @@ if (!bankReady) {
   publish(0, "off");
 }
 if (bankReady) {
+  if (current.observedAt !== st.lastCurrentAt) {
+    st.exitStreak = i >= EXIT_A ? (st.exitStreak || 0) + 1 : 0;
+    st.lastCurrentAt = current.observedAt;
+  }
   const dischDwellOk = (nowMs - (st.tsDisch || 0)) >= DWELL_MS;
   if (!st.discharging && i <= ENTER_A && dischDwellOk) {
     st.discharging = true; st.tsDisch = nowMs;
-  } else if (st.discharging && i >= EXIT_A && dischDwellOk) {
+  } else if (st.discharging && i >= EXIT_A
+      && (dischDwellOk || i >= 1.0 || st.exitStreak >= 2)) {
     st.discharging = false; st.deep = false; st.buf.length = 0; st.tsDisch = nowMs;
+    st.lastTtdAt = null;
   }
   if (st.discharging) {
     // Burst filter (2026-07-16): a ~45 s appliance surge (-20.7 A well-pump
     // burst) captured 'deep' from a single sample and the dwell then held a
-    // misleading bms value for 8 min. Deep now needs 2 consecutive deep
-    // samples (~60 s at the 30 s poll) before engaging.
-    st.deepStreak = (i <= DEEP_ENTER_A) ? (st.deepStreak || 0) + 1 : 0;
+    // misleading bms value for 8 min. Deep now needs 2 consecutive distinct
+    // source samples before engaging; cron re-reads cannot count as samples.
+    if (current.observedAt !== st.lastDeepCurrentAt) {
+      st.deepStreak = (i <= DEEP_ENTER_A) ? (st.deepStreak || 0) + 1 : 0;
+      st.lastDeepCurrentAt = current.observedAt;
+    }
     const deepDwellOk = (nowMs - (st.tsDeep || 0)) >= DWELL_MS;
     if (!st.deep && st.deepStreak >= 2 && deepDwellOk) { st.deep = true; st.tsDeep = nowMs; }
     else if (st.deep && i >= DEEP_EXIT_A && deepDwellOk) {
@@ -203,6 +214,7 @@ if (bankReady) {
     }
   } else {
     st.deepStreak = 0;
+    st.lastDeepCurrentAt = null;
   }
 }
 

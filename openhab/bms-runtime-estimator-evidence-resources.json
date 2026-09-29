@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "replacesRule": "hex_bms_ttd_smooth",
+  "source": "openhab/rules/bms-runtime-estimator-evidence.js",
+  "enabled": false,
+  "requiresValidItems": [
+    "BMS_SOC_Evidence_JSON",
+    "BMS_Aux_Evidence_JSON",
+    "BMS_Runtime_Input_Evidence_JSON",
+    "Power_Evidence_JSON",
+    "Inverter_AC_Evidence_JSON"
+  ],
+  "triggers": [
+    {"id":"freshness","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/30 * * * * ?"}}
+  ]
+}

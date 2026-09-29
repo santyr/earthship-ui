@@ -3489,6 +3489,19 @@ The rule remained IDLE, OpenHAB active, BMS comms OK, and both pumps OFF.
 candidate with outage/expiry tests. It must be qualified against natural live
 receipts and its overnight load-history policy before a guarded estimator
 replacement. Monitor collector write rate and source barriers after cutover.
+September 29 morning follow-up: the collector remained IDLE with natural valid
+current, voltage, TTD and TTF receipts. A 30-second disabled cron resource is
+now proposed for the strict estimator so expiry can clear its output even when
+the BMS TTD value does not change. Tests cover no-event expiry, immediate exit
+from `bms` on a distinct strong charging receipt, and two distinct near-zero
+receipts for an early exit. The deep-entry counter also advances only on
+distinct current observations, not repeat cron reads. All 1,884 repository
+unit tests pass. This is still source-only: neither the live estimator nor the
+sanity checker has been replaced, and the live `bms` value near shallow
+discharge may be very long. Before cutover, qualify the estimator against
+natural source cadence and the old-versus-new output over representative dawn,
+dusk and night periods; update sanity checks to use qualified current; rehearse
+fault/recovery and protected-rule rollback; then perform attended readback.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

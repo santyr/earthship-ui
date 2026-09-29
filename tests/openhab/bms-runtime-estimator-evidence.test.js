@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('../../openhab/rules/bms-runtime-estimator-evidence.js', import.meta.url), 'utf8');
+const resources = JSON.parse(readFileSync(new URL('../../openhab/bms-runtime-estimator-evidence-resources.json', import.meta.url), 'utf8'));
 const t0 = 1800000000000;
 const field = (value, at, ttl, property = 'value') => ({
   status: 'valid', reason: 'ok', observedAt: at, validUntil: at + ttl, [property]: value,
@@ -68,6 +69,13 @@ function fixture() {
 }
 
 describe('source-bound display-only battery runtime candidate', () => {
+  it('uses a disabled periodic freshness trigger so stale receipts clear without BMS events', () => {
+    expect(resources.replacesRule).toBe('hex_bms_ttd_smooth');
+    expect(resources.enabled).toBe(false);
+    expect(resources.triggers).toEqual([{ id: 'freshness', type: 'timer.GenericCronTrigger',
+      configuration: { cronExpression: '0/30 * * * * ?' } }]);
+  });
+
   it('uses fresh receipts for the deep BMS basis and never reads held input Items', () => {
     const h = fixture();
     h.cache.set('ttd_state', { discharging: true, deep: true, buf: [],
@@ -92,6 +100,57 @@ describe('source-bound display-only battery runtime candidate', () => {
     expect(h.cache.get('ttd_state').buf).toHaveLength(0);
     expect(h.cache.get('p_load')).toBeNull();
     expect(h.cache.get('i_chg')).toBeNull();
+  });
+
+  it('exits a deep BMS basis promptly on a distinct strong charging receipt', () => {
+    const h = fixture();
+    h.cache.set('ttd_state', { discharging: true, deep: true, buf: [500],
+      tsDisch: t0, tsDeep: t0 });
+    h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('bms');
+    h.advance(1000);
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    row.recordedAt = t0 + 1000;
+    row.fields['battery.dc_current_ca'] = field(150, t0 + 1000, 90000);
+    h.run();
+    expect(h.cache.get('ttd_state').discharging).toBe(false);
+    expect(h.cache.get('ttd_state').buf).toHaveLength(0);
+    expect(h.states.BMS_Runtime_Basis).not.toBe('bms');
+  });
+
+  it('requires two distinct near-zero current receipts before an early discharge exit', () => {
+    const h = fixture();
+    h.cache.set('ttd_state', { discharging: true, deep: true, buf: [500],
+      tsDisch: t0, tsDeep: t0 });
+    h.run();
+    h.advance(1000);
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    row.recordedAt = t0 + 1000;
+    row.fields['battery.dc_current_ca'] = field(0, t0 + 1000, 90000);
+    h.run(); h.run();
+    expect(h.cache.get('ttd_state').exitStreak).toBe(1);
+    expect(h.states.BMS_Runtime_Basis).toBe('bms');
+    h.advance(1000);
+    row.recordedAt = t0 + 2000;
+    row.fields['battery.dc_current_ca'] = field(0, t0 + 2000, 90000);
+    h.run();
+    expect(h.cache.get('ttd_state').discharging).toBe(false);
+    expect(h.states.BMS_Runtime_Basis).not.toBe('bms');
+  });
+
+  it('counts distinct deep-discharge receipts, not duplicate timer evaluations', () => {
+    const h = fixture();
+    h.cache.set('ttd_state', { discharging: true, deep: false, buf: [],
+      tsDisch: t0 - 600000, tsDeep: t0 - 600000 });
+    h.run(); h.run();
+    expect(h.cache.get('ttd_state').deepStreak).toBe(1);
+    expect(h.states.BMS_Runtime_Basis).not.toBe('bms');
+    h.advance(1000);
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    row.recordedAt = t0 + 1000;
+    row.fields['battery.dc_current_ca'] = field(-300, t0 + 1000, 90000);
+    h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('bms');
   });
 
   it('fails projection closed for stale SoC, remaining Ah, voltage or AC load', () => {
