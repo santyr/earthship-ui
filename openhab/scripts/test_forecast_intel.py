@@ -189,6 +189,65 @@ def test_pv_reader_failure_never_falls_back_to_change_only_max(monkeypatch, chan
     ) == (None, 'qualified_evidence_unavailable', {})
 
 
+def test_rain_cutover_day_withholds_change_only_max(monkeypatch):
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy rain read after cutover'))
+    day = fi.RAIN_EVIDENCE_REQUIRED_FROM
+    assert fi.measured_rain_day_for_learning(
+        day, as_of=datetime(2026, 10, 1, tzinfo=UTC),
+        qualified_reader=lambda **_: pytest.fail('partial day reached reader')) == (
+            None, 'evidence_cutover_partial_day', {})
+
+
+def test_rain_completed_day_uses_exact_source_result(monkeypatch):
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy rain read after cutover'))
+    day = fi.RAIN_EVIDENCE_REQUIRED_FROM + timedelta(days=1)
+    calls = []
+
+    def reader(**kwargs):
+        calls.append(kwargs)
+        return {'local_date': day.isoformat(),
+                'basis': 'source_bound_counter_bracket_v1',
+                'source_item': 'Weather_Rain_Evidence_JSON',
+                'source_cutover': fi.RAIN_EVIDENCE_CUTOVER.isoformat(),
+                'rain_in': 0.01, 'uncertainty_in': 0.0, 'receipt_count': 2880}
+
+    result = fi.measured_rain_day_for_learning(
+        day, as_of=datetime(2026, 10, 1, tzinfo=UTC), qualified_reader=reader)
+    assert result[0:2] == (0.01, 'qualified_source_bound')
+    assert result[2]['receipt_count'] == 2880
+    assert calls == [dict(local_date=day,
+                          as_of=datetime(2026, 10, 1, tzinfo=UTC),
+                          cutover=fi.RAIN_EVIDENCE_CUTOVER,
+                          site_timezone=fi.SITE_TZ_NAME)]
+
+
+@pytest.mark.parametrize('change', ['failure', 'wrong_item', 'wide_bracket',
+                                    'missing_count'])
+def test_rain_reader_failure_never_falls_back_to_numeric_day(monkeypatch, change):
+    monkeypatch.setattr(fi, 'series', lambda *_: pytest.fail('legacy rain fallback'))
+    day = fi.RAIN_EVIDENCE_REQUIRED_FROM + timedelta(days=1)
+    result = {'local_date': day.isoformat(),
+              'basis': 'source_bound_counter_bracket_v1',
+              'source_item': 'Weather_Rain_Evidence_JSON',
+              'source_cutover': fi.RAIN_EVIDENCE_CUTOVER.isoformat(),
+              'rain_in': 0.01, 'uncertainty_in': 0.0, 'receipt_count': 2880}
+    if change == 'wrong_item':
+        result['source_item'] = 'other'
+    elif change == 'wide_bracket':
+        result['uncertainty_in'] = 0.1
+    elif change == 'missing_count':
+        del result['receipt_count']
+
+    def reader(**_):
+        if change == 'failure':
+            raise OSError('unavailable')
+        return result
+
+    assert fi.measured_rain_day_for_learning(
+        day, as_of=datetime(2026, 10, 1, tzinfo=UTC),
+        qualified_reader=reader) == (None, 'qualified_evidence_unavailable', {})
+
+
 def test_measured_trough_window_mst(monkeypatch):
     # 20:00 Jan 14 MST -> 03:00Z Jan 15; 11:00 Jan 15 MST -> 18:00Z.
     calls = _capture_series(monkeypatch)
@@ -696,7 +755,7 @@ def test_main_passes_post_scoring_temperature_models_to_json_builder(monkeypatch
     assert saved["predictions"][date.today().isoformat()]["lo"] == 60.0
 
 
-def _run_main(monkeypatch, tmp_path, st, series_data):
+def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True):
     """Run main() fully stubbed; returns (state, puts) as saved/put."""
     t = datetime.now(UTC)
     saved = {}
@@ -710,6 +769,8 @@ def _run_main(monkeypatch, tmp_path, st, series_data):
     monkeypatch.setattr(fi, "oh_get", lambda path: {"state": "82"})
     monkeypatch.setattr(fi, "oh_put_state", lambda item, value: puts.append(item))
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
+    if legacy_rain:
+        monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', date.max)
     fi.main()
     return saved, puts
 
@@ -824,6 +885,55 @@ def test_main_withholds_partial_pv_evidence_day_and_learned_coefficients(monkeyp
         'basis': 'evidence_cutover_partial_day', 'measured_kwh': None}
     assert fi.should_score(saved, yesterday.isoformat(), 'pv')
     assert 'PV scoring withheld: evidence_cutover_partial_day' in (tmp_path / 'log').read_text()
+
+
+def test_main_withholds_both_rain_horizons_on_partial_collection_day(monkeypatch, tmp_path):
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', yesterday)
+    monkeypatch.setattr(fi, 'RAIN_EVIDENCE_CUTOVER',
+                        fi.local_day_window_utc(yesterday)[0] + timedelta(hours=1))
+    state = _scoring_state(yesterday.isoformat())
+    data = {fi.RAIN_DAY_ITEM: [0.05], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [7.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data, legacy_rain=False)
+    assert saved.get('precip_errors', []) == []
+    assert saved.get('day3_precip_errors', []) == []
+    assert saved['horizon'][yesterday.isoformat()]['precip_in'] == 0.2
+    assert fi.should_score(saved, yesterday.isoformat(), 'precip')
+    assert saved['precip_score_evidence'][yesterday.isoformat()] == {
+        'basis': 'evidence_cutover_partial_day', 'measured_in': None}
+    assert 'precip scoring withheld: evidence_cutover_partial_day' in (
+        tmp_path / 'log').read_text()
+
+
+def test_main_scores_both_rain_horizons_once_from_qualified_day(monkeypatch, tmp_path):
+    yesterday = date.today() - timedelta(days=1)
+    monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', yesterday)
+    monkeypatch.setattr(fi, 'RAIN_EVIDENCE_CUTOVER',
+                        fi.local_day_window_utc(yesterday)[0] - timedelta(seconds=1))
+    calls = []
+
+    def reader(**kwargs):
+        calls.append(kwargs)
+        return {'local_date': yesterday.isoformat(),
+                'basis': 'source_bound_counter_bracket_v1',
+                'source_item': 'Weather_Rain_Evidence_JSON',
+                'source_cutover': fi.RAIN_EVIDENCE_CUTOVER.isoformat(),
+                'rain_in': 0.05, 'uncertainty_in': 0.0,
+                'receipt_count': 2880}
+
+    monkeypatch.setattr(fi, '_read_qualified_rain_day', reader)
+    state = _scoring_state(yesterday.isoformat())
+    data = {fi.RAIN_DAY_ITEM: [99.0], fi.OUTDOOR_TEMP_ITEM: [60.0, 88.0],
+            'MPPT60_EnergyFromPV_Today': [7.0], 'BMS_SOC': [85.0]}
+    saved, _ = _run_main(monkeypatch, tmp_path, state, data, legacy_rain=False)
+    assert len(calls) == 1
+    assert saved['precip_errors'] == [pytest.approx(0.05)]
+    assert saved['day3_precip_errors'] == [pytest.approx(0.15)]
+    assert saved['precip_score_evidence'][yesterday.isoformat()]['source_item'] == (
+        'Weather_Rain_Evidence_JSON')
+    assert saved['precip_score_evidence'][yesterday.isoformat()]['receipt_count'] == 2880
+    assert 'precip' in saved['scored'][yesterday.isoformat()]
 
 
 def test_main_withholds_pv_learning_when_provenance_state_is_invalid(monkeypatch, tmp_path):

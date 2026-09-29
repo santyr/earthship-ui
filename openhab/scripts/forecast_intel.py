@@ -33,6 +33,10 @@ PV_EVIDENCE_CUTOVER = datetime(2026, 9, 28, 14, 6, 49, 997000, tzinfo=timezone.u
 PV_EVIDENCE_REQUIRED_FROM = date(2026, 9, 28)  # partial activation day is withheld
 PV_EVIDENCE_DB_CONFIG = "/home/sat/.config/hex/energy-power-reader.jdbc"
 PV_QUALIFIED_CALIBRATION_RELEASE = False  # complete-day and fault/recovery gates pending
+RAIN_EVIDENCE_CUTOVER = datetime(2026, 9, 29, 4, 12, 48, 122000, tzinfo=timezone.utc)
+RAIN_EVIDENCE_REQUIRED_FROM = date(2026, 9, 28)  # partial activation day is withheld
+RAIN_EVIDENCE_DB_CONFIG = PV_EVIDENCE_DB_CONFIG
+RAIN_EVIDENCE_POLICY = '/home/sat/.config/hex/weather-rain-policy.json'
 
 # ---- Site settings -------------------------------------------------------
 # openHAB is authoritative for where and in which zone this site sits
@@ -287,6 +291,64 @@ def measured_pv_day_for_learning(local_date, *, as_of, qualified_reader=None):
         return None, 'qualified_evidence_unavailable', {}
 
 
+def _read_qualified_rain_day(*, local_date, as_of, cutover, site_timezone):
+    """Use only the exact restricted rain evidence Item and reviewed policy."""
+    import psycopg2
+    from earthship_energy.db import parse_openhab_jdbc_config
+    from weather_rain_config import load_rain_policy
+    from weather_rain_history import fetch_qualified_rain_day
+
+    settings = parse_openhab_jdbc_config(RAIN_EVIDENCE_DB_CONFIG)
+    if (settings.host, settings.port, settings.dbname, settings.user) != (
+            '127.0.0.1', 5432, 'openhab', 'energy_power_reader'):
+        raise ValueError('restricted rain day reader required')
+    policy = load_rain_policy(RAIN_EVIDENCE_POLICY)
+    if policy.sensor_id != 206 or policy.validity_seconds != 120:
+        raise ValueError('reviewed outdoor rain policy required')
+    return fetch_qualified_rain_day(
+        lambda: psycopg2.connect(**settings.connect_kwargs, connect_timeout=3),
+        local_date=local_date, as_of=as_of, cutover=cutover, policy=policy,
+        site_timezone=site_timezone)
+
+
+def measured_rain_day_for_learning(local_date, *, as_of, qualified_reader=None):
+    """Withhold post-cutover rain errors without a complete source-bound day."""
+    if local_date < RAIN_EVIDENCE_REQUIRED_FROM:
+        points = series(RAIN_DAY_ITEM, *local_day_window_utc(local_date))
+        value = max((value for _, value in points), default=None)
+        return value, 'legacy_change_only', {'source_item': RAIN_DAY_ITEM}
+    if SITE_TZ_NAME != 'America/Denver':
+        return None, 'evidence_site_zone_mismatch', {}
+    start, end = local_day_window_utc(local_date)
+    if start < RAIN_EVIDENCE_CUTOVER:
+        return None, 'evidence_cutover_partial_day', {}
+    if as_of.tzinfo is None or as_of.utcoffset() is None or as_of < end:
+        return None, 'evidence_day_incomplete', {}
+    try:
+        result = (qualified_reader or _read_qualified_rain_day)(
+            local_date=local_date, as_of=as_of,
+            cutover=RAIN_EVIDENCE_CUTOVER, site_timezone=SITE_TZ_NAME)
+        value, uncertainty = result['rain_in'], result['uncertainty_in']
+        receipts = result.get('receipt_count')
+        if (result.get('local_date') != local_date.isoformat()
+                or result.get('basis') != 'source_bound_counter_bracket_v1'
+                or result.get('source_item') != 'Weather_Rain_Evidence_JSON'
+                or result.get('source_cutover') != RAIN_EVIDENCE_CUTOVER.isoformat()
+                or type(value) not in (int, float) or not math.isfinite(value)
+                or not 0 <= value <= 1000
+                or type(uncertainty) not in (int, float)
+                or not math.isfinite(uncertainty)
+                or not 0 <= uncertainty <= 0.020001
+                or type(receipts) is not int or not 0 < receipts <= 4000):
+            raise ValueError('rain day evidence identity or quality mismatch')
+        return float(value), 'qualified_source_bound', {
+            'source_item': result['source_item'],
+            'source_cutover': result['source_cutover'],
+            'uncertainty_in': uncertainty, 'receipt_count': receipts}
+    except Exception:
+        return None, 'qualified_evidence_unavailable', {}
+
+
 
 HOURLY_KALMAN_Q = 0.10
 HOURLY_KALMAN_R = 9.0
@@ -499,7 +561,8 @@ def measured_day_weather(day):
     local calendar day (see local_day_window_utc) in both MST and MDT.
     """
     window = local_day_window_utc(day)
-    rain = max((v for _, v in series(RAIN_DAY_ITEM, *window)), default=None)
+    rain = (max((v for _, v in series(RAIN_DAY_ITEM, *window)), default=None)
+            if day < RAIN_EVIDENCE_REQUIRED_FROM else None)
     temps = [v for _, v in series(OUTDOOR_TEMP_ITEM, *window)]
     return rain, (max(temps) if temps else None), (min(temps) if temps else None)
 
@@ -510,9 +573,10 @@ def measured_day_weather_with_evidence(day):
         return (*measured_day_weather(day), None)
     from daily_temperature_runtime import read_daily_actuals
     window = local_day_window_utc(day)
-    # Rain is a separate quantity and retains its existing contract. Do not
-    # fetch numeric outdoor history at all on the explicitly qualified path.
-    rain = max((v for _, v in series(RAIN_DAY_ITEM, *window)), default=None)
+    # Post-cutover rain is read separately through the source-bound day reader
+    # in main(); never fetch numeric rain history as a fallback on that path.
+    rain = (max((v for _, v in series(RAIN_DAY_ITEM, *window)), default=None)
+            if day < RAIN_EVIDENCE_REQUIRED_FROM else None)
     high, low, evidence = read_daily_actuals(*window, datetime.now(timezone.utc))
     return rain, high, low, evidence
 
@@ -1077,6 +1141,19 @@ def main():
     ykey = (today - timedelta(days=1)).isoformat()
     yp = st["predictions"].get(ykey)
     rain_actual, hi_actual, lo_actual, temp_evidence = measured_day_weather_with_evidence(today - timedelta(days=1))
+    if today - timedelta(days=1) >= RAIN_EVIDENCE_REQUIRED_FROM:
+        rain_evidence = st.setdefault('precip_score_evidence', {})
+        if not isinstance(rain_evidence, dict):
+            rain_actual, rain_basis, rain_detail = None, 'provenance_state_invalid', {}
+        else:
+            rain_actual, rain_basis, rain_detail = measured_rain_day_for_learning(
+                today - timedelta(days=1), as_of=datetime.now(timezone.utc))
+            rain_evidence[ykey] = {
+                'basis': rain_basis, 'measured_in': rain_actual, **rain_detail}
+            for stale in sorted(rain_evidence)[:-30]:
+                rain_evidence.pop(stale, None)
+        if rain_actual is None:
+            log.append(f'precip scoring withheld: {rain_basis}')
     from daily_temperature_runtime import origin_eligible, record_score, forecast_value_eligible
     daily_origin_ok = origin_eligible(yp, today - timedelta(days=1), temp_evidence, MOUNTAIN, 0)
     if temp_evidence is not None and yp and not daily_origin_ok:
