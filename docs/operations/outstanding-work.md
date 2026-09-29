@@ -558,6 +558,12 @@ existing v1 gaps must not be backfilled or relabeled. Any v2 release requires
 an exact-baseline backup/rollback transaction, observed startup barrier and
 natural source recovery; the next possible full v2 local day is after that
 cutover and a subsequent midnight.
+The dedicated observational-rule adapter now pins the live v1 hash
+`e725970e...efe772b3c1d` and candidate v2 hash
+`40b34d9b...6106f4466d9`, checks both Things ONLINE, preserves the exact
+managed Rule DTO and takes a private pre-change backup. Its default read-only
+production preflight passed, and four offline baseline/rollback tests pass.
+The adapter has **not** run with `--apply` at this checkpoint.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.
