@@ -154,6 +154,12 @@ OFF commands, `aerobic_fallback_24h` start mode at fresh evidence SoC 90%,
 and a `cycle_completed` result. Thus both alternated pump paths have natural
 command/stop traces and operator-confirmed physical pumping after the rule
 replacement; an induced telemetry-failure interruption remains untested.
+A second natural East cycle under the same updated rule was observed by
+read-only live Item/status checks on September 29: East was ON and South OFF
+at 13:51 MDT; at 13:52 both were OFF and `SouthOutlet_AutoStatus` reported
+`reason=cycle_completed,origin=auto,pump=east` with the next eligible pump
+South at 14:37. This corroborates the automatic stop/status path, not a new
+independent physical-flow observation or a stale-telemetry interruption test.
 At 07:06 MDT the first observed daylight evaluations under the new rule had
 sun elevation above zero and `reason=low_soc` with evidence SoC 71%, threshold
 98% and both pump Items OFF. Independent readback found `BMS_Comms_Status=OK`
