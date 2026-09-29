@@ -72,13 +72,18 @@ def wait(container, original, *, file_owned=None, seconds=90):
 
 
 def main():
-    original = oh.get('/items/' + ITEM + '?metadata=.*')
-    if (original.get('editable') is not True or original.get('type') != 'String'
-            or original.get('metadata') != {
+    live = oh.get('/items/' + ITEM + '?metadata=.*')
+    expected = {'stateDescription': {'value': ' ',
+                                     'config': {'pattern': '"Battery Icon [%s]" <iconify>'},
+                                     'editable': live.get('editable')}}
+    if (live.get('editable') not in (True, False) or live.get('type') != 'String'
+            or live.get('metadata') != expected):
+        raise RuntimeError('live BatteryIcon definition changed')
+    original = json.loads(json.dumps(live))
+    original['metadata'] = {
                 'stateDescription': {'value': ' ',
                                      'config': {'pattern': '"Battery Icon [%s]" <iconify>'},
-                                     'editable': True}}):
-        raise RuntimeError('live managed BatteryIcon definition changed')
+                                     'editable': True}}
     if any(link.get('itemName') == ITEM for link in oh.get('/links')):
         raise RuntimeError('live BatteryIcon unexpectedly linked')
     source = SOURCE.read_bytes()

@@ -3,6 +3,11 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
+      "kind": "item", "id": "BatteryIcon", "provider": "file", "migration": "provisional",
+      "source": "items/battery-icon.items", "destination": "/etc/openhab/items/battery-icon.items",
+      "state_writer": "UpdateBatteryIcon"
+    },
+    {
       "kind": "item", "id": "SkyConditionIcon", "provider": "file", "migration": "provisional",
       "source": "items/sky-condition-icon.items", "destination": "/etc/openhab/items/sky-condition-icon.items",
       "state_writer": "sky-condition-calculator"

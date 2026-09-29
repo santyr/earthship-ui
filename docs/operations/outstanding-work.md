@@ -150,6 +150,16 @@ JDBC/restart rehearsal and natural writer receipt are still required before a
 live transfer. A separate networkless OpenHAB run verified file withdrawal
 and metadata-preserving managed rollback; its owned container was removed.
 The staged file is not an ownership claim.
+The 03:06 MDT attended handoff subsequently moved only `BatteryIcon` to file
+ownership. Isolated OpenHAB/PostgreSQL metadata, JDBC rollback, hot reload and
+restart checks passed, as did ten focused history/adapter tests and a read-only
+136,507-row production prefix check. The guarded live transaction retained a
+private Item 31 CSV/managed-registry rollback point and did not pause the
+dual-output rule. Independent file provider, exact metadata/state, source hash,
+unchanged JDBC prefix, writer status and `BatteryChargingStatus` checks passed;
+the live inventory returned zero issues after a file/provisional declaration.
+A later natural icon change and new Item 31 JDBC row are still required before
+marking ownership verified. No synthetic production update was sent.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has

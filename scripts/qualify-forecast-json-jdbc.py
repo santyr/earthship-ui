@@ -71,10 +71,25 @@ def history(container, header, name):
     return rows
 
 
+def metadata_exact(container, header, name, expected, *, file_owned):
+    code, payload = aqi.request(container, header, '/items/' + name + '?metadata=.*')
+    if code != 200:
+        return False
+    actual = json.loads(payload).get('metadata')
+    wanted = json.loads(json.dumps(expected))
+    if file_owned:
+        for entry in wanted.values():
+            if entry.get('editable') is not True:
+                raise RuntimeError('managed metadata baseline not editable: ' + name)
+            entry['editable'] = False
+    return actual == wanted
+
+
 def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-json.items',
-         types=None, setup_sources=()):
+         types=None, setup_sources=(), metadata_names=()):
     types = types or {name: 'String' for name in items}
     definitions = {}
+    metadata = {}
     for name in items:
         live = oh.get('/items/' + name + '?metadata=.*')
         if live.get('editable') not in (True, False) or live.get('type') != types[name]:
@@ -83,6 +98,16 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
         for key in ('category', 'tags', 'groupNames'):
             if key in live:
                 definitions[name][key] = live[key]
+        if name in metadata_names:
+            if not live.get('metadata'):
+                raise RuntimeError('metadata baseline missing: ' + name)
+            metadata[name] = json.loads(json.dumps(live['metadata']))
+            for entry in metadata[name].values():
+                if entry.get('editable') is not live.get('editable'):
+                    raise RuntimeError('live metadata/provider ownership mismatch: ' + name)
+                entry['editable'] = True
+    if set(metadata_names) != set(metadata):
+        raise RuntimeError('metadata Item not part of isolated JDBC rehearsal')
     marker = secrets.token_hex(8)
     with aqi.Database() as database:
         container = None
@@ -136,6 +161,9 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
             header = ('Authorization: Bearer ' + tokens[0] + '\n').encode()
             if not all(item(container, header, name) for name in items):
                 raise RuntimeError('isolated file forecast Items not available')
+            if not all(metadata_exact(container, header, name, expected, file_owned=True)
+                       for name, expected in metadata.items()):
+                raise RuntimeError('isolated file metadata mismatch')
             for _ in range(90):
                 ready = aqi.run(['docker', 'exec', database.cid, 'psql', '-U', 'postgres',
                                  '-d', 'postgres', '-Atc',
@@ -180,6 +208,15 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                                       json.dumps(definition), 'application/json')
                 if code not in (200, 201):
                     raise RuntimeError('isolated managed restore refused: ' + name)
+                if name in metadata:
+                    for namespace, entry in metadata[name].items():
+                        code, _ = aqi.request(container, header,
+                            '/items/' + name + '/metadata/' + namespace, 'PUT',
+                            json.dumps({'value': entry['value'],
+                                        'config': entry.get('config', {})}),
+                            'application/json')
+                        if code not in (200, 201, 202, 204):
+                            raise RuntimeError('isolated managed metadata restore refused: ' + name)
             deadline = time.monotonic() + 90
             for name, value in items.items():
                 while time.monotonic() < deadline:
@@ -194,6 +231,9 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                     raise RuntimeError('managed rollback state not restored: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history changed at managed rollback: ' + name)
+                if name in metadata and not metadata_exact(
+                        container, header, name, metadata[name], file_owned=False):
+                    raise RuntimeError('metadata changed at managed rollback: ' + name)
             for name in items:
                 code, _ = aqi.request(container, header, '/items/' + name, 'DELETE')
                 if code not in (200, 202, 204) or not item(container, header, name,
@@ -208,6 +248,9 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                     raise RuntimeError('state not restored at hot file reload: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history prefix changed at file reload: ' + name)
+                if name in metadata and not metadata_exact(
+                        container, header, name, metadata[name], file_owned=True):
+                    raise RuntimeError('metadata changed at file reload: ' + name)
             print('hot_file_reload_history_prefix_preserved=true', flush=True)
             aqi.run(['docker', 'restart', container])
             for name, value in items.items():
@@ -216,6 +259,9 @@ def main(items=ITEMS, source_path=ROOT / 'openhab/file-config/items/forecast-jso
                     raise RuntimeError('state not restored at JVM restart: ' + name)
                 if history(container, header, name)[:len(before[name])] != before[name]:
                     raise RuntimeError('history prefix changed at restart: ' + name)
+                if name in metadata and not metadata_exact(
+                        container, header, name, metadata[name], file_owned=True):
+                    raise RuntimeError('metadata changed at restart: ' + name)
             print('full_restart_states_and_history_restored=' + str(len(items)), flush=True)
         finally:
             if container is not None:
