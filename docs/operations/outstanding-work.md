@@ -363,6 +363,18 @@ epochs with no within-epoch sequence gap and a correct unavailable restart
 barrier. The latest receipt in each stream was valid and under one minute
 old. This is collection continuity through the check, not a complete day.
 
+September 28 change-only rain-learning audit: `forecast_intel.py` scores
+precipitation against `max(RainFallDay)` in the local day. The live weather
+adapter can reuse its saved `totalrainin` when an outdoor packet omits the raw
+counter, so a changed/held daily Item is not a source acquisition receipt.
+A source-only strict raw `totalrainin` parser now distinguishes a matching
+outdoor sensor's fresh zero/unchanged counter from missing, malformed,
+ambiguous or foreign packets. It is not connected to the live receiver,
+JDBC, daily qualification or forecast learner. Rain scoring remains legacy
+and must not be described as coverage-qualified. Next: persist source-bound
+counter receipts with restart/expiry barriers, qualify complete local-day
+coverage and reset/glitch behavior, then migrate scoring without fallback.
+
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
 1- and 24-hour skill; all four independent 24-hour errors remain low despite
