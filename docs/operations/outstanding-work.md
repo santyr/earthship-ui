@@ -3436,6 +3436,20 @@ input and its dependent current/voltage/load inputs, preserve the dwell/cache
 behavior, and exercise fault/recovery in an isolated rule harness before a
 guarded production cutover. No estimator rule or output was changed by this
 audit.
+September 29 source-map follow-up: `hex_bms_ttd_smooth` remains an enabled
+display-only rule. Its `DCData_Current` and `DCData_Voltage` inputs are
+change-only derived from direct Schneider `int16` native current-centiamp and
+voltage-centivolt channels. `MPPT60_PV_Power` is change-only derived from the
+native MPPT PV-input watts channel. The BMS time-to-discharge and time-to-full
+Items are direct Discover BMS `uint32` channels. Separate source-bound receipts
+already exist for SoC, remaining-Ah, inverter AC watts and PV input watts,
+but none certifies these native current, voltage or BMS time registers. A
+bounded original-event receipt or equivalent acquisition proof is therefore
+needed before the runtime estimate can be labeled fresh. Schneider raw
+current/voltage update unchanged as often as once per second; persisting every
+raw event would add unnecessary I/O, so a new collector must coalesce normal
+updates while retaining immediate fault and expiry barriers. No live source,
+rule or runtime output was changed by this read-only map.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

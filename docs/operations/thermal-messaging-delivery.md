@@ -354,6 +354,22 @@ absence on every Nostr relay. The configured DM signer remains Hex's distinct
 identity and cannot make the operator's announcement. No prompt, listener,
 outbox, private policy or journal write was activated.
 
+September 29 local signer-discovery update: the operator recalled a `nak`
+NIP-46 bunker from the now-decommissioned Lightning Goats VPS. The local
+Lightning Goats checkout contains a bunker unit template and launcher using
+`LoadCredentialEncrypted`, but `lightning-goats-nostr-bunker.service`, its
+`/etc/lightning-goats/bunker.env`, launcher installation and encrypted signer
+credential are all absent on this host. The only local Nostr user unit found
+is the disabled, inactive legacy `nostr-inbox.service`, whose target script is
+absent. The Lightning Goats template is documented as a **project** signer;
+its existence does not prove possession of or authority over the distinct
+Earthship operator key. Its default `/usr/local/bin/nak` path is currently
+group-writable (`0775`) and not the Earthship-qualified pinned binary; do not
+deploy that template here unchanged. A reusable local launcher could share
+code across projects, but each signing identity needs separate credentials,
+client allowlists and runtime state. The operator-key provisioning path and
+signed kind-10050 route remain open; no service, secret or message changed.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with
