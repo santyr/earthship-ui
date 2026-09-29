@@ -20,6 +20,14 @@ the existing exact-baseline, private-backup/rollback adapter. Its read-only
 production preflight passed with both pumps OFF, and five offline guard tests
 passed. Live replacement still needs separate attended approval and post-change
 rule, pump and natural-cycle verification.
+At 04:38 MDT a read-only JDBC replay assessed the preceding 24 hours of
+`BMS_SOC_Evidence_JSON` with a two-hour pre-window carry. All 1,408 in-window
+receipts were `valid/ok`; at all 1,440 simulated minute cron ticks the latest
+persisted receipt remained valid, with at least 45 seconds until expiry. The
+largest publication gap was 75.638 seconds (99th percentile 64.592 seconds).
+This supports availability of the stricter gate under recent normal telemetry,
+not hardware qualification, a guarantee of future source uptime, or permission
+to replace the live protected rule without attended approval.
 
 September 29 file-first census: the secret-free live inventory reports 383
 managed and 56 non-managed Items, 81/4 Things, 39/0 rules, 246/21 links, one
