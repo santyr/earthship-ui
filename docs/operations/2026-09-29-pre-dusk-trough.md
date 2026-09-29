@@ -64,3 +64,20 @@ pre-dusk run for fresh source identity, one receipt, numeric/receipt equality,
 JDBC persistence and correct UI selection. Do not manually run the service
 inside the issue window merely to manufacture a successful gate. Retain the
 source copy and installed-file backup for rollback.
+
+## September 29 additive release checkpoint
+
+The worker, Item file and user service/timer were installed at their exact
+paths with source-matching SHA-256 hashes. Both new Items are `editable=false`
+and initially `NULL`. `forecast-pre-dusk.timer` is enabled and waiting for its
+first natural 14:00 MDT check; the service was not started manually. JDBC's
+existing `* : everyChange` policy includes the new Items. This is a deployed
+collector/display candidate, **not** a qualified forecast outcome: the first
+natural issue, persisted receipt, UI readback and later scored night remain
+to be verified. No morning forecast, DM threshold, thermal advice or pump
+control was changed.
+
+The follow-on charge-timing and prediction-feature review is recorded in
+[prediction learning review](2026-09-29-prediction-learning-review.md). It does
+not authorize moving this issue window or publishing an early full-charge
+estimate from the current short history.
