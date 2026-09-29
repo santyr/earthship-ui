@@ -375,3 +375,15 @@ Natural indoor, north-wall, outdoor and rain receipts all returned valid;
 both weather and radio services remained active, and the new rain epoch had
 zero jump/drop latches. This final cleanup adds a September 29 epoch barrier,
 not a new qualified day. No temporary packet logger remains installed.
+
+### Second post-fix recurrence check — September 29, 01:42 MDT
+
+The logger-free receiver's new epoch had 43 natural rain packets by 01:42:17
+MDT, a valid accepted counter still at 102.7497945 inches, and zero invalid,
+drop or jump latches. A bounded `weather.service` journal read since the
+01:30 worker reload contained no impossible rain jump or counter regression.
+This passes another interval in which the wrong-scale value had previously
+recurred, but the downstream canonical receipt still does not reveal whether
+a WH24-labeled raw packet occurred. September 29 remains disqualified by the
+earlier faults and restarts; the first complete clean-day and restricted
+Item 657 read gates remain open. No scoring or control changed.
