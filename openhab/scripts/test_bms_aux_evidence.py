@@ -65,6 +65,20 @@ def test_complete_native_day_has_separate_100_percent_field_coverage():
     assert all(value['coverage'] == 1 for value in result['fields'].values())
 
 
+def test_one_second_beyond_native_expiry_keeps_day_partial():
+    start, end = bounds()
+    times = [start + timedelta(minutes=index - 1)
+             for index in range(int((end - start).total_seconds() // 60) + 1)]
+    times.pop(7)  # one missed native update
+    times[7] += timedelta(seconds=1)  # the next update is 121 seconds later
+    rows = [(at, encoded(at, index + 1)) for index, at in enumerate(times)]
+    result = qualified(rows)
+    for field in FIELDS:
+        assert result['fields'][field]['quality'] == 'partial'
+        assert result['fields'][field]['gap_count'] == 1
+        assert result['fields'][field]['covered_seconds'] == 86400 - 1
+
+
 @pytest.mark.parametrize('day,hours', [(date(2026, 3, 8), 23),
                                         (date(2026, 11, 1), 25)])
 def test_dst_day_uses_real_elapsed_time(day, hours):

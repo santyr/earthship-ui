@@ -3620,6 +3620,18 @@ remaining-Ah expiry. A coordinated TTL/schema/consumer change could reduce
 brief display dropouts, but relaxing freshness without a full-day/fault and
 restart analysis would conflate a missed poll with a valid measurement.
 No producer TTL, Energy quality, live estimator or control rule was changed.
+The same local-day interval from midnight through 09:30 MDT already contains
+at least 11.209 seconds of remaining-Ah original-event expiry across 12
+gaps, and 26.681 seconds of raw-temperature expiry across 11 gaps. The
+strict daily reader requires zero gaps for `ok`, so September 29 cannot
+become a fully `ok` BMS auxiliary day under the immutable v1 receipts even
+if all later observations are clean. A new regression proves that just one
+121-second renewal interval makes an otherwise complete day `partial` while
+preserving its 86,399 covered seconds; 32 adjacent Python tests pass. This is
+an evidence-quality finding, not a reason to fabricate coverage or relax a
+live freshness bound. Next decide, with full-day/fault evidence, whether a
+versioned TTL contract or an explicitly partial-but-usable learning policy
+is appropriate; keep the scheduled Energy quality flags off meanwhile.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
