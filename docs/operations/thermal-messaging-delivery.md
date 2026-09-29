@@ -15,17 +15,38 @@ an explicit same-second boundary check and a fail-closed response when a
 boundary bucket itself cannot be enumerated. A short page alone cannot prove
 archive completeness across arbitrary relays.
 
-Separately, `poll_replies` counts every not-yet-ingested envelope against its
-16-attempt batch before authenticated decoding. Rejected envelopes are not
-marked ingested, correctly preserving retryability, but the same 16 rejected
-events can consume each later batch and starve an older valid confirmation.
-Do not fix this by treating rejection as a successful journal receipt or by
-silently advancing an unverified cursor. A release design must bound and
-durably explain rejected-envelope retries/quarantine, prove that a valid reply
-can progress under repeated hostile events, and retain an operator-visible
-no-ack/retry path. It must also review encrypted-state backup and relay
-retention. `POLL_RELEASE_READY` stays false; this review sent no question,
-polled no household relay, and changed no private collector or journal state.
+Separately, the original `poll_replies` counted every not-yet-ingested
+envelope against its 16-attempt batch before authenticated decoding. Rejected
+envelopes were not marked ingested, correctly preserving retryability, but
+the same 16 rejected events could consume each later batch and starve an older
+valid confirmation. Do not treat rejection as a successful journal receipt or
+silently advance an unverified cursor. A release design must bound rejected-
+envelope retries and prove progress under hostile streams, retain an operator-
+visible no-ack/retry path, and review encrypted-state backup and relay
+retention. `POLL_RELEASE_READY` stayed false throughout this review.
+
+### Source-only repeated-refusal backoff
+
+The disabled collector now has a version-3 SQLite refusal ledger, migrated in
+place from versions 1 and 2 without dropping delivery or completed-ingress
+rows. Each signed envelope ID is bound to the canonical envelope digest;
+after a refused decode, it is deferred for five minutes, then exponentially
+up to one hour. Refusals remain retryable and are never counted as successful
+journal ingestion or acknowledged. A later successful, verified ingestion
+atomically clears that envelope's refusal entry. The ledger refuses new rows
+at 4,096 rather than silently pruning, and the poll result separately reports
+`refusal_backoff` alongside the aggregate deferred count.
+
+An isolated restart regression confirms that two repeatedly refused envelopes
+consume a two-attempt first poll, then are skipped on the next poll so an older
+valid confirmation reaches the journal/ack path exactly once. Quota, retry
+timing, migration and clearing tests also pass; the full source-only completion
+suite passed 368 tests with a pre-existing cached WebSocket package, without
+installing a new environment. This closes only repeated-*same-ID* starvation.
+An attacker rotating event IDs can still exhaust each batch or the ledger,
+and relay pagination/completeness, operator route, household trial and
+consistent private backup remain open. `POLL_RELEASE_READY` remains false;
+no household relay, prompt, collector state or production journal was used.
 
 ## September 27 source-only backlog checkpoint
 

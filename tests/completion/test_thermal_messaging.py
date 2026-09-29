@@ -274,8 +274,28 @@ def test_v1_outbox_migrates_without_losing_queued_delivery(tmp_path):
     migrated = m.Outbox(private)
     try:
         assert migrated.rows() == before
-        assert migrated.db.execute('PRAGMA user_version').fetchone()[0] == 2
+        assert migrated.db.execute('PRAGMA user_version').fetchone()[0] == 3
         assert migrated.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 0
+        assert migrated.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 0
+    finally:
+        migrated.close()
+
+
+def test_v2_outbox_migrates_without_losing_ingested_envelopes(tmp_path):
+    private = tmp_path / 'private'
+    outbox = m.Outbox(private)
+    envelope = event(1059, 'c' * 64, [['p', C]], 'stored')
+    outbox.record_ingress(envelope)
+    outbox.db.execute('DROP TABLE inbox_refused')
+    outbox.db.execute('PRAGMA user_version=2')
+    outbox.db.commit()
+    outbox.close()
+
+    migrated = m.Outbox(private)
+    try:
+        assert migrated.db.execute('PRAGMA user_version').fetchone()[0] == 3
+        assert migrated.ingress_recorded(envelope)
+        assert migrated.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 0
     finally:
         migrated.close()
 
@@ -554,7 +574,7 @@ def test_poll_replies_deduplicates_across_reviewed_routes(tmp_path):
         delivery = m.Delivery(p, routes, spool, outbox, keyer, relay, sink)
         result = delivery.poll_replies(NOW)
         assert result == dict(accepted=1, retryable=0, withheld=0,
-                              deferred=0, relay_failures=0)
+                              deferred=0, refusal_backoff=0, relay_failures=0)
         assert len(relay.queries) == 2
         assert len(sink.stores) == 1
         assert len(outbox.rows()) == 2
@@ -596,7 +616,7 @@ def test_poll_replies_advances_past_accepted_batch_after_restart(tmp_path, monke
     try:
         first = m.Delivery(p, routes, spool, outbox, keyer, relay, sink).poll_replies(NOW)
         assert first == dict(accepted=2, retryable=0, withheld=0,
-                             deferred=1, relay_failures=0)
+                             deferred=1, refusal_backoff=0, relay_failures=0)
     finally:
         outbox.close()
         spool.close()
@@ -605,13 +625,81 @@ def test_poll_replies_advances_past_accepted_batch_after_restart(tmp_path, monke
     try:
         second = m.Delivery(p, routes, spool, outbox, keyer, relay, sink).poll_replies(NOW)
         assert second == dict(accepted=1, retryable=0, withheld=0,
-                              deferred=0, relay_failures=0)
+                              deferred=0, refusal_backoff=0, relay_failures=0)
         assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 3
         assert spool.db.execute('SELECT count(*) FROM receipts').fetchone()[0] == 3
         assert len(outbox.rows()) == 6
     finally:
         outbox.close()
         spool.close()
+
+
+def test_refused_envelopes_back_off_and_do_not_starve_older_valid_reply(tmp_path, monkeypatch):
+    monkeypatch.setattr(m, 'MAX_BATCH', 2)
+
+    class InboundKeyer(FakeKeyer):
+        def decode(self, raw, recipient):
+            assert recipient == C
+            return t.strict_json(t.strict_json(raw)['content'].encode())
+
+    class InboxRelay(FakeRelay):
+        def fetch(self, url, *, since):
+            return envelopes
+
+    p, keyer, sink = policy(), InboundKeyer(), Sink()
+    routes = m.Routes(t.canonical(announcements()), p, keyer)
+    bad = [event(1059, 'c' * 64, [['p', C]], 'not-json',
+                 NOW - timedelta(seconds=seconds)) for seconds in (2, 1)]
+    rumor = event(tags=[['p', C], ['e', p.prompts[0].event_id]])
+    del rumor['sig']
+    valid = event(1059, 'c' * 64, [['p', C]], t.canonical(rumor).decode(), NOW)
+    envelopes = bad + [valid]
+    private = tmp_path / 'private'
+    spool, outbox = t.Spool(private), m.Outbox(private)
+    try:
+        first = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink).poll_replies(NOW)
+        assert first == dict(accepted=0, retryable=0, withheld=2, deferred=1,
+                             refusal_backoff=0, relay_failures=0)
+        assert outbox.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 2
+        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 0
+    finally:
+        outbox.close()
+        spool.close()
+
+    spool, outbox = t.Spool(private), m.Outbox(private)
+    try:
+        second = m.Delivery(p, routes, spool, outbox, keyer, InboxRelay(), sink).poll_replies(NOW)
+        assert second == dict(accepted=1, retryable=0, withheld=0, deferred=2,
+                              refusal_backoff=2, relay_failures=0)
+        assert outbox.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 2
+        assert outbox.db.execute('SELECT count(*) FROM inbox_ingested').fetchone()[0] == 1
+        assert len(sink.stores) == 1
+    finally:
+        outbox.close()
+        spool.close()
+
+
+def test_refusal_backoff_is_bounded_retryable_and_quota_limited(tmp_path, monkeypatch):
+    outbox = m.Outbox(tmp_path / 'private')
+    first = event(1059, 'c' * 64, [['p', C]], 'bad-one')
+    second = event(1059, 'c' * 64, [['p', C]], 'bad-two')
+    try:
+        now = int(NOW.timestamp())
+        outbox.record_refusal(first, now)
+        assert outbox.refusal_deferred(first, now + 299)
+        assert not outbox.refusal_deferred(first, now + 300)
+        outbox.record_refusal(first, now + 300)
+        assert outbox.refusal_deferred(first, now + 899)
+        assert not outbox.refusal_deferred(first, now + 900)
+        monkeypatch.setattr(m, 'MAX_ROWS', 1)
+        with pytest.raises(t.Refused, match='refusal quota'):
+            outbox.record_refusal(second, now)
+        assert not outbox.ingress_recorded(first)
+        outbox.record_ingress(first)
+        assert outbox.ingress_recorded(first)
+        assert outbox.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] == 0
+    finally:
+        outbox.close()
 
 
 def test_poll_replies_does_not_skip_retryable_ingress(tmp_path):

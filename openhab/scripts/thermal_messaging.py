@@ -357,7 +357,7 @@ class Outbox:
                     and not stat.S_IMODE(info.st_mode) & 0o077, 'outbox file must be private')
         self.db = sqlite3.connect(path, timeout=10)
         self.db.row_factory = sqlite3.Row
-        require(self.db.execute('PRAGMA user_version').fetchone()[0] in (0, 1, 2), 'unknown outbox schema')
+        require(self.db.execute('PRAGMA user_version').fetchone()[0] in (0, 1, 2, 3), 'unknown outbox schema')
         self.db.execute('PRAGMA synchronous=FULL')
         self.db.executescript('''
             CREATE TABLE IF NOT EXISTS delivery (
@@ -368,7 +368,11 @@ class Outbox:
             CREATE TABLE IF NOT EXISTS inbox_ingested (
               event_id TEXT PRIMARY KEY, digest TEXT NOT NULL,
               recorded_at INTEGER NOT NULL);
-            PRAGMA user_version=2;
+            CREATE TABLE IF NOT EXISTS inbox_refused (
+              event_id TEXT PRIMARY KEY, digest TEXT NOT NULL,
+              attempts INTEGER NOT NULL, next_attempt INTEGER NOT NULL,
+              last_at INTEGER NOT NULL);
+            PRAGMA user_version=3;
         ''')
         self.db.commit()
 
@@ -412,6 +416,43 @@ class Outbox:
         require(row['digest'] == digest, 'inbox envelope identity changed')
         return True
 
+    def refusal_deferred(self, event, now):
+        """A refused envelope is retryable later, never treated as ingested."""
+        event_id = t.identifier(event['id'])
+        digest = sha256(t.canonical(event)).hexdigest()
+        row = self.db.execute('SELECT digest,next_attempt FROM inbox_refused WHERE event_id=?',
+                              (event_id,)).fetchone()
+        if row is None:
+            return False
+        require(row['digest'] == digest, 'inbox envelope identity changed')
+        return row['next_attempt'] > int(now)
+
+    def record_refusal(self, event, now):
+        """Bound repeated invalid-envelope work without acknowledging it."""
+        event_id = t.identifier(event['id'])
+        digest = sha256(t.canonical(event)).hexdigest()
+        now = int(now)
+        self.db.execute('BEGIN IMMEDIATE')
+        try:
+            row = self.db.execute('SELECT digest,attempts FROM inbox_refused WHERE event_id=?',
+                                  (event_id,)).fetchone()
+            if row is None:
+                require(self.db.execute('SELECT count(*) FROM inbox_refused').fetchone()[0] < MAX_ROWS,
+                        'inbox refusal quota reached; reviewed retention required')
+                attempts = 1
+            else:
+                require(row['digest'] == digest, 'inbox envelope identity changed')
+                attempts = min(row['attempts'] + 1, 30)
+            delay = min(3600, 300 * 2 ** min(attempts - 1, 4))
+            self.db.execute('''INSERT INTO inbox_refused(event_id,digest,attempts,next_attempt,last_at)
+                VALUES (?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET
+                attempts=excluded.attempts,next_attempt=excluded.next_attempt,
+                last_at=excluded.last_at''', (event_id, digest, attempts, now + delay, now))
+            self.db.commit()
+        except BaseException:
+            self.db.rollback()
+            raise
+
     def record_ingress(self, event):
         """Durably record successful ingress; a crash before this replays safely."""
         event_id = t.identifier(event['id'])
@@ -427,6 +468,7 @@ class Outbox:
                         'inbox ingress quota reached; reviewed retention required')
                 self.db.execute('INSERT INTO inbox_ingested(event_id,digest,recorded_at) VALUES (?,?,?)',
                                 (event_id, digest, int(time.time())))
+            self.db.execute('DELETE FROM inbox_refused WHERE event_id=?', (event_id,))
             self.db.commit()
         except BaseException:
             self.db.rollback()
@@ -502,7 +544,7 @@ class Delivery:
         fixed_now = now
         now = t.aware(now or datetime.now(timezone.utc))
         counts = {'accepted': 0, 'retryable': 0, 'withheld': 0, 'deferred': 0,
-                  'relay_failures': 0}
+                  'refusal_backoff': 0, 'relay_failures': 0}
         active = [prompt for prompt in self.policy.prompts
                   if prompt.issued_at <= now <= prompt.expires_at]
         if not active:
@@ -525,6 +567,10 @@ class Delivery:
                 seen.add(event['id'])
                 if self.outbox.ingress_recorded(event):
                     continue
+                if self.outbox.refusal_deferred(event, now.timestamp()):
+                    counts['deferred'] += 1
+                    counts['refusal_backoff'] += 1
+                    continue
                 if attempted >= MAX_BATCH:
                     counts['deferred'] += 1
                     continue
@@ -532,6 +578,7 @@ class Delivery:
                 try:
                     self.receive(t.canonical(event), fixed_now)
                 except t.Refused:
+                    self.outbox.record_refusal(event, now.timestamp())
                     counts['withheld'] += 1
                 except t.Retryable:
                     counts['retryable'] += 1
