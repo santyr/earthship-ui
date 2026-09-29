@@ -96,3 +96,12 @@ and existing precipitation-error arrays were unchanged at installation.
 The first natural writer readback, restricted SELECT grant and first complete
 rain day remain open. Until they pass, qualified precipitation error scoring
 is withheld; numerical weather forecasts and unrelated learners continue.
+
+At 22:28 MDT, a read-only JDBC persistence query returned 32 natural rain
+receipts since activation. They share one stream epoch; packet counts advanced
+from 5 to 60 and all observed invalid-packet, counter-drop and counter-jump
+latched counts remained zero. This extends the initial continuity observation,
+but is still a partial day and does not qualify a daily total. A separate
+read-only connection as `energy_power_reader` confirmed the unique Item 657
+mapping and `SELECT=false`, `INSERT=false` on `public.item0657`. The exact
+table SELECT grant remains pending; no privilege or scoring state was changed.
