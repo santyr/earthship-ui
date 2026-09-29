@@ -745,6 +745,29 @@ def test_refusal_backoff_is_bounded_retryable_and_quota_limited(tmp_path, monkey
         outbox.close()
 
 
+def test_refusal_status_is_aggregate_and_tracks_due_retry(tmp_path):
+    outbox = m.Outbox(tmp_path / 'private')
+    first = event(1059, 'c' * 64, [['p', C]], 'bad-one')
+    second = event(1059, 'c' * 64, [['p', C]], 'bad-two')
+    now = int(NOW.timestamp())
+    try:
+        assert outbox.refusal_status(now) == dict(pending=0, due=0, next_retry_at=None)
+        outbox.record_refusal(first, now)
+        outbox.record_refusal(second, now + 60)
+        status = outbox.refusal_status(now + 299)
+        assert status == dict(pending=2, due=0,
+                              next_retry_at=datetime.fromtimestamp(now + 300, timezone.utc).isoformat())
+        assert first['id'] not in str(status) and second['id'] not in str(status)
+        assert outbox.refusal_status(now + 300) == dict(
+            pending=2, due=1,
+            next_retry_at=datetime.fromtimestamp(now + 360, timezone.utc).isoformat())
+        assert outbox.refusal_status(now + 360) == dict(pending=2, due=2, next_retry_at=None)
+        outbox.record_ingress(first)
+        assert outbox.refusal_status(now + 360) == dict(pending=1, due=1, next_retry_at=None)
+    finally:
+        outbox.close()
+
+
 def test_poll_replies_does_not_skip_retryable_ingress(tmp_path):
     class InboundKeyer(FakeKeyer):
         def decode(self, raw, recipient):

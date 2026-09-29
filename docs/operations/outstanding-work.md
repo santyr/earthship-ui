@@ -597,8 +597,10 @@ an older valid reply progress on a subsequent attended poll after the same
 rejected envelope IDs exhaust the first batch. Bounded second-window splitting
 now resolves explicitly saturated pages or refuses an unsplittable second,
 page budget or total-event budget; 369 completion tests pass.
-Refusals remain retryable, unacknowledged and bounded. Rotating-ID spam,
-under-limit relay omissions, operator-visible retry, signed routes, private
+An attended poll now reports only aggregate pending/due refusal counts and
+the next future retry time, without envelope IDs or contents; 370 completion
+tests pass. Refusals remain retryable, unacknowledged and bounded. Rotating-ID spam,
+under-limit relay omissions, a reviewed retry/remediation workflow, signed routes, private
 backup and household trial still block collector release; see the same
 checkpoint.
 

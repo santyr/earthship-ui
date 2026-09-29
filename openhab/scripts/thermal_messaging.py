@@ -454,6 +454,17 @@ class Outbox:
         require(row['digest'] == digest, 'inbox envelope identity changed')
         return row['next_attempt'] > int(now)
 
+    def refusal_status(self, now):
+        """Aggregate local retry state without exposing envelope identities."""
+        now = int(now)
+        row = self.db.execute('''SELECT count(*),
+            sum(CASE WHEN next_attempt <= ? THEN 1 ELSE 0 END),
+            min(CASE WHEN next_attempt > ? THEN next_attempt END)
+            FROM inbox_refused''', (now, now)).fetchone()
+        return {'pending': row[0], 'due': row[1] or 0,
+                'next_retry_at': (datetime.fromtimestamp(row[2], timezone.utc).isoformat()
+                                  if row[2] is not None else None)}
+
     def record_refusal(self, event, now):
         """Bound repeated invalid-envelope work without acknowledging it."""
         event_id = t.identifier(event['id'])
@@ -757,6 +768,8 @@ def main(argv=None):
             result[name] += value
         for name, value in poll.items():
             result[name] = result.get(name, 0) + value
+        if args.poll_replies:
+            result['inbox_refusals'] = outbox.refusal_status(time.time())
         result.update(version=1, operator_read_verified=False, production_ready=False)
         print(t.canonical(result).decode())
         return 3 if result['retryable'] or result['deferred'] or result.get('relay_failures') else (2 if result['withheld'] else 0)

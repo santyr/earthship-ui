@@ -68,6 +68,17 @@ route, acknowledged delivery/retry, private backup and attended household
 qualification remain open. `POLL_RELEASE_READY` is still false; no production
 relay or collector state was used.
 
+### Source-only refusal retry visibility
+
+An attended poll result now includes an aggregate `inbox_refusals` summary:
+the number of locally refused envelopes still pending, how many are due now,
+and the earliest future retry time. It prints no envelope IDs or contents.
+Successful ingress removes that envelope from the summary. The local refusal
+status and its time transitions have focused tests; the full completion suite
+passed 370 tests with the cached WebSocket package. This is operator-visible
+local retry state, not evidence that a relay retained or delivered every
+message. The poll CLI release gate remains false and no live inbox was polled.
+
 ## September 27 source-only backlog checkpoint
 
 The disabled inbound collector now keeps a private, durable ledger of envelope
