@@ -235,6 +235,15 @@ Its direct inverter-AC evidence covers 99.9961875% of the day and records
 same September 27 observed AC value. The first natural writer/publication gate
 is closed; same-host-only recovery and the two supporting TP-Link source
 quality rows remain separate open items.
+The September 29 natural daily aggregate and AC-day timers also exited zero,
+inserting the September 28 qualified power snapshot ID 9 and AC snapshot ID 8.
+The current live v4 Item reports through September 28, observed inverter AC
+load 4.0010308 kWh at 99.9962% coverage and observed-window EFC 1.4202.
+Restricted read-only inspection of the immutable power snapshot found exactly
+two non-`ok` source rows: dishwasher and Cistern Pump switch state, both
+`freshness_unverified`. The stream started during September 28, so its first
+possible complete supporting day is September 29, assessable after midnight;
+do not relabel the partial day or suppress the aggregate quality warning.
 
 September 27 live Energy quality recheck: the latest completed September 26
 daily snapshot has 19/21 supporting source rows `ok`; only
