@@ -220,4 +220,40 @@ describe('source-bound display-only battery runtime candidate', () => {
     expect(h.states.BMS_TimeToFull_Smoothed).toBe('0');
     expect(h.states.BMS_Runtime_Basis).toBe('off');
   });
+
+  it('clears a positive BMS time-to-full when fresh current reverses to discharge', () => {
+    const h = fixture();
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    row.fields['battery.dc_current_ca'].value = 500;
+    row.fields['battery.ttf_min'].value = 120;
+    h.run();
+    expect(h.states.BMS_TimeToFull_Smoothed).toBe('120');
+    h.advance(1000);
+    row.recordedAt = t0 + 1000;
+    row.fields['battery.dc_current_ca'] = field(-500, t0 + 1000, 90000);
+    h.run();
+    expect(h.states.BMS_TimeToFull_Smoothed).toBe('0');
+    expect(h.cache.get('i_chg')).toBeNull();
+  });
+
+  it('clears a lagging charge-current average on discharge and reseeds next charge', () => {
+    const h = fixture();
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    row.fields['battery.dc_current_ca'].value = 500;
+    h.run();
+    expect(Number(h.states.BMS_TimeToFull_Smoothed)).toBeGreaterThan(0);
+    expect(h.cache.get('i_chg')).toBe(5);
+    h.advance(1000);
+    row.recordedAt = t0 + 1000;
+    row.fields['battery.dc_current_ca'] = field(-500, t0 + 1000, 90000);
+    h.run();
+    expect(h.states.BMS_TimeToFull_Smoothed).toBe('0');
+    expect(h.cache.get('i_chg')).toBeNull();
+    h.advance(1000);
+    row.recordedAt = t0 + 2000;
+    row.fields['battery.dc_current_ca'] = field(100, t0 + 2000, 90000);
+    h.run();
+    expect(h.cache.get('i_chg')).toBe(1);
+    expect(Number(h.states.BMS_TimeToFull_Smoothed)).toBeGreaterThan(0);
+  });
 });

@@ -3538,6 +3538,14 @@ receipt's original-event ages were 0, 5.115, 25.817 and 25.817 seconds for
 current, voltage, TTD and TTF respectively. This is evidence of normal
 coalescing and startup fail-closed behavior in that bounded morning window,
 not dusk/night qualification of the disabled estimator candidate.
+September 29 source-only estimator follow-up: a fresh positive BMS time-to-full
+could previously survive a current reversal, and the charge-current EMA could
+lag through discharge. The disabled candidate now requires source-bound current
+at least +0.5 A for either TTF path, clears its charge EMA otherwise, and
+reseeds on a later genuine charge. Two reversal/recharge regressions and all
+1,886 repository unit tests pass. The live rule and display are unchanged;
+overnight history-source coverage and representative transition replay still
+block the guarded estimator cutover.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

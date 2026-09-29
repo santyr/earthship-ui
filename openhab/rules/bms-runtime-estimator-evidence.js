@@ -23,8 +23,8 @@ const N = 9;
 const ENTER_A = -0.5, EXIT_A = -0.25;
 const DEEP_ENTER_A = -1.2, DEEP_EXIT_A = -0.8;
 // Dwell timer (2026-07-15): during dawn/dusk crossover the current bounces
-// across both gates and the basis label flapped ~8x in 40 min. A state may
-// normally flips only after 8 min in its current state. Confirmed charging or
+// across both gates and the basis label flapped ~8x in 40 min. A state normally
+// flips only after 8 min in its current state. Confirmed charging or
 // two distinct non-discharge receipts exit early so a BMS discharge basis is
 // not held through a genuine current reversal.
 const DWELL_MS = 8 * 60 * 1000;
@@ -227,9 +227,12 @@ if (bankReady) {
   const out = items.getItem("BMS_TimeToFull_Smoothed");
   const bmsTtf = bmsMinutes('battery.ttf_min')?.value ?? NaN;
   let ttf = 0;
-  if (bankReady && Number.isFinite(bmsTtf) && bmsTtf > 0) {
+  if (!bankReady || i < 0.5) {
+    // A still-fresh BMS TTF or lagging charge EMA cannot outlive charging.
+    cache.private.put("i_chg", null);
+  } else if (Number.isFinite(bmsTtf) && bmsTtf > 0) {
     ttf = Math.round(bmsTtf);
-  } else if (bankReady) {
+  } else {
     const stateOfCharge = soc(), rem = remainingAh();
     const iChg = ema("i_chg", i);
     if ([stateOfCharge, rem, iChg].every(Number.isFinite)
