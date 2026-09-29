@@ -47,6 +47,7 @@ def _metadata(packet):
 
 def _diagnostic(current, previous, delta, sensor_id):
     report = {'sensor_id': sensor_id, 'model': current['model'],
+              'previous_model': previous.get('model'),
               'rain_delta_in': round(delta, 3)}
     for key in ('tempf', 'humidity', 'solarradiation', 'winddir',
                 'windspeedmph', 'windgustmph', 'uv'):

@@ -118,17 +118,18 @@ def test_anomaly_metadata_is_bounded_once_and_expires_without_affecting_capture(
     reports = []
     collector = RainCollector(POLICY, clock=lambda: now[0], monotonic=lambda: 100,
                               on_jump=reports.append)
-    def observe(counter, temp, winddir, battery):
-        collector.observe({'model': 'Fineoffset-WH65B', 'id': '206',
+    def observe(counter, temp, winddir, battery, model='Fineoffset-WH65B'):
+        collector.observe({'model': model, 'id': '206',
                            'totalrainin': str(counter), 'tempf': str(temp),
                            'humidity': '42', 'solarradiation': '0',
                            'winddir': str(winddir), 'windspeedmph': '3',
                            'windgustmph': '7', 'uv': '0',
                            'battery_ok': battery})
     observe(102.7497945, 68, 180, 'True')
-    observe(121.358025, 92, 225, 'False')
-    observe(121.358025, 92, 225, 'False')
-    assert reports == [{'sensor_id': 206, 'model': 'Fineoffset-WH65B',
+    observe(121.358025, 92, 225, 'False', 'Fineoffset-WH24')
+    observe(121.358025, 92, 225, 'False', 'Fineoffset-WH24')
+    assert reports == [{'sensor_id': 206, 'model': 'Fineoffset-WH24',
+                        'previous_model': 'Fineoffset-WH65B',
                         'rain_delta_in': 18.608, 'tempf_delta': 24.0,
                         'humidity_delta': 0.0, 'solarradiation_delta': 0.0,
                         'winddir_delta': 45.0, 'windspeedmph_delta': 0.0,
