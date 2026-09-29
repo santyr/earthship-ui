@@ -1,0 +1,106 @@
+"""Paired private-state snapshot tests; no production state or journal access."""
+
+from pathlib import Path
+import sqlite3
+import sys
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'openhab/scripts'))
+import thermal_confirmation as confirmation
+import thermal_messaging as messaging
+import thermal_state_backup as backup
+
+
+def seeded_state(path):
+    spool = confirmation.Spool(path)
+    outbox = messaging.Outbox(path)
+    try:
+        for db, value in ((spool.db, 'private confirmation'),
+                          (outbox.db, 'private delivery')):
+            db.execute('CREATE TABLE backup_marker(value TEXT NOT NULL)')
+            db.execute('INSERT INTO backup_marker VALUES (?)', (value,))
+            db.commit()
+    finally:
+        outbox.close()
+        spool.close()
+
+
+def test_paired_snapshot_restores_both_sqlite_files(tmp_path, capsys):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    assert backup.main(['--snapshot', '--source-dir', str(source),
+                        '--snapshot-dir', str(destination)]) == 0
+    assert 'thermal_sqlite_pair_only_no_postgresql_journal' in capsys.readouterr().out
+    assert backup.verify_snapshot(destination)['verified_files'] == 2
+    for name, value in zip(backup.DATABASES, ('private confirmation', 'private delivery')):
+        assert (destination / name).stat().st_mode & 0o077 == 0
+        with sqlite3.connect(destination / name) as restored:
+            assert restored.execute('SELECT value FROM backup_marker').fetchone() == (value,)
+    assert (destination / 'manifest.json').stat().st_mode & 0o077 == 0
+    restored_spool = confirmation.Spool(destination)
+    restored_outbox = messaging.Outbox(destination)
+    try:
+        assert restored_spool.db.execute('PRAGMA user_version').fetchone()[0] == 1
+        assert restored_outbox.db.execute('PRAGMA user_version').fetchone()[0] == 3
+    finally:
+        restored_outbox.close()
+        restored_spool.close()
+
+
+def test_snapshot_refuses_busy_cli_state_before_creating_destination(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    with backup.state_lock(source):
+        with pytest.raises(ValueError, match='busy'):
+            backup.snapshot_state(source, destination)
+    assert not destination.exists()
+    backup.snapshot_state(source, destination)
+    assert backup.verify_snapshot(destination)['verified_files'] == 2
+
+
+def test_snapshot_detects_modified_copy_and_never_reuses_destination(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    backup.snapshot_state(source, destination)
+    with pytest.raises(FileExistsError):
+        backup.snapshot_state(source, destination)
+    with (destination / 'delivery.sqlite3').open('ab') as stream:
+        stream.write(b'changed')
+    with pytest.raises(ValueError, match='digest mismatch'):
+        backup.verify_snapshot(destination)
+
+
+def test_state_lock_rejects_symlink_and_public_directory(tmp_path):
+    source = tmp_path / 'state'
+    source.mkdir(mode=0o700)
+    outside = tmp_path / 'outside'
+    outside.write_bytes(b'untouched')
+    (source / 'state.lock').symlink_to(outside)
+    with pytest.raises(OSError):
+        with backup.state_lock(source):
+            pass
+    assert outside.read_bytes() == b'untouched'
+    (source / 'state.lock').unlink()
+    source.chmod(0o755)
+    with pytest.raises(ValueError, match='private'):
+        with backup.state_lock(source):
+            pass
+
+
+def test_snapshot_does_not_create_mistyped_source(tmp_path):
+    source, destination = tmp_path / 'missing', tmp_path / 'snapshot'
+    with pytest.raises(FileNotFoundError):
+        backup.snapshot_state(source, destination)
+    assert not source.exists() and not destination.exists()
+
+
+def test_snapshot_verifier_bounds_manifest_before_parsing(tmp_path):
+    source, destination = tmp_path / 'state', tmp_path / 'snapshot'
+    seeded_state(source)
+    backup.snapshot_state(source, destination)
+    (destination / 'manifest.json').write_bytes(b'x' * 4097)
+    with pytest.raises(ValueError, match='exceeds bound'):
+        backup.verify_snapshot(destination)

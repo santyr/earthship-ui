@@ -371,6 +371,13 @@ restart cases pass with 182 focused and 361 completion tests. No live poll was
 enabled; saturated-page pagination, spam/refused-envelope starvation,
 consistent private backup, signed operator route and attended trial are still
 release blockers. See [the delivery runbook](thermal-messaging-delivery.md).
+The attended CLI and a new source-only SQLite-pair snapshot now share an
+exclusive private-state lock. A disposable restore reopened both original
+application schemas; integrity, digest, lock-contention and tamper tests pass
+within all 377 completion tests. This closes only the local paired-SQLite
+snapshot/restore prerequisite. PostgreSQL journal coordination, private
+policy/routes, off-host destination/retention, operator route and household
+trial remain open; the collector release gate remains false.
 
 September 27 thermal follow-up: capture-strict independent 24-hour scoring is
 still worse than persistence (4.1582 versus 1.4850°F MAE over four disjoint

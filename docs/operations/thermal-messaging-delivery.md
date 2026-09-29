@@ -91,6 +91,27 @@ under-limit relay omissions, or a saturated relay result can still prevent
 progress. It does not relax the page, total-event, time, signature or release
 gates, and no household inbox was polled.
 
+### Source-only private SQLite pair recovery
+
+The attended messaging CLI now holds a nonblocking, private `state.lock`
+through both SQLite connection closes; a second CLI or snapshot refuses while
+it is held. `thermal_state_backup.py --snapshot` uses that same lock and the
+SQLite backup API to capture `confirmations.sqlite3` and `delivery.sqlite3`
+into a new private directory. It writes a hash manifest only after both
+copies pass integrity checks. `--verify` rechecks both hashes and SQLite
+integrity. A missing, symlinked or public source/lock is refused; an existing
+destination is never overwritten or automatically removed after failure.
+Disposable tests reopened both restored application databases, exercised lock
+contention, tamper refusal and missing-source no-cruft behavior; all 377
+completion tests pass.
+
+This is a source-only, same-host SQLite-pair tool. It has not touched the
+household collector or its state and does **not** capture the PostgreSQL
+action journal, policy/routes, signing authority, or an off-host recovery
+point. A coordinated stopped-collector journal/SQLite restore rehearsal and
+reviewed destination/retention still block release. `POLL_RELEASE_READY`
+remains false.
+
 ## September 27 source-only backlog checkpoint
 
 The disabled inbound collector now keeps a private, durable ledger of envelope

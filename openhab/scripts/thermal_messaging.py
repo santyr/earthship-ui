@@ -8,6 +8,7 @@ a relay, never read by the operator. Credentials are read only from environment.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
@@ -21,6 +22,7 @@ import time
 from urllib.parse import urlsplit
 
 import thermal_confirmation as t
+from thermal_state_backup import state_lock
 
 DEFAULT_NAK = Path('/home/sat/.local/bin/nak')
 DEFAULT_SHA256 = 'ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e'
@@ -744,7 +746,6 @@ def main(argv=None):
     parser.add_argument('--event-file', type=Path)
     parser.add_argument('--relay-auth', action='store_true', help='allow identity disclosure to approved relays via NIP-42')
     args = parser.parse_args(argv)
-    spool = outbox = None
     try:
         if args.poll_replies:
             require(POLL_RELEASE_READY, 'thermal inbox polling is not release-qualified')
@@ -763,39 +764,36 @@ def main(argv=None):
         routes = Routes(read_private(args.routes), policy, keyer)
         # No production journal write or relay publication until signer identity is verified.
         keyer.check_identity(policy.recipient)
-        spool = t.Spool(args.state_dir)
-        outbox = Outbox(args.state_dir)
-        delivery = Delivery(policy, routes, spool, outbox, keyer,
-                            Relay(keyer, policy.recipient, auth=args.relay_auth), t.JournalSink())
-        if args.send_prompts:
-            delivery.queue_prompts(datetime.now(timezone.utc))
-        if args.process_reply:
-            require(args.event_file is not None, '--process-reply requires --event-file')
-            delivery.receive(read_private(args.event_file))
-        poll = delivery.poll_replies() if args.poll_replies else {}
-        recovery = delivery.recover_acks()
-        result = delivery.flush()
-        for name, value in recovery.items():
-            result[name] += value
-        for name, value in poll.items():
-            result[name] = result.get(name, 0) + value
-        if args.poll_replies:
-            result['inbox_refusals'] = outbox.refusal_status(time.time())
-        result.update(version=1, operator_read_verified=False, production_ready=False)
-        print(t.canonical(result).decode())
-        return 3 if result['retryable'] or result['deferred'] or result.get('relay_failures') else (2 if result['withheld'] else 0)
+        with ExitStack() as stack:
+            stack.enter_context(state_lock(args.state_dir))
+            spool = t.Spool(args.state_dir)
+            stack.callback(spool.close)
+            outbox = Outbox(args.state_dir)
+            stack.callback(outbox.close)
+            delivery = Delivery(policy, routes, spool, outbox, keyer,
+                                Relay(keyer, policy.recipient, auth=args.relay_auth), t.JournalSink())
+            if args.send_prompts:
+                delivery.queue_prompts(datetime.now(timezone.utc))
+            if args.process_reply:
+                require(args.event_file is not None, '--process-reply requires --event-file')
+                delivery.receive(read_private(args.event_file))
+            poll = delivery.poll_replies() if args.poll_replies else {}
+            recovery = delivery.recover_acks()
+            result = delivery.flush()
+            for name, value in recovery.items():
+                result[name] += value
+            for name, value in poll.items():
+                result[name] = result.get(name, 0) + value
+            if args.poll_replies:
+                result['inbox_refusals'] = outbox.refusal_status(time.time())
+            result.update(version=1, operator_read_verified=False, production_ready=False)
+            print(t.canonical(result).decode())
+            return 3 if result['retryable'] or result['deferred'] or result.get('relay_failures') else (2 if result['withheld'] else 0)
     except t.Refused as error:
         print('thermal messaging refused: ' + str(error), file=sys.stderr)
         return 2
     except (t.Retryable, OSError, sqlite3.Error, ImportError, ValueError, KeyError):
         print('thermal messaging incomplete; retained state requires retry or repair', file=sys.stderr)
         return 3
-    finally:
-        if outbox is not None:
-            outbox.close()
-        if spool is not None:
-            spool.close()
-
-
 if __name__ == '__main__':
     raise SystemExit(main())
