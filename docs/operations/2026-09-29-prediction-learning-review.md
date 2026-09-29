@@ -245,6 +245,21 @@ as separate stages, then test their combined trough forecast on later
 qualified origins. Do not simply subtract the 20:00 drop at a 17:30 pre-dusk
 origin without forecasting the intervening period.
 
+An origin-safe shadow substitution used each morning record's original
+`overnight_drop_sample_days` entries as **ending dates**: each maps to the
+preceding prediction-day 20:00–11:00 target, already complete by the morning
+issue. Every substituted start-to-trough drop passed the same source-bound
+assessment, including its no-post-origin-row guard. Holding that morning's
+forecast dusk and cloud penalty fixed, replacing only `99 − minimum` with
+the mean of those earlier measured drops changed September 25–28 estimates
+from 63/73/71/46% to 65/77/75/50%, against actual 84/84/80/70%.
+Four-origin MAE fell from 16.25 to 12.75 points, but the September 25 and 28
+misses remained 19 and 20 points. This small, late-September shadow result is
+not a production calibration. The separate four-night *pre-dusk* counterfactual
+above actually worsened when the true 20:00 drop was substituted without
+modeling the intervening 17:30-to-20:00 trajectory. Morning and pre-dusk
+origin-specific models need independent chronological validation.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.
