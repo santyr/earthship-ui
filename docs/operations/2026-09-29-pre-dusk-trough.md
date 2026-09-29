@@ -125,3 +125,26 @@ The script deliberately reports `display_selection_verified=false` and
 `night_outcome_scored=false` even after an archive pass. After the natural
 timer firing, rerun this command, check the actual Energy display separately,
 and assess the following night only after its 11:00 MDT target window ends.
+
+## Source-only completed-night comparison command
+
+The same read-only verifier now accepts `--score-completed-night`. It first
+qualifies the one natural late issue, matching numeric JDBC write and original
+atomic SoC source, then waits for the following 11:00 MDT target window to
+close. Only then does it select one current physical bank epoch from the
+Solar_PV registry, assess that night's original SoC receipts in a restricted
+repeatable-read snapshot, and call the strict same-target morning/pre-dusk
+scorer. A missing or mismatched issue/outcome is withheld; before the first
+late issue it reports `pending_natural_issue` without reading the future
+outcome. The score is observational forecast accuracy, not an action reward.
+
+Run no earlier than September 30 11:05 MDT:
+
+```bash
+python3 scripts/qualify-pre-dusk-natural-issue.py --day 2026-09-29 --score-completed-night
+```
+
+The first natural issue, completed-night score, broader chronological validation and
+any scheduled scoring/learning job remain open. Fifty focused source-bound
+tests pass, including the physical bank selection and pre-outcome refusal;
+no production forecast Item, coefficient, timer or control was changed.

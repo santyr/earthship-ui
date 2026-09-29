@@ -5,7 +5,9 @@ import json
 
 import pytest
 
-from pre_dusk_release import NaturalIssueUnavailable, qualify_day
+from advisory_windows import trough_window
+from pre_dusk_release import (NaturalIssueUnavailable, NightScoreUnavailable,
+                              qualify_day, score_completed_day)
 from pre_dusk_tuning_history import MORNING_ITEM, PRE_DUSK_ITEM, NUMERIC_ITEM
 
 
@@ -93,3 +95,52 @@ def test_source_reader_must_return_exact_atomic_source():
     with pytest.raises(NaturalIssueUnavailable):
         qualify_day(get, lambda _: {**source(LATE), 'source_digest_sha256': 'b'*64},
                     day=DAY, now=NOW)
+
+
+def measured_night():
+    window = trough_window(DAY, 'America/Denver')
+    return {'assessment_version': 'atomic-soc-trough-v1',
+            'source': 'BMS_SOC_Evidence_JSON', 'site_timezone': 'America/Denver',
+            'prediction_day': DAY.isoformat(), 'status': 'measured',
+            'assessed_at': '2026-09-30T11:10:00-06:00',
+            'window_start': window.start.isoformat(),
+            'window_end': window.end.isoformat(),
+            'min_soc_pct': 84, 'observed_min_soc_pct': 84,
+            'coverage': 0.999, 'evidence_digest': 'b'*64}
+
+
+def test_completed_day_scores_same_original_issues_without_action_reward():
+    get, calls = archive()
+    assessed = datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)
+    result = score_completed_day(get, source,
+                                 lambda day, now: measured_night(),
+                                 day=DAY, now=assessed)
+    assert result['status'] == 'scored_completed_night'
+    assert result['night_outcome_scored'] is True
+    assert result['score']['absolute_error_improvement_pp'] == 28
+    assert result['score']['causal_reward_proven'] is False
+    assert calls == [MORNING_ITEM, PRE_DUSK_ITEM, NUMERIC_ITEM]
+
+
+def test_score_waits_for_completed_night_without_reading_outcome():
+    get, _ = archive()
+    result = score_completed_day(get, source,
+                                 lambda *_: pytest.fail('incomplete night'),
+                                 day=DAY, now=NOW)
+    assert result['status'] == 'pending_night_outcome'
+    assert result['night_outcome_scored'] is False
+
+
+def test_score_refuses_wrong_outcome_and_missing_natural_issue():
+    assessed = datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc)
+    get, _ = archive()
+    with pytest.raises(NightScoreUnavailable):
+        score_completed_day(get, source,
+                            lambda *_: {**measured_night(), 'prediction_day': '2026-09-28'},
+                            day=DAY, now=assessed)
+    get, _ = archive(late=(), numeric=())
+    result = score_completed_day(get, source,
+                                 lambda *_: pytest.fail('missing issue'),
+                                 day=DAY, now=assessed)
+    assert result['status'] == 'missing_natural_issue'
+    assert result['night_outcome_scored'] is False

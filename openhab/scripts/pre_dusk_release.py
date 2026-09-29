@@ -3,12 +3,18 @@
 from datetime import date, datetime, timezone
 import math
 
+from advisory_windows import trough_window
+from pre_dusk_tuning import PairUnavailable, score_pair
 from pre_dusk_tuning_history import (MORNING_ITEM, PRE_DUSK_ITEM, ZONE,
     IssueHistoryUnavailable, read_day_issues, read_numeric_day, select_pair)
 
 
 class NaturalIssueUnavailable(ValueError):
     """The natural issue, numeric write or original SoC input is unqualified."""
+
+
+class NightScoreUnavailable(ValueError):
+    """A natural issue and completed night cannot be paired for scoring."""
 
 
 def _instant(value):
@@ -20,7 +26,7 @@ def _instant(value):
     return at.astimezone(timezone.utc)
 
 
-def qualify_day(get, source_reader, *, day, now):
+def _qualified_with_receipts(get, source_reader, *, day, now):
     """Verify as-issued receipt, numeric history and exact source; never run it.
 
     `source_reader` must use a dedicated read-only snapshot of the original
@@ -36,10 +42,10 @@ def qualify_day(get, source_reader, *, day, now):
         mornings = read_day_issues(get, item=MORNING_ITEM, day=day)
         late_rows = read_day_issues(get, item=PRE_DUSK_ITEM, day=day)
         if not late_rows:
-            return {'status': 'pending_natural_issue' if day == now.astimezone(ZONE).date()
+            return ({'status': 'pending_natural_issue' if day == now.astimezone(ZONE).date()
                     else 'missing_natural_issue', 'prediction_day': day.isoformat(),
                     'morning_issue_count': len(mornings), 'pre_dusk_issue_count': 0,
-                    'display_selection_verified': False}
+                    'display_selection_verified': False}, None, None)
         morning, late = select_pair(mornings, late_rows)
         numbers = read_numeric_day(get, day=day)
         if len(numbers) != 1:
@@ -70,7 +76,7 @@ def qualify_day(get, source_reader, *, day, now):
                 or source.get('source_digest_sha256') != late['socEvidenceSha256']
                 or _instant(source.get('source_persisted_at')) > issued_at):
             raise ValueError('atomic source qualification missing')
-        return {'status': 'qualified_natural_issue',
+        return ({'status': 'qualified_natural_issue',
                 'prediction_day': day.isoformat(),
                 'morning_issued_at': morning_at.isoformat(),
                 'pre_dusk_issued_at': issued_at.isoformat(),
@@ -82,6 +88,31 @@ def qualify_day(get, source_reader, *, day, now):
                 'source_stream_epoch': source['source_stream_epoch'],
                 'source_digest_sha256': source['source_digest_sha256'],
                 'display_selection_verified': False,
-                'night_outcome_scored': False}
+                'night_outcome_scored': False}, morning, late)
     except (IssueHistoryUnavailable, KeyError, TypeError, ValueError, OverflowError):
         raise NaturalIssueUnavailable('pre-dusk natural issue unavailable') from None
+
+
+def qualify_day(get, source_reader, *, day, now):
+    """Verify a natural issue without returning raw forecast receipts."""
+    return _qualified_with_receipts(get, source_reader, day=day, now=now)[0]
+
+
+def score_completed_day(get, source_reader, outcome_reader, *, day, now):
+    """Score the immutable morning/pre-dusk pair only after its target closes."""
+    if not callable(outcome_reader):
+        raise NightScoreUnavailable('completed-night reader required')
+    try:
+        issue, morning, late = _qualified_with_receipts(
+            get, source_reader, day=day, now=now)
+        if issue['status'] != 'qualified_natural_issue':
+            return {**issue, 'night_outcome_scored': False}
+        if now.astimezone(timezone.utc) < trough_window(day, 'America/Denver').end:
+            return {**issue, 'status': 'pending_night_outcome'}
+        outcome = outcome_reader(day, now)
+        return {**issue, 'status': 'scored_completed_night',
+                'score': score_pair(morning, late, outcome),
+                'night_outcome_scored': True}
+    except (NaturalIssueUnavailable, PairUnavailable, KeyError, TypeError,
+            ValueError, OverflowError) as error:
+        raise NightScoreUnavailable('completed-night pair unavailable') from error
