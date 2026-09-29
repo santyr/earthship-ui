@@ -200,9 +200,9 @@ This is a UI decision, not permission to energize the motors.
 
 The September 29 rehearsal enables all, zone and individual vertical sliders,
 plus the all/zone Open and Close buttons, **only while all 27 Item mappings are
-absent**. Cards widen slightly to 56 CSS pixels (48 on compact landscape),
-with 36-pixel shade and zone touch targets (44 pixels for the master). The
-overlapping hit area preserves room for the drawn window. Active/focused cards
+absent**. Cards widen slightly to 56 CSS pixels (48 on compact landscape).
+The range input's hit area spans the full width of each vertical control
+container, including beside the drawn window. Active/focused cards
 and the live percentage provide touch feedback. A touch/pen drag captures the
 pointer, sets the percent from the full vertical track and keeps the native
 thumb aligned with that value; vertical slider drags do not scroll the page.
@@ -222,6 +222,8 @@ Individual cards use a restrained repeating palette of five slate-leaning
 tones, while Zone and All cards have stronger solid fills. Open/Close buttons
 show a brief pressed state after a preview tap; this is visual acknowledgement
 of the local/shared preview update, never a motor acknowledgement.
+The view and Open/Close buttons use solid, higher-contrast steel fills and
+borders so they remain visible against the dark control page on the tablet.
 
 ## Planned fine control and voice operation (not enabled)
 

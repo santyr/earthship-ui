@@ -37,6 +37,9 @@ for (const target of TARGETS) {
     await expect(page.getByText(/preview only · no shade commands/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open all' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Close all' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('background-color', 'rgb(45, 69, 84)');
+    await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('opacity', '1');
+    await expect(page.getByRole('button', { name: 'Kitchen + Living Room' })).toHaveCSS('background-color', 'rgb(55, 85, 104)');
     const master = page.getByRole('article', { name: 'All 27 shades: Local preview' });
     await expect(master).toBeVisible();
     await expect(master.locator('.position-value')).toHaveText(/^(?:\d{1,2}|100)%$/);
@@ -71,14 +74,19 @@ for (const target of TARGETS) {
             width: box.width, scrollWidth: card.scrollWidth, clientWidth: card.clientWidth };
         });
         const window = document.querySelector('.shade-grid .window-glass').getBoundingClientRect();
+        const control = document.querySelector('.shade-grid .window-control').getBoundingClientRect();
         const slider = document.querySelector('.shade-grid input[type="range"]').getBoundingClientRect();
         const master = document.querySelector('.master-card').getBoundingClientRect();
+        const masterControl = document.querySelector('.master-card .window-control').getBoundingClientRect();
         const masterSlider = document.querySelector('.master-card input[type="range"]').getBoundingClientRect();
         return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
           pageHeight: pageLayout.clientHeight, pageScrollHeight: pageLayout.scrollHeight,
-          cards, window: { width: window.width, height: window.height }, sliderHeight: slider.height, sliderWidth: slider.width,
+          cards, window: { width: window.width, height: window.height }, controlWidth: control.width,
+          sliderHeight: slider.height, sliderWidth: slider.width,
           master: { left: master.left, right: master.right, top: master.top, bottom: master.bottom },
-          masterSliderHeight: masterSlider.height, masterSliderWidth: masterSlider.width,
+          masterControlWidth: masterControl.width, masterSliderHeight: masterSlider.height, masterSliderWidth: masterSlider.width,
+          allSlidersFillControls: [...document.querySelectorAll('.window-control input[type="range"]')]
+            .every((input) => Math.abs(input.getBoundingClientRect().width - input.parentElement.getBoundingClientRect().width) < 1),
           vertical: getComputedStyle(document.querySelector('.shade-grid input[type="range"]')).writingMode,
           truncatedCardLabels: [...document.querySelectorAll('.card-name')]
             .filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent) };
@@ -89,8 +97,9 @@ for (const target of TARGETS) {
       expect(geometry.cards.every((card) => card.scrollWidth <= card.clientWidth)).toBe(true);
       expect(geometry.cards.every((card) => card.width <= (target.width < 900 ? 49 : 57))).toBe(true);
       expect(geometry.window.width).toBe(target.width < 900 ? 16 : 18);
-      expect(geometry.sliderWidth).toBe(36);
-      expect(geometry.masterSliderWidth).toBe(44);
+      expect(Math.abs(geometry.sliderWidth - geometry.controlWidth)).toBeLessThan(1);
+      expect(Math.abs(geometry.masterSliderWidth - geometry.masterControlWidth)).toBeLessThan(1);
+      expect(geometry.allSlidersFillControls).toBe(true);
       expect(geometry.window.height).toBeGreaterThanOrEqual(75);
       expect(geometry.sliderHeight).toBeGreaterThanOrEqual(75);
       if (target.name === 'lenovo-m9') expect(geometry.sliderHeight).toBeGreaterThanOrEqual(180);
@@ -237,17 +246,17 @@ test('Lenovo touch input moves a preview shade without sending a command', async
   const slider = kitchen.getByRole('slider', { name: 'Kitchen Shade 01 local preview percent open' });
   const box = await slider.boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(180);
-  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.15);
+  await page.touchscreen.tap(box.x + 2, box.y + box.height * 0.15);
   const high = Number(await slider.inputValue());
   expect(high).toBeGreaterThan(75);
   await expect(kitchen.locator('.position-value')).toHaveText(`${high}%`);
-  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.85);
+  await page.touchscreen.tap(box.x + box.width - 2, box.y + box.height * 0.85);
   const low = Number(await slider.inputValue());
   expect(low).toBeLessThan(25);
   await expect(kitchen.locator('.position-value')).toHaveText(`${low}%`);
   await page.setViewportSize({ width: 800, height: 600 });
   const dragBox = await slider.boundingBox();
-  const dragX = dragBox.x + dragBox.width / 2;
+  const dragX = dragBox.x + 2;
   const dragY = dragBox.y + dragBox.height * 0.8;
   const initialScroll = await page.locator('.shades-page').evaluate((element) => element.scrollTop);
   const cdp = await context.newCDPSession(page);
@@ -266,6 +275,22 @@ test('Lenovo touch input moves a preview shade without sending a command', async
   expect(dragValues.at(-1)).toBeGreaterThan(65);
   expect(dragValues.every((value, index) => index === 0 || value >= dragValues[index - 1])).toBe(true);
   await expect(kitchen.locator('.position-value')).toHaveText(`${dragValues.at(-1)}%`);
+  const rightX = dragBox.x + dragBox.width - 2;
+  const rightStartY = dragBox.y + dragBox.height * 0.2;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: rightX, y: rightStartY, id: 2 }] });
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  const rightDragValues = [Number(await slider.inputValue())];
+  for (const offset of [25, 50, 75, 100]) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: rightX, y: rightStartY + offset, id: 2 }] });
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+    rightDragValues.push(Number(await slider.inputValue()));
+    await expect(kitchen.locator('.position-value')).toHaveText(`${rightDragValues.at(-1)}%`);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  expect(rightDragValues[0]).toBeGreaterThan(65);
+  expect(rightDragValues.at(-1)).toBeLessThan(35);
+  expect(rightDragValues.every((value, index) => index === 0 || value <= rightDragValues[index - 1])).toBe(true);
   expect(await page.locator('.shades-page').evaluate((element) => element.scrollTop)).toBe(initialScroll);
   expect(writes).toEqual([]);
   await context.close();
