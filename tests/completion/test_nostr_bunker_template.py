@@ -41,6 +41,22 @@ def test_launcher_never_puts_secret_in_arguments_or_uses_project_fallback():
     assert 'lightning-goats-nostr.key' not in launcher
 
 
+def test_earthship_instance_selects_only_approved_sat_client():
+    config = (DEPLOY / 'earthship-operator.env.example').read_text()
+    settings = [line for line in config.splitlines()
+                if line and not line.startswith('#')]
+    assert settings == [
+        ('BUNKER_AUTHORIZED_CLIENTS="'
+         '5302cd2bfe2dcc76c5a9abcba74e6c5f1a07444b35c25e0cd74bac5b453fb5f6"'),
+        ('BUNKER_RELAYS="wss://nos.lol wss://relay.primal.net '
+         'wss://relay.damus.io"'),
+        ('NAK_SHA256='
+         'ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e'),
+    ]
+    assert '4bf9fcbda64b18e885ce04d593c37264d3561a1baf3adb8c3fe01b1a8bc7edde' not in config
+    assert '669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6' not in config
+
+
 def test_operator_helpers_are_offline_by_default_and_keep_secret_out_of_argv():
     verifier = DEPLOY / 'verify-earthship-operator-credential'
     publisher = DEPLOY / 'publish-earthship-operator-route'

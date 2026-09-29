@@ -17,6 +17,12 @@ event was republished without a private key and verified on all three. The
 thermal collector is still off: a reviewed private prompt policy, complete
 route snapshot, backup/recovery, and attended NIP-17 action-confirmation trial
 remain open. Route repair does not change signer custody.
+Sat's NIP-46 client public key is selected in a source-only instance example,
+but no local bunker is installed or started. The password-store bunker pubkey
+differs from the verified operator identity; the current `nak` launcher has no
+separate transport-key setting. Bunker identity and client compatibility must
+be resolved before a live signer trial; client-key selection alone does not
+release the thermal collector.
 
 September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
 trial completed two short prompts in under four seconds each, establishing

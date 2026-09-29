@@ -425,6 +425,18 @@ operator-key custody. Each instance needs its own encrypted key and explicit
 client allowlist; the Hex collector must not be granted the operator signer
 merely to publish the operator's kind-10050 inbox announcement.
 
+Later September 29, the operator selected Sat's public key
+`5302cd2bfe2dcc76c5a9abcba74e6c5f1a07444b35c25e0cd74bac5b453fb5f6`
+as the only proposed Earthship NIP-46 client. The deployable public instance
+example records that choice; it has not been installed or started. A separate
+password-store entry described as the bunker pubkey,
+`4bf9fcbda64b18e885ce04d593c37264d3561a1baf3adb8c3fe01b1a8bc7edde`,
+does not equal the verified operator signing pubkey
+`669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6`.
+The current `nak bunker` template has no separately configured transport key.
+Resolve which bunker identity Sat's client expects before installing or
+activating the service. This does not alter the verified operator inbox route.
+
 ## Earlier configured-keyer check
 
 September 23 host readback: the configured-keyer self-check completed with

@@ -12,9 +12,12 @@ reported provisioning the original operator key as a mode-0600, root-owned
 systemd-encrypted credential on this host. A root-run, offline check of the
 installed verifier reported that the credential derives to the existing DM
 recipient; the verifier's installed bytes and the qualified root-owned `nak`
-both matched their reviewed source/digest. The authorized NIP-46 client key
-is still not provisioned. No thermal listener or question should be enabled
-because this template or credential exists.
+both matched their reviewed source/digest. The operator selected Sat's public
+client key `5302cd2bfe2dcc76c5a9abcba74e6c5f1a07444b35c25e0cd74bac5b453fb5f6`
+for the Earthship signer. It is recorded in `earthship-operator.env.example`,
+but no client was allowlisted on the host and no signer unit was installed or
+started. No thermal listener or question should be enabled because this
+template or credential exists.
 The operator subsequently named `npub1v60thnx0gz0wq3n6xdnq46y069l9x70xgmjp6lprdl6fv0eux6mqgjj4rp`
 as the intended DM recipient. A read-only public-key comparison confirmed
 that this npub matches OpenHAB's current configured DM recipient. The later
@@ -31,6 +34,21 @@ who obtains the entire unencrypted drive. Keep the original key's separate
 offline backup and review full-disk encryption or hardware-backed credentials
 before exposing this signer beyond the local household. Do not mistake mode
 0600 for disk-at-rest encryption.
+
+The password-store key described as the old bunker pubkey,
+`4bf9fcbda64b18e885ce04d593c37264d3561a1baf3adb8c3fe01b1a8bc7edde`,
+is neither Sat's selected client key nor the verified operator user pubkey
+`669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6`.
+NIP-46 permits a separate remote-signer transport identity, but this `nak`
+template uses the credential supplied through `NOSTR_SECRET_KEY` for its
+bunker identity. Do not start the instance or offer a bunker URI until the
+operator chooses whether to use the verified operator key for both roles or
+qualifies a separate transport-key implementation. Sat's client allowlist
+selection does not resolve that identity choice. The installed
+`nak bunker --authorized-keys` option describes clients for which it will
+always respond, not a narrow permission for inbox announcements. Treat a
+selected client as able to request signing and decryption until a separate
+permission boundary is qualified.
 
 ### Offline identity verification
 
