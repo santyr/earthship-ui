@@ -156,3 +156,20 @@ remains. The actual vent state was not verified, so this is a schedule
 sensitivity bound, not an action label or evidence to apply a correction.
 The temporary extraction was removed after verification; the private
 source/evidence archive remains intact.
+
+## September 29 04:29 MDT current-artifact checkpoint
+
+The installed-v4 scorer again required exact archived forcing and qualified
+indoor outcomes, selecting publications after the September 28 accepted
+artifact was created. Its ten independent one-hour targets score model versus
+same-origin persistence MAE **0.302/0.036°F** (eight persistence wins); eight
+overlapping six-hour targets score **1.2774/0.3600°F** (all eight persistence
+wins). The three independent six-hour windows score **1.4253/0.3000°F**.
+Every scored publication is low-confidence. No current-artifact 24-hour target
+has matured at this checkpoint; the first can be checked after its September
+29 morning target and the five-minute outcome margin. A separate recent
+mixed-revision 24-hour read scored 40 overlapping pairs at 2.441/2.5425°F,
+but only four independent windows (3.412/2.070°F), so its overlapping average
+does not demonstrate a release-quality improvement. No model, assumption,
+advice, control or action label changed. Keep shadow-only pending independent
+current-artifact 24-hour, confirmed-action and approved-threshold evidence.
