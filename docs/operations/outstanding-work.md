@@ -429,6 +429,16 @@ Docker rejected against a read-only root; it was stopped and replaced by the
 read-only bind-mount rehearsal. Both owned containers and volumes were removed.
 No production weather/OpenHAB process or configuration changed. Retain the
 provider/link and natural HTTP/JDBC gates before declaring live collection.
+The [guarded live rain activation](2026-09-28-rain-evidence-activation.md)
+subsequently installed exact receiver modules/private policy and hot-loaded
+file-owned rain Thing/Item definitions without an OpenHAB restart. A single
+sat-owned Gunicorn HUP reloaded the weather worker; the original three
+temperature streams recovered valid. The new HTTP Thing is ONLINE with a
+READONLY String channel, and the first four natural JDBC rows pass strict
+receipt parsing in one epoch with zero fault latches. This closes initial
+collection activation, not a complete day, source fault/restart qualification
+or learner cutover. Item657 maps to `public.item0657`, for which the restricted
+day reader has no SELECT; no grant or precipitation scoring change was made.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
