@@ -2,6 +2,23 @@
 
 ## September 28 inbound backlog review
 
+September 29 attended household signer update: the approved Sat NIP-46 client
+completed a remote signing challenge against the root Earthship operator
+bunker. The labelled kind-1 test event
+`fac909b6c4bf8dbbdc30e551f410c717a0bcd1d94c25f5eb96bfb3b976c94cf6`
+was independently signature-, author-, and content-verified on two of the
+three approved relays. A separate fresh kind-10050 read returned both exact
+signed operator and Hex inbox announcements from all three relays. This
+qualifies the tested client-to-bunker signature path. Fresh copies of the
+announcements passed the collector's actual `Routes` validator with the pinned
+verifier, but no private route snapshot has yet been approved or installed.
+It does not exercise a signed NIP-17 confirmation, the private
+collector policy, PostgreSQL journal, consistent recovery or hostile backlog;
+`POLL_RELEASE_READY` remains false and no collector service was started.
+Focused bunker/messaging regressions passed 85 tests using the previously
+documented cached `websockets` 15.0.1 package via temporary `PYTHONPATH`;
+the system Python alone lacks `websockets.sync`. No package was installed.
+
 The source-only collector remains release-gated. Its current relay query asks
 for at most 64 kind-1059 events over up to four days, waits for EOSE, and
 refuses a page of exactly 64 events. This prevents an obviously truncated

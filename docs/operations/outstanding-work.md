@@ -36,6 +36,21 @@ kind-10050 event on all three relays but Hex's almost six-day-old event missing
 again from nos.lol. The exact previously signed Hex event was republished
 without a private key and verified by immediate readback. Relay retention is
 unproven; both signed routes must be rechecked just before any household trial.
+The operator subsequently ran the attended Sat-client NIP-46 challenge. Its
+one labelled public test note, event
+`fac909b6c4bf8dbbdc30e551f410c717a0bcd1d94c25f5eb96bfb3b976c94cf6`,
+was independently fetched and signature/author/content-checked on nos.lol and
+relay.primal.net; relay.damus.io returned none (2/3). The root operator bunker
+is still `active/running`, boot-enabled, with stable PID and zero restarts.
+A fresh read-only kind-10050 check found both the operator's exact signed
+event `defe6a85...20d2` and Hex's exact signed event `f75b3a5f...6c84`
+on **all three** approved relays with the approved three endpoint tags.
+Fresh copies of those events also passed the collector's actual `Routes`
+validator with the pinned `nak` verifier and the approved two identities.
+This closes the client-to-bunker signer challenge and current public route
+format/readback, not the private reviewed prompt-policy/snapshot, journal-plus-SQLite
+recovery, genuine NIP-17 reply/ack trial, relay-retention/liveness, or
+unattended polling gates. No thermal collector or control was enabled.
 
 September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
 trial completed two short prompts in under four seconds each, establishing

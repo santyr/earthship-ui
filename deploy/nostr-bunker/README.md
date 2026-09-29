@@ -152,12 +152,18 @@ identity, stop it immediately with
 `sudo systemctl stop nostr-bunker@earthship-operator.service` and report the
 status fields. A healthy service is not proof that Sat's client possesses
 `5302...b5f6`; perform a separate NIP-46 `get_public_key`/signed challenge
-through the approved client before considering a persistent enable or any
-thermal confirmation release. Do not inspect or share `nak`'s suppressed
+through the approved client before any thermal confirmation release. Do not
+inspect or share `nak`'s suppressed
 request/response output.
 
-The September 29 attended start passed the service-liveness check, but the
-approved Sat client has not yet completed that challenge. The host user's
+The September 29 attended start passed the service-liveness check. The Sat
+client subsequently completed the challenge: the helper reported a signed
+operator test note, and independent read-only signature/author/content/event-ID
+checks found event `fac909b6c4bf8dbbdc30e551f410c717a0bcd1d94c25f5eb96bfb3b976c94cf6`
+on nos.lol and relay.primal.net, but not relay.damus.io (2/3). The bunker
+remained active/running with zero restarts and boot enablement on. This proves
+the attended Sat-client signing path, **not** NIP-17 confirmation ingress,
+journal storage/recovery, or unattended thermal-collector readiness. The host user's
 default `nak` identity derives to a **different** public key, so running a
 client command with default credentials would not test the allowlisted client.
 The `nostr-bunker@earthship-operator` unit stores only the operator signing
@@ -211,8 +217,8 @@ It prints only a pass/fail summary and the public test event ID; it neither
 stores the key nor runs a thermal question or control. A local key match alone
 or an active service does not count as challenge completion. Keep the terminal
 private; the nsec is briefly present in the client process environment.
-Do not use Hex's sender key as a substitute. The operator has already enabled
-this service at boot before completing the challenge. Do not treat boot
+Do not use Hex's sender key as a substitute. The operator enabled this service
+at boot before completing the challenge. Do not treat boot
 enablement as an authentication or thermal release gate. If the service fails,
 restarts unexpectedly, or presents another identity, stop the instance; do
 not expose a bunker URL or credential to diagnose it in chat or logs.
