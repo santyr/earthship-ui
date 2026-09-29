@@ -144,3 +144,15 @@ has two current-revision pairs, model/persistence MAE 1.4445/0.0900°F.
 All scored publications were low-confidence shadow outputs. This adds a
 current-revision lead-time diagnostic, not a 24-hour score, action label,
 weather-offset justification, model retune or shadow-exit evidence.
+
+The selected independent 12-hour origin at 08:20 MDT was then replayed from
+the verified accepted-source bundle
+`thermal-replay-source-20260929T014041Z.tar.gz`, not the newer training-only
+installed runtime. The archived v2 capture replayed its issued output
+exactly. An in-memory assumed-closed vent schedule raised the 20:00 MDT
+12-hour forecast from 68.039°F to 68.249°F, only +0.210°F; against the
+qualified 68.900°F outcome, about 0.651°F of the original 0.861°F low miss
+remains. The actual vent state was not verified, so this is a schedule
+sensitivity bound, not an action label or evidence to apply a correction.
+The temporary extraction was removed after verification; the private
+source/evidence archive remains intact.
