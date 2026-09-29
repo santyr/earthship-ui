@@ -255,6 +255,15 @@ parser now also converts malformed Unicode and unhashable reason fields into
 explicit refusal. All 27 pure/transport/real-SQL BMS auxiliary tests pass.
 This closes only the isolated database transport gate; no production Item,
 role grant, rule, or Energy quality publication was changed.
+The existing networkless OpenHAB 5.2.1 rule harness now accepts the disabled
+`bms-aux` candidate. It loaded the exact file-owned Item source and JSS/Graal
+bundles, compiled the rule, registered all eight triggers, ran once and
+returned to IDLE with both fields `source_unavailable` as expected without
+physical Things or JDBC. Its labeled container/tmpfs were removed, and live
+OpenHAB still returned 404 for both `BMS_Aux_Evidence_JSON` and
+`hex_bms_aux_evidence`. This closes isolated script/bootstrap qualification,
+not physical-event, explicit-persistence, provider-restart or consumer release
+gates.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`

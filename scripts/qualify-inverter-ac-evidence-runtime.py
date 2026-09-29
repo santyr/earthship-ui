@@ -39,6 +39,15 @@ CANDIDATES = {
         'basis': 'mppt60_native_pv_day_wh', 'field': 'mppt60.pv_day_wh',
         'warning': 'MPPT60 PV evidence persistence enqueue failed',
     },
+    'bms-aux': {
+        'item': 'BMS_Aux_Evidence_JSON',
+        'source': ROOT / 'openhab/rules/bms-aux-evidence.js',
+        'item_source': ROOT / 'openhab/file-config/items/bms-aux-evidence.items',
+        'resource': ROOT / 'openhab/bms-aux-evidence-resources.json',
+        'basis': 'discover_bms_190_native_aux_v1',
+        'fields': ('battery.remaining_ah', 'battery.temperature_raw'),
+        'warning': 'BMS auxiliary evidence persistence enqueue failed',
+    },
 }
 
 
@@ -251,9 +260,10 @@ def main(kind='ac', *, installed_control=False):
             body = None
         log = run(['docker', 'exec', container, 'cat',
                    '/openhab/userdata/logs/openhab.log']).decode(errors='replace')
+        expected_fields = candidate.get('fields') or (candidate['field'],)
         item_receipt = (isinstance(body, dict) and body.get('basis') == candidate['basis']
-                        and body.get('fields', {}).get(candidate['field'], {}).get('reason')
-                        == 'source_unavailable')
+                        and all(body.get('fields', {}).get(field, {}).get('reason')
+                                == 'source_unavailable' for field in expected_fields))
         logger_receipt = candidate['warning'] in log
         if not (item_receipt or logger_receipt):
             print('isolated_item_status=' + str(status), flush=True)
