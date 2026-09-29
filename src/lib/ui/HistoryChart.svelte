@@ -75,7 +75,7 @@
     unavailableCount = 0;
     timedOutCount = 0;
     errorMessage = '';
-    staleHistory = false;
+    if (!preserve) staleHistory = false;
     if (!chart) loadState = 'loading';
 
     const client = getClientOnce();
@@ -117,6 +117,10 @@
     timedOutCount = result.errors.filter(
       ({ error }) => error?.code === 'history-request-timeout',
     ).length;
+    if (preserve && chart && result.errors.length) {
+      staleHistory = true;
+      return;
+    }
     if (result.state === 'error') {
       errorMessage = result.errors[0]?.error?.message || 'History request failed';
       if (chart) staleHistory = true;
@@ -129,6 +133,7 @@
     }
     latestResults = result.pointsPerSeries;
     latestSeries = seriesList;
+    staleHistory = false;
     loadState = result.state;
     if (result.state === 'empty') return;
 
@@ -136,10 +141,11 @@
     if (controller.signal.aborted || myGen !== loadGen || !el) return;
     const echarts = await getEcharts();
     if (controller.signal.aborted || myGen !== loadGen || !el) return;
-    if (!chart) chart = echarts.init(el, null, { renderer: 'svg' });
+    const createdChart = !chart;
+    if (createdChart) chart = echarts.init(el, null, { renderer: 'svg' });
     const parent = el.parentElement;
     renderLatest(parent?.clientWidth || el.clientWidth || 320);
-    if (chart && parent && !preserve) {
+    if (chart && parent && createdChart) {
       stopObserving = observeElementSize(parent, ({ width }) => {
         if (width > 0 && Math.abs(width - latestWidthPx) >= 8) renderLatest(width);
         else chart?.resize();
