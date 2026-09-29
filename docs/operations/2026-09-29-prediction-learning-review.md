@@ -211,6 +211,40 @@ job was needed for these read-only checks. The first natural same-day pair,
 its completed following-night outcome, and longer chronological/seasonal
 comparisons remain open.
 
+### Origin-paired morning trough divergence
+
+A read-only September 20–28 audit paired archived morning prediction receipts
+with the same source-bound completed-night assessor. No receipt was persisted
+for September 20–23, so those four measured nights are **not** treated
+as archived morning issues. September 24–28 each had one immutable morning
+receipt and a measured night with 99.990–99.992% coverage. Their issued versus
+actual troughs were 58/77, 63/84, 73/84, 71/80 and 46/70 percent: five
+negative errors and 16.8 percentage points mean absolute error. This is an
+as-issued warm-season baseline, not a model-release holdout.
+
+For September 25–28, the frozen morning state also retained the forecast dusk
+SoC and overnight-drop proxy; each record's issue timestamp and trough matched
+its sole persisted receipt exactly. Exact 20:00 SoC was read from valid
+source-bound intervals, not a held numeric Item. Decomposing against the
+assessor's 20:00–11:00 minima gives:
+
+| Day | Forecast dusk / actual 20:00 SoC | Forecast / actual 20:00-to-minimum drop | Morning trough error |
+| --- | ---: | ---: | ---: |
+| Sep 25 | 78.4 / 96% | 15.7 / 12 pp | −21 pp |
+| Sep 26 | 93.4 / 97% | 20.0 / 13 pp | −11 pp |
+| Sep 27 | 90.7 / 92% | 19.7 / 12 pp | −9 pp |
+| Sep 28 | 64.8 / 83% | 19.3 / 13 pp | −24 pp |
+
+The drop proxy overestimated every qualified night's actual 20:00 decline
+by 3.7–7.7 points. The forecast dusk value was also below the actual 20:00
+reference, particularly on September 25 and 28 (about 18 points). Since
+20:00 is later than sunset, that comparison includes late-afternoon and early-
+evening trajectory error; it does **not** isolate a causal PV coefficient
+error. Tune the daytime/early-evening SoC path and the overnight-drop model
+as separate stages, then test their combined trough forecast on later
+qualified origins. Do not simply subtract the 20:00 drop at a 17:30 pre-dusk
+origin without forecasting the intervening period.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.
