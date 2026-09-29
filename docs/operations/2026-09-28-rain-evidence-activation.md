@@ -256,3 +256,26 @@ north-wall, outdoor and rain receipts; the new rain epoch had zero jump/drop
 latches at readback. The next rejected spike's expanded metadata is still
 pending. This reload adds another September 29 source-epoch barrier; no rain
 day is newly qualified and the temporary diagnostic must be removed later.
+
+At 01:01:45 MDT the expanded diagnostic captured the same 18.608-inch rain
+spike from ID 206/`Fineoffset-WH24`. Relative to the previous accepted
+packet, temperature was −0.18°F, humidity and solar radiation unchanged,
+wind direction +2°, average/gust speed +2.67/+2.73 mph, UV unchanged and
+battery status unchanged. The collector rejected it and recovered to the
+unchanged 102.7497945-inch accepted counter with one jump, zero drops.
+Those ordinary wind variations do not identify a second transmitter or prove
+an RF decoder fault. The normal receipts canonicalize the model name, so the
+previous *raw* model was not retained for comparison.
+
+Commit `30a11c4` adds only `previous_model` to the same bounded, expiring
+diagnostic; 28 adjacent receiver tests passed. After confirming all three
+temperature streams and rain valid, the exact prior module SHA-256
+`102cfaeb18e4a65722534df0c0226619d421b15a55ec86f886fae28c51f2aa4c`
+was copied privately to
+`/home/sat/.local/state/weather-rain-model-AROhZG/`. Atomic installation and
+one HUP kept Gunicorn master PID 1607215. Source/runtime SHA-256 now both equal
+`b62895777adbab63642311ddf18eddfed09792b73b36e9725e44ae600cf38d51`;
+natural indoor, north-wall, outdoor and rain receipts are all valid with zero
+new rain fault latches. The next natural spike is needed to compare raw model
+names. This is another deliberate observational epoch reset, not a daily
+rain-qualification or production learner cutover.
