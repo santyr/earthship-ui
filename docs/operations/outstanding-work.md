@@ -374,6 +374,15 @@ JDBC, daily qualification or forecast learner. Rain scoring remains legacy
 and must not be described as coverage-qualified. Next: persist source-bound
 counter receipts with restart/expiry barriers, qualify complete local-day
 coverage and reset/glitch behavior, then migrate scoring without fallback.
+An additive `weather_rain_receiver.py` now provides a default-off,
+localhost-only `/rain_evidence` endpoint around that strict parser. It uses
+an explicit owner-only rain policy, a per-process epoch, monotonic expiry and
+invalid barriers while leaving the existing `/weather` response and saved
+receiver state untouched. Actual-receiver parity and the broader weather /
+forecast slice passed (283 tests, one skip). The WSGI hook is source-only;
+`WEATHER_RAIN_EVIDENCE_ENABLE` is not set in production. This closes the
+volatile acquisition-contract implementation, not durable collection,
+source-bound day totals or learning release.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse

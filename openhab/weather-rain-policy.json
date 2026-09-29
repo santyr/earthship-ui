@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "sensor_id": 206,
+  "validity_seconds": 120,
+  "maximum_counter_in": 100000.0
+}
