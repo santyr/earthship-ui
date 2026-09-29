@@ -516,6 +516,15 @@
       "source": "automation/js/update_days_until_season.js",
       "destination": "/etc/openhab/automation/js/update_days_until_season.js",
       "state_writer": "DaysUntilNextSeason"
+    },
+    {
+      "kind": "rule",
+      "id": "sky-condition-calculator",
+      "provider": "file",
+      "migration": "provisional",
+      "source": "automation/js/sky-condition-calculator.js",
+      "destination": "/etc/openhab/automation/js/sky-condition-calculator.js",
+      "state_writer": "SkyCondition, SkyConditionIcon, SkyCondition_LastEval, SkyCondition_Diagnostic"
     }
   ]
 }

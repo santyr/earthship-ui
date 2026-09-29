@@ -50,8 +50,11 @@ The [sky-condition display rule candidate](2026-09-29-sky-condition-rule-file-ca
 now preserves its four change triggers, two-minute timer and change-only
 display calculation in a staged JS file. Five focused behavior tests and an
 isolated managed/file/managed OpenHAB provider rehearsal pass; the owned test
-container was removed. Production remains managed pending a sky-specific
-guarded handoff and natural timer output check.
+container was removed. A guarded no-restart live handoff then made the file
+the sole provider, preserving the five triggers and display state. Ownership
+is provisional: the 05:34 natural post-install timer and diagnostic were
+attributed to the file script and passed. A later full-restart check remains;
+the managed backup is retained privately.
 
 ## Standing efficiency requirement — September 26, 2026
 

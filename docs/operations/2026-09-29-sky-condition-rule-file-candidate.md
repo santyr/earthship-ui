@@ -28,10 +28,32 @@ container and volumes were removed. Production readback remained
 `editable=true`, `IDLE/NONE`, with five triggers; the watched sky file was
 absent. No production output or control changed.
 
-Before a live cutover, add a sky-specific guarded backup and rollback adapter,
-recheck the pinned live/script hashes and all output Item identities, and
-transfer the single writer without overlap or OpenHAB restart. Verify one
-file-owned rule and the next natural two-minute invocation against expected
-SkyCondition/Icon and rate-limited diagnostic values. Only then add a
-provisional ownership manifest entry; keep the private managed rollback until
-natural and restart checks pass. No live cutover is claimed here.
+## Guarded live handoff — 05:32 MDT
+
+The existing display-rule handoff adapter was parameterized for exact sky
+identity, source hashes, all five triggers, eleven input/output Item types and
+the two stable output states. Four offline success/rollback tests pass for
+both display rules. Its read-only sky `--check` passed against the managed
+production rule. The guarded `--apply` saved the exact managed JSON at
+`/home/sat/.local/state/sky-rule-vxz_cwr2/managed-rule.json` (directory
+0700, file 0600), removed the managed provider, and atomically installed the
+Git file. Independent REST readback found one `sky-condition-calculator` rule
+with `editable=false`, `IDLE/NONE`, all four Item-change triggers and the
+unchanged two-minute cron, exact installed SHA-256 and active OpenHAB. The
+display remained `TWILIGHT` with the current sunrise icon, consistent with
+`Sun_SunPhaseName=ASTRO_DAWN` and theoretical radiation zero. The ownership
+manifest is provisionally file-owned. No whole-OpenHAB restart, fabricated
+Item event, or control change occurred.
+Restricted read-only JDBC registry lookup still maps `SkyCondition` to Item
+172, `SkyConditionIcon` to 173, `SkyCondition_LastEval` to 540 and
+`SkyCondition_Diagnostic` to 541. No Item was recreated by this rule handoff.
+
+The 05:32 `SkyCondition_LastEval` post preceded the file's 05:32:41 install;
+it was **not** proof of the file rule executing. The natural 05:34 timer then
+posted `SkyCondition_LastEval` at 05:34:00.254, and `events.log` attributed
+that state change and the rate-limited diagnostic change specifically to
+`org.openhab.automation.jsscripting$file:sky-condition-calculator.js`.
+The unchanged `TWILIGHT` condition and sunrise icon were correctly not
+reposted. The rule remained `IDLE/NONE`. This closes the natural post-file
+timer/diagnostic gate; a later full restart still needs verification. Retain
+the private managed rollback until that check passes.

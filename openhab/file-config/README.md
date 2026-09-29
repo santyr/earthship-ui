@@ -64,6 +64,12 @@ managed-rollback rehearsal plus a guarded live handoff. Its next natural
 state-change output and later restart check remain open; retain the private
 managed-rule backup until both pass. See the
 [rule cutover receipt](../../docs/operations/2026-09-29-season-countdown-rule-file-candidate.md).
+The display-only `sky-condition-calculator` rule is also provisionally
+file-owned in `automation/js/sky-condition-calculator.js`; its isolated
+managed/file/managed rehearsal, five-trigger live handoff and rollback backup
+are recorded in the [sky receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
+Its first natural post-install timer and diagnostic passed. A later restart
+check remains open.
 
 ## Staged migration and rollback
 
