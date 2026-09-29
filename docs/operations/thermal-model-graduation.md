@@ -249,3 +249,32 @@ reported the current independent-window miss (model 6.286°F versus persistence
 0.54°F), low confidence, and both unscored action/threshold gates. The next
 natural shadow timer and later matured qualified outcomes remain observational
 checkpoints; no model, publisher, control, or advisory mode was changed.
+
+## September 29 residual-bias diagnostic
+
+The accepted September 28 chronological backtest still has 119 paired 24-hour
+air folds and is worse than persistence in all three regimes: shoulder
+2.272/1.497°F, warm 1.927/1.734°F, and winter 2.375/1.759°F model/persistence
+MAE. A read-only exploratory check sorted those 119 records by issue time,
+reserved the last 36 origins (June 26–September 10), and, at each reserved
+origin, subtracted the mean model residual from the last 30 earlier records
+whose targets had already matured. Both a global correction and a same-regime
+correction required at least eight matured records. On the same 36 holdout
+origins, raw model MAE was 1.884°F, versus 2.055°F after global correction and
+2.093°F after regime correction; same-origin persistence and recent-cycle
+baselines were 1.546°F and 1.633°F. A simple rolling signed-bias adjustment
+therefore worsened this diagnostic rather than closing the 24-hour gap.
+These records are part of an artifact already selected using its backtest, so
+the split is exploratory, **not an untouched release test**. No learned
+coefficient, forecast, interval, schedule, or shadow policy was changed.
+
+The capture-strict operational scorer at about 06:10 MDT found 58 overlapping
+mature 24-hour pairs but only five greedy non-overlapping windows across
+mixed model revisions. Their model/persistence MAE was 3.344/2.340°F, with
+60% nominal interval coverage; 11 captured targets were not yet due. The
+latest accepted `53d96e5e9637` revision had no mature 24-hour pair yet; the
+five overlapping pairs under another captured artifact yield only one
+independent pair. This adds evidence against graduation, not enough
+current-artifact support to estimate a deployable correction. Prioritize
+action-state evidence and physical/lead-time diagnosis over a global residual
+offset.
