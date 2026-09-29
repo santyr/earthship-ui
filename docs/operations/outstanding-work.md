@@ -342,6 +342,14 @@ disposable PostgreSQL restricted-role integration pass; revoked SELECT on
 either exact table refuses parity, and the owned test container was removed.
 The production Item 658 grant, first full day, actual changing-temperature
 score and integration with the Energy release decision remain open.
+At 23:44 MDT, a bounded read-only OpenHAB-owner diagnostic parsed all 34
+production auxiliary rows since first persistence at
+`2026-09-29T05:14:44.776000Z`: two epochs, no within-epoch sequence gap,
+and both fields valid in the latest receipt. The default-off Solar_PV
+live-health reader returned true for both fields against that current data.
+This is not the restricted `energy_power_reader` role or a full-day score.
+Solar_PV `bccf332` pins that first durable timestamp and exact source identity
+in a secret-free, still-disabled policy file; all 880 analytics tests passed.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
