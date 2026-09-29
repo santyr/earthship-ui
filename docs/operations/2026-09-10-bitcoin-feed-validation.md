@@ -237,3 +237,16 @@ provider quote timestamps, prove every 30-second execution was correlated,
 or qualify an OpenHAB restart while the Exec Thing remained enabled: the Thing
 was disabled during the actual restart. Those narrower restart/coverage claims
 remain open. No script, Item, Thing, credential or poll schedule was changed.
+
+## September 28 provider-time contract check
+
+The [official Strike ticker response schema](https://docs.strike.me/api/get-currency-exchange-rate-tickers/)
+lists `amount`, `sourceCurrency` and `targetCurrency`, with no quote-issued or
+quote-expiry timestamp. The installed producer still exactly matches the
+tracked script SHA-256 above. A read-only local check found price 82943 and
+a matching version-1 output receipt approximately 29 seconds old. That
+receipt establishes recent local output, not the age of Strike's underlying
+rate. Do not derive a provider quote timestamp from HTTP response time or the
+local transform clock. A separately qualified provider/source comparison or
+a timestamp-bearing rate contract would be needed for that stronger claim;
+neither was activated by this check.

@@ -2061,6 +2061,10 @@ and protected-resource rollback remain outstanding.
   correlation or provider quote freshness. Historical coverage remains open;
   UI status is not
   provider quote freshness or a control gate.
+  The September 28 official Strike ticker schema check confirms this endpoint
+  exposes no quote-issued timestamp; live price and a 29-second-old local
+  receipt matched, but provider quote age remains unknown. Do not relabel the
+  local receipt as upstream freshness or infer quote age from HTTP response time.
   See [deployment evidence](2026-09-10-bitcoin-feed-validation.md).
   The operator subsequently approved normalization; the percent-change Item is
   now file-owned with clean label and two-decimal percent format. JDBC139/history,
