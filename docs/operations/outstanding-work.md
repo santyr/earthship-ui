@@ -82,7 +82,10 @@ All 725 current thermal Python tests passed in bounded batches, with one
 PostgreSQL-dependent skip. A guarded, receipt-bound one-file deployment then
 installed exact `dynamics.py` SHA `90c21d0ba875`, restored both enabled
 timers, and passed an isolated installed-module fit. The next natural shadow
-and trainer runs are still required; see the
+run then exited zero at 20:24 MDT and produced an exact live Item/JDBC/v2
+capture match under the same accepted artifact, closing this selector
+deployment's publisher-continuity gate. The September 29 natural trainer
+still has to verify whole-run behavior; see the
 [efficiency receipt](2026-09-27-thermal-selector-efficiency.md).
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.

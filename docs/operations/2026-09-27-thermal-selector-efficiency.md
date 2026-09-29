@@ -154,3 +154,16 @@ The installed module completed the isolated 30-day fit with the same objective
 decrease and origin counts as the source. No model artifact, advisory policy
 or control was changed. The next natural 20:24 shadow publication and
 September 29 06:50 trainer remain production continuity and whole-run gates.
+
+The natural 20:24:41 MDT shadow service started after the timer trigger and
+exited zero at 20:24:44. Its latest JDBC Item 610 row, persisted at
+`2026-09-29T02:24:44.653342Z`, exactly matched the live
+`Thermal_Model_JSON` generated at `2026-09-29T02:24:42.989315Z`. The
+installed-v4 verifier accepted the matching v2 forcing capture: its output
+SHA-256 was
+`2fe39043ca28a4f44c8caacae46edb741923ed9cfb061f67839d107ec8551307`
+and its embedded accepted-artifact SHA-256 was
+`f7c85390f842d91685f88592c7b1e50c84805fd662d5fe7562261aa3eb881e17`.
+This closes the first natural publisher-continuity gate after the row-prep
+installation. The output remains `shadow`, low confidence, with no candidate;
+the next natural trainer and all accuracy/action gates remain open.
