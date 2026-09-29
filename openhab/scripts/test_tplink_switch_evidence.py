@@ -25,7 +25,7 @@ def bounds(day=DAY):
     return start, end
 
 
-def row(at, sequence, *, states=None, epoch=EPOCH):
+def row(at, sequence, *, states=None, epoch=EPOCH, version=1):
     states = states or ('OFF', 'ON')
     fields = {}
     for name, value in zip(FIELDS, states):
@@ -33,8 +33,9 @@ def row(at, sequence, *, states=None, epoch=EPOCH):
                          'observedAt': None, 'validUntil': None, 'value': None}
                         if value is None else
                         {'status': 'valid', 'reason': 'ok', 'observedAt': millis(at),
-                         'validUntil': millis(at + timedelta(seconds=90)), 'value': value})
-    body = {'version': 1, 'basis': BASIS, 'streamEpoch': epoch,
+                         'validUntil': millis(at + timedelta(seconds=95 if version == 2 else 90)),
+                         'value': value})
+    body = {'version': version, 'basis': BASIS, 'streamEpoch': epoch,
             'sequence': sequence, 'recordedAt': millis(at), 'fields': fields}
     return (at + timedelta(milliseconds=1), json.dumps(body, separators=(',', ':')))
 
@@ -61,6 +62,49 @@ def test_exact_receipt_schema_and_persistence_time():
     assert parsed.sequence == 1
     assert parsed.fields[FIELDS[0]].value == 'OFF'
     assert parsed.fields[FIELDS[1]].value == 'ON'
+
+
+def test_versioned_ttl_is_exact_and_cannot_change_without_restart_barrier():
+    start, end = bounds()
+    parsed = parse_switch_receipt(*reversed(row(start, 1, version=2)))
+    assert parsed.version == 2
+    assert parsed.fields[FIELDS[0]].valid_until == start + timedelta(seconds=95)
+    persisted, raw = row(start, 1, version=2)
+    body = json.loads(raw)
+    body['fields'][FIELDS[0]]['validUntil'] -= 5000
+    with pytest.raises(SwitchEvidenceRefused):
+        parse_switch_receipt(json.dumps(body), persisted)
+    rows = complete_rows()
+    at = rows[300][0] - timedelta(milliseconds=1)
+    rows[300] = row(at, 301, version=2)
+    with pytest.raises(SwitchEvidenceRefused, match='sequence gap'):
+        qualify(rows)
+    rows[300] = row(at, 1, epoch=str(uuid.uuid4()), states=(None, None), version=2)
+    for index in range(301, len(rows)):
+        at = rows[index][0] - timedelta(milliseconds=1)
+        rows[index] = row(at, index - 299, epoch=json.loads(rows[300][1])['streamEpoch'],
+                          version=2)
+    result = qualify(rows)
+    assert result['fields'][FIELDS[0]]['quality'] == 'partial'
+    assert result['fields'][FIELDS[0]]['unavailable_barriers'] == 1
+
+
+def test_normal_ninety_second_source_jitter_requires_version_two_ttl():
+    start, end = bounds()
+    stamps = []
+    at = start - timedelta(seconds=30)
+    while at < end:
+        stamps.append(at)
+        at += timedelta(milliseconds=90040)
+    old = [row(at, index + 1, version=1) for index, at in enumerate(stamps)]
+    revised = [row(at, index + 1, version=2) for index, at in enumerate(stamps)]
+    old_quality = qualify(old)['fields'][FIELDS[0]]
+    new_quality = qualify(revised)['fields'][FIELDS[0]]
+    assert old_quality['quality'] == 'partial'
+    assert old_quality['gap_count'] > 0
+    assert new_quality['quality'] == 'ok'
+    assert new_quality['gap_count'] == 0
+    assert new_quality['coverage'] == 1.0
 
 
 @pytest.mark.parametrize('mutate', [

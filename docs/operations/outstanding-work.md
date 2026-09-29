@@ -542,6 +542,22 @@ and Cistern Pump at sequence 3. All 536 persisted receipts parsed with one
 barriered restart and no sequence gap; the latest receipt had both fields
 valid. This qualifies the rule restart path, not a deliberate Thing/network
 fault, a complete local day, or production quality publication.
+September 29 early partial-day inspection found a normal-cadence mismatch:
+the 90-second v1 TTL produced 60 source-expiry gaps per switch in 4.7 hours,
+about 1.9 seconds total each, despite no unavailable barrier or sequence
+break. Original binding-origin sample spacing reached 90.054 seconds in the
+entire post-cutover stream (over 1,080 samples per field), with no same-epoch
+spacing at or above 95 seconds. A source-only v2 receipt now sets a bounded
+95-second TTL and a new cache epoch; the read-only day parser enforces exactly
+90 seconds for historical v1 and exactly 95 for v2, and rejects an unbarriered
+version change. A synthetic 90.04-second complete day is partial under v1
+and fully covered under v2; 29 focused reader/history tests, 1,840 UI/OpenHAB
+tests, and four Solar_PV consumer tests pass. **Neither production producer nor
+installed reader is updated yet.** September 29 remains incomplete and its
+existing v1 gaps must not be backfilled or relabeled. Any v2 release requires
+an exact-baseline backup/rollback transaction, observed startup barrier and
+natural source recovery; the next possible full v2 local day is after that
+cutover and a subsequent midnight.
 
 The [September 27 trough checkpoint](2026-09-27-trough-calibration-checkpoint.md)
 joins six frozen completed-night outcomes to their as-issued PV forecasts.

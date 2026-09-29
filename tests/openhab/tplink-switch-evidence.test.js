@@ -83,8 +83,9 @@ describe('TP-Link switch evidence producer', () => {
     const h = harness(); h.run(h.event('dishwasher'));
     expect(h.latest.fields[specs.dishwasher.field].status).toBe('unavailable');
     h.advance(); h.run(h.event('dishwasher'));
+    expect(h.latest.version).toBe(2);
     expect(h.latest.fields[specs.dishwasher.field]).toEqual({ status: 'valid', reason: 'ok',
-      observedAt: h.now, validUntil: h.now + 90000, value: 'OFF' });
+      observedAt: h.now, validUntil: h.now + 95000, value: 'OFF' });
     expect(h.latest.fields[specs.cistern.field].status).toBe('unavailable');
     h.run(h.event('cistern', 'ON'));
     expect(h.latest.fields[specs.cistern.field].value).toBe('ON');
@@ -115,8 +116,22 @@ describe('TP-Link switch evidence producer', () => {
       .toBe(first.fields[specs.dishwasher.field].validUntil + 60000);
     expect(h.latest.fields[specs.cistern.field].status).toBe('valid');
     h.advance(30000); h.run();
+    expect(h.latest.fields[specs.cistern.field].status).toBe('valid');
+    h.advance(5000); h.run();
     expect(h.latest.fields[specs.cistern.field].reason).toBe('input_stale');
     expect(h.latest.fields[specs.dishwasher.field].status).toBe('valid');
+  });
+
+  it('covers a normal 90.05-second source interval but never extends beyond 95 seconds', () => {
+    const h = ready();
+    h.advance(90050); h.run();
+    expect(h.latest.fields[specs.dishwasher.field].status).toBe('valid');
+    h.run(h.event('dishwasher'));
+    const renewedAt = h.now;
+    h.advance(60000); h.run();
+    expect(h.latest.fields[specs.dishwasher.field].observedAt).toBe(renewedAt);
+    h.advance(35000); h.run();
+    expect(h.latest.fields[specs.dishwasher.field].reason).toBe('input_stale');
   });
 
   it('closes one field on Thing loss and requires a post-recovery event', () => {

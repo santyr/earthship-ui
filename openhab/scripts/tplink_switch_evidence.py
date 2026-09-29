@@ -16,7 +16,8 @@ ITEM = 'TPLink_Switch_Evidence_JSON'
 BASIS = 'tplink_hs103_switch_report_v1'
 FIELDS = ('load.dishwasher_state', 'load.shurflo_pump_state')
 UNAVAILABLE = {'source_unavailable', 'input_unavailable', 'invalid_input', 'input_stale'}
-TTL = timedelta(seconds=90)
+TTL_BY_VERSION = {1: timedelta(seconds=90), 2: timedelta(seconds=95)}
+TTL = max(TTL_BY_VERSION.values())
 MAX_ROWS = 5000
 MAX_BYTES = 4096
 
@@ -35,6 +36,7 @@ class Field:
 
 @dataclass(frozen=True)
 class Receipt:
+    version: int
     epoch: str
     sequence: int
     recorded_at: datetime
@@ -77,7 +79,7 @@ def parse_switch_receipt(raw, persisted_at):
         raise SwitchEvidenceRefused('invalid evidence JSON') from exc
     if (not isinstance(body, dict) or set(body) != {
             'version', 'basis', 'streamEpoch', 'sequence', 'recordedAt', 'fields'}
-            or type(body['version']) is not int or body['version'] != 1
+            or type(body['version']) is not int or body['version'] not in TTL_BY_VERSION
             or body['basis'] != BASIS or not isinstance(body['fields'], dict)
             or set(body['fields']) != set(FIELDS)):
         raise SwitchEvidenceRefused('invalid evidence envelope')
@@ -108,11 +110,12 @@ def parse_switch_receipt(raw, persisted_at):
         if field['status'] != 'valid' or field['reason'] != 'ok':
             raise SwitchEvidenceRefused('invalid switch status')
         observed, until = _millis(field['observedAt']), _millis(field['validUntil'])
-        if (not observed <= recorded < until or until != observed + TTL
+        if (not observed <= recorded < until
+                or until != observed + TTL_BY_VERSION[body['version']]
                 or type(field['value']) is not str or field['value'] not in {'ON', 'OFF'}):
             raise SwitchEvidenceRefused('invalid or expired switch observation')
         fields[name] = Field('valid', observed, until, field['value'])
-    return Receipt(epoch, sequence, recorded, fields)
+    return Receipt(body['version'], epoch, sequence, recorded, fields)
 
 
 def _coverage(receipts, field, start, end):
@@ -196,7 +199,8 @@ def qualify_switch_day(local_date, *, as_of, cutover, observations,
             if receipt.recorded_at <= previous.recorded_at:
                 raise SwitchEvidenceRefused('evidence clock regressed or conflicted')
             if receipt.epoch == previous.epoch:
-                if receipt.sequence != previous.sequence + 1:
+                if (receipt.version != previous.version
+                        or receipt.sequence != previous.sequence + 1):
                     raise SwitchEvidenceRefused('evidence sequence gap or replay')
             elif receipt.sequence != 1 or any(
                     entry.status != 'unavailable' for entry in receipt.fields.values()):

@@ -90,7 +90,7 @@ def test_exact_item_and_table_one_readonly_snapshot_without_write():
     assert 'octet_length(value::text) <= 4096' in day_query
     assert 'LIMIT 5001' in day_query
     start, end = bounds()
-    assert params == (start - timedelta(seconds=90), end)
+    assert params == (start - timedelta(seconds=95), end)
     assert not any('INSERT' in query or 'UPDATE' in query or 'DELETE' in query
                    for query, _ in connection.queries)
 

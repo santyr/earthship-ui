@@ -23,9 +23,9 @@ const SPECS = {
   },
 };
 const FIELDS = Object.keys(SPECS);
-const TTL = 90000; // Three nominal 30-second polls.
+const TTL = 95000; // Three nominal 30-second polls plus bounded scheduler jitter.
 const PUBLISH_MS = 60000;
-const KEY = 'earthship.tplink-switch-evidence.v1';
+const KEY = 'earthship.tplink-switch-evidence.v2';
 const now = Number(Instant.now().toEpochMilli());
 
 function newField() {
@@ -130,7 +130,7 @@ for (const field of FIELDS) {
       : slot.value ? 'input_stale' : slot.reason,
       observedAt: null, validUntil: null, value: null };
 }
-const next = { version: 1, basis: 'tplink_hs103_switch_report_v1',
+const next = { version: 2, basis: 'tplink_hs103_switch_report_v1',
   streamEpoch: state.epoch, sequence: state.sequence + 1, recordedAt: now,
   fields };
 const previous = state.lastPublished;
