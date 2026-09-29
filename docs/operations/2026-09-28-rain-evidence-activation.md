@@ -232,3 +232,27 @@ tests pass, and an isolated PostgreSQL test proved real SQL candidate recovery,
 strict-reader refusal of that same faulted history, and candidate refusal
 after SELECT revocation. Its disposable container and volumes were removed by
 the fixture; no production database, writer or publication state changed.
+
+### Expanded bounded source diagnostic — September 29, 00:50 MDT
+
+The first natural metadata sample showed unchanged temperature, humidity and
+solar radiation, but those fields alone cannot distinguish a counter-only
+decode fault from a same-ID station. Commit `881b4ca` adds bounded differences
+for wind direction, average/gust speed and UV, and correctly interprets the
+stringified battery boolean. It retains the same once-per-distinct-spike,
+eight-value and September 30 00:00 MDT expiry limits; collector acceptance,
+fault latches and publication policy are unchanged. Seventy-one adjacent
+weather evidence tests passed.
+
+The verified old module SHA-256 was
+`c1b3cb8f15794307dd05b9a305efe17396a93a543d1853d2bc6e4e8db23ea381`.
+With `weather.service` active under sat-owned Gunicorn master PID 1607215 and
+all three temperature streams valid, an exact private rollback copy was saved
+at `/home/sat/.local/state/weather-rain-wind-04wnDX/`. The new module was
+installed atomically, source/runtime SHA-256 both equal
+`102cfaeb18e4a65722534df0c0226619d421b15a55ec86f886fae28c51f2aa4c`,
+and one HUP retained the same master. Natural packets restored valid indoor,
+north-wall, outdoor and rain receipts; the new rain epoch had zero jump/drop
+latches at readback. The next rejected spike's expanded metadata is still
+pending. This reload adds another September 29 source-epoch barrier; no rain
+day is newly qualified and the temporary diagnostic must be removed later.
