@@ -193,9 +193,9 @@ comparison for immutable morning and pre-dusk receipts against the existing
 source-bound 20:00–11:00 completed-night assessment. It refuses mismatched
 issue dates, stale SoC at issue, an incomplete or low-coverage night, and an
 outcome with the wrong bank-evidence source or window. It reports signed and
-absolute-error differences but no causal reward. This does not fabricate a
-September 29 outcome: the first natural pre-dusk issue and its following-day
-11:00 completed target are still pending.
+absolute-error differences but no causal reward. At the source-only checkpoint,
+the September 29 issue and its following-day 11:00 target were still pending;
+the issue has since arrived naturally, as recorded below.
 
 The complementary source-only history adapters now read only the two exact
 forecast-receipt Items through OpenHAB's bounded local JDBC persistence API
@@ -207,9 +207,23 @@ one September 29 06:40:17 morning issue and zero pre-dusk issues before the
 eligible window. The restricted outcome reader independently re-assessed the
 completed September 28 night as measured at 70% SoC, 0.99991 coverage from
 886 original in-window receipts. No extra database grant or scheduled scoring
-job was needed for these read-only checks. The first natural same-day pair,
-its completed following-night outcome, and longer chronological/seasonal
-comparisons remain open.
+job was needed for these read-only checks. The first completed following-night
+outcome and longer chronological/seasonal comparisons remain open.
+
+At 17:30 MDT September 29, the scheduled `forecast-pre-dusk.service` exited
+successfully with `pre-dusk trough: issued`; it was not run manually. The
+restricted read-only verifier found one 06:40 morning issue, one 17:30
+pre-dusk issue, and the matching persisted numeric Item value of **81%**.
+The late receipt is bound to a source-qualified BMS SoC evidence row persisted
+at 17:29:33 MDT, in the same source epoch and with the same digest. A
+read-only Lenovo-sized browser check of the live Energy page, after its
+initial OpenHAB snapshot loaded, displayed `pre-dusk estimate: 81%` with no
+failed REST response. This closes the first natural issue/JDBC/UI-selection
+gate. The verifier's `display_selection_verified` field remains `false` by
+design because its server-side reader never inspects the browser; browser
+evidence is recorded separately here. The following 20:00–11:00 night has
+not finished, so no accuracy or learning claim is made. Score the immutable
+pair only after September 30 11:05 MDT and the strict outcome gate.
 
 ### Origin-paired morning trough divergence
 
