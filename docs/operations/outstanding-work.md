@@ -25,6 +25,11 @@ guarded apply returned `deployed`, with exact enabled-rule source readback
 `/home/sat/.local/state/greywater-rule-release/timer-guard-piynkx5r`.
 Natural-cycle and physical pump-behavior verification remain pending; this
 readback alone does not establish them.
+At 07:06 MDT the first observed daylight evaluations under the new rule had
+sun elevation above zero and `reason=low_soc` with evidence SoC 71%, threshold
+98% and both pump Items OFF. Independent readback found `BMS_Comms_Status=OK`
+and a fresh source-bound SoC receipt with the same 71%. This verifies the
+daylight safety refusal path, not an eligible 15-minute pump cycle.
 At 04:38 MDT a read-only JDBC replay assessed the preceding 24 hours of
 `BMS_SOC_Evidence_JSON` with a two-hour pre-window carry. All 1,408 in-window
 receipts were `valid/ok`; at all 1,440 simulated minute cron ticks the latest
@@ -56,6 +61,20 @@ The natural thermal trainer started at 06:50:17 MDT on September 29; its
 initial service state was `activating` with the Python training process alive
 and about 306 MiB resident. No manual run, interruption, or model promotion
 was made. Whole-run duration, swap and acceptance gates remain pending.
+At 06:57 the same live process was still active with `MemorySwapCurrent=0`;
+two one-second host `vmstat` samples showed zero swap-in and swap-out. This
+is a bounded in-run observation, not a whole-run performance result.
+The operator applied the exact `energy_power_reader` SELECT grants on
+`public.item0657` (rain) and `public.item0658` (Discover BMS auxiliary).
+Restricted-role readback confirmed unique Item IDs 657/658, SELECT true,
+INSERT false, and actual reads of 1,054/468 persisted rows respectively.
+The default-off BMS current-health consumer returned true for remaining-Ah
+and native temperature under this restricted role. Today remains incomplete;
+derived-temperature parity and complete-day gates still block publication.
+Rain history from local midnight through 06:59 had six receiver epochs and
+early counter-jump/invalid-packet latches; the later 656-row epoch had zero
+fault latches. No September 29 rain score may be inferred from that partial,
+faulted day, and no forecast-learning flag was enabled.
 
 September 29 file-first census: the secret-free live inventory reports 383
 managed and 56 non-managed Items, 81/4 Things, 39/0 rules, 246/21 links, one
@@ -544,6 +563,12 @@ temperature receipts at 23:58:30, 23:59:30, 00:00:35 and 00:01:35 MDT,
 sequences 44–47 in one epoch. This is only start-boundary continuity; the
 September 29 day, restricted Item 658 access and temperature-change parity
 are still unqualified.
+At September 29 06:56 MDT, an authenticated read-only OpenHAB JDBC-history
+query returned 416 source-bound BMS auxiliary receipts since local midnight
+(06:00Z). They were one epoch with contiguous sequences 46–461 and no sequence
+gap; both fields were valid in the last receipt. This extends natural
+continuity, but it is a partial local day and does not substitute for the
+restricted `energy_power_reader` grant or actual temperature-change parity.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
