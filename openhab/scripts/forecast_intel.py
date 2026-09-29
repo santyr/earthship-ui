@@ -516,15 +516,6 @@ def kalman_update(filt, key, err):
     return state["b"]
 
 
-def measured_trough(for_night_ending_today):
-    """min(BMS_SOC) 20:00 previous day -> 11:00 given day, local time."""
-    d0 = for_night_ending_today
-    start = datetime.combine(d0 - timedelta(days=1), datetime.min.time(), tzinfo=MOUNTAIN).replace(hour=20)
-    end = datetime.combine(d0, datetime.min.time(), tzinfo=MOUNTAIN).replace(hour=11)
-    pts = series("BMS_SOC", start.astimezone(timezone.utc), end.astimezone(timezone.utc))
-    return min((v for _, v in pts), default=None)
-
-
 def qualified_soc_inputs(today, now):
     """Current atomic SoC plus prior completed, coverage-qualified nights.
 
@@ -1290,18 +1281,10 @@ def main():
     cloud_mean = om.get("cloud_cover_mean", [None] * len(highs))
 
     resource = st["k_res"] * radsum_kwh
-    qualified_soc = os.environ.get("FORECAST_QUALIFIED_SOC_ENABLED") == "1"
-    if qualified_soc:
-        trough_ref, measured_nights = qualified_soc_inputs(today, datetime.now(timezone.utc))
-    else:
-        dawn_trough = measured_trough(today)
-        soc_now = None
-        try:
-            soc_now = float(oh_get("/items/BMS_SOC")["state"])
-        except Exception:
-            pass
-        trough_ref = dawn_trough if dawn_trough is not None else (soc_now if soc_now is not None else 60)
-        measured_nights = None
+    # Change-only BMS_SOC history cannot establish acquisition freshness or
+    # overnight coverage. Never revive that legacy path if a systemd drop-in
+    # is lost during restore; unavailable atomic evidence withholds energy.
+    trough_ref, measured_nights = qualified_soc_inputs(today, datetime.now(timezone.utc))
 
     deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT if trough_ref is not None else None
     demand = st["d_direct"] + deficit_kwh if deficit_kwh is not None else None
@@ -1320,10 +1303,10 @@ def main():
     drops = []
     drop_sample_days = []
     for back in range(1, 5):
-        night = today - timedelta(days=back if qualified_soc else back - 1)
+        night = today - timedelta(days=back)
         if night < date(2026, 7, 19):       # first full-bank overnight measurement
             break
-        tr = measured_nights.get(night) if qualified_soc else measured_trough(night)
+        tr = measured_nights.get(night)
         if tr is not None and 12 <= tr <= 99:
             drops.append(max(99 - tr, 1.0))
             drop_sample_days.append(night.isoformat())
@@ -1335,9 +1318,9 @@ def main():
     cloud_drop_penalty_pct = 2 if cloud_mean[1] is not None and cloud_mean[1] > 70 else 0
     drop_pct = drop_base_pct + cloud_drop_penalty_pct  # cloudy morning -> later charge crossover
     trough_pred = round(clamp(dusk_soc - drop_pct, 12, 99)) if dusk_soc is not None else None
-    if qualified_soc and trough_ref is None:
+    if trough_ref is None:
         log.append("qualified atomic SoC unavailable; energy predictions withheld")
-    elif qualified_soc and not drops:
+    elif not drops:
         log.append("qualified completed-night SoC unavailable; overnight drop uses configured baseline")
 
     # thermal advisory (thresholds from 45-day indoor/outdoor analysis).

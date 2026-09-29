@@ -248,15 +248,6 @@ def test_rain_reader_failure_never_falls_back_to_numeric_day(monkeypatch, change
         qualified_reader=reader) == (None, 'qualified_evidence_unavailable', {})
 
 
-def test_measured_trough_window_mst(monkeypatch):
-    # 20:00 Jan 14 MST -> 03:00Z Jan 15; 11:00 Jan 15 MST -> 18:00Z.
-    calls = _capture_series(monkeypatch)
-    fi.measured_trough(date(2026, 1, 15))
-    (_, s, e), = calls
-    assert s == datetime(2026, 1, 15, 3, 0, tzinfo=UTC)
-    assert e == datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
-
-
 def test_series_formats_true_utc_and_skips_unparseable(monkeypatch):
     captured = {}
 
@@ -776,18 +767,32 @@ def test_main_withholds_detailed_today_pv_when_receipt_is_not_published(monkeypa
     assert captured[0]["pv_per_day"][0] is None
 
 
-def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True):
+_DEFAULT_SOC_INPUTS = object()
+
+
+def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True,
+              soc_inputs=_DEFAULT_SOC_INPUTS):
     """Run main() fully stubbed; returns (state, puts) as saved/put."""
     t = datetime.now(UTC)
     saved = {}
     puts = []
+    if soc_inputs is _DEFAULT_SOC_INPUTS:
+        soc_inputs = (85, {fi.date.today() - timedelta(days=1): 80})
     monkeypatch.setattr(fi, "STATE_DIR", str(tmp_path))
     monkeypatch.setattr(fi, "STATE_FILE", str(tmp_path / "state.json"))
     monkeypatch.setattr(fi, "load_state", lambda: st)
     monkeypatch.setattr(fi, "save_state", lambda s: saved.update(s))
-    monkeypatch.setattr(fi, "series",
-                        lambda item, s, e: [(t, v) for v in series_data.get(item, [])])
-    monkeypatch.setattr(fi, "oh_get", lambda path: {"state": "82"})
+    def stub_series(item, start, end):
+        assert item != 'BMS_SOC', 'change-only SoC history is not a forecast input'
+        return [(t, value) for value in series_data.get(item, [])]
+
+    def stub_get(path):
+        assert path != '/items/BMS_SOC', 'held numeric SoC is not a forecast input'
+        return {"state": "82"}
+
+    monkeypatch.setattr(fi, "series", stub_series)
+    monkeypatch.setattr(fi, "oh_get", stub_get)
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: soc_inputs)
     monkeypatch.setattr(fi, "oh_put_state", lambda item, value: puts.append(item))
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
     if legacy_rain:
@@ -796,13 +801,15 @@ def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True):
     return saved, puts
 
 
-def test_qualified_soc_forecast_uses_only_atomic_inputs(monkeypatch, tmp_path):
-    monkeypatch.setenv("FORECAST_QUALIFIED_SOC_ENABLED", "1")
-    monkeypatch.setattr(fi, "measured_trough", lambda *_: pytest.fail("legacy SoC read"))
+@pytest.mark.parametrize('flag', [None, '0', '1'])
+def test_qualified_soc_forecast_uses_only_atomic_inputs(monkeypatch, tmp_path, flag):
+    if flag is None:
+        monkeypatch.delenv('FORECAST_QUALIFIED_SOC_ENABLED', raising=False)
+    else:
+        monkeypatch.setenv('FORECAST_QUALIFIED_SOC_ENABLED', flag)
     yesterday = date.today() - timedelta(days=1)
-    monkeypatch.setattr(fi, "qualified_soc_inputs",
-                        lambda today, now: (85, {yesterday: 80}))
-    saved, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday.isoformat()), {})
+    saved, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday.isoformat()), {},
+                         soc_inputs=(85, {yesterday: 80}))
     prediction = saved["predictions"][date.today().isoformat()]
     assert prediction["pv"] is not None
     assert prediction["trough"] is not None
@@ -816,15 +823,18 @@ def test_qualified_soc_forecast_uses_only_atomic_inputs(monkeypatch, tmp_path):
         prediction["overnight_drop_base_pct"] + prediction["tomorrow_cloud_drop_penalty_pct"])
 
 
-def test_qualified_soc_forecast_withholds_energy_without_atomic_state(monkeypatch, tmp_path):
-    monkeypatch.setenv("FORECAST_QUALIFIED_SOC_ENABLED", "1")
-    monkeypatch.setattr(fi, "measured_trough", lambda *_: pytest.fail("legacy SoC read"))
-    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (None, {}))
+@pytest.mark.parametrize('flag', [None, '0', '1'])
+def test_qualified_soc_forecast_withholds_energy_without_atomic_state(monkeypatch, tmp_path, flag):
+    if flag is None:
+        monkeypatch.delenv('FORECAST_QUALIFIED_SOC_ENABLED', raising=False)
+    else:
+        monkeypatch.setenv('FORECAST_QUALIFIED_SOC_ENABLED', flag)
     published = {}
     monkeypatch.setattr(fi, "safe_put", lambda item, value, *_args, **_kwargs:
                         published.setdefault(item, value) is not None)
     yesterday = date.today() - timedelta(days=1)
-    saved, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday.isoformat()), {})
+    saved, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday.isoformat()), {},
+                         soc_inputs=(None, {}))
     prediction = saved["predictions"][date.today().isoformat()]
     assert prediction["pv"] is None
     assert prediction["trough"] is None
@@ -1082,6 +1092,7 @@ def test_put_failures_collected_not_fatal(monkeypatch, tmp_path):
 
     monkeypatch.setattr(fi, "oh_put_state", flaky_put)
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (85, {}))
     fi.main()   # must not raise
     assert len(saved["pv_errors"]) == 1, "scoring must complete despite PUT failures"
     assert set(saved["scored"][ykey]) == set(fi.SCORE_QUANTITIES) - {"trough"}

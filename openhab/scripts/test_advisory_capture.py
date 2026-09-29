@@ -1,7 +1,7 @@
 import copy
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.error import HTTPError
@@ -160,8 +160,11 @@ def run_main(monkeypatch, tmp_path, *, active, highs, low_resource=False,
     monkeypatch.setattr(fi, "score_hourly_targets", lambda *args: 0)
     monkeypatch.setattr(fi, "capture_next_day_hourly", lambda *args: {})
     monkeypatch.setattr(fi, "measured_day_weather", lambda *args: (None, None, None))
-    monkeypatch.setattr(fi, "measured_trough", lambda *args: None if low_resource else 85)
-    monkeypatch.setattr(fi, "oh_get", lambda *args: {"state": "20" if low_resource else "82"})
+    # Model both test scenarios with source-qualified atomic SoC. A low
+    # resource forecast must not depend on held numeric BMS_SOC fallback.
+    soc_inputs = (20, {}) if low_resource else (85, {day - timedelta(days=1): 85})
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: soc_inputs)
+    monkeypatch.setattr(fi, "oh_get", lambda path: {"state": "82"})
     monkeypatch.setattr(fi, "oh_put_state", lambda item, value: puts.append((item, value)))
     monkeypatch.setattr(fi, "fetch_forecast", lambda: snapshot)
     monkeypatch.setattr(fi, "build_json_items", lambda **kwargs: None)
