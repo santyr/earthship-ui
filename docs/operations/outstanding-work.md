@@ -5,11 +5,27 @@ September 29 pre-dusk trough work: the current 06:40 job issued 53% from a
 fresh atomic SoC was 100% and native PV-day evidence was already 7.302 kWh.
 A restricted, origin-as-of four-night counterfactual at sunset minus 75
 minutes reduced mean absolute trough error from 16.25 to 2.5 percentage
-points using the same frozen morning drop assumption. A separate source-only
-pre-dusk worker, timer, Items and UI receipt path are staged and tested; the
-morning forecast/scoring and DM policy remain unchanged. See the
+points using the same frozen morning drop assumption. A separate
+pre-dusk worker, timer, Items and UI receipt path are tested, installed and
+enabled for natural display-only issuance; the morning forecast/scoring and
+DM policy remain unchanged. See the
 [pre-dusk release record](2026-09-29-pre-dusk-trough.md). Natural publication,
-installed ownership/JDBC and longer seasonal scoring remain open.
+JDBC readback and longer seasonal scoring remain open. An
+[origin-aware charge-timing and prediction review](2026-09-29-prediction-learning-review.md)
+records the short full-charge history, post-full discharge and staged model
+priorities; adaptive timing remains shadow-only.
+The operator's forecasting-tuning requirement applies across PV/SoC,
+temperature, thermal, rain/wind, curtailment/load and future shade targets:
+compare as-issued forecasts with qualified actuals, diagnose divergences and
+missing relevant inputs, then implement only chronologically verified
+corrections. The [tuning queue](2026-09-29-prediction-learning-review.md)
+records target-specific evidence and gates; its existence does not close the
+algorithm work.
+At 13:18 MDT a fresh read-only `config_inventory.py --summary` reported
+zero issues with 383 managed/59 file-owned Items, 246/21 links, 37/3 rules,
+and 81/4 Things. The previously flagged BMS runtime evidence Item now has
+an exact file-ownership declaration; this inventory does not qualify its
+estimator output as source-fresh or migrate remaining managed objects.
 
 Evidence inventory started 2026-09-05. This is a completion tracker, not an
 implementation approval or a claim that historical tasks are finished.
@@ -102,8 +118,24 @@ protected-rule replacement. The wrapper's fresh preflight passed and its
 guarded apply returned `deployed`, with exact enabled-rule source readback
 `e697e262...108970d18` and both pump Items OFF. The private rollback copy is
 `/home/sat/.local/state/greywater-rule-release/timer-guard-piynkx5r`.
-Natural-cycle and physical pump-behavior verification remain pending; this
-readback alone does not establish them.
+At that initial readback, natural-cycle and physical pump-behavior
+verification were still pending; the later evidence below addresses them.
+At 12:37 MDT September 29, the live updated rule naturally commanded the
+South pump ON with fresh evidence SoC 100%, entered `cycle_active`, and at
+12:52 commanded it OFF and posted `cycle_completed`. The rotated/current
+OpenHAB event logs and later live Items agree on a 15-minute commanded cycle,
+both pump Items OFF, and next eligible East pump at 13:37 MDT. This verifies
+the controller command/state path after the protected change; OpenHAB's
+optimistic switch update is **not** independent proof of physical pumping.
+The operator subsequently confirmed physical pumping for this observed cycle.
+The confirmation is human observation, not a newly installed flow sensor or
+proof of the separate stale-telemetry interruption path. The operator also
+confirmed observing the East pump running earlier. The updated rule's event
+trail places that East natural cycle at 11:36–11:51 MDT, with explicit ON and
+OFF commands, `aerobic_fallback_24h` start mode at fresh evidence SoC 90%,
+and a `cycle_completed` result. Thus both alternated pump paths have natural
+command/stop traces and operator-confirmed physical pumping after the rule
+replacement; an induced telemetry-failure interruption remains untested.
 At 07:06 MDT the first observed daylight evaluations under the new rule had
 sun elevation above zero and `reason=low_soc` with evidence SoC 71%, threshold
 98% and both pump Items OFF. Independent readback found `BMS_Comms_Status=OK`

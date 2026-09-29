@@ -34,11 +34,32 @@ days ended 2–6 points lower near 19:00. September 29 was still in progress at
 the review: its 06:40 SoC was 72%, forecast radiation 4.12 kWh/m², and first
 100% receipt appeared at 12:34 MDT. It is not a completed-day outcome.
 
+An eight-night restricted read-only replay of the existing qualified
+20:00-to-trough assessor found actual start-to-minimum declines of 12–15
+percentage points with 99.85–99.99% source-bound coverage. The morning
+forecast currently uses `99 - minimum` as a proxy; that is 15–29 points on
+these same nights and systematically includes the difference between an
+assumed 99% start and the *actual* 20:00 start (83–97%). This helps explain
+low morning predictions. Do not simply substitute the smaller true overnight
+drop into the pre-dusk model: additional discharge between its sunset-minus-75
+origin and 20:00 must then be predicted separately. On the four-night
+pre-dusk counterfactual, the frozen proxy achieved 2.5-point MAE and an
+unadjusted true-night-drop substitution achieved about 3.0 points; neither
+is yet a seasonal release result.
+
 `SkyCondition` is a derived ratio of observed to theoretical solar radiation,
 not a separate independent sensor named `is_sunny`. Treat it as a quality-
 gated sky-regime feature, not independent corroboration of irradiance. Raw
 solar-radiation history is available; source freshness and gaps must be
 qualified before training or using it in a control-adjacent decision.
+As a diagnostic only, a 120-second-gap-bounded integration of the persisted
+07:00–19:00 radiation series covered 94.0–99.5% of each September 20–28 day.
+The two no-full days accumulated about 1.34 and 0.63 kWh/m²; the seven
+full-charge days ranged about 1.98–4.42 kWh/m². These are measured irradiance
+integrals, **not** qualified MPPT energy or independent `is_sunny` labels.
+Persisted dated Astro events also give actual sunrise-to-sunset length, from
+732.4 minutes on September 20 to 712.6 on September 28. That 19.8-minute
+range is too narrow to estimate a seasonal day-length effect from this sample.
 
 ## Prioritized model improvements
 
@@ -68,6 +89,11 @@ qualified before training or using it in a control-adjacent decision.
    solar potential. Keep the current qualified-PV calibration release gate
    closed until complete days and recovery cases pass. Distinguish available,
    harvested and curtailed energy before training a curtailment predictor.
+   Forecast harvest and the SoC path jointly in an hourly energy balance:
+   available PV is weather/season dependent, but accepted PV is bounded by
+   simultaneous load and battery charge headroom. Feed an updated observed
+   SoC/PV-so-far into a *remaining-day* revision, not a circular independent
+   "predicted SoC" feature that was itself calculated from predicted PV.
 4. **Weather and indoor thermal forecasts.** Preserve immutable Open-Meteo
    issue/target pairs and the existing qualified hourly/daily temperature
    scoring. Evaluate lead-time, hour-of-day, season and sky-specific residuals
@@ -104,3 +130,51 @@ beats the current morning and pre-dusk baselines on the same qualified days
 and is calibrated for both full/no-full and low-trough cases. Prefer
 incremental sufficient statistics and bounded recent-window refits to daily
 full-history retraining; measure runtime and memory as part of each release.
+
+The current 06:40 PV formula already includes morning SoC in
+`demand = d_direct + charge_deficit`, then issues
+`min(radiation_resource, demand)`. Its September 25–29 persisted origins all
+have `radiation_resource < demand`, so their published PV estimates are
+**insensitive to SoC** despite the headroom term. The radiation gain `k_res`
+is at its configured 1.3 ceiling. For example, September 25 issued 5.36 kWh
+at SoC 79% versus a later diagnostic numeric PV-day maximum 8.282 kWh;
+September 26 issued 7.30 at SoC 85% versus 8.298. September 29 had already
+exceeded its 5.36-kWh issue by 13:20. These maxima are legacy/change-only or
+incomplete-day diagnostics, not calibration labels. The source-bound PV-day
+stream began partway through September 28, and the qualified calibration
+release flag remains false. The next model evaluation should decompose
+resource error, load/headroom error, and foregone generation before changing
+either the coefficient limit or production forecast.
+An exploratory chronological fit of this same capped formula on September
+20–24 diagnostic numeric PV-day maxima, using only 06:40 SoC and radiation,
+selected `k_res=2.45` and `d_direct=4.1`. On the four held-out September
+25–28 days, absolute error averaged 0.639 kWh/day versus 1.269 for the
+actual as-issued forecasts. This is a useful *shadow benchmark*, not
+permission to deploy those coefficients: both the training labels and
+holdout labels predate a complete source-bound PV day, the five-day fit is
+fragile, and cloudy/seasonal/fault regimes are underrepresented.
+
+## Cross-pipeline forecast-versus-actual tuning queue
+
+For each target, compare the forecast *as it existed at issue time* with a
+later qualified observation. Record exact local target windows, origin,
+source/epoch identity and coverage. Diagnose error by forecast lead, weather
+regime and season, then test the smallest candidate correction on a
+chronological holdout against current production and persistence baselines.
+This comparison is the algorithm-tuning loop, not a separate report-only task.
+
+| Target | Existing issue/outcome evidence | Current divergence or missing gate |
+| --- | --- | --- |
+| Harvested PV kWh | 06:40 origin plus archived hourly radiation; native PV-day receipts start Sep 28 | Recent morning underprediction is evident diagnostically; no complete qualified PV day or coefficient release yet. Separate solar potential from demand-limited harvest. |
+| Full-charge time and overnight SoC trough | Atomic BMS receipts and completed-night assessor; morning and new pre-dusk origins | Seven of nine completed days reached full, with afternoon decline afterward. Morning trough is low; pre-dusk natural outcomes and seasonal holdout are due. |
+| Outdoor daily and hourly temperatures | Immutable corrected forecasts plus qualified temperature receipts and hourly scoring | Compare corrections as issued by lead/hour/season; never score today's bias against yesterday's forecast. |
+| Indoor temperature / thermal trajectory | Shadow artifacts, weather forcing capture, qualified temperature and action history | Latest accepted 24-hour air MAE 2.179°F versus 1.690°F persistence; zero confirmed-action rows. Diagnose forcing/action regimes before shadow exit. |
+| Rain and wind | Hourly forecast fields exist; new rain source receipts collect naturally | Rain complete-day scoring is gated by receiver quality; wind lacks a qualified outcome and an approved consumer. |
+| Curtailment and load | Forecast curtailment issue, MPPT/AC/switch evidence and operator-confirmed inverter-only topology | Physical curtailment and complete-day load attribution remain unqualified; do not call predicted hours observed. |
+| Shades and zone heating/cooling | Action/shade history schema and future 27-slot UI | Hardware and per-zone position/temperature receipts are not yet installed; retain observational/shadow design only. |
+
+The existing immutable Energy forecast snapshots and OpenHAB prediction
+receipts are the preferred origin sources. A correction that improves a sunny
+week but fails cloudy, no-full, cold-season or missing-sensor days is not a
+qualified production improvement. These rows are open tuning work, not
+claims that every comparison or fix has already been completed.
