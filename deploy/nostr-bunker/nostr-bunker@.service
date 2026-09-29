@@ -12,6 +12,10 @@ UMask=0077
 EnvironmentFile=/etc/nostr-bunker/%i.env
 LoadCredentialEncrypted=nostr-key:/etc/credstore.encrypted/nostr-bunker-%i.key
 ExecStart=/usr/local/libexec/nostr-bunker/run-nak-bunker
+# nak bunker can print a one-time connection secret and request/response bodies.
+# Do not route either stream to the journal or a persistent file.
+StandardOutput=null
+StandardError=null
 Restart=on-failure
 RestartSec=5s
 LimitCORE=0

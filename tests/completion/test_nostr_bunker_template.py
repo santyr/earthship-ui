@@ -28,6 +28,8 @@ def test_unit_is_per_identity_and_disabled_until_installed():
     assert 'DynamicUser=yes' in unit
     assert 'LimitCORE=0' in unit
     assert 'ExecStart=/usr/local/libexec/nostr-bunker/run-nak-bunker' in unit
+    assert 'StandardOutput=null' in unit
+    assert 'StandardError=null' in unit
 
 
 def test_launcher_never_puts_secret_in_arguments_or_uses_project_fallback():

@@ -68,6 +68,65 @@ fails, or the derived public key differs from either the operator-approved npub
 or OpenHAB's current DM recipient. The absolute source path works from any
 working directory.
 
+### What to run now: stage the Earthship instance, without starting it
+
+Run these from the host as an administrator after reviewing the files in this
+directory. They install only the public Sat-client allowlist, launcher and
+service template; they neither start a bunker nor enable it at boot. The
+original encrypted operator credential and qualified `nak` binary must
+already be present. `sudo` may prompt for your password; do not send it here.
+Coordinate with the Lightning Goats agent before running this shared-template
+installation. An existing destination is accepted only when byte-identical;
+the block stops instead of overwriting another project or an active service.
+
+```sh
+(
+  set -e
+  if systemctl is-active --quiet nostr-bunker@earthship-operator.service; then
+    echo 'Earthship signer is already active; stop and review it first' >&2
+    exit 1
+  fi
+  sudo /usr/local/libexec/nostr-bunker/verify-earthship-operator-credential
+  sudo install -d -o root -g root -m 0755 /etc/nostr-bunker /usr/local/libexec/nostr-bunker
+  if sudo test -e /usr/local/libexec/nostr-bunker/run-nak-bunker; then
+    sudo cmp /home/sat/earthship-ui/deploy/nostr-bunker/run-nak-bunker /usr/local/libexec/nostr-bunker/run-nak-bunker
+  else
+    sudo install -o root -g root -m 0755 /home/sat/earthship-ui/deploy/nostr-bunker/run-nak-bunker /usr/local/libexec/nostr-bunker/run-nak-bunker
+  fi
+  if sudo test -e /etc/nostr-bunker/earthship-operator.env; then
+    sudo cmp /home/sat/earthship-ui/deploy/nostr-bunker/earthship-operator.env.example /etc/nostr-bunker/earthship-operator.env
+  else
+    sudo install -o root -g root -m 0644 /home/sat/earthship-ui/deploy/nostr-bunker/earthship-operator.env.example /etc/nostr-bunker/earthship-operator.env
+  fi
+  if sudo test -e /etc/systemd/system/nostr-bunker@.service; then
+    sudo cmp /home/sat/earthship-ui/deploy/nostr-bunker/nostr-bunker@.service /etc/systemd/system/nostr-bunker@.service
+  else
+    sudo install -o root -g root -m 0644 /home/sat/earthship-ui/deploy/nostr-bunker/nostr-bunker@.service /etc/systemd/system/nostr-bunker@.service
+  fi
+  sudo systemd-analyze verify /etc/systemd/system/nostr-bunker@.service
+  sudo systemctl daemon-reload
+  systemctl show -p UnitFileState -p ActiveState nostr-bunker@earthship-operator.service
+)
+```
+
+Any executed `cmp` should exit successfully without output; the last command
+should show `UnitFileState=disabled` and `ActiveState=inactive`. Stop and report any
+different result. Do **not** run `systemctl start` or `enable` yet. The
+verified operator credential would make this `nak` service's remote-signer
+pubkey `669ebbcccf409ee0467a33660ae88fd17e5379e646e41d7c236ff4963f3c36b6`,
+not the old password-store bunker pubkey `4bf9...edde`. First establish which
+identity Sat's client actually expects, and verify that the app controls the
+selected `5302...b5f6` client key. If it expects the old bunker identity, this
+unit is not a drop-in replacement. A later attended start and end-to-end
+client trial need their own reviewed steps.
+
+The revised unit sends both `nak bunker` output streams to `/dev/null`:
+upstream may print a one-time bunker connection secret and request/response
+bodies. Never start an older unit that journals either stream, and do not
+capture bunker output in tmux, a shell transcript or a support log. Rely on
+systemd state and an actual client challenge for verification; discarded
+output is intentional.
+
 ### Approved operator inbox announcement
 
 The operator approved a single signed kind-10050 announcement listing
