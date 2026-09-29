@@ -107,3 +107,18 @@ afterward. An exact private rollback copy remains at
 The timer stayed active; no manual issue or Item write was made. Natural
 publication, matching JDBC source/value receipts, and actual UI selection
 remain release gates, not outcomes of these source tests.
+
+The read-only `scripts/qualify-pre-dusk-natural-issue.py --day 2026-09-29`
+now checks the two exact as-issued JSON histories and the bounded numeric
+history through local OpenHAB JDBC REST, then (only when a natural late issue
+exists) resolves the unique atomic-SoC Item table under the restricted
+`energy_power_reader` role. Its repeatable-read, read-only query selects the
+latest original evidence row at or before the issue and requires the exact
+stream/digest, recorded time, percent and unexpired source receipt. It also
+requires one numeric write matching the dated late receipt and its explicit
+morning origin. Before the eligible window it returned one archived morning
+issue and `pending_natural_issue`, with zero late issues; no worker was run.
+The script deliberately reports `display_selection_verified=false` and
+`night_outcome_scored=false` even after an archive pass. After the natural
+timer firing, rerun this command, check the actual Energy display separately,
+and assess the following night only after its 11:00 MDT target window ends.

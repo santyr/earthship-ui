@@ -1,13 +1,14 @@
 """Archive reads must keep issue provenance and reject ambiguous histories."""
 
 from copy import deepcopy
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import json
 
 import pytest
 
 from pre_dusk_tuning_history import (IssueHistoryUnavailable, MORNING_ITEM,
-    PRE_DUSK_ITEM, local_get, read_day_issues, select_pair)
+    PRE_DUSK_ITEM, NUMERIC_ITEM, local_get, read_day_issues, read_numeric_day,
+    select_pair)
 
 
 DAY = date(2026, 9, 29)
@@ -75,6 +76,22 @@ def test_pair_requires_one_late_issue_and_exact_morning_link():
         select_pair([{'receipt': MORNING}], [{'receipt': wrong}])
 
 
+def test_numeric_history_requires_one_exact_bounded_day_and_integer_percent():
+    at = datetime.fromisoformat(LATE['issuedAt']).astimezone(timezone.utc)
+    rows = [{'time': int(at.timestamp() * 1000) + 1000, 'state': '81.0'}]
+    get, calls = fake_get(NUMERIC_ITEM, rows)
+    assert read_numeric_day(get, day=DAY) == [
+        {'persisted_at': (at + timedelta(seconds=1)).isoformat(), 'value': 81}]
+    assert calls[0].startswith('/persistence/items/Predicted_SoC_Trough_PreDusk?')
+    for bad in ('101', '81.5', 'UNDEF', '-1'):
+        with pytest.raises(IssueHistoryUnavailable):
+            read_numeric_day(lambda _: {'name': NUMERIC_ITEM, 'datapoints': 1,
+                                        'data': [{**rows[0], 'state': bad}]}, day=DAY)
+    with pytest.raises(IssueHistoryUnavailable):
+        read_numeric_day(lambda _: {'name': NUMERIC_ITEM, 'datapoints': 2,
+                                    'data': rows}, day=DAY)
+
+
 def test_local_transport_is_bounded_and_rejects_other_paths():
     class Response:
         status = 200
@@ -99,6 +116,8 @@ def test_local_transport_is_bounded_and_rejects_other_paths():
     assert opener.requests == [('http://127.0.0.1:8080/rest'+path, 5)]
     with pytest.raises(IssueHistoryUnavailable):
         local_get('/items/BMS_SOC/state', token='private-test-token', opener=opener)
+    numeric_path='/persistence/items/Predicted_SoC_Trough_PreDusk?serviceId=jdbc'
+    assert local_get(numeric_path, token='private-test-token', opener=opener)['data'] == []
     oversized=Opener(b'x'*32769)
     with pytest.raises(IssueHistoryUnavailable):
         local_get(path, token='private-test-token', opener=oversized)

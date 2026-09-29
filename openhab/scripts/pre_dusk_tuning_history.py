@@ -15,7 +15,9 @@ from zoneinfo import ZoneInfo
 ZONE = ZoneInfo('America/Denver')
 MORNING_ITEM = 'Forecast_Prediction_Receipt_JSON'
 PRE_DUSK_ITEM = 'Forecast_PreDusk_Trough_Receipt_JSON'
+NUMERIC_ITEM = 'Predicted_SoC_Trough_PreDusk'
 ALLOWED_ITEMS = frozenset((MORNING_ITEM, PRE_DUSK_ITEM))
+TRANSPORT_ITEMS = ALLOWED_ITEMS | {NUMERIC_ITEM}
 MAX_ROWS = 8
 MAX_STATE_BYTES = 1024
 MAX_RESPONSE_BYTES = 32768
@@ -31,9 +33,9 @@ class _NoRedirects(HTTPRedirectHandler):
 
 
 def local_get(path, *, token, opener=None):
-    """GET only the two local JDBC history endpoints with a hard byte budget."""
+    """GET only the three local JDBC history endpoints with a hard byte budget."""
     endpoint = path.split('?', 1)[0] if isinstance(path, str) else ''
-    if (endpoint not in {f'/persistence/items/{item}' for item in ALLOWED_ITEMS}
+    if (endpoint not in {f'/persistence/items/{item}' for item in TRANSPORT_ITEMS}
             or not isinstance(path, str) or '?' not in path
             or not isinstance(token, str) or not token.strip()
             or any(ord(char) < 32 or ord(char) == 127 for char in token)):
@@ -131,6 +133,44 @@ def read_day_issues(get, *, item, day):
         return result
     except (KeyError, TypeError, ValueError, OverflowError, OSError) as error:
         raise IssueHistoryUnavailable('issue history unavailable') from error
+
+
+def read_numeric_day(get, *, day):
+    """Read bounded, original same-day numeric trough writes, not current state."""
+    if not isinstance(day, date) or isinstance(day, datetime) or not callable(get):
+        raise IssueHistoryUnavailable('local date and authenticated GET required')
+    start = datetime.combine(day, time.min, ZONE).astimezone(timezone.utc)
+    end = datetime.combine(day + timedelta(days=1), time.min, ZONE).astimezone(timezone.utc)
+    query = urlencode({'serviceId': 'jdbc',
+                       'starttime': start.isoformat().replace('+00:00', 'Z'),
+                       'endtime': end.isoformat().replace('+00:00', 'Z')})
+    try:
+        payload = get(f'/persistence/items/{NUMERIC_ITEM}?{query}')
+        count = payload.get('datapoints') if isinstance(payload, dict) else None
+        if isinstance(count, str) and re.fullmatch(r'0|[1-9][0-9]{0,2}', count):
+            count = int(count)
+        if (not isinstance(payload, dict) or payload.get('name') != NUMERIC_ITEM
+                or type(count) is not int or not isinstance(payload.get('data'), list)
+                or count != len(payload['data']) or len(payload['data']) > MAX_ROWS):
+            raise ValueError('numeric archive metadata invalid')
+        result = []
+        previous = None
+        for row in payload['data']:
+            if not isinstance(row, dict) or set(row) != {'time', 'state'}:
+                raise ValueError('numeric archive row invalid')
+            millis, raw = row['time'], row['state']
+            if (type(millis) is not int or not isinstance(raw, str)
+                    or not re.fullmatch(r'(?:0|[1-9][0-9]{0,2})(?:\.0+)?', raw)):
+                raise ValueError('numeric archive value invalid')
+            at = datetime.fromtimestamp(millis / 1000, timezone.utc)
+            if (not start <= at < end or (previous is not None and at <= previous)
+                    or not 0 <= float(raw) <= 100):
+                raise ValueError('numeric archive timestamp or range invalid')
+            previous = at
+            result.append({'persisted_at': at.isoformat(), 'value': int(float(raw))})
+        return result
+    except (TypeError, ValueError, OverflowError, OSError) as error:
+        raise IssueHistoryUnavailable('numeric issue history unavailable') from error
 
 
 def select_pair(morning_rows, pre_dusk_rows):
