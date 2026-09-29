@@ -209,13 +209,20 @@ Both Things and their shared Discover BMS poller are ONLINE; the poller is
 configured for 30-second refresh and each data Thing for 60-second unchanged
 updates. `BMS_Temperature` is not directly linked to either native channel.
 These sources are distinct from the Schneider SunSpec SoC receipt, so extending
-the SoC receipt would conflate source provenance. The next candidate is an
-additive, non-actuating two-field Discover BMS receipt that verifies original
-channel event source, bounds each field's observation time and expiry,
-persists restart/fault barriers, and independently validates its history
-before Energy quality uses it. The actual event source and temperature
-conversion/paired-output contract remain to be qualified; no live BMS
-resource or quality policy was changed in this preflight.
+the SoC receipt would conflate source provenance. A disposable read-only
+OpenHAB rule then observed natural `ItemStateEvent`s for both Items at
+22:46 MDT. Their original sources were exactly
+`org.openhab.core.thing$modbus:data:discoverBms190:bmsMain:capRemainAh:number`
+and `org.openhab.core.thing$modbus:data:discoverBms190:bmsMain:tempRaw:number`.
+The exact probe UID was deleted and returned 404 on readback. The live scaler
+converts raw temperature to Celsius as `raw * 0.01 - 273`, then posts a
+rounded Fahrenheit Item only when it changes by at least 0.2°F; its
+change-only output timestamp is not a fresh raw-sample receipt. The next
+candidate is an additive, non-actuating two-field Discover BMS receipt that
+verifies those original sources, bounds each field's observation time and
+expiry, persists restart/fault barriers, and independently validates history
+before Energy quality uses it. No BMS control, evidence Item or quality policy
+was changed by the temporary probe.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
