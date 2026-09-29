@@ -409,6 +409,13 @@ missing SELECT, NULL/oversized rows, incomplete/pre-cutover days, gaps and
 faults with no numeric fallback. Focused transport and day tests pass; a
 real PostgreSQL restricted-role integration, production resources/credential
 grant, natural collection and forecast consumer are still open.
+The isolated PostgreSQL integration now passes against a disposable
+`advisory_assessor` role and exact synthetic `Weather_Rain_Evidence_JSON`
+Item/table. It read the complete source-bound day, then correctly refused
+revoked SELECT and an oversized raw row. The fixture removed its owned
+container and volume; production PostgreSQL, Item registry, receiver and
+forecast worker were not changed. This closes the SQL/privilege-failure
+rehearsal, not the production collection or complete natural-day gate.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
