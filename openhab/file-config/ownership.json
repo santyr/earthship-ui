@@ -507,6 +507,15 @@
       "migration": "observational",
       "source": "items/weather-rain-evidence.items",
       "destination": "/etc/openhab/items/weather-rain-evidence.items"
+    },
+    {
+      "kind": "rule",
+      "id": "update_days_until_season",
+      "provider": "file",
+      "migration": "provisional",
+      "source": "automation/js/update_days_until_season.js",
+      "destination": "/etc/openhab/automation/js/update_days_until_season.js",
+      "state_writer": "DaysUntilNextSeason"
     }
   ]
 }

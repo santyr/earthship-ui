@@ -39,11 +39,13 @@ separate structural read of three managed display rules found
 script, while sky condition and rolling extrema are larger multi-input
 observers. The next migration slice needs an exact provider/UID/rollback
 qualification; this census alone does not authorize moving any rule.
-The [season countdown candidate](2026-09-29-season-countdown-rule-file-candidate.md)
-now preserves the live rule's trigger, identity and display calculation in a
-staged JS Scripting file; five focused and 1,845 full JavaScript tests pass.
-The live rule remains managed pending isolated provider/UID/rollback rehearsal
-and an attended natural-update cutover. No file-ownership claim was added.
+The [season countdown migration](2026-09-29-season-countdown-rule-file-candidate.md)
+preserves the live rule's trigger, identity and display calculation in a JS
+Scripting file; five focused and 1,845 full JavaScript tests pass. An isolated
+managed/file/managed provider rehearsal passed and cleaned up its container.
+The guarded live cutover made the file the sole rule provider without a restart;
+the private managed backup is retained. Ownership is provisional pending the
+next natural changed `Sun_TimeLeft` output and a later restart check.
 
 ## Standing efficiency requirement — September 26, 2026
 

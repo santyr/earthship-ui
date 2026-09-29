@@ -58,6 +58,12 @@ automatic writes; only the managed observational
 receipts. This collector does not command either plug or qualify daily Energy
 Analytics by itself; see `docs/operations/outstanding-work.md` for the
 remaining full-day and fault/restart gates.
+The display-only `update_days_until_season` rule is provisionally file-owned
+in `automation/js/update_days_until_season.js` after an isolated provider and
+managed-rollback rehearsal plus a guarded live handoff. Its next natural
+state-change output and later restart check remain open; retain the private
+managed-rule backup until both pass. See the
+[rule cutover receipt](../../docs/operations/2026-09-29-season-countdown-rule-file-candidate.md).
 
 ## Staged migration and rollback
 
