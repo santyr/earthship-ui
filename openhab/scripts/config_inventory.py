@@ -139,6 +139,9 @@ def extended_inventory(addons, pages, transformations):
     }
 
 
+KNOWN_CONTROL_RULES = frozenset({'hex_southoutlet_cycle'})
+
+
 def rule_item_reference_census(items, rules, links):
     """Conservative literal-name census; absence never proves an Item unused.
 
@@ -172,9 +175,19 @@ def rule_item_reference_census(items, rules, links):
                         if item.get('editable') is True and item.get('type') != 'Group'
                         and not item.get('groupNames') and item['name'] not in linked
                         and not mentions[item['name']])
+    # This overlap is a manual-review prompt, not a read/write dependency proof.
+    # The known set is intentionally incomplete; no overlap never clears a rule.
+    control_overlaps = [
+        {'item': name, 'control_rules': sorted(uids & KNOWN_CONTROL_RULES),
+         'other_rules': sorted(uids - KNOWN_CONTROL_RULES)}
+        for name, uids in sorted(mentions.items())
+        if uids & KNOWN_CONTROL_RULES and uids - KNOWN_CONTROL_RULES
+    ]
     return {
         'scope': 'literal_rule_names_only; external_writers_and_dynamic_names_not_covered',
         'not_migration_approval': True,
+        'control_overlap_not_dependency_proof': True,
+        'known_control_rule_item_overlaps': control_overlaps,
         'rule_item_mentions': [
             {'item': name, 'rules': sorted(uids)} for name, uids in sorted(mentions.items())
             if uids],
@@ -205,6 +218,7 @@ def main():
         result['rule_reference_counts'] = {
             'items_mentioned': len(census['rule_item_mentions']),
             'structural_candidates': len(census['unlinked_ungrouped_unmentioned_managed_items']),
+            'known_control_overlaps': len(census['known_control_rule_item_overlaps']),
         }
     if args.extended:
         result['extended'] = extended_inventory(get('/addons'), get('/ui/components/ui:page'), get('/transformations'))

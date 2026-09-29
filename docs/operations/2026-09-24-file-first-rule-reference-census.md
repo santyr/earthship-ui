@@ -27,3 +27,22 @@ consumers, protected-control semantics, metadata, links, history and restart
 behavior for each resource. The same exclusions apply to Items that do have
 literal rule mentions; this census only helps prioritize manual review.
 No provider, rule, Item state, control or service changed in this audit.
+
+## September 29 protected-overlap warning
+
+The sky-rule provider rollback exposed an indirect control-input dependency:
+the sky rule writes `SkyCondition`, which the live greywater controller reads.
+The read-only `--rule-references` census now reports exact Item names mentioned
+by the known `hex_southoutlet_cycle` controller *and* other rules. At the live
+check it found five shared names: `BMS_Comms_Status`, `BMS_SOC`,
+`DCData_Voltage`, `SkyCondition` and `Sun_Position_Elevation`. In particular,
+`SkyCondition` is shared with `sky-condition-calculator`.
+
+These are **review warnings**, not inferred read/write edges or migration
+approval: `UpdateBatteryIcon`, for example, reads `BMS_SOC` without producing
+it. The known-control set is deliberately incomplete, dynamic Item names and
+external publishers are not found, and an empty overlap would not clear a
+candidate. A live downstream-consumer review remains mandatory before any
+rule is classified display-only or moved to a file provider. Fourteen focused
+inventory tests pass; the live redacted inventory reported zero ownership
+issues and five known-control overlaps. No production rule or Item changed.

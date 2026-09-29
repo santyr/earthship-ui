@@ -74,7 +74,11 @@ needs protected-control restart/rollback qualification. See the
 ## Staged migration and rollback
 
 1. Inspect exact live configuration, metadata, links, groups, consumers and history
-   mapping. Save private before-state and current Git/source hashes.
+   mapping. For rules, trace every written Item to *live downstream rule
+   consumers* before calling the rule display-only; a UI-looking output can
+   be a protected-control input. The redacted rule-reference overlap census
+   is only a review prompt, not proof of absence. Save private before-state
+   and current Git/source hashes.
 2. Qualify syntax/provider hot reload with an owned observational probe, removed
    afterwards. No hardware commands or fabricated telemetry for validation.
 3. Pause only the affected publisher/owner, allow active work to finish, remove

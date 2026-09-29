@@ -57,6 +57,10 @@ restored with both pumps OFF; one managed healthy rule, unchanged sky state,
 and active OpenHAB were read back. The file-ownership claim was removed.
 Further migration needs protected-control restart/rollback qualification,
 not just display-rule tests.
+The [rule-reference census](2026-09-24-file-first-rule-reference-census.md)
+now flags five live Item-name overlaps between the known greywater controller
+and other rules, including the sky producer. It is a redacted manual-review
+warning only; it cannot infer writers or clear a candidate with no overlap.
 
 ## Standing efficiency requirement — September 26, 2026
 

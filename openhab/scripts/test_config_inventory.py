@@ -135,6 +135,23 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(result['unlinked_ungrouped_unmentioned_managed_items'],
                          ['Solo'])
 
+    def test_control_item_overlap_flags_sky_without_claiming_dependency_proof(self):
+        items = [{'name': 'SkyCondition', 'type': 'String', 'editable': True},
+                 {'name': 'SkyConditionIcon', 'type': 'String', 'editable': False}]
+        rules = [
+            {'uid': 'sky-condition-calculator', 'actions': [
+                {'configuration': {'script': 'items.getItem("SkyCondition").postUpdate("CLEAR");'}}]},
+            {'uid': 'hex_southoutlet_cycle', 'actions': [
+                {'configuration': {'script': 'const sky = state("SkyCondition");'}}]},
+        ]
+        result = rule_item_reference_census(items, rules, [])
+        self.assertEqual(result['known_control_rule_item_overlaps'], [
+            {'item': 'SkyCondition', 'control_rules': ['hex_southoutlet_cycle'],
+             'other_rules': ['sky-condition-calculator']}])
+        self.assertTrue(result['control_overlap_not_dependency_proof'])
+        self.assertTrue(result['not_migration_approval'])
+        self.assertNotIn('postUpdate', json.dumps(result))
+
 
 if __name__ == '__main__':
     unittest.main()
