@@ -279,3 +279,28 @@ natural indoor, north-wall, outdoor and rain receipts are all valid with zero
 new rain fault latches. The next natural spike is needed to compare raw model
 names. This is another deliberate observational epoch reset, not a daily
 rain-qualification or production learner cutover.
+
+### Root-cause match and radio-adapter correction candidate
+
+The repeated accepted 102.7497945-inch counter is 2,609.85 mm, exactly
+10,275 tips at 0.254 mm/tip. Every rejected 121.358025-inch packet is
+3,082.5 mm, **the same 10,275 tips** at 0.3 mm/tip. The upstream
+[`rtl_433` Fine Offset decoder](https://github.com/merbanan/rtl_433/blob/master/src/devices/fineoffset.c)
+uses precisely those WH65B/WH24 tip factors and also uses 0.51/1.12 wind
+factors. The rejected packets are labeled `Fineoffset-WH24`; the site array
+was surveyed as the WH65B/WS-2902 family with approved ID 206. This exact
+integer-tip equality across both scales explains the 18.608-inch apparent
+jump far better than physical rain, a battery reset or a chance same-ID
+station. It is still useful to inspect the next bounded `previous_model`
+diagnostic before closing source attribution.
+
+The live 226-line `/home/sat/bin/rtl_weather.py` was copied byte-for-byte
+into Git at `openhab/scripts/rtl_weather.py` before editing; no credential is
+in the source. The candidate adapter now recovers the integer tip count from
+either decoder label, refuses ambiguous/nonfinite counts, and emits the same
+WH65B 0.254-mm tip and 0.51 wind scale for this filtered station. Other IDs
+remain excluded. Thirty-eight radio/receiver tests pass, including parity of
+both labels at 10,275 tips and fail-closed ambiguous values. No live radio
+service has yet been restarted at this source-only checkpoint. Keep the
+rain collector's physical spike guard and strict day reader in place after
+deployment; do not score a day until the next complete, fault-free local day.
