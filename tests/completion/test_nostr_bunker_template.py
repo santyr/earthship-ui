@@ -39,3 +39,23 @@ def test_launcher_never_puts_secret_in_arguments_or_uses_project_fallback():
     assert '--authorized-keys "$client"' in launcher
     assert '--sec "$NOSTR_SECRET_KEY"' not in launcher
     assert 'lightning-goats-nostr.key' not in launcher
+
+
+def test_operator_helpers_are_offline_by_default_and_keep_secret_out_of_argv():
+    verifier = DEPLOY / 'verify-earthship-operator-credential'
+    publisher = DEPLOY / 'publish-earthship-operator-route'
+    for helper in (verifier, publisher):
+        subprocess.run(['sh', '-n', str(helper)], check=True)
+        source = helper.read_text()
+        assert 'systemd-creds decrypt --name=nostr-key "$KEY" -' in source
+        assert '--sec "$secret"' not in source
+        assert 'set +x' in source
+        result = subprocess.run(['sh', str(helper)], capture_output=True,
+                                text=True, env={}, check=False)
+        assert result.returncode != 0
+        assert 'run as root' in result.stderr
+    source = publisher.read_text()
+    assert source.count('-t "relay=$RELAY_') == 3
+    assert '"$CHECKER" >/dev/null' in source
+    assert 'operator route already exists' in source
+    assert 'operator route published and verified on 3/3 relays' in source

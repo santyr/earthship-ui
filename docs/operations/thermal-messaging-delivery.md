@@ -370,6 +370,28 @@ code across projects, but each signing identity needs separate credentials,
 client allowlists and runtime state. The operator-key provisioning path and
 signed kind-10050 route remain open; no service, secret or message changed.
 
+Later September 29, the operator installed the original operator key as a
+mode-0600 root-owned systemd-encrypted credential. Their root-run offline
+identity verifier reported `operator credential matches existing DM recipient`.
+Host readback showed the root-owned verifier identical to the reviewed source
+and the root-owned `nak` identical to the qualified v0.20.7 digest. The
+operator's supplied recipient npub and Hex sender npub both matched the
+respective current OpenHAB public identities. This proves local key custody
+for the intended recipient, not a signed operator inbox route or a configured
+NIP-46 client. The systemd host credential key is on an unencrypted root
+filesystem, so whole-drive theft remains a key-custody risk.
+
+The legacy OpenHAB Hex DM notifier was then narrowly changed to use nak's
+`NOSTR_SECRET_KEY` environment support instead of passing the sender key in
+command arguments. A disposable-key offline test passed, live source readback
+matched, and one operator-authorized labelled test DM received ACKs from all
+three configured relays. The operator separately confirmed receipt of that
+labelled DM in their inbox. This verifies the existing Hex-to-operator NIP-04
+path, not the NIP-17 thermal-confirmation path. Sender-key rotation needs
+coordinated recipient-side handling because it changes Hex's public identity.
+No thermal confirmation prompt, listener, route announcement or journal write
+was activated by these checks.
+
 The operator selected separate identities per project. Source-only
 `deploy/nostr-bunker/` now contains a reusable local systemd instance template,
 launcher and installation boundary. It is not installed, enabled, or proof of

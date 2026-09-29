@@ -7,9 +7,70 @@ and private runtime directory. For example, `nostr-bunker@earthship-operator`
 and `nostr-bunker@lightning-goats` must use different credentials. Do not infer
 that the Lightning Goats key is the Earthship operator key.
 
-This checkout does not install or start a bunker. The operator key and its
-authorized NIP-46 client key have not been located or provisioned on this host.
-No thermal listener or question should be enabled because this template exists.
+This checkout does not install or start a bunker. On September 29 the operator
+reported provisioning the original operator key as a mode-0600, root-owned
+systemd-encrypted credential on this host. A root-run, offline check of the
+installed verifier reported that the credential derives to the existing DM
+recipient; the verifier's installed bytes and the qualified root-owned `nak`
+both matched their reviewed source/digest. The authorized NIP-46 client key
+is still not provisioned. No thermal listener or question should be enabled
+because this template or credential exists.
+The operator subsequently named `npub1v60thnx0gz0wq3n6xdnq46y069l9x70xgmjp6lprdl6fv0eux6mqgjj4rp`
+as the intended DM recipient. A read-only public-key comparison confirmed
+that this npub matches OpenHAB's current configured DM recipient. The later
+root-run verifier result also matched the credential to this public identity.
+The operator also identified Hex's sender as
+`npub1qkjnsgk6zrszkmk2c7ywycvh46ylp3kw4kud8y8a20m93y5synvqewl0sq`.
+A local public-key derivation confirmed that OpenHAB's current DM sender
+matches it. This is a distinct identity from the operator/recipient; never
+put Hex's sending key in the operator bunker credential or client allowlist.
+
+The host reported that `/var/lib/systemd/credential.secret` is not on encrypted
+media. A host-bound encrypted credential is not protection against an attacker
+who obtains the entire unencrypted drive. Keep the original key's separate
+offline backup and review full-disk encryption or hardware-backed credentials
+before exposing this signer beyond the local household. Do not mistake mode
+0600 for disk-at-rest encryption.
+
+### Offline identity verification
+
+After reviewing the source and its fixed digest, an administrator can install
+the qualified `nak` binary and one-shot verifier as root-owned files:
+
+```sh
+sudo install -d -o root -g root -m 0755 /usr/local/libexec/nostr-bunker
+sudo install -o root -g root -m 0755 /home/sat/.local/bin/nak /usr/local/libexec/nostr-bunker/nak
+sudo install -o root -g root -m 0755 /home/sat/earthship-ui/deploy/nostr-bunker/verify-earthship-operator-credential /usr/local/libexec/nostr-bunker/verify-earthship-operator-credential
+sudo /usr/local/libexec/nostr-bunker/verify-earthship-operator-credential
+```
+
+The verifier does not connect to a relay, start a service, print the secret or
+authorize a NIP-46 client. It fails if the pinned binary changed, decryption
+fails, or the derived public key differs from either the operator-approved npub
+or OpenHAB's current DM recipient. The absolute source path works from any
+working directory.
+
+### Approved operator inbox announcement
+
+The operator approved a single signed kind-10050 announcement listing
+`wss://nos.lol`, `wss://relay.primal.net`, and `wss://relay.damus.io` for their
+verified identity. `publish-earthship-operator-route` is a root-run, one-shot
+path for this already-approved public event; it does not start the NIP-46
+bunker, a thermal collector, or any OpenHAB control. It refuses to replace an
+existing operator route and requires readback from all three relays. Its
+private key exists only in the root process and signing child environment,
+never in an argument or output. Install from an absolute source path so the
+working directory cannot change what is installed:
+
+```sh
+sudo install -o root -g root -m 0755 /home/sat/earthship-ui/deploy/nostr-bunker/publish-earthship-operator-route /usr/local/libexec/nostr-bunker/publish-earthship-operator-route
+sudo /usr/local/libexec/nostr-bunker/publish-earthship-operator-route
+```
+
+Do not blindly rerun after a partial publish: the signed event may already be
+on some relays. First query the public event ID, compare its signature and
+exact relay tags, then repair only missing relay copies. The announcement
+alone does not qualify NIP-17 confirmation delivery or authorize a listener.
 
 ## Installation boundary
 

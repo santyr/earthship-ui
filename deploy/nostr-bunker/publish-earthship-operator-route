@@ -1,0 +1,108 @@
+#!/bin/sh
+# One-shot operator-approved kind-10050 publication. Never starts a signer.
+set -eu
+set +x
+umask 077
+ulimit -c 0
+unset NOSTR_SECRET_KEY
+
+NAK=/usr/local/libexec/nostr-bunker/nak
+CHECKER=/usr/local/libexec/nostr-bunker/verify-earthship-operator-credential
+KEY=/etc/credstore.encrypted/nostr-bunker-earthship-operator.key
+APPROVED_NPUB=npub1v60thnx0gz0wq3n6xdnq46y069l9x70xgmjp6lprdl6fv0eux6mqgjj4rp
+RELAY_1=wss://nos.lol
+RELAY_2=wss://relay.primal.net
+RELAY_3=wss://relay.damus.io
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo 'run as root' >&2
+    exit 1
+fi
+if [ ! -f "$CHECKER" ] || [ -L "$CHECKER" ] ||
+   [ "$(stat -c %u "$CHECKER")" -ne 0 ] ||
+   [ -n "$(find "$CHECKER" -maxdepth 0 -perm /022 -print)" ]; then
+    echo 'root-owned identity checker unavailable' >&2
+    exit 1
+fi
+"$CHECKER" >/dev/null || exit 1
+approved=$("$NAK" decode --pubkey "$APPROVED_NPUB") || exit 1
+
+# Refuse to replace an existing operator announcement, or to proceed when a
+# relay cannot give a complete bounded answer. No private key is loaded yet.
+for relay in "$RELAY_1" "$RELAY_2" "$RELAY_3"; do
+    prior=$(timeout -k 2 15 "$NAK" req -k 10050 -a "$approved" -l 1 "$relay") || {
+        echo "route preflight failed on $relay" >&2
+        exit 1
+    }
+    if [ -n "$prior" ]; then
+        echo "operator route already exists on $relay; refusing replacement" >&2
+        exit 1
+    fi
+done
+
+work_dir=$(mktemp -d /tmp/earthship-operator-route.XXXXXX)
+case "$work_dir" in
+    /tmp/earthship-operator-route.*) ;;
+    *) echo 'unsafe temporary directory' >&2; exit 1 ;;
+esac
+trap 'rm -rf -- "$work_dir"' EXIT
+
+# Decrypt only inside this root process. The secret is never an argument,
+# written to disk, printed, or inherited by publication/readback processes.
+secret=$(systemd-creds decrypt --name=nostr-key "$KEY" -) || {
+    echo 'operator credential decryption failed' >&2
+    exit 1
+}
+event=$(NOSTR_SECRET_KEY="$secret" "$NAK" --config-path "$work_dir" event \
+    -k 10050 -t "relay=$RELAY_1" -t "relay=$RELAY_2" \
+    -t "relay=$RELAY_3" -c '') || {
+    unset secret
+    echo 'operator route signing failed' >&2
+    exit 1
+}
+unset secret
+
+printf '%s\n' "$event" | "$NAK" verify >/dev/null || {
+    echo 'signed route verification failed' >&2
+    exit 1
+}
+event_id=$(printf '%s\n' "$event" | python3 -c '
+import json, sys, time
+event = json.load(sys.stdin)
+approved, *relays = sys.argv[1:]
+assert set(event) == {"id", "pubkey", "created_at", "kind", "tags", "content", "sig"}
+assert event["pubkey"] == approved and event["kind"] == 10050
+assert event["tags"] == [["relay", relay] for relay in relays]
+assert event["content"] == ""
+assert int(time.time()) - 120 <= event["created_at"] <= int(time.time()) + 60
+print(event["id"])
+' "$approved" "$RELAY_1" "$RELAY_2" "$RELAY_3") || {
+    echo 'signed route fields did not match approval' >&2
+    exit 1
+}
+
+# This public event is replaceable but cannot be retracted. A failed or partial
+# publication is reported, never treated as complete just because nak exits 0.
+printf '%s\n' "$event" | timeout -k 2 25 "$NAK" --config-path "$work_dir" event \
+    "$RELAY_1" "$RELAY_2" "$RELAY_3" >/dev/null || {
+    echo "operator route publication incomplete; event ID $event_id" >&2
+    exit 1
+}
+
+for relay in "$RELAY_1" "$RELAY_2" "$RELAY_3"; do
+    received=$(timeout -k 2 15 "$NAK" --config-path "$work_dir" req \
+        -k 10050 -a "$approved" -i "$event_id" -l 1 "$relay") || {
+        echo "operator route readback failed on $relay; event ID $event_id" >&2
+        exit 1
+    }
+    received_id=$(printf '%s\n' "$received" | python3 -c '
+import json, sys
+event = json.load(sys.stdin)
+print(event["id"])
+') || exit 1
+    if [ "$received_id" != "$event_id" ]; then
+        echo "operator route readback mismatch on $relay; event ID $event_id" >&2
+        exit 1
+    fi
+done
+echo "operator route published and verified on 3/3 relays; event ID $event_id"
