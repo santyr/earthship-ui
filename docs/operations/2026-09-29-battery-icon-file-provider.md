@@ -68,3 +68,27 @@ or control change was part of this cutover.
 The first natural `BatteryIcon` writer change with a new Item 31 row remains
 the verification gate before changing the manifest to `verified`. Do not
 manufacture an icon update to close that gate.
+
+## Natural writer and JDBC gate — September 29, 08:16–09:19 MDT
+
+After the file handoff, five later Item 31 JDBC rows appeared, beginning with
+`iconify:mdi:battery-60` at `2026-09-29T14:16:00.280717Z` and ending with
+`iconify:mdi:battery-charging-80` at `2026-09-29T15:19:30.281075Z`. A
+read-only scan verified the exact 136,507-row pre-transfer history prefix and
+Item 31 identity against the private receipt. All five new timestamps fall
+on the writer's 30-second cron boundary. The corresponding OpenHAB
+`ItemStateChangedEvent` lines attribute each change to
+`org.openhab.automation.jsscripting$rule:UpdateBatteryIcon`, including the
+first change in `events.log.5` and the latest in `events.log.7`. The live
+rule remains IDLE with its pinned script SHA-256 and exact cron, and a live
+rule-list scan found no other script mentioning `BatteryIcon`.
+
+Independent REST readback shows one file-owned `BatteryIcon` with the original
+custom metadata and latest JDBC state; installed/source Item files retain
+the same SHA-256. The planned natural writer/JDBC gate is closed, so the
+ownership manifest now declares `file/verified`. This does not claim a
+post-restart production verification; the separate isolated restart rehearsal
+is recorded above. No synthetic production update or control change was made.
+The same read-only whole-registry inventory still reports an unrelated
+`unverified provider: item BMS_Runtime_Input_Evidence_JSON`; this BatteryIcon
+promotion is not a claim that the global file-first inventory is clean.

@@ -3,7 +3,7 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
-      "kind": "item", "id": "BatteryIcon", "provider": "file", "migration": "provisional",
+      "kind": "item", "id": "BatteryIcon", "provider": "file", "migration": "verified",
       "source": "items/battery-icon.items", "destination": "/etc/openhab/items/battery-icon.items",
       "state_writer": "UpdateBatteryIcon"
     },

@@ -363,6 +363,18 @@ unchanged JDBC prefix, writer status and `BatteryChargingStatus` checks passed;
 the live inventory returned zero issues after a file/provisional declaration.
 A later natural icon change and new Item 31 JDBC row are still required before
 marking ownership verified. No synthetic production update was sent.
+The natural writer gate later passed: five post-cutover Item 31 rows appeared
+between 08:16 and 09:19 MDT, all on the 30-second rule boundary. Event-log
+change lines attribute each to `UpdateBatteryIcon`; read-only verification
+found the full 136,507-row pre-cutover prefix intact, the latest REST/JDBC
+state equal, the exact file source/installed hash, and the live writer IDLE
+with its pinned script and cron. `BatteryIcon` is now `file/verified` in the
+manifest. A production post-restart check remains separate; no artificial
+Item update or OpenHAB control change closed this gate.
+The whole-registry inventory at that check still had one unrelated issue:
+`BMS_Runtime_Input_Evidence_JSON` is live file-owned but lacks an ownership
+manifest declaration. Do not treat the BatteryIcon gate as resolving that
+separate migration inventory gap.
 
 September 27 Dooya integration: the 27 motorized window shades have not arrived.
 The transport adapter remains in its separate repository. Earthship UI now has
