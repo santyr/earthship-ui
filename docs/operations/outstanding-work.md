@@ -64,6 +64,21 @@ was made. Whole-run duration, swap and acceptance gates remain pending.
 At 06:57 the same live process was still active with `MemorySwapCurrent=0`;
 two one-second host `vmstat` samples showed zero swap-in and swap-out. This
 is a bounded in-run observation, not a whole-run performance result.
+The completed natural September 29 run exited zero at 07:36:42 MDT: 46m 25s
+elapsed, 46m 22.540s CPU, 376.0 MiB peak resident memory and zero swap peak.
+It accepted v4 artifact revision `00611a5ef1e5b64347143b3dc04b423d519f7ccbd7bc237bd029b69b7ef2cd5a`.
+This is faster than September 28's 58m 56.671s CPU, but changing data/folds
+preclude attributing the whole difference to one optimization. The accepted
+artifact remains `shadow_only`: raw 24-hour air MAE 2.179°F versus 1.690°F
+for persistence, and zero confirmed-action training/evaluation rows. Its
+internal `air_24h_beats_persistence` provisional gate permits a 0.75°F
+tolerance; that label does **not** prove the model beats persistence or earns
+operational graduation. At 08:26:25 MDT the next natural shadow publisher
+exited zero and `Thermal_Model_JSON` bound this exact revision/training origin,
+with low confidence, reconstructed action labels, and no candidate because
+minimum modeled improvement was not met. This closes September 29 artifact-
+to-publisher continuity and the whole-run swap observation; it does not close
+accuracy, confirmed-outcome, shadow-exit, or automation gates.
 The operator applied the exact `energy_power_reader` SELECT grants on
 `public.item0657` (rain) and `public.item0658` (Discover BMS auxiliary).
 Restricted-role readback confirmed unique Item IDs 657/658, SELECT true,
@@ -3515,6 +3530,14 @@ idle. Repository and installed SHA-256 both read
 The 08:21:25 MDT natural timer run reported `OK (all checks passed)`; no manual
 notifier invocation or control command was issued. The temporary rollback copy
 was removed after this result; the prior source remains in Git history.
+At about 08:23 MDT the runtime input collector had 71 naturally persisted
+receipts in one epoch, sequences 1–71 with no gaps and a maximum inter-write
+gap of 32.666 seconds. Five partly unavailable rows were startup acquisition
+barriers (sequences 1–5); all later rows had four valid fields. The last
+receipt's original-event ages were 0, 5.115, 25.817 and 25.817 seconds for
+current, voltage, TTD and TTF respectively. This is evidence of normal
+coalescing and startup fail-closed behavior in that bounded morning window,
+not dusk/night qualification of the disabled estimator candidate.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
