@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "createOnly": true,
+  "itemSource": "openhab/file-config/items/bms-aux-evidence.items",
+  "persistenceExclusion": "!BMS_Aux_Evidence_JSON",
+  "persistenceCandidate": "openhab/file-config/persistence/jdbc.persist",
+  "rule": {
+    "uid": "hex_bms_aux_evidence",
+    "name": "Validated Discover BMS auxiliary acquisition evidence",
+    "enabled": false,
+    "source": "openhab/rules/bms-aux-evidence.js",
+    "triggers": [
+      {"id":"capacity","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/BMS_Capacity_Remaining_Ah/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"temperature","type":"core.GenericEventTrigger","configuration":{"topic":"openhab/items/BMS_Temperature_Raw/state","types":"ItemStateEvent","source":"","payload":""}},
+      {"id":"capacity_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:data:discoverBms190:bmsMain:capRemainAh"}},
+      {"id":"temperature_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:data:discoverBms190:bmsMain:tempRaw"}},
+      {"id":"poller_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:poller:discoverBms190:bmsMain"}},
+      {"id":"bridge_status","type":"core.ThingStatusChangeTrigger","configuration":{"thingUID":"modbus:tcp:discoverBms190"}},
+      {"id":"expiry","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/10 * * * * ?"}},
+      {"id":"startup","type":"core.SystemStartlevelTrigger","configuration":{"startlevel":100}}
+    ]
+  }
+}

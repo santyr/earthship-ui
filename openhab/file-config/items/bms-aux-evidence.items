@@ -1,0 +1,2 @@
+// Observational source receipt only; never a BMS command target.
+String BMS_Aux_Evidence_JSON "Validated Discover BMS auxiliary evidence"

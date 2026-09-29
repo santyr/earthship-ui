@@ -179,7 +179,7 @@ describe('source-only MPPT daily PV evidence producer', () => {
     expect(resources.persistenceCandidate).toBe('openhab/file-config/persistence/jdbc.persist');
     expect(persistence).toContain('!MPPT60_PV_Day_Evidence_JSON');
     expect(persistence).toContain('!MPPT60_PV_Day_Observation_JSON');
-    expect(persistence).toContain('MPPT60_PV_Day_Evidence_JSON : strategy = restoreOnStartup');
+    expect(persistence).toMatch(/MPPT60_PV_Day_Evidence_JSON(?:, [A-Za-z0-9_]+)* : strategy = restoreOnStartup/);
     expect(source).not.toMatch(/sendCommand|oh_put|\/rest\/items/);
   });
 });

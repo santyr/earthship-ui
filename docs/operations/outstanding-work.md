@@ -223,6 +223,18 @@ verifies those original sources, bounds each field's observation time and
 expiry, persists restart/fault barriers, and independently validates history
 before Energy quality uses it. No BMS control, evidence Item or quality policy
 was changed by the temporary probe.
+The first source-only `bms-aux-evidence` candidate now pins both original
+channel sources, individual 120-second host-receipt expiries, Thing/poller/
+bridge availability, restart epochs, sequence-consuming JDBC writes and
+separate field barriers. It is staged disabled with a file-owned Item source;
+the JDBC exclusion is declared as a required candidate but is not deployed.
+The host event arrival time is the receipt time, not a device-origin clock.
+All 1,824 UI/OpenHAB JavaScript tests pass, including the new isolated
+producer cases. Before live collection: qualify the rule on isolated
+OpenHAB/JDBC, install/read back the exclusion before creating the Item,
+verify a natural original event and restricted history, then build the strict
+daily/live reader and temperature-output parity check. No new BMS resource is
+live at this checkpoint.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`
