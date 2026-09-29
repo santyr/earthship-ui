@@ -325,6 +325,16 @@ permission-denied history rather than substituting held `BMS_DevicePresent`.
 All 879 analytics tests pass. Production unit flags and Python import paths
 were not changed. A fresh restricted-role check at 23:31 MDT still returned
 `item0658_select=false`; this and the full-day/parity gates keep activation off.
+The live managed scaler confirms the intended change-only contract: native
+raw updates continue while the derived Fahrenheit Item posts only after a
+change of at least 0.2°F. A read-only September 28 check found raw 29300
+and derived 68°F, with the derived JDBC value unchanged since 19:51 UTC;
+that timestamp difference alone is not staleness. A new source-only parity
+assessor checks only settled native raw-value transitions against the held or
+new derived Fahrenheit value, validates the strict evidence-day sequence,
+and reports `insufficient_changes` instead of claiming parity when no raw
+change was observed. It has not yet consumed a production full day or earned
+a live release decision; the Item 658 grant and derived-series join remain.
 September 28 installed-binding inspection narrowed the safe path: the two
 HS103 Things have `switch`, `led` and `rssi` channels and a 30-second refresh.
 The installed 5.2.1 handler's scheduled refresh reads a cached `DeviceState`

@@ -7,6 +7,7 @@ import pytest
 
 from bms_aux_evidence import (BmsAuxEvidenceRefused, FIELDS, TTL,
                               parse_bms_aux_receipt, qualify_bms_aux_day)
+from bms_temperature_parity import assess_bms_temperature_parity, expected_fahrenheit
 
 
 DAY = date(2026, 10, 1)
@@ -155,3 +156,56 @@ def test_partial_and_pre_cutover_days_never_qualify():
     with pytest.raises(BmsAuxEvidenceRefused):
         qualify_bms_aux_day(DAY, as_of=bounds()[1],
                             cutover=bounds()[0] + timedelta(seconds=1), observations=rows)
+
+
+def test_temperature_parity_scores_raw_changes_not_unchanged_item_age():
+    rows = day_rows()
+    for index in range(100, len(rows)):
+        at, _ = rows[index]
+        raw = 29400 if index < 200 else 29300
+        rows[index] = (at, encoded(at, index + 1, temperature=raw))
+    start, end = bounds()
+    derived = [(start - timedelta(minutes=1), 68.0),
+               (rows[100][0] + timedelta(seconds=1), 69.8),
+               (rows[200][0] + timedelta(seconds=1), 68.0)]
+    result = assess_bms_temperature_parity(
+        DAY, as_of=end, cutover=CUTOVER, observations=rows,
+        derived_points=derived)
+    assert result['source_temperature_quality'] == 'ok'
+    assert result['raw_transitions'] == 2
+    assert result['checked_transitions'] == 2
+    assert result['status'] == 'observed_consistent'
+    assert result['mismatches'] == []
+    # The held Fahrenheit value remains legitimate for the rest of this day.
+    assert derived[-1][0] < end - timedelta(hours=20)
+
+
+def test_temperature_parity_refuses_wrong_derived_value_and_sequence_gap():
+    rows = day_rows()
+    for index in range(100, len(rows)):
+        at, _ = rows[index]
+        rows[index] = (at, encoded(at, index + 1, temperature=29400))
+    start, end = bounds()
+    held = [(start - timedelta(minutes=1), 68.0)]
+    result = assess_bms_temperature_parity(
+        DAY, as_of=end, cutover=CUTOVER, observations=rows,
+        derived_points=held)
+    assert result['status'] == 'mismatch'
+    assert result['checked_transitions'] == 1
+    assert result['mismatches'][0]['expected_f'] == 69.8
+    at, _ = rows[500]
+    rows[500] = (at, encoded(at, 999, temperature=29400))
+    with pytest.raises(BmsAuxEvidenceRefused, match='sequence'):
+        assess_bms_temperature_parity(
+            DAY, as_of=end, cutover=CUTOVER, observations=rows,
+            derived_points=held)
+
+
+def test_temperature_parity_reports_no_change_without_inventing_evidence():
+    start, end = bounds()
+    result = assess_bms_temperature_parity(
+        DAY, as_of=end, cutover=CUTOVER, observations=day_rows(),
+        derived_points=[(start - timedelta(minutes=1), 68.0)])
+    assert result['status'] == 'insufficient_changes'
+    assert result['checked_transitions'] == 0
+    assert expected_fahrenheit(29300) == 68.0
