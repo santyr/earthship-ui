@@ -5,6 +5,27 @@ implementation approval or a claim that historical tasks are finished.
 Owner: Hex (the current assistant). Task 82 remains explicitly on hold and is
 outside this Earthship workstream.
 
+September 29 local-AI checkpoint: an isolated, offline, CPU-only `gemma3:1b`
+trial completed two short prompts in under four seconds each, establishing
+small-model inference feasibility on this host. The first answer suggested
+review on low-confidence/null-candidate evidence and ignored JSON shape; the
+second JSON-mode answer misspelled its abstention token. Neither output passed
+a strict shadow-advisory contract. The disposable runtime and weights were
+removed. No training, scheduled AI advisory, OpenHAB integration, or control
+was enabled. See [the feasibility record](2026-09-29-local-gemma-feasibility.md).
+Future adaptation requires curated confirmed actions and measured outcomes;
+strict schema/abstention validation and chronological baseline scoring come
+before any fine-tuning or automation consideration. Moving native OpenHAB to
+Docker solely for backup is not recommended without a separate migration and
+restore qualification.
+
+The natural September 29 08:20 energy-data-quality service exited zero and
+reported Routine for source inventory, live health, qualified daily coverage
+through September 28 and forecast-snapshot age. The 08:55 energy UI publisher
+also exited zero and reported a publication receipt. This is a bounded job
+health check, not evidence that AC-load v4, rain/PV forecast learning, or
+other separately gated metrics were activated.
+
 September 29 protected-control follow-up: live `hex_southoutlet_cycle` exactly
 matched the tracked dual-pump source SHA-256 `312cf24c...8dd7b84df`. Its
 automatic and manual gates consumed held, change-only `BMS_SOC` and tolerated
