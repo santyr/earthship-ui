@@ -250,14 +250,14 @@
   .release-state { color: #d5b677; border: 1px solid #564529; background: #211b12; border-radius: .38rem; padding: .4rem .62rem; font-size: .7rem; letter-spacing: .02em; text-align: right; }
   .page-selector { display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-height: 38px; }
   .selector-actions { display: flex; gap: .35rem; }
-  .selector-actions button { min-height: 36px; padding: 0 .65rem; border: 1px solid #647e91; border-radius: .35rem; color: #d8e6ed; background: #263b4a; font: inherit; font-size: .79rem; cursor: pointer; white-space: nowrap; }
-  .selector-actions button.active { color: #f5fbfd; border-color: #9fc8d6; background: #375568; }
+  .selector-actions button { min-height: 36px; padding: 0 .65rem; border: 1px solid #7798aa; border-radius: .35rem; color: #f0f7fa; background: #345368; font: inherit; font-size: .79rem; cursor: pointer; white-space: nowrap; }
+  .selector-actions button.active { color: #fff; border-color: #b2d5e1; background: #4c7184; }
   .selector-actions button:focus-visible { outline: 2px solid #9fc8e5; outline-offset: 2px; }
   .all-actions, .zone-actions { display: flex; align-items: center; gap: .38rem; }
   .all-actions span { color: #9aa7b8; font-size: .72rem; margin-right: .2rem; white-space: nowrap; }
-  .all-actions button, .zone-actions button { min-height: 34px; border: 1px solid #7891a1; border-radius: .35rem; background: #2d4554; color: #f0f7fa; font: inherit; font-size: .72rem; font-weight: 600; padding: 0 .55rem; white-space: nowrap; }
-  .all-actions button:not(:disabled):hover, .zone-actions button:not(:disabled):hover { background: #38576a; }
-  .all-actions button:disabled, .zone-actions button:disabled { opacity: .58; cursor: not-allowed; }
+  .all-actions button, .zone-actions button { min-height: 34px; border: 1px solid #a4c2ce; border-radius: .35rem; background: #4c7184; color: #fff; font: inherit; font-size: .72rem; font-weight: 600; padding: 0 .55rem; white-space: nowrap; }
+  .all-actions button:not(:disabled):hover, .zone-actions button:not(:disabled):hover { background: #5c8799; }
+  .all-actions button:disabled, .zone-actions button:disabled { background: #263540; border-color: #596f7d; color: #a3b6c1; cursor: not-allowed; }
   .shades-layout { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: .5rem; min-width: 0; min-height: 0; overflow: hidden; }
   .zones { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: .55rem; min-width: 0; min-height: 0; overflow: hidden; }
   .zone { display: grid; grid-template-rows: 34px minmax(0, 1fr); gap: .25rem; min-width: 0; min-height: 0; overflow: hidden; }
@@ -298,7 +298,7 @@
   .window-control input[type='range']:not(:disabled) { cursor: ns-resize; }
   .window-control input[type='range']:active { accent-color: #b6f0f7; }
   .all-actions button:not(:disabled):active, .zone-actions button:not(:disabled):active,
-  .all-actions button.pressed, .zone-actions button.pressed { border-color: #c1edf5; background: #527b8b; color: #fff; box-shadow: inset 0 0 0 1px #a9e3ed; }
+  .all-actions button.pressed, .zone-actions button.pressed { border-color: #d1f2f7; background: #6b9baa; color: #fff; box-shadow: inset 0 0 0 1px #b6e9f0; }
   .window-control.unknown input[type='range'] { opacity: .27; }
   .window-control.unknown input[type='range']::-webkit-slider-thumb { opacity: 0; }
   .window-control.unknown input[type='range']::-moz-range-thumb { opacity: 0; }

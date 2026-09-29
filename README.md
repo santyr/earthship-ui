@@ -10,13 +10,15 @@ Laptop and phone are secondary. Tablet-first, no-scroll console layout.
 **Stack:** Svelte + Vite + Tailwind, ECharts. Talks only to openHAB REST +
 SSE on the LAN. PWA-installable.
 
-**Status:** implemented and running on the household LAN. Five tablet-first
-screens provide live monitoring and safety-gated controls.
+**Status:** implemented and running on the household LAN. Six tablet-first
+screens provide live monitoring, safety-gated controls, and a shade preview.
 
 ## Screenshots
 
-Captured from the live household console at the primary Lenovo Tab M9
-landscape viewport (1340×800).
+Captured at the primary Lenovo Tab M9 landscape viewport (1340×800). The
+existing monitoring screens show the live household console; the shade images
+crop to the shade page in an isolated preview with unconfigured shades and no
+hardware commands.
 
 ### Home
 
@@ -37,6 +39,18 @@ landscape viewport (1340×800).
 ### Controls
 
 [![Controls page](docs/screenshots/controls.png)](docs/screenshots/controls.png)
+
+### Window shades — Kitchen and Living Room
+
+[![Kitchen and Living Room shade preview](docs/screenshots/shades-kitchen-living.png)](docs/screenshots/shades-kitchen-living.png)
+
+### Window shades — Bathroom and Bedroom
+
+[![Bathroom and Bedroom shade preview](docs/screenshots/shades-bathroom-bedroom.png)](docs/screenshots/shades-bathroom-bedroom.png)
+
+The 27 shade slots and their all/zone/individual controls are preview-only
+until hardware is mapped and commissioned. Regenerate these two images with
+`node scripts/capture-shades-screenshots.mjs`.
 
 ### Detail modals
 

@@ -37,9 +37,9 @@ for (const target of TARGETS) {
     await expect(page.getByText(/preview only · no shade commands/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open all' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Close all' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('background-color', 'rgb(45, 69, 84)');
+    await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('background-color', 'rgb(76, 113, 132)');
     await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('opacity', '1');
-    await expect(page.getByRole('button', { name: 'Kitchen + Living Room' })).toHaveCSS('background-color', 'rgb(55, 85, 104)');
+    await expect(page.getByRole('button', { name: 'Kitchen + Living Room' })).toHaveCSS('background-color', 'rgb(76, 113, 132)');
     const master = page.getByRole('article', { name: 'All 27 shades: Local preview' });
     await expect(master).toBeVisible();
     await expect(master.locator('.position-value')).toHaveText(/^(?:\d{1,2}|100)%$/);
@@ -60,6 +60,8 @@ for (const target of TARGETS) {
         await expect(page.getByRole('heading', { name: zone, exact: true })).toBeVisible();
         await expect(page.getByRole('button', { name: `Open ${zone}` })).toBeEnabled();
         await expect(page.getByRole('button', { name: `Close ${zone}` })).toBeEnabled();
+        await expect(page.getByRole('button', { name: `Open ${zone}` })).toHaveCSS('background-color', 'rgb(76, 113, 132)');
+        await expect(page.getByRole('button', { name: `Open ${zone}` })).toHaveCSS('opacity', '1');
         await expect(page.getByRole('slider', { name: `${zone} group local preview percent open` })).toBeEnabled();
       }
       await expect(page.locator('input[type="range"]')).toHaveCount(count + zones.length + 1);
