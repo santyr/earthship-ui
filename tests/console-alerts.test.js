@@ -30,6 +30,14 @@ function predictionReceipt(now, trough, thermalAdvisory = 'none') {
     overnightTroughSocPct: trough, thermalAdvisory });
 }
 
+function socEvidence(now, soc, observedAt = now - 1_000) {
+  return JSON.stringify({ version: 1,
+    streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+    recordedAt: now - 500, status: 'valid', reason: 'ok',
+    observedAt, scaleObservedAt: observedAt,
+    validUntil: observedAt + 120_000, soc });
+}
+
 describe('console alert projection', () => {
   it('exposes the typed deterministic projection API', async () => {
     const subject = await loadSubject();
@@ -71,7 +79,7 @@ describe('console alert projection', () => {
     expect(alerts.every((alert) => !alert.fullText.includes('501'))).toBe(true);
   });
 
-  it('projects BMS communication, device, alarm, and current-SoC critical states', async () => {
+  it('projects BMS communication, device, and alarm critical states', async () => {
     const { projectConsoleAlerts } = await loadSubject();
     const { alerts } = projectConsoleAlerts({
       connection: 'live',
@@ -91,13 +99,35 @@ describe('console alert projection', () => {
       'battery-comms-critical',
       'battery-device-critical',
       'battery-alarm:cell-imbalance',
-      'battery-soc-critical',
     ]);
     for (const alert of alerts) {
       expect(alert).toMatchObject({
         severity: 'critical',
         route: 'energy',
       });
+    }
+  });
+
+  it('uses only fresh source-bound evidence for current critical SoC', async () => {
+    const { projectConsoleAlerts } = await loadSubject();
+    const now = 200_000;
+    const items = { ...healthyItems, BMS_SOC: '62',
+      BMS_SOC_Evidence_JSON: socEvidence(now, 11.6) };
+    const critical = projectConsoleAlerts({ connection: 'live', items, now });
+    expect(critical.alerts.find(({ id }) => id === 'battery-soc-critical')).toMatchObject({
+      shortText: 'Battery SoC critical · 12%',
+      fullText: 'Battery SoC critical: current state of charge is 12%.',
+    });
+
+    for (const changed of [
+      { BMS_SOC_Evidence_JSON: undefined, BMS_SOC: '10' },
+      { BMS_SOC_Evidence_JSON: socEvidence(now, 10, now - 120_000), BMS_SOC: '10' },
+      { BMS_SOC_Evidence_JSON: socEvidence(now, 62), BMS_SOC: '10' },
+      { BMS_Comms_Status: 'ERROR', BMS_SOC_Evidence_JSON: socEvidence(now, 10) },
+      { BMS_DevicePresent: '0', BMS_SOC_Evidence_JSON: socEvidence(now, 10) },
+    ]) {
+      const result = projectConsoleAlerts({ connection: 'live', items: { ...items, ...changed }, now });
+      expect(result.alerts.some(({ id }) => id === 'battery-soc-critical')).toBe(false);
     }
   });
 

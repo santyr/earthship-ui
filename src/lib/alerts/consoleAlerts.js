@@ -1,7 +1,7 @@
-import { num } from '../openhab/values.js';
 import { adaptCurrentAqi } from '../ui/homeCardState.js';
 import { parsePredictionReceipt } from '../forecast/predictionReceipt.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
+import { atomicSocFreshness } from './atomicSoc.js';
 
 export const CONTROL_OUTCOME_TTL_MS = 15 * 60_000;
 
@@ -25,11 +25,6 @@ function clean(value) {
   if (value === undefined || value === null) return '';
   const text = String(value).trim();
   return NULLISH.has(text.toUpperCase()) ? '' : text;
-}
-
-function numeric(value) {
-  const parsed = num(value);
-  return parsed === null || !Number.isFinite(parsed) ? null : parsed;
 }
 
 function baseAlert({ id, severity, shortText, fullText = shortText, route = null,
@@ -127,9 +122,11 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     }));
   }
 
-  const soc = numeric(items.BMS_SOC);
-  if (soc !== null && soc <= 12) {
-    const rounded = Math.round(soc);
+  const currentSoc = comms.toUpperCase() === 'OK'
+    && normalizedDevicePresent(items.BMS_DevicePresent) === true
+    ? atomicSocFreshness(items.BMS_SOC_Evidence_JSON, now)?.soc : null;
+  if (currentSoc !== null && currentSoc <= 12) {
+    const rounded = Math.round(currentSoc);
     alerts.push(baseAlert({
       id: 'battery-soc-critical', severity: 'critical',
       shortText: `Battery SoC critical · ${rounded}%`,

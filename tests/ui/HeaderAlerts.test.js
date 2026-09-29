@@ -81,9 +81,15 @@ describe('Header alerts UI', () => {
   });
 
   it('navigates a routed winner and never wraps the fixed-height header', async () => {
+    const now = Date.now();
     items.update((value) => ({
       ...value,
       BMS_SOC: '12',
+      BMS_SOC_Evidence_JSON: JSON.stringify({
+        version: 1, streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+        recordedAt: now, status: 'valid', reason: 'ok', observedAt: now,
+        scaleObservedAt: now, validUntil: now + 120_000, soc: 12,
+      }),
     }));
     const { container } = render(Header);
 

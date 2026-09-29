@@ -153,7 +153,7 @@ describe('TP-Link switch evidence producer', () => {
     ]);
     expect(resources.persistenceExclusion).toBe('!TPLink_Switch_Evidence_JSON');
     expect(persistence).toContain('!TPLink_Switch_Evidence_JSON');
-    expect(persistence).toContain('MPPT60_PV_Day_Evidence_JSON, TPLink_Switch_Evidence_JSON : strategy = restoreOnStartup');
+    expect(persistence).toMatch(/MPPT60_PV_Day_Evidence_JSON,\s*TPLink_Switch_Evidence_JSON(?:,\s*\w+)*\s*:\s*strategy = restoreOnStartup/);
     expect(outputDefinition).toContain('String TPLink_Switch_Evidence_JSON');
     expect(source).not.toMatch(/sendCommand|sendHttp|executeCommandLine/);
   });
