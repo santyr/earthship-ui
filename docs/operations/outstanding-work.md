@@ -1777,6 +1777,20 @@ behavior before claiming live algorithm qualification. Removing this one
 drop-in and reloading the user manager is the config rollback; the private
 pre-cutover script backup remains available separately.
 
+September 29 follow-up: commit `4db790b` removed the legacy change-only and
+held-numeric SoC fallback from the forecast worker, so loss of the systemd
+enable drop-in can no longer silently restore that unqualified path. With
+unavailable atomic evidence, PV/curtailment/trough predictions remain withheld
+regardless of the old flag's value. The focused forecast/advisory suites passed
+251 tests and the thermal suites passed 726 (one skipped). The exact file was
+installed while the worker was idle; installed and source SHA-256 both equal
+`c1b7a391a5b8c7a0a64ffaa049769a45df7e8adcd62d443ab83c4be5f9bfb45e`.
+A private mode-0600 rollback copy of the prior worker is in
+`/home/sat/.local/state/forecast-intel/qualified-soc-20260929-RKHfc3`.
+The earlier drop-in-removal rollback no longer applies to this code version;
+restoring the prior exact worker would be required. The natural September 30
+06:40 run still needs readback; no job was run early.
+
 The offline historical forecast backfill also treated the minimum of sparse
 change-only `BMS_SOC` rows as a measured trough. Its source now uses the same
 completed-night, bank-epoch and coverage-qualified atomic assessment in bounded

@@ -160,6 +160,15 @@ The September 29 attended start passed the service-liveness check, but the
 approved Sat client has not yet completed that challenge. The host user's
 default `nak` identity derives to a **different** public key, so running a
 client command with default credentials would not test the allowlisted client.
+The `nostr-bunker@earthship-operator` unit stores only the operator signing
+credential; its environment file stores Sat's **public** client key as an
+allowlist entry. Installing or starting this unit does not create, import, or
+store Sat's client private key. A filename-only check of the local password
+store, systemd units, and Lightning Goats checkout found no matching local
+client-key entry or client service. The client-key holder must identify the
+original key location privately. If it is lost, choose and authorize a new
+dedicated client identity before changing the allowlist; never substitute the
+operator or Hex sending credential.
 Do not use Hex's sender key as a substitute. Keep this instance disabled at
 boot until the holder of Sat's approved client key completes an authenticated
 round trip and the returned operator public key matches the verified DM
