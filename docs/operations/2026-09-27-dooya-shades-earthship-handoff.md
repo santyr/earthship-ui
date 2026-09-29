@@ -197,3 +197,51 @@ should test touch/assistive interaction and provide an explicit exact-percent
 or small-step adjustment path before enabling movement. A master adjustment
 also needs the command owner's reviewed staggering and per-motor report checks.
 This is a UI decision, not permission to energize the motors.
+
+## Planned fine control and voice operation (not enabled)
+
+Keep the vertical sliders for quick approximate adjustment, and add paired
+**Open +5%** and **Close -5%** buttons beside each individual, zone, and
+all-shades control. The step is five percentage points of *percent open*,
+clamped to 0–100; provide an exact-percent entry for targets that the slider
+cannot set reliably by touch. Retain separate **Open fully** (100% open) and
+**Close fully** (0% open) actions, so a nudge is never confused with an endpoint
+command. Each control must show the requested target and the subsequent
+reported position separately. If any member's report is missing or mixed, do
+not manufacture a group starting percentage; the command owner must require an
+explicit absolute target or decline a relative group step. Tablet touch size,
+keyboard and assistive operation require physical Lenovo acceptance testing.
+
+Voice should support open, close, stop, and absolute percent-open positions for
+individual shades, named zones, and all shades. Proposed unambiguous forms are
+"Open Kitchen shades fully", "Close Living Room shade 2", "Set all shades to
+76% open", and "Set Kitchen shades to 25% open". A spoken "close ... to 45%"
+means a target of **45% open**, not 45% closed or 45 points of travel; if the
+recognizer cannot preserve that meaning, ask for clarification and do not move.
+"Living Room shades 2 and 5" refers to within-zone aliases only after their
+physical inventory is assigned. A multi-shade arbitrary subset in one
+utterance is *not* assumed to work with an off-the-shelf smart-home skill;
+predefined named subgroups or a reviewed interpreter would be needed. A
+command like "Open all shades 76%" should be accepted only if the selected
+voice provider demonstrably maps it to 76% open in an attended one-shade test;
+otherwise use the explicit "Set ... to 76% open" form.
+
+Out-of-the-box candidates: openHAB's Alexa skill or Google Assistant action
+can expose Rollershutter endpoints with open/close and percentages through
+myopenHAB. The openHAB Android app can send recognized speech to a rule-based
+interpreter, but that route needs command rules and a tap/voice entry point;
+it does not establish an always-listening "Computer" wake word on a Lenovo
+tablet. Alexa documents "Computer" as a wake word for hands-free Alexa
+devices, not a promise for the Android Alexa app. Verify actual Lenovo voice
+capture and wake behavior before selecting a provider; cloud exposure and
+privacy need operator approval. No voice endpoint may send directly to a raw
+all-shades/group Item: all UI and voice requests must pass through the same
+reviewed command owner for membership checks, motor staggering, limits,
+STOP, post-command Report correlation, and failure handling. Keep every path
+disabled until shade hardware, physical direction, inventory, and one-shade
+voice percentage tests are complete.
+
+References: https://www.openhab.org/docs/ecosystem/alexa/ ,
+https://www.openhab.org/docs/ecosystem/google-assistant/ ,
+https://www.openhab.org/docs/apps/android , and
+https://digprjsurvey.amazon.com/csad/help/node/201602230 .
