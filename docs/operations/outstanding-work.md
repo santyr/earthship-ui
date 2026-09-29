@@ -391,6 +391,16 @@ create-only, disabled HTTP/Item/link manifest is staged for a separate
 durable-collection release; it has not been installed. A complete-day reader
 still must use the latched counts, original packet times and counter boundary
 uncertainty before any precipitation score is qualified.
+The new source-only pure rain day-reader now does exactly that for supplied
+original snapshots: one process epoch, monotone packet/fault counts and
+counter, unbroken validity intervals, pre/post brackets at both local
+midnights, and at most 0.02-inch boundary uncertainty. It returns an
+explicit bounded counter-derived amount or refuses the day; 23/25-hour DST,
+fault, replay, gap, restart and midnight-rain cases are tested. It has no
+database adapter or live forecast caller yet, and cannot prove gauge
+calibration. The durable Item/link, exact restricted read role and natural
+collection are still absent, so no historical day or precipitation score is
+newly qualified.
 
 A fresh [capture-strict thermal lead-time score](2026-09-24-thermal-historical-operational-readiness.md)
 finds 12-hour skill on eight independent mixed-revision windows but worse
