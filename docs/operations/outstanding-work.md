@@ -3593,6 +3593,20 @@ roughly two seconds while the live held-value rule still reported `evening`.
 This supports the strict candidate's fail-closed behavior, not its projected
 minutes or operational readiness. The remaining short gaps, overnight-load
 history and natural dusk/night transitions still require qualification.
+A separate read-only `bms_night_load_audit.mjs` now calculates a bounded
+left-held, time-weighted average from the as-persisted inverter-power Item,
+requiring a recent start carry, ordered finite values, no gap over 120 seconds
+and a terminal sample. The completed September 27–28 and 28–29 local
+20:30–06:00 windows yielded 171.273 W (6,374 in-window rows; 22.984-second
+maximum gap) and 166.631 W (6,390 rows; 23.835-second maximum gap). Both
+exceed the replay's fixed 155 W stand-in, so its numeric minutes remain
+non-comparable. These Item timestamps are not original acquisition receipts,
+and this independent calculation has not been shown byte-equivalent to
+OpenHAB's Java `averageBetween`; it is a diagnostic, not a newly qualified
+source or an estimator release. Three focused and 1,893 full JS tests pass.
+Commands: `node openhab/scripts/bms_night_load_audit.mjs
+2026-09-28T02:30:00Z 2026-09-28T12:00:00Z` and the same command with
+September 29 UTC dates.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while
