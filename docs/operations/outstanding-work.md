@@ -3712,6 +3712,15 @@ shape under stricter gap and carry requirements. This narrows the algorithm
 question, but it is an inference from source, **not** a live Java/JDBC parity
 probe or original-acquisition qualification; keep the estimator release gate
 closed until those checks and representative dusk/night replay pass.
+A bounded read-only September 28–29 20:30–06:00 MDT check of the separate
+`Inverter_AC_Evidence_JSON` history found 6,607 naturally persisted receipts,
+all valid in this local parse, one stream epoch, contiguous sequence numbers,
+and 100% of the selected night covered by original-event 30-second expiry.
+Its source-held mean was 166.6295 W, versus 166.6308 W from the independently
+persisted numeric Item history, a difference of about 0.0013 W. This tight
+agreement supports the overnight-load diagnostic in this one window; it is
+not a full strict-reader run, a direct Java `averageBetween` readback, or a
+representative dusk/night candidate transition. No Item or rule was changed.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
