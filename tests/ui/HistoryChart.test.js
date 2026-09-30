@@ -31,6 +31,7 @@ vi.mock('../../src/lib/openhab/index.js', async () => {
 });
 
 import HistoryChart from '../../src/lib/ui/HistoryChart.svelte';
+import { items } from '../../src/lib/openhab/store.js';
 
 describe('HistoryChart', () => {
   beforeEach(() => {
@@ -54,6 +55,7 @@ describe('HistoryChart', () => {
     mocks.chart.resize.mockClear();
     mocks.chart.dispose.mockClear();
     mocks.init.mockClear();
+    items.set({});
   });
 
   afterEach(cleanup);
@@ -158,6 +160,55 @@ describe('HistoryChart', () => {
     expect(container.querySelector('.hc-canvas')).toBe(canvas);
     expect(mocks.chart.setOption.mock.calls.at(-1)[1]).toEqual({ replaceMerge: ['series'] });
     expect(mocks.chart.resize).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not repaint an unchanged battery history response', async () => {
+    const rows = [{ time: 0, state: '50 %' }];
+    mocks.getHistory.mockResolvedValue(rows);
+    const { container } = render(HistoryChart, {
+      props: { series: [{ name: 'BMS_SOC', label: 'SoC' }], refreshMs: 200 },
+    });
+
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+    const canvas = container.querySelector('.hc-canvas');
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+    expect(mocks.chart.setOption).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('.hc-canvas')).toBe(canvas);
+    expect(mocks.chart.dispose).not.toHaveBeenCalled();
+  });
+
+  it('redraws SoC only when the fresh value changes or expires', async () => {
+    const interval = vi.spyOn(globalThis, 'setInterval');
+    try {
+      render(HistoryChart, {
+        props: { series: [{ name: 'BMS_SOC', label: 'SoC' }], refreshMs: 30 * 60_000 },
+      });
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+      const socTick = interval.mock.calls.find(([, ms]) => ms === 5 * 60_000)?.[0];
+      expect(socTick).toBeTypeOf('function');
+
+      const observedAt = Date.now() - 1_000;
+      const receipt = (soc) => JSON.stringify({
+        version: 1, streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+        recordedAt: observedAt + 500, status: 'valid', reason: 'ok',
+        observedAt, scaleObservedAt: observedAt,
+        validUntil: observedAt + 120_000, soc,
+      });
+      items.set({ BMS_SOC_Evidence_JSON: receipt(75) });
+      socTick();
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(2));
+      socTick();
+      expect(mocks.chart.setOption).toHaveBeenCalledTimes(2);
+
+      items.set({ BMS_SOC_Evidence_JSON: receipt(76) });
+      socTick();
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(3));
+      items.set({});
+      socTick();
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(4));
+    } finally {
+      interval.mockRestore();
+    }
   });
 
   it('retains the last good battery plot when a scheduled refresh fails', async () => {

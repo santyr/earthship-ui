@@ -3,6 +3,7 @@
   import { getEcharts } from '../charts/loadEcharts.js';
   import { buildHistoryOption } from '../charts/options.js';
   import { loadHistorySeries } from '../charts/historyRequest.js';
+  import { atomicSocFreshness } from '../alerts/atomicSoc.js';
   import { HISTORY_PERIOD_PRESETS, snapHistoryPeriod } from '../charts/periods.js';
   import { getClientOnce, clientReady } from '../openhab/index.js';
   import { items } from '../openhab/store.js';
@@ -31,6 +32,8 @@
   let latestSeries = [];
   let latestWidthPx = 0;
   let lastEffectHours;
+  let latestDataKey;
+  let lastRenderedSocValue = null;
 
   function selectPeriod(selectedHours) {
     if (selectedHours !== activeHours) activeHours = selectedHours;
@@ -53,13 +56,15 @@
     const sizeChanged = widthPx !== latestWidthPx;
     latestWidthPx = widthPx;
     try {
+      const nowMs = Date.now();
       chart.setOption(buildHistoryOption({
         series: latestSeries,
         pointsPerSeries: latestResults,
         widthPx,
-        nowMs: Date.now(),
+        nowMs,
         socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
       }), { replaceMerge: ['series'] });
+      lastRenderedSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, nowMs)?.soc ?? null;
       if (sizeChanged) chart.resize();
     } catch (error) {
       errorMessage = error?.message || 'History could not be rendered';
@@ -133,11 +138,16 @@
       staleHistory = true;
       return;
     }
+    const nextDataKey = JSON.stringify([seriesList, result.pointsPerSeries]);
+    const currentSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, Date.now())?.soc ?? null;
+    const dataUnchanged = Boolean(chart) && latestDataKey === nextDataKey
+      && currentSocValue === lastRenderedSocValue;
+    latestDataKey = nextDataKey;
     latestResults = result.pointsPerSeries;
     latestSeries = seriesList;
     staleHistory = false;
     loadState = result.state;
-    if (result.state === 'empty') return;
+    if (result.state === 'empty' || dataUnchanged) return;
 
     await tick();
     if (controller.signal.aborted || myGen !== loadGen || !el) return;
@@ -172,7 +182,9 @@
   onMount(() => {
     refreshTimer = setInterval(() => untrack(() => load(series, activeHours, true)), refreshMs);
     socRedrawTimer = setInterval(() => {
-      if (chart && latestSeries.some(({ name }) => name === 'BMS_SOC')) renderLatest(latestWidthPx);
+      if (!chart || !latestSeries.some(({ name }) => name === 'BMS_SOC')) return;
+      const currentSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, Date.now())?.soc ?? null;
+      if (currentSocValue !== lastRenderedSocValue) renderLatest(latestWidthPx);
     }, SOC_REDRAW_MS);
   });
 

@@ -98,7 +98,7 @@
   <div class="cell hero-cell">
     <Tile label="Battery history + tonight's forecast" accent={socColor}>
       <div class="hero-body">
-        <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={15 * 60 * 1_000} /></div>
+        <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
           <span class="hero-trough" style="color: {colors.forecast}">{troughLabel}: {troughText}</span>
