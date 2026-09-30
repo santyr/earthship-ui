@@ -105,6 +105,7 @@ function accept(raw) {
     slot.water = now;
     slot.value = { observedAt: now, raw: value };
     slot.reason = 'ok';
+    return field;
   } catch (_) { invalidate(field, 'invalid_input'); }
 }
 
@@ -122,8 +123,9 @@ for (const field of FIELDS) {
 const input = typeof event === 'undefined' ? null : event;
 const decoded = original(input);
 for (const field of decoded.invalid) invalidate(field, 'invalid_input');
-if (decoded.raw) accept(decoded.raw);
-else if (!decoded.invalid.length && input && FIELDS.some(field => input.itemName === SOURCES[field].item)) {
+const acceptedField = decoded.raw ? accept(decoded.raw) : null;
+if (!decoded.raw && !decoded.invalid.length && input
+    && FIELDS.some(field => input.itemName === SOURCES[field].item)) {
   invalidate(FIELDS.find(field => input.itemName === SOURCES[field].item), 'invalid_input');
 }
 
@@ -143,14 +145,17 @@ for (const field of FIELDS) {
 const next = { version: 1, basis: 'native_runtime_inputs_v1',
   streamEpoch: state.epoch, sequence: state.sequence + 1, recordedAt: now, fields };
 const previous = state.lastPublished;
-// Source current/voltage can update every second. Persist at most every 30s
-// while healthy, but do not delay a fault, expiry, or recovery barrier.
+// Coalesce high-rate current/voltage updates, but preserve every distinct
+// native runtime observation: dropping one changes the estimator's median.
+// Unchanged numeric TTD/TTF values still represent new physical receipts.
+const runtimeObservation = acceptedField === 'battery.ttd_min'
+  || acceptedField === 'battery.ttf_min';
 const barrier = !previous || FIELDS.some(field =>
   previous.fields[field].status !== fields[field].status
   || previous.fields[field].reason !== fields[field].reason);
 const due = previous && now - previous.recordedAt >= PUBLISH_MS
   && FIELDS.some(field => fields[field].status === 'valid');
-if (barrier || due) {
+if (barrier || due || runtimeObservation) {
   state.sequence = next.sequence; // consume on ambiguous enqueue
   state.pendingPost = null;
   try {

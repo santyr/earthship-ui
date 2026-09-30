@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
+import { replayRuntime } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
 
 const source = readFileSync(new URL('../../openhab/rules/bms-runtime-input-evidence.js', import.meta.url), 'utf8');
 const resources = JSON.parse(readFileSync(new URL('../../openhab/bms-runtime-input-evidence-resources.json', import.meta.url), 'utf8'));
@@ -126,6 +127,60 @@ describe('source-bound battery runtime input evidence', () => {
     expect(h.latest.fields[specs.current.field].status).toBe('valid');
     h.advance(121000); h.run();
     expect(h.latest.fields[specs.current.field].reason).toBe('input_stale');
+  });
+
+  it('preserves every distinct native TTD/TTF observation between high-rate publications', () => {
+    const h = ready(); const count = h.queued.length;
+    h.advance(1000); h.run(h.event('current', '-330'));
+    expect(h.queued).toHaveLength(count);
+    h.advance(1); h.run(h.event('ttd', '6330'));
+    expect(h.queued).toHaveLength(count + 1);
+    expect(h.latest.fields[specs.ttd.field]).toMatchObject({ value: 6330, observedAt: h.now });
+    h.advance(1); h.run(h.event('ttf', '0'));
+    expect(h.queued).toHaveLength(count + 2);
+    expect(h.latest.fields[specs.ttf.field].observedAt).toBe(h.now);
+    // A new physical receipt of the same value is still a distinct sample.
+    h.advance(1); h.run(h.event('ttd', '6330'));
+    expect(h.queued).toHaveLength(count + 3);
+    expect(h.latest.fields[specs.ttd.field].observedAt).toBe(h.now);
+    // Re-evaluation without a new accepted native event cannot create a sample.
+    h.run(h.event('ttd', '6330')); h.run();
+    expect(h.queued).toHaveLength(count + 3);
+  });
+
+  it('delivers the formerly skipped 6330 sample through the actual producer/estimator pipeline', () => {
+    const h = ready(), start = h.now;
+    const readings = [12479, 13120, 10701, 11679, 11617, 5827, 6439, 6828, 6330, 6818];
+    for (const minutes of readings) {
+      h.advance(999); h.run(h.event('current'));
+      h.advance(1); h.run(h.event('ttd', String(minutes)));
+    }
+    const f = (value, ttl, property = 'value') => ({ status: 'valid', reason: 'ok',
+      observedAt: start, validUntil: start + ttl, [property]: value });
+    const history = state => [{ time: start, state: typeof state === 'string' ? state : JSON.stringify(state) }];
+    const result = replayRuntime({
+      BMS_Runtime_Input_Evidence_JSON: h.posts.map(receipt => ({
+        time: receipt.recordedAt, state: JSON.stringify(receipt),
+      })),
+      BMS_SOC_Evidence_JSON: history({ version: 1, streamEpoch: 'synthetic-soc',
+        recordedAt: start, status: 'valid', reason: 'ok', observedAt: start,
+        scaleObservedAt: start, validUntil: start + 120000, soc: 80 }),
+      BMS_Aux_Evidence_JSON: history({ version: 1, basis: 'discover_bms_190_native_aux_v1',
+        streamEpoch: 'synthetic-aux', sequence: 1, recordedAt: start,
+        fields: { 'battery.remaining_ah': f(320, 120000) } }),
+      Inverter_AC_Evidence_JSON: history({ version: 1, basis: 'inverter_output',
+        streamEpoch: 'synthetic-ac', sequence: 1, recordedAt: start,
+        fields: { 'inverter.ac_output_w': f(150, 30000, 'watts') } }),
+      Power_Evidence_JSON: history({ version: 1, streamEpoch: 'synthetic-pv',
+        sequence: 1, recordedAt: start,
+        fields: { 'pv.input_power_w': f(500, 120000, 'watts') } }),
+      Sun_Position_Elevation: history('30'), BMS_Runtime_Basis: history('NULL'),
+      BMS_TimeToDischarge_Smoothed: history('NULL'), BMS_TimeToFull_Smoothed: history('NULL'),
+    }, { startMs: start, endMs: h.now });
+    expect(result.lastCandidate).toMatchObject({ basis: 'bms', ttdMin: '6828', ttfMin: '0' });
+    const delivered = h.posts.filter(receipt => receipt.recordedAt > start)
+      .map(receipt => receipt.fields['battery.ttd_min'].value);
+    expect(delivered).toEqual(readings);
   });
 
   it('does not treat Item-level updates as original acquisition or bridge recovery as a sample', () => {

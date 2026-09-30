@@ -17,6 +17,7 @@ const LIVE = ['BMS_Runtime_Basis', 'BMS_TimeToDischarge_Smoothed', 'BMS_TimeToFu
 const STEP_MS = 30000;
 const MAX_WINDOW_MS = 4 * 60 * 60 * 1000;
 const MAX_ROWS = 12000;
+const MAX_EVALUATIONS = MAX_ROWS + MAX_WINDOW_MS / STEP_MS + 1;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const localFormat = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -80,7 +81,7 @@ function minuteValue(raw) {
 }
 
 export function summarizeMinutes(pairs) {
-  if (!Array.isArray(pairs) || pairs.length > MAX_WINDOW_MS / STEP_MS + 1) {
+  if (!Array.isArray(pairs) || pairs.length > MAX_EVALUATIONS) {
     throw new Error('bounded minute pairs required');
   }
   const summary = { positivePairs: 0, bothSentinel: 0, sentinelMismatch: 0,
@@ -162,7 +163,17 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
       sendCommand: () => { throw new Error('command forbidden in shadow replay'); },
     }) },
   };
-  for (; tick <= endMs; tick += STEP_MS) {
+  // The candidate observes each runtime envelope, not just the latest state
+  // at a second independent 30s sampler. Retain absolute wall-clock expiry
+  // ticks and a cold-cache seed; collapse coincident events deterministically.
+  const evaluationTimes = new Set([startMs]);
+  for (let expiry = Math.ceil(startMs / STEP_MS) * STEP_MS; expiry <= endMs; expiry += STEP_MS) {
+    evaluationTimes.add(expiry);
+  }
+  for (const row of rows.BMS_Runtime_Input_Evidence_JSON) {
+    if (row.time >= startMs && row.time <= endMs) evaluationTimes.add(row.time);
+  }
+  for (tick of [...evaluationTimes].sort((a, b) => a - b)) {
     for (const [name, history] of Object.entries(rows)) {
       while (indices[name] < history.length && history[indices[name]].time <= tick) {
         held[name] = history[indices[name]++].state;
@@ -187,24 +198,28 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     }
     if (basis !== 'off' && firstNonOffAt === null) firstNonOffAt = new Date(tick).toISOString();
     const oldBasis = held.BMS_Runtime_Basis;
-    const knownBasis = value => ['bms', 'evening', 'now', 'off'].includes(value);
-    const pairKey = `${knownBasis(oldBasis) ? oldBasis : 'unavailable'} -> ${basis}`;
-    const numericPair = minutePairs[pairKey] || (minutePairs[pairKey] = { ttd: [], ttf: [] });
-    numericPair.ttd.push({ live: held.BMS_TimeToDischarge_Smoothed,
-      candidate: output.BMS_TimeToDischarge_Smoothed });
-    numericPair.ttf.push({ live: held.BMS_TimeToFull_Smoothed,
-      candidate: output.BMS_TimeToFull_Smoothed });
-    for (const [metric, item] of [['ttd', 'BMS_TimeToDischarge_Smoothed'],
-      ['ttf', 'BMS_TimeToFull_Smoothed']]) {
-      const liveMin = minuteValue(held[item]), candidateMin = minuteValue(output[item]);
-      if (!(liveMin > 0 && candidateMin > 0)) continue;
-      const group = largestMinuteDifferences[pairKey] || (largestMinuteDifferences[pairKey] = {});
-      const absDeltaMin = Math.abs(candidateMin - liveMin);
-      if (!group[metric] || absDeltaMin > group[metric].absDeltaMin) {
-        group[metric] = { at: new Date(tick).toISOString(), liveMin, candidateMin, absDeltaMin };
-        if (metric === 'ttd' && basis === 'bms') {
-          group[metric].candidateBmsBufferMin = Array.from(audit.bmsBuffer);
-          group[metric].candidateLastTtdAt = new Date(audit.lastTtdAt).toISOString();
+    // Compare at the fixed observation grid, not at the receipt's timestamp
+    // before the asynchronous live numeric publications have reached JDBC.
+    if (tick === startMs || tick % STEP_MS === 0) {
+      const knownBasis = value => ['bms', 'evening', 'now', 'off'].includes(value);
+      const pairKey = `${knownBasis(oldBasis) ? oldBasis : 'unavailable'} -> ${basis}`;
+      const numericPair = minutePairs[pairKey] || (minutePairs[pairKey] = { ttd: [], ttf: [] });
+      numericPair.ttd.push({ live: held.BMS_TimeToDischarge_Smoothed,
+        candidate: output.BMS_TimeToDischarge_Smoothed });
+      numericPair.ttf.push({ live: held.BMS_TimeToFull_Smoothed,
+        candidate: output.BMS_TimeToFull_Smoothed });
+      for (const [metric, item] of [['ttd', 'BMS_TimeToDischarge_Smoothed'],
+        ['ttf', 'BMS_TimeToFull_Smoothed']]) {
+        const liveMin = minuteValue(held[item]), candidateMin = minuteValue(output[item]);
+        if (!(liveMin > 0 && candidateMin > 0)) continue;
+        const group = largestMinuteDifferences[pairKey] || (largestMinuteDifferences[pairKey] = {});
+        const absDeltaMin = Math.abs(candidateMin - liveMin);
+        if (!group[metric] || absDeltaMin > group[metric].absDeltaMin) {
+          group[metric] = { at: new Date(tick).toISOString(), liveMin, candidateMin, absDeltaMin };
+          if (metric === 'ttd' && basis === 'bms') {
+            group[metric].candidateBmsBufferMin = Array.from(audit.bmsBuffer);
+            group[metric].candidateLastTtdAt = new Date(audit.lastTtdAt).toISOString();
+          }
         }
       }
     }
@@ -233,6 +248,8 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
   }
   return {
     window: [new Date(startMs).toISOString(), new Date(endMs).toISOString()],
+    evaluationSchedule: 'runtime_evidence_updates_and_aligned_30s_expiry',
+    numericComparisonSchedule: 'cold_cache_seed_and_aligned_30s_ticks',
     ticks: Object.values(basisCounts).reduce((a, b) => a + b, 0),
     candidateBasisTicks: basisCounts,
     firstNonOffAt,

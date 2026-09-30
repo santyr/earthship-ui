@@ -173,3 +173,61 @@ resulting exact source hashes. TTF differences also remain diagnostic, with
 agreement with the old estimator is not a physical full-charge accuracy label.
 No producer or production estimator changed. The 37 adjacent JS tests pass;
 the only code change is the read-only replay audit.
+
+## Observation-preserving source candidate and renewed JVM qualification
+
+The source-only collector now enqueues an envelope for each **accepted original
+native TTD or TTF event**, including new observations of unchanged values.
+Its provenance, range, monotonic-time, startup and communication gates are
+unchanged. High-rate current/voltage updates retain their 30-second coalescing;
+fault/recovery/expiry barriers remain immediate. An enqueue failure is still
+reported and consumes its sequence, never represented as a successful receipt.
+Collector candidate SHA-256:
+`621f4ac7416de35e1b68f87f7d0ed4096c729319cad08e5b71bc95b1b0062c80`.
+
+The disabled estimator descriptor adds a runtime-evidence Item-update trigger
+alongside the original 30-second expiry cron. AC, PV and charge-current EMAs
+advance only on a distinct source epoch/observation identity, not repeated
+timer reads or another field's publication. Invalidated values still reseed
+on valid recovery. Estimator candidate SHA-256:
+`374d2fc5ae3f1879f60d6e7cccb2a34ef627158a312769dddd88dca22f826e31`;
+descriptor SHA-256:
+`3031e528bb002dd4c0741b3da65a243624bf33f321c05e865b117eda17c9e458`.
+
+New regressions first failed for the observed loss and duplicate EMA weighting,
+then passed. The synthetic end-to-end test executes the actual collector and
+estimator source: all ten supplied native readings are delivered, including
+6,330, and the last-nine median is 6,828. It is explicitly synthetic, not a
+household receipt or repaired history.
+
+`qualify-bms-runtime-estimator.py` passed the revised estimator/descriptor in
+the disconnected real OpenHAB JVM: missing inputs, expiry, charge reversal,
+reload, full exit/new-PID restart, fresh recovery and exact baseline rollback.
+With every input held and all manual writes/executions forbidden, the original
+current expiry was `1790789803301`; OFF/zero was observed at `1790789821680`,
+18,379 ms later. Production writes were zero. The owned networkless fixture
+and tmpfs were removed; independent Docker label lookup found none remaining.
+This qualifies the estimator fixture, not the new collector's live delivery.
+
+Replay now evaluates every persisted runtime envelope plus aligned expiry
+ticks. Numerical comparisons remain on the fixed 30-second observation grid
+(and cold-cache seed), avoiding an artificial comparison at an event's exact
+timestamp before asynchronous live outputs reach JDBC. Replaying the same old
+history makes 936 evaluations and 471 numeric comparisons, with zero charging
+BMS-basis or noncharging TTF violations. The old missing-sample median error
+still exists (3,873 minutes): omitted observations cannot be recovered by a
+new evaluation schedule. Counts include repeated expiry checks and are not
+independent physical samples.
+
+**Production collector and estimator are unchanged.** The original installation
+adapter is pinned to its historical initial-install hash and must not be used
+to bypass an update qualification. Next build/verify the exact guarded
+collector update, prove new natural original-event/JDBC sequence preservation
+and bounded write rate, then redo numerical promotion checks and the guarded
+estimator cutover. Existing history must remain unmodified.
+
+Final verification: all 1,934 Vitest tests (133 files) pass, including 58
+adjacent collector/estimator/replay tests; all 14 selected Python qualifier
+and Java-average adapter tests pass. Their owned temporary test directory
+was removed. Authenticated final production readback retains estimator
+`8698b16a...` with one trigger and collector `a2193c0f...` with six triggers.

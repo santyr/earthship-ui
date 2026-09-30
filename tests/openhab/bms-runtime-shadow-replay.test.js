@@ -49,7 +49,7 @@ describe('bounded read-only runtime estimator replay', () => {
     ])).toEqual({ positivePairs: 2, bothSentinel: 1, sentinelMismatch: 2,
       invalidPairs: 6, meanDeltaMin: 5, meanAbsDeltaMin: 15, maxAbsDeltaMin: 20 });
     expect(summarizeMinutes([{ live: '0', candidate: '0' }]).meanAbsDeltaMin).toBeNull();
-    expect(() => summarizeMinutes(Array(482).fill({ live: '1', candidate: '1' }))).toThrow('bounded');
+    expect(() => summarizeMinutes(Array(12482).fill({ live: '1', candidate: '1' }))).toThrow('bounded');
   });
 
   it('does not count duplicate cron reads as distinct deep current observations', () => {
@@ -111,6 +111,23 @@ describe('bounded read-only runtime estimator replay', () => {
       candidateBmsBufferMin: [500], candidateLastTtdAt: new Date(at).toISOString(),
     });
     expect(result.largestMinuteDifferencesByBasisPair['bms -> bms'].ttf).toBeUndefined();
+  });
+
+  it('evaluates intermediate evidence receipts as well as aligned expiry ticks', () => {
+    const h = histories();
+    for (const [offset, ttd] of [[1000, 6330], [2000, 6818]]) {
+      const receipt = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+      receipt.sequence = offset / 1000 + 1; receipt.recordedAt = at + offset;
+      receipt.fields['battery.dc_current_ca'] = field(-300, 90000, 'value', at + offset);
+      receipt.fields['battery.ttd_min'] = field(ttd, 120000, 'value', at + offset);
+      h.BMS_Runtime_Input_Evidence_JSON.push(row(receipt, at + offset));
+    }
+    const result = replayRuntime(h, { startMs: at, endMs: at + 30000 });
+    expect(result.ticks).toBe(4); // seed, two receipt events, cron
+    expect(result.candidateBasisTicks).toEqual({ evening: 1, bms: 3 });
+    expect(result.lastCandidate.ttdMin).toBe('6818');
+    expect(result.evaluationSchedule).toBe('runtime_evidence_updates_and_aligned_30s_expiry');
+    expect(Object.values(result.minuteComparisonByBasisPair).reduce((sum, pair) => sum + pair.ticks, 0)).toBe(2);
   });
 
   it('pinpoints an expired auxiliary source at a fail-closed off tick', () => {

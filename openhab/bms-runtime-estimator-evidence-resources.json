@@ -11,6 +11,7 @@
     "Inverter_AC_Evidence_JSON"
   ],
   "triggers": [
+    {"id":"evidence","type":"core.ItemStateUpdateTrigger","configuration":{"itemName":"BMS_Runtime_Input_Evidence_JSON"}},
     {"id":"freshness","type":"timer.GenericCronTrigger","configuration":{"cronExpression":"0/30 * * * * ?"}}
   ]
 }

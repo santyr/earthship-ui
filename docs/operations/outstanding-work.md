@@ -91,6 +91,18 @@ are 10/30 minutes; neither those agreements nor old-estimator parity prove
 physical runtime accuracy. The production producer and estimator remain
 unchanged. See the [sampling-loss receipt](2026-09-30-bms-night-average-verification.md#numerical-comparison-exposes-a-sampling-loss-release-gate).
 
+The observation-preserving source candidates are now implemented: enqueue each
+accepted native TTD/TTF receipt, evaluate runtime evidence updates plus the
+expiry cron, and advance AC/PV/charge EMAs only on distinct source identities.
+The synthetic actual-producer/estimator pipeline preserves the skipped sample
+and recovers the correct median. The revised estimator also passed isolated
+real-JVM expiry/restart/rollback; the no-event expiry lag was 18,379 ms, and
+its owned fixture was removed. Neither production rule changed. Guarded
+collector update, new natural receipt-sequence/write-rate checks and numerical
+promotion remain open before estimator deployment. Old history still shows
+its missing sample; no retrospective repair is claimed. See the
+[candidate qualification](2026-09-30-bms-night-average-verification.md#observation-preserving-source-candidate-and-renewed-jvm-qualification).
+
 Current `0864f4d6...` thermal runtime recovery passed independently from a
 private restored tree: accepted artifact valid, all 84 captures semantically
 valid, optimized full-fit digest unchanged, morning-DM policy false and exact

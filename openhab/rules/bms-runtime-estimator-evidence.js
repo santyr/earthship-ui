@@ -64,7 +64,8 @@ function nativeField(name, basis, key, ttl, property, min, max) {
       || f.observedAt > row.recordedAt
       || f.validUntil !== f.observedAt + ttl || nowMs >= f.validUntil
       || !Number.isSafeInteger(f[property]) || f[property] < min || f[property] > max) return null;
-  return { value: f[property], observedAt: f.observedAt };
+  return { value: f[property], observedAt: f.observedAt,
+    identity: `${row.streamEpoch}:${f.observedAt}` };
 }
 function soc() {
   const row = receipt('BMS_SOC_Evidence_JSON');
@@ -94,19 +95,24 @@ function bmsMinutes(field) {
   return nativeField('BMS_Runtime_Input_Evidence_JSON', 'native_runtime_inputs_v1',
     field, 120000, 'value', 0, 100000);
 }
-function acWatts() {
+function acSample() {
   return nativeField('Inverter_AC_Evidence_JSON', 'inverter_output',
-    'inverter.ac_output_w', 30000, 'watts', 0, 20000)?.value ?? NaN;
+    'inverter.ac_output_w', 30000, 'watts', 0, 20000);
 }
-function pvWatts() {
+function pvSample() {
   return nativeField('Power_Evidence_JSON', null,
-    'pv.input_power_w', 120000, 'watts', 0, 4294967294)?.value ?? NaN;
+    'pv.input_power_w', 120000, 'watts', 0, 4294967294);
 }
-function ema(key, v) {
+function ema(key, v, identity) {
   if (!Number.isFinite(v)) return cache.private.get(key);
   const prev = cache.private.get(key);
+  // A cron expiry check or another field's receipt is not a new sample.
+  // Reseed after invalidation even if a held identity happens to match.
+  if (prev != null && Number.isFinite(prev)
+      && cache.private.get(`${key}_sample`) === identity) return prev;
   const next = (prev == null || !Number.isFinite(prev)) ? v : prev + EMA_A * (v - prev);
   cache.private.put(key, next);
+  cache.private.put(`${key}_sample`, identity);
   return next;
 }
 function publish(minutes, basis) {
@@ -142,11 +148,12 @@ function overnightW() {
 // used during shallow discharge, where overnight-average is the honest basis.
 function projection(forceEvening) {
   const stateOfCharge = soc(), rem = remainingAh(), volts = voltageV();
-  const ac = acWatts(), pv = pvWatts();
+  const acReceipt = acSample(), pvReceipt = pvSample();
+  const ac = acReceipt?.value ?? NaN, pv = pvReceipt?.value ?? NaN;
   if (!Number.isFinite(ac)) cache.private.put("p_load", null);
   if (!Number.isFinite(pv)) cache.private.put("p_pv", null);
-  const pLoad = Number.isFinite(ac) ? ema("p_load", ac) : NaN;
-  const pPv = Number.isFinite(pv) ? ema("p_pv", pv) : NaN;
+  const pLoad = Number.isFinite(ac) ? ema("p_load", ac, acReceipt.identity) : NaN;
+  const pPv = Number.isFinite(pv) ? ema("p_pv", pv, pvReceipt.identity) : NaN;
   if (![stateOfCharge, rem, volts, pLoad].every(Number.isFinite)
       || stateOfCharge <= RESERVE_PCT) {
     publish(0, "off");
@@ -234,7 +241,7 @@ if (bankReady) {
     ttf = Math.round(bmsTtf);
   } else {
     const stateOfCharge = soc(), rem = remainingAh();
-    const iChg = ema("i_chg", i);
+    const iChg = ema("i_chg", i, current.identity);
     if ([stateOfCharge, rem, iChg].every(Number.isFinite)
         && stateOfCharge > 0 && stateOfCharge < 99 && iChg >= 0.5) {
       const bankAh = rem / stateOfCharge * 100;

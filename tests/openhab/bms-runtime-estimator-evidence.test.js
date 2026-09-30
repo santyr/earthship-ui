@@ -72,8 +72,38 @@ describe('source-bound display-only battery runtime candidate', () => {
   it('uses a disabled periodic freshness trigger so stale receipts clear without BMS events', () => {
     expect(resources.replacesRule).toBe('hex_bms_ttd_smooth');
     expect(resources.enabled).toBe(false);
-    expect(resources.triggers).toEqual([{ id: 'freshness', type: 'timer.GenericCronTrigger',
-      configuration: { cronExpression: '0/30 * * * * ?' } }]);
+    expect(resources.triggers).toEqual([
+      { id: 'evidence', type: 'core.ItemStateUpdateTrigger',
+        configuration: { itemName: 'BMS_Runtime_Input_Evidence_JSON' } },
+      { id: 'freshness', type: 'timer.GenericCronTrigger',
+        configuration: { cronExpression: '0/30 * * * * ?' } },
+    ]);
+  });
+
+  it('does not weight duplicate timer/evidence reads as new AC, PV or charging samples', () => {
+    const h = fixture();
+    const runtime = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    runtime.fields['battery.dc_current_ca'].value = 500;
+    h.run();
+    h.advance(1000);
+    runtime.recordedAt = t0 + 1000;
+    runtime.fields['battery.dc_current_ca'] = field(1000, t0 + 1000, 90000);
+    const ac = h.sources.Inverter_AC_Evidence_JSON;
+    ac.recordedAt = t0 + 1000;
+    ac.fields['inverter.ac_output_w'] = field(250, t0 + 1000, 30000, 'watts');
+    const pv = h.sources.Power_Evidence_JSON;
+    pv.recordedAt = t0 + 1000;
+    pv.fields['pv.input_power_w'] = field(1000, t0 + 1000, 120000, 'watts');
+    h.run();
+    expect(h.cache.get('i_chg')).toBe(5.25);
+    expect(h.cache.get('p_load')).toBe(155);
+    expect(h.cache.get('p_pv')).toBe(525);
+    const ttf = h.states.BMS_TimeToFull_Smoothed;
+    h.run(); h.advance(1000); h.run();
+    expect(h.cache.get('i_chg')).toBe(5.25);
+    expect(h.cache.get('p_load')).toBe(155);
+    expect(h.cache.get('p_pv')).toBe(525);
+    expect(h.states.BMS_TimeToFull_Smoothed).toBe(ttf);
   });
 
   it('uses fresh receipts for the deep BMS basis and never reads held input Items', () => {
