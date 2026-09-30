@@ -447,6 +447,54 @@ refit must resolve it. The scheduling correction remains source-only pending
 broader candidate qualification; accepted runtime, artifacts, collector and
 controls remain unchanged.
 
+### September 30 versioned joint-shade solar candidate
+
+The split-airflow candidate now uses four independent solar regimes:
+unshaded, indoor-only, outdoor-only and both shades. The old three-regime
+basis is deliberately unchanged for the legacy model; its accepted
+coefficients cannot be relabelled as four independently identified gains.
+The candidate's seed, air/mass/glazing fitting, batched analytic-gradient
+refinement and origin-aware forecast/replay all use the same four-state basis.
+
+At fixed forcing, nonnegative joint gain is constrained no greater than either
+single-shade gain; each single remains no greater than unshaded. No ordering
+between indoor-only and outdoor-only is imposed. Fractional states use bilinear
+area-fraction interpolation, which preserves total normalized incident forcing
+and this gain order. These are **explicit model assumptions**, not proof of
+causal household temperature effects or calibrated shade-position accuracy.
+Other thermal terms may still increase room temperature after shades close.
+Actual percent-position/source qualification remains required when hardware
+arrives; the UI simulation is not a measurement.
+
+The artifact, forecast, capture and retrospective-fold schemas are now v2,
+with dynamics version 2. The closed artifact records the exact solar contract
+and refuses an old v1 schema/model, missing joint coefficient or altered
+fraction-model interpretation. Its complete 29-file runtime closure includes
+`thermal_model/joint_solar.py`; this checkpoint's runtime SHA-256 is
+`c22ffae33550507172a37eb4e2b303f04706e611ce0071de6f1187570a023fd2`.
+Fresh candidates must be refitted and bound to that runtime and their actual
+training rows, not assigned an earlier artifact's coefficients or identity.
+
+No combined-state observation means an explicitly inactive zero coefficient,
+not an inferred effect: a later daylight forecast activating that state is
+refused. Combined-only labels without independent single-shade identification
+also refuse fitting. Tests recover independently generated synthetic
+air/mass/glazing coefficients, check both possible single-shade orderings,
+fractional monotonicity, the original near-zero outdoor-gain paradox,
+full multihorizon gradients and exact 1–72-hour replay. All 506 affected
+candidate and legacy regressions pass in 74.37 seconds. This is synthetic
+identification/contract evidence, not new household skill or whole-trainer
+performance evidence.
+
+This closes the versioned **source-model** correction, not its household
+refit, chronological as-issued validation, accepted-artifact/runtime recovery
+qualification or shadow graduation. Nothing was installed or activated;
+installed dynamics remain SHA-256
+`2850ce20b4df5d39866dcead43f809c81b7501153af2f6d7377b9931e65a393c`.
+The accepted artifact, journal, collector, Items and physical controls remain
+unchanged. Qualified independent window/skylight/shade observations and
+outcomes remain prerequisites for using this model operationally.
+
 ### First qualified harvested-PV divergence — September 30
 
 The completed September 29 native PV day qualifies at 10.396 kWh with

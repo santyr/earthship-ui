@@ -13,14 +13,16 @@ from scipy.optimize import Bounds, LinearConstraint, minimize
 
 from .airflow import (AIRFLOW_NAMES, AirflowSample, AirflowSeed, SEED_AIR_BOUNDS,
                       SEED_AIR_NAMES, _split_contract, airflow_features, airflow_manifest,
-                      fit_airflow_seed_with_evidence, simulate_airflow, validate_airflow_physics)
+                      MASS_BOUNDS, MASS_NAMES, fit_airflow_seed_with_evidence,
+                      simulate_airflow, validate_airflow_physics)
 from .dataset import STEP, ThermalDataset
 from .dynamics import (IDENTIFICATION_HORIZON_STEPS, MAX_ORIGINS_PER_HORIZON,
-                       MASS_BOUNDS, MASS_NAMES, MULTIHORIZON_FTOL,
+                       MULTIHORIZON_FTOL,
                        MULTIHORIZON_MAXITER, MULTIHORIZON_OBJECTIVE_TOLERANCE,
                        SOLVER_FEASIBILITY_MARGIN,
-                       _eligible_daily_endpoints_from_prepared, _solar_terms,
+                       _eligible_daily_endpoints_from_prepared, _solar_gain_pairs,
                        _uniform_origin_indices, _validate_multihorizon_rank)
+from .joint_solar import SOLAR_NAMES, solar_terms as _solar_terms
 
 
 @dataclass(frozen=True)
@@ -54,7 +56,7 @@ def _ordered(samples):
 
 def forcing_features(row):
     solar = _solar_terms(row)
-    return {**dict(zip(SEED_AIR_NAMES[2:5], solar)), **dict(zip(AIRFLOW_NAMES, airflow_features(row)))}
+    return {**dict(zip(SOLAR_NAMES, solar)), **dict(zip(AIRFLOW_NAMES, airflow_features(row)))}
 
 
 def _valid(row):
@@ -72,7 +74,7 @@ def _valid(row):
 def select_endpoints(samples, inactive_features=()):
     rows = _ordered(samples)
     inactive = tuple(inactive_features)
-    if set(inactive) - set((*AIRFLOW_NAMES, 'solar_indoor_closed', 'solar_outdoor')):
+    if set(inactive) - set((*AIRFLOW_NAMES, *SOLAR_NAMES[1:])):
         raise ValueError('unknown inactive split-airflow feature')
     valid = tuple(_valid(row) for row in rows)
     safe = []
@@ -121,7 +123,7 @@ def coefficient_vector(model):
 
 def _model(vector, glazing):
     split = len(SEED_AIR_NAMES)
-    return AirflowSeed(1, 5, dict(zip(SEED_AIR_NAMES, map(float, vector[:split]))),
+    return AirflowSeed(2, 5, dict(zip(SEED_AIR_NAMES, map(float, vector[:split]))),
                        dict(zip(MASS_NAMES, map(float, vector[split:]))), dict(glazing))
 
 
@@ -140,7 +142,7 @@ def objective_and_gradient(vector, prepared, *, sensitivity_rows=None):
                 forcing = group['forcing']
                 state = group['initial'].copy()
                 count = len(state)
-                if (forcing.shape != (count, steps, 7) or group['target'].shape != (count, 2)
+                if (forcing.shape != (count, steps, 8) or group['target'].shape != (count, 2)
                         or group['weights'].shape != (count,) or count < 2
                         or not all(np.isfinite(x).all() for x in group.values())
                         or np.any(group['weights'] < 0) or np.any(group['weights'] > 1/count)):
@@ -149,18 +151,18 @@ def objective_and_gradient(vector, prepared, *, sensitivity_rows=None):
                 da, dm = np.zeros((count, n_coeff)), np.zeros((count, n_coeff))
                 for step in range(steps):
                     f = forcing[:, step, :]
-                    solar, openings = f[:, 1:4], f[:, 4:7]
+                    solar, openings = f[:, 1:5], f[:, 5:8]
                     outside_delta, mass_delta = f[:, 0] - state[:, 0], state[:, 1] - state[:, 0]
-                    exchange = openings @ a[5:8]
+                    exchange = openings @ a[6:9]
                     da[:, :n_air] = np.column_stack((outside_delta, mass_delta, solar,
                                                      openings * outside_delta[:, None], np.ones(count)))
                     dm[:, n_air:] = np.column_stack((-mass_delta, f[:, 0] - state[:, 1], solar))
                     next_sa = (1-a[0]-a[1]-exchange)[:, None] * sa + a[1] * sm + da
                     next_sm = m[0] * sa + (1-m[0]-m[1]) * sm + dm
                     next_air = state[:, 0] + (a[0]+exchange)*outside_delta + a[1]*mass_delta \
-                        + solar @ a[2:5] + a[8]
+                        + solar @ a[2:6] + a[9]
                     next_mass = state[:, 1] - m[0]*mass_delta + m[1]*(f[:, 0]-state[:, 1]) \
-                        + solar @ m[2:5]
+                        + solar @ m[2:6]
                     state[:, 0], state[:, 1] = next_air, next_mass
                     sa, sm = next_sa, next_sm
                 residual = state - group['target']
@@ -181,11 +183,13 @@ def _constraints(active, initial, lower, spans):
     total = len(initial)
     rows, lo, hi = [], [], []
     for offset, names in ((0, SEED_AIR_NAMES), (len(SEED_AIR_NAMES), MASS_NAMES)):
-        for shaded in ('solar_indoor_closed', 'solar_outdoor'):
+        for high, low in _solar_gain_pairs(names):
             row = np.zeros(total)
-            row[offset + names.index('solar_unshaded')] = 1
-            row[offset + names.index(shaded)] = -1
-            rows.append(row); lo.append(SOLVER_FEASIBILITY_MARGIN); hi.append(np.inf)
+            row[offset + names.index(high)] = 1
+            row[offset + names.index(low)] = -1
+            rows.append(row)
+            lo.append(0.0 if low == 'solar_both_closed' else SOLVER_FEASIBILITY_MARGIN)
+            hi.append(np.inf)
     row = np.zeros(total)
     for name in AIRFLOW_NAMES:
         row[SEED_AIR_NAMES.index(name)] = 1
@@ -296,7 +300,7 @@ def evaluate_airflow_fold(samples, origin, *, training_reader, fit=fit_airflow_d
             'model_error_f': {state: prediction[state+'_f']-getattr(target, state+'_f') for state in ('air', 'mass')},
             'persistence_error_f': {state: getattr(by_at[origin], state+'_f')-getattr(target, state+'_f')
                                     for state in ('air', 'mass')}})
-    return {'schema': 'earthship-split-airflow-retrospective-fold/v1',
+    return {'schema': 'earthship-split-airflow-retrospective-fold/v2',
             'forcing_evidence': 'observed_held_out_not_as_issued', 'promotion_eligible': False,
             'origin': origin.isoformat(), 'training_rows': len(train),
             'training_through': train[-1].at.isoformat(), 'scores': scores, 'withheld': withheld}

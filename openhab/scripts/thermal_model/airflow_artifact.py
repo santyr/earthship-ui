@@ -13,21 +13,22 @@ import scipy
 
 from .airflow import AirflowSeed, airflow_manifest, validate_airflow_physics
 from .airflow_training import AirflowFit
+from .joint_solar import SOLAR_CONTRACT
 from .dataset import (MASS_OBSERVER_TAU_MINUTES, MODE_COUNT_KEYS,
     RADIATION_PROVENANCE_LABELS, CORE_REJECTED_COUNT_KEYS, AUXILIARY_EXCLUSION_COUNT_KEYS)
 from .schema import THERMAL_ITEMS, OPTIONAL_OBSERVATION_ITEMS, SOURCE_WEIGHTS
 from .dynamics import IDENTIFICATION_HORIZON_STEPS, MULTIHORIZON_OBJECTIVE_TOLERANCE
 
-SCHEMA = 'earthship-split-airflow-shadow-artifact/v1'
+SCHEMA = 'earthship-split-airflow-shadow-artifact/v2'
 MASS_INITIALIZATION = {'method': 'causal_north_wall_exponential_observer',
                        'tau_minutes': MASS_OBSERVER_TAU_MINUTES,
                        'lookback_minutes': 1440, 'step_minutes': 5}
-EXTRA_FILES = ('thermal_model/airflow.py', 'thermal_model/airflow_training.py',
+EXTRA_FILES = ('thermal_model/joint_solar.py', 'thermal_model/airflow.py', 'thermal_model/airflow_training.py',
     'thermal_model/airflow_artifact.py', 'thermal_model/airflow_forecast.py',
     'thermal_model/operational_origin.py', 'thermal_model/action_history.py',
     'thermal_model/forecast_history.py')
 KEYS = {'schema', 'status', 'created_at', 'trained_from', 'trained_through',
-        'runtime', 'data_manifest', 'fit', 'initialization', 'control_enabled'}
+        'runtime', 'data_manifest', 'fit', 'initialization', 'solar_contract', 'control_enabled'}
 
 
 def canonical(value):
@@ -75,6 +76,7 @@ def build_artifact(fit, samples, events, modes, *, created_at, runtime_root=None
         'trained_through': manifest['dataset']['end'],
         'runtime': runtime_manifest(runtime_root), 'data_manifest': manifest,
         'fit': asdict(fit), 'initialization': dict(MASS_INITIALIZATION),
+        'solar_contract': deepcopy(SOLAR_CONTRACT),
         'control_enabled': False}
     return validate_artifact(payload, runtime_root=runtime_root)
 
@@ -86,7 +88,8 @@ def _digest(value):
 def validate_artifact(payload, *, runtime_root=None):
     if (not isinstance(payload, dict) or set(payload) != KEYS or payload['schema'] != SCHEMA
             or payload['status'] != 'shadow_candidate' or payload['control_enabled'] is not False
-            or payload['initialization'] != MASS_INITIALIZATION):
+            or payload['initialization'] != MASS_INITIALIZATION
+            or payload['solar_contract'] != SOLAR_CONTRACT):
         raise ValueError('invalid split-airflow artifact contract')
     if not utc(payload['trained_from']) < utc(payload['trained_through']) <= utc(payload['created_at']):
         raise ValueError('split-airflow artifact chronology invalid')
@@ -144,7 +147,8 @@ def validate_artifact(payload, *, runtime_root=None):
         raise ValueError('invalid split-airflow dynamics contract')
     model = validate_airflow_physics(AirflowSeed(**fit['dynamics']))
     inactive = fit['inactive_forcing_features']
-    supported = ('solar_indoor_closed', 'solar_outdoor', 'window_exchange', 'skylight_exchange', 'joint_open_exchange')
+    supported = ('solar_indoor_closed', 'solar_outdoor', 'solar_both_closed',
+                 'window_exchange', 'skylight_exchange', 'joint_open_exchange')
     if (not isinstance(inactive, (tuple, list)) or len(set(inactive)) != len(inactive)
             or any(name not in supported for name in inactive)
             or any(model.air_coefficients[name] != 0 for name in inactive)

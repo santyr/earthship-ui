@@ -422,26 +422,29 @@ def fit_diagnostics(samples):
     return _selection(samples)[1]
 
 
+def _solar_gain_pairs(names):
+    pairs = [('solar_unshaded', 'solar_indoor_closed'), ('solar_unshaded', 'solar_outdoor')]
+    if 'solar_both_closed' in names:
+        pairs.extend((name, 'solar_both_closed') for name in ('solar_indoor_closed', 'solar_outdoor'))
+    return tuple((high, low) for high, low in pairs if high in names and low in names)
+
+
 def _solar_order_constraints(names, scale):
-    if "solar_unshaded" not in names:
-        return ()
-    unshaded = names.index("solar_unshaded")
     rows = []
-    for shaded_name in ("solar_indoor_closed", "solar_outdoor"):
-        if shaded_name not in names:
-            continue
+    margins = []
+    for high, low in _solar_gain_pairs(names):
         row = np.zeros(len(names), dtype=float)
-        row[unshaded] = 1.0 / scale[unshaded]
-        shaded = names.index(shaded_name)
-        row[shaded] = -1.0 / scale[shaded]
+        row[names.index(high)] = 1.0 / scale[names.index(high)]
+        row[names.index(low)] = -1.0 / scale[names.index(low)]
         rows.append(row)
+        margins.append(0.0 if low == 'solar_both_closed' else SOLVER_FEASIBILITY_MARGIN)
     if not rows:
         return ()
     matrix = np.asarray(rows, dtype=float)
     return (
         LinearConstraint(
             matrix,
-            np.full(len(rows), SOLVER_FEASIBILITY_MARGIN),
+            np.asarray(margins),
             np.full(len(rows), np.inf),
         ),
     )
@@ -474,6 +477,10 @@ def _fit(design, target, bounds, names, *, ordered_solar=False):
             )
             if name in names
         )
+        if 'solar_both_closed' in names:
+            initial[names.index('solar_both_closed')] = min(
+                initial[names.index(name)] for name in
+                ('solar_both_closed', 'solar_indoor_closed', 'solar_outdoor') if name in names)
         scale = np.linalg.norm(matrix, axis=0)
         scaled_matrix = matrix / scale
         scaled_initial = initial * scale
@@ -501,19 +508,9 @@ def _fit(design, target, bounds, names, *, ordered_solar=False):
             raise ValueError("constrained least-squares fit failed")
         if np.any(coefficients < lower) or np.any(coefficients > upper):
             raise ValueError("constrained least-squares fit violated bounds")
-        gains = {
-            name: coefficients[names.index(name)]
-            for name in (
-                "solar_unshaded",
-                "solar_indoor_closed",
-                "solar_outdoor",
-            )
-            if name in names
-        }
         if any(
-            gains["solar_unshaded"] < gains[name]
-            for name in ("solar_indoor_closed", "solar_outdoor")
-            if name in gains
+            coefficients[names.index(high)] < coefficients[names.index(low)]
+            for high, low in _solar_gain_pairs(names)
         ):
             raise ValueError("constrained least-squares fit violated solar order")
     return dict(zip(names, (float(value) for value in coefficients)))
@@ -1170,6 +1167,11 @@ def _validate_gain_relationship(coefficients):
         or unshaded < coefficients["solar_outdoor"]
     ):
         raise ValueError("shade gain exceeds unshaded gain")
+    if 'solar_both_closed' in coefficients:
+        both = coefficients['solar_both_closed']
+        if both < 0 or any(both > coefficients[name] for name in
+                           ('solar_indoor_closed', 'solar_outdoor')):
+            raise ValueError('joint shade gain exceeds single-shade gain')
 
 
 def _transition_matrix(model, vent_forcing):

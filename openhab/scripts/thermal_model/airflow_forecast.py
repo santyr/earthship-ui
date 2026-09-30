@@ -18,8 +18,8 @@ from .forecast_history import MAX_ISSUE_AGE, SOURCE, _window
 from .operational_origin import assemble_origin, _validate_actions
 from .temperature_history import _validate_receipt
 
-SCHEMA = 'earthship-split-airflow-forecast/v1'
-CAPTURE_SCHEMA = 'earthship-split-airflow-forecast-capture/v1'
+SCHEMA = 'earthship-split-airflow-forecast/v2'
+CAPTURE_SCHEMA = 'earthship-split-airflow-forecast-capture/v2'
 
 
 def _states(actions, origin):

@@ -45,7 +45,8 @@ def test_analytic_gradient_matches_centered_finite_difference(samples):
     _, gradient = t.objective_and_gradient(vector, prepared)
     numerical = []
     for i in range(len(vector)):
-        eps = 1e-7 if i not in (2, 3, 4, 11, 12, 13) else 1e-9
+        names = t.SEED_AIR_NAMES + t.MASS_NAMES
+        eps = 1e-9 if names[i].startswith('solar_') else 1e-7
         plus, minus = vector.copy(), vector.copy()
         plus[i] += eps; minus[i] -= eps
         numerical.append((t.objective_and_gradient(plus, prepared)[0]

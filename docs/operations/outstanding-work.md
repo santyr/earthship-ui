@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 thermal source-model progress: the versioned split-airflow
+candidate now fits separate unshaded/indoor-only/outdoor-only/joint-shade
+solar gains across air, mass and glazing, with consistent analytic gradients
+and replay. Its explicit monotone fixed-forcing assumption does not rank the
+two single shades or claim causal/percent-position accuracy. Unsupported joint
+effects refuse daylight forecasting rather than being invented. The closed
+v2 artifact binds the solar contract and 29-file runtime; all 506 affected
+candidate/legacy tests pass. No accepted model, runtime, journal, collector,
+Item or control changed. Qualified household action evidence, chronological
+refit/scoring and coordinated release remain open; see the
+[joint-shade checkpoint](2026-09-29-prediction-learning-review.md#september-30-versioned-joint-shade-solar-candidate).
+
 September 30 BMS recovery progress: the actual JavaScript producer now passes
 eleven isolated fault/restart/expiry/recovery states through restricted
 PostgreSQL and both current-health consumers. Four failing regressions exposed

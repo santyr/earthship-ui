@@ -243,7 +243,8 @@ def test_origin_and_training_chronology_are_enforced(candidate, origin, damage):
 
 
 @pytest.mark.parametrize('damage', ['control', 'runtime', 'fit_revision', 'fit_data', 'items', 'mode_counts',
-    'state_counts', 'radiation_counts', 'bad_count', 'unknown_count', 'objective', 'nonfinite', 'origins', 'boolean_version', 'extra'])
+    'state_counts', 'radiation_counts', 'bad_count', 'unknown_count', 'objective', 'nonfinite',
+    'origins', 'boolean_version', 'old_schema', 'old_dynamics', 'missing_joint', 'solar_contract', 'extra'])
 def test_artifact_rejects_inconsistent_or_unsupported_evidence(candidate, damage):
     value = deepcopy(candidate)
     if damage == 'control': value['control_enabled'] = True
@@ -260,6 +261,10 @@ def test_artifact_rejects_inconsistent_or_unsupported_evidence(candidate, damage
     elif damage == 'nonfinite': value['fit']['initial_objective'] = float('nan')
     elif damage == 'origins': value['fit']['origin_counts'] = (('5', 1),)*5
     elif damage == 'boolean_version': value['fit']['dynamics']['version'] = True
+    elif damage == 'old_schema': value['schema'] = 'earthship-split-airflow-shadow-artifact/v1'
+    elif damage == 'old_dynamics': value['fit']['dynamics']['version'] = 1
+    elif damage == 'missing_joint': del value['fit']['dynamics']['mass_coefficients']['solar_both_closed']
+    elif damage == 'solar_contract': value['solar_contract']['fraction_model'] = 'claimed_position_truth'
     else: value['extra'] = 0
     with pytest.raises(ValueError): a.validate_artifact(value)
 
@@ -338,3 +343,24 @@ def test_unidentified_open_skylight_cannot_be_forecast(origin):
         return value
     with pytest.raises(ValueError, match='unidentified'):
         run(candidate, origin, action_reader=activated)
+
+
+def test_unidentified_joint_shade_gain_cannot_be_used_for_daylight_forecast(origin):
+    origin = origin + timedelta(hours=14)  # six-hour horizon actually crosses daylight
+    rows = make_synthetic_samples(allow_combined_shades=False)
+    fitted = fit_airflow_dynamics(rows, allow_inactive_action_forcing=True)
+    assert fitted.inactive_forcing_features == ('solar_both_closed',)
+    candidate = a.build_artifact(fitted, rows, [], [], created_at=rows[-1].at+STEP)
+    assert run(candidate, origin)['status'] == 'available'
+    def activated(**kwargs):
+        value = actions(**kwargs)
+        value['actions']['indoor_shade']['state'] = 'closed'
+        value['actions']['outdoor_shade']['state'] = 'present'
+        return value
+    def sunny(**kwargs):
+        value = weather(**kwargs)
+        for row in value['rows']:
+            row['radiationWm2'] = 500.
+        return value
+    with pytest.raises(ValueError, match='unidentified'):
+        run(candidate, origin, action_reader=activated, forecast_reader=sunny)

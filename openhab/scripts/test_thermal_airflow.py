@@ -14,14 +14,14 @@ from test_thermal_dataset import START, END, action, fixture_series, fully_label
 
 
 def seed():
-    return AirflowSeed(1, 5, {
+    return AirflowSeed(2, 5, {
         'outside_exchange': .018, 'mass_exchange': .04,
         'solar_unshaded': .00015, 'solar_indoor_closed': .00006,
-        'solar_outdoor': .00003, 'window_exchange': .02,
+        'solar_outdoor': .00003, 'solar_both_closed': .00001, 'window_exchange': .02,
         'skylight_exchange': .035, 'joint_open_exchange': .015, 'bias': .002}, {
         'air_exchange': .008, 'outside_exchange': .003,
         'solar_unshaded': .000035, 'solar_indoor_closed': .000014,
-        'solar_outdoor': .000007}, {})
+        'solar_outdoor': .000007, 'solar_both_closed': .000003}, {})
 
 
 def forcing(**values):
@@ -97,15 +97,43 @@ def test_openings_have_independent_and_joint_temperature_effects():
         > predict_airflow_step(model, forcing(outdoor_f=90.))[0]
 
 
+def test_combined_shades_never_increase_solar_heat_gain():
+    model = seed()
+    # A near-zero outdoor gain reproduced the household model's paradox:
+    # closing the indoor shade must not bypass the outdoor shade's effect.
+    model = replace(model, air_coefficients={**model.air_coefficients,
+        'solar_outdoor': 0., 'solar_both_closed': 0.},
+        mass_coefficients={**model.mass_coefficients,
+        'solar_outdoor': 0., 'solar_both_closed': 0.})
+    noon = datetime(2026, 8, 13, 18, tzinfo=timezone.utc)
+    unshaded = predict_airflow_step(model, forcing(at=noon, radiation_wm2=500.))
+    no_sun = predict_airflow_step(model, forcing(at=noon))
+    assert unshaded[0] > no_sun[0]
+    single = predict_airflow_step(model, forcing(at=noon, radiation_wm2=500., outdoor_shade_present=1.))
+    both = predict_airflow_step(model, forcing(at=noon, radiation_wm2=500.,
+        outdoor_shade_present=1., indoor_shade_closed=1.))
+    assert both[:2] == pytest.approx(single[:2])
+
+
+@pytest.mark.parametrize('single', ['solar_indoor_closed', 'solar_outdoor'])
+def test_joint_shade_gain_cannot_exceed_either_independent_shade(single):
+    model = seed()
+    model = replace(model, air_coefficients={**model.air_coefficients,
+        'solar_both_closed': model.air_coefficients[single]+.00001})
+    with pytest.raises(ValueError, match='joint shade'):
+        validate_airflow_physics(model)
+
+
 @pytest.mark.parametrize('value', [None, float('nan'), float('inf'), -1., 2., True])
 def test_invalid_or_unknown_opening_refused(value):
     with pytest.raises(ValueError, match='independently known'):
         predict_airflow_step(seed(), forcing(window_open=value))
 
 
-def make_synthetic_samples(count=600, *, skylight_open=None):
+def make_synthetic_samples(count=600, *, skylight_open=None, model=None, paired_shades=False,
+                           allow_combined_shades=True):
     rng = random.Random(812)
-    model = seed()
+    model = model or seed()
     at = datetime(2026, 8, 13, tzinfo=timezone.utc)
     air, mass = 75., 72.
     rows = []
@@ -120,9 +148,13 @@ def make_synthetic_samples(count=600, *, skylight_open=None):
             skylight_open=float(rng.randrange(2)), skylight_confidence=1.)
         if skylight_open is not None:
             row = replace(row, skylight_open=float(skylight_open))
+        if paired_shades:
+            row = replace(row, outdoor_shade_present=row.indoor_shade_closed)
+        if not allow_combined_shades and row.indoor_shade_closed and row.outdoor_shade_present:
+            row = replace(row, outdoor_shade_present=0.)
         if rows:
-            air, mass, _ = predict_airflow_step(model, replace(row, air_f=air, mass_f=mass))
-            row = replace(row, air_f=air, mass_f=mass)
+            air, mass, glazing = predict_airflow_step(model, replace(row, air_f=air, mass_f=mass))
+            row = replace(row, air_f=air, mass_f=mass, glazing_f=glazing)
         rows.append(row)
         at += timedelta(minutes=5)
     return rows

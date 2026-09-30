@@ -13,17 +13,24 @@ import numpy as np
 
 from .dataset import (CONFIRMED_SOURCES, STEP, ThermalDataset, _binary_state,
                       _ceil_five, _effective_action, _utc, build_samples, dataset_manifest)
-from .dynamics import (AIR_BOUNDS, AIR_NAMES, GLAZING_BOUNDS, GLAZING_NAMES,
-                       MASS_BOUNDS, MASS_NAMES, STABILITY_TOLERANCE,
-                       _checked_output, _fit, _full_rank, _glazing_rows, _solar_terms,
+from .dynamics import (AIR_BOUNDS, AIR_NAMES, GLAZING_BOUNDS as LEGACY_GLAZING_BOUNDS,
+                       GLAZING_NAMES as LEGACY_GLAZING_NAMES,
+                       MASS_BOUNDS as LEGACY_MASS_BOUNDS, MASS_NAMES as LEGACY_MASS_NAMES,
+                       STABILITY_TOLERANCE,
+                       _checked_output, _fit, _full_rank, _valid_glazing,
                        _fit_with_inactive_action_columns, _validate_gain_relationship)
+from .joint_solar import SOLAR_NAMES, solar_terms as _solar_terms
 from .schema import ThermalSample
 
 AIRFLOW_FIELDS = ('window_open', 'skylight_open')
 AIRFLOW_NAMES = ('window_exchange', 'skylight_exchange', 'joint_open_exchange')
-SEED_AIR_NAMES = AIR_NAMES[:-2] + AIRFLOW_NAMES + ('bias',)
-SEED_AIR_BOUNDS = (AIR_BOUNDS[0][:-2] + [0.0, 0.0, 0.0, -0.20],
-                   AIR_BOUNDS[1][:-2] + [0.40, 0.40, 0.40, 0.20])
+SEED_AIR_NAMES = AIR_NAMES[:2] + SOLAR_NAMES + AIRFLOW_NAMES + ('bias',)
+SEED_AIR_BOUNDS = (AIR_BOUNDS[0][:-2] + [0.0, 0.0, 0.0, 0.0, -0.20],
+                   AIR_BOUNDS[1][:-2] + [0.010, 0.40, 0.40, 0.40, 0.20])
+MASS_NAMES = LEGACY_MASS_NAMES + ('solar_both_closed',)
+MASS_BOUNDS = (LEGACY_MASS_BOUNDS[0] + [0.0], LEGACY_MASS_BOUNDS[1] + [0.004])
+GLAZING_NAMES = LEGACY_GLAZING_NAMES + ('solar_both_closed',)
+GLAZING_BOUNDS = (LEGACY_GLAZING_BOUNDS[0] + [0.0], LEGACY_GLAZING_BOUNDS[1] + [0.003])
 SUPPORTED_ACTIONS = {'window', 'skylight', 'indoor_shade', 'outdoor_shade', 'kiva'}
 
 
@@ -156,7 +163,7 @@ def predict_airflow_step(model, row):
         + a['joint_open_exchange'] * joint
     next_air = air + (a['outside_exchange'] + exchange) * (outdoor - air) \
         + a['mass_exchange'] * (mass - air) \
-        + sum(a[k] * s for k, s in zip(AIR_NAMES[2:5], solar)) + a['bias']
+        + sum(a[k] * s for k, s in zip(SOLAR_NAMES, solar)) + a['bias']
     next_mass = mass + m['air_exchange'] * (air - mass) \
         + m['outside_exchange'] * (outdoor - mass) \
         + sum(m[k] * s for k, s in zip(MASS_NAMES[2:], solar))
@@ -191,7 +198,7 @@ def simulate_airflow(model, initial, forcings):
 
 
 def validate_airflow_physics(model):
-    if (type(model) is not AirflowSeed or type(model.version) is not int or model.version != 1
+    if (type(model) is not AirflowSeed or type(model.version) is not int or model.version != 2
             or type(model.step_minutes) is not int or model.step_minutes != 5):
         raise ValueError('invalid split-airflow seed contract')
     for coefficients, names, bounds in (
@@ -269,19 +276,30 @@ def fit_airflow_seed_with_evidence(samples, *, allow_inactive_action_forcing=Fal
                                   right.outdoor_f-left.mass_f, *solar)) * weight)
         mass_y.append((right.mass_f-left.mass_f) * weight)
     if allow_inactive_action_forcing:
+        matrix = np.asarray(air_x)
+        if (matrix.size and np.any(matrix[:, SEED_AIR_NAMES.index('solar_both_closed')] != 0)
+                and any(np.all(matrix[:, SEED_AIR_NAMES.index(name)] == 0)
+                        for name in ('solar_indoor_closed', 'solar_outdoor'))):
+            raise ValueError('joint shade requires independently identified single-shade gains')
         air, inactive_air = _fit_with_inactive_action_columns(air_x, air_y,
             SEED_AIR_BOUNDS, SEED_AIR_NAMES,
-            frozenset((*AIRFLOW_NAMES, 'solar_indoor_closed', 'solar_outdoor')))
+            frozenset((*AIRFLOW_NAMES, *SOLAR_NAMES[1:])))
         mass, inactive_mass = _fit_with_inactive_action_columns(mass_x, mass_y,
-            MASS_BOUNDS, MASS_NAMES, frozenset(('solar_indoor_closed', 'solar_outdoor')))
+            MASS_BOUNDS, MASS_NAMES, frozenset(SOLAR_NAMES[1:]))
     else:
         air = _fit(air_x, air_y, SEED_AIR_BOUNDS, SEED_AIR_NAMES, ordered_solar=True)
         mass = _fit(mass_x, mass_y, MASS_BOUNDS, MASS_NAMES, ordered_solar=True)
         inactive_air = inactive_mass = ()
-    glazing_x, glazing_y = _glazing_rows(pairs)
+    glazing_x, glazing_y = [], []
+    for _, right in pairs:
+        if _valid_glazing(right):
+            weight = math.sqrt(min(right.action_confidence, right.window_confidence,
+                                   right.skylight_confidence))
+            glazing_x.append(np.asarray((1.0, right.air_f, right.outdoor_f, *_solar_terms(right)))*weight)
+            glazing_y.append(right.glazing_f*weight)
     glazing = _fit(glazing_x, glazing_y, GLAZING_BOUNDS, GLAZING_NAMES,
                    ordered_solar=True) if _full_rank(glazing_x, GLAZING_NAMES) else {}
-    model = validate_airflow_physics(AirflowSeed(1, 5, air, mass, glazing))
+    model = validate_airflow_physics(AirflowSeed(2, 5, air, mass, glazing))
     inactive = tuple(name for name in (*SEED_AIR_NAMES, *MASS_NAMES)
                      if name in set(inactive_air) | set(inactive_mass))
     return model, tuple(dict.fromkeys(inactive))
