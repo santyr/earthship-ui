@@ -100,8 +100,11 @@ archive were removed and their absence verified. This is recovery-path
 evidence, **not** a retained rollback backup or a full household v3 bundle.
 
 This is **not ready for household application**. The installed v4 trainer and
-publisher still use the v1 journal/runtime contract. After a production v2
-schema change, their old exact schema-audit command would reject the journal.
+publisher still use the legacy model contract. Their old exact schema-audit
+command would reject a v2 journal, but a later live-unit inspection confirmed
+that neither service runs that command as a startup preflight. This is not
+proof that a v2 migration would stop both services; the substantive legacy
+support-counter defect and remaining compatibility checks are recorded below.
 Before live migration, qualify a coordinated runtime/reader upgrade and
 rollback, a retained private full **household** v3 backup containing the journal
 and SQLite/config state, and an attended maintenance window. The exact
@@ -129,8 +132,9 @@ or skylight event could add a row to that qualification counter despite having
 no model forcing field. Regression checks avoid inferring a vent label and
 show that a new airflow event cannot add
 confirmed-action support even when other legacy states are fully labeled.
-Supported vent confirmations still count. This source correction has not been
-copied into the installed v4 runtime or enabled any v2 collector gate.
+Supported vent confirmations still count. This source correction enabled no
+v2 collector gate. At this earlier checkpoint it had not been
+copied into the installed v4 runtime; the deployment below closes that gap.
 
 ## Source-only split-airflow dataset and identification seed
 
@@ -310,3 +314,59 @@ private retained household backup and policy/routes, genuine signed collection,
 durable operational capture and qualified same-origin candidate/baseline outcome
 comparison. Collection can prepare honest separate state evidence while the
 model remains in shadow; eventual graduation still requires actual skill.
+
+## Installed legacy support-counter correction
+
+A fresh live-unit inspection found no `ExecStartPre` schema audit on either
+thermal service. The legacy `schema-audit` CLI still requires the exact v1
+fingerprint; do not confuse that manual-command incompatibility with the
+actual startup path. More importantly, the installed dataset's counter had
+not yet received the source guard for action kinds actually modeled.
+
+The new read-only `scripts/verify-thermal-legacy-action-support.py` reproduced
+that installed defect with synthetic states: four supported legacy states at
+one bucket supplied one support row, and adding independently named window
+and skylight observations incorrectly raised it to three. Those unsupported
+observations alone supplied two support rows despite no vent forcing. The
+corrected source supplied counts 1, 1 and 0. Both versions produced exactly
+the same legacy sample digest
+`02e9eeca0f27f879a4da82177e69294afd72e5ae0a2d43b4d61e851f692aab49`.
+These are fixture counts, not additional household observations.
+
+Under idle-service checks and briefly paused thermal timers, only installed
+`thermal_model/dataset.py` was atomically replaced. Exact preimage SHA-256 was
+`111beb36aadf52943b40e50ba5df5cc4b0792b01e8ce5302f6c5bdcb6c2cbc5d`;
+postimage is `075aa4920735e3aa3c233356ea48494425ed3391aa4db6f474b5386339e52696`.
+The diff imports the supported action vocabulary and restricts the promotion
+counter to it, and extracts the unchanged two-hour Kiva cooldown constant.
+The private rollback copy is at
+`/home/sat/.local/state/openhab-config-migration/thermal-dataset-support-kV18U9CU/dataset.py`.
+Timers recovered active; no OpenHAB restart or control change occurred.
+
+Installed runtime revision is now
+`fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`.
+Dynamics remain exactly
+`2850ce20b4df5d39866dcead43f809c81b7501153af2f6d7377b9931e65a393c`.
+The accepted artifact bytes remained
+`4315cc86d03b94d7f82d99539201acc42e74973a9806546844966ceea872304f`,
+with training revision `00611a5ef1e5b64347143b3dc04b423d519f7ccbd7bc237bd029b69b7ef2cd5a`.
+The verifier used direct payload validation, not registry loading/recovery,
+so it could not quarantine, restore or rewrite that artifact.
+
+The next natural shadow job ran September 29 22:29:47–22:29:50 MDT and
+succeeded. Its decision at `2026-09-30T04:29:48.888588+00:00` matched the live
+Item, exactly one JDBC receipt, and the existing private forcing capture.
+Publication SHA-256 is
+`ff12b7a0214005ffaed44e73e86a136f66e7f5cb07b1a3fd760048c4a498eada`.
+Exact as-issued replay passed under the new explicit installed runtime pin;
+the older artifact training revision was retained, not relabeled as current.
+All 43 verifier/dataset regressions passed, following the prior 538 affected
+thermal tests. The next daily trainer remains September 30 06:50 MDT.
+
+This deployment corrects promotion bookkeeping without recoding legacy vents
+or interpreting windows/skylights as their forcing. It does not migrate the
+journal or enable collection. Actual v2 journal/reader coexistence, retained
+household backup, reviewed private policy/routes and signed confirmation trial
+remain release work. The operator explicitly deferred off-host backups; that
+deferred destination is not a request to repeatedly ask for one during this
+same-host qualification. No off-host copy was performed.

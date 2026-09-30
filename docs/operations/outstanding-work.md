@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 22:29 MDT installed thermal compatibility correction: the legacy
+dataset now excludes unsupported window/skylight observations from its
+confirmed-action promotion counter. Exact fixture support counts changed from
+1/3/2 to 1/1/0 without changing any legacy sample or inferring a vent state.
+One file was deployed with private rollback and idle-service checks; the
+accepted artifact and dynamics remain unchanged. Both thermal timers recovered
+active, and the next natural shadow output passed exact live Item/JDBC/capture
+and as-issued replay under installed revision `fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`.
+All 43 verifier/dataset regressions pass. Live inspection also showed neither
+thermal unit uses the v1 schema-audit CLI as a startup preflight; remaining
+v2 reader/journal and collector qualification must follow actual runtime
+semantics, not that earlier assumed startup dependency. The collector remains
+off and the next daily trainer is September 30 06:50 MDT. See the
+[installed support-counter correction](2026-09-29-thermal-airflow-journal-v2-candidate.md#installed-legacy-support-counter-correction).
+
 September 29 split-airflow operational source progress: a separate closed
 shadow artifact now binds the exact fitting runtime and training rows, and
 the forecast/replay seam combines as-of archived weather, independent
