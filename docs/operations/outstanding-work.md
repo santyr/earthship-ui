@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 split-airflow model prerequisite: the explicit source-only v2
+dataset now preserves independent window/skylight states, confidence and
+event provenance without deriving them from legacy vent labels. A bounded
+five-minute identification seed fits independent and joint-opening exchange
+effects; the legacy dynamics path refuses these inputs rather than silently
+ignoring them. Twenty-one new tests, 101 dataset/dynamics regressions and 287
+pipeline/evaluation/behavior/artifact regressions pass. This is not installed
+or a learned household effect. Multihorizon/fold evaluation, artifact and
+forcing-capture versioning, origin-aware forecast construction and coordinated
+collector/runtime recovery remain open. See the
+[candidate and exact boundaries](2026-09-29-thermal-airflow-journal-v2-candidate.md#source-only-split-airflow-dataset-and-identification-seed).
+
 September 29 native BMS cadence correction: the two read-only remaining-Ah
 and temperature data Things now publish unchanged values on every existing
 30-second successful poll. Exact poller/link/consumer readback is unchanged;

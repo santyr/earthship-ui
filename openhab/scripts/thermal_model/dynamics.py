@@ -137,6 +137,8 @@ def _inactive_forcing_is_safe(row, inactive_features):
 def _prepare_endpoint_rows(samples, inactive_features):
     """Validate and derive horizon-independent endpoint inputs once."""
     ordered = tuple(sorted(samples, key=lambda row: row.at))
+    for row in ordered:
+        _reject_split_airflow(row)
     if len({row.at for row in ordered}) != len(ordered):
         raise ValueError("duplicate thermal sample timestamp")
     inactive = tuple(inactive_features)
@@ -278,6 +280,15 @@ def _value(row, name):
     return getattr(row, name)
 
 
+def _reject_split_airflow(row):
+    version = row.get('airflow_vocabulary_version') if isinstance(row, Mapping) \
+        else getattr(row, 'airflow_vocabulary_version', None)
+    separate_fields = any(name in row for name in ('window_open', 'skylight_open')) \
+        if isinstance(row, Mapping) else any(hasattr(row, name) for name in ('window_open', 'skylight_open'))
+    if version is not None or separate_fields:
+        raise ValueError('split-airflow inputs require the v2 dynamics path')
+
+
 def _vent_forcing(row):
     value = _value(row, "vent_open")
     if value is None:
@@ -346,6 +357,8 @@ def _full_rank(design, names):
 
 def _selection(samples):
     ordered = tuple(samples)
+    for row in ordered:
+        _reject_split_airflow(row)
     selected = []
     total = 0
     excluded_passive = 0
@@ -1075,6 +1088,7 @@ def _checked_output(value, name):
 
 def predict_step(model, sample):
     """Return end state/observation using one explicit end-forcing row."""
+    _reject_split_airflow(sample)
     air = float(_value(sample, "air_f"))
     mass = float(_value(sample, "mass_f"))
     outdoor = float(_value(sample, "outdoor_f"))
@@ -1124,6 +1138,7 @@ def simulate(model, initial, forcings):
     _checked_output(mass, "initial mass")
     results = []
     for forcing in forcings:
+        _reject_split_airflow(forcing)
         row = {
             "at": _value(forcing, "at"),
             "air_f": air,

@@ -131,3 +131,57 @@ show that a new airflow event cannot add
 confirmed-action support even when other legacy states are fully labeled.
 Supported vent confirmations still count. This source correction has not been
 copied into the installed v4 runtime or enabled any v2 collector gate.
+
+## Source-only split-airflow dataset and identification seed
+
+`thermal_model/airflow.py` now provides an explicit alternative dataset path:
+`build_airflow_samples` retains independent `window_open` and `skylight_open`
+values, confidence, event ID and source. An absent state remains unknown.
+Legacy vent labels and seasonal vent reconstruction do not supply either
+state; the v2 sample's legacy `vent_open` is deliberately absent. Shade,
+temperature, radiation and exceptional-heat exclusions retain the existing
+dataset quality construction. The versioned manifest binds the distinct
+sample fields in its canonical digest and reports known/unknown state counts.
+It cannot supply the legacy confirmed-action promotion counter.
+
+The same module implements a **five-minute identification seed**, not a
+replacement for the accepted multihorizon trainer. It fits independent window
+and skylight exchange coefficients plus a joint-opening interaction, alongside
+envelope, mass and solar terms. It requires full-rank independent variation;
+identical window/skylight histories cannot identify two separate effects.
+Unknown openings, zero-confidence labels, nonconsecutive pairs and exceptional
+heat cannot fit. Positive bounded exchange and ordered shade gains are
+required, with a combined-opening exchange cap, spectral checks for all four
+opening combinations and the corresponding 72-hour bounded simulations.
+
+The split simulator consumes explicit window/skylight states at consecutive
+timezone-aware five-minute timestamps. It does not recode them as legacy vent
+forcing. The legacy fitter, endpoint builder, predictor and simulator now
+explicitly refuse split-airflow sample fields, preventing accidental silent
+omission or use of the wrong model family. The ordinary legacy sample/output
+contracts remain unchanged.
+
+Twenty-one new offline tests retain independent labels and their provenance,
+recover all known coefficients from synthetic transitions, distinguish each
+opening and the joint effect, reverse heat-transfer direction with outdoor
+temperature, reject unknown/invalid/collinear states and refuse cross-version
+model use. The existing dataset/dynamics suites passed 101 tests, and the
+pipeline, evaluation, behavior and artifact suites passed 287 tests. None of
+these synthetic tests establishes household causal effects, a forecast
+improvement or sufficient state variation in the real journal.
+
+This source candidate was **not installed**. The installed optimized dynamics
+remain SHA-256 `2850ce20b4df5d39866dcead43f809c81b7501153af2f6d7377b9931e65a393c`;
+the September 30 06:50 trainer is still the natural gate for that previously
+installed optimization. `airflow.py` is not yet included in the accepted
+runtime manifest or artifact loader, and no v2 household journal migration,
+question, listener, label collection or control activation occurred.
+
+Remaining coordinated work is substantive: extend the multihorizon objective
+and fold-only identifiability/held-out-forcing gates to the split feature map;
+version the artifact, runtime manifest and forcing captures; preserve
+origin-time knowledge in independent baseline/candidate schedules and output
+markers; qualify as-issued forecasting and genuine signed observations; then
+rehearse the complete household backup/upgrade/rollback before live release.
+The seed is only the initial fitting component of that work, not a substitute
+for it or a reason to graduate the model from shadow.
