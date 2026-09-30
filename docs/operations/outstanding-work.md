@@ -1,5 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 future-date Astro action execution is qualified in a fresh
+networkless OpenHAB 5.2.1 with matched household Sun settings. All four methods
+passed seven dates including tomorrow, DST transitions and winter/summer;
+today's daylight exactly matches the live Item and all midnight radiation is
+zero. Seventy-two related tests pass. A file-rule readiness correction was
+needed after the first disposable attempt; the complete retry and independent
+cleanup check passed. No production action/configuration/control changed.
+Observational export and origin capture integration still remain before
+Python forecasting can use future-date features. See the
+[actual action qualification](2026-09-30-astro-forecast-input-audit.md#actual-future-date-astro-action-qualification).
+
 September 30 solar/season forecasting comparison now has an executable,
 read-only household adapter and pure frozen-split residual evaluator. Sixty-eight
 affected tests pass. The actual 25-origin run paired 11 qualified outcomes,

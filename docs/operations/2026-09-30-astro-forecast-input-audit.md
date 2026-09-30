@@ -176,3 +176,53 @@ season reader's explicit limit was corrected to 2,048; daylight remains bounded
 to 64 rows. Original ordering and as-of selection remain enforced; no rows were
 deduplicated or source TTLs relaxed. No temporary data, model artifact, timer,
 learned state, Item, notification, collector or control was created or changed.
+
+## Actual future-date Astro action qualification
+
+`scripts/qualify-astro-forecast-actions.py` executed all four binding methods
+against a Sun Thing in a **fresh isolated OpenHAB 5.2.1**, with the household
+Sun configuration but no production registry, recovery archive or credential.
+The container had no network, host mounts, device access or published ports,
+ran unprivileged with capabilities dropped, a 512 MiB JVM heap and a 2 GiB
+memory/no-swap limit. Its API identity and output Item/rule were disposable.
+No production action method or protected control was called.
+
+The exact Astro 5.2.1 bundle SHA-256 is
+`1a3b8207ec49834022706359bff60ff2f4eaa1354d392c48850cb418de63e7db`;
+the executed fixture source SHA-256 is
+`37620e045e5a1b7a9fe7ab307ea44bed3f915db020101bfcd6fb76593eb5f680`.
+`getEventTime`, `getElevation`, `getAzimuth` and `getTotalRadiation` all returned
+validated results for these explicitly selected dates:
+
+| Date | Daylight seconds | Noon elevation, degrees |
+| --- | ---: | ---: |
+| Sep 30, 2026 | 42299.467 | 46.981716 |
+| Oct 1, 2026 | 42151.462 | 46.628665 |
+| Mar 8, 2026 (DST start) | 41541.852 | 43.472699 |
+| Nov 1, 2026 (DST end) | 37731.582 | 37.063743 |
+| Mar 20, 2026 | 43344.101 | 48.190524 |
+| Jun 21, 2026 | 53056.386 | 69.620565 |
+| Dec 21, 2026 | 33770.508 | 28.176170 |
+
+"Noon" here is **12:00 local civil time**, not the solar-noon channel. Returned
+UTC event instants all map to the requested Mountain calendar date. DAYLIGHT
+starts at sunrise end and ends at sunset start. Midnight calculated radiation
+is zero on all seven dates; noon values have exact angle/intensity units and
+finite sane ranges. Summer daylight exceeds winter daylight. September 30's
+42,299.467-second result independently matches the still-ONLINE live Sun
+Thing's held daylight Item to numerical precision. Future geometry remains a
+calculation, not observed weather, shade position or forecast skill.
+
+The first isolated attempt failed before producing a qualified result and
+removed its owned container. A readiness correction now treats the temporary
+file-rule 404 as not-yet-ready and requires exact file ownership plus IDLE/NONE
+before executing; no live authority was widened. The completed retry passed,
+removed its container/anonymous volumes, and a separate label-filtered census
+verified zero leftovers. All 72 affected action/provider/solar/ablation/archive
+tests pass. No test data or private runtime directory was retained.
+
+This closes actual date/zone/unit calculation qualification for the installed
+binding version and tested configuration. Python jobs still have no direct
+Astro calculation REST API: observational export/origin capture integration
+remains before future-date context can feed a deployed forecasting model.
+The frozen-split ablation remains data-limited and no model weight changed.
