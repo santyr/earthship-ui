@@ -209,6 +209,23 @@ def test_dataset_retains_only_actual_confirmed_action_event_rows():
     )
 
 
+@pytest.mark.parametrize('name', ['window', 'skylight'])
+def test_observed_airflow_does_not_qualify_legacy_model_action_evidence(name):
+    at = START + timedelta(minutes=5)
+    observed = action('observed-' + name, name, 'open', at, 'nostr_confirmed', 1.0)
+    samples = build_samples(fixture_series(), [observed], [], START, END)
+    assert samples.confirmed_action_rows == ()
+    # The legacy model has no separate airflow coefficients yet. Observing a
+    # window/skylight must not synthesize a vent label or qualify its fit.
+    assert all(sample.vent_open is None for sample in samples)
+    labeled = build_samples(fixture_series(), fully_labeled_events() + [observed],
+                            [], START, END)
+    assert labeled.confirmed_action_rows == (START,)
+    legacy = action('legacy-vent', 'vent', 'closed', at, 'nostr_confirmed', 1.0)
+    supported = build_samples(fixture_series(), [observed, legacy], [], START, END)
+    assert supported.confirmed_action_rows == (at,)
+
+
 def test_five_minute_alignment_does_not_bridge_large_gaps():
     samples = build_samples(
         series_by_role=fixture_series(gap_minutes=65),

@@ -11,6 +11,7 @@ from statistics import median
 from . import solar
 from .actions import reconstruct_events, reconstruct_state
 from .schema import (
+    ACTION_KINDS,
     ActionEvent,
     ModeEvent,
     OPTIONAL_OBSERVATION_ITEMS,
@@ -620,6 +621,7 @@ def build_samples(series_by_role, events, modes, start, end):
                 _ceil_five(event.effective_at)
                 for event in events
                 if event.source in CONFIRMED_SOURCES
+                and event.action in ACTION_KINDS
                 and _ceil_five(event.effective_at) in sample_times
             }
         )

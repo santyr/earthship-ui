@@ -122,3 +122,12 @@ upgrade must preserve distinct airflow inputs and their provenance through
 dataset, dynamics, evaluation and forecast construction. Independent state
 collection can prepare that evidence, but cannot be reported as learned
 window/skylight effects while this legacy model path is in use.
+
+The source dataset now restricts `confirmed_action_rows` to the legacy action
+kinds actually consumed by the current model. Previously, a confirmed window
+or skylight event could add a row to that qualification counter despite having
+no model forcing field. Regression checks avoid inferring a vent label and
+show that a new airflow event cannot add
+confirmed-action support even when other legacy states are fully labeled.
+Supported vent confirmations still count. This source correction has not been
+copied into the installed v4 runtime or enabled any v2 collector gate.
