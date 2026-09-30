@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 morning PV/SoC input provenance is deployed. The existing
+prediction receipt and private issue record now retain the exact single
+validated atomic SoC receipt's hash, epoch, native timestamps/expiry, actual
+assessment clock and percentage; missing evidence is never fabricated.
+229 Python and nine UI regressions pass. The single backed-up worker file
+was installed with idle services; user timers recovered, models/coefficients/
+thresholds stayed unchanged and the prior thermal publication replayed exactly
+under the new source pin. No ad-hoc forecast, DM, journal migration or control
+was run. The first natural 06:40 enriched receipt, source/JDBC match and later
+qualified outcome remain open; this provenance alone is not a training label.
+See the [source-origin release](2026-09-29-prediction-learning-review.md#september-30-exact-soc-origin-for-future-energy-learning-comparisons).
+
 September 30 thermal outcome/recovery progress: ten fixed-artifact origins
 replayed exactly and 17 distinct original indoor targets qualified 23 matured
 pairs. The shade-origin candidate improves six/twelve-hour MAE but still loses

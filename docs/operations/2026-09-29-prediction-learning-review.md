@@ -601,3 +601,26 @@ preimage, private rollback receipt, idle services and briefly stopped/restored
 user-level forecast/thermal timers. The next natural 06:40 receipt, original
 source/JDBC matching and later outcome qualification remain release checks;
 no ad-hoc forecast or DM is planned.
+
+The single-file release subsequently passed with the exact installed preimage
+`849a12531c4c483c82f145b7865f292c4de7011b2606dfba3f93935b6b208d03`
+and new source/installed SHA-256
+`84ce22d5b0e3c43203de6aa71768d2b2bd41660a9a712e495b2721bd8a903a73`.
+The private transaction/rollback receipt is under
+`/home/sat/.local/state/thermal-intel/deploy-receipts/soc-origin-20260930-feygr4p3`.
+All three forecast/thermal services were idle; their user timers were briefly
+stopped and restored enabled/active. Accepted/candidate/previous model files
+and the backtest report remained byte-identical; the PV calibration flag is
+still false and the trough DM threshold remains 30%.
+
+Independent post-release replay of the prior 04:30 natural thermal publication
+under the new installed 21-file runtime pin
+`a4a68a173f7a3a9c206901b1c56bbc89f1ccaf8fc7ca7c04dbd1f627295f8b8a`
+was exact, with unchanged output digest `e12f318b...64a8420`. That thermal
+source pin changed because the shared forecast helper is in the manifest;
+no thermal dynamics, artifact, journal or collector changed. The old pinned
+publication-runtime recovery archive and the exact old worker rollback are
+retained. Next natural jobs remain 06:30 shadow, 06:40 morning forecast and
+06:50 training. This installs provenance capture, not a qualified new learning
+sample: the first natural enriched receipt and matching original JDBC source
+still must be verified. Only this turn's owned synthetic fixtures were removed.
