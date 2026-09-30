@@ -106,6 +106,66 @@ describe('source-bound display-only battery runtime candidate', () => {
     expect(h.states.BMS_TimeToFull_Smoothed).toBe(ttf);
   });
 
+  it('produces identical smoothing for the same observations despite extra evaluations and envelope sequences', () => {
+    const sparse = fixture(), noisy = fixture();
+    let expectedLoad, expectedPv, expectedCharge;
+    for (let sample = 0; sample < 12; sample++) {
+      const observed = t0 + sample * 1000;
+      const load = 150 + sample * 30, pv = 1200 + sample * 20;
+      const charge = 5 + sample * 0.2;
+      for (const h of [sparse, noisy]) {
+        const runtime = h.sources.BMS_Runtime_Input_Evidence_JSON;
+        runtime.recordedAt = observed;
+        runtime.sequence++;
+        runtime.fields['battery.dc_current_ca'] = field(Math.round(charge * 100), observed, 90000);
+        const ac = h.sources.Inverter_AC_Evidence_JSON;
+        ac.recordedAt = observed;
+        ac.fields['inverter.ac_output_w'] = field(load, observed, 30000, 'watts');
+        const power = h.sources.Power_Evidence_JSON;
+        power.recordedAt = observed;
+        power.fields['pv.input_power_w'] = field(pv, observed, 120000, 'watts');
+        h.run();
+      }
+      expectedLoad = sample ? expectedLoad + 0.05 * (load - expectedLoad) : load;
+      expectedPv = sample ? expectedPv + 0.05 * (pv - expectedPv) : pv;
+      expectedCharge = sample ? expectedCharge + 0.05 * (charge - expectedCharge) : charge;
+      for (let reread = 0; reread < 4; reread++) {
+        noisy.advance(250);
+        // Another field can publish a new envelope without a new current sample.
+        noisy.sources.BMS_Runtime_Input_Evidence_JSON.recordedAt = observed + (reread + 1) * 250;
+        noisy.sources.BMS_Runtime_Input_Evidence_JSON.sequence++;
+        noisy.run();
+      }
+      sparse.advance(1000);
+      for (const [key, expected] of [['p_load', expectedLoad], ['p_pv', expectedPv], ['i_chg', expectedCharge]]) {
+        expect(sparse.cache.get(key)).toBeCloseTo(expected, 10);
+        expect(noisy.cache.get(key)).toBeCloseTo(expected, 10);
+      }
+      expect(noisy.states.BMS_TimeToDischarge_Smoothed).toBe(sparse.states.BMS_TimeToDischarge_Smoothed);
+      expect(noisy.states.BMS_TimeToFull_Smoothed).toBe(sparse.states.BMS_TimeToFull_Smoothed);
+      expect(noisy.states.BMS_Runtime_Basis).toBe(sparse.states.BMS_Runtime_Basis);
+    }
+  });
+
+  it('reseeds smoothing after a bank-evidence barrier instead of reviving the old average', () => {
+    const h = fixture();
+    h.sources.BMS_Runtime_Input_Evidence_JSON.fields['battery.dc_current_ca'].value = 500;
+    h.run();
+    h.sources.BMS_SOC_Evidence_JSON.status = 'unavailable';
+    h.advance(1000); h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('off');
+    expect(h.cache.get('i_chg')).toBeNull();
+    expect(h.cache.get('p_load')).toBeNull();
+    h.sources.BMS_SOC_Evidence_JSON.status = 'valid';
+    // The same still-qualified source identities are intentionally reused:
+    // invalidated caches must seed, not skip because their identities match.
+    h.run();
+    expect(h.cache.get('i_chg')).toBe(5);
+    expect(h.cache.get('p_load')).toBe(150);
+    expect(h.states.BMS_Runtime_Basis).toBe('now');
+    expect(h.states.BMS_TimeToFull_Smoothed).toBe('960');
+  });
+
   it('uses fresh receipts for the deep BMS basis and never reads held input Items', () => {
     const h = fixture();
     h.cache.set('ttd_state', { discharging: true, deep: true, buf: [],

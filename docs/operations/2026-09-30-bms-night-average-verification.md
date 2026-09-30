@@ -391,3 +391,27 @@ The source consumer census additionally found `openhab_sanity_check.py`
 reading the runtime outputs for diagnostic notifications; that reader is not
 an equipment-control path. This still is not a census of arbitrary clients.
 No estimator deployment or protected-control change was made.
+
+### Cadence invariance and later natural comparison
+
+The candidate regression now exercises twelve distinct physical current,
+AC and PV readings through two schedules. One evaluates once per reading;
+the other additionally evaluates four times between readings and advances
+runtime envelope sequences without changing current observation identity.
+Both yield the independently calculated alpha-0.05 recurrences and identical
+TTD, TTF and basis outputs at every sample. A separate bank-evidence failure
+test proves OFF/reset followed by reseeding from still-qualified observations,
+including when their identities match the pre-failure identities. These are
+deterministic disconnected tests, not production state injection.
+
+A second read-only natural replay used 15:05–19:05Z with comparison restricted
+to 18:55–19:05Z. Its 1024 evaluations passed all arithmetic checks; there were
+zero charging-BMS or noncharging-TTF violations. All 21 comparison ticks were
+`now -> now`. TTD mean/max absolute delta was 289.52/510 minutes and TTF was
+84.76/190 minutes. Thus numerical parity did not emerge after startup warmup.
+At the largest TTD delta (19:04Z), live was 4020 versus candidate 4530, with
+candidate SoC 84%, remaining 336 Ah, voltage 53.6 V and load EMA 189.324 W.
+At the largest TTF delta (18:55Z), live was 1270 versus candidate 1080, with
+candidate charge EMA 3.564 A. No physical accuracy is inferred from either
+display. This later window still contains no new post-update deep-discharge
+median qualification; the estimator remains undeployed.
