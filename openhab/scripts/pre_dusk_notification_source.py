@@ -12,14 +12,15 @@ import thermal_confirmation as t
 from thermal_messaging import require
 
 
-def read_notice(get, connection_factory, *, day, now, sender, operator):
-    """Prepare only one genuine persisted issue, linked to its morning origin.
+def _read_inputs(get, connection_factory, *, day, now, sender, operator):
+    """Internal original-input bundle for one linked, validated persisted issue.
 
     The GET transport must be the restricted local JDBC archive reader. The
     SQL connection must be the dedicated restricted reader. Those credential/
     endpoint checks belong to the future deployment adapter, not injected tests.
-    Original source JSON remains internal; return only the validated notice.
-    A non-low forecast returns None. Missing/ambiguous/stale history is refused.
+    Never print this result: original source JSON remains internal to the worker.
+    The third tuple member is None for a non-low forecast. Missing/ambiguous/
+    stale history is refused. Public callers should use read_notice instead.
     """
     try:
         require(isinstance(day, date) and not isinstance(day, datetime),
@@ -39,9 +40,18 @@ def read_notice(get, connection_factory, *, day, now, sender, operator):
         require(len(linked) == 1 and t.aware(linked[0]['persisted_at']) <= issued,
                 'morning origin not persisted before pre-dusk issue')
         original = read_issue_input(connection_factory, issue)
-        return notice(issue, original['original_soc'],
-                      original['metadata']['source_persisted_at'],
-                      now, sender, operator)
+        # Validate before returning any private input to the worker.
+        prepared = notice(issue, original['original_soc'],
+                          original['metadata']['source_persisted_at'],
+                          now, sender, operator)
+        return issue, original, prepared
     except Exception:
         # Original source JSON, credentials and transport exceptions stay private.
         raise t.Refused('original pre-dusk notification evidence unavailable') from None
+
+
+def read_notice(get, connection_factory, *, day, now, sender, operator):
+    """Read-only public preparation API; never expose original source JSON."""
+    _, _, prepared = _read_inputs(get, connection_factory, day=day, now=now,
+                                  sender=sender, operator=operator)
+    return prepared

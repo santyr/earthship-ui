@@ -19,6 +19,14 @@ write occurred. The locked production worker, actual keyer/routes, attended
 receipt and activation remain open. See the
 [source checkpoint](2026-09-30-pre-dusk-notification-candidate.md#original-jdbc-preparation-checkpoint).
 
+The source-only locked worker now composes the original reader with durable
+queue/flush under one private state lock. The release gate rejects before
+all I/O, overlaps refuse before reading, high forecasts skip signing/outbox,
+and signer failures create no intent. 165 related tests passed, including
+worker restart ciphertext reuse. No CLI/unit/timer was installed or DM sent.
+Production transport/identity/routes, attended delivery and activation remain
+open. See the [worker checkpoint](2026-09-30-pre-dusk-notification-candidate.md#locked-worker-integration-checkpoint).
+
 The latest runtime audit passes all 1024 independent arithmetic checks in a
 later natural window. Deterministic regressions prove identical alpha-0.05
 smoothing for identical source observations despite extra evaluations and

@@ -56,10 +56,10 @@ production `websockets==16.0` dependency.
 
 ## Remaining live gates
 
-1. Finish the deployment adapter and locked dedicated outbox invocation using
-   the qualified source-only reader below. Do not re-run the forecast just to
-   create an alert. Credentials/endpoints and clock handling require explicit
-   production validation; dependency-injected tests cannot establish them.
+1. Finish the deployment adapter using the qualified source reader and locked
+   worker below. Do not re-run the forecast just to create an alert.
+   Credentials/endpoints and clock handling require explicit production
+   validation; dependency-injected tests cannot establish them.
 2. Qualify the installed keyer/runtime and the approved Hex/operator signed
    inbox routes with the actual dependency versions. Verify both encrypted
    copies and restart recovery without a forecast or control write.
@@ -98,3 +98,26 @@ It is historical provenance evidence, **not** current alert eligibility.
 No production deployment or startup unit exists yet. The locked worker,
 actual identities/keyer/routes, attended receipt and activation gates above
 remain open. Temporary test storage was removed; no package was installed.
+
+## Locked worker integration checkpoint
+
+`pre_dusk_notification_worker.run` now holds the private state lock throughout
+original history/source reads, queueing and flush. Its default-off release
+check precedes all state creation, credentials, history and signer operations.
+It checks both route scopes and signer identity before opening the dedicated
+outbox. A non-low forecast requires neither signing nor an outbox database.
+Every retry rereads the original source bundle; existing envelopes remain
+unchanged. The worker releases its lock and closes the database on return or
+exception. It never creates a prompt, listener or journal record.
+
+165 focused tests pass. The added integration tests cover closed-gate zero I/O,
+lock contention before source reads, high-forecast signing suppression, signer
+failure before intent creation and exact ciphertext reuse across worker runs.
+These use a fake signer and relays and are not household identity/delivery
+evidence. The optional injected clock is for disconnected tests only; a live
+deployment adapter must use the real clock and expose no historical override.
+
+This closes source-level locked worker composition, not installed production
+credentials, signer/dependency/route qualification, attended delivery or
+activation. No CLI, startup unit, timer or production change is included.
+Owned temporary test storage was removed.
