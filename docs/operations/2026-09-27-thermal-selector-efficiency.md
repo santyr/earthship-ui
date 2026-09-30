@@ -207,3 +207,47 @@ forcing-capture output match exactly. The publication was generated at
 `none|No thermal action needed`. This closes the one-file deployment's natural
 publisher-continuity gate. The 06:50 natural trainer remains the first
 whole-run CPU and accepted-artifact gate for this optimization.
+
+## September 29 evening coefficient/Jacobian hoist — guarded shadow install
+
+After the natural 06:50 run completed, a new bounded `cProfile` of one
+deterministic 30-day synthetic fit found 3.421 of 4.298 profiled seconds in
+the 61 multihorizon objective/gradient evaluations. The source-only
+`dynamics.py` candidate now looks up the twelve fixed coefficients once per
+evaluation and fills the three constant two-by-two Jacobian entries once per
+endpoint; only the vent-dependent entry is updated at each five-minute step.
+The arithmetic order of each state transition and derivative remains the
+same. Two unprofiled pre-change fits took 3.335 and 3.295 seconds, and two
+post-change fits took 2.990 and 2.991 seconds on the same 8,064-row fixture.
+The complete dataclass JSON SHA-256 remained exactly
+`e80023c12069181675e515389894fdbe732843587349a32ad693e8a92ca001bf`,
+with final objective `0.0001582665101962629`. These are small-fixture
+single-host timings, not a causal whole-trainer claim. All 61 dynamics and
+139 adjacent pipeline/evaluation/behavior tests pass; `git diff --check`
+passes. At this source-only checkpoint no installed runtime file, timer,
+accepted artifact, live Item, advisory or control changed. The complete
+28-file thermal Python suite later
+passed 737 tests with one optional skip in 82.57 seconds. Source SHA-256 is
+`2850ce20b4df5d39866dcead43f809c81b7501153af2f6d7377b9931e65a393c`;
+the installed v4 `dynamics.py` was still the prior
+`38144fe75042fe36a1a763c2803774cda547a9b903f89a9a8448b9eeb7419c2d`.
+Both thermal timers were active/waiting.
+
+At 19:15 MDT, with both thermal services inactive, the existing receipt-bound
+installer took a private exact one-file rollback snapshot at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/dynamics-hoist-20260929T1915/files`.
+It pinned the prior `38144fe...` hash and desired `2850ce...` hash, stopped
+only the two thermal user timers, rechecked service quiescence and both hashes,
+installed only `thermal_model/dynamics.py`, and verified its transaction
+receipt and installed digest. A separate installed-v4 five-day synthetic fit
+completed with finite, non-increasing objective. The timers were restarted;
+independent readback found both enabled/active/waiting, both services inactive,
+source and installed SHA-256 equal, receipt directory 0700 and manifest 0600.
+An independent invocation of the receipt verifier returned true, and the
+private backup bytes hash exactly to the pinned prior file. The next natural
+shadow and trainer timers read back as 20:28:38 MDT tonight and 06:50 MDT
+September 30 respectively.
+No model artifact, live Item, advice, OpenHAB rule or control was changed.
+The next natural shadow publication and September 30 06:50 trainer remain
+the production import/whole-run performance and artifact-continuity gates;
+this installation alone does not justify shadow exit.

@@ -744,6 +744,20 @@ def _multihorizon_objective_and_gradient(
         raise ValueError("multihorizon objective coefficients are invalid")
     air = dict(zip(AIR_NAMES, values[:len(AIR_NAMES)]))
     mass = dict(zip(MASS_NAMES, values[len(AIR_NAMES):]))
+    air_outside = air["outside_exchange"]
+    air_mass = air["mass_exchange"]
+    air_solar_unshaded = air["solar_unshaded"]
+    air_solar_indoor = air["solar_indoor_closed"]
+    air_solar_outdoor = air["solar_outdoor"]
+    air_vent = air["vent_exchange"]
+    air_bias = air["bias"]
+    mass_air = mass["air_exchange"]
+    mass_outside = mass["outside_exchange"]
+    mass_solar_unshaded = mass["solar_unshaded"]
+    mass_solar_indoor = mass["solar_indoor_closed"]
+    mass_solar_outdoor = mass["solar_outdoor"]
+    jacobian_air_self = 1.0 - air_outside - air_mass
+    jacobian_mass_self = 1.0 - mass_air - mass_outside
     loss = 0.0
     gradient = np.zeros(expected, dtype=float)
 
@@ -762,6 +776,9 @@ def _multihorizon_objective_and_gradient(
             )
             sensitivity = np.zeros((2, expected), dtype=float)
             state_jacobian = np.empty((2, 2), dtype=float)
+            state_jacobian[0, 1] = air_mass
+            state_jacobian[1, 0] = mass_air
+            state_jacobian[1, 1] = jacobian_mass_self
             direct = np.zeros((2, expected), dtype=float)
             for forcing in endpoint.forcings:
                 if prepared_forcings is None:
@@ -770,15 +787,7 @@ def _multihorizon_objective_and_gradient(
                     solar = _solar_terms(forcing)
                 else:
                     outdoor, vent, solar = prepared_forcings[id(forcing)]
-                state_jacobian[0, 0] = (
-                    1.0 - air["outside_exchange"] - air["mass_exchange"]
-                    - air["vent_exchange"] * vent
-                )
-                state_jacobian[0, 1] = air["mass_exchange"]
-                state_jacobian[1, 0] = mass["air_exchange"]
-                state_jacobian[1, 1] = (
-                    1.0 - mass["air_exchange"] - mass["outside_exchange"]
-                )
+                state_jacobian[0, 0] = jacobian_air_self - air_vent * vent
                 direct[0, :len(AIR_NAMES)] = (
                     outdoor - state[0],
                     state[1] - state[0],
@@ -797,23 +806,23 @@ def _multihorizon_objective_and_gradient(
                 )
                 next_air = (
                     state[0]
-                        + air["outside_exchange"] * (outdoor - state[0])
-                        + air["mass_exchange"] * (state[1] - state[0])
-                        + air["solar_unshaded"] * solar[0]
-                        + air["solar_indoor_closed"] * solar[1]
-                        + air["solar_outdoor"] * solar[2]
-                        + air["vent_exchange"]
+                        + air_outside * (outdoor - state[0])
+                        + air_mass * (state[1] - state[0])
+                        + air_solar_unshaded * solar[0]
+                        + air_solar_indoor * solar[1]
+                        + air_solar_outdoor * solar[2]
+                        + air_vent
                         * vent
                         * (outdoor - state[0])
-                        + air["bias"]
+                        + air_bias
                 )
                 next_mass = (
                     state[1]
-                        + mass["air_exchange"] * (state[0] - state[1])
-                        + mass["outside_exchange"] * (outdoor - state[1])
-                        + mass["solar_unshaded"] * solar[0]
-                        + mass["solar_indoor_closed"] * solar[1]
-                        + mass["solar_outdoor"] * solar[2]
+                        + mass_air * (state[0] - state[1])
+                        + mass_outside * (outdoor - state[1])
+                        + mass_solar_unshaded * solar[0]
+                        + mass_solar_indoor * solar[1]
+                        + mass_solar_outdoor * solar[2]
                 )
                 sensitivity = state_jacobian @ sensitivity + direct
                 state[0], state[1] = next_air, next_mass
