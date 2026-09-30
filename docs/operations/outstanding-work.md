@@ -114,6 +114,16 @@ estimator cutover remain open; sampled delivery is not physical runtime
 accuracy or proof of all future write rates. See the
 [deployment receipt](2026-09-30-bms-night-average-verification.md#real-eventjdbc-fixture-passed-collector-only-update-deployed).
 
+Post-update estimator comparison remains unqualified: 12:10–12:20 MDT modes
+match (`now`, charging), but cold-cache TTD mean/max display deltas are
+435.24/830 minutes. A bounded 3h50 warmup reduces them to 173.33/380 minutes;
+TTF remains roughly 45/70 minutes apart. This does not prove accuracy or
+actual-cache parity. No natural BMS median is available in the charging
+target window. The live-rule census found no other rule referencing the three
+estimator outputs; external-client dependencies still need their own check.
+The read-only replay now supports separately bounded warmup/target windows.
+See the [numeric/dependency receipt](2026-09-30-bms-night-average-verification.md#post-update-minute-comparison-and-output-dependency-census).
+
 Current `0864f4d6...` thermal runtime recovery passed independently from a
 private restored tree: accepted artifact valid, all 84 captures semantically
 valid, optimized full-fit digest unchanged, morning-DM policy false and exact
@@ -851,7 +861,10 @@ exactly one original JDBC row, verified capture and exact replay under
 unchanged and status shadow/low confidence. The separate morning-DM retirement
 then moved the full runtime manifest to `0864f4d6...`; that publication also
 replays exactly under the explicit new pin, but a new natural publication under
-this current revision is still due. October 1's trainer remains the whole-run
+this current revision was initially still due. The scheduled 12:31 publication
+now closes that gate: service exit zero, live Item/original JDBC/capture match,
+unchanged accepted artifact, and exact replay under `0864f4d6...`. Its digest is
+`e465d03f...ae913f0`; shadow/low confidence remains. October 1's trainer remains the whole-run
 timing/acceptance gate. Both private runtime archives preserve the updated
 84-capture recovery inventory without relabelling their training identities.
 

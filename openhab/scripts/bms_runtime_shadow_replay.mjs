@@ -107,10 +107,13 @@ export function summarizeMinutes(pairs) {
   return summary;
 }
 
-export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }) {
+export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = startMs, nightLoadByDay = {} }) {
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || startMs <= 0 || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) {
     throw new Error('bounded replay window required');
+  }
+  if (!Number.isSafeInteger(comparisonStartMs) || comparisonStartMs < startMs || comparisonStartMs > endMs) {
+    throw new Error('comparison window must be inside replay');
   }
   if (!nightLoadByDay || typeof nightLoadByDay !== 'object' || Array.isArray(nightLoadByDay)
       || Object.keys(nightLoadByDay).length > 2
@@ -200,7 +203,7 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     const oldBasis = held.BMS_Runtime_Basis;
     // Compare at the fixed observation grid, not at the receipt's timestamp
     // before the asynchronous live numeric publications have reached JDBC.
-    if (tick === startMs || tick % STEP_MS === 0) {
+    if (tick >= comparisonStartMs && (tick === startMs || tick % STEP_MS === 0)) {
       const knownBasis = value => ['bms', 'evening', 'now', 'off'].includes(value);
       const pairKey = `${knownBasis(oldBasis) ? oldBasis : 'unavailable'} -> ${basis}`;
       const numericPair = minutePairs[pairKey] || (minutePairs[pairKey] = { ttd: [], ttf: [] });
@@ -249,7 +252,10 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
   return {
     window: [new Date(startMs).toISOString(), new Date(endMs).toISOString()],
     evaluationSchedule: 'runtime_evidence_updates_and_aligned_30s_expiry',
-    numericComparisonSchedule: 'cold_cache_seed_and_aligned_30s_ticks',
+    numericComparisonSchedule: comparisonStartMs === startMs
+      ? 'cold_cache_seed_and_aligned_30s_ticks' : 'aligned_30s_ticks_after_warmup',
+    numericComparisonWindow: [new Date(comparisonStartMs).toISOString(), new Date(endMs).toISOString()],
+    warmupMs: comparisonStartMs - startMs,
     ticks: Object.values(basisCounts).reduce((a, b) => a + b, 0),
     candidateBasisTicks: basisCounts,
     firstNonOffAt,
@@ -284,12 +290,23 @@ async function fetchHistory(base, name, startMs, endMs, maxBytes = MAX_RESPONSE_
 
 async function main() {
   const args = process.argv.slice(2);
+  let comparisonStartMs;
+  const comparisonFlag = args.indexOf('--compare-from');
+  if (comparisonFlag !== -1) {
+    if (comparisonFlag !== args.length - 2) throw new Error('comparison flag must be last');
+    comparisonStartMs = Date.parse(args[comparisonFlag + 1]);
+    args.splice(comparisonFlag, 2);
+  }
   if (args.length !== 2 && args.length !== 4) {
-    throw new Error('usage: node bms_runtime_shadow_replay.mjs START_UTC END_UTC [NIGHT_START_UTC NIGHT_END_UTC]');
+    throw new Error('usage: node bms_runtime_shadow_replay.mjs START_UTC END_UTC [NIGHT_START_UTC NIGHT_END_UTC] [--compare-from UTC]');
   }
   const startMs = Date.parse(args[0]), endMs = Date.parse(args[1]);
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) throw new Error('bounded UTC window required');
+  if (comparisonFlag !== -1 && (!Number.isSafeInteger(comparisonStartMs)
+      || comparisonStartMs < startMs || comparisonStartMs > endMs)) {
+    throw new Error('comparison window must be inside replay');
+  }
   const base = 'http://127.0.0.1:5190';
   const nightLoadByDay = {};
   let nightLoadAudit = null;
@@ -314,7 +331,7 @@ async function main() {
   const histories = {};
   for (const name of EVIDENCE) histories[name] = await fetchHistory(base, name, startMs - 10 * 60000, endMs);
   for (const name of LIVE) histories[name] = await fetchHistory(base, name, startMs - 24 * 3600000, endMs);
-  const result = replayRuntime(histories, { startMs, endMs, nightLoadByDay });
+  const result = replayRuntime(histories, { startMs, endMs, comparisonStartMs, nightLoadByDay });
   if (nightLoadAudit) result.nightLoadAudit = nightLoadAudit;
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }

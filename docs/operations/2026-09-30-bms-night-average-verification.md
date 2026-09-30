@@ -315,3 +315,42 @@ qualified original-event collector/fixture, not held Item timestamps.
 All 38 selected Python tests pass. Temporary test files were removed; the
 operational rollback backup is retained. New numerical qualification and
 guarded estimator cutover remain open. Existing history is unchanged.
+
+## Post-update minute comparison and output dependency census
+
+Read-only production rule census found only `hex_bms_ttd_smooth` referencing
+`BMS_Runtime_Basis`, `BMS_TimeToDischarge_Smoothed` or
+`BMS_TimeToFull_Smoothed`. No other live OpenHAB rule consumes these outputs;
+this is not a census of arbitrary external clients.
+
+The candidate replay of 12:10–12:20 MDT used the new collector receipts:
+52 evaluations were all `now` and source-qualified charging, with zero
+charging-BMS or noncharging-TTF violations. At the 21 aligned numeric ticks,
+TTD mean/max absolute differences from the live display were 435.24/830
+minutes; TTF differences were 46.19/70 minutes. The largest differences were
+at the cold-cache start. Nightly load was not consulted on this `now` path.
+
+The replay now supports a bounded `--compare-from UTC` target window after
+historical warmup, without changing the four-hour total replay bound. Its
+regression proves prefix inputs seed the actual candidate state while prefix
+minutes are excluded from target statistics; invalid comparison bounds fail
+before history requests. Repeat command:
+
+```sh
+node openhab/scripts/bms_runtime_shadow_replay.mjs \
+  2026-09-30T14:20:00Z 2026-09-30T18:20:00Z \
+  2026-09-30T02:30:00Z 2026-09-30T12:00:00Z \
+  --compare-from 2026-09-30T18:10:00Z
+```
+
+The 3-hour-50-minute prefix changes the target's TTD mean/max difference to
+173.33/380 minutes, not zero; TTF remains 44.76/70 minutes. Thus initialization
+matters, but does not explain all differences. The 970 total evaluations
+include two legitimate fail-closed startup barriers when the collector was
+updated, followed by fresh recovery. The warmed prefix is reconstructed
+history, **not** a copy of the live rule's private cache or proof of minute
+accuracy. No natural deep-discharge BMS median is tested in this all-charging
+target window. Keep the estimator candidate undeployed while its remaining
+numeric/state-history differences are investigated; do not treat mode agreement
+or warmup as numerical promotion. No production write, job or control was
+performed by these checks.

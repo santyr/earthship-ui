@@ -180,6 +180,27 @@ publication exactly replays to output SHA-256
 under the explicitly pinned included publication source. This does not imply
 every earlier capture was generated under that runtime, or that its training
 identity was rewritten. The owned extraction was removed after verification.
+
+## September 30 natural publication under the current runtime
+
+The scheduled 12:31 shadow service ran 12:31:48–12:31:51 MDT, exit zero,
+2.185727 CPU seconds. Issue `2026-09-30T18:31:49.606146Z` matches the live
+Item, exactly one original JDBC row at `18:31:51.319Z`, and verified capture
+`/home/sat/.local/state/thermal-intel/forcing-captures/2026-09/20260930T183149Z-e465d03fe693f7f5.json.gz`.
+Output SHA-256:
+`e465d03fe693f7f5013cb69a935d6bc91e537c1543e9a30ca36734a35ae913f0`.
+
+Installed publication runtime is
+`0864f4d6e231be78ae554e94634c161f5d927e185a94a908893f58b87bd31c68`;
+the embedded accepted artifact remains
+`66bc754135da743f402e00c34e07d8ffaeb7c8e97061873e06808619fe734353`
+with separate training revision `a4a68a17...`. Read-only
+`replay-thermal-forcing.py` with that explicit runtime pin reproduces the
+entire publication exactly. This closes the new-natural-publication gate after
+morning-DM retirement, not model accuracy or whole-run training performance.
+Status remains shadow/low confidence with 72 trajectory points. No job was
+forced, message/control sent, label added, or training identity relabelled.
+October 1's natural trainer is still the full-run optimization/acceptance gate.
 No production model, journal, Item, control or message was altered. This closes
 same-host recovery of the optimized/policy-retired runtime, not whole-host or
 off-host disaster recovery; off-host copying remains deferred.

@@ -130,6 +130,25 @@ describe('bounded read-only runtime estimator replay', () => {
     expect(Object.values(result.minuteComparisonByBasisPair).reduce((sum, pair) => sum + pair.ticks, 0)).toBe(2);
   });
 
+  it('warms the actual candidate state while excluding prefix minutes from comparison', () => {
+    const h = histories();
+    const receipt = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+    receipt.sequence = 2; receipt.recordedAt = at + 1000;
+    receipt.fields['battery.dc_current_ca'] = field(-300, 90000, 'value', at + 1000);
+    h.BMS_Runtime_Input_Evidence_JSON.push(row(receipt, at + 1000));
+    const result = replayRuntime(h, { startMs: at, endMs: at + 30000, comparisonStartMs: at + 30000 });
+    expect(result.ticks).toBe(3);
+    expect(result.warmupMs).toBe(30000);
+    expect(result.numericComparisonSchedule).toBe('aligned_30s_ticks_after_warmup');
+    expect(result.minuteComparisonByBasisPair['bms -> evening']).toBeUndefined();
+    expect(result.minuteComparisonByBasisPair['bms -> bms'].ticks).toBe(1);
+    expect(result.minuteComparisonByBasisPair['bms -> bms'].ttd.maxAbsDeltaMin).toBe(0);
+    for (const comparisonStartMs of [NaN, at - 1, at + 30001]) {
+      expect(() => replayRuntime(h, { startMs: at, endMs: at + 30000, comparisonStartMs }))
+        .toThrow('comparison window');
+    }
+  });
+
   it('pinpoints an expired auxiliary source at a fail-closed off tick', () => {
     const h = histories();
     const soc = JSON.parse(h.BMS_SOC_Evidence_JSON[0].state);
