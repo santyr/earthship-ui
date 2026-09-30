@@ -12,7 +12,8 @@ Model (validated against 30 days of history, 2026-07-17):
   Demand  = D_direct + (100 − dawn_trough)/100 × BANK_KWH / 0.95   [kWh]
   k_res   seeded 1.0  [0.5, 1.3]  — calibrated on resource-limited (cloudy) days
   D_direct seeded 4.0 [2.5, 6.0]  — calibrated on demand-limited (curtailing) days
-DM policy: ONLY predicted trough < 30% (full 4P 400 Ah bank, 20.48 kWh, since 2026-07-18).
+DM policy: morning trough warnings are retired; calculation/history are retained.
+The separate pre-dusk notification path is not activated by this worker.
 """
 import json, math, os, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
 from hashlib import sha256
@@ -27,6 +28,7 @@ STATE_FILE = os.path.join(STATE_DIR, "state.json")
 BANK_KWH, RESERVE_SOC, ETA_RT = 20.48, 10, 0.95  # full 4P 400Ah bank (2026-07-19; was 5.12 single-module interim)
 K_RES_BOUNDS, D_DIRECT_BOUNDS, ALPHA = (0.5, 1.3), (2.5, 6.0), 0.2
 TROUGH_DM_THRESHOLD = 30  # full-bank policy (was 42 on the single 100 Ah bank)
+MORNING_TROUGH_DM_ENABLED = False  # retired estimate is historical/tuning only
 CLOSE_UP_HIGH_F, CLOSE_UP_STREAK_F, VENT_HIGH_F = 95, 92, 90
 DETAIL_MAX_BYTES = 64 * 1024
 _TOKEN = None
@@ -1398,7 +1400,8 @@ def main():
     else:
         advisory = "none|No thermal action needed"
 
-    notification_eligible = trough_pred is not None and trough_pred < TROUGH_DM_THRESHOLD
+    notification_eligible = (MORNING_TROUGH_DM_ENABLED and trough_pred is not None
+                             and trough_pred < TROUGH_DM_THRESHOLD)
     notification_suppressed = notification_eligible and st["dm_sent"].get(today.isoformat()) == True
     if os.environ.get("ADVISORY_CAPTURE_ENABLED") == "1" and trough_pred is not None:
         try:

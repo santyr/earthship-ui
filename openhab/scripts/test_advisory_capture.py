@@ -131,7 +131,8 @@ def test_observer_failure_does_not_change_put_result(monkeypatch, capsys):
 
 
 def run_main(monkeypatch, tmp_path, *, active, highs, low_resource=False,
-             suppressed=False, notifier="success", fail_store=None):
+             suppressed=False, notifier="success", fail_store=None,
+             morning_dm_enabled=True):
     # Golden comparisons run the same forecast twice under one clock. Newly
     # captured origin timestamps must match too, not be stripped from the result.
     day = fi.date.today()
@@ -141,6 +142,8 @@ def run_main(monkeypatch, tmp_path, *, active, highs, low_resource=False,
         def now(cls, tz=None):
             return fixed.astimezone(tz) if tz is not None else fixed.astimezone().replace(tzinfo=None)
     monkeypatch.setattr(fi, 'datetime', Clock)
+    # Explicit legacy policy for historical capture parity tests, not live default.
+    monkeypatch.setattr(fi, 'MORNING_TROUGH_DM_ENABLED', morning_dm_enabled)
     import advisory_capture as ac
     store = Store(fail_store)
     state = {"k_res": 1.0, "d_direct": 4.0, "predictions": {}, "pv_errors": [],
@@ -203,6 +206,19 @@ def test_notification_capture_never_changes_calls_or_markers(monkeypatch,tmp_pat
     assert len(on[2]) == (0 if suppressed else 1)
     assert on[3][-1]["status"] == status
     assert "PRIVATE-CREDENTIAL-SENTINEL" not in json.dumps(on[3])
+
+
+def test_retired_morning_warning_retains_forecast_history_without_notification(monkeypatch, tmp_path):
+    assert fi.MORNING_TROUGH_DM_ENABLED is False
+    options = dict(active=True, highs=[92, 83, 83], low_resource=True)
+    legacy = run_main(monkeypatch, tmp_path, **options, morning_dm_enabled=True)
+    retired = run_main(monkeypatch, tmp_path, **options, morning_dm_enabled=False)
+    assert retired[0]['predictions'] == legacy[0]['predictions']
+    assert retired[1] == legacy[1]  # Item values, immutable receipt and history unchanged.
+    assert retired[2] == []
+    assert retired[0]['dm_sent'] == {}
+    assert retired[3][0]['notification'] == {'eligible': False, 'suppressed': False}
+    assert retired[3][-1]['status'] == 'not_eligible'
 
 
 @pytest.mark.parametrize("failure", ["decision","result"])
