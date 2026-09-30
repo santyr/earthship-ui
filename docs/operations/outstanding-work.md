@@ -1,5 +1,21 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 BMS post-cadence overnight replay now covers September 29
+20:45 through September 30 06:00 MDT in three bounded windows. Their 481,
+481 and 151 half-minute ticks reported respectively 480/480/150 `bms` ticks
+and one initial `evening` tick each, with zero candidate `off` ticks or
+noncharging time-to-full violations. Each window starts a fresh shadow cache:
+its single initial `bms -> evening` disagreement is the candidate's required
+distinct-current warmup, not an observed production transition. Adjacent window
+endpoints overlap, so these counts are not independent observations. This
+extends natural overnight cadence evidence after the auxiliary update fix;
+it does not erase September 29's earlier gaps or prove a complete clean day.
+The replay used the explicitly unqualified 155-W fallback, and projected
+minutes were excluded. Live rule/Items/cache/controls remain unchanged.
+Direct Java/JDBC overnight-load parity, fresh dawn transition, installed
+fault/restart/rollback and guarded estimator cutover remain open; do not
+promote the candidate from these mode counts alone.
+
 September 30 UI icon efficiency check: a read-only visit to all six live
 routes requested no full icon collection and made no writes/page errors under
 the sampled current state. Source-derived branch coverage nevertheless exposed
