@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createServer } from 'vite';
+import { readFile } from 'node:fs/promises';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -238,6 +239,26 @@ const DAY_START = Date.parse('2026-09-10T00:00:00-06:00');
 const NEXT_DAY_START = Date.parse('2026-09-11T00:00:00-06:00');
 const LOAD = 'ConextGateway_ACPowerValue';
 const GUST = 'AmbientWeatherWS2902A_WindGust';
+
+test('ordinary overcast and stale sky icons render without full offline collection downloads', async ({ page }) => {
+  const fullRequests = [];
+  await page.route(/iconify-json.*(?:mdi|bi).*icons/, (route) => {
+    fullRequests.push(route.request().url());
+    return route.abort();
+  });
+  const runtime = await openHomeFixture(page, TARGETS[0], { states: { SkyConditionIcon: 'iconify:bi:clouds-fill' } });
+  const collections = Object.fromEntries(await Promise.all(['mdi', 'bi'].map(async (prefix) =>
+    [prefix, JSON.parse(await readFile(`src/lib/ui/icons/${prefix}-common.json`, 'utf8'))])));
+  for (const name of ['bi:clouds-fill', 'mdi:cloud-alert', 'mdi:help-circle', 'mdi:weather-sunset']) {
+    await runtime.emitState('SkyConditionIcon', `iconify:${name}`);
+    const [prefix, key] = name.split(':');
+    const path = /\bd="([^"]+)"/.exec(collections[prefix].icons[key].body)[1];
+    await expect(page.locator('.cond-icon svg path').first()).toHaveAttribute('d', path);
+  }
+  expect(fullRequests).toEqual([]);
+  expect(runtime.attemptedNonGetRequests).toEqual([]);
+  expect(runtime.pageErrors).toEqual([]);
+});
 
 test('Home curtailment follows the dated daily prediction receipt', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });

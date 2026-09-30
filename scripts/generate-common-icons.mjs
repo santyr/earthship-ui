@@ -6,18 +6,18 @@ import { fileURLToPath } from 'node:url';
 const names = {
   mdi: [
     'battery', 'battery-alert', 'battery-charging', 'battery-charging-outline',
-    'bitcoin', 'fountain',
-    'gauge', 'help-circle-outline', 'home-thermometer', 'solar-power-variant',
+    'bitcoin', 'cloud-alert', 'fountain',
+    'gauge', 'help-circle', 'help-circle-outline', 'home-thermometer', 'solar-power-variant',
     'weather-cloudy', 'weather-fog', 'weather-lightning', 'weather-night',
     'weather-night-partly-cloudy', 'weather-partly-cloudy', 'weather-pouring',
     'weather-rainy', 'weather-snowy', 'weather-snowy-heavy', 'weather-sunny',
-    'weather-sunset-down', 'weather-sunset-up', 'white-balance-sunny',
+    'weather-sunset', 'weather-sunset-down', 'weather-sunset-up', 'white-balance-sunny',
     ...['new', 'waxing-crescent', 'first-quarter', 'waxing-gibbous', 'full',
       'waning-gibbous', 'last-quarter', 'waning-crescent'].map(phase => `moon-${phase}`),
     ...Array.from({ length: 9 }, (_, step) => `battery-${(step + 1) * 10}`),
     ...Array.from({ length: 10 }, (_, step) => `battery-charging-${(step + 1) * 10}`),
   ],
-  bi: ['cloud-sun-fill'],
+  bi: ['cloud-sun-fill', 'clouds-fill'],
 };
 
 mkdirSync(fileURLToPath(new URL('../src/lib/ui/icons/', import.meta.url)), { recursive: true });

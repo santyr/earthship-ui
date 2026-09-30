@@ -1,5 +1,22 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 UI icon efficiency check: a read-only visit to all six live
+routes requested no full icon collection and made no writes/page errors under
+the sampled current state. Source-derived branch coverage nevertheless exposed
+four ordinary sky states missing from the small local subset: overcast
+`bi:clouds-fill`, stale `mdi:cloud-alert`, unknown `mdi:help-circle`, and twilight
+fallback `mdi:weather-sunset`. The generator now includes their exact existing
+SVGs: 1,472 extra uncompressed JSON bytes avoid loading the 1.08/2.96-MB optional
+collections for those states. No icon appearance or rule changes occurred;
+unknown-icon offline fallback remains intact. Fifteen focused unit tests and
+the production build pass; an isolated Home browser verified all four exact
+SVG paths with full collection downloads blocked and zero writes/errors.
+Coverage also checks every declared sky-rule/Astro-map icon and day/night
+forecast codes across all eight moon phases. Both updated subset modules are
+verified served by the live user-level console. This is a narrow loading fix,
+not an overall tablet performance benchmark or a reason to remove lazy offline
+fallback chunks merely to suppress build-size warnings.
+
 September 30 shade fine-control preview is deployed. **Set %** provides named
 individual/room/all targets, exact integer percent-open entry, five-point
 Open/Close steps and separate full-open/full-close presets without shortening
