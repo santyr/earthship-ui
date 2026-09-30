@@ -1,5 +1,12 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 journal cutover preflight: the existing private admin connection
+works as the schema owner. Read-only inspection verified the exact v1 shape
+and zero window/skylight rows. The [proposed attended journal cutover](2026-09-29-thermal-airflow-journal-v2-candidate.md#proposed-attended-production-journal-cutover)
+limits the mutation to the action CHECK constraint, preserves all rows/grants,
+and keeps every collector/model activation gate off. It requires exact
+authorization and fresh backup/runtime/writer checks; no live DDL has run.
+
 September 29 inactive collector baseline recovery is now rehearsed: the fresh
 household journal, both empty SQLite databases and exact private proposed-policy
 and signed-route files form a verified five-component v3 bundle. Disposable

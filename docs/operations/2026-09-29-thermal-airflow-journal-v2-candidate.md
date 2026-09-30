@@ -536,3 +536,46 @@ truthful, unexpired sending policy, exact authorized production journal cutover,
 genuine operator-signed confirmation and subsequent bounded user-service
 qualification remain open. The accepted thermal model and its timers were not
 changed. Off-host recovery remains explicitly deferred by the operator.
+
+## Proposed attended production journal cutover
+
+The next requested authorization is **only** the journal vocabulary cutover,
+not collector activation or approval of the staged question. The existing
+private `/home/sat/.config/hex/thermal-admin.env` provides working owner access
+through a user-level transient unit; passwordless PostgreSQL peer sudo is not
+available and is not required. A fresh read-only check verified the exact
+v1 fingerprint, the owner identity and zero window/skylight rows. Two non-owner
+roles can insert, so the configured runtime role must be bound explicitly (or
+uniquely by the exact audited fingerprint), not inferred from a single-writer
+assumption. No credential or database diagnostic was printed.
+
+For an explicitly authorized attended apply:
+
+1. Recheck the installed consumer revision and all collector release gates;
+   do not run while a thermal job or independent journal writer is active.
+   Verify the retained full baseline and compare its ordered journal digests
+   with a fresh read-only source snapshot. If source rows changed, retain and
+   rehearse a new uniquely named baseline first; never overwrite this one.
+2. Use the existing owner connection, distinct restricted runtime role and
+   tested `airflow_migration.migrate_v2` in one owner transaction. Authorize
+   only that adapter's process-local migration gate; leave persistent source
+   flags and all collector/model gates unchanged. The adapter requires the
+   exact v1 preimage, uses a three-second lock timeout and 15-second statement
+   timeout, and replaces only `action_events_action_check` with the qualified
+   v2 vocabulary. A failed postimage audit rolls back the transaction.
+3. Require exact v2 postimage fingerprint
+   `f3e09cdd6cbd82bcd34475485bbf326bbc4789f4bcb1f4e050d9fba213378790`,
+   unchanged ordered digests of all existing rows, unchanged grants and the
+   pinned installed consumer. The accepted artifact, Items, timers and
+   hardware controls must remain untouched. Retain a sanitized private receipt.
+4. If post-commit verification fails, keep collection off. Before reverting
+   only the action constraint in an owner transaction, require no new
+   window/skylight rows, unchanged original row digests and the exact v2
+   preimage; audit the exact v1 postimage before commit. Do not restore a whole
+   dump over newer observations or delete v2 labels to force rollback. If any
+   new data exists, stop and preserve it for an explicit recovery decision.
+
+The exact journal-only apply still needs operator approval. After it passes,
+truthful question review, qualified sender/ingress deployment and a genuine
+operator-signed reply/acknowledgement remain separate steps. No unattended
+poller or automatic hardware action is included in this plan.
