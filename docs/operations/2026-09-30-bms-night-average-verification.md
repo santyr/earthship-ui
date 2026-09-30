@@ -354,3 +354,40 @@ target window. Keep the estimator candidate undeployed while its remaining
 numeric/state-history differences are investigated; do not treat mode agreement
 or warmup as numerical promotion. No production write, job or control was
 performed by these checks.
+
+## Independent arithmetic and smoothing-state diagnosis
+
+The read-only replay now independently checks energy dimensions, the 10% SoC
+reserve, 90% efficiency, power floor, native upper median and output rounding.
+It exposes only the candidate's validated numerical inputs, not credentials.
+The same warmed window above passed all 970 evaluation checks with zero
+arithmetic violations. This proves the implementation's arithmetic contract,
+not its future physical prediction accuracy.
+
+At 18:10:00Z the largest target TTD difference was live 3550 versus candidate
+3930 minutes; TTF was live 800 versus candidate 730. Candidate inputs were
+83% SoC, 332 Ah, 53.5 V, 214.525 W load EMA and 5.601 A charge EMA.
+Those yield 14059.8 usable Wh and 68 missing Ah; their rounded minute outputs
+are internally consistent. The overnight-load mean is not used on this
+`now` basis.
+
+An independent held numeric-history lookup at the live TTD publication time
+(18:09:31.491Z) found the same SoC, Ah and voltage. Allowing its ten-minute
+rounding, the live 3550-minute value implies a load EMA of 237.296–237.966 W.
+The 800-minute TTF value implies a charge EMA of 5.068–5.132 A. These intervals
+are mathematical inferences, **not** reads of the legacy private cache and
+not evidence of source freshness. The discrepancy is consistent with
+different smoothing state, not a unit conversion or reserve calculation.
+
+The candidate advances EMA only for distinct qualified source observations,
+clears charge EMA when charging ends and invalidates held state on stale bank
+evidence. In contrast, the legacy evaluation path can repeatedly smooth a
+held input. Collector replacement also introduced legitimate startup barriers
+into the replay prefix. Do not adjust alpha merely to force numerical parity
+with that different sampling/state history. Cadence and recovery behavior
+remain qualification work before estimator promotion.
+
+The source consumer census additionally found `openhab_sanity_check.py`
+reading the runtime outputs for diagnostic notifications; that reader is not
+an equipment-control path. This still is not a census of arbitrary clients.
+No estimator deployment or protected-control change was made.

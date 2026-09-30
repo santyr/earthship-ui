@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { replayRuntime, summarizeMinutes } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
+import { replayRuntime, summarizeMinutes, auditRuntimeArithmetic } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
 
 const at = 1800000000000;
 const field = (value, ttl, property = 'value', observedAt = at) => ({
@@ -38,6 +38,18 @@ function histories() {
 }
 
 describe('bounded read-only runtime estimator replay', () => {
+  it('checks energy/charge dimensions and rounding without scoring physical accuracy', () => {
+    const input = { basis: 'now', bankReady: true, socPct: 80, remainingAh: 320,
+      volts: 50, loadEmaW: 150, chargeEmaA: 5, currentA: 5,
+      bmsTtfMin: 0, bmsBufferMin: [], ttdMin: '5040', ttfMin: '960' };
+    expect(auditRuntimeArithmetic(input)).toEqual([]);
+    expect(auditRuntimeArithmetic({ ...input, ttdMin: '5050' })).toEqual(['ttd_energy_projection']);
+    expect(auditRuntimeArithmetic({ ...input, ttfMin: '970' })).toEqual(['ttf_charge_projection']);
+    expect(auditRuntimeArithmetic({ ...input, basis: 'evening', nightW: 100, ttdMin: '7560' })).toEqual([]);
+    expect(auditRuntimeArithmetic({ ...input, basis: 'off', bankReady: false, ttdMin: '0', ttfMin: '0' })).toEqual([]);
+    expect(auditRuntimeArithmetic({ ...input, basis: 'bms', bmsBufferMin: [503, 500, 490], ttdMin: '500' })).toEqual([]);
+    expect(auditRuntimeArithmetic({ ...input, basis: 'bms', bmsBufferMin: [], ttdMin: '500' })).toContain('ttd_bms_buffer');
+  });
   it('separates numerical deltas from sentinel and malformed values', () => {
     expect(summarizeMinutes([
       { live: '100.0', candidate: '120' }, { live: '100', candidate: '90' },
@@ -106,11 +118,12 @@ describe('bounded read-only runtime estimator replay', () => {
         meanDeltaMin: null, meanAbsDeltaMin: null, maxAbsDeltaMin: null },
     });
     expect(result.minuteComparisonByBasisPair['bms -> evening'].ticks).toBe(1);
-    expect(result.largestMinuteDifferencesByBasisPair['bms -> bms'].ttd).toEqual({
+    expect(result.largestMinuteDifferencesByBasisPair['bms -> bms'].ttd).toMatchObject({
       at: new Date(at + 30000).toISOString(), liveMin: 500, candidateMin: 500, absDeltaMin: 0,
       candidateBmsBufferMin: [500], candidateLastTtdAt: new Date(at).toISOString(),
     });
     expect(result.largestMinuteDifferencesByBasisPair['bms -> bms'].ttf).toBeUndefined();
+    expect(result.arithmeticViolationCount).toBe(0);
   });
 
   it('evaluates intermediate evidence receipts as well as aligned expiry ticks', () => {

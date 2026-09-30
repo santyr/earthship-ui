@@ -107,6 +107,49 @@ export function summarizeMinutes(pairs) {
   return summary;
 }
 
+// Independent dimensional check: Ah * V = Wh; Wh / W * 60 = minutes.
+// This checks the existing estimator contract, not future physical accuracy.
+export function auditRuntimeArithmetic(input) {
+  const violations = [];
+  const check = (kind, output, raw, quantum) => {
+    const value = minuteValue(output);
+    if (!Number.isFinite(raw) || !Number.isFinite(value) || value % quantum !== 0
+        || Math.abs(value - raw) > quantum / 2 + 1e-6) violations.push(kind);
+  };
+  const { basis, bankReady, socPct, remainingAh, volts, loadEmaW, nightW,
+    currentA, chargeEmaA, bmsTtfMin, bmsBufferMin } = input;
+  if (basis === 'off') check('ttd_off', input.ttdMin, 0, 1);
+  else if (basis === 'bms') {
+    if (!Array.isArray(bmsBufferMin) || !bmsBufferMin.length || bmsBufferMin.length > 9
+        || !bmsBufferMin.every(value => Number.isSafeInteger(value) && value > 0)) {
+      violations.push('ttd_bms_buffer');
+    } else {
+      const sorted = [...bmsBufferMin].sort((a, b) => a - b);
+      check('ttd_bms_median', input.ttdMin, sorted[Math.floor(sorted.length / 2)], 1);
+    }
+  } else if (basis === 'now' || basis === 'evening') {
+    const load = basis === 'now' ? loadEmaW : nightW;
+    if (!bankReady || ![socPct, remainingAh, volts, load].every(Number.isFinite) || socPct <= 10) {
+      violations.push('ttd_projection_inputs');
+    } else {
+      const usableWh = remainingAh * volts * 0.90 * (1 - 10 / socPct);
+      check('ttd_energy_projection', input.ttdMin, usableWh / Math.max(load, 60) * 60, 10);
+    }
+  } else violations.push('ttd_unknown_basis');
+  let fullMin = 0, quantum = 10;
+  if (bankReady && currentA >= 0.5) {
+    if (Number.isFinite(bmsTtfMin) && bmsTtfMin > 0) {
+      fullMin = bmsTtfMin; quantum = 1;
+    } else if ([socPct, remainingAh, chargeEmaA].every(Number.isFinite)
+        && socPct > 0 && socPct < 99 && chargeEmaA >= 0.5) {
+      const missingAh = remainingAh * (100 / socPct - 1);
+      fullMin = missingAh / chargeEmaA * 60;
+    }
+  }
+  check('ttf_charge_projection', input.ttfMin, fullMin, quantum);
+  return violations;
+}
+
 export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = startMs, nightLoadByDay = {} }) {
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || startMs <= 0 || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) {
@@ -137,6 +180,8 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
   const confirmedChargingTransitions = [], chargingBmsBasisViolations = [];
   const minutePairs = {};
   const largestMinuteDifferences = {};
+  const arithmeticViolations = [];
+  let arithmeticViolationCount = 0, lastCandidateInputs = null;
   const openhab = {
     cache: { private: {
       get: (key, fallback) => {
@@ -185,10 +230,21 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
     const sandbox = { require: () => openhab, Date: { now: () => tick } };
     // Observe the candidate's own validated inputs; do not duplicate its
     // receipt qualification or change the script's publications/cache logic.
-    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i, bmsBuffer: st.buf.slice(), lastTtdAt: st.lastTtdAt };',
+    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i, bmsBuffer: st.buf.slice(), lastTtdAt: st.lastTtdAt, socPct: bankSoc, remainingAh: bankRemaining, volts: voltageV(), loadEmaW: cache.private.get("p_load"), chargeEmaA: cache.private.get("i_chg"), nightW: cache.private.get("p_night")?.w, bmsTtfMin: bmsMinutes("battery.ttf_min")?.value };',
       sandbox, { timeout: 1000 });
     const audit = sandbox.__qualificationAudit;
     const basis = output.BMS_Runtime_Basis;
+    const inputs = { basis, bankReady: audit.bankReady, socPct: audit.socPct,
+      remainingAh: audit.remainingAh, volts: audit.volts, loadEmaW: audit.loadEmaW,
+      chargeEmaA: audit.chargeEmaA, nightW: audit.nightW, currentA: audit.currentA,
+      bmsTtfMin: audit.bmsTtfMin, bmsBufferMin: Array.from(audit.bmsBuffer),
+      ttdMin: output.BMS_TimeToDischarge_Smoothed, ttfMin: output.BMS_TimeToFull_Smoothed };
+    lastCandidateInputs = inputs;
+    const failures = auditRuntimeArithmetic(inputs);
+    if (failures.length) {
+      arithmeticViolationCount++;
+      if (arithmeticViolations.length < 12) arithmeticViolations.push({ at: new Date(tick).toISOString(), failures });
+    }
     basisCounts[basis] = (basisCounts[basis] || 0) + 1;
     if (basis === 'off' && firstOffSourceSnapshots.length < 12) {
       firstOffSourceSnapshots.push({
@@ -219,6 +275,7 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
         const absDeltaMin = Math.abs(candidateMin - liveMin);
         if (!group[metric] || absDeltaMin > group[metric].absDeltaMin) {
           group[metric] = { at: new Date(tick).toISOString(), liveMin, candidateMin, absDeltaMin };
+          group[metric].candidateInputs = inputs;
           if (metric === 'ttd' && basis === 'bms') {
             group[metric].candidateBmsBufferMin = Array.from(audit.bmsBuffer);
             group[metric].candidateLastTtdAt = new Date(audit.lastTtdAt).toISOString();
@@ -268,6 +325,7 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
     minuteComparisonByBasisPair: Object.fromEntries(Object.entries(minutePairs).map(([key, pairs]) =>
       [key, { ticks: pairs.ttd.length, ttd: summarizeMinutes(pairs.ttd), ttf: summarizeMinutes(pairs.ttf) }])),
     largestMinuteDifferencesByBasisPair: largestMinuteDifferences,
+    arithmeticViolationCount, firstArithmeticViolations: arithmeticViolations, lastCandidateInputs,
     overnightLoadInputs,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
       ttfMin: output.BMS_TimeToFull_Smoothed },
