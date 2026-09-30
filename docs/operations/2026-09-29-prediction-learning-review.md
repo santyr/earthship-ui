@@ -562,3 +562,42 @@ some, not all, cold bias; this does not isolate a physical cause. Source-only
 joint-shade refit, qualified independent airflow/shade observations and
 chronological day/seasonal outcome comparisons remain necessary. No file,
 artifact, journal, Item, label or control changed during this experiment.
+
+### September 30 exact SoC origin for future energy-learning comparisons
+
+The morning worker previously validated one fresh `BMS_SOC_Evidence_JSON`
+receipt but retained only its numeric percentage in the PV issue diagnostics.
+It now returns the original single receipt's provenance together with that
+same value and completed-night observations. The optional `energySocOrigin`
+object in the existing version-1 prediction receipt contains version 1,
+`assessedAtMs`, `recordedAtMs`, `validUntilMs`, `streamEpoch`,
+`evidenceSha256` (SHA-256 of the exact UTF-8 Item state), and `socPct`.
+All times are UTC milliseconds. The rolling private prediction record retains
+the same object as `soc_origin`.
+
+The assessment clock belongs to the SoC input acquisition/validation, not the
+earlier weather snapshot's `issuedAt`. No source timestamp or native expiry is
+renewed or backdated. Invalid, duplicate-key, unavailable, future or expired
+receipts return no current number or provenance; no held numeric fallback or
+second live SoC read exists. Empty/full/partial SoC all preserve their actual
+values. A normal enriched receipt fits the existing 1,024-byte history/UI bound;
+if future optional diagnostics exceed it, the origin is omitted with a static
+diagnostic rather than breaking the existing forecast display contract.
+
+This is forward-only input provenance, **not** a qualified training label or
+control authority. A learning consumer must still find the exact original
+persisted source receipt by digest/epoch/times, enforce original identity,
+as-of availability and expiry, and pair it with a complete qualified outcome.
+Missing proof must remain unqualified. Historical percentage-only records are
+not reconstructed or silently promoted. No learner/coefficient calibration
+is activated, and predicted values, DM thresholds and the weather issue clock
+are unchanged. Existing UI readers ignore the diagnostic object.
+
+Before deployment, 229 forecast/advisory/source-evidence/deployment regressions
+and nine focused UI receipt/comparison tests passed. A read-only probe of the
+actual current atomic receipt confirmed exact value/hash/time binding. The
+planned release changes only `forecast_intel.py`, with an exact installed
+preimage, private rollback receipt, idle services and briefly stopped/restored
+user-level forecast/thermal timers. The next natural 06:40 receipt, original
+source/JDBC matching and later outcome qualification remain release checks;
+no ad-hoc forecast or DM is planned.

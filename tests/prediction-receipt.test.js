@@ -31,6 +31,16 @@ describe('dated once-daily forecast receipt', () => {
     expect(parse(withDiagnostics)).toEqual(parse(valid));
   });
 
+  it('keeps the original SoC input proof separate from display authority', () => {
+    const at = Date.parse(valid.issuedAt);
+    const enriched = { ...valid, energySocOrigin: { version: 1,
+      assessedAtMs: at + 1000, recordedAtMs: at, validUntilMs: at + 120000,
+      streamEpoch: '123e4567-e89b-42d3-a456-426614174000',
+      evidenceSha256: 'a'.repeat(64), socPct: 72 } };
+    expect(JSON.stringify(enriched).length).toBeLessThanOrEqual(1024);
+    expect(parse(enriched)).toEqual(parse(valid));
+  });
+
   it('withholds yesterday after local midnight, even if direct Items hold values', () => {
     expect(parse(valid, Date.parse('2026-09-25T00:01:00-06:00'))).toBeNull();
   });

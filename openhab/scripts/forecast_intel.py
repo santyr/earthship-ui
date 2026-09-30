@@ -15,6 +15,7 @@ Model (validated against 30 days of history, 2026-07-17):
 DM policy: ONLY predicted trough < 30% (full 4P 400 Ah bank, 20.48 kWh, since 2026-07-18).
 """
 import json, math, os, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
+from hashlib import sha256
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -194,7 +195,7 @@ def pv_issue_diagnostics(radiation, gain, direct_demand, soc, deficit,
 
 
 def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
-                               failures, put_state, pv_diagnostics=None):
+                               failures, put_state, pv_diagnostics=None, soc_origin=None):
     """Commit today's display provenance only after all source Items succeeded."""
     required = {"Predicted_PV_Today_kWh", "Predicted_Curtailment_Hours",
                 "Predicted_SoC_Trough_Tomorrow", "Thermal_Advisory",
@@ -212,6 +213,13 @@ def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
     }
     if pv_diagnostics is not None:
         receipt['pvDiagnostics'] = pv_diagnostics
+    if soc_origin is not None:
+        receipt['energySocOrigin'] = soc_origin
+        if len(json.dumps(receipt, separators=(",", ":")).encode()) > 1024:
+            # Keep the established display/history bound. A missing origin is
+            # explicitly unusable for source-bound learning, never synthesized.
+            del receipt['energySocOrigin']
+            print('energy SoC origin omitted: prediction receipt size bound', file=sys.stderr)
     return put_state("Forecast_Prediction_Receipt_JSON", json.dumps(receipt, separators=(",", ":")))
 
 
@@ -560,13 +568,26 @@ def qualified_soc_inputs(today, now):
     change-only BMS_SOC persistence or an unqualified live numeric state.
     """
     from qualified_soc_forecast import current_valid_soc, completed_night_troughs
+    from earthship_energy.bms_evidence import parse_evidence
     try:
         raw = oh_get("/items/BMS_SOC_Evidence_JSON")["state"]
         current = current_valid_soc(raw, now)
+        record = parse_evidence(raw, now) if current is not None else None
+        if record is None or record.status != 'valid' or record.soc != current:
+            current = None
     except Exception:
         current = None
     if current is None:
-        return None, {}
+        return None, {}, None
+    # Preserve the exact single receipt used, not a second live read. This
+    # assessment clock follows the weather snapshot's issue time; it must not
+    # be backdated to that earlier issue. Native expiry is never renewed.
+    origin = {'version': 1, 'assessedAtMs': int(now.timestamp() * 1000),
+              'recordedAtMs': int(record.recorded_at.timestamp() * 1000),
+              'validUntilMs': int(record.valid_until.timestamp() * 1000),
+              'streamEpoch': record.stream_epoch,
+              'evidenceSha256': sha256(raw.encode('utf-8')).hexdigest(),
+              'socPct': current}
     try:
         nights = completed_night_troughs(
             [today - timedelta(days=back) for back in range(1, 5)],
@@ -574,7 +595,7 @@ def qualified_soc_inputs(today, now):
         )
     except Exception:
         nights = {}
-    return current, nights
+    return current, nights, origin
 
 
 OUTDOOR_TEMP_ITEM = "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature"
@@ -1321,7 +1342,7 @@ def main():
     # Change-only BMS_SOC history cannot establish acquisition freshness or
     # overnight coverage. Never revive that legacy path if a systemd drop-in
     # is lost during restore; unavailable atomic evidence withholds energy.
-    trough_ref, measured_nights = qualified_soc_inputs(today, datetime.now(timezone.utc))
+    trough_ref, measured_nights, soc_origin = qualified_soc_inputs(today, datetime.now(timezone.utc))
 
     deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT if trough_ref is not None else None
     demand = st["d_direct"] + deficit_kwh if deficit_kwh is not None else None
@@ -1413,7 +1434,7 @@ def main():
         today, forecast_issued_at, pv_pred, curtail,
         trough_pred, advisory, put_failed, put,
         pv_issue_diagnostics(radsum_kwh, st['k_res'], st['d_direct'],
-                             trough_ref, deficit_kwh, resource, demand))
+                             trough_ref, deficit_kwh, resource, demand), soc_origin)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
@@ -1424,6 +1445,7 @@ def main():
         # Diagnostic-only as-issued components. These never alter the forecast,
         # notification threshold or the separately captured advisory decision.
         "soc_reference_pct": trough_ref,
+        "soc_origin": soc_origin,
         "pv_resource_kwh": round(resource, 3),
         "dusk_soc_estimate_pct": round(dusk_soc, 3) if dusk_soc is not None else None,
         "overnight_drop_samples_pct": drops,

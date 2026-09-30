@@ -448,6 +448,90 @@ def test_pv_issue_components_withhold_unknown_and_nonfinite_values():
     assert fi.pv_issue_diagnostics(4.12, 1.3, 4.0, 72, 6, 5.356, 10) is None
 
 
+@pytest.mark.parametrize('expected_soc', [72, 0, 100])
+def test_qualified_soc_inputs_preserve_the_single_used_original_receipt(monkeypatch, expected_soc):
+    from hashlib import sha256
+    from uuid import UUID
+    import qualified_soc_forecast as q
+    now = datetime(2026, 9, 30, 12, 40, tzinfo=UTC)
+    at = int(now.timestamp() * 1000)
+    raw = json.dumps({'version': 1, 'streamEpoch': str(UUID(int=1)),
+        'recordedAt': at - 1000, 'observedAt': at - 2000,
+        'scaleObservedAt': at - 3000, 'validUntil': at - 3000 + 120000,
+        'status': 'valid', 'reason': 'ok', 'soc': expected_soc})
+    reads = []
+    def get(path):
+        reads.append(path)
+        assert path == '/items/BMS_SOC_Evidence_JSON'
+        return {'state': raw}
+    monkeypatch.setattr(fi, 'oh_get', get)
+    monkeypatch.setattr(q, 'completed_night_troughs', lambda *_args, **_kwargs: {})
+    soc, nights, origin = fi.qualified_soc_inputs(now.date(), now)
+    assert (soc, nights) == (expected_soc, {})
+    assert reads == ['/items/BMS_SOC_Evidence_JSON']
+    assert origin == {'version': 1, 'assessedAtMs': at, 'recordedAtMs': at - 1000,
+        'validUntilMs': at - 3000 + 120000, 'streamEpoch': str(UUID(int=1)),
+        'evidenceSha256': sha256(raw.encode()).hexdigest(), 'socPct': expected_soc}
+    # Its acquisition/assessment clock is distinct from the earlier weather issue.
+    deficit = (100 - soc) / 100 * fi.BANK_KWH / fi.ETA_RT
+    values = fi.pv_issue_diagnostics(4.12, 1.3, 4, soc, deficit, 5.356, 4 + deficit)
+    writes = []
+    assert fi.publish_prediction_receipt(now.date(), (now-timedelta(seconds=5)).isoformat(),
+        round(min(5.356, 4 + deficit), 2), 0, 53, 'none|No thermal action needed', [],
+        lambda name, value: writes.append((name, value)) or True, values, origin)
+    receipt = json.loads(writes[0][1])
+    assert receipt['energySocOrigin'] == origin
+    assert receipt['pvDiagnostics']['socReferencePct'] == origin['socPct']
+    assert len(writes[0][1].encode()) <= 1024
+
+
+@pytest.mark.parametrize('raw', ['{}', '85', None])
+def test_qualified_soc_inputs_never_fabricate_an_origin(monkeypatch, raw):
+    import qualified_soc_forecast as q
+    monkeypatch.setattr(fi, 'oh_get', lambda *_args: {'state': raw})
+    monkeypatch.setattr(q, 'completed_night_troughs', lambda *_args, **_kwargs:
+                        pytest.fail('no history read without valid current SoC'))
+    assert fi.qualified_soc_inputs(date(2026, 9, 30),
+        datetime(2026, 9, 30, 12, 40, tzinfo=UTC)) == (None, {}, None)
+
+
+@pytest.mark.parametrize('damage', ['expired', 'future', 'boolean', 'duplicate', 'unavailable'])
+def test_soc_origin_preserves_native_expiry_and_fault_barriers(monkeypatch, damage):
+    from uuid import UUID
+    import qualified_soc_forecast as q
+    now = datetime(2026, 9, 30, 12, 40, tzinfo=UTC)
+    at = int(now.timestamp() * 1000)
+    value = {'version': 1, 'streamEpoch': str(UUID(int=1)), 'recordedAt': at,
+        'observedAt': at, 'scaleObservedAt': at, 'validUntil': at + 120000,
+        'status': 'valid', 'reason': 'ok', 'soc': 0}
+    if damage == 'expired':
+        value.update(observedAt=at-120000, scaleObservedAt=at-120000, validUntil=at)
+    elif damage == 'future': value['recordedAt'] = at + 1
+    elif damage == 'boolean': value['soc'] = True
+    elif damage == 'unavailable':
+        value.update(status='unavailable', reason='input_stale', observedAt=None,
+                     scaleObservedAt=None, validUntil=None, soc=None)
+    raw = json.dumps(value)
+    if damage == 'duplicate': raw = raw[:-1] + ', "soc": 0}'
+    monkeypatch.setattr(fi, 'oh_get', lambda *_args: {'state': raw})
+    monkeypatch.setattr(q, 'completed_night_troughs', lambda *_args, **_kwargs:
+                        pytest.fail('unqualified current SoC must not trigger history'))
+    assert fi.qualified_soc_inputs(now.date(), now) == (None, {}, None)
+
+
+def test_large_optional_origin_never_breaks_existing_receipt_bound(capsys):
+    writes = []
+    assert fi.publish_prediction_receipt(date(2026, 9, 30),
+        '2026-09-30T12:40:00+00:00', 5.36, 0, 53, 'none|No thermal action needed', [],
+        lambda name, value: writes.append((name, value)) or True,
+        {'version': 1, 'reserved': 'x' * 500}, {'reserved': 'x' * 500})
+    receipt = json.loads(writes[0][1])
+    assert len(writes[0][1].encode()) <= 1024
+    assert 'energySocOrigin' not in receipt
+    assert receipt['pvTodayKwh'] == 5.36
+    assert 'prediction receipt size bound' in capsys.readouterr().err
+
+
 # ---------------------------------------------------------------- pv_days alignment
 
 def test_today_pv_detail_matches_issued_prediction_not_fixed_cap():
@@ -824,7 +908,7 @@ def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True,
 
     monkeypatch.setattr(fi, "series", stub_series)
     monkeypatch.setattr(fi, "oh_get", stub_get)
-    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: soc_inputs)
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (*soc_inputs, None))
     monkeypatch.setattr(fi, "oh_put_state", lambda item, value: puts.append(item))
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
     if legacy_rain:
@@ -1124,7 +1208,7 @@ def test_put_failures_collected_not_fatal(monkeypatch, tmp_path):
 
     monkeypatch.setattr(fi, "oh_put_state", flaky_put)
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
-    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (85, {}))
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (85, {}, None))
     fi.main()   # must not raise
     assert len(saved["pv_errors"]) == 1, "scoring must complete despite PUT failures"
     assert set(saved["scored"][ykey]) == set(fi.SCORE_QUANTITIES) - {"trough"}
