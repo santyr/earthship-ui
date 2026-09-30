@@ -79,3 +79,34 @@ def test_counterfactual_requires_exact_as_issued_replay(monkeypatch):
         'generatedAt': '2026-09-28T14:20:30+00:00', 'status': 'unavailable'})
     with pytest.raises(ValueError, match='failed exact replay'):
         replay.replay('capture', assume_vents_closed=True)
+
+
+@pytest.mark.parametrize('revision', ['', 'a' * 12, 'A' * 64, True])
+def test_explicit_runtime_pin_requires_full_lowercase_digest(revision):
+    with pytest.raises(ValueError, match='runtime SHA-256'):
+        replay.replay('capture', expected_runtime_revision=revision)
+
+
+def test_explicit_runtime_pin_preserves_exact_output_requirement(monkeypatch):
+    issued = {'generatedAt': '2026-09-28T14:20:30.123000+00:00', 'status': 'shadow'}
+    capture = {'schema': 'earthship-thermal-shadow-forcing-capture/v2',
+               'artifact': {}, 'decision_at': issued['generatedAt'], 'output': issued,
+               'sha256': {'output': 'c' * 64}}
+    monkeypatch.setattr(replay, 'verify_capture', lambda _: capture)
+    monkeypatch.setattr(replay, '_artifact_from_payload', lambda _: SimpleNamespace(code_revision='a' * 64))
+    monkeypatch.setattr(replay, '_runtime_manifest_revision', lambda _: 'b' * 64)
+    monkeypatch.setattr(replay, '_run', lambda *_: pytest.fail('wrong pin must not simulate'))
+    with pytest.raises(ValueError, match='explicit revision pin'):
+        replay.replay('capture', expected_runtime_revision='d' * 64)
+    monkeypatch.setattr(replay, '_run', lambda *_: {
+        'generatedAt': '2026-09-28T14:20:30+00:00', 'status': 'unavailable'})
+    with pytest.raises(ValueError, match='failed exact replay'):
+        replay.replay('capture', expected_runtime_revision='b' * 64)
+    monkeypatch.setattr(replay, '_run', lambda *_: {
+        'generatedAt': '2026-09-28T14:20:30+00:00', 'status': 'shadow'})
+    result = replay.replay('capture', expected_runtime_revision='b' * 64)
+    assert result['exact_as_issued'] is True
+    assert result['runtime_binding'] == 'explicit_sha256'
+    assert result['training_revision_matches_runtime'] is False
+    assert result['artifact_code_revision'] == 'a' * 64
+    assert result['runtime_manifest_revision'] == 'b' * 64

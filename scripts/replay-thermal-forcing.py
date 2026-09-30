@@ -3,7 +3,7 @@
 
 Counterfactual output is modeled, never a confirmed action or training label.
 The script refuses to compare schedules unless the as-issued output first
-replays exactly under the capture's matching runtime source and artifact.
+replays exactly under the selected, hash-bound runtime source and artifact.
 """
 
 import argparse
@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 import sys
 from types import SimpleNamespace
 
@@ -80,14 +81,24 @@ def _horizon_deltas(issued, hypothetical, decision):
     return rows
 
 
-def replay(path, *, assume_vents_closed=False):
+def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None):
+    if expected_runtime_revision is not None and (
+            not isinstance(expected_runtime_revision, str)
+            or re.fullmatch(r'[0-9a-f]{64}', expected_runtime_revision) is None):
+        raise ValueError('full lowercase runtime SHA-256 required')
     capture = verify_capture(path)
     if capture['schema'] != 'earthship-thermal-shadow-forcing-capture/v2':
         raise ValueError('exact replay requires a v2 capture with embedded artifact')
     artifact = _artifact_from_payload(capture['artifact'])
     revision = _runtime_manifest_revision(RUNTIME_ROOT)
-    if revision != artifact.code_revision:
-        raise ValueError('capture artifact does not match selected runtime source')
+    # Training and publication can use different source revisions after a
+    # runtime optimization. Such a replay requires the caller to pin the full
+    # selected runtime hash; exact output equality below still proves replay.
+    if expected_runtime_revision is None:
+        if revision != artifact.code_revision:
+            raise ValueError('capture artifact does not match selected runtime source')
+    elif revision != expected_runtime_revision:
+        raise ValueError('selected runtime does not match explicit revision pin')
     issued = capture['output']
     replayed = _run(capture, artifact)
     decision = datetime.fromisoformat(capture['decision_at']).astimezone(timezone.utc)
@@ -107,6 +118,9 @@ def replay(path, *, assume_vents_closed=False):
         'artifact_code_revision': artifact.code_revision,
         'runtime_root': str(RUNTIME_ROOT),
         'runtime_manifest_revision': revision,
+        'runtime_binding': ('explicit_sha256' if expected_runtime_revision is not None
+                            else 'artifact_code_revision'),
+        'training_revision_matches_runtime': revision == artifact.code_revision,
         'runtime_source_sha256': sha256((RUNTIME_ROOT / 'thermal_intel.py').read_bytes()).hexdigest(),
         'exact_as_issued': True,
         'counterfactual_is_action_evidence': False,
@@ -135,8 +149,11 @@ def main():
     parser.add_argument('--runtime-root', required=True, type=Path)
     parser.add_argument('--capture', required=True, type=Path)
     parser.add_argument('--assume-vents-closed', action='store_true')
+    parser.add_argument('--expected-runtime-revision',
+                        help='full SHA-256 pin when publisher and training sources differ; exact replay remains required')
     args = parser.parse_args()
-    print(json.dumps(replay(args.capture, assume_vents_closed=args.assume_vents_closed),
+    print(json.dumps(replay(args.capture, assume_vents_closed=args.assume_vents_closed,
+                           expected_runtime_revision=args.expected_runtime_revision),
                      sort_keys=True))
 
 

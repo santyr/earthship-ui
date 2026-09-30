@@ -345,3 +345,38 @@ Neither this small early sample nor the mixed-revision aggregate qualifies
 thermal advice for shadow exit. The next fit experiment should hold an
 artifact/revision fixed, evaluate exact forcing and confirmed action labels,
 and compare weather forcing versus physical-model residuals by regime.
+
+### Fixed-artifact closed-airflow diagnostic
+
+The replay command formerly assumed an artifact's training code revision was
+also its publication runtime revision. A later runtime optimization can change
+the latter while the accepted artifact stays the same. The command now accepts
+an explicit full `--expected-runtime-revision` SHA-256 pin. It verifies that
+pin before simulation, still requires exact equality with the original saved
+publication before any scenario run, and rechecks the runtime afterward. Its
+default artifact-revision binding remains available. Ten focused tests pass.
+
+Under the installed runtime pin
+`1927d7e9c58338de103598be332a090991a926c2a8ac0acffb1c37ebbcb2747b`,
+four mature six-hour publications from today's exact artifact
+`e707ce61cac24571cc9d4280e54a400422f949f707cdc949481445de696ccff7`
+replayed exactly. Their original indoor target receipts passed the qualified
+reader. Signed errors below are forecast minus observed temperature, in °F;
+issue/target times are September 29 MDT.
+
+| Issue | Target | As issued | Assumed closed vents | Persistence | Outdoor forecast |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 08:26 | 14:00 | +2.360 | +2.360 | −6.300 | +0.380 |
+| 10:26 | 16:00 | +1.771 | +1.771 | −5.040 | +2.620 |
+| 12:26 | 18:00 | −4.891 | −4.891 | +0.540 | +2.640 |
+| 14:27 | 20:00 | −3.764 | −3.558 | +2.340 | +0.260 |
+
+The four overlapping pairs have MAE 3.196°F as issued, 3.145°F under the
+closed-vent scenario, and 3.555°F for persistence. The chronological
+non-overlapping subset has only two windows: 3.062/2.959/4.320°F respectively.
+All publications remain low confidence; the scenario supplies no observed
+window/skylight state or training label. This small single-day result supports
+further regime analysis, not graduation. The large 18:00 cold error persists
+with zero modeled vent forcing even though the outdoor forecast is warm;
+isolate solar/shade forcing and stored-heat dynamics next rather than assuming
+vent timing alone accounts for the divergence.

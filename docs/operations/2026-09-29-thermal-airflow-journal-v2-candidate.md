@@ -112,3 +112,13 @@ confirmation sender and ingress gated until their own genuine signed
 question/reply, durable-storage and recovery checks pass. Legacy `vent` rows
 must never be recoded as window or skylight observations, and neither new
 state may silently feed legacy `vent_open` model forcing.
+
+The September 29 runtime trace confirms a second compatibility dependency:
+`ActionJournal.effective_events` reads all action kinds, but
+`dataset._project_actions` currently projects only legacy `vent` and shade
+fields into `ThermalSample`. Merely accepting the v2 schema fingerprint would
+therefore leave window/skylight rows unused by training. The coordinated model
+upgrade must preserve distinct airflow inputs and their provenance through
+dataset, dynamics, evaluation and forecast construction. Independent state
+collection can prepare that evidence, but cannot be reported as learned
+window/skylight effects while this legacy model path is in use.
