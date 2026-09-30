@@ -35,6 +35,14 @@ The v1 reader rejects unexpected v2 rows instead of silently discarding them.
 The migration, existing journal, schema, origin and action-history suites pass
 84 tests; no production model forcing or action label changed.
 
+The gated v2 database reader now also requires the named restricted runtime
+role and distinct owner, verifies the exact v2 schema fingerprint in the same
+read-only repeatable-read transaction as its bounded as-of-origin queries, and
+refuses a legacy v1 schema or wrong connection role. A disposable PostgreSQL
+test then reads independently recorded window and skylight states without
+deriving a vent state. The gate remains `False`; the related action, journal
+and origin suites passed 72 tests. No household v2 query was run.
+
 A later full **synthetic** recovery rehearsal used the existing private v3
 thermal state bundle format: two SQLite databases, private policy/route
 fixtures, and a `pg_dump` custom archive of a populated exact-v1 PostgreSQL

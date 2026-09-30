@@ -1,6 +1,6 @@
 """Disposable PostgreSQL proof for the source-only airflow vocabulary change."""
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import sqlite3
@@ -15,7 +15,7 @@ from psycopg2 import sql
 import pytest
 
 from thermal_model import airflow_migration as migration
-from thermal_model import journal
+from thermal_model import action_history, journal
 from thermal_model.schema import ActionEvent
 import thermal_state_backup
 
@@ -143,6 +143,42 @@ def test_bad_v2_fingerprint_rolls_back_constraint_atomically(database, monkeypat
     assert journal.audit_schema(database.admin_dsn, runtime_role=database.runtime_role,
                                 expected_owner=database.owner)['fingerprint'] == migration.LEGACY_FINGERPRINT
     assert candidate != migration.LEGACY_FINGERPRINT
+
+
+def test_gated_v2_reader_requires_exact_schema_and_keeps_airflow_separate(database, monkeypatch):
+    event_at = datetime.now(timezone.utc) - timedelta(minutes=2)
+    origin = event_at + timedelta(minutes=4)
+    events = tuple(ActionEvent(f'reader-{name}', 'reader-receipt', event_at, event_at,
+        name, state, 'nostr_confirmed', 1.0)
+        for name, state in [('window', 'open'), ('skylight', 'closed')])
+    monkeypatch.setattr(action_history, 'V2_FETCH_RELEASE_READY', True)
+
+    def fetch():
+        return action_history.fetch_origin_actions(
+            lambda: psycopg2.connect(database.runtime_dsn), origin=origin,
+            vocabulary_version=2, runtime_role=database.runtime_role,
+            expected_owner=database.owner)
+
+    with pytest.raises(journal.SchemaMismatch, match='exact schema'):
+        fetch()
+    monkeypatch.setattr(migration, 'RELEASE_READY', True)
+    assert migration.migrate_v2(database.admin_dsn,
+        runtime_role=database.runtime_role, expected_owner=database.owner)['status'] == 'migrated_v2'
+    assert journal.ActionJournal(database.runtime_dsn).append_batch(events, ()) == 2
+    result = fetch()
+    assert result['vocabulary_version'] == 2
+    assert result['actions']['window']['state'] == 'open'
+    assert result['actions']['skylight']['state'] == 'closed'
+    assert 'vent' in result['missing_actions']
+    with pytest.raises(journal.SchemaMismatch, match='role mismatch'):
+        action_history.fetch_origin_actions(
+            lambda: psycopg2.connect(database.admin_dsn), origin=origin,
+            vocabulary_version=2, runtime_role=database.runtime_role,
+            expected_owner=database.owner)
+    with pytest.raises(ValueError, match='distinct v2 journal role'):
+        action_history.fetch_origin_actions(
+            lambda: pytest.fail('database connection opened'), origin=origin,
+            vocabulary_version=2)
 
 
 def test_release_gate_refuses_before_database_connection():

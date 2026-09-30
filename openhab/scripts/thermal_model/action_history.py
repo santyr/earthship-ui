@@ -80,13 +80,17 @@ def select_origin_actions(action_rows, mode_rows, *, origin, vocabulary_version=
     return result
 
 
-def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1):
+def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1,
+                         runtime_role=None, expected_owner=None):
     """Read both journal tables in one bounded, repeatable-read transaction."""
     origin = _utc(origin)
     if type(vocabulary_version) is not int or vocabulary_version not in (1, 2):
         raise ValueError('unsupported action vocabulary version')
     if vocabulary_version == 2 and not V2_FETCH_RELEASE_READY:
         raise ValueError('v2 action history read is not release-qualified')
+    if vocabulary_version == 2 and (not runtime_role or not expected_owner
+                                    or runtime_role == expected_owner):
+        raise ValueError('distinct v2 journal role and owner required')
     connection = connection_factory()
     try:
         if connection.get_transaction_status() != 0:
@@ -98,6 +102,16 @@ def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1):
             cursor.execute('SHOW transaction_read_only')
             if cursor.fetchone() != ('on',):
                 raise ValueError('read-only transaction required')
+            if vocabulary_version == 2:
+                from . import airflow_migration, journal
+
+                cursor.execute('SELECT current_user')
+                if cursor.fetchone() != (runtime_role,):
+                    raise journal.SchemaMismatch('v2 journal reader role mismatch')
+                observed = airflow_migration._fingerprint(
+                    cursor, runtime_role=runtime_role, expected_owner=expected_owner)
+                if observed != airflow_migration.V2_FINGERPRINT:
+                    raise journal.SchemaMismatch('v2 journal exact schema audit failed')
             def read(table, name, state):
                 cursor.execute(f'''SELECT e.event_id, e.received_at, r.created_at,
                            e.effective_at, e.{name}, e.{state}, e.source,
