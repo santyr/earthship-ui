@@ -1,6 +1,7 @@
 'use strict';
 
 // Observational only: source-bound temperature, never a device command.
+// Legacy Item/stream/rule IDs are retained; sensor 223 is in Office Hallway.
 function bedroomTemperature(raw, nowMs = Date.now()) {
   if (typeof raw !== 'string' || raw.length > 8192 || !Number.isFinite(nowMs)) return null;
   let snapshot;
@@ -24,7 +25,7 @@ function bedroomTemperature(raw, nowMs = Date.now()) {
 const { rules, triggers, items } = require('openhab');
 rules.JSRule({
   id: 'hex_bedroom_temperature',
-  name: 'Bedroom source-bound temperature',
+  name: 'Office Hallway source-bound temperature',
   triggers: [triggers.ItemStateUpdateTrigger('Weather_Temperature_Evidence_JSON'),
     triggers.GenericCronTrigger('0/30 * * * * ?')],
   execute: () => {

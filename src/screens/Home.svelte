@@ -21,7 +21,7 @@
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
-  import { bedroomTemperature } from '../lib/thermal/bedroomTemperature.js';
+  import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
@@ -415,7 +415,7 @@
       mk('Hallway', 'AmbientWeatherWS2902A_IndoorSensor_Temperature'),
       mk('N.Wall', 'AmbientWeatherWS2902A_WH31E_193_Temperature'),
       mk('S.Glass', 'Shelly_HT1_Indoor_Temperature'),
-      { label: 'Bedroom', temp: $connection === 'live' ? bedroomTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null,
+      { label: 'Office Hallway', temp: $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null,
         delta: null },
     ];
   });

@@ -62,11 +62,20 @@ export async function loadHistorySeries({
   try {
     settled = await Promise.allSettled(series.map((source) => {
       const policy = getSeriesPolicy(source);
-      const request = Promise.resolve().then(() => client.getHistory(source.name, {
-        ...getSeriesRequestWindow(policy, window),
-        ...(source.name === 'BMS_SOC' ? { includeStartState: true } : {}),
-        signal: controller.signal,
-      }));
+      const request = Promise.resolve().then(() => {
+        const bounds = { ...getSeriesRequestWindow(policy, window) };
+        if (source.validFrom !== undefined) {
+          const cutoff = typeof source.validFrom === 'string' ? Date.parse(source.validFrom) : NaN;
+          if (!Number.isFinite(cutoff)) throw new TypeError('Invalid series location boundary');
+          if (cutoff > Date.parse(bounds.endtime)) return [];
+          bounds.starttime = new Date(Math.max(Date.parse(bounds.starttime), cutoff)).toISOString();
+        }
+        return client.getHistory(source.name, {
+          ...bounds,
+          ...(source.name === 'BMS_SOC' && source.validFrom === undefined ? { includeStartState: true } : {}),
+          signal: controller.signal,
+        });
+      });
       return Promise.race([request, cancellation]);
     }));
   } finally {
@@ -82,9 +91,15 @@ export async function loadHistorySeries({
       const points = Array.isArray(result.value) ? result.value : [];
       try {
         const validation = { allowedUnits: getSeriesPolicy(series[index]).allowedUnits };
-        if (invalidRowPolicy === 'omit') return filterValidHistoryRows(points, validation);
-        normalizeHistory(points, validation);
-        return points;
+        const validated = invalidRowPolicy === 'omit' ? filterValidHistoryRows(points, validation) : points;
+        const normalized = normalizeHistory(validated, validation);
+        if (series[index].validFrom === undefined) return validated;
+        // Even if the persistence provider returns a predecessor, never show
+        // pre-move readings under the sensor's new physical location.
+        const cutoff = Date.parse(series[index].validFrom);
+        const allowed = new Set(normalized.filter((point) => point.time >= cutoff).map((point) => point.time));
+        return validated.filter((point) => allowed.has(point.time instanceof Date ? point.time.getTime()
+          : typeof point.time === 'number' ? point.time : Date.parse(point.time)));
       } catch (error) {
         errors.push({ index, source: series[index], error });
         return [];

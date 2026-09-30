@@ -20,7 +20,7 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => { await server?.close(); });
 
-test('Bedroom sensor is independent of Hallway and expires without a new Item change', async ({ page }) => {
+test('Bedroom never borrows the relocated Office Hallway sensor or held Item', async ({ page }) => {
   const now = Date.now();
   await page.clock.install({ time: new Date(now) });
   const epoch = '831b737c-ab25-48d7-9a90-889746e56410';
@@ -44,9 +44,9 @@ test('Bedroom sensor is independent of Hallway and expires without a new Item ch
   await page.goto(`${baseURL}#/shades`);
   await page.getByRole('button', { name: 'Bathroom + Bedroom', exact: true }).click();
   const label = page.locator('[aria-label="Bedroom shades"] .sensor-evidence');
-  await expect(label).toHaveText('Bedroom 71.4°F');
+  await expect(label).toHaveText('Zone temperature pending');
   await page.clock.fastForward(120_001);
-  await expect(label).toHaveText('Bedroom temperature unavailable');
+  await expect(label).toHaveText('Zone temperature pending');
 });
 
 for (const target of TARGETS) {

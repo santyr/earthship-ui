@@ -1,3 +1,4 @@
 // WH32M decoder identity is qualified in Weather_Temperature_Evidence_JSON.
-// No restore value or Hallway fallback establishes a fresh Bedroom reading.
-Number:Temperature Bedroom_Temperature "Bedroom Temperature [%.1f °F]" <temperature> ["Measurement", "Temperature"] { unit="°F" }
+// Legacy name preserves JDBC Item 663; sensor 223 now lives in Office Hallway.
+// No restore value or other Hallway fallback establishes a fresh reading.
+Number:Temperature Bedroom_Temperature "Office Hallway Temperature [%.1f °F]" <temperature> ["Measurement", "Temperature"] { unit="°F" }

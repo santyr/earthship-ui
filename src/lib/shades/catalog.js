@@ -1,7 +1,6 @@
 // The adapter remains in santyr/dooya_blinds_openhab. Populate these Item
 // mappings only from the commissioned device inventory, never guessed RF IDs.
 // A Rollershutter report uses 0=open and 100=closed; no optimistic state.
-import { BEDROOM_TEMPERATURE_ITEM } from '../thermal/bedroomTemperature.js';
 export const HALLWAY_TEMPERATURE_ITEM = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
 export const SHADE_GROUPS = Object.freeze([
   Object.freeze({ id: 'kitchen', label: 'Kitchen', first: 1, last: 8,
@@ -11,7 +10,7 @@ export const SHADE_GROUPS = Object.freeze([
   Object.freeze({ id: 'bathroom', label: 'Bathroom', first: 18, last: 22,
     temperatureItem: null, temperatureRole: 'unavailable' }),
   Object.freeze({ id: 'bedroom', label: 'Bedroom', first: 23, last: 27,
-    temperatureItem: BEDROOM_TEMPERATURE_ITEM, temperatureRole: 'zone_sensor' }),
+    temperatureItem: null, temperatureRole: 'unavailable' }),
 ]);
 export const SHADE_COUNT = 27;
 export const SHADE_VIEWS = Object.freeze([

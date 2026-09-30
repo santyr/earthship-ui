@@ -69,11 +69,12 @@ the Earthship thermal data pipeline, after one-shade hardware qualification:
    Historical corrections must not leak future knowledge into earlier folds.
    Missing shade coverage must remain unknown rather than assuming all open or
    all closed. The existing Hallway temperature Item is the Kitchen-area
-   reference and a *provisional proxy* for Living Room. Since September 30,
-   Bedroom has a separate WH32M/WH31E ID 223 source, but its room placement
-   still requires confirmation; bench observations must not enter Bedroom
-   training. See [Bedroom commissioning](../operations/2026-09-30-bedroom-wh32m.md).
-   Bathroom has no qualified temperature source yet. The catalog labels these
+   reference and a *provisional proxy* for Living Room. Sensor 223 was moved
+   from the attempted Bedroom installation to Office Hallway on September 30.
+   Neither Bedroom nor Bathroom currently has a qualified temperature source;
+   do not substitute Office Hallway as a room proxy. See
+   [relocation](../operations/2026-09-30-bedroom-wh32m.md#office-hallway-relocation).
+   The catalog labels these
    distinct roles; future in-zone sensors replace proxies prospectively, preserving
    historical source provenance. Do not claim Bathroom thermal outcomes from
    the Hallway series or silently label proxy measurements as direct.

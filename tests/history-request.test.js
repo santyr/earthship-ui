@@ -11,6 +11,33 @@ afterEach(() => {
 });
 
 describe('history request generation', () => {
+  it('clips only the relocated series and excludes a provider-returned pre-move predecessor', async () => {
+    const cutoff = NOW - HOUR;
+    const old = { time: cutoff - 1, state: '72 °F' };
+    const first = { time: new Date(cutoff).toISOString(), state: '69 °F' };
+    const latest = { time: new Date(NOW), state: '70 °F' };
+    const getHistory = vi.fn().mockResolvedValue([old, first, latest]);
+    const result = await loadHistorySeries({ client: { getHistory }, hours: 24, nowMs: NOW,
+      series: [{ name: 'Bedroom_Temperature', validFrom: new Date(cutoff).toISOString() },
+        { name: 'AmbientWeatherWS2902A_IndoorSensor_Temperature' }] });
+    expect(getHistory.mock.calls[0][1].starttime).toBe(new Date(cutoff).toISOString());
+    expect(getHistory.mock.calls[1][1].starttime).toBe(new Date(NOW - 24 * HOUR).toISOString());
+    expect(result.state).toBe('ready');
+    expect(result.pointsPerSeries).toEqual([[first, latest], [old, first, latest]]);
+  });
+
+  it('never fabricates relocated history before the boundary, and refuses an invalid boundary', async () => {
+    const getHistory = vi.fn().mockResolvedValue([{ time: NOW, state: '69 °F' }]);
+    const future = await loadHistorySeries({ client: { getHistory }, hours: 24, nowMs: NOW,
+      series: [{ name: 'Bedroom_Temperature', validFrom: new Date(NOW + HOUR).toISOString() }] });
+    expect(future.state).toBe('empty');
+    expect(getHistory).not.toHaveBeenCalled();
+    const invalid = await loadHistorySeries({ client: { getHistory }, hours: 24, nowMs: NOW,
+      series: [{ name: 'Bedroom_Temperature', validFrom: 'invalid' }] });
+    expect(invalid.state).toBe('error');
+    expect(getHistory).not.toHaveBeenCalled();
+  });
+
   it('uses exact past-only history and future-only forecast bounds', async () => {
     const getHistory = vi.fn().mockResolvedValue([{ time: NOW, state: '1' }]);
     await loadHistorySeries({

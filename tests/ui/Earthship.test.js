@@ -50,16 +50,16 @@ describe('Earthship four-zone thermal contract', () => {
           receivedAt: new Date(now + 30_000).toISOString(), recordedAt: new Date(now + 30_000).toISOString(),
           validUntil: new Date(now + 150_000).toISOString() } } }) });
       await vi.advanceTimersByTimeAsync(0);
-      expect(container.querySelector('.bedroom-reading').textContent).toBe('Bedroom 71.4°F');
+      expect(container.querySelector('.office-hallway-reading').textContent).toBe('Office Hallway 71.4°F');
     } finally { connection.set(previousConnection); }
   });
-  it('opens the dedicated Bedroom chart without borrowing a Hallway forecast', async () => {
+  it('opens the Office Hallway chart with a post-move boundary and no borrowed forecast', async () => {
     const { container } = render(Earthship);
-    await fireEvent.click(container.querySelector('.bedroom-reading'));
-    expect(get(chartStore)).toMatchObject({ title: 'Bedroom Temperature (24h)',
-      series: [{ name: 'Bedroom_Temperature', label: 'Bedroom' }], hours: 24 });
+    await fireEvent.click(container.querySelector('.office-hallway-reading'));
+    expect(get(chartStore)).toMatchObject({ title: 'Office Hallway Temperature (24h)',
+      series: [{ name: 'Bedroom_Temperature', label: 'Office Hallway', validFrom: '2026-09-30T23:15:00Z' }], hours: 24 });
   });
-  it('preserves physical loop order and adds independent Bedroom history', async () => {
+  it('preserves physical loop order and adds independent Office Hallway history', async () => {
     const { container } = render(Earthship);
 
     expect([...container.querySelectorAll('.zone-label')].map((node) => node.textContent))
@@ -70,7 +70,7 @@ describe('Earthship four-zone thermal contract', () => {
     await fireEvent.click(container.querySelector('.zone-group'));
     const chart = get(chartStore);
     expect(chart.series.map(({ label }) => label))
-      .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor', 'Bedroom']);
+      .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor', 'Office Hallway']);
     expect(chart.series.map(({ name }) => name)).toEqual([
       'AmbientWeatherWS2902A_WH31E_193_Temperature',
       'AmbientWeatherWS2902A_IndoorSensor_Temperature',

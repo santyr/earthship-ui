@@ -49,9 +49,13 @@ def test_registry_matches_physical_policy_without_enabling_zone_training():
     root = Path(__file__).parents[1]
     registry = json.loads((root / 'thermal-zone-sensors.json').read_text())
     policy = json.loads((root / 'weather-temperature-policy.json').read_text())['streams']['bedroom']
-    zone = registry['zones']['bedroom']
+    zone = registry['zones']['office_hallway']
     assert (zone['model'], zone['sensor_id']) == (policy['model'], policy['sensor_id'])
-    assert zone['location_verified'] is False
+    assert zone['location_verified'] is True
+    assert zone['learning_enabled'] is False
+    assert zone['observations_valid_from'] == '2026-09-30T23:15:00Z'
+    assert zone['stream'] == 'bedroom'  # original receipts and JDBC history retained
+    assert registry['zones']['bedroom']['item'] is None
     assert registry['zones']['bathroom']['item'] is None
 
 

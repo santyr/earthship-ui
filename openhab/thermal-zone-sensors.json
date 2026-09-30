@@ -4,8 +4,17 @@
     "kitchen": {"item": "AmbientWeatherWS2902A_IndoorSensor_Temperature", "stream": "indoor", "role": "hallway_kitchen_reference"},
     "living": {"item": "AmbientWeatherWS2902A_IndoorSensor_Temperature", "stream": "indoor", "role": "hallway_proxy"},
     "bathroom": {"item": null, "stream": null, "role": "unavailable"},
-    "bedroom": {"item": "Bedroom_Temperature", "stream": "bedroom", "role": "zone_sensor", "model": "AmbientWeather-WH31E", "sensor_id": 223, "location_verified": false}
+    "bedroom": {"item": null, "stream": null, "role": "unavailable"},
+    "office_hallway": {
+      "label": "Office Hallway", "item": "Bedroom_Temperature", "stream": "bedroom",
+      "role": "zone_sensor", "model": "AmbientWeather-WH31E", "sensor_id": 223,
+      "location_verified": true, "location_evidence": "operator_report",
+      "location_report_recorded_at": "2026-09-30T23:12:55Z",
+      "observations_valid_from": "2026-09-30T23:15:00Z",
+      "learning_enabled": false,
+      "history_note": "Legacy identifiers preserve the archive. Earlier commissioning/Bedroom-attempt readings are not Office Hallway labels; physical move time is not known precisely. No Bedroom proxy is authorized."
+    }
   },
   "evidence_item": "Weather_Temperature_Evidence_JSON",
-  "learning_status": "raw observations only; Bedroom placement confirmation required before zone training; no shade-state inference or control activation"
+  "learning_status": "raw observations only; Office Hallway location is operator-confirmed with a conservative prospective boundary; Bedroom remains unavailable; no room model, shade-state inference or control activation"
 }

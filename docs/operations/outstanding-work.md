@@ -1,13 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
-September 30 Bedroom WH32M commissioning is deployed as source-bound WH31E
-ID 223, independently from Hallway 235 and North Wall 193. The file-owned
-temperature Item/rule and all four original receipt streams pass natural JDBC
-readback using the existing restricted temperature reader. Home, Earthship
-and Bedroom shades display the source; Earthship includes Bedroom history.
-Placement near the receiver is still commissioning: Bedroom-specific training
-must wait for a confirmed room-installation timestamp, without bench-data or
-preview-shade labels. See [deployment evidence](2026-09-30-bedroom-wh32m.md).
+September 30 sensor 223 has moved to **Office Hallway**, following the failed
+Bedroom reception attempt. Home/Earthship and the observational Item/rule now
+use that location label; Bedroom shades have no associated temperature source.
+Legacy `Bedroom_Temperature` / `bedroom` identifiers preserve Item 663 and its
+immutable history. Office Hallway charts and future room-data qualification
+exclude observations before the conservative `2026-09-30T23:15:00Z` boundary;
+no room model or control is activated. Earlier Bedroom-placement statements
+below are historical, not current associations. See
+[relocation evidence](2026-09-30-bedroom-wh32m.md#office-hallway-relocation).
 
 September 30 operator requested the pre-dusk estimate remain visible until
 replacement or be omitted as backend modeling data. The Energy page now omits
