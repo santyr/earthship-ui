@@ -563,6 +563,37 @@ joint-shade refit, qualified independent airflow/shade observations and
 chronological day/seasonal outcome comparisons remain necessary. No file,
 artifact, journal, Item, label or control changed during this experiment.
 
+### September 30 first matured near-24-hour outcome
+
+At 08:06 MDT the first target in the 24-hour audit bucket qualified after
+its five-minute settling delay. The September 29 08:26:26.838838 MDT issue
+targets September 30 08:00 MDT, within the audit's documented ±30-minute
+hourly-point tolerance, not exactly 24 elapsed hours. It embeds the prior
+accepted artifact `e707ce61...696ccff7`, not the newly trained September 30
+artifact. Original WH32B ID 235 evidence at that target yields 68.900°F;
+the published 65.516°F forecast is 3.384°F too cold. Persistence is 1.260°F
+too cold on the identical target. The qualified outdoor forecast error is
+−0.300°F, so outdoor-input error alone is not an identified explanation.
+
+The original capture `20260929T142626Z-04736667d38d4183.json.gz` replays
+exactly under the pinned `a4a68a17...` installed runtime, output SHA-256
+`04736667d38d41836ed142dc4dc2a5233e079bf8072bbd32e82facd80541e081`.
+Substituting only the pure `_nonwinter_shade_schedule` function from the
+already reviewed `dedce8c8...e0372` source leaves its entire trajectory and
+this target's prediction/interval unchanged. The shade-origin fix therefore
+does not explain this particular miss. No coefficient, artifact, runtime,
+journal, label, Item, schedule or control changed.
+
+The broad low-confidence interval covers the outcome with 10.413°F width;
+one covered outcome is not evidence of calibrated intervals or seasonal
+skill. The audit scores one pair and withholds eleven future targets. It
+continues to refuse operational graduation because this artifact loses to
+persistence here, confidence is low, confirmed-action outcomes are absent,
+and approved operational graduation thresholds are unset. Later origin-
+paired day/seasonal targets and versioned physics/action-evidence work remain
+necessary. This closes only the previously future-only first near-24-hour
+outcome check; it does not validate the newly trained artifact's live skill.
+
 ### September 30 exact SoC origin for future energy-learning comparisons
 
 The morning worker previously validated one fresh `BMS_SOC_Evidence_JSON`

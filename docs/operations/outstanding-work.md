@@ -1,5 +1,37 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 BMS estimator isolated-JVM qualification now passes. The new
+`scripts/qualify-bms-runtime-estimator.py` runs the unchanged source candidate
+(`b7d414ed...a1944`) in the pinned OpenHAB 5.2.1/Graal runtime, with no network,
+host mounts, devices or published ports, a 2-GiB memory/no-extra-swap limit,
+and only synthetic display/evidence Items. It checks missing-source OFF/zero,
+two distinct discharge observations, duplicate-read warmup, native charging
+TTF and reversal clearing, original-current expiry, script reload/cache loss,
+actual full server-JVM exit/restart, fresh recovery and exact original managed
+rule restoration. Sixteen Python guard/fixture and 23 adjacent JS tests pass.
+Two preliminary failed attempts were removed: RuleDTO's empty action-input
+default needed exact normalization, and output readback now waits for both
+asynchronous numeric updates while accepting equal decimal representations.
+No nonempty inputs, changed scripts/configuration/triggers or unknown action
+fields are ignored. The successful fixture and temporary storage were removed;
+production actions/triggers still match the pinned `8698b16a...05a794` baseline.
+This closes these **isolated display-estimator** execution/reload/restart/
+rollback checks, not protected production restart, actual JDBC averaging,
+numeric-minute accuracy, natural charging transition or live estimator release.
+The periodic trigger is registered; explicit fixture executions do not by
+themselves prove a no-event cron-expiry observation. No live Item/rule/control
+was written or changed.
+
+September 30 first near-24-hour fixed-artifact thermal outcome now qualifies:
+the September 29 08:26 issue predicted 65.516°F at today's 08:00 local target,
+versus 68.900°F from the original indoor receipt. Its −3.384°F error loses to
+persistence's −1.260°F; the outdoor forecast error is only −0.300°F. Exact
+as-issued replay passes, and the source-only shade-origin correction leaves
+this complete trajectory unchanged. This is one low-confidence pair, not
+seasonal skill or action evidence. It closes the previously future-only first
+24-hour audit-bucket check and reinforces the still-open shadow-exit gate.
+See the [matured outcome](2026-09-29-prediction-learning-review.md#september-30-first-matured-near-24-hour-outcome).
+
 September 30 natural thermal training completed at 07:35:36 MDT, exit zero:
 45m 04s CPU, 366.25 MiB peak memory and zero peak swap. The installed v4
 artifact/report validate, metrics agree, and the accepted training revision
