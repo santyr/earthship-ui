@@ -1,8 +1,8 @@
-# Bitcoin polling Thing: file-provider candidate — September 30
+# Bitcoin polling Thing: verified file-provider handoff — September 30
 
 ## Current scope and ownership
 
-`exec:command:BTC_Price` remains REST-managed and ONLINE. Its existing file-owned
+`exec:command:BTC_Price` is now file-owned and ONLINE. Its existing file-owned
 `BTC_USD_Price` and `BTC_Output_Receipt_JSON` Items/output links are separate
 resources. This candidate transfers only the polling Thing, not the price Items,
 their JDBC history, Group, percentage rule, script, credentials or whitelist.
@@ -20,7 +20,9 @@ Source SHA-256:
 `becb9ed6081f7a5780dc943a055217bed3907ec0bc55fc3793aa0ec401fff26a`.
 The read-only live DTO digest before and after qualification is unchanged:
 `8bd83ac857fc0d61359a9c42bceaad6383f39cc7ecc7282636f64bf2fe2723f1`.
-No ownership declaration was changed and the source is **not installed**.
+At that initial qualification checkpoint no ownership declaration was changed
+and the source was not installed. The verified production result below
+supersedes that staging status; the exact qualified bytes remain unchanged.
 
 ## Actual qualification
 
@@ -179,3 +181,34 @@ synthetic poll, full server-JVM exit/different-JVM restart and managed rollback
 with another synthetic poll. The owned container/tmpfs was removed. All 97
 focused regressions pass. This is isolated provider evidence, not a real-feed
 or production JDBC result; the guarded live gates still have to pass.
+
+## Verified production file provider
+
+At approximately September 30 04:34 MDT the corrected guarded apply returned
+`file_provider_verified`. It retained a fresh private managed REST/JSONDB
+preimage, withdrew only the polling Thing and atomically installed the qualified
+file. All seven channel metadata contracts, both output links, static Item
+definitions (including restored derived read-only values), Group/membership,
+feed/whitelist/transform hashes and polling configuration matched the preimage.
+A new natural successful real-price receipt matched the current Number Item
+and the same original JSON persisted through JDBC. No synthetic price was
+posted to production, and no OpenHAB restart or protected control was involved.
+
+The exact fixed Item 34 prefix before `2026-09-30T10:31:15.259456Z` preserved
+1,106,236 rows / 40,039,377 streamed bytes, SHA-256
+`a52fdf2713fcf2b99aa5fec766fc6cd634335a901cfa7bcc4ead2374a3472530`.
+Independent post-transfer GET/read-only history verification passed all of
+the same gates and found another fresh durable real receipt. This does not
+claim a gapless stream during provider withdrawal or upstream quote freshness.
+
+Only this Thing's verified file declaration is added to `ownership.json`.
+The one-shot apply gate is reset to false; the installed source remains exactly
+the qualified SHA-256 above, including its original staging comment. Complete
+private recovery directories are retained; all owned isolated containers/tmpfs
+were removed. This closes the production Bitcoin Thing provider/real-polling/
+history-preservation gate, not whole-house OpenHAB/control restart recovery.
+
+The final live inventory returned zero issues: Things are now 80 managed / 5
+non-managed, with all Item/link/rule/persistence counts unchanged. All 97
+focused tests passed again after resetting the gate, and no container with
+the owned qualification label remained.

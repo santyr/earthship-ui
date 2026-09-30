@@ -141,13 +141,15 @@ round trip. Its Item name, shadow-only publisher, restored state and JDBC identi
 matched live Item state, JDBC row 231 and its private forcing capture; see
 `docs/operations/2026-09-23-thermal-item-file-cutover.md`.
 
-The Bitcoin polling Thing has a staged, **uninstalled** definition at
-`things/bitcoin-price.things`. Read-only preflight and actual isolated
-managed/file/full-JVM-restart/managed rollback passed using a networkless
-synthetic script. The live `exec:command:BTC_Price` remains managed; do not
-confuse the Thing candidate with its already file-owned price Items/links or
-deploy it over the managed Thing. A guarded live handoff and new real price
-receipt remain required; see
+The Bitcoin polling Thing is file-owned at `things/bitcoin-price.things` after
+the September 30 guarded live handoff. Actual isolated transfer/full-JVM
+restart/managed rollback passed using a networkless synthetic feed; production
+readback separately verified the exact Thing/channels, unchanged output
+Items/links/Group, a new persisted real-price receipt and unchanged Item 34
+history prefix. The one-shot apply gate is off and private rollback backups
+are retained. The file's original staging comment is retained to preserve the
+exact qualified bytes; ownership is recorded in the manifest. No production
+OpenHAB restart occurred. See
 `docs/operations/2026-09-30-bitcoin-exec-thing-candidate.md`.
 
 ## Read-only inventory

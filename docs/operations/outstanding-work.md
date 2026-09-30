@@ -1,13 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
-September 30 next passive Thing migration: the Bitcoin Exec definition now
-preserves the exact existing credential-free command and 30-second/15-second
-polling configuration. Grammar and 53 focused guard tests pass; an actual
-networkless, one-CPU/no-extra-swap runtime passed managed/file/full-JVM-restart/
-managed rollback and new synthetic polls with both existing output links.
-All owned containers were removed, the live Thing stayed managed and unchanged,
-and inventory still has zero issues. Guarded live backup/transfer and a new real
-price receipt remain open; see the [candidate and remaining handoff](2026-09-30-bitcoin-exec-thing-candidate.md).
+September 30 Bitcoin polling Thing migration is verified in production.
+The file-owned Thing preserves its exact script/configuration, all seven
+channels and both existing output links. A new real persisted price receipt
+and independent readback passed; its fixed Item 34 prefix of 1,106,236 rows is
+unchanged, as are Item/Group/source definitions. Two earlier boundary refusals
+verified managed rollback; the corrected comparison distinguishes rolling
+observations and the precisely qualified binding-derived read-only transition.
+All 97 focused tests and isolated transfer/full-JVM restart/managed rollback
+passed; owned test containers were removed. The one-shot apply gate is off,
+private recovery backups are retained, and no production restart or control
+change occurred. See the [verified handoff](2026-09-30-bitcoin-exec-thing-candidate.md#verified-production-file-provider).
 
 September 30 rain-source diagnosis: the original counter and outdoor
 temperature independently expired during a 144.179-second station-specific

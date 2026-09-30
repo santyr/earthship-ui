@@ -37,6 +37,10 @@
       "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
     },
     {
+      "kind": "thing", "id": "exec:command:BTC_Price", "provider": "file", "migration": "verified",
+      "source": "things/bitcoin-price.things", "destination": "/etc/openhab/things/bitcoin-price.things"
+    },
+    {
       "kind": "thing", "id": "openmeteo:forecast:local:site", "provider": "file", "migration": "verified",
       "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
     },
