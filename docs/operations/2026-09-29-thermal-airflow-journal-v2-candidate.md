@@ -379,7 +379,8 @@ It still exports production using the restricted role in a read-only
 repeatable-read transaction, restores into an owned disposable PostgreSQL 16
 container, compares all original ordered table digests, audits exact v1 and
 then rehearses the exact v2 constraint postimage. Only after those steps does
-it add six explicitly labeled fixture observations to the **disposable**+journal: supported legacy states plus independently named window/skylight
+it add six explicitly labeled fixture observations to the **disposable**
+journal: supported legacy states plus independently named window/skylight
 states. Their times precede the earliest restored action/mode so a fixture
 window cannot accidentally borrow household context.
 
