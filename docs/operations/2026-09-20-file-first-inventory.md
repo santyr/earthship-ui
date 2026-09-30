@@ -1,5 +1,48 @@
 # File-first migration inventory boundary
 
+## September 30 shared display-rule JVM restart rehearsal
+
+Fresh GET-only extended inventory at `2026-09-30T07:51:42Z` reports 382 managed
+plus 60 non-managed Items, 246 managed plus 21 non-managed links, 37 managed
+plus three non-managed rules, 81 managed plus four non-managed Things, one
+non-managed JDBC strategy, 18 add-ons, 12 UI pages and 18 transformations,
+with zero structural/ownership issues. The 16 unlinked, ungrouped, literally
+unreferenced managed Items all belong to the separate Lightning Goats canary
+work; they were not selected for Earthship migration. This census still does
+not cover dynamic references or classify control safety.
+
+`scripts/qualify-season-rule-provider.py --kind display-set --restart` now
+rehearses the already migrated season, temperature-extrema and Bitcoin-change
+rules together. It requires their exact retained private managed preimages and
+matching installed/Git file sources before starting isolation. One owned
+networkless, read-only-root OpenHAB 5.2.1 container has no production mounts,
+ports or devices, a 2-GiB memory limit and no swap allowance. The original
+managed rules are created/withdrawn only there, and their file equivalents
+load with exact UIDs, healthy non-managed providers and unchanged triggers.
+The server JVM actually exits; a different JVM then loads all three file
+rules from the retained isolated filesystem. Withdrawing the files and
+restoring all three managed preimages again matches both triggers and actions.
+The owned container and volumes were removed on completion.
+
+The first attempt correctly stopped before shutdown at its JVM-identity guard
+and cleaned up. The corrected harness uses init reaping and excludes zombie
+processes from active-JVM identity; its rerun passed. Twenty-two offline
+guard/transaction tests pass, including private preimage permission/symlink/
+size refusal, source/identity/trigger/hash drift and healthy-provider checks.
+No production rule, Item, source, JDBC row or service was changed or stopped.
+Independent post-test readback still found the exact three installed/Git
+source hashes and zero inventory issues.
+
+This closes the **isolated file-rule JVM/provider/rollback** rehearsal, not a
+whole-system restore, container-filesystem recovery, production restart or
+post-restart natural writer/JDBC continuity. Protected-control recovery was
+not exercised. All three ownership declarations remain provisional and their
+private managed rollback backups are retained. The countdown Item transferred
+September 29 at 19:21 MDT also still needs its next natural Astro-triggered
+write; frequent unchanged `Sun_TimeLeft` updates do not qualify it.
+
+## September 20 baseline inventory
+
 Live registry read on September 20, 2026, after the first Item transfer:
 
 | Resource | Managed | Non-managed | Verified file-owned |

@@ -13,9 +13,11 @@ import json
 from pathlib import Path
 import re
 import secrets
+import stat
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+INSTALLED_RULE_DIRECTORY = Path('/etc/openhab/automation/js')
 spec = importlib.util.spec_from_file_location(
     'isolated_jss_runtime', ROOT / 'scripts/qualify-inverter-ac-evidence-runtime.py')
 runtime = importlib.util.module_from_spec(spec)
@@ -116,45 +118,82 @@ def wait_for(check, *, seconds=90):
     raise RuntimeError('isolated display rule state timeout')
 
 
-def main(kind):
-    config = RULES[kind]
-    live = runtime.oh.get('/rules/' + config.uid)
+def managed_baseline(config, live, backup=None):
+    """A migrated rule needs its exact private preimage, not a fabricated DTO."""
+    if live.get('uid') != config.uid:
+        raise RuntimeError('live display rule identity changed')
+    if live.get('editable') is False:
+        if backup is None:
+            raise RuntimeError('file-owned rule requires its retained managed backup')
+        path = Path(backup)
+        info = path.lstat()
+        if (not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o600
+                or info.st_size > 65536):
+            raise RuntimeError('private managed backup shape or permissions invalid')
+        installed = INSTALLED_RULE_DIRECTORY / config.source.name
+        if (installed.is_symlink() or installed.read_bytes() != config.source.read_bytes()
+                or trigger_contract(live) != config.triggers):
+            raise RuntimeError('installed display source or trigger drift')
+        live = json.loads(path.read_bytes())
     if (live.get('uid') != config.uid or live.get('editable') is not True
             or trigger_contract(live) != config.triggers
             or len(live.get('actions', [])) != 1
             or live.get('conditions')):
-        raise RuntimeError('live display rule definition changed')
+        raise RuntimeError('managed display rule definition changed')
     script = live['actions'][0]['configuration']['script']
     if hashlib.sha256(script.encode()).hexdigest() != config.baseline:
-        raise RuntimeError('live display rule script baseline changed')
+        raise RuntimeError('managed display script baseline changed')
+    return live
+
+
+def java_pids(container):
+    listing = runtime.run(['docker', 'exec', container, 'ps', '-eo', 'pid,stat,comm']).decode()
+    return tuple(int(fields[0]) for line in listing.splitlines()
+                 if len(fields := line.split()) == 3 and fields[2] == 'java'
+                 and not fields[1].startswith('Z'))
+
+
+def main(kind, *, managed_backups=None, restart=False):
+    kinds = ('season', 'extrema', 'bitcoin') if kind == 'display-set' else (kind,)
+    configs = [RULES[name] for name in kinds]
+    managed_backups = managed_backups or {}
+    if set(managed_backups) - set(kinds):
+        raise RuntimeError('backup supplied for a rule outside selected scope')
+    baselines = {name: managed_baseline(RULES[name], runtime.oh.get('/rules/' + RULES[name].uid),
+                                      managed_backups.get(name)) for name in kinds}
     bundles = sorted(runtime.GRAAL.glob('org.graalvm.*/25.0.1/*.jar'))
-    if len(bundles) != 22 or not runtime.ADDON.is_file() or not config.source.is_file():
+    if len(bundles) != 22 or not runtime.ADDON.is_file() or any(not c.source.is_file() for c in configs):
         raise RuntimeError('isolated JavaScript resources unavailable')
     marker = secrets.token_hex(8)
+    label = 'hex.display.rules.qualification' if kind == 'display-set' else configs[0].label
+    command = ('cp -a /openhab/dist/conf/. /openhab/conf/; cp -a /openhab/dist/userdata/. /openhab/userdata/; '
+               'while [ ! -f /tmp/ready ]; do sleep 1; done; ')
+    command += ('while true; do while [ ! -f /tmp/boot-permit ]; do sleep 1; done; '
+                'rm /tmp/boot-permit; /openhab/start.sh server & jvm_child=$!; '
+                'wait "$jvm_child"; touch /tmp/jvm-stopped; done'
+                if restart else 'exec /openhab/start.sh server')
     container = None
     try:
-        container = runtime.run(['docker', 'run', '-d', '--label', config.label + '=' + marker,
+        container = runtime.run(['docker', 'run', '-d', '--init', '--label', label + '=' + marker,
             '--network', 'none', '--read-only', '--user', '9001:9001', '--cap-drop', 'ALL',
-            '--memory', '2048m', '--cpus', '2', '--pids-limit', '256',
+            '--memory', '2048m', '--memory-swap', '2048m', '--cpus', '2', '--pids-limit', '256',
             '--tmpfs', '/tmp:rw,exec,nosuid,nodev,size=64m,uid=9001,gid=9001',
             '--tmpfs', '/openhab/conf:rw,nosuid,nodev,size=64m,uid=9001,gid=9001',
             '--tmpfs', '/openhab/userdata:rw,exec,nosuid,nodev,size=512m,uid=9001,gid=9001',
             '--tmpfs', '/openhab/addons:rw,nosuid,nodev,size=160m,uid=9001,gid=9001',
             '-e', 'EXTRA_JAVA_OPTS=-Xmx512m -Duser.timezone=America/Denver -Duser.home=/openhab/userdata',
-            '--entrypoint', '/bin/sh', runtime.IMAGE, '-c',
-            'cp -a /openhab/dist/conf/. /openhab/conf/; cp -a /openhab/dist/userdata/. /openhab/userdata/; '
-            'while [ ! -f /tmp/ready ]; do sleep 1; done; exec /openhab/start.sh server']).decode().strip()
+            '--entrypoint', '/bin/sh', runtime.IMAGE, '-c', command]).decode().strip()
         info = json.loads(runtime.run(['docker', 'inspect', container]))[0]
         host = info['HostConfig']
-        if (info['Config']['Labels'].get(config.label) != marker
+        if (info['Config']['Labels'].get(label) != marker
                 or host['NetworkMode'] != 'none' or host['Privileged']
                 or host.get('Binds') or host.get('Devices') or host.get('PortBindings')
                 or info['AppArmorProfile'] != 'docker-default'):
             raise RuntimeError('isolated container policy mismatch')
-        runtime.install(container, 'conf/items/display-rehearsal.items', config.items)
+        runtime.install(container, 'conf/items/display-rehearsal.items', b'\n'.join(c.items for c in configs))
         runtime.install_bundles(container, bundles)
-        runtime.run(['docker', 'exec', container, 'touch', '/tmp/ready'])
-        wait_for(lambda: _startup_item(container, config.startup_item), seconds=240)
+        runtime.run(['docker', 'exec', container, 'touch', '/tmp/boot-permit', '/tmp/ready'])
+        wait_for(lambda: all(_startup_item(container, c.startup_item) for c in configs), seconds=240)
         time.sleep(20)
         client = ['docker', 'exec', '-i', container, '/openhab/runtime/bin/client',
                   '-h', '127.0.0.1', '-u', 'openhab', '-p', 'habopen', '-r', '5', '-d', '2']
@@ -186,38 +225,58 @@ def main(kind):
                 decoded = payload.decode(errors='replace')[:80]
             return int(status), decoded
 
-        managed = {key: live[key] for key in (
-            'uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')}
-        status, _ = rest('POST', '/rules', managed)
-        if status != 201:
-            raise RuntimeError('isolated managed rule creation failed')
-        if rest('GET', '/rules/' + config.uid)[1].get('editable') is not True:
-            raise RuntimeError('isolated managed baseline missing')
-        if rest('DELETE', '/rules/' + config.uid)[0] not in (200, 204):
-            raise RuntimeError('isolated managed withdrawal failed')
-        wait_for(lambda: rest('GET', '/rules/' + config.uid)[0] == 404)
-
         runtime.run(['docker', 'exec', container, 'mkdir', '-p', '/openhab/conf/automation/js'])
-        runtime.install(container, 'conf/automation/js/' + config.source.name,
-                        config.source.read_bytes())
-        file_rule = wait_for(lambda: _file_rule(rest, config.uid), seconds=120)
-        print('isolated_file_rule_uid=' + file_rule['uid'], flush=True)
-        print('isolated_file_rule_editable=' + str(file_rule.get('editable')).lower(), flush=True)
-        if trigger_contract(file_rule) != config.triggers:
-            raise RuntimeError('isolated file rule trigger mismatch')
-        runtime.run(['docker', 'exec', container, 'rm',
-                     '/openhab/conf/automation/js/' + config.source.name])
-        wait_for(lambda: rest('GET', '/rules/' + config.uid)[0] == 404)
-        if rest('POST', '/rules', managed)[0] != 201:
-            raise RuntimeError('isolated managed rollback failed')
-        restored = wait_for(lambda: _managed_rule(rest, config.uid))
-        if restored.get('triggers') != managed['triggers']:
-            raise RuntimeError('isolated managed rollback trigger mismatch')
-        print('isolated_managed_rollback=true', flush=True)
+        managed = {name: {key: baselines[name][key] for key in (
+            'uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')} for name in kinds}
+        for name, config in zip(kinds, configs):
+            if rest('POST', '/rules', managed[name])[0] != 201:
+                raise RuntimeError('isolated managed rule creation failed')
+            wait_for(lambda: _managed_rule(rest, config.uid))
+            if rest('DELETE', '/rules/' + config.uid)[0] not in (200, 204):
+                raise RuntimeError('isolated managed withdrawal failed')
+            wait_for(lambda: rest('GET', '/rules/' + config.uid)[0] == 404)
+            runtime.install(container, 'conf/automation/js/' + config.source.name, config.source.read_bytes())
+            file_rule = wait_for(lambda: _file_rule(rest, config.uid), seconds=120)
+            if trigger_contract(file_rule) != config.triggers:
+                raise RuntimeError('isolated file rule trigger mismatch')
+            print('isolated_file_rule_uid=' + file_rule['uid'], flush=True)
+        if restart:
+            before = java_pids(container)
+            if len(before) != 1:
+                # PID/state/command only, never arguments, environment or tokens.
+                listing = runtime.run(['docker', 'exec', container, 'ps', '-eo', 'pid,stat,comm']).decode()
+                print('isolated_process_identity_diagnostic=' + json.dumps(listing.splitlines()), flush=True)
+                raise RuntimeError('one isolated active server JVM required before restart')
+            try:
+                runtime.run(client + ['system:shutdown -f'], b'\n')
+            except RuntimeError:
+                pass  # SSH may close on shutdown; actual process exit is checked.
+            wait_for(lambda: before[0] not in java_pids(container), seconds=60)
+            wait_for(lambda: _jvm_stopped(container), seconds=30)
+            runtime.run(['docker', 'exec', container, 'touch', '/tmp/boot-permit'])
+            wait_for(lambda: all(_startup_item(container, c.startup_item) for c in configs), seconds=240)
+            after = java_pids(container)
+            if len(after) != 1 or before == after:
+                raise RuntimeError('isolated server JVM identity did not change')
+            for config in configs:
+                restored = wait_for(lambda: _file_rule(rest, config.uid), seconds=120)
+                if trigger_contract(restored) != config.triggers:
+                    raise RuntimeError('isolated restarted trigger contract mismatch')
+            print('isolated_full_jvm_restart=true; file_rule_count=' + str(len(configs)), flush=True)
+        for name, config in zip(kinds, configs):
+            runtime.run(['docker', 'exec', container, 'rm', '/openhab/conf/automation/js/' + config.source.name])
+            wait_for(lambda: rest('GET', '/rules/' + config.uid)[0] == 404)
+            if rest('POST', '/rules', managed[name])[0] != 201:
+                raise RuntimeError('isolated managed rollback failed')
+            restored = wait_for(lambda: _managed_rule(rest, config.uid))
+            if (restored.get('triggers') != managed[name]['triggers']
+                    or restored.get('actions') != managed[name]['actions']):
+                raise RuntimeError('isolated managed rollback definition mismatch')
+            print('isolated_managed_rollback_uid=' + config.uid, flush=True)
     finally:
         if container is not None:
             result = runtime.run(['docker', 'inspect', '--format',
-                '{{index .Config.Labels "' + config.label + '"}}', container])
+                '{{index .Config.Labels "' + label + '"}}', container])
             if result.decode().strip() == marker:
                 runtime.run(['docker', 'rm', '-f', '-v', container], timeout=90)
                 print('owned_isolated_container_removed=true', flush=True)
@@ -233,6 +292,14 @@ def _startup_item(container, item):
         return False
 
 
+def _jvm_stopped(container):
+    try:
+        runtime.run(['docker', 'exec', container, 'test', '-f', '/tmp/jvm-stopped'])
+        return True
+    except RuntimeError:
+        return False
+
+
 def _active_bundle(client, name):
     listing = runtime.run(client + ['bundle:list -s'], b'\n').decode(errors='replace')
     return any(name in line and 'Active' in line for line in listing.splitlines())
@@ -240,15 +307,28 @@ def _active_bundle(client, name):
 
 def _file_rule(rest, uid):
     status, rule = rest('GET', '/rules/' + uid)
-    return rule if status == 200 and isinstance(rule, dict) and rule.get('uid') == uid else None
+    return rule if (status == 200 and isinstance(rule, dict) and rule.get('uid') == uid
+        and rule.get('editable') is False and rule.get('status') in (
+            {'status': 'IDLE', 'statusDetail': 'NONE'},
+            {'status': 'RUNNING', 'statusDetail': 'NONE'})) else None
 
 
 def _managed_rule(rest, uid):
     status, rule = rest('GET', '/rules/' + uid)
-    return rule if status == 200 and isinstance(rule, dict) and rule.get('editable') is True else None
+    return rule if (status == 200 and isinstance(rule, dict) and rule.get('uid') == uid
+                   and rule.get('editable') is True) else None
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=tuple(RULES), required=True)
-    main(parser.parse_args().kind)
+    parser.add_argument('--kind', choices=(*RULES, 'display-set'), required=True)
+    parser.add_argument('--managed-backup', action='append', default=[], metavar='KIND=PATH')
+    parser.add_argument('--restart', action='store_true', help='Verify an isolated full JVM restart, not production recovery')
+    args = parser.parse_args()
+    backups = {}
+    for value in args.managed_backup:
+        name, separator, path = value.partition('=')
+        if not separator or name not in RULES or name in backups or not path:
+            parser.error('managed backups must be unique KIND=PATH entries')
+        backups[name] = Path(path)
+    main(args.kind, managed_backups=backups, restart=args.restart)

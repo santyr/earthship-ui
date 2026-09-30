@@ -1,5 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 file-rule recovery progress: all three migrated display writers
+(season, temperature extrema and Bitcoin change) passed one shared networkless
+full-JVM exit/restart and exact managed rollback. Twenty-two guard/transaction
+tests pass; the owned container/volumes were removed and production source
+hashes/inventory stayed unchanged. The stale README claim that the countdown
+Item was still managed is corrected. This is isolated provider recovery only:
+production/control/JDBC restart gates and the countdown Item's next natural
+write remain open. The 16 structural candidates are separate Lightning Goats
+canaries, not Earthship migration targets. See the
+[shared restart checkpoint](2026-09-20-file-first-inventory.md#september-30-shared-display-rule-jvm-restart-rehearsal).
+
 September 30 thermal source-model progress: the versioned split-airflow
 candidate now fits separate unshaded/indoor-only/outdoor-only/joint-shade
 solar gains across air, mass and glazing, with consistent analytic gradients

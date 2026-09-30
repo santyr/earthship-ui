@@ -62,13 +62,16 @@ The display-only `update_days_until_season` rule is provisionally file-owned
 in `automation/js/update_days_until_season.js` after an isolated provider and
 managed-rollback rehearsal plus a guarded live handoff. Its natural
 state-change output passed at 14:51 MDT September 29 with matching Astro
-source, file-rule event and JDBC history. A later restart check remains open;
+source, file-rule event and JDBC history. A later production restart check remains open;
 retain the private managed-rule backup until it passes. See the
 [rule cutover receipt](../../docs/operations/2026-09-29-season-countdown-rule-file-candidate.md).
-The separate `DaysUntilNextSeason` Item remains managed. Its staged
-`items/days-until-next-season.items` definition passed isolated provider and
-JDBC/rollback/restart checks but is not installed or declared file-owned; see
-the [Item candidate](../../docs/operations/2026-09-29-season-countdown-item-candidate.md).
+The separate `DaysUntilNextSeason` Item is provisionally file-owned in
+`items/days-until-next-season.items` after its approved September 29 19:21 MDT
+handoff, actual managed rollback exercise and exact Item-176 history checks.
+Its next natural Astro-triggered writer receipt and later production restart
+check remain open; unchanged source updates or persistence restoration do not
+close those gates. Retain the private backup; see the
+[Item cutover receipt](../../docs/operations/2026-09-29-season-countdown-item-candidate.md).
 `automation/js/sky-condition-calculator.js` is a **staged, uninstalled**
 candidate. The initially successful live file handoff was rolled back after
 `SkyCondition` was identified as a greywater control input. The original
@@ -78,13 +81,20 @@ needs protected-control restart/rollback qualification. See the
 The rolling `temp-highlow-24h` Earthship display writer is provisionally
 file-owned in `automation/js/temperature-highlow-24h.js` after exact
 consumer review, isolated provider/rollback rehearsal and guarded live
-handoff. Its natural 06:00 writer run passed; a later restart check remains open; see
+handoff. Its natural 06:00 writer run passed; a later production restart check remains open; see
 the [extrema rule receipt](../../docs/operations/2026-09-29-temperature-extrema-rule-file-cutover.md).
 The Bitcoin 24-hour percentage display rule is also provisionally file-owned
 at `automation/js/bitcoin-24h-change.js`. Its 06:22:44 natural price update
-and JDBC history gate passed; a later restart check remains. The one-time
+and JDBC history gate passed; a later production restart check remains. The one-time
 handoff gate is re-locked and its private managed-rule backup is retained; see
 the [Bitcoin rule receipt](../../docs/operations/2026-09-29-bitcoin-change-rule-file-candidate.md).
+
+All three display rules passed a shared **isolated** full-JVM exit/restart and
+exact managed rollback on September 30. This verifies file-rule loading and
+trigger/provider continuity, not production restart recovery, JDBC continuity
+through that restart or protected-control safety. The private rollback copies
+and provisional manifest status remain; see the
+[isolated restart checkpoint](../../docs/operations/2026-09-20-file-first-inventory.md#september-30-shared-display-rule-jvm-restart-rehearsal).
 
 ## Staged migration and rollback
 
