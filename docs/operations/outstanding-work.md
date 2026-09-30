@@ -1,5 +1,15 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 14:51 MDT season countdown natural writer/JDBC gate passed.
+The event log attributes the 82-to-81-day change to the exact file-owned rule;
+installed Item/rule hashes and registry ownership remain exact. A read-only
+repeatable-read check uniquely maps Item 176, finds 218 rows and preserves
+the retained 217-row cutover prefix byte-for-byte, with one new natural row.
+No synthetic update, forced rule execution, restart or control change occurred.
+Production restart qualification remains open; provisional ownership and the
+rollback backup remain retained. See the
+[natural writer receipt](2026-09-29-season-countdown-item-candidate.md#september-30-natural-file-owned-writer-and-jdbc-qualification).
+
 September 30 Astro/day-length audit is complete, read-only. The live Sun Thing
 has 67 state/15 trigger channels, 26 linked state channels, and all four Astro
 calculation actions registered. Existing daily duration Items have one row per
@@ -421,8 +431,9 @@ full-JVM exit/restart and exact managed rollback. Twenty-two guard/transaction
 tests pass; the owned container/volumes were removed and production source
 hashes/inventory stayed unchanged. The stale README claim that the countdown
 Item was still managed is corrected. This is isolated provider recovery only:
-production/control/JDBC restart gates and the countdown Item's next natural
-write remain open. The 16 structural candidates are separate Lightning Goats
+production/control/JDBC restart gates remained open; the countdown Item's
+natural-write gate subsequently passed at 14:51 MDT as recorded above.
+The 16 structural candidates are separate Lightning Goats
 canaries, not Earthship migration targets. See the
 [shared restart checkpoint](2026-09-20-file-first-inventory.md#september-30-shared-display-rule-jvm-restart-rehearsal).
 

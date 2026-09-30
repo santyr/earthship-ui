@@ -28,7 +28,7 @@ installed/source hashes, and OpenHAB running. The backup directory is mode
 0700 and its contents mode 0600. No OpenHAB restart or synthetic Item update
 occurred. The one-shot `--apply` release gate was closed again.
 
-Ownership remains **provisional** until the next natural `Sun_TimeLeft`
+At the initial cutover checkpoint, ownership remained **provisional** until the next natural `Sun_TimeLeft`
 *change* makes the file-owned rule post a new `DaysUntilNextSeason` value and
 JDBC persists it under Item 176. Unchanged Astro updates and persistence
 restoration during provider reload are not that proof. Retain the private
@@ -55,3 +55,30 @@ Two offline transaction tests now pass: the success path exercises managed
 rollback before returning to file ownership, and a simulated file-provider
 failure restores the managed Item. These tests do not substitute for the
 next natural writer event.
+
+## September 30 natural file-owned writer and JDBC qualification
+
+At 14:51:32.753 MDT the Astro source naturally changed `Sun_TimeLeft` from
+7,084,800 to 6,998,400 seconds. At 14:51:32.757 the event log identified the
+file writer `org.openhab.automation.jsscripting$file:update_days_until_season.js`
+as the source of `DaysUntilNextSeason` changing from 82 to 81 days until Winter.
+No forced rule execution, synthetic Item update or OpenHAB restart was used.
+
+Independent readback verified the Item and rule remain file-owned, the rule
+IDLE/NONE with its single `Sun_TimeLeft` change trigger, and both installed
+Item/writer files still match their pinned source SHA-256 values. JDBC uniquely
+maps the display to Item 176. A read-only repeatable-read database inspection
+found 218 rows and verified that its first 217 rows and exported CSV bytes
+exactly preserve the retained cutover backup prefix. The one new row is
+`2026-09-30 20:51:32.762562+00`, `81 days until Winter ❄️`.
+
+Retained prefix CSV SHA-256:
+`e0bb2630eee9df6689ddf81f25a62b7ba19225b2a7011050ad86efe1c65a387a`.
+Current 218-row CSV SHA-256:
+`05da75f1178d7d97a92d9f380a8b41fd99551c278d51818ab206a9c5a6879203`.
+These are the adapter's ordered CSV representation, not a different history
+digest encoding.
+
+This closes the natural file-owned writer/JDBC gate. The production restart
+gate remains open, so the manifest's provisional migration status and private
+rollback backup are retained. The one-shot apply gate remains false.
