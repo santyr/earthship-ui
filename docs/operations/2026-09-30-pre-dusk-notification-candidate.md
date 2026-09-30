@@ -226,3 +226,46 @@ control was changed. Installed pinned dependency configuration, household
 keyer/routes, attended operator receipt and notification activation remain
 open. The code-builder's verification receipt is context-independent and
 does not itself assert whether a bundle directory was installed.
+
+## Household signer and labelled NIP-17 path trial
+
+The installed code bundle passed `Keyer.check_identity` with the existing Hex
+sender credential and SHA-pinned nak (`ba918faf...ae56e`). Actual signing,
+NIP-44 encryption/decryption and authenticated self-roundtrip verified. This
+used Hex's local sender key, **not** the operator bunker or Sat client key;
+`bunker_verified=false` is expected and does not revoke the earlier operator
+NIP-46 challenge. No credential was printed, rotated or copied.
+
+The existing approved private signed-route snapshot passed the actual `Routes`
+validator for both identities and three endpoints each. Fresh latest-kind-10050
+queries independently returned both exact approved event IDs on nos.lol.
+Primal and Damus produced no qualifying latest responses in that bounded check;
+do not claim fresh 3/3 discovery or infer their precise failure cause.
+
+Under the operator's prior approval to send a labelled test as Hex, one NIP-17
+rumor was sent through nos.lol, with distinct operator and sender encrypted
+copies. It explicitly says messaging test only: no forecast, thermal question,
+action request, control change or training label. A dedicated private durable
+outbox persisted the original envelopes before publication; the sender copy
+was actually decrypted/verified and exactly matched the original rumor.
+Both matching event ACKs were boolean true. Public IDs:
+
+- Rumor: `521e61228d33862b00e10cd2a7eda9a96ac3528ef488f7559362aba0daa095a8`
+- Operator envelope: `e03cf74a156c6a4f52c3b6d05ab1c2d7c64e4743c5bcbc166ed0853deeefe713`
+- Sender envelope: `6ce51e82f435057d60ef9b4a5850e8914bfa3f35c39a950af83d5a037c070425`
+
+An independent credential-free relay read returned the operator's **exact**
+persisted encrypted envelope, with a valid kind-1059 signature. Ciphertext
+canonical SHA-256:
+`c1af1bb478e1b6eb90f34e2c3db5bf351d47c1cf43ff5b1d33e4ca9e74195fb3`.
+This proves tested relay storage/readback, not recipient decryption or receipt.
+Operator receipt confirmation was requested and is still pending at this
+checkpoint. No signed action/state label or learned reward follows from it.
+
+The trial used the pinned websockets 16.0 in temporary storage, since removed.
+Its operational retry/audit state is retained pending receipt at
+`/home/sat/.local/state/hex/pre-dusk-delivery-trial-20260930` (two envelope rows,
+no sender key). It is separate from the still-absent live notification outbox.
+Do not create another rumor to retry: use those original envelopes. Review
+cleanup after the receipt/retry audit finishes. No production dependency or
+unit/timer was installed; notification and collector release gates stay off.

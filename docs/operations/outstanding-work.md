@@ -53,6 +53,16 @@ journal, forecast Item or control was changed. Dependency installation and
 household keyer/routes/attended receipt remain before activation. See the
 [inactive installation receipt](2026-09-30-pre-dusk-notification-candidate.md#inactive-local-installation-and-rollback-checkpoint).
 
+The installed code's actual Hex signer/encryption self-roundtrip and approved
+signed-route snapshot now qualify. A fresh latest read verified both exact
+route IDs on nos.lol, not all three relays. One previously approved, labelled
+NIP-17 path test was accepted on nos.lol for both copies; the sender copy
+decrypted exactly, and credential-free relay readback matched the operator's
+exact ciphertext/signature. This is not operator receipt, forecast/thermal
+activation or a training label. Receipt confirmation is pending; its separate
+private two-envelope trial state is retained for exact retries/audit. Temporary
+dependency files were removed. See the [household path trial](2026-09-30-pre-dusk-notification-candidate.md#household-signer-and-labelled-nip-17-path-trial).
+
 The latest runtime audit passes all 1024 independent arithmetic checks in a
 later natural window. Deterministic regressions prove identical alpha-0.05
 smoothing for identical source observations despite extra evaluations and
