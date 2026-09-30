@@ -757,6 +757,16 @@ functional behavior, safety gates and reproducible evidence. Do not trade
 correctness for a faster headline number. The operator resumed the broader
 goal on September 27.
 
+September 30 rollout batching remains source-only. Two matched synthetic fits
+fell from 3.161/3.261 seconds to 0.899/0.911 seconds with identical complete
+fit digests. This preserves the daily rolling 400-day window and chronological
+refits rather than reusing stale fold fits. Exact scalar loss/gradient/
+sensitivity and full-fit regression gates cover the candidate. Production v4
+differs from the repository's uninstalled airflow changes: an exact compatible
+backport, guarded one-file install and natural runtime/training checks remain
+open. No production speedup or deployment is claimed. See the
+[batching evidence](2026-09-27-thermal-selector-efficiency.md#september-30-fit-local-rollout-batching-candidate).
+
 The thermal trainer's coefficient-independent forcing cache was committed and
 deployed after the September 26 natural run finished; synthetic full-fit timing
 improved from 5.12 to 3.98 seconds, with exact objective/gradient parity and

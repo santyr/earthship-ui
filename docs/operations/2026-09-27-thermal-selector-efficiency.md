@@ -331,3 +331,52 @@ remains shadow with low confidence. No job was forced, receipt or action label
 fabricated, or control changed. This closes natural new-artifact Item/JDBC/
 capture/replay continuity, not scientific graduation. The earlier same-host
 recovery archive predates this publication and does not contain this capture.
+
+## September 30 fit-local rollout batching candidate
+
+The daily training range is a **rolling 400-day lookback**: the default CLI
+sets `end=now` and `start=end-400 days`. Each daily run shifts both endpoints
+forward approximately one day; it does not advance by 400 days. Today's
+accepted window is August 26, 2025–September 30, 2026, versus August 25,
+2025–September 29, 2026 yesterday (with timer-clock jitter). Removing the
+oldest day changes the chronological training prefixes. Reusing yesterday's
+fold fit without verifying those inputs would not preserve the current fit.
+This candidate therefore retains the window and every chronological refit.
+
+Independent endpoint rollouts within each of the five identification horizons
+are now evaluated together with NumPy arrays. Forcings, origins, targets and
+confidence are prepared once per fit into read-only arrays; there is no global
+object-identity cache or reuse between daily runs. Existing bounded selection
+still allows at most 64 origins per horizon. State equations, forcing-step
+order, Jacobian/sensitivity arithmetic, endpoint/state loss accumulation order,
+optimizer, coefficient constraints and rank/acceptance gates are unchanged.
+The deliberately scalar final reductions preserve floating-point rounding.
+
+Two interleaved 30-day synthetic fits (8,064 training rows, seed 20260930,
+single-threaded BLAS/OpenMP) took 3.161/3.261 seconds using the committed scalar
+implementation and 0.899/0.911 seconds using the source candidate. All four
+complete fitted-result digests equal
+`754def4eb21d19a31f2e3ab894b40ea8f356843286517c5ba8b54fc58b3da091`;
+the final objective is `0.00016668050842605494`. This is approximately a
+3.5× isolated-fit speedup, **not a measured whole daily-run improvement**.
+A separate sensitivity scratch-buffer experiment was slightly slower despite
+exact fit parity and was rejected. No packages were installed.
+
+New regressions compare exact loss, gradient and sensitivity rows against a
+frozen pre-change scalar oracle across randomized coefficient perturbations,
+prepared/unprepared forcings and zero/fractional/full confidence. They check
+that read-only prepared arrays remain unchanged, mutable inputs are not cached
+by identity, and the complete fitted result remains identical.
+The final full thermal Python suite passed **889 tests**, with one optional
+PostgreSQL integration skip, in 89.91 seconds. Owned test directories and the
+experimental prototype were removed after the runs completed.
+
+This candidate is **source-only**. The installed v4 `dynamics.py` has SHA-256
+`2850ce20b4df5d39866dcead43f809c81b7501153af2f6d7377b9931e65a393c`
+and differs from repository source because separate airflow work remains
+uninstalled. Do not copy the whole source file into production. Deployment
+requires an exact v4-compatible backport, idle services, a guarded one-file
+transaction with pinned preimage/rollback receipt, installed-fit parity,
+timer recovery, and subsequent natural publication/training qualification.
+No production file, model artifact, schedule, confirmation label or control
+was changed by these experiments.

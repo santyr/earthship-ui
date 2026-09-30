@@ -1434,3 +1434,207 @@ def test_multihorizon_fit_rejects_final_unstable_model(monkeypatch):
     monkeypatch.setattr(dynamics, "validate_physics", reject_final)
     with pytest.raises(ValueError, match="unit circle"):
         dynamics.fit_dynamics_with_evidence(training)
+
+
+@pytest.mark.parametrize('prepared', [False, True])
+def test_batched_rollouts_match_scalar_arithmetic_and_sensitivity(prepared):
+    training, _ = synthetic_2r2c_days(6, 20260930)
+    endpoints = dynamics._select_multihorizon_endpoints(training, ())
+    endpoints = {
+        steps: tuple(replace(endpoint, confidence=(index % 3) / 2)
+                     for index, endpoint in enumerate(group))
+        for steps, group in endpoints.items()
+    }
+    forcings = dynamics._prepare_multihorizon_forcings(endpoints) if prepared else None
+    batches = dynamics._prepare_multihorizon_batches(endpoints, forcings)
+    assert all(not array.flags.writeable for batch in batches for array in batch[1:])
+    snapshots = tuple(array.tobytes() for batch in batches for array in batch[1:])
+    base = np.asarray([TRUE_AIR_COEFFICIENTS[name] for name in dynamics.AIR_NAMES]
+                      + [TRUE_MASS_COEFFICIENTS[name] for name in dynamics.MASS_NAMES])
+    rng = np.random.default_rng(20260930)
+    for _ in range(12):
+        vector = base * rng.uniform(0.8, 1.2, len(base))
+        scalar_rows, batch_rows = [], []
+        expected = _scalar_rollout_reference(vector, endpoints,
+            sensitivity_rows=scalar_rows, prepared_forcings=forcings)
+        actual = dynamics._multihorizon_objective_and_gradient(vector, endpoints,
+            sensitivity_rows=batch_rows, prepared_forcings=forcings, prepared_batches=batches)
+        assert actual[0] == expected[0]
+        np.testing.assert_array_equal(actual[1], expected[1])
+        np.testing.assert_array_equal(batch_rows, scalar_rows)
+    assert snapshots == tuple(array.tobytes() for batch in batches for array in batch[1:])
+
+
+def test_batched_rollouts_do_not_cache_mutable_inputs_by_object_identity():
+    training, _ = synthetic_2r2c_days(4, 20260930)
+    endpoints = dynamics._select_multihorizon_endpoints(training, ())
+    forcings = dynamics._prepare_multihorizon_forcings(endpoints)
+    vector = np.asarray([TRUE_AIR_COEFFICIENTS[name] for name in dynamics.AIR_NAMES]
+                        + [TRUE_MASS_COEFFICIENTS[name] for name in dynamics.MASS_NAMES])
+    before = dynamics._multihorizon_objective_and_gradient(vector, endpoints, prepared_forcings=forcings)
+    key = id(next(iter(endpoints.values()))[0].forcings[0])
+    outdoor, vent, solar = forcings[key]
+    forcings[key] = (outdoor+10, vent, solar)
+    after = dynamics._multihorizon_objective_and_gradient(vector, endpoints, prepared_forcings=forcings)
+    expected = _scalar_rollout_reference(vector, endpoints, prepared_forcings=forcings)
+    assert after[0] != before[0]
+    assert after[0] == expected[0]
+    np.testing.assert_array_equal(after[1], expected[1])
+
+
+def test_batched_rollouts_preserve_complete_fitted_result(monkeypatch):
+    training, _ = synthetic_2r2c_days(30, 20260930)
+    actual = dynamics.fit_dynamics_with_evidence(training)
+
+    def scalar(vector, endpoints, *, sensitivity_rows=None,
+               prepared_forcings=None, prepared_batches=None):
+        return _scalar_rollout_reference(
+            vector, endpoints, sensitivity_rows=sensitivity_rows,
+            prepared_forcings=prepared_forcings,
+        )
+
+    monkeypatch.setattr(dynamics, "_multihorizon_objective_and_gradient", scalar)
+    assert actual == dynamics.fit_dynamics_with_evidence(training)
+
+
+# Frozen scalar arithmetic from before the batch optimization.
+def _scalar_rollout_reference(
+    vector, endpoints, *, sensitivity_rows=None, prepared_forcings=None
+):
+    AIR_NAMES = dynamics.AIR_NAMES
+    MASS_NAMES = dynamics.MASS_NAMES
+    IDENTIFICATION_HORIZON_STEPS = dynamics.IDENTIFICATION_HORIZON_STEPS
+    _value = dynamics._value
+    _vent_forcing = dynamics._vent_forcing
+    _solar_terms = dynamics._solar_terms
+    values = np.asarray(vector, dtype=float)
+    expected = len(AIR_NAMES) + len(MASS_NAMES)
+    if values.shape != (expected,) or not np.isfinite(values).all():
+        raise ValueError("multihorizon objective coefficients are invalid")
+    air = dict(zip(AIR_NAMES, values[:len(AIR_NAMES)]))
+    mass = dict(zip(MASS_NAMES, values[len(AIR_NAMES):]))
+    air_outside = air["outside_exchange"]
+    air_mass = air["mass_exchange"]
+    air_solar_unshaded = air["solar_unshaded"]
+    air_solar_indoor = air["solar_indoor_closed"]
+    air_solar_outdoor = air["solar_outdoor"]
+    air_vent = air["vent_exchange"]
+    air_bias = air["bias"]
+    mass_air = mass["air_exchange"]
+    mass_outside = mass["outside_exchange"]
+    mass_solar_unshaded = mass["solar_unshaded"]
+    mass_solar_indoor = mass["solar_indoor_closed"]
+    mass_solar_outdoor = mass["solar_outdoor"]
+    jacobian_air_self = 1.0 - air_outside - air_mass
+    jacobian_mass_self = 1.0 - mass_air - mass_outside
+    loss = 0.0
+    gradient = np.zeros(expected, dtype=float)
+
+    for steps in IDENTIFICATION_HORIZON_STEPS:
+        group = tuple(endpoints.get(steps, ()))
+        if not group:
+            raise ValueError(
+                f"insufficient multihorizon origins for {steps * 5} minutes"
+            )
+        divisor = float(len(group))
+        for endpoint in group:
+            if len(endpoint.forcings) != steps:
+                raise ValueError("multihorizon forcing prefix is malformed")
+            state = np.asarray(
+                (endpoint.origin.air_f, endpoint.origin.mass_f), dtype=float
+            )
+            sensitivity = np.zeros((2, expected), dtype=float)
+            state_jacobian = np.empty((2, 2), dtype=float)
+            state_jacobian[0, 1] = air_mass
+            state_jacobian[1, 0] = mass_air
+            state_jacobian[1, 1] = jacobian_mass_self
+            direct = np.zeros((2, expected), dtype=float)
+            for forcing in endpoint.forcings:
+                if prepared_forcings is None:
+                    outdoor = float(_value(forcing, "outdoor_f"))
+                    vent = _vent_forcing(forcing)
+                    solar = _solar_terms(forcing)
+                else:
+                    outdoor, vent, solar = prepared_forcings[id(forcing)]
+                state_jacobian[0, 0] = jacobian_air_self - air_vent * vent
+                direct[0, :len(AIR_NAMES)] = (
+                    outdoor - state[0],
+                    state[1] - state[0],
+                    solar[0],
+                    solar[1],
+                    solar[2],
+                    vent * (outdoor - state[0]),
+                    1.0,
+                )
+                direct[1, len(AIR_NAMES):] = (
+                    state[0] - state[1],
+                    outdoor - state[1],
+                    solar[0],
+                    solar[1],
+                    solar[2],
+                )
+                next_air = (
+                    state[0]
+                        + air_outside * (outdoor - state[0])
+                        + air_mass * (state[1] - state[0])
+                        + air_solar_unshaded * solar[0]
+                        + air_solar_indoor * solar[1]
+                        + air_solar_outdoor * solar[2]
+                        + air_vent
+                        * vent
+                        * (outdoor - state[0])
+                        + air_bias
+                )
+                next_mass = (
+                    state[1]
+                        + mass_air * (state[0] - state[1])
+                        + mass_outside * (outdoor - state[1])
+                        + mass_solar_unshaded * solar[0]
+                        + mass_solar_indoor * solar[1]
+                        + mass_solar_outdoor * solar[2]
+                )
+                sensitivity = state_jacobian @ sensitivity + direct
+                state[0], state[1] = next_air, next_mass
+                if not math.isfinite(state[0]) or not math.isfinite(state[1]):
+                    raise ValueError(
+                        "multihorizon rollout state or sensitivity is invalid"
+                    )
+
+            # Nonfinite derivatives propagate through the linear recurrence.
+            # Check once per endpoint rather than allocating a boolean array
+            # and reducing it after every five-minute forcing step.
+            if not np.isfinite(sensitivity).all():
+                raise ValueError(
+                    "multihorizon rollout state or sensitivity is invalid"
+                )
+
+            target = np.asarray(
+                (endpoint.target.air_f, endpoint.target.mass_f), dtype=float
+            )
+            residual = state - target
+            confidence = float(endpoint.confidence)
+            if (
+                not np.isfinite(target).all()
+                or not np.isfinite(residual).all()
+                or not math.isfinite(confidence)
+                or not 0.0 <= confidence <= 1.0
+            ):
+                raise ValueError("multihorizon endpoint evidence is invalid")
+            for state_index in (0, 1):
+                error = residual[state_index]
+                loss += confidence * error * error / divisor
+                gradient += (
+                    2.0
+                    * confidence
+                    * error
+                    * sensitivity[state_index]
+                    / divisor
+                )
+                if sensitivity_rows is not None:
+                    sensitivity_rows.append(
+                        math.sqrt(confidence / divisor)
+                        * sensitivity[state_index].copy()
+                    )
+    if not math.isfinite(loss) or not np.isfinite(gradient).all():
+        raise ValueError("multihorizon objective is non-finite")
+    return float(loss), gradient
