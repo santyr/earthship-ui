@@ -1,0 +1,8 @@
+// Staged only: the live Exec Thing remains managed until qualified handoff.
+// Keep the existing private-credential script and polling policy unchanged.
+Thing exec:command:BTC_Price "BTC_Price" [
+    command="/etc/openhab/scripts/bitcoin.py",
+    interval=30,
+    timeout=15,
+    autorun=false
+]

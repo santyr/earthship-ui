@@ -1,5 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 next passive Thing migration: the Bitcoin Exec definition now
+preserves the exact existing credential-free command and 30-second/15-second
+polling configuration. Grammar and 53 focused guard tests pass; an actual
+networkless, one-CPU/no-extra-swap runtime passed managed/file/full-JVM-restart/
+managed rollback and new synthetic polls with both existing output links.
+All owned containers were removed, the live Thing stayed managed and unchanged,
+and inventory still has zero issues. Guarded live backup/transfer and a new real
+price receipt remain open; see the [candidate and remaining handoff](2026-09-30-bitcoin-exec-thing-candidate.md).
+
 September 30 rain-source diagnosis: the original counter and outdoor
 temperature independently expired during a 144.179-second station-specific
 receipt gap; indoor/north-wall reception continued. This is not change-only
