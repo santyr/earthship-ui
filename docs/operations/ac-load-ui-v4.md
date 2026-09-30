@@ -58,3 +58,29 @@ The legacy `accounting.loadStatus` intentionally remains
 `ac_load_evidence_unqualified` while the separate `acLoad` observation is
 shown. See the later checkpoint in [outstanding-work.md](outstanding-work.md)
 for supporting switch-state quality and backup gaps.
+
+## September 30 natural continuation and exact revision check
+
+The September 30 00:41:29–00:41:31 MDT AC writer and 09:15:29 publisher
+both exited zero naturally. The live v4 payload's September 29 observation
+matches the restricted stored reader's sole selected revision exactly: ID 9,
+SHA-256 `8d854640a75fba586de9d75f93eb49a0d2b978f701c1cdafc3c5dccd47c97e37`,
+5.205524469722256 kWh and coverage 0.9999640625000095. The reader validated
+the stored encoder/digest, completion window and revision clock; all corresponding
+published values agree. The payload was within its 15-minute freshness limit.
+Both the stored cross-domain balance and v3-compatible latest load are still
+null, and the legacy accounting load status remains explicitly unqualified.
+No write or forced job was used for this independent check.
+
+The actual Python publisher validator and JavaScript UI reader both accept
+the current payload. The UI correctly remains `degraded` with only
+`daily_source_quality_not_ok`; a qualified AC observation does not repair
+the separate supporting-source evidence gaps. All 82 focused Energy UI
+reader/configuration tests pass. No warning was suppressed or relabeled.
+
+Solar_PV's canonical current-system and cross-repository contract documents
+now distinguish this live v4 boundary from their historical September 20/23
+staging statements. The AC writer/publisher activation is already completed;
+do not reopen it as a pending default-off task. Supporting source-quality,
+thermal action/skill, protected-control recovery and off-host deferral retain
+their separate evidence and authority boundaries.

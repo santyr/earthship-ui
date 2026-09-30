@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 live Energy Analytics AC continuation is verified, not a pending
+activation: the natural AC writer and five-minute v4 publisher exited zero,
+and a fresh restricted reader exactly matches September 29 revision 9 to the
+published day/window/clock/digest, 5.205524 kWh and 99.996406% coverage. Separate
+AC/DC balance and legacy latest-load fields remain withheld. Solar_PV's two
+canonical architecture documents now mark earlier default-off/v3-only claims
+as historical; no service, policy, control or data was changed. The fresh
+non-atomic configuration inventory reports zero issues, while showing many
+resources still managed; it does not establish full migration or protected
+restart completion. See the
+[natural exact revision check](ac-load-ui-v4.md#september-30-natural-continuation-and-exact-revision-check).
+
 September 30 BMS estimator no-event cron expiry is now qualified in the actual
 isolated OpenHAB JVM: unchanged synthetic inputs, no manual runnow or writes,
 original 90-second current TTL, OFF plus both zero outputs observed 28.910
