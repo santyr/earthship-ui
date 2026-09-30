@@ -191,6 +191,14 @@ def main():
             try:
                 # Only provider editability differs from the exact managed contract.
                 p.validate({**row, 'editable': True}, linked_outputs())
+                # The only extra membership is the declared synthetic poll-time probe.
+                comparison = deepcopy(row)
+                for channel in comparison.get('channels', []):
+                    if 'linkedItems' in channel:
+                        channel['linkedItems'] = [name for name in channel['linkedItems']
+                                                  if name != PROBE]
+                if p.definition(comparison) != p.definition(original):
+                    return False
             except RuntimeError:
                 return False
             status, stamp = rest('GET', '/items/' + PROBE)

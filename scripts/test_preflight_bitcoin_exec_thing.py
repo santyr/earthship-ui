@@ -41,6 +41,18 @@ def test_exact_managed_baseline():
     preflight.validate(thing(), links())
 
 
+def test_provider_neutral_definition_preserves_labels_and_ignores_membership_order():
+    original = thing()
+    original['channels'][0]['linkedItems'] = ['BTC_USD_Price', 'BTC_Output_Receipt_JSON']
+    reordered = deepcopy(original)
+    reordered['editable'] = False
+    reordered['channels'][0]['linkedItems'].reverse()
+    reordered['channels'].reverse()
+    assert preflight.definition(original) == preflight.definition(reordered)
+    reordered['channels'][0]['label'] = 'Changed label'
+    assert preflight.definition(original) != preflight.definition(reordered)
+
+
 @pytest.mark.parametrize('field,value', [
     ('command', '/different/script'), ('interval', 60), ('interval', True),
     ('timeout', 10), ('timeout', 15.0), ('autorun', True), ('autorun', 0),

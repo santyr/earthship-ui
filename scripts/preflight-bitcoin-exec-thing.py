@@ -5,6 +5,7 @@ No apply path, command execution, provider write, backup or service operation.
 Syntax qualification is distinct from actual binding/provider qualification.
 """
 import argparse
+from copy import deepcopy
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -40,6 +41,18 @@ Thing exec:command:BTC_Price "BTC_Price" [
 def require(ok, reason):
     if not ok:
         raise RuntimeError(reason)
+
+
+def definition(thing):
+    """Provider-neutral full contract; membership order is not a definition."""
+    result = {key: deepcopy(thing.get(key)) for key in (
+        'UID', 'thingTypeUID', 'label', 'bridgeUID', 'location', 'properties', 'configuration')}
+    channels = deepcopy(thing.get('channels', []))
+    for channel in channels:
+        if 'linkedItems' in channel:
+            channel['linkedItems'] = sorted(channel['linkedItems'])
+    result['channels'] = sorted(channels, key=lambda channel: channel['id'])
+    return result
 
 
 def validate_source(path):

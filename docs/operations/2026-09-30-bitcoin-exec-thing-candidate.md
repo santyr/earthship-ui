@@ -91,3 +91,42 @@ python3 scripts/preflight-bitcoin-exec-thing.py --syntax
 python3 -m pytest -q scripts/test_preflight_bitcoin_exec_thing.py scripts/test_qualify_bitcoin_exec_provider.py scripts/test_preflight_bitcoin_price_item.py scripts/test_qualify_bitcoin_price_provider.py
 python3 scripts/qualify-bitcoin-exec-provider.py
 ```
+
+## Guarded adapter qualification
+
+`scripts/migrate-bitcoin-exec-thing.py --check` now verifies the reviewed real
+feed and receipt-transform bytes, existing whitelist, exact managed Thing,
+file-owned dependent Item definitions, Group/member semantics and a fresh
+successful price receipt. It streams a fixed-cutoff, read-only Item 34 prefix;
+the September 30 03:39 MDT preflight found 1,106,136 rows / 40,035,792 CSV bytes
+before `2026-09-30T09:37:33.433529Z`, SHA-256
+`f98d1801e9aec4088ba002c8974c92e4f0eca9ed366120e1fb991967ef91880b`.
+This digest is a preservation proof, **not a new JDBC recovery archive**.
+
+The release-gated apply path retains a private mode-0700 managed REST/prefix
+and Thing/link JSONDB preimage, rechecks the baseline, withdraws only this
+Thing, and publishes the file atomically without overwriting an existing
+definition. It requires exact provider/full-channel-metadata readback, unchanged
+Item/Group/source definitions, a new real success receipt matching the current
+price, persistence of that same original receipt, and the identical fixed price
+history prefix. No direct SQL/Item/link write or OpenHAB restart is included.
+Rollback withdraws only its own unchanged inode/file before recreating the
+minimal managed Thing; it also requires a new successful durable receipt and
+unchanged history. Foreign/changed files require manual recovery, not removal.
+
+Eighty-six focused tests pass, including backup privacy/failure cleanup,
+non-overwrite publication, both provider states, metadata preservation,
+scoped REST mutations and transfer/receipt/history failure rollback. The actual
+networkless provider/full-JVM-restart/managed rollback was rerun with the full
+channel labels/descriptions/properties comparison, and passed; its owned
+container was removed. The live apply gate remains off at this checkpoint.
+
+Exact live plan: run a fresh guarded preflight and private backup, perform this
+single-Thing handoff with its existing 30-second polling/15-second timeout,
+verify the required real durable receipt and Item 34 prefix, then independently
+read back file ownership/source and all dependent definitions. Declare only
+this Thing in the ownership manifest after verification, and turn the one-shot
+apply gate off again. On a failed gate perform the adapter's guarded rollback
+and report the retained private recovery path. A brief Bitcoin-card update gap
+is possible; no pump, BMS, forecast, collector, signer or other resource will be
+changed, and no whole-OpenHAB restart is planned.
