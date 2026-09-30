@@ -1,5 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 thermal divergence work found and fixed a source scheduling bug:
+learned shade closure before a midday issue was lost because each horizon
+incorrectly started open. The candidate preserves the modeled cyclic state;
+377 regressions pass. Exact replay plus restricted indoor receipts qualified
+17 fixed-artifact 1/6/12-hour comparisons: aggregate errors improved, but the
+sample is one day and no 24-hour target matured. Installed runtime/artifact
+and controls remain unchanged. Solar-input diagnostics also exposed an
+unqualified joint indoor/outdoor shade-gain interaction, now queued for a
+versioned physical-model refit rather than a coefficient tweak. See the
+[candidate and measured comparison](2026-09-29-prediction-learning-review.md#september-30-solar-sensitivity-and-learned-shade-origin-correction).
+
 September 29 journal cutover preflight: the existing private admin connection
 works as the schema owner. Read-only inspection verified the exact v1 shape
 and zero window/skylight rows. The [proposed attended journal cutover](2026-09-29-thermal-airflow-journal-v2-candidate.md#proposed-attended-production-journal-cutover)

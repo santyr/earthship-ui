@@ -714,6 +714,36 @@ def test_nonwinter_shade_transition_is_not_invented_without_solar_or_learned_evi
     assert schedule["shadeTimingStatus"] == INSUFFICIENT_DATA
 
 
+@pytest.mark.parametrize('close_minute,open_minute,hour,minute,closed', [
+    (600, 1140, 9, 55, False), (600, 1140, 10, 0, True),
+    (600, 1140, 12, 0, True), (600, 1140, 18, 55, True),
+    (600, 1140, 19, 0, False), (600, 1140, 20, 0, False),
+    (1380, 420, 23, 0, True), (1380, 420, 6, 55, True),
+    (1380, 420, 7, 0, False), (1380, 420, 22, 0, False),
+    (600, 600, 12, 0, False),
+])
+def test_learned_shade_initial_state_respects_transition_before_origin(
+        monkeypatch, close_minute, open_minute, hour, minute, closed):
+    monkeypatch.setattr(behavior, '_has_learned_timing', lambda *_: True)
+    monkeypatch.setattr(behavior, '_learned_minute',
+                        lambda _model, action, _rows, _default:
+                        close_minute if action == 'indoor_shade_close' else open_minute)
+    start = datetime(2026, 9, 29, hour, minute, tzinfo=DENVER)
+    rows = [{'at': start+i*STEP, 'outdoor_f': 65., 'radiation_wm2': 300.}
+            for i in range(24*12+1)]
+    shade = behavior._nonwinter_shade_schedule(None, 'warm', rows)
+    assert shade['indoorShadeInitial'] == ('closed' if closed else 'open')
+    schedule = {'mode': 'warm', 'outdoorShade': 'present', 'airflowSegments': (), **shade}
+    forcings = behavior._forcing_rows(rows, schedule)
+    first_minute = forcings[0]['at'].hour*60+forcings[0]['at'].minute
+    first_closed = (first_minute-close_minute) % 1440 < (open_minute-close_minute) % 1440
+    assert forcings[0]['indoor_shade_closed'] == float(first_closed)
+    assert shade['indoorShadeSource'] == 'learned'
+    assert all(event['at'] >= start for event in shade['shadeTransitions'])
+    evening = next((forcing for forcing in forcings if forcing['at'].hour == 20), None)
+    assert evening is not None and evening['indoor_shade_closed'] == 0.
+
+
 def test_fit_persists_observed_seasonal_action_vocabulary_and_boosted_windows():
     model = fit_behavior(warm_samples_with_boosted_doors())
     vocabulary = {item.mode: item for item in model.seasonal_vocabulary}["warm"]

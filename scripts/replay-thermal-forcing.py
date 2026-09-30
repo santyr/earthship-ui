@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only exact thermal v2 replay and optional assumed-closed vent diagnostic.
+"""Read-only exact thermal v2 replay and optional forcing diagnostics.
 
 Counterfactual output is modeled, never a confirmed action or training label.
 The script refuses to compare schedules unless the as-issued output first
@@ -7,9 +7,11 @@ replays exactly under the selected, hash-bound runtime source and artifact.
 """
 
 import argparse
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
+import math
 from pathlib import Path
 import re
 import sys
@@ -57,7 +59,7 @@ def _closed_vent_schedule(model, rows, original):
             'ventTimingStatus': 'assumed_closed'}
 
 
-def _horizon_deltas(issued, hypothetical, decision):
+def _horizon_deltas(issued, hypothetical, decision, *, value_field='assumed_closed_f'):
     first = {point['at']: point for point in issued['forecast']['trajectory']}
     second = {point['at']: point for point in hypothetical['forecast']['trajectory']}
     if first.keys() != second.keys():
@@ -76,12 +78,29 @@ def _horizon_deltas(issued, hypothetical, decision):
         issued_f = first[at]['hallwayF']
         hypothetical_f = second[at]['hallwayF']
         rows.append({'hours': hours, 'target_at': at, 'issued_f': issued_f,
-                     'assumed_closed_f': hypothetical_f,
+                     value_field: hypothetical_f,
                      'delta_f': round(hypothetical_f - issued_f, 3)})
     return rows
 
 
-def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None):
+def _solar_scaled_capture(capture, scale):
+    """Copy weather inputs only; never change captured facts or current readings."""
+    changed = {**capture, 'forecast_rows': deepcopy(capture['forecast_rows'])}
+    for row in changed['forecast_rows']:
+        value = row['radiationWm2']
+        if (type(value) not in (int, float) or not math.isfinite(value)
+                or not 0 <= value <= 1600 or not 0 <= value * scale <= 1600):
+            raise ValueError('hypothetical solar forcing outside physical range')
+        row['radiationWm2'] = value * scale
+    return changed
+
+
+def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
+           solar_scale=None):
+    if solar_scale is not None and (
+            type(solar_scale) not in (int, float) or not math.isfinite(solar_scale)
+            or not 0 <= solar_scale <= 2):
+        raise ValueError('solar scale must be finite and between zero and two')
     if expected_runtime_revision is not None and (
             not isinstance(expected_runtime_revision, str)
             or re.fullmatch(r'[0-9a-f]{64}', expected_runtime_revision) is None):
@@ -139,6 +158,17 @@ def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None):
             'interpretation': 'modeled schedule hypothesis, not observed vent state',
             'horizons': _horizon_deltas(issued, hypothetical, decision),
         }
+    if solar_scale is not None:
+        hypothetical = _run(_solar_scaled_capture(capture, solar_scale), artifact)
+        if hypothetical['status'] != 'shadow' or hypothetical['confidence']['grade'] == 'unavailable':
+            raise ValueError('solar diagnostic did not produce a usable shadow forecast')
+        result['solar_sensitivity'] = {
+            'interpretation': 'weather-input hypothesis; includes modeled schedule reselection, not measured irradiance or action evidence',
+            'scale': solar_scale,
+            'schedule_changed': hypothetical['schedule'] != issued['schedule'],
+            'horizons': _horizon_deltas(issued, hypothetical, decision,
+                                       value_field='hypothetical_f'),
+        }
     if _runtime_manifest_revision(RUNTIME_ROOT) != revision:
         raise ValueError('runtime source changed during replay')
     return result
@@ -149,11 +179,14 @@ def main():
     parser.add_argument('--runtime-root', required=True, type=Path)
     parser.add_argument('--capture', required=True, type=Path)
     parser.add_argument('--assume-vents-closed', action='store_true')
+    parser.add_argument('--solar-scale', type=float,
+                        help='diagnostic forecast-radiation multiplier, 0–2; never changes captured observations')
     parser.add_argument('--expected-runtime-revision',
                         help='full SHA-256 pin when publisher and training sources differ; exact replay remains required')
     args = parser.parse_args()
     print(json.dumps(replay(args.capture, assume_vents_closed=args.assume_vents_closed,
-                           expected_runtime_revision=args.expected_runtime_revision),
+                           expected_runtime_revision=args.expected_runtime_revision,
+                           solar_scale=args.solar_scale),
                      sort_keys=True))
 
 

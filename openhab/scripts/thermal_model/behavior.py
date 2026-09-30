@@ -681,7 +681,15 @@ def _nonwinter_shade_schedule(model, mode, rows):
         else:
             first_state = "open"
     if learned:
-        first_state = "open"
+        # A transition earlier today is outside this horizon, not evidence
+        # that it never occurred in the modeled daily schedule. Preserve its
+        # cyclic state, including a closed interval spanning local midnight.
+        origin_minute = _minute_of_day(_value(rows[0], "at"))
+        closed_duration = (open_minute - close_minute) % 1440
+        first_state = (
+            "closed" if (origin_minute - close_minute) % 1440 < closed_duration
+            else "open"
+        )
 
     open_events = [item for item in transitions if item["state"] == "open"]
     close_events = [item for item in transitions if item["state"] == "closed"]

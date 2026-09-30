@@ -380,3 +380,69 @@ further regime analysis, not graduation. The large 18:00 cold error persists
 with zero modeled vent forcing even though the outdoor forecast is warm;
 isolate solar/shade forcing and stored-heat dynamics next rather than assuming
 vent timing alone accounts for the divergence.
+
+### September 30 solar sensitivity and learned-shade origin correction
+
+The bounded replay tool now accepts `--solar-scale 0` through `2`. It first
+requires exact original replay under the pinned runtime, then changes only a
+copied forecast-radiation input. It refuses nonfinite/out-of-range irradiance,
+preserves captured/current facts and reports whether modeled schedule selection
+changes. This is a weather-input hypothesis, never measured irradiance, action
+evidence or a new calibration label. All 18 tool tests pass.
+
+Eight sensitivity runs used the same September 29 accepted artifact
+`e707ce61cac24571cc9d4280e54a400422f949f707cdc949481445de696ccff7`
+and installed runtime
+`fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`.
+Every original replay passed. At the 08:26/10:26 origins, zero forecast solar
+changed the six-hour air prediction by −10.433/−9.192°F. At the 12:26/14:27
+origins, both zero and 1.25× solar changed it by 0.000°F. The modeled
+schedule did not change in these tests. This identified a schedule boundary,
+not proof that the real house stopped receiving solar heat.
+
+The learned nonwinter shade scheduler always initialized a new horizon as
+**open**, even when that day's modeled closing event preceded the issue and
+the opening event was still ahead. Those missing past transitions do not mean
+that the modeled daily schedule reset. The source correction derives the
+initial state from the learned cyclic close/open clock times; future transition
+timestamps and their modeled provenance are preserved. Eleven new regressions
+cover before/at/after both transitions, midnight-spanning intervals and tied
+times. One initial test expectation incorrectly ignored a closing transition
+at the first five-minute forcing; it was corrected before implementation.
+All 377 affected behavior/pipeline/evaluation/artifact/dynamics/replay tests pass.
+
+The installed behavior file remains unchanged at SHA-256
+`f2bcbe5021a68cde2a824f50311acc99a499f828b490a9ba6dad57bf13489a8e`;
+the source candidate is
+`dedce8c8b4488aaa899b08e105adbc9486a23c1c4a77582e9e8d3ae54f8e0372`.
+Their only semantic difference is that initialization. A fresh process loaded
+only the candidate function into the otherwise pinned installed runtime for
+offline comparison, after each original capture replayed exactly. The exact
+fourteen target instants were read through the restricted indoor reader with
+WH32B ID 235, original receipt/persistence/expiry checks and no numeric fallback.
+All 17 matured pairs qualified, with no journal, Item, model or installed-file
+write. They share one artifact and one day, not seventeen independent days.
+
+| Horizon | Overlapping pairs | As-issued / corrected MAE °F | Non-overlapping pairs | As-issued / corrected MAE °F |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 8 | 0.917 / 0.719 | 8 | 0.917 / 0.719 |
+| 6 hours | 6 | 3.197 / 2.618 | 2 | 3.062 / 2.148 |
+| 12 hours | 3 | 2.792 / 1.830 | 1 | 0.905 / 0.905 |
+
+The 12:26 six-hour estimate moved from 67.609 to 75.743°F versus a qualified
+72.500°F actual: the cold error became a smaller warm error, not a complete
+fix. The 14:27 estimate moved from 67.836 to 69.664°F versus 71.600°F actual.
+Two later six-hour cold errors were unchanged. No 24-hour target for this
+artifact had matured during the study, and no shadow graduation is claimed.
+
+Another physical-model limitation is now explicit: `solar_indoor_closed` is
+applied independently of the outdoor shade, while `solar_outdoor` applies only
+with indoor shades open. The accepted outdoor-shade gain is essentially zero,
+so closing the modeled indoor shade can increase heat gain when outdoor shade
+is present. Existing constraints bound each shade gain below unshaded gain but
+do not constrain their combined interaction. Do not fix that by imposing an
+unsupported ordering between indoor-only and outdoor-only attenuation. A
+versioned joint-shade model, qualified state/outcome evidence and chronological
+refit must resolve it. The scheduling correction remains source-only pending
+broader candidate qualification; accepted runtime, artifacts, collector and
+controls remain unchanged.
