@@ -120,3 +120,59 @@ then, not hindsight actual weather. Sparse/absent snapshots remain withheld.
 Do not claim winter/general-season skill from September rows alone. Deploy
 only a tested improvement without changing existing issued history or outcome
 definitions. This audit adds an experiment, not a live model weight change.
+
+## Executable historical comparison checkpoint
+
+`scripts/experiment-forecast-solar-context.py` now assembles one 08:45 Mountain
+origin per local date, a 24-hour raw outdoor-temperature forecast from one
+complete weather issuance captured before that origin, and a source-qualified
+WH65B/206 temperature receipt at the target. It reuses the existing restricted
+forecast reader and exact temperature identity/expiry policy. Historical Astro
+daylight and season are selected only from original rows persisted by the
+origin. The daylight feature is **the origin day's duration**, not a claimed
+tomorrow calculation. The Sun Items are not readable by `energy_power_reader`;
+the existing authenticated read-only OpenHAB JDBC endpoint supplies them without
+any new database grant. No in-process Astro action or exporter was installed.
+
+`openhab/scripts/forecast_solar_ablation.py` compares raw forecast, fitted
+constant bias, season-only, daylight-only and combined residual corrections.
+Ridge strength is fixed at 1; feature scaling, intercept and coefficients use
+training rows only. Training targets must have elapsed before the frozen split.
+Unseen/constant training features acquire no invented effect, daily forecast
+windows do not overlap, and missing observations are not interpolated. The
+tool refuses spring-forward daily origins with overlapping 24-hour targets;
+fall-back origins preserve 08:45 local time and remain nonoverlapping.
+This is not the current production Kalman correction or a thermal simulation.
+
+The September 30 15:10 MDT household run was:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/experiment-forecast-solar-context.py \
+  --start-day 2026-09-05 --end-day 2026-09-30 --split-day 2026-09-25
+```
+
+Of 25 origin dates, 14 had no qualified outdoor target receipt and 11 paired:
+six training days and five held-out days. The fixed minimum remains ten training
+and five test days, so the fitted comparison correctly reports
+`withheld_insufficient_pairs`, with no variant scores. Do not lower that minimum
+after inspecting the result just to manufacture a comparison. Unfitted raw
+forecast scoring remains legitimate: those five held-out origins have MAE
+**1.553°F** and signed forecast-minus-actual bias **+1.085°F**. Their outcomes
+occur September 26–30 at 08:45; these numbers must not be attributed to the
+learned UI correction or to an improved daylight model. Pair digest:
+`8517d771162318768cf00f31ba7b03ad1ff117ed4eda6430026d2f9d0f65f6d6`.
+
+A separate restricted, read-only 90-day forecast capture census found 386
+distinct issues on 34 local dates, August 20–September 30, with no issue dates
+August 28–September 4. A capture date is not necessarily a qualified target or
+a complete issue; this does not satisfy a 90-paired-day model prerequisite.
+Later expansion needs a newly specified chronological split with enough mature
+training/holdout days, not hindsight backfill of the missing receipts.
+
+All 68 affected ablation, archive-reader and temperature-history tests pass.
+The first household attempt refused a 400-row solar archive limit: the retained
+season history has 856 rows, including older repeated observations. Only the
+season reader's explicit limit was corrected to 2,048; daylight remains bounded
+to 64 rows. Original ordering and as-of selection remain enforced; no rows were
+deduplicated or source TTLs relaxed. No temporary data, model artifact, timer,
+learned state, Item, notification, collector or control was created or changed.

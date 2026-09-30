@@ -1,5 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 solar/season forecasting comparison now has an executable,
+read-only household adapter and pure frozen-split residual evaluator. Sixty-eight
+affected tests pass. The actual 25-origin run paired 11 qualified outcomes,
+only six before the fixed split, and correctly withheld model comparisons below
+the ten-day training minimum. Five held-out raw forecasts have MAE 1.553°F and
+warm bias 1.085°F; the production Kalman correction was not scored or changed.
+The capture census has 34 issue dates, not 90 paired days. Current-day daylight
+is as-of known; future-date Astro action execution and sufficient chronological
+data remain open. No artifact or control was deployed. See the
+[executable comparison checkpoint](2026-09-30-astro-forecast-input-audit.md#executable-historical-comparison-checkpoint).
+
 September 30 14:51 MDT season countdown natural writer/JDBC gate passed.
 The event log attributes the 82-to-81-day change to the exact file-owned rule;
 installed Item/rule hashes and registry ownership remain exact. A read-only
