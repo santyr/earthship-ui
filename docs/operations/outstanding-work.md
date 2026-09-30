@@ -27,6 +27,16 @@ worker restart ciphertext reuse. No CLI/unit/timer was installed or DM sent.
 Production transport/identity/routes, attended delivery and activation remain
 open. See the [worker checkpoint](2026-09-30-pre-dusk-notification-candidate.md#locked-worker-integration-checkpoint).
 
+The source-only production entry point now fixes the approved sender/recipient,
+enforces actual-clock target selection and rejects delivery date overrides.
+Today has one morning archive issue and no pre-dusk issue yet, so read-only
+qualification is appropriately withheld. The pinned websockets 16.0 dependency
+passed 174 focused and all 475 completion tests in temporary storage, since
+removed. Required helper modules are absent from the production scripts tree;
+bundle deployment/rollback, household keyer/routes, attended receipt and
+activation remain open. No CLI/unit/timer was installed or message sent. See
+the [entry-point checkpoint](2026-09-30-pre-dusk-notification-candidate.md#production-entry-point-and-pinned-dependency-checkpoint).
+
 The latest runtime audit passes all 1024 independent arithmetic checks in a
 later natural window. Deterministic regressions prove identical alpha-0.05
 smoothing for identical source observations despite extra evaluations and

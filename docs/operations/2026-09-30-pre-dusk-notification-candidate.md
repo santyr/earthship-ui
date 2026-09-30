@@ -121,3 +121,43 @@ This closes source-level locked worker composition, not installed production
 credentials, signer/dependency/route qualification, attended delivery or
 activation. No CLI, startup unit, timer or production change is included.
 Owned temporary test storage was removed.
+
+## Production entry-point and pinned dependency checkpoint
+
+`pre_dusk_notification_cli.py` now provides `--check-source` and separately
+release-gated `--deliver`. Identities are fixed to the operator-approved Hex
+sender and DM recipient npubs; the Sat NIP-46 client identity is not substituted
+for either. Source checks use the real clock and fixed private local reader
+configuration (`energy_power_reader`, OpenHAB on loopback). There is no
+historical-clock flag. Delivery cannot override its active prediction date.
+The active target rolls at 11:00 Mountain, including the DST transition.
+
+Delivery still rejects before credentials, history, signer or state access
+while `RELEASE_READY=False`. If later qualified, it uses the fixed private
+route snapshot and dedicated state paths, approved signed routes and pinned
+keyer; it exposes no listener, prompt, journal or control capability. Source
+checks never open the outbox or load the signer and print closed status fields,
+not original source JSON, transport errors, tokens, keys or signing connections.
+
+The September 30 real-clock check was correctly withheld: the host token and
+restricted reader configuration validated, the current-day archive had exactly
+one morning issue and zero pre-dusk issues. No forecast was rerun. This is an
+expected pre-issue state, not a delivery or source-provenance failure.
+
+Installed-script inspection found the required `thermal_messaging.py`,
+`thermal_confirmation.py`, `thermal_state_backup.py`, and original-issue helper
+modules absent from `/home/sat/openhab/scripts`. Do not install only the CLI or
+claim a production deployment from the working-tree tests. A reviewed bundle,
+dependency/runtime validation and rollback plan are still needed.
+
+The exact pinned `websockets==16.0` package was installed in an owned temporary
+target only. Under system CPython 3.12.3 it passed all 174 focused tests and the
+full 475-test completion suite, including actual loopback relay exchanges.
+Distribution RECORD SHA-256:
+`d8f7088dc54e89da7edd97671bd1d5a43910f91e0520865ac36207d382450b4b`.
+The package metadata requires Python >=3.10. This supersedes the earlier cached
+15.0.1 loopback check, but is not household identity or public-relay delivery
+qualification. No global/production package installation occurred.
+Owned dependency and test temporary directories were removed; normal package
+manager cache is retained for efficient reuse. No startup unit/timer was
+created, no release gate opened, and no message was sent.
