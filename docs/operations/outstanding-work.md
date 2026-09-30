@@ -9,8 +9,14 @@ points using the same frozen morning drop assumption. A separate
 pre-dusk worker, timer, Items and UI receipt path are tested, installed and
 enabled for natural display-only issuance; the morning forecast/scoring and
 DM policy remain unchanged. See the
-[pre-dusk release record](2026-09-29-pre-dusk-trough.md). Natural publication,
-JDBC readback and longer seasonal scoring remain open. An
+[pre-dusk release record](2026-09-29-pre-dusk-trough.md). Its first natural
+17:30 MDT issue (81%) has now passed exact original-source and JDBC
+qualification, and the running Lenovo-width Energy display selected it.
+Completed-night scoring and longer seasonal validation remain open.
+The [18:00, 18:30 and 19:00 natural checks](2026-09-29-pre-dusk-trough.md) were
+successful outside-window no-ops; exact JDBC requalification still found one
+late receipt and one numeric write. Restart and later-night idempotence remain
+separate gates. An
 [origin-aware charge-timing and prediction review](2026-09-29-prediction-learning-review.md)
 records the short full-charge history, post-full discharge and staged model
 priorities; adaptive timing remains shadow-only.
@@ -179,6 +185,23 @@ at 13:51 MDT; at 13:52 both were OFF and `SouthOutlet_AutoStatus` reported
 `reason=cycle_completed,origin=auto,pump=east` with the next eligible pump
 South at 14:37. This corroborates the automatic stop/status path, not a new
 independent physical-flow observation or a stale-telemetry interruption test.
+At 18:55 MDT September 29, after the 18:48 sunset, a separate read-only live
+check found both protected pump output Items `OFF`, sun elevation about
+-1.85°, and the controller's latest 18:55 evaluation reporting
+`reason=after_dark` with scheduling `blocked`. This verifies the daylight
+refusal and OFF posture at one natural after-dark tick; it is not an induced
+mid-cycle sunset stop or a physical contactor/flow measurement.
+An authenticated read-only registry projection at 18:57 MDT separately
+confirmed the enabled live rule's exact source hash
+`e697e262...108970d18`, one manual-request trigger, one every-minute cron
+trigger (`0 * * * * ?`), and no fixed time conditions. The matching tracked
+source evaluates the elevation safety gate **before** its active-cycle
+branch; on a minute evaluation at elevation `<= 0`, it clears timer ownership
+and commands both pumps OFF. The 36 focused daylight/greywater simulations
+passed, including an active cycle interrupted by a sunset tick and an inert
+old completion timer. This supports the intended at-most-next-minute software
+stop path; it does not prove a real pump was running across this sunset or
+measure physical shutdown latency.
 At 07:06 MDT the first observed daylight evaluations under the new rule had
 sun elevation above zero and `reason=low_soc` with evidence SoC 71%, threshold
 98% and both pump Items OFF. Independent readback found `BMS_Comms_Status=OK`
@@ -280,6 +303,14 @@ the private managed backup is retained. Ownership is provisional pending a
 later restart check. The natural 14:51 MDT Astro `Sun_TimeLeft` change triggered
 the file rule's expected “82 days until Winter” output with paired event-log
 and JDBC history; no Item was forced or service restarted.
+The separate [countdown display Item](2026-09-29-season-countdown-item-candidate.md)
+was approved for an attended 19:21 MDT file-provider cutover. Exact preflight,
+private backup, file/managed/file rollback exercise, and independent file
+provider/JDBC readback passed with Item 176 and its 217-row history intact.
+The one-shot apply gate is closed again. Item ownership is provisional until
+the next natural `Sun_TimeLeft` state change posts and persists a new display
+value; unchanged Astro updates and provider-restored state do not qualify.
+Retain rollback and keep the separate whole-OpenHAB restart gate open.
 The [sky-condition rule candidate](2026-09-29-sky-condition-rule-file-candidate.md)
 preserves its four change triggers, two-minute timer and change-only display
 calculation in a staged JS file. Five focused behavior tests and an isolated
@@ -407,6 +438,18 @@ live Item/Item 610 JDBC/v2 forcing-capture match under the accepted artifact.
 The advisory remained `none` and confidence low. This closes the new
 optimization's publisher-continuity gate; the 06:50 trainer still must verify
 whole-run CPU and accepted-artifact continuity.
+The later natural 06:50 trainer completed as recorded above. An additional
+[evening optimization](2026-09-27-thermal-selector-efficiency.md)
+hoists fixed coefficient lookups and Jacobian entries out of the dominant
+five-minute rollout loop. Two like-for-like 30-day synthetic fits measured
+3.335/3.295 seconds before and 2.990/2.991 seconds after, with an identical
+complete fitted-result digest. The complete 28-file thermal Python suite
+passed 737 tests with one optional skip. A guarded one-file transaction at
+19:15 MDT installed the exact optimized `dynamics.py` over its pinned
+preimage, retained a private rollback receipt, and passed an installed-v4
+synthetic fit; both user timers returned active/waiting. No new natural trainer
+or publisher has exercised the change, so retain those gates before claiming
+production speed or changing shadow status.
 
 September 29 read-only file-first inventory: 385 managed and 54 non-managed
 Items, 81/4 Things, 39/0 rules and 246/21 links, with zero graph/ownership
@@ -3852,6 +3895,45 @@ to relax the source TTL. The 166.630832 W input is still an as-persisted
 diagnostic, not a direct Java `averageBetween` result. Keep the live rule
 unchanged and the guarded estimator disabled pending transition and fault
 qualification.
+September 29 17:30–18:30 MDT read-only late-day replay covered another 121
+half-minute ticks. The candidate reported `bms` 102, `evening` 17 and
+fail-closed `off` 2; the live basis remained `bms` at all 19 disagreement
+ticks. No noncharging time-to-full reversal appeared. Exact persisted-receipt
+inspection at 17:54 and 17:55 found source-bound SoC, current, voltage, AC
+and PV still fresh, but the native remaining-Ah field had passed its own
+120-second original-event expiry by 2.096 and 0.760 seconds respectively.
+Thus the two `off` ticks are attributable to BMS auxiliary renewal gaps, not
+an unexplained mode transition. This one-hour sample still does not cover the
+later night or fault/restart behavior, and the 166.630832 W overnight input
+remains an as-persisted diagnostic. Do not promote the candidate or lengthen
+its freshness contract on this evidence alone.
+The live Discover BMS poller reports ONLINE, but the UI's redacted Thing
+endpoint does not expose its configuration. The earlier source preflight
+recorded its 30-second poll and the two auxiliary data Things' 60-second
+unchanged-update settings. The runtime replay's fresh DC current/voltage at
+the two auxiliary `off` ticks came from the **separate Schneider SunSpec
+poller**, not the Discover BMS poller. Their freshness therefore cannot be
+used as evidence that the auxiliary source was renewing. Any cadence remedy
+should qualify the native Discover event path and its restart/fault behavior;
+do not infer that a global BMS TTL extension or the candidate estimator is
+ready from the separate current channel.
+The read-only replay now emits at most 12 raw source-timing snapshots for
+candidate `off` ticks, without changing the estimator or treating those
+snapshots as its validity audit. A seven-test regression group passed. The
+same natural window extended through 18:48:30 MDT, seven seconds after the
+recorded 18:48:23 sunset: 158 half-minute ticks, `bms` 139, `evening` 17,
+`off` 2, and no new disagreement after 18:02:30. Its automatic timing
+snapshots independently exposed the same remaining-Ah expiries while SoC,
+current and voltage retained positive validity. One post-sunset tick is not
+an overnight transition qualification; retain the default-off gate pending
+later-night, fault and restart evidence.
+An additional read-only 18:49–19:25 MDT September 29 replay covered 73
+post-sunset half-minute ticks: the candidate reported `bms` 72 times and
+`evening` once at the first tick, with no `off` or noncharging time-to-full
+reversal. The live rule remained `bms`; the lone candidate disagreement was
+`bms -> evening` at 18:49. This extends natural dusk evidence, but stops
+before the 20:30 night-load transition and still uses the rule's unqualified
+155 W fallback. It cannot qualify numeric TTD or release the estimator.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
@@ -3877,6 +3959,17 @@ an evidence-quality finding, not a reason to fabricate coverage or relax a
 live freshness bound. Next decide, with full-day/fault evidence, whether a
 versioned TTL contract or an explicitly partial-but-usable learning policy
 is appropriate; keep the scheduled Energy quality flags off meanwhile.
+At 18:40 MDT September 29, a wider read-only OpenHAB JDBC cadence diagnostic
+covered the local day to date with a two-minute pre-day carry: 1,141 persisted
+auxiliary receipts, 1,092 distinct remaining-Ah source times and 1,081
+distinct native-temperature source times. All locally parsed field statuses
+were `valid/ok`, yet original-event intervals exceeded the immutable
+120-second expiry 15 times for remaining-Ah (maximum 121.854 seconds,
+14.401 seconds total uncovered between renewals) and 28 times for
+temperature (maximum 129.286 seconds, 60.225 seconds uncovered). This
+extends the earlier partial-day evidence; it is neither a complete-day strict
+quality assessment nor a fault/restart qualification. The v1 TTL, production
+reader and estimator remain unchanged.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

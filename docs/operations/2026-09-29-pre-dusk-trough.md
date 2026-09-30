@@ -144,7 +144,36 @@ Run no earlier than September 30 11:05 MDT:
 python3 scripts/qualify-pre-dusk-natural-issue.py --day 2026-09-29 --score-completed-night
 ```
 
-The first natural issue, completed-night score, broader chronological validation and
-any scheduled scoring/learning job remain open. Fifty focused source-bound
+The first natural issue was pending at this checkpoint; the completed-night
+score, broader chronological validation and any scheduled scoring/learning
+job remain open. Fifty focused source-bound
 tests pass, including the physical bank selection and pre-outcome refusal;
 no production forecast Item, coefficient, timer or control was changed.
+
+## First natural issue and display readback
+
+At the September 29 17:30 MDT timer firing, the worker issued one pre-dusk
+estimate of 81%. The read-only qualifier returned `qualified_natural_issue`:
+morning origin 06:40:17 MDT, pre-dusk issue 17:30:00.079 MDT, numeric JDBC
+write 17:30:00.099 MDT and receipt JDBC write 17:30:00.101 MDT. It matched
+the exact original atomic SoC JSON persisted at 17:29:33.195 MDT by stream
+epoch and SHA-256 digest, with source time/value/freshness and numeric value
+equal to the dated receipt. A separate headless read of the running local
+Energy page at Lenovo M9 width displayed `pre-dusk estimate: 81%`, current
+SoC 98%, and a present battery-history canvas. This closes the first natural
+source/persistence/display gate; it does **not** score tonight's outcome or
+authorize morning replacement, DMs or controls. The completed-night score
+remains due after September 30 11:00 MDT.
+
+The next two **natural** half-hour checks at 18:00 and 18:30 MDT both exited
+successfully with `outside_window`; neither attempted a second issue. A
+read-only repeat of the JDBC qualifier after those runs still returned
+`qualified_natural_issue` for the same 17:30 receipt and numeric write. Its
+pair reader requires exactly one late receipt and one numeric write, so this
+also verifies no persisted duplicate through 18:30. It does not establish
+behavior after a restart or after later checks.
+The 19:00 MDT scheduled service also exited zero with `outside_window`.
+The exact read-only JDBC qualifier still found the same sole 17:30 issue and
+numeric write afterward. This extends the natural no-duplicate observation
+through the first post-sunset timer check; restart behavior and later-day
+checks remain separate.
