@@ -50,6 +50,7 @@ function lineOption(source, data, {
   markPoint,
 } = {}) {
   return {
+    id: `${source.name}:${dashed ? 'forecast' : 'history'}`,
     name: name || source.label || source.name,
     type: 'line',
     // Keep the actual change-only samples visible along the smoothed trend.

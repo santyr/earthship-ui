@@ -10,7 +10,7 @@
 
   let { series = [], initialHours, hours = 24, refreshMs = 5 * 60 * 1_000 } = $props();
 
-  const SOC_REDRAW_MS = 30_000;
+  const SOC_REDRAW_MS = 5 * 60 * 1_000;
   // Parents may recreate the array on an unrelated state tick. Only a real
   // series change should restart a history request.
   const seriesKey = $derived(JSON.stringify(series));
@@ -30,6 +30,7 @@
   let latestResults = [];
   let latestSeries = [];
   let latestWidthPx = 0;
+  let lastEffectHours;
 
   function selectPeriod(selectedHours) {
     if (selectedHours !== activeHours) activeHours = selectedHours;
@@ -49,6 +50,7 @@
 
   function renderLatest(widthPx) {
     if (!chart || widthPx <= 0) return;
+    const sizeChanged = widthPx !== latestWidthPx;
     latestWidthPx = widthPx;
     try {
       chart.setOption(buildHistoryOption({
@@ -57,8 +59,8 @@
         widthPx,
         nowMs: Date.now(),
         socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
-      }), true);
-      chart.resize();
+      }), { replaceMerge: ['series'] });
+      if (sizeChanged) chart.resize();
     } catch (error) {
       errorMessage = error?.message || 'History could not be rendered';
       loadState = 'error';
@@ -158,8 +160,13 @@
     const hoursSnapshot = activeHours;
     const key = seriesKey;
     const seriesSnapshot = untrack(() => series);
-    if (ready) untrack(() => load(seriesSnapshot, hoursSnapshot));
-    else loadState = 'no-client';
+    if (ready) {
+      const preserve = Boolean(chart) && lastEffectHours === hoursSnapshot;
+      lastEffectHours = hoursSnapshot;
+      untrack(() => load(seriesSnapshot, hoursSnapshot, preserve));
+    } else {
+      loadState = 'no-client';
+    }
   });
 
   onMount(() => {

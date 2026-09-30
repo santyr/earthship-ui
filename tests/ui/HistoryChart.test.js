@@ -51,6 +51,7 @@ describe('HistoryChart', () => {
       { time: 4_000, state: 5 },
     ]);
     mocks.chart.setOption.mockClear();
+    mocks.chart.resize.mockClear();
     mocks.chart.dispose.mockClear();
     mocks.init.mockClear();
   });
@@ -155,6 +156,8 @@ describe('HistoryChart', () => {
     await waitFor(() => expect(mocks.chart.setOption.mock.calls.length).toBeGreaterThan(1));
     expect(mocks.init).toHaveBeenCalledTimes(1);
     expect(container.querySelector('.hc-canvas')).toBe(canvas);
+    expect(mocks.chart.setOption.mock.calls.at(-1)[1]).toEqual({ replaceMerge: ['series'] });
+    expect(mocks.chart.resize).toHaveBeenCalledTimes(1);
   });
 
   it('retains the last good battery plot when a scheduled refresh fails', async () => {
@@ -170,5 +173,21 @@ describe('HistoryChart', () => {
     expect(await screen.findByText(/showing last successful history/i)).toBeTruthy();
     expect(container.querySelector('.hc-canvas')).toBe(canvas);
     expect(mocks.chart.dispose).not.toHaveBeenCalled();
+  });
+
+  it('keeps the battery canvas when forecast presentation changes', async () => {
+    const initialSeries = [{ name: 'BMS_SOC', label: 'SoC', color: '#f59e0b' }];
+    const { container, rerender } = render(HistoryChart, {
+      props: { series: initialSeries },
+    });
+
+    await waitFor(() => expect(mocks.init).toHaveBeenCalledTimes(1));
+    const canvas = container.querySelector('.hc-canvas');
+    await rerender({ series: [{ ...initialSeries[0], color: '#22c55e' }] });
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(2));
+
+    expect(container.querySelector('.hc-canvas')).toBe(canvas);
+    expect(mocks.chart.dispose).not.toHaveBeenCalled();
+    expect(mocks.init).toHaveBeenCalledTimes(1);
   });
 });
