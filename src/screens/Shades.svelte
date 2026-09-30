@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
+  import { bedroomTemperature } from '../lib/thermal/bedroomTemperature.js';
   import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation, shadePreviewEnabled } from '../lib/shades/catalog.js';
 
   const shadeTints = ['#63889a', '#78876d', '#807591', '#947e68', '#6b8590'];
@@ -9,6 +10,8 @@
   let nowMs = $state(Date.now());
   const view = $derived(SHADE_VIEWS[viewIndex]);
   const rooms = $derived(SHADE_GROUPS.filter((room) => view.rooms.includes(room.id)));
+  const bedroomTemp = $derived($connection === 'live'
+    ? bedroomTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(nowMs, Date.now())) : null);
   const mapped = $derived(SHADE_SLOTS.filter((slot) => slot.positionItem && slot.availabilityItem && slot.stateItem).length);
   const previewMode = $derived(shadePreviewEnabled(SHADE_SLOTS));
   let previewOpen = $state(Object.fromEntries(SHADE_SLOTS.map((slot) => [slot.number, 50])));
@@ -214,7 +217,7 @@
       {@const groupOpen = previewMode ? previewGroupOpen(cards) : groupDisplay.openPercent}
       <section class="zone" aria-label="{room.label} shades">
         <div class="zone-heading">
-          <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : room.temperatureRole === 'hallway_proxy' ? 'Hallway temperature proxy' : 'Hallway temperature reference'}</span></div>
+          <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{room.temperatureRole === 'zone_sensor' ? (bedroomTemp !== null ? `Bedroom ${bedroomTemp.toFixed(1)}°F` : 'Bedroom temperature unavailable') : room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : room.temperatureRole === 'hallway_proxy' ? 'Hallway temperature proxy' : 'Hallway temperature reference'}</span></div>
           <div class="zone-actions" aria-label="{room.label} controls">
             <button type="button" class:pressed={pressedAction === `${room.id}-open`} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(cards, 100, `${room.id}-open`)}>Open {room.label}</button>
             <button type="button" class:pressed={pressedAction === `${room.id}-close`} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(cards, 0, `${room.id}-close`)}>Close {room.label}</button>

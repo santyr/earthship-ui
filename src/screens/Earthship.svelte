@@ -14,8 +14,9 @@
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { parseThermalModelResult } from '../lib/thermal/modelResult.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
-  import { items, num, fmt, splitRoundedMinutes } from '../lib/openhab';
+  import { items, connection, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
+  import { BEDROOM_TEMPERATURE_ITEM, bedroomTemperature } from '../lib/thermal/bedroomTemperature.js';
 
   // Minute wall clock (mirrors Home.svelte): "last run … ago" must keep
   // advancing on a quiet stream, not only when $items identity changes.
@@ -46,6 +47,7 @@
   const roomTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
   const wallTemp = $derived(num($items.Shelly_HT1_Indoor_Temperature));
   const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
+  const bedroomTemp = $derived($connection === 'live' ? bedroomTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null);
 
   function openZonesChart() {
     openChart({
@@ -59,9 +61,16 @@
           color: '#38bdf8',
           label: 'Outdoor',
         },
+        { name: BEDROOM_TEMPERATURE_ITEM, color: '#a78bfa', label: 'Bedroom' },
       ],
       hours: 24,
     });
+  }
+
+  function openBedroomChart() {
+    openChart({ title: 'Bedroom Temperature (24h)',
+      series: [{ name: BEDROOM_TEMPERATURE_ITEM, color: '#a78bfa', label: 'Bedroom' }],
+      hours: 24 });
   }
 
   // ---- Thermal Mass — the house's heat "state of charge" -------------------
@@ -223,6 +232,7 @@
         outdoor={outdoorTemp}
         onZoneClick={openZonesChart}
       />
+      <button class="bedroom-reading" onclick={openBedroomChart}>Bedroom {bedroomTemp === null ? '—' : `${bedroomTemp.toFixed(1)}°F`}</button>
     </Tile>
   </div>
 
@@ -299,6 +309,18 @@
 </div>
 
 <style>
+  .bedroom-reading {
+    display: block;
+    margin: .25rem auto 0;
+    border: 1px solid #4d416b;
+    border-radius: 4px;
+    padding: .3rem .6rem;
+    background: #201d2b;
+    color: #c4b5fd;
+    font: inherit;
+    font-size: .8rem;
+    cursor: pointer;
+  }
   .earthship-grid {
     block-size: 100%;
     min-width: 0;

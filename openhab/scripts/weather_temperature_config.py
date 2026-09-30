@@ -39,8 +39,8 @@ def load_temperature_policies(path):
     if not isinstance(document, dict) or set(document) != {'version', 'streams'} or type(document['version']) is not int or document['version'] != 1:
         raise ValueError('unsupported policy schema')
     streams = document['streams']
-    if not isinstance(streams, dict) or not 1 <= len(streams) <= 3:
-        raise ValueError('one to three explicit streams required')
+    if not isinstance(streams, dict) or not 1 <= len(streams) <= 4:
+        raise ValueError('one to four explicit streams required')
     fields = {'model', 'sensor_id', 'minimum_f', 'maximum_f', 'validity_seconds'}
     if any(not isinstance(policy, dict) or set(policy) != fields for policy in streams.values()):
         raise ValueError('closed explicit stream policy required')

@@ -47,7 +47,7 @@ def _snapshot(raw, stored_at, stream, policy):
     if not isinstance(epoch, str) or str(UUID(epoch)) != epoch:
         raise ValueError('invalid epoch')
     records = envelope['records']
-    if not isinstance(records, dict) or not 1 <= len(records) <= 3 or any(
+    if not isinstance(records, dict) or not 1 <= len(records) <= 4 or any(
         not re.fullmatch(r'[a-z][a-z0-9_]{0,31}', name) for name in records):
         raise ValueError('invalid stream registry')
     record = records.get(stream)

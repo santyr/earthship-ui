@@ -48,6 +48,13 @@ def packet(model, sensor_id):
             'light_lux': 12670, 'uvi': 1}
 
 
+def test_bedroom_decoder_preserves_identity_channel_and_temperature():
+    result = relay({'model': 'AmbientWeather-WH31E', 'id': 223, 'channel': 2,
+                    'temperature_C': 21.9, 'humidity': 54, 'battery_ok': 1})
+    assert result == [{'model': 'AmbientWeather-WH31E', 'id': 223, 'channel': 2,
+                       'tempinf': 71.42, 'humidityin': 54.0, 'battery_ok': 1}]
+
+
 @pytest.mark.parametrize('model', ['Fineoffset-WH65B', 'Fineoffset-WH24'])
 def test_both_decoder_labels_forward_same_wh65b_tip_and_wind_values(model):
     assert relay(packet(model, 206)) == [{'model': model, 'id': 206, 'tempf': 68.0, 'humidity': 45.0,

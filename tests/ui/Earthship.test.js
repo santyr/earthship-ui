@@ -8,7 +8,7 @@ vi.mock('svelte', async () => import(
 ));
 
 import Earthship from '../../src/screens/Earthship.svelte';
-import { items } from '../../src/lib/openhab/store.js';
+import { items, connection } from '../../src/lib/openhab/store.js';
 import { chartStore, closeChart } from '../../src/lib/ui/chartStore.js';
 import validShadow from '../fixtures/thermal-shadow-v1-available.json';
 import { localDateAt } from '../../src/lib/weather/forecastDetail.js';
@@ -34,7 +34,32 @@ function setItems(extra = {}) {
 }
 
 describe('Earthship four-zone thermal contract', () => {
-  it('opens history in physical left-to-right order using the four live items', async () => {
+  it('accepts fresh receipts between minute ticks without a disappearing reading', async () => {
+    vi.useFakeTimers();
+    const now = Date.parse('2026-09-30T23:00:00Z');
+    vi.setSystemTime(now);
+    const previousConnection = get(connection);
+    connection.set('live');
+    try {
+      const { container } = render(Earthship);
+      vi.advanceTimersByTime(30_000);
+      const epoch = '831b737c-ab25-48d7-9a90-889746e56410';
+      setItems({ Weather_Temperature_Evidence_JSON: JSON.stringify({ version: 1, streamEpoch: epoch,
+        records: { bedroom: { version: 1, streamEpoch: epoch, model: 'AmbientWeather-WH31E', sensorId: 223,
+          field: 'tempinf', status: 'valid', reason: 'accepted', temperatureF: 71.4,
+          receivedAt: new Date(now + 30_000).toISOString(), recordedAt: new Date(now + 30_000).toISOString(),
+          validUntil: new Date(now + 150_000).toISOString() } } }) });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(container.querySelector('.bedroom-reading').textContent).toBe('Bedroom 71.4°F');
+    } finally { connection.set(previousConnection); }
+  });
+  it('opens the dedicated Bedroom chart without borrowing a Hallway forecast', async () => {
+    const { container } = render(Earthship);
+    await fireEvent.click(container.querySelector('.bedroom-reading'));
+    expect(get(chartStore)).toMatchObject({ title: 'Bedroom Temperature (24h)',
+      series: [{ name: 'Bedroom_Temperature', label: 'Bedroom' }], hours: 24 });
+  });
+  it('preserves physical loop order and adds independent Bedroom history', async () => {
     const { container } = render(Earthship);
 
     expect([...container.querySelectorAll('.zone-label')].map((node) => node.textContent))
@@ -45,12 +70,13 @@ describe('Earthship four-zone thermal contract', () => {
     await fireEvent.click(container.querySelector('.zone-group'));
     const chart = get(chartStore);
     expect(chart.series.map(({ label }) => label))
-      .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor']);
+      .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor', 'Bedroom']);
     expect(chart.series.map(({ name }) => name)).toEqual([
       'AmbientWeatherWS2902A_WH31E_193_Temperature',
       'AmbientWeatherWS2902A_IndoorSensor_Temperature',
       'Shelly_HT1_Indoor_Temperature',
       'AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature',
+      'Bedroom_Temperature',
     ]);
   });
 });

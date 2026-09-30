@@ -21,6 +21,7 @@
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
+  import { bedroomTemperature } from '../lib/thermal/bedroomTemperature.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
@@ -47,7 +48,7 @@
     uvIndexColor,
     windSpeedColor,
   } from '../lib/ui/homeCardState.js';
-  import { items, num, fmt, socBands, runtimeText, splitRoundedMinutes, getClientOnce } from '../lib/openhab';
+  import { items, connection, num, fmt, socBands, runtimeText, splitRoundedMinutes, getClientOnce } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
   import {
@@ -414,6 +415,8 @@
       mk('Hallway', 'AmbientWeatherWS2902A_IndoorSensor_Temperature'),
       mk('N.Wall', 'AmbientWeatherWS2902A_WH31E_193_Temperature'),
       mk('S.Glass', 'Shelly_HT1_Indoor_Temperature'),
+      { label: 'Bedroom', temp: $connection === 'live' ? bedroomTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null,
+        delta: null },
     ];
   });
 

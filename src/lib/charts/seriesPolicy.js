@@ -9,6 +9,7 @@ const SERIES = new Map([
   ['Indoor_Thermal_Forecast', { expectedCadenceMs: 3600000, allowedUnits: TEMPERATURE_UNITS, domain: 'forecast' }],
   ['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['AmbientWeatherWS2902A_IndoorSensor_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
+  ['Bedroom_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['AmbientWeatherWS2902A_WH31E_193_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['Shelly_HT1_Indoor_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['Forecast_Temp', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS, domain: 'forecast' }],

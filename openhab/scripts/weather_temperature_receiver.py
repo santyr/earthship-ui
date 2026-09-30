@@ -13,8 +13,8 @@ from weather_temperature_evidence import TemperaturePolicy, temperature_receipt
 
 class TemperatureCollector:
     def __init__(self, policies, *, clock=None, monotonic=None, process_id=None):
-        if not isinstance(policies, dict) or not 1 <= len(policies) <= 3:
-            raise ValueError('one to three explicit stream policies required')
+        if not isinstance(policies, dict) or not 1 <= len(policies) <= 4:
+            raise ValueError('one to four explicit stream policies required')
         if any(not isinstance(k, str) or not re.fullmatch(r'[a-z][a-z0-9_]{0,31}', k)
                or not isinstance(v, TemperaturePolicy) for k, v in policies.items()):
             raise ValueError('invalid named stream policy')

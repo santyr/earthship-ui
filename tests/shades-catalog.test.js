@@ -35,12 +35,12 @@ describe('shade inventory and report presentation', () => {
     expect(SHADE_SLOTS.every((slot) => slot.positionItem === null && slot.availabilityItem === null && slot.stateItem === null)).toBe(true);
   });
 
-  it('labels the Hallway reference as a proxy outside Kitchen and leaves Bathroom unobserved', () => {
+  it('uses Bedroom independently, keeps the Living Room proxy and leaves Bathroom unobserved', () => {
     expect(SHADE_GROUPS.map((group) => [group.temperatureItem, group.temperatureRole])).toEqual([
       [HALLWAY_TEMPERATURE_ITEM, 'hallway_kitchen_reference'],
       [HALLWAY_TEMPERATURE_ITEM, 'hallway_proxy'],
       [null, 'unavailable'],
-      [HALLWAY_TEMPERATURE_ITEM, 'hallway_proxy'],
+      ['Bedroom_Temperature', 'zone_sensor'],
     ]);
   });
 

@@ -1,5 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 Bedroom WH32M commissioning is deployed as source-bound WH31E
+ID 223, independently from Hallway 235 and North Wall 193. The file-owned
+temperature Item/rule and all four original receipt streams pass natural JDBC
+readback using the existing restricted temperature reader. Home, Earthship
+and Bedroom shades display the source; Earthship includes Bedroom history.
+Placement near the receiver is still commissioning: Bedroom-specific training
+must wait for a confirmed room-installation timestamp, without bench-data or
+preview-shade labels. See [deployment evidence](2026-09-30-bedroom-wh32m.md).
+
 September 30 operator requested the pre-dusk estimate remain visible until
 replacement or be omitted as backend modeling data. The Energy page now omits
 both the label and forecast projection, with the tile titled Battery history.

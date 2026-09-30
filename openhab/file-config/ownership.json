@@ -578,6 +578,16 @@
       "source": "automation/js/bitcoin-24h-change.js",
       "destination": "/etc/openhab/automation/js/bitcoin-24h-change.js",
       "state_writer": "BTC_Price_24h_PercentChange"
+    },
+    {
+      "kind": "item", "id": "Bedroom_Temperature", "provider": "file", "migration": "verified",
+      "source": "items/bedroom-temperature.items", "destination": "/etc/openhab/items/bedroom-temperature.items",
+      "state_writer": "hex_bedroom_temperature"
+    },
+    {
+      "kind": "rule", "id": "hex_bedroom_temperature", "provider": "file", "migration": "verified",
+      "source": "automation/js/bedroom-temperature.js", "destination": "/etc/openhab/automation/js/bedroom-temperature.js",
+      "state_writer": "Bedroom_Temperature"
     }
   ]
 }

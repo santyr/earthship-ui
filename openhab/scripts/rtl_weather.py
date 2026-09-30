@@ -227,6 +227,9 @@ def main():
                         }
                         if "battery_ok" in data:
                             payload["battery_ok"] = data["battery_ok"]
+                        # Keep the actual transmitted channel for commissioning.
+                        if type(data.get("channel")) is int and 1 <= data["channel"] <= 8:
+                            payload["channel"] = data["channel"]
                         if _should_send(model, sid):
                             send_data_to_flask(payload)
                     else:

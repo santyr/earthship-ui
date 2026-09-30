@@ -1,0 +1,3 @@
+// WH32M decoder identity is qualified in Weather_Temperature_Evidence_JSON.
+// No restore value or Hallway fallback establishes a fresh Bedroom reading.
+Number:Temperature Bedroom_Temperature "Bedroom Temperature [%.1f °F]" <temperature> ["Measurement", "Temperature"] { unit="°F" }

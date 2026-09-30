@@ -20,6 +20,35 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => { await server?.close(); });
 
+test('Bedroom sensor is independent of Hallway and expires without a new Item change', async ({ page }) => {
+  const now = Date.now();
+  await page.clock.install({ time: new Date(now) });
+  const epoch = '831b737c-ab25-48d7-9a90-889746e56410';
+  const snapshot = JSON.stringify({ version: 1, streamEpoch: epoch, records: { bedroom: {
+    version: 1, streamEpoch: epoch, model: 'AmbientWeather-WH31E', sensorId: 223,
+    field: 'tempinf', status: 'valid', reason: 'accepted', temperatureF: 71.4,
+    receivedAt: new Date(now).toISOString(), recordedAt: new Date(now).toISOString(),
+    validUntil: new Date(now + 120_000).toISOString(),
+  } } });
+  await page.setViewportSize({ width: 1340, height: 800 });
+  await page.route('**/config.json', route => route.fulfill({ json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture' } }));
+  await page.route('**/fixture-openhab/rest/items?*', route => route.fulfill({ json: [
+    { name: 'Weather_Temperature_Evidence_JSON', type: 'String', state: snapshot },
+    { name: 'AmbientWeatherWS2902A_IndoorSensor_Temperature', type: 'Number', state: '69' },
+    { name: 'Bedroom_Temperature', type: 'Number:Temperature', state: '71.4 °F' },
+  ] }));
+  await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
+  await page.route('**/fixture-openhab/rest/events?*', route => route.fulfill({
+    contentType: 'text/event-stream', body: ': fixture\n\n',
+  }));
+  await page.goto(`${baseURL}#/shades`);
+  await page.getByRole('button', { name: 'Bathroom + Bedroom', exact: true }).click();
+  const label = page.locator('[aria-label="Bedroom shades"] .sensor-evidence');
+  await expect(label).toHaveText('Bedroom 71.4°F');
+  await page.clock.fastForward(120_001);
+  await expect(label).toHaveText('Bedroom temperature unavailable');
+});
+
 for (const target of TARGETS) {
   test(`${target.name}: 27 local-preview shades fit and never submit movement`, async ({ page }) => {
     const writes = [];
