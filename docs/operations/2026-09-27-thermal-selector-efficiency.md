@@ -424,3 +424,32 @@ verified with the same member/capture counts and SHA-256
 It preserves distinct training/publication bindings; it does not claim those
 older captures were generated under the new revision. These archives passed
 inventory/digest verification, not a new independent full-restore rehearsal.
+
+### First natural post-batching publication
+
+The scheduled shadow service ran at 10:31:48–10:31:51 MDT, exit zero, using
+2.167665 seconds CPU. Its decision time is `2026-09-30T16:31:50.189895Z`.
+The live Item, exactly one original JDBC row at `16:31:51.896Z`, and verified
+capture `20260930T163150Z-40f98cb893678739.json.gz` agree exactly, with output
+SHA-256 `40f98cb893678739eea68daca7684e6df3c52cb95ab27e5d30b51d030050dc72`.
+The captured artifact equals the accepted payload (`66bc7541...734353`),
+retains training revision `a4a68a17...`, and all 72 points replay exactly under
+the explicitly pinned installed `8b528a34...` publication runtime. Status
+remains shadow, confidence low. This closes batching's first natural
+publication gate, not October 1's whole-trainer resource/acceptance gate.
+No job was forced or action label fabricated.
+
+The later morning-trough DM retirement changes only the notification policy
+in `forecast_intel.py`, which participates in the thermal runtime manifest.
+Current revision is therefore `0864f4d6...`; the same captured publication
+also replays exactly under that explicit pin. This is a compatibility check,
+not a natural publication generated under the newer revision. The pre-change
+private archive `thermal-publication-runtime-20260930-pre-morning-dm-retire-8b528a34.tar.gz`
+includes the new 10:31 capture: 110 members/84 captures, SHA-256
+`58f74d8f1df333b5747f837c364fc352108ba85468012c94719e3dd417885cc8`.
+The corresponding current-runtime archive
+`thermal-publication-runtime-20260930-post-morning-dm-retire-0864f4d6.tar.gz`
+has the same inventory and SHA-256
+`5f31b57de220a22f81f695d58d1c178ee2dbe229138f47f214fb456716f53aec`.
+Both are under `/home/sat/backups/earthship-energy/`, private and verified;
+training/publication identities remain explicitly distinct.

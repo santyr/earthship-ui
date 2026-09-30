@@ -301,7 +301,40 @@ history fixture. A read-only live 1340×800 Lenovo-size check displayed the
 original `81%` pre-dusk issue with exactly one trough legend entry, zero morning
 trough legends, zero browser errors and zero write requests. No screenshot or
 test artifact was retained. The morning job's separate deep-cycle DM policy
-has not changed; migration of that notification remains outstanding.
+was still unchanged at this display checkpoint; its subsequent retirement is
+recorded below. Pre-dusk notification delivery remains outstanding.
+
+### Retired morning-trough DM path
+
+`MORNING_TROUGH_DM_ENABLED=False` disables only the morning estimate's deep-
+cycle notification eligibility. Its numerical calculation, Item publication,
+immutable issue receipt, persisted history and scoring continue unchanged.
+The observational advisory capture truthfully records notification eligibility
+false and `not_eligible`; it does not invent a suppressed/sent message.
+Current-SoC safety monitoring, thermal advice and protected controls are not
+modified. The pre-dusk worker still sends no DM pending its delivery and
+deduplication qualification.
+
+All 189 forecast/advisory capture/record tests pass. The new main-path
+regression uses a below-threshold forecast and proves zero notification calls,
+unchanged prediction records/Item writes and no false sent marker. Legacy
+notification-capture tests explicitly enable the old policy for replay tests;
+that is not the production default. The first command omitted Solar_PV's
+analytics import path and had 11 missing-module failures; with the required
+cross-repository `PYTHONPATH`, the full selected suite passes.
+
+The installed forecast preimage was
+`84ce22d5b0e3c43203de6aa71768d2b2bd41660a9a712e495b2721bd8a903a73`;
+installed/source now both equal
+`19568956faea6c7ab66bd610539ebabb6cc5e27dac032ddd9149c1e4c75d53df`.
+All five importing forecast/thermal services were inactive before and after
+briefly stopping their user timers. The one-file transaction's private receipt
+is `/home/sat/.local/state/thermal-intel/deploy-receipts/morning-dm-retire-20260930/files`.
+Independent receipt and rollback-preimage verification passed; installed import
+confirms the default false flag. All five timers returned active/enabled,
+accepted artifact bytes stayed unchanged and no message or control was sent.
+The full thermal publication runtime is now `0864f4d6...`, distinct from its
+accepted training identity; private before/after bundles preserve that fact.
 
 ### First as-issued outdoor-temperature comparison
 

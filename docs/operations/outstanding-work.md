@@ -82,9 +82,11 @@ including through midnight/DST, and the projection ends at that fixed target.
 Historical/projection segments share one trough legend entry. All 1,927 UI
 tests, the build and 15 Energy browser cases pass. Read-only live Lenovo-size
 verification displays `pre-dusk estimate: 81%`, exactly one trough legend entry,
-no morning trough legend and no browser error or write request. Existing
-morning deep-cycle DM policy is still separate and has not been migrated;
-moving that notification to the pre-dusk basis remains open. No forecast
+no morning trough legend and no browser error or write request. The morning
+deep-cycle DM path was subsequently retired with a guarded, rollback-backed
+one-file deployment; its calculation, published Item values and history remain
+unchanged. Pre-dusk notifications remain off pending delivery/deduplication
+qualification. No forecast
 calibration, Item ownership, persistence or equipment control changed.
 
 September 30 natural thermal training completed at 07:35:36 MDT, exit zero:
@@ -787,6 +789,16 @@ artifact retains its original training identity. Natural publication/replay
 and October 1 whole-run training/resource gates remain open. No full production
 speedup or shadow graduation is claimed. See the
 [batching evidence](2026-09-27-thermal-selector-efficiency.md#september-30-fit-local-rollout-batching-candidate).
+
+The natural 10:31 MDT shadow publication subsequently passed live Item,
+exactly one original JDBC row, verified capture and exact replay under
+`8b528a34...`; its output digest is `40f98cb8...050dc72`, accepted artifact
+unchanged and status shadow/low confidence. The separate morning-DM retirement
+then moved the full runtime manifest to `0864f4d6...`; that publication also
+replays exactly under the explicit new pin, but a new natural publication under
+this current revision is still due. October 1's trainer remains the whole-run
+timing/acceptance gate. Both private runtime archives preserve the updated
+84-capture recovery inventory without relabelling their training identities.
 
 The thermal trainer's coefficient-independent forcing cache was committed and
 deployed after the September 26 natural run finished; synthetic full-fit timing
