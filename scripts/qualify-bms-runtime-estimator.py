@@ -157,9 +157,12 @@ def main():
         if len(tokens) != 1:
             raise RuntimeError('isolated credential creation failed; output withheld')
         header = ('Authorization: Bearer ' + tokens[0] + '\n').encode()
+        scheduled_only = False
 
         def rest(method, path, body=None, text=False):
             check_request(method, path)
+            if scheduled_only and method != 'GET':
+                raise RuntimeError('manual write/execution during natural cron wait')
             if method == 'POST' and path == '/rules' and body.get('uid') != UID:
                 raise RuntimeError('isolated rule identity mismatch')
             args = ['docker', 'exec', '-i', container, 'curl', '-sS', '--max-time', '8',
@@ -205,8 +208,12 @@ def main():
             put('Sun_Position_Elevation', 30)
 
         def execute(expected=None):
-            if rest('POST', '/rules/' + UID + '/runnow', {})[0] != 200:
-                raise RuntimeError('isolated execution request refused')
+            # Item/provider registration can precede ScriptAction readiness
+            # after a full JVM restart. Never treat a present DTO as runnable.
+            fixture.wait_for(lambda: rest('GET', '/rules/' + UID)[1].get('status', {}).get('status') == 'IDLE', seconds=120)
+            status = rest('POST', '/rules/' + UID + '/runnow', {})[0]
+            if status != 200:
+                raise RuntimeError('isolated execution request refused, HTTP ' + str(status))
             if expected is not None:
                 fixture.wait_for(lambda: state('BMS_Runtime_Basis') == expected, seconds=20)
             else:
@@ -242,6 +249,33 @@ def main():
         feed(); execute('evening'); execute('evening')
         feed(); execute('bms')
         print('real_jvm_missing_expiry_charge_reversal_reload_checks=passed', flush=True)
+
+        # Leave the original source TTLs untouched and stop all input writes
+        # and runnow calls. Only the actual registered 30-second cron can
+        # expire the display state while every input Item remains held.
+        held_inputs = {name: state(name) for name in EVIDENCE}
+        current_expiry = json.loads(held_inputs[EVIDENCE[2]])['fields']['battery.dc_current_ca']['validUntil']
+        scheduled_only = True
+        print('natural_cron_expiry_wait_started=true; manual_writes_and_executions=forbidden', flush=True)
+        try:
+            def naturally_expired():
+                if (state(OUTPUTS[0]) == 'off'
+                        and number_is(state(OUTPUTS[1]), 0)
+                        and number_is(state(OUTPUTS[2]), 0)):
+                    observed = time.time_ns() // 1000000
+                    if not current_expiry <= observed <= current_expiry + 45000:
+                        raise RuntimeError('natural cron expiry timing outside bound')
+                    return observed
+                return False
+            observed = fixture.wait_for(naturally_expired, seconds=135)
+            if any(state(name) != raw for name, raw in held_inputs.items()):
+                raise RuntimeError('held source input changed during cron wait')
+        finally:
+            scheduled_only = False
+        print('natural_no_event_cron_expiry=' + json.dumps({
+            'currentValidUntil': current_expiry, 'firstOffObservedAt': observed,
+            'lagMs': observed-current_expiry, 'heldInputsUnchanged': True,
+            'manualExecutionsDuringWait': 0, 'inputWritesDuringWait': 0}), flush=True)
 
         before = fixture.java_pids(container)
         if len(before) != 1:

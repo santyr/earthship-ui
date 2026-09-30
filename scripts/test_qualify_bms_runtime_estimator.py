@@ -1,5 +1,8 @@
 import importlib.util
+import ast
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -68,3 +71,64 @@ def test_numeric_readback_requires_exact_value_not_decimal_rendering():
     assert q.number_is('0.0', 0)
     for value in ['NULL', 'UNDEF', 'nan', 'inf', '499', '500 W']:
         assert not q.number_is(value, 500)
+
+
+def test_actual_nested_rest_adapter_forbids_writes_during_natural_wait():
+    # Compile the actual closure body with synthetic dependencies. No Docker
+    # or host request is made; this checks the gate before dispatch, not just
+    # a copy of its predicate or a source substring.
+    tree=ast.parse(Path(q.__file__).read_text())
+    main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
+    rest=next(node for node in ast.walk(main) if isinstance(node,ast.FunctionDef) and node.name=='rest')
+    calls=[]
+    def run(args, header):
+        calls.append(args)
+        assert args[:4]==['docker','exec','-i','synthetic-fixture']
+        assert header==b'synthetic-only'
+        return b'{}\n200'
+    namespace={'scheduled_only':True,'check_request':q.check_request,'UID':q.UID,
+               'container':'synthetic-fixture','header':b'synthetic-only','json':json,
+               'runtime':SimpleNamespace(run=run)}
+    exec(compile(ast.Module(body=[rest],type_ignores=[]),q.__file__,'exec'),namespace)
+    invoke=namespace['rest']
+    for method,path,body in [('POST','/rules',{'uid':q.UID}),
+                            ('POST','/rules/'+q.UID+'/runnow',{}),
+                            ('DELETE','/rules/'+q.UID,None),
+                            ('PUT','/items/BMS_SOC_Evidence_JSON/state','synthetic')]:
+        with pytest.raises(RuntimeError,match='during natural cron wait'):
+            invoke(method,path,body)
+    assert calls==[]
+    assert invoke('GET','/items/BMS_Runtime_Basis')==(200,{})
+    namespace['scheduled_only']=False
+    assert invoke('POST','/rules/'+q.UID+'/runnow',{})==(200,{})
+    assert len(calls)==2
+
+
+@pytest.mark.parametrize('post_status',[200,409])
+def test_actual_executor_waits_for_idle_before_runnow(post_status):
+    tree=ast.parse(Path(q.__file__).read_text())
+    main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
+    execute=next(node for node in ast.walk(main) if isinstance(node,ast.FunctionDef) and node.name=='execute')
+    statuses=iter(['INITIALIZING','IDLE'])
+    calls=[]
+    def rest(method,path,body=None):
+        calls.append((method,path))
+        if method=='GET':return 200,{'status':{'status':next(statuses)}}
+        assert method=='POST' and body=={}
+        return post_status,None
+    def wait(check,seconds):
+        assert seconds==120
+        assert check() is False
+        assert calls==[('GET','/rules/'+q.UID)]
+        assert check() is True
+    sleeps=[]
+    namespace={'rest':rest,'UID':q.UID,'fixture':SimpleNamespace(wait_for=wait),
+               'time':SimpleNamespace(sleep=sleeps.append)}
+    exec(compile(ast.Module(body=[execute],type_ignores=[]),q.__file__,'exec'),namespace)
+    if post_status==200:
+        namespace['execute']()
+        assert sleeps==[1]
+    else:
+        with pytest.raises(RuntimeError,match='HTTP 409'):namespace['execute']()
+        assert sleeps==[]
+    assert calls==[('GET','/rules/'+q.UID)]*2+[('POST','/rules/'+q.UID+'/runnow')]

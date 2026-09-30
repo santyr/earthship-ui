@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 BMS estimator no-event cron expiry is now qualified in the actual
+isolated OpenHAB JVM: unchanged synthetic inputs, no manual runnow or writes,
+original 90-second current TTL, OFF plus both zero outputs observed 28.910
+seconds after expiry. The complete retry also passed full JVM restart, fresh
+recovery and exact managed rollback, with all fixture resources removed and
+production script/trigger unchanged. An earlier attempt passed expiry but
+refused a later restart-phase execution; an explicit IDLE-before-execution
+gate corrected the adapter's missing readiness check. Eight qualifier and six
+diagnostic tests, plus 20 adjacent JS tests, pass. The separate natural-history
+replay through 09:05 MDT remains discharge-only (250 BMS ticks and one initial
+warmup), not charging-transition proof; projected-minute accuracy and live
+cutover still remain open. See the
+[timer-only and restart receipt](2026-09-30-bms-night-average-verification.md#isolated-natural-no-event-expiry-and-restart-follow-through).
+
 September 30 actual Java/JDBC completed-night verification now passes for the
 candidate's native local window. Default service, explicit JDBC and explicit
 LEFT integration agree at 172.656298 W over all 6,454 numeric observations.
@@ -32,9 +46,9 @@ production actions/triggers still match the pinned `8698b16a...05a794` baseline.
 This closes these **isolated display-estimator** execution/reload/restart/
 rollback checks, not protected production restart, actual JDBC averaging,
 numeric-minute accuracy, natural charging transition or live estimator release.
-The periodic trigger is registered; explicit fixture executions do not by
-themselves prove a no-event cron-expiry observation. No live Item/rule/control
-was written or changed.
+At this earlier checkpoint the periodic trigger was only registered; explicit
+executions did not prove no-event cron expiry. The later timer-only receipt
+above closes that isolated gap. No live Item/rule/control was written or changed.
 
 September 30 first near-24-hour fixed-artifact thermal outcome now qualifies:
 the September 29 08:26 issue predicted 65.516°F at today's 08:00 local target,

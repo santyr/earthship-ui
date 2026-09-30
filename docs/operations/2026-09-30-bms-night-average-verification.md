@@ -63,7 +63,45 @@ rules remaining. The production estimator's script still hashes to
 and retains its sole `BMS_TimeToDischarge_Min` Item-update trigger. No diagnostic
 rule is retained or scheduled, and no diagnostic becomes a freshness assertion.
 
+## Isolated natural no-event expiry and restart follow-through
+
+The same unchanged source candidate subsequently passed the real networkless
+OpenHAB JVM qualifier's no-event test. After it entered BMS mode, the fixture
+held all six evidence/elevation Item states unchanged. Its REST adapter forbade
+every non-GET request during the wait: no input writes and no `runnow` calls.
+The registered original 30-second cron alone cleared basis to OFF and both
+numeric outputs to zero when the current source expired. Its original expiry
+was `2026-09-30T15:09:03.077Z`; zero/OFF was observed at
+`15:09:31.987Z`, 28,910 ms afterward, within the 45-second observation bound
+(cron plus readback overhead). Source TTLs were neither shortened nor extended.
+All held input strings still matched the pre-wait snapshot.
+
+The qualifier then passed actual server-JVM exit/new-PID restart, missing-input
+OFF, fresh recovery and exact managed-baseline rollback. Its production pre/
+post-readbacks retained the original script hash and sole trigger. The 2-GiB
+memory/no-extra-swap, two-CPU, read-only networkless fixture had no host mounts,
+devices or published ports and was removed with its tmpfs. Independent Docker
+label lookup found none remaining. No production rule, Item or equipment was
+written.
+
+The first attempt also passed no-event expiry (26,521-ms lag), but its later
+restart-phase execution request was refused, so it was not an overall pass.
+The adapter had checked provider presence without checking runnable status;
+it now waits explicitly for IDLE before requesting execution, including after
+restart. The complete retry passed. Offline tests compile the actual nested
+REST/executor bodies with synthetic dependencies to prove write refusal during
+the natural wait and IDLE-before-execution ordering, including HTTP refusal.
+Eight qualifier tests plus six diagnostic tests passed, and 20 adjacent JS
+estimator/replay tests passed. Disposable synthetic test logs were removed.
+
+A separate 07:00–09:05 MDT natural-history replay had 251 half-minute ticks:
+one initial distinct-current warmup (`evening`), then 250 `bms`, with no OFF
+or noncharging TTF violations. It had no charging crossover, so it cannot
+qualify that transition. Its REST-weighted overnight input is still explicitly
+diagnostic, and numerical projected minutes are excluded from promotion.
+
 The disabled candidate still needs natural charging-transition observation,
-no-event cron expiry qualification, numeric-minute comparison and the exact
-guarded production cutover. Historical AC averaging does not qualify other
-held source inputs, and this narrow calculation result authorizes no controls.
+numeric-minute comparison and the exact guarded production cutover. This
+isolated no-event result does not prove a deployed production timer. Historical
+AC averaging does not qualify other held source inputs, and these calculation
+and fixture results authorize no equipment controls.
