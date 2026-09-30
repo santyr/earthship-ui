@@ -1,5 +1,11 @@
 # Trough/PV calibration checkpoint — September 27
 
+Latest extension: the [September 30 true-sunset diagnostic](#september-30-true-sunset-as-issued-component-comparison)
+uses original Astro sunset rows and atomic SoC coverage. It confirms that the
+morning evening-charge estimate, not just the overnight-drop proxy, dominates
+the recent trough underprediction. Earlier checkpoint observations below
+remain dated evidence, not current model-promotion claims.
+
 This is a read-only diagnostic. The completed-night outcomes came from frozen
 `advisory_trough_selection` rows joined to the latest stored assessment under
 the configured assessor role. The PV comparison uses the morning producer's
@@ -242,3 +248,73 @@ the target night and the assessor would otherwise ignore it. This prevents a
 future replay caller from silently admitting post-origin evidence; eight
 focused and 79 adjacent forecast/SoC tests pass. No live forecast path calls
 this helper yet.
+
+## September 30 true-sunset as-issued component comparison
+
+The source-only `sunset_soc_profile.py` now measures a valid atomic SoC at the
+original Astro sunset, not an assumed 99% or a fixed 20:00 sample. It requires
+the source sunset to have been persisted before sunset, the complete night to
+have elapsed at its explicit as-of clock, physical-bank boundaries and at
+least 90% canonical **and** sunset-to-11:00 coverage. The sunset-shifted
+minimum must equal the existing canonical 20:00-to-11:00 trough; otherwise
+the comparison is withheld rather than silently changing the target.
+Original sequence ordering, source expiry and barriers are retained. Future
+rows, missing sunset coverage, duplicate timestamps, pre-bank data and a
+changed minimum refuse qualification. Streaming inputs stop after 10,001
+rows; spring/fall DST elapsed-duration tests pass.
+
+Reproduce the actual household read-only comparison:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/experiment-sunset-soc-drop.py \
+  --start-day 2026-09-25 --end-day 2026-09-30
+```
+
+The actual run at `2026-09-30T22:05:35.318307+00:00` qualified all five elapsed
+target nights and their fifteen origin-available prior-night profiles with
+zero unavailable cases. Its current as-issued state digest was
+`6a0e013b2e479bb6113bda2ac17f3d9cb9e199340b54b46678e3d669c7a38d07`.
+Each baseline issue was independently matched to exactly one original
+persisted morning receipt by date, issue timestamp and published trough.
+The three original sample ending dates and their old `99 - trough` values
+were verified, not replaced by today's latest history. Only the drop inputs
+changed; each issued dusk estimate and cloud penalty remained fixed.
+
+| Origin | Issued trough | Sunset-drop-only counterfactual | Measured trough | Issued dusk estimate | Measured sunset SoC |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sep 25 | 63% | 64% | 84% | 78.411% | 97% |
+| Sep 26 | 73% | 76% | 84% | 93.410% | 99% |
+| Sep 27 | 71% | 74% | 80% | 90.716% | 94% |
+| Sep 28 | 46% | 48% | 70% | 64.842% | 85% |
+| Sep 29 | 53% | 56% | 81% | 71.799% | 98% |
+
+Actual sunset-to-trough drops were **13, 15, 14, 15 and 17** percentage points;
+the target sunset-window coverages were 99.990–99.993%. Morning trough MAE
+was 18.6 percentage points; the one-component counterfactual MAE was 16.2.
+This is a limited diagnostic, not a fitted model, independent skill-validation
+set or live-calibration approval. The 1–3-point improvements cannot resolve
+the 9–28-point misses. Morning dusk estimates were below measured sunset SoC
+by 3.284–26.201 points. They represent an estimated evening state, so this is
+a timing-aware diagnostic comparison, not exact causal attribution to PV.
+On Sep 25, 28 and 29 the predicted dusk SoC was even below the later measured
+overnight minimum. The next priority is the PV/charge-demand-to-evening-SoC
+chain, with qualified radiation, demand/curtailment and afternoon discharge
+context; do not treat a proxy-drop correction alone as the fix. Keep the
+accepted pre-dusk UI choice and preserved morning history/scoring intact.
+
+The restricted `energy_power_reader` already has SELECT on the uniquely mapped
+Sun sunset Item 73 and atomic SoC Item 613. It lacks raw-table SELECT for the
+morning receipt, so the experiment uses the existing bounded authenticated
+OpenHAB original-JDBC receipt reader, not an admin connection or a new grant.
+The SQL snapshot is read-only/repeatable-read; source profiles are cached by
+night and exact sunset to avoid repeated raw reads. The first attempt exposed
+that missing raw privilege; a second exposed the JDBC DateTime value's typed
+PostgreSQL representation. Explicit offset-aware datetime support was added
+and tested, without guessing epoch units, attaching a timezone to naive data,
+sorting or deduplicating receipts. The complete rerun passed.
+
+All **188 affected forecast/SoC/profile/archive tests pass**. No private test
+copy, disposable runtime, forecast state update, Item publication, model
+coefficient, notification, database grant, unit or production code change was
+made. These diagnostic source files need no runtime deployment. Chronological
+PV/dusk/trough calibration and adequate seasonal support remain open.

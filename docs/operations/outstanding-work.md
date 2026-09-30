@@ -1,5 +1,16 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 actual sunset-to-trough component comparison now qualifies five
+completed origins and fifteen prior-night inputs with original sunset/BMS
+evidence and exact persisted morning issue matching. Replacing only the
+99%-start proxy improves forecasts by 1–3 points (MAE 18.6→16.2), while the
+morning evening-SoC estimates miss measured sunset SoC by 3.284–26.201 points.
+PV/charge-demand-to-evening-SoC modeling is therefore the next tuning priority,
+not a proxy-drop-only deployment. The reusable source-only diagnostic and
+188 affected tests pass; no live forecast, coefficient, control or privilege
+changed. See the
+[true-sunset evidence](2026-09-27-trough-calibration-checkpoint.md#september-30-true-sunset-as-issued-component-comparison).
+
 September 30 15:50–15:53 MDT calculated future solar-context collection is
 deployed: file-owned observational Item/rule, exact Astro 5.2.1 exporter,
 ten-day date/zone/unit validation and optional frozen forecast-origin capture.
