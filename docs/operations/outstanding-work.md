@@ -37,6 +37,13 @@ bundle deployment/rollback, household keyer/routes, attended receipt and
 activation remain open. No CLI/unit/timer was installed or message sent. See
 the [entry-point checkpoint](2026-09-30-pre-dusk-notification-candidate.md#production-entry-point-and-pinned-dependency-checkpoint).
 
+Inactive code packaging is now qualified: twelve modules, retained manifest
+digest, exact/private membership, per-file checksums and closed release gates.
+Ten builder/recovery guards pass; an independent temporary CLI import outside
+the repo still refuses delivery. Temporary files were removed. No production
+pointer/file/unit was changed; installer rollback and household delivery gates
+remain open. See the [bundle checkpoint](2026-09-30-pre-dusk-notification-candidate.md#inactive-deployment-bundle-checkpoint).
+
 The latest runtime audit passes all 1024 independent arithmetic checks in a
 later natural window. Deterministic regressions prove identical alpha-0.05
 smoothing for identical source observations despite extra evaluations and

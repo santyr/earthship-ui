@@ -161,3 +161,29 @@ qualification. No global/production package installation occurred.
 Owned dependency and test temporary directories were removed; normal package
 manager cache is retained for efficient reuse. No startup unit/timer was
 created, no release gate opened, and no message was sent.
+
+## Inactive deployment-bundle checkpoint
+
+`scripts/build-pre-dusk-notification-bundle.py` builds all twelve required
+tracked Python modules into an existing empty, owned private directory. It
+performs bounded source reads, compilation without execution and default-off
+notification/collector gate checks before output writes; files are exclusive
+0600 creates, fsynced along with the directory. It packages no host credentials,
+routes, outbox, Solar_PV code or service definitions. External dependencies
+remain the restricted Solar_PV reader package, psycopg2 and pinned websockets.
+
+Verification requires the externally retained expected manifest digest, exact
+membership, private ownership/modes, matching per-file digests, compilable
+sources and inactive gates. Ten disconnected tests passed, including changed,
+missing, unexpected, public and symlinked files, no overwrite of existing
+outputs, each gate activated before build, and independent copy recovery with
+exact checksums. This is code-bundle recovery, not production rollback.
+
+A fresh twelve-file temporary bundle independently verified with manifest
+SHA-256 `140619756fedbe053532818bf55a4fc0ed44f142782d345cae886e369fc5c52e`.
+Its CLI imported outside the repository and its real `--deliver` invocation
+returned the closed `withheld` status (exit 2), without releasing messaging.
+No active pointer, production files, credentials, units, timers or control
+state were changed. The owned bundle and test directories were removed.
+Reviewed inactive installation/rollback and household route/keyer/delivery
+qualification remain next; building a bundle is not deployment.
