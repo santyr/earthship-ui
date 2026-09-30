@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { replayRuntime } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
+import { replayRuntime, summarizeMinutes } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
 
 const at = 1800000000000;
 const field = (value, ttl, property = 'value', observedAt = at) => ({
@@ -38,6 +38,20 @@ function histories() {
 }
 
 describe('bounded read-only runtime estimator replay', () => {
+  it('separates numerical deltas from sentinel and malformed values', () => {
+    expect(summarizeMinutes([
+      { live: '100.0', candidate: '120' }, { live: '100', candidate: '90' },
+      { live: '0.0', candidate: '0' }, { live: '0', candidate: '50' },
+      { live: '50', candidate: '0' }, { live: 'NULL', candidate: '0' },
+      { live: '', candidate: '0' }, { live: '-1', candidate: '1' },
+      { live: '10 minutes', candidate: '10' }, { live: 'Infinity', candidate: '10' },
+      { live: '9007199254740992', candidate: '10' },
+    ])).toEqual({ positivePairs: 2, bothSentinel: 1, sentinelMismatch: 2,
+      invalidPairs: 6, meanDeltaMin: 5, meanAbsDeltaMin: 15, maxAbsDeltaMin: 20 });
+    expect(summarizeMinutes([{ live: '0', candidate: '0' }]).meanAbsDeltaMin).toBeNull();
+    expect(() => summarizeMinutes(Array(482).fill({ live: '1', candidate: '1' }))).toThrow('bounded');
+  });
+
   it('does not count duplicate cron reads as distinct deep current observations', () => {
     const h = histories();
     const result = replayRuntime(h, { startMs: at, endMs: at + 30000 });
@@ -85,6 +99,18 @@ describe('bounded read-only runtime estimator replay', () => {
     const result = replayRuntime(h, { startMs: at, endMs: at + 30000 });
     expect(result.candidateBasisTicks).toEqual({ evening: 1, bms: 1 });
     expect(result.lastCandidate.basis).toBe('bms');
+    expect(result.minuteComparisonByBasisPair['bms -> bms']).toEqual({ ticks: 1,
+      ttd: { positivePairs: 1, bothSentinel: 0, sentinelMismatch: 0, invalidPairs: 0,
+        meanDeltaMin: 0, meanAbsDeltaMin: 0, maxAbsDeltaMin: 0 },
+      ttf: { positivePairs: 0, bothSentinel: 1, sentinelMismatch: 0, invalidPairs: 0,
+        meanDeltaMin: null, meanAbsDeltaMin: null, maxAbsDeltaMin: null },
+    });
+    expect(result.minuteComparisonByBasisPair['bms -> evening'].ticks).toBe(1);
+    expect(result.largestMinuteDifferencesByBasisPair['bms -> bms'].ttd).toEqual({
+      at: new Date(at + 30000).toISOString(), liveMin: 500, candidateMin: 500, absDeltaMin: 0,
+      candidateBmsBufferMin: [500], candidateLastTtdAt: new Date(at).toISOString(),
+    });
+    expect(result.largestMinuteDifferencesByBasisPair['bms -> bms'].ttf).toBeUndefined();
   });
 
   it('pinpoints an expired auxiliary source at a fail-closed off tick', () => {

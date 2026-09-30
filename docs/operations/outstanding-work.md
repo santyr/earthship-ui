@@ -80,6 +80,17 @@ only its read-only audit observes the rule's own validated inputs. Numeric-
 minute qualification and the guarded live estimator cutover remain open.
 See the [natural charging evidence](2026-09-30-bms-night-average-verification.md#later-natural-charging-crossover).
 
+The new numerical audit identifies a concrete release blocker, not a pass:
+at 09:32:30 MDT the candidate BMS median is 10,701 minutes versus live 6,828.
+The throttled observational producer omitted the original 6,330-minute source
+observation, changing the median window; independent 30-second estimator
+sampling can lose further envelopes. Preserve TTD observation delivery and
+qualify evidence-driven evaluation plus no-event expiry before numerical/JVM/
+rollback requalification and cutover. Matching evening/now projection maxima
+are 10/30 minutes; neither those agreements nor old-estimator parity prove
+physical runtime accuracy. The production producer and estimator remain
+unchanged. See the [sampling-loss receipt](2026-09-30-bms-night-average-verification.md#numerical-comparison-exposes-a-sampling-loss-release-gate).
+
 Current `0864f4d6...` thermal runtime recovery passed independently from a
 private restored tree: accepted artifact valid, all 84 captures semantically
 valid, optimized full-fit digest unchanged, morning-DM policy false and exact

@@ -72,6 +72,40 @@ function timingSnapshot(raw, tick, fieldName = null) {
   } catch (_) { return { status: 'missing_or_invalid_receipt' }; }
 }
 
+// Compare held display values, not physical outcomes. Zero means unavailable/
+// not applicable, so it must not inflate apparent numeric agreement.
+function minuteValue(raw) {
+  const value = typeof raw === 'string' && /^\d+(?:\.0+)?$/.test(raw) ? Number(raw) : NaN;
+  return Number.isSafeInteger(value) && value >= 0 ? value : NaN;
+}
+
+export function summarizeMinutes(pairs) {
+  if (!Array.isArray(pairs) || pairs.length > MAX_WINDOW_MS / STEP_MS + 1) {
+    throw new Error('bounded minute pairs required');
+  }
+  const summary = { positivePairs: 0, bothSentinel: 0, sentinelMismatch: 0,
+    invalidPairs: 0, meanDeltaMin: null, meanAbsDeltaMin: null, maxAbsDeltaMin: null };
+  let deltaSum = 0, absSum = 0, maxAbs = 0;
+  for (const pair of pairs) {
+    const values = [pair?.live, pair?.candidate].map(minuteValue);
+    if (!values.every(value => Number.isSafeInteger(value) && value >= 0)) {
+      summary.invalidPairs++; continue;
+    }
+    const [live, candidate] = values;
+    if (live === 0 && candidate === 0) { summary.bothSentinel++; continue; }
+    if (live === 0 || candidate === 0) { summary.sentinelMismatch++; continue; }
+    const delta = candidate - live;
+    summary.positivePairs++;
+    deltaSum += delta; absSum += Math.abs(delta); maxAbs = Math.max(maxAbs, Math.abs(delta));
+  }
+  if (summary.positivePairs) {
+    summary.meanDeltaMin = deltaSum / summary.positivePairs;
+    summary.meanAbsDeltaMin = absSum / summary.positivePairs;
+    summary.maxAbsDeltaMin = maxAbs;
+  }
+  return summary;
+}
+
 export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }) {
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || startMs <= 0 || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) {
@@ -97,6 +131,8 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
   let priorCandidateBasis = null;
   let confirmedChargingTicks = 0;
   const confirmedChargingTransitions = [], chargingBmsBasisViolations = [];
+  const minutePairs = {};
+  const largestMinuteDifferences = {};
   const openhab = {
     cache: { private: {
       get: (key, fallback) => {
@@ -135,7 +171,7 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     const sandbox = { require: () => openhab, Date: { now: () => tick } };
     // Observe the candidate's own validated inputs; do not duplicate its
     // receipt qualification or change the script's publications/cache logic.
-    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i };',
+    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i, bmsBuffer: st.buf.slice(), lastTtdAt: st.lastTtdAt };',
       sandbox, { timeout: 1000 });
     const audit = sandbox.__qualificationAudit;
     const basis = output.BMS_Runtime_Basis;
@@ -151,6 +187,27 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     }
     if (basis !== 'off' && firstNonOffAt === null) firstNonOffAt = new Date(tick).toISOString();
     const oldBasis = held.BMS_Runtime_Basis;
+    const knownBasis = value => ['bms', 'evening', 'now', 'off'].includes(value);
+    const pairKey = `${knownBasis(oldBasis) ? oldBasis : 'unavailable'} -> ${basis}`;
+    const numericPair = minutePairs[pairKey] || (minutePairs[pairKey] = { ttd: [], ttf: [] });
+    numericPair.ttd.push({ live: held.BMS_TimeToDischarge_Smoothed,
+      candidate: output.BMS_TimeToDischarge_Smoothed });
+    numericPair.ttf.push({ live: held.BMS_TimeToFull_Smoothed,
+      candidate: output.BMS_TimeToFull_Smoothed });
+    for (const [metric, item] of [['ttd', 'BMS_TimeToDischarge_Smoothed'],
+      ['ttf', 'BMS_TimeToFull_Smoothed']]) {
+      const liveMin = minuteValue(held[item]), candidateMin = minuteValue(output[item]);
+      if (!(liveMin > 0 && candidateMin > 0)) continue;
+      const group = largestMinuteDifferences[pairKey] || (largestMinuteDifferences[pairKey] = {});
+      const absDeltaMin = Math.abs(candidateMin - liveMin);
+      if (!group[metric] || absDeltaMin > group[metric].absDeltaMin) {
+        group[metric] = { at: new Date(tick).toISOString(), liveMin, candidateMin, absDeltaMin };
+        if (metric === 'ttd' && basis === 'bms') {
+          group[metric].candidateBmsBufferMin = Array.from(audit.bmsBuffer);
+          group[metric].candidateLastTtdAt = new Date(audit.lastTtdAt).toISOString();
+        }
+      }
+    }
     if (oldBasis !== 'NULL' && oldBasis !== basis) {
       const at = new Date(tick).toISOString();
       const key = `${oldBasis} -> ${basis}`;
@@ -185,10 +242,13 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     ttfReversalViolations,
     confirmedChargingTicks, confirmedChargingTransitions, chargingBmsBasisViolations,
     candidateScriptSha256: createHash('sha256').update(source).digest('hex'),
+    minuteComparisonByBasisPair: Object.fromEntries(Object.entries(minutePairs).map(([key, pairs]) =>
+      [key, { ticks: pairs.ttd.length, ttd: summarizeMinutes(pairs.ttd), ttf: summarizeMinutes(pairs.ttf) }])),
+    largestMinuteDifferencesByBasisPair: largestMinuteDifferences,
     overnightLoadInputs,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
       ttfMin: output.BMS_TimeToFull_Smoothed },
-    caveat: 'Off-source snapshots are raw timing diagnostics, not the rule validity audit. Nightly loads are as-persisted Item diagnostics or the rule fallback, not source-fresh or proven equivalent to OpenHAB averageBetween; do not use numeric TTD for promotion.',
+    caveat: 'Off-source snapshots are raw timing diagnostics, not the rule validity audit. Nightly loads are as-persisted Item diagnostics or the rule fallback, not source-fresh or proven equivalent to OpenHAB averageBetween; do not use numeric TTD for promotion. Minute deltas compare held live displays with a cold-cache aligned replay, not physical accuracy; zero sentinels are excluded from numeric agreement.',
   };
 }
 

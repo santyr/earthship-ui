@@ -131,3 +131,45 @@ The CLI's nightly input remains the explicitly diagnostic REST left-held mean,
 their 0.0163-W millisecond-rounding difference is already explained above.
 These numeric projections are not used as a promotion proof. No live Item,
 rule, persistence history, equipment control or notification was written.
+
+## Numerical comparison exposes a sampling-loss release gate
+
+The subsequent read-only replay adds bounded per-basis numerical comparisons
+and largest-difference examples. Zero sentinel pairs are counted separately,
+not scored as numerical agreement; malformed values are withheld. Original
+JDBC Number strings such as `5724.0` are accepted as exact integer minutes.
+The same 471 ticks have no malformed pairs. These are held live displays
+versus a cold-cache, aligned replay, **not** measured runtime accuracy.
+
+| Matching basis | TTD positive pairs | Mean absolute delta, min | Maximum absolute delta, min |
+| --- | ---: | ---: | ---: |
+| BMS | 381 | 63.955381 | 3,873 |
+| Evening | 44 | 1.818182 | 10 |
+| Now | 5 | 18 | 30 |
+
+The BMS maximum is at `2026-09-30T15:32:30Z`: live 6,828 minutes versus
+candidate 10,701. Its captured candidate buffer is
+`[12479, 13120, 10701, 11679, 11617, 5827, 6439, 6828, 6818]`;
+independent sorting gives median 10,701. Original numeric BMS history's last
+nine observations through `15:32:21.103Z` are
+`[13120, 10701, 11679, 11617, 5827, 6439, 6828, 6330, 6818]`, median 6,828,
+matching the persisted live output at `15:32:21.106Z`.
+
+The original 6,330 sample persisted at `15:31:50.995Z`. Bounded receipt
+readback shows it absent: the `15:31:50.411Z` receipt still contains the older
+6,828 sample, and the next `15:32:21.103Z` receipt contains 6,818. The producer
+updates its source slot on each trusted event but publishes healthy envelopes
+at most every 30 seconds; independently phased source events can be overwritten
+before an envelope is published. The estimator's separate aligned 30-second
+sampling can lose additional distinct envelopes. Source freshness alone does
+not preserve the observation sequence required for median parity.
+
+**Do not promote this candidate from passing mode/freshness tests.** Next
+preserve original TTD observation delivery without restoring held-numeric
+freshness assumptions, qualify evidence-driven estimator evaluations alongside
+the no-event expiry timer, and repeat the numerical/JVM/recovery gates on the
+resulting exact source hashes. TTF differences also remain diagnostic, with
+41 zero/nonzero mismatches across the window and large positive-value deltas;
+agreement with the old estimator is not a physical full-charge accuracy label.
+No producer or production estimator changed. The 37 adjacent JS tests pass;
+the only code change is the read-only replay audit.
