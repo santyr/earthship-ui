@@ -3839,6 +3839,19 @@ night's diagnostic load magnitude. It is still not a direct live Java
 `averageBetween` parity check, does not close the 1.276 seconds of strictly
 uncovered time, and does not qualify the guarded BMS runtime estimator for
 promotion; dusk/night transition replay and source-freshness gates remain.
+September 29 14:00–18:00 MDT follow-up replayed 481 half-minute ticks after
+the collector's natural startup, using the completed September 28–29 night
+Item-history diagnostic (166.630832 W). Candidate bases were `now` 127,
+`evening` 176, `bms` 170 and fail-closed `off` 8. The live and candidate
+bases disagreed on 151 ticks, chiefly live `now` versus candidate `evening`
+(80) and live `bms` versus candidate `evening` (33); all eight candidate
+`off` ticks had a non-off live basis. No positive time-to-full survived a
+noncharging current receipt. This is a bounded natural afternoon replay,
+not a complete dusk/night transition, numeric TTD accuracy test, or reason
+to relax the source TTL. The 166.630832 W input is still an as-persisted
+diagnostic, not a direct Java `averageBetween` result. Keep the live rule
+unchanged and the guarded estimator disabled pending transition and fault
+qualification.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
