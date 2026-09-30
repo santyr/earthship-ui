@@ -87,6 +87,33 @@ describe('bounded read-only runtime estimator replay', () => {
     expect(result.lastCandidate.basis).toBe('bms');
   });
 
+  it('pinpoints an expired auxiliary source at a fail-closed off tick', () => {
+    const h = histories();
+    const soc = JSON.parse(h.BMS_SOC_Evidence_JSON[0].state);
+    soc.recordedAt = at + 60000;
+    soc.observedAt = at + 60000;
+    soc.scaleObservedAt = at + 60000;
+    soc.validUntil = at + 180000;
+    h.BMS_SOC_Evidence_JSON.push(row(soc, at + 60000));
+    const runtime = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+    runtime.sequence = 2;
+    runtime.recordedAt = at + 60000;
+    for (const key of ['battery.dc_current_ca', 'battery.dc_voltage_cv']) {
+      runtime.fields[key] = field(runtime.fields[key].value, 90000, 'value', at + 60000);
+    }
+    h.BMS_Runtime_Input_Evidence_JSON.push(row(runtime, at + 60000));
+
+    const result = replayRuntime(h, { startMs: at + 120000, endMs: at + 120000 });
+    expect(result.candidateBasisTicks).toEqual({ off: 1 });
+    expect(result.firstOffSourceSnapshots).toHaveLength(1);
+    expect(result.firstOffSourceSnapshots[0]).toMatchObject({
+      remainingAh: { status: 'valid', validForMs: 0 },
+      soc: { status: 'valid', validForMs: 60000 },
+      current: { status: 'valid', validForMs: 30000 },
+      voltage: { status: 'valid', validForMs: 30000 },
+    });
+  });
+
   it('rejects unbounded, unordered and future-only histories', () => {
     const h = histories();
     expect(() => replayRuntime(h, { startMs: at, endMs: at + 4 * 3600000 + 1 })).toThrow('bounded');

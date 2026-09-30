@@ -56,6 +56,21 @@ function checkedRows(name, rows) {
   });
 }
 
+function timingSnapshot(raw, tick, fieldName = null) {
+  try {
+    const receipt = JSON.parse(raw);
+    const field = fieldName ? receipt.fields?.[fieldName] : receipt;
+    if (!field || typeof field !== 'object') return { status: 'missing_field' };
+    return {
+      status: ['valid', 'unavailable'].includes(field.status) ? field.status : null,
+      reason: ['ok', 'source_unavailable', 'input_unavailable', 'invalid_input',
+        'input_stale'].includes(field.reason) ? field.reason : null,
+      receiptAgeMs: Number.isSafeInteger(receipt.recordedAt) ? tick - receipt.recordedAt : null,
+      validForMs: Number.isSafeInteger(field.validUntil) ? field.validUntil - tick : null,
+    };
+  } catch (_) { return { status: 'missing_or_invalid_receipt' }; }
+}
+
 export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }) {
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || startMs <= 0 || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) {
@@ -75,6 +90,7 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
   const memory = new Map();
   let tick = startMs;
   const basisCounts = {}, disagreements = [], disagreementPairs = {}, ttfReversalViolations = [];
+  const firstOffSourceSnapshots = [];
   const overnightLoadInputs = {};
   let firstNonOffAt = null;
   const openhab = {
@@ -115,6 +131,15 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     vm.runInNewContext(source, { require: () => openhab, Date: { now: () => tick } }, { timeout: 1000 });
     const basis = output.BMS_Runtime_Basis;
     basisCounts[basis] = (basisCounts[basis] || 0) + 1;
+    if (basis === 'off' && firstOffSourceSnapshots.length < 12) {
+      firstOffSourceSnapshots.push({
+        at: new Date(tick).toISOString(),
+        soc: timingSnapshot(held.BMS_SOC_Evidence_JSON, tick),
+        remainingAh: timingSnapshot(held.BMS_Aux_Evidence_JSON, tick, 'battery.remaining_ah'),
+        current: timingSnapshot(held.BMS_Runtime_Input_Evidence_JSON, tick, 'battery.dc_current_ca'),
+        voltage: timingSnapshot(held.BMS_Runtime_Input_Evidence_JSON, tick, 'battery.dc_voltage_cv'),
+      });
+    }
     if (basis !== 'off' && firstNonOffAt === null) firstNonOffAt = new Date(tick).toISOString();
     const oldBasis = held.BMS_Runtime_Basis;
     if (oldBasis !== 'NULL' && oldBasis !== basis) {
@@ -141,11 +166,12 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     firstNonOffAt,
     disagreementPairs,
     firstBasisDisagreements: disagreements,
+    firstOffSourceSnapshots,
     ttfReversalViolations,
     overnightLoadInputs,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
       ttfMin: output.BMS_TimeToFull_Smoothed },
-    caveat: 'Nightly loads are as-persisted Item diagnostics or the rule fallback, not source-fresh or proven equivalent to OpenHAB averageBetween; do not use numeric TTD for promotion.',
+    caveat: 'Off-source snapshots are raw timing diagnostics, not the rule validity audit. Nightly loads are as-persisted Item diagnostics or the rule fallback, not source-fresh or proven equivalent to OpenHAB averageBetween; do not use numeric TTD for promotion.',
   };
 }
 
