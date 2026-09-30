@@ -262,6 +262,54 @@ def test_retained_manifest_refuses_changed_archive(tmp_path):
     assert not (destination/'manifest.json').exists()
 
 
+def test_full_inactive_baseline_bundle_restores_real_journal(database, tmp_path, monkeypatch):
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location('baseline_bundle',
+        root/'scripts/qualify-thermal-collector-baseline-bundle.py')
+    bundle = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bundle)
+    now = datetime.now(timezone.utc)
+    routes = tmp_path/'routes.json'
+    events = []
+    for pubkey in (bundle.baseline.C, bundle.baseline.O):
+        event = {'pubkey': pubkey, 'kind': 10050, 'created_at': int(now.timestamp()),
+            'tags': [['relay', 'wss://nos.lol']], 'content': '', 'sig': '0'*128}
+        event['id'] = confirmation.event_id(event)
+        events.append(event)
+    routes.write_bytes(confirmation.canonical({'version': 1, 'announcements': events}))
+    routes.chmod(0o600)
+    class Keyer:
+        def verify(self, event, kind):
+            return confirmation.validate_event(event, kind=kind, signed=True)
+    state, policy = tmp_path/'state', tmp_path/'policy.proposed.json'
+    bundle.baseline.prepare(state, policy, routes, window='open', skylight='closed',
+                            now=now, keyer=Keyer())
+    monkeypatch.setenv('THERMAL_DATABASE_URL', database.runtime_dsn)
+    params = psycopg2.extensions.parse_dsn(database.runtime_dsn)
+    def restricted_source():
+        connection = psycopg2.connect(database.runtime_dsn)
+        connection.set_session(readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
+        return connection, params
+    monkeypatch.setattr(bundle.recovery, 'runtime_connection', restricted_source)
+    original = ActionEvent('bundle-original-vent', 'bundle-original-receipt', now, now,
+                           'vent', 'closed', 'manual_dm', 1.)
+    assert journal.ActionJournal(database.runtime_dsn).append(original)
+    import thermal_intel
+    destination = tmp_path/'bundle'
+    result = bundle.qualify(state, policy, routes, destination, root/'openhab/scripts',
+                            thermal_intel._code_revision(), keyer=Keyer())
+    assert result['status'] == 'inactive_household_baseline_bundle_qualified'
+    assert result['verified_components'] == 5 and result['version'] == 3
+    assert result['policy_reviewed'] is result['sending_policy'] is result['operational_ready'] is False
+    assert result['signed_trial_verified'] is result['collector_activated'] is False
+    assert result['production_writes'] == result['source_runtime_role_other_sessions'] == 0
+    assert result['source_table_proofs']['action_events']['rows'] == 1
+    assert thermal_state_backup.verify_snapshot(destination)['verified_files'] == 5
+    assert journal.ActionJournal(database.runtime_dsn).events_for_receipt(original.idempotency_key) == (original,)
+    assert journal.audit_schema(database.admin_dsn, runtime_role=database.runtime_role,
+                                expected_owner=database.owner)['fingerprint'] == migration.LEGACY_FINGERPRINT
+
+
 def test_position_ingress_retries_exact_v2_storage_without_duplicate(database, monkeypatch, tmp_path):
     now = datetime.now(timezone.utc).replace(microsecond=0)
     operator = '1' * 64

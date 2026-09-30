@@ -486,3 +486,53 @@ the collector's baseline SQLite pair; then capture/rehearse the complete
 same-host bundle while independent journal writers are quiescent. The pending
 chat question only chooses a truthful trial question, never a training label.
 Production cutover and a genuinely signed operator reply remain separate gates.
+
+## Inactive five-component baseline recovery
+
+The subsequent same-host rehearsal completed successfully, without a production
+journal write or relay publication. `scripts/prepare-thermal-collector-baseline.py`
+created a new private empty SQLite pair and `policy.proposed.json`; it refuses
+existing destinations, an operational policy filename or any open release gate.
+The window-open/skylight-closed values are only a question proposal based on the
+earlier chat report. They are **not** confirmed actions, signed labels or an
+approved sending policy. The sole proposed reply author remains the approved
+operator; Sat's NIP-46 client key is not substituted for that identity.
+
+The proposal at
+`/home/sat/.local/state/thermal-intel/collector-config/policy.proposed.json`
+has SHA-256 `63c226f2895b3ebba8a1868c05717f33eb6fc36aa9a299091a397d4ca79daf99`.
+Its question ID is
+`6c0d64817c5bd21275d2dad0f7378612c8b466ccff2e00ddf7e4a205c463b8de`
+and it expires at `2026-10-02T05:21:20.208228+00:00`. No operational
+`policy.json` was installed. The copied filename within the recovery archive is
+the backup format's `policy.json`, not permission to use that proposal for sending.
+
+`scripts/qualify-thermal-collector-baseline-bundle.py` exported a fresh
+read-only household PostgreSQL snapshot while holding the inactive collector's
+state lock. It checked zero **other sessions using the journal runtime role**;
+this is not proof that unrelated database-owner processes were stopped.
+Source and restored ordered journal digests match for all 10 actions, four
+receipts and four modes. The private retained bundle is
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-09-29-proposed-baseline`.
+Its v3 manifest independently verifies five files: the journal dump, two SQLite
+databases, proposed-policy bytes and approved signed-route snapshot. Private
+permissions and exact configuration equality passed, as did public route
+signature checks with the actual pinned nak.
+
+The disposable restore passed exact v1 and v2 journal audits and the installed
+legacy consumer under revision
+`fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`.
+Both copied SQLite databases passed integrity/version checks and reopened
+through `Spool`/`Outbox` with all six business tables empty. Owned Docker and
+temporary SQLite resources were removed. The qualification receipt explicitly
+records `policy_reviewed`, `sending_policy`, `signed_trial_verified`,
+`operational_ready` and `collector_activated` as false, with zero production
+writes and no off-host copy. All 96 affected tests pass, including a real
+PostgreSQL full-bundle regression; its synthetic route verifier is explicitly
+a fixture double, unlike the household run.
+
+This closes the inactive household baseline recovery rehearsal. A reviewed,
+truthful, unexpired sending policy, exact authorized production journal cutover,
+genuine operator-signed confirmation and subsequent bounded user-service
+qualification remain open. The accepted thermal model and its timers were not
+changed. Off-host recovery remains explicitly deferred by the operator.

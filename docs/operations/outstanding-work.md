@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 inactive collector baseline recovery is now rehearsed: the fresh
+household journal, both empty SQLite databases and exact private proposed-policy
+and signed-route files form a verified five-component v3 bundle. Disposable
+v1/v2 PostgreSQL restore and the pinned installed legacy consumer passed; both
+SQLite files reopened through the actual application classes without pending
+work. All 96 affected tests pass. Production writes were zero and owned test
+resources were removed. The policy is explicitly **unsent and unreviewed**, not
+an observation or an operational sending policy. All six release gates remain
+false. This closes inactive baseline recovery, not the reviewed-policy,
+authorized production migration, genuine signed trial or service-release gates.
+See the [full baseline checkpoint](2026-09-29-thermal-airflow-journal-v2-candidate.md#inactive-five-component-baseline-recovery).
+
 September 29 retained collector recovery progress: the verified household
 journal preimage is now retained privately, with an independently checked
 custom-archive digest and explicit **journal-only**, not full-bundle scope.
