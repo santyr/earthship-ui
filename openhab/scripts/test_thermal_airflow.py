@@ -103,14 +103,13 @@ def test_invalid_or_unknown_opening_refused(value):
         predict_airflow_step(seed(), forcing(window_open=value))
 
 
-@pytest.fixture(scope='module')
-def synthetic_samples():
+def make_synthetic_samples(count=600, *, skylight_open=None):
     rng = random.Random(812)
     model = seed()
     at = datetime(2026, 8, 13, tzinfo=timezone.utc)
     air, mass = 75., 72.
     rows = []
-    for step in range(600):
+    for step in range(count):
         row = AirflowSample(at=at, air_f=air, mass_f=mass, glazing_f=None,
             outdoor_f=55.+rng.random()*25, radiation_wm2=rng.random()*800,
             vent_open=None, vent_confidence=0.,
@@ -119,12 +118,19 @@ def synthetic_samples():
             action_confidence=1., passive_fit_allowed=True, mode='warm',
             window_open=float(rng.randrange(2)), window_confidence=1.,
             skylight_open=float(rng.randrange(2)), skylight_confidence=1.)
+        if skylight_open is not None:
+            row = replace(row, skylight_open=float(skylight_open))
         if rows:
             air, mass, _ = predict_airflow_step(model, replace(row, air_f=air, mass_f=mass))
             row = replace(row, air_f=air, mass_f=mass)
         rows.append(row)
         at += timedelta(minutes=5)
     return rows
+
+
+@pytest.fixture(scope='module')
+def synthetic_samples():
+    return make_synthetic_samples()
 
 
 def test_seed_recovers_independent_coefficients_on_synthetic_data(synthetic_samples):

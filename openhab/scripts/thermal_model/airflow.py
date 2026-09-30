@@ -12,11 +12,11 @@ import math
 import numpy as np
 
 from .dataset import (CONFIRMED_SOURCES, STEP, ThermalDataset, _binary_state,
-                      _ceil_five, _effective_action, build_samples, dataset_manifest)
+                      _ceil_five, _effective_action, _utc, build_samples, dataset_manifest)
 from .dynamics import (AIR_BOUNDS, AIR_NAMES, GLAZING_BOUNDS, GLAZING_NAMES,
                        MASS_BOUNDS, MASS_NAMES, STABILITY_TOLERANCE,
                        _checked_output, _fit, _full_rank, _glazing_rows, _solar_terms,
-                       _validate_gain_relationship)
+                       _fit_with_inactive_action_columns, _validate_gain_relationship)
 from .schema import ThermalSample
 
 AIRFLOW_FIELDS = ('window_open', 'skylight_open')
@@ -49,8 +49,18 @@ class AirflowSeed:
     glazing_observation_coefficients: dict[str, float]
 
 
-def build_airflow_samples(series_by_role, events, modes, start, end):
+def build_airflow_samples(series_by_role, events, modes, start, end, *, known_by=None):
     events, modes = tuple(events), tuple(modes)
+    if known_by is not None:
+        cutoff = _utc(known_by, 'knowledge cutoff')
+        if _utc(end, 'end') > cutoff:
+            raise ValueError('training sample end exceeds knowledge cutoff')
+        # Receipt time is not the journal commit time: the operational reader
+        # must additionally qualify created_at before any as-issued claim.
+        events = tuple(e for e in events if _utc(e.received_at, 'event received_at') <= cutoff)
+        modes = tuple(e for e in modes if _utc(e.received_at, 'mode received_at') <= cutoff)
+        series_by_role = {role: [(at, value) for at, value in points
+            if _utc(at, 'series point at') <= cutoff] for role, points in series_by_role.items()}
     legacy = build_samples(series_by_role, events, modes, start, end)
     rows = []
     for sample in legacy:
@@ -218,7 +228,7 @@ def validate_airflow_physics(model):
     return model
 
 
-def fit_airflow_seed(samples):
+def fit_airflow_seed_with_evidence(samples, *, allow_inactive_action_forcing=False):
     """Bounded one-step identification; full-rank independent openings required.
 
     Unknown openings, exceptional heat and nonconsecutive pairs cannot fit.
@@ -257,9 +267,24 @@ def fit_airflow_seed(samples):
         mass_x.append(np.asarray((left.air_f-left.mass_f,
                                   right.outdoor_f-left.mass_f, *solar)) * weight)
         mass_y.append((right.mass_f-left.mass_f) * weight)
-    air = _fit(air_x, air_y, SEED_AIR_BOUNDS, SEED_AIR_NAMES, ordered_solar=True)
-    mass = _fit(mass_x, mass_y, MASS_BOUNDS, MASS_NAMES, ordered_solar=True)
+    if allow_inactive_action_forcing:
+        air, inactive_air = _fit_with_inactive_action_columns(air_x, air_y,
+            SEED_AIR_BOUNDS, SEED_AIR_NAMES,
+            frozenset((*AIRFLOW_NAMES, 'solar_indoor_closed', 'solar_outdoor')))
+        mass, inactive_mass = _fit_with_inactive_action_columns(mass_x, mass_y,
+            MASS_BOUNDS, MASS_NAMES, frozenset(('solar_indoor_closed', 'solar_outdoor')))
+    else:
+        air = _fit(air_x, air_y, SEED_AIR_BOUNDS, SEED_AIR_NAMES, ordered_solar=True)
+        mass = _fit(mass_x, mass_y, MASS_BOUNDS, MASS_NAMES, ordered_solar=True)
+        inactive_air = inactive_mass = ()
     glazing_x, glazing_y = _glazing_rows(pairs)
     glazing = _fit(glazing_x, glazing_y, GLAZING_BOUNDS, GLAZING_NAMES,
                    ordered_solar=True) if _full_rank(glazing_x, GLAZING_NAMES) else {}
-    return validate_airflow_physics(AirflowSeed(1, 5, air, mass, glazing))
+    model = validate_airflow_physics(AirflowSeed(1, 5, air, mass, glazing))
+    inactive = tuple(name for name in (*SEED_AIR_NAMES, *MASS_NAMES)
+                     if name in set(inactive_air) | set(inactive_mass))
+    return model, tuple(dict.fromkeys(inactive))
+
+
+def fit_airflow_seed(samples):
+    return fit_airflow_seed_with_evidence(samples)[0]

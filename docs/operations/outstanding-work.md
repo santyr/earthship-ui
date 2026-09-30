@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 split-airflow multihorizon progress: the source candidate now
+refines independent window/skylight/joint-opening effects over 5-minute through
+24-hour endpoints, with bounded daily origins, analytic gradients and explicit
+inactive-feature withholding. A prior-training cutoff and 1–72 hour
+retrospective fold keep later data out of fitting, but correctly refuse to
+claim as-issued forecast skill or artifact promotion. All 168 affected tests
+pass. A synthetic like-for-like objective/gradient benchmark was about 6.7×
+faster with batched origins, not a whole-trainer speedup claim. Nothing was
+installed or activated; artifact/runtime/capture versioning, operational
+forecast integration and coordinated journal/collector recovery remain open.
+See the [fit, fold and efficiency evidence](2026-09-29-thermal-airflow-journal-v2-candidate.md#source-only-multihorizon-fit-and-retrospective-fold).
+
 September 29 split-airflow model prerequisite: the explicit source-only v2
 dataset now preserves independent window/skylight states, confidence and
 event provenance without deriving them from legacy vent labels. A bounded
@@ -7,8 +19,9 @@ five-minute identification seed fits independent and joint-opening exchange
 effects; the legacy dynamics path refuses these inputs rather than silently
 ignoring them. Twenty-one new tests, 101 dataset/dynamics regressions and 287
 pipeline/evaluation/behavior/artifact regressions pass. This is not installed
-or a learned household effect. Multihorizon/fold evaluation, artifact and
-forcing-capture versioning, origin-aware forecast construction and coordinated
+or a learned household effect. Accepted-trainer integration and qualified
+as-issued fold evaluation, artifact and forcing-capture versioning,
+origin-aware forecast construction and coordinated
 collector/runtime recovery remain open. See the
 [candidate and exact boundaries](2026-09-29-thermal-airflow-journal-v2-candidate.md#source-only-split-airflow-dataset-and-identification-seed).
 

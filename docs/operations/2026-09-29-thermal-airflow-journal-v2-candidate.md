@@ -177,7 +177,8 @@ installed optimization. `airflow.py` is not yet included in the accepted
 runtime manifest or artifact loader, and no v2 household journal migration,
 question, listener, label collection or control activation occurred.
 
-Remaining coordinated work is substantive: extend the multihorizon objective
+At this seed-only checkpoint, remaining coordinated work was substantive:
+extend the multihorizon objective
 and fold-only identifiability/held-out-forcing gates to the split feature map;
 version the artifact, runtime manifest and forcing captures; preserve
 origin-time knowledge in independent baseline/candidate schedules and output
@@ -185,3 +186,62 @@ markers; qualify as-issued forecasting and genuine signed observations; then
 rehearse the complete household backup/upgrade/rollback before live release.
 The seed is only the initial fitting component of that work, not a substitute
 for it or a reason to graduate the model from shadow.
+The following checkpoint implements the source objective and diagnostic-fold
+part, without releasing the accepted trainer or operational forecasting path.
+
+## Source-only multihorizon fit and retrospective fold
+
+`airflow_training.py` now refines the split-airflow seed against open-loop air
+and mass endpoints at 5 minutes, 1, 6, 12 and 24 hours. It retains independent
+window, skylight and joint-opening terms. Every horizon requires at least two
+daily origins, uniformly capped at 64 across the available training range.
+Unknown states, exceptional heat, zero-confidence labels and nonconsecutive
+prefixes cannot contribute. Bounded coefficients, ordered shade gains,
+combined-opening exchange, sensitivity rank, final physics and a nonincreasing
+objective are checked; an optimizer success flag alone does not qualify a fit.
+
+Fold fitting may explicitly keep **exactly zero** action-feature columns
+inactive, rather than inventing an identified effect. A corresponding held-out
+activation is withheld. Nonzero but collinear window/skylight histories still
+refuse identification. This lets a closed-skylight training fold be described
+honestly without authorizing prediction of an unlearned open-skylight effect.
+
+The optional dataset `known_by` cutoff excludes later-received action/mode
+confirmations and later timestamped temperature/radiation points before
+projection. It cannot prove the journal's storage commit time; the operational
+as-of reader must separately enforce `created_at`. The retrospective evaluator
+accepts one explicit origin and an independently rebuilt prior-training reader,
+requires fourteen days of prior time span, refuses origin/future training rows,
+and compares the model with same-origin persistence at complete 1–72 hour
+targets. It simulates the longest eligible prefix once and reuses shorter
+targets. A later missing/unknown state withholds only horizons crossing it.
+
+Its report is explicitly `observed_held_out_not_as_issued` and
+`promotion_eligible: false`: it uses observed future weather/action forcing to
+diagnose physical dynamics. Neither temperature chronology nor a received-time
+cutoff turns this into a qualified as-issued forecast or proof of journal
+commit-time availability. The true forecast/capture integration remains open.
+
+The recurrence batches daily origins, caches coefficient-independent forcing
+features, and retains only the latest optimizer value/Jacobian cache entry.
+An 18-day synthetic benchmark had 19 daily origins at the four shorter
+horizons and 18 at 24 hours. Retained prepared arrays occupied 537,720 bytes.
+Three batched loss-plus-analytic-gradient calls took 0.010386, 0.010182 and
+0.010135 seconds, versus 0.068873, 0.068686 and 0.068455 seconds for equivalent
+scalar recurrences using the same prepared forcings. The loss difference was
+`6.94e-18`; the maximum gradient difference was `1.36e-12`. This is roughly
+6.7× for **one objective/gradient evaluation**, not a household whole-trainer,
+peak-memory, swap or predictive-skill claim.
+
+The 24 added multihorizon/fold tests and 21 existing split-airflow tests pass,
+along with the affected legacy dataset/dynamics/evaluation tests (168 total).
+Checks include centered finite-difference gradients, independent scalar
+simulation, reduced synthetic long-horizon drift, deterministic fits, bounded
+origin sampling, inactive-feature handling, malformed optimizer results,
+nonfinite evidence, worse-objective refusal, received-time cutoffs and held-out
+mutation isolation. No household data was relabeled or used to fit this
+candidate, no runtime file was installed, and no collector or control gate
+changed. The next release work is the versioned artifact/runtime/forcing-capture
+contract and origin-aware forecast construction, plus the coordinated
+household journal/backup/reader transition. Observational evidence collection
+and eventual model graduation remain distinct gates.
