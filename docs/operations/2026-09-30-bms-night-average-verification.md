@@ -100,8 +100,34 @@ or noncharging TTF violations. It had no charging crossover, so it cannot
 qualify that transition. Its REST-weighted overnight input is still explicitly
 diagnostic, and numerical projected minutes are excluded from promotion.
 
-The disabled candidate still needs natural charging-transition observation,
-numeric-minute comparison and the exact guarded production cutover. This
+At that checkpoint the disabled candidate still needed natural charging-transition
+observation, numeric-minute comparison and the exact guarded production cutover. This
 isolated no-event result does not prove a deployed production timer. Historical
 AC averaging does not qualify other held source inputs, and these calculation
 and fixture results authorize no equipment controls.
+
+## Later natural charging crossover
+
+The expanded 07:00–10:55 MDT persisted-history replay has 471 half-minute
+ticks: 381 `bms`, 67 `evening` and 23 `now`, with no OFF tick. Read-only audit
+instrumentation observes the candidate's own validated `bankReady` and current
+sample rather than treating raw timing metadata as source qualification.
+The underlying rule remains unchanged at SHA-256
+`b7d414ede0db177435816e91609c1385061fc4252c4cc7da8c9047f9199a1944`.
+Two new regressions exercise a distinct-source charging crossover through the
+eight-minute dwell and reject a malformed-source receipt; all 22 adjacent
+estimator/replay tests and eight isolated-qualification adapter tests pass.
+
+There are 64 qualified ticks with current at least 1.0 A, zero charging/BMS-
+basis violations and zero noncharging TTF violations. At `16:31:30Z`, the
+candidate immediately leaves its prior `bms` basis for `evening` on a fresh
+1.60-A observation acquired at `16:31:07.745Z`. This closes the previously
+missing natural charging-exit test; it does not deploy that candidate or
+establish numerical minute accuracy. The estimator still needs those remaining
+calculation/release gates and an exact guarded production cutover.
+
+The CLI's nightly input remains the explicitly diagnostic REST left-held mean,
+172.672598 W. The separately qualified real-Java default average is 172.656298 W;
+their 0.0163-W millisecond-rounding difference is already explained above.
+These numeric projections are not used as a promotion proof. No live Item,
+rule, persistence history, equipment control or notification was written.

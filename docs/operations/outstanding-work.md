@@ -72,6 +72,27 @@ seasonal skill or action evidence. It closes the previously future-only first
 24-hour audit-bucket check and reinforces the still-open shadow-exit gate.
 See the [matured outcome](2026-09-29-prediction-learning-review.md#september-30-first-matured-near-24-hour-outcome).
 
+The later 07:00–10:55 MDT BMS candidate replay closes its natural charging-exit
+observation gate: 471 ticks, 64 source-qualified charging ticks, zero charging/
+BMS-basis or noncharging TTF violations, and a 1.60-A crossover from `bms` to
+`evening` at 10:31:30 MDT. The original candidate rule hash is unchanged;
+only its read-only audit observes the rule's own validated inputs. Numeric-
+minute qualification and the guarded live estimator cutover remain open.
+See the [natural charging evidence](2026-09-30-bms-night-average-verification.md#later-natural-charging-crossover).
+
+Current `0864f4d6...` thermal runtime recovery passed independently from a
+private restored tree: accepted artifact valid, all 84 captures semantically
+valid, optimized full-fit digest unchanged, morning-DM policy false and exact
+replay of the archived 10:31 publication. The temporary extraction was removed;
+this is same-host runtime/artifact recovery, not off-host or whole-host recovery.
+
+The first completed natural morning/pre-dusk pair passed read-only at 11:05
+MDT: September 29 morning predicted 53%, pre-dusk 81%, and the measured
+20:00–11:00 trough was 81%, with 99.9925695% source-qualified coverage.
+Absolute error improved by 28 percentage points for this one night; no
+seasonal or causal-reward claim, calibration change or history rewrite follows.
+See the [paired receipt](2026-09-29-prediction-learning-review.md#september-30-first-completed-natural-morningpre-dusk-pair).
+
 September 30 operator-selected display policy: use only a valid, source-bound
 pre-dusk trough for the Energy headline/projection and UI forecast alerts.
 The morning Item, immutable receipt, calculation and JDBC history remain

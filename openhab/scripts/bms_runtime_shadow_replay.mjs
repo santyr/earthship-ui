@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 import { auditNightLoad } from './bms_night_load_audit.mjs';
 
 const source = readFileSync(new URL('../rules/bms-runtime-estimator-evidence.js', import.meta.url), 'utf8');
@@ -93,6 +94,9 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
   const firstOffSourceSnapshots = [];
   const overnightLoadInputs = {};
   let firstNonOffAt = null;
+  let priorCandidateBasis = null;
+  let confirmedChargingTicks = 0;
+  const confirmedChargingTransitions = [], chargingBmsBasisViolations = [];
   const openhab = {
     cache: { private: {
       get: (key, fallback) => {
@@ -128,7 +132,12 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
         held[name] = history[indices[name]++].state;
       }
     }
-    vm.runInNewContext(source, { require: () => openhab, Date: { now: () => tick } }, { timeout: 1000 });
+    const sandbox = { require: () => openhab, Date: { now: () => tick } };
+    // Observe the candidate's own validated inputs; do not duplicate its
+    // receipt qualification or change the script's publications/cache logic.
+    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i };',
+      sandbox, { timeout: 1000 });
+    const audit = sandbox.__qualificationAudit;
     const basis = output.BMS_Runtime_Basis;
     basisCounts[basis] = (basisCounts[basis] || 0) + 1;
     if (basis === 'off' && firstOffSourceSnapshots.length < 12) {
@@ -150,14 +159,20 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
       pair.lastAt = at;
       if (disagreements.length < 12) disagreements.push({ at, live: oldBasis, candidate: basis });
     }
-    try {
-      const receipt = JSON.parse(held.BMS_Runtime_Input_Evidence_JSON);
-      const f = receipt.fields?.['battery.dc_current_ca'];
-      if (f?.status === 'valid' && f.reason === 'ok' && tick < f.validUntil
-          && f.value < 50 && Number(output.BMS_TimeToFull_Smoothed) > 0) {
-        ttfReversalViolations.push(new Date(tick).toISOString());
+    if (audit.bankReady && audit.currentA >= 1.0) {
+      confirmedChargingTicks++;
+      if (basis === 'bms') chargingBmsBasisViolations.push(new Date(tick).toISOString());
+      if (priorCandidateBasis === 'bms' && confirmedChargingTransitions.length < 12) {
+        confirmedChargingTransitions.push({ at: new Date(tick).toISOString(),
+          priorBasis: priorCandidateBasis, candidateBasis: basis, currentA: audit.currentA,
+          observedAt: new Date(audit.current.observedAt).toISOString() });
       }
-    } catch (_) { /* missing receipt is already reflected by candidate basis */ }
+    }
+    if ((!audit.bankReady || audit.currentA < 0.5)
+        && Number(output.BMS_TimeToFull_Smoothed) > 0) {
+      ttfReversalViolations.push(new Date(tick).toISOString());
+    }
+    priorCandidateBasis = basis;
   }
   return {
     window: [new Date(startMs).toISOString(), new Date(endMs).toISOString()],
@@ -168,6 +183,8 @@ export function replayRuntime(histories, { startMs, endMs, nightLoadByDay = {} }
     firstBasisDisagreements: disagreements,
     firstOffSourceSnapshots,
     ttfReversalViolations,
+    confirmedChargingTicks, confirmedChargingTransitions, chargingBmsBasisViolations,
+    candidateScriptSha256: createHash('sha256').update(source).digest('hex'),
     overnightLoadInputs,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
       ttfMin: output.BMS_TimeToFull_Smoothed },

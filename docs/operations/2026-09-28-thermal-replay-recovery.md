@@ -160,3 +160,26 @@ publisher is still due at 08:30 MDT. The owned extraction was removed after
 verification; real earlier backups and the new archive remain. No runtime,
 timer, journal, control, label or notification was changed. Off-host copying
 remains deferred, and whole-host recovery is not established here.
+
+## September 30 optimized-runtime and notification-policy recovery
+
+The current private v2 publication-runtime archive is
+`/home/sat/backups/earthship-energy/thermal-publication-runtime-20260930-post-morning-dm-retire-0864f4d6.tar.gz`,
+SHA-256 `5f31b57de220a22f81f695d58d1c178ee2dbe229138f47f214fb456716f53aec`.
+Its 110 members include 84 forcing captures, exact installed publication source
+`0864f4d6...` and the accepted model's separately retained `a4a68a17...`
+training identity. Archive inventory and every member digest passed verification.
+
+A new private extraction imported only the restored runtime, not production
+thermal source. The accepted artifact and all 84 captures passed the restored
+semantic validators. A restored 8,064-row synthetic fit retained complete
+SHA-256 `754def4eb21d19a31f2e3ab894b40ea8f356843286517c5ba8b54fc58b3da091`,
+and the restored morning-DM policy remains false. The archived 10:31 natural
+publication exactly replays to output SHA-256
+`40f98cb893678739eea68daca7684e6df3c52cb95ab27e5d30b51d030050dc72`
+under the explicitly pinned included publication source. This does not imply
+every earlier capture was generated under that runtime, or that its training
+identity was rewritten. The owned extraction was removed after verification.
+No production model, journal, Item, control or message was altered. This closes
+same-host recovery of the optimized/policy-retired runtime, not whole-host or
+off-host disaster recovery; off-host copying remains deferred.

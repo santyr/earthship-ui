@@ -336,6 +336,31 @@ accepted artifact bytes stayed unchanged and no message or control was sent.
 The full thermal publication runtime is now `0864f4d6...`, distinct from its
 accepted training identity; private before/after bundles preserve that fact.
 
+### September 30 first completed natural morning/pre-dusk pair
+
+The read-only `qualify-pre-dusk-natural-issue.py --day 2026-09-29
+--score-completed-night` passed at 11:05 MDT with status
+`scored_completed_night`. Morning issued at `2026-09-29T12:40:17.987351Z`
+predicted 53%; pre-dusk issued at `2026-09-29T23:30:00.079945Z`
+predicted 81%. The measured trough was 81% across the common target
+`2026-09-30T02:00:00Z` through `2026-09-30T17:00:00Z` (20:00–11:00
+Mountain), with 99.9925695% qualified source coverage. Signed forecast errors
+were -28 and 0 percentage points: a 28-point absolute-error improvement.
+
+The pre-dusk numeric/receipt rows persisted at `23:30:00.099Z` and
+`23:30:00.101Z`; its original `BMS_SOC_Evidence_JSON` input persisted at
+`2026-09-29T23:29:33.195421Z`, stream epoch
+`6b58b416-0c8b-459e-8eca-55f1f83a1831`, input digest
+`d92ab4bbf931c4129ed7177a150021e667d59c27398de941416b1ba1c768ba7f`.
+Completed-night evidence digest:
+`bbca61af3255aa399b68e7491705caa228086772bfba9ba77f8a5f77431f4e77`.
+
+This is one qualified night, not seasonal graduation or causal advisory
+reward. The reader reports `night_outcome_scored=true`,
+`causal_reward_proven=false` and `display_selection_verified=false` (it does
+not inspect the browser). No database, Item, model, message or control writes
+were made; original morning calculation/history and calibration are unchanged.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.

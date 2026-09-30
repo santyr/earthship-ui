@@ -114,6 +114,41 @@ describe('bounded read-only runtime estimator replay', () => {
     });
   });
 
+  it('audits a fresh charging crossover through the dwell gate and subsequent reversal', () => {
+    const h = histories();
+    for (const [offset, value] of [[30000, -300], [60000, 150], [90000, -300]]) {
+      const r = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+      r.sequence = offset / 30000 + 1;
+      r.recordedAt = at + offset;
+      r.fields['battery.dc_current_ca'] = field(value, 90000, 'value', at + offset);
+      h.BMS_Runtime_Input_Evidence_JSON.push(row(r, at + offset));
+    }
+    const ac = JSON.parse(h.Inverter_AC_Evidence_JSON[0].state);
+    ac.sequence = 3; ac.recordedAt = at + 60000;
+    ac.fields['inverter.ac_output_w'] = field(150, 30000, 'watts', at + 60000);
+    h.Inverter_AC_Evidence_JSON.push(row(ac, at + 60000));
+    const result = replayRuntime(h, { startMs: at, endMs: at + 90000 });
+    expect(result.confirmedChargingTicks).toBe(1);
+    expect(result.chargingBmsBasisViolations).toEqual([]);
+    expect(result.confirmedChargingTransitions).toEqual([{
+      at: new Date(at + 60000).toISOString(), priorBasis: 'bms', candidateBasis: 'now',
+      currentA: 1.5, observedAt: new Date(at + 60000).toISOString(),
+    }]);
+    expect(result.ttfReversalViolations).toEqual([]);
+    expect(result.lastCandidate.ttfMin).toBe('0');
+  });
+
+  it('does not treat a malformed current receipt as qualified charging evidence', () => {
+    const h = histories();
+    const r = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+    r.fields['battery.dc_current_ca'] = field(150, 90000);
+    r.basis = 'wrong_source';
+    h.BMS_Runtime_Input_Evidence_JSON = [row(r)];
+    const result = replayRuntime(h, { startMs: at, endMs: at });
+    expect(result.confirmedChargingTicks).toBe(0);
+    expect(result.confirmedChargingTransitions).toEqual([]);
+  });
+
   it('rejects unbounded, unordered and future-only histories', () => {
     const h = histories();
     expect(() => replayRuntime(h, { startMs: at, endMs: at + 4 * 3600000 + 1 })).toThrow('bounded');
