@@ -263,3 +263,23 @@ replayed exactly under the explicitly pinned installed runtime manifest
 `1927d7e9...cb2747b`. This closes the optimization's first natural publisher
 continuity gate. September 30 06:50 remains the whole-trainer performance and
 accepted-artifact continuity check.
+
+### September 30, 02:30 MDT natural publisher follow-through
+
+The scheduled shadow service started at 02:30:19 MDT and exited zero at
+02:30:23, using 2.165904 seconds CPU. Its decision time is
+`2026-09-30T08:30:21.422307Z`; the live Item, one original JDBC row at
+`2026-09-30T08:30:23.112Z`, and verified forcing capture
+`20260930T083021Z-a1c10276a39f9e44.json.gz` have identical output SHA-256
+`a1c10276a39f9e449e64a985667e96010b4a965a9617b400b58da76a726d1837`.
+The full publication replays exactly under the explicitly pinned installed
+runtime `fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`.
+The embedded accepted artifact remains
+`e707ce61cac24571cc9d4280e54a400422f949f707cdc949481445de696ccff7`,
+with training revision `00611a5e...`; the training and publication revisions
+are deliberately not represented as identical. The output has 72 trajectory
+points and remains shadow/low confidence. Verification was read-only: no job
+was forced, input or label fabricated, runtime installed, or control activated.
+The 06:50 natural trainer is still the whole-run performance and
+accepted-artifact continuity gate; this successful repeated publication is
+not graduation evidence.
