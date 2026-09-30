@@ -44,6 +44,15 @@ the repo still refuses delivery. Temporary files were removed. No production
 pointer/file/unit was changed; installer rollback and household delivery gates
 remain open. See the [bundle checkpoint](2026-09-30-pre-dusk-notification-candidate.md#inactive-deployment-bundle-checkpoint).
 
+The inactive notification code is now locally installed in its separate user
+runtime namespace, not the shared forecast script directory. Nineteen
+builder/installer tests pass, and the actual empty-pointer rollback/reinstall
+plus independent twelve-file verification succeeded. Release gates remain
+false, notification state is absent, and no unit/timer, credential, route,
+journal, forecast Item or control was changed. Dependency installation and
+household keyer/routes/attended receipt remain before activation. See the
+[inactive installation receipt](2026-09-30-pre-dusk-notification-candidate.md#inactive-local-installation-and-rollback-checkpoint).
+
 The latest runtime audit passes all 1024 independent arithmetic checks in a
 later natural window. Deterministic regressions prove identical alpha-0.05
 smoothing for identical source observations despite extra evaluations and

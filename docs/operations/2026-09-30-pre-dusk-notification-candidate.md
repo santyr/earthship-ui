@@ -187,3 +187,42 @@ No active pointer, production files, credentials, units, timers or control
 state were changed. The owned bundle and test directories were removed.
 Reviewed inactive installation/rollback and household route/keyer/delivery
 qualification remain next; building a bundle is not deployment.
+
+## Inactive local installation and rollback checkpoint
+
+`scripts/install-pre-dusk-notification-bundle.py` now provides a read-only
+preflight and explicit `--apply` for this code-only namespace:
+`/home/sat/.local/lib/earthship-pre-dusk-notification`. It creates private,
+digest-named releases and switches only its owned `current` symlink. It never
+overwrites the shared OpenHAB forecast script tree. A nonblocking installation
+lock and exact expected pointer preimage reject overlaps/concurrent changes.
+Copied stage files and directories are fsynced and verified before publication;
+failed post-switch checks restore the verified previous pointer only if the
+current pointer still belongs to this operation. Concurrent pointer changes
+are not overwritten. Broken candidate contents do not prevent guarded
+restoration of the original verified release or empty state.
+
+Nineteen builder/installer tests passed, covering initial rollback, failed
+upgrade to the exact previous release, corrupt candidate rollback, preimage
+drift, existing corruption, overlaps, unknown files and concurrent withdrawal.
+The earlier first-install test incorrectly passed the `current` symlink to
+the raw bundle verifier, which intentionally refuses symlink directories;
+the test now verifies the exact digest directory, preserving the guard.
+
+Actual host sequence passed: empty-namespace preflight; inactive install;
+installed CLI import and closed `--deliver` (exit 2); guarded rollback to the
+original empty pointer; reinstall; and independent verification of all twelve
+installed sources. Current pointer:
+`releases/140619756fedbe053532818bf55a4fc0ed44f142782d345cae886e369fc5c52e`.
+The rollback briefly removed only the newly owned pointer, then reinstall
+restored it. The operational release and installation lock are retained, not
+test clutter. Owned staging/test directories were removed.
+
+This is **installed inactive code**, not an enabled worker: all notification
+and collector gates remain false, no unit/timer was installed, and the
+dedicated notification state directory is absent. No outbox, host credentials,
+route snapshot, journal/model/forecast Item, OpenHAB restart or equipment
+control was changed. Installed pinned dependency configuration, household
+keyer/routes, attended operator receipt and notification activation remain
+open. The code-builder's verification receipt is context-independent and
+does not itself assert whether a bundle directory was installed.
