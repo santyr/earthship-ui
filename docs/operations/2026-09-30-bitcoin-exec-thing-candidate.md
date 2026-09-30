@@ -130,3 +130,24 @@ apply gate off again. On a failed gate perform the adapter's guarded rollback
 and report the retained private recovery path. A brief Bitcoin-card update gap
 is possible; no pump, BMS, forecast, collector, signer or other resource will be
 changed, and no whole-OpenHAB restart is planned.
+
+## First live withdrawal and verified rollback
+
+The first guarded production attempt withdrew the managed Thing but refused
+before installing its file. Its Item comparison included OpenHAB 5.2.1's
+rolling `lastState`, `lastStateChange` and `lastStateUpdate` observations;
+a normal quote update was therefore mistaken for definition drift. Independent
+path-only comparison found only those observation fields differed. The managed
+Thing was recreated with its exact full definition, both output links and a
+new successful persisted real-price receipt; the fixed Item 34 history prefix
+was unchanged. No file Thing was installed, and no OpenHAB restart occurred.
+The complete private rollback backup was retained.
+
+The comparison now excludes rolling observations while retaining static Item
+identity, ownership, label and metadata. Its regression verifies that normal
+state/timestamp changes pass but changed labels still refuse. Static failure
+phase receipts identify any later failed gate without exposing private data.
+All 86 focused tests and a fresh read-only live preflight passed with the
+one-shot apply gate off; the existing history contained 1,106,202 rows before
+`2026-09-30T10:12:32.619262Z`. A retry still requires a new private preimage and
+the original strict metadata, receipt and history gates.

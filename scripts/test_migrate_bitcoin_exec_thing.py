@@ -51,8 +51,10 @@ def test_receipt_requires_new_finite_exact_success(damage):
 
 def test_fixed_definition_ignores_state_not_identity_or_metadata():
     first = {'name': 'BTC_USD_Price', 'type': 'Number', 'editable': False,
-             'state': '84242', 'label': 'Bitcoin Price', 'metadata': {}}
-    assert m.item_definition(first) == m.item_definition({**first, 'state': '84243'})
+             'state': '84242', 'lastState': '84241', 'lastStateChange': 100,
+             'lastStateUpdate': 101, 'label': 'Bitcoin Price', 'metadata': {}}
+    assert m.item_definition(first) == m.item_definition({**first, 'state': '84243',
+        'lastState': '84242', 'lastStateChange': 200, 'lastStateUpdate': 201})
     assert m.item_definition(first) != m.item_definition({**first, 'label': 'Changed'})
 
 

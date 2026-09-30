@@ -94,8 +94,11 @@ def wait(predicate, seconds=90):
 
 
 def item_definition(item):
+    # Enriched 5.2.1 Item DTOs carry rolling state and update/change timestamps.
+    # These are observations, not provider-owned definitions.
     return {key: value for key, value in item.items()
-            if key not in {'state', 'link', 'members'}}
+            if key not in {'state', 'lastState', 'lastStateChange', 'lastStateUpdate',
+                           'transformedState', 'link', 'members'}}
 
 
 def dependents():
@@ -294,6 +297,7 @@ def main(apply):
     print('private_backup=' + str(directory), flush=True)
     changed = False
     installed_identity = None
+    phase = 'baseline_recheck'
     try:
         require(provider_ready(original['thing'], file_owned=False)
                 and unchanged_dependents(original)
@@ -302,23 +306,31 @@ def main(apply):
         require(history.digest_history(datetime.fromisoformat(prefix['before_utc'])) == prefix,
                 'Bitcoin fixed prefix changed before handoff')
         changed = True  # a failed response may still have withdrawn the Thing
+        phase = 'managed_withdrawal'
         request('DELETE', DELETE_PATH)
         require(wait(lambda: get_thing() is None, 30), 'managed Bitcoin Thing did not withdraw')
         require(unchanged_dependents(original), 'Bitcoin Item/Group changed at provider boundary')
+        phase = 'file_installation'
         installed_identity = install_source()
+        phase = 'file_metadata_readback'
         require(wait(lambda: provider_ready(original['thing'], file_owned=True), 90),
                 'file Bitcoin Thing/channel/link readback failed')
         installed_at = datetime.now(timezone.utc)
+        phase = 'new_real_receipt'
         require(wait(lambda: natural_receipt_after(installed_at), 120),
                 'new real Bitcoin output receipt missing')
+        phase = 'durable_real_receipt'
         require(wait(lambda: durable_receipt_after(installed_at), 30),
                 'new real Bitcoin receipt did not persist')
+        phase = 'dependent_definition_readback'
         require(unchanged_dependents(original)
                 and runtime_sources() == original['runtime_sources'],
                 'Bitcoin dependent definitions or source changed after handoff')
+        phase = 'fixed_history_readback'
         require(history.digest_history(datetime.fromisoformat(prefix['before_utc'])) == prefix,
                 'Bitcoin fixed prefix changed after handoff')
     except BaseException:
+        print('handoff_failed_phase=' + phase, flush=True)
         if changed:
             rollback_started = datetime.now(timezone.utc)
             rollback(directory, original['thing'], installed_identity)
