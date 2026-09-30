@@ -312,6 +312,22 @@ training-source continuity gates. It does not improve the unchanged 119-pair
 training/evaluation rows remain zero; `promotion.shadow_only` is true and
 operational graduation thresholds are unset. The provisional promotion gate
 still tolerates a worse-than-persistence score and is not operational approval.
-The first scheduled publication from the new artifact is due at 08:30:29 MDT;
-its live Item, JDBC receipt, forcing capture and exact replay remain to verify.
+The first scheduled publication from the new artifact was subsequently verified
+as recorded below; this does not change the shadow-only or accuracy gates.
 See the [new private recovery point](2026-09-28-thermal-replay-recovery.md#september-30-post-training-source-and-artifact-recovery).
+
+### First natural publication from the September 30 artifact
+
+The scheduled shadow service ran at 08:30:48–08:30:51 MDT, exit zero. Its
+decision clock is `2026-09-30T14:30:49.586807Z`. The live Item, exactly one
+original Item 610 JDBC receipt and saved forcing capture
+`20260930T143049Z-633ceb38d1e005b9.json.gz` have identical output SHA-256
+`633ceb38d1e005b9cb21bd50bed1edb848c942bf1aeb30ab73c57a3bb6807c72`.
+The capture's artifact equals the current accepted payload and validates;
+its canonical identity is `66bc7541...734353` and its training revision equals
+the installed `a4a68a17...` runtime pin. All 72 forecast points replay exactly
+under that artifact-bound runtime without a source-revision override. Status
+remains shadow with low confidence. No job was forced, receipt or action label
+fabricated, or control changed. This closes natural new-artifact Item/JDBC/
+capture/replay continuity, not scientific graduation. The earlier same-host
+recovery archive predates this publication and does not contain this capture.

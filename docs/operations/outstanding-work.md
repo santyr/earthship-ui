@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 actual Java/JDBC completed-night verification now passes for the
+candidate's native local window. Default service, explicit JDBC and explicit
+LEFT integration agree at 172.656298 W over all 6,454 numeric observations.
+Independent millisecond-truncated reconstruction matches within 1e-12 W;
+full timestamp precision yields 172.672591 W, explaining the tiny residual
+against the previously qualified AC load. The preliminary 167.588862 W came
+from a diagnostic-only ISO-offset parsing defect, not the candidate's window;
+guarded epoch checks now prevent that wrong-window query. Six diagnostic
+guards/lifecycle tests pass and all exact owned temporary rules were removed.
+The original live estimator and equipment remain unchanged. This closes
+same-window Java arithmetic, not freshness, projected-minute accuracy, natural
+charging exit, no-event cron expiry or production release. See the
+[Java/JDBC receipt](2026-09-30-bms-night-average-verification.md).
+
 September 30 BMS estimator isolated-JVM qualification now passes. The new
 `scripts/qualify-bms-runtime-estimator.py` runs the unchanged source candidate
 (`b7d414ed...a1944`) in the pinned OpenHAB 5.2.1/Graal runtime, with no network,
@@ -43,7 +57,10 @@ extraction was removed. No job was forced or control changed. These checks
 close training/resource and same-host recovery continuity, not forecast skill:
 24-hour air MAE remains 2.179°F versus persistence 1.690°F, confirmed-action
 rows remain zero, and the artifact is still shadow-only. Both timers are active;
-the new artifact's first 08:30 natural Item/JDBC/capture/replay remains open.
+the new artifact's first 08:30 natural Item/JDBC/capture/replay subsequently
+passed: all output identities match `633ceb38...807c72`, the captured artifact
+equals the new accepted payload and training/runtime revisions agree. It
+remains shadow/low confidence; no new action label or control was introduced.
 See [whole-run qualification](2026-09-27-thermal-selector-efficiency.md#september-30-completed-natural-training)
 and [post-training recovery](2026-09-28-thermal-replay-recovery.md#september-30-post-training-source-and-artifact-recovery).
 
@@ -72,9 +89,10 @@ extends natural overnight cadence evidence after the auxiliary update fix;
 it does not erase September 29's earlier gaps or prove a complete clean day.
 The replay used the explicitly unqualified 155-W fallback, and projected
 minutes were excluded. Live rule/Items/cache/controls remain unchanged.
-Direct Java/JDBC overnight-load parity, fresh dawn transition, installed
-fault/restart/rollback and guarded estimator cutover remain open; do not
-promote the candidate from these mode counts alone.
+At that replay stage, direct Java/JDBC overnight-load parity, fresh dawn
+transition, installed fault/restart/rollback and guarded estimator cutover
+remained open. The later isolated-JVM and actual Java checks above close only
+their stated scopes; do not promote the candidate from these mode counts alone.
 
 The September 30 06:00–07:25 MDT dawn extension uses the newly completed
 September 29–30 20:30–06:00 local night, rather than the 155-W fallback.
