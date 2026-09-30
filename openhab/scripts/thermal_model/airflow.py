@@ -191,7 +191,8 @@ def simulate_airflow(model, initial, forcings):
 
 
 def validate_airflow_physics(model):
-    if type(model) is not AirflowSeed or model.version != 1 or model.step_minutes != 5:
+    if (type(model) is not AirflowSeed or type(model.version) is not int or model.version != 1
+            or type(model.step_minutes) is not int or model.step_minutes != 5):
         raise ValueError('invalid split-airflow seed contract')
     for coefficients, names, bounds in (
         (model.air_coefficients, SEED_AIR_NAMES, SEED_AIR_BOUNDS),

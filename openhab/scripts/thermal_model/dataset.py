@@ -30,6 +30,7 @@ MASS_OBSERVER_TAU_MINUTES = 120
 REQUIRED_ROLES = ("air", "mass", "outdoor", "radiation")
 TEMPERATURE_ROLES = ("air", "mass", "glazing", "outdoor")
 CONFIRMED_SOURCES = frozenset(("nostr_confirmed", "manual_dm"))
+KIVA_COOLDOWN = timedelta(hours=2)
 RADIATION_PROVENANCE_LABELS = (
     "observed",
     "interpolated",
@@ -425,7 +426,7 @@ def _confirmed_kiva_cooldowns(events):
         elif event.state == "off":
             if event.source in CONFIRMED_SOURCES and last_state == "on":
                 stop = event.effective_at.astimezone(timezone.utc)
-                cooldowns.append((stop, stop + timedelta(hours=2)))
+                cooldowns.append((stop, stop + KIVA_COOLDOWN))
             last_state = "off"
         elif event.state == "exceptional_heat_unknown":
             last_state = "unknown"

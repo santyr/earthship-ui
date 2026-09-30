@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 split-airflow operational source progress: a separate closed
+shadow artifact now binds the exact fitting runtime and training rows, and
+the forecast/replay seam combines as-of archived weather, independent
+window/skylight/shade observations and qualified current temperatures. Its
+latent-mass initialization uses a bounded 24-hour north-wall observer, not the
+raw wall reading. Exact input/output replay covers 1–72 hours and all 56 new
+offline checks pass. The action assumption is explicitly observed-origin
+states held, not confirmed future behavior. This is source-only: no accepted
+artifact, runtime, journal, collector, Item, DM or control changed. Durable
+household capture, signed collection, coordinated runtime/journal recovery and
+qualified operational skill remain open. All 538 affected tests pass. See the
+[artifact and replay checkpoint](2026-09-29-thermal-airflow-journal-v2-candidate.md#source-only-origin-aware-artifact-and-replay).
+
 September 29 split-airflow multihorizon progress: the source candidate now
 refines independent window/skylight/joint-opening effects over 5-minute through
 24-hour endpoints, with bounded daily origins, analytic gradients and explicit

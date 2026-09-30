@@ -245,3 +245,68 @@ changed. The next release work is the versioned artifact/runtime/forcing-capture
 contract and origin-aware forecast construction, plus the coordinated
 household journal/backup/reader transition. Observational evidence collection
 and eventual model graduation remain distinct gates.
+
+## Source-only origin-aware artifact and replay
+
+`airflow_artifact.py` defines a separate, closed
+`earthship-split-airflow-shadow-artifact/v1` candidate. It does not write the
+accepted artifact or its pointer. Its runtime digest covers the existing
+thermal dependency closure plus the split-airflow and origin-reader modules
+(28 files), and exact Python/NumPy/SciPy versions. It refuses hashing a
+different installed tree or mixing imported module roots. The fitter records
+that revision and the canonical training-row digest, checks both again after
+optimization, and artifact construction requires those exact identities.
+Sensor mappings, quality/count vocabularies, independent state counts,
+objective evidence, bounded daily origins and physical dynamics are validated.
+The candidate always declares `shadow_candidate` and `control_enabled: false`.
+
+`airflow_forecast.py` now consumes origin-qualified archived hourly weather,
+three current source receipts and the separate v2 journal snapshot. Forecasts
+must have complete hourly brackets and have been issued and captured by the
+origin, within the existing six-hour issue-age limit. Weather is interpolated
+to five-minute endpoints before the existing normalized solar calculation.
+Windows, skylights and both shade states must be independently known; legacy
+vent state cannot substitute. Passive scenarios require a confirmed Kiva-off
+state and the same two-hour cooldown used by dataset construction. Unidentified
+inactive forcing cannot be activated by a forecast.
+
+The mass state is initialized by a causal exponential observer over 24 hours
+of complete, receipt-qualified north-wall readings. Its five-minute step and
+120-minute time constant match dataset construction, with an explicitly bounded
+24-hour initialization window. The raw north-wall endpoint remains separately
+visible and must equal the current north-wall receipt; it is not mislabeled as
+latent mass. Neither later sensor observations nor later journal storage may
+enter the origin inputs. Artifacts created after the origin or trained more
+than 26 hours before it are refused.
+
+The forecast explicitly labels its action assumption
+`qualified_origin_states_held_not_future_confirmation`: holding an observed
+state is a scenario assumption, not a promise of future operator behavior or
+a learned behavioral schedule. It returns a bounded, data-only capture of the
+exact artifact, weather, actions, source receipts, observer history and output.
+Canonical JSON round trips replay the exact trajectory at 1–72 hours. Replay
+checks the capture digest, revalidates every input and requires exact output
+agreement, including when a modified payload has a recomputed transport digest.
+The archive's `rows_sha256` binds original per-metric capture times, which are
+not exposed by its projected weather rows; this module validates its format
+and retains it, rather than claiming to reconstruct that source digest.
+
+All 56 new offline origin/artifact/replay checks pass. They include independent
+observer and first-step equations, distinct window/skylight trajectories,
+exact-hour and fractional-hour origins, maximum-length capture/replay, missing
+or unqualified actions, Kiva cooldown, history gaps, stale/late source evidence,
+inactive-feature activation, code/data changes during fitting, training-data
+substitution and transport/output tampering. Synthetic reader fixtures do not
+qualify household source readers, real signed labels or actual forecast skill.
+The final affected suite passed **538 tests in 74.61 seconds**, including
+legacy dataset, dynamics, evaluation, pipeline, behavior, artifact, archived
+weather/action/temperature readers, operational origins and forcing captures.
+
+This checkpoint performs **no production installation, journal migration,
+capture-file retention, Item publication, DM, listener or control activation**.
+The accepted trainer/publisher still use their installed legacy contract.
+Remaining release work includes coordinated journal/reader/runtime recovery,
+private retained household backup and policy/routes, genuine signed collection,
+durable operational capture and qualified same-origin candidate/baseline outcome
+comparison. Collection can prepare honest separate state evidence while the
+model remains in shadow; eventual graduation still requires actual skill.

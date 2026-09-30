@@ -12,9 +12,9 @@ import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, minimize
 
 from .airflow import (AIRFLOW_NAMES, AirflowSample, AirflowSeed, SEED_AIR_BOUNDS,
-                      SEED_AIR_NAMES, _split_contract, airflow_features,
+                      SEED_AIR_NAMES, _split_contract, airflow_features, airflow_manifest,
                       fit_airflow_seed_with_evidence, simulate_airflow, validate_airflow_physics)
-from .dataset import STEP
+from .dataset import STEP, ThermalDataset
 from .dynamics import (IDENTIFICATION_HORIZON_STEPS, MAX_ORIGINS_PER_HORIZON,
                        MASS_BOUNDS, MASS_NAMES, MULTIHORIZON_FTOL,
                        MULTIHORIZON_MAXITER, MULTIHORIZON_OBJECTIVE_TOLERANCE,
@@ -30,6 +30,8 @@ class AirflowFit:
     origin_counts: tuple[tuple[str, int], ...]
     initial_objective: float
     final_objective: float
+    training_revision: str | None = None
+    training_data_sha256: str | None = None
 
 
 def _confidence(row):
@@ -195,7 +197,11 @@ def _constraints(active, initial, lower, spans):
 
 
 def fit_airflow_dynamics(samples, *, allow_inactive_action_forcing=False):
+    from .airflow_artifact import runtime_manifest
+    runtime = runtime_manifest()
     rows = _ordered(samples)
+    training_source = samples if isinstance(samples, ThermalDataset) else rows
+    data_sha256 = airflow_manifest(training_source, [], [])['dataset']['canonical_rows_sha256']
     seed, inactive = fit_airflow_seed_with_evidence(rows,
         allow_inactive_action_forcing=allow_inactive_action_forcing)
     endpoints = select_endpoints(rows, inactive)
@@ -230,9 +236,13 @@ def fit_airflow_dynamics(samples, *, allow_inactive_action_forcing=False):
     fitted = validate_airflow_physics(_model(vector, seed.glazing_observation_coefficients))
     if final_loss > initial_loss + MULTIHORIZON_OBJECTIVE_TOLERANCE*max(1.0, initial_loss):
         raise ValueError('split-airflow multihorizon objective increased')
+    if runtime_manifest() != runtime:
+        raise ValueError('split-airflow runtime changed during fitting')
+    if airflow_manifest(training_source, [], [])['dataset']['canonical_rows_sha256'] != data_sha256:
+        raise ValueError('split-airflow data changed during fitting')
     return AirflowFit(fitted, inactive,
         tuple((str(steps*5), len(endpoints[steps])) for steps in IDENTIFICATION_HORIZON_STEPS),
-        float(initial_loss), float(final_loss))
+        float(initial_loss), float(final_loss), runtime['sha256'], data_sha256)
 
 
 def evaluate_airflow_fold(samples, origin, *, training_reader, fit=fit_airflow_dynamics,
