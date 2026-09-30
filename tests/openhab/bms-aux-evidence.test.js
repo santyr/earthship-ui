@@ -126,6 +126,23 @@ describe('Discover BMS auxiliary evidence producer', () => {
     expect(h.latest.fields[specs.capacity.field].status).toBe('unavailable');
   });
 
+  it('accepts unchanged 30-second native polls without increasing heartbeat writes', () => {
+    const h = ready();
+    const initialPosts = h.posts.length;
+    for (let poll = 1; poll <= 6; poll += 1) {
+      h.advance(30000);
+      h.run(h.event('capacity'));
+      h.run(h.event('temperature'));
+      expect(h.posts.length).toBe(initialPosts + Math.floor(poll / 2));
+    }
+    h.advance(119999); h.run();
+    expect(h.latest.fields[specs.capacity.field].status).toBe('valid');
+    expect(h.latest.fields[specs.temperature.field].status).toBe('valid');
+    h.advance(1); h.run();
+    expect(h.latest.fields[specs.capacity.field].reason).toBe('input_stale');
+    expect(h.latest.fields[specs.temperature.field].reason).toBe('input_stale');
+  });
+
   it('consumes sequence identity on ambiguous persistence enqueue', () => {
     const h = ready(); const before = h.latest.sequence;
     h.advance(); h.failAfterEnqueue(true); h.run(h.event('capacity', '319'));

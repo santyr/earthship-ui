@@ -1,5 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 native BMS cadence correction: the two read-only remaining-Ah
+and temperature data Things now publish unchanged values on every existing
+30-second successful poll. Exact poller/link/consumer readback is unchanged;
+the collector still uses original source events, its 120-second TTL and
+60-second heartbeat persistence. Six natural updates per field included five
+unchanged renewals at 30.010–30.326 seconds. Historical quality gaps are not
+repaired, and downstream complete-day/fault/restart qualification remains pending. See
+[apply and recovery evidence](2026-09-29-bms-aux-source-cadence.md).
+
 September 29 pre-dusk trough work: the current 06:40 job issued 53% from a
 72% morning atomic SoC reference and 5.36 kWh predicted PV; by 12:45 MDT,
 fresh atomic SoC was 100% and native PV-day evidence was already 7.302 kWh.
@@ -447,9 +456,12 @@ complete fitted-result digest. The complete 28-file thermal Python suite
 passed 737 tests with one optional skip. A guarded one-file transaction at
 19:15 MDT installed the exact optimized `dynamics.py` over its pinned
 preimage, retained a private rollback receipt, and passed an installed-v4
-synthetic fit; both user timers returned active/waiting. No new natural trainer
-or publisher has exercised the change, so retain those gates before claiming
-production speed or changing shadow status.
+synthetic fit; both user timers returned active/waiting. The natural 20:28 MDT
+publisher then exited zero: its live Item, JDBC receipt and verified v2 forcing
+capture match, and the publication exactly replays under the pinned installed
+runtime. This closes the first publisher-continuity gate. September 30's
+06:50 trainer still must verify whole-run performance and accepted-artifact
+continuity before a production speed claim; the model remains in shadow.
 
 September 29 read-only file-first inventory: 385 managed and 54 non-managed
 Items, 81/4 Things, 39/0 rules and 246/21 links, with zero graph/ownership
@@ -3931,9 +3943,18 @@ An additional read-only 18:49–19:25 MDT September 29 replay covered 73
 post-sunset half-minute ticks: the candidate reported `bms` 72 times and
 `evening` once at the first tick, with no `off` or noncharging time-to-full
 reversal. The live rule remained `bms`; the lone candidate disagreement was
-`bms -> evening` at 18:49. This extends natural dusk evidence, but stops
-before the 20:30 night-load transition and still uses the rule's unqualified
-155 W fallback. It cannot qualify numeric TTD or release the estimator.
+`bms -> evening` at 18:49. This extends natural dusk evidence but still uses
+the rule's unqualified 155 W fallback. It cannot qualify numeric TTD or
+release the estimator. The source has no clock-driven transition at 20:30:
+that is the start of its historical overnight averaging window. It uses the
+last completed 20:30–06:00 window, refreshes that cache after 06:00, and
+chooses the live basis from discharge current, PV/load and solar elevation.
+An additional 19:25–20:30 MDT replay covered 131 half-minute ticks: 112
+`bms`, 17 `evening`, and two `off`, while the live rule remained `bms`.
+The two off ticks at 19:53 and 19:54 exposed remaining-Ah native-event
+expiry by 1.984 and 1.667 seconds; SoC, current and voltage remained fresh.
+There were no noncharging time-to-full reversals. This is source-cadence
+evidence, not a qualification of the fallback load or a release decision.
 An epoch-aware read-only cadence check of the native BMS auxiliary receipts
 from 05:14–15:30Z September 29 found 569 distinct remaining-Ah intervals:
 median 60.418 seconds, 95th percentile 64.618 seconds, maximum 121.543
@@ -3956,9 +3977,9 @@ if all later observations are clean. A new regression proves that just one
 121-second renewal interval makes an otherwise complete day `partial` while
 preserving its 86,399 covered seconds; 32 adjacent Python tests pass. This is
 an evidence-quality finding, not a reason to fabricate coverage or relax a
-live freshness bound. Next decide, with full-day/fault evidence, whether a
-versioned TTL contract or an explicitly partial-but-usable learning policy
-is appropriate; keep the scheduled Energy quality flags off meanwhile.
+live freshness bound. The later source-cadence correction below addresses
+the publication margin without changing the TTL contract. Keep the scheduled
+Energy quality flags off until complete-day/fault evidence supports release.
 At 18:40 MDT September 29, a wider read-only OpenHAB JDBC cadence diagnostic
 covered the local day to date with a two-minute pre-day carry: 1,141 persisted
 auxiliary receipts, 1,092 distinct remaining-Ah source times and 1,081
@@ -3970,6 +3991,18 @@ temperature (maximum 129.286 seconds, 60.225 seconds uncovered). This
 extends the earlier partial-day evidence; it is neither a complete-day strict
 quality assessment nor a fault/restart qualification. The v1 TTL, production
 reader and estimator remain unchanged.
+At 20:42:56 MDT September 29 the guarded
+[native publication adjustment](2026-09-29-bms-aux-source-cadence.md) set only
+the two managed read-only data Thing unchanged-update intervals to zero.
+The existing 30-second Modbus poller was not changed. Both Things returned
+ONLINE; six naturally observed updates per field included five unchanged
+renewals at 30.010–30.326 seconds. The source-validating collector advanced
+with both fields `valid/ok` under the unchanged 120-second TTL. Nine adapter
+tests and 15 producer tests pass, including rate-limited persistence and
+expiry after missing native polls. This fixes the source publication margin
+prospectively, not historical completeness, the fallback load or the default-off
+runtime replacement. The next complete post-change day and fault/restart
+checks remain qualification gates.
 At the 18:15 MDT September 23 read-only rolling-extrema check, indoor JDBC
 Item 123 had a pre-window carry of 76.46°F at 00:14:37Z and 187 changed rows
 in the ensuing 24-hour window. The changed rows alone peaked at 76.28°F, while

@@ -251,3 +251,15 @@ No model artifact, live Item, advice, OpenHAB rule or control was changed.
 The next natural shadow publication and September 30 06:50 trainer remain
 the production import/whole-run performance and artifact-continuity gates;
 this installation alone does not justify shadow exit.
+
+The first later natural publisher started at 20:28:48 MDT September 29 and
+exited zero at 20:28:51. Its live `Thermal_Model_JSON`, the JDBC row at
+20:28:51.767 MDT, and the verified v2 forcing capture have identical output
+digest `0452784bf09db7cd7eee3345e9a0a713b95e4f1cffe62cdc8d4be902386590a1`.
+The installed/source dynamics hash remains `2850ce20...65a393c` and the
+publication retains the same accepted artifact (`e707ce61...696ccff7`), 72
+forecast points, shadow status and low confidence. The saved publication also
+replayed exactly under the explicitly pinned installed runtime manifest
+`1927d7e9...cb2747b`. This closes the optimization's first natural publisher
+continuity gate. September 30 06:50 remains the whole-trainer performance and
+accepted-artifact continuity check.
