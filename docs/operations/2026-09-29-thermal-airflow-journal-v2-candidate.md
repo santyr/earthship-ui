@@ -370,3 +370,54 @@ household backup, reviewed private policy/routes and signed confirmation trial
 remain release work. The operator explicitly deferred off-host backups; that
 deferred destination is not a request to repeatedly ask for one during this
 same-host qualification. No off-host copy was performed.
+
+## Household-copy installed-consumer coexistence qualification
+
+`qualify-thermal-journal-live-restore.py` now optionally accepts
+`--consumer-runtime` together with a full `--expected-consumer-revision` pin.
+It still exports production using the restricted role in a read-only
+repeatable-read transaction, restores into an owned disposable PostgreSQL 16
+container, compares all original ordered table digests, audits exact v1 and
+then rehearses the exact v2 constraint postimage. Only after those steps does
+it add six explicitly labeled fixture observations to the **disposable**+journal: supported legacy states plus independently named window/skylight
+states. Their times precede the earliest restored action/mode so a fixture
+window cannot accidentally borrow household context.
+
+The separate `verify-thermal-restored-consumer.py` runs in a fresh process
+using the selected installed module tree and exact code revision. Its
+connection refuses production port/database names and non-loopback hosts,
+requires startup read-only mode and the restricted runtime role, and checks
+both against PostgreSQL before invoking the installed `ActionJournal` reader.
+All six independent observations must survive that reader. The installed
+dataset must preserve exact legacy samples and retain exactly one supported
+action bucket, not three. The runtime pin is rechecked afterward. No registry
+recovery, model training, shadow publication, relay or actuator is invoked.
+
+The September 29 household-copy trial ran under a private transient user unit
+and completed in 2.232 seconds. Production writes were **zero**. Original
+10 action rows, 4 receipt rows and 4 mode rows restored with equal digests;
+both schema stages passed. Installed revision
+`fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`
+passed the role/read-only checks, retained all six fixture observations, left
+legacy samples unchanged, and reported one supported bucket. The disposable
+fixture sample digest was
+`9297230d3cf6cd0e9b704527418d795cb1292ded0a35a7a7fda1c3c29308405a`.
+Its value depends on the fixture dates selected from this particular restore;
+it is not a household dataset digest or learned thermal effect.
+
+All 62 affected consumer/migration/journal/action-history/origin tests passed.
+Negative tests refuse production or writable connection arguments before
+connecting. The owned test/restore containers were removed and their absence
+verified; the temporary custom archive was removed. No private household
+backup was retained by this disposable trial.
+
+This closes the tested installed legacy-reader/support-counter coexistence
+gate on a real household restore. It does not turn the legacy model into a
+window/skylight model, qualify signed state labels, enable the source v2
+as-of reader, migrate production, or graduate shadow predictions. Independent
+observational collection may coexist with the legacy shadow model once its
+own retained-backup, private configuration, exact migration and signed-trial
+gates pass; it need not wait for eventual predictive skill. The next concrete
+release work is preparing that retained same-host rollback bundle and reviewed
+private route/question policy, followed by an authorized journal cutover and
+genuine signed operator reply. Off-host backup remains explicitly deferred.

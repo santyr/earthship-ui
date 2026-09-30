@@ -7,9 +7,12 @@ activation, model change, persistent archive, or admin credential is used.
 Errors are intentionally sanitized; never print DSNs, rows or subprocess stderr.
 """
 from contextlib import closing
+import argparse
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -149,7 +152,57 @@ def migration_v1():
     return airflow_migration.LEGACY_FINGERPRINT
 
 
-def main():
+def qualify_consumer(params, role, runtime_root, expected_revision):
+    """Insert labeled fixture rows only into the restored disposable database."""
+    if (params.get('host') != '127.0.0.1' or params.get('dbname') != 'postgres'
+            or not 1024 < int(params.get('port', 0)) < 65536 or int(params['port']) == 5432
+            or re.fullmatch('[a-z_][a-z0-9_]*', role) is None):
+        raise ValueError('disposable probe target required')
+    with closing(psycopg2.connect(connect_timeout=3, **params)) as connection:
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute('''SELECT min(effective_at) FROM (
+                    SELECT effective_at FROM thermal_intel.action_events
+                    UNION ALL SELECT effective_at FROM thermal_intel.mode_events) history''')
+                earliest = cursor.fetchone()[0] or datetime.now(timezone.utc)
+                start = (earliest-timedelta(days=2)).astimezone(timezone.utc)
+                start = start.replace(minute=start.minute//5*5, second=0, microsecond=0)
+                key = 'disposable-consumer-fixture-'+uuid4().hex
+                cursor.execute('''INSERT INTO thermal_intel.message_receipts
+                    (idempotency_key, payload_digest, received_at) VALUES (%s,%s,%s)''',
+                    (key, sha256(key.encode()).hexdigest(), start+timedelta(minutes=10)))
+                for name, state, minutes in (
+                        ('vent', 'closed', 0), ('indoor_shade', 'open', 0),
+                        ('outdoor_shade', 'removed', 0), ('kiva', 'off', 0),
+                        ('window', 'open', 5), ('skylight', 'closed', 10)):
+                    effective = start+timedelta(minutes=minutes)
+                    cursor.execute('''INSERT INTO thermal_intel.action_events
+                        (event_id,idempotency_key,received_at,effective_at,action,state,source,confidence,note)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+                        (key+'-'+name, key, start+timedelta(minutes=10), effective,
+                         name, state, 'manual_dm', 1., 'DISPOSABLE FIXTURE; not household evidence'))
+    probe_dsn = psycopg2.extensions.make_dsn(**params,
+        options='-c default_transaction_read_only=on -c role='+role)
+    env = {'PATH': '/usr/bin:/bin', 'THERMAL_RESTORE_PROBE_URL': probe_dsn}
+    result = subprocess.run(['/usr/bin/python3', str(ROOT/'scripts/verify-thermal-restored-consumer.py'),
+        '--runtime-root', str(runtime_root), '--expected-runtime-revision', expected_revision,
+        '--fixture-start', start.isoformat(), '--runtime-role', role],
+        env=env, capture_output=True, check=True, timeout=30)
+    proof = json.loads(result.stdout)
+    if proof.get('status') != 'installed_consumer_qualified' or proof.get('runtime_revision') != expected_revision:
+        raise ValueError('restored consumer qualification failed')
+    return proof
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--consumer-runtime', type=Path)
+    parser.add_argument('--expected-consumer-revision')
+    args = parser.parse_args(argv)
+    if ((args.consumer_runtime is None) != (args.expected_consumer_revision is None)
+            or args.expected_consumer_revision is not None
+            and re.fullmatch('[0-9a-f]{64}', args.expected_consumer_revision) is None):
+        parser.error('consumer runtime and full revision pin must be supplied together')
     stage = 'preflight'
     container = 'thermal-live-restore-' + uuid4().hex
     start_attempted = False
@@ -183,12 +236,19 @@ def main():
                 restored_proofs = restore_and_rehearse(archive, disposable, role)
                 if restored_proofs != source_proofs:
                     raise ValueError('restored journal rows differ')
+                consumer_proof = None
+                if args.consumer_runtime is not None:
+                    stage = 'consumer'
+                    consumer_proof = qualify_consumer(disposable, role,
+                        args.consumer_runtime, args.expected_consumer_revision)
                 stage = 'cleanup'
         result = {'status': 'qualified_disposable_restore',
                   'production_writes': 0, 'tables': {
                       name: value['rows'] for name, value in source_proofs.items()},
                   'row_digests_equal': True, 'v1_restored': True,
                   'v2_disposable_postimage': True}
+        if consumer_proof is not None:
+            result['consumer'] = consumer_proof
     except Exception:
         result = {'status': 'withheld', 'stage': stage}
     finally:

@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 household-copy collector prerequisite: a fresh read-only export
+restored all 10 action, 4 receipt and 4 mode rows with identical ordered
+digests, passed exact disposable v1/v2 schema audits, then qualified the
+corrected installed legacy consumer under runtime pin `fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`.
+Six explicitly disposable legacy/window/skylight fixtures survived its reader;
+legacy samples stayed unchanged and support remained one bucket. All 62
+affected tests pass, and owned containers/temporary archive were removed.
+This closes the tested reader/support-counter coexistence gate, not production
+migration or label collection. Retained same-host backup, reviewed private
+routes/question policy and a genuine signed trial remain next. Off-host backup
+is deferred by the operator, not repeatedly requested as a prerequisite. See
+[household-copy coexistence evidence](2026-09-29-thermal-airflow-journal-v2-candidate.md#household-copy-installed-consumer-coexistence-qualification).
+
 September 29 22:29 MDT installed thermal compatibility correction: the legacy
 dataset now excludes unsupported window/skylight observations from its
 confirmed-action promotion counter. Exact fixture support counts changed from

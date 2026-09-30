@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
 from uuid import uuid4
+import importlib.util
 from urllib.parse import quote
 import subprocess
 import time
@@ -153,6 +154,44 @@ def test_bad_v2_fingerprint_rolls_back_constraint_atomically(database, monkeypat
     assert journal.audit_schema(database.admin_dsn, runtime_role=database.runtime_role,
                                 expected_owner=database.owner)['fingerprint'] == migration.LEGACY_FINGERPRINT
     assert candidate != migration.LEGACY_FINGERPRINT
+
+
+def test_restored_consumer_probe_preserves_legacy_support_on_v2(database, monkeypatch):
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location('thermal_live_restore',
+        root/'scripts/qualify-thermal-journal-live-restore.py')
+    qualifier = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(qualifier)
+    import thermal_intel
+    original = ActionEvent('consumer-original-vent', 'consumer-original-receipt',
+        datetime(2026, 9, 28, 12, tzinfo=timezone.utc),
+        datetime(2026, 9, 28, 12, tzinfo=timezone.utc), 'vent', 'closed', 'manual_dm', 1.)
+    reader = journal.ActionJournal(database.runtime_dsn)
+    assert reader.append(original)
+    monkeypatch.setattr(migration, 'RELEASE_READY', True)
+    migration.migrate_v2(database.admin_dsn, runtime_role=database.runtime_role,
+                        expected_owner=database.owner)
+    params = psycopg2.extensions.parse_dsn(database.admin_dsn)
+    proof = qualifier.qualify_consumer(params, database.runtime_role,
+        root/'openhab/scripts', thermal_intel._code_revision())
+    assert proof['status'] == 'installed_consumer_qualified'
+    assert proof['runtime_role_verified'] is True and proof['connection_read_only'] is True
+    assert proof['distinct_fixture_observations'] == 6
+    assert proof['legacy_samples_unchanged'] is True and proof['legacy_support_rows'] == 1
+    assert reader.events_for_receipt(original.idempotency_key) == (original,)
+    assert migration.audit_v2(database.admin_dsn, runtime_role=database.runtime_role,
+                             expected_owner=database.owner)['status'] == 'exact_v2'
+
+
+def test_consumer_fixture_cannot_target_production_database():
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location('thermal_live_restore',
+        root/'scripts/qualify-thermal-journal-live-restore.py')
+    qualifier = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(qualifier)
+    with pytest.raises(ValueError, match='disposable'):
+        qualifier.qualify_consumer({'host': '127.0.0.1', 'port': '5432', 'dbname': 'openhab'},
+            'thermal_runtime', root/'openhab/scripts', '0'*64)
 
 
 def test_position_ingress_retries_exact_v2_storage_without_duplicate(database, monkeypatch, tmp_path):
