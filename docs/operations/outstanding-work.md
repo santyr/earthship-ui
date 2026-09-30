@@ -29,6 +29,23 @@ Direct Java/JDBC overnight-load parity, fresh dawn transition, installed
 fault/restart/rollback and guarded estimator cutover remain open; do not
 promote the candidate from these mode counts alone.
 
+The September 30 06:00–07:25 MDT dawn extension uses the newly completed
+September 29–30 20:30–06:00 local night, rather than the 155-W fallback.
+Its 6,454 numeric Item observations yield a bounded left-held mean of
+172.672598 W, with 0.908-second start-carry age and 20.998-second maximum
+gap. Independently, the restricted PostgreSQL AC reader resolves the unique
+Item 653 and qualifies 6,589 intervals: 34,198.797 of 34,200 seconds covered
+(99.996482%), with a covered-time mean of 172.672456 W. Their difference is
+0.000142 W; the 1.203 uncovered seconds remain missing, not measured zero.
+This corroborates a second completed night's load magnitude, not exact live
+Java `averageBetween` parity. The 171 dawn replay ticks yield one initial
+`evening` warmup and 170 `bms`, with no `off` ticks or noncharging TTF
+violations. Numeric projected minutes remain excluded. The disabled candidate
+descriptor has only the 30-second cron trigger, matching these aligned replay
+ticks; this does not prove installed JVM execution. No charging crossover is
+observed yet, so dawn charging-exit qualification remains open. No live rule,
+Item, cache, scheduler, database record or control changed.
+
 September 30 UI icon efficiency check: a read-only visit to all six live
 routes requested no full icon collection and made no writes/page errors under
 the sampled current state. Source-derived branch coverage nevertheless exposed
