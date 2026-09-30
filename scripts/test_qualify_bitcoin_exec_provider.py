@@ -32,6 +32,14 @@ def test_exact_isolation_policy():
     q.validate_container(container_info(), 'owned-marker')
 
 
+def test_boundary_diagnostic_reports_only_different_paths():
+    before = {'Item': {'label': 'kept', 'stateDescription': {'readOnly': True}}}
+    after = {'Item': {'label': 'kept', 'stateDescription': {'readOnly': False}}}
+    assert q.difference_paths(before, after) == ['Item.stateDescription.readOnly']
+    assert q.difference_paths(before, before) == []
+    assert q.difference_paths({'private': 'never-print-this'}, {}) == ['private']
+
+
 def test_create_payload_does_not_copy_enriched_read_only_channels():
     original = {'UID': q.p.UID, 'thingTypeUID': 'exec:command',
                 'label': 'BTC_Price', 'configuration': dict(q.p.CONFIG),

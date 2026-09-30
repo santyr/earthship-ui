@@ -58,6 +58,41 @@ def test_fixed_definition_ignores_state_not_identity_or_metadata():
     assert m.item_definition(first) != m.item_definition({**first, 'label': 'Changed'})
 
 
+@pytest.mark.parametrize('damage', [None, 'label', 'metadata', 'pattern', 'missing', 'bool_type', 'group'])
+def test_withdrawal_exception_is_only_derived_true_to_false_readonly(damage):
+    original = {'items': {name: {'name': name, 'editable': False, 'label': 'kept',
+        'metadata': {}, 'stateDescription': {'readOnly': True, 'pattern': 'kept'}}
+        for name in m.p.LINKS}, 'group': {'name': 'BTC_Price'}, 'members': ['member']}
+    current = deepcopy(original)
+    for item in current['items'].values():
+        item['stateDescription']['readOnly'] = False
+    item = current['items']['BTC_USD_Price']
+    if damage == 'label': item['label'] = 'changed'
+    elif damage == 'metadata': item['metadata'] = {'other': 'changed'}
+    elif damage == 'pattern': item['stateDescription']['pattern'] = 'changed'
+    elif damage == 'missing': del item['stateDescription']['readOnly']
+    elif damage == 'bool_type': item['stateDescription']['readOnly'] = 0
+    elif damage == 'group': current['group']['name'] = 'other'
+    assert m.withdrawal_items_equal(current, original) is (damage is None)
+    assert current['items']['BTC_Output_Receipt_JSON']['stateDescription']['readOnly'] is False
+    assert m.withdrawal_items_equal(original, original)
+    assert not m.withdrawal_items_equal(original, current)
+
+
+def test_withdrawal_requires_absent_provider_and_exact_links(monkeypatch):
+    original = {'links': fixtures.links(), 'items': {}, 'group': {}, 'members': []}
+    monkeypatch.setattr(m, 'dependents', lambda: {'items': {}, 'group': {}, 'members': []})
+    monkeypatch.setattr(m, 'get_thing', lambda: fixtures.thing())
+    monkeypatch.setattr(m.p.oh, 'get', lambda *_: pytest.fail('present provider refuses'))
+    assert not m.withdrawal_dependents(original)
+    monkeypatch.setattr(m, 'get_thing', lambda: None)
+    monkeypatch.setattr(m.p.oh, 'get', lambda *_: fixtures.links())
+    assert m.withdrawal_dependents(original)
+    changed = fixtures.links(); changed[0]['configuration'] = {'other': 'changed'}
+    monkeypatch.setattr(m.p.oh, 'get', lambda *_: changed)
+    assert not m.withdrawal_dependents(original)
+
+
 @pytest.mark.parametrize('file_owned', [False, True])
 def test_actual_provider_predicate_preserves_both_editability_states(monkeypatch, file_owned):
     original = fixtures.thing()
@@ -155,6 +190,7 @@ def transaction(monkeypatch, tmp_path):
     monkeypatch.setattr(m, 'check', lambda: verified)
     monkeypatch.setattr(m, 'backup', lambda *_: directory)
     monkeypatch.setattr(m, 'unchanged_dependents', lambda *_: True)
+    monkeypatch.setattr(m, 'withdrawal_dependents', lambda *_: True)
     monkeypatch.setattr(m, 'runtime_sources', lambda: {'source': 'unchanged'})
     snapshot['runtime_sources'] = {'source': 'unchanged'}
     monkeypatch.setattr(m, 'get_thing', lambda: current['thing'])
@@ -199,10 +235,12 @@ def test_scoped_transaction_requires_history_and_durable_natural_receipt(transac
     assert target.read_bytes() == m.p.SOURCE_BYTES
 
 
-@pytest.mark.parametrize('failure', ['install', 'provider', 'history', 'receipt', 'durable'])
+@pytest.mark.parametrize('failure', ['boundary', 'install', 'provider', 'history', 'receipt', 'durable'])
 def test_failed_transfer_restores_only_managed_thing(transaction, monkeypatch, failure):
     current, target, directory = transaction
-    if failure == 'install':
+    if failure == 'boundary':
+        monkeypatch.setattr(m, 'withdrawal_dependents', lambda *_: False)
+    elif failure == 'install':
         monkeypatch.setattr(m, 'install_source', lambda: (_ for _ in ()).throw(RuntimeError('failed install')))
     elif failure == 'provider':
         monkeypatch.setattr(m, 'provider_ready', lambda *_a, **kwargs: not kwargs['file_owned'])
@@ -221,5 +259,14 @@ def test_failed_transfer_restores_only_managed_thing(transaction, monkeypatch, f
     assert current['rollback'] == [True]
     assert current['mutations'] == [('DELETE', m.DELETE_PATH), ('POST', '/things')]
     assert not target.exists()
-    if failure != 'install':
+    if failure not in ('boundary', 'install'):
         assert (directory / 'withdrawn-file.things').read_bytes() == m.p.SOURCE_BYTES
+
+
+def test_final_definition_still_requires_derived_readonly_restored(monkeypatch):
+    original = {'items': {'BTC_USD_Price': {'stateDescription': {'readOnly': True}}},
+                'group': {}, 'members': []}
+    current = deepcopy(original)
+    current['items']['BTC_USD_Price']['stateDescription']['readOnly'] = False
+    monkeypatch.setattr(m, 'dependents', lambda: current)
+    assert not m.unchanged_dependents(original)

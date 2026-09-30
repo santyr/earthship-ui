@@ -7,6 +7,7 @@ JDBC price prefix, then requires a new real successful durable output receipt.
 No OpenHAB restart, Item-definition mutation, direct database write or hardware
 command exists. Normal binding-driven price/receipt persistence continues.
 """
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
@@ -112,6 +113,31 @@ def dependents():
 def unchanged_dependents(original):
     current = dependents()
     return all(current[key] == original[key] for key in ('items', 'group', 'members'))
+
+
+def withdrawal_items_equal(current, original):
+    """Permit only derived readOnly=true disappearing at an absent provider.
+
+    Final provider and rollback checks retain the full enriched definition.
+    """
+    normalized = deepcopy(current)
+    for name in p.LINKS:
+        before = original.get('items', {}).get(name, {}).get('stateDescription', {})
+        after = normalized.get('items', {}).get(name, {}).get('stateDescription', {})
+        if before.get('readOnly') is True and after.get('readOnly') is False:
+            after['readOnly'] = True
+    return all(normalized.get(key) == original.get(key)
+               for key in ('items', 'group', 'members'))
+
+
+def withdrawal_dependents(original):
+    if get_thing() is not None:
+        return False
+    links = [link for link in p.oh.get('/links')
+             if link.get('channelUID', '').startswith(p.UID + ':')]
+    return (sorted(links, key=lambda link: link['itemName']) ==
+            sorted(original['links'], key=lambda link: link['itemName'])
+            and withdrawal_items_equal(dependents(), original))
 
 
 def runtime_sources():
@@ -309,7 +335,9 @@ def main(apply):
         phase = 'managed_withdrawal'
         request('DELETE', DELETE_PATH)
         require(wait(lambda: get_thing() is None, 30), 'managed Bitcoin Thing did not withdraw')
-        require(unchanged_dependents(original), 'Bitcoin Item/Group changed at provider boundary')
+        phase = 'withdrawal_dependent_readback'
+        require(withdrawal_dependents(original),
+                'Bitcoin Item/Group/link changed at provider boundary')
         phase = 'file_installation'
         installed_identity = install_source()
         phase = 'file_metadata_readback'

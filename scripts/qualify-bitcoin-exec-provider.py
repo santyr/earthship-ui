@@ -29,6 +29,7 @@ def load(name, filename):
 
 
 p = load('bitcoin_exec_preflight', 'preflight-bitcoin-exec-thing.py')
+migration = load('bitcoin_exec_migration_probe', 'migrate-bitcoin-exec-thing.py')
 q = load('display_rule_qualifier', 'qualify-season-rule-provider.py')
 runtime = q.runtime
 LABEL = 'hex.bitcoin.exec.qualification'
@@ -36,8 +37,8 @@ BINDING = Path('/var/lib/openhab/tmp/kar/openhab-addons-5.2.1/org/openhab/addons
                'org.openhab.binding.exec/5.2.1/org.openhab.binding.exec-5.2.1.jar')
 PROBE = 'Bitcoin_Qualification_LastExecution'
 ITEMS = b'''Group BTC_Price
-Number BTC_USD_Price "Bitcoin Price" (BTC_Price) { channel="exec:command:BTC_Price:output" }
-String BTC_Output_Receipt_JSON { channel="exec:command:BTC_Price:output" [profile="transform:JS", toItemScript="bitcoin_output_receipt.js"] }
+Number BTC_USD_Price "Bitcoin Price [%.0f USD]" (BTC_Price) { channel="exec:command:BTC_Price:output" }
+String BTC_Output_Receipt_JSON "Bitcoin Output Receipt" { channel="exec:command:BTC_Price:output" [profile="transform:JS", toItemScript="bitcoin_output_receipt.js"] }
 DateTime Bitcoin_Qualification_LastExecution { channel="exec:command:BTC_Price:lastexecution" }
 '''
 
@@ -86,7 +87,21 @@ def managed_definition(original):
         'UID', 'thingTypeUID', 'label', 'configuration')}
 
 
-def main():
+def difference_paths(before, after, prefix=''):
+    """Names only: never print private configuration or observation values."""
+    if isinstance(before, dict) and isinstance(after, dict):
+        paths = []
+        for key in sorted(set(before) | set(after)):
+            path = prefix + '.' + key if prefix else key
+            if key not in before or key not in after:
+                paths.append(path)
+            else:
+                paths.extend(difference_paths(before[key], after[key], path))
+        return paths
+    return [] if before == after else [prefix]
+
+
+def main(*, boundary_only=False):
     p.check()  # live GET-only preflight; refuses an already installed target
     original = p.oh.get('/things/' + p.UID + '?summary=false')
     p.validate(original, p.oh.get('/links'))
@@ -219,9 +234,36 @@ def main():
             raise RuntimeError('isolated managed Thing creation failed')
         runtime.install(container, 'conf/items/bitcoin-qualification.items', ITEMS)
         q.wait_for(lambda: ready(True, phase), seconds=120)
-        if rest('DELETE', '/things/' + p.UID)[0] not in (200, 202, 204):
+        def item_definitions():
+            result = {}
+            for name in (*p.LINKS, 'BTC_Price'):
+                status, item = rest('GET', '/items/' + name + '?metadata=.*')
+                if status != 200 or not isinstance(item, dict):
+                    raise RuntimeError('isolated Item contract unavailable')
+                result[name] = migration.item_definition(item)
+            return result
+        baseline_items = item_definitions()
+        baseline_links = linked_outputs()
+        if rest('DELETE', migration.DELETE_PATH)[0] not in (200, 202, 204):
             raise RuntimeError('isolated managed Thing withdrawal failed')
         q.wait_for(lambda: rest('GET', '/things/' + p.UID)[0] == 404)
+        print('isolated_withdrawal_item_difference_paths=' + json.dumps(
+            difference_paths(baseline_items, item_definitions())), flush=True)
+        def boundary_snapshot(items):
+            return {'items': {name: items[name] for name in p.LINKS},
+                    'group': items['BTC_Price'], 'members': []}
+        if (linked_outputs() != baseline_links or not migration.withdrawal_items_equal(
+                boundary_snapshot(item_definitions()), boundary_snapshot(baseline_items))):
+            raise RuntimeError('isolated withdrawal contract refused')
+        print('isolated_withdrawal_exact_scoped_contract=true', flush=True)
+        if boundary_only:
+            phase = datetime.now(timezone.utc)
+            if rest('POST', '/things', managed)[0] not in (200, 201, 202):
+                raise RuntimeError('isolated boundary rollback failed')
+            q.wait_for(lambda: ready(True, phase), seconds=120)
+            q.wait_for(lambda: item_definitions() == baseline_items, seconds=30)
+            print('isolated_boundary_rollback_item_contract_exact=true', flush=True)
+            return
         phase = datetime.now(timezone.utc)
         runtime.install(container, 'conf/things/bitcoin-price.things', p.SOURCE.read_bytes())
         q.wait_for(lambda: ready(False, phase), seconds=120)
@@ -262,4 +304,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if sys.argv[1:] not in ([], ['--boundary-only']):
+        raise SystemExit('usage: qualify-bitcoin-exec-provider.py [--boundary-only]')
+    main(boundary_only=sys.argv[1:] == ['--boundary-only'])

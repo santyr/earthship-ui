@@ -151,3 +151,31 @@ All 86 focused tests and a fresh read-only live preflight passed with the
 one-shot apply gate off; the existing history contained 1,106,202 rows before
 `2026-09-30T10:12:32.619262Z`. A retry still requires a new private preimage and
 the original strict metadata, receipt and history gates.
+
+## Exact empty-provider Item contract
+
+The next attempt also refused before file installation and verified managed
+rollback, a new durable real receipt and unchanged price prefix. The restored
+static Items, Group and source bytes matched the private preimage. A dedicated
+networkless synthetic withdrawal/rollback probe reproduced the only temporary
+differences: `stateDescription.readOnly` on both linked output Items. The Exec
+binding supplies this read-only property while its channel exists; without the
+Thing it becomes false, then returns to true after recreation. This is not an
+Item-definition edit.
+
+The corrected boundary checker requires the Thing to be absent, all existing
+output links unchanged, and every Item/Group/member definition unchanged except
+this exact Boolean true-to-false transition on those two linked Items. It does
+not exempt labels, patterns, metadata, ownership or other read-only transitions.
+Both final file-provider and rollback checks still require the full enriched
+Item contract, including restored read-only values. Focused regressions also
+prove a changed link or unrelated definition refuses, and a boundary refusal
+restores managed polling without installing a file. The one-shot gate remains
+off pending the corrected isolated transfer qualification and fresh preflight.
+
+The corrected actual isolated run subsequently passed the exact scoped
+empty-provider comparison, file ownership/full-channel contract, a new
+synthetic poll, full server-JVM exit/different-JVM restart and managed rollback
+with another synthetic poll. The owned container/tmpfs was removed. All 97
+focused regressions pass. This is isolated provider evidence, not a real-feed
+or production JDBC result; the guarded live gates still have to pass.
