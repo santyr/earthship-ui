@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 natural thermal training completed at 07:35:36 MDT, exit zero:
+45m 04s CPU, 366.25 MiB peak memory and zero peak swap. The installed v4
+artifact/report validate, metrics agree, and the accepted training revision
+matches the current `a4a68a17...` runtime. CPU use is 2.8% lower than yesterday,
+but changed rows/folds preclude causal attribution. The new same-host private
+source/artifact archive passed independent restoration, all 82 capture checks
+and exact replay of the existing 06:30 prior-artifact publication; its owned
+extraction was removed. No job was forced or control changed. These checks
+close training/resource and same-host recovery continuity, not forecast skill:
+24-hour air MAE remains 2.179°F versus persistence 1.690°F, confirmed-action
+rows remain zero, and the artifact is still shadow-only. Both timers are active;
+the new artifact's first 08:30 natural Item/JDBC/capture/replay remains open.
+See [whole-run qualification](2026-09-27-thermal-selector-efficiency.md#september-30-completed-natural-training)
+and [post-training recovery](2026-09-28-thermal-replay-recovery.md#september-30-post-training-source-and-artifact-recovery).
+
 September 30 pre-training resource check distinguishes swap residency from
 active swapping: around 06:20 MDT the host had approximately 7.5 GiB available
 RAM despite nearly full swap. Four one-second `vmstat` intervals reported zero

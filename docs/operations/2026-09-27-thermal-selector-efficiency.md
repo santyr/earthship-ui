@@ -283,3 +283,35 @@ was forced, input or label fabricated, runtime installed, or control activated.
 The 06:50 natural trainer is still the whole-run performance and
 accepted-artifact continuity gate; this successful repeated publication is
 not graduation evidence.
+
+## September 30 completed natural training
+
+The existing scheduled process (PID 3673126) ran from 06:50:29 to 07:35:36
+MDT and exited zero without a manual restart or duplicate. Its terminal
+systemd counters and completion journal agree: 2,704.458959 seconds CPU
+(45m 04s), 384,040,960-byte peak memory (366.25 MiB), and zero peak swap.
+The September 29 run used 2,782.541918 seconds CPU; today's CPU use was about
+2.8% lower. This is a measured whole-run observation, not a causal
+optimization benchmark: samples increased from 99,830 to 99,849, scored
+folds from 293 to 294, and fitted dynamics changed. Both runs have 378 folds.
+
+The installed v4 validator accepts the new artifact and its backtest report;
+their metrics agree exactly. Its training revision matches the full installed
+runtime pin
+`a4a68a173f7a3a9c206901b1c56bbc89f1ccaf8fc7ca7c04dbd1f627295f8b8a`.
+Accepted file SHA-256 is
+`904c76e964f9b7c103918cc24e993b4fc766db5a86a0da2af6ea334fb06a4e75`;
+the canonical artifact identity used by captures is separately
+`66bc754135da743f402e00c34e07d8ffaeb7c8e97061873e06808619fe734353`.
+The prior artifact is retained and validates, with its unchanged canonical
+identity `e707ce61...696ccff7`. Both user timers remain enabled and waiting.
+
+This closes the optimization's natural whole-run resource, acceptance and
+training-source continuity gates. It does not improve the unchanged 119-pair
+24-hour air MAE of 2.178550°F versus persistence's 1.689895°F. Confirmed-action
+training/evaluation rows remain zero; `promotion.shadow_only` is true and
+operational graduation thresholds are unset. The provisional promotion gate
+still tolerates a worse-than-persistence score and is not operational approval.
+The first scheduled publication from the new artifact is due at 08:30:29 MDT;
+its live Item, JDBC receipt, forcing capture and exact replay remain to verify.
+See the [new private recovery point](2026-09-28-thermal-replay-recovery.md#september-30-post-training-source-and-artifact-recovery).

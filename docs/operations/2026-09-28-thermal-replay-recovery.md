@@ -133,3 +133,30 @@ pins/training identities, stale-source relabelling, manifest tampering,
 concurrent runtime edits and reuse of a verified pinned prior runtime. Only
 this turn's disposable synthetic test-fixture directories were cleaned up;
 the retained household archive and all earlier recovery points remain intact.
+
+## September 30 post-training source and artifact recovery
+
+After the natural 07:35:36 MDT training completion, the accepted artifact
+again matches the actual 21-file installed runtime revision `a4a68a17...`.
+The existing strict v1 creator therefore produced a no-overwrite private
+archive without needing a distinct publication-revision override:
+`/home/sat/backups/earthship-energy/thermal-replay-source-20260930T133536Z-a4a68a17.tar.gz`.
+Independent verification reports 108 data members, including 82 forcing
+captures, and archive SHA-256
+`e7e416aece2e49fdc964716c526e8870118514b3b7f5e891811ad74ca8ed4294`.
+The archive is mode 0600 inside the existing mode-0700 same-host directory.
+
+An isolated private extraction using only bundled source validated the new
+accepted artifact, retained prior artifact, complete backtest report and all
+82 captures. Restored accepted bytes exactly match production file SHA-256
+`904c76e964f9b7c103918cc24e993b4fc766db5a86a0da2af6ea334fb06a4e75`,
+and restored report metrics equal the accepted metrics. The latest archived
+06:30 publication reproduced exactly, output SHA-256
+`8a789fc48dd88b77e8bb92819bae43bb563e60bde08bcaf850b3385798e2548b`,
+under the included full `a4a68a17...` pin. That publication embeds the **prior**
+accepted artifact: it proves recovery of existing evidence, not publication
+or accuracy of the newly trained artifact. The new artifact's first natural
+publisher is still due at 08:30 MDT. The owned extraction was removed after
+verification; real earlier backups and the new archive remain. No runtime,
+timer, journal, control, label or notification was changed. Off-host copying
+remains deferred, and whole-host recovery is not established here.
