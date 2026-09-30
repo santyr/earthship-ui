@@ -5,7 +5,6 @@ Never changes Items, Things, links, persistence configuration or control rules.
 The initial-install adapter remains pinned to its historical source preimage.
 """
 import argparse
-from copy import deepcopy
 from hashlib import sha256
 import importlib.util
 import json
@@ -22,7 +21,7 @@ spec.loader.exec_module(common)
 UID = common.UID
 OLD_SHA = common.SOURCE_SHA
 NEW_SHA = '621f4ac7416de35e1b68f87f7d0ed4096c729319cad08e5b71bc95b1b0062c80'
-RELEASE_ENABLED = False  # Require original-event/JDBC fixture qualification first.
+RELEASE_ENABLED = True  # September 30 pinned original-event/JDBC fixture passed.
 
 
 def require(condition, reason):

@@ -97,20 +97,22 @@ expiry cron, and advance AC/PV/charge EMAs only on distinct source identities.
 The synthetic actual-producer/estimator pipeline preserves the skipped sample
 and recovers the correct median. The revised estimator also passed isolated
 real-JVM expiry/restart/rollback; the no-event expiry lag was 18,379 ms, and
-its owned fixture was removed. Neither production rule changed. Guarded
-collector update, new natural receipt-sequence/write-rate checks and numerical
-promotion remain open before estimator deployment. Old history still shows
+its owned fixture was removed. The later qualified collector update is live;
+new numerical promotion remains open before estimator deployment. Old history still shows
 its missing sample; no retrospective repair is claimed. See the
 [candidate qualification](2026-09-30-bms-night-average-verification.md#observation-preserving-source-candidate-and-renewed-jvm-qualification).
 
-The separate guarded collector-update adapter now passes production read-only
-preflight against the exact old source, six triggers, file-owned Item and
-native source definitions. Its source release flag remains false; no live
-update or production backup was made. Exact private backup, recheck/readback,
-ambiguous rollback and concurrent-edit refusal are covered by fifteen offline
-tests. Next qualify original-event/JDBC behavior, then perform the guarded
-observational update and collect new natural preservation/write-rate evidence.
-See the [adapter receipt](2026-09-30-bms-night-average-verification.md#guarded-collector-update-adapter-preflight-passed-apply-gate-off).
+The guarded adapter passed read-only preflight and its pinned original-event/
+JDBC fixture. The observational collector alone was then updated with verified
+private backup, exact readback and unchanged protected static configuration.
+In the 12:09:40–12:11:42 MDT natural window, all four changed TTD observations
+matched independent numeric history at the same millisecond; sequences 5–11
+were continuous, and repeated zero TTF observations were preserved. All 38
+selected Python qualifier/adapter tests pass. Both fixture containers and
+temporary tests were removed. New numerical qualification and the guarded
+estimator cutover remain open; sampled delivery is not physical runtime
+accuracy or proof of all future write rates. See the
+[deployment receipt](2026-09-30-bms-night-average-verification.md#real-eventjdbc-fixture-passed-collector-only-update-deployed).
 
 Current `0864f4d6...` thermal runtime recovery passed independently from a
 private restored tree: accepted artifact valid, all 84 captures semantically

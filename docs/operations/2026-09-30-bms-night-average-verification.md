@@ -258,3 +258,60 @@ backup readback. No production writes or production backup were made in this
 preflight. Original-event/JDBC fixture qualification remains the next release
 step; subsequent natural preservation and bounded write-rate checks are still
 required before estimator promotion.
+
+## Real-event/JDBC fixture passed; collector-only update deployed
+
+`qualify-bms-runtime-delivery.py` executes the pinned collector in disconnected
+OpenHAB 5.2.1/PostgreSQL containers. Genuine Java `ItemEventFactory` objects
+carry synthetic sensor values/source tags; Thing ONLINE/OFFLINE states and
+private cache are mocked. Clock, UUID, explicit JDBC persistence and the
+output Item are real. This does not qualify physical Modbus acquisition.
+OpenHAB is read-only, two CPUs/2 GiB; PostgreSQL is one CPU/384 MiB. Neither
+has additional swap allowance, production credentials, host mounts/devices
+or published ports. The probe requires its isolated environment flag.
+
+Both runs persisted 18 exact receipts: five startup/recovery barriers, ten
+successive TTD samples including 6,330, two new zero-TTF observations and a
+fault barrier. Twenty high-rate current updates added no writes. The first
+run passed the probe's own assertions; negative offline tests then exposed
+that the verifier could accept later carry in place of immediate delivery.
+The verifier was tightened to require observation/recording identity on every
+runtime frame, and a new complete run passed payload, sequence and unique
+timestamp checks. Both runs removed their owned containers/tmpfs; independent
+label checks found none remaining.
+
+After qualification the adapter release flag was opened. Its collector-only
+update applied around 12:09 MDT, preserving six triggers, the file-owned Item,
+TTLs and every other rule/Thing/link/JDBC definition. Production collector
+now equals `621f4ac7...`; estimator remains `8698b16a...` with its original
+single trigger. There was no OpenHAB restart or equipment command.
+Private rollback preimage:
+`/home/sat/.local/state/openhab-config-migration/bms-runtime-observation-update-wfksp9h7/preimage.json`,
+SHA-256 `ead58baa44d780fe45b3b55b0c3d9288a893994f41c8807b14604a11676a871f`.
+Its original script matches `a2193c0f...`; final static guard matches backup.
+
+### First new natural delivery window
+
+Read-only observation of `2026-09-30T18:09:40Z` through
+`2026-09-30T18:11:42.157Z` found seven JDBC receipts, continuous sequences
+5–11 in epoch `c69cf9eb-ffd9-4b5b-98c8-96da028aa880`. Six have all four fields
+valid; the initial incomplete startup prefix is not invented freshness.
+Qualified receipts include four new TTD observations and two new zero-TTF
+observations. Bounded history digest:
+`59237f1bc97a76ff6863512ff4bea5a2e45eef9facb7d6e26655b87b4dbd2f6a`.
+
+| Independent native UTC timestamp | TTD minutes | Collector callback delta |
+| --- | ---: | ---: |
+| 18:10:01.595 | 956 | 0 ms |
+| 18:10:31.701 | 906 | 0 ms |
+| 18:11:01.716 | 885 | 0 ms |
+| 18:11:31.912 | 894 | 0 ms |
+
+All four changed numeric-history rows pair uniquely with valid collector
+observations. The sampled rate is about 3.44 envelopes/minute, including
+warmup—not a universal future-rate bound. Change-only numeric TTF history
+cannot independently prove repeated zeros; those are evidenced by the
+qualified original-event collector/fixture, not held Item timestamps.
+All 38 selected Python tests pass. Temporary test files were removed; the
+operational rollback backup is retained. New numerical qualification and
+guarded estimator cutover remain open. Existing history is unchanged.
