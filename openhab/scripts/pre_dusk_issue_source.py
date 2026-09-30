@@ -16,7 +16,7 @@ class IssueSourceUnavailable(ValueError):
     """The original source-bound issue input cannot be established."""
 
 
-def read_issue_source(connection_factory, pre_dusk):
+def _read_original(connection_factory, pre_dusk):
     connection = None
     try:
         if not callable(connection_factory) or not isinstance(pre_dusk, dict):
@@ -57,10 +57,11 @@ def read_issue_source(connection_factory, pre_dusk):
                 or not isinstance(raw, str)):
             raise ValueError('original source row invalid')
         verify_issue_soc(pre_dusk, raw, persisted_at.isoformat())
-        return {'source_item': ITEM, 'source_persisted_at':
+        metadata = {'source_item': ITEM, 'source_persisted_at':
                 persisted_at.astimezone(timezone.utc).isoformat(),
                 'source_stream_epoch': pre_dusk['socStreamEpoch'],
                 'source_digest_sha256': pre_dusk['socEvidenceSha256']}
+        return metadata, raw
     except Exception:
         # Never print the database URL or original atomic evidence JSON.
         raise IssueSourceUnavailable('pre-dusk issue source unavailable') from None
@@ -70,3 +71,20 @@ def read_issue_source(connection_factory, pre_dusk):
                 connection.close()
             except Exception:
                 pass
+
+
+def read_issue_source(connection_factory, pre_dusk):
+    """Return public provenance metadata only; preserve the scoring contract."""
+    metadata, _ = _read_original(connection_factory, pre_dusk)
+    return metadata
+
+
+def read_issue_input(connection_factory, pre_dusk):
+    """Return the verified original input for internal delivery validation.
+
+    Never log/print this return value. It includes the original source payload,
+    not a current held Item. Read-only transaction and query bounds are exactly
+    those of the existing scoring reader.
+    """
+    metadata, raw = _read_original(connection_factory, pre_dusk)
+    return {'metadata': metadata, 'original_soc': raw}

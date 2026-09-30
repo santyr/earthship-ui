@@ -10,6 +10,15 @@ route qualification and attended operator receipt remain open. Nothing was
 installed or sent; morning trough DMs remain disabled. See the
 [candidate and remaining gates](2026-09-30-pre-dusk-notification-candidate.md).
 
+Its original-JDBC preparation reader now passes 160 adjacent tests and a
+real September 29 archive check. It uniquely links the morning origin and
+validates the exact earlier atomic SoC input; the archived 81% issue prepares
+no alert. This used an explicit historical reference clock, not current
+eligibility, and synthetic identity arguments only. No outbox/DM/model/control
+write occurred. The locked production worker, actual keyer/routes, attended
+receipt and activation remain open. See the
+[source checkpoint](2026-09-30-pre-dusk-notification-candidate.md#original-jdbc-preparation-checkpoint).
+
 The latest runtime audit passes all 1024 independent arithmetic checks in a
 later natural window. Deterministic regressions prove identical alpha-0.05
 smoothing for identical source observations despite extra evaluations and

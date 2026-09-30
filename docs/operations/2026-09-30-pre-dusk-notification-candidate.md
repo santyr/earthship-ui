@@ -56,9 +56,10 @@ production `websockets==16.0` dependency.
 
 ## Remaining live gates
 
-1. Implement a bounded read-only adapter that uniquely identifies the original
-   pre-dusk JDBC issue and exact atomic input, and a locked dedicated outbox
-   invocation. Do not re-run the forecast just to create an alert.
+1. Finish the deployment adapter and locked dedicated outbox invocation using
+   the qualified source-only reader below. Do not re-run the forecast just to
+   create an alert. Credentials/endpoints and clock handling require explicit
+   production validation; dependency-injected tests cannot establish them.
 2. Qualify the installed keyer/runtime and the approved Hex/operator signed
    inbox routes with the actual dependency versions. Verify both encrypted
    copies and restart recovery without a forecast or control write.
@@ -70,3 +71,30 @@ production `websockets==16.0` dependency.
    for testing.
 
 The source candidate alone closes neither these gates nor the broader goal.
+
+## Original-JDBC preparation checkpoint
+
+`pre_dusk_notification_source.read_notice` now uses the existing bounded local
+JDBC history transport for both immutable morning and pre-dusk issues. It
+requires exactly one pre-dusk origin, its uniquely linked morning issue,
+morning persistence before pre-dusk issuance, and pre-dusk persistence before
+the reference clock. Future/expired target dates are rejected before I/O.
+The existing restricted repeatable-read SQL source lookup then validates the
+exact latest original atomic SoC receipt at/before the issue. Its new internal
+`read_issue_input` API returns that validated original payload for notice
+validation; the existing public metadata-only `read_issue_source` contract is
+unchanged. Neither source API writes or logs its payload.
+
+160 adjacent tests pass, including archive ambiguity/chronology, missing
+original source, no current-Item fallback and the unchanged scoring reader.
+A read-only real-archive check for September 29, with the explicit historical
+reference clock `2026-09-29T23:31:00Z`, successfully prepared **no alert** for
+the original 81% issue. This used the actual local JDBC REST transport and
+`energy_power_reader` connection. Synthetic public identities were passed to
+the pure validator only; no identity qualification, wrapping, outbox insertion,
+DM publication, forecast rewrite, or receipt/action collection occurred.
+It is historical provenance evidence, **not** current alert eligibility.
+
+No production deployment or startup unit exists yet. The locked worker,
+actual identities/keyer/routes, attended receipt and activation gates above
+remain open. Temporary test storage was removed; no package was installed.

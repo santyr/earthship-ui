@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from pre_dusk_issue_source import IssueSourceUnavailable, read_issue_source
+from pre_dusk_issue_source import IssueSourceUnavailable, read_issue_source, read_issue_input
 
 
 ISSUE = datetime(2026, 9, 29, 23, 30, tzinfo=timezone.utc)
@@ -79,6 +79,15 @@ def test_latest_original_receipt_is_checked_in_restricted_snapshot():
                for sql, params in calls)
     assert any('FROM public.item0613' in sql and 'ORDER BY time DESC LIMIT 2' in sql
                and params == (ISSUE,) for sql, params in calls)
+
+
+def test_internal_original_input_uses_same_qualified_snapshot_without_changing_public_result():
+    connection = Connection()
+    internal = read_issue_input(lambda: connection, ISSUED)
+    assert internal['original_soc'] == RAW
+    assert internal['metadata'] == read_issue_source(lambda: Connection(), ISSUED)
+    assert connection.closed
+    assert 'original_soc' not in internal['metadata']
 
 
 @pytest.mark.parametrize('kwargs', [
