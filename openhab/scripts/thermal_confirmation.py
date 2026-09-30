@@ -664,7 +664,7 @@ def ingest(raw: bytes, policy: Policy, spool: Spool, decoder, sink, *, now=None)
             sink.store(records, row["rumor_json"].encode(), vocabulary_version=2)
         else:
             sink.store(records, row["rumor_json"].encode())
-    receipt = {"version": 1, "status": "stored" if records else "no_action_recorded",
+    receipt = {"version": policy.version, "status": "stored" if records else "no_action_recorded",
                "disposition": row["disposition"], "rumor_id": row["rumor_id"],
                "idempotency_key": "nostr:" + row["rumor_id"],
                "first_received_at": row["first_received_at"],

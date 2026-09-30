@@ -33,6 +33,7 @@ MAX_INBOX_FRAMES = 128
 MAX_INBOX_PAGES = 8
 MAX_INBOX_TOTAL_EVENTS = 256
 POLL_RELEASE_READY = False  # Household route/keyer/journal/backup trial pending.
+POSITION_DELIVERY_RELEASE_READY = False  # Separate attended v2 send gate.
 
 
 def require(condition, reason):
@@ -553,10 +554,14 @@ class Outbox:
 def acknowledgement(row, receipt, collector):
     require(receipt['rumor_id'] == row['rumor_id'] and row['acknowledgement'] == t.canonical(receipt).decode(),
             'acknowledgement is not a committed ingress receipt')
+    require(type(receipt.get('version')) is int and receipt['version'] in (1, 2),
+            'unsupported acknowledgement version')
+    heading = ('THERMAL RECEIPT v1' if receipt['version'] == 1
+               else 'THERMAL STATE RECEIPT v2')
     event = {'pubkey': collector, 'kind': 14,
              'created_at': int(t.aware(row['first_received_at']).timestamp()),
              'tags': [['p', row['operator']], ['e', row['rumor_id']]],
-             'content': 'THERMAL RECEIPT v1\n' + t.canonical(receipt).decode()}
+             'content': heading + '\n' + t.canonical(receipt).decode()}
     event['id'] = t.event_id(event)
     return event
 
@@ -575,7 +580,13 @@ def balanced_inbox_order(events):
 class Delivery:
     def __init__(self, policy, routes, spool, outbox, keyer, relay, sink):
         if policy.version == 2:
-            raise t.Refused('position prompts await qualified journal v2 storage')
+            require(POSITION_DELIVERY_RELEASE_READY,
+                    'position prompts await qualified journal v2 storage')
+            require(t.POSITION_INGRESS_RELEASE_READY,
+                    'position ingress must be release-qualified before delivery')
+            require(callable(getattr(sink, 'require_v2_storage', None)),
+                    'position delivery requires a qualified journal sink')
+            sink.require_v2_storage()
         self.policy, self.routes, self.spool = policy, routes, spool
         self.outbox, self.keyer, self.relay, self.sink = outbox, keyer, relay, sink
 
@@ -594,6 +605,8 @@ class Delivery:
 
     def poll_replies(self, now=None):
         """Attended read of signed-route inboxes; all writes use receive()."""
+        if self.policy.version == 2:
+            require(POLL_RELEASE_READY, 'position inbox polling is not release-qualified')
         fixed_now = now
         now = t.aware(now or datetime.now(timezone.utc))
         counts = {'accepted': 0, 'retryable': 0, 'withheld': 0, 'deferred': 0,
@@ -678,6 +691,11 @@ class Delivery:
         return result
 
     def authorize(self, row, now):
+        if self.policy.version == 2:
+            require(POSITION_DELIVERY_RELEASE_READY,
+                    'position delivery release gate is closed')
+            require(t.POSITION_INGRESS_RELEASE_READY,
+                    'position ingress release gate is closed')
         body = t.strict_json(row['body'].encode())
         t.validate_event(body, kind=14, signed=False)
         operator = t.tag_value(body, 'p')
@@ -685,6 +703,8 @@ class Delivery:
                 and row['target'] in {operator, self.policy.recipient}, 'outgoing authority was revoked')
         purpose, identity = row['intent'].split(':', 1)
         if purpose == 'prompt':
+            if self.policy.version == 2:
+                self.sink.require_v2_storage()
             prompt = next((p for p in self.policy.prompts if p.event_id == identity), None)
             require(prompt is not None and prompt.issued_at <= now <= prompt.expires_at,
                     'outgoing prompt expired or was removed')
@@ -696,6 +716,8 @@ class Delivery:
             # Re-authenticate and repeat exact PostgreSQL readback before EVERY delivery.
             receipt = t.ingest(original['original_wrap'], self.policy, self.spool,
                                self.keyer, self.sink, now=now)
+            require(receipt['version'] == self.policy.version,
+                    'acknowledgement policy version mismatch')
             require(body == acknowledgement(self.spool.get(identity), receipt, self.policy.recipient),
                     'outgoing acknowledgement changed')
         return body

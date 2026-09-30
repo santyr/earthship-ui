@@ -60,6 +60,20 @@ test uses a decoder double, not a genuine signed Nostr
 reply. All 277 adjacent journal, confirmation, origin and messaging tests pass. No
 household journal, spool, collector or model was changed.
 
+The matching encrypted delivery path now has its own default-off
+`POSITION_DELIVERY_RELEASE_READY` gate. Even if that gate is deliberately
+enabled, constructing v2 delivery requires the v2 ingress gate and exact
+restricted journal preflight; direct v2 inbox polling still refuses under
+`POLL_RELEASE_READY = False`. A source-only fake-relay/keyer test queued the
+versioned state question, accepted a fixture reply through the same spool
+and sink interface, and built a distinct `THERMAL STATE RECEIPT v2` only after
+commit. Queued prompts were withheld after gate revocation or a failed fresh
+storage preflight, and later sent only after recovery. The full completion
+and adjacent journal/origin suites passed 488 tests. This is transport-logic
+evidence, **not** a household signature,
+delivery, operator-read or physical-state confirmation. No live question,
+relay event, listener or control was started.
+
 A later full **synthetic** recovery rehearsal used the existing private v3
 thermal state bundle format: two SQLite databases, private policy/route
 fixtures, and a `pg_dump` custom archive of a populated exact-v1 PostgreSQL

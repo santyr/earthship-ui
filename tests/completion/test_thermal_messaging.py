@@ -34,14 +34,17 @@ def policy():
     return t.Policy.load(t.canonical(draft), assign_ids=True)
 
 
-def test_position_policy_cannot_construct_outbound_delivery():
+def position_policy():
     draft = dict(version=2, recipient=C, operators=[O], prompts=[dict(operator=O,
         issued_at=(NOW - timedelta(minutes=5)).isoformat(),
         expires_at=(NOW + timedelta(minutes=5)).isoformat(),
         actions={'window': 'closed', 'skylight': 'open'})])
-    position = t.Policy.load(t.canonical(draft), assign_ids=True)
+    return t.Policy.load(t.canonical(draft), assign_ids=True)
+
+
+def test_position_policy_cannot_construct_outbound_delivery():
     with pytest.raises(t.Refused, match='journal v2'):
-        m.Delivery(position, None, None, None, None, None, None)
+        m.Delivery(position_policy(), None, None, None, None, None, None)
 
 
 class FakeKeyer:
@@ -66,7 +69,13 @@ class Sink:
     def __init__(self):
         self.stores = []
         self.fail = False
-    def store(self, records, payload):
+        self.preflights = 0
+        self.fail_preflight = False
+    def require_v2_storage(self):
+        self.preflights += 1
+        if self.fail_preflight:
+            raise t.Retryable('v2 storage unavailable')
+    def store(self, records, payload, *, vocabulary_version=1):
         if self.fail:
             raise t.Retryable('journal unavailable')
         self.stores.append(deepcopy(records))
@@ -101,6 +110,53 @@ def delivery(tmp_path):
 
 def reply(d, content='yes'):
     return t.canonical(event(tags=[['p', C], ['e', d.policy.prompts[0].event_id]], content=content))
+
+
+def test_position_delivery_is_separately_gated_and_binds_v2_ack(tmp_path, monkeypatch):
+    p, keyer, sink, relay = position_policy(), FakeKeyer(), Sink(), FakeRelay()
+    routes = m.Routes(t.canonical(announcements()), p, keyer)
+    spool, outbox = t.Spool(tmp_path / 'private'), m.Outbox(tmp_path / 'private')
+    try:
+        monkeypatch.setattr(m, 'POSITION_DELIVERY_RELEASE_READY', True)
+        with pytest.raises(t.Refused, match='position ingress'):
+            m.Delivery(p, routes, spool, outbox, keyer, relay, sink)
+        assert sink.preflights == 0 and outbox.rows() == []
+        monkeypatch.setattr(t, 'POSITION_INGRESS_RELEASE_READY', True)
+        sink.fail_preflight = True
+        with pytest.raises(t.Retryable, match='v2 storage'):
+            m.Delivery(p, routes, spool, outbox, keyer, relay, sink)
+        assert outbox.rows() == []
+        sink.fail_preflight = False
+        d = m.Delivery(p, routes, spool, outbox, keyer, relay, sink)
+        with pytest.raises(t.Refused, match='inbox polling'):
+            d.poll_replies(NOW)
+        d.queue_prompts(NOW)
+        assert all('THERMAL STATE CONFIRMATION v2' in
+                   t.strict_json(row['body'].encode())['content']
+                   for row in outbox.rows())
+        monkeypatch.setattr(m, 'POSITION_DELIVERY_RELEASE_READY', False)
+        assert d.flush(NOW)['withheld'] == 2
+        assert relay.sent == []
+        monkeypatch.setattr(m, 'POSITION_DELIVERY_RELEASE_READY', True)
+        sink.fail_preflight = True
+        assert d.flush(NOW)['retryable'] == 2
+        assert relay.sent == []
+        sink.fail_preflight = False
+        assert d.flush(NOW + timedelta(seconds=60))['relay_acceptances'] == 2
+        receipt = d.receive(reply(d), NOW + timedelta(seconds=60))
+        assert receipt['version'] == 2 and receipt['status'] == 'stored'
+        assert {row['action']: row['state'] for row in sink.stores[0]} == {
+            'window': 'closed', 'skylight': 'open'}
+        assert d.flush(NOW + timedelta(seconds=60))['relay_acceptances'] == 2
+        acknowledgements = [t.strict_json(row['body'].encode()) for row in outbox.rows()
+                            if row['intent'].startswith('ack:')]
+        assert len(acknowledgements) == 2
+        assert all(row['content'].startswith('THERMAL STATE RECEIPT v2\n')
+                   for row in acknowledgements)
+        assert sink.preflights >= 4
+    finally:
+        outbox.close()
+        spool.close()
 
 
 def test_prompt_is_queued_for_recipient_and_sender_once(delivery):

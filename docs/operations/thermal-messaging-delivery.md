@@ -1,5 +1,18 @@
 # Attended thermal messaging and keyer qualification
 
+## September 29 v2 delivery candidate
+
+The window/skylight state-confirmation delivery path is implemented behind a
+separate default-off gate. It requires the matching ingress gate and exact
+restricted v2 journal preflight before queuing or sending a question; v2 inbox
+polling remains independently off. The receipt says `THERMAL STATE RECEIPT v2`,
+not the legacy completed-action receipt. A queued question is withheld again
+if the gate is revoked or the storage preflight fails at send time. The
+source-only fake-relay/keyer flow and adjacent completion/journal tests pass
+(488). No household message was sent or accepted, and no genuine signed
+action/state label was collected. See
+[airflow journal candidate](2026-09-29-thermal-airflow-journal-v2-candidate.md).
+
 ## September 28 inbound backlog review
 
 September 29 attended household signer update: the approved Sat NIP-46 client
