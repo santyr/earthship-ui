@@ -123,3 +123,45 @@ and `bms_temperature_parity.py` (`76abe84969fc8692a6447218dd20dc7e5e54dfb36804c9
 A restricted read using these installed modules returned true current original-
 source health for both fields. No collector/rule restart, publication opt-in,
 estimator activation, SQL write, threshold or hardware change occurred.
+
+## September 30 isolated recovery and source-order correction
+
+An end-to-end disposable test now executes the **actual** JavaScript producer
+through the shared test harness, retains its original ordered persistence
+timestamps and feeds those rows through restricted PostgreSQL to the auxiliary
+reader and the BMS-specific Energy UI/sanity branches. Eleven as-of states cover
+bootstrap, unchanged native renewals, one-field OFFLINE, ONLINE without a new
+event, native recovery, a new stream's startup barrier, one-field recovery,
+two-field recovery, exact expiry and recovery after new original events.
+Future simulated events cannot leak into an earlier as-of assessment. The
+producer cannot read held Item states, command hardware or access the network
+in this harness. Canonical UUIDs and same-millisecond dual-channel receipts
+pass the real Python parser and successor validator, not a translated mock.
+
+Four new regressions first demonstrated a remaining reader loophole: advancing
+the envelope clock could conceal a regressed field observation, a conflicting
+value at an unchanged observation time, or reuse of a pre-barrier observation.
+The shared validator now refuses these cases for later envelopes as well as
+clock ties. An unchanged field can still carry its exact original observation
+and expiry; a later heartbeat cannot renew it. Independent channels recovering
+at one recording millisecond remain valid, as demonstrated by the real
+producer's startup/recovery stream. All 86 affected Python tests (including
+real SQL) and the existing 15 producer tests pass. Disposable containers were
+removed; no production fault was induced.
+
+The updated read-only validator was installed byte-exact at
+`/home/sat/openhab/scripts/bms_aux_evidence.py`, SHA-256
+`09c5e213213368fbb2e9240cb2e6b9bd335c220dec9d6e1d7e7d42da19cf6617`.
+The guarded old preimage is retained privately under
+`/home/sat/.local/state/openhab-config-migration/bms-aux-validator-I2kEhR/`.
+At `2026-09-30T07:07:21.625581+00:00`, the installed library validated all
+1,576 original receipts since cutover; both current fields were healthy.
+September 29 stayed partial with the exact prior 624/71 gaps and unchanged
+coverage. This supersedes only the earlier validator digest, not the other
+installed libraries or any production opt-in gate.
+
+This qualifies isolated producer/transport/consumer recovery semantics, **not**
+physical-network or full-JVM restart recovery, a complete naturally observed
+post-cadence day, or runtime-estimator release. Neither publisher, daily
+aggregate nor sanity unit gained an auxiliary opt-in flag; no collector/rule
+restart, history rewrite, SQL grant, model or hardware control changed.

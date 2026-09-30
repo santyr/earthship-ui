@@ -143,6 +143,23 @@ def validate_receipt_successor(previous, receipt):
     elif receipt.sequence != 1 or any(
             entry.status != 'unavailable' for entry in receipt.fields.values()):
         raise BmsAuxEvidenceRefused('unbarriered auxiliary stream restart')
+    if receipt.epoch == previous.epoch:
+        for name in FIELDS:
+            before, after = previous.fields[name], receipt.fields[name]
+            if after.status != 'valid':
+                continue
+            if before.status == 'valid':
+                if (after.observed_at < before.observed_at
+                        or after.observed_at == before.observed_at and after != before):
+                    raise BmsAuxEvidenceRefused('regressed or conflicting source observation')
+            elif (after.observed_at < previous.recorded_at
+                  or after.observed_at == previous.recorded_at
+                  and receipt.recorded_at != previous.recorded_at):
+                # A fault/restart barrier destroys the old measurement. ONLINE
+                # and a later envelope alone cannot restore a pre-barrier value.
+                # At a recording tie, the other channel can have published an
+                # older unavailable state just before this new native event.
+                raise BmsAuxEvidenceRefused('recovery requires post-barrier source observation')
     if receipt.recorded_at == previous.recorded_at:
         if receipt.epoch != previous.epoch or receipt.fields == previous.fields:
             raise BmsAuxEvidenceRefused('evidence clock regressed or conflicted')

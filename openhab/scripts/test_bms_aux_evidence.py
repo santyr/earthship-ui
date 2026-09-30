@@ -124,6 +124,34 @@ def test_day_keeps_same_clock_barrier_partial_without_inventing_freshness():
     assert result['fields'][FIELDS[1]]['unavailable_barriers'] == 1
 
 
+@pytest.mark.parametrize('bad', ['source_regression', 'same_source_value_conflict',
+                                 'pre_barrier_recovery', 'barrier_time_recovery'])
+def test_later_recording_clock_cannot_authorize_old_native_evidence(bad):
+    at = bounds()[0] + timedelta(hours=1)
+    first = receipt(at, 10)
+    second = receipt(at+timedelta(seconds=30), 11)
+    if bad in ('pre_barrier_recovery', 'barrier_time_recovery'):
+        first['fields'][FIELDS[0]] = receipt(at, 10, unavailable=FIELDS)['fields'][FIELDS[0]]
+    source_at = at-timedelta(seconds=1) if bad in (
+        'source_regression', 'pre_barrier_recovery') else at
+    second['fields'][FIELDS[0]].update(observedAt=ms(source_at),
+        validUntil=ms(source_at+TTL), value=321)
+    with pytest.raises(BmsAuxEvidenceRefused, match='source observation'):
+        validate_receipt_successor(parse_bms_aux_receipt(json.dumps(first), at),
+            parse_bms_aux_receipt(json.dumps(second), at+timedelta(seconds=30)))
+
+
+def test_later_heartbeat_can_carry_unchanged_original_source_without_renewal():
+    at = bounds()[0] + timedelta(hours=1)
+    first = receipt(at, 10)
+    second = {**first, 'sequence': 11, 'recordedAt': ms(at+timedelta(seconds=30))}
+    before = parse_bms_aux_receipt(json.dumps(first), at)
+    after = parse_bms_aux_receipt(json.dumps(second), at+timedelta(seconds=30))
+    validate_receipt_successor(before, after)
+    assert after.fields == before.fields
+    assert all(field.valid_until == at+TTL for field in after.fields.values())
+
+
 def test_one_second_beyond_native_expiry_keeps_day_partial():
     start, end = bounds()
     times = [start + timedelta(minutes=index - 1)

@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 BMS recovery progress: the actual JavaScript producer now passes
+eleven isolated fault/restart/expiry/recovery states through restricted
+PostgreSQL and both current-health consumers. Four failing regressions exposed
+a later-envelope source-order loophole; the shared validator now refuses
+regressed/conflicting or pre-barrier native observations while preserving
+legitimate unchanged carries and simultaneous channel recovery. All 86 Python
+and 15 producer tests pass. The backed-up read-only library is deployed and
+accepts all 1,576 original receipts since cutover; September 29 remains partial
+with unchanged actual gaps. No quality opt-in, control or collector activation
+occurred. Full naturally observed day and physical/JVM recovery evidence remain
+open; see the [isolated recovery checkpoint](2026-09-29-bms-aux-source-cadence.md#september-30-isolated-recovery-and-source-order-correction).
+
 September 30 first complete-day energy gates: native PV qualified at 10.396
 kWh/99.943443% coverage with a naturally verified terminal reset, against the
 immutable 5.36-kWh morning issue (−48.442%). The next natural scorer can
