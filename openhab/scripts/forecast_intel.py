@@ -197,7 +197,8 @@ def pv_issue_diagnostics(radiation, gain, direct_demand, soc, deficit,
 
 
 def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
-                               failures, put_state, pv_diagnostics=None, soc_origin=None):
+                               failures, put_state, pv_diagnostics=None, soc_origin=None,
+                               solar_context=None):
     """Commit today's display provenance only after all source Items succeeded."""
     required = {"Predicted_PV_Today_kWh", "Predicted_Curtailment_Hours",
                 "Predicted_SoC_Trough_Tomorrow", "Thermal_Advisory",
@@ -222,6 +223,15 @@ def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
             # explicitly unusable for source-bound learning, never synthesized.
             del receipt['energySocOrigin']
             print('energy SoC origin omitted: prediction receipt size bound', file=sys.stderr)
+    if solar_context is not None:
+        receipt['solarContextOrigin'] = {
+            'sha256': solar_context['sourceSha256'], 'recordedAt': solar_context['recordedAt'],
+            'daylightSeconds': solar_context['today']['daylightSeconds'],
+            'nextDayDaylightSeconds': solar_context['tomorrow']['daylightSeconds'],
+        }
+        if len(json.dumps(receipt, separators=(",", ":")).encode()) > 1024:
+            # Optional solar diagnostics must not evict the existing BMS origin.
+            del receipt['solarContextOrigin']
     return put_state("Forecast_Prediction_Receipt_JSON", json.dumps(receipt, separators=(",", ":")))
 
 
@@ -1328,6 +1338,13 @@ def main():
     # ---- Phase 3: fetch forecast, predict today ----
     snapshot = fetch_forecast()
     forecast_issued_at = datetime.now(timezone.utc).isoformat()
+    try:
+        from astro_forecast_context import optional_context
+        solar_context = optional_context(oh_get,
+            origin=datetime.fromisoformat(forecast_issued_at), latitude=LAT, longitude=LON,
+            timezone_name=SITE_TZ_NAME)
+    except Exception:
+        solar_context = None
     targets = st.setdefault("hourly_temp_targets", {})
     for key, record in capture_next_day_hourly(snapshot, now).items():
         targets.setdefault(key, record)
@@ -1437,7 +1454,7 @@ def main():
         today, forecast_issued_at, pv_pred, curtail,
         trough_pred, advisory, put_failed, put,
         pv_issue_diagnostics(radsum_kwh, st['k_res'], st['d_direct'],
-                             trough_ref, deficit_kwh, resource, demand), soc_origin)
+                             trough_ref, deficit_kwh, resource, demand), soc_origin, solar_context)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
@@ -1449,6 +1466,7 @@ def main():
         # notification threshold or the separately captured advisory decision.
         "soc_reference_pct": trough_ref,
         "soc_origin": soc_origin,
+        "solar_context": solar_context,  # diagnostic-only, frozen at this issue
         "pv_resource_kwh": round(resource, 3),
         "dusk_soc_estimate_pct": round(dusk_soc, 3) if dusk_soc is not None else None,
         "overnight_drop_samples_pct": drops,

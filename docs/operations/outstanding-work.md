@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 15:50–15:53 MDT calculated future solar-context collection is
+deployed: file-owned observational Item/rule, exact Astro 5.2.1 exporter,
+ten-day date/zone/unit validation and optional frozen forecast-origin capture.
+The isolated exact exporter passed, production initialization was validated,
+and its exact body persisted naturally under unique JDBC Item 662. Ownership
+inventory has zero issues; 168 Python and 18 JavaScript tests pass. No prediction
+equation, weight, hardware command, notification, thermal artifact or collector
+flag changed. First daily cron (October 1 00:10) and natural forecast-origin
+capture (06:40) remain open. The forecast file changes the thermal runtime pin
+to `2caeae7a...`; natural shadow/replay qualification for that pin remains open,
+and the earlier `0864f4d6...` rehearsal is historical. Private forecast preimage
+is retained; disposable testing resources are removed. See the
+[deployment and remaining gates](2026-09-30-astro-forecast-input-audit.md#diagnostic-solar-context-collection-deployed).
+
 September 30 future-date Astro action execution is qualified in a fresh
 networkless OpenHAB 5.2.1 with matched household Sun settings. All four methods
 passed seven dates including tomorrow, DST transitions and winter/summer;

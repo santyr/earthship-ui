@@ -1,0 +1,2 @@
+// Calculated solar geometry only, never observed weather or action evidence.
+String Astro_Forecast_Context_JSON "Astro Forecast Context" <sun>

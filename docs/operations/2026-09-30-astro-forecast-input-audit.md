@@ -226,3 +226,80 @@ binding version and tested configuration. Python jobs still have no direct
 Astro calculation REST API: observational export/origin capture integration
 remains before future-date context can feed a deployed forecasting model.
 The frozen-split ablation remains data-limited and no model weight changed.
+
+## Diagnostic solar-context collection deployed
+
+September 30, 15:50–15:53 MDT: the future-date exporter and optional forecast
+origin reader are now installed. This supersedes the source-only integration
+status above, not the insufficient-pairs finding or any prediction-model gate.
+
+The exact exporter first passed the networkless OpenHAB qualifier's
+`--context` mode. The real Astro 5.2.1 actions produced a 4,082-byte ten-day
+context accepted by the production Python validator, using matched household
+settings. Today's daylight was 42,299.467 seconds and tomorrow's 42,151.462.
+Source SHA-256 was `f8f78077a802934754cb171e86dba3fff02b313cab7632ae02463bf733b8d3d4`;
+isolated context SHA-256 was
+`4a775d398c96d1dabc251ff6d3d0131fcf62a08013987bfb26eaa2e8ab4c4e3e`.
+The owned container and anonymous volumes were removed; a separate
+label-filtered census found no leftovers. No production credentials or
+registry were copied into the isolated instance.
+
+The file-owned `hex_astro_forecast_context` rule publishes only
+`Astro_Forecast_Context_JSON`: calculated solar geometry, not sensor evidence.
+It runs at 00:10 local daily, start level 100 and file-load initialization;
+no frequent poller, hardware command, notification or whole-OpenHAB restart
+was added. Adjacent dates reuse the same sunrise calculation. It requires
+the ONLINE source, actual Astro version 5.2.1 and regional timezone, and
+expires the context at the next local midnight. Ten dates include daylight,
+sunrise/sunset, sunset-to-next-sunrise duration and civil-noon geometry.
+Calculated sunset-to-sunrise is **not** the measured battery discharge period.
+
+Production initialization qualified naturally at
+`2026-09-30T21:50:34.180465258Z`, context SHA-256
+`9108042a108d1e999a738a9ef9a75daa723f9ec7951d88b5a83451afef0f1908`.
+The exact rule is file-owned, IDLE/NONE, with only the two declared triggers.
+A read-only repeatable-read database check uniquely mapped the new Item to
+JDBC ID **662** and found two initial rows; the latest persisted body at
+`2026-09-30T21:50:34.194805+00:00` exactly matched the live validated context.
+The ownership manifest declares this Item and rule; inventory reports zero
+issues. This is initial publication/JDBC evidence, not a completed daily cron
+or forecast-origin capture gate.
+
+Installed/source SHA-256 pins:
+
+| File | SHA-256 |
+| --- | --- |
+| Item definition | `258eaddebae132c8a9f3a42e4b7ab79a35e5cff878aa7078502e816f769478da` |
+| Exporter rule | `f8f78077a802934754cb171e86dba3fff02b313cab7632ae02463bf733b8d3d4` |
+| Python validator | `c65f647befed00c9a00922583544ecb0a8675624f218ed3ff69b1ea63427ac04` |
+| Forecast diagnostic integration | `f68d4179e299b84833cd5c0ac47f6dd7ab1b3b1133e0ef9ab25022697c04c8aa` |
+
+All four affected workers were inactive/MainPID 0 before the guarded forecast
+replacement. Its private preimage is retained at
+`/home/sat/.local/state/openhab-config-migration/astro-forecast-origin-bRTl6fUY/forecast_intel.py`
+(SHA-256 `19568956faea6c7ab66bd610539ebabb6cc5e27dac032ddd9149c1e4c75d53df`).
+The installed reader independently imported and accepted the actual context.
+No whole forecast job or synthetic prediction update was invoked.
+
+The forecast job now freezes today's/tomorrow's diagnostic geometry and the
+exact source digest at issue time. A context must have been published by that
+origin and match the configured site, timezone, exact schema, ordered dates,
+units and expiry. Invalid/absent context is omitted; existing prediction
+equations remain unchanged. The optional receipt reference obeys the existing
+1,024-byte bound and never evicts BMS origin provenance. DST 23/25-hour local
+midnight expiry and duplicate/nonfinite/future input rejection are tested.
+The final run passed **168 Python and 18 JavaScript tests**. An initial test
+invocation lacked the adjacent energy package path and used Node instead of
+Vitest; the corrected repository runners passed without product changes.
+
+Because `forecast_intel.py` is included in the thermal code-revision digest,
+the installed thermal runtime pin is now
+`2caeae7a73a24799a8d452e56801f5e52542b6dbeebafcca2f22a1c686faf984`.
+The earlier `0864f4d6...` consumer rehearsal remains historical, not proof for
+this new pin. No thermal model artifact, journal schema, collector flag or
+control changed. Natural shadow/replay qualification for this pin remains
+open, with the next scheduled shadow run September 30 at 16:31 MDT. The first
+daily solar cron is October 1 at 00:10; first natural morning forecast capture
+is October 1 at 06:40. Verify those actual receipts before closing their gates.
+Day-length-versus-seasonality model promotion still requires sufficient
+chronological holdout evidence; no weights were changed.

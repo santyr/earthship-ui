@@ -33,12 +33,12 @@ ZONE = ZoneInfo('America/Denver')
 PHASE = 'preflight'
 
 
-def ready_rule(rest):
+def ready_rule(rest, uid=RULE):
     try:
-        rule = rest('GET', '/rules/' + RULE)
+        rule = rest('GET', '/rules/' + uid)
     except RuntimeError:
         return None  # File-provider registration may briefly return 404.
-    return rule if isinstance(rule, dict) and rule.get('uid') == RULE and rule.get('editable') is False and rule.get('status') == {
+    return rule if isinstance(rule, dict) and rule.get('uid') == uid and rule.get('editable') is False and rule.get('status') == {
         'status': 'IDLE', 'statusDetail': 'NONE'} else None
 
 
@@ -117,8 +117,12 @@ def validate(rows):
 
 def main():
     global PHASE
-    if sys.argv[1:]:
+    if sys.argv[1:] not in ([], ['--context']):
         raise ValueError('no production action or arbitrary target arguments accepted')
+    context_trial = sys.argv[1:] == ['--context']
+    item_name = 'Astro_Forecast_Context_JSON' if context_trial else ITEM
+    thing_uid = 'astro:sun:local' if context_trial else THING
+    rule_uid = 'hex_astro_forecast_context' if context_trial else RULE
     live = runtime.oh.get('/things/astro:sun:local')
     if live.get('statusInfo', {}).get('status') != 'ONLINE' or live.get('thingTypeUID') != 'astro:sun':
         raise ValueError('live Astro settings unavailable')
@@ -149,11 +153,12 @@ def main():
                 or host['Privileged'] or host.get('Binds') or host.get('Devices')
                 or host.get('PortBindings') or info['AppArmorProfile'] != 'docker-default'):
             raise ValueError('isolation policy mismatch')
-        runtime.install(container, 'conf/items/astro-qualification.items', ('String ' + ITEM + '\n').encode())
+        item_source = (ROOT / 'openhab/file-config/items/astro-forecast-context.items').read_bytes() if context_trial else ('String ' + ITEM + '\n').encode()
+        runtime.install(container, 'conf/items/astro-qualification.items', item_source)
         runtime.install_bundles(container, bundles + [ASTRO])
         runtime.run(['docker', 'exec', container, 'touch', '/tmp/ready'])
         PHASE = 'runtime_boot'
-        display.wait_for(lambda: display._startup_item(container, ITEM), seconds=240)
+        display.wait_for(lambda: display._startup_item(container, item_name), seconds=240)
         client = ['docker', 'exec', '-i', container, '/openhab/runtime/bin/client',
                   '-h', '127.0.0.1', '-u', 'openhab', '-p', 'habopen', '-r', '5', '-d', '2']
         display.wait_for(lambda: display._active_bundle(client, 'org.graalvm.js.js-language'), seconds=90)
@@ -175,21 +180,36 @@ def main():
                               json.dumps(body).encode() if body is not None else None)
             return json.loads(raw) if raw.strip() else None
         PHASE = 'isolated_thing'
-        rest('POST', '/things', {'UID': THING, 'thingTypeUID': 'astro:sun',
+        rest('POST', '/things', {'UID': thing_uid, 'thingTypeUID': 'astro:sun',
              'label': 'Isolated Sun calculation fixture', 'configuration': configuration})
-        display.wait_for(lambda: rest('GET', '/things/' + THING).get('statusInfo', {}).get('status') == 'ONLINE')
+        display.wait_for(lambda: rest('GET', '/things/' + thing_uid).get('statusInfo', {}).get('status') == 'ONLINE')
         runtime.run(['docker', 'exec', container, 'mkdir', '-p', '/openhab/conf/automation/js'])
-        source = fixture_source().encode()
+        source = ((ROOT / 'openhab/file-config/automation/js/astro-forecast-context.js').read_bytes()
+                  if context_trial else fixture_source().encode())
         runtime.install(container, 'conf/automation/js/astro-forecast-qualification.js', source)
         PHASE = 'isolated_rule_readiness'
-        display.wait_for(lambda: ready_rule(rest), seconds=120)
+        display.wait_for(lambda: ready_rule(rest, rule_uid), seconds=120)
         PHASE = 'isolated_action_execution'
-        rest('POST', '/rules/' + RULE + '/runnow')
+        rest('POST', '/rules/' + rule_uid + '/runnow')
         def result():
-            state = rest('GET', '/items/' + ITEM)['state']
-            return json.loads(state) if state not in ('NULL', 'UNDEF') else None
+            state = rest('GET', '/items/' + item_name)['state']
+            return state if context_trial and state not in ('NULL', 'UNDEF') else (
+                json.loads(state) if state not in ('NULL', 'UNDEF') else None)
         rows = display.wait_for(result, seconds=90)
         PHASE = 'result_validation'
+        if context_trial:
+            sys.path.insert(0, str(ROOT / 'openhab/scripts'))
+            from astro_forecast_context import validate as validate_context
+            lat, lon, *_ = [float(v) for v in configuration['geolocation'].split(',')]
+            context = validate_context(rows, origin=datetime.now(timezone.utc),
+                latitude=lat, longitude=lon, timezone_name='America/Denver')
+            print(json.dumps({'status': 'qualified_isolated_exporter', 'production_writes': 0,
+                'source_sha256': sha256(source).hexdigest(),
+                'item_source_sha256': sha256(item_source).hexdigest(),
+                'context_bytes': len(rows.encode()), 'context_sha256': context['sourceSha256'],
+                'today_daylight_seconds': context['today']['daylightSeconds'],
+                'tomorrow_daylight_seconds': context['tomorrow']['daylightSeconds']}), flush=True)
+            return
         rows = validate(rows)
         print(json.dumps({'status': 'qualified_isolated_actions', 'production_writes': 0,
             'fixture_source_sha256': sha256(source).hexdigest(),

@@ -532,6 +532,18 @@
       "destination": "/etc/openhab/items/weather-rain-evidence.items"
     },
     {
+      "kind": "item", "id": "Astro_Forecast_Context_JSON", "provider": "file",
+      "migration": "observational", "source": "items/astro-forecast-context.items",
+      "destination": "/etc/openhab/items/astro-forecast-context.items",
+      "state_writer": "hex_astro_forecast_context calculated geometry, not sensor evidence"
+    },
+    {
+      "kind": "rule", "id": "hex_astro_forecast_context", "provider": "file",
+      "migration": "observational", "source": "automation/js/astro-forecast-context.js",
+      "destination": "/etc/openhab/automation/js/astro-forecast-context.js",
+      "state_writer": "Astro_Forecast_Context_JSON"
+    },
+    {
       "kind": "item",
       "id": "DaysUntilNextSeason",
       "provider": "file",

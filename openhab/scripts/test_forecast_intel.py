@@ -532,6 +532,46 @@ def test_large_optional_origin_never_breaks_existing_receipt_bound(capsys):
     assert 'prediction receipt size bound' in capsys.readouterr().err
 
 
+def test_solar_diagnostics_reference_preserves_predictions_and_soc_provenance():
+    solar = {'sourceSha256': 'a' * 64, 'recordedAt': '2026-09-30T06:10:00Z',
+             'today': {'daylightSeconds': 42299.467},
+             'tomorrow': {'daylightSeconds': 42151.462}}
+    writes = []
+    origin = {'version': 1, 'reserved': 'x' * 100}
+    assert fi.publish_prediction_receipt(date(2026, 9, 30), '2026-09-30T12:40:00Z',
+        5.36, 0, 53, 'none|No thermal action needed', [],
+        lambda name, value: writes.append((name, value)) or True, None, origin, solar)
+    receipt = json.loads(writes[0][1])
+    assert receipt['pvTodayKwh'] == 5.36 and receipt['overnightTroughSocPct'] == 53
+    assert receipt['energySocOrigin'] == origin
+    assert receipt['solarContextOrigin']['sha256'] == solar['sourceSha256']
+    assert len(writes[0][1].encode()) <= 1024
+    writes.clear()
+    large_origin = {'version': 1, 'reserved': 'x' * 650}
+    fi.publish_prediction_receipt(date(2026, 9, 30), '2026-09-30T12:40:00Z',
+        5.36, 0, 53, 'none|No thermal action needed', [],
+        lambda name, value: writes.append((name, value)) or True, None, large_origin, solar)
+    receipt = json.loads(writes[0][1])
+    assert receipt['energySocOrigin'] == large_origin
+    assert 'solarContextOrigin' not in receipt
+
+
+def test_main_freezes_solar_context_without_changing_energy_estimates(monkeypatch, tmp_path):
+    import astro_forecast_context as solar
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    baseline, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday), {})
+    frozen = {'sourceSha256': 'a' * 64, 'recordedAt': '2026-09-30T06:10:00Z',
+              'today': {'daylightSeconds': 42299.467},
+              'tomorrow': {'daylightSeconds': 42151.462}}
+    monkeypatch.setattr(solar, 'optional_context', lambda *_args, **_kwargs: frozen)
+    captured, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday), {})
+    first = baseline['predictions'][date.today().isoformat()]
+    second = captured['predictions'][date.today().isoformat()]
+    assert first['solar_context'] is None and second['solar_context'] == frozen
+    for key in ('pv', 'trough', 'curtail', 'demand', 'deficit_kwh', 'dusk_soc_estimate_pct'):
+        assert first[key] == second[key]
+
+
 # ---------------------------------------------------------------- pv_days alignment
 
 def test_today_pv_detail_matches_issued_prediction_not_fixed_cap():
