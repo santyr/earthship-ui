@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 pre-training resource check distinguishes swap residency from
+active swapping: around 06:20 MDT the host had approximately 7.5 GiB available
+RAM despite nearly full swap. Four one-second `vmstat` intervals reported zero
+swap-in/out, and short-term memory-pressure averages were about 0.2%. The
+resource-bounded restore container has no additional swap allowance; most
+resident swap belongs to existing services. This short observation does not
+prove absence of later pressure or whole-run training performance. Training
+was inactive; its retained prior-run counters show 394,264,576-byte memory
+peak and 2,782.541918 CPU seconds, with no current swap counter while stopped.
+No service, swap or kernel setting changed. Assess the upcoming natural
+trainer's own live/terminal counters instead of inferring its behavior from
+the host-wide swap total.
+
 September 30 BMS post-cadence overnight replay now covers September 29
 20:45 through September 30 06:00 MDT in three bounded windows. Their 481,
 481 and 151 half-minute ticks reported respectively 480/480/150 `bms` ticks
@@ -45,15 +58,18 @@ cancelled-draft check with zero writes/page errors. Hardware, physical tablet
 acceptance and voice-provider commissioning remain open. See the
 [precise preview path](2026-09-27-dooya-shades-earthship-handoff.md#precise-preview-control-and-planned-voice-operation).
 
-September 30 full-database recovery refresh is running, not yet verified.
-Independent assessment confirms the monitor's September 27 archive remains
-fresh/readable/hash-matching and restore-verified, but its 515-table snapshot
-predates seven newly collected evidence histories. The new read-only snapshot
-contains all 522 current tables; its owned networkless restore is resource
-bounded. The weekly monitor still selects the prior verified point, and no
-production restart, control change, notification or off-host copy occurred.
-Do not launch another rehearsal while this one runs. See the
-[coverage check](2026-09-20-full-database-restore.md#september-30-coverage-check-and-refresh-in-progress).
+September 30 full-database recovery refresh is verified: all 522 restored
+tables match one read-only source snapshot, including seven evidence histories
+absent from September 27's point. Independent freshness/readability/hash/private-
+mode checks passed, and the owned networkless container/volume was removed.
+Only then was the existing user-level weekly monitor switched to the verified
+manifest; 30 tests and exact loaded-unit readback pass, with its timer active
+and no manual job/DM. Previous real backups remain. Same-host-only stays
+Actionable under the off-host deferral; this data-only exercise does not newly
+qualify roles/ACLs, whole-host/configuration or protected-control recovery, nor
+later publications. No production restart, control change or off-host copy
+occurred. See the
+[verified refresh](2026-09-20-full-database-restore.md#september-30-coverage-check-and-verified-refresh).
 
 September 30 morning PV/SoC input provenance is deployed. The existing
 prediction receipt and private issue record now retain the exact single
@@ -63,9 +79,21 @@ assessment clock and percentage; missing evidence is never fabricated.
 was installed with idle services; user timers recovered, models/coefficients/
 thresholds stayed unchanged and the prior thermal publication replayed exactly
 under the new source pin. No ad-hoc forecast, DM, journal migration or control
-was run. The first natural 06:40 enriched receipt, source/JDBC match and later
-qualified outcome remain open; this provenance alone is not a training label.
+was run. The natural 06:40 enriched receipt has now passed: its 691 bytes,
+private issue record, one persisted publication and exact original SoC digest/
+epoch/clocks all agree, with original persistence preceding assessment. The
+same run scored the qualified 10.396-kWh September 29 PV day while keeping
+calibration closed. Later qualified outcomes and chronological learner admission
+remain open; this provenance alone is not a training label.
 See the [source-origin release](2026-09-29-prediction-learning-review.md#september-30-exact-soc-origin-for-future-energy-learning-comparisons).
+
+Its separate first natural thermal shadow run at 06:30:29 MDT completed in
+three seconds. The saved publication reproduced exactly from its actual forcing
+capture under runtime pin `a4a68a173f7a3a9c206901b1c56bbc89f1ccaf8fc7ca7c04dbd1f627295f8b8a`,
+output SHA256 `8a789fc48dd88b77e8bb92819bae43bb563e60bde08bcaf850b3385798e2548b`.
+The accepted artifact's older training revision is preserved separately; this
+closes natural optimized-publication/replay continuity, not training accuracy
+or collector release. The independent 06:40 energy receipt gate passed as above.
 
 September 30 thermal outcome/recovery progress: ten fixed-artifact origins
 replayed exactly and 17 distinct original indoor targets qualified 23 matured

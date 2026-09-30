@@ -624,3 +624,22 @@ retained. Next natural jobs remain 06:30 shadow, 06:40 morning forecast and
 06:50 training. This installs provenance capture, not a qualified new learning
 sample: the first natural enriched receipt and matching original JDBC source
 still must be verified. Only this turn's owned synthetic fixtures were removed.
+
+The first natural September 30 06:40 worker subsequently completed at
+06:40:30 MDT. Its 691-byte receipt retains both diagnostic objects and has
+exactly one matching JDBC row. The private issue record matches the same
+85% source value and complete origin object. A bounded read-only query found
+exactly one original SoC receipt by its exact UTF-8 SHA256; the shared strict
+parser verified its value, epoch, native recording/expiry and validity at the
+actual `12:40:30.518000Z` assessment. Its original JDBC row was already
+available then. The earlier weather issue clock remains separately
+`12:40:30.514550Z`; no source clock was renewed or backdated.
+
+The same natural run recorded September 29's first qualified PV measurement:
+10.396 kWh, 99.943443% coverage and 2,008 source receipts. Its calibration
+status is explicitly `release_gate_closed`; coefficients were not promoted
+from this single qualified day. Today's receipt reports the resource-limited
+branch and 1.78 kWh. These checks close natural enriched-publication/private-
+record/source/JDBC continuity only. Future energy-learning admission still
+requires complete, qualified outcomes and proper chronological source use;
+this retained input is not itself an outcome or permission to activate controls.

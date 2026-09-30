@@ -60,9 +60,9 @@ Unit tests cover SQL identifier safety and bounded accumulator shape;
 read-only PostgreSQL VALUES tests verify order invariance, duplicate sensitivity
 and value sensitivity.
 
-## September 30 coverage check and refresh in progress
+## September 30 coverage check and verified refresh
 
-The installed weekly backup monitor now selects the September 27 full-database
+Before this refresh, the installed weekly backup monitor selected the September 27 full-database
 restore under `/home/sat/backups/earthship-energy/full-restore-e66yrzn3/`, not
 the August 20 archive. A fresh, non-notifying assessment on September 30
 confirmed archive readability, matching SHA256, dated restore verification
@@ -76,10 +76,24 @@ and seven additions absent from that snapshot: `public.item0655` through
 `public.item0661`. Freshness of the older archive does not imply coverage of
 those newer evidence histories or rows appended since its snapshot.
 
-An authorized online full-database snapshot/isolated restore has started under
-`/home/sat/backups/earthship-energy/full-restore-volep77n/`, with all 522 tables
-in its source inventory. **This is in progress, not restore verification.**
-The existing monitor reference remains unchanged until successful independent
-readback. No OpenHAB stop, control change, manual notification or off-host copy
-was performed. The isolated restore has a one-CPU/one-GiB/no-additional-swap
-limit, and its owned container/volume must be removed after verification.
+The authorized online snapshot under
+`/home/sat/backups/earthship-energy/full-restore-volep77n/` started at
+11:36:48.574176Z and passed the isolated restore at 12:31:17.290029Z:
+**all 522 table fingerprints match**. Archive SHA256:
+`031bb485f8a7d6f386ce3e146cf7793c84e95b3dfa934f710b8d7010ba8de065`.
+Archive size is 2,344,864,758 bytes. Independent assessment confirms freshness,
+readability, restore status, hash integrity and modes 0700/0600; Docker readback
+confirms the identity-verified test container is absent after its guarded
+`--volumes` removal. Existing real backups remain retained.
+
+Only after that assessment, the existing user-level monitor's manifest path
+was changed to this point. Thirty monitor/unit regressions pass. Exact loaded
+unit/source readback passed; the unchanged weekly timer remains active, next
+randomized run October 4 at 03:33:18 MDT. No manual monitor job or DM was
+triggered. Private unit rollback:
+`/home/sat/.local/state/earthship-energy/backup-monitor-adoption-4cpy3rla/`.
+The rehearsal was networkless, one CPU, one GiB and no additional swap. No
+OpenHAB stop, control change or off-host copy occurred. Same-host-only remains
+Actionable, and role/ACL, external configuration and whole-host/control recovery
+are not newly qualified. Publications and rows generated after the source
+snapshot are not part of this point.
