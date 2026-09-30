@@ -1,5 +1,26 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 pre-dusk notification delivery now has a source-only default-off
+candidate. It reuses the durable encrypted outbox, binds one deterministic
+notice to the exact issue digest, retries unchanged ciphertext after ambiguous
+publication/restart, persists per-relay ACKs and checks expiry before send.
+136 focused tests passed, including existing loopback messaging regressions.
+Original-JDBC adapter integration, locked private deployment, installed keyer/
+route qualification and attended operator receipt remain open. Nothing was
+installed or sent; morning trough DMs remain disabled. See the
+[candidate and remaining gates](2026-09-30-pre-dusk-notification-candidate.md).
+
+The latest runtime audit passes all 1024 independent arithmetic checks in a
+later natural window. Deterministic regressions prove identical alpha-0.05
+smoothing for identical source observations despite extra evaluations and
+envelope sequence updates, plus correct reseeding after evidence loss.
+Later `now` display differences persist (TTD max 510 minutes, TTF max 190),
+so no accuracy or legacy-cache parity is claimed. The external source census
+found the sanity notification reader, not an equipment-control consumer.
+No new post-update deep-discharge median is qualified; the estimator is still
+undeployed. See the
+[cadence and later comparison](2026-09-30-bms-night-average-verification.md#cadence-invariance-and-later-natural-comparison).
+
 September 30 live Energy Analytics AC continuation is verified, not a pending
 activation: the natural AC writer and five-minute v4 publisher exited zero,
 and a fresh restricted reader exactly matches September 29 revision 9 to the
