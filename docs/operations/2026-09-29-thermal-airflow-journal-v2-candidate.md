@@ -47,12 +47,27 @@ journal/history suites passed 42 tests. The test's private temporary tree and
 all owned PostgreSQL containers were removed. This proves the recovery code
 path on synthetic data, **not** a backup or restore of the household journal.
 
+A subsequent read-only **household journal** qualification used
+`scripts/qualify-thermal-journal-live-restore.py` under a transient user unit
+with the restricted runtime database role. It required the exact live v1
+schema/ACL/owner fingerprint, exported one PostgreSQL snapshot to a private
+temporary custom archive, and compared ordered row digests for all three
+tables against a disposable PostgreSQL 16 restore. The restored database
+passed exact v1 audit and the isolated v2 constraint postimage audit. On
+September 29 the result was `qualified_disposable_restore`: 10 action events,
+4 message receipts and 4 mode events, with all three row digests equal. The
+source transaction was read-only; the disposable container and temporary
+archive were removed and their absence verified. This is recovery-path
+evidence, **not** a retained rollback backup or a full household v3 bundle.
+
 This is **not ready for household application**. The installed v4 trainer and
 publisher still use the v1 journal/runtime contract. After a production v2
 schema change, their old exact schema-audit command would reject the journal.
 Before live migration, qualify a coordinated runtime/reader upgrade and
-rollback, a private full **household** journal/ACL backup and isolated restore, exact
-production owner/role preflight, and an attended maintenance window. Only
+rollback, a retained private full **household** v3 backup containing the journal
+and SQLite/config state, and an attended maintenance window. The exact
+production owner/role preflight and disposable household-journal restore have
+passed but must be repeated immediately before a cutover. Only
 then enable the migration under specific authorization. Keep the v2
 confirmation sender and ingress gated until their own genuine signed
 question/reply, durable-storage and recovery checks pass. Legacy `vent` rows
