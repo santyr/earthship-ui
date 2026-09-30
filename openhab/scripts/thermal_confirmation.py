@@ -46,6 +46,7 @@ POSITION_STATES = {"window": {"open", "closed"},
                    "indoor_shade": {"open", "closed"},
                    "outdoor_shade": {"installed", "removed"},
                    "kiva": {"on", "off"}}
+POSITION_INGRESS_RELEASE_READY = False  # Exact v2 journal and recovery cutover pending.
 
 
 class Refused(ValueError):
@@ -570,11 +571,35 @@ class Spool:
 
 class JournalSink:
     """Existing append-only PostgreSQL API, with full immutable record readback."""
-    def __init__(self, journal=None, action_factory=None):
+    def __init__(self, journal=None, action_factory=None, *, runtime_role=None,
+                 expected_owner=None):
         self.journal = journal
         self.action_factory = action_factory
+        self.runtime_role = runtime_role
+        self.expected_owner = expected_owner
 
-    def store(self, records: list[dict], payload: bytes):
+    def require_v2_storage(self):
+        """Fail before spooling even a skipped reply if v2 storage is unavailable."""
+        try:
+            if self.journal is None:
+                dsn = os.environ.get("THERMAL_DATABASE_URL")
+                if not dsn:
+                    raise Retryable("restricted thermal journal connection is not configured")
+                from thermal_model.journal import ActionJournal
+                self.journal = ActionJournal(dsn)
+            role = self.runtime_role or os.environ.get("THERMAL_DATABASE_RUNTIME_ROLE")
+            owner = self.expected_owner or os.environ.get("THERMAL_DATABASE_EXPECTED_OWNER")
+            if not role or not owner or role == owner:
+                raise Retryable("v2 journal role binding is not configured")
+            self.journal.audit_v2_writer(runtime_role=role, expected_owner=owner)
+        except Retryable:
+            raise
+        except Exception as exc:
+            raise Retryable("thermal v2 journal preflight unavailable") from exc
+
+    def store(self, records: list[dict], payload: bytes, *, vocabulary_version=1):
+        if type(vocabulary_version) is not int or vocabulary_version not in (1, 2):
+            raise Refused("unsupported journal vocabulary version")
         if not records:
             raise Refused("empty confirmation must not reach the action journal")
         try:
@@ -591,7 +616,16 @@ class JournalSink:
             expected = tuple(self.action_factory(**{**r, "received_at": aware(r["received_at"]),
                                                    "effective_at": aware(r["effective_at"])})
                              for r in records)
-            self.journal.append_batch(expected, (), payload=payload)
+            if vocabulary_version == 2:
+                role = self.runtime_role or os.environ.get("THERMAL_DATABASE_RUNTIME_ROLE")
+                owner = self.expected_owner or os.environ.get("THERMAL_DATABASE_EXPECTED_OWNER")
+                if not role or not owner or role == owner:
+                    raise Retryable("v2 journal role binding is not configured")
+                self.journal.append_batch(expected, (), payload=payload,
+                                          vocabulary_version=2, runtime_role=role,
+                                          expected_owner=owner)
+            else:
+                self.journal.append_batch(expected, (), payload=payload)
             stored = tuple(self.journal.events_for_receipt(records[0]["idempotency_key"]))
             modes = tuple(self.journal.modes_for_receipt(records[0]["idempotency_key"]))
             expected_by_id = {r.event_id: r for r in expected}
@@ -607,7 +641,7 @@ class JournalSink:
 
 
 def ingest(raw: bytes, policy: Policy, spool: Spool, decoder, sink, *, now=None):
-    if policy.version == 2:
+    if policy.version == 2 and not POSITION_INGRESS_RELEASE_READY:
         raise Refused("position confirmations await qualified journal v2 storage")
     now = aware(now or datetime.now(UTC))
     # Receipt timestamp is fixed BEFORE network/keyer operations, never on retry.
@@ -620,11 +654,16 @@ def ingest(raw: bytes, policy: Policy, spool: Spool, decoder, sink, *, now=None)
     prompt = next((p for p in policy.prompts if p.event_id == prompt_id), None)
     if prompt is None or prompt.operator != rumor["pubkey"]:
         raise Refused("reply is not bound to this operator's thermal prompt")
+    if policy.version == 2:
+        sink.require_v2_storage()
     row = spool.receive(rumor, raw, prompt, policy.recipient, now)
     records = json.loads(row["records_json"])
     if row["disposition"] == "confirmed":
         # Even a previously acknowledged replay re-verifies PostgreSQL storage.
-        sink.store(records, row["rumor_json"].encode())
+        if policy.version == 2:
+            sink.store(records, row["rumor_json"].encode(), vocabulary_version=2)
+        else:
+            sink.store(records, row["rumor_json"].encode())
     receipt = {"version": 1, "status": "stored" if records else "no_action_recorded",
                "disposition": row["disposition"], "rumor_id": row["rumor_id"],
                "idempotency_key": "nostr:" + row["rumor_id"],

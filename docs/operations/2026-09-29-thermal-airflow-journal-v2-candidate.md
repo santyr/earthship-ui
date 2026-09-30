@@ -43,6 +43,23 @@ test then reads independently recorded window and skylight states without
 deriving a vent state. The gate remains `False`; the related action, journal
 and origin suites passed 72 tests. No household v2 query was run.
 
+The source-only confirmation storage path now keeps three independent release
+barriers: `POSITION_INGRESS_RELEASE_READY`, `V2_WRITE_RELEASE_READY`, and the
+delivery/inbox gate are all `False`. Legacy v1 journal calls refuse window or
+skylight actions before connecting. When explicitly enabled in a disposable
+test, a v2 append requires a configured restricted runtime role and distinct
+owner, locks the three journal tables, audits the exact v2 schema in the same
+transaction, and only then inserts the receipt and action rows. The attended
+ingress also runs a read-only exact-schema preflight before accepting even a
+`skip` reply into its spool. A disposable v1 schema refuses both skipped and
+confirmed replies before spooling; after v2 migration, an induced readback
+failure leaves a durably spooled confirmation unacknowledged. Its retry gets
+exact readback without adding duplicate action rows. A separate `skip` reply
+is acknowledged only after the v2 preflight and creates no action row. The
+test uses a decoder double, not a genuine signed Nostr
+reply. All 277 adjacent journal, confirmation, origin and messaging tests pass. No
+household journal, spool, collector or model was changed.
+
 A later full **synthetic** recovery rehearsal used the existing private v3
 thermal state bundle format: two SQLite databases, private policy/route
 fixtures, and a `pg_dump` custom archive of a populated exact-v1 PostgreSQL

@@ -6,7 +6,7 @@ import json
 import psycopg2
 from psycopg2 import sql
 
-from .schema import ACTION_KINDS, SOURCE_WEIGHTS, ActionEvent, ModeEvent
+from .schema import ACTION_KINDS, ACTION_KINDS_V2, SOURCE_WEIGHTS, ActionEvent, ModeEvent
 
 
 SCHEMA = "thermal_intel"
@@ -64,6 +64,7 @@ _SCHEMA_TRIGGERS = (
     "mode_events.reject_mutation",
 )
 EXPECTED_SCHEMA_FINGERPRINT = "786e9b7bf3ca5587f08bcdcd960239a88bf887a8b31c4ea5eddcbc808c496efb"
+V2_WRITE_RELEASE_READY = False  # Coordinated household schema/collector cutover pending.
 
 
 _EXPECTED_OWNER_TOKEN = "<expected-owner>"
@@ -961,9 +962,39 @@ class ActionJournal:
             return bool(self.append_batch((), (event,)))
         raise TypeError("event must be ActionEvent or ModeEvent")
 
-    def append_batch(self, actions, modes, payload=None):
+    def audit_v2_writer(self, *, runtime_role, expected_owner):
+        """Read-only preflight for any v2 reply, including a non-action reply."""
+        if not V2_WRITE_RELEASE_READY:
+            raise SchemaMismatch("thermal v2 journal writes are not release-qualified")
+        if not runtime_role or not expected_owner or runtime_role == expected_owner:
+            raise ValueError("distinct v2 journal role and owner required")
+        from . import airflow_migration
+
+        with psycopg2.connect(self._dsn) as connection:
+            connection.set_session(readonly=True, autocommit=False,
+                                   isolation_level="REPEATABLE READ")
+            with connection.cursor() as cursor:
+                cursor.execute("SET LOCAL statement_timeout = '15s'")
+                cursor.execute("SELECT current_user")
+                if cursor.fetchone() != (runtime_role,):
+                    raise SchemaMismatch("thermal v2 journal writer role mismatch")
+                observed = airflow_migration._fingerprint(
+                    cursor, runtime_role=runtime_role, expected_owner=expected_owner)
+                if observed != airflow_migration.V2_FINGERPRINT:
+                    raise SchemaMismatch("thermal v2 journal exact schema audit failed")
+        return observed
+
+    def append_batch(self, actions, modes, payload=None, *, vocabulary_version=1,
+                     runtime_role=None, expected_owner=None):
         actions = tuple(actions)
         modes = tuple(modes)
+        if type(vocabulary_version) is not int or vocabulary_version not in (1, 2):
+            raise ValueError("unsupported action vocabulary version")
+        if vocabulary_version == 2:
+            if not V2_WRITE_RELEASE_READY:
+                raise SchemaMismatch("thermal v2 journal writes are not release-qualified")
+            if not runtime_role or not expected_owner or runtime_role == expected_owner:
+                raise ValueError("distinct v2 journal role and owner required")
         records = actions + modes
         if not records:
             raise ValueError("journal batch must contain an action or mode")
@@ -971,6 +1002,9 @@ class ActionJournal:
             raise TypeError("actions must contain only ActionEvent records")
         if not all(isinstance(event, ModeEvent) for event in modes):
             raise TypeError("modes must contain only ModeEvent records")
+        allowed_actions = ACTION_KINDS if vocabulary_version == 1 else ACTION_KINDS_V2
+        if any(event.action not in allowed_actions for event in actions):
+            raise ValueError("action outside selected journal vocabulary")
         key = records[0].idempotency_key
         received_at = records[0].received_at
         if not key or any(event.idempotency_key != key for event in records):
@@ -984,6 +1018,21 @@ class ActionJournal:
 
         with psycopg2.connect(self._dsn) as connection:
             with connection.cursor() as cursor:
+                if vocabulary_version == 2:
+                    from . import airflow_migration
+
+                    cursor.execute("SET LOCAL lock_timeout = '3s'")
+                    cursor.execute("SET LOCAL statement_timeout = '15s'")
+                    cursor.execute("LOCK TABLE thermal_intel.message_receipts, "
+                                   "thermal_intel.action_events, thermal_intel.mode_events "
+                                   "IN ROW EXCLUSIVE MODE")
+                    cursor.execute("SELECT current_user")
+                    if cursor.fetchone() != (runtime_role,):
+                        raise SchemaMismatch("thermal v2 journal writer role mismatch")
+                    observed = airflow_migration._fingerprint(
+                        cursor, runtime_role=runtime_role, expected_owner=expected_owner)
+                    if observed != airflow_migration.V2_FINGERPRINT:
+                        raise SchemaMismatch("thermal v2 journal exact schema audit failed")
                 cursor.execute(
                     """INSERT INTO thermal_intel.message_receipts
                            (idempotency_key, payload_digest, received_at)
