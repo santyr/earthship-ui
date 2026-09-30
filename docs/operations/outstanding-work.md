@@ -103,6 +103,15 @@ promotion remain open before estimator deployment. Old history still shows
 its missing sample; no retrospective repair is claimed. See the
 [candidate qualification](2026-09-30-bms-night-average-verification.md#observation-preserving-source-candidate-and-renewed-jvm-qualification).
 
+The separate guarded collector-update adapter now passes production read-only
+preflight against the exact old source, six triggers, file-owned Item and
+native source definitions. Its source release flag remains false; no live
+update or production backup was made. Exact private backup, recheck/readback,
+ambiguous rollback and concurrent-edit refusal are covered by fifteen offline
+tests. Next qualify original-event/JDBC behavior, then perform the guarded
+observational update and collect new natural preservation/write-rate evidence.
+See the [adapter receipt](2026-09-30-bms-night-average-verification.md#guarded-collector-update-adapter-preflight-passed-apply-gate-off).
+
 Current `0864f4d6...` thermal runtime recovery passed independently from a
 private restored tree: accepted artifact valid, all 84 captures semantically
 valid, optimized full-fit digest unchanged, morning-DM policy false and exact

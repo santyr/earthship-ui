@@ -231,3 +231,30 @@ adjacent collector/estimator/replay tests; all 14 selected Python qualifier
 and Java-average adapter tests pass. Their owned temporary test directory
 was removed. Authenticated final production readback retains estimator
 `8698b16a...` with one trigger and collector `a2193c0f...` with six triggers.
+
+## Guarded collector-update adapter: preflight passed, apply gate off
+
+`scripts/update-bms-runtime-input-evidence.py` is separate from the historical
+create-only installer. Its default is read-only. Production preflight matched
+old collector `a2193c0f...`, proposed `621f4ac7...`, the six original triggers,
+the exact file-owned String Item and ONLINE native Things. The static
+rules/Things/links/JDBC guard digest was
+`7aae3f2a9e67c7a9552d9f63cfa98811e8a49a223532111593a7b5892a1c2a1b`.
+Natural states/statuses are not mistaken for configuration drift or qualified
+acquisition evidence.
+
+`RELEASE_ENABLED=false` refuses application before even creating a private
+backup. A later qualified apply privately saves and verifies the exact rule
+preimage, rechecks the baseline/guard, PUTs only this collector definition,
+requires exact definition/IDLE readback and verifies the protected static
+guard. Ambiguous failure includes our exact update in rollback; a concurrent
+collector edit is never overwritten. Success means definition updated with
+natural evidence pending, not delivery/accuracy qualification. It cannot
+command Items, alter the estimator, change hardware configuration or relax
+source TTLs. Fifteen synthetic adapter tests cover the exact source-only delta,
+preimage/candidate drift, closed release gate, ambiguous failure, concurrent
+edit refusal, unrelated-configuration rollback, target restriction and private
+backup readback. No production writes or production backup were made in this
+preflight. Original-event/JDBC fixture qualification remains the next release
+step; subsequent natural preservation and bounded write-rate checks are still
+required before estimator promotion.
