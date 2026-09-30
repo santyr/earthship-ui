@@ -185,8 +185,9 @@ the preceding and following weather revisions instead. Solar_PV `4dd13ad`
 adds a 06:45 user-timer event alongside the existing two-hour cadence. The
 installed timer loaded both expressions and remains active. This repairs the
 prospective capture schedule, not the historical gap. Its first natural
-September 30 run must be checked for exact 06:40 issue identity and values
-before analytics snapshots are treated as complete morning-origin history.
+September 30 run is now qualified by the exact original issue/value/provenance
+comparison [below](#september-30-natural-morning-snapshot-capture). This does
+not establish complete capture for every earlier morning origin.
 
 A source-only `pre_dusk_tuning.score_pair` now provides an exact same-target
 comparison for immutable morning and pre-dusk receipts against the existing
@@ -761,3 +762,27 @@ branch and 1.78 kWh. These checks close natural enriched-publication/private-
 record/source/JDBC continuity only. Future energy-learning admission still
 requires complete, qualified outcomes and proper chronological source use;
 this retained input is not itself an outcome or permission to activate controls.
+
+## September 30 natural morning snapshot capture
+
+A restricted read-only check at `2026-09-30T23:36:54Z` selected exactly one
+original `Forecast_10Day_JSON` JDBC row for generation time
+`2026-09-30T06:40:29-06:00`, persisted at `12:40:30.632Z`. Its exact UTF-8
+payload SHA-256 is
+`a56426bbb34b52136da273ef29b68580eb30f4e751902ddeccf1346a7d915f37`.
+All **1,458** expected `open_meteo_openhab` normalized facts match the immutable
+analytics rows exactly by issue, target, metric, value, unit and provenance.
+There are no missing/extra facts or duplicate keys. Every fact was captured
+at `12:45:29.129981Z`, before the following weather revision. The existing
+restricted reader was used; no grant, backfill or production write occurred.
+
+This closes the new 06:45 calendar event's first-natural-capture gate. The
+capture was not available at 06:40 and must not be backdated when reconstructing
+analytics knowledge at an earlier origin. The September 27 gap remains a gap.
+The producer's original issue and its source/assessment clocks remain separate.
+
+The new source-only [charge-day extension](2026-09-27-trough-calibration-checkpoint.md#september-30-qualified-charge-time-and-afternoon-decline-targets)
+now qualifies first reported full charge, no-full censoring and post-full
+decline on five completed days. It keeps the accepted pre-dusk path and
+historical morning prediction/scoring intact; it does not fit or promote a
+new forecast from that small sample.

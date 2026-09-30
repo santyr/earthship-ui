@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/'openhab/scripts'), '/home/sat/Solar_PV/analytics/src']
 from advisory_windows import trough_window
-from sunset_soc_profile import measure
+from sunset_soc_profile import measure, charge_profile
 from pre_dusk_tuning_history import _unique_object, read_day_issues, MORNING_ITEM, IssueHistoryUnavailable
 
 ZONE = ZoneInfo('America/Denver')
@@ -153,10 +153,11 @@ def main():
                     window = trough_window(night, 'America/Denver')
                     if window.end > origin and night != day:
                         raise ValueError('future learning target')
-                    key = (night, sunset)
+                    start = min(origin, sunset, window.start) if night == day else min(sunset, window.start)
+                    key = (night, sunset, start)
                     if key not in cache:
                         cache[key] = fetch_freshness_observations(db, tables['BMS_SOC_Evidence_JSON'],
-                            min(sunset, window.start)-timedelta(seconds=120), window.end,
+                            start-timedelta(seconds=120), window.end,
                             row_limit=10001)
                     return boundary, cache[key]
                 profiles = []
@@ -186,12 +187,16 @@ def main():
                     counts['target_unqualified'] += 1; continue
                 target_profile = measure(day=day, sunset=boundary[1], sunset_persisted_at=boundary[0],
                     as_of=now, observations=rows, epoch_start=epoch_start, epoch_end=epoch_end)
+                charge = charge_profile(day=day, origin=origin, sunset=boundary[1],
+                    sunset_persisted_at=boundary[0], as_of=now, observations=rows,
+                    epoch_start=epoch_start, epoch_end=epoch_end)
                 result.append({'day':day.isoformat(), 'origin':origin.isoformat(),
                     'baseline_pct':baseline, 'sunset_drop_counterfactual_pct':candidate,
                     'actual_trough_pct':actual['min_soc_pct'], 'dusk_estimate_pct':record['dusk_soc_estimate_pct'],
                     'actual_sunset_soc_pct':target_profile['sunset_soc_pct'] if target_profile else None,
                     'actual_sunset_drop_pct':target_profile['drop_pct'] if target_profile else None,
                     'actual_sunset_coverage':target_profile['coverage'] if target_profile else None,
+                    'charge_profile':charge,
                     'prior_sunset_drops_pct':[p['drop_pct'] for p in profiles],
                     'input_digests':[p['evidence_digest'] for p in profiles],
                     'outcome_digest':actual['evidence_digest']})

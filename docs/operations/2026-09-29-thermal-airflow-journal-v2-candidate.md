@@ -605,3 +605,28 @@ The exact journal-only apply still needs operator approval. After it passes,
 truthful question review, qualified sender/ingress deployment and a genuine
 operator-signed reply/acknowledgement remain separate steps. No unattended
 poller or automatic hardware action is included in this plan.
+
+## September 30 four-stream-reader consumer refresh
+
+The installed weather readers' four-stream follow-through changes the consumer
+pin to `5e69e9410a7aa5d5ff41dd7339467d33d9add3b6a7b949bcc6e1052d229aa87b`.
+The earlier `0864f4d6...` consumer receipt is historical. The household-copy
+rehearsal was rerun under that exact new pin using transient user unit
+`earthship-thermal-reader-recovery-20260930`; invocation ID
+`7ff3c9fba3dd49539d5150b8f07fcc71`.
+
+It exited zero in 3.906 seconds, reporting `qualified_disposable_restore`,
+matching ordered row digests and zero production writes. The original
+10 action/4 receipt/4 mode rows restored exactly; v1 and disposable v2 audits
+passed. The installed consumer verified its read-only runtime role, retained
+six explicitly synthetic independent observations, left legacy samples
+unchanged and counted one supported bucket. Fixture digest remains
+`9297230d3cf6cd0e9b704527418d795cb1292ded0a35a7a7fda1c3c29308405a`.
+
+The owned `thermal-live-restore-*` container and temporary files were removed;
+a fresh container lookup is empty and the transient unit is collected
+(`LoadState=not-found`). This remains a disposable journal-only coexistence
+check, not a new full rollback anchor, production DDL or signed action truth.
+The existing private baseline must be compared with current digests before
+any apply. Journal-only approval has now been requested; all six source release
+flags remain false. No listener, question, model or control was activated.

@@ -318,3 +318,54 @@ copy, disposable runtime, forecast state update, Item publication, model
 coefficient, notification, database grant, unit or production code change was
 made. These diagnostic source files need no runtime deployment. Chronological
 PV/dusk/trough calibration and adequate seasonal support remain open.
+
+## September 30 qualified charge-time and afternoon-decline targets
+
+The same read-only diagnostic now separately measures the interval from each
+original morning origin to its original Astro sunset. `charge_profile` requires
+source-bound SoC at both endpoints, at least 99.5% atomic coverage, the current
+physical bank and an already-known same-day sunset. It preserves invalid-source
+barriers and refuses ambiguous ordering, future rows, oversized input and
+incomplete windows. The streaming bound stops at 10,001 observations.
+
+The first 100% timestamp means **first reported full charge**, not the exact
+physical event. Already full at the morning origin is left-censored there,
+without an invented new full-charge time. No 100% report before sunset is
+right-censored at sunset, not silently dropped from the dataset or assigned a
+made-up charge time. A first full report exactly at sunset is observed;
+reports after sunset cannot change this target. Each result retains its
+assessment clock and a digest binding the original rows, endpoints and bank.
+
+The household rerun at `2026-09-30T23:36:59.159744Z` qualified all five completed
+days, with zero unavailable cases and unchanged as-issued state digest
+`6a0e013b2e479bb6113bda2ac17f3d9cb9e199340b54b46678e3d669c7a38d07`.
+
+| Issue day | Morning SoC | First reported 100% (MDT) | Sunset SoC | Post-full decline | Atomic daytime coverage |
+| --- | ---: | --- | ---: | ---: | ---: |
+| Sep 25 | 79% | 13:58:10 | 97% | 3 pp | 99.9890% |
+| Sep 26 | 85% | 10:23:07 | 99% | 1 pp | 99.9858% |
+| Sep 27 | 86% | 10:37:53 | 94% | 6 pp | 99.9868% |
+| Sep 28 | 81% | Not reported; censored at 18:49:57 | 85% | Unavailable | 99.9907% |
+| Sep 29 | 72% | 12:34:35 | 98% | 2 pp | 99.9899% |
+
+The exact charge-profile digests are, in that order:
+`7dc9be5f23dbbbd9f417adc8d9d0a4a00b0f873fe0b4d8f86ed4b64177e2607a`,
+`3cc2c293c39c4d9a7c2346d112a0e2a05e435649479a45e72056084008848699`,
+`b06a3a5901fb8ff3fb4283a663dfc43ddfa290b73d475c8840ec9dda89238cdf`,
+`5d09d10fdf34c63d4dac680ea098ff42f61d2148aff640b7e803cec7c2a72de5`,
+`82f43adfa60d0e23ad122028a43a11f873e9dab3a9d8fe790c2d02743e743d3d`.
+
+These targets substantiate the separate charge-to-full and afternoon-discharge
+problem: a full-charge milestone cannot substitute for sunset SoC. They do not
+establish a scheduling threshold or train a model from five late-September
+days. The existing diagnostic command reproduces both targets; later outcome
+rows are used only for assessment, never as earlier forecast inputs. Prior-night
+reads remain narrowly bounded, and caches include the exact start/sunset to
+avoid reusing a short nighttime read as a complete daytime observation window.
+
+All **266 affected forecast, charge/trough, source-reader and archive tests
+pass**. No live forecast, coefficient, control, Item, credential, database
+privilege or service changed. This pure diagnostic extension is published in
+the repo and requires no production-runtime install. Next tuning remains a
+chronologically scored joint PV/charge/afternoon/overnight model with qualified
+forcing and outcomes, not a proxy-drop-only patch or a claim of seasonal skill.

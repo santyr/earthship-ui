@@ -177,3 +177,26 @@ The exact read-only JDBC qualifier still found the same sole 17:30 issue and
 numeric write afterward. This extends the natural no-duplicate observation
 through the first post-sunset timer check; restart behavior and later-day
 checks remain separate.
+
+## September 30 second natural issue
+
+The ordinary 17:30 MDT timer exited successfully and published exactly one
+September 30 receipt at `2026-09-30T23:30:00.075448Z`. It used fresh source-bound
+85% SoC, a 21-point original morning drop component and sunset
+`2026-10-01T00:46:48.654Z`, yielding **64%**. Its linked morning issue is
+`2026-09-30T12:40:30.514550Z`.
+
+The read-only natural-issue qualifier finds one numeric write at
+`23:30:00.076Z`, one JSON write at `23:30:00.078Z` and the matching original
+SoC source persisted at `23:29:12.404875Z`, before issue. Source SHA-256:
+`835724d3cdaf749c4f1d00679473a98a4045d27f4b569f49e67464843e044dae`.
+The result is `qualified_natural_issue`, not a claim of predictive accuracy or
+UI display selection. The Energy page intentionally omits the backend estimate
+since the operator's September 30 choice; do not add the overlay back as a gate.
+September 30 accuracy must wait for October 1 11:00 MDT. No forecast job,
+synthetic Item state, notification or control was triggered by this verification.
+
+A repeat of the September 29 completed-night comparison still yields morning
+53%, pre-dusk 81% and qualified actual trough 81%, with 99.99257% coverage.
+That single exact match supports maintaining separate immutable origins; it
+does not prove seasonal skill or an action reward.
