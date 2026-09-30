@@ -398,3 +398,45 @@ published normally. This verifies the installed strict consumer's natural
 partial-day refusal; the exact Item 657 SELECT grant and a future complete,
 fault-free rain day remain open. September 29 was already disqualified by the
 pre-fix raw spikes and collector restarts.
+
+### September 30 overnight source-expiry diagnosis
+
+A restricted, read-only inspection at `2026-09-30T08:27:40.426618Z`
+checked all 2,971 original rain snapshots since the final September 29
+receiver reload. They have one epoch and zero invalid-packet/drop/jump
+latches, but contain one genuine expiry barrier at
+`2026-09-30T07:43:59.382251Z` (01:43:59 MDT). The bounded original-history
+digest is `5c08150b1755fd03f3b19b51e5b5447486b2c6722c0fa4523a39580c9ff2cd25`.
+
+The last pre-gap native rain receipt was `07:41:43.486306Z`, packet 5,101;
+the next was `07:44:07.665491Z`, packet 5,102. The 144.179185-second
+source gap exceeds the unchanged 120-second TTL by 24.179185 seconds.
+This is **not change-only persistence**: an unchanged successfully received
+counter advances the source time and packet count, whereas neither advanced
+through this interval. The shared station's outdoor temperature independently
+expired at `07:43:47.903193Z` and recovered on the same next packet. Indoor
+and north-wall source receipts continued during the gap, so a whole-receiver
+outage is not supported by the evidence.
+
+Both system services stayed active at their existing master/adapter PIDs
+(1,607,215 / 1,954,630), with zero systemd restarts. Their bounded 01:40–01:47
+MDT journals contained no entries. Source/installed radio adapter and rain
+receiver hashes still match their corrected versions. These observations
+point to a station-specific reception/forwarding gap; they do not establish
+RF loss, a hardware fault, or a cause related to concurrent test execution.
+The adjacent observer stores only its latest snapshot, not a historical
+raw-packet archive, so it cannot resolve that attribution.
+
+At the inspection time the persisted rain receipt was fresh, and live rain,
+outdoor, indoor and north-wall endpoints all returned valid native receipts.
+The exact restricted Item 657 SELECT permission is now verified present;
+older grant-pending statements above are historical.
+
+Do not widen the TTL, fill missing rain with zero, remove the expiry barrier,
+or revive the superseded recovered-day policy. Under the installed strict
+contract September 30 cannot become a complete qualified rain day, even
+though the source recovered. The earliest remaining possible clean calendar
+day is October 1, assessable after its end and the required midnight brackets;
+qualification still depends on that day's actual evidence. No collector,
+forecast coefficient, scoring policy, service or control was changed by this
+diagnosis, and no temporary logger or test resource was created.

@@ -1,5 +1,15 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 rain-source diagnosis: the original counter and outdoor
+temperature independently expired during a 144.179-second station-specific
+receipt gap; indoor/north-wall reception continued. This is not change-only
+persistence, and the corrected source/runtime still match. Current receipt
+health recovered and the restricted Item 657 grant is verified, but the
+September 30 strict daily rain score must remain withheld. October 1 is the
+earliest remaining possible clean source day, subject to actual continuity
+and midnight brackets. No TTL, scoring policy, collector or control changed;
+see the [expiry evidence](2026-09-28-rain-evidence-activation.md#september-30-overnight-source-expiry-diagnosis).
+
 September 30 file-rule recovery progress: all three migrated display writers
 (season, temperature extrema and Bitcoin change) passed one shared networkless
 full-JVM exit/restart and exact managed rollback. Twenty-two guard/transaction
