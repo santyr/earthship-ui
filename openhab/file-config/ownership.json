@@ -528,6 +528,15 @@
       "destination": "/etc/openhab/items/weather-rain-evidence.items"
     },
     {
+      "kind": "item",
+      "id": "DaysUntilNextSeason",
+      "provider": "file",
+      "migration": "provisional",
+      "source": "items/days-until-next-season.items",
+      "destination": "/etc/openhab/items/days-until-next-season.items",
+      "state_writer": "update_days_until_season"
+    },
+    {
       "kind": "rule",
       "id": "update_days_until_season",
       "provider": "file",

@@ -34,6 +34,15 @@ JDBC persists it under Item 176. Unchanged Astro updates and persistence
 restoration during provider reload are not that proof. Retain the private
 rollback backup; the separate restart gate also remains open.
 
+A post-transfer read-only `config_inventory.py --summary` initially flagged
+the file-owned Item as undeclared. The exact installed/source file hash and
+file provider were rechecked, then `ownership.json` gained only the
+`DaysUntilNextSeason` declaration with `migration: provisional` and the
+existing file-owned rule as its writer. The live inventory now reports 382
+managed and 60 non-managed Items with zero issues; its 14 focused tests pass.
+This manifest repair does not qualify the pending natural-write or restart
+gates.
+
 The source `scripts/migrate-season-countdown-item.py` implements an
 exact live preflight, private Item/JSONDB/Item-176 history backup, managed
 rollback exercise, and fail-closed restoration path. Its `--apply` gate is
