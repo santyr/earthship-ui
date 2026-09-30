@@ -525,3 +525,40 @@ or packet-replay transition; no numeric zero or historical rain fallback was
 used. The BMS day passes dynamic temperature parity but remains partial from
 actual pre-cadence expiry gaps, as recorded in the
 [auxiliary assessment](2026-09-29-bms-aux-source-cadence.md#september-30-complete-day-reader-and-scaler-assessment).
+
+### September 30 expanded overnight shade-origin comparison
+
+At `2026-09-30T10:43:10Z`, the bounded fixed-artifact experiment was extended
+to all matured 1/6/12/24-hour pairs issued since September 29 08:00 MDT.
+Ten captured origins replayed exactly under installed runtime
+`fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`
+before substituting only the pure `_nonwinter_shade_schedule` function from
+source hash `dedce8c8b4488aaa899b08e105adbc9486a23c1c4a77582e9e8d3ae54f8e0372`
+in memory. The artifact stayed fixed at `e707ce61...696ccff7`; all other
+runtime functions, coefficients, weather inputs and current observations were
+unchanged. Seventeen distinct target instants passed the restricted original
+WH32B ID 235 receipt reader, producing 23 qualified overlapping pairs.
+
+| Horizon | Pairs | As-issued MAE °F | Corrected MAE °F | Persistence MAE °F |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 10 | 0.8648 | 0.7066 | 0.4680 |
+| 6 hours | 8 | 3.0809 | 2.6464 | 2.7225 |
+| 12 hours | 5 | 3.3716 | 2.6416 | 3.4560 |
+| 24 hours | 0 | — | — | — |
+
+Chronological non-overlapping six-hour windows are only three, with
+as-issued/corrected/persistence MAE 3.0033/2.3940/3.4200°F. Twelve hours still
+has only one independent window (0.905/0.905/3.960°F); the ten one-hour pairs
+do not overlap. All corrected intervals covered these outcomes, but these
+are low-confidence forecasts from one artifact and one day, not independent
+seasonal skill or interval recalibration. The candidate remains worse than
+persistence at one hour. No 24-hour target for this artifact has yet matured;
+the first 08:00 MDT target requires its five-minute qualification delay.
+
+The two newly mature twelve-hour targets (02:00 and 04:00 MDT) retained cold
+errors of −3.732 and −3.987°F after correction. Their outdoor forecasts were
+warm by +1.22 and +2.30°F, respectively. Thus the scheduling bug explains
+some, not all, cold bias; this does not isolate a physical cause. Source-only
+joint-shade refit, qualified independent airflow/shade observations and
+chronological day/seasonal outcome comparisons remain necessary. No file,
+artifact, journal, Item, label or control changed during this experiment.

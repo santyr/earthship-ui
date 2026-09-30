@@ -81,3 +81,55 @@ loop reused the archive-data variable; a regression test now checks the
 reported digest against the actual archive bytes. The archive is same-host
 only and does not by itself establish that all captured forecasts have skill
 or authorize leaving shadow mode.
+
+## September 30 distinct publication-runtime recovery
+
+The current publication runtime is pinned to
+`fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27`,
+while the accepted artifact still names its earlier training revision
+`00611a5ef1e5b64347143b3dc04b423d519f7ccbd7bc237bd029b69b7ef2cd5a`.
+Exact as-issued replay already permits this separation through an explicit
+runtime pin. The backup creator previously could preserve only training-bound
+code, not declare the different current publication runtime accurately.
+
+An opt-in `--publication-runtime-revision` now creates
+`earthship-thermal-replay-evidence/v2`, binding that full caller-supplied
+SHA-256 to the exact 21 included runtime files while separately preserving
+the accepted artifact's original training revision. It never rewrites an
+artifact or implies every archived capture uses that runtime. Default v1
+creation/verification and its strict training-code match remain unchanged.
+Both modes refuse source drift during snapshot; stale prior bundles cannot
+be relabelled with a newer runtime pin. Member digests, exact inventory,
+private no-overwrite publication and verified prior-source selection remain
+required. This replay-archive v2 is unrelated to the still-gated journal v2.
+
+The new mode was exercised on the actual quiescent household thermal state:
+
+```sh
+python3 scripts/thermal-replay-bundle.py create /home/sat/backups/earthship-energy/thermal-publication-runtime-20260930-fe044985.tar.gz --runtime-root /home/sat/openhab/scripts --publication-runtime-revision fe044985ffb79b2ee911b67ceb67061c8f0b46fb8c849a08ca93bc8df5e51e27
+python3 scripts/thermal-replay-bundle.py verify /home/sat/backups/earthship-energy/thermal-publication-runtime-20260930-fe044985.tar.gz
+```
+
+The existing mode-0700 backup directory holds the mode-0600 archive with
+107 data members and 81 forcing captures, SHA-256
+`73b5ffa20cad4019c186c4c553c1591079b09c8dddcc42bc4942b7a27450f1aa`.
+Independent extraction into one private owned temporary tree semantically
+validated all 81 captures using only bundled runtime source. The latest
+`20260930T103030Z-e12f318b331be0ce.json.gz` then replayed exactly under the
+included publication pin; its original output SHA-256 is
+`e12f318b331be0cefdd15c346675f93a55370bec230e4c5c03f09651164a8420`.
+The verifier correctly reported that training and publication revisions differ.
+The temporary extraction was removed; prior historical/training bundles and
+the new complete archive are retained. No runtime, artifact, journal, Item,
+timer, collector or control was changed.
+
+This closes current publication-runtime preservation and the tested latest
+replay recovery, not every historical replay, whole-host recovery, an automatic
+backup schedule, off-host disaster recovery or advisory graduation. Off-host
+copying remains deferred by the operator.
+
+All 58 bundle/replay/publication-audit regressions passed, including malformed
+pins/training identities, stale-source relabelling, manifest tampering,
+concurrent runtime edits and reuse of a verified pinned prior runtime. Only
+this turn's disposable synthetic test-fixture directories were cleaned up;
+the retained household archive and all earlier recovery points remain intact.

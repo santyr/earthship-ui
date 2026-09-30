@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 thermal outcome/recovery progress: ten fixed-artifact origins
+replayed exactly and 17 distinct original indoor targets qualified 23 matured
+pairs. The shade-origin candidate improves six/twelve-hour MAE but still loses
+to persistence at one hour; no 24-hour target matured and the late-night cold
+bias is not fully explained. No candidate/runtime/control was deployed. A
+separate explicit publication-runtime archive now preserves the current
+optimized code independently of the artifact's training revision. Its 81
+captures semantically validated after private restoration, and the latest
+publication replayed exactly from bundled source. The owned extraction was
+removed; the same-host archive is retained. See the
+[expanded comparison](2026-09-29-prediction-learning-review.md#september-30-expanded-overnight-shade-origin-comparison)
+and [publication recovery](2026-09-28-thermal-replay-recovery.md#september-30-distinct-publication-runtime-recovery).
+
 September 30 Bitcoin polling Thing migration is verified in production.
 The file-owned Thing preserves its exact script/configuration, all seven
 channels and both existing output links. A new real persisted price receipt

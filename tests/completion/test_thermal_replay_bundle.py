@@ -124,3 +124,108 @@ def test_member_tampering_is_rejected(tmp_path):
             target.addfile(copied, io.BytesIO(data))
     with pytest.raises(ValueError, match='digest mismatch'):
         bundle.verify(altered)
+
+
+def test_explicit_publication_revision_preserves_distinct_training_revision(tmp_path):
+    runtime, state, output, training = fixture(tmp_path)
+    (runtime / 'thermal_model/dynamics.py').write_bytes(b'# optimized publisher\n')
+    paths = bundle._paths((runtime / 'thermal_intel.py').read_bytes())
+    revision = bundle._revision(paths, {'code/' + name: (runtime / name).read_bytes()
+                                       for name in paths})
+    created = bundle.create(output, runtime_root=runtime, state_root=state,
+                            publication_runtime_revision=revision)
+    assert created == bundle.verify(output)
+    assert created['accepted_code_revision'] == training
+    assert created['included_runtime_revision'] == revision != training
+    assert created['runtime_binding'] == 'explicit_publication_revision'
+    with tarfile.open(output, 'r:gz') as archive:
+        manifest = json.loads(archive.extractfile('manifest.json').read())
+        assert manifest['schema'] == 'earthship-thermal-replay-evidence/v2'
+
+
+@pytest.mark.parametrize('revision', ['', 'a' * 12, 'A' * 64, True, '0' * 64])
+def test_bad_publication_runtime_pin_refuses_without_archive(tmp_path, revision):
+    runtime, state, output, _ = fixture(tmp_path)
+    with pytest.raises(ValueError, match='publication runtime'):
+        bundle.create(output, runtime_root=runtime, state_root=state,
+                      publication_runtime_revision=revision)
+    assert not output.exists()
+    assert not list(output.parent.glob('.thermal-replay-*'))
+
+
+@pytest.mark.parametrize('training', ['', None, True, 'a' * 12, 'A' * 64])
+def test_publication_mode_never_accepts_malformed_training_revision(tmp_path, training):
+    runtime, state, output, revision = fixture(tmp_path)
+    (state / 'models/accepted.json').write_text(json.dumps({'code_revision': training}))
+    with pytest.raises(ValueError, match='accepted training revision'):
+        bundle.create(output, runtime_root=runtime, state_root=state,
+                      publication_runtime_revision=revision)
+    assert not output.exists()
+
+
+def test_publication_pin_cannot_relabel_stale_source_bundle(tmp_path):
+    runtime, state, prior, _ = fixture(tmp_path)
+    bundle.create(prior, runtime_root=runtime, state_root=state)
+    (runtime / 'thermal_model/dynamics.py').write_bytes(b'# optimized publisher\n')
+    paths = bundle._paths((runtime / 'thermal_intel.py').read_bytes())
+    revision = bundle._revision(paths, {'code/' + name: (runtime / name).read_bytes()
+                                       for name in paths})
+    with pytest.raises(ValueError, match='publication runtime'):
+        bundle.create(prior.parent / 'current.tar.gz', runtime_root=runtime,
+                      state_root=state, source_bundle=prior,
+                      publication_runtime_revision=revision)
+
+
+def test_pinned_prior_publication_bundle_survives_later_runtime_drift(tmp_path):
+    runtime, state, prior, training = fixture(tmp_path)
+    (runtime / 'thermal_model/dynamics.py').write_bytes(b'# optimized publisher\n')
+    paths = bundle._paths((runtime / 'thermal_intel.py').read_bytes())
+    revision = bundle._revision(paths, {'code/' + name: (runtime / name).read_bytes()
+                                       for name in paths})
+    bundle.create(prior, runtime_root=runtime, state_root=state,
+                  publication_runtime_revision=revision)
+    (runtime / 'thermal_model/dynamics.py').write_bytes(b'# later runtime\n')
+    output = prior.parent / 'continued.tar.gz'
+    created = bundle.create(output, runtime_root=runtime, state_root=state,
+                            source_bundle=prior, publication_runtime_revision=revision)
+    assert created == bundle.verify(output)
+    assert created['accepted_code_revision'] == training
+    assert created['included_runtime_revision'] == revision
+    with tarfile.open(output, 'r:gz') as archive:
+        assert archive.extractfile('code/thermal_model/dynamics.py').read() == b'# optimized publisher\n'
+
+
+@pytest.mark.parametrize('damage', ['runtime', 'training', 'binding', 'downgrade'])
+def test_publication_manifest_binding_tampering_refuses(tmp_path, damage):
+    runtime, state, output, revision = fixture(tmp_path)
+    bundle.create(output, runtime_root=runtime, state_root=state,
+                  publication_runtime_revision=revision)
+    altered = output.parent / 'altered.tar.gz'
+    with tarfile.open(output, 'r:gz') as source, tarfile.open(altered, 'w:gz') as target:
+        for member in source:
+            data = source.extractfile(member).read()
+            if member.name == 'manifest.json':
+                manifest = json.loads(data)
+                field = {'runtime': 'included_runtime_revision',
+                         'training': 'accepted_code_revision', 'binding': 'runtime_binding',
+                         'downgrade': 'schema'}[damage]
+                manifest[field] = bundle.SCHEMA if damage == 'downgrade' else '0' * 64
+                data = json.dumps(manifest).encode()
+            copied = tarfile.TarInfo(member.name); copied.size = len(data)
+            target.addfile(copied, io.BytesIO(data))
+    with pytest.raises(ValueError):
+        bundle.verify(altered)
+
+
+def test_runtime_change_during_snapshot_refuses_without_archive(tmp_path, monkeypatch):
+    runtime, state, output, _ = fixture(tmp_path)
+    original_read = bundle._read
+    def read(path, **kwargs):
+        data = original_read(path, **kwargs)
+        if Path(path) == state / 'models/accepted.json':
+            (runtime / 'thermal_model/dynamics.py').write_bytes(b'# concurrent edit\n')
+        return data
+    monkeypatch.setattr(bundle, '_read', read)
+    with pytest.raises(ValueError, match='runtime changed'):
+        bundle.create(output, runtime_root=runtime, state_root=state)
+    assert not output.exists()

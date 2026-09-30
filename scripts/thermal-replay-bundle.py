@@ -2,7 +2,9 @@
 """Create or verify a private, source-bound thermal replay recovery bundle.
 
 This copies evidence only. It does not train, publish, restore, or authorize
-thermal actions. The accepted artifact must name the exact included runtime.
+thermal actions. Legacy bundles bind the included runtime to artifact training;
+an explicit v2 publication pin preserves a separately qualified runtime without
+relabeling training or claiming every capture replays under that runtime.
 """
 
 import argparse
@@ -20,6 +22,7 @@ from uuid import uuid4
 
 
 SCHEMA = 'earthship-thermal-replay-evidence/v1'
+PUBLICATION_SCHEMA = 'earthship-thermal-replay-evidence/v2'
 MAX_FILE = 2_000_000
 MAX_FILES = 10_000
 MAX_TOTAL = 100_000_000
@@ -89,8 +92,12 @@ def _canonical(value):
                       allow_nan=False).encode('utf-8')
 
 
-def _manifest(entries, paths, accepted):
-    return {
+def _is_revision(value):
+    return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value) is not None
+
+
+def _manifest(entries, paths, accepted, publication_runtime_revision=None):
+    result = {
         'schema': SCHEMA,
         'captured_at': datetime.now(timezone.utc).isoformat(),
         'accepted_code_revision': accepted,
@@ -98,9 +105,17 @@ def _manifest(entries, paths, accepted):
         'entries': {name: hashlib.sha256(data).hexdigest()
                     for name, data in sorted(entries.items())},
     }
+    if publication_runtime_revision is not None:
+        result.update(schema=PUBLICATION_SCHEMA,
+                      included_runtime_revision=publication_runtime_revision,
+                      runtime_binding='explicit_publication_revision')
+    return result
 
 
-def create(output, *, runtime_root, state_root, source_bundle=None):
+def create(output, *, runtime_root, state_root, source_bundle=None,
+           publication_runtime_revision=None):
+    if publication_runtime_revision is not None and not _is_revision(publication_runtime_revision):
+        raise ValueError('full lowercase publication runtime SHA-256 required')
     output = Path(output)
     _private_directory(output.parent)
     if output.exists() or output.is_symlink():
@@ -132,7 +147,13 @@ def create(output, *, runtime_root, state_root, source_bundle=None):
     if accepted_data is None:
         raise ValueError('accepted thermal artifact missing')
     accepted = json.loads(accepted_data)['code_revision']
-    if accepted != _revision(paths, entries):
+    if not _is_revision(accepted):
+        raise ValueError('accepted training revision must be a full lowercase SHA-256')
+    included_revision = _revision(paths, entries)
+    if publication_runtime_revision is not None:
+        if included_revision != publication_runtime_revision:
+            raise ValueError('included code does not match explicit publication runtime')
+    elif accepted != included_revision:
         runtime_label = 'included' if source_bundle is not None else 'installed'
         raise ValueError(f'accepted artifact does not match {runtime_label} runtime')
     for month in sorted(captures.iterdir()):
@@ -148,9 +169,15 @@ def create(output, *, runtime_root, state_root, source_bundle=None):
         raise ValueError('replay evidence budget exceeded')
     if _read(models / 'accepted.json', private=True) != accepted_data:
         raise ValueError('accepted artifact changed during snapshot')
+    if source_bundle is None:
+        for name in (*paths, 'thermal_model/forcing_capture.py'):
+            if _read(runtime_root / name) != entries['code/' + name]:
+                raise ValueError('runtime changed during snapshot; retry when quiescent')
+    elif _read(source_bundle, private=True, max_size=MAX_TOTAL) != source_data:
+        raise ValueError('source-bundle runtime changed during snapshot')
     if not any(name.startswith('state/forcing-captures/') for name in entries):
         raise ValueError('at least one forcing capture required')
-    manifest = _manifest(entries, paths, accepted)
+    manifest = _manifest(entries, paths, accepted, publication_runtime_revision)
     entries['manifest.json'] = _canonical(manifest) + b'\n'
     temporary = output.parent / ('.thermal-replay-' + uuid4().hex + '.tmp')
     fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -193,8 +220,12 @@ def _verify_archive_data(data):
     if raw is None:
         raise ValueError('replay manifest missing')
     manifest = json.loads(raw)
-    if (set(manifest) != {'schema', 'captured_at', 'accepted_code_revision',
-                         'code_revision_paths', 'entries'} or manifest['schema'] != SCHEMA
+    fields = {'schema', 'captured_at', 'accepted_code_revision',
+              'code_revision_paths', 'entries'}
+    publication_binding = manifest.get('schema') == PUBLICATION_SCHEMA
+    if publication_binding:
+        fields |= {'included_runtime_revision', 'runtime_binding'}
+    if (set(manifest) != fields or manifest.get('schema') not in (SCHEMA, PUBLICATION_SCHEMA)
             or set(manifest['entries']) != set(entries)):
         raise ValueError('replay manifest mismatch')
     for name, member_data in entries.items():
@@ -213,11 +244,23 @@ def _verify_archive_data(data):
             | (set(entries) & allowed_models) | set(captures)):
         raise ValueError('unexpected replay member inventory')
     accepted = json.loads(entries['state/models/accepted.json'])['code_revision']
-    if accepted != manifest['accepted_code_revision'] or accepted != _revision(paths, entries):
+    if not _is_revision(accepted):
+        raise ValueError('accepted training revision must be a full lowercase SHA-256')
+    revision = _revision(paths, entries)
+    if accepted != manifest['accepted_code_revision']:
+        raise ValueError('replay training revision does not match accepted artifact')
+    if publication_binding:
+        if (manifest['runtime_binding'] != 'explicit_publication_revision'
+                or manifest['included_runtime_revision'] != revision):
+            raise ValueError('replay source does not match explicit publication runtime')
+    elif accepted != revision:
         raise ValueError('replay source does not match accepted artifact')
-    return ({'members': len(entries), 'accepted_code_revision': accepted,
-             'captures': len(captures),
-             'sha256': hashlib.sha256(data).hexdigest()}, entries)
+    result = {'members': len(entries), 'accepted_code_revision': accepted,
+              'captures': len(captures), 'sha256': hashlib.sha256(data).hexdigest()}
+    if publication_binding:
+        result.update(included_runtime_revision=revision,
+                      runtime_binding=manifest['runtime_binding'])
+    return result, entries
 
 
 def verify(archive_path):
@@ -241,12 +284,17 @@ def main():
                         default=Path('/home/sat/.local/state/thermal-intel'))
     parser.add_argument('--source-bundle', type=Path,
                         help='private verified prior bundle containing accepted code')
+    parser.add_argument('--publication-runtime-revision',
+                        help='explicit full publication-runtime SHA-256; creates v2 with distinct training/runtime bindings')
     args = parser.parse_args()
     if args.action != 'create' and args.source_bundle is not None:
         parser.error('--source-bundle is only valid with create')
+    if args.action != 'create' and args.publication_runtime_revision is not None:
+        parser.error('--publication-runtime-revision is only valid with create')
     if args.action == 'create':
         result = create(args.archive, runtime_root=args.runtime_root,
-                        state_root=args.state_root, source_bundle=args.source_bundle)
+                        state_root=args.state_root, source_bundle=args.source_bundle,
+                        publication_runtime_revision=args.publication_runtime_revision)
     else:
         result = verify(args.archive)
     print(json.dumps(result, sort_keys=True))
