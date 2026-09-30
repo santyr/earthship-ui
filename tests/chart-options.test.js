@@ -176,6 +176,22 @@ describe('history chart option adapter', () => {
     ]);
   });
 
+  it('uses one trough legend entry and stops projection at its fixed overnight target', () => {
+    const nowMs = Date.parse('2026-09-25T06:40:00-06:00');
+    const endMs = Date.parse('2026-09-25T11:00:00-06:00');
+    const input = {
+      series: [{ name: 'Predicted_SoC_Trough_PreDusk', label: 'Pre-dusk trough',
+        forecastLabel: 'Pre-dusk trough', dashedFromNow: true,
+        projectionValue: 80, projectionEndMs: endMs }],
+      pointsPerSeries: [[{ time: nowMs - 60_000, state: '80' }]],
+      widthPx: 300, nowMs,
+    };
+    const option = buildHistoryOption(input);
+    expect(option.legend.data).toEqual(['Pre-dusk trough']);
+    expect(option.series[1].data).toEqual([[nowMs, 80, 80], [endMs, 80, 80]]);
+    expect(buildHistoryOption({ ...input, nowMs: endMs }).series).toHaveLength(1);
+  });
+
   it('shares a four-CSS-pixels-per-chart point cap across all series', () => {
     const points = rows(1_000);
     const option = buildHistoryOption({

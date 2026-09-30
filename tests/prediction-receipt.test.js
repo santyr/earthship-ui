@@ -73,9 +73,10 @@ describe('separate pre-dusk trough receipt', () => {
 
   it('uses a source-bound later issue without rewriting morning PV provenance', () => {
     const morning = parse({ ...valid, overnightTroughSocPct: 63 }, lateNow);
-    const selected = selectTroughForecast(morning, parseLate(late));
+    const selected = selectTroughForecast(parseLate(late));
     expect(selected).toEqual({ value: 80, basis: 'pre-dusk',
-      itemName: 'Predicted_SoC_Trough_PreDusk', issuedAtMs: Date.parse(late.issuedAt) });
+      itemName: 'Predicted_SoC_Trough_PreDusk', issuedAtMs: Date.parse(late.issuedAt),
+      targetEndAtMs: Date.parse('2026-09-25T11:00:00-06:00') });
     expect(morning.pvTodayKwh).toBe(3.3);
   });
 
@@ -86,6 +87,29 @@ describe('separate pre-dusk trough receipt', () => {
     expect(parseLate({ ...late, overnightTroughSocPct: 79 })).toBeNull();
     expect(parseLate({ ...late, socStreamEpoch: undefined })).toBeNull();
     expect(parseLate({ ...late, socEvidenceSha256: 'unverified' })).toBeNull();
-    expect(parseLate(late, Date.parse('2026-09-25T00:01:00-06:00'))).toBeNull();
+    expect(parseLate(late, Date.parse('2026-09-25T11:00:00-06:00'))).toBeNull();
+  });
+
+  it('never uses a morning estimate as the displayed forecast', () => {
+    expect(selectTroughForecast(null)).toBeNull();
+    const morning = parse({ ...valid, overnightTroughSocPct: 12 }, lateNow);
+    expect(morning.overnightTroughSocPct).toBe(12);
+    expect(selectTroughForecast(parseLate(late)).value).toBe(80);
+  });
+
+  it('keeps the original pre-dusk issue through its following-morning target', () => {
+    for (const at of ['00:01:00', '06:40:00', '10:59:59']) {
+      expect(parseLate(late, Date.parse(`2026-09-25T${at}-06:00`))?.overnightTroughSocPct).toBe(80);
+    }
+    expect(parseLate(late, Date.parse('2026-09-25T11:00:00-06:00'))).toBeNull();
+    expect(parseLate(late, Date.parse('2026-09-26T01:00:00-06:00'))).toBeNull();
+  });
+
+  it('expires at local 11:00 across the daylight-saving transition', () => {
+    const autumn = { ...late, predictionDay: '2026-10-31',
+      issuedAt: '2026-10-31T16:55:00-06:00', sunsetAt: '2026-10-31T18:10:00-06:00',
+      morningIssuedAt: '2026-10-31T06:40:00-06:00', socRecordedAt: '2026-10-31T16:54:50-06:00' };
+    expect(parseLate(autumn, Date.parse('2026-11-01T10:59:59-07:00'))?.overnightTroughSocPct).toBe(80);
+    expect(parseLate(autumn, Date.parse('2026-11-01T11:00:00-07:00'))).toBeNull();
   });
 });

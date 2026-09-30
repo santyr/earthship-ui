@@ -179,14 +179,14 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
     });
   }
 
-  const troughForecast = selectTroughForecast(predictionReceipt, preDuskReceipt);
+  const troughForecast = selectTroughForecast(preDuskReceipt);
   const trough = troughForecast?.value ?? null;
   if (trough !== null && trough < 40) {
     const rounded = Math.round(trough);
     alerts.push(baseAlert({
       id: 'soc-trough', severity: trough <= 12 ? 'critical' : 'warning',
-      shortText: `Predicted SoC trough · ${rounded}%`,
-      fullText: `Predicted battery state-of-charge trough is ${rounded}%.`, route: 'energy',
+      shortText: `Pre-dusk SoC estimate · ${rounded}%`,
+      fullText: `Pre-dusk estimate of the overnight battery state-of-charge minimum is ${rounded}%.`, route: 'energy',
       dedupeKey: 'battery:predicted-trough', priorityKey: 'soc-trough',
     }));
   }

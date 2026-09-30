@@ -88,9 +88,11 @@ function scalarProjection(source, nowMs) {
   if (source.projectionValue == null) return [];
   const value = Number(source.projectionValue);
   const hours = Number(source.projectionHours);
-  if (!Number.isFinite(value) || !Number.isFinite(hours) || hours <= 0) return [];
-  const endMs = nowMs + hours * 60 * 60 * 1_000;
-  if (!Number.isFinite(endMs)) return [];
+  if (!Number.isFinite(value)) return [];
+  const endMs = Number.isFinite(source.projectionEndMs)
+    ? source.projectionEndMs
+    : Number.isFinite(hours) && hours > 0 ? nowMs + hours * 60 * 60 * 1_000 : NaN;
+  if (!Number.isFinite(endMs) || endMs <= nowMs) return [];
   return [[nowMs, value, value], [endMs, value, value]];
 }
 

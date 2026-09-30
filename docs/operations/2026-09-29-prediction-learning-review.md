@@ -274,6 +274,35 @@ above actually worsened when the true 20:00 drop was substituted without
 modeling the intervening 17:30-to-20:00 trajectory. Morning and pre-dusk
 origin-specific models need independent chronological validation.
 
+### September 30 operator-selected operational display
+
+The operator chose the pre-dusk estimate as the displayed overnight forecast
+and retained the morning calculation/history for comparison. Energy and the
+shared UI forecast-alert projector now accept only the validated pre-dusk
+receipt, without falling back to the low morning estimate. The morning Item,
+receipt publication and JDBC series are untouched; keeping them is necessary
+to score divergence and test future algorithm changes against original issues.
+This is a presentation/source-selection decision, not an accuracy graduation.
+
+The evening issue stays valid until the following-day 11:00 Mountain target;
+it is no longer wrongly discarded at midnight. Calendar/timezone checks cover
+the overnight DST transition, and the dashed projection terminates at that
+fixed target rather than extending eighteen hours from every refresh. Both
+chart segments share one `Pre-dusk trough` legend entry. Without valid evidence
+the headline shows `pre-dusk estimate: —` and no projected trough or trough UI
+alert is manufactured. Morning PV/curtailment and thermal-advice provenance
+remain separate and keep their original current-day rules.
+
+All 1,927 UI unit tests and 15 isolated Energy browser cases pass; the production
+build passes with existing chunk-size warnings. One initial browser run exposed
+host-clock-based fixture rows outside the frozen browser history window; those
+rows now follow the browser clock, so a missing forecast cannot mask an empty
+history fixture. A read-only live 1340×800 Lenovo-size check displayed the
+original `81%` pre-dusk issue with exactly one trough legend entry, zero morning
+trough legends, zero browser errors and zero write requests. No screenshot or
+test artifact was retained. The morning job's separate deep-cycle DM policy
+has not changed; migration of that notification remains outstanding.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.

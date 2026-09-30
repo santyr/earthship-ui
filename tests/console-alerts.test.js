@@ -83,6 +83,7 @@ describe('console alert projection', () => {
         ...healthyItems,
         Predicted_SoC_Trough_Tomorrow: '35',
         Forecast_Prediction_Receipt_JSON: predictionReceipt(10_000, 35),
+        Forecast_PreDusk_Trough_Receipt_JSON: preDuskReceipt(10_000, 85, 50),
         Current_US_AQI: '119',
         Forecast_AQI: '501',
       },
@@ -168,6 +169,7 @@ describe('console alert projection', () => {
         Predicted_SoC_Trough_Tomorrow: '39.6',
         Forecast_Prediction_Receipt_JSON: predictionReceipt(100_000, 39.6,
           'close_up_tomorrow|Close the south shades tomorrow'),
+        Forecast_PreDusk_Trough_Receipt_JSON: preDuskReceipt(100_000, 89, 50),
         Current_US_AQI: '101',
       },
       outcomes: [
@@ -204,6 +206,7 @@ describe('console alert projection', () => {
         Predicted_SoC_Trough_Tomorrow: '12',
         Forecast_Prediction_Receipt_JSON: predictionReceipt(100_000, 12,
           'vent_tonight|Vent after sunset'),
+        Forecast_PreDusk_Trough_Receipt_JSON: preDuskReceipt(100_000, 62, 50),
         Thermal_Advisory: 'vent_tonight|Vent after sunset',
       },
       now: 100_000,
@@ -224,6 +227,18 @@ describe('console alert projection', () => {
       const { alerts } = projectConsoleAlerts({ connection: 'live', now: today,
         items: { ...healthyItems, Predicted_SoC_Trough_Tomorrow: '12',
           Forecast_Prediction_Receipt_JSON: raw } });
+      expect(alerts.some(({ id }) => id === 'soc-trough')).toBe(false);
+    }
+  });
+
+  it('never falls back to a low morning estimate when pre-dusk evidence is missing or invalid', async () => {
+    const { projectConsoleAlerts } = await loadSubject();
+    const now = Date.parse('2026-09-24T18:00:00-06:00');
+    for (const late of [undefined, 'UNDEF', JSON.stringify({ version: 1 })]) {
+      const { alerts } = projectConsoleAlerts({ connection: 'live', now,
+        items: { ...healthyItems, Predicted_SoC_Trough_Tomorrow: '12',
+          Forecast_Prediction_Receipt_JSON: predictionReceipt(now, 12),
+          Forecast_PreDusk_Trough_Receipt_JSON: late } });
       expect(alerts.some(({ id }) => id === 'soc-trough')).toBe(false);
     }
   });

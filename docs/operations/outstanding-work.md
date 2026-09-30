@@ -72,6 +72,21 @@ seasonal skill or action evidence. It closes the previously future-only first
 24-hour audit-bucket check and reinforces the still-open shadow-exit gate.
 See the [matured outcome](2026-09-29-prediction-learning-review.md#september-30-first-matured-near-24-hour-outcome).
 
+September 30 operator-selected display policy: use only a valid, source-bound
+pre-dusk trough for the Energy headline/projection and UI forecast alerts.
+The morning Item, immutable receipt, calculation and JDBC history remain
+unchanged for paired scoring and tuning; no history was erased or relabelled.
+Missing/invalid pre-dusk evidence yields no forecast, not a morning fallback.
+The evening issue remains valid until its following-day 11:00 Mountain target,
+including through midnight/DST, and the projection ends at that fixed target.
+Historical/projection segments share one trough legend entry. All 1,927 UI
+tests, the build and 15 Energy browser cases pass. Read-only live Lenovo-size
+verification displays `pre-dusk estimate: 81%`, exactly one trough legend entry,
+no morning trough legend and no browser error or write request. Existing
+morning deep-cycle DM policy is still separate and has not been migrated;
+moving that notification to the pre-dusk basis remains open. No forecast
+calibration, Item ownership, persistence or equipment control changed.
+
 September 30 natural thermal training completed at 07:35:36 MDT, exit zero:
 45m 04s CPU, 366.25 MiB peak memory and zero peak swap. The installed v4
 artifact/report validate, metrics agree, and the accepted training revision

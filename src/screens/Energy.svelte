@@ -26,21 +26,22 @@
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(freshCurrentSoc($items, Math.max(analyticsNowMs, Date.now())));
   const socColor = $derived(socBands(soc));
-  const troughForecast = $derived(selectTroughForecast(predictionReceipt, preDuskReceipt));
+  const troughForecast = $derived(selectTroughForecast(preDuskReceipt));
   const trough = $derived(troughForecast?.value ?? null);
   const troughText = $derived(trough === null ? '—' : `${Math.round(trough)}%`);
-  const troughLabel = $derived(troughForecast?.basis === 'pre-dusk' ? 'pre-dusk estimate' : 'predicted trough tonight');
+  const troughLabel = 'pre-dusk estimate';
 
   const socSeries = $derived([
     { name: 'BMS_SOC', color: socColor, label: 'SoC' },
-    {
-      name: troughForecast?.itemName ?? 'Predicted_SoC_Trough_Tomorrow',
+    ...(troughForecast ? [{
+      name: troughForecast.itemName,
       color: colors.forecast,
-      label: troughForecast?.basis === 'pre-dusk' ? 'Pre-dusk trough' : 'Predicted trough',
+      label: 'Pre-dusk trough',
+      forecastLabel: 'Pre-dusk trough',
       dashedFromNow: true,
       projectionValue: trough,
-      projectionHours: 18,
-    },
+      projectionEndMs: troughForecast.targetEndAtMs,
+    }] : []),
   ]);
 
   // ---- Runtime + basis ------------------------------------------------------
@@ -96,7 +97,7 @@
 
 <div class="energy-grid">
   <div class="cell hero-cell">
-    <Tile label="Battery history + tonight's forecast" accent={socColor}>
+    <Tile label="Battery history + overnight forecast" accent={socColor}>
       <div class="hero-body">
         <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">

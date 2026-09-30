@@ -4,6 +4,16 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const OFFSET_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 const STREAM_EPOCH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
+const LOCAL_HOUR = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Denver', hour: 'numeric', hourCycle: 'h23',
+});
+
+function overnightTargetEnd(predictionDay) {
+  // Calendar arithmetic, not 24 elapsed hours: Mountain DST can change overnight.
+  const nextDayMs = Date.parse(`${predictionDay}T00:00:00Z`) + 86_400_000;
+  const summerCandidate = nextDayMs + 17 * 60 * 60_000;
+  return summerCandidate + (11 - Number(LOCAL_HOUR.format(summerCandidate))) * 60 * 60_000;
+}
 
 function bounded(value, max) {
   return value === null || (typeof value === 'number' && Number.isFinite(value)
@@ -53,9 +63,10 @@ export function parsePreDuskTroughReceipt(raw, { nowMs = Date.now() } = {}) {
     const sunsetAtMs = Date.parse(receipt.sunsetAt);
     const morningIssuedAtMs = Date.parse(receipt.morningIssuedAt);
     const socRecordedAtMs = Date.parse(receipt.socRecordedAt);
+    const targetEndAtMs = overnightTargetEnd(receipt.predictionDay);
     if (![issuedAtMs, sunsetAtMs, morningIssuedAtMs, socRecordedAtMs].every(Number.isFinite)
       || issuedAtMs > nowMs + 60_000
-      || localDateAt(nowMs, 'America/Denver') !== receipt.predictionDay
+      || !Number.isFinite(nowMs) || nowMs >= targetEndAtMs
       || [issuedAtMs, sunsetAtMs, morningIssuedAtMs].some(at =>
         localDateAt(at, 'America/Denver') !== receipt.predictionDay)
       || morningIssuedAtMs >= issuedAtMs
@@ -70,7 +81,7 @@ export function parsePreDuskTroughReceipt(raw, { nowMs = Date.now() } = {}) {
       || receipt.overnightTroughSocPct !== Math.round(Math.max(12,
         Math.min(99, receipt.socAtIssuePct - receipt.overnightDropPct)))) return null;
     return Object.freeze({
-      predictionDay: receipt.predictionDay, issuedAtMs,
+      predictionDay: receipt.predictionDay, issuedAtMs, targetEndAtMs,
       overnightTroughSocPct: receipt.overnightTroughSocPct,
       socAtIssuePct: receipt.socAtIssuePct,
       overnightDropPct: receipt.overnightDropPct,
@@ -81,14 +92,11 @@ export function parsePreDuskTroughReceipt(raw, { nowMs = Date.now() } = {}) {
   }
 }
 
-export function selectTroughForecast(morning, preDusk) {
-  if (preDusk && (!morning || preDusk.issuedAtMs > morning.issuedAtMs)) {
+export function selectTroughForecast(preDusk) {
+  if (preDusk) {
     return Object.freeze({ value: preDusk.overnightTroughSocPct,
       basis: 'pre-dusk', itemName: 'Predicted_SoC_Trough_PreDusk',
-      issuedAtMs: preDusk.issuedAtMs });
+      issuedAtMs: preDusk.issuedAtMs, targetEndAtMs: preDusk.targetEndAtMs });
   }
-  return morning?.overnightTroughSocPct == null ? null
-    : Object.freeze({ value: morning.overnightTroughSocPct,
-      basis: 'morning', itemName: 'Predicted_SoC_Trough_Tomorrow',
-      issuedAtMs: morning.issuedAtMs });
+  return null;
 }

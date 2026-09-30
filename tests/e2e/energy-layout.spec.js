@@ -88,10 +88,10 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
       ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
       .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
-  await page.route('**/fixture-openhab/rest/persistence/items/**', (route) => {
+  await page.route('**/fixture-openhab/rest/persistence/items/**', async (route) => {
     const url = new URL(route.request().url());
     historyRequests.push(url);
-    const now = Date.now();
+    const now = await page.evaluate(() => Date.now());
     return route.fulfill({
       json: {
         data: Array.from({ length: 48 }, (_, index) => ({
@@ -181,7 +181,7 @@ test('Energy marks realized PV above the immutable morning forecast', async ({ p
   await expect(page.locator('.pv-sub')).toHaveText('above 5.4 kWh morning forecast');
 });
 
-test('Energy displays current-day curtailment and trough only with a dated receipt', async ({ page }) => {
+test('Energy keeps morning curtailment but does not display the morning trough', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     Predicted_Curtailment_Hours: '0', Predicted_SoC_Trough_Tomorrow: '52',
@@ -192,7 +192,7 @@ test('Energy displays current-day curtailment and trough only with a dated recei
     }),
   });
   await expect(page.locator('.curtail-value')).toHaveText('1.5 h');
-  await expect(page.locator('.hero-trough')).toContainText('59%');
+  await expect(page.locator('.hero-trough')).toHaveText('pre-dusk estimate: —');
 });
 
 test('Energy selects a source-identifiable pre-dusk trough over the morning issue', async ({ page }) => {
@@ -214,7 +214,16 @@ test('Energy selects a source-identifiable pre-dusk trough over the morning issu
     }),
   });
   await expect(page.locator('.hero-trough')).toHaveText('pre-dusk estimate: 80%');
+  await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(1);
   await expect(page.locator('.pv-sub')).toContainText('morning forecast');
+  // Forecasts remain valid overnight, independently of the morning PV receipt.
+  await page.clock.setSystemTime(new Date('2026-09-25T06:40:00-06:00'));
+  await page.clock.runFor(31_000);
+  await expect(page.locator('.hero-trough')).toHaveText('pre-dusk estimate: 80%');
+  await page.clock.setSystemTime(new Date('2026-09-25T11:00:00-06:00'));
+  await page.clock.runFor(31_000);
+  await expect(page.locator('.hero-trough')).toHaveText('pre-dusk estimate: —');
+  await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
 });
 
 for (const target of TARGETS) {
