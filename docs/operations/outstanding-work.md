@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 first complete-day energy gates: native PV qualified at 10.396
+kWh/99.943443% coverage with a naturally verified terminal reset, against the
+immutable 5.36-kWh morning issue (−48.442%). The next natural scorer can
+record that error without opening coefficient calibration. A BMS reader bug
+mistook two ordered native updates within one millisecond for replay; the
+shared daily/current-health validator now handles only the verified coherent
+case, with 80 tests including real SQL. Supporting read-only libraries are
+installed; no quality flag or control was activated. All 13 native/derived
+temperature transitions agree, but actual pre-cadence gaps keep the BMS day
+partial. Rain remains withheld for a source-fault/replay transition. See the
+[qualified PV comparison](2026-09-29-prediction-learning-review.md#first-qualified-harvested-pv-divergence--september-30)
+and [BMS assessment](2026-09-29-bms-aux-source-cadence.md#september-30-complete-day-reader-and-scaler-assessment).
+
 September 30 thermal divergence work found and fixed a source scheduling bug:
 learned shade closure before a midday issue was lost because each horizon
 incorrectly started open. The candidate preserves the modeled cyclic state;

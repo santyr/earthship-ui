@@ -1,6 +1,7 @@
 """Disposable PostgreSQL-only BMS aux reader test; no production DSN."""
 from contextlib import closing
 from datetime import timedelta
+import json
 
 import pytest
 
@@ -14,12 +15,24 @@ from bms_aux_history import (BmsAuxDayHistoryUnavailable,
                              BmsTemperatureParityUnavailable,
                              fetch_qualified_bms_aux_day,
                              fetch_bms_temperature_parity_day)
-from test_bms_aux_evidence import DAY, bounds, day_rows
+from test_bms_aux_evidence import DAY, bounds, day_rows, receipt
 
 
 def test_real_sql_exact_item_restricted_role_and_oversize_barrier(advisory_db):
     start, end = bounds()
     rows = day_rows()
+    # Exercise the actual independently advancing channels at one clock tick.
+    at, _ = rows[100]
+    first = receipt(at, 101, capacity=296)
+    first['fields']['battery.remaining_ah'].update(
+        observedAt=int((at-timedelta(seconds=30)).timestamp()*1000),
+        validUntil=int((at+timedelta(seconds=90)).timestamp()*1000))
+    rows[100] = at, json.dumps(first)
+    rows.insert(101, (at+timedelta(milliseconds=1), json.dumps(receipt(at, 102, capacity=300))))
+    for index in range(102, len(rows)):
+        stamp, raw = rows[index]
+        body = json.loads(raw); body['sequence'] += 1
+        rows[index] = stamp, json.dumps(body)
     with closing(advisory_db.connect_owner()) as connection, connection:
         with connection.cursor() as cursor:
             cursor.execute('CREATE TABLE public.items (itemid integer, itemname text)')

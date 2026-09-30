@@ -6,7 +6,8 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from bms_aux_evidence import (BmsAuxEvidenceRefused, FIELDS, TTL,
-                              parse_bms_aux_receipt, qualify_bms_aux_day)
+                              parse_bms_aux_receipt, qualify_bms_aux_day,
+                              validate_receipt_successor)
 from bms_temperature_parity import assess_bms_temperature_parity, expected_fahrenheit
 
 
@@ -63,6 +64,64 @@ def test_complete_native_day_has_separate_100_percent_field_coverage():
     assert {name: value['quality'] for name, value in result['fields'].items()} == {
         name: 'ok' for name in FIELDS}
     assert all(value['coverage'] == 1 for value in result['fields'].values())
+
+
+def simultaneous_pair():
+    at = bounds()[0] + timedelta(hours=1)
+    previous = receipt(at, 10, capacity=296)
+    previous['fields'][FIELDS[0]].update(observedAt=ms(at-timedelta(seconds=30)),
+                                       validUntil=ms(at-timedelta(seconds=30)+TTL))
+    latest = receipt(at, 11, capacity=300)
+    return at, previous, latest
+
+
+def test_independent_native_updates_same_millisecond_keep_original_expiry():
+    at, first, second = simultaneous_pair()
+    previous = parse_bms_aux_receipt(json.dumps(first), at)
+    latest = parse_bms_aux_receipt(json.dumps(second), at+timedelta(milliseconds=1))
+    validate_receipt_successor(previous, latest)
+    assert latest.recorded_at == previous.recorded_at
+    assert latest.fields[FIELDS[0]].observed_at == at
+    assert latest.fields[FIELDS[1]] == previous.fields[FIELDS[1]]
+    assert latest.fields[FIELDS[0]].valid_until == at+TTL
+
+
+@pytest.mark.parametrize('bad', ['duplicate', 'conflict', 'source_regression',
+                                 'recording_regression', 'epoch', 'sequence', 'durable_time'])
+def test_same_clock_never_licenses_replay_or_conflicting_source(bad):
+    at, first, second = simultaneous_pair()
+    persisted = at+timedelta(milliseconds=1)
+    if bad == 'duplicate': second['fields'] = first['fields']
+    if bad == 'conflict': second['fields'][FIELDS[1]]['value'] += 100
+    if bad == 'source_regression':
+        second['fields'][FIELDS[0]].update(observedAt=ms(at-timedelta(seconds=60)),
+                                          validUntil=ms(at-timedelta(seconds=60)+TTL))
+    if bad == 'recording_regression':
+        second['recordedAt'] -= 1
+        for name in FIELDS:
+            second['fields'][name]['observedAt'] -= 1
+            second['fields'][name]['validUntil'] -= 1
+    if bad == 'epoch': second = receipt(at, 1, epoch=OTHER, unavailable=FIELDS)
+    if bad == 'sequence': second['sequence'] += 1
+    if bad == 'durable_time': persisted = at
+    with pytest.raises(BmsAuxEvidenceRefused):
+        validate_receipt_successor(parse_bms_aux_receipt(json.dumps(first), at),
+                                   parse_bms_aux_receipt(json.dumps(second), persisted))
+
+
+def test_day_keeps_same_clock_barrier_partial_without_inventing_freshness():
+    rows = day_rows()
+    at, raw = rows[50]
+    second = receipt(at, 52, unavailable=(FIELDS[1],))
+    rows.insert(51, (at+timedelta(milliseconds=1), json.dumps(second)))
+    for index in range(52, len(rows)):
+        stamp, raw = rows[index]
+        body = json.loads(raw); body['sequence'] += 1
+        rows[index] = stamp, json.dumps(body)
+    result = qualified(rows)
+    assert result['fields'][FIELDS[0]]['quality'] == 'ok'
+    assert result['fields'][FIELDS[1]]['quality'] == 'partial'
+    assert result['fields'][FIELDS[1]]['unavailable_barriers'] == 1
 
 
 def test_one_second_beyond_native_expiry_keeps_day_partial():

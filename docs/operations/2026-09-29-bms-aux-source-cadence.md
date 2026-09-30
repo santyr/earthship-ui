@@ -77,3 +77,49 @@ post-change local day and fault/restart recovery before qualifying downstream
 consumers. The unqualified 155 W night-load fallback is a separate issue and
 was not fixed by this publication adjustment. Managed ownership also remains
 a file-first migration exception, not a completed file cutover.
+
+## September 30 complete-day reader and scaler assessment
+
+The first full September 29 read found 1,461 original auxiliary receipts.
+Two pairs, sequences 661/662 and 805/806, share recording millisecond
+`2026-09-29T16:16:29.992000+00:00` and
+`2026-09-29T18:28:49.750000+00:00` respectively. In each pair, persistence
+advances by one millisecond and capacity advances to a genuinely newer native
+observation; temperature is unchanged. The original producer intentionally
+orders persistence stamps, so recording-clock precision alone cannot order
+two independent native-channel updates. No clock regression, sequence gap or
+malformed envelope was found.
+
+The shared `validate_receipt_successor` now permits only ordered same-epoch,
+contiguous-sequence, changed snapshots at a recording-time tie. A changed valid
+field must carry a new observation at that same recording time; conflicting
+equal-source-time values, duplicates, durable-time collisions, recording/source
+regressions and same-clock epoch changes remain refused. Original observation
+times and expiry are never extended. Unavailable barriers remain barriers and
+cannot improve coverage. Both the daily reader and Solar_PV's default-off
+current-health consumer use this validator. Eighty affected tests pass,
+including same-clock updates through real restricted PostgreSQL, UI/sanity
+health and exact expiry failures; owned fixtures are cleaned up.
+
+The corrected real-day assessment remains **partial**, not healthy by decree:
+remaining-Ah coverage is 0.9920707986111111 (624 gaps), native-temperature
+coverage is 0.9989049074074074 (71 gaps), and neither field has an unavailable
+barrier in this day. These are genuine original-event expiry gaps from before
+the cadence correction, not change-only numeric timestamps. The conservative
+read cutover is the first durable bootstrap at
+`2026-09-29T05:14:44.776000+00:00`; no earlier history was backfilled.
+
+The same-day derived Fahrenheit scaler now passes all 13 settled actual native
+temperature transitions with zero mismatches and zero skipped transitions.
+This closes observed dynamic value parity, not full-day source quality or
+physical-network/full-JVM recovery. A complete post-cadence local day is first
+possible September 30, assessable after October 1 local midnight.
+
+Three previously absent read-only libraries were installed byte-exact at
+`/home/sat/openhab/scripts`: `bms_aux_evidence.py` (SHA-256
+`8e33db9902b742fa190b7f16abb364b4b12c95828ea51d4c77d637317bfc9bec`),
+`bms_aux_history.py` (`acfebbff8ee49c3f8d7ba24f43c68825ca199c33f23b2a0fd73733194441d218`)
+and `bms_temperature_parity.py` (`76abe84969fc8692a6447218dd20dc7e5e54dfb36804c9c752b0277fe0030d48`).
+A restricted read using these installed modules returned true current original-
+source health for both fields. No collector/rule restart, publication opt-in,
+estimator activation, SQL write, threshold or hardware change occurred.

@@ -1,5 +1,20 @@
 # MPPT60 daily-PV evidence: observational live activation
 
+## First complete native day — assessed September 30
+
+September 29 qualified through the exact restricted Item 655 reader: 10.396
+kWh, 2,008 original receipts and 99.943443% source coverage. All receipts
+parsed valid in one epoch. The counter began at zero, peaked at 10,396 Wh,
+then naturally reset to zero at `2026-09-30T05:58:37.335000+00:00` (23:58:37
+MDT). The final receipt's original expiry extends through
+`2026-09-30T06:01:07.754000+00:00`, covering the terminal midnight boundary.
+The strict reader retained the peak rather than mistaking the reset for zero
+production. No historical numeric fallback, receipt modification or grant was
+used. This closes the first complete-day and naturally observed terminal-reset
+gates, not physical Thing-fault recovery, coefficient calibration or Energy
+quality publication. The scheduled morning scorer can consume this qualified
+outcome while its separate coefficient-release flag remains false.
+
 September 28, 2026, 07:57–08:13 MDT. This activates source-qualified native
 daily-Wh observations. It does **not** correct the forecast, publish a qualified
 daily PV total, change MPPT controls, or authorize thermal actions.

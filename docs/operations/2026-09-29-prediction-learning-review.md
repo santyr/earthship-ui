@@ -446,3 +446,34 @@ versioned joint-shade model, qualified state/outcome evidence and chronological
 refit must resolve it. The scheduling correction remains source-only pending
 broader candidate qualification; accepted runtime, artifacts, collector and
 controls remain unchanged.
+
+### First qualified harvested-PV divergence — September 30
+
+The completed September 29 native PV day qualifies at 10.396 kWh with
+99.943443% original-source coverage and 2,008 valid receipts in one epoch.
+Its natural 23:58:37 zero reset preserved the earlier peak and terminal
+midnight coverage. The sole immutable morning issue is
+`2026-09-29T12:40:17.987351+00:00` (06:40 MDT), 5.36 kWh. Its exact timestamp
+and value match the frozen rolling prediction record: error is −5.036 kWh,
+or −48.442% of the qualified actual.
+
+At that origin, forecast radiation was 4.125 kWh/m², `k_res=1.3`, direct
+demand 5.4 kWh, charge deficit 6.04 kWh and total modeled demand 11.44 kWh.
+Morning atomic SoC reference was 72%. Resource was only 5.362 kWh, so this
+issue was resource-limited, not constrained by battery headroom. The previously
+documented exploratory `k_res=2.45`, `d_direct=4.1` candidate gives 10.106 kWh
+on these frozen inputs (−0.290 kWh). This is its first comparison against a
+qualified outcome, not a blind prospective or seasonal validation: its earlier
+training labels were diagnostic and only one qualified day exists. It predicts
+harvest, not unconstrained solar potential; actual irradiance/load/curtailment
+still need decomposition before releasing coefficients.
+
+No prediction or coefficient changed. The installed morning scorer already
+separates qualified error scoring from coefficient release, so its next natural
+06:40 run should record the error while retaining the false calibration flag.
+That natural receipt/state/Item continuity remains to verify. September 29
+rain remains withheld after 2,880 bounded original rows report a source-fault
+or packet-replay transition; no numeric zero or historical rain fallback was
+used. The BMS day passes dynamic temperature parity but remains partial from
+actual pre-cadence expiry gaps, as recorded in the
+[auxiliary assessment](2026-09-29-bms-aux-source-cadence.md#september-30-complete-day-reader-and-scaler-assessment).

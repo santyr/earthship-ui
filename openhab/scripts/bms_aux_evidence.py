@@ -126,6 +126,34 @@ def parse_bms_aux_receipt(raw, persisted_at):
     return Receipt(persisted, epoch, sequence, recorded, fields)
 
 
+def validate_receipt_successor(previous, receipt):
+    """Bind ordering to sequence and durable time, not clock precision alone.
+
+    Two independent native updates may share a recording millisecond. Their
+    source times/expiry remain unchanged; only an ordered, changed snapshot
+    with fresh native evidence (or an unavailable barrier) can follow a tie.
+    """
+    if receipt.persisted_at <= previous.persisted_at:
+        raise BmsAuxEvidenceRefused('evidence persistence order or replay')
+    if receipt.recorded_at < previous.recorded_at:
+        raise BmsAuxEvidenceRefused('evidence clock regressed or conflicted')
+    if receipt.epoch == previous.epoch:
+        if receipt.sequence != previous.sequence + 1:
+            raise BmsAuxEvidenceRefused('evidence sequence gap or replay')
+    elif receipt.sequence != 1 or any(
+            entry.status != 'unavailable' for entry in receipt.fields.values()):
+        raise BmsAuxEvidenceRefused('unbarriered auxiliary stream restart')
+    if receipt.recorded_at == previous.recorded_at:
+        if receipt.epoch != previous.epoch or receipt.fields == previous.fields:
+            raise BmsAuxEvidenceRefused('evidence clock regressed or conflicted')
+        for name in FIELDS:
+            before, after = previous.fields[name], receipt.fields[name]
+            if after.status == 'valid' and after != before:
+                if (after.observed_at != receipt.recorded_at
+                        or before.status == 'valid' and after.observed_at <= before.observed_at):
+                    raise BmsAuxEvidenceRefused('conflicting equal-time source observation')
+
+
 def _coverage(receipts, field, start, end):
     """Intersect source validity, durable persistence and later barriers."""
     cursor = start
@@ -184,15 +212,7 @@ def qualify_bms_aux_day(local_date, *, as_of, cutover, observations,
         if not start - TTL <= receipt.recorded_at < end:
             raise BmsAuxEvidenceRefused('receipt belongs to another day')
         if receipts:
-            previous = receipts[-1]
-            if receipt.recorded_at <= previous.recorded_at:
-                raise BmsAuxEvidenceRefused('evidence clock regressed or conflicted')
-            if receipt.epoch == previous.epoch:
-                if receipt.sequence != previous.sequence + 1:
-                    raise BmsAuxEvidenceRefused('evidence sequence gap or replay')
-            elif receipt.sequence != 1 or any(
-                    entry.status != 'unavailable' for entry in receipt.fields.values()):
-                raise BmsAuxEvidenceRefused('unbarriered auxiliary stream restart')
+            validate_receipt_successor(receipts[-1], receipt)
         receipts.append(receipt)
         previous_persisted = persisted
     if not any(start <= receipt.persisted_at < end for receipt in receipts):
