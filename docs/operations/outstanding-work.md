@@ -757,14 +757,20 @@ functional behavior, safety gates and reproducible evidence. Do not trade
 correctness for a faster headline number. The operator resumed the broader
 goal on September 27.
 
-September 30 rollout batching remains source-only. Two matched synthetic fits
+September 30 rollout batching was initially source-only. Two matched synthetic fits
 fell from 3.161/3.261 seconds to 0.899/0.911 seconds with identical complete
 fit digests. This preserves the daily rolling 400-day window and chronological
 refits rather than reusing stale fold fits. Exact scalar loss/gradient/
 sensitivity and full-fit regression gates cover the candidate. Production v4
 differs from the repository's uninstalled airflow changes: an exact compatible
-backport, guarded one-file install and natural runtime/training checks remain
-open. No production speedup or deployment is claimed. See the
+backport has now passed 26 installed-v4 numerical regressions, exact complete
+fit parity and AST noninterference checks. A private, guarded one-file
+transaction installed it over the pinned preimage; independent receipt/rollback
+verification passed, both user timers recovered, and an installed complete fit
+retained the exact digest. Runtime is now `8b528a34...`, while the accepted
+artifact retains its original training identity. Natural publication/replay
+and October 1 whole-run training/resource gates remain open. No full production
+speedup or shadow graduation is claimed. See the
 [batching evidence](2026-09-27-thermal-selector-efficiency.md#september-30-fit-local-rollout-batching-candidate).
 
 The thermal trainer's coefficient-independent forcing cache was committed and

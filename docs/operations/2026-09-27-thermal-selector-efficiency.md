@@ -371,7 +371,7 @@ The final full thermal Python suite passed **889 tests**, with one optional
 PostgreSQL integration skip, in 89.91 seconds. Owned test directories and the
 experimental prototype were removed after the runs completed.
 
-This candidate is **source-only**. The installed v4 `dynamics.py` has SHA-256
+At the initial candidate checkpoint it was **source-only**. Installed v4 had SHA-256
 `2850ce20b4df5d39866dcead43f809c81b7501153af2f6d7377b9931e65a393c`
 and differs from repository source because separate airflow work remains
 uninstalled. Do not copy the whole source file into production. Deployment
@@ -380,3 +380,47 @@ transaction with pinned preimage/rollback receipt, installed-fit parity,
 timer recovery, and subsequent natural publication/training qualification.
 No production file, model artifact, schedule, confirmation label or control
 was changed by these experiments.
+
+### Guarded v4-compatible deployment
+
+The backport starts from that exact installed preimage and replaces only
+`_multihorizon_objective_and_gradient` and `_refine_multihorizon`, adding
+`_prepare_multihorizon_batches`. An AST comparison proves the remainder of
+the installed module unchanged; no uninstalled split-airflow or solar-fitting
+behavior was copied from repository source. The compatible candidate hash is
+`3b50fec19289ed09fbc2a507f0b5747e7906d427ae009e596835d8b54ecd87ce`.
+Against the installed v4 schema/import tree, all 26 selected multihorizon/
+batching regressions passed. A separate complete 8,064-row fit matched the
+prior digest exactly (3.042 seconds before, 0.866 seconds for the backport).
+
+With both services inactive and both enabled timers active, the installer
+took a private one-file rollback receipt at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/dynamics-batch-20260930T1015/files`.
+It stopped only the two thermal user timers, rechecked service quiescence and
+source/target hashes, atomically installed that one compatible file, verified
+the receipt and reproduced the exact complete fit from installed imports.
+Both timers were restored active/enabled; `timers-enabled` passed. Independent
+receipt verification passed and the private rollback bytes retain the exact
+`2850ce20...` preimage. The compatible desired source is deliberately retained
+inside the private receipt parent for reproducible transaction verification.
+Temporary test bytecode was removed. No OpenHAB restart or control change.
+
+The full installed runtime revision is now
+`8b528a34fa4641061018b2d039117c0cb85789abe4f427855b5669be1a011fc5`.
+The accepted model remains at its original `a4a68a17...` training revision;
+no artifact was refitted or relabelled. The next natural shadow publication
+must prove Item/JDBC/capture/as-issued replay continuity under the explicit
+new runtime pin. October 1's daily trainer is the full-run resource and
+accepted-artifact gate. Shadow exit and forecast skill remain separately open.
+
+Pre-install training-bound recovery archive
+`/home/sat/backups/earthship-energy/thermal-pre-batch-20260930T1615Z-a4a68a17.tar.gz`
+verified with 109 members/83 captures and SHA-256
+`f219afedd47061273c7f7eeb173b01cf75b8f38916e0b967e6a420440df89891`.
+The post-install explicit-publication-runtime archive
+`/home/sat/backups/earthship-energy/thermal-publication-runtime-20260930T1618Z-8b528a34.tar.gz`
+verified with the same member/capture counts and SHA-256
+`941e2ba79694d5ee59ef4afef6e0b1f2ec4e7cc59c0c60eb4783084773c894a0`.
+It preserves distinct training/publication bindings; it does not claim those
+older captures were generated under the new revision. These archives passed
+inventory/digest verification, not a new independent full-restore rehearsal.
