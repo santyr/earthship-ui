@@ -537,6 +537,32 @@ genuine operator-signed confirmation and subsequent bounded user-service
 qualification remain open. The accepted thermal model and its timers were not
 changed. Off-host recovery remains explicitly deferred by the operator.
 
+## September 30 current-runtime coexistence refresh
+
+The installed consumer has since advanced to
+`0864f4d6e231be78ae554e94634c161f5d927e185a94a908893f58b87bd31c68`.
+After verifying that both thermal services were inactive, the same disposable
+household-copy qualification was rerun under that exact pin through transient
+user unit `thermal-journal-coexistence-20260930-current`. Invocation ID:
+`b25b3dcabbc8437fbf678801317f0983`.
+
+It exited zero in 2.408 seconds with `status=qualified_disposable_restore` and
+**zero production writes**. The original 10 action, 4 receipt and 4 mode rows
+restored with identical ordered digests; exact v1 and disposable v2 postimage
+audits passed. The installed consumer verified its read-only connection and
+runtime role, retained all six independent synthetic fixture observations,
+left legacy samples unchanged and counted one supported bucket. Fixture sample
+digest remained
+`9297230d3cf6cd0e9b704527418d795cb1292ded0a35a7a7fda1c3c29308405a`.
+
+The script removed its owned container and temporary archive; independent
+container-list and collected-unit checks confirmed no remaining restore
+resource. No new recovery bundle was retained; the earlier private baseline
+remains the rollback anchor and still needs a fresh digest comparison before
+any authorized apply. This refresh qualifies current-runtime coexistence only.
+Production migration, reviewed sending policy, genuine signed confirmation and
+collector/service release gates remain separate and unchanged.
+
 ## Proposed attended production journal cutover
 
 The next requested authorization is **only** the journal vocabulary cutover,

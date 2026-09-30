@@ -1,5 +1,26 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 Astro/day-length audit is complete, read-only. The live Sun Thing
+has 67 state/15 trigger channels, 26 linked state channels, and all four Astro
+calculation actions registered. Existing daily duration Items have one row per
+local date across September; their held values are not stale sensors. Daylight,
+UI sunrise-to-sunset and astronomical night have different boundaries. The
+pre-dusk publisher already uses sunset, and the thermal model already uses
+solar geometry; no general season weight can simply be increased or reduced.
+Compare continuous solar context against seasonal residuals on chronological
+as-issued holdouts, avoiding double counting forecast radiation or assuming a
+full bank at dusk. No live model/configuration was changed. See the
+[inventory, action availability and tuning experiment](2026-09-30-astro-forecast-input-audit.md).
+
+September 30 current thermal consumer requalification passed on a fresh
+household journal copy under installed revision `0864f4d6...`: original
+10 action/4 receipt/4 mode rows restored exactly, disposable v1/v2 audits
+passed, six synthetic independent observations survived, legacy samples stayed
+unchanged and support remained one bucket. Production writes were zero; owned
+temporary resources were removed. This refreshes coexistence evidence, not
+production DDL, genuine signed labels or collector activation. See the
+[current-runtime checkpoint](2026-09-29-thermal-airflow-journal-v2-candidate.md#september-30-current-runtime-coexistence-refresh).
+
 September 30 pre-dusk notification delivery now has a source-only default-off
 candidate. It reuses the durable encrypted outbox, binds one deterministic
 notice to the exact issue digest, retries unchanged ciphertext after ambiguous
