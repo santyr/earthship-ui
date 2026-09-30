@@ -601,7 +601,8 @@ For an explicitly authorized attended apply:
    dump over newer observations or delete v2 labels to force rollback. If any
    new data exists, stop and preserve it for an explicit recovery decision.
 
-The exact journal-only apply still needs operator approval. After it passes,
+At this proposed checkpoint, the exact journal-only apply still needed operator
+approval. It has since been approved and completed as recorded below. After it passes,
 truthful question review, qualified sender/ingress deployment and a genuine
 operator-signed reply/acknowledgement remain separate steps. No unattended
 poller or automatic hardware action is included in this plan.
@@ -630,3 +631,66 @@ check, not a new full rollback anchor, production DDL or signed action truth.
 The existing private baseline must be compared with current digests before
 any apply. Journal-only approval has now been requested; all six source release
 flags remain false. No listener, question, model or control was activated.
+
+## September 30 approved production journal-only migration
+
+The operator explicitly approved the journal-only action-vocabulary change.
+The guarded `scripts/apply-thermal-journal-v2.py` adapter validates the retained
+full five-component baseline, the exact installed consumer pin and inactive
+training/shadow jobs, and compares every ordered journal-table digest with the
+retained qualification. A transaction guard locks only the three journal tables
+and checks their digests both before the DDL and after the exact postimage audit,
+**before commit**. A mismatch or guard failure rolls back the same transaction.
+No Item, policy, credential, collector code pointer or protected rule is changed.
+
+The initial read-only preflight conservatively counted all ten unrelated
+`postgres` sessions as potential writers because superusers can write every
+table. No DDL occurred. The corrected preflight requires dedicated journal
+runtime/owner sessions and active journal queries to be quiescent; journal
+table locks and exact in-transaction digests protect against concurrent writes
+without interrupting unrelated JDBC persistence. The qualified preflight at
+`2026-09-30T23:52:16.760602Z` found exact v1 and unchanged baseline rows.
+
+Fourteen disposable PostgreSQL tests pass, including the new locked guard,
+refusal of changed baseline rows, and a deliberate post-DDL guard failure that
+restores exact v1 atomically. All owned test containers were removed.
+
+The approved apply ran through user transient unit
+`thermal-journal-v2-approved-apply-20260930`, invocation
+`e254a82adebe47dcb03bfa428c583431`, at `2026-09-30T23:53:52.489437Z`.
+It exited zero in 609 ms with `status=migrated_v2`. Exact postimage:
+`f3e09cdd6cbd82bcd34475485bbf326bbc4789f4bcb1f4e050d9fba213378790`.
+The only production DDL replaced `action_events_action_check` to include
+`window` and `skylight`; the fingerprint covers unchanged owners, ACLs and
+other schema objects.
+
+Unchanged original table proofs:
+
+| Table | Rows | Ordered SHA-256 |
+| --- | ---: | --- |
+| action_events | 10 | `7006a6beab68bca825a0cc787119b709a137198d4e9fd1be0f5c6f0bf46a0ad3` |
+| message_receipts | 4 | `056d846d36b18745fe9da23d3552322af2301ffe3097c078690d39ebfc4a3309` |
+| mode_events | 4 | `73f4a3a3445d91047886524f3a1a8cf040d526bac94af025c86a340c0642d966` |
+
+Independent fresh post-commit readback confirms exact v2, all three matching
+digests, **zero window/skylight rows**, unchanged installed consumer pin and
+all six source release flags still false. A real installed-runtime read-only
+`ActionJournal` call successfully reads the current effective history (two
+action events and one mode event). Its first verification attempt supplied an
+unsupported source-candidate `as_of` argument to the older installed API; the
+correct installed signature passed without any runtime or data modification.
+The legacy standalone v1 `schema-audit` command is not a v2 audit; use the exact
+v2 audit adapter for this postimage rather than weakening its old fingerprint.
+
+The retained v1 baseline remains intact at
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-09-29-proposed-baseline`.
+If rollback becomes necessary, require exact v2, no added airflow rows and
+unchanged original digests before restoring only the old CHECK in an owner
+transaction. Never restore the entire dump over newer records or delete labels.
+The transient apply/verification units are collected and no test containers
+remain. No credential, DSN or row contents were printed or committed.
+
+**This closes production journal vocabulary migration only.** The collector
+is still off. A reviewed truthful question, qualified sender/ingress trial,
+genuine operator-signed reply/acknowledgement and bounded service activation
+remain. Model graduation and hardware automation are separate evidence gates.

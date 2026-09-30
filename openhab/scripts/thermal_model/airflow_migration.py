@@ -61,16 +61,20 @@ def audit_v2(dsn, *, runtime_role, expected_owner):
             "fingerprint": observed}
 
 
-def migrate_v2(dsn, *, runtime_role, expected_owner):
+def migrate_v2(dsn, *, runtime_role, expected_owner, transaction_guard=None):
     """Change only the action CHECK inside one transaction after release gate."""
     if not RELEASE_READY or not V2_FINGERPRINT:
         raise journal.SchemaMismatch("thermal v2 migration not release-qualified")
     if not runtime_role or not expected_owner or runtime_role == expected_owner:
         raise ValueError("distinct runtime and owner roles required")
+    if transaction_guard is not None and not callable(transaction_guard):
+        raise ValueError("migration transaction guard must be callable")
     with closing(psycopg2.connect(dsn)) as connection:
         with connection:
             with connection.cursor() as cursor:
                 _require_owner(cursor, expected_owner)
+                if transaction_guard is not None:
+                    transaction_guard(cursor, 'before')
                 original = _fingerprint(cursor, runtime_role=runtime_role,
                                         expected_owner=expected_owner)
                 if original == V2_FINGERPRINT:
@@ -82,4 +86,6 @@ def migrate_v2(dsn, *, runtime_role, expected_owner):
                                         expected_owner=expected_owner)
                 if observed != V2_FINGERPRINT:
                     raise journal.SchemaMismatch("thermal v2 postimage is not exact")
+                if transaction_guard is not None:
+                    transaction_guard(cursor, 'after')
     return {"status": "migrated_v2", "fingerprint": observed}

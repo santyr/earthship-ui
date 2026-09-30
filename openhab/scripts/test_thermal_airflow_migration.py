@@ -144,6 +144,37 @@ def test_v2_migration_preserves_legacy_rows_and_accepts_distinct_airflow(databas
         runtime_role=database.runtime_role, expected_owner=database.owner)['fingerprint'] == candidate
 
 
+def test_transaction_guard_checks_rows_before_and_after_and_rolls_back_on_failure(database, monkeypatch):
+    monkeypatch.setattr(migration, 'RELEASE_READY', True)
+    spec = importlib.util.spec_from_file_location('journal_cutover',
+        Path(__file__).parents[2] / 'scripts/apply-thermal-journal-v2.py')
+    cutover = importlib.util.module_from_spec(spec); spec.loader.exec_module(cutover)
+    with psycopg2.connect(database.admin_dsn) as connection:
+        proofs = cutover.recovery.table_proofs(connection)
+    checked = []
+    guard = cutover.transaction_guard(proofs)
+    def reject_postimage(cursor, phase):
+        checked.append(phase)
+        guard(cursor, phase)
+        if phase == 'after':
+            raise ValueError('intentional postimage failure')
+    with pytest.raises(ValueError, match='intentional postimage'):
+        migration.migrate_v2(database.admin_dsn, runtime_role=database.runtime_role,
+            expected_owner=database.owner, transaction_guard=reject_postimage)
+    assert checked == ['before', 'after']
+    assert journal.audit_schema(database.admin_dsn, runtime_role=database.runtime_role,
+        expected_owner=database.owner)['fingerprint'] == migration.LEGACY_FINGERPRINT
+    damaged = {**proofs, 'action_events': {'rows': 1, 'sha256': '0'*64}}
+    with pytest.raises(ValueError, match='baseline'):
+        migration.migrate_v2(database.admin_dsn, runtime_role=database.runtime_role,
+            expected_owner=database.owner, transaction_guard=cutover.transaction_guard(damaged))
+    result = migration.migrate_v2(database.admin_dsn, runtime_role=database.runtime_role,
+        expected_owner=database.owner, transaction_guard=guard)
+    assert result['status'] == 'migrated_v2'
+    with psycopg2.connect(database.admin_dsn) as connection:
+        assert cutover.recovery.table_proofs(connection) == proofs
+
+
 def test_bad_v2_fingerprint_rolls_back_constraint_atomically(database, monkeypatch):
     candidate = candidate_fingerprint(database)
     monkeypatch.setattr(migration, 'V2_FINGERPRINT', '0' * 64)
