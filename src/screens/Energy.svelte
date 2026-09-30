@@ -11,7 +11,7 @@
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
   import { pvForecastComparison } from '../lib/energy/pvForecastComparison.js';
   import { parseForecast10Day, pvForecastDaysFromToday } from '../lib/weather/forecastDetail.js';
-  import { parsePredictionReceipt, parsePreDuskTroughReceipt, selectTroughForecast } from '../lib/forecast/predictionReceipt.js';
+  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
@@ -20,28 +20,14 @@
 
   let analyticsNowMs = $state(Date.now());
   const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
-  const preDuskReceipt = $derived(parsePreDuskTroughReceipt($items.Forecast_PreDusk_Trough_Receipt_JSON,
-    { nowMs: analyticsNowMs }));
 
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(freshCurrentSoc($items, Math.max(analyticsNowMs, Date.now())));
   const socColor = $derived(socBands(soc));
-  const troughForecast = $derived(selectTroughForecast(preDuskReceipt));
-  const trough = $derived(troughForecast?.value ?? null);
-  const troughText = $derived(trough === null ? '—' : `${Math.round(trough)}%`);
-  const troughLabel = 'pre-dusk estimate';
-
+  // Pre-dusk predictions remain collected and scored in the backend. This
+  // chart shows measured history only, without an expiring forecast overlay.
   const socSeries = $derived([
     { name: 'BMS_SOC', color: socColor, label: 'SoC' },
-    ...(troughForecast ? [{
-      name: troughForecast.itemName,
-      color: colors.forecast,
-      label: 'Pre-dusk trough',
-      forecastLabel: 'Pre-dusk trough',
-      dashedFromNow: true,
-      projectionValue: trough,
-      projectionEndMs: troughForecast.targetEndAtMs,
-    }] : []),
   ]);
 
   // ---- Runtime + basis ------------------------------------------------------
@@ -97,12 +83,11 @@
 
 <div class="energy-grid">
   <div class="cell hero-cell">
-    <Tile label="Battery history + overnight forecast" accent={socColor}>
+    <Tile label="Battery history" accent={socColor}>
       <div class="hero-body">
         <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
-          <span class="hero-trough" style="color: {colors.forecast}">{troughLabel}: {troughText}</span>
         </div>
       </div>
     </Tile>

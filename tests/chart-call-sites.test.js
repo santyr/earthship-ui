@@ -14,7 +14,10 @@ describe('Energy chart containment', () => {
   it('uses a period-neutral battery title because the picker controls the range', async () => {
     const source = await readFile('src/screens/Energy.svelte', 'utf8');
     expect(source).not.toContain("Battery — 24h + tonight's forecast");
-    expect(source).toContain('Battery history + overnight forecast');
+    expect(source).toContain('Battery history');
+    expect(source).not.toContain('hero-trough');
+    expect(source).not.toContain('Predicted_SoC_Trough_PreDusk');
+    expect(source).not.toContain('projectionEndMs');
   });
 });
 

@@ -1,5 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 operator requested the pre-dusk estimate remain visible until
+replacement or be omitted as backend modeling data. The Energy page now omits
+both the label and forecast projection, with the tile titled Battery history.
+Collection, immutable receipts, scoring and notification policy remain intact.
+All 1,946 UI unit tests, 15 Energy browser tests and the build pass; read-only
+live 1340×800 verification finds the history chart/title, no pre-dusk label or
+overlay and zero failed HTTP responses. The active user Vite service serves
+the updated source without an OpenHAB or UI-service restart.
+
 September 30 actual sunset-to-trough component comparison now qualifies five
 completed origins and fifteen prior-night inputs with original sunset/BMS
 evidence and exact persisted morning issue matching. Replacing only the
