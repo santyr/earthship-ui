@@ -27,7 +27,7 @@ ITEM_ID = 176
 SOURCE = ROOT / 'openhab/file-config/items/days-until-next-season.items'
 TARGET = Path('/etc/openhab/items/days-until-next-season.items')
 DEFINITION = 'String DaysUntilNextSeason "Days Until Next Season" <calendar>'
-RELEASE_READY = False  # Source-only until attended live preflight and rollback review.
+RELEASE_READY = False  # Attended one-shot cutover completed; no repeat transfer authorized.
 
 migration.NAMES = (ITEM,)
 migration.ITEM_TYPE = 'String'
