@@ -177,6 +177,27 @@ describe('HistoryChart', () => {
     expect(mocks.chart.dispose).not.toHaveBeenCalled();
   });
 
+  it('advances a moving forecast overlay on refresh without replacing the canvas', async () => {
+    mocks.getHistory.mockResolvedValue([{ time: 0, state: '50 %' }]);
+    const { container } = render(HistoryChart, {
+      props: {
+        series: [
+          { name: 'BMS_SOC', label: 'SoC' },
+          { name: 'Predicted_SoC_Trough_Tomorrow', label: 'Predicted trough',
+            dashedFromNow: true, projectionValue: 80, projectionHours: 18 },
+        ],
+        refreshMs: 200,
+      },
+    });
+
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(1));
+    const canvas = container.querySelector('.hc-canvas');
+    await waitFor(() => expect(mocks.getHistory).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalledTimes(2));
+    expect(container.querySelector('.hc-canvas')).toBe(canvas);
+    expect(mocks.chart.dispose).not.toHaveBeenCalled();
+  });
+
   it('redraws SoC only when the fresh value changes or expires', async () => {
     const interval = vi.spyOn(globalThis, 'setInterval');
     try {

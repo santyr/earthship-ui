@@ -140,8 +140,11 @@
     }
     const nextDataKey = JSON.stringify([seriesList, result.pointsPerSeries]);
     const currentSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, Date.now())?.soc ?? null;
+    // Forecast overlays split at "now" (and may project forward from it), so
+    // they must advance on the slower scheduled refresh even if history holds.
+    const hasMovingForecast = seriesList.some(({ dashedFromNow }) => dashedFromNow);
     const dataUnchanged = Boolean(chart) && latestDataKey === nextDataKey
-      && currentSocValue === lastRenderedSocValue;
+      && currentSocValue === lastRenderedSocValue && !hasMovingForecast;
     latestDataKey = nextDataKey;
     latestResults = result.pointsPerSeries;
     latestSeries = seriesList;
