@@ -2,6 +2,17 @@
 
 ## September 29 v2 delivery candidate
 
+Later September 29 preparation: Hex's configured pinned-keyer local NIP-17
+sign/encrypt/decrypt self-check passed without publishing anything. The exact
+previously approved Hex/operator signed inbox lists are now saved in a private
+route snapshot, with real signature/author/tag verification. Nos.lol and Damus
+returned both announcements; Primal's queries failed, which is not evidence of
+absence. The qualified household journal archive is retained as a private,
+explicitly journal-only recovery point. A reviewed question policy, paired
+SQLite state, full quiescent bundle and genuine signed trial remain open; all
+collector/migration gates are still false. See the
+[retained recovery and route record](2026-09-29-thermal-airflow-journal-v2-candidate.md#retained-same-host-journal-anchor-and-signed-route-snapshot).
+
 The window/skylight state-confirmation delivery path is implemented behind a
 separate default-off gate. It requires the matching ingress gate and exact
 restricted v2 journal preflight before queuing or sending a question; v2 inbox

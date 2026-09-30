@@ -422,3 +422,67 @@ gates pass; it need not wait for eventual predictive skill. The next concrete
 release work is preparing that retained same-host rollback bundle and reviewed
 private route/question policy, followed by an authorized journal cutover and
 genuine signed operator reply. Off-host backup remains explicitly deferred.
+
+## Retained same-host journal anchor and signed-route snapshot
+
+The household qualifier's optional `--retain-dir` now copies the exact private
+custom archive into a **new** private recovery directory, refuses an existing
+destination, checks structure/digest equality, and publishes its manifest only
+after successful disposable restore/consumer checks and owned-container cleanup.
+The manifest explicitly says `thermal_intel_journal_only_recovery`,
+`full_collector_bundle: false` and `off_host_copy: false`. This is not a substitute
+for the collector's paired SQLite/config/journal bundle or signing authority.
+Public parents, existing recovery points and changed archives are refused.
+Failures cannot silently overwrite a prior recovery point or be presented as
+a completed backup; a newly retained partial directory is reported for inspection.
+
+On September 29 a fresh read-only export observed at
+`2026-09-30T05:00:56.595427+00:00` retained the verified 10-action/4-receipt/4-mode
+preimage at
+`/home/sat/.local/state/thermal-intel/journal-recovery/2026-09-29-pre-v2`.
+Its 37,856-byte `journal.dump` SHA-256 is
+`0ee00415d660e476ba26f42d54848bf172aa3b28f5dce8a17d05a508614ae4f3`.
+The dump and manifest are owned by sat with mode 0600 under a mode-0700
+directory. A separate read rechecked private permissions, archive structure
+and manifest/file digest agreement. The disposable v1/v2 and installed-consumer
+checks passed again, and owned containers/temporary archives were removed.
+All 65 affected journal/consumer tests pass. No production journal write occurred.
+
+The current Hex sender also passed the real pinned-nak configured-keyer
+sign/encrypt/decrypt self-roundtrip under its existing private environment.
+This was local and published no event: it is not an operator DM receipt or
+signed state label. `bunker_verified: false` is expected for Hex's current
+local sender key; the separate verified operator bunker is not being substituted
+as Hex's identity. The operator's choice to retain Hex's current npub remains
+unchanged. No key or client credential was printed or committed.
+
+Fresh public queries returned the approved Hex and operator kind-10050 events
+on nos.lol and Damus with exact authors, signatures and the three approved
+relay tags. Primal failed both initial reads and one bounded retry (exit 3,
+zero event lines); that is a query failure, not proof that an event is absent.
+No announcement was republished and no relay route was changed.
+
+`scripts/prepare-thermal-route-snapshot.py` now reads **only** those two frozen,
+previously approved event IDs, verifies them with the actual pinned keyer and
+`Routes` contract, and optionally saves a new private snapshot without signing,
+publishing or overwriting a file. Bounded source failover does not change the
+approved destination relay lists or claim universal availability/completeness.
+All seven offline artifact/permission/failover tests pass; their verifier is
+explicitly a fixture double, unlike the real snapshot verification below.
+
+The real snapshot was read from nos.lol and saved at
+`/home/sat/.local/state/thermal-intel/collector-config/routes.json`, mode 0600
+under a private directory. Exact file SHA-256 is
+`5860ad656eef83f603f470cfc1d673d7666daef32e1579ef2bc5456f6a897604`.
+It contains Hex event `f75b3a5fd8fc5a6734af6cee3a4c5a64009e86bc0efd57e6926b9ec434a16c84`
+and operator event `defe6a8571ae87261278bcae968f88d821e304930e7fad5e7e486f46e1fb20d2`.
+It is an approved frozen signed inventory, not a new private question policy.
+
+Migration, v2 writer, ingress, delivery, polling and v2 as-of reader release
+flags were all rechecked false. No collector state was initialized, state
+question sent, journal migrated, hardware commanded or model graduated. The
+next remaining bundle components are a reviewed private question policy and
+the collector's baseline SQLite pair; then capture/rehearse the complete
+same-host bundle while independent journal writers are quiescent. The pending
+chat question only chooses a truthful trial question, never a training label.
+Production cutover and a genuinely signed operator reply remain separate gates.

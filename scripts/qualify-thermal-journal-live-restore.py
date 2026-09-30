@@ -3,7 +3,9 @@
 
 Run under a user-level transient unit with only THERMAL_DATABASE_URL supplied
 through its private EnvironmentFile. No production SQL write, collector
-activation, model change, persistent archive, or admin credential is used.
+activation, model change, or production admin credential is used. Optional
+--retain-dir keeps a qualified private same-host JOURNAL-ONLY recovery point;
+it does not create a full collector/config/signing-authority backup.
 Errors are intentionally sanitized; never print DSNs, rows or subprocess stderr.
 """
 from contextlib import closing
@@ -13,6 +15,7 @@ from hashlib import sha256
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -152,6 +155,57 @@ def migration_v1():
     return airflow_migration.LEGACY_FINGERPRINT
 
 
+def retain_archive(archive, directory):
+    """Keep a private NEW recovery point; never overwrite or prune one."""
+    directory = Path(directory)
+    backup._private_directory(directory.parent)
+    if directory.exists() or directory.is_symlink():
+        raise ValueError('retained destination already exists')
+    backup._private_file(archive)
+    backup._check_journal_archive(archive)
+    if not 0 < archive.stat().st_size <= MAX_ARCHIVE_BYTES:
+        raise ValueError('retained archive outside bound')
+    directory.mkdir(mode=0o700)
+    target = directory/'journal.dump'
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as output, archive.open('rb') as source:
+        shutil.copyfileobj(source, output, length=65536)
+        output.flush()
+        os.fsync(output.fileno())
+    if backup._digest(target) != backup._digest(archive):
+        raise ValueError('retained archive digest mismatch')
+    backup._check_journal_archive(target)
+    return backup._digest(target)
+
+
+def finalize_retained(directory, digest, proofs, observed_at, consumer=None):
+    """Publish the journal-only manifest AFTER owned disposable cleanup."""
+    directory = Path(directory)
+    backup._private_directory(directory)
+    backup._private_file(directory/'journal.dump')
+    if set(path.name for path in directory.iterdir()) != {'journal.dump'}:
+        raise ValueError('unexpected retained destination contents')
+    if backup._digest(directory/'journal.dump') != digest:
+        raise ValueError('retained archive changed before finalization')
+    manifest = {'version': 1, 'scope': 'thermal_intel_journal_only_recovery',
+        'full_collector_bundle': False, 'export_observed_at': observed_at,
+        'source_schema_fingerprint': migration_v1(), 'archive_sha256': digest,
+        'table_proofs': proofs, 'disposable_restore_qualified': True,
+        'consumer': consumer, 'off_host_copy': False}
+    fd = os.open(directory/'manifest.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as output:
+        output.write(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()+b'\n')
+        output.flush()
+        os.fsync(output.fileno())
+    fd = os.open(directory, os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    return {'directory': str(directory), 'scope': manifest['scope'],
+            'archive_sha256': digest, 'full_collector_bundle': False}
+
+
 def qualify_consumer(params, role, runtime_root, expected_revision):
     """Insert labeled fixture rows only into the restored disposable database."""
     if (params.get('host') != '127.0.0.1' or params.get('dbname') != 'postgres'
@@ -198,6 +252,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--consumer-runtime', type=Path)
     parser.add_argument('--expected-consumer-revision')
+    parser.add_argument('--retain-dir', type=Path,
+        help='new private same-host journal-only recovery directory; never overwritten')
     args = parser.parse_args(argv)
     if ((args.consumer_runtime is None) != (args.expected_consumer_revision is None)
             or args.expected_consumer_revision is not None
@@ -207,7 +263,12 @@ def main(argv=None):
     container = 'thermal-live-restore-' + uuid4().hex
     start_attempted = False
     temporary_path = None
+    retained_digest = None
     try:
+        if args.retain_dir is not None:
+            backup._private_directory(args.retain_dir.parent)
+            if args.retain_dir.exists() or args.retain_dir.is_symlink():
+                raise ValueError('retained destination already exists')
         with closing(runtime_connection()[0]) as source:
             params = parse_dsn(os.environ['THERMAL_DATABASE_URL'])
             with source.cursor() as cursor:
@@ -219,6 +280,7 @@ def main(argv=None):
                     raise ValueError('restricted journal role mismatch')
                 cursor.execute('SELECT pg_export_snapshot()')
                 snapshot = cursor.fetchone()[0]
+            observed_at = datetime.now(timezone.utc).isoformat()
             if journal.audit_schema(os.environ['THERMAL_DATABASE_URL'],
                                     runtime_role=role, expected_owner=owner)['fingerprint'] != migration_v1():
                 raise ValueError('live journal v1 preimage mismatch')
@@ -241,6 +303,9 @@ def main(argv=None):
                     stage = 'consumer'
                     consumer_proof = qualify_consumer(disposable, role,
                         args.consumer_runtime, args.expected_consumer_revision)
+                if args.retain_dir is not None:
+                    stage = 'retention'
+                    retained_digest = retain_archive(archive, args.retain_dir)
                 stage = 'cleanup'
         result = {'status': 'qualified_disposable_restore',
                   'production_writes': 0, 'tables': {
@@ -268,6 +333,16 @@ def main(argv=None):
                     result = {'status': 'withheld', 'stage': 'container_cleanup'}
         if temporary_path is not None and temporary_path.exists():
             result = {'status': 'withheld', 'stage': 'temporary_cleanup'}
+    if args.retain_dir is not None and args.retain_dir.exists():
+        if result['status'] == 'qualified_disposable_restore' and retained_digest:
+            try:
+                result['private_recovery'] = finalize_retained(args.retain_dir,
+                    retained_digest, source_proofs, observed_at, consumer_proof)
+            except Exception:
+                result = {'status': 'withheld', 'stage': 'retained_finalize',
+                          'private_partial_directory': str(args.retain_dir)}
+        elif retained_digest is not None or result.get('stage') == 'retention':
+            result['private_partial_directory'] = str(args.retain_dir)
     print(json.dumps(result, sort_keys=True))
     return 0 if result['status'] == 'qualified_disposable_restore' else 2
 

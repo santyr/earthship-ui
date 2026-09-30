@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+September 29 retained collector recovery progress: the verified household
+journal preimage is now retained privately, with an independently checked
+custom-archive digest and explicit **journal-only**, not full-bundle scope.
+Hex's real pinned-keyer local NIP-17 sign/encrypt/decrypt roundtrip passed
+without publication. The two already-approved signed inbox events were saved
+as a verified private route snapshot; nos.lol/Damus readbacks passed, while
+Primal's query failed and was not claimed absent or repaired by publication.
+All 65 journal/consumer and 7 route-artifact tests pass; disposable resources
+were removed. All six release flags remain false. Remaining preparation is
+the truthful private question policy, baseline SQLite pair and complete
+quiescent same-host bundle/restore, then authorized migration and signed trial.
+See the [retained anchor and routes](2026-09-29-thermal-airflow-journal-v2-candidate.md#retained-same-host-journal-anchor-and-signed-route-snapshot).
+
 September 29 household-copy collector prerequisite: a fresh read-only export
 restored all 10 action, 4 receipt and 4 mode rows with identical ordered
 digests, passed exact disposable v1/v2 schema audits, then qualified the

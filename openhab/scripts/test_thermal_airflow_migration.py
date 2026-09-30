@@ -194,6 +194,74 @@ def test_consumer_fixture_cannot_target_production_database():
             'thermal_runtime', root/'openhab/scripts', '0'*64)
 
 
+def restore_qualifier():
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location('thermal_live_restore',
+        root/'scripts/qualify-thermal-journal-live-restore.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_retained_journal_is_private_exact_and_explicitly_not_full_bundle(database, tmp_path):
+    qualifier = restore_qualifier()
+    params = psycopg2.extensions.parse_dsn(database.admin_dsn)
+    archive = tmp_path/'source.dump'
+    fd = os.open(archive, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, 'wb') as output:
+        subprocess.run(['pg_dump', '--format=custom', '--schema=thermal_intel'],
+            env=qualifier.postgres_env(params), stdout=output, stderr=subprocess.DEVNULL,
+            check=True, timeout=30)
+    destination = tmp_path/'retained'
+    digest = qualifier.retain_archive(archive, destination)
+    assert (destination/'journal.dump').read_bytes() == archive.read_bytes()
+    assert destination.stat().st_mode & 0o077 == 0
+    assert (destination/'journal.dump').stat().st_mode & 0o077 == 0
+    assert not (destination/'manifest.json').exists()
+    with psycopg2.connect(database.admin_dsn) as connection:
+        proofs = qualifier.table_proofs(connection)
+    proof = qualifier.finalize_retained(destination, digest, proofs,
+        datetime.now(timezone.utc).isoformat())
+    assert proof['full_collector_bundle'] is False
+    assert proof['scope'] == 'thermal_intel_journal_only_recovery'
+    import json
+    manifest = json.loads((destination/'manifest.json').read_bytes())
+    assert manifest['archive_sha256'] == digest
+    assert manifest['table_proofs'] == proofs
+    assert manifest['full_collector_bundle'] is False and manifest['off_host_copy'] is False
+    assert (destination/'manifest.json').stat().st_mode & 0o077 == 0
+    with pytest.raises(ValueError, match='already exists'):
+        qualifier.retain_archive(archive, destination)
+
+
+def test_retained_archive_refuses_public_parent_or_existing_target(tmp_path):
+    qualifier = restore_qualifier()
+    public = tmp_path/'public'
+    public.mkdir(mode=0o755)
+    with pytest.raises(ValueError, match='private'):
+        qualifier.retain_archive(tmp_path/'missing.dump', public/'retained')
+    assert list(public.iterdir()) == []
+    existing = tmp_path/'existing'
+    existing.mkdir(mode=0o700)
+    sentinel = existing/'do-not-overwrite'
+    sentinel.write_text('owned fixture')
+    with pytest.raises(ValueError, match='already exists'):
+        qualifier.retain_archive(tmp_path/'missing.dump', existing)
+    assert sentinel.read_text() == 'owned fixture'
+
+
+def test_retained_manifest_refuses_changed_archive(tmp_path):
+    qualifier = restore_qualifier()
+    destination = tmp_path/'retained'
+    destination.mkdir(mode=0o700)
+    archive = destination/'journal.dump'
+    archive.write_bytes(b'changed fixture')
+    archive.chmod(0o600)
+    with pytest.raises(ValueError, match='changed'):
+        qualifier.finalize_retained(destination, '0'*64, {}, '2026-09-29T00:00:00+00:00')
+    assert not (destination/'manifest.json').exists()
+
+
 def test_position_ingress_retries_exact_v2_storage_without_duplicate(database, monkeypatch, tmp_path):
     now = datetime.now(timezone.utc).replace(microsecond=0)
     operator = '1' * 64
