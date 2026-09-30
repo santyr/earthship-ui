@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
-  import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation } from '../lib/shades/catalog.js';
+  import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation, shadePreviewEnabled } from '../lib/shades/catalog.js';
 
   const shadeTints = ['#63889a', '#78876d', '#807591', '#947e68', '#6b8590'];
 
@@ -10,7 +10,7 @@
   const view = $derived(SHADE_VIEWS[viewIndex]);
   const rooms = $derived(SHADE_GROUPS.filter((room) => view.rooms.includes(room.id)));
   const mapped = $derived(SHADE_SLOTS.filter((slot) => slot.positionItem && slot.availabilityItem && slot.stateItem).length);
-  const previewMode = $derived(mapped === 0);
+  const previewMode = $derived(shadePreviewEnabled(SHADE_SLOTS));
   let previewOpen = $state(Object.fromEntries(SHADE_SLOTS.map((slot) => [slot.number, 50])));
   let sharedPreviewConnected = $state(false);
   let previewWrites = Promise.resolve();
@@ -19,6 +19,39 @@
   let pressedAction = $state('');
   let pressedTimer;
   const touchEventGuardMs = 150;
+  const adjustmentTargets = [
+    { id: 'all', label: `All ${SHADE_COUNT} shades`, slots: SHADE_SLOTS },
+    ...SHADE_GROUPS.map((room) => ({ id: room.id, label: `${room.label} (all ${room.last - room.first + 1})`,
+      slots: SHADE_SLOTS.filter((slot) => slot.room === room.id) })),
+    ...SHADE_SLOTS.map((slot) => ({ id: `shade-${slot.number}`, label: slot.label, slots: [slot] })),
+  ];
+  let adjustmentDialog;
+  let adjustmentTarget = $state('all');
+  let adjustmentPercent = $state();
+  let adjustmentMixed = $state(false);
+  const adjustmentValid = $derived(Number.isInteger(adjustmentPercent) && adjustmentPercent >= 0 && adjustmentPercent <= 100);
+
+  function selectAdjustmentTarget(id) {
+    const target = adjustmentTargets.find((candidate) => candidate.id === id);
+    if (!previewMode || !target) return;
+    adjustmentTarget = id;
+    const percent = previewGroupOpen(target.slots);
+    adjustmentMixed = percent === null;
+    adjustmentPercent = percent ?? undefined;
+  }
+
+  function openAdjustment() {
+    if (!previewMode) return;
+    selectAdjustmentTarget('all');
+    adjustmentDialog.showModal();
+  }
+
+  function applyAdjustment() {
+    const target = adjustmentTargets.find((candidate) => candidate.id === adjustmentTarget);
+    if (!previewMode || !adjustmentValid || !target) return;
+    previewButton(target.slots, adjustmentPercent, 'precision-apply');
+    adjustmentDialog.close();
+  }
 
   onMount(() => {
     const timer = setInterval(() => nowMs = Date.now(), 60_000);
@@ -147,6 +180,7 @@
     </div>
     <div class="all-actions" aria-label="All shade controls">
       <span>All {SHADE_COUNT} shades</span>
+      <button type="button" disabled={!previewMode} aria-label="Set shade percentage" onclick={openAdjustment}>Set %</button>
       <button type="button" class:pressed={pressedAction === 'all-open'} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(SHADE_SLOTS, 100, 'all-open')}>Open all</button>
       <button type="button" class:pressed={pressedAction === 'all-close'} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(SHADE_SLOTS, 0, 'all-close')}>Close all</button>
     </div>
@@ -242,7 +276,41 @@
   </div>
 </div>
 
+<dialog bind:this={adjustmentDialog} class="adjustment-dialog" aria-labelledby="shade-adjustment-title" aria-describedby="shade-adjustment-description">
+  <h2 id="shade-adjustment-title">Set shade percentage</h2>
+  <p id="shade-adjustment-description">Preview only — no shade commands. 100% open, 0% closed.</p>
+  <label for="shade-adjustment-target">Shades to adjust</label>
+  <select id="shade-adjustment-target" value={adjustmentTarget} onchange={(event) => selectAdjustmentTarget(event.currentTarget.value)}>
+    {#each adjustmentTargets as target (target.id)}<option value={target.id}>{target.label}</option>{/each}
+  </select>
+  {#if adjustmentMixed}<p class="mixed-note">Mixed positions — choose a percentage.</p>{/if}
+  <label for="shade-adjustment-percent">Percent open</label>
+  <input id="shade-adjustment-percent" type="number" min="0" max="100" step="1" bind:value={adjustmentPercent} inputmode="numeric" />
+  <div class="adjustment-actions">
+    <button type="button" disabled={!previewMode || !adjustmentValid} onclick={() => adjustmentPercent = Math.max(0, adjustmentPercent - 5)}>Close 5% more</button>
+    <button type="button" disabled={!previewMode || !adjustmentValid} onclick={() => adjustmentPercent = Math.min(100, adjustmentPercent + 5)}>Open 5% more</button>
+    <button type="button" disabled={!previewMode} onclick={() => adjustmentPercent = 0}>Close fully</button>
+    <button type="button" disabled={!previewMode} onclick={() => adjustmentPercent = 100}>Open fully</button>
+  </div>
+  <div class="adjustment-footer">
+    <button type="button" onclick={() => adjustmentDialog.close()}>Cancel</button>
+    <button type="button" disabled={!previewMode || !adjustmentValid} onclick={applyAdjustment}>Apply preview</button>
+  </div>
+</dialog>
+
 <style>
+  .adjustment-dialog { width: min(360px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); overflow-y: auto; box-sizing: border-box; border: 1px solid #7798aa; border-radius: .5rem; background: #182632; color: #edf3f8; padding: 1rem; }
+  .adjustment-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+  .adjustment-dialog h2 { margin: 0 0 .5rem; }
+  .adjustment-dialog p { font-size: .8rem; color: #bbc9d3; }
+  .adjustment-dialog label { display: block; margin: .65rem 0 .3rem; font-size: .85rem; }
+  .adjustment-dialog select, .adjustment-dialog input { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #7798aa; border-radius: .3rem; background: #101b24; color: #edf3f8; padding: .4rem; font: inherit; }
+  .adjustment-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; margin-top: .6rem; }
+  .adjustment-footer { display: flex; justify-content: flex-end; gap: .4rem; margin-top: 1rem; }
+  .adjustment-dialog button { min-height: 44px; border: 1px solid #98bbcc; border-radius: .3rem; background: #4c7184; color: #fff; padding: .4rem .5rem; font: inherit; font-size: .82rem; cursor: pointer; }
+  .adjustment-dialog button:disabled { opacity: .5; cursor: not-allowed; }
+  .adjustment-dialog button:not(:disabled):active { background: #6b9baa; border-color: #d1f2f7; }
+  .adjustment-dialog :focus-visible { outline: 2px solid #b6e9f0; outline-offset: 2px; }
   .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .48rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
   .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 54px; }
   h1 { margin: 0; font-size: 1.26rem; font-weight: 650; letter-spacing: .01em; }

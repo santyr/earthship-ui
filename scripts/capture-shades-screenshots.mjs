@@ -28,6 +28,12 @@ try {
       path: join(root, 'docs', 'screenshots', filename), animations: 'disabled',
     });
   }
+  await page.getByRole('button', { name: 'Set shade percentage' }).click();
+  const editor = page.getByRole('dialog', { name: 'Set shade percentage' });
+  await editor.getByRole('combobox', { name: 'Shades to adjust' }).selectOption({ label: 'Kitchen (all 8)' });
+  await editor.screenshot({
+    path: join(root, 'docs', 'screenshots', 'shades-percentage-editor.png'), animations: 'disabled',
+  });
 } finally {
   await browser?.close();
   await server.close();

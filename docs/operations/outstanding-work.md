@@ -1,5 +1,27 @@
 # Outstanding Earthship and OpenHAB work
 
+September 30 shade fine-control preview is deployed. **Set %** provides named
+individual/room/all targets, exact integer percent-open entry, five-point
+Open/Close steps and separate full-open/full-close presets without shortening
+the existing sliders. Mixed groups require an explicit percentage; drafts
+remain local until Apply, and Cancel/Escape discard them. Partial Item mapping
+now disables preview consistently in browser and server. All 17 unit checks,
+ten isolated browser cases and the build pass; refreshed isolated screenshots
+are in the README. After the user-level UI restart, the live editor passed a
+cancelled-draft check with zero writes/page errors. Hardware, physical tablet
+acceptance and voice-provider commissioning remain open. See the
+[precise preview path](2026-09-27-dooya-shades-earthship-handoff.md#precise-preview-control-and-planned-voice-operation).
+
+September 30 full-database recovery refresh is running, not yet verified.
+Independent assessment confirms the monitor's September 27 archive remains
+fresh/readable/hash-matching and restore-verified, but its 515-table snapshot
+predates seven newly collected evidence histories. The new read-only snapshot
+contains all 522 current tables; its owned networkless restore is resource
+bounded. The weekly monitor still selects the prior verified point, and no
+production restart, control change, notification or off-host copy occurred.
+Do not launch another rehearsal while this one runs. See the
+[coverage check](2026-09-20-full-database-restore.md#september-30-coverage-check-and-refresh-in-progress).
+
 September 30 morning PV/SoC input provenance is deployed. The existing
 prediction receipt and private issue record now retain the exact single
 validated atomic SoC receipt's hash, epoch, native timestamps/expiry, actual

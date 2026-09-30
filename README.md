@@ -48,8 +48,15 @@ hardware commands.
 
 [![Bathroom and Bedroom shade preview](docs/screenshots/shades-bathroom-bedroom.png)](docs/screenshots/shades-bathroom-bedroom.png)
 
+### Window shades — precise adjustment
+
+[![Shade percentage preview editor](docs/screenshots/shades-percentage-editor.png)](docs/screenshots/shades-percentage-editor.png)
+
 The 27 shade slots and their all/zone/individual controls are preview-only
-until hardware is mapped and commissioned. Regenerate these two images with
+until hardware is mapped and commissioned. **Set %** selects an individual,
+room, or all shades for exact percent-open entry, five-point steps, or full
+open/close. Apply changes only the shared preview; Cancel leaves it unchanged.
+Regenerate these three images with
 `node scripts/capture-shades-screenshots.mjs`.
 
 ### Detail modals

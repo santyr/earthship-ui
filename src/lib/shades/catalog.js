@@ -33,6 +33,11 @@ export const SHADE_SLOTS = Object.freeze(SHADE_GROUPS.flatMap((group) =>
   }),
 ));
 
+export function shadePreviewEnabled(slots) {
+  return slots.length === SHADE_COUNT && slots.every((slot) =>
+    !slot.positionItem && !slot.availabilityItem && !slot.stateItem);
+}
+
 export function shadePosition(raw) {
   if (typeof raw !== 'string' && typeof raw !== 'number') return null;
   const value = String(raw).trim();

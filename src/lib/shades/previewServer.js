@@ -1,9 +1,9 @@
-import { SHADE_COUNT, SHADE_SLOTS } from './catalog.js';
+import { SHADE_COUNT, SHADE_SLOTS, shadePreviewEnabled } from './catalog.js';
 
 // Ephemeral UI rehearsal state. This endpoint has no openHAB or radio imports.
 // Motor reports remain the sole authority once shade Items are commissioned.
 export function shadePreviewPlugin() {
-  const enabled = SHADE_SLOTS.every((slot) => !slot.positionItem && !slot.availabilityItem && !slot.stateItem);
+  const enabled = shadePreviewEnabled(SHADE_SLOTS);
   const positions = Array(SHADE_COUNT).fill(50);
   const listeners = new Set();
   let revision = 0;

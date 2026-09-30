@@ -8,9 +8,10 @@ schema rehearsal cannot replace it. The full refresh uses
 python3 scripts/verify-openhab-full-backup.py --destination-root /home/sat/backups/earthship-energy
 ```
 
-Requires the existing PostgreSQL driver/config parser, local PostgreSQL utilities,
-the local `postgres:16` Docker image and `apply_patch` on PATH. Do not run a second
-copy while an existing rehearsal is active.
+Requires the existing PostgreSQL driver/config parser, local PostgreSQL utilities
+and local `postgres:16` Docker image. Private JSON receipts are written by the
+checked-in receipt helper; no session-local `apply_patch` executable is required.
+Do not run a second copy while an existing rehearsal is active.
 
 ## Scope and controls
 
@@ -58,3 +59,27 @@ September 27 at 03:33:08 MDT. No manual job or DM was triggered.
 Unit tests cover SQL identifier safety and bounded accumulator shape;
 read-only PostgreSQL VALUES tests verify order invariance, duplicate sensitivity
 and value sensitivity.
+
+## September 30 coverage check and refresh in progress
+
+The installed weekly backup monitor now selects the September 27 full-database
+restore under `/home/sat/backups/earthship-energy/full-restore-e66yrzn3/`, not
+the August 20 archive. A fresh, non-notifying assessment on September 30
+confirmed archive readability, matching SHA256, dated restore verification
+within the seven-day limit, and private directory/archive modes 0700/0600.
+The source snapshot began September 27 at 20:17:24Z and its 515-table restore
+finished at 21:11:04Z. Same-host-only storage remains Actionable; this is not
+off-host disaster recovery.
+
+Read-only production metadata now reports 522 tables, with no removed tables
+and seven additions absent from that snapshot: `public.item0655` through
+`public.item0661`. Freshness of the older archive does not imply coverage of
+those newer evidence histories or rows appended since its snapshot.
+
+An authorized online full-database snapshot/isolated restore has started under
+`/home/sat/backups/earthship-energy/full-restore-volep77n/`, with all 522 tables
+in its source inventory. **This is in progress, not restore verification.**
+The existing monitor reference remains unchanged until successful independent
+readback. No OpenHAB stop, control change, manual notification or off-host copy
+was performed. The isolated restore has a one-CPU/one-GiB/no-additional-swap
+limit, and its owned container/volume must be removed after verification.

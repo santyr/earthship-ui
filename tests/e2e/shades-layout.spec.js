@@ -125,6 +125,23 @@ for (const target of TARGETS) {
       expect(geometry.vertical).toBe('vertical-lr');
       expect(geometry.truncatedCardLabels).toEqual([]);
     }
+    await page.getByRole('button', { name: 'Set shade percentage' }).click();
+    const editor = page.getByRole('dialog', { name: 'Set shade percentage' });
+    await expect(editor).toBeVisible();
+    await expect(editor.locator('option')).toHaveCount(32);
+    const editorGeometry = await editor.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return { right: box.right, bottom: box.bottom, left: box.left, top: box.top,
+        fits: element.scrollWidth <= element.clientWidth,
+        touchHeights: [...element.querySelectorAll('button,input,select')].map((control) => control.getBoundingClientRect().height) };
+    });
+    expect(editorGeometry.left).toBeGreaterThanOrEqual(0);
+    expect(editorGeometry.top).toBeGreaterThanOrEqual(0);
+    expect(editorGeometry.right).toBeLessThanOrEqual(target.width);
+    expect(editorGeometry.bottom).toBeLessThanOrEqual(target.height);
+    expect(editorGeometry.fits).toBe(true);
+    expect(editorGeometry.touchHeights.every((height) => height >= 44)).toBe(true);
+    await editor.getByRole('button', { name: 'Cancel' }).click();
     expect(writes).toEqual([]);
     expect(errors).toEqual([]);
   });
@@ -190,6 +207,79 @@ test('preview sliders update individual, zone and all positions without shade co
   expect(writes).toEqual([]);
 });
 
+test('precise preview editor scopes percentages and steps without motor commands', async ({ page }) => {
+  const commands = [];
+  page.on('request', (request) => {
+    if (request.method() !== 'GET' && !request.url().includes('/api/shades-preview')) commands.push(request.url());
+  });
+  await page.setViewportSize({ width: 1340, height: 800 });
+  await page.route('**/config.json', (route) => route.fulfill({ json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture', staleBannerSeconds: 90 } }));
+  await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({ json: [] }));
+  await page.route('**/fixture-openhab/rest/things', (route) => route.fulfill({ json: [] }));
+  await page.goto(`${baseURL}#/shades`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Shared preview only · no shade commands')).toBeVisible();
+  await page.getByRole('button', { name: 'Close all', exact: true }).click();
+  const kitchen = page.getByRole('article', { name: 'Kitchen Shade 01: Local preview' });
+  const living = page.getByRole('article', { name: 'Living Room Shade 09: Local preview' });
+  const launch = page.getByRole('button', { name: 'Set shade percentage' });
+  await launch.click();
+  const editor = page.getByRole('dialog', { name: 'Set shade percentage' });
+  const percent = editor.getByRole('spinbutton', { name: 'Percent open' });
+  const target = editor.getByRole('combobox', { name: 'Shades to adjust' });
+  const apply = editor.getByRole('button', { name: 'Apply preview' });
+  await expect(percent).toHaveValue('0');
+  await target.selectOption({ label: 'Living Room Shade 09' });
+  await percent.fill('47');
+  await editor.getByRole('button', { name: 'Open 5% more' }).click();
+  await expect(percent).toHaveValue('52');
+  await editor.getByRole('button', { name: 'Close 5% more' }).click();
+  await expect(percent).toHaveValue('47');
+  await expect(living.locator('.position-value')).toHaveText('0%');
+  await percent.fill('47.5');
+  await expect(apply).toBeDisabled();
+  await percent.fill('101');
+  await expect(apply).toBeDisabled();
+  await percent.fill('');
+  await expect(apply).toBeDisabled();
+  await percent.fill('47');
+  await apply.click();
+  await expect(editor).not.toBeVisible();
+  await expect(living.locator('.position-value')).toHaveText('47%');
+  await expect(kitchen.locator('.position-value')).toHaveText('0%');
+  await expect(launch).toBeFocused();
+
+  await launch.click();
+  await expect(editor.getByText('Mixed positions — choose a percentage.')).toBeVisible();
+  await expect(percent).toHaveValue('');
+  await expect(editor.getByRole('button', { name: 'Open 5% more' })).toBeDisabled();
+  await target.selectOption({ label: 'Kitchen (all 8)' });
+  await percent.fill('99');
+  await editor.getByRole('button', { name: 'Open 5% more' }).click();
+  await expect(percent).toHaveValue('100');
+  await apply.click();
+  await expect(kitchen.locator('.position-value')).toHaveText('100%');
+  await expect(page.getByRole('article', { name: 'Kitchen Shade 08: Local preview' }).locator('.position-value')).toHaveText('100%');
+  await expect(living.locator('.position-value')).toHaveText('47%');
+
+  await launch.click();
+  await editor.getByRole('button', { name: 'Open fully' }).click();
+  await editor.getByRole('button', { name: 'Cancel' }).click();
+  await expect(living.locator('.position-value')).toHaveText('47%');
+  await launch.click();
+  await editor.getByRole('button', { name: 'Close fully' }).click();
+  await page.keyboard.press('Escape');
+  await expect(editor).not.toBeVisible();
+  await expect(living.locator('.position-value')).toHaveText('47%');
+  await launch.click();
+  await editor.getByRole('button', { name: 'Close fully' }).click();
+  await editor.getByRole('button', { name: 'Close 5% more' }).click();
+  await expect(percent).toHaveValue('0');
+  await apply.click();
+  await expect(kitchen.locator('.position-value')).toHaveText('0%');
+  await expect(living.locator('.position-value')).toHaveText('0%');
+  expect(commands).toEqual([]);
+});
+
 test('preview positions synchronize between separate tablet and laptop clients', async ({ browser }) => {
   const laptop = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const tablet = await browser.newContext({ viewport: { width: 1340, height: 800 } });
@@ -216,13 +306,19 @@ test('preview positions synchronize between separate tablet and laptop clients',
     slider.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await expect(kitchenA.locator('.position-value')).toHaveText('64%');
+  await b.getByRole('button', { name: 'Set shade percentage' }).click();
+  const editor = b.getByRole('dialog', { name: 'Set shade percentage' });
+  await editor.getByRole('combobox', { name: 'Shades to adjust' }).selectOption({ label: 'Kitchen Shade 01' });
+  await editor.getByRole('spinbutton', { name: 'Percent open' }).fill('61');
+  await editor.getByRole('button', { name: 'Apply preview' }).click();
+  await expect(kitchenA.locator('.position-value')).toHaveText('61%');
   await expect(a.getByRole('article', { name: 'Kitchen group: Local preview' }).locator('.position-caption')).toHaveText('mixed');
   const invalidStatus = await a.evaluate(async () => (await fetch('/api/shades-preview', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slots: [1, 28], openPercent: 70 }),
   })).status);
   expect(invalidStatus).toBe(400);
-  await expect(kitchenB.locator('.position-value')).toHaveText('64%');
+  await expect(kitchenB.locator('.position-value')).toHaveText('61%');
   await b.getByRole('button', { name: 'Open all' }).click();
   await expect(a.getByRole('article', { name: 'All 27 shades: Local preview' }).locator('.position-value')).toHaveText('100%');
   await expect(kitchenA.locator('.position-value')).toHaveText('100%');

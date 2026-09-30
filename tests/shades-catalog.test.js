@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HALLWAY_TEMPERATURE_ITEM, SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, parseShadeReport, shadeGroupPresentation, shadePosition, shadePresentation } from '../src/lib/shades/catalog.js';
+import { HALLWAY_TEMPERATURE_ITEM, SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, parseShadeReport, shadeGroupPresentation, shadePosition, shadePresentation, shadePreviewEnabled } from '../src/lib/shades/catalog.js';
 
 const NOW = Date.parse('2026-09-27T23:00:00Z');
 const state = (position, received = NOW / 1000) => JSON.stringify({
@@ -8,6 +8,20 @@ const state = (position, received = NOW / 1000) => JSON.stringify({
 });
 
 describe('shade inventory and report presentation', () => {
+  it('permits preview only for the full inventory with no partial or complete Item mappings', () => {
+    expect(shadePreviewEnabled(SHADE_SLOTS)).toBe(true);
+    expect(shadePreviewEnabled([])).toBe(false);
+    expect(shadePreviewEnabled(SHADE_SLOTS.slice(0, 26))).toBe(false);
+    for (const key of ['positionItem', 'availabilityItem', 'stateItem']) {
+      const partial = SHADE_SLOTS.map((slot, index) => index === 0 ? { ...slot, [key]: 'Commissioned_Item' } : slot);
+      expect(shadePreviewEnabled(partial)).toBe(false);
+    }
+    const complete = SHADE_SLOTS.map((slot, index) => index === 0 ? {
+      ...slot, positionItem: 'Position', availabilityItem: 'Available', stateItem: 'Diagnostics',
+    } : slot);
+    expect(shadePreviewEnabled(complete)).toBe(false);
+  });
+
   it('reserves 27 unique numbered slots in the operator-approved rooms without guessed mappings', () => {
     expect(SHADE_COUNT).toBe(27);
     expect(SHADE_GROUPS.map((group) => [group.label, group.first, group.last])).toEqual([

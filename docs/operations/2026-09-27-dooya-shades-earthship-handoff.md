@@ -225,15 +225,41 @@ of the local/shared preview update, never a motor acknowledgement.
 The view and Open/Close buttons use solid, higher-contrast steel fills and
 borders so they remain visible against the dark control page on the tablet.
 
-## Planned fine control and voice operation (not enabled)
+## Precise preview control and planned voice operation
 
-Keep the vertical sliders for quick approximate adjustment, and add paired
-**Open +5%** and **Close -5%** buttons beside each individual, zone, and
-all-shades control. The step is five percentage points of *percent open*,
-clamped to 0–100; provide an exact-percent entry for targets that the slider
-cannot set reliably by touch. Retain separate **Open fully** (100% open) and
-**Close fully** (0% open) actions, so a nudge is never confused with an endpoint
-command. Each control must show the requested target and the subsequent
+September 30: **Set %** opens a shared, keyboard-accessible native dialog with
+named individual/room/all targets, exact integer percent-open entry, five-point
+Open/Close steps, and distinct full-open/full-close presets. A single editor
+keeps the existing narrow cards and tall full-width slider travel intact rather
+than crowding each card with extra buttons. Its controls have at least 44 CSS
+pixels of touch height. Nothing is submitted until **Apply preview**; Cancel
+or Escape discards the draft and restores focus. Mixed targets begin with no
+percentage and disabled relative steps until an explicit target is entered.
+Steps clamp to 0–100 and invalid, blank, fractional or out-of-range entries
+cannot be applied. Submitted positions use the existing ephemeral shared-preview
+path; they are never motor observations, physical commands or training data.
+
+The same pure inventory predicate now gates the frontend and preview server:
+even one partially assigned position/availability/diagnostic Item disables
+preview. Previously the frontend counted only completely mapped slots, which
+could incorrectly keep its simulated display enabled during partial mapping.
+All 17 shade unit tests, ten isolated browser regressions and the production
+build pass, including existing five-size geometry, Lenovo touch dragging and
+separate-client synchronization checks. The README images are regenerated from
+the isolated unconfigured preview, not household control state. Physical Lenovo
+acceptance and hardware commissioning remain open.
+The household user-level `earthship-ui.service` was restarted and independently
+read back as active. A live 1340×800 browser opened the editor, selected Bedroom
+Shade 27, stepped a local draft from 75% to 70%, and cancelled it with zero
+non-GET requests or page errors. The transformed live Svelte module also served
+successfully; OpenHAB was not restarted and no motor request was issued.
+
+For commissioned hardware, retain the vertical sliders for quick approximate
+adjustment and qualify the same precise-entry path through the reviewed command
+owner. The step is five percentage points of *percent open*, clamped to 0–100;
+retain separate **Open fully** (100% open) and **Close fully** (0% open) actions,
+so a nudge is never confused with an endpoint command. Each control must show
+the requested target and the subsequent
 reported position separately. If any member's report is missing or mixed, do
 not manufacture a group starting percentage; the command owner must require an
 explicit absolute target or decline a relative group step. Tablet touch size,
