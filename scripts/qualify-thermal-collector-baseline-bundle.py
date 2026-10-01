@@ -23,7 +23,6 @@ sys.path.insert(0, str(ROOT/'openhab/scripts'))
 import thermal_confirmation as t
 import thermal_messaging as m
 import thermal_state_backup as b
-from thermal_model import journal
 
 
 def helper(name, filename):
@@ -82,8 +81,10 @@ def restore_sqlite_pair(bundle, directory):
             spool.close()
 
 
-def qualify(state, policy, routes, destination, runtime_root, expected_revision, *, keyer=None):
+def qualify(state, policy, routes, destination, runtime_root, expected_revision, *, keyer=None,
+            source_schema='v1'):
     baseline.require_gates_closed()
+    expected_schema = recovery.schema_fingerprint(source_schema)
     if policy.name != 'policy.proposed.json':
         raise ValueError('only explicitly proposed policy may be snapshotted here')
     configured = check_config(policy, routes, keyer)
@@ -102,12 +103,19 @@ def qualify(state, policy, routes, destination, runtime_root, expected_revision,
         with closing(recovery.runtime_connection()[0]) as source:
             params = recovery.parse_dsn(os.environ['THERMAL_DATABASE_URL'])
             with source.cursor() as cursor:
+                cursor.execute("SET LOCAL lock_timeout='3s'")
+                cursor.execute("SET LOCAL statement_timeout='30s'")
+                cursor.execute('LOCK TABLE thermal_intel.action_events, '
+                    'thermal_intel.message_receipts, thermal_intel.mode_events IN ACCESS SHARE MODE')
                 cursor.execute('SELECT current_user, pg_get_userbyid(nspowner) '
                     'FROM pg_namespace WHERE nspname=%s', ('thermal_intel',))
                 role, owner = cursor.fetchone()
                 if role != params['user'] or role == owner:
                     raise ValueError('restricted household role required')
-                journal._audit_cursor(cursor, runtime_role=role, expected_owner=owner)
+                observed = recovery.airflow_migration._fingerprint(
+                    cursor, runtime_role=role, expected_owner=owner)
+                if observed != expected_schema:
+                    raise ValueError('household baseline selected schema mismatch')
                 cursor.execute('''SELECT count(*) FROM pg_stat_activity
                     WHERE datname=current_database() AND usename=%s AND pid<>pg_backend_pid()''', (role,))
                 if cursor.fetchone() != (0,):
@@ -133,7 +141,8 @@ def qualify(state, policy, routes, destination, runtime_root, expected_revision,
             restore_sqlite_pair(destination, temporary_path/'state')
             started = True
             disposable = recovery.disposable_database(container, uuid4().hex, role)
-            restored_proofs = recovery.restore_and_rehearse(destination/'journal.dump', disposable, role)
+            restored_proofs = recovery.restore_and_rehearse(destination/'journal.dump', disposable, role,
+                source_schema=source_schema)
             if restored_proofs != source_proofs:
                 raise ValueError('household bundle journal rows differ')
             consumer = recovery.qualify_consumer(disposable, role, runtime_root, expected_revision)
@@ -154,6 +163,7 @@ def qualify(state, policy, routes, destination, runtime_root, expected_revision,
         'policy_reviewed': False, 'sending_policy': False, 'signed_trial_verified': False,
         'operational_ready': False, 'collector_activated': False, 'production_writes': 0,
         'source_runtime_role_other_sessions': 0, 'source_table_proofs': source_proofs,
+        'source_schema_version': source_schema, 'source_schema_fingerprint': observed,
         'restored_sqlite_baseline_rows': 0, 'consumer': consumer,
         'question_id': configured.prompts[0].event_id, 'off_host_copy': False}
     fd = os.open(destination/'qualification.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -177,10 +187,12 @@ def main():
     parser.add_argument('--destination', required=True, type=Path)
     parser.add_argument('--consumer-runtime', required=True, type=Path)
     parser.add_argument('--expected-consumer-revision', required=True)
+    parser.add_argument('--source-schema', choices=('v1', 'v2'), default='v1')
     args = parser.parse_args()
     try:
         result = qualify(args.state_dir, args.policy, args.routes, args.destination,
-                         args.consumer_runtime, args.expected_consumer_revision)
+                         args.consumer_runtime, args.expected_consumer_revision,
+                         source_schema=args.source_schema)
     except Exception as error:
         print(json.dumps({'status': 'withheld', 'error_type': type(error).__name__,
             'private_bundle_directory': str(args.destination), 'collector_activated': False}))

@@ -7,6 +7,9 @@ activation, model change, or production admin credential is used. Optional
 --retain-dir keeps a qualified private same-host JOURNAL-ONLY recovery point;
 it does not create a full collector/config/signing-authority backup.
 Errors are intentionally sanitized; never print DSNs, rows or subprocess stderr.
+Select --source-schema v2 explicitly after the approved journal cutover; the
+default remains exact v1 for existing pre-cutover workflows. No auto-detection
+or relaxed schema audit is permitted.
 """
 from contextlib import closing
 import argparse
@@ -99,6 +102,7 @@ def export_archive(target, params, snapshot):
 
 def disposable_database(container, password, role):
     subprocess.run(['docker', 'run', '--detach', '--rm', '--name', container,
+                    '--memory', '512m', '--memory-swap', '512m', '--cpus', '1',
                     '--publish', '127.0.0.1::5432', '--env',
                     'POSTGRES_PASSWORD=' + password, 'postgres:16'],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -124,7 +128,21 @@ def disposable_database(container, password, role):
     return params
 
 
-def restore_and_rehearse(archive, params, role):
+def schema_fingerprint(version):
+    if version == 'v1':
+        return airflow_migration.LEGACY_FINGERPRINT
+    if version == 'v2':
+        return airflow_migration.V2_FINGERPRINT
+    raise ValueError('exact v1 or v2 source schema required')
+
+
+def restore_and_rehearse(archive, params, role, *, source_schema='v1'):
+    expected = schema_fingerprint(source_schema)
+    if (params.get('host') != '127.0.0.1' or params.get('dbname') != 'postgres'
+            or params.get('user') != 'postgres' or not params.get('password')
+            or not 1024 < int(params.get('port', 0)) < 65536 or int(params['port']) == 5432
+            or re.fullmatch('[a-z_][a-z0-9_]*', role) is None):
+        raise ValueError('explicit disposable restore target required')
     subprocess.run(['pg_restore', '--dbname=postgres', '--no-owner', '--single-transaction',
                     '--exit-on-error', str(archive)], env=postgres_env(params),
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -132,20 +150,23 @@ def restore_and_rehearse(archive, params, role):
     with closing(psycopg2.connect(connect_timeout=3, **params)) as connection:
         connection.set_session(readonly=True, autocommit=False,
                                isolation_level='REPEATABLE READ')
+        with connection.cursor() as cursor:
+            observed = airflow_migration._fingerprint(
+                cursor, runtime_role=role, expected_owner='postgres')
+        if observed != expected:
+            raise ValueError('restored journal schema mismatch')
         restored_proofs = table_proofs(connection)
         connection.rollback()
     restored_dsn = psycopg2.extensions.make_dsn(**params)
-    if journal.audit_schema(restored_dsn, runtime_role=role,
-                            expected_owner='postgres')['fingerprint'] != migration_v1():
-        raise ValueError('restored journal schema mismatch')
-    with closing(psycopg2.connect(connect_timeout=3, **params)) as connection:
-        with connection:
-            with connection.cursor() as cursor:
-                airflow_migration._replace_constraint(cursor)
-                observed = airflow_migration._fingerprint(
-                    cursor, runtime_role=role, expected_owner='postgres')
-                if observed != airflow_migration.V2_FINGERPRINT:
-                    raise ValueError('disposable v2 postimage mismatch')
+    if source_schema == 'v1':
+        with closing(psycopg2.connect(connect_timeout=3, **params)) as connection:
+            with connection:
+                with connection.cursor() as cursor:
+                    airflow_migration._replace_constraint(cursor)
+                    observed = airflow_migration._fingerprint(
+                        cursor, runtime_role=role, expected_owner='postgres')
+                    if observed != airflow_migration.V2_FINGERPRINT:
+                        raise ValueError('disposable v2 postimage mismatch')
     airflow_migration.audit_v2(restored_dsn, runtime_role=role,
                                expected_owner='postgres')
     return restored_proofs
@@ -178,8 +199,9 @@ def retain_archive(archive, directory):
     return backup._digest(target)
 
 
-def finalize_retained(directory, digest, proofs, observed_at, consumer=None):
+def finalize_retained(directory, digest, proofs, observed_at, consumer=None, *, source_schema='v1'):
     """Publish the journal-only manifest AFTER owned disposable cleanup."""
+    expected = schema_fingerprint(source_schema)
     directory = Path(directory)
     backup._private_directory(directory)
     backup._private_file(directory/'journal.dump')
@@ -189,7 +211,8 @@ def finalize_retained(directory, digest, proofs, observed_at, consumer=None):
         raise ValueError('retained archive changed before finalization')
     manifest = {'version': 1, 'scope': 'thermal_intel_journal_only_recovery',
         'full_collector_bundle': False, 'export_observed_at': observed_at,
-        'source_schema_fingerprint': migration_v1(), 'archive_sha256': digest,
+        'source_schema_fingerprint': expected, 'source_schema_version': source_schema,
+        'archive_sha256': digest,
         'table_proofs': proofs, 'disposable_restore_qualified': True,
         'consumer': consumer, 'off_host_copy': False}
     fd = os.open(directory/'manifest.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -252,6 +275,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--consumer-runtime', type=Path)
     parser.add_argument('--expected-consumer-revision')
+    parser.add_argument('--source-schema', choices=('v1', 'v2'), default='v1',
+        help='exact source vocabulary; v2 must be selected after the approved cutover')
     parser.add_argument('--retain-dir', type=Path,
         help='new private same-host journal-only recovery directory; never overwritten')
     args = parser.parse_args(argv)
@@ -272,18 +297,25 @@ def main(argv=None):
         with closing(runtime_connection()[0]) as source:
             params = parse_dsn(os.environ['THERMAL_DATABASE_URL'])
             with source.cursor() as cursor:
+                cursor.execute("SET LOCAL lock_timeout='3s'")
+                cursor.execute("SET LOCAL statement_timeout='30s'")
+                # Read-only ACCESS SHARE locks prevent concurrent journal DDL
+                # during fingerprinting/export without blocking normal inserts.
+                cursor.execute('LOCK TABLE thermal_intel.action_events, '
+                    'thermal_intel.message_receipts, thermal_intel.mode_events IN ACCESS SHARE MODE')
                 cursor.execute("SELECT current_user, pg_get_userbyid(nspowner) "
                                "FROM pg_catalog.pg_namespace WHERE nspname=%s",
                                ('thermal_intel',))
                 role, owner = cursor.fetchone()
                 if role != params['user'] or role == owner:
                     raise ValueError('restricted journal role mismatch')
+                observed = airflow_migration._fingerprint(
+                    cursor, runtime_role=role, expected_owner=owner)
+                if observed != schema_fingerprint(args.source_schema):
+                    raise ValueError('live journal exact selected schema mismatch')
                 cursor.execute('SELECT pg_export_snapshot()')
                 snapshot = cursor.fetchone()[0]
             observed_at = datetime.now(timezone.utc).isoformat()
-            if journal.audit_schema(os.environ['THERMAL_DATABASE_URL'],
-                                    runtime_role=role, expected_owner=owner)['fingerprint'] != migration_v1():
-                raise ValueError('live journal v1 preimage mismatch')
             source_proofs = table_proofs(source)
             stage = 'export'
             with TemporaryDirectory(prefix='thermal-journal-live-restore-') as temporary:
@@ -295,7 +327,8 @@ def main(argv=None):
                 password = uuid4().hex
                 start_attempted = True
                 disposable = disposable_database(container, password, role)
-                restored_proofs = restore_and_rehearse(archive, disposable, role)
+                restored_proofs = restore_and_rehearse(archive, disposable, role,
+                    source_schema=args.source_schema)
                 if restored_proofs != source_proofs:
                     raise ValueError('restored journal rows differ')
                 consumer_proof = None
@@ -310,7 +343,9 @@ def main(argv=None):
         result = {'status': 'qualified_disposable_restore',
                   'production_writes': 0, 'tables': {
                       name: value['rows'] for name, value in source_proofs.items()},
-                  'row_digests_equal': True, 'v1_restored': True,
+                  'row_digests_equal': True, 'v1_restored': args.source_schema == 'v1',
+                  'source_schema_version': args.source_schema,
+                  'source_schema_fingerprint': observed,
                   'v2_disposable_postimage': True}
         if consumer_proof is not None:
             result['consumer'] = consumer_proof
@@ -337,7 +372,8 @@ def main(argv=None):
         if result['status'] == 'qualified_disposable_restore' and retained_digest:
             try:
                 result['private_recovery'] = finalize_retained(args.retain_dir,
-                    retained_digest, source_proofs, observed_at, consumer_proof)
+                    retained_digest, source_proofs, observed_at, consumer_proof,
+                    source_schema=args.source_schema)
             except Exception:
                 result = {'status': 'withheld', 'stage': 'retained_finalize',
                           'private_partial_directory': str(args.retain_dir)}

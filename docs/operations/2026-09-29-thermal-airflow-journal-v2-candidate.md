@@ -1,5 +1,10 @@
 # Window/skylight journal vocabulary: isolated v2 candidate
 
+**Current status:** the operator-approved journal-only cutover is live, and
+the September 30 post-v2 recovery check below passes under installed consumer
+`7f57eb3f...`. Earlier v1/pre-cutover statements are historical checkpoints.
+The collector and model/control release gates remain off.
+
 The operator chose separate window and skylight states. The production
 `thermal_intel.action_events` journal still permits only legacy actions,
 including the ambiguous `vent`, and its exact v1 schema fingerprint is
@@ -694,3 +699,64 @@ remain. No credential, DSN or row contents were printed or committed.
 is still off. A reviewed truthful question, qualified sender/ingress trial,
 genuine operator-signed reply/acknowledgement and bounded service activation
 remain. Model graduation and hardware automation are separate evidence gates.
+
+## September 30 post-v2 recovery under the current runtime
+
+The journal recovery checker now takes an explicit `--source-schema v2` after
+the approved cutover. Its default remains exact v1 for older pre-cutover
+workflows. There is no automatic schema detection, relaxed fingerprint or
+production re-migration. The selected source fingerprint is checked inside
+the same read-only repeatable-read transaction as export, under ACCESS SHARE
+table locks that prevent concurrent DDL but permit ordinary inserts. The
+disposable restore must match that selected schema exactly; a restored v2
+journal is audited directly, not passed through the v1 constraint change.
+
+The full five-component **inactive baseline** checker accepts the same explicit
+selection, retains its closed-gate/empty-state/proposed-policy checks and records
+the actual exported schema in its qualification receipt. Both source tools
+retain default-v1 behavior for their existing callers. The future reviewed
+trial bundle must use v2; the old retained v1 bundle is not overwritten or
+relabelled. Disposable PostgreSQL containers are now capped at one CPU / 512
+MiB, with no swap allowance beyond that memory limit.
+
+**47 affected tests pass**, including real v1/v2 journal exports/restores,
+both wrong-version refusals before constraint DDL, non-disposable-target
+refusal before running `pg_restore`, and complete five-file restores from both
+vocabularies with window observations preserved. These full-bundle regression
+tests use synthetic routes and a verifier double, not an operator-signed trial.
+
+The actual household **journal-only** replay ran through transient user unit
+`earthship-journal-post-v2-recovery-20260930`, invocation
+`9d42928234a9418d8e57592f0a0faed4`. The exported source snapshot was observed at
+`2026-10-01T00:25:09.954209Z` (September 30 18:25 MDT). It exited zero in 2.054
+seconds, restoring exact v2 with identical ordered digests for all original
+10 actions / 4 receipts / 4 modes and **zero production writes**.
+
+The real installed consumer
+`7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`
+verified its restricted read-only connection, retained all six independently
+named disposable observations and left legacy samples/support unchanged.
+Fixture sample digest remains
+`9297230d3cf6cd0e9b704527418d795cb1292ded0a35a7a7fda1c3c29308405a`.
+Those fixture rows exist only in the removed disposable database, not in the
+household journal or training truth.
+
+The new intentional same-host recovery anchor is
+`/home/sat/.local/state/thermal-intel/journal-recovery/2026-09-30-post-v2-7f57eb3f`.
+Its 37,924-byte custom archive SHA-256 is
+`1fafec190a7200c213603b531e8e8082dfc6e689dbdbe86d547d5bd4ea36fe06`.
+The owned 0700 directory contains only the owned 0600 journal dump/manifest;
+the manifest explicitly identifies v2, current consumer, journal-only scope,
+`full_collector_bundle: false` and no off-host copy. A separate fresh source
+read independently verified permissions, archive structure/digest and all
+three table proofs against both this anchor and the original v1 baseline.
+Owned test/restore containers, temporary exports and transient units were
+removed. Both journal-only v1/v2 anchors and the earlier full baseline are
+intentionally retained.
+
+This closes the **current-pin post-v2 journal recovery/coexistence check**, not
+the truthful-policy or signed collection trial. The full household v3 baseline
+is still the prior, explicitly unsent v1 proposal. Before collection, rehearse
+the full v2 bundle with the reviewed question/configuration that will actually
+be used. No operational policy, collector, model, hardware control, training
+job or timer was activated by these checks.

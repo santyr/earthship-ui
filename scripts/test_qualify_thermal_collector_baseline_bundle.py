@@ -51,3 +51,10 @@ def test_open_release_gate_refuses_before_any_state_access(tmp_path, monkeypatch
         p.qualify(tmp_path/'state', tmp_path/'policy.proposed.json', tmp_path/'routes.json',
                   tmp_path/'bundle', ROOT/'openhab/scripts', '0'*64)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_unknown_source_schema_refuses_before_configuration_or_database(tmp_path):
+    with pytest.raises(ValueError, match='exact v1 or v2'):
+        p.qualify(tmp_path/'state', tmp_path/'policy.proposed.json', tmp_path/'routes.json',
+                  tmp_path/'bundle', ROOT/'openhab/scripts', '0'*64, source_schema='auto')
+    assert list(tmp_path.iterdir()) == []

@@ -293,7 +293,8 @@ def test_retained_manifest_refuses_changed_archive(tmp_path):
     assert not (destination/'manifest.json').exists()
 
 
-def test_full_inactive_baseline_bundle_restores_real_journal(database, tmp_path, monkeypatch):
+@pytest.mark.parametrize('source_schema', ['v1', 'v2'])
+def test_full_inactive_baseline_bundle_restores_real_journal(database, tmp_path, monkeypatch, source_schema):
     root = Path(__file__).resolve().parents[2]
     spec = importlib.util.spec_from_file_location('baseline_bundle',
         root/'scripts/qualify-thermal-collector-baseline-bundle.py')
@@ -325,20 +326,34 @@ def test_full_inactive_baseline_bundle_restores_real_journal(database, tmp_path,
     original = ActionEvent('bundle-original-vent', 'bundle-original-receipt', now, now,
                            'vent', 'closed', 'manual_dm', 1.)
     assert journal.ActionJournal(database.runtime_dsn).append(original)
+    if source_schema == 'v2':
+        with psycopg2.connect(database.admin_dsn) as connection:
+            with connection.cursor() as cursor:
+                migration._replace_constraint(cursor)
+                cursor.execute('''INSERT INTO thermal_intel.action_events
+                    (event_id,idempotency_key,received_at,effective_at,action,state,source,confidence)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)''',
+                    ('bundle-original-window', original.idempotency_key, now, now,
+                     'window', 'open', 'manual_dm', 1.))
     import thermal_intel
     destination = tmp_path/'bundle'
     result = bundle.qualify(state, policy, routes, destination, root/'openhab/scripts',
-                            thermal_intel._code_revision(), keyer=Keyer())
+                            thermal_intel._code_revision(), keyer=Keyer(), source_schema=source_schema)
     assert result['status'] == 'inactive_household_baseline_bundle_qualified'
     assert result['verified_components'] == 5 and result['version'] == 3
     assert result['policy_reviewed'] is result['sending_policy'] is result['operational_ready'] is False
     assert result['signed_trial_verified'] is result['collector_activated'] is False
     assert result['production_writes'] == result['source_runtime_role_other_sessions'] == 0
-    assert result['source_table_proofs']['action_events']['rows'] == 1
+    assert result['source_table_proofs']['action_events']['rows'] == (2 if source_schema == 'v2' else 1)
+    assert result['source_schema_version'] == source_schema
+    assert result['source_schema_fingerprint'] == bundle.recovery.schema_fingerprint(source_schema)
     assert thermal_state_backup.verify_snapshot(destination)['verified_files'] == 5
-    assert journal.ActionJournal(database.runtime_dsn).events_for_receipt(original.idempotency_key) == (original,)
-    assert journal.audit_schema(database.admin_dsn, runtime_role=database.runtime_role,
-                                expected_owner=database.owner)['fingerprint'] == migration.LEGACY_FINGERPRINT
+    rows = journal.ActionJournal(database.runtime_dsn).events_for_receipt(original.idempotency_key)
+    assert original in rows and len(rows) == (2 if source_schema == 'v2' else 1)
+    with psycopg2.connect(database.admin_dsn) as connection:
+        with connection.cursor() as cursor:
+            assert migration._fingerprint(cursor, runtime_role=database.runtime_role,
+                expected_owner=database.owner) == bundle.recovery.schema_fingerprint(source_schema)
 
 
 def test_position_ingress_retries_exact_v2_storage_without_duplicate(database, monkeypatch, tmp_path):

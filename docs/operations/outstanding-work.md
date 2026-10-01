@@ -10,7 +10,7 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | --- | --- | --- |
 | Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; natural 06:45 capture matches all 1,458 original morning UI facts. Exact raw-weather input capture is prospectively installed; 315 affected Python / 26 UI contract tests pass. Historical UI companions lack a strict raw-fetch origin binding. | Qualify October 1's natural original input capture, then join qualified forcing/outcomes and score chronological joint-model candidates; do not backdate historical companions or promote a five-day fit. |
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. | Score September 30 only after October 1 11:00 MDT. Notifications remain off while the previously sent path test's recipient receipt and delivery-release gates remain open. |
-| Thermal collection | Operator-approved journal-only migration is live at exact v2 fingerprint, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current installed consumer `7f57eb3f...` reads production successfully; exact replay passes. All six source release flags remain false. | Truthful question review, refreshed current-pin recovery qualification, one-shot signed trial and bounded user-service release. No model/control activation is implied; do not request journal migration approval again. |
+| Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
 | Thermal skill and efficiency | Accepted model remains shadow; source-only joint-solar/airflow candidates and training optimizations are distinct from installed artifact skill. | Qualify the next natural shadow at 19:01 MDT and training October 1 06:50; record whole-run time/memory/swap, and require held-out improvement plus genuine action evidence before graduation. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 now belongs to Office Hallway. Configuration inventory has zero issues, with 382 managed Items/80 managed Things/37 managed rules still present. | Await complete, clean source days for evidence-dependent consumers. Continue scoped file migration; the managed `gForecast` cold handoff/protected-control restart still requires fresh physical attendance. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
@@ -32,6 +32,16 @@ passes under new installed pin `7f57eb3f...`. The v2 journal and installed reade
 remain qualified; collector flags remain off. Natural October 1 06:40 capture
 and the already scheduled shadow/training gates remain open. See
 [archive identity and remaining gates](2026-09-30-forecast-input-capture.md).
+
+September 30 18:25 MDT current-pin post-v2 journal recovery/coexistence passed
+on a fresh read-only household snapshot. The complete 10/4/4 row set restored
+with matching digests; the real installed consumer preserved independent
+airflow observations and unchanged legacy samples. A new verified private
+journal-only v2 anchor is retained; the original v1 full baseline is untouched.
+Both recovery tools now support explicit exact v2 selection; 47 tests include
+real full five-file v1/v2 regression restores. Collector gates remain off.
+Truthful question review and a full v2 bundle for the actual trial configuration
+remain open. See [post-v2 recovery](2026-09-29-thermal-airflow-journal-v2-candidate.md#september-30-post-v2-recovery-under-the-current-runtime).
 
 September 30 sensor 223 has moved to **Office Hallway**, following the failed
 Bedroom reception attempt. Home/Earthship and the observational Item/rule now
