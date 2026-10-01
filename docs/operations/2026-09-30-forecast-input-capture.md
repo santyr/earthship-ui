@@ -376,3 +376,74 @@ The [October 1 candidate](2026-10-01-radiation-receipt-candidate.md) records the
 implemented contract and remaining live deployment/history gates. At the
 original inspection no collector, dependency, Item, privilege, unit or source
 modification was made; the inspection used a read-only database connection.
+
+## October 1 expanded operational outcomes and shade-timing collision
+
+At `2026-10-01T18:53:57.932515Z`, a bounded read-only audit scored the 16
+original JDBC publications issued since September 30 12:00 UTC. Each scored
+publication required its exact original forcing archive; every outcome used
+the restricted indoor/outdoor source-receipt reader. One publication fetch,
+16 cached capture reads and 54 cached stream/target reads served all four
+horizons. Nothing was refitted, published, labelled or activated.
+
+| Audit horizon | Qualified overlapping pairs | Model MAE °F | Persistence MAE °F | Chronological non-overlapping pairs |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 16 | 0.6642 | 0.2138 | 15 |
+| 6 hours | 13 | 2.2155 | 1.0246 | 4 |
+| 12 hours | 10 | 3.1476 | 1.8000 | 2 |
+| 24 hours | 3 | 4.9593 | 2.1600 | 1 |
+
+These are nearest hourly trajectory targets within the scorer's ±30-minute
+tolerance, not necessarily exact elapsed horizons. Results mix three captured
+artifacts; they must not all be attributed to today's model. Today's artifact
+has canonical embedded digest
+`5dc0d548aefe0e60299dab1ae4b71372dc0f95f49f3034ab480f56194fe32be6`,
+distinct from its previously recorded file-byte digest. Only its two one-hour
+targets have matured: model/persistence MAE is 0.3300/0.2700°F, with one win
+each. It has no qualified six-, twelve- or twenty-four-hour outcome yet.
+
+The three newly mature near-24-hour indoor errors are −4.836, −4.839 and
+−5.203°F; their qualified outdoor forecast errors are +4.86, +5.78 and
++5.34°F. These warm outdoor-input errors do not identify an explanation for
+the cold indoor bias. All three broad intervals cover the outcomes with about
+10.414°F width; overlapping coverage is not calibration or graduation proof.
+
+The September 30 08:30 and 10:31 MDT captures replay exactly under installed
+runtime `7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`.
+Separate in-memory hypotheses produce these changes at the same qualified
+targets; neither is a physical observation or replacement prediction:
+
+| Original issue MDT | Original near-24-hour error °F | Closed-vent delta °F | 1.5× forecast-radiation delta °F |
+| --- | ---: | ---: | ---: |
+| Sep 30 08:30 | −4.839 | +1.070 | +0.559 |
+| Sep 30 10:31 | −5.203 | +1.039 | +0.384 |
+
+Closing modeled vents leaves errors of −3.769/−4.164°F. The separate radiation
+scenario leaves −4.280/−4.819°F and does not change either modeled schedule.
+Neither isolated hypothesis explains these misses. Independent airflow/shade
+observations and radiation outcomes remain necessary before a causal refit.
+
+Today's natural 11:05 MDT capture also replays exactly, output SHA-256
+`9915e9e5d8421131360cbd4f8d3ce047bd69dabaa1d55f336065c12515ba6b83`,
+with training revision equal to the installed runtime. Its closed-vent
+scenario adds 1.122°F at tomorrow's near-24-hour target, **not yet scored**.
+The separate 1.5× radiation probe is refused, rather than assigned an outcome:
+the original maximum is 796 W/m² (scaled maximum 1,194, within the input bound),
+but both learned shade times round to 12:00. The producer emits simultaneous
+`closed`/`open` transitions on three days; strict pipeline validation correctly
+rejects them with `modeled shade transitions must be strictly ordered`.
+
+This identifies a schedule-producer defect, not a reason to relax validation
+or a failure of the unchanged as-issued publication. Its existing cyclic
+initial-state formula interprets equal times as zero closed duration. A bounded
+source-only correction was proposed: emit no transitions in that case, retain
+the all-open modeled state, preserve other schedules and add unit/integration
+regressions. Design approval is pending; no correction is installed. The first
+audit attempt refused an incorrect `/home/sat/bin` runtime; the successful
+audit uses the documented `/home/sat/openhab/scripts` closure. An exploratory
+diagnostic print used a nonexistent output key; a separate corrected read
+verified the exact refusal reason above. Neither failed probe counts as a
+successful model comparison. No test fixture or new observation was retained.
+The existing publication-audit and forcing-replay regressions pass **36 tests
+in 0.46 seconds**. Only this run's disposable fixture directory is removed;
+original captures and operational recovery backups are retained.
