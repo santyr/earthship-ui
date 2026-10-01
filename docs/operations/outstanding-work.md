@@ -51,6 +51,14 @@ Production ownership/state/history remain unchanged; a guarded current-prefix
 live handoff and natural-source readback are still required. See the
 [Moon candidate and evidence](2026-09-30-moon-phase-readings-candidate.md).
 
+Its source-only live adapter now passes 71 focused/adjacent tests and the
+current read-only preflight under exact JDBC IDs 59/41. The
+[attended handoff plan](2026-09-30-moon-phase-readings-cutover-plan.md)
+includes private streamed history backups, exclusive atomic file publication,
+protected-definition checks, a resource lock, actual managed rollback/return
+and failure recovery. Apply remains off pending the attended approval; no
+production provider, backup, lock, model, control or DM changed.
+
 September 30 around 18:14 MDT exact parsed raw-weather capture is prospectively
 installed. It runs before the daily prediction origin, retains units/cloud/
 radiation/hourly inputs with immutable private references, and changes no

@@ -90,3 +90,15 @@ definitions or reuse the historical snapshot as a current backup. Require a
 natural source update after transfer, without fabricating a phase change or
 mistaking a held phase for stale telemetry. Production restart recovery remains
 separate from these isolated results.
+
+The source-only handoff adapter and
+[exact attended plan](2026-09-30-moon-phase-readings-cutover-plan.md) are now
+prepared. Seventy-one focused/adjacent tests and the actual read-only live
+preflight pass (998 phase / 136,382 illumination rows). History verification
+streams a bounded digest instead of allocating repeated full row lists; it
+permits new natural updates only when the original prefix remains exact and
+current Item/JDBC values agree. Atomic exclusive file creation, a private
+process lock, complete partial-failure rollback and an explicit successful
+managed round trip are covered offline. Apply remains default-off; no backup,
+lock, provider transfer or live rollback has yet run. Owned test scratch was
+removed. This is readiness evidence, not production ownership.
