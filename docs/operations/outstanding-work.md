@@ -9,7 +9,7 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Track | Current verified state | Next required work |
 | --- | --- | --- |
 | Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; natural 06:45 capture matches all 1,458 original morning UI facts. Exact raw-weather input capture is prospectively installed; 315 affected Python / 26 UI contract tests pass. Historical UI companions lack a strict raw-fetch origin binding. | Qualify October 1's natural original input capture, then join qualified forcing/outcomes and score chronological joint-model candidates; do not backdate historical companions or promote a five-day fit. |
-| Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. | Score September 30 only after October 1 11:00 MDT. Notifications remain off while the previously sent path test's recipient receipt and delivery-release gates remain open. |
+| Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. Operator explicitly did not receive the NIP-17 path test and uses Primal. | Score September 30 only after October 1 11:00 MDT. Notifications remain off. Review an explicit Primal-compatible transport before another delivery trial; do not turn relay storage into receipt or silently downgrade existing intents. |
 | Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
 | Thermal skill and efficiency | September 30's natural 19:01 shadow output, archive, JDBC receipt and exact replay pass under `7f57eb3f...`; artifact remains unchanged/low confidence. Source-only joint-solar/airflow candidates and optimizations remain distinct from installed skill. | Qualify October 1 06:50 training and record whole-run time/memory/swap. Require held-out improvement plus genuine action evidence before graduation. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast`, its ten members/links and JDBC persistence are already file-owned. Current inventory has zero issues, but 382 Items/80 Things/37 rules remain managed. | Await complete, clean source days; continue individually qualified migration. Do not repeat the completed `gForecast` restart. Future protected-control or whole-OpenHAB work needs its own current recovery/attendance checks. |
@@ -21,8 +21,12 @@ receipt plus exact current-pin replay pass. Artifact is unchanged and confidence
 remains low; no new accuracy, action evidence or model graduation is implied.
 Next shadow is 21:01, morning capture/training remain October 1 06:40/06:50.
 The bounded read-only DM audit found only the known sender test copy and no
-authenticated operator reply; absence does not prove non-receipt. The pending
-recipient confirmation/truthful question remain before collection. See
+authenticated operator reply; that audit alone did not prove non-receipt. The
+operator has since explicitly reported non-receipt and confirmed Primal under
+the approved identity. Current upstream Primal web/Android DM paths use legacy
+NIP-04. A separately reviewed compatibility path and truthful question remain
+before collection; no automatic protocol fallback or repeat test is authorized.
+See [operator/client diagnosis](2026-09-30-pre-dusk-notification-candidate.md#operator-non-receipt-and-primal-compatibility--september-30),
 [natural shadow evidence](2026-09-30-forecast-input-capture.md#september-30-natural-shadow-gate-closed)
 and [bounded reply check](2026-09-30-pre-dusk-notification-candidate.md#read-only-reply-check--september-30-1856-mdt).
 

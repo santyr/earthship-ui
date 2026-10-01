@@ -294,3 +294,42 @@ The transient user verification unit was collected. The owned temporary helper
 was removed; the intentional original two-envelope audit/retry state remains
 unchanged. No dependency files, private message text or key material were
 printed, installed or committed.
+
+### Operator non-receipt and Primal compatibility — September 30
+
+The operator subsequently explicitly reported **not receiving the NIP-17
+test**, and confirmed using Primal under the exact approved recipient npub.
+Recipient receipt is therefore failed/unverified, not merely awaiting a reply.
+No test retry, replacement message, thermal question or collector activation
+followed that report.
+
+At `2026-10-01T01:19:47.832448Z`, read-only inspection of the retained outbox
+confirmed the two original envelopes, exact recipient/sender bindings, common
+rumor ID and nos.lol-only acceptance lists. A credential-scrubbed, finite
+kind-1059/event-ID query retrieved the operator's exact retained ciphertext
+from nos.lol again. Primal and Damus returned no envelope in that bounded CLI
+check; this does not establish complete relay coverage or their failure cause.
+No key, decrypted message or database connection string was printed.
+
+Current upstream Primal web source at
+`c96ee211043c6fee8a8b7c431746aab06392f765` handles DMs as kind 4 and calls
+NIP-04 encryption/decryption in
+[DMContext](https://github.com/PrimalHQ/primal-web-app/blob/c96ee211043c6fee8a8b7c431746aab06392f765/src/contexts/DMContext.tsx)
+and
+[nostrAPI](https://github.com/PrimalHQ/primal-web-app/blob/c96ee211043c6fee8a8b7c431746aab06392f765/src/lib/nostrAPI.ts).
+The Android DM path at `36939db97213e7f8eeefaa4adaf125d839fc662e`
+likewise uses
+[Nip04MessageCipher](https://github.com/PrimalHQ/primal-android-app/blob/36939db97213e7f8eeefaa4adaf125d839fc662e/app/src/main/kotlin/net/primal/android/messages/security/Nip04MessageCipher.kt).
+This supports a client-protocol incompatibility diagnosis, not a claim that
+the operator's installed app build or private inbox was inspected. NIP-44
+helpers elsewhere in the web source do not establish NIP-17 DM support.
+
+The operator wants to keep Primal. A separate, explicit compatibility path
+is needed before the existing NIP-17 trial can be replaced operationally.
+Do not silently downgrade or rewrite existing gift-wrap intents as kind-4
+messages. NIP-04 exposes signed sender/recipient metadata unlike gift wrapping;
+approval of that tradeoff is requested. The candidate must preserve original
+signed event identity, exact question binding, restricted operator identity,
+freshness, first-receipt/idempotency and exact journal readback. Primal's normal
+unreferenced `yes` cannot safely select a thermal question. No legacy ingress,
+question or receipt acknowledgement is live, and all collector gates stay off.
