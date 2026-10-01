@@ -105,6 +105,62 @@ Next required checks:
 The thermal collector and all six source release flags remain off. Production
 journal vocabulary is already v2; do not rerun the v1-only migration preflight.
 
+## October 1 natural original-input qualification
+
+The actual daily invocation `f402931b61a64890b557cece2738221e` ran at
+06:40:29–31 MDT and exited zero. A read-only inspection of the private
+prediction record, installed archive validator, live receipt and bounded
+repeatable-read JDBC window qualified its original weather linkage. No
+forecast rerun, Item write, training, collector or control was started.
+
+Prediction origin is `2026-10-01T12:40:30.513835+00:00`. The exact capture is
+`2026-10-01T12:40:30.510517+00:00`, 3.318 ms before the origin, with digest
+`ea7bac6fb4a7435bb80f4e72fd967da9191aa3a7a6c0549005693509ab6c72e7`.
+Its original reference resolves to
+`2026-10/ea7bac6fb4a7435bb80f4e72fd967da9191aa3a7a6c0549005693509ab6c72e7.json.gz`
+under the documented private archive root. Root/month are owned mode 0700;
+archive is owned mode 0600. Exact bounded decompression, canonical digest,
+reference, date and capture-before-origin validation passed.
+
+The request identifies the configured 38.3739919/-105.7744609 site,
+America/Denver, ten days, Fahrenheit, mph and inches. The response grid point
+is 38.367577/-105.776054; this is not a change to the configured request site.
+All ten daily and 240 hourly arrays have matching lengths. Raw daily radiation
+(`MJ/m²`), temperatures (`°F`) and precipitation (`inch`) match the retained
+original prediction inputs exactly; radiation-to-kWh/m² conversion is checked.
+Hourly radiation is `W/m²`, wind `mp/h`, probabilities `%`, and `is_day` is
+the provider's dimensionless field. This records units, not a claim that every
+hour is qualified forcing for every downstream model.
+
+The 988-byte public prediction receipt includes the exact weather digest,
+qualified SoC origin and solar-context origin. Its raw body exactly matches
+the sole original JDBC row in the bounded issue window: unique Item **654**,
+receipt `2026-10-01T12:40:30.617953+00:00`, body SHA-256
+`462708823957cfab9484a88b54696d59dabfa7c7f4e5b7632e016b74220c8852`.
+Original PV is 6.58 kWh; live Home and Energy render 6.6 kWh.
+
+The natural 00:10 Astro context also qualifies: unique Item **662**, sole
+post-midnight JDBC receipt `2026-10-01T06:10:00.158091+00:00`, exact body digest
+`e9b4d698aacf3521cf9da915fa52035138edf90505eabb8228850d96a58c99bd`.
+The installed strict Astro validator reproduces the retained prediction's
+entire context at its original origin; the public solar digest agrees. Today
+and tomorrow daylight durations are 42,151.462 and 42,003.545 seconds.
+
+Exact installed file digests at qualification:
+
+| File | SHA-256 |
+| --- | --- |
+| `forecast_intel.py` | `943c09d414c6265d5a9527bb1901c3e8aa7355fc190f261a61cf58d02fbed58e` |
+| `forecast_input_capture.py` | `ece90822c94d7ac7fb81fcd6bc5a9dd664eaf9f994bef65042e0b4f0ffdb03fa` |
+| `astro_forecast_context.py` | `c65f647befed00c9a00922583544ecb0a8675624f218ed3ff69b1ea63427ac04` |
+
+This closes the **first natural original-input archive and daily Astro
+capture gates**. It does not backdate earlier weather, qualify a completed
+October 1 charge/overnight outcome, increase retained prediction history,
+release PV calibration, or establish thermal skill. Next work is joining
+future qualified outcomes to these exact bound inputs and scoring chronological
+joint-model candidates without future-data leakage.
+
 ## September 30 natural shadow gate closed
 
 The existing timer invoked `thermal-model-shadow.service` naturally at 19:01:48

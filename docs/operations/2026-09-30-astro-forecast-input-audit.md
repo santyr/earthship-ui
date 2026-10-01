@@ -303,3 +303,18 @@ daily solar cron is October 1 at 00:10; first natural morning forecast capture
 is October 1 at 06:40. Verify those actual receipts before closing their gates.
 Day-length-versus-seasonality model promotion still requires sufficient
 chronological holdout evidence; no weights were changed.
+
+## October 1 natural daily and original-forecast gates closed
+
+The natural 00:10 context has its sole post-midnight JDBC receipt at
+`2026-10-01T06:10:00.158091+00:00`, unique Item 662. The original 06:40
+prediction retained exactly the strict validated context from that receipt;
+its public digest agrees. The exact raw weather archive and original forecast
+receipt also qualified. See the [October 1 original-input evidence](2026-09-30-forecast-input-capture.md#october-1-natural-original-input-qualification)
+for complete digests, timestamps, configured site, units and read-only scope.
+
+This supersedes the earlier pending cron/capture gates, not the model-promotion
+boundary. The current installed consumer pin is `7f57eb3f...`, rather than the
+earlier runtime above. No day-length/seasonality weight, action or live
+calibration changed. The next natural shadow after completed October 1 training
+still requires original output/capture/JDBC/replay qualification.
