@@ -572,6 +572,53 @@ def test_main_freezes_solar_context_without_changing_energy_estimates(monkeypatc
         assert first[key] == second[key]
 
 
+def test_main_binds_raw_weather_before_issue_and_preserves_forecast_on_capture_failure(monkeypatch, tmp_path):
+    from forecast_input_capture import read_as_of
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    captured, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday), {})
+    first = captured['predictions'][date.today().isoformat()]
+    reference = first['weather_origin']
+    assert reference is not None
+    record = read_as_of(tmp_path / 'weather-inputs', reference,
+                        origin=datetime.fromisoformat(first['temperature_issued_at']))
+    assert record['snapshot'] == _snapshot()
+    def unavailable(snapshot, diagnostics):
+        diagnostics.append('weather input capture unavailable')
+        return None
+    monkeypatch.setattr(fi, 'capture_weather_inputs', unavailable)
+    missing, _ = _run_main(monkeypatch, tmp_path, _scoring_state(yesterday), {})
+    second = missing['predictions'][date.today().isoformat()]
+    assert second['weather_origin'] is None
+    for key in ('pv', 'trough', 'curtail', 'demand', 'deficit_kwh', 'dusk_soc_estimate_pct'):
+        assert first[key] == second[key]
+
+
+def test_capture_failure_reports_only_static_diagnostic(monkeypatch, tmp_path):
+    import forecast_input_capture
+    def unavailable(*args, **kwargs):
+        raise RuntimeError('private detail must not escape')
+    monkeypatch.setattr(fi, 'STATE_DIR', str(tmp_path))
+    monkeypatch.setattr(forecast_input_capture, 'capture', unavailable)
+    diagnostics = []
+    assert fi.capture_weather_inputs(_snapshot(), diagnostics) is None
+    assert diagnostics == ['weather input capture unavailable']
+
+
+def test_weather_receipt_digest_respects_existing_bound_and_source_priority():
+    writes = []
+    reference = {'sha256': 'c' * 64}
+    args = (date(2026, 9, 30), '2026-09-30T12:40:00Z', 5.36, 0, 53,
+            'none|No thermal action needed', [], lambda name, value: writes.append(value) or True)
+    fi.publish_prediction_receipt(*args, weather_origin=reference)
+    assert json.loads(writes[-1])['weatherInputSha256'] == 'c' * 64
+    origin = {'version': 1, 'reserved': 'x' * 730}
+    fi.publish_prediction_receipt(*args, soc_origin=origin, weather_origin=reference)
+    receipt = json.loads(writes[-1])
+    assert len(writes[-1].encode()) <= 1024
+    assert receipt['energySocOrigin'] == origin
+    assert 'weatherInputSha256' not in receipt
+
+
 # ---------------------------------------------------------------- pv_days alignment
 
 def test_today_pv_detail_matches_issued_prediction_not_fixed_cap():

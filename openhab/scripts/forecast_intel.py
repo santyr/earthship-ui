@@ -198,7 +198,7 @@ def pv_issue_diagnostics(radiation, gain, direct_demand, soc, deficit,
 
 def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
                                failures, put_state, pv_diagnostics=None, soc_origin=None,
-                               solar_context=None):
+                               solar_context=None, weather_origin=None):
     """Commit today's display provenance only after all source Items succeeded."""
     required = {"Predicted_PV_Today_kWh", "Predicted_Curtailment_Hours",
                 "Predicted_SoC_Trough_Tomorrow", "Thermal_Advisory",
@@ -232,7 +232,26 @@ def publish_prediction_receipt(today, issued_at, pv, curtail, trough, advisory,
         if len(json.dumps(receipt, separators=(",", ":")).encode()) > 1024:
             # Optional solar diagnostics must not evict the existing BMS origin.
             del receipt['solarContextOrigin']
+    if weather_origin is not None:
+        # Full reference lives in private prediction state; keep this public
+        # cross-check compact, and never evict an existing source origin.
+        receipt['weatherInputSha256'] = weather_origin['sha256']
+        if len(json.dumps(receipt, separators=(",", ":")).encode()) > 1024:
+            del receipt['weatherInputSha256']
     return put_state("Forecast_Prediction_Receipt_JSON", json.dumps(receipt, separators=(",", ":")))
+
+
+def capture_weather_inputs(snapshot, diagnostics):
+    """Optional observational archive; failures never change forecast behavior."""
+    try:
+        from forecast_input_capture import capture
+        directory = os.path.join(STATE_DIR, 'weather-inputs')
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        return capture(directory, snapshot=snapshot, request_url=OM_URL,
+                       captured_at=datetime.now(timezone.utc))
+    except Exception:
+        diagnostics.append('weather input capture unavailable')
+        return None
 
 
 def fetch_forecast(url=None, attempts=3, delays=(10, 30), opener=None, sleep=None):
@@ -1337,6 +1356,7 @@ def main():
 
     # ---- Phase 3: fetch forecast, predict today ----
     snapshot = fetch_forecast()
+    weather_origin = capture_weather_inputs(snapshot, log)
     forecast_issued_at = datetime.now(timezone.utc).isoformat()
     try:
         from astro_forecast_context import optional_context
@@ -1454,7 +1474,8 @@ def main():
         today, forecast_issued_at, pv_pred, curtail,
         trough_pred, advisory, put_failed, put,
         pv_issue_diagnostics(radsum_kwh, st['k_res'], st['d_direct'],
-                             trough_ref, deficit_kwh, resource, demand), soc_origin, solar_context)
+                             trough_ref, deficit_kwh, resource, demand), soc_origin, solar_context,
+        weather_origin)
 
     st["predictions"][today.isoformat()] = {
         "temperature_origin_version": 1, "temperature_issued_at": forecast_issued_at,
@@ -1467,6 +1488,7 @@ def main():
         "soc_reference_pct": trough_ref,
         "soc_origin": soc_origin,
         "solar_context": solar_context,  # diagnostic-only, frozen at this issue
+        "weather_origin": weather_origin,  # raw fetch, never a later UI revision
         "pv_resource_kwh": round(resource, 3),
         "dusk_soc_estimate_pct": round(dusk_soc, 3) if dusk_soc is not None else None,
         "overnight_drop_samples_pct": drops,

@@ -41,6 +41,12 @@ describe('dated once-daily forecast receipt', () => {
     expect(parse(enriched)).toEqual(parse(valid));
   });
 
+  it('does not turn the raw-weather archive digest into a displayed prediction', () => {
+    const enriched = { ...valid, weatherInputSha256: 'c'.repeat(64) };
+    expect(JSON.stringify(enriched).length).toBeLessThanOrEqual(1024);
+    expect(parse(enriched)).toEqual(parse(valid));
+  });
+
   it('withholds yesterday after local midnight, even if direct Items hold values', () => {
     expect(parse(valid, Date.parse('2026-09-25T00:01:00-06:00'))).toBeNull();
   });

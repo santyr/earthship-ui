@@ -8,9 +8,9 @@ runtime/evidence before treating any earlier “pending” statement as current.
 
 | Track | Current verified state | Next required work |
 | --- | --- | --- |
-| Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; 266 affected tests pass. Natural 06:45 capture matches all 1,458 original morning forecast facts. | Join qualified origin forcing/outcomes and score chronological joint-model candidates; do not promote a five-day fit or the drop-only counterfactual. |
+| Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; natural 06:45 capture matches all 1,458 original morning UI facts. Exact raw-weather input capture is prospectively installed; 315 affected Python / 26 UI contract tests pass. Historical UI companions lack a strict raw-fetch origin binding. | Qualify October 1's natural original input capture, then join qualified forcing/outcomes and score chronological joint-model candidates; do not backdate historical companions or promote a five-day fit. |
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. | Score September 30 only after October 1 11:00 MDT. Notifications remain off while the previously sent path test's recipient receipt and delivery-release gates remain open. |
-| Thermal collection | Operator-approved journal-only migration is live at exact v2 fingerprint, with all 10 action/4 receipt/4 mode rows and grants unchanged. Installed consumer `5e69e941...` reads production successfully. All six source release flags remain false. | Truthful question review, qualified one-shot signed trial and bounded user-service release. No model/control activation is implied; do not request journal migration approval again. |
+| Thermal collection | Operator-approved journal-only migration is live at exact v2 fingerprint, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current installed consumer `7f57eb3f...` reads production successfully; exact replay passes. All six source release flags remain false. | Truthful question review, refreshed current-pin recovery qualification, one-shot signed trial and bounded user-service release. No model/control activation is implied; do not request journal migration approval again. |
 | Thermal skill and efficiency | Accepted model remains shadow; source-only joint-solar/airflow candidates and training optimizations are distinct from installed artifact skill. | Qualify the next natural shadow at 19:01 MDT and training October 1 06:50; record whole-run time/memory/swap, and require held-out improvement plus genuine action evidence before graduation. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 now belongs to Office Hallway. Configuration inventory has zero issues, with 382 managed Items/80 managed Things/37 managed rules still present. | Await complete, clean source days for evidence-dependent consumers. Continue scoped file migration; the managed `gForecast` cold handoff/protected-control restart still requires fresh physical attendance. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
@@ -21,6 +21,17 @@ no-full censoring and 1–6-point post-full declines without relabeling later
 outcomes as forecast inputs. No live forecast, coefficient, control or privilege
 changed. See [charge targets](2026-09-27-trough-calibration-checkpoint.md#september-30-qualified-charge-time-and-afternoon-decline-targets)
 and [natural capture](2026-09-29-prediction-learning-review.md#september-30-natural-morning-snapshot-capture).
+
+September 30 around 18:14 MDT exact parsed raw-weather capture is prospectively
+installed. It runs before the daily prediction origin, retains units/cloud/
+radiation/hourly inputs with immutable private references, and changes no
+forecast equation or control. Historical UI companion timestamps cannot supply
+that missing identity retrospectively. 315 Python and 26 UI tests pass, a real
+10-day/240-hour snapshot round-tripped in isolation, and exact thermal replay
+passes under new installed pin `7f57eb3f...`. The v2 journal and installed reader
+remain qualified; collector flags remain off. Natural October 1 06:40 capture
+and the already scheduled shadow/training gates remain open. See
+[archive identity and remaining gates](2026-09-30-forecast-input-capture.md).
 
 September 30 sensor 223 has moved to **Office Hallway**, following the failed
 Bedroom reception attempt. Home/Earthship and the observational Item/rule now
