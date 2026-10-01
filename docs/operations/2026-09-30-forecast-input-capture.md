@@ -276,3 +276,45 @@ versioned joint-shade candidate and chronological refit/replay to test any
 model correction; do not relabel legacy coefficients, force exterior shade
 absent from season or UI preview, fit a solar multiplier to these four pairs,
 or graduate the current artifact. Live model and collector remain unchanged.
+
+### Measured-radiation source qualification gap
+
+September 30 around 21:47 MDT, a bounded read-only source/runtime inspection
+traced `AmbientWeatherWS2902A_SolarRadiation` to
+`http:url:weatherData:solarRadiation`. The Thing is ONLINE and the nighttime
+Item is `0 W/m²`, but those facts do not establish a fresh radiation receipt.
+The installed `rtl_weather.py` filters station ID 206 and computes
+`round(min(light_lux / 126.7, 1200.0), 2)`. This is a lux-derived irradiance
+proxy with a fixed conversion and clamp, not independently calibrated incident
+solar energy. The receiver can fall back to `WH65B_solarradiation` when the raw
+field is missing; its model-level health timestamp is renewed before that
+field is validated. Repeated HTTP reads must not renew source evidence.
+
+The existing temperature receipt does not contain the radiation field, and
+the rain receipt is counter-specific. Neither can make the radiation value
+atomic/source-bound merely because the station's other fields are healthy.
+Existing numeric JDBC irradiance history therefore remains diagnostic under
+this inspected path; no source-qualified historical pairing is claimed.
+
+The separate, already-running radio exporter does retain an original UTC
+decoder observation time and rejects incomplete selected-station packets.
+Its read-only SQLite inspection found exactly one `snapshot` table and one
+singleton observation, not an observation history. At inspection the packet's
+`radio_decode_utc` time was `2026-10-01T03:47:18.000Z`, age 13.616 seconds,
+and derived radiation was 0 W/m². Polling or restarting does not manufacture
+that timestamp. This is decoder receipt time, not sensor measurement time;
+the latest-only export cannot backfill historical irradiance qualification.
+
+Installed source fingerprints at this checkpoint:
+
+- `/home/sat/bin/rtl_weather.py`: `3d281df04dc62d0dca7a43c1fbc85fc45debca960197a6ba8c3716c651b9893a`
+- `/home/sat/bin/weather.py`: `1cd65bfe7966da558aed156373501ebfb7116c0dd5f6ca62a31e0901067e1572`
+- `/home/sat/bin/weather_evidence_wsgi.py`: `366698fdccc7296060b1342c1a3f42d7a3b2c7cca57856c9e817af9a7ff7c51d`
+- `/usr/local/lib/lightning-goats-weather/lightning_goats_weather.py`: `5ab66cfc92e8d2f794027daa432b71f9145aa8b215c2ee6817cc057d4613cda4`
+
+A bounded extension of the existing weather receipt collector is proposed:
+separate radiation evidence retaining raw lux, explicit conversion provenance,
+station identity, receipt epoch and expiry; no cached substitute or poll-time
+renewal. Source-only/default-off preparation approval is pending. No new
+collector, dependency, Item, privilege, unit or source modification was made.
+The inspection used a read-only database connection and left no test artifacts.

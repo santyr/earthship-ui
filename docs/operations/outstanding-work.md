@@ -84,6 +84,14 @@ independent shade/airflow states and radiation outcomes before chronological
 joint-shade refit; no physical state, multiplier, label or live model changed.
 See [forcing diagnosis](2026-09-30-forecast-input-capture.md#six-hour-forcing-and-shade-assumption-diagnosis).
 
+The irradiance source follow-up identifies a lux-derived proxy behind a cached
+HTTP Item, without atomic historical radiation receipts. The existing RF export
+has original decode timestamps but retains only one latest snapshot. Do not
+qualify radiation from station/HTTP health or backfill its missing receipt
+history. A default-off extension of the existing weather collector is proposed
+and awaits source-preparation approval; legacy weather and controls are unchanged.
+See [radiation source gap](2026-09-30-forecast-input-capture.md#measured-radiation-source-qualification-gap).
+
 September 30 charge-profile source extension and exact natural morning-capture
 qualification are complete. The replay measures first reported full charge,
 no-full censoring and 1–6-point post-full declines without relabeling later
