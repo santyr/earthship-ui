@@ -37,6 +37,20 @@ outcomes as forecast inputs. No live forecast, coefficient, control or privilege
 changed. See [charge targets](2026-09-27-trough-calibration-checkpoint.md#september-30-qualified-charge-time-and-afternoon-decline-targets)
 and [natural capture](2026-09-29-prediction-learning-review.md#september-30-natural-morning-snapshot-capture).
 
+September 30 evening the next display-only migration slice is staged: Moon
+phase name and illumination readings, preserving their exact legacy profiles,
+semantic membership and fractional unit `one`. The original isolated provider/
+rollback and complete JDBC state/history recovery checks pass; 43 focused/
+adjacent guards pass. Stronger unit/state-description requalification exposed
+a missing offline Astro binding; a pinned cached binding now corrects that
+fixture, not production. Its full corrected boot/restart/managed-rollback rerun
+passes with exact units, read-only flags and phase options. An initial fixture
+percent assumption was also corrected, not copied into production. All owned
+test containers/databases were removed.
+Production ownership/state/history remain unchanged; a guarded current-prefix
+live handoff and natural-source readback are still required. See the
+[Moon candidate and evidence](2026-09-30-moon-phase-readings-candidate.md).
+
 September 30 around 18:14 MDT exact parsed raw-weather capture is prospectively
 installed. It runs before the daily prediction origin, retains units/cloud/
 radiation/hourly inputs with immutable private references, and changes no

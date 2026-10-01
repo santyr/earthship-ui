@@ -1,0 +1,5 @@
+// STAGED ONLY: do not install alongside the managed Items or links.
+// Preserve both Moon memberships, Point semantics and the existing link settings.
+// The legacy function parameter is retained with system:default, not changed to MAP.
+String Moon_MoonPhaseName "Moon Phase Name" (Moon) ["Point"] { channel="astro:moon:local:phase#name" [profile="system:default", function="astro.map"] }
+Number:Dimensionless Moon_MoonIllumination "Moon Illumination" (Moon) ["Point"] { channel="astro:moon:local:phase#illumination" }

@@ -98,6 +98,14 @@ and provisional manifest status remain; see the
 
 ## Staged migration and rollback
 
+`items/moon-phase-readings.items` is a **staged, uninstalled** candidate for
+`Moon_MoonPhaseName` and `Moon_MoonIllumination` only. Their labels, semantic
+membership, fractional illumination unit `one` and exact existing link profiles
+are preserved. The Moon Group and Thing remain untouched. Provider/restart/
+managed-rollback and isolated JDBC state/history rehearsals are documented in
+the [Moon candidate](../../docs/operations/2026-09-30-moon-phase-readings-candidate.md);
+live handoff and natural-source gates remain open. No file ownership is claimed.
+
 1. Inspect exact live configuration, metadata, links, groups, consumers and history
    mapping. For rules, trace every written Item to *live downstream rule
    consumers* before calling the rule display-only; a UI-looking output can
