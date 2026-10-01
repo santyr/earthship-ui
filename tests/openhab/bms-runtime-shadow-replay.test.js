@@ -162,6 +162,56 @@ describe('bounded read-only runtime estimator replay', () => {
     }
   });
 
+  it.each([[-79, 1], [-80, 0], [-100, 0]])(
+    'audits shallow-current median admissions at %i cA without counting duplicate evaluations',
+    (currentCa, expectedAdmissions) => {
+      const h = histories();
+      for (const [offset, current, ttd] of [[30000, -300, 500], [60000, currentCa, 26000]]) {
+        const receipt = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+        receipt.sequence = offset / 30000 + 1; receipt.recordedAt = at + offset;
+        receipt.fields['battery.dc_current_ca'] = field(current, 90000, 'value', at + offset);
+        receipt.fields['battery.ttd_min'] = field(ttd, 120000, 'value', at + offset);
+        h.BMS_Runtime_Input_Evidence_JSON.push(row(receipt, at + offset));
+      }
+      // A new envelope/expiry evaluation carrying the same TTD observation is
+      // not another median admission. This also exercises a non-aligned event.
+      const duplicate = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON.at(-1).state);
+      duplicate.sequence++; duplicate.recordedAt = at + 61000;
+      h.BMS_Runtime_Input_Evidence_JSON.push(row(duplicate, at + 61000));
+      const result = replayRuntime(h, { startMs: at, endMs: at + 90000 });
+      expect(result.shallowBmsAdmissionCount).toBe(expectedAdmissions);
+      expect(result.firstShallowBmsAdmissions).toHaveLength(expectedAdmissions);
+      if (expectedAdmissions) expect(result.firstShallowBmsAdmissions[0]).toEqual({
+        at: new Date(at + 60000).toISOString(), currentA: currentCa / 100,
+        currentObservedAt: new Date(at + 60000).toISOString(),
+        ttdObservedAt: new Date(at + 60000).toISOString(),
+        currentMinusTtdObservationMs: 0, admittedTtdMin: 26000,
+        candidateMedianMin: 26000,
+      });
+      // Diagnostics do not alter the candidate, its latched dwell or median.
+      expect(result.lastCandidate.basis).toBe('bms');
+      expect(result.lastCandidate.ttdMin).toBe('26000');
+      expect(result.arithmeticViolationCount).toBe(0);
+    },
+  );
+
+  it('bounds shallow-admission examples without truncating the total count', () => {
+    const h = histories();
+    for (let index = 1; index <= 21; index++) {
+      const receipt = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
+      const observed = at + index * 1000;
+      receipt.sequence = index + 1; receipt.recordedAt = observed;
+      receipt.fields['battery.dc_current_ca'] = field(index === 1 ? -300 : -70,
+        90000, 'value', observed);
+      receipt.fields['battery.ttd_min'] = field(20000 + index, 120000, 'value', observed);
+      h.BMS_Runtime_Input_Evidence_JSON.push(row(receipt, observed));
+    }
+    const result = replayRuntime(h, { startMs: at, endMs: at + 21000 });
+    expect(result.shallowBmsAdmissionCount).toBe(20);
+    expect(result.firstShallowBmsAdmissions).toHaveLength(12);
+    expect(result.arithmeticViolationCount).toBe(0);
+  });
+
   it('pinpoints an expired auxiliary source at a fail-closed off tick', () => {
     const h = histories();
     const soc = JSON.parse(h.BMS_SOC_Evidence_JSON[0].state);
@@ -180,6 +230,7 @@ describe('bounded read-only runtime estimator replay', () => {
 
     const result = replayRuntime(h, { startMs: at + 120000, endMs: at + 120000 });
     expect(result.candidateBasisTicks).toEqual({ off: 1 });
+    expect(result.shallowBmsAdmissionCount).toBe(0);
     expect(result.firstOffSourceSnapshots).toHaveLength(1);
     expect(result.firstOffSourceSnapshots[0]).toMatchObject({
       remainingAh: { status: 'valid', validForMs: 0 },
@@ -222,6 +273,7 @@ describe('bounded read-only runtime estimator replay', () => {
     const result = replayRuntime(h, { startMs: at, endMs: at });
     expect(result.confirmedChargingTicks).toBe(0);
     expect(result.confirmedChargingTransitions).toEqual([]);
+    expect(result.shallowBmsAdmissionCount).toBe(0);
   });
 
   it('rejects unbounded, unordered and future-only histories', () => {

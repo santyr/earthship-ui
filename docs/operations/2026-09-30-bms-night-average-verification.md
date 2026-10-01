@@ -479,3 +479,74 @@ load passed earlier native JDBC checks, but this replay's millisecond REST
 weighted diagnostic is not that exact native average and was not used by its
 `bms` median target. No rule, Item, model, control, service or DM was changed;
 the estimator candidate remains undeployed. No test scratch was created.
+
+## Afternoon crossover: shallow observations still pollute the candidate median
+
+A subsequent 12:20–16:20 MDT natural replay, comparing its final two hours,
+exposes a remaining crossover defect in the same `374d2fc5...` candidate:
+
+```sh
+node openhab/scripts/bms_runtime_shadow_replay.mjs \
+  2026-09-30T18:20:00Z 2026-09-30T22:20:00Z \
+  2026-09-30T02:30:00Z 2026-09-30T12:00:00Z \
+  --compare-from 2026-09-30T20:20:00Z
+```
+
+All 1,226 evaluations pass arithmetic. There are 476 independently
+source-qualified charging evaluations, with no charging/BMS-basis or
+noncharging-positive-TTF violations. Actual discharge-to-charge exits occur
+at `20:04:29.879Z` (fresh 1.57 A) and `20:21:07.018Z` (fresh 1.17 A), both
+from `bms` to `now`. These qualify those natural charging reversals; they do
+not erase the earlier projection EMA differences or prove a whole dawn cycle.
+The current candidate already has its exact real-JVM fault/restart/rollback
+qualification in the earlier observation-preserving section; no redundant
+container rehearsal was run here.
+
+**New blocker:** while the deep-state eight-minute dwell is latched, the
+candidate still admits positive BMS TTD observations when validated current
+is shallower than its documented -0.8 A deep-exit boundary. The median can
+then retain near-zero-current divisions after deeper discharge resumes.
+This is an admission/regime problem even though the median arithmetic passes.
+It is not evidence that legacy output is physically accurate, nor a reason
+to tune alpha to legacy values.
+
+The read-only replay now reports `shallowBmsAdmissionCount` and at most twelve
+`firstShallowBmsAdmissions`. It observes changes of the candidate's actual
+admitted TTD timestamp, so duplicate timer reads/envelopes are not counted as
+new admissions. Each example includes the separately validated current/TTD
+acquisition times and their skew; those observations are not claimed to be
+simultaneous hardware acquisitions. Count scope is the entire replay, including
+warmup, not just its numeric-comparison target. Arithmetic and admission
+diagnostics remain separate, and neither mutates the candidate state or source.
+
+This natural window has **seven** shallow admissions. Three illustrate the
+failure:
+
+| Original TTD UTC | Validated current | Raw TTD minutes | Current age relative to TTD |
+| --- | ---: | ---: | ---: |
+| 20:18:04.745 | -0.75 A | 27,929 | 1,042 ms earlier |
+| 20:18:34.772 | -0.71 A | 28,706 | 222 ms earlier |
+| 20:19:04.957 | -0.78 A | 33,236 | 4,811 ms earlier |
+
+At 20:20:30Z, both displays say `bms`, but candidate TTD is 19,545 minutes
+versus live 2,989, a 16,556-minute difference. Its nine actual admitted values
+are `10557, 9157, 22122, 19545, 27929, 28706, 33236, 2216, 2989`.
+The independent bounded receipt lookup confirms the three shallow values and
+their current observation offsets. The later stable nighttime replay remains
+at zero shallow admissions and retains all 121 exact median matches; that
+nighttime result must not be generalized to this crossover.
+
+Regressions first failed because the admission audit was absent. The completed
+read-only audit passes 55 focused collector/estimator/replay/night-load tests,
+including strict -0.8 A boundary cases, no double counting, bounded examples
+with an untruncated total, expired bank inputs, and unchanged synthetic
+candidate median/state. No production rule/Item/service or estimator source
+changed, no DM was sent, and no temporary test files or containers were added.
+
+**Next:** correct sample admission around the existing shallow/deep boundary
+in a source-only candidate, with explicit treatment of retained samples,
+re-entry warmup, receipt ordering and the existing burst/dwell protections.
+Then rerun both natural crossover and nighttime checks plus exact revised-source
+fault/restart/rollback qualification. Do not deploy the current candidate merely
+because steady discharge or arithmetic checks pass. A guarded attended live
+replacement remains a separate gate.

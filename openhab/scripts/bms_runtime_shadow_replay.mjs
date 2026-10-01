@@ -182,6 +182,8 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
   const largestMinuteDifferences = {};
   const arithmeticViolations = [];
   let arithmeticViolationCount = 0, lastCandidateInputs = null;
+  let shallowBmsAdmissionCount = 0;
+  const shallowBmsAdmissions = [];
   const openhab = {
     cache: { private: {
       get: (key, fallback) => {
@@ -228,12 +230,30 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
       }
     }
     const sandbox = { require: () => openhab, Date: { now: () => tick } };
+    const priorTtdAt = memory.get('ttd_state')?.lastTtdAt ?? null;
     // Observe the candidate's own validated inputs; do not duplicate its
     // receipt qualification or change the script's publications/cache logic.
-    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i, bmsBuffer: st.buf.slice(), lastTtdAt: st.lastTtdAt, socPct: bankSoc, remainingAh: bankRemaining, volts: voltageV(), loadEmaW: cache.private.get("p_load"), chargeEmaA: cache.private.get("i_chg"), nightW: cache.private.get("p_night")?.w, bmsTtfMin: bmsMinutes("battery.ttf_min")?.value };',
+    vm.runInNewContext(source + '\n;globalThis.__qualificationAudit = { bankReady, current, currentA: i, bmsBuffer: st.buf.slice(), lastTtdAt: st.lastTtdAt, socPct: bankSoc, remainingAh: bankRemaining, volts: voltageV(), loadEmaW: cache.private.get("p_load"), chargeEmaA: cache.private.get("i_chg"), nightW: cache.private.get("p_night")?.w, bmsTtfMin: bmsMinutes("battery.ttf_min")?.value, ttdSample: bmsMinutes("battery.ttd_min") };',
       sandbox, { timeout: 1000 });
     const audit = sandbox.__qualificationAudit;
     const basis = output.BMS_Runtime_Basis;
+    // Audit the documented -0.8 A deep-exit boundary separately from arithmetic.
+    // Dwell can latch the state through shallow discharge: a newly admitted
+    // TTD sample in that regime may pollute its median while all math passes.
+    // These are the candidate's validated held observations, not proof of
+    // simultaneous hardware acquisition. Report their skew explicitly.
+    if (basis === 'bms' && audit.bankReady && audit.currentA > -0.8
+        && audit.lastTtdAt != null && audit.lastTtdAt !== priorTtdAt) {
+      shallowBmsAdmissionCount++;
+      if (shallowBmsAdmissions.length < 12) shallowBmsAdmissions.push({
+        at: new Date(tick).toISOString(), currentA: audit.currentA,
+        currentObservedAt: new Date(audit.current.observedAt).toISOString(),
+        ttdObservedAt: new Date(audit.lastTtdAt).toISOString(),
+        currentMinusTtdObservationMs: audit.current.observedAt - audit.lastTtdAt,
+        admittedTtdMin: audit.ttdSample.value,
+        candidateMedianMin: minuteValue(output.BMS_TimeToDischarge_Smoothed),
+      });
+    }
     const inputs = { basis, bankReady: audit.bankReady, socPct: audit.socPct,
       remainingAh: audit.remainingAh, volts: audit.volts, loadEmaW: audit.loadEmaW,
       chargeEmaA: audit.chargeEmaA, nightW: audit.nightW, currentA: audit.currentA,
@@ -326,6 +346,7 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
       [key, { ticks: pairs.ttd.length, ttd: summarizeMinutes(pairs.ttd), ttf: summarizeMinutes(pairs.ttf) }])),
     largestMinuteDifferencesByBasisPair: largestMinuteDifferences,
     arithmeticViolationCount, firstArithmeticViolations: arithmeticViolations, lastCandidateInputs,
+    shallowBmsAdmissionCount, firstShallowBmsAdmissions: shallowBmsAdmissions,
     overnightLoadInputs,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
       ttfMin: output.BMS_TimeToFull_Smoothed },
