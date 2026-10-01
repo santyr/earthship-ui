@@ -20,3 +20,8 @@ Verification: all 1,985 frontend unit tests, all 15 Energy browser tests
 build passed. The build retains its existing large-chunk advisory. The new
 browser and completed-window regression were first observed failing before
 implementation.
+
+Local deployment restarted only the user-level `earthship-ui.service`, which
+is active/running and transforms Energy.svelte successfully. A read-only
+headless browser at the Lenovo viewport verified one `Estimated trough 64%`
+label and a visible battery-history SVG. No OpenHAB restart or control change.

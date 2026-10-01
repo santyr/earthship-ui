@@ -453,3 +453,39 @@ has the same inventory and SHA-256
 `5f31b57de220a22f81f695d58d1c178ee2dbe229138f47f214fb456716f53aec`.
 Both are under `/home/sat/backups/earthship-energy/`, private and verified;
 training/publication identities remain explicitly distinct.
+
+## October 1 completed natural batched training
+
+The first full natural trainer after the fit-local batching backport started
+06:50:29 MDT and ended 07:10:05 MDT, exit zero, without a restart or duplicate.
+The same invocation `4139b15428954166b6bd3fcd5ea4ef20` completed; original PID
+914042 is now zero, unit inactive/dead, Result success. Resource counters:
+1,173.674619 seconds CPU, 383,791,104 bytes peak memory (366.01 MiB), and zero
+peak swap. Elapsed time was 19m36s versus September 30's 45m07s, about 57%
+lower; CPU was about 56.6% lower. This is one natural whole-run measurement,
+not a controlled identical-input benchmark or a guarantee for future days.
+
+The original invocation journal reports `promoted`, trained through
+`2026-10-01T12:50:29.152333Z`, with training revision matching the complete
+installed runtime pin
+`7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`.
+Read-only validation using installed pure decoders/validators independently
+accepts both accepted.json and candidate.json with require_eligible=True;
+their identical file SHA-256 is
+`a2a0a8f26c567ae9dcef57aba0671485d8d6cc8edf0dfa922edd8370dd146e09`.
+previous.json still validates and retains the exact September 30 file digest
+`904c76e964f9b7c103918cc24e993b4fc766db5a86a0da2af6ea334fb06a4e75`.
+The backtest report validates independently, its metrics equal the accepted
+artifact's exactly, and its SHA-256 is
+`d6ca964e028b60e194c5ae5e95f6b1d09e89171af431b76549f4a673c0fe0089`.
+No quarantine/restoration or ArtifactRegistry mutating load was invoked.
+
+This closes batching's first natural whole-run resource/acceptance/source
+identity gate. The artifact still declares promotion.shadow_only=true and
+graduation_thresholds=null. Thermal operational graduation, confirmed-action
+evidence and first subsequent new-artifact natural publication qualification
+remain separate; no control was activated and no physical state was relabelled.
+The new run has 99,855 samples, 377 folds and 295 scored folds. Its 119-pair
+24-hour air MAE remains 2.178550°F versus persistence's 1.689895°F; confirmed
+action training/evaluation counts remain zero. The provisional promotion gate
+must not be interpreted as evidence of beating persistence operationally.
