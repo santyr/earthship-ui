@@ -129,3 +129,74 @@ identical to the retained 17:01 capture. The artifact's training revision remain
 `a4a68a17...`, distinct from the current runtime; no new training or skill is
 implied. The next natural shadow is September 30 21:01:48 MDT. Training and
 original morning weather-input capture gates remain October 1 06:50 / 06:40.
+
+## September 30 21:02 natural shadow follow-through
+
+The next actual timer invocation began at **21:02:48 MDT**, not the previously
+displayed 21:01 planning time. Invocation
+`bc088a6d067b4c4ea2d2312d135b6a67` exited successfully at 21:02:51, status zero,
+with 2.129158 seconds of CPU usage. The service is terminal/inactive with no
+main PID; it was not manually rerun, restarted or mistaken for a running job.
+Memory/swap peak properties are unset for this invocation and are not claimed.
+
+The Item, local `shadow.json`, verified original forcing capture and exactly
+one JDBC receipt match. Decision is `2026-10-01T03:02:50.049882+00:00`; original
+JDBC receipt is `2026-10-01T03:02:51.725+00:00`. Output SHA-256:
+`0f26b44311f20bd12a140ec2496800a5e0abad75935797efa5a24676c5a6c8eb`.
+Private capture:
+`/home/sat/.local/state/thermal-intel/forcing-captures/2026-10/20261001T030250Z-0f26b44311f20bd1.json.gz`.
+
+The complete capture reproduces exactly under installed manifest
+`7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/replay-thermal-forcing.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --capture /home/sat/.local/state/thermal-intel/forcing-captures/2026-10/20261001T030250Z-0f26b44311f20bd1.json.gz \
+  --expected-runtime-revision 7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095
+```
+
+Accepted-artifact SHA remains
+`66bc754135da743f402e00c34e07d8ffaeb7c8e97061873e06808619fe734353`, identical
+to its embedded artifact and the preceding verified publication. Its training
+revision is still `a4a68a17...`, distinct from the runtime pin. Publication is
+still `shadow` with `low` confidence. Exact mechanical replay does not establish
+predictive skill, action truth or graduation.
+
+At verification the next shadow timer is **23:02:48 MDT**. Natural raw-weather
+capture/training remain October 1 06:40/06:50. The training service is inactive,
+with its last start still September 30 06:50:29; no new optimized whole-run
+performance result exists yet. No configuration, model, source flag, control,
+collector or DM changed, and no temporary files were created by these reads.
+
+### Mature six-hour outcome checkpoint
+
+A separate read-only audit around September 30 21:10 MDT used the installed
+runtime, exact forcing captures and independently qualified indoor/outdoor
+outcomes. Publication bounds were `2026-09-30T00:00:00Z` through
+`2026-10-01T03:07:00Z`, six-hour horizon, with the current accepted artifact
+explicitly identified by its full digest above. Of 15 publications, eleven
+mature pairs have verified captures; four future outcomes remain unscored.
+The issue-window `--until` does not freeze assessment time: subsequent reruns
+may legitimately mature more pairs.
+
+For the **current artifact**, four overlapping mature pairs yield indoor MAE
+**2.4185°F** versus persistence **0.765°F**, signed bias **-2.4185°F** and zero
+model wins (persistence wins all four). The non-overlapping subset has only
+one pair: model MAE 2.482°F versus persistence 0.9°F. This is insufficient
+independent evidence for fitting/promoting a correction. All four intervals
+contain their outcomes, but their mean width is 10.4137°F; broad interval
+coverage is not evidence of an accurate point prediction.
+
+Across both artifacts in that issue window, eleven pairs have indoor model
+MAE 2.4019°F versus persistence 1.0309°F. Their paired outdoor forcing has
+MAE 1.5673°F and signed bias **+0.5709°F**. The opposite indoor/outdoor bias
+directions do not support blaming this cold indoor bias solely on an outdoor
+forecast that is too cold; they do not identify a causal airflow, solar, mass
+or occupancy coefficient either. No recalled window state is made a signed
+label and no coefficient/schedule is changed to fit these few outcomes.
+
+The current artifact therefore still fails the better-than-persistence gate
+in this new short-horizon checkpoint. Continue chronological divergence work
+with qualified forcing/outcomes and genuine action observations. Do not confuse
+the successful natural delivery/replay with thermal model readiness.
