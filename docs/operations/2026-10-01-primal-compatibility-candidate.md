@@ -259,6 +259,100 @@ removed, all four transient units read back `not-found`, and no disposable
 PostgreSQL test container remained. The approved inactive runtime/private
 configuration, two recovery wheels and existing operational backups are retained.
 
+### Exact inactive household recovery — October 1, 11:58 MDT
+
+The subsequent **inactive, empty-policy** same-host recovery rehearsal passed
+against the actual staged runtime, configured Hex identity and restricted v2
+household journal. A new empty baseline was initialized through the frozen
+`PrimalLedger` and `PrimalOutbox` classes at
+`/home/sat/.local/state/thermal-primal`; all seven application tables contain
+zero rows. This is inactive preparation, not a listener or sending policy.
+The earlier statement that no state directory exists describes the staging
+checkpoint above, not this later baseline.
+
+The retained private recovery directory is
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-10-01-primal-inactive`.
+Its independently recorded `bundle-manifest.json` SHA-256 is
+`4e99025c6652371cc51020be387bfd404481db33c4402f818f50d8985561dcc4`.
+The outer manifest pins 25 files, with private directories/files and no
+operator key, Sat client key or administrator credential:
+
+- `data/`: explicit Primal v6 snapshot, both application databases, exact
+  empty v2 policy and signed routes, original custom journal archive and its
+  five-component manifest. The strict v6 inventory remains unchanged.
+- `runtime/`: nine frozen source files and their independently pinned code
+  manifest, both exact recovery wheels, hash-locked requirements and the
+  separately qualified stdin signer executable.
+- `credentials/`: only the already approved seven-field collector environment.
+- `units/`: the two uninstalled user-unit templates.
+- `platform.json` and `qualification.json`: same-host interpreter/signing
+  anchors and sanitized observed recovery evidence. This is not an OS image,
+  portable off-host recovery, reviewed sending policy or live-service release.
+
+Production PostgreSQL remained read-only. Export used one repeatable-read
+snapshot and ACCESS SHARE locks; no collector or journal-owner role sessions
+were observed before/after. A second independent production read matched the
+retained/restored rows. These checks do **not** claim that the whole PostgreSQL
+cluster or all possible administrator writers were frozen.
+
+| Original/restored table | Rows | Ordered CSV SHA-256 |
+| --- | --- | --- |
+| `action_events` | 10 | `7006a6beab68bca825a0cc787119b709a137198d4e9fd1be0f5c6f0bf46a0ad3` |
+| `message_receipts` | 4 | `056d846d36b18745fe9da23d3552322af2301ffe3097c078690d39ebfc4a3309` |
+| `mode_events` | 4 | `73f4a3a3445d91047886524f3a1a8cf040d526bac94af025c86a340c0642d966` |
+
+Recovery rebuilt a fresh CPython 3.12 environment **offline**, from the retained
+hash-checked wheels rather than copying the installed virtual environment.
+Separate working copies of code, configuration, signer and both SQLite files
+were reopened through the actual application classes. The recovered seven
+environment values were parsed and compared without printing; probe credentials
+were rebound to only the loopback disposable PostgreSQL database, restricted
+role and default-read-only transactions. The backed-up production DSN was never
+used for a restored writer.
+
+The exact v2 fingerprint `f3e09cdd...` and all original ordered row digests
+matched before any synthetic fixture insert. Restored configuration/signed-route
+validation and configured Hex NIP-04 stdin/NIP-17 self-roundtrips passed without
+publication. A closed-gate polling attempt exited 2 without creating its target
+state directory. The current installed model consumer `7f57eb3f...` then passed
+its separate six-observation fixture coexistence check **only in disposable
+storage**, preserving legacy samples and one supported bucket. Those fixtures
+were removed with the disposable database and are not household evidence.
+
+The first rehearsal invocation `971c34ba1ce04decb81297de61b2211c` stopped because
+Snap's Docker launcher cannot run under `NoNewPrivileges`. Two read-only Docker
+metadata probes isolated this: the restricted launcher failed with the missing
+capability diagnostic; the normal launcher succeeded. No container remained.
+The retained snapshot was resumed, not overwritten or re-exported. Container
+management used normal user-launch privileges; all restored collector probes
+explicitly retained `PR_SET_NO_NEW_PRIVS`. The permanent collector template's
+`NoNewPrivileges=yes` is unchanged.
+
+The successful resume invocation `4b25a9b0a44546088ca0573b85b462ee` exited 0 in
+4.829 seconds; qualification time is `2026-10-01T17:58:54.379622Z`. Both
+disposable working storage and its exact owned Docker container were removed.
+All four rehearsal/diagnostic user units subsequently read back `not-found`.
+The approved inactive SQLite baseline and qualified recovery bundle are retained;
+all six release gates remain false and permanent collector/timer remain absent.
+Existing NIP-17 files and intents were neither opened, migrated nor reissued.
+
+This closes recovery of the **actual inactive empty-question baseline**, not
+recovery of a future reviewed question/received reply. Before that trial, retain
+and rehearse the exact newly reviewed policy and preserve any new original
+ciphertext/first-receipt state; do not substitute this empty baseline for it.
+Truthful question review, authenticated attended Primal reply, and bounded
+user-service release remain open. Off-host backups remain operator-deferred.
+
+After the rehearsal, an independent verifier checked the externally selected
+outer manifest pin, exact 25-file inventory, every retained byte digest/private
+file mode and strict five-component Primal v6 manifest. The existing Primal/
+legacy backup, explicit command and frozen-runtime regression set passed
+**64 tests in 25.86 seconds**, with the exact installed stdin signer and dedicated
+dependency path. This is a focused recovery rerun, not a new full-project suite
+claim. Task-owned pytest fixtures and the temporary operational rehearsal script
+are removed after terminal verification; qualified backups and inactive runtime
+are retained.
+
 ## Qualification
 
 `tests/completion/test_thermal_nip04.py` uses real crypto only when explicitly
@@ -442,11 +536,13 @@ Current candidate source identities:
    compatibility is not claimed. Do not replace/restart the operator's signer.
    Still regenerate the consumer/runtime/recovery pins for the actual installed
    command/dependency/private configuration bundle; a signer alone is insufficient.
-3. Recheck signed routes and exact restricted journal access. Qualify stopped-
-   writer full-bundle recovery against the real v2 configuration, including the
-   original envelopes, new `primal.sqlite3` first-receipt ledger and new
-   `primal-delivery.sqlite3` ciphertext/ingress bookkeeping;
-   journal-only restore or the older two-database bundle is not enough.
+3. Signed routes, restricted v2 access and exact inactive household baseline
+   recovery now pass as recorded above, including runtime/dependencies/signer,
+   selected private credentials and both new Primal databases. Retain/rehearse
+   the exact newly reviewed truthful trial policy before sending; preserve all
+   new original envelopes and first-receipt/ingress state after a real trial.
+   Neither this empty baseline nor a journal-only/older two-database restore
+   qualifies a later changed operational configuration.
 4. Review one truthful attended question and verify an authenticated Primal reply,
    resulting journal data and receipt. Confirm actual operator delivery, not
    merely relay ACK. Existing test non-receipt remains on record.
