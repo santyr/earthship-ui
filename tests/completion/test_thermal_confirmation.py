@@ -405,6 +405,7 @@ def test_spool_permissions(tmp_path):
 def test_spool_refuses_world_readable_directory(tmp_path):
     directory = tmp_path / "insecure"
     directory.mkdir(mode=0o755)
+    directory.chmod(0o755)
     with pytest.raises(m.Refused, match="private"):
         m.Spool(directory)
 

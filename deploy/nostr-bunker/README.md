@@ -262,6 +262,17 @@ do not authorize a listener.
 
 ## Installation boundary
 
+### Primal compatibility candidate (not installed)
+
+The [October 1 Primal candidate](../../docs/operations/2026-10-01-primal-compatibility-candidate.md)
+documents a bounded NIP-04 stdin patch, disposable-key tests, and the remaining
+delivery/recovery gates. Neither the installed bunker binary nor its pin is
+changed. Do not replace this running signer with the qualification build or
+use the candidate to publish a live thermal question. NIP-04 compatibility is
+an explicit transport choice, not fallback for existing NIP-17 intents.
+
+### Qualified installation requirements
+
 An attended administrator must review the instance name and its public key,
 then install the launcher and a qualified `nak` binary into a root-owned,
 non-group-writable `/usr/local/libexec/nostr-bunker/` directory. The launcher

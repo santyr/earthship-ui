@@ -85,3 +85,13 @@ evidence exclusion, and five messaging integration tests require the absent
 `websockets.sync` dependency. Those remaining six unrelated suite failures
 are not claimed resolved by this candidate. No dependency was installed or
 unrelated production configuration changed to hide them.
+
+## October 1 broader regression closure
+
+The later [Primal source qualification](2026-10-01-primal-compatibility-candidate.md)
+corrected the stale persistence fixture and made the negative-permission
+fixtures explicitly chmod their task-only directories. The existing cached
+`websockets` package was supplied on test PYTHONPATH, not installed into the
+runtime. The combined suite now passes 2,935 tests and 74 subtests, with six
+optional integration skips, under umask 077. This closes those suite failures
+without changing production persistence or the default-off radiation boundary.

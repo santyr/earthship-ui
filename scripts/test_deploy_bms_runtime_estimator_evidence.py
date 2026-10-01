@@ -232,6 +232,7 @@ def test_process_lock_refuses_overlap_and_symlink(monkeypatch, tmp_path):
 
 def test_private_root_must_be_owned_0700_directory(monkeypatch, tmp_path):
     root = tmp_path / 'private'; root.mkdir(mode=0o755)
+    root.chmod(0o755)  # Exercise unsafe permissions even under a private umask.
     monkeypatch.setattr(m, 'PRIVATE_ROOT', root)
     with pytest.raises(RuntimeError):
         with m.apply_lock(): pytest.fail('unsafe lock root')

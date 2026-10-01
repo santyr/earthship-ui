@@ -1,6 +1,6 @@
 # Outstanding Earthship and OpenHAB work
 
-## Current execution queue — September 30
+## Current execution queue — October 1
 
 October 1 approved-release checkpoint: the battery estimator is now live at
 exact source `8b0e6533...` after operator approval, physical attendance and both
@@ -10,12 +10,22 @@ illumination Items/links also completed their actual managed rollback and file
 handoff, with exact original history and later natural Astro/JDBC receipts.
 Four provisional file ownership entries are declared; restart recovery remains
 separate. Current inventory has zero issues, 380 managed/64 file Items and
-244 managed/23 file links. Primal compatibility and default-off radiation source
-preparation are approved but not yet implemented or activated. No equipment
+244 managed/23 file links. The default-off radiation receipt candidate is
+committed; Primal authenticated-message primitives and a stdin-only signer
+backport pass isolated qualification. The combined affected Python suite passes
+2,935 tests and 74 subtests, with six optional integration skips. Neither
+candidate is installed or activated.
+The sole Energy trough display is restored and qualified in the live UI.
+The natural October 1 thermal training completed successfully in 19m36s with
+366 MiB peak memory and zero peak swap; the accepted model remains shadow-only.
+No equipment
 command, synthetic Item write, OpenHAB restart or DM was issued. See
 [battery execution](2026-09-30-bms-runtime-estimator-cutover-plan.md#october-1-attended-deployment-and-natural-publication)
 and [Moon execution](2026-09-30-moon-phase-readings-cutover-plan.md#october-1-attended-execution-and-natural-source-receipt).
 Earlier September 30 pending-approval statements below are historical.
+See also [radiation candidate](2026-10-01-radiation-receipt-candidate.md),
+[Primal candidate and remaining gates](2026-10-01-primal-compatibility-candidate.md),
+and [completed natural training](2026-09-27-thermal-selector-efficiency.md#october-1-completed-natural-batched-training).
 
 This is a priority index, **not** a completion audit of the entire project.
 Dated checkpoints below retain historical preconditions; use the latest
@@ -25,8 +35,8 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | --- | --- | --- |
 | Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; natural 06:45 capture matches all 1,458 original morning UI facts. Exact raw-weather input capture is prospectively installed; 315 affected Python / 26 UI contract tests pass. Historical UI companions lack a strict raw-fetch origin binding. | Qualify October 1's natural original input capture, then join qualified forcing/outcomes and score chronological joint-model candidates; do not backdate historical companions or promote a five-day fit. |
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. Operator explicitly did not receive the NIP-17 path test and uses Primal. | Score September 30 only after October 1 11:00 MDT. Notifications remain off. Review an explicit Primal-compatible transport before another delivery trial; do not turn relay storage into receipt or silently downgrade existing intents. |
-| Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
-| Thermal skill and efficiency | September 30's actual 21:02 timer output, archive, sole JDBC receipt and exact replay pass under `7f57eb3f...`; artifact remains unchanged/low confidence. Four mature current-artifact six-hour pairs have MAE 2.4185°F versus persistence 0.765°F, biased cold; only one is non-overlapping. | Qualify October 1 06:50 training and record whole-run time/memory/swap. Continue chronological divergence diagnosis; require held-out improvement plus genuine action evidence before graduation. Mechanical replay is not predictive skill. |
+| Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. Primal message/question primitives pass isolated disposable-key qualification; no integrated kind-4 ledger or deployed transport yet. | Complete original-envelope kind-4 delivery/first-receipt integration, exact signer qualification and stopped-writer full v2 bundle recovery; then truthful question review, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
+| Thermal skill and efficiency | October 1 natural training exited zero: 19m36s, 366 MiB peak, zero swap, accepted/candidate/report agreement and valid previous-artifact retention. 24-hour air MAE remains 2.17855°F versus persistence 1.689895°F; confirmed-action training/evaluation count is zero. Four earlier mature six-hour pairs were biased cold, with only one non-overlapping. | Qualify the next natural shadow with the promoted artifact. Continue chronological divergence diagnosis; require held-out improvement plus genuine action evidence before graduation. Faster training and mechanical replay are not predictive skill. |
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; Moon actual rollback/history/natural source gates pass. Current inventory has zero issues, but 380 Items/80 Things/37 rules remain managed. | Qualify complete, clean source days and continue individually qualified migration. Moon restart recovery remains provisional; do not repeat the completed `gForecast` restart or authorize general protected-control work. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |

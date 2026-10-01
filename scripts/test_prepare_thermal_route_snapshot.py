@@ -75,6 +75,7 @@ def test_unsupported_or_unverified_inventory_never_creates_file(tmp_path, events
 def test_public_parent_refuses_before_network(tmp_path, events):
     public = tmp_path/'public'
     public.mkdir(mode=0o755)
+    public.chmod(0o755)
     keyer = Keyer(events)
     with pytest.raises(ValueError, match='private'):
         p.prepare(public/'routes.json', keyer)

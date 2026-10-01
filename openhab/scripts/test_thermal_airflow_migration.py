@@ -269,6 +269,7 @@ def test_retained_archive_refuses_public_parent_or_existing_target(tmp_path):
     qualifier = restore_qualifier()
     public = tmp_path/'public'
     public.mkdir(mode=0o755)
+    public.chmod(0o755)  # Exercise public-parent rejection even under umask 077.
     with pytest.raises(ValueError, match='private'):
         qualifier.retain_archive(tmp_path/'missing.dump', public/'retained')
     assert list(public.iterdir()) == []

@@ -1,0 +1,64 @@
+--- a/encrypt_decrypt.go
++++ b/encrypt_decrypt.go
+@@ -3,6 +3,8 @@
+ import (
+ 	"context"
+ 	"fmt"
++	"io"
++	"os"
+ 
+ 	"fiatjaf.com/nostr/nip04"
+ 	"github.com/urfave/cli/v3"
+@@ -23,11 +25,15 @@
+ 			Name:  "nip04",
+ 			Usage: "use nip04 encryption instead of nip44",
+ 		},
++		&cli.BoolFlag{Name: "stdin", Usage: "read bounded NIP04 input from stdin instead of argv"},
+ 	},
+ 	Action: func(ctx context.Context, c *cli.Command) error {
+ 		target := getPubKey(c, "recipient-pubkey")
+ 
+-		plaintext := c.Args().First()
++		plaintext, err := boundedNIP04Input(c)
++		if err != nil {
++			return err
++		}
+ 
+ 		if c.Bool("nip04") {
+ 			sec, bunker, err := gatherSecretKeyOrBunkerFromArguments(ctx, c)
+@@ -84,11 +90,15 @@
+ 			Name:  "nip04",
+ 			Usage: "use nip04 encryption instead of nip44",
+ 		},
++		&cli.BoolFlag{Name: "stdin", Usage: "read bounded NIP04 input from stdin instead of argv"},
+ 	},
+ 	Action: func(ctx context.Context, c *cli.Command) error {
+ 		source := getPubKey(c, "sender-pubkey")
+ 
+-		ciphertext := c.Args().First()
++		ciphertext, err := boundedNIP04Input(c)
++		if err != nil {
++			return err
++		}
+ 
+ 		if c.Bool("nip04") {
+ 			sec, bunker, err := gatherSecretKeyOrBunkerFromArguments(ctx, c)
+@@ -129,3 +139,18 @@
+ 		return nil
+ 	},
+ }
++
++// Opt-in only: existing positional and NIP44 invocation behavior is unchanged.
++func boundedNIP04Input(c *cli.Command) (string, error) {
++	if !c.Bool("stdin") {
++		return c.Args().First(), nil
++	}
++	if !c.Bool("nip04") || c.Args().Len() != 0 {
++		return "", fmt.Errorf("stdin requires NIP04 and no positional input")
++	}
++	input, err := io.ReadAll(io.LimitReader(os.Stdin, 65537))
++	if err != nil || len(input) == 0 || len(input) > 65536 {
++		return "", fmt.Errorf("NIP04 stdin input unavailable or outside bound")
++	}
++	return string(input), nil
++}
