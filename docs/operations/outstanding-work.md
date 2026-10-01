@@ -34,6 +34,15 @@ exact dependency/signer/private-configuration and full-bundle gates remain open.
 The complete discovered Python suite after command integration passed 2,958
 tests and 74 subtests in 212.21 seconds, with the same 39 optional skips; all
 new command, relay and ledger tests ran. No production collector activation.
+Explicit Primal backup versions 4–6 now preserve the selected original-cipher
+and delivery databases, optional config and optional stopped-writer journal.
+Thirty-five focused backup/legacy/baseline tests pass, including actual complete
+Primal data recovery between two disposable PostgreSQL databases and duplicate-
+free expired reply/ACK recovery. This is not the required household-config/code/
+signer recovery qualification; production and retained backups are untouched.
+The complete discovered Python suite after recovery support passed 2,974 tests
+and 74 subtests in 230.79 seconds, with the same 39 optional skips. All 16 new
+Primal backup cases, including the actual full disposable restore, ran.
 The sole Energy trough display is restored and qualified in the live UI.
 The natural October 1 thermal training completed successfully in 19m36s with
 366 MiB peak memory and zero peak swap. Its first natural 09:05 publication

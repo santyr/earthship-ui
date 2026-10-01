@@ -368,3 +368,78 @@ not claimed as executed in this run. Private umask and disabled bytecode/cache
 were retained. Task-owned fixtures were removed only after terminal results;
 no disposable PostgreSQL test container remains. Operational backups are
 unchanged. This closes source command regression, not installed/live release.
+
+## Explicit Primal data snapshot and full disposable restore
+
+`thermal_state_backup.py` now supports explicit `transport='nip04'` or CLI
+`--transport nip04`. Creation still defaults to NIP-17; its original database
+names and manifest versions 1–3 are unchanged. Primal never auto-detects,
+migrates, deletes or relabels the older NIP-17 state. If both transports' files
+exist in a source directory, the explicitly selected pair alone is captured;
+the older pair is unchanged and needs its own retained recovery point.
+
+New manifest scopes are deliberately distinct:
+
+| Version | Primal data captured | Does not establish |
+| --- | --- | --- |
+| 4 | `primal.sqlite3`, `primal-delivery.sqlite3` | Config or PostgreSQL recovery |
+| 5 | Both databases plus exact private `policy.json` and `routes.json` | PostgreSQL recovery |
+| 6 | Both databases, both configs, custom `journal.dump` | Runtime/signer/dependency recovery or live release |
+
+The snapshot holds the same state lock as the Primal command, uses SQLite's
+backup API, verifies integrity, writes private exclusive files and fsyncs its
+manifest/directory. Missing, public, unknown-version or busy source state
+refuses before destination creation. Primal roots must be absolute, owned
+mode-0700 and non-symlink. A failure after copying starts leaves a private
+incomplete destination for inspection, not a valid reusable recovery point.
+No automatic pruning or overwrite is introduced.
+
+Verification binds exact scope, filename set, digests, SQLite integrity and
+recognized application schema versions (ledger 1, delivery 3). Unexpected files
+are refused, not ignored. `verify_snapshot(..., transport='nip04')` and CLI
+`--verify --transport nip04` additionally refuse another transport's scope.
+Config capture is byte preservation, not itself signature/policy validation;
+the real restore test reopens them through `Policy` and `Routes`. Keep a
+separately trusted manifest digest and selected runtime/source pins for actual
+household recovery; self-contained file digests alone do not authenticate a
+recovery point.
+
+The full PostgreSQL scope requires a caller-supplied custom archive exporter
+while **all external journal writers are stopped/quiescent**. The filesystem
+lock only covers cooperating commands in the selected state directory; it
+cannot stop another journal process. The existing PostgreSQL archive inventory
+check remains in force. This CLI does not silently generate or label a live
+PostgreSQL backup from a SQLite-only request.
+
+Thirty-five focused Primal/legacy/baseline checks passed in 12.55 seconds.
+Sixteen are new Primal backup cases, including a real five-data-file recovery
+between two isolated PostgreSQL 16 databases. The test uses actual disposable
+kind-4 signatures/decryption, a v2 journal with restricted runtime role, a
+repeatable-read exported snapshot, real `pg_dump`/`pg_restore`, and exact
+table/schema proofs. It restores private SQLite copies into a separate working
+directory, revalidates original signed routes/questions/replies and authorizes
+the retained pending ACK against the **restored** journal after question expiry.
+
+The original cipher/ID, original first receipt, accepted-route and retry state,
+ingress marker, pending encrypted ACK and PostgreSQL payload digest remain
+unchanged. Replaying the original reply after expiry adds no duplicate action:
+all journal table counts/digests still match. This is an actual application
+recovery check, not only SQLite integrity or archive-list inspection. Synthetic
+keys and isolated databases only were used; the production journal, private
+household recovery anchors, operator bunker and relays were untouched.
+
+Backup source SHA-256 at this checkpoint:
+`6c5aece9f0c189fcb9dbfb3b64cf2cc56cf7f97e983b1d20995e0f06417c409c`.
+This closes source support and **disposable** full data recovery. Qualification
+of the actual inactive household Primal configuration, original journal copy,
+selected signer/dependencies and code bundle remains open before any live trial.
+
+The complete discovered Python suite passed **2,974 tests and 74 subtests**,
+with the same **39 optional skips**, in 230.79 seconds. All 16 Primal backup
+cases executed, including the real PostgreSQL export/restore/application
+recovery. The optional removed stdin-build fixture remains skipped, not
+implicitly requalified. Bytecode/cache stayed disabled and umask private.
+Task-owned temporary directories were cleaned only after terminal test results;
+both source/restore disposable containers were removed. Retained operational
+backups were neither modified nor deleted. No live service, release flag,
+signer, journal, forecast or control changed.

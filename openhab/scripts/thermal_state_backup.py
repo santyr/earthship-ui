@@ -2,7 +2,8 @@
 
 The same advisory lock must cover every CLI state mutation and this snapshot.
 Optional policy and route bytes can be captured with the SQLite pair. This
-does not back up the PostgreSQL action journal or qualify off-host restore.
+also supports an explicit stopped-writer PostgreSQL archive exporter. Scopes
+remain distinct; verification does not qualify live or off-host recovery.
 """
 
 import argparse
@@ -19,6 +20,7 @@ import subprocess
 
 
 DATABASES = ('confirmations.sqlite3', 'delivery.sqlite3')
+PRIMAL_DATABASES = ('primal.sqlite3', 'primal-delivery.sqlite3')
 CONFIG_FILES = ('policy.json', 'routes.json')
 JOURNAL_FILE = 'journal.dump'
 MAX_CONFIG_BYTES = 128 * 1024
@@ -26,6 +28,39 @@ MAX_JOURNAL_BYTES = 128 * 1024 * 1024
 SQLITE_SCOPE = 'thermal_sqlite_pair_only_no_postgresql_journal'
 CONFIG_SCOPE = 'thermal_sqlite_pair_and_config_no_postgresql_journal'
 JOURNAL_SCOPE = 'thermal_stopped_writer_journal_sqlite_config_bundle'
+PRIMAL_SQLITE_SCOPE = 'thermal_primal_sqlite_pair_only_no_postgresql_journal'
+PRIMAL_CONFIG_SCOPE = 'thermal_primal_sqlite_pair_and_config_no_postgresql_journal'
+PRIMAL_JOURNAL_SCOPE = 'thermal_primal_stopped_writer_journal_sqlite_config_bundle'
+SNAPSHOT_LAYOUTS = {
+    1: (SQLITE_SCOPE, DATABASES),
+    2: (CONFIG_SCOPE, DATABASES + CONFIG_FILES),
+    3: (JOURNAL_SCOPE, DATABASES + CONFIG_FILES + (JOURNAL_FILE,)),
+    4: (PRIMAL_SQLITE_SCOPE, PRIMAL_DATABASES),
+    5: (PRIMAL_CONFIG_SCOPE, PRIMAL_DATABASES + CONFIG_FILES),
+    6: (PRIMAL_JOURNAL_SCOPE, PRIMAL_DATABASES + CONFIG_FILES + (JOURNAL_FILE,)),
+}
+
+
+def _transport(value):
+    if value not in ('nip17', 'nip04'):
+        raise ValueError('explicit nip17 or nip04 snapshot transport required')
+    return value
+
+
+def _primal_database(path, name):
+    """Refuse unrecognized application state, even if its file digest matches."""
+    _private_file(path)
+    with sqlite3.connect(f'file:{path}?mode=ro', uri=True) as check:
+        expected = 1 if name == 'primal.sqlite3' else 3
+        if check.execute('PRAGMA user_version').fetchone() != (expected,):
+            raise ValueError('Primal snapshot database schema version differs')
+
+
+def _primal_directory(path):
+    _private_directory(path)
+    if (not path.is_absolute() or path.resolve() != path
+            or stat.S_IMODE(path.lstat().st_mode) != 0o700):
+        raise ValueError('Primal snapshot requires owned mode-0700 non-symlink directories')
 
 
 def _private_directory(path):
@@ -136,22 +171,30 @@ def _check_journal_archive(target):
         raise ValueError('journal archive schema inventory invalid')
 
 
-def _snapshot_locked(source, destination, config_paths=None, journal_exporter=None):
+def _snapshot_locked(source, destination, config_paths=None, journal_exporter=None,
+                     *, transport='nip17'):
     """Snapshot both DBs under state_lock; destination must not yet exist.
 
     A failed snapshot leaves its private destination for attended inspection,
     not a silently reusable or automatically pruned recovery point.
     """
     source, destination = Path(source), Path(destination)
+    _transport(transport)
     _private_directory(source)
     _private_directory(destination.parent)
+    databases = PRIMAL_DATABASES if transport == 'nip04' else DATABASES
+    if transport == 'nip04':
+        _primal_directory(source)
+        _primal_directory(destination.parent)
     if config_paths is not None:
         config_paths = tuple(_private_config_source(path) for path in config_paths)
-    for name in DATABASES:
+    for name in databases:
         _private_file(source / name)
+        if transport == 'nip04':
+            _primal_database(source / name, name)
     destination.mkdir(mode=0o700)
     files = {}
-    for name in DATABASES:
+    for name in databases:
         original = source / name
         _private_file(original)
         target = destination / name
@@ -174,9 +217,10 @@ def _snapshot_locked(source, destination, config_paths=None, journal_exporter=No
         _check_journal_archive(target)
         files[JOURNAL_FILE] = _digest(target)
     version = 3 if journal_exporter is not None else 2 if config_paths is not None else 1
+    if transport == 'nip04':
+        version += 3
     manifest = {'version': version,
-                'scope': (JOURNAL_SCOPE if version == 3 else CONFIG_SCOPE
-                          if version == 2 else SQLITE_SCOPE),
+                'scope': SNAPSHOT_LAYOUTS[version][0],
                 'files_sha256': files}
     path = destination / 'manifest.json'
     fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
@@ -193,13 +237,15 @@ def _snapshot_locked(source, destination, config_paths=None, journal_exporter=No
 
 
 def snapshot_state(source, destination, *, policy=None, routes=None,
-                   journal_exporter=None):
+                   journal_exporter=None, transport='nip17'):
     """Take an idle-state snapshot; caller must stop external journal writers.
 
     A journal exporter must write one private pg_dump custom archive to its
-    supplied new path. Holding this lock blocks the two collector CLIs, but
-    cannot by itself stop independent journal writers.
+    supplied new path. Holding this lock blocks collector CLIs sharing the
+    selected state directory, but cannot stop independent journal writers.
+    Primal is explicit opt-in; existing NIP-17 filenames/formats stay unchanged.
     """
+    _transport(transport)
     if (policy is None) != (routes is None):
         raise ValueError('policy and routes must be captured together')
     if journal_exporter is not None and (policy is None or not callable(journal_exporter)):
@@ -208,11 +254,13 @@ def snapshot_state(source, destination, *, policy=None, routes=None,
     with state_lock(source):
         return _snapshot_locked(source, destination,
                                 None if policy is None else (policy, routes),
-                                journal_exporter)
+                                journal_exporter, transport=transport)
 
 
-def verify_snapshot(directory):
+def verify_snapshot(directory, *, transport=None):
     """Verify a paired archive without opening live state or printing contents."""
+    if transport is not None:
+        _transport(transport)
     directory = Path(directory)
     _private_directory(directory)
     path = directory / 'manifest.json'
@@ -223,13 +271,18 @@ def verify_snapshot(directory):
     if not isinstance(manifest, dict) or set(manifest) != {'version', 'scope', 'files_sha256'}:
         raise ValueError('invalid paired snapshot manifest')
     version, scope = manifest.get('version'), manifest.get('scope')
-    expected_files = DATABASES if type(version) is int and version == 1 and scope == SQLITE_SCOPE else (
-        DATABASES + CONFIG_FILES if type(version) is int and version == 2 and scope == CONFIG_SCOPE else (
-            DATABASES + CONFIG_FILES + (JOURNAL_FILE,)
-            if type(version) is int and version == 3 and scope == JOURNAL_SCOPE else ()))
+    layout = SNAPSHOT_LAYOUTS.get(version) if type(version) is int else None
+    expected_files = layout[1] if layout and scope == layout[0] else ()
     if (not expected_files or not isinstance(manifest.get('files_sha256'), dict)
             or set(manifest['files_sha256']) != set(expected_files)):
         raise ValueError('invalid paired snapshot manifest')
+    observed_transport = 'nip04' if version >= 4 else 'nip17'
+    if transport is not None and transport != observed_transport:
+        raise ValueError('snapshot transport differs from selected transport')
+    if observed_transport == 'nip04':
+        _primal_directory(directory)
+        if set(child.name for child in directory.iterdir()) != set(expected_files) | {'manifest.json'}:
+            raise ValueError('unexpected Primal snapshot contents')
     for name in expected_files:
         target = directory / name
         _private_file(target)
@@ -239,7 +292,9 @@ def verify_snapshot(directory):
             raise ValueError('invalid paired snapshot digest')
         if _digest(target) != expected:
             raise ValueError('paired snapshot digest mismatch')
-        if name in DATABASES:
+        if name in DATABASES + PRIMAL_DATABASES:
+            if name in PRIMAL_DATABASES:
+                _primal_database(target, name)
             with sqlite3.connect(f'file:{target}?mode=ro', uri=True) as check:
                 if check.execute('PRAGMA integrity_check').fetchone() != ('ok',):
                     raise ValueError('paired snapshot integrity check failed')
@@ -259,15 +314,18 @@ def main(argv=None):
     parser.add_argument('--snapshot-dir', type=Path, required=True)
     parser.add_argument('--policy', type=Path, help='private reviewed policy file to include')
     parser.add_argument('--routes', type=Path, help='private signed-route snapshot to include')
+    parser.add_argument('--transport', choices=('nip17', 'nip04'),
+                        help='explicit snapshot transport; defaults to nip17 when creating')
     args = parser.parse_args(argv)
     if args.snapshot:
         if args.source_dir is None:
             parser.error('--snapshot requires --source-dir')
         snapshot_state(args.source_dir, args.snapshot_dir,
-                       policy=args.policy, routes=args.routes)
+                       policy=args.policy, routes=args.routes,
+                       transport=args.transport or 'nip17')
     elif args.policy is not None or args.routes is not None:
         parser.error('--verify reads config from the snapshot directory')
-    result = verify_snapshot(args.snapshot_dir)
+    result = verify_snapshot(args.snapshot_dir, transport=args.transport)
     print(json.dumps(result, sort_keys=True))
     return 0
 
