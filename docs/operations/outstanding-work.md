@@ -74,6 +74,16 @@ artifact worse than persistence on all four mature pairs, with cold bias and
 only one non-overlapping pair. Thus delivery readiness does not close the
 thermal skill gate. See [latest natural run and outcomes](2026-09-30-forecast-input-capture.md#september-30-2102-natural-shadow-follow-through).
 
+The subsequent exact-replay forcing diagnosis finds no midnight-prefix indexing
+defect: the scored simulation windows contain positive decision-time radiation.
+The warm-mode fallback assumes exterior shade present while the accepted
+exterior-shaded solar gain is zero. Removing that assumption blindly worsens
+four-pair MAE, and increasing forecast radiation cannot affect the two later
+zero-gain windows. Closed vents explain little of the bias. Qualify actual
+independent shade/airflow states and radiation outcomes before chronological
+joint-shade refit; no physical state, multiplier, label or live model changed.
+See [forcing diagnosis](2026-09-30-forecast-input-capture.md#six-hour-forcing-and-shade-assumption-diagnosis).
+
 September 30 charge-profile source extension and exact natural morning-capture
 qualification are complete. The replay measures first reported full charge,
 no-full censoring and 1–6-point post-full declines without relabeling later

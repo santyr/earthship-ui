@@ -200,3 +200,79 @@ The current artifact therefore still fails the better-than-persistence gate
 in this new short-horizon checkpoint. Continue chronological divergence work
 with qualified forcing/outcomes and genuine action observations. Do not confuse
 the successful natural delivery/replay with thermal model readiness.
+
+### Six-hour forcing and shade-assumption diagnosis
+
+Read-only diagnostics on September 30 around 21:35 MDT replayed the
+same four current-artifact captures above exactly under the complete installed
+`7f57eb3f...` revision. Instrumentation wrapped the pure simulator only inside
+the diagnostic process and restored its functions afterward. No capture,
+artifact, installed source, Item, journal, service, control or DM was changed.
+
+The ten-day capture's first midnight radiation rows are not the simulation's
+initial forcing. The pipeline selects the decision-time five-minute origin
+and interpolates its future weather brackets. These four scored windows each
+contain 78 five-minute endpoints, ending at the nearest hourly six-hour target
+(about 6.5 elapsed hours). Their actual window mean irradiance is respectively
+125.785, 174.160, 97.952 and 61.974 W/m²; the first forcing is positive in all
+four. This rules out treating the midnight prefix as a demonstrated forecast
+indexing defect. It does not qualify these predicted irradiances against
+measured irradiance.
+
+All captured weather rows use `warm` mode. The internal baseline assumes
+exterior shade **present** through `protocol_fallback`, not a qualified current
+shade receipt. All 78 endpoints in each scored window therefore have
+`outdoor_shade_present=1`. The accepted air and mass `solar_outdoor` coefficients
+are both exactly zero. The first two windows have 36 and 29 modeled indoor-closed
+endpoints; the later two have none. In this legacy three-regime solar basis,
+open indoor shades plus present exterior shade therefore select a zero-gain
+solar term. This is a model/state-identification limitation, not evidence that
+the actual building receives no solar heat. Closing the modeled indoor shade
+can instead select a positive gain, reproducing the joint-interaction limitation
+already documented in the
+[prediction-learning review](2026-09-29-prediction-learning-review.md#september-30-versioned-joint-shade-solar-candidate).
+
+Three separate hypothetical changes were compared at the exact original
+target timestamps. They are diagnostic scenarios, **not action observations**:
+
+| Issue MDT | Original error °F | Closed-vent change °F | Exterior-absent change °F | 1.5× forecast-radiation change °F |
+| --- | ---: | ---: | ---: | ---: |
+| 08:30 | -2.482 | 0.000 | +2.953 | +2.345 |
+| 10:31 | -1.934 | 0.000 | +5.303 | +0.520 |
+| 12:31 | -2.728 | +0.099 | +9.078 | 0.000 |
+| 14:31 | -2.530 | +0.521 | +3.585 | 0.000 |
+
+Closed vents reduce approximate mean absolute error from 2.4185 to 2.2635°F;
+they explain little of the miss. Exterior shade absent instead yields errors
+approximately +0.471, +3.369, +6.350 and +1.055°F, mean absolute error 2.8113°F:
+removing this assumption blindly is not an accuracy fix. Scaling radiation
+by 1.5 yields approximate MAE 1.7023°F on these four overlapping pairs, but
+leaves both later predictions unchanged. It can also change internal shade
+timing; unchanged public vent schedule fields do not prove an unchanged whole
+schedule. These are not four independent days, a calibrated multiplier,
+causal shade effects or promotion evidence.
+
+An initial exploratory 2× radiation run returned an unavailable forecast, and
+the diagnostic attempted to locate its absent trajectory point. That failed
+check produced no scored counterfactual. The corrected 1.5× run explicitly
+checked bounded radiation and usable trajectories; it is the run recorded
+above. No failed run or unavailable trajectory is counted as success.
+A direct normalizer check confirms the 2× input reaches 1,616 W/m², exceeding
+the 1,600 W/m² limit. Its first verification assertion expected the wrong
+error wording; the corrected exact-message check passed. This was an invalid
+diagnostic input, not a production forecast failure.
+
+The publication's action provenance remains `historical_reconstruction` /
+`reconstructed`. The artifact's manifest records four reconstruction, two
+manual-DM and eight model-inferred events; these counts do not make the current
+exterior shade or learned future shade/vent timing independently observed.
+The 27 uncommissioned motorized indoor-shade preview slots likewise say nothing
+about existing exterior screens. A separate question requests that physical
+distinction; a chat recollection will not be inserted as a signed training label.
+
+Next work is to qualify the actual independent shade/airflow state and join
+original radiation forecasts to qualified irradiance outcomes. Use the already
+versioned joint-shade candidate and chronological refit/replay to test any
+model correction; do not relabel legacy coefficients, force exterior shade
+absent from season or UI preview, fit a solar multiplier to these four pairs,
+or graduate the current artifact. Live model and collector remain unchanged.
