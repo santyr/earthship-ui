@@ -2,6 +2,21 @@
 
 ## Current execution queue — September 30
 
+October 1 approved-release checkpoint: the battery estimator is now live at
+exact source `8b0e6533...` after operator approval, physical attendance and both
+pumps OFF. Its apply gate is reclosed; strict original fields, cold-cache
+warmup, source-attributed outputs and changed JDBC rows pass. Moon phase and
+illumination Items/links also completed their actual managed rollback and file
+handoff, with exact original history and later natural Astro/JDBC receipts.
+Four provisional file ownership entries are declared; restart recovery remains
+separate. Current inventory has zero issues, 380 managed/64 file Items and
+244 managed/23 file links. Primal compatibility and default-off radiation source
+preparation are approved but not yet implemented or activated. No equipment
+command, synthetic Item write, OpenHAB restart or DM was issued. See
+[battery execution](2026-09-30-bms-runtime-estimator-cutover-plan.md#october-1-attended-deployment-and-natural-publication)
+and [Moon execution](2026-09-30-moon-phase-readings-cutover-plan.md#october-1-attended-execution-and-natural-source-receipt).
+Earlier September 30 pending-approval statements below are historical.
+
 This is a priority index, **not** a completion audit of the entire project.
 Dated checkpoints below retain historical preconditions; use the latest
 runtime/evidence before treating any earlier “pending” statement as current.
@@ -12,8 +27,8 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. Operator explicitly did not receive the NIP-17 path test and uses Primal. | Score September 30 only after October 1 11:00 MDT. Notifications remain off. Review an explicit Primal-compatible transport before another delivery trial; do not turn relay storage into receipt or silently downgrade existing intents. |
 | Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
 | Thermal skill and efficiency | September 30's actual 21:02 timer output, archive, sole JDBC receipt and exact replay pass under `7f57eb3f...`; artifact remains unchanged/low confidence. Four mature current-artifact six-hour pairs have MAE 2.4185°F versus persistence 0.765°F, biased cold; only one is non-overlapping. | Qualify October 1 06:50 training and record whole-run time/memory/swap. Continue chronological divergence diagnosis; require held-out improvement plus genuine action evidence before graduation. Mechanical replay is not predictive skill. |
-| Battery-runtime freshness | The observation-preserving collector is live. Corrected disabled estimator `8b0e6533...` eliminates shallow admissions and preserves 121 nighttime matches; exact-source JVM recovery passes. Guarded adapter/attended plan are ready; 58 adapter/adjacent tests and live read-only preflight pass. Production remains unchanged. | Obtain exact-plan approval and current physical attendance, then recheck pumps/fresh telemetry before bounded release. Require natural post-update evidence and close apply gate afterward. Do not claim universal legacy parity or physical prediction accuracy. |
-| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast`, its ten members/links and JDBC persistence are already file-owned. Current inventory has zero issues, but 382 Items/80 Things/37 rules remain managed. | Await complete, clean source days; continue individually qualified migration. Do not repeat the completed `gForecast` restart. Future protected-control or whole-OpenHAB work needs its own current recovery/attendance checks. |
+| Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
+| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; Moon actual rollback/history/natural source gates pass. Current inventory has zero issues, but 380 Items/80 Things/37 rules remain managed. | Qualify complete, clean source days and continue individually qualified migration. Moon restart recovery remains provisional; do not repeat the completed `gForecast` restart or authorize general protected-control work. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
 September 30 20:15 MDT post-update battery-runtime discharge evidence closes

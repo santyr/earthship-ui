@@ -1,5 +1,11 @@
 # Moon phase display readings: staged file configuration
 
+Current status: the approved October 1 handoff and natural Astro/JDBC checks
+have passed; the two Items/links are file-owned provisionally, with the apply
+gate closed and restart recovery still pending. See the
+[execution receipt](2026-09-30-moon-phase-readings-cutover-plan.md#october-1-attended-execution-and-natural-source-receipt).
+The staging statements below describe the earlier September 30 checkpoint.
+
 The next observational migration slice is the two managed Moon readings,
 not the Moon Group or Astro Thing. No production provider or state has changed.
 

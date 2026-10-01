@@ -1,6 +1,8 @@
 # Attended Moon display Item/link handoff
 
-Status: **release gate off; exact-plan approval and attended execution pending**.
+Status: **approved handoff completed October 1; apply gate reclosed; file
+ownership provisional pending production restart qualification**. The ordered
+procedure below is retained as the executed plan, not a request for approval.
 The prepared adapter is `scripts/migrate-moon-phase-readings.py`. Its `--check`
 path is read-only, while `--apply` refuses before database/REST access unless
 the one-shot `RELEASE_READY` gate is deliberately opened for this plan.
@@ -81,3 +83,41 @@ refuses to overwrite or delete unknown data and requires attended manual review.
 Retain the private receipt; do not report success from a partial rollback or
 delete backups to make a failure look clean. No general protected-control
 restart authority follows from this display-only plan.
+
+## October 1 attended execution and natural source receipt
+
+The operator approved this exact migration and was physically present to monitor
+the concurrent, separately approved estimator work. Fresh read-only preflight
+passed, followed by 103 focused combined estimator/Moon release tests. The Moon
+adapter ran at 06:43 MDT, took its own current backup, transferred the two
+Items/links, exercised the actual managed rollback, and returned both to the
+file provider. It exited zero with `file_provider_provisional`; its apply gate
+was immediately reclosed. OpenHAB was not restarted and no equipment command,
+synthetic Item write, database write, grant or DM was issued.
+
+Retained private recovery directory (0700; all files 0600):
+`/home/sat/.local/state/openhab-config-migration/moon-readings-20261001T124353Z`.
+Independent readback verifies exact pinned file bytes, profiles, units, state
+descriptions/options, Item/link sole file ownership and unchanged Group, Thing
+and protected-rule definitions. The protected digest is
+`91bf14c17c7f3b98b512bc5a55e709fb9d3e6b4718b99b9a6064f222b4be16b1`;
+it includes the estimator's already-approved new definition, not its old one.
+
+| JDBC Item | Preserved original rows | Streamed CSV bytes | Exact SHA-256 |
+| --- | ---: | ---: | --- |
+| Phase 59 | 998 | 44,387 | `bf988fdf6e57c428eb5a1b2fbe77e33a994610df4bba7f1ca251d3981c39a965` |
+| Illumination 41 | 136,511 | 6,725,192 | `96c53ecaa075bda1c8e4f61caec489d076bce3cc542ab60121996bc850aa51cf` |
+
+Restore-generated NULL-to-state events during the round trip were **not**
+counted as natural updates. At 06:47:40.733 MDT the later illumination change
+to `0.7276530287894781` is explicitly attributed to
+`org.openhab.core.thing$astro:moon:local:phase#illumination`. The phase naturally
+updated to its unchanged `WANING_GIBBOUS` value. A further natural illumination
+receipt at `2026-10-01T12:52:40.737074Z` matches current state
+`0.7272952242822854`; total history is 136,513 rows and the complete 136,511-row
+pre-cutover prefix still matches. No fabricated phase change was required.
+
+The four exact ownership declarations are now provisional. Current inventory
+has zero issues, 380 managed/64 file Items and 244 managed/23 file links. Keep
+the operational backup; production restart recovery is still a distinct gate
+and this receipt does not authorize a restart or complete the broader migration.

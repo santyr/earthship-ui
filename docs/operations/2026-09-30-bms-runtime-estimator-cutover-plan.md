@@ -1,6 +1,8 @@
 # Attended source-bound battery-runtime estimator replacement
 
-Status: **source-only plan; live release gate OFF; no production update made.**
+Status: **approved attended replacement deployed October 1; natural inputs and
+outputs verified; live apply gate reclosed**. The procedure below is retained
+as the executed plan, not a fresh approval request.
 
 ## Exact scope and expected change
 
@@ -127,3 +129,52 @@ The empty process-lock file is intentional reusable infrastructure, not proof
 of a running operation. Test scratch is removed separately; the private live
 recovery backup is intentionally retained. No such live lock/backup was created
 by the read-only check or the refused closed-gate invocation.
+
+## October 1 attended deployment and natural publication
+
+The operator explicitly approved this plan, confirmed physical attendance and
+both pumps physically OFF. The fresh preflight passed with the exact old/new/
+collector hashes, original input freshness and unchanged planning guard
+`91c0c76795d3764d301d0e9f3871aaa03f51d82d3e8667452c54d0b0ba12148a`.
+All 103 focused combined estimator/Moon release tests passed in 0.22 seconds.
+
+The exact adapter replacement ran around 06:42 MDT and exited zero with
+`definition_updated_natural_evidence_pending`. Independent readback then
+verified the new script/triggers, healthy IDLE/NONE status, original other-resource
+guard and both pump output states still OFF. The apply gate was reclosed before
+the separately approved Moon migration. No other rule, Item definition, link,
+persistence setting or history was changed by this update; no equipment command,
+manual rule run, OpenHAB restart or DM was issued.
+
+Retained private recovery preimage:
+`/home/sat/.local/state/openhab-config-migration/bms-estimator-evidence-v4w3_cqi/preimage.json`,
+SHA-256 `ac9565bc1c6c292f4ad2969a83553401ba1830ebabf92fc54b68d9bd8162bee4`.
+Independent permissions/content checks verify its directory 0700, file 0600 and
+the exact `8698b16a...` original script. Do not remove this operational backup.
+
+The bounded read-only window from backup time
+`2026-10-01T12:42:10.400156Z` through `12:50:20.959181Z` contains 26 original
+runtime envelopes in one epoch, with 16 distinct post-backup current receipts,
+16 distinct TTD receipts and eight distinct zero-TTF receipts. Their original
+timestamps, validity and receipt/JDBC ordering were checked; unchanged zero-TTF
+observations were not inferred from change-only numeric history.
+The existing strict native-field validator independently passed all 104 checks
+for current, voltage, TTD and TTF across those 26 envelopes; their epoch and
+sequence are continuous. Owned test scratch was removed; private recovery
+backups remain intentionally retained.
+
+Natural cold-cache output first used `evening`, then changed to `bms` at
+06:42:49.086 MDT, explicitly attributed to `hex_bms_ttd_smooth`. Ten changed TTD
+JDBC rows occur in the window; the latest is 2,682 minutes. The initial observed
+changes include 2,716→2,836→2,916 minutes. Subsequent source fields remain valid,
+with native current around −6 A, positive native TTD and fresh zero TTF. The
+steady TTF output remains zero and has no new change-only row, as expected.
+There is no manual input, artificial outage, expiry exercise or numerical
+coefficient tuning in this live window.
+
+This closes the exact deployment and initial natural-receipt gates, not future
+physical runtime accuracy or universal parity. Missing-input/expiry/reversal/
+restart/rollback behavior remains supported by the unchanged-source isolated
+qualification; no production fault was forced to restate it. The ownership
+manifest now accurately declares this rule managed with its exact verified
+source. Broad managed-to-file migration and thermal-model work remain open.

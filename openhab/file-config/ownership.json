@@ -33,6 +33,26 @@
       "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items"
     },
     {
+      "kind": "item", "id": "Moon_MoonPhaseName", "provider": "file", "migration": "provisional",
+      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items",
+      "state_writer": "astro:moon:local:phase#name"
+    },
+    {
+      "kind": "item", "id": "Moon_MoonIllumination", "provider": "file", "migration": "provisional",
+      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items",
+      "state_writer": "astro:moon:local:phase#illumination"
+    },
+    {
+      "kind": "link", "id": "Moon_MoonPhaseName -> astro:moon:local:phase#name",
+      "provider": "file", "migration": "provisional",
+      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items"
+    },
+    {
+      "kind": "link", "id": "Moon_MoonIllumination -> astro:moon:local:phase#illumination",
+      "provider": "file", "migration": "provisional",
+      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items"
+    },
+    {
       "kind": "thing", "id": "openmeteo:openmeteo:local", "provider": "file", "migration": "verified",
       "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
     },
@@ -445,6 +465,16 @@
       "migration": "observational",
       "source": "openhab/rules/tplink-switch-evidence.js",
       "rest_path": "/rules/hex_tplink_switch_evidence"
+    },
+    {
+      "kind": "rule",
+      "id": "hex_bms_ttd_smooth",
+      "provider": "managed",
+      "migration": "source_verified",
+      "source": "openhab/rules/bms-runtime-estimator-evidence.js",
+      "source_sha256": "8b0e6533517c1ded06b1dd1e7c64b5cf9eb7a3ff3792d05a44ce3e4e5fc6e168",
+      "rest_path": "/rules/hex_bms_ttd_smooth",
+      "state_writer": "BMS_Runtime_Basis, BMS_TimeToDischarge_Smoothed, BMS_TimeToFull_Smoothed"
     },
     {
       "kind": "item",
