@@ -12,7 +12,7 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. Operator explicitly did not receive the NIP-17 path test and uses Primal. | Score September 30 only after October 1 11:00 MDT. Notifications remain off. Review an explicit Primal-compatible transport before another delivery trial; do not turn relay storage into receipt or silently downgrade existing intents. |
 | Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
 | Thermal skill and efficiency | September 30's natural 19:01 shadow output, archive, JDBC receipt and exact replay pass under `7f57eb3f...`; artifact remains unchanged/low confidence. Source-only joint-solar/airflow candidates and optimizations remain distinct from installed skill. | Qualify October 1 06:50 training and record whole-run time/memory/swap. Require held-out improvement plus genuine action evidence before graduation. |
-| Battery-runtime freshness | The observation-preserving collector is live and matches its qualified source. Stable nighttime replay has 121 exact independent median matches; two natural charging reversals pass. Afternoon crossover audit exposes seven shallow-current admissions while the deep-state dwell is latched. Candidate estimator remains undeployed. | Correct source-only median admission across the shallow/deep boundary, preserving burst/dwell/freshness protections; rerun natural crossover/nighttime and exact-source JVM recovery qualification before guarded attended replacement. Steady-night parity and correct arithmetic do not qualify crossover. |
+| Battery-runtime freshness | The observation-preserving collector is live. Corrected disabled estimator `8b0e6533...` eliminates all seven shallow admissions in the historical crossover and preserves all 121 nighttime matches. Exact-source isolated expiry, JVM restart, fresh recovery and rollback pass; 764 OpenHAB / 18 qualifier tests pass. Production remains unchanged. | Prepare guarded live replacement/rollback adapter and attended plan. Explain remaining source-observation/legacy-sampling differences; do not retune coefficients for artificial parity or claim physical prediction accuracy. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast`, its ten members/links and JDBC persistence are already file-owned. Current inventory has zero issues, but 382 Items/80 Things/37 rules remain managed. | Await complete, clean source days; continue individually qualified migration. Do not repeat the completed `gForecast` restart. Future protected-control or whole-OpenHAB work needs its own current recovery/attendance checks. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
@@ -31,6 +31,16 @@ estimator gate. The read-only audit now has bounded examples and 55 passing
 focused tests; two natural charging reversals also pass. Fix sample admission
 in a disabled source candidate and repeat revised-source qualification before
 any attended deployment. See [crossover defect](2026-09-30-bms-night-average-verification.md#afternoon-crossover-shallow-observations-still-pollute-the-candidate-median).
+
+The source-only correction is now qualified at `8b0e6533...`: no shallow
+admissions in the same afternoon window, unchanged 121 exact nighttime
+matches, and the original bad historical point changes from 19,545 to the
+source-qualified median of 2,989 minutes, matching the live display. All 764 OpenHAB tests
+and 18 Python qualifier tests pass. The real networkless JVM confirms
+shallow rejection, duplicate-read/two-sample re-entry, no-event timer expiry,
+full restart, fresh recovery and exact managed rollback; owned fixture removed.
+Live collector/legacy hashes remain unchanged and healthy. Guarded live adapter
+and attended deployment remain open. See [revised-source qualification](2026-09-30-bms-night-average-verification.md#source-only-crossover-correction-and-revised-source-qualification).
 
 September 30 19:01 natural shadow gate is closed: new timer invocation exited
 zero, the Item/local output/frozen capture match, and exactly one original JDBC

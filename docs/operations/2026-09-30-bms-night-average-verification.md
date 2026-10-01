@@ -550,3 +550,86 @@ Then rerun both natural crossover and nighttime checks plus exact revised-source
 fault/restart/rollback qualification. Do not deploy the current candidate merely
 because steady discharge or arithmetic checks pass. A guarded attended live
 replacement remains a separate gate.
+
+## Source-only crossover correction and revised-source qualification
+
+The disabled candidate now separates latched mode state from sample admission.
+At or above the existing -0.8 A deep-exit boundary, it clears the median,
+retires its qualified TTD identity and requires two distinct observations at
+the existing -1.2 A deep-entry threshold before BMS re-entry. Duplicate cron
+reads and unrelated envelope sequences cannot complete that warmup. Existing
+dwell timestamps, hysteresis thresholds, reserve/efficiency constants, EMA
+alpha and equipment controls are unchanged. A held mode may therefore publish
+the source-qualified evening projection rather than authorize a BMS median;
+missing projection evidence still yields OFF/zero.
+
+An original TTD is classified only on its first observation, against validated
+current acquired no later than that TTD. That original decision is retained
+across evaluations. A later deep current cannot retroactively qualify a held
+shallow or unknown-regime TTD. A shallow interruption invalidates earlier
+qualified samples, so a later re-entry starts a clean median; bank evidence
+loss clears the new identity/warmup metadata with the existing caches.
+This uses the collector's original observation ordering, not change-only
+numeric Item times or a fabricated simultaneous acquisition claim.
+
+Corrected source SHA-256:
+`8b0e6533517c1ded06b1dd1e7c64b5cf9eb7a3ff3792d05a44ce3e4e5fc6e168`.
+The disabled descriptor remains
+`3031e528bb002dd4c0741b3da65a243624bf33f321c05e865b117eda17c9e458`.
+The legacy production estimator and live collector were not replaced.
+
+Four new estimator regressions first failed against the previous candidate,
+then passed: both sides of the exact -0.8 A rejection boundary, retained-dwell
+sample clearing/two-distinct-sample re-entry, no reclassification of a held
+rejected sample, and no qualification from a later current observation. The
+prior near-zero regression still proves that two distinct receipts are required
+to leave the discharge state; its display now honestly falls back during that
+wait. The admission diagnostic is factored into an independently tested bounded
+recorder, retaining coverage for the old defect without injecting an unsafe
+estimator into the live replay. Its synthetic twenty-admission regression still
+checks duplicate/invalid filtering and a twelve-example bound.
+
+All 764 tests across 44 OpenHAB test files pass, including the 59 focused
+collector/estimator/replay/night-load tests. Eighteen Python estimator/delivery
+qualifier tests also pass. Neither test suite created temporary test directories.
+
+The same two immutable historical windows were replayed against the corrected
+source. Afternoon: 1,226 arithmetic checks, 476 qualified charging evaluations,
+zero shallow admissions (previously seven), and no charging/BMS or
+noncharging-positive-TTF violations. The two genuine charging reversals still
+exit BMS mode promptly; the second chooses the evening projection rather than
+`now`, according to the candidate's independently advanced PV/load state.
+At the original 20:20:30Z failure, candidate and live now both show 2,989
+minutes instead of the old candidate's 19,545. Afternoon same-basis numerical
+parity is not universal: 96 `bms -> bms` pairs have mean absolute delta
+460.4375 minutes and maximum 9,495, compared with the prior candidate's
+102 pairs/748.7647/16,556. Different sample admission changes the comparison
+population; this is not a physical-accuracy improvement score.
+
+Nighttime: all 1,235 arithmetic checks still pass, zero shallow admissions,
+and all 121 target `bms -> bms` medians still match exactly. Positive TTF skill,
+future dawn performance and predictive physical accuracy remain unclaimed.
+The replay's REST-weighted evening load is still a diagnostic, not the exact
+native JDBC average qualified earlier.
+
+The exact revised-source networkless real-JVM fixture has passed shallow
+rejection, duplicate-read/two-sample re-entry, missing inputs, charge reversal,
+rule reload and the actual no-event cron expiry. With all inputs held and no
+manual writes/executions, current expired at `1790822408722`; OFF/zero was
+observed at `1790822431689`, 22,967 ms later. Full JVM restart, fresh recovery,
+exact baseline rollback and owned-fixture cleanup subsequently **all passed**.
+The process exited zero with `status=qualified_isolated; production_writes=0`.
+Independent Docker label lookup found no remaining fixture. It had a read-only
+root, no network/ports/host mounts/devices, two CPU cores, 2 GiB RAM and no
+additional swap; its owned tmpfs/container were removed. Natural charging
+transitions and exact native JDBC averaging are separate evidence above, not
+claims made by the synthetic fixture.
+
+Final read-only production checks find both collector and legacy estimator
+healthy (`IDLE/NONE`), still at their exact `621f4ac7...` and `8698b16a...`
+source hashes. The candidate remains at `8b0e6533...`, with its descriptor
+explicitly disabled. No production backup, rule update, restart, control or DM
+was made. **Next:** prepare the guarded live replacement/rollback adapter and
+attended plan. The remaining differences from held-input legacy smoothing
+must be explained by the documented source-observation contract, not hidden
+by coefficient changes or described as proven prediction accuracy.

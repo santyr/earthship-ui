@@ -208,6 +208,72 @@ describe('source-bound display-only battery runtime candidate', () => {
     expect(h.states.BMS_Runtime_Basis).not.toBe('bms');
   });
 
+  it.each([-79, -80])('rejects %i cA TTD samples during a latched deep dwell and rewarms without old samples', currentCa => {
+    const h = fixture();
+    h.cache.set('ttd_state', { discharging: true, deep: true, buf: [500],
+      tsDisch: t0, tsDeep: t0 });
+    h.run();
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    function observe(offset, current, ttd) {
+      h.advance(1000); row.recordedAt = t0 + offset;
+      row.fields['battery.dc_current_ca'] = field(current, t0 + offset, 90000);
+      if (ttd !== undefined) row.fields['battery.ttd_min'] = field(ttd, t0 + offset, 120000);
+      h.run();
+    }
+    observe(1000, currentCa, 26000);
+    expect(h.cache.get('ttd_state').deep).toBe(true);
+    expect(h.cache.get('ttd_state').tsDeep).toBe(t0);
+    expect(h.cache.get('ttd_state').buf).toHaveLength(0);
+    expect(h.states.BMS_Runtime_Basis).toBe('evening');
+    observe(2000, -300, 700);
+    h.run(); h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('evening');
+    expect(h.cache.get('ttd_state').deepStreak).toBe(1);
+    observe(3000, -300);
+    expect(h.states.BMS_Runtime_Basis).toBe('bms');
+    expect(Array.from(h.cache.get('ttd_state').buf)).toEqual([700]);
+    expect(h.states.BMS_TimeToDischarge_Smoothed).toBe('700');
+  });
+
+  it('never reclassifies a rejected shallow TTD observation when current later becomes deep', () => {
+    const h = fixture();
+    h.cache.set('ttd_state', { discharging: true, deep: true, buf: [500],
+      tsDisch: t0, tsDeep: t0 });
+    h.run();
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    for (const [offset, current] of [[1000, -70], [2000, -300], [3000, -300]]) {
+      h.advance(1000); row.recordedAt = t0 + offset;
+      row.fields['battery.dc_current_ca'] = field(current, t0 + offset, 90000);
+      if (offset === 1000) row.fields['battery.ttd_min'] = field(26000, t0 + offset, 120000);
+      h.run();
+      expect(h.states.BMS_Runtime_Basis).toBe('evening');
+      expect(h.cache.get('ttd_state').buf).toHaveLength(0);
+    }
+    h.advance(1000); row.recordedAt = t0 + 4000;
+    row.fields['battery.ttd_min'] = field(700, t0 + 4000, 120000);
+    h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('bms');
+    expect(h.states.BMS_TimeToDischarge_Smoothed).toBe('700');
+  });
+
+  it('does not use a later current observation to qualify an older unseen TTD sample', () => {
+    const h = fixture();
+    h.cache.set('ttd_state', { discharging: true, deep: true, buf: [],
+      tsDisch: t0, tsDeep: t0 });
+    h.advance(1000);
+    const row = h.sources.BMS_Runtime_Input_Evidence_JSON;
+    row.recordedAt = t0 + 1000;
+    row.fields['battery.dc_current_ca'] = field(-300, t0 + 1000, 90000);
+    h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('evening');
+    expect(h.cache.get('ttd_state').buf).toHaveLength(0);
+    h.advance(1000); row.recordedAt = t0 + 2000;
+    row.fields['battery.ttd_min'] = field(700, t0 + 2000, 120000);
+    h.run();
+    expect(h.states.BMS_Runtime_Basis).toBe('bms');
+    expect(h.states.BMS_TimeToDischarge_Smoothed).toBe('700');
+  });
+
   it('requires two distinct near-zero current receipts before an early discharge exit', () => {
     const h = fixture();
     h.cache.set('ttd_state', { discharging: true, deep: true, buf: [500],
@@ -219,7 +285,8 @@ describe('source-bound display-only battery runtime candidate', () => {
     row.fields['battery.dc_current_ca'] = field(0, t0 + 1000, 90000);
     h.run(); h.run();
     expect(h.cache.get('ttd_state').exitStreak).toBe(1);
-    expect(h.states.BMS_Runtime_Basis).toBe('bms');
+    expect(h.cache.get('ttd_state').discharging).toBe(true);
+    expect(h.states.BMS_Runtime_Basis).toBe('evening');
     h.advance(1000);
     row.recordedAt = t0 + 2000;
     row.fields['battery.dc_current_ca'] = field(0, t0 + 2000, 90000);

@@ -180,12 +180,15 @@ const current = currentSample();
 const i = current ? current.value / 100 : NaN;
 const bankSoc = soc(), bankRemaining = remainingAh();
 const bankReady = [i, bankSoc, bankRemaining].every(Number.isFinite);
-const st = cache.private.get("ttd_state", () => ({ discharging: false, deep: false, buf: [], tsDisch: 0, tsDeep: 0 }));
+const st = cache.private.get("ttd_state", () => ({ discharging: false, deep: false,
+  buf: [], tsDisch: 0, tsDeep: 0, bmsWarmupRequired: true }));
 if (!bankReady) {
   // A held numeric Item or cached EMA must never authorize an active basis.
   st.discharging = false; st.deep = false; st.deepStreak = 0;
   st.exitStreak = 0; st.lastCurrentAt = null; st.lastDeepCurrentAt = null;
   st.buf.length = 0; st.lastTtdAt = null;
+  st.seenTtdIdentity = null; st.qualifiedTtdIdentity = null;
+  st.bmsWarmupRequired = true;
   cache.private.put("p_load", null);
   cache.private.put("p_pv", null);
   cache.private.put("i_chg", null);
@@ -252,11 +255,35 @@ if (bankReady) {
   if (String(ttf) !== String(parseInt(out.state))) out.postUpdate(ttf);
 })();
 
+const ttd = bankReady ? bmsMinutes('battery.ttd_min') : null;
+if (bankReady) {
+  // Qualify an original TTD only when first observed, using current acquired
+  // no later than that TTD. A later deep current cannot retroactively bless
+  // a held shallow/unknown-regime reading. Keep the decision across cron and
+  // unrelated envelope updates, including while waiting for two deep samples.
+  if (ttd && ttd.identity !== st.seenTtdIdentity) {
+    st.seenTtdIdentity = ttd.identity;
+    st.qualifiedTtdIdentity = ttd.value > 0 && i < DEEP_EXIT_A
+      && current.observedAt <= ttd.observedAt ? ttd.identity : null;
+  }
+  if (i >= DEEP_EXIT_A) {
+    // Mode dwell is not sample authorization. Retire the old median and
+    // require two distinct deep observations before a new BMS estimate.
+    // The existing hysteresis thresholds, dwell timestamps and burst counter
+    // are unchanged; duplicate evaluations cannot complete that warmup.
+    st.buf.length = 0; st.lastTtdAt = null;
+    st.qualifiedTtdIdentity = null; st.bmsWarmupRequired = true;
+  } else if (st.bmsWarmupRequired && st.deepStreak >= 2) {
+    st.bmsWarmupRequired = false;
+  }
+  if (!ttd || ttd.value <= 0) st.qualifiedTtdIdentity = null;
+}
+
 if (!bankReady) {
   // The OFF barrier above is the only runtime publication on this path.
 } else if (st.discharging && st.deep) {
-  const ttd = bmsMinutes('battery.ttd_min');
-  if (ttd && ttd.value > 0) {
+  if (ttd && ttd.value > 0 && !st.bmsWarmupRequired
+      && ttd.identity === st.qualifiedTtdIdentity) {
     if (ttd.observedAt !== st.lastTtdAt) st.buf.push(ttd.value);
     st.lastTtdAt = ttd.observedAt;
     while (st.buf.length > N) st.buf.shift();

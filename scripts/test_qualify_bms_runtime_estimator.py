@@ -53,6 +53,16 @@ def test_receipts_are_synthetic_native_observations_with_unchanged_ttls():
     assert receipts['Inverter_AC_Evidence_JSON']['fields']['inverter.ac_output_w']['validUntil'] - runtime['recordedAt'] == 30000
 
 
+def test_shallow_crossover_fixture_preserves_original_timing_and_overrides_only_synthetic_ttd():
+    shallow = q.receipts(1800000000000, -70, 26000)
+    default = q.receipts(1800000000000, -70)
+    field = shallow['BMS_Runtime_Input_Evidence_JSON']['fields']['battery.ttd_min']
+    assert field == {'status': 'valid', 'reason': 'ok', 'observedAt': 1800000000000,
+                     'validUntil': 1800000120000, 'value': 26000}
+    default['BMS_Runtime_Input_Evidence_JSON']['fields']['battery.ttd_min']['value'] = 26000
+    assert shallow == default
+
+
 def test_readback_accepts_only_empty_default_action_inputs():
     rule = {'triggers': [], 'actions': [{'id': 'a', 'type': 'script.ScriptAction',
                                         'configuration': {'script': 'exact', 'type': 'application/javascript'}}]}

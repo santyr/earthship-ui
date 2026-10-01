@@ -61,7 +61,7 @@ def check_request(method, path):
         raise RuntimeError('request outside isolated estimator scope')
 
 
-def receipts(now, current_ca):
+def receipts(now, current_ca, ttd_min=500):
     def field(value, ttl, property='value'):
         return {'status': 'valid', 'reason': 'ok', 'observedAt': now,
                 'validUntil': now + ttl, property: value}
@@ -79,7 +79,7 @@ def receipts(now, current_ca):
         'BMS_Runtime_Input_Evidence_JSON': envelope('native_runtime_inputs_v1', {
             'battery.dc_current_ca': field(current_ca, 90000),
             'battery.dc_voltage_cv': field(5000, 90000),
-            'battery.ttd_min': field(500, 120000), 'battery.ttf_min': field(120, 120000)}),
+            'battery.ttd_min': field(ttd_min, 120000), 'battery.ttf_min': field(120, 120000)}),
         'Inverter_AC_Evidence_JSON': envelope('inverter_output', {
             'inverter.ac_output_w': field(150, 30000, 'watts')}),
         'Power_Evidence_JSON': envelope('synthetic-isolated', {
@@ -119,6 +119,9 @@ def main():
                  'triggers': descriptor['triggers'], 'actions': [{
                      'id': 'estimator', 'type': 'script.ScriptAction', 'configuration': {
                          'type': 'application/javascript', 'script': source}}]}
+    print('candidate_source_sha256=' + hashlib.sha256(source.encode()).hexdigest(), flush=True)
+    print('candidate_descriptor_sha256=' + hashlib.sha256(
+        (ROOT / 'openhab/bms-runtime-estimator-evidence-resources.json').read_bytes()).hexdigest(), flush=True)
     bundles = sorted(runtime.GRAAL.glob('org.graalvm.*/25.0.1/*.jar'))
     if len(bundles) != 22 or not runtime.ADDON.is_file():
         raise RuntimeError('pinned isolated JavaScript add-ons missing')
@@ -202,8 +205,8 @@ def main():
             if rest('PUT', '/items/' + name + '/state', raw, text=True)[0] not in (200, 202):
                 raise RuntimeError('isolated synthetic input write failed')
 
-        def feed(current=-300):
-            for name, value in receipts(time.time_ns() // 1000000, current).items():
+        def feed(current=-300, ttd=500):
+            for name, value in receipts(time.time_ns() // 1000000, current, ttd).items():
                 put(name, value)
             put('Sun_Position_Elevation', 30)
 
@@ -238,6 +241,10 @@ def main():
         feed(); execute('evening'); execute('evening')
         feed(); execute('bms')
         outputs(500)
+        feed(-70, 26000); execute('evening'); outputs()
+        feed(-300, 700); execute('evening'); execute('evening')
+        feed(-300, 700); execute('bms'); outputs(700)
+        print('real_jvm_shallow_rejection_duplicate_reads_two_sample_reentry=passed', flush=True)
         feed(500); execute('now')
         outputs(ttf=120)
         feed(-500); execute()

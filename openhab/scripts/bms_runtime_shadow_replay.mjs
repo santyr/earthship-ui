@@ -150,6 +150,32 @@ export function auditRuntimeArithmetic(input) {
   return violations;
 }
 
+// Diagnostic only: caller supplies the candidate's validated inputs, not raw
+// receipts. Keep this independent of the candidate so corrected admission
+// behavior does not erase regression coverage for the original defect.
+export function recordShallowBmsAdmission(summary, input) {
+  if (!Number.isSafeInteger(summary.count) || summary.count < 0
+      || summary.count >= MAX_EVALUATIONS || !Array.isArray(summary.first)
+      || summary.first.length > 12) throw new Error('bounded admission summary required');
+  const { basis, bankReady, currentA, priorTtdAt, ttdObservedAt,
+    currentObservedAt, admittedTtdMin, candidateMedianMin, at } = input;
+  if (basis !== 'bms' || !bankReady || !Number.isFinite(currentA) || currentA <= -0.8
+      || ![ttdObservedAt, currentObservedAt, admittedTtdMin, candidateMedianMin, at]
+        .every(Number.isSafeInteger)
+      || ttdObservedAt <= 0 || currentObservedAt <= 0
+      || ttdObservedAt > at || currentObservedAt > at
+      || admittedTtdMin <= 0 || candidateMedianMin <= 0
+      || ttdObservedAt === priorTtdAt) return;
+  summary.count++;
+  if (summary.first.length < 12) summary.first.push({
+    at: new Date(at).toISOString(), currentA,
+    currentObservedAt: new Date(currentObservedAt).toISOString(),
+    ttdObservedAt: new Date(ttdObservedAt).toISOString(),
+    currentMinusTtdObservationMs: currentObservedAt - ttdObservedAt,
+    admittedTtdMin, candidateMedianMin,
+  });
+}
+
 export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = startMs, nightLoadByDay = {} }) {
   if (!Number.isSafeInteger(startMs) || !Number.isSafeInteger(endMs)
       || startMs <= 0 || endMs < startMs || endMs - startMs > MAX_WINDOW_MS) {
@@ -182,8 +208,7 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
   const largestMinuteDifferences = {};
   const arithmeticViolations = [];
   let arithmeticViolationCount = 0, lastCandidateInputs = null;
-  let shallowBmsAdmissionCount = 0;
-  const shallowBmsAdmissions = [];
+  const shallowBmsAdmissions = { count: 0, first: [] };
   const openhab = {
     cache: { private: {
       get: (key, fallback) => {
@@ -242,18 +267,13 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
     // TTD sample in that regime may pollute its median while all math passes.
     // These are the candidate's validated held observations, not proof of
     // simultaneous hardware acquisition. Report their skew explicitly.
-    if (basis === 'bms' && audit.bankReady && audit.currentA > -0.8
-        && audit.lastTtdAt != null && audit.lastTtdAt !== priorTtdAt) {
-      shallowBmsAdmissionCount++;
-      if (shallowBmsAdmissions.length < 12) shallowBmsAdmissions.push({
-        at: new Date(tick).toISOString(), currentA: audit.currentA,
-        currentObservedAt: new Date(audit.current.observedAt).toISOString(),
-        ttdObservedAt: new Date(audit.lastTtdAt).toISOString(),
-        currentMinusTtdObservationMs: audit.current.observedAt - audit.lastTtdAt,
-        admittedTtdMin: audit.ttdSample.value,
-        candidateMedianMin: minuteValue(output.BMS_TimeToDischarge_Smoothed),
-      });
-    }
+    recordShallowBmsAdmission(shallowBmsAdmissions, {
+      basis, bankReady: audit.bankReady, currentA: audit.currentA,
+      priorTtdAt, ttdObservedAt: audit.lastTtdAt,
+      currentObservedAt: audit.current?.observedAt,
+      admittedTtdMin: audit.ttdSample?.value,
+      candidateMedianMin: minuteValue(output.BMS_TimeToDischarge_Smoothed), at: tick,
+    });
     const inputs = { basis, bankReady: audit.bankReady, socPct: audit.socPct,
       remainingAh: audit.remainingAh, volts: audit.volts, loadEmaW: audit.loadEmaW,
       chargeEmaA: audit.chargeEmaA, nightW: audit.nightW, currentA: audit.currentA,
@@ -346,7 +366,8 @@ export function replayRuntime(histories, { startMs, endMs, comparisonStartMs = s
       [key, { ticks: pairs.ttd.length, ttd: summarizeMinutes(pairs.ttd), ttf: summarizeMinutes(pairs.ttf) }])),
     largestMinuteDifferencesByBasisPair: largestMinuteDifferences,
     arithmeticViolationCount, firstArithmeticViolations: arithmeticViolations, lastCandidateInputs,
-    shallowBmsAdmissionCount, firstShallowBmsAdmissions: shallowBmsAdmissions,
+    shallowBmsAdmissionCount: shallowBmsAdmissions.count,
+    firstShallowBmsAdmissions: shallowBmsAdmissions.first,
     overnightLoadInputs,
     lastCandidate: { basis: output.BMS_Runtime_Basis, ttdMin: output.BMS_TimeToDischarge_Smoothed,
       ttfMin: output.BMS_TimeToFull_Smoothed },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { replayRuntime, summarizeMinutes, auditRuntimeArithmetic } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
+import { replayRuntime, summarizeMinutes, auditRuntimeArithmetic, recordShallowBmsAdmission } from '../../openhab/scripts/bms_runtime_shadow_replay.mjs';
 
 const at = 1800000000000;
 const field = (value, ttl, property = 'value', observedAt = at) => ({
@@ -162,9 +162,9 @@ describe('bounded read-only runtime estimator replay', () => {
     }
   });
 
-  it.each([[-79, 1], [-80, 0], [-100, 0]])(
-    'audits shallow-current median admissions at %i cA without counting duplicate evaluations',
-    (currentCa, expectedAdmissions) => {
+  it.each([[-79, 'evening'], [-80, 'evening'], [-100, 'bms']])(
+    'rejects unsafe median admission at %i cA despite duplicate evaluations',
+    (currentCa, expectedBasis) => {
       const h = histories();
       for (const [offset, current, ttd] of [[30000, -300, 500], [60000, currentCa, 26000]]) {
         const receipt = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
@@ -178,38 +178,35 @@ describe('bounded read-only runtime estimator replay', () => {
       const duplicate = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON.at(-1).state);
       duplicate.sequence++; duplicate.recordedAt = at + 61000;
       h.BMS_Runtime_Input_Evidence_JSON.push(row(duplicate, at + 61000));
-      const result = replayRuntime(h, { startMs: at, endMs: at + 90000 });
-      expect(result.shallowBmsAdmissionCount).toBe(expectedAdmissions);
-      expect(result.firstShallowBmsAdmissions).toHaveLength(expectedAdmissions);
-      if (expectedAdmissions) expect(result.firstShallowBmsAdmissions[0]).toEqual({
-        at: new Date(at + 60000).toISOString(), currentA: currentCa / 100,
-        currentObservedAt: new Date(at + 60000).toISOString(),
-        ttdObservedAt: new Date(at + 60000).toISOString(),
-        currentMinusTtdObservationMs: 0, admittedTtdMin: 26000,
-        candidateMedianMin: 26000,
-      });
-      // Diagnostics do not alter the candidate, its latched dwell or median.
-      expect(result.lastCandidate.basis).toBe('bms');
-      expect(result.lastCandidate.ttdMin).toBe('26000');
+      const ac = JSON.parse(h.Inverter_AC_Evidence_JSON[0].state);
+      ac.sequence = 3; ac.recordedAt = at + 60000;
+      ac.fields['inverter.ac_output_w'] = field(150, 30000, 'watts', at + 60000);
+      h.Inverter_AC_Evidence_JSON.push(row(ac, at + 60000));
+      const result = replayRuntime(h, { startMs: at, endMs: at + 61000 });
+      expect(result.shallowBmsAdmissionCount).toBe(0);
+      expect(result.firstShallowBmsAdmissions).toHaveLength(0);
+      expect(result.lastCandidate.basis).toBe(expectedBasis);
+      if (expectedBasis === 'bms') expect(result.lastCandidate.ttdMin).toBe('26000');
       expect(result.arithmeticViolationCount).toBe(0);
     },
   );
 
   it('bounds shallow-admission examples without truncating the total count', () => {
-    const h = histories();
-    for (let index = 1; index <= 21; index++) {
-      const receipt = JSON.parse(h.BMS_Runtime_Input_Evidence_JSON[0].state);
-      const observed = at + index * 1000;
-      receipt.sequence = index + 1; receipt.recordedAt = observed;
-      receipt.fields['battery.dc_current_ca'] = field(index === 1 ? -300 : -70,
-        90000, 'value', observed);
-      receipt.fields['battery.ttd_min'] = field(20000 + index, 120000, 'value', observed);
-      h.BMS_Runtime_Input_Evidence_JSON.push(row(receipt, observed));
+    const summary = { count: 0, first: [] };
+    for (let index = 1; index <= 20; index++) {
+      const input = { basis: 'bms', bankReady: true, currentA: -0.7,
+        priorTtdAt: at + (index - 1) * 1000, ttdObservedAt: at + index * 1000,
+        currentObservedAt: at + index * 1000 - 200,
+        admittedTtdMin: 26000, candidateMedianMin: 26000, at: at + index * 1000 };
+      recordShallowBmsAdmission(summary, input);
+      recordShallowBmsAdmission(summary, { ...input, priorTtdAt: input.ttdObservedAt });
+      recordShallowBmsAdmission(summary, { ...input, bankReady: false });
+      recordShallowBmsAdmission(summary, { ...input, currentA: -0.8 });
     }
-    const result = replayRuntime(h, { startMs: at, endMs: at + 21000 });
-    expect(result.shallowBmsAdmissionCount).toBe(20);
-    expect(result.firstShallowBmsAdmissions).toHaveLength(12);
-    expect(result.arithmeticViolationCount).toBe(0);
+    expect(summary.count).toBe(20);
+    expect(summary.first).toHaveLength(12);
+    expect(summary.first[0].currentMinusTtdObservationMs).toBe(-200);
+    expect(() => recordShallowBmsAdmission({ count: 12481, first: [] }, {})).toThrow('bounded');
   });
 
   it('pinpoints an expired auxiliary source at a fail-closed off tick', () => {
