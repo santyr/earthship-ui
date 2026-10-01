@@ -302,6 +302,16 @@ configuration and full recovery gates remain open; see the operations document
 for the credential-free installed-path qualification command. Do not reinstall
 the operator bunker or replace any existing `nak` to continue this work.
 
+The subsequently approved **inactive** Primal collector is staged separately at
+`/home/sat/.local/libexec/earthship-thermal/primal-v1`, with frozen code, a private
+virtual environment and retained hash-pinned dependency wheels. Its new private
+configuration at `/home/sat/.config/hex/thermal-primal/` has **zero questions**;
+the mode-0600 environment file supplies only the existing Hex/restricted journal
+identity. Actual temporary user-unit configuration, signer and read-only journal
+checks pass. No permanent collector unit/timer or live state is created, and no
+question is sent. Full exact-bundle recovery and the attended signed-reply trial
+remain release prerequisites. The operator bunker still needs no change.
+
 ### Qualified installation requirements
 
 An attended administrator must review the instance name and its public key,

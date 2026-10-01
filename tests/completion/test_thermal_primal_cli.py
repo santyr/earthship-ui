@@ -83,6 +83,28 @@ def test_config_check_verifies_real_public_routes_without_identity_or_state(code
     assert not (tmp_path/'absent').exists()
 
 
+def test_empty_v2_policy_is_explicit_opt_in_and_legacy_remains_refused():
+    raw=t.canonical({'version':2,'recipient':C,'operators':[O],'prompts':[]})
+    with pytest.raises(t.Refused):
+        t.Policy.load(raw)
+    configured=t.Policy.load(raw,allow_empty=True)
+    assert configured.version==2 and configured.prompts==()
+    with pytest.raises(t.Refused):
+        t.Policy.load(t.canonical({'version':1,'recipient':C,'operators':[O],'prompts':[]}),
+                      allow_empty=True)
+
+
+def test_primal_config_accepts_inactive_empty_policy_without_question_or_state(
+        codec,monkeypatch,tmp_path,capsys):
+    cli=command(); _,policy_path,route_path=private_config(codec,monkeypatch,tmp_path)
+    policy_path.write_bytes(t.canonical({'version':2,'recipient':C,'operators':[O],'prompts':[]}))
+    monkeypatch.delenv('NOSTR_SECRET_KEY')
+    assert cli.main(arguments(policy_path,route_path,tmp_path/'absent'))==0
+    result=json.loads(capsys.readouterr().out)
+    assert result['message_published'] is False and result['journal_writes']==0
+    assert not (tmp_path/'absent').exists()
+
+
 @pytest.mark.parametrize('bad',['legacy','signature','permissions','version'])
 def test_invalid_configuration_cannot_create_state(codec, monkeypatch, tmp_path, capsys, bad):
     cli=command(); p,policy_path,route_path=private_config(codec,monkeypatch,tmp_path,

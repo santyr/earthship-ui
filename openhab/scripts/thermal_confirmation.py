@@ -175,7 +175,7 @@ class Policy:
     version: int = 1
 
     @classmethod
-    def load(cls, raw: bytes, *, assign_ids: bool = False):
+    def load(cls, raw: bytes, *, assign_ids: bool = False, allow_empty: bool = False):
         obj = strict_json(raw)
         if not isinstance(obj, dict) or set(obj) != {"version", "recipient", "operators", "prompts"}:
             raise Refused("invalid policy fields")
@@ -190,7 +190,8 @@ class Policy:
         operators = frozenset(identifier(x) for x in authors)
         if len(operators) != len(authors) or recipient in operators:
             raise Refused("invalid operator allowlist")
-        if not isinstance(obj["prompts"], list) or not 1 <= len(obj["prompts"]) <= 100:
+        minimum = 0 if allow_empty is True and obj["version"] == 2 else 1
+        if not isinstance(obj["prompts"], list) or not minimum <= len(obj["prompts"]) <= 100:
             raise Refused("invalid prompt inventory")
         prompts = []
         for value in obj["prompts"]:

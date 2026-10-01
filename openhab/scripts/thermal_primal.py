@@ -40,7 +40,9 @@ def configuration(args):
     m.require(all(value is not None for value in (
         args.policy, args.routes, args.nak, args.nak_sha256, args.nak_version)),
         'explicit policy, routes and qualified signer identity required')
-    policy = t.Policy.load(read_private(args.policy))
+    # An explicitly idle v2 collector must not require a fabricated question.
+    # This opts in only here; legacy/general policy loading remains unchanged.
+    policy = t.Policy.load(read_private(args.policy), allow_empty=True)
     m.require(policy.version == 2, 'Primal command requires position vocabulary v2')
     keyer = m.Keyer(args.nak, args.nak_sha256)
     m.require(isinstance(args.nak_version, str) and 0 < len(args.nak_version) <= 128,

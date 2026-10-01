@@ -179,6 +179,86 @@ The exact private runtime/dependency/configuration bundle and stopped-writer
 household journal recovery remain next. Only after those gates and truthful
 question review may a separate attended Primal delivery/reply trial proceed.
 
+### Approved inactive collector runtime and configuration
+
+The operator subsequently approved **inactive** collector staging, including
+only the existing Hex sender and restricted journal credentials. A frozen nine-
+file collector import closure is staged under
+`/home/sat/.local/libexec/earthship-thermal/primal-v1/code`. It does not modify
+`/home/sat/openhab/scripts`, Solar_PV, the operator bunker or any model unit.
+`scripts/thermal-primal-runtime.py` stages only new private destinations and
+verifies an independently selected code-manifest SHA, exact file inventory,
+Python syntax, private deployed files and six explicitly false collector/write/
+migration gates. It does not qualify dependencies, credentials or release by
+itself. Its private environment writer permits only seven reviewed fields,
+refuses control-character/extra-field injection and never overwrites a file.
+
+The initial staging exposed a real policy contract issue: `Policy.load()`
+required at least one question. Two regressions reproduced it. An explicit
+`allow_empty=True` option now permits an empty **v2 only** inventory; ordinary
+and legacy loaders still require questions. Only the Primal command opts in.
+No old proposal, chat observation or invented state is inserted to satisfy
+startup. The corrected inactive code was pin-checked before/after replacing
+the first unactivated staging; its dedicated dependencies were preserved.
+
+| Qualified component | Exact identity |
+| --- | --- |
+| Frozen code manifest | `bf452e146f9f7a6bd966caec92ec5f7dd9a68478b96970a3d4305e0aa3a48bcb` |
+| `thermal_confirmation.py` | `5606352760ee7764d7e9f31cddae2719fe2921a2c9abc8555638e0893a5c5863` |
+| `thermal_primal.py` | `b8ee94e6fa52bc3a33173a40a8de41922468d1cddc890e2d12a225e484c11d2e` |
+| CPython 3.12.3 `/usr/bin/python3.12` | `e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f` |
+| CPython 3.12/Linux x86_64 websockets 15.0.1 wheel | `64dee438fed052b52e4f98f76c5790513235efaa1ef7f3f2192c392cd7c91b65` |
+| CPython 3.12/Linux x86_64 psycopg2-binary 2.9.10 wheel | `8cd9b4f2cfab88ed4a9106192de509464b75a906462fb846b936eabe45c2063e` |
+| Dependency requirements | `47e6e9d583d0e9431eb7bbbd4d3dc7350c496df6d6dae862e44d6e628181bcba` |
+| Empty policy | `ec1709334d30244162d46fd5f15758f5f66f2c9857095e5bb42f8c7f41c9b76a` |
+| Signed routes | `5860ad656eef83f603f470cfc1d673d7666daef32e1579ef2bc5456f6a897604` |
+| Updated uninstalled user service | `5e167f5a6947c3997b70c176b9ff8c7e226f5c0b19503cb10d6f0a6b51631edc` |
+
+The private dedicated `venv` contains only the two pinned dependencies; system
+websockets remains 10.4. Wheel hashes came from primary PyPI release metadata;
+download and installation used `--require-hashes`, binary-only/no-dependency
+selection and offline installation from the retained two-wheel directory.
+These wheels are recovery inputs, not abandoned test artifacts. The user-service
+template now targets this virtual environment/code closure rather than system
+Python and shared OpenHAB/Solar_PV imports; it remains uninstalled.
+
+The new `/home/sat/.config/hex/thermal-primal/` is mode 0700 with mode-0600
+`policy.json` and `routes.json`. `/home/sat/.config/hex/thermal-primal.env` is
+mode 0600 and contains only the reviewed seven fields. No operator private key,
+Sat client key, unrelated token or administrator credential is copied. The
+restricted journal role/owner are bound from a read-only connection and exact
+v2 fingerprint audit. Credential values were neither printed nor committed.
+Fresh public-only route verification returned both approved announcements from
+nos.lol, preserving the exact three destinations; nothing was republished.
+
+Four actual transient user processes passed under the template's principal
+resource/security restrictions and were automatically collected:
+
+| Check | Invocation | Result |
+| --- | --- | --- |
+| Exact private configuration/signed routes | `06bbea99133f4d688bb4bd897b95d953` | Exit 0, 424 ms, release false |
+| Configured Hex NIP-04 stdin/NIP-17 self-roundtrips | `d3ce64d4280748c89e51fb22e8186067` | Exit 0, 1.819 s, no publication |
+| New systemd environment and restricted v2 journal | `b24d560c923440969a803f8421428239` | Exit 0, 68 ms, exact fingerprint, read-only |
+| Actual staged polling command with release closed | `ff101033e13843309fa71ab290ed10ae` | Expected exit 2, 53 ms, no state creation |
+
+Thirteen frozen-code/environment guards and all 21 adjacent command tests pass
+in 13.43 seconds. Actual deployed checks above use household identity/config
+but no journal writes, relay publication, listener or question. No live
+`thermal-primal` state directory exists; permanent service/timer remain absent.
+The full stopped-writer recovery of **this exact configuration/runtime/signer**,
+both future Primal databases and original household journal remains next. The
+older v1 baseline or disposable v6 data test is not substituted for that gate.
+
+The complete discovered Python suite passed **3,029 tests and 74 subtests**,
+with **six optional integration skips**, in 240.45 seconds, with the actual
+installed stdin signer pin supplied. All optional crypto cases execute. This
+includes the 13 new runtime/environment guards and two explicit empty-policy
+regressions; it is not proof of the outstanding exact household recovery trial.
+After terminal results, remaining task-owned test/code-refresh fixtures were
+removed, all four transient units read back `not-found`, and no disposable
+PostgreSQL test container remained. The approved inactive runtime/private
+configuration, two recovery wheels and existing operational backups are retained.
+
 ## Qualification
 
 `tests/completion/test_thermal_nip04.py` uses real crypto only when explicitly
