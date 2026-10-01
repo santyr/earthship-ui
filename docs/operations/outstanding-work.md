@@ -12,7 +12,7 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. | Score September 30 only after October 1 11:00 MDT. Notifications remain off while the previously sent path test's recipient receipt and delivery-release gates remain open. |
 | Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
 | Thermal skill and efficiency | Accepted model remains shadow; source-only joint-solar/airflow candidates and training optimizations are distinct from installed artifact skill. | Qualify the next natural shadow at 19:01 MDT and training October 1 06:50; record whole-run time/memory/swap, and require held-out improvement plus genuine action evidence before graduation. |
-| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 now belongs to Office Hallway. Configuration inventory has zero issues, with 382 managed Items/80 managed Things/37 managed rules still present. | Await complete, clean source days for evidence-dependent consumers. Continue scoped file migration; the managed `gForecast` cold handoff/protected-control restart still requires fresh physical attendance. |
+| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast`, its ten members/links and JDBC persistence are already file-owned. Current inventory has zero issues, but 382 Items/80 Things/37 rules remain managed. | Await complete, clean source days; continue individually qualified migration. Do not repeat the completed `gForecast` restart. Future protected-control or whole-OpenHAB work needs its own current recovery/attendance checks. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
 September 30 charge-profile source extension and exact natural morning-capture
@@ -42,6 +42,18 @@ Both recovery tools now support explicit exact v2 selection; 47 tests include
 real full five-file v1/v2 regression restores. Collector gates remain off.
 Truthful question review and a full v2 bundle for the actual trial configuration
 remain open. See [post-v2 recovery](2026-09-29-thermal-airflow-journal-v2-candidate.md#september-30-post-v2-recovery-under-the-current-runtime).
+
+September 30 18:41 MDT read-only ownership follow-through corrects a stale
+queue entry: `gForecast` was migrated during the September 24 attended cold
+cutover and remains file-owned with all ten members and ten links. All four
+canonical Item files exactly match deployed bytes; current JDBC windows contain
+48 contiguous hourly targets in each hourly member and seven contiguous daily
+targets in each daily member. JDBC persistence is also verified/file-owned,
+with exact source/deployed strategy bytes. Inventory has zero issues and counts
+382 managed / 62 non-managed Items, 80 / 5 Things, 37 / 5 rules and 246 / 21
+links. The cold handoff is complete; no new restart is needed for it. This
+does not close remaining managed-resource migration or general protected-control
+restart recovery. See [current cutover readback](2026-09-24-gforecast-cold-cutover-receipt.md#september-30-current-state-follow-through).
 
 September 30 sensor 223 has moved to **Office Hallway**, following the failed
 Bedroom reception attempt. Home/Earthship and the observational Item/rule now
