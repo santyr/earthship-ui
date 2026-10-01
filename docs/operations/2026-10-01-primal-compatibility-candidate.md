@@ -3,12 +3,14 @@
 ## Scope and release boundary
 
 `openhab/scripts/thermal_nip04.py` implements authenticated NIP-04 message and
-question/reply primitives, a separate private original-cipher ledger and gated
-journal ingress. It is **not yet a deployed sender or collector**.
+question/reply primitives, a separate private original-cipher ledger, gated
+journal ingress and bounded relay delivery/polling. It is **not yet a deployed
+sender or collector**.
 `PRIMAL_RELEASE_READY` remains false and ingress refuses before dependencies
 or writes. Low-level ledger preparation can write its explicitly supplied
-private SQLite database; it is not a service or release. There is no CLI,
-network connection, scheduler or actuator call in this module. The
+private SQLite database; it is not a service or release. Network methods
+require the closed release gate. There is no CLI, scheduler or actuator call
+in this module. The
 existing NIP-17 delivery intents, runtime scripts, release flags, installed
 signers and operator bunker are unchanged. No live question or DM was sent.
 
@@ -160,7 +162,7 @@ are bounded to 32 and cyclic/missing chains refuse. No cleartext pseudo-event
 or kind-14 hash is manufactured. Cross-transport correction migration is not
 implemented; no existing NIP-17 question/intent may be silently reissued.
 
-Current extended source SHA-256:
+Ledger-stage source SHA-256 at `30d51b0`:
 `d6396b756474b5444ec3248a26c2f5e0882eef1f3ce69d9a93e8e4c769adcfa6`.
 The dedicated ledger suite passes **19 tests**, including real signed/decrypted
 NIP-04 fixtures and an actual isolated PostgreSQL v1-to-v2 migration, restricted
@@ -185,13 +187,78 @@ binary was already removed after its earlier qualification. Those 33 cases
 must not be reported as executed in this later run. Cached websocket support
 was supplied on PYTHONPATH; no package or toolchain was installed.
 
+## Bounded relay delivery and encrypted receipt candidate
+
+The subsequent source extension adds `PrimalRelay`, `PrimalOutbox` and
+`PrimalDelivery`. These are explicitly selected, gated classes, not a deployed
+daemon. The existing NIP-17 transport remains kind 1059 by default; shared
+relay hooks permit only the explicitly constructed Primal transport to use
+kind 4. The Primal filter binds kind, approved authors, collector recipient
+and an inclusive bounded time window. Actual signatures, recipient, author,
+cipher dimensions, subscription identity and matching EOSE are verified.
+Only a positive, matching relay `OK` records publication acceptance. This
+does not establish human receipt. Existing explicit NIP-42 authorization is
+reused; no authentication policy is expanded.
+
+`primal-delivery.sqlite3` is a **second new private file**, using delivery
+bookkeeping schema 3. It is separate from both `primal.sqlite3` and the older
+NIP-17 `delivery.sqlite3`. Exact original signed ciphertext is committed before
+publication, retained across retries/restarts and never replaced by fresh
+random encryption on retry. Outgoing plaintext is not retained in this file.
+Unsigned legacy delivery intents are refused. Each send rechecks the current
+authority and original question or original receipt/journal readback.
+
+Publication/fetching uses a shared 90-second coordination deadline with each
+relay call capped at 45 seconds, bounded pages/frames/events and at most 16
+delivery or ingress attempts per pass. Finite deadlines are validated before
+connecting. Cryptographic and local storage operations retain their own
+timeouts; this is not a claim of an exact 90-second whole-process wall limit.
+Expired/withdrawn questions are withheld without consuming the send budget,
+so a retained stale prefix cannot starve newer authorized messages. Evidence
+is retained, not deleted to obtain progress.
+
+Polling balances oldest/newest candidates across signed routes, deduplicates
+original event IDs and uses durable refusal backoff. An accepted-ingress marker
+is written only after original reply authentication, journal verification and
+encrypted receipt queueing. A journal outage leaves the fixed original first
+receipt time and retryable work; recovery after question expiry reuses that
+first receipt without accepting a newly arriving expired claim. ACK recovery
+queues an actual signed kind-4 encrypted deterministic receipt only after
+journal readback. Its exact original ciphertext survives restart and is
+reverified before publication. No NIP-17 intent is silently reissued.
+
+The focused relay/ledger/existing-messaging run passed **115 tests in 42.83
+seconds**. Two additional real-crypto loopback regressions reproduced stale
+prefix starvation and then passed after its fix (**2 tests in 26.55 seconds**).
+The coordinator tests use an explicit journal double; they do not replace the
+19 ledger tests' actual disposable PostgreSQL evidence above. Real stock `nak`
+signatures/decryption and synthetic fixture-only argv encryption are used;
+this run is not fresh qualification of the removed stdin-build fixture.
+No household key, public relay, live journal write or operator bunker is used.
+
+The final **complete discovered Python suite** (`python3 -m pytest`, without
+path restrictions) passed **2,939 tests and 74 subtests**, with **39 skips**, in
+193.02 seconds under umask 077. All 18 new delivery tests and all 19 ledger
+tests ran. The skips retain the same six optional integration and 33 optional
+stdin-build cases described above; they are not claimed as executed. Bytecode
+and pytest caches were disabled, cached websocket support was supplied on
+PYTHONPATH, and no package/toolchain was installed. All owned temporary test
+directories were removed after terminal results; the disposable PostgreSQL
+fixture left no test container. Operational rollback/recovery backups remain.
+
+Current candidate source identities:
+
+| File | SHA-256 |
+| --- | --- |
+| `thermal_nip04.py` | `21439920b75d6d0de953a1cc34ba0ff6c9fb3f95452ce8259104d780b53555fd` |
+| `thermal_messaging.py` | `ca066232487d2357611a535c03a4a305c1cffb1ce7ee739f8296942c22c0cffb` |
+
 ## Remaining work before a live Primal collector
 
-1. Connect the qualified original-cipher ledger/journal adapter to bounded kind-4
-   publication, reply fetching, refusal backoff and encrypted receipt delivery.
-   Preserve original intents/envelopes and require signed-route validation.
-   Qualify publisher/poller deadlines, delivery retry, crash ordering and
-   acknowledgement recovery; no silent NIP-17 reissue or cross-transport rewrite.
+1. Provide the explicitly selected command/service configuration for these
+   bounded components and qualify its complete process ordering and refusal
+   behavior. Preserve original intents/envelopes and require signed-route
+   validation; no silent NIP-17 reissue or cross-transport rewrite.
 2. Select a distinctly versioned stdin-capable signer and qualify its exact
    runtime, including backward NIP-17/NIP-42 and any actual required NIP-46
    encrypt/decrypt path. Obtain exact narrow deployment approval; preparing a
@@ -199,7 +266,8 @@ was supplied on PYTHONPATH; no package or toolchain was installed.
    Regenerate the consumer/runtime/recovery pins for the actual configuration.
 3. Recheck signed routes and exact restricted journal access. Qualify stopped-
    writer full-bundle recovery against the real v2 configuration, including the
-   original envelopes and new `primal.sqlite3` first-receipt ledger;
+   original envelopes, new `primal.sqlite3` first-receipt ledger and new
+   `primal-delivery.sqlite3` ciphertext/ingress bookkeeping;
    journal-only restore or the older two-database bundle is not enough.
 4. Review one truthful attended question and verify an authenticated Primal reply,
    resulting journal data and receipt. Confirm actual operator delivery, not

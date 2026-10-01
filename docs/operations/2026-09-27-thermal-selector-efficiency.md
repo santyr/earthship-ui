@@ -489,3 +489,31 @@ The new run has 99,855 samples, 377 folds and 295 scored folds. Its 119-pair
 24-hour air MAE remains 2.178550°F versus persistence's 1.689895°F; confirmed
 action training/evaluation counts remain zero. The provisional promotion gate
 must not be interpreted as evidence of beating persistence operationally.
+
+### October 1 first natural new-artifact publication
+
+The subsequent natural shadow invocation
+`9013bf07fdb94cf79228b628f45c0ba2` ran at 09:05:29–09:05:31 MDT, exit zero,
+Result success, and is now inactive/dead. It was not manually invoked or
+restarted. Its decision timestamp is `2026-10-01T15:05:30.159006+00:00`.
+Live `Thermal_Model_JSON`, local `shadow.json` and the verified original
+forcing capture match exactly. Output SHA-256:
+`25496c123c0be79f021e4858fb6dfe93f04cf106fdbb07dd2a594c6e1994de89`.
+The private retained capture is
+`/home/sat/.local/state/thermal-intel/forcing-captures/2026-10/20261001T150530Z-25496c123c0be79f.json.gz`.
+
+The embedded artifact equals the current accepted artifact, whose file digest
+remains `a2a0a8f26c567ae9dcef57aba0671485d8d6cc8edf0dfa922edd8370dd146e09`.
+The original JDBC qualification found the unique Item 610 mapping and exactly
+one matching receipt in the bounded publication window, at
+`2026-10-01T15:05:31.846160+00:00`. A repeated read-only exact replay under the
+full installed `7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`
+pin reports `exact_as_issued=true` and
+`training_revision_matches_runtime=true`. The installed `thermal_intel.py`
+digest is `8d7873a0b37dc252cdc2fb59175a18952df229e69505402d28ec40e2bb88fcc2`.
+
+This closes the first natural publication/source/artifact continuity gate
+following today's training. Status remains shadow and confidence low. No
+confirmed action, accuracy graduation, collector activation or control change
+is implied. The chronological skill and actual action-observation gates remain
+open.

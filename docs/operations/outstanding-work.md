@@ -13,17 +13,25 @@ separate. Current inventory has zero issues, 380 managed/64 file Items and
 244 managed/23 file links. The default-off radiation receipt candidate is
 committed; Primal authenticated-message primitives and a stdin-only signer
 backport pass isolated qualification. The separate original-cipher ledger and
-gated journal adapter now pass 19 disposable-key/real-PostgreSQL tests; bounded
-relay delivery/polling, encrypted receipts and full-bundle recovery remain open.
+gated journal adapter now pass 19 disposable-key/real-PostgreSQL tests. Bounded
+relay delivery/polling and encrypted receipt recovery are implemented and pass
+isolated loopback/real-crypto tests, including stale-prefix fairness. Explicit
+process/service configuration, signer deployment and full-bundle recovery
+including both new Primal databases remain open.
 The earlier combined affected Python suite passed
 2,935 tests and 74 subtests, with six optional integration skips. Neither
 candidate is installed or activated.
 The later combined ledger run passed 2,921 tests and 74 subtests; its 39 skips
 include 33 optional cases for the already-cleaned stdin-build fixture. All 19
 new ledger tests, including the real disposable PostgreSQL case, ran.
+The subsequent complete discovered Python suite passed 2,939 tests and 74
+subtests in 193.02 seconds, with the same 39 documented optional skips. All
+18 delivery regressions and 19 ledger cases executed; production remains off.
 The sole Energy trough display is restored and qualified in the live UI.
 The natural October 1 thermal training completed successfully in 19m36s with
-366 MiB peak memory and zero peak swap; the accepted model remains shadow-only.
+366 MiB peak memory and zero peak swap. Its first natural 09:05 publication
+matches Item/local/capture/JDBC and replays exactly under the installed pin;
+the accepted model remains shadow-only.
 No equipment
 command, synthetic Item write, OpenHAB restart or DM was issued. See
 [battery execution](2026-09-30-bms-runtime-estimator-cutover-plan.md#october-1-attended-deployment-and-natural-publication)
@@ -41,8 +49,8 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | --- | --- | --- |
 | Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; natural 06:45 capture matches all 1,458 original morning UI facts. October 1's exact natural raw-weather archive, public digest/original JDBC receipt and midnight Astro context match the retained prediction and qualify at its original origin. Historical UI companions lack a strict raw-fetch origin binding. | Join future qualified forcing/outcomes and score chronological joint-model candidates; do not backdate historical companions or promote a five-day fit. September 30 trough remains unscored until 11:00 MDT. |
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. Operator explicitly did not receive the NIP-17 path test and uses Primal. | Score September 30 only after October 1 11:00 MDT. Notifications remain off. Review an explicit Primal-compatible transport before another delivery trial; do not turn relay storage into receipt or silently downgrade existing intents. |
-| Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. Existing six flags and the separate Primal gate remain false. The Primal original-cipher/first-receipt ledger, native wire binding and journal recovery/corrections pass isolated real-crypto/PostgreSQL tests; no deployed transport yet. | Complete bounded kind-4 delivery/polling and encrypted receipt recovery, exact signer qualification and stopped-writer full v2 bundle recovery including the new ledger; then truthful question review, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
-| Thermal skill and efficiency | October 1 natural training exited zero: 19m36s, 366 MiB peak, zero swap, accepted/candidate/report agreement and valid previous-artifact retention. 24-hour air MAE remains 2.17855°F versus persistence 1.689895°F; confirmed-action training/evaluation count is zero. Four earlier mature six-hour pairs were biased cold, with only one non-overlapping. | Qualify the next natural shadow with the promoted artifact. Continue chronological divergence diagnosis; require held-out improvement plus genuine action evidence before graduation. Faster training and mechanical replay are not predictive skill. |
+| Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. Existing six flags and the separate Primal gate remain false. Original-cipher/first-receipt ledger and journal recovery/corrections pass real-crypto/PostgreSQL tests. Bounded kind-4 relay/polling and encrypted receipt recovery pass isolated loopback tests; no deployed transport yet. | Complete explicit process/service configuration, exact signer qualification and stopped-writer full v2 bundle recovery including both new Primal databases; then truthful question review, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
+| Thermal skill and efficiency | October 1 natural training exited zero: 19m36s, 366 MiB peak, zero swap, accepted/candidate/report agreement and valid previous-artifact retention. Its first natural 09:05 publication matches Item/local/capture/JDBC and replays exactly with the promoted artifact. 24-hour air MAE remains 2.17855°F versus persistence 1.689895°F; confirmed-action training/evaluation count is zero. Four earlier mature six-hour pairs were biased cold, with only one non-overlapping. | Continue chronological divergence diagnosis; require held-out improvement plus genuine action evidence before graduation. Faster training and mechanical replay are not predictive skill. |
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; Moon actual rollback/history/natural source gates pass. Current inventory has zero issues, but 380 Items/80 Things/37 rules remain managed. | Qualify complete, clean source days and continue individually qualified migration. Moon restart recovery remains provisional; do not repeat the completed `gForecast` restart or authorize general protected-control work. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |

@@ -12,6 +12,7 @@ from contextlib import ExitStack
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import secrets
@@ -205,16 +206,33 @@ class Relay:
         self.connect = connect
         self.local_test = local_test
 
-    def publish(self, url, event):
+    def _outgoing_event(self, event):
+        return t.validate_event(event, kind=1059, signed=True)
+
+    def _inbox_filter(self, since, until):
+        return {'kinds': [1059], '#p': [self.collector], 'since': since,
+                'until': until, 'limit': MAX_INBOX_EVENTS}
+
+    def _incoming_event(self, event, since, until):
+        event = self.keyer.verify(event, 1059)
+        require(t.tag_value(event, 'p') == self.collector,
+                'inbox envelope recipient mismatch')
+        require(since <= event['created_at'] <= until,
+                'inbox event outside requested window')
+        return event
+
+    def publish(self, url, event, *, deadline=None):
         relay_url(url, local_test=self.local_test)
-        t.validate_event(event, kind=1059, signed=True)
+        deadline = self._deadline(deadline)
+        self._outgoing_event(event)
         connect = self.connect
         if connect is None:
             from websockets.sync.client import connect
         try:
-            with connect(url, open_timeout=10, close_timeout=2, max_size=t.MAX_INPUT,
+            left = deadline - time.monotonic()
+            require(left > 0, 'relay delivery deadline exhausted')
+            with connect(url, open_timeout=min(10, left), close_timeout=2, max_size=t.MAX_INPUT,
                          max_queue=8, compression=None, proxy=None) as ws:
-                deadline = time.monotonic() + 45
                 auth_id = None
                 challenged = False
                 ws.send(t.canonical(['EVENT', event]).decode())
@@ -259,13 +277,20 @@ class Relay:
             # No relay text, message plaintext, URLs or credentials in diagnostics.
             raise t.Retryable('relay delivery unavailable') from error
 
-    def fetch(self, url, *, since):
+    def _deadline(self, deadline):
+        if deadline is None:
+            return time.monotonic() + 45
+        require(type(deadline) in (int, float) and math.isfinite(deadline),
+                'finite relay deadline required')
+        return min(deadline, time.monotonic() + 45)
+
+    def fetch(self, url, *, since, deadline=None):
         """Split saturated time windows; never skip an ambiguous same-second page."""
         relay_url(url, local_test=self.local_test)
         current = int(time.time())
         require(type(since) is int and current - 4 * 86400 <= since <= current,
                 'invalid inbox query boundary')
-        deadline = time.monotonic() + 45
+        deadline = self._deadline(deadline)
         pending = [(since, current)]
         gathered = {}
         pages = 0
@@ -293,9 +318,7 @@ class Relay:
         if connect is None:
             from websockets.sync.client import connect
         subscription = secrets.token_hex(8)
-        request = ['REQ', subscription, {'kinds': [1059], '#p': [self.collector],
-                                         'since': since, 'until': until,
-                                         'limit': MAX_INBOX_EVENTS}]
+        request = ['REQ', subscription, self._inbox_filter(since, until)]
         try:
             left = deadline - time.monotonic()
             if left <= 0:
@@ -347,11 +370,7 @@ class Relay:
                     elif message[0] == 'EVENT':
                         require(len(message) == 3 and message[1] == subscription,
                                 'unrelated inbox subscription event')
-                        event = self.keyer.verify(message[2], 1059)
-                        require(t.tag_value(event, 'p') == self.collector,
-                                'inbox envelope recipient mismatch')
-                        require(since <= event['created_at'] <= until,
-                                'inbox event outside requested window')
+                        event = self._incoming_event(message[2], since, until)
                         events.append(event)
                         require(len(events) <= MAX_INBOX_EVENTS, 'inbox event budget exceeded')
                     elif message[0] == 'EOSE':
@@ -371,13 +390,15 @@ class Relay:
 
 class Outbox:
     """Private SQLite delivery intents. Persist ciphertext BEFORE publishing it."""
-    def __init__(self, directory):
+    def __init__(self, directory, *, filename='delivery.sqlite3'):
+        require(filename in {'delivery.sqlite3', 'primal-delivery.sqlite3'},
+                'unsupported outbox filename')
         directory = Path(directory)
         directory.mkdir(parents=True, mode=0o700, exist_ok=True)
         info = directory.lstat()
         require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid()
                 and not stat.S_IMODE(info.st_mode) & 0o077, 'outbox directory must be private')
-        path = directory / 'delivery.sqlite3'
+        path = directory / filename
         try:
             fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             os.close(fd)

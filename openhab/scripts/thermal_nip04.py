@@ -10,12 +10,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from hashlib import sha256
 import os
+import json
 from pathlib import Path
 import re
 import sqlite3
 import stat
+import time
 
 import thermal_confirmation as t
+import thermal_messaging as m
 from thermal_messaging import require
 
 PRIMAL_RELEASE_READY = False
@@ -445,3 +448,298 @@ def ingest_primal(raw, policy, ledger, codec, sink, *, now=None):
         # signed kind-4 cipher, not a manufactured cleartext rumor.
         sink.store(records, row['original_event'], vocabulary_version=policy.version)
     return ledger.acknowledge(row, receipt_for(row, policy.version))
+
+
+class PrimalRelay(m.Relay):
+    """Explicit gated kind-4 transport; NIP17 Relay defaults remain unchanged."""
+    def __init__(self, keyer, collector, operators, **kwargs):
+        collector = t.identifier(collector)
+        require(isinstance(operators, frozenset) and 1 <= len(operators) <= 16
+                and collector not in operators, 'explicit Primal relay operator allowlist required')
+        for operator in operators:
+            t.identifier(operator)
+        self.operators = operators
+        super().__init__(keyer, collector, **kwargs)
+
+    def _outgoing_event(self, event):
+        require_release()
+        self.keyer.verify(event, 4)
+        require(event['pubkey'] == self.collector
+                and t.tag_value(event, 'p') in self.operators,
+                'outgoing Primal relay identity mismatch')
+        _ciphertext(event['content'])
+        return event
+
+
+    def _inbox_filter(self, since, until):
+        require_release()
+        return {'kinds': [4], 'authors': sorted(self.operators), '#p': [self.collector],
+                'since': since, 'until': until, 'limit': m.MAX_INBOX_EVENTS}
+
+    def _incoming_event(self, event, since, until):
+        require_release()
+        event = self.keyer.verify(event, 4)
+        require(event['pubkey'] in self.operators
+                and t.tag_value(event, 'p') == self.collector,
+                'incoming Primal relay identity mismatch')
+        require(since <= event['created_at'] <= until,
+                'Primal relay event outside requested window')
+        _ciphertext(event['content'])
+        return event
+
+
+class PrimalOutbox(m.Outbox):
+    """Separate cipher-only delivery file; reuse bounded retry/ingress bookkeeping."""
+    def __init__(self, directory):
+        super().__init__(directory, filename='primal-delivery.sqlite3')
+
+    def queue(self, *args, **kwargs):
+        raise t.Refused('Primal delivery requires original signed kind4 ciphertext')
+
+    def queue_cipher(self, purpose, reference, event, codec, collector, operator):
+        require(purpose in {'prompt', 'ack'}, 'unknown Primal delivery intent')
+        reference = t.identifier(reference)
+        collector, operator = t.identifier(collector), t.identifier(operator)
+        require(collector != operator, 'Primal collector and operator must differ')
+        codec.keyer.verify(event, 4)
+        require(event['pubkey'] == collector and event['tags'] == [['p', operator]],
+                'Primal delivery cipher identity mismatch')
+        _ciphertext(event['content'])
+        raw = t.canonical(event).decode()
+        body = t.canonical({'transport': 'nip04', 'purpose': purpose, 'reference': reference,
+                            'cipherSha256': sha256(raw.encode()).hexdigest()}).decode()
+        intent = purpose + ':' + reference
+        self.db.execute('BEGIN IMMEDIATE')
+        try:
+            old = self.db.execute('SELECT body,wrapped FROM delivery WHERE intent=? AND target=?',
+                                  (intent, operator)).fetchone()
+            if old is not None:
+                require(old['body'] == body and old['wrapped'] == raw,
+                        'Primal outgoing intent conflicts with original cipher')
+            else:
+                require(self.db.execute('SELECT count(*) FROM delivery').fetchone()[0] < m.MAX_ROWS,
+                        'Primal delivery quota reached; reviewed retention required')
+                self.db.execute('INSERT INTO delivery(intent,target,body,wrapped) VALUES (?,?,?,?)',
+                                (intent, operator, body, raw))
+            self.db.commit()  # Cipher before publication; no plaintext at rest here.
+        except BaseException:
+            self.db.rollback()
+            raise
+
+    def ciphertext(self, row, keyer):
+        require(isinstance(row['wrapped'], str), 'Primal original cipher is missing')
+        meta = t.strict_json(row['body'].encode())
+        require(set(meta) == {'transport', 'purpose', 'reference', 'cipherSha256'}
+                and meta['transport'] == 'nip04' and meta['purpose'] in {'prompt', 'ack'}
+                and row['intent'] == meta['purpose'] + ':' + t.identifier(meta['reference'])
+                and sha256(row['wrapped'].encode()).hexdigest() == meta['cipherSha256'],
+                'Primal delivery metadata changed')
+        event = t.strict_json(row['wrapped'].encode())
+        keyer.verify(event, 4)
+        require(t.canonical(event).decode() == row['wrapped']
+                and t.tag_value(event, 'p') == row['target'], 'Primal retained cipher scope changed')
+        _ciphertext(event['content'])
+        return event
+
+    def for_intent(self, intent, operator):
+        row = self.db.execute('SELECT * FROM delivery WHERE intent=? AND target=?',
+                              (intent, operator)).fetchone()
+        return dict(row) if row is not None else None
+
+
+def acknowledgement_text(row, receipt):
+    require(row['acknowledgement'] == t.canonical(receipt).decode()
+            and receipt == receipt_for(row, receipt['version']),
+            'Primal acknowledgement is not a committed receipt')
+    return 'THERMAL STATE RECEIPT\n' + t.canonical(receipt).decode()
+
+
+class PrimalDelivery:
+    """Bounded explicitly selected transport. No CLI, daemon or automatic activation."""
+    def __init__(self, policy, routes, ledger, outbox, codec, relay, sink):
+        require_release()
+        require(isinstance(routes, m.Routes)
+                and set(routes.routes) == {policy.recipient, *policy.operators},
+                'Primal delivery requires the exact signed route inventory')
+        require(isinstance(relay, PrimalRelay) and relay.collector == policy.recipient
+                and relay.operators == policy.operators, 'Primal relay authority mismatch')
+        if policy.version == 2:
+            sink.require_v2_storage()
+        self.policy, self.routes, self.ledger = policy, routes, ledger
+        self.outbox, self.codec, self.relay, self.sink = outbox, codec, relay, sink
+
+    def queue_prompts(self, now):
+        require_release()
+        now = t.aware(now)
+        if self.policy.version == 2:
+            self.sink.require_v2_storage()
+        for prompt in self.policy.prompts:
+            if not prompt.issued_at <= now <= prompt.expires_at:
+                continue
+            exists = self.ledger.db.execute('SELECT 1 FROM questions WHERE prompt_id=?',
+                                           (prompt.event_id,)).fetchone()
+            if exists is None:
+                event = self.codec.encode(question_text(self.policy, prompt.event_id),
+                    author=self.policy.recipient, recipient=prompt.operator,
+                    created_at=int(prompt.issued_at.timestamp()))
+                self.ledger.queue_question(event, self.policy, prompt.event_id, self.codec)
+            event = self.ledger.question(self.policy, prompt.event_id, self.codec)
+            self.outbox.queue_cipher('prompt', prompt.event_id, event, self.codec,
+                                      self.policy.recipient, prompt.operator)
+
+    def _queue_ack(self, row, receipt):
+        text = acknowledgement_text(row, receipt)
+        existing = self.outbox.for_intent('ack:' + row['event_id'], row['operator'])
+        if existing is not None:
+            event = self.outbox.ciphertext(existing, self.codec.keyer)
+        else:
+            event = self.codec.encode(text, author=self.policy.recipient, recipient=row['operator'],
+                                      created_at=int(t.aware(row['first_received_at']).timestamp()))
+        self._verify_ack(event, row, receipt)
+        self.outbox.queue_cipher('ack', row['event_id'], event, self.codec,
+                                  self.policy.recipient, row['operator'])
+
+    def _verify_ack(self, event, row, receipt):
+        self.codec.keyer.verify(event, 4)
+        require(event['pubkey'] == self.policy.recipient and event['tags'] == [['p', row['operator']]]
+                and event['created_at'] == int(t.aware(row['first_received_at']).timestamp()),
+                'Primal acknowledgement identity changed')
+        clear = self.codec.keyer.call(['decrypt', '--nip04', '--sender-pubkey', row['operator'],
+                                       '--', event['content']], identity=True)
+        require(clear == acknowledgement_text(row, receipt).encode() + b'\n',
+                'Primal acknowledgement cleartext changed')
+
+    def receive(self, raw, now=None):
+        require_release()
+        receipt = ingest_primal(raw, self.policy, self.ledger, self.codec, self.sink, now=now)
+        self._queue_ack(self.ledger.get(receipt['event_id']), receipt)
+        return receipt
+
+    def authorize(self, row, now):
+        require_release()
+        event = self.outbox.ciphertext(row, self.codec.keyer)
+        require(event['pubkey'] == self.policy.recipient and row['target'] in self.policy.operators,
+                'Primal outgoing authority was revoked')
+        purpose, reference = row['intent'].split(':', 1)
+        if purpose == 'prompt':
+            prompt = _prompt(self.policy, reference)
+            require(prompt.issued_at <= now <= prompt.expires_at, 'Primal question expired')
+            if self.policy.version == 2:
+                self.sink.require_v2_storage()
+            require(event == self.ledger.question(self.policy, reference, self.codec),
+                    'Primal outgoing question changed')
+        else:
+            require(purpose == 'ack', 'unknown Primal delivery purpose')
+            original = self.ledger.get(reference)
+            require(original is not None, 'Primal acknowledgement original is missing')
+            # Reauthenticate and repeat exact journal readback before EVERY send.
+            receipt = ingest_primal(original['original_event'], self.policy, self.ledger,
+                                     self.codec, self.sink, now=now)
+            self._verify_ack(event, self.ledger.get(reference), receipt)
+        return event
+
+    def flush(self, now=None):
+        require_release()
+        fixed_now = now
+        deadline = time.monotonic() + 90
+        counts = dict(relay_acceptances=0, retryable=0, withheld=0, deferred=0)
+        attempted = 0
+        for row in self.outbox.rows():
+            current = t.aware(fixed_now or datetime.now(timezone.utc))
+            routes = self.routes.for_recipient(row['target']) if row['target'] in self.routes.routes else ()
+            pending = set(routes) - set(json.loads(row['accepted']))
+            if not pending:
+                if not routes: counts['withheld'] += 1
+                continue
+            if attempted >= m.MAX_BATCH or row['next_attempt'] > current.timestamp() or time.monotonic() >= deadline:
+                counts['deferred'] += 1
+                continue
+            attempted += 1
+            try:
+                for url in sorted(pending):
+                    event = self.authorize(row, t.aware(fixed_now or datetime.now(timezone.utc)))
+                    self.relay.publish(url, event, deadline=deadline)
+                    self.outbox.accepted(row, url)
+                    counts['relay_acceptances'] += 1
+            except t.Refused:
+                # Retained expired/revoked evidence must not consume the send
+                # budget forever and starve newer authorized messages.
+                attempted -= 1
+                counts['withheld'] += 1
+            except t.Retryable:
+                counts['retryable'] += 1
+                self.outbox.retry(row, current.timestamp())
+        return counts
+
+    def recover_acks(self, now=None):
+        require_release()
+        counts = dict(retryable=0, withheld=0, deferred=0)
+        existing = {row['intent'] for row in self.outbox.rows()}
+        deadline, attempted = time.monotonic() + 90, 0
+        for record in self.ledger.db.execute('SELECT event_id FROM receipts ORDER BY rowid').fetchall():
+            if 'ack:' + record['event_id'] in existing:
+                continue
+            if attempted >= m.MAX_BATCH or time.monotonic() >= deadline:
+                counts['deferred'] += 1
+                continue
+            attempted += 1
+            try:
+                self.receive(self.ledger.get(record['event_id'])['original_event'], now)
+            except t.Refused:
+                counts['withheld'] += 1
+            except t.Retryable:
+                counts['retryable'] += 1
+        return counts
+
+    def poll_replies(self, now=None):
+        require_release()
+        fixed_now = now
+        current = t.aware(now or datetime.now(timezone.utc))
+        active = [p for p in self.policy.prompts if p.issued_at <= current <= p.expires_at]
+        counts = dict(accepted=0, retryable=0, withheld=0, deferred=0, relay_failures=0)
+        if not active:
+            return counts
+        since = int(min(p.issued_at for p in active).timestamp())
+        deadline = time.monotonic() + 90
+        streams = []
+        for url in self.routes.for_recipient(self.policy.recipient):
+            if time.monotonic() >= deadline:
+                counts['relay_failures'] += 1
+                continue
+            try:
+                events = self.relay.fetch(url, since=since, deadline=deadline)
+            except (t.Refused, t.Retryable):
+                counts['relay_failures'] += 1
+                continue
+            streams.append(iter(m.balanced_inbox_order(events)))
+        seen, attempted = set(), 0
+        while streams:
+            remaining = []
+            for stream in streams:
+                try:
+                    event = next(stream)
+                except StopIteration:
+                    continue
+                remaining.append(stream)
+                if event['id'] in seen:
+                    continue
+                seen.add(event['id'])
+                if self.outbox.ingress_recorded(event):
+                    continue
+                if (self.outbox.refusal_deferred(event, current.timestamp())
+                        or attempted >= m.MAX_BATCH or time.monotonic() >= deadline):
+                    counts['deferred'] += 1
+                    continue
+                attempted += 1
+                try:
+                    self.receive(t.canonical(event), fixed_now)
+                except t.Refused:
+                    self.outbox.record_refusal(event, current.timestamp())
+                    counts['withheld'] += 1
+                except t.Retryable:
+                    counts['retryable'] += 1
+                else:
+                    self.outbox.record_ingress(event)
+                    counts['accepted'] += 1
+            streams = remaining
+        return counts
