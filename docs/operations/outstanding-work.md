@@ -91,6 +91,15 @@ and morning 47% (-18 points), at 99.943% qualified coverage. This second
 qualified comparison supports the existing pre-dusk selection, not a seasonal
 model promotion or causal reward. No prediction/coefficient changed. See
 [completed second-night comparison](2026-09-29-prediction-learning-review.md#october-1-second-completed-natural-morningpre-dusk-pair).
+Radiation progressed to exact **inactive installation**: five narrow reviewed
+weather/radio files plus the mode-0600 station-206 policy are installed, with
+private nine-file preimages and exact isolated WSGI/radio rollback parity.
+Both service PIDs stayed unchanged, all four temperature streams/rain stayed
+valid, and radiation remains 404/off. The 100-test weather slice and complete
+3,029-test/74-subtest suite pass (six optional skips). Activation needs the
+documented privileged weather-only block because sudo requires a password;
+no implicit enable fallback or service duplication was introduced. See
+[inactive radiation checkpoint and activation](2026-10-01-radiation-receipt-candidate.md#pending-privileged-activation).
 The sole Energy trough display is restored and qualified in the live UI.
 The natural October 1 thermal training completed successfully in 19m36s with
 366 MiB peak memory and zero peak swap. Its first natural 09:05 publication
@@ -117,6 +126,7 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Thermal skill and efficiency | October 1 natural training exited zero: 19m36s, 366 MiB peak, zero swap, accepted/candidate/report agreement and valid previous-artifact retention. Its first natural 09:05 publication matches Item/local/capture/JDBC and replays exactly with the promoted artifact. 24-hour air MAE remains 2.17855°F versus persistence 1.689895°F; confirmed-action training/evaluation count is zero. Four earlier mature six-hour pairs were biased cold, with only one non-overlapping. | Continue chronological divergence diagnosis; require held-out improvement plus genuine action evidence before graduation. Faster training and mechanical replay are not predictive skill. |
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; Moon actual rollback/history/natural source gates pass. Current inventory has zero issues, but 380 Items/80 Things/37 rules remain managed. | Qualify complete, clean source days and continue individually qualified migration. Moon restart recovery remains provisional; do not repeat the completed `gForecast` restart or authorize general protected-control work. |
+| Radiation collection | Exact five-file radio/receiver extension and private station-206/120-second policy are installed **inactive**. Exact nine-file preimage backup and isolated original/disabled/enabled/rollback parity pass; all four temperature streams/rain remain valid and live PIDs are unchanged. Radiation endpoint remains 404; no new OpenHAB history or learning yet. | Operator must run the guarded privileged weather-only activation block; then verify natural raw-lux/strict decode-time receipt, expiry/recovery and existing streams. Qualify the file-owned durable pipeline/least-privilege mapping and a complete clean day before any learner consumes it. Never backfill from held numeric radiation or the unrelated latest-only exporter. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
 September 30 20:15 MDT post-update battery-runtime discharge evidence closes
