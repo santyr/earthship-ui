@@ -103,6 +103,20 @@ describe('separate pre-dusk trough receipt', () => {
     expect(selectTroughForecast(parseLate(late)).value).toBe(80);
   });
 
+  it('allows a completed estimate only for a dated display, without relaxing source checks', () => {
+    const nowMs = Date.parse('2026-09-25T13:00:00-06:00');
+    const options = { nowMs, allowCompletedForDisplay: true };
+    expect(parsePreDuskTroughReceipt(JSON.stringify(late), options)?.overnightTroughSocPct).toBe(80);
+    expect(parsePreDuskTroughReceipt(JSON.stringify(late), { nowMs })).toBeNull();
+    expect(parsePreDuskTroughReceipt(JSON.stringify({ ...late,
+      socEvidenceSha256: undefined }), options)).toBeNull();
+    expect(parsePreDuskTroughReceipt(JSON.stringify({ ...late,
+      overnightTroughSocPct: 79 }), options)).toBeNull();
+    expect(parsePreDuskTroughReceipt(JSON.stringify(late), {
+      nowMs: Date.parse('2026-09-24T16:00:00-06:00'),
+      allowCompletedForDisplay: true })).toBeNull();
+  });
+
   it('keeps the original pre-dusk issue through its following-morning target', () => {
     for (const at of ['00:01:00', '06:40:00', '10:59:59']) {
       expect(parseLate(late, Date.parse(`2026-09-25T${at}-06:00`))?.overnightTroughSocPct).toBe(80);

@@ -15,7 +15,6 @@ describe('Energy chart containment', () => {
     const source = await readFile('src/screens/Energy.svelte', 'utf8');
     expect(source).not.toContain("Battery — 24h + tonight's forecast");
     expect(source).toContain('Battery history');
-    expect(source).not.toContain('hero-trough');
     expect(source).not.toContain('Predicted_SoC_Trough_PreDusk');
     expect(source).not.toContain('projectionEndMs');
   });

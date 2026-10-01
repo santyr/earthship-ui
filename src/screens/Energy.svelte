@@ -11,7 +11,7 @@
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
   import { pvForecastComparison } from '../lib/energy/pvForecastComparison.js';
   import { parseForecast10Day, pvForecastDaysFromToday } from '../lib/weather/forecastDetail.js';
-  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
+  import { parsePredictionReceipt, parsePreDuskTroughReceipt } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
@@ -20,12 +20,21 @@
 
   let analyticsNowMs = $state(Date.now());
   const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
+  // Display the latest qualified issue until replaced. Completed windows are
+  // explicitly dated; alerts still use the parser's strict expiry default.
+  const preDuskEstimate = $derived(parsePreDuskTroughReceipt(
+    $items.Forecast_PreDusk_Trough_Receipt_JSON,
+    { nowMs: analyticsNowMs, allowCompletedForDisplay: true }));
+  const troughNight = $derived(preDuskEstimate ? new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Denver', month: 'short', day: 'numeric',
+  }).format(preDuskEstimate.issuedAtMs) : '');
+  const troughCompleted = $derived(preDuskEstimate
+    && analyticsNowMs >= preDuskEstimate.targetEndAtMs);
 
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(freshCurrentSoc($items, Math.max(analyticsNowMs, Date.now())));
   const socColor = $derived(socBands(soc));
-  // Pre-dusk predictions remain collected and scored in the backend. This
-  // chart shows measured history only, without an expiring forecast overlay.
+  // Keep measured history separate from the estimated minimum in the footer.
   const socSeries = $derived([
     { name: 'BMS_SOC', color: socColor, label: 'SoC' },
   ]);
@@ -88,6 +97,11 @@
         <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
+          {#if preDuskEstimate}
+            <span class="hero-trough" title={`Pre-dusk estimate for ${troughNight} night; not a measured minimum.`}>
+              Estimated trough {preDuskEstimate.overnightTroughSocPct}%{troughCompleted ? ` · ${troughNight} night` : ''}
+            </span>
+          {/if}
         </div>
       </div>
     </Tile>
@@ -243,6 +257,12 @@
     font-size: 0.8rem;
     font-weight: 600;
     flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+  }
+  .hero-trough {
+    color: #8b93a1;
+    font-variant-numeric: tabular-nums;
   }
 
   /* ---- PV production ---- */

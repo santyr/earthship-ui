@@ -48,7 +48,9 @@ export function parsePredictionReceipt(raw, { nowMs = Date.now() } = {}) {
   }
 }
 
-export function parsePreDuskTroughReceipt(raw, { nowMs = Date.now() } = {}) {
+export function parsePreDuskTroughReceipt(raw, {
+  nowMs = Date.now(), allowCompletedForDisplay = false,
+} = {}) {
   if (typeof raw !== 'string' || raw.length > 1024) return null;
   try {
     const receipt = JSON.parse(raw);
@@ -66,7 +68,8 @@ export function parsePreDuskTroughReceipt(raw, { nowMs = Date.now() } = {}) {
     const targetEndAtMs = overnightTargetEnd(receipt.predictionDay);
     if (![issuedAtMs, sunsetAtMs, morningIssuedAtMs, socRecordedAtMs].every(Number.isFinite)
       || issuedAtMs > nowMs + 60_000
-      || !Number.isFinite(nowMs) || nowMs >= targetEndAtMs
+      || !Number.isFinite(nowMs)
+      || (allowCompletedForDisplay !== true && nowMs >= targetEndAtMs)
       || [issuedAtMs, sunsetAtMs, morningIssuedAtMs].some(at =>
         localDateAt(at, 'America/Denver') !== receipt.predictionDay)
       || morningIssuedAtMs >= issuedAtMs

@@ -195,7 +195,7 @@ test('Energy keeps morning curtailment but does not display the morning trough',
   await expect(page.locator('.hero-trough')).toHaveCount(0);
 });
 
-test('Energy keeps pre-dusk estimates in the backend without labels or projections', async ({ page }) => {
+test('Energy shows one dated pre-dusk estimate without mixing forecasts into measured history', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T18:10:00-06:00') });
   const historyRequests = await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     Forecast_Prediction_Receipt_JSON: JSON.stringify({
@@ -213,18 +213,18 @@ test('Energy keeps pre-dusk estimates in the backend without labels or projectio
       socAtIssuePct: 99, overnightDropPct: 19.333, overnightTroughSocPct: 80,
     }),
   });
-  await expect(page.locator('.hero-trough')).toHaveCount(0);
+  await expect(page.locator('.hero-trough')).toHaveText('Estimated trough 80%');
   await expect(page.getByText('Battery history', { exact: true })).toHaveCount(1);
   await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
   expect(historyRequests.some(url => url.pathname.includes('Predicted_SoC_Trough'))).toBe(false);
   await expect(page.locator('.pv-sub')).toContainText('morning forecast');
-  // Backend receipt validity must not make the display appear/disappear.
+  // Retain the last estimate until replaced, marking completed target windows.
   await page.clock.setSystemTime(new Date('2026-09-25T06:40:00-06:00'));
   await page.clock.runFor(31_000);
-  await expect(page.locator('.hero-trough')).toHaveCount(0);
+  await expect(page.locator('.hero-trough')).toHaveText('Estimated trough 80%');
   await page.clock.setSystemTime(new Date('2026-09-25T11:00:00-06:00'));
   await page.clock.runFor(31_000);
-  await expect(page.locator('.hero-trough')).toHaveCount(0);
+  await expect(page.locator('.hero-trough')).toHaveText('Estimated trough 80% · Sep 24 night');
   await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
 });
 
