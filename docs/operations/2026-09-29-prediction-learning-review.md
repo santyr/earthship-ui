@@ -362,6 +362,51 @@ reward. The reader reports `night_outcome_scored=true`,
 not inspect the browser). No database, Item, model, message or control writes
 were made; original morning calculation/history and calibration are unchanged.
 
+### October 1 second completed natural morning/pre-dusk pair
+
+After the following-day 11:00 Mountain target completed, the read-only
+`qualify-pre-dusk-natural-issue.py --day 2026-09-30 --score-completed-night`
+passed with `scored_completed_night`. It compared the original same-target
+morning issue at `2026-09-30T12:40:30.514550Z` with the original pre-dusk issue
+at `2026-09-30T23:30:00.075448Z`; neither prediction was reconstructed using
+later evidence.
+
+| Same overnight target | Original forecast | Actual minimum | Signed error |
+| --- | --- | --- | --- |
+| Morning | 47% | 65% | -18 percentage points |
+| Pre-dusk | 64% | 65% | -1 percentage point |
+
+The common qualified target is `2026-10-01T02:00:00Z` through
+`2026-10-01T17:00:00Z` (20:00–11:00 Mountain), with **99.9430670%** source
+coverage. Pre-dusk improves absolute error by **17 percentage points** for
+this completed night. Completed-night evidence digest is
+`48f0271b3e5b8a1b859342ce7a1b810ae8e251fb2b93d51a02fd0712ac3974fb`.
+
+The pre-dusk numeric and receipt persisted at `23:30:00.076Z` and
+`23:30:00.078Z`. Its original `BMS_SOC_Evidence_JSON` input persisted at
+`2026-09-30T23:29:12.404875Z`, stream epoch
+`6b58b416-0c8b-459e-8eca-55f1f83a1831`, with source digest
+`835724d3cdaf749c4f1d00679473a98a4045d27f4b569f49e67464843e044dae`.
+The scorer verified that exact original source/numeric/JDBC chain and the
+physical bank epoch, not held SoC getter freshness or a change-only sample age.
+
+This is the second qualified morning/pre-dusk comparison and supports retaining
+the operator-selected pre-dusk display. It is not seasonal holdout, causal
+advisory reward or evidence that a new coefficient/model should be promoted.
+`night_outcome_scored=true`, `causal_reward_proven=false`, and
+`display_selection_verified=false` are retained literally: this reader does
+not inspect the browser. No database, Item, model, DM or equipment write was
+made. Continue collecting original forcing and complete outcomes for the
+chronological joint SoC/PV/day-length/afternoon-discharge analysis.
+
+All 41 existing release, original-source, pair-scoring and completed-outcome
+regressions passed in 0.07 seconds with
+`PYTHONPATH=/home/sat/Solar_PV/analytics/src`, matching the scorer's explicit
+dependency bootstrap. The first focused invocation omitted that external
+package path and produced six import-dependent failures; a direct import probe
+confirmed the missing path and the unchanged tests passed after correcting only
+the invocation. No product-code workaround or relaxed evidence gate was added.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.
