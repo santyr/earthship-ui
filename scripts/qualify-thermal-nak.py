@@ -91,7 +91,11 @@ def expect_refused(operation, diagnostic):
     raise QualificationFailed(diagnostic)
 
 
-def qualify(path: Path, digest: str):
+def qualify(path: Path, digest: str, *, expected_version=VERSION):
+    require(isinstance(expected_version, str) and expected_version.startswith('nak version ')
+            and 0 < len(expected_version) <= 128
+            and all(32 <= ord(char) < 127 for char in expected_version),
+            'explicit bounded nak version required')
     inspect_binary(path, digest)
     checks = []
     with tempfile.TemporaryDirectory(prefix='thermal-nak-qualification-') as home:
@@ -102,7 +106,7 @@ def qualify(path: Path, digest: str):
                                            dict(env, NOSTR_SECRET_KEY=key))
 
             version = call(['--version']).decode('utf-8').strip()
-            require(version == VERSION, 'unexpected nak version; review this candidate separately')
+            require(version == expected_version, 'unexpected nak version; review this candidate separately')
             now = int(datetime.now(timezone.utc).timestamp())
 
             def signed(kind, content, tags, key):
@@ -184,9 +188,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--nak', type=Path, default=DEFAULT_NAK)
     parser.add_argument('--sha256', help='explicit, independently reviewed candidate pin; never auto-trusted')
+    parser.add_argument('--expected-version', help='exact separately reviewed version; requires explicit --sha256')
     args = parser.parse_args(argv)
     try:
-        result = qualify(args.nak, args.sha256 or release_digest())
+        if args.expected_version is not None:
+            require(args.sha256 is not None, 'candidate version requires an explicit independent SHA-256')
+            result = qualify(args.nak, args.sha256, expected_version=args.expected_version)
+        else:
+            result = qualify(args.nak, args.sha256 or release_digest())
     except (QualificationFailed, thermal.Refused) as error:
         print(json.dumps({'status': 'failed', 'reason': str(error), 'production_ready': False}))
         return 1

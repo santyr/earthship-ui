@@ -262,7 +262,7 @@ do not authorize a listener.
 
 ## Installation boundary
 
-### Primal compatibility candidate (not installed)
+### Primal compatibility sender (collector not activated)
 
 The [October 1 Primal candidate](../../docs/operations/2026-10-01-primal-compatibility-candidate.md)
 documents a bounded NIP-04 stdin patch, disposable-key tests, and the remaining
@@ -282,6 +282,25 @@ or replace its binary to get that check to pass. The candidate user units at
 Their private environment template is `deploy/thermal-primal.env.example`.
 Exact sender qualification, full recovery, configuration review and an attended
 Primal receipt trial remain necessary; see the linked operations document.
+
+The separately built sender candidate is now distinctly versioned as
+`nak version v0.20.7-earthship-nip04-stdin.1`, pinned to SHA-256
+`2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927`.
+Its actual stdin crypto, NIP-17 regressions, loopback NIP-42 authentication and
+configured Hex local-key self-roundtrips pass. The existing Hex sending key is
+local, not a NIP-46 connection; no candidate remote-bunker compatibility is
+claimed. The operator bunker and both installed stock binaries remain unchanged.
+Any approved installation uses a separate versioned Hex executable path;
+it must not replace `/usr/local/libexec/nostr-bunker/nak` or enable collection.
+
+The operator has now approved that additive installation. Its installed path is
+`/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1`,
+owned `sat:sat` mode 0755 under private mode-0700 directories. Exact installed
+byte/version checks and all 59 focused crypto/command tests pass. There is no
+default alias change or collector unit installation. The actual runtime/private
+configuration and full recovery gates remain open; see the operations document
+for the credential-free installed-path qualification command. Do not reinstall
+the operator bunker or replace any existing `nak` to continue this work.
 
 ### Qualified installation requirements
 

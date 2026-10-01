@@ -118,3 +118,25 @@ def test_reviewed_pins_are_fixed_not_discovered_from_host(monkeypatch):
     monkeypatch.setattr(m.platform, 'machine', lambda: 'unknown')
     with pytest.raises(m.QualificationFailed, match='architecture'):
         m.release_digest()
+
+
+def test_candidate_version_requires_explicit_byte_pin_before_execution(monkeypatch,capsys):
+    def forbidden(*args,**kwargs):
+        pytest.fail('no candidate execution without an explicit independent pin')
+    monkeypatch.setattr(m,'qualify',forbidden)
+    assert m.main(['--expected-version','nak version v0.20.7-earthship-nip04-stdin.1'])==1
+    assert 'explicit' in capsys.readouterr().out
+
+
+def test_candidate_version_is_checked_without_changing_default_release(monkeypatch,capsys):
+    selected=[]
+    def rejected(path,digest,*,expected_version=m.VERSION):
+        selected.append((str(path),digest,expected_version))
+        raise m.QualificationFailed('synthetic version refusal')
+    monkeypatch.setattr(m,'qualify',rejected)
+    assert m.main(['--nak','/explicit/candidate','--sha256','a'*64,
+                   '--expected-version','nak version v0.20.7-earthship-nip04-stdin.1'])==1
+    assert selected==[('/explicit/candidate','a'*64,'nak version v0.20.7-earthship-nip04-stdin.1')]
+    selected.clear()
+    assert m.main(['--sha256','a'*64])==1
+    assert selected==[('/home/sat/.local/bin/nak','a'*64,'nak version v0.20.7')]

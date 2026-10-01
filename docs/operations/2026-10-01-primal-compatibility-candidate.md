@@ -81,8 +81,103 @@ and reverse patch dry-run confirmed the patch applies to that exact source.
 
 The installed binaries are `/home/sat/.local/bin/nak` and
 `/usr/local/libexec/nostr-bunker/nak`. Neither was replaced, repinned or restarted.
-Temporary source, binary and caches must be removed after terminal tests; this
-digest describes a qualification build, not an installed runtime artifact.
+That initial temporary source, binary and isolated caches were removed after
+terminal tests; this digest describes the earlier qualification build, not an
+installed runtime artifact. The separately versioned candidate below supersedes
+it for the next deployment qualification.
+
+### Distinctly versioned sender qualification — October 1
+
+The exact same upstream revision and reviewed stdin patch have now been built
+as **`nak version v0.20.7-earthship-nip04-stdin.1`**, with SHA-256
+`2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927`.
+The original/patched Go and unchanged module-file digests above still match.
+`gofmt` has no diff, reverse patch dry-run passes, and `go mod verify` reports
+`all modules verified`. Only checksum-verified, pinned upstream dependencies
+were fetched. The existing Go 1.25.8 toolchain and ordinary module/build caches
+were reused instead of installing a toolchain or recreating isolated caches.
+
+The build used `GOTOOLCHAIN=local`, `GOMAXPROCS=2` and:
+
+```sh
+go build -p 2 -mod=readonly -trimpath \
+  -ldflags '-X main.version=v0.20.7-earthship-nip04-stdin.1' \
+  -o /absolute/task-owned/path/nak-stdin
+```
+
+`scripts/qualify-thermal-nak.py` now accepts an explicit `--expected-version`
+**only with an explicit `--sha256`**. Its default stock version and architecture
+release pins are unchanged. The candidate cannot pass as stock v0.20.7 and a
+version override cannot bypass independent byte/permission checks. Two new
+unit regressions first failed without the option and pass after its addition.
+
+The focused run passed **59 tests in 23.49 seconds**, with the exact candidate
+pin supplied. This includes the earlier stdin crypto cases, all eight existing
+NIP-17 authenticated-envelope checks, the actual Primal command's NIP-04 and
+NIP-17 local self-roundtrips, and real loopback NIP-42 challenge/signature/OK/
+resend checks with both explicit authorization and refusal. Disposable fixture
+keys only are used in these tests. They are not public relay delivery evidence.
+
+A separate sanitized inspection of the **actual existing Hex sender** confirms
+it uses a local hex private key, not a NIP-46 connection. The new candidate
+passed actual local NIP-04 stdin and NIP-17 self-roundtrips under the configured,
+approved Hex collector public identity. There were **zero journal writes and
+no publication**; the operator bunker was not accessed. Consequently remote
+NIP-46 encrypt/decrypt is not required for this selected Hex sender path, and
+is **not claimed as qualified** for the candidate. The operator's independent
+NIP-46 service remains active, enabled and at zero restarts, using its original
+unchanged stock binary/pin; its earlier challenge remains separate evidence.
+
+Actual installed-path/dependency/configuration and full household-bundle
+recovery still precede any truthful Primal question or collection release.
+
+### Approved additive signer installation
+
+The operator approved installation of this separate Hex signer only. The exact
+artifact is now installed at:
+
+`/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1`
+
+It is owned `sat:sat`, mode 0755, under newly created owned mode-0700 `libexec`
+and `earthship-thermal` directories. The target was new; installation guarded
+against overwriting an existing target. Installed SHA/version match the selected pin above;
+the installed-path CLI qualifier passes all eight disposable NIP-17 checks.
+The same focused stdin/command/NIP-42 suite passes **59 tests in 23.72 seconds**
+using this installed path. No unversioned alias or default signer pin changed.
+The configured Hex identity also passes both-protocol local self-roundtrips
+under this **installed path**, with zero journal writes/publication and no
+operator-bunker access, not only under the earlier build fixture.
+
+The complete discovered Python suite, with the exact candidate pin explicitly
+supplied, passed **3,014 tests and 74 subtests**, with **six optional integration
+skips**, in 239.58 seconds. The 33 stdin cases skipped in the preceding suite
+now execute, as do the five new exact-candidate integration cases. The real
+disposable PostgreSQL ledger/full data restore cases also ran; no test container
+remains. Private umask and disabled bytecode/pytest caches were retained.
+After all build/test/self-check handles were terminal, five remaining explicitly
+validated task-owned source/build/test directories were removed. The single approved
+installed signer, ordinary dependency caches and operational backups remain;
+there is no leftover second qualification binary.
+
+Both original stock signer hashes are still `ba918faf...ae56e`. The operator
+bunker remains active/enabled with zero restarts. `thermal-primal.service` and
+`.timer` are still **not found/inactive**, not merely disabled. Installation did
+not deploy a collector command, provision its credentials, enable any release
+flag, publish a DM or create a live Primal ledger. It closes the separate signer
+installation/qualification gate, not collector deployment or household recovery.
+
+The byte/version qualification can be rerun without household credentials:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualify-thermal-nak.py \
+  --nak /home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1 \
+  --sha256 2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927 \
+  --expected-version 'nak version v0.20.7-earthship-nip04-stdin.1'
+```
+
+The exact private runtime/dependency/configuration bundle and stopped-writer
+household journal recovery remain next. Only after those gates and truthful
+question review may a separate attended Primal delivery/reply trial proceed.
 
 ## Qualification
 
@@ -261,11 +356,12 @@ Current candidate source identities:
    are now tested as described below. Preserve original intents/envelopes and
    require signed-route validation; no silent NIP-17 reissue or cross-transport
    rewrite.
-2. Select a distinctly versioned stdin-capable signer and qualify its exact
-   runtime, including backward NIP-17/NIP-42 and any actual required NIP-46
-   encrypt/decrypt path. Obtain exact narrow deployment approval; preparing a
-   Hex sender must not silently replace or restart the operator's signer.
-   Regenerate the consumer/runtime/recovery pins for the actual configuration.
+2. The distinctly versioned stdin-capable local Hex signer is now separately
+   installed and qualified as described above, including backward NIP-17 and
+   loopback NIP-42. This actual sender does not use NIP-46; remote candidate
+   compatibility is not claimed. Do not replace/restart the operator's signer.
+   Still regenerate the consumer/runtime/recovery pins for the actual installed
+   command/dependency/private configuration bundle; a signer alone is insufficient.
 3. Recheck signed routes and exact restricted journal access. Qualify stopped-
    writer full-bundle recovery against the real v2 configuration, including the
    original envelopes, new `primal.sqlite3` first-receipt ledger and new
