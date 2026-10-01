@@ -415,3 +415,67 @@ At the largest TTF delta (18:55Z), live was 1270 versus candidate 1080, with
 candidate charge EMA 3.564 A. No physical accuracy is inferred from either
 display. This later window still contains no new post-update deep-discharge
 median qualification; the estimator remains undeployed.
+
+## September 30 evening: post-update deep-discharge median qualified
+
+The first post-update natural deep-discharge comparison now passes. This
+supersedes the earlier lack of a qualifying discharge window, not the earlier
+charging-mode numerical differences or the remaining deployment gates.
+
+The read-only replay used 16:15–20:15 MDT, with a three-hour warmup and
+comparison restricted to 19:15–20:15 MDT:
+
+```sh
+node openhab/scripts/bms_runtime_shadow_replay.mjs \
+  2026-09-30T22:15:00Z 2026-10-01T02:15:00Z \
+  2026-09-30T02:30:00Z 2026-09-30T12:00:00Z \
+  --compare-from 2026-10-01T01:15:00Z
+```
+
+Candidate source SHA-256 is
+`374d2fc5ae3f1879f60d6e7cccb2a34ef627158a312769dddd88dca22f826e31`.
+All 1,235 event/expiry evaluations passed the independent arithmetic checks;
+1,234 used `bms`, with one legitimate cold-cache `evening` seed. The target
+contains 121 aligned `bms -> bms` pairs, all with exactly zero TTD difference.
+TTF is zero in all 121 pairs: this is noncharging sentinel agreement, not
+positive TTF qualification. No charging-current transition occurred in this
+window, so it does not qualify dawn or charging recovery.
+
+A separate read-only calculation, without executing the candidate, retrieved
+785 runtime envelopes and 321 live TTD rows over 22:05Z–02:15Z. It retrieved
+40 basis changes with a September 29 carry-in window, since change-only
+persistence need not emit a new basis row during steady discharge. Returned
+row counts matched each provider's reported datapoints and all rows were
+ordered. The calculation deduplicated qualified positive TTD observations by
+stream epoch/original acquisition timestamp, rejected conflicting duplicate
+values, required original/recorded/persisted timestamp ordering and exact
+120-second field validity, and did not count repeated envelopes as samples.
+The 493 distinct observations have an ordered compact-JSON tuple digest
+`f28c299ac5db8f48ebf902af3dfda387bf10b98acbbb9abc2f1cee5b265ad90c`
+(tuples are persisted milliseconds, original observed milliseconds, minutes).
+At every target tick, the independent upper median of the latest nine
+observations matched the held live `bms` output: 121 pairs, zero differences.
+
+The final nine values are `4239, 4406, 4326, 4349, 4368, 4456, 4471, 4445,
+4403`; their upper median is 4,403 minutes, exactly the final candidate and
+live display. Their newest original acquisition timestamp is
+`1790820872347` milliseconds. This validates observation preservation and
+median arithmetic, not the physical accuracy of that multi-day runtime.
+
+Current live rule readbacks were healthy (`IDLE/NONE`) and matched their
+expected source bytes: input collector
+`621f4ac7416de35e1b68f87f7d0ed4096c729319cad08e5b71bc95b1b0062c80`,
+unchanged legacy estimator
+`8698b16a5e07a5fde653c6e74219886f78c2b6ec7740e5a8a8608c32c205a794`.
+The diagnostic initially needed integral JDBC decimals parsed as decimals and
+a prior basis carry-in row; the corrected independent check above passed.
+These were diagnostic input handling corrections, not production changes.
+
+**Remaining:** review the documented observation-cadence differences on the
+charging/projection path, qualify any needed natural mode transitions, and
+prepare a guarded attended estimator replacement with exact rollback. Do not
+force alpha/state to match the legacy held-input sampler. The completed-night
+load passed earlier native JDBC checks, but this replay's millisecond REST
+weighted diagnostic is not that exact native average and was not used by its
+`bms` median target. No rule, Item, model, control, service or DM was changed;
+the estimator candidate remains undeployed. No test scratch was created.
