@@ -269,3 +269,28 @@ no sender key). It is separate from the still-absent live notification outbox.
 Do not create another rumor to retry: use those original envelopes. Review
 cleanup after the receipt/retry audit finishes. No production dependency or
 unit/timer was installed; notification and collector release gates stay off.
+
+### Read-only reply check — September 30 18:56 MDT
+
+A finite, credential-scrubbed `nak req` audit queried kind-1059 envelopes
+addressed to Hex on the three approved relays, with a four-day outer-envelope
+window and 32-result per-relay bounds. The wider outer window accounts for
+NIP-17 randomized/backdated timestamps; authenticated inner rumors, if any,
+were checked against the actual original test timestamp and exact reference.
+No automatic AUTH, publication, normal inbox listener, spool, journal or
+collector operation ran. System Python's older websockets dependency was not
+replaced; the existing pinned nak performed the finite queries.
+
+At `2026-10-01T00:56:23.835152Z`, nos.lol returned the known exact sender copy;
+Primal and Damus returned zero envelopes in their bounded CLI responses. The
+deduplicated result contained one envelope and no post-test authenticated
+operator message or explicit test reference. There was no result saturation,
+decode refusal or new publication. These results **do not prove no reply or
+no operator receipt** and do not establish complete relay inbox coverage.
+Receipt confirmation therefore remains pending; do not resend the test or
+turn its relay ACK into a delivery/training claim.
+
+The transient user verification unit was collected. The owned temporary helper
+was removed; the intentional original two-envelope audit/retry state remains
+unchanged. No dependency files, private message text or key material were
+printed, installed or committed.

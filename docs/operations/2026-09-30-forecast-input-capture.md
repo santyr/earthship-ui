@@ -97,10 +97,35 @@ Next required checks:
 2. Pair future qualified charge/full-charge/sunset outcomes only with those
    bound original snapshots and original solar/BMS clocks. Score chronological
    joint-model candidates; do not promote a five-day fit.
-3. The natural shadow remains scheduled September 30 19:01:46 MDT; training
-   remains October 1 06:50. Record actual whole-run time/memory/swap then.
+3. The natural shadow gate is now closed by the September 30 19:01 run below.
+   Training remains October 1 06:50. Record actual whole-run time/memory/swap then.
 4. Future signed-trial/recovery checks must requalify against this current
    installed pin, not reuse the earlier `5e69e941...` qualification unchanged.
 
 The thermal collector and all six source release flags remain off. Production
 journal vocabulary is already v2; do not rerun the v1-only migration preflight.
+
+## September 30 natural shadow gate closed
+
+The existing timer invoked `thermal-model-shadow.service` naturally at 19:01:48
+MDT, invocation `0dd71b70ece54e30859c8c22f4ddf0ce`. It exited zero at 19:01:51;
+no manual invocation, timer reset, model training or collector activation ran.
+The finite watcher ended after observing the actual new invocation's terminal
+state, not an observation timeout.
+
+Fresh readback matches the published Item, local `shadow.json`, original forcing
+capture and exactly one JDBC receipt. Decision:
+`2026-10-01T01:01:50.144198Z`; JDBC receipt:
+`2026-10-01T01:01:51.825Z`. The output is still `shadow` / `low` confidence.
+Its canonical SHA-256 is
+`138ff098ff6bf6925c17acaf10d3081ba70ff87cd99b27e8b28ae86fd6b2aee8`.
+The private capture is
+`/home/sat/.local/state/thermal-intel/forcing-captures/2026-10/20261001T010150Z-138ff098ff6bf692.json.gz`.
+
+Exact as-issued replay passes against the current `7f57eb3f...` installed runtime.
+Accepted-artifact SHA-256 remains
+`66bc754135da743f402e00c34e07d8ffaeb7c8e97061873e06808619fe734353`,
+identical to the retained 17:01 capture. The artifact's training revision remains
+`a4a68a17...`, distinct from the current runtime; no new training or skill is
+implied. The next natural shadow is September 30 21:01:48 MDT. Training and
+original morning weather-input capture gates remain October 1 06:50 / 06:40.

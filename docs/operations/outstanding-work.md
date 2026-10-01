@@ -11,9 +11,20 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Charge/PV/trough tuning | Five qualified daytime/full-charge/afternoon-decline targets; natural 06:45 capture matches all 1,458 original morning UI facts. Exact raw-weather input capture is prospectively installed; 315 affected Python / 26 UI contract tests pass. Historical UI companions lack a strict raw-fetch origin binding. | Qualify October 1's natural original input capture, then join qualified forcing/outcomes and score chronological joint-model candidates; do not backdate historical companions or promote a five-day fit. |
 | Pre-dusk estimate | September 30's sole 17:30 issue and exact original SoC/numeric/JDBC chain qualify; September 29's completed trough was 81%, matching its pre-dusk 81% rather than morning 53%. | Score September 30 only after October 1 11:00 MDT. Notifications remain off while the previously sent path test's recipient receipt and delivery-release gates remain open. |
 | Thermal collection | Approved journal-only migration is live at exact v2, with all 10 action/4 receipt/4 mode rows and grants unchanged. Current `7f57eb3f...` consumer passes a live-journal disposable v2 restore; a verified journal-only v2 recovery anchor is retained. All six release flags remain false. | Truthful question review, full v2 bundle qualification for that actual configuration, one-shot signed trial and bounded user-service release. Do not request journal migration approval again. |
-| Thermal skill and efficiency | Accepted model remains shadow; source-only joint-solar/airflow candidates and training optimizations are distinct from installed artifact skill. | Qualify the next natural shadow at 19:01 MDT and training October 1 06:50; record whole-run time/memory/swap, and require held-out improvement plus genuine action evidence before graduation. |
+| Thermal skill and efficiency | September 30's natural 19:01 shadow output, archive, JDBC receipt and exact replay pass under `7f57eb3f...`; artifact remains unchanged/low confidence. Source-only joint-solar/airflow candidates and optimizations remain distinct from installed skill. | Qualify October 1 06:50 training and record whole-run time/memory/swap. Require held-out improvement plus genuine action evidence before graduation. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast`, its ten members/links and JDBC persistence are already file-owned. Current inventory has zero issues, but 382 Items/80 Things/37 rules remain managed. | Await complete, clean source days; continue individually qualified migration. Do not repeat the completed `gForecast` restart. Future protected-control or whole-OpenHAB work needs its own current recovery/attendance checks. |
 | Shades and recovery | 27 preview slots and zone controls are live; Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
+
+September 30 19:01 natural shadow gate is closed: new timer invocation exited
+zero, the Item/local output/frozen capture match, and exactly one original JDBC
+receipt plus exact current-pin replay pass. Artifact is unchanged and confidence
+remains low; no new accuracy, action evidence or model graduation is implied.
+Next shadow is 21:01, morning capture/training remain October 1 06:40/06:50.
+The bounded read-only DM audit found only the known sender test copy and no
+authenticated operator reply; absence does not prove non-receipt. The pending
+recipient confirmation/truthful question remain before collection. See
+[natural shadow evidence](2026-09-30-forecast-input-capture.md#september-30-natural-shadow-gate-closed)
+and [bounded reply check](2026-09-30-pre-dusk-notification-candidate.md#read-only-reply-check--september-30-1856-mdt).
 
 September 30 charge-profile source extension and exact natural morning-capture
 qualification are complete. The replay measures first reported full charge,
@@ -96,7 +107,8 @@ flag changed. First daily cron (October 1 00:10) and natural forecast-origin
 capture (06:40) remain open. The forecast file changes the thermal runtime pin
 initially to `2caeae7a...`; the four-stream reader follow-through subsequently
 advanced it to `5e69e941...`. A lightweight explicit shadow issue and exact
-replay pass under that pin; its next natural interval receipt remains open.
+replay passed under that pin. The later natural 19:01 current-pin receipt now
+passes as recorded above; do not reopen the earlier interval gate.
 Earlier `0864f4d6...`/`2caeae7a...` checks are historical. Private forecast preimage
 is retained; disposable testing resources are removed. See the
 [deployment and remaining gates](2026-09-30-astro-forecast-input-audit.md#diagnostic-solar-context-collection-deployed).
