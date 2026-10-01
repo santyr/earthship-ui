@@ -1,0 +1,22 @@
+[Unit]
+Description=Earthship bounded Primal thermal reply collector (release-gated)
+
+[Service]
+Type=oneshot
+UMask=0077
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPATH=/home/sat/openhab/scripts:/home/sat/Solar_PV/analytics/src
+EnvironmentFile=/home/sat/.config/hex/thermal-primal.env
+ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/thermal_primal.py --poll-replies --policy /home/sat/.config/hex/thermal-primal/policy.json --routes /home/sat/.config/hex/thermal-primal/routes.json --state-dir /home/sat/.local/state/thermal-primal --nak ${EARTHSHIP_PRIMAL_NAK} --nak-sha256 ${EARTHSHIP_PRIMAL_NAK_SHA256} --nak-version ${EARTHSHIP_PRIMAL_NAK_VERSION}
+TimeoutStartSec=360
+TimeoutStopSec=10
+KillMode=control-group
+Nice=10
+MemoryMax=192M
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StandardOutput=journal
+StandardError=journal
+
+# No Install section: only the separately reviewed timer schedules this unit.
+# Do not install/start until exact signer, routes, storage and restore gates pass.

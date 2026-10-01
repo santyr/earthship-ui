@@ -1,0 +1,14 @@
+[Unit]
+Description=Bounded Earthship Primal inbox polling (disabled candidate)
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+AccuracySec=10s
+Persistent=false
+Unit=thermal-primal.service
+
+[Install]
+WantedBy=timers.target
+
+# Template only. Neither installation nor enablement is a release approval.

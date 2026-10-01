@@ -9,8 +9,9 @@ sender or collector**.
 `PRIMAL_RELEASE_READY` remains false and ingress refuses before dependencies
 or writes. Low-level ledger preparation can write its explicitly supplied
 private SQLite database; it is not a service or release. Network methods
-require the closed release gate. There is no CLI, scheduler or actuator call
-in this module. The
+require the closed release gate. The separate `thermal_primal.py` command and
+user-service templates are now source candidates, not installed services.
+There is no actuator call. The
 existing NIP-17 delivery intents, runtime scripts, release flags, installed
 signers and operator bunker are unchanged. No live question or DM was sent.
 
@@ -255,10 +256,11 @@ Current candidate source identities:
 
 ## Remaining work before a live Primal collector
 
-1. Provide the explicitly selected command/service configuration for these
-   bounded components and qualify its complete process ordering and refusal
-   behavior. Preserve original intents/envelopes and require signed-route
-   validation; no silent NIP-17 reissue or cross-transport rewrite.
+1. Qualify the complete installed command/service bundle, dependencies, private
+   actual configuration, source pins and rollback. Source command boundaries
+   are now tested as described below. Preserve original intents/envelopes and
+   require signed-route validation; no silent NIP-17 reissue or cross-transport
+   rewrite.
 2. Select a distinctly versioned stdin-capable signer and qualify its exact
    runtime, including backward NIP-17/NIP-42 and any actual required NIP-46
    encrypt/decrypt path. Obtain exact narrow deployment approval; preparing a
@@ -277,3 +279,92 @@ Current candidate source identities:
 
 The goal remains open. These primitives are a prerequisite, not a substitute
 for end-to-end collection, thermal accuracy or the wider Earthship/OpenHAB work.
+
+## Explicit command and disabled user-service candidate
+
+`openhab/scripts/thermal_primal.py` connects the bounded classes without any
+automatic protocol fallback. Mutating modes (`--send-prompts`, `--process-reply`,
+`--poll-replies`, `--flush`) check `PRIMAL_RELEASE_READY` before reading private
+configuration, invoking a signer, creating a lock or opening state. No CLI flag
+can enable that gate. Private policy/routes require owned private parents and
+explicit absolute non-symlink paths. The policy must use position vocabulary
+v2. Signer path, SHA-256 and exact version string are explicit requirements;
+there is no default identity, signer or plaintext-on-argv fallback.
+
+`--check-config` validates public signatures on the complete signed route
+inventory and the private v2 policy without signing, connecting to the journal,
+opening state or publishing. It explicitly reports that signer identity is
+**not** verified. `--check-keyer` performs local NIP-04 stdin encryption,
+signature/readback/decryption and independent existing NIP-17 self-roundtrips
+for the configured collector. It publishes nothing and cannot count as an
+operator's confirmation. Stock installed `nak` refuses this check because its
+encrypt command lacks stdin support. A separately qualified signer is still
+required before live use.
+
+Mutating commands repeat that identity preflight, check exact restricted v2
+journal storage **before creating state**, hold the shared state lock, then
+open only `primal.sqlite3` and `primal-delivery.sqlite3`. Their complete operation
+order is selected input/queue/poll, receipt recovery, then bounded flush. Only
+reviewed active questions can be queued; polling never generates new questions.
+Delivery authority and incoming receipt times are not frozen at command start.
+The delayed-expiry regression reproduced an expired send and passed after
+removing that frozen timestamp from polling/recovery/flush calls.
+
+Exit 0 means the selected bounded pass had no withheld/retry/deferred work,
+not human receipt or predictive skill. Exit 2 is refusal/withheld work; exit 3
+is incomplete/retryable/deferred work. Diagnostics are fixed sanitized messages
+or status counts, never encrypted event bodies, plaintext, credentials or relay
+responses. Even rejected command arguments are not echoed.
+
+`deploy/thermal-primal.service` and `.timer` are **uninstalled user-level
+templates**. The oneshot polls the explicitly reviewed policy and recovers/
+flushes existing work; it does not run `--send-prompts` or create a policy.
+The timer waits five minutes after service inactivity, avoiding overlapping
+passes. The service has private umask, no-new-privileges, address-family limits,
+192 MiB memory limit, lower CPU priority and a 360-second process timeout;
+timeout kills the full control group, including signer children. A private
+`thermal-primal.env` provides exact sender pins and restricted credentials.
+The companion `.env.example` contains placeholders only. Runtime Python,
+Solar_PV reader, psycopg2 and websocket dependency qualification remains open.
+Do not enable the timer merely because its syntax validates.
+
+Nineteen focused command tests passed in 12.46 seconds, using real disposable
+signature/route validation and explicit doubles only for external journal,
+network and the unavailable stdin encoder. They cover release refusal before
+dependencies, public-only checks without an identity, invalid signatures/
+permissions/version/legacy vocabulary, stock-signer refusal, secret-safe
+argument errors, durable retry, original-cipher journal/receipt ordering,
+identity/journal/lock/missing-event startup failures, delayed expiry, and actual
+default-off subprocess execution. These are not live transport qualification.
+
+`systemd-analyze --user verify` accepts both templates. One real transient user
+unit (`earthship-primal-refusal-20261001`, invocation
+`47d6ffb9b1d34380b0797aa64398fef2`) executed the candidate with the gate closed
+and the template's principal resource/security restrictions. It terminated
+with the expected status 2 in 46 ms without creating its supplied state
+directory. The transient unit was automatically collected; no permanent unit
+or timer was installed/started/enabled. No credentials, journal access, network
+request or household DM was needed for that check.
+
+Source identities at this checkpoint:
+
+| File | SHA-256 |
+| --- | --- |
+| `thermal_primal.py` | `f3311bee325a2743eed58bcea030db305e756acf44c0ce66284655211a453f38` |
+| `thermal-primal.service` | `9555f98b5f4f04be5343da33dcb2472c457d5afe2549a050d0d764cc38c30dec` |
+| `thermal-primal.timer` | `22cff438f779645a397c789a5641bb0b3cd728a14085c936c96a44228c0c1f23` |
+| `thermal-primal.env.example` | `45b139cb9140c3b963fefe7171ccc1d3933cfc68dabb45d1a7cbcaf19c392de5` |
+
+Stopped-writer recovery must include both new databases, the exact private
+policy/routes, the original PostgreSQL journal and the selected code/signer/
+dependency identities. The old two-database baseline does not prove this.
+No operator-bunker binary, allowlist, service or credential was changed.
+
+The complete discovered Python suite subsequently passed **2,958 tests and
+74 subtests**, with the same **39 optional skips**, in 212.21 seconds. All 19
+new command cases, 18 relay/delivery cases and 19 ledger cases executed. The
+optional stdin-build fixture was not recreated and those 33 crypto cases are
+not claimed as executed in this run. Private umask and disabled bytecode/cache
+were retained. Task-owned fixtures were removed only after terminal results;
+no disposable PostgreSQL test container remains. Operational backups are
+unchanged. This closes source command regression, not installed/live release.

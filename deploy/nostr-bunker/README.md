@@ -271,6 +271,18 @@ changed. Do not replace this running signer with the qualification build or
 use the candidate to publish a live thermal question. NIP-04 compatibility is
 an explicit transport choice, not fallback for existing NIP-17 intents.
 
+The separate `openhab/scripts/thermal_primal.py` command now has source-only
+`--check-config` and `--check-keyer` modes. Both require an explicit private v2
+policy, signed routes, signer path, SHA-256 and exact version; the latter also
+requires the **Hex collector** identity for local self-roundtrips, not the
+operator recipient's key. The installed stock signer fails the required
+NIP-04 stdin encoding check. Do not repurpose the operator's bunker credentials
+or replace its binary to get that check to pass. The candidate user units at
+`deploy/thermal-primal.service` and `.timer` are not installed or enabled.
+Their private environment template is `deploy/thermal-primal.env.example`.
+Exact sender qualification, full recovery, configuration review and an attended
+Primal receipt trial remain necessary; see the linked operations document.
+
 ### Qualified installation requirements
 
 An attended administrator must review the instance name and its public key,
