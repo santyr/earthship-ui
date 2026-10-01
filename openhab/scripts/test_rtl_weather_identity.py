@@ -55,12 +55,21 @@ def test_bedroom_decoder_preserves_identity_channel_and_temperature():
                        'tempinf': 71.42, 'humidityin': 54.0, 'battery_ok': 1}]
 
 
+def test_radio_decode_time_and_raw_lux_are_forwarded_without_changing_legacy_watts():
+    value = packet('Fineoffset-WH65B', 206)
+    value['time'] = '2026-10-01 12:00:00'
+    sent = relay(value)[0]
+    assert sent['light_lux'] == 12670
+    assert sent['radio_decode_utc'] == '2026-10-01 12:00:00'
+    assert sent['solarradiation'] == 100
+
+
 @pytest.mark.parametrize('model', ['Fineoffset-WH65B', 'Fineoffset-WH24'])
 def test_both_decoder_labels_forward_same_wh65b_tip_and_wind_values(model):
     assert relay(packet(model, 206)) == [{'model': model, 'id': 206, 'tempf': 68.0, 'humidity': 45.0,
         'winddir': 180, 'windspeedmph': 2.85, 'windgustmph': 2.28,
         'totalrainin': 10275 * 0.254 * 0.03937,
-        'solarradiation': 100.0, 'uv': 1.0}]
+        'solarradiation': 100.0, 'uv': 1.0, 'light_lux': 12670}]
 
 
 @pytest.mark.parametrize('sensor_id', [207, None, '206'])

@@ -312,9 +312,11 @@ Installed source fingerprints at this checkpoint:
 - `/home/sat/bin/weather_evidence_wsgi.py`: `366698fdccc7296060b1342c1a3f42d7a3b2c7cca57856c9e817af9a7ff7c51d`
 - `/usr/local/lib/lightning-goats-weather/lightning_goats_weather.py`: `5ab66cfc92e8d2f794027daa432b71f9145aa8b215c2ee6817cc057d4613cda4`
 
-A bounded extension of the existing weather receipt collector is proposed:
+A bounded extension of the existing weather receipt collector was proposed:
 separate radiation evidence retaining raw lux, explicit conversion provenance,
 station identity, receipt epoch and expiry; no cached substitute or poll-time
-renewal. Source-only/default-off preparation approval is pending. No new
-collector, dependency, Item, privilege, unit or source modification was made.
-The inspection used a read-only database connection and left no test artifacts.
+renewal. The user subsequently approved source-only/default-off preparation.
+The [October 1 candidate](2026-10-01-radiation-receipt-candidate.md) records the
+implemented contract and remaining live deployment/history gates. At the
+original inspection no collector, dependency, Item, privilege, unit or source
+modification was made; the inspection used a read-only database connection.

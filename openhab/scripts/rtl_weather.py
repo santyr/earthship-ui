@@ -187,6 +187,11 @@ def main():
                             "solarradiation": round(min(data["light_lux"] / 126.7, 1200.0), 2),  # clamp to max ground-level irradiance
                             "uv": round(float(data["uvi"]), 2)
                         }
+                        # Optional observer inputs: retain originals, never
+                        # replace the decode clock with HTTP send/receive time.
+                        payload["light_lux"] = data["light_lux"]
+                        if "time" in data:
+                            payload["radio_decode_utc"] = data["time"]
                         if "battery_ok" in data:
                             payload["battery_ok"] = data["battery_ok"]
                         sid = data.get("id")

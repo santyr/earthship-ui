@@ -10,6 +10,7 @@ import os
 from weather import app
 from weather_temperature_config import configure_temperature_receiver
 from weather_rain_config import configure_rain_receiver
+from weather_radiation_config import configure_radiation_receiver
 
 temperature_evidence_collector = configure_temperature_receiver(app)
 rain_evidence_collector = configure_rain_receiver(app, {
@@ -18,3 +19,6 @@ rain_evidence_collector = configure_rain_receiver(app, {
         'WEATHER_RAIN_EVIDENCE_POLICY',
         '/home/sat/.config/hex/weather-rain-policy.json'),
 })
+# Unlike the already-released rain path, radiation has no implicit activation
+# or policy fallback. It must be explicitly configured after deployment gates.
+radiation_evidence_collector = configure_radiation_receiver(app)
