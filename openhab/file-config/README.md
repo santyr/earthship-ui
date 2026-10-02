@@ -98,14 +98,17 @@ copies; see the [production receipt](../../docs/operations/2026-10-02-display-pr
 
 ## Staged migration and rollback
 
-`items/moon-phase-readings.items` is **live, provisionally file-owned** for
+`items/moon-phase-readings.items` is **live, verified file-owned** for
 `Moon_MoonPhaseName` and `Moon_MoonIllumination` only. Their labels, semantic
 membership, fractional illumination unit `one` and exact existing link profiles
 are preserved. The approved October 1 handoff, actual managed rollback and
-natural-source gates pass. October 2's restarted Item/link definitions and
-both original JDBC prefixes also match, but the broader protected-definition
-digest differs from the cutover receipt and must be explained before promotion.
-Do not repeat a restart to conceal that mismatch. See the
+natural-source gates pass, as do October 2's production restart checks and
+both original JDBC prefixes. The broad digest difference was proven to be
+four protected-rule tag-array order changes: reordering only those tags
+reconstructs the exact original hash, preserving every other field. The
+one-shot adapter and its strict raw-digest comparisons stay unchanged and off.
+All four exact Item/link declarations are verified; protected controls are not
+migrated or generally restart-qualified. See the
 [executed Moon plan](../../docs/operations/2026-09-30-moon-phase-readings-cutover-plan.md)
 and [current restart receipt](../../docs/operations/2026-10-02-display-provider-restart-qualification.md).
 

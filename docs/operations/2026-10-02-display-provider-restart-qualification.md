@@ -87,7 +87,76 @@ not the cutover's
 `91bf14c17c7f3b98b512bc5a55e709fb9d3e6b4718b99b9a6064f222b4be16b1`.
 The proof helper verifies current protected rules are healthy, but that
 does not explain the definition mismatch or authorize normalizing it away.
-All four Moon ownership declarations stay **provisional**. Diagnose against
+At that 21:48Z checkpoint, all four Moon ownership declarations stayed
+**provisional**. The required next step was diagnosis against
 retained original definitions before promotion; do not infer control freshness
 from a successful collector, fabricate a phase change, rewrite history or
 request another whole-OpenHAB restart merely to retry this gate.
+
+## Moon restart gate closed: order-only drift proven
+
+The later GET-only investigation compared retained automatic JSONDB preimages
+with current public DTOs privately in memory. The October 1 12:42:10.954Z
+rules backup already includes the approved estimator definition. All five
+protected action/trigger/condition/configuration definitions still match it.
+Two tag arrays differ from that serialized backup, but their membership is
+identical. The retained Moon Group fields, all 34 channel definitions and
+channel sequence also match. No rule body, private configuration, ciphertext
+or credential was printed or committed.
+
+The original cutover hash was calculated from REST DTO arrays, whose tag
+ordering need not match serialized JSONDB or a later JVM's DTOs. Crucially,
+comparison with the JSONDB preimage alone did not close the digest gate.
+A bounded in-memory reconstruction enumerated only the existing string-tag
+permutations of the five exact protected rules and the one two-Item phase
+channel's link array: **96** combinations. Exactly **one** reproduced
+`91bf14c17c7f3b98b512bc5a55e709fb9d3e6b4718b99b9a6064f222b4be16b1`.
+Its changed paths, relative to the current DTO, are only:
+
+- `controls.hex_bms_comms_watchdog.tags`
+- `controls.hex_bms_soc_scale.tags`
+- `controls.hex_bms_ttd_smooth.tags`
+- `controls.hex_schneider_safety.tags`
+
+The successful candidate does **not** reverse links or change tag membership,
+Group/Thing/channels, module sequence, source code, scripts, configuration,
+providers or any other hashed field. This is exact cryptographic reconstruction
+of the retained proof, not a new normalized hash replacing the old one.
+The current raw hash remains
+`e1741940c5e9b2fb7418852cc86a7097badd9c9301f2ea704a15dd5cfc2483c7`.
+The one-shot adapter's raw-digest comparison and false apply gate are unchanged.
+
+At `2026-10-02T22:11:42.167670Z`, an independent full read-only recheck passes:
+
+- Installed non-symlink Moon file exists before the current JVM start and
+  matches canonical SHA `fc96f70a65e8de45479cda6b8c2c97840ae78eaedc5334111036013143e3941e`.
+- Both exact Item definitions/metadata/state descriptions/fractional units
+  and singleton link profiles match the original private cutover DTOs.
+- Both Items/links are noneditable and absent from their managed JSONDB stores.
+- Unique JDBC identities remain 59 and 41, with live state matching latest SQL.
+- Private backup permissions are intact (directory 0700, files 0600); retained
+  CSV sizes/digests and both entire original SQL prefixes match the table above.
+- All protected rules remain healthy and Astro Moon is ONLINE; OpenHAB is still
+  PID 1696, started at 07:25:20 MDT. No new restart is performed.
+
+At 16:10:35.250 MDT, natural Astro illumination changes to
+`0.5751727361018755`, explicitly attributed to
+`org.openhab.core.thing$astro:moon:local:phase#illumination`. Item 41 persists it
+at `2026-10-02T22:10:35.253410Z`, matching the current state; history contains
+**136,915** rows. The same natural batch updates phase to unchanged
+`WANING_GIBBOUS`. Phase history stays at **998** rows, last changed September 27;
+this is expected everyChange persistence, not stale binding telemetry.
+No phase change or state receipt is fabricated for qualification.
+
+Only the four Moon Item/link manifest statuses move from `provisional` to
+`verified`. The private rollback preimages are retained. This completes this
+display migration's production restart gate, not protected-control restoration,
+whole-install migration, or permission for another restart/actuation.
+
+The affected Moon handoff/provider/JDBC and ownership suite passes **59 tests
+in 0.15 seconds**, with no skips; task-owned temporary fixtures are removed.
+An exact before/after manifest comparison confirms only the four Moon status
+values changed. At `2026-10-02T22:13:54.520239Z`, read-only live inventory reports
+**zero issues**, unchanged at 380 managed/65 non-managed Items, 244/24 links,
+37/5 rules and 80/6 Things. No scheduled runtime or production configuration
+file was edited or redeployed for this status-only qualification.
