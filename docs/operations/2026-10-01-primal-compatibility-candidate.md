@@ -630,6 +630,15 @@ question or recurring listener occurred. The diagnostic unit completed
 successfully; permanent collector/timer remain not-found/inactive. A genuine
 authenticated reply binding this exact question remains required.
 
+At the October 2 22:06Z approval follow-through, one bounded check reused the
+original question and frozen runtime; it did not send a duplicate. It returned
+`accepted=0`, `operator_read_verified=false`, `relay_failures=1` and
+`withheld=1` (exit 3). The one pending inbox refusal has its next retry at
+`2026-10-02T22:16:09Z`; this does not make it a valid confirmation. The transient
+check ended, and post-check readback shows both permanent collector/timer and
+the collected transient unit as not-found/inactive. No thermal observation or
+household control was enabled. Actual authenticated reply remains required.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private

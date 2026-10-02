@@ -100,9 +100,10 @@ one Hex DM was sent. All three approved relays ACKed it; actual Primal receipt
 and authenticated reply are still pending. Original question cipher and ACKs
 are backed up and reopened through the application. No chat label, recurring
 collector, source release flag, operator-signer change or household control.
-The latest 21:18Z bounded follow-through accepted zero replies and reported one relay
-failure with one pending inbox refusal; no replacement question was sent. Permanent collector/timer remain
-absent/inactive. Relay acceptance is still not operator delivery proof.
+The latest 22:06Z bounded follow-through accepted zero replies and reported one
+relay failure with one pending inbox refusal; no replacement question was sent.
+The check ended and permanent collector/timer remain absent/inactive. Relay
+acceptance is still not operator delivery proof.
 The 21:29Z metadata-only diagnosis identifies that refusal as an authenticated
 operator DM lacking this trial's reference and exact syntax, not a valid
 confirmation. nos.lol returned it, Primal returned no events and Damus was
