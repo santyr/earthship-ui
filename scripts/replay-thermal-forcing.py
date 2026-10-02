@@ -4,6 +4,8 @@
 Counterfactual output is modeled, never a confirmed action or training label.
 The script refuses to compare schedules unless the as-issued output first
 replays exactly under the selected, hash-bound runtime source and artifact.
+Each optional hypothesis starts independently from the original capture; flags
+do not combine into an observed-weather or multi-action counterfactual.
 """
 
 import argparse
@@ -95,12 +97,35 @@ def _solar_scaled_capture(capture, scale):
     return changed
 
 
+def _outdoor_shifted_capture(capture, offset):
+    """Uniform hypothetical forecast shift; initial sensor facts stay unchanged."""
+    changed = {**capture, 'forecast_rows': deepcopy(capture['forecast_rows'])}
+    low, high = pipeline.TEMPERATURE_RANGE_F
+    for row in changed['forecast_rows']:
+        value = row['tempF']
+        if (type(value) not in (int, float) or not math.isfinite(value)
+                or not low <= value <= high or not low <= value + offset <= high):
+            raise ValueError('hypothetical outdoor forcing outside physical range')
+        row['tempF'] = value + offset
+    return changed
+
+
+def _schedule_changed(issued, hypothetical):
+    # Effect summaries change with weather even when selected times do not.
+    return any(issued.get(name) != hypothetical.get(name)
+               for name in ('baseline', 'candidate'))
+
+
 def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
-           solar_scale=None):
+           solar_scale=None, outdoor_offset_f=None):
     if solar_scale is not None and (
             type(solar_scale) not in (int, float) or not math.isfinite(solar_scale)
             or not 0 <= solar_scale <= 2):
         raise ValueError('solar scale must be finite and between zero and two')
+    if outdoor_offset_f is not None and (
+            type(outdoor_offset_f) not in (int, float) or not math.isfinite(outdoor_offset_f)
+            or not -20 <= outdoor_offset_f <= 20):
+        raise ValueError('outdoor offset must be finite and between -20 and 20 Fahrenheit degrees')
     if expected_runtime_revision is not None and (
             not isinstance(expected_runtime_revision, str)
             or re.fullmatch(r'[0-9a-f]{64}', expected_runtime_revision) is None):
@@ -141,6 +166,7 @@ def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
                             else 'artifact_code_revision'),
         'training_revision_matches_runtime': revision == artifact.code_revision,
         'runtime_source_sha256': sha256((RUNTIME_ROOT / 'thermal_intel.py').read_bytes()).hexdigest(),
+        'diagnostic_source_sha256': sha256(Path(__file__).read_bytes()).hexdigest(),
         'exact_as_issued': True,
         'counterfactual_is_action_evidence': False,
     }
@@ -165,7 +191,18 @@ def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
         result['solar_sensitivity'] = {
             'interpretation': 'weather-input hypothesis; includes modeled schedule reselection, not measured irradiance or action evidence',
             'scale': solar_scale,
-            'schedule_changed': hypothetical['schedule'] != issued['schedule'],
+            'schedule_changed': _schedule_changed(issued['schedule'], hypothetical['schedule']),
+            'horizons': _horizon_deltas(issued, hypothetical, decision,
+                                       value_field='hypothetical_f'),
+        }
+    if outdoor_offset_f is not None:
+        hypothetical = _run(_outdoor_shifted_capture(capture, outdoor_offset_f), artifact)
+        if hypothetical['status'] != 'shadow' or hypothetical['confidence']['grade'] == 'unavailable':
+            raise ValueError('outdoor diagnostic did not produce a usable shadow forecast')
+        result['outdoor_temperature_sensitivity'] = {
+            'interpretation': 'uniform forecast-input hypothesis; includes modeled schedule reselection, not observed weather, a learned correction or action evidence',
+            'offset_f': outdoor_offset_f,
+            'schedule_changed': _schedule_changed(issued['schedule'], hypothetical['schedule']),
             'horizons': _horizon_deltas(issued, hypothetical, decision,
                                        value_field='hypothetical_f'),
         }
@@ -181,12 +218,15 @@ def main():
     parser.add_argument('--assume-vents-closed', action='store_true')
     parser.add_argument('--solar-scale', type=float,
                         help='diagnostic forecast-radiation multiplier, 0–2; never changes captured observations')
+    parser.add_argument('--outdoor-offset-f', type=float,
+                        help='diagnostic uniform forecast-temperature shift, -20–20 F; not a learned correction')
     parser.add_argument('--expected-runtime-revision',
                         help='full SHA-256 pin when publisher and training sources differ; exact replay remains required')
     args = parser.parse_args()
     print(json.dumps(replay(args.capture, assume_vents_closed=args.assume_vents_closed,
                            expected_runtime_revision=args.expected_runtime_revision,
-                           solar_scale=args.solar_scale),
+                           solar_scale=args.solar_scale,
+                           outdoor_offset_f=args.outdoor_offset_f),
                      sort_keys=True))
 
 

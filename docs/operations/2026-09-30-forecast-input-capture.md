@@ -1,5 +1,76 @@
 # Exact morning weather-input archive
 
+## October 2 completed targets and offline temperature sensitivity
+
+The existing read-only audit was rerun after all nine original October 1
+artifact targets in the publication window below matured. It verifies each
+original archive/publication and receipt-qualified indoor/outdoor outcome;
+neither later weather fetches nor current artifact substitutions are used.
+
+| Completed near-12-hour pairs | Model MAE | Persistence MAE |
+| --- | --- | --- |
+| Nine overlapping pairs | 2.2122°F | 3.3400°F |
+| Two greedy non-overlapping windows | 2.4970°F | 2.4300°F |
+
+The model wins six overlapping comparisons and loses three; the two
+non-overlapping comparisons split one each. Model bias is -2.0853°F, outdoor
+forecast bias +6.3067°F and outdoor MAE 7.5156°F. The last two outdoor errors
+are -3.12°F and -2.32°F: the earlier six-pair observation that all weather
+errors were warm does not describe the completed nine-pair set. All intervals
+cover their outcomes but average 10.4136°F wide. The target artifact remains
+slightly worse than persistence on the independent-window check, low
+confidence, without confirmed-action evaluation or graduation thresholds.
+
+Today's artifact was assessed **separately** with the same audit, using
+`--since 2026-10-02T14:00:00Z --until 2026-10-02T15:00:00Z
+--horizon-hours 6 --require-capture --include-pairs --artifact-id
+2435c01964842c98829d25499b161b68dfab1d83a389e8b4ce0689eff2391d79
+--runtime-root /home/sat/openhab/scripts`. Its first mature pair was issued
+at `14:14:36.083052Z`, targeting `20:00:00Z`. Model error is **-0.118°F**
+versus persistence **-12.240°F**; corresponding outdoor error is **+0.020°F**.
+This single target is not a six-hour seasonal qualification or evidence of a
+causal improvement from one daily training run.
+
+The offline `scripts/replay-thermal-forcing.py` now accepts
+`--outdoor-offset-f` (finite -20 to +20 Fahrenheit degrees). It requires exact
+as-issued replay first, copies only forecast temperatures, preserves all
+initial readings/captured facts, and refuses original or hypothetical values
+outside the simulator's -40 to 140°F bounds. Optional vent, solar and
+temperature hypotheses are **independent**, not compounded. Each output now
+also identifies this diagnostic's own source SHA-256. Schedule-change reporting
+compares baseline/candidate choices rather than modeled effect summaries,
+which can change even when selected schedule times do not.
+
+For original capture `20261001T150530Z-25496c123c0be79f.json.gz`, its output
+digest is `25496c123c0be79f021e4858fb6dfe93f04cf106fdbb07dd2a594c6e1994de89`.
+The currently installed shade-corrected runtime **refused exact replay** of
+this particular capture; no comparison was accepted under changed behavior.
+An isolated runtime copy with the privately retained original `behavior.py`
+restored then matched the original full source pin
+`7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095` and
+reproduced the original publication exactly. It was automatically removed.
+
+At its 12-hour target, the original prediction was 64.039°F, observed
+68.540°F (error -4.501°F). A **uniform hypothetical -10°F forecast shift**
+produced 62.986°F, another -1.053°F with unchanged modeled schedules. The
+separate assumed-closed-vent scenario produced 64.491°F, only +0.452°F.
+Neither scenario supplies actual weather or an authenticated vent label.
+This one case supports investigating action/solar/thermal forcing, not applying
+a temperature-only correction to erase the indoor cold miss. No coefficient,
+artifact, journal, Item, recurring collector or household control changed.
+
+Verification: the new cases first failed against the old diagnostic; the final
+combined replay, operational-score, immutable-capture, pipeline and behavior
+slice passed **200 tests in 37.37 seconds**, no skips. This is the affected
+slice, not a new full-project test claim. Today's original 08:14 capture also
+replays exactly under the installed `7316fa8b...` pin with a zero temperature
+shift: all reported horizon deltas are zero and schedules unchanged. Final
+diagnostic source SHA-256:
+`d999c9170977827a8d0b9bc4449c8fc669f1e3bb2f7c784f50200bfb9d991ac2`.
+The tool runs from the local repository; no forecast worker/service deployment
+or restart is needed. Primal's separate bounded follow-through still accepted
+zero authenticated replies and reported one relay failure; no new question.
+
 ## October 2 natural training and newly mature 12-hour outcomes
 
 The natural training journal records start at 06:50:29 MDT and successful
@@ -56,8 +127,9 @@ Later reruns may mature the remaining targets and therefore change the counts.
 These outcomes strengthen the existing decision to retain shadow mode and
 investigate forcing/action assumptions. No artifact, coefficient, source,
 training label, journal or control was modified by this audit. Durable radiation
-history and the zero-duration shade fix still await their bounded design
-approvals; the truthful signed Primal trial remains separate.
+history and the zero-duration shade fix were subsequently approved and deployed;
+see [the October 2 live qualification record](2026-10-02-radiation-history-and-shade-collision.md).
+The truthful signed Primal trial remains separate, with its reply pending.
 
 ## Why this is needed
 

@@ -1,5 +1,21 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 completed thermal outcomes and offline forcing diagnosis
+
+All nine original October 1 artifact near-12-hour targets now score against
+qualified outcomes: overlapping MAE 2.2122°F versus persistence 3.3400°F, but
+the two non-overlapping windows remain slightly worse (2.4970°F versus
+2.4300°F). Today's first mature six-hour target is much closer (-0.118°F
+indoor, +0.020°F outdoor), assessed separately rather than pooled as artifact
+graduation. The offline replay tool now tests bounded temperature shifts after
+exact original replay. For the largest original cold miss, -10°F weather
+forcing worsens the prediction by another 1.053°F, while the separate
+closed-vent hypothesis raises it only 0.452°F. This is diagnostic, not a
+learned correction or authenticated action state. Source-only regression
+verification (200 affected tests, no skips) and actual old-runtime reconstruction preserve the live model
+and release gates; the temporary replay runtime was removed.
+See [completed targets and sensitivity](2026-09-30-forecast-input-capture.md#october-2-completed-targets-and-offline-temperature-sensitivity).
+
 ## October 2 strict radiation reader and live fault visibility
 
 The native 16-second/HTTP 30-second cadence can overwrite an invalid packet
