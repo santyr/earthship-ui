@@ -111,3 +111,58 @@ aggregate/publisher readback remain separate. Do not silently waive those
 gates, suppress the current warning, rewrite older snapshots or request the
 already-successful grants again. Keep the current qualified AC/EFC accounting
 and source identities intact during any later release.
+
+## October 2 actual JVM recovery and October 1 day follow-through
+
+The existing production OpenHAB JVM started at 07:25:20 MDT on October 2.
+Read-only restricted SQL checked the original persisted restart window: 17 BMS
+auxiliary and 16 switch receipts. Both streams persist their new-epoch,
+sequence-1 all-unavailable barrier at `2026-10-02T13:25:34.977000Z`.
+Both BMS fields recover with native post-barrier observations at
+`2026-10-02T13:25:40.579000Z`; both switch fields recover at
+`2026-10-02T13:26:04.887000Z`. Each original field observation is after the
+barrier, not a restored numeric Item or collector-health timestamp. BMS strict
+successor checks pass throughout the inspected window. Item mappings remain
+658 and 656, and live producer sources match their repository hashes:
+
+- BMS auxiliary: `c57778dceca6f78c3db41a05605918e1bd9db3ad10aea13579ea453587391618`.
+- Switch: `40b34d9b2afa3ce9451aecdf5b26aef3f46a85adda402cb6a0f7f6106f4466d9`.
+
+This closes the actual JVM barrier/fresh-recovery gate without inducing another
+outage. It does not qualify every physical-source/network failure. Independent
+Modbus connection-timeout logs exist around October 1 03:57 MDT, but no
+independent TP-Link OFFLINE/network-fault log was found. A coincident switch
+freshness gap is not proof of its physical cause.
+
+The newly complete October 1 Denver day is
+`2026-10-01T06:00:00Z` through `2026-10-02T06:00:00Z`:
+
+| Supporting field | Coverage | Gaps / unavailable barriers | Strict result |
+| --- | ---: | --- | --- |
+| Remaining Ah | 99.9971157% | 1 / 0 | `partial`, 1,478 auxiliary receipts |
+| Native BMS temperature | 99.9971157% | 1 / 0 | `partial`, same receipts |
+| Dishwasher switch | 99.9183553% | 1 / 2 | `partial`, 1,442 switch receipts |
+| Cistern Pump switch | 99.9173866% | 1 / 1 | `partial`, same receipts |
+
+All 30 actual native-temperature changes pass parity, with no mismatches or
+skipped transitions. BMS coverage has a 2.492-second durable-publication gap:
+the prior expiry is 09:58:28.448Z and the next envelope persists at
+09:58:30.940Z. Its original field observations at 09:58:14.275/276Z precede
+expiry, but a later persisted receipt cannot retroactively fill the gap.
+Switches persist an `input_stale` barrier at 09:58:00.875Z and recover from
+original source events at 09:59:07.421/423Z. No TTL or polling cadence was changed.
+
+The existing aggregate command for October 1 passed a restricted-reader
+`--dry-run` with the paired switch/BMS options and existing power/temperature
+flags. It preserves these partial quality results and withholds load ON-hours
+and load energy as `withheld_incomplete_switch_evidence`; raw observed ON
+duration is not electricity or water volume. Qualified power observations remain
+6.697226403 kWh PV and 5.861595155 kWh load. The independent power-snapshot
+balance remains `ac_load_evidence_unqualified`, not a replacement for the
+separate qualified AC v4 publication.
+
+No snapshots were written, optional live flags enabled, history rewritten,
+physical fault induced or household control executed. September 30's clean
+qualification remains historical evidence, not a substitute for October 1.
+Physical-fault qualification and the exact reversible user-unit release remain
+open; the actual JVM recovery requirement above is now satisfied.

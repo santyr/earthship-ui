@@ -128,3 +128,20 @@ gates. Preserve `item0664` if disabling collection. Source rollback must verify
 the candidate/preimage hashes and atomically restore the private `behavior.py`;
 observational-definition rollback parks only these two new definition files
 outside watched directories. Neither rollback drops history or changes controls.
+
+## Approved restricted-reader grant — October 2
+
+The operator separately approved SELECT on only `public.item0664`. The live
+Item-name lookup again uniquely returned 664 before the database owner applied
+`GRANT SELECT ON TABLE public.item0664 TO energy_power_reader;`. Readback shows
+SELECT true and INSERT/UPDATE/DELETE false. The actual restricted reader also
+read the latest two original receipts in a bounded read-only repeatable-read
+transaction. No other table privilege, writer, learner or collector was changed.
+
+This supersedes the missing-grant gate in the deployment checkpoint above.
+The strict radiation interval/day reader is still unimplemented. October 2 is
+partial: the receiver restarted at 08:16 MDT and durable history began at
+09:30 MDT. October 3 is the first possible complete day, assessable after
+October 4 local midnight if source continuity passes. Neither held numeric
+radiation nor HTTP polling may backfill missing source evidence. Production
+restart continuity and learning remain separate gates.
