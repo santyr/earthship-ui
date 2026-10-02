@@ -587,7 +587,10 @@ class JournalSink:
                 if not dsn:
                     raise Retryable("restricted thermal journal connection is not configured")
                 from thermal_model.journal import ActionJournal
+                from thermal_model.schema import ActionEvent
                 self.journal = ActionJournal(dsn)
+                if self.action_factory is None:
+                    self.action_factory = ActionEvent
             role = self.runtime_role or os.environ.get("THERMAL_DATABASE_RUNTIME_ROLE")
             owner = self.expected_owner or os.environ.get("THERMAL_DATABASE_EXPECTED_OWNER")
             if not role or not owner or role == owner:

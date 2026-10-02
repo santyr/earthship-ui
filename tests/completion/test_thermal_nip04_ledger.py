@@ -244,6 +244,39 @@ def test_withdrawn_policy_or_corrupted_outgoing_cipher_cannot_replay(codec, monk
         ledger.close()
 
 
+def test_default_sink_preflight_then_reply_stores_real_v2_action(
+        database, codec, monkeypatch, tmp_path):
+    """Exercise the CLI's unconfigured sink, not an injected record factory."""
+    monkeypatch.setattr(migration, 'RELEASE_READY', True)  # Disposable DB only.
+    monkeypatch.setattr(journal, 'V2_WRITE_RELEASE_READY', True)
+    migration.migrate_v2(database.admin_dsn, runtime_role=database.runtime_role,
+                         expected_owner=database.owner)
+    monkeypatch.setenv('THERMAL_DATABASE_URL', database.runtime_dsn)
+    monkeypatch.setenv('THERMAL_DATABASE_RUNTIME_ROLE', database.runtime_role)
+    monkeypatch.setenv('THERMAL_DATABASE_EXPECTED_OWNER', database.owner)
+    monkeypatch.setattr(n, 'PRIMAL_RELEASE_READY', True)
+    sink = t.JournalSink()
+    sink.require_v2_storage()
+    assert sink.action_factory is ActionEvent
+    p = policy(states={'indoor_shade': 'closed'})
+    ledger = n.PrimalLedger(tmp_path / 'default-sink-ledger')
+    try:
+        queue(ledger, codec, monkeypatch, p)
+        event = signed(codec, monkeypatch, 'yes ' + p.prompts[0].event_id)
+        raw = t.canonical(event)
+        receipt = n.ingest_primal(raw, p, ledger, codec, sink, now=NOW)
+        assert receipt['status'] == 'stored'
+        rows = sink.journal.events_for_receipt('nostr:' + event['id'])
+        assert len(rows) == 1
+        assert rows[0].action == 'indoor_shade' and rows[0].state == 'closed'
+        assert ledger.get(event['id'])['original_event'] == raw
+        assert n.ingest_primal(raw, p, ledger, codec, sink,
+                               now=NOW + timedelta(minutes=1)) == receipt
+        assert sink.journal.events_for_receipt('nostr:' + event['id']) == rows
+    finally:
+        ledger.close()
+
+
 def test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher(
         database, codec, monkeypatch, tmp_path):
     assert hasattr(n,'ingest_primal'), 'gated Primal journal ingress is not implemented'

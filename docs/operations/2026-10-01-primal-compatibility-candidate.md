@@ -525,6 +525,82 @@ Current candidate source identities:
 
 ## Remaining work before a live Primal collector
 
+### October 2 approved one-question trial — sent, reply pending
+
+The operator personally reported closing all physical indoor shades at 12:30
+MDT on October 2, reviewed the exact rendered question, and approved one
+bounded Primal trial. The chat report is **not** a training label. Only an
+authenticated operator reply bound to this question may supply the observation.
+The question reference is
+`9c1e75aed553ba10347cba03c63294d163a0e8b4bb2713e86d03952b6528a789`;
+its sole state is `indoor_shade: closed`, issued at 19:12:46Z on October 2 and
+expiring at 19:12:46Z on October 3. Windows, skylights, percentages, shade motor
+reports and other states are not inferred.
+
+Preflight discovered an actual default-sink initialization bug: the v2 schema
+audit initialized the journal but left `action_factory` unset, so a subsequent
+confirmed reply could not be stored. A new real-crypto/restricted-PostgreSQL
+regression failed on that missing factory, then passed after initializing the
+default `ActionEvent` alongside the default journal. Explicitly injected
+factories remain unchanged. The relevant ledger/CLI/confirmation/recovery/runtime
+slice passed **184 tests in 75.74 seconds**, with no skips. Corrected source
+SHA-256 is `92d02c4b5e7e84faadb08b3f4208b3e16bbe48254f532eeef2c84830a4adf740`.
+All repository release flags remain false.
+
+A separate private nine-file trial runtime was staged at
+`/home/sat/.local/libexec/earthship-thermal/primal-trial-20261002`, with manifest
+SHA-256 `129b950c4332bd47bc49fd6c829e0fd2119ee0f7e94c038dcd94036c1d1f5cd1`.
+Only `thermal_confirmation.py` differs from the frozen inactive baseline.
+The original runtime, empty baseline policy, signer executable, credentials,
+operator bunker and NIP-17 state were not replaced or migrated. Exact private
+trial policy SHA-256 is
+`ccf6466187cf4c5fbe29cda12218ae443af579bd08b1fc05af77e34abe14d010`.
+
+Before sending, the changed-policy recovery rehearsal passed using the exact
+trial policy, signed routes, both original empty SQLite databases and a fresh
+read-only original-journal export. Both application database openers and exact
+policy/route validation passed. Disposable PostgreSQL restore reproduces all
+10 action, 4 receipt and 4 mode rows with the same ordered digests recorded in
+the inactive baseline. A second independent household read also matches; no
+synthetic fixture, journal label or production SQL write was added. The owned
+container and temporary restore directory were removed. This retained delta
+recovery point uses the separately qualified unchanged interpreter/dependencies
+and the inactive baseline's pinned private credential file; it is not an
+independent off-host or OS recovery image.
+
+Recovery directory:
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-10-02-primal-trial`.
+Its `qualification.json` SHA-256 is
+`69381086b50a13bb533a11bfbbfce1e2817f46963d1177c5c493bfff6b3ce122`.
+The process-local attended helper opens only the Primal transport and v2-write
+gates after exact runtime/policy/recovery/journal checks. It confines state to
+this one question and never installs a unit/timer or enables migrations,
+legacy polling, automatic question generation or household controls.
+
+Current public signed-route readback matches both approved announcements on
+nos.lol and Damus. Primal returned neither announcement; that is recorded as
+missing readback, not signature failure or three-relay availability. Both
+approved signed lists are verified and still name the same three endpoints.
+The one-question send then exited zero: **3 relay acceptances**, no retries,
+withheld intents or deferrals. Actual operator receipt and authenticated reply
+remain pending; relay ACK is not delivery proof.
+
+The original sent ciphertext, exact policy/routes and accepted-relay state are
+retained in `post-send/` under that recovery directory. Its independently
+recorded manifest SHA-256 is
+`e39b2755a79eb174c231f9c53afc1ab33b258b11b87a18a5cc74f349e7d36e92`.
+This is explicitly a v5 SQLite/config snapshot, **not** a new PostgreSQL
+snapshot. Actual application reopening of live and retained state verifies
+identical original question ciphertext and all three ACKs; both have zero
+reply receipts. Preserve first-receipt/original-cipher and full journal state
+after a genuine reply before considering recurring collection. Permanent
+`thermal-primal.service` and `.timer` remain absent/inactive.
+The first bounded inbox check accepted zero replies and reported one relay
+failure (exit 3); no observation or ACK was written. This is a retryable relay
+check, not operator delivery proof or successful end-to-end completion.
+
+### Remaining recurring-release gates
+
 1. Qualify the complete installed command/service bundle, dependencies, private
    actual configuration, source pins and rollback. Source command boundaries
    are now tested as described below. Preserve original intents/envelopes and
