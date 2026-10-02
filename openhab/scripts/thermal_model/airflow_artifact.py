@@ -25,6 +25,7 @@ MASS_INITIALIZATION = {'method': 'causal_north_wall_exponential_observer',
                        'lookback_minutes': 1440, 'step_minutes': 5}
 EXTRA_FILES = ('thermal_model/joint_solar.py', 'thermal_model/airflow.py', 'thermal_model/airflow_training.py',
     'thermal_model/airflow_artifact.py', 'thermal_model/airflow_forecast.py',
+    'thermal_model/airflow_capture.py',
     'thermal_model/operational_origin.py', 'thermal_model/action_history.py',
     'thermal_model/forecast_history.py')
 KEYS = {'schema', 'status', 'created_at', 'trained_from', 'trained_through',

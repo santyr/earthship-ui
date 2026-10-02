@@ -320,6 +320,64 @@ durable operational capture and qualified same-origin candidate/baseline outcome
 comparison. Collection can prepare honest separate state evidence while the
 model remains in shadow; eventual graduation still requires actual skill.
 
+## October 2 source-only durable split-airflow capture
+
+The existing independent-opening forecast already returns a complete v2
+replay capture. `thermal_model/airflow_capture.py` now gives that candidate an
+explicit durable archive boundary, without installing a publisher or touching
+the legacy accepted-artifact pointer. Its module is included in the separate
+candidate runtime manifest: future fits must bind this exact source, not reuse
+an older code digest. Existing live artifacts are not rewritten.
+
+Callers must provide an already existing, owned mode-0700 absolute root. The
+API has no default destination, import-time I/O, timer, pruning or historical
+backfill. It detaches canonical input bytes, validates the complete code-bound
+capture and exactly replays its output **before any child directory/file
+creation**. A post-replay artifact check rejects source drift. Successful
+writes preserve deterministic gzip bytes as owned mode-0600 files below a
+private month directory, keyed by the full original capture digest.
+
+Atomic no-replace installation flushes file contents, root/month links and
+temporary-link removal. Retrying after an interrupted month flush reflushes
+the root. Identical retries reuse the original file without replacing its
+contents/mtime; corrupt, public, symlink or externally hard-linked collisions
+are refused, never overwritten. Failure cleanup removes only the owned
+temporary link. A failed call supplies no successful durability receipt.
+
+References have a closed schema with exact origin, original capture digest,
+compressed-byte digest and derived relative path. The bounded reader refuses
+path substitution, duplicate/nonfinite JSON, noncanonical bytes and oversized
+compressed/decoded input (256,000/1,000,000 bytes). It revalidates the original
+artifact/runtime, independent state/source clocks and complete input/output
+replay. References explicitly declare
+`candidate_replay_not_publication_or_action_evidence`: a stored file does not
+prove a live forecast was published at its origin or that held observed states
+describe later operator behavior. No file timestamp is used to backdate that
+evidence.
+
+The archive contract initially failed because the module was absent. Later
+regressions exposed and fixed caller mutation during replay, mid-replay code
+drift, unsynced temporary-link removal and the interrupted root-flush retry.
+The final archive/airflow/training/legacy capture plus adjacent dataset,
+joint-solar, action/weather-history and origin suite passed **240 tests in
+11.56 seconds**, no skips. Twenty-seven archive cases include a real synthetic
+candidate's full 72-hour / 864-step replay. These synthetic fixtures qualify
+the source contract, **not** household action evidence or forecast skill. All
+task-owned fixture directories were automatically removed.
+
+Final source SHA-256:
+
+- `airflow_capture.py`: `e0814b4b49ef6a57683003508046a6df6a0afac9406ef4e51bb262622b3fca17`.
+- `airflow_artifact.py`: `ea9a900fdbb54315efc8528df821b18b1b9c6ce02988289fb0623f8d4347cd7a`.
+
+This closes the durable serializer/replay **source** boundary, not durable
+household operational collection. The new module is absent from the installed
+production thermal runtime. Genuine independent signed states, qualified
+household inputs, a coordinated candidate/runtime recovery bundle, prospective
+origin/publication receipts and same-target candidate/baseline outcomes remain
+required before bounded operational release or eventual graduation. No journal,
+model coefficient, accepted artifact, Item, collector, DM or control changed.
+
 ## Installed legacy support-counter correction
 
 A fresh live-unit inspection found no `ExecStartPre` schema audit on either

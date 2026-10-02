@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 independent-airflow durable capture source
+
+The separate v2 candidate can now archive and reopen its full original input,
+artifact and exact replay output through a private immutable, bounded API.
+It preserves independent window/skylight/shade observations, refuses missing
+or inferred states, binds archive code in the candidate-only runtime manifest,
+and does not equate held origin states or file storage with later action or
+publication evidence. All 240 affected tests pass, including 27 new archive
+cases and a maximum 72-hour round trip; task-owned fixtures are removed.
+No production installation, accepted-artifact rewrite, collector or control
+activation occurred. Actual signed household states, prospective operational
+capture/publication, coordinated recovery and same-target skill evaluation
+remain open. See [durable capture boundary](2026-09-29-thermal-airflow-journal-v2-candidate.md#october-2-source-only-durable-split-airflow-capture).
+
 ## October 2 completed thermal outcomes and offline forcing diagnosis
 
 All nine original October 1 artifact near-12-hour targets now score against
