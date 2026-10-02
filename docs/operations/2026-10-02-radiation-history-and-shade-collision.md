@@ -75,4 +75,56 @@ Backend Office Hallway history must remain present; Home retains the reading.
 The thermal collector, questions, training-label writes, household controls,
 new learning/calibration and model graduation remain outside this release.
 
-Deployment evidence is pending; isolated success alone is not a live claim.
+## October 2 live deployment
+
+The reviewer accepted the final range through `1d63090`. Review found that an
+identical HTTP poll could mask a failed radiation restore; the qualifier now
+holds HTTP at 503 across JVM restart, removes the prior fetch marker, requires
+a new observed 503, verifies restored state/history, then allows fresh recovery.
+The corrected real-container run exited zero and removed its owned resources.
+Merged-tree verification passed 3,044 Python tests and 74 subtests in 333.66
+seconds, 1,984 JavaScript tests, and the frontend build before push/deployment.
+
+The exact source was pushed to `origin/main` and installed at approximately
+09:30 MDT. Private rollback source is retained mode 0600 in the mode-0700
+directory `/home/sat/.local/state/thermal-intel/shade-source-rollback-pUa05Q`.
+The preimage SHA-256 is
+`f2bcbe5021a68cde2a824f50311acc99a499f828b490a9ba6dad57bf13489a8e`;
+the installed candidate is
+`80bfbfc70e53dad8063e0290a991d53bd3d8d6c6f6fa4b790a2cebd3a29d2b81`.
+No other thermal runtime file or trained artifact was replaced.
+
+The new Item, Thing and sole READONLY link are noneditable file resources;
+Thing status is ONLINE. Exact deployed definition hashes match Git. JDBC
+uniquely mapped the radiation Item to **664 / `public.item0664`**, with its first
+natural row at `2026-10-02T15:30:39.039114Z`. Multiple naturally advancing
+original decoder receipts match the persisted raw JSON, with expiry exactly
+120 seconds after decoder time. A checked receipt had decoder time 15:31:32Z,
+receiver time 15:31:32.966989Z and expiry 15:33:32Z. The existing JDBC policy
+hash is unchanged. The restricted `energy_power_reader` currently lacks
+SELECT on the new table; no grant or strict-day reader was activated.
+
+The user-level UI service restarted successfully at PID 346291. Served Svelte
+modules preserve Office Hallway in Home and omit its Earthship reading/series.
+Its existing backend identity remains 663 / `Bedroom_Temperature`; persisted
+rows increased naturally from 321 to 322 rather than being deleted. The
+sensor/parser, role mapping and thermal-input configuration were not edited.
+
+Installed-runtime replay reproduced the October 1 as-issued output exactly and
+passed the previously failing solar-sensitivity diagnostic at runtime pin
+`7316fa8b...`. The existing shadow service then exited zero at 09:32:13 MDT.
+Its 72-point low-confidence output generated at
+`2026-10-02T15:32:11.579258Z` matches both the latest JDBC state and original
+capture `20261002T153211Z-559a9d4532336f33.json.gz`, with output digest
+`559a9d4532336f3363eb49d7b25d6a226cfde5ce233c718271ce8b11d3bae1a8`.
+The embedded artifact still has its original training revision. OpenHAB stayed
+at PID 1696; there were no new OpenHAB ERROR/Exception lines in the checked
+post-deployment interval. No controls, questions, journal labels, collectors,
+training, learning/calibration or graduation were activated.
+
+Durable collection is live, but the restricted grant, strict clean-day reader,
+complete-day evidence and later production restart continuity remain separate
+gates. Preserve `item0664` if disabling collection. Source rollback must verify
+the candidate/preimage hashes and atomically restore the private `behavior.py`;
+observational-definition rollback parks only these two new definition files
+outside watched directories. Neither rollback drops history or changes controls.

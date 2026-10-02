@@ -68,9 +68,17 @@ reader, restart continuity and complete clean day must be qualified before a
 learner consumes this new stream. October 2 contains a restart boundary and
 must not be presented as a complete continuous radiation day.
 
+**Later October 2 update:** the operator approved the durable read-only history
+and shade fix. File-owned radiation HTTP/JDBC collection is now live under
+Item 664 after the corrected HTTP-unavailable restart rehearsal; the qualified
+single-file shade correction is installed and a fresh shadow publication passes.
+Restricted-reader access, strict complete-day qualification, learning and later
+production restart continuity remain open. See the
+[exact deployment receipt](2026-10-02-radiation-history-and-shade-collision.md).
+
 The thermal collector remains off. A truthful reviewed question, exact changed
 policy recovery, authorized signed Primal trial and bounded user-service release
-remain required. The zero-duration shade schedule fix still awaits its specific
-design approval; DNS recovery does not close that independent defect. Supporting
+remain required. The later separately approved shade correction closes the
+schedule defect; DNS recovery alone did not qualify it. Supporting
 Energy publication also retains its physical/JVM recovery and reversible release
 gates. No household control or new training label was written.

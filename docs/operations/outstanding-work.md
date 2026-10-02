@@ -17,7 +17,20 @@ Durable Item/JDBC collection, live expiry/fault recovery, activated rollback,
 strict clean-day qualification and learner integration remain open; October 2
 contains a restart boundary. See
 [exact recovery and activation evidence](2026-10-02-forecast-recovery-and-radiation-activation.md).
-Other October 1 release gates below remain unchanged.
+The later approved durable radiation collection and shade-collision correction
+are now deployed. The new file-owned READONLY HTTP resources persist original
+station-206 receipts under unique JDBC Item 664; unchanged decoder-based expiry
+and multiple natural history rows pass. The reviewer-required HTTP-unavailable
+JVM restore rehearsal also passed. The exact single-file thermal overlay passes
+installed replay and a fresh 72-point shadow publication. OpenHAB was not
+restarted. Restricted-table SELECT, a strict clean-day reader and complete clean
+days are still required before learning; production restart continuity remains
+separate. Office Hallway remains on Home and in backend Item 663/model inputs,
+but its Earthship reading/history series are removed. Full merged suites pass
+3,044 Python tests/74 subtests and 1,984 JavaScript tests plus build; see
+[durable collection and deployment receipt](2026-10-02-radiation-history-and-shade-collision.md).
+This supersedes the earlier source-fix design-approval and volatile-only history
+gates, not the other October 1 release gates below.
 
 October 2 natural training completed at 07:09:55 MDT after starting at
 06:50:29 (19m26s elapsed; 19m23.462s reported CPU). Accepted/candidate artifact
