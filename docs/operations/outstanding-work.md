@@ -13,14 +13,16 @@ restart/rollback and all dependent history checks remain before a guarded
 attended handoff. Production Thing ownership is unchanged; no deployment,
 restart or premature manifest declaration. See
 [exact next candidate and release gates](2026-10-02-astro-moon-thing-candidate.md).
-The new isolated probe exposed a concrete recovery API issue: channel-bearing
-POST adds duplicate factory channels, so original descriptor restoration needs
-creation followed by update. That corrected managed fixture matches all Thing
-and link definitions; copying production's regional settings fixes three unit
-differences. Derived Group semantic metadata still differs across runtimes,
-so the probe refuses before file handoff. All 105 targeted source tests pass
-and all test containers are removed; isolated transfer/restart/rollback remain
-unqualified, not waived.
+The new isolated probe resolves the duplicate-channel POST recovery issue and
+regional/derived-semantic fixture differences. Its managed baseline and guarded
+managed rollback now pass all 34 channels, 28 Items/links, full membership and
+27 Point-parent relations, plus new native Astro receipts. The actual file
+handoff differs in 39 fields: 27 current default tag lists, 11 explicit false
+force-event defaults and one Moon-age wording change. The literal file gate
+still refuses; accepting current binding metadata needs an explicit operator
+choice and exact intended-descriptor/behavior qualification. All 114 targeted
+source tests pass; test containers are removed. Full isolated JVM restart was
+not attempted after the file gate failed, and no production handoff occurred.
 
 ## October 2 later thermal outcomes and weather-only attribution
 

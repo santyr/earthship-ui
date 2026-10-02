@@ -57,6 +57,39 @@ def item_definition(item):
     return {key: deepcopy(item.get(key)) for key in ITEM_FIELDS}
 
 
+def dependent_definitions(items):
+    """Full Item contracts plus complete semantic edges, not a Set's last point.
+
+    Installed SemanticsMetadataProvider.processHierarchy iterates getMembers()
+    and processMember overwrites hasPoint for each Point. That representative
+    varies between JVMs; validate it, then compare the complete relation instead.
+    All other metadata, units, tags, parent links and provider flags stay exact.
+    """
+    group = items.get('Moon', {})
+    members = group.get('members', [])
+    names = {row.get('name') for row in members if isinstance(row, dict)}
+    expected = set(items) - {'Moon'}
+    require(group.get('type') == 'Group' and names == expected
+            and len(members) == len(names)
+            and all('Moon' in items[name].get('groupNames', []) for name in names),
+            'Moon semantic membership changed')
+    points = {name for name in names if items[name].get('metadata', {}).get(
+        'semantics', {}).get('value') == 'Point'}
+    semantics = group.get('metadata', {}).get('semantics', {})
+    require(semantics.get('value') == 'Equipment', 'Moon semantic equipment changed')
+    require(semantics.get('editable') is False, 'Moon semantic provider changed')
+    require(bool(points), 'Moon semantic points missing')
+    require('hasPoint' in semantics.get('config', {}), 'Moon semantic representative absent')
+    require(semantics.get('config', {}).get('hasPoint') in points,
+            'Moon semantic representative changed')
+    require(all(items[name]['metadata']['semantics'].get('config', {}).get(
+        'isPointOf') == 'Moon' for name in points), 'Moon semantic parent changed')
+    result = {name: item_definition(item) for name, item in items.items()}
+    result['Moon']['members'] = sorted(names)
+    result['Moon']['metadata']['semantics']['config']['hasPoint'] = sorted(points)
+    return result
+
+
 def difference_paths(before, after, prefix=''):
     """Definition names only; no configuration, credential or observation values."""
     if isinstance(before, dict) and isinstance(after, dict):
@@ -166,6 +199,7 @@ def preflight():
     require({name for name, item in items.items() if item.get('editable') is False}
             == {'MoonPhaseicon', 'Moon_MoonPhaseName', 'Moon_MoonIllumination'},
             'Moon dependent providers changed')
+    dependent_definitions(items)
     require(sha256(ASTRO.read_bytes()).hexdigest() == ASTRO_SHA, 'Astro binding drift')
     return thing, links, items
 
@@ -266,11 +300,25 @@ def main():
                 require(rest('PUT', path, {key: link[key] for key in ('itemName', 'channelUID', 'configuration')})[0]
                         in (200, 201, 202, 204), 'isolated Moon link refused')
 
-        def dependents():
-            return {name: item_definition(rest('GET', '/items/' + name + '?metadata=.*')[1])
-                    for name in original_items}
+        # added(Point) recomputes that Point, not its parent Equipment. Our
+        # Group-first REST setup can retain the initial empty Group metadata.
+        # Initialize this isolated provider against the now-complete registry;
+        # never write derived metadata or relax the relation checks.
+        q.wait_for(lambda: len(rest('GET', '/items/Moon')[1].get('members', [])) == 28)
+        listing = runtime.run(client + ['bundle:list -s'], b'\n').decode()
+        rows = [line for line in listing.splitlines() if 'org.openhab.core.semantics' in line]
+        require(len(rows) == 1, 'isolated semantics bundle not unique')
+        match = re.match(r'\s*(\d+)\s*[|│]\s*(\w+)\s*[|│]', rows[0])
+        require(match is not None and match[2] == 'Active', 'isolated semantics bundle not active')
+        runtime.run(client + ['bundle:restart ' + match[1]], b'\n')
+        print('isolated_semantics_reinitialized_after_fixture_registration=true', flush=True)
 
-        expected_items = {name: item_definition(item) for name, item in original_items.items()}
+        def dependents():
+            return dependent_definitions({
+                name: rest('GET', '/items/' + name + '?metadata=.*')[1]
+                for name in original_items})
+
+        expected_items = dependent_definitions(original_items)
         expected_links = sorted(original_links, key=lambda row: row['itemName'])
         reported = {}
 
@@ -298,7 +346,21 @@ def main():
                               key=lambda row: row['itemName'])
             if code != 200 or selected != expected_links:
                 return diagnose('link_definition', difference_paths(expected_links, selected))
-            actual_items = dependents()
+            try:
+                actual_items = dependents()
+            except RuntimeError as error:
+                fields = {
+                    'Moon semantic membership changed': 'members',
+                    'Moon semantic equipment changed': 'equipment_type',
+                    'Moon semantic provider changed': 'metadata_provider',
+                    'Moon semantic points missing': 'points',
+                    'Moon semantic representative absent': 'missing_representative',
+                    'Moon semantic representative changed': 'representative',
+                    'Moon semantic parent changed': 'point_parent',
+                }
+                if str(error) in fields:
+                    return diagnose('item_semantics', (fields[str(error)],))
+                raise
             if actual_items != expected_items:
                 return diagnose('item_definition', difference_paths(expected_items, actual_items))
             code, illumination = rest('GET', '/items/Moon_MoonIllumination')
@@ -319,29 +381,38 @@ def main():
         q.wait_for(lambda: rest('GET', '/things/' + UID)[0] == 404)
         phase = datetime.now(timezone.utc)
         runtime.install(container, 'conf/things/astro-moon.things', SOURCE.read_bytes())
-        q.wait_for(lambda: ready(False, phase), seconds=360)
-        print('isolated_file_moon_exact=true; all_original_dependents_preserved=true', flush=True)
-        before = q.java_pids(container)
-        require(len(before) == 1, 'one isolated JVM required')
+        file_failed = False
         try:
-            runtime.run(client + ['system:shutdown -f'], b'\n')
-        except RuntimeError:
-            pass
-        q.wait_for(lambda: before[0] not in q.java_pids(container), seconds=60)
-        q.wait_for(lambda: q._jvm_stopped(container), seconds=30)
-        phase = datetime.now(timezone.utc)
-        runtime.run(['docker', 'exec', container, 'touch', '/tmp/boot-permit'])
-        q.wait_for(lambda: q._startup_item(container, PROBE), seconds=240)
-        q.wait_for(lambda: ready(False, phase), seconds=360)
-        require(len(q.java_pids(container)) == 1 and q.java_pids(container) != before,
-                'isolated Moon JVM did not restart')
-        print('isolated_full_jvm_restart_exact=true', flush=True)
+            q.wait_for(lambda: ready(False, phase), seconds=360)
+            print('isolated_file_moon_exact=true; all_original_dependents_preserved=true', flush=True)
+            before = q.java_pids(container)
+            require(len(before) == 1, 'one isolated JVM required')
+            try:
+                runtime.run(client + ['system:shutdown -f'], b'\n')
+            except RuntimeError:
+                pass
+            q.wait_for(lambda: before[0] not in q.java_pids(container), seconds=60)
+            q.wait_for(lambda: q._jvm_stopped(container), seconds=30)
+            phase = datetime.now(timezone.utc)
+            runtime.run(['docker', 'exec', container, 'touch', '/tmp/boot-permit'])
+            q.wait_for(lambda: q._startup_item(container, PROBE), seconds=240)
+            q.wait_for(lambda: ready(False, phase), seconds=360)
+            require(len(q.java_pids(container)) == 1 and q.java_pids(container) != before,
+                    'isolated Moon JVM did not restart')
+            print('isolated_full_jvm_restart_exact=true', flush=True)
+        except Exception:
+            file_failed = True
+            print('isolated_file_or_restart_gate_refused=true; checking_managed_recovery=true', flush=True)
+        installed = runtime.run(['docker', 'exec', container, 'sha256sum',
+                                 '/openhab/conf/things/astro-moon.things']).decode().split()[0]
+        require(installed == SOURCE_SHA, 'isolated Moon withdrawal source drift')
         runtime.run(['docker', 'exec', container, 'rm', '/openhab/conf/things/astro-moon.things'])
         q.wait_for(lambda: rest('GET', '/things/' + UID)[0] == 404)
         phase = datetime.now(timezone.utc)
         restore_managed(rest, original)
         q.wait_for(lambda: ready(True, phase), seconds=360)
         print('isolated_managed_rollback_exact=true', flush=True)
+        require(not file_failed, 'isolated file/restart failed despite verified managed recovery')
     finally:
         if container is not None:
             owner = runtime.run(['docker', 'inspect', '--format',
@@ -356,5 +427,16 @@ if __name__ == '__main__':
     try:
         require(not sys.argv[1:], 'no arbitrary target or production apply interface')
         main()
-    except (Exception, KeyboardInterrupt):
+    except (Exception, KeyboardInterrupt) as error:
+        # Report code location only, never exception text, locals or subprocess
+        # output: API authorization and private production reads remain opaque.
+        locations = []
+        trace = error.__traceback__
+        while trace is not None:
+            if trace.tb_frame.f_code.co_filename == __file__:
+                locations.append({'function': trace.tb_frame.f_code.co_name,
+                                  'line': trace.tb_lineno})
+            trace = trace.tb_next
+        print(json.dumps({'isolated_failure_type': type(error).__name__,
+                          'probe_locations': locations}, sort_keys=True), flush=True)
         raise SystemExit('Moon isolated provider qualification failed; private diagnostics withheld') from None

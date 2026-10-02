@@ -1,6 +1,7 @@
 # Astro Moon Thing: staged exact file-provider candidate
 
-Status: **source and offline syntax qualified; uninstalled; production remains
+Status: **source/parser, isolated managed baseline and managed rollback
+qualified; file descriptor gate refused; uninstalled; production remains
 managed**. This is the next migration candidate, not a completed provider
 handoff or authorization for a whole-OpenHAB restart.
 
@@ -102,6 +103,56 @@ rehearsal. No file-transfer, full-JVM or managed-rollback runtime gate passed,
 and no production history recovery was tested by this fixture. Production
 remains active at PID 1696 with the Moon Thing managed and the destination
 absent. Resolve the fixture boundary before attempting a live adapter.
+
+### October 2 23:53Z: semantic fixture resolved, actual file difference and rollback
+
+The installed `SemanticsMetadataProvider.processHierarchy` iterates a Group's
+member Set. `processMember` overwrites a single `hasPoint` representative;
+`added(Point)` recomputes the Point, not its parent Group. Thus Group-first
+fixture creation can retain the initial empty Group metadata. Reinitializing
+**only the isolated semantic bundle** after all 28 members exist resolves that
+fixture-cache issue; no production bundle or service was restarted.
+
+The revised comparison validates the representative against the actual Point
+members and compares the complete sorted membership/Point relation instead
+of insisting on a Set's arbitrary last member. It requires all **28** members,
+all **27** Point-to-Moon parent bindings, no duplicates/extras, and a valid
+Equipment/derived-provider identity. Every other metadata field, Item tag,
+parent, unit and provider flag remains exact. Nine new regression cases cover
+valid alternate representatives and broken references, membership or parents;
+the complete targeted suite passes **114 tests** without cache.
+
+Actual runtime outcomes, with no household rules or hardware:
+
+1. The original managed baseline passes all 34 full channel definitions,
+   all 28 Item/link definitions, the complete semantic relations and a **new
+   source-attributed natural Astro update**.
+2. The actual file-provider handoff then differs in exactly **39** descriptor
+   fields. These are 27 default tag lists (legacy empty, current binding
+   Calculation/Duration/Timestamp/Info/Status variants), 11 explicit
+   `forceEvent` defaults, and the `phase#age` description. The age text changes
+   from “The age of the moon in days” to “The age of the moon”. The pinned Astro
+   XML declares `forceEvent=false`; its compiled channel-config constructor
+   also defaults that primitive to false. No other descriptor difference is
+   observed. Current type-registry GETs independently confirm all 27 tag changes;
+   shared eclipse type wording is not used as a factory-description comparator.
+3. A stable descriptor difference ends this isolated file attempt after 30
+   seconds, rather than consuming another five-minute observation window.
+   The probe verifies its installed source SHA, withdraws only that file,
+   then creates and updates the original managed definition. **Managed rollback
+   passes** the full original channels/Items/links/relations and another new
+   source-attributed natural update. The file gate remains failed; recovery
+   success does not turn it green.
+4. Full isolated JVM restart was **not attempted** after the file gate failed.
+   The ownership-labelled container and tmpfs are removed. Production remains
+   active at PID 1696; the managed Thing and absent destination are unchanged.
+
+An explicit operator choice is pending: qualify the current binding's generated
+metadata as a named migration deviation, or require literal legacy descriptors.
+Do not silently replace the full-channel comparator with UID-only checks. Any
+accepted deviation must still qualify exact intended file descriptors, effective
+behavior, existing Item/link/unit/history preservation, JVM recovery and managed
+rollback before a live handoff. No production adapter or gate is enabled.
 
 Before a live cutover:
 

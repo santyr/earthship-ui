@@ -53,6 +53,51 @@ def test_item_projection_preserves_provider_metadata_and_units_not_observations(
         assert m.item_definition(item) != m.item_definition(after)
 
 
+def semantic_fixture():
+    return {'Moon': {'name': 'Moon', 'type': 'Group', 'tags': ['Equipment'],
+                    'members': [{'name': 'Moon_A'}, {'name': 'Moon_B'}],
+                    'metadata': {'semantics': {'value': 'Equipment', 'editable': False,
+                                              'config': {'hasPoint': 'Moon_A'}}}},
+            **{name: {'name': name, 'type': 'Number', 'tags': ['Point'],
+                      'groupNames': ['Moon'], 'metadata': {'semantics': {
+                          'value': 'Point', 'editable': False, 'config': {'isPointOf': 'Moon'}}}}
+               for name in ('Moon_A', 'Moon_B')}}
+
+
+def test_semantic_contract_keeps_all_members_and_point_edges_not_set_representative():
+    original = semantic_fixture(); other = deepcopy(original)
+    other['Moon']['metadata']['semantics']['config']['hasPoint'] = 'Moon_B'
+    other['Moon']['members'].reverse()
+    assert m.dependent_definitions(original) == m.dependent_definitions(other)
+    assert original['Moon']['metadata']['semantics']['config']['hasPoint'] == 'Moon_A'
+    assert m.dependent_definitions(original)['Moon']['members'] == ['Moon_A', 'Moon_B']
+
+
+@pytest.mark.parametrize('fault', ['unknown_reference', 'missing_reference', 'wrong_parent',
+                                  'missing_member', 'extra_member', 'duplicate_member', 'wrong_group'])
+def test_semantic_contract_refuses_broken_membership_or_reference(fault):
+    items = semantic_fixture()
+    config = items['Moon']['metadata']['semantics']['config']
+    if fault == 'unknown_reference': config['hasPoint'] = 'Other'
+    elif fault == 'missing_reference': config.pop('hasPoint')
+    elif fault == 'wrong_parent': items['Moon_A']['metadata']['semantics']['config']['isPointOf'] = 'Other'
+    elif fault == 'missing_member': items['Moon']['members'].pop()
+    elif fault == 'extra_member': items['Moon']['members'].append({'name': 'Other'})
+    elif fault == 'duplicate_member': items['Moon']['members'].append({'name': 'Moon_A'})
+    elif fault == 'wrong_group': items['Moon_A']['groupNames'] = []
+    with pytest.raises(RuntimeError, match='semantic'): m.dependent_definitions(items)
+
+
+def test_semantic_contract_preserves_other_metadata_and_item_fields():
+    original = semantic_fixture()
+    for target in ('config', 'label', 'tags'):
+        other = deepcopy(original)
+        if target == 'config': other['Moon']['metadata']['semantics']['config']['hasLocation'] = 'Changed'
+        elif target == 'label': other['Moon_A']['label'] = 'Changed'
+        else: other['Moon_A']['tags'] = ['Point', 'Measurement']
+        assert m.dependent_definitions(original) != m.dependent_definitions(other)
+
+
 def test_managed_creation_does_not_publish_a_state_or_derived_metadata():
     item = {'name': 'Moon_Test', 'type': 'String', 'label': 'Test',
             'state': 'FULL', 'editable': True, 'stateDescription': {'readOnly': True}}
