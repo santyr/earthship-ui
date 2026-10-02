@@ -59,6 +59,50 @@ its malformed-input negative control. No binding or provider was started by
 that syntax probe. Do not confuse syntax acceptance with effective channel,
 handler, Item-state or history recovery.
 
+### October 2 isolated provider fixture: not yet qualified
+
+The new GET-only-production probe
+`scripts/qualify-astro-moon-thing-provider.py` uses a clean, pinned OpenHAB
+5.2.1 container with no network, host mounts, ports, devices, household rules
+or database. Its sole fixtures are the Moon definitions and cached Astro/MAP
+bundles. Memory and memory-plus-swap are both capped at 1,536 MiB; the observed
+runtime used about 484 MiB. It removes its ownership-labelled container and
+tmpfs in `finally`; all attempts recorded here were cleaned up.
+
+Concrete findings before any file handoff:
+
+- Creating the managed Thing from site/cadence alone regenerated **39**
+  descriptor fields: default tags, missing `forceEvent` defaults and one
+  description. This is a fresh managed-fixture difference, **not** a completed
+  file-provider test. Do not quietly normalize those channel changes away.
+- Posting all original channels at creation returned HTTP **400**. Inspection
+  of the installed `ThingResource.create` and `ThingHelper.addChannelsToThing`
+  confirms that supplied channels are added to factory channels and duplicate
+  UIDs are rejected. The probe now creates without channels, then uses the
+  supported update/merge path to restore the original writable descriptors.
+  `ChannelDTO` has no `linkedItems` field; only that read-only enrichment is
+  removed from the recovery DTO, while links are restored separately.
+- The corrected managed fixture then matched the full Thing/channel and link
+  definitions. Its initial Item differences were three length units and the
+  Group's derived semantic configuration. GET-only inspection confirmed
+  production's `en`/`US`/`America/Denver`/`US` regional settings. Reproducing
+  those settings removed the unit differences.
+- The remaining observed mismatch was `Moon.metadata.semantics.config`.
+  Trying to register production's selected `hasPoint` Item last did not fix
+  it; that ineffective registration-order workaround was removed. The installed
+  semantic provider iterates the Group's member **Set** and writes a single
+  `hasPoint` value. Its representative must not be mistaken for the entire
+  membership. Exact member/tag/parent relations and a justified cross-runtime
+  comparison remain to be qualified; the current probe still refuses on this
+  mismatch instead of dropping semantic metadata.
+
+The targeted provider/preflight regression suite passes **105 tests** without
+cache. This is source-contract coverage, not a successful isolated provider
+rehearsal. No file-transfer, full-JVM or managed-rollback runtime gate passed,
+and no production history recovery was tested by this fixture. Production
+remains active at PID 1696 with the Moon Thing managed and the destination
+absent. Resolve the fixture boundary before attempting a live adapter.
+
 Before a live cutover:
 
 1. Finish the dynamic-consumer and upstream/shared-binding review against
@@ -83,5 +127,6 @@ Before a live cutover:
 
 Post-check production remains active at PID **1696**. The Moon Thing is still
 managed; the destination is absent and no managed object, Item, link, history,
-runtime, privilege, collector or control was changed. No test container or
-private backup was created for this source/parser/VM qualification.
+runtime, privilege, collector or control was changed. The earlier
+source/parser/VM checks created no container or private backup; later isolated
+provider attempts created only disposable containers, all removed afterward.

@@ -13,6 +13,14 @@ restart/rollback and all dependent history checks remain before a guarded
 attended handoff. Production Thing ownership is unchanged; no deployment,
 restart or premature manifest declaration. See
 [exact next candidate and release gates](2026-10-02-astro-moon-thing-candidate.md).
+The new isolated probe exposed a concrete recovery API issue: channel-bearing
+POST adds duplicate factory channels, so original descriptor restoration needs
+creation followed by update. That corrected managed fixture matches all Thing
+and link definitions; copying production's regional settings fixes three unit
+differences. Derived Group semantic metadata still differs across runtimes,
+so the probe refuses before file handoff. All 105 targeted source tests pass
+and all test containers are removed; isolated transfer/restart/rollback remain
+unqualified, not waived.
 
 ## October 2 later thermal outcomes and weather-only attribution
 

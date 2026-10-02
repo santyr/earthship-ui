@@ -639,6 +639,15 @@ check ended, and post-check readback shows both permanent collector/timer and
 the collected transient unit as not-found/inactive. No thermal observation or
 household control was enabled. Actual authenticated reply remains required.
 
+At the October 2 23:24Z bounded follow-through, the original frozen trial was
+polled once without resending its question. It again returned `accepted=0`,
+`operator_read_verified=false`, `relay_failures=1`, `withheld=1` (exit 3).
+The single pending refusal's next retry is `2026-10-02T23:44:43Z`; it is not
+an accepted action confirmation. The transient user unit completed and was
+collected. Permanent collector/timer remain inactive, production OpenHAB
+remains active at PID 1696, and no household control or thermal label was
+enabled. Do not treat approval of the trial as an authenticated reply to it.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private
