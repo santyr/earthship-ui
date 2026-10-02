@@ -615,6 +615,21 @@ poll, preserving the frozen runtime and existing question. It returned
 started. Post-check permanent service/timer states remain not-found/inactive.
 This is an unresolved authenticated-reply gate, not proof of client receipt.
 
+At the October 2 21:29Z checkpoint, a separate bounded **read-only** diagnosis
+verified the same runtime/configuration pins, opened only readonly SQLite
+connections, and fetched the approved operator's events since the original
+question. nos.lol returned one previously refused event: its signature and
+operator identity authenticate, but its decrypted content contains neither
+the trial reference nor the required exact reply syntax. Only these booleans
+and static validation categories were reported; no message text, ciphertext
+or secret was emitted. Primal returned zero events; Damus fetch was unavailable.
+The pending refusal therefore is **not a valid confirmation** of this question,
+and a relay failure alone did not explain the withheld count. No syntax
+relaxation, inference from an unrelated DM, journal/SQLite write, ACK, second
+question or recurring listener occurred. The diagnostic unit completed
+successfully; permanent collector/timer remain not-found/inactive. A genuine
+authenticated reply binding this exact question remains required.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private

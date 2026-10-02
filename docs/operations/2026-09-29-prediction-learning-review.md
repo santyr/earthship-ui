@@ -5,6 +5,69 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 2 matched pre-dusk phase benchmark
+
+The source-only `pre_dusk_phase_profile` now measures **true Astro sunset
+minus the original late prediction's lead**, through the unchanged canonical
+20:00–11:00 trough. `phase_start_at` and `sunset_at` remain distinct;
+no earlier issue time is relabeled as sunset. It requires original sunset
+context available before the phase, source-bound SoC at both phase and sunset,
+completed canonical outcomes, at least 99.5% coverage in both windows, bounded
+original observations, and one physical bank. A lower minimum before the
+canonical window, missing endpoint, future row or ambiguous sequence refuses.
+Its separately versioned digest binds the lead, true sunset/context, bank and
+canonical raw-evidence digest. DST uses actual elapsed time.
+
+The optional benchmark keeps the exact morning-selected prior dates and
+unchanged cloud penalty. Each prior profile is assessed only with receipts
+available by that original morning; the known original late lead selects the
+historical phase. Current late SoC remains the independently qualified
+original input. The later target profile is explicitly scoring evidence,
+not a candidate input. Run from the repository:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/experiment-sunset-soc-drop.py \
+  --start-day 2026-09-29 --end-day 2026-10-02 --include-pre-dusk
+```
+
+The restricted SELECT-only run at `2026-10-02T21:24:27.932462Z` qualifies
+all three comparisons with no unavailable phase cases. Rolling prediction
+state SHA remains `26987242320a094645ea8c06e223e3d7405aea5a9558aada842777e28d94c23f`.
+
+| Prediction day | Original lead, seconds | Prior matched-phase drops, pp | Candidate drop including unchanged cloud penalty, pp | Original trough | Phase candidate | Actual trough |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
+| Sep 29 | 4703.095055 | 19, 16, 14 | 18.333 | 81% | 81% | 81% |
+| Sep 30 | 4608.578552 | 16, 19, 16 | 17.000 | 64% | 68% | 65% |
+| Oct 1 | 4514.390785 | 18, 16, 19 | 17.667 | 65% | 69% | 72% |
+
+The matched-phase candidate MAE is **2.000 pp** versus the original
+**2.667 pp** and sunset-only **2.333 pp**. Its errors are 0, +3 and -3 pp:
+one improved night, one worse and one unchanged. Zero mean error on these
+three observations is not proof of unbiased or seasonal performance. No
+live coefficient, publication, learner or control is changed.
+
+Actual target phase-to-trough drops are 18, 20 and 15 pp, with pre-sunset
+declines 1, 2 and 0 pp. Their coverage is respectively 99.992612%,
+99.950041% and 99.880140%; canonical coverage independently exceeds 99.5%.
+The target-profile digests are, in that order:
+
+- `f6dd03fc3b476de05c75f8d2880aaef3af6c7c56243ffdc856c1653e55a95bd5`
+- `f1d14608cd30a0c3156cf6b5045367a56beaed7ec963a248486c46627aa4958f`
+- `de7150b75a45ce6166e680b1b2afec5fa621a90a696daa3c08c544c10707f90a`
+
+The historical pre-sunset declines used in the three candidates are
+5/1/1, 1/5/1 and 1/1/5 pp respectively. Thus a fixed recent mean also
+misrepresents that phase on some days. The next joint-model comparison
+should predict remaining daylight charge/load separately from overnight
+load, using as-issued weather/radiation, SoC/headroom and actual sunset/day
+length; neither a 99% assumed start nor a universally smaller drop is justified.
+
+Regression-first verification passes **131** affected profile, benchmark,
+original-source, issue-history and completed-outcome tests without skips,
+including 19 new phase-profile and seven phase-binding cases. Task-owned
+temporary fixtures are removed. This is repository-only measurement and
+diagnostic support, not a production installation or forecasting release.
+
 ## October 2 completed PV, charge and selected pre-dusk comparison
 
 The read-only October 1 join retains the original morning weather issue

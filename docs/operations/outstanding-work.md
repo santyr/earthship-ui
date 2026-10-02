@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 matched pre-dusk-phase qualification
+
+The bounded original-issue benchmark now measures prior discharge at each
+late prediction's actual sunset-relative lead, keeping true Astro sunset
+distinct. Both phase and sunset endpoints, canonical trough, original source
+availability and 99.5% window coverage qualify. On three completed nights,
+the phase candidate gives 81/68/69% versus actual 81/65/72%, MAE 2.000 points
+versus original 2.667: one better, one worse, one unchanged. Historical
+pre-sunset declines vary 1–5 points while the latest target lost none, so
+joint remaining-day/overnight modeling remains necessary. No live correction
+is promoted. All 131 affected tests pass; owned fixtures are removed.
+See [phase benchmark and original evidence](2026-09-29-prediction-learning-review.md#october-2-matched-pre-dusk-phase-benchmark).
+
 ## October 2 completed PV and pre-dusk divergence benchmark
 
 October 1's original PV forecast is close (6.58 versus qualified 6.697 kWh),
@@ -75,6 +88,10 @@ collector, source release flag, operator-signer change or household control.
 The latest 21:18Z bounded follow-through accepted zero replies and reported one relay
 failure with one pending inbox refusal; no replacement question was sent. Permanent collector/timer remain
 absent/inactive. Relay acceptance is still not operator delivery proof.
+The 21:29Z metadata-only diagnosis identifies that refusal as an authenticated
+operator DM lacking this trial's reference and exact syntax, not a valid
+confirmation. nos.lol returned it, Primal returned no events and Damus was
+unavailable. No message content was exposed or label/ACK created.
 See [exact trial and recovery evidence](2026-10-01-primal-compatibility-candidate.md#october-2-approved-one-question-trial--sent-reply-pending).
 
 ## October 2 shade inventory correction

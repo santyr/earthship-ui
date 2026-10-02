@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from itertools import islice
 import json
+import math
 from zoneinfo import ZoneInfo
 
 from advisory_windows import trough_window
@@ -66,6 +67,69 @@ def measure(*, day, sunset, sunset_persisted_at, as_of, observations,
         'drop_pct': start_soc-minimum, 'coverage': coverage,
         'canonical_coverage': canonical['coverage'],
         'evidence_digest': sha256(json.dumps(binding, sort_keys=True,
+            separators=(',', ':')).encode()).hexdigest()}
+
+
+def pre_dusk_phase_profile(*, day, sunset, sunset_persisted_at, lead_seconds,
+                          as_of, observations, epoch_start, epoch_end=None,
+                          timezone_name='America/Denver'):
+    """Measure an explicit sunset-relative phase through the canonical trough.
+
+    The original Astro sunset is never replaced by a prediction's earlier
+    issue time. The caller supplies its original 60–90-minute lead and must
+    admit this completed profile only at a later, qualified forecast origin.
+    This is measurement, not a prediction, learning label or control signal.
+    """
+    if (type(lead_seconds) not in (int, float) or not math.isfinite(lead_seconds)
+            or not 3600 <= lead_seconds < 5400):
+        raise ValueError('original qualified pre-dusk lead required')
+    sunset, persisted, as_of, epoch_start = map(_utc,
+        (sunset, sunset_persisted_at, as_of, epoch_start))
+    epoch_end = _utc(epoch_end) if epoch_end is not None else None
+    phase = sunset-timedelta(seconds=lead_seconds)
+    target = trough_window(day, timezone_name)
+    if (sunset.astimezone(ZoneInfo(timezone_name)).date() != day
+            or phase.astimezone(ZoneInfo(timezone_name)).date() != day
+            or not persisted <= phase < sunset < target.end <= as_of
+            or epoch_start > min(phase, target.start)
+            or (epoch_end is not None and epoch_end < target.end)):
+        return None
+    rows = tuple(islice(observations, MAX_OBSERVATIONS+1))
+    if len(rows) > MAX_OBSERVATIONS or any(
+            not isinstance(at, datetime) or at.utcoffset() is None or at > as_of
+            or not isinstance(raw, str) or len(raw) > 4096 for at, raw in rows):
+        return None
+    canonical = assess_trough_measurement(prediction_day=day,
+        site_timezone=timezone_name, assessed_at=as_of, observations=rows,
+        epoch_start=epoch_start, epoch_end=epoch_end)
+    if canonical['status'] != 'measured' or canonical['coverage'] < .995:
+        return None
+    try:
+        intervals = build_soc_intervals(rows, phase, target.end,
+            epoch_start=epoch_start, epoch_end=epoch_end)
+        phase_soc, sunset_soc = soc_at(intervals, phase), soc_at(intervals, sunset)
+        coverage = sum((part.end-part.start).total_seconds() for part in intervals)/(target.end-phase).total_seconds()
+        minimum = min((part.soc for part in intervals), default=None)
+    except ValueError:
+        return None
+    if (phase_soc is None or sunset_soc is None or coverage < .995
+            or minimum != canonical['min_soc_pct']):
+        return None
+    binding = {'version':'pre-dusk-phase-soc-v1', 'phase_start':phase.isoformat(),
+        'sunset':sunset.isoformat(), 'sunset_persisted_at':persisted.isoformat(),
+        'lead_seconds':lead_seconds, 'timezone':timezone_name,
+        'canonical_evidence_digest':canonical['evidence_digest'],
+        'epoch_start':epoch_start.isoformat(),
+        'epoch_end':epoch_end.isoformat() if epoch_end else None}
+    return {'profile_version':binding['version'], 'prediction_day':day.isoformat(),
+        'phase_start_at':phase.isoformat(), 'lead_seconds':lead_seconds,
+        'sunset_at':sunset.isoformat(), 'sunset_persisted_at':persisted.isoformat(),
+        'as_of':as_of.isoformat(), 'phase_soc_pct':phase_soc, 'sunset_soc_pct':sunset_soc,
+        'trough_soc_pct':minimum, 'drop_pct':phase_soc-minimum,
+        'pre_sunset_decline_pct':phase_soc-sunset_soc,
+        'sunset_to_trough_drop_pct':sunset_soc-minimum,
+        'coverage':coverage, 'canonical_coverage':canonical['coverage'],
+        'evidence_digest':sha256(json.dumps(binding, sort_keys=True,
             separators=(',', ':')).encode()).hexdigest()}
 
 

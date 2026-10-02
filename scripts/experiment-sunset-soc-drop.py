@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/'openhab/scripts'), '/home/sat/Solar_PV/analytics/src']
 from advisory_windows import trough_window
-from sunset_soc_profile import measure, charge_profile
+from sunset_soc_profile import measure, charge_profile, pre_dusk_phase_profile
 from pre_dusk_tuning_history import _unique_object, read_day_issues, MORNING_ITEM, IssueHistoryUnavailable
 
 ZONE = ZoneInfo('America/Denver')
@@ -115,13 +115,41 @@ def pre_dusk_counterfactual(record, profiles, late):
         'future_outcome_used_as_input':False}
 
 
+def phase_matched_counterfactual(record, profiles, late):
+    """Use only completed profiles at the actual original sunset-relative lead."""
+    issued = datetime.fromisoformat(late['issuedAt'])
+    sunset = datetime.fromisoformat(late['sunsetAt'])
+    if (issued.utcoffset() is None or sunset.utcoffset() is None
+            or sunset.astimezone(ZONE).date() != issued.astimezone(ZONE).date()):
+        raise ValueError('original sunset context required')
+    lead = (sunset-issued).total_seconds()
+    if not 3600 <= lead < 5400:
+        raise ValueError('qualified original pre-dusk lead required')
+    for profile in profiles:
+        phase = datetime.fromisoformat(profile['phase_start_at'])
+        prior_sunset = datetime.fromisoformat(profile['sunset_at'])
+        persisted = datetime.fromisoformat(profile['sunset_persisted_at'])
+        if (profile['profile_version'] != 'pre-dusk-phase-soc-v1'
+                or type(profile['lead_seconds']) not in (int,float)
+                or profile['lead_seconds'] != lead
+                or any(at.utcoffset() is None for at in (phase, prior_sunset, persisted))
+                or not persisted <= phase < prior_sunset
+                or prior_sunset-phase != timedelta(seconds=lead)
+                or prior_sunset.astimezone(ZONE).date().isoformat() != profile['prediction_day']):
+            raise ValueError('prior profile phase mismatch')
+    comparison = pre_dusk_counterfactual(record, profiles, late)
+    return {**comparison, 'profile_basis':'pre-dusk-phase-soc-v1',
+        'phase_lead_seconds':lead,
+        'input_phase_starts':[profile['phase_start_at'] for profile in profiles]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--start-day', type=date.fromisoformat, required=True)
     parser.add_argument('--end-day', type=date.fromisoformat, required=True,
                         help='exclusive; at most fourteen issue dates')
     parser.add_argument('--include-pre-dusk', action='store_true',
-                        help='also score original source-qualified pre-dusk receipts; no live correction')
+                        help='also score source-qualified sunset and phase-matched pre-dusk comparisons; no live correction')
     args = parser.parse_args()
     if not 1 <= (args.end_day-args.start_day).days <= 14:
         raise ValueError('bounded issue interval required')
@@ -196,7 +224,7 @@ def main():
                         matched.append(receipt)
                 if len(matched) != 1:
                     counts['original_issue_unavailable'] += 1; continue
-                def observations(night):
+                def observations(night, lead_seconds=0):
                     boundary = sunset_at(sunsets, night, origin)
                     if boundary is None:
                         return None, None
@@ -204,7 +232,8 @@ def main():
                     window = trough_window(night, 'America/Denver')
                     if window.end > origin and night != day:
                         raise ValueError('future learning target')
-                    start = min(origin, sunset, window.start) if night == day else min(sunset, window.start)
+                    phase = sunset-timedelta(seconds=lead_seconds)
+                    start = min(origin, phase, window.start) if night == day else min(phase, window.start)
                     key = (night, sunset, start)
                     if key not in cache:
                         cache[key] = fetch_freshness_observations(db, tables['BMS_SOC_Evidence_JSON'],
@@ -271,6 +300,36 @@ def main():
                             'source_persisted_at':verified['source_persisted_at'],
                             'source_digest_sha256':verified['source_digest_sha256']})
                         scored['pre_dusk_counterfactual'] = comparison
+                        try:
+                            if datetime.fromisoformat(late['sunsetAt']) != boundary[1]:
+                                raise ValueError('original sunset archive/receipt mismatch')
+                            lead = (boundary[1]-datetime.fromisoformat(late['issuedAt'])).total_seconds()
+                            phase_profiles = []
+                            for ending_day in record['overnight_drop_sample_days']:
+                                night = date.fromisoformat(ending_day)-timedelta(days=1)
+                                prior_boundary, prior_rows = observations(night, lead)
+                                profile = pre_dusk_phase_profile(day=night,
+                                    sunset=prior_boundary[1], sunset_persisted_at=prior_boundary[0],
+                                    lead_seconds=lead, as_of=origin, observations=prior_rows,
+                                    epoch_start=epoch_start, epoch_end=epoch_end) if prior_boundary else None
+                                if profile is None:
+                                    raise ValueError('prior matched-phase outcome unavailable')
+                                phase_profiles.append(profile)
+                            phase_comparison = phase_matched_counterfactual(record, phase_profiles, late)
+                            phase_comparison.update({'actual_trough_pct':observed,
+                                'baseline_error_pp':phase_comparison['baseline_pct']-observed,
+                                'candidate_error_pp':phase_comparison['candidate_pct']-observed,
+                                'source_persisted_at':verified['source_persisted_at'],
+                                'source_digest_sha256':verified['source_digest_sha256'],
+                                'prior_phase_drops_pct':[p['drop_pct'] for p in phase_profiles],
+                                'prior_pre_sunset_declines_pct':[p['pre_sunset_decline_pct'] for p in phase_profiles]})
+                            scored['pre_dusk_phase_counterfactual'] = phase_comparison
+                            scored['target_pre_dusk_phase_profile'] = pre_dusk_phase_profile(day=day,
+                                sunset=boundary[1], sunset_persisted_at=boundary[0], lead_seconds=lead,
+                                as_of=now, observations=rows, epoch_start=epoch_start, epoch_end=epoch_end)
+                        except (KeyError, TypeError, ValueError):
+                            counts['pre_dusk_phase_comparison_unavailable'] += 1
+                            scored['pre_dusk_phase_counterfactual'] = None
                     except (NaturalIssueUnavailable, KeyError, TypeError, ValueError):
                         counts['pre_dusk_comparison_unavailable'] += 1
                         scored['pre_dusk_counterfactual'] = None

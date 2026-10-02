@@ -97,3 +97,34 @@ def test_pre_dusk_counterfactual_uses_positive_math_round_half_ties():
     for profile in profiles: profile['drop_pct'] = 15.5
     late['socAtIssuePct'] = 88.
     assert experiment.pre_dusk_counterfactual(record, profiles, late)['candidate_pct'] == 73
+
+
+def phase_comparison_fixture():
+    record, profiles, late = late_fixture()
+    late['sunsetAt'] = '2026-10-02T00:45:00.073215+00:00'
+    for profile in profiles:
+        sunset = datetime.fromisoformat(profile['prediction_day']+'T19:00:00-06:00')
+        profile.update(profile_version='pre-dusk-phase-soc-v1', lead_seconds=4500.,
+            sunset_at=sunset.isoformat(), phase_start_at=(sunset-timedelta(minutes=75)).isoformat(),
+            sunset_persisted_at=(sunset-timedelta(hours=12)).isoformat())
+    return record, profiles, late
+
+
+def test_phase_comparison_is_explicitly_bound_to_original_late_lead():
+    record, profiles, late = phase_comparison_fixture()
+    result = experiment.phase_matched_counterfactual(record, profiles, late)
+    assert result['candidate_pct'] == 73 and result['phase_lead_seconds'] == 4500.
+    assert result['input_phase_starts'] == [p['phase_start_at'] for p in profiles]
+    assert result['profile_basis'] == 'pre-dusk-phase-soc-v1'
+
+
+@pytest.mark.parametrize('damage', ['lead','version','start','late_sunset','sunset_day','future_context'])
+def test_phase_comparison_refuses_mismatched_phase_and_sunset_context(damage):
+    record, profiles, late = phase_comparison_fixture()
+    if damage == 'lead': profiles[0]['lead_seconds'] += 1
+    elif damage == 'version': profiles[0]['profile_version'] = 'sunset-soc-profile-v1'
+    elif damage == 'start': profiles[0]['phase_start_at'] = profiles[0]['sunset_at']
+    elif damage == 'late_sunset': late['sunsetAt'] = late['issuedAt']
+    elif damage == 'sunset_day': profiles[0]['sunset_at'] = profiles[1]['sunset_at']
+    else: profiles[0]['sunset_persisted_at'] = profiles[0]['sunset_at']
+    with pytest.raises(ValueError): experiment.phase_matched_counterfactual(record, profiles, late)

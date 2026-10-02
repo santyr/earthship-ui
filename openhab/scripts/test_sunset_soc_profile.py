@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from sunset_soc_profile import measure, charge_profile
+from sunset_soc_profile import measure, charge_profile, pre_dusk_phase_profile
 from test_qualified_soc_forecast import evidence
 from advisory_windows import trough_window
 
@@ -148,3 +148,86 @@ def test_charge_timing_and_censoring_require_source_qualification(damage):
     elif damage == 'bank': args['epoch_start'] = args['origin']+timedelta(seconds=1)
     else: rows[0] = (rows[0][0], 'x'*4097)
     assert charge_profile(**args) is None
+
+
+def phase_fixture(day=DAY, lead_seconds=4500):
+    args = fixture(day)
+    phase = args['sunset']-timedelta(seconds=lead_seconds)
+    rows = [(at := phase+timedelta(minutes=minute), evidence(at,
+             soc=98 if at < args['sunset'] else 82 if minute == 435 else 96))
+            for minute in range(-1, int((trough_window(day, 'America/Denver').end-phase).total_seconds()/60))]
+    args.update(lead_seconds=lead_seconds, observations=rows)
+    return args
+
+
+def test_pre_dusk_phase_uses_true_sunset_and_includes_earlier_discharge():
+    args = phase_fixture()
+    result = pre_dusk_phase_profile(**args)
+    assert result['profile_version'] == 'pre-dusk-phase-soc-v1'
+    assert result['sunset_at'] == args['sunset'].isoformat()
+    assert result['phase_start_at'] == (args['sunset']-timedelta(minutes=75)).isoformat()
+    assert result['phase_soc_pct'] == 98 and result['sunset_soc_pct'] == 96
+    assert result['trough_soc_pct'] == 82 and result['drop_pct'] == 16
+    assert result['pre_sunset_decline_pct'] == 2
+    assert result['sunset_to_trough_drop_pct'] == 14
+    assert result['coverage'] > .995 and result['canonical_coverage'] > .995
+    assert len(result['evidence_digest']) == 64
+    assert pre_dusk_phase_profile(**args) == result
+
+
+@pytest.mark.parametrize('damage', ['missing_phase', 'missing_sunset', 'coverage',
+    'changed_target', 'duplicate', 'future_row', 'future_context', 'incomplete',
+    'bank_start', 'bank_end'])
+def test_matched_phase_requires_source_and_complete_unchanged_target(damage):
+    args = phase_fixture(); rows = args['observations']
+    if damage == 'missing_phase': args['observations'] = rows[3:]
+    elif damage == 'missing_sunset': args['observations'] = rows[:74]+rows[79:]
+    elif damage == 'coverage': args['observations'] = rows[:150]+rows[170:]
+    elif damage == 'changed_target':
+        at, _ = rows[20]; rows[20] = (at, evidence(at, soc=70))
+    elif damage == 'duplicate': rows.insert(1, rows[0])
+    elif damage == 'future_row': rows.append((args['as_of']+timedelta(seconds=1), '{}'))
+    elif damage == 'future_context': args['sunset_persisted_at'] = args['sunset']
+    elif damage == 'incomplete': args['as_of'] = trough_window(DAY, 'America/Denver').end-timedelta(seconds=1)
+    elif damage == 'bank_start': args['epoch_start'] = args['sunset']-timedelta(seconds=1)
+    else: args['epoch_end'] = args['as_of']-timedelta(hours=1)
+    assert pre_dusk_phase_profile(**args) is None
+
+
+@pytest.mark.parametrize('lead', [3599, 5400, True, float('nan')])
+def test_matched_phase_does_not_accept_an_arbitrary_shifted_sunset(lead):
+    args = phase_fixture(); args['lead_seconds'] = lead
+    with pytest.raises(ValueError): pre_dusk_phase_profile(**args)
+
+
+@pytest.mark.parametrize('day', [date(2026, 3, 7), date(2026, 10, 31)])
+def test_matched_phase_dst_window_uses_actual_elapsed_time(day):
+    assert pre_dusk_phase_profile(**phase_fixture(day))['coverage'] > .995
+
+
+def test_matched_phase_does_not_hide_canonical_gaps_in_a_longer_window():
+    args = phase_fixture()
+    args['observations'] = args['observations'][:200]+args['observations'][206:]
+    sunset_args = {key:value for key,value in args.items() if key != 'lead_seconds'}
+    less_strict = measure(**sunset_args)
+    assert less_strict is not None and less_strict['canonical_coverage'] < .995
+    assert pre_dusk_phase_profile(**args) is None
+
+
+def test_matched_phase_digest_binds_lead_and_raw_rows_and_bounds_stream():
+    args = phase_fixture()
+    original = pre_dusk_phase_profile(**args)
+    args['lead_seconds'] -= 1
+    shifted = pre_dusk_phase_profile(**args)
+    assert shifted['evidence_digest'] != original['evidence_digest']
+    at, _ = args['observations'][2]
+    args['observations'][2] = (at, evidence(at, soc=97))
+    assert pre_dusk_phase_profile(**args)['evidence_digest'] != shifted['evidence_digest']
+    seen = []
+    row = args['observations'][0]
+    def stream():
+        for index in range(20000):
+            seen.append(index)
+            yield row
+    args['observations'] = stream()
+    assert pre_dusk_phase_profile(**args) is None and len(seen) == 10001
