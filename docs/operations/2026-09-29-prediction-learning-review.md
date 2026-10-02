@@ -407,6 +407,38 @@ package path and produced six import-dependent failures; a direct import probe
 confirmed the missing path and the unchanged tests passed after correcting only
 the invocation. No product-code workaround or relaxed evidence gate was added.
 
+### October 2 third completed natural morning/pre-dusk pair
+
+The read-only existing scorer, run with `--day 2026-10-01
+--score-completed-night`, returned `scored_completed_night`. It verified the
+original morning issue at `2026-10-01T12:40:30.513835Z` and pre-dusk issue at
+`2026-10-01T23:30:00.073215Z`, without reconstructing either prediction.
+
+| Same overnight target | Original forecast | Actual minimum | Signed error |
+| --- | --- | --- | --- |
+| Morning | 52% | 72% | -20 percentage points |
+| Pre-dusk | 65% | 72% | -7 percentage points |
+
+The target is `2026-10-02T02:00:00Z`–`2026-10-02T17:00:00Z`, with
+**99.8614485%** qualified source coverage, not 100%. It includes the day of
+the actual production JVM restart; the scorer's strict outcome gate passed,
+but this result does not establish complete-day continuity for other sources.
+Pre-dusk improves absolute error by **13 percentage points**. Outcome digest:
+`71dfd2acd73cc709d7a11bb3c52a927890d3b5f5aae36b0b74f0a5555f9d78de`.
+
+The pre-dusk numeric/receipt persisted at `23:30:00.075Z`/`23:30:00.076Z`.
+Its exact original `BMS_SOC_Evidence_JSON` input persisted at
+`2026-10-01T23:29:14.270052Z`, epoch
+`6b58b416-0c8b-459e-8eca-55f1f83a1831`, source digest
+`edd4b66470ffccb29ee40c6fe627210784a8a67f6450f0b6fe4972f73c224df7`.
+
+Across these three completed targets, pre-dusk errors are 0, -1 and -7 points
+(MAE **2.67 points**) versus morning -28, -18 and -20 (MAE **22 points**).
+This supports retaining the selected pre-dusk estimate, not declaring it
+unbiased or promoting a new fit. Three nights are not seasonal holdout or
+causal reward. Browser selection remains unverified by this reader. No model,
+database, Item, message or equipment write was made by the score check.
+
 ### First as-issued outdoor-temperature comparison
 
 Six fully covered September 20–28 local days had matched 06:40 daily issues.

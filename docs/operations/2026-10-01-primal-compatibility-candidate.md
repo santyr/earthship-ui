@@ -599,6 +599,14 @@ The first bounded inbox check accepted zero replies and reported one relay
 failure (exit 3); no observation or ACK was written. This is a retryable relay
 check, not operator delivery proof or successful end-to-end completion.
 
+At the October 2 20:19Z follow-through, a single bounded poll against the same
+frozen runtime and question again returned `accepted=0`,
+`operator_read_verified=false` and `relay_failures=1` (exit 3). No replacement
+question was sent. The transient unit completed; permanent Primal service and
+timer both still report `LoadState=not-found`, `ActiveState=inactive`. This
+does not identify which relay failed or prove operator non-receipt. Actual
+receipt/authenticated reply remains the next trial gate.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private
