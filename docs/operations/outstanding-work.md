@@ -19,6 +19,24 @@ contains a restart boundary. See
 [exact recovery and activation evidence](2026-10-02-forecast-recovery-and-radiation-activation.md).
 Other October 1 release gates below remain unchanged.
 
+October 2 natural training completed at 07:09:55 MDT after starting at
+06:50:29 (19m26s elapsed; 19m23.462s reported CPU). Accepted/candidate artifact
+canonical SHA `2435c01964842c98829d25499b161b68dfab1d83a389e8b4ce0689eff2391d79`
+matches, with 99,873 samples and the previous October 1 artifact retained.
+The restored 08:14 forecast uses this October 2 artifact and reproduces exactly
+under the installed runtime pin. Promotion means accepted **shadow** artifact:
+confirmed training/evaluation action support is still zero and operational
+graduation thresholds remain unset.
+
+Newly mature October 1 artifact outcomes at the 12-hour horizon score six
+strict original-capture/source-bound pairs: model MAE 2.9315°F, persistence
+2.7600°F, model bias -2.9315°F, three wins each. Only one greedy non-overlapping
+pair is available (model/persistence MAE 4.501/1.800°F). Outdoor forecast bias
+is +9.3833°F in the same pairs; warm outdoor input coexists with cold indoor
+prediction and is not proof of a causal radiation or airflow correction.
+Three remaining targets are not yet due. See
+[October 2 outcomes](2026-09-30-forecast-input-capture.md#october-2-natural-training-and-newly-mature-12-hour-outcomes).
+
 ## Current execution queue — October 1
 
 October 1 approved-release checkpoint: the battery estimator is now live at

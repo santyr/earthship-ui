@@ -1,5 +1,64 @@
 # Exact morning weather-input archive
 
+## October 2 natural training and newly mature 12-hour outcomes
+
+The natural training journal records start at 06:50:29 MDT and successful
+completion at 07:09:55, with 19m23.462s consumed CPU. This is a completed
+pre-reboot invocation, not the empty timestamps reported by the new user
+manager after the host's later boot. Accepted and candidate canonical artifact
+SHA-256 both equal
+`2435c01964842c98829d25499b161b68dfab1d83a389e8b4ce0689eff2391d79`;
+`previous.json` retains October 1's
+`5dc0d548aefe0e60299dab1ae4b71372dc0f95f49f3034ab480f56194fe32be6`.
+The rolling data manifest contains 99,873 samples, from
+`2025-08-28T12:50:29.152925Z` to `2026-10-02T12:50:29.152925Z`.
+The accepted artifact remains `shadow_only=true`, with zero confirmed action
+training rows/evaluation targets and no operational graduation thresholds.
+
+The restored 08:14 forecast's frozen artifact is this new October 2 artifact.
+Exact replay of `20261002T141436Z-b62ec2084fc3986a.json.gz` under installed
+revision `7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`
+returns `exact_as_issued=true`, with output SHA-256
+`b62ec2084fc3986a913088482aa209b89b54647e0a702a8b77698f51ec732e44`.
+This proves reproducibility, not accuracy or graduation.
+
+The separate read-only 12-hour operational audit was restricted to the October
+1 artifact and original captured publications issued within
+`[2026-10-01T15:00:00Z, 2026-10-02T08:00:00Z]`. It scored six mature pairs and
+withheld three not-yet-due targets. Targets use the existing closest hourly
+point within 30 minutes of issue+horizon, not exact elapsed 12-hour targets.
+
+| Statistic | Model | Starting-temperature persistence |
+| --- | --- | --- |
+| Mean absolute error, six overlapping pairs | 2.9315°F | 2.7600°F |
+| Signed mean error | -2.9315°F | +2.1600°F |
+| Paired wins | 3 | 3 |
+| MAE, one greedy non-overlapping pair | 4.501°F | 1.800°F |
+
+All six indoor errors are cold, from -4.501°F to -1.808°F. The corresponding
+outdoor forecast errors are warm, from +6.70°F to +11.16°F, mean +9.3833°F.
+This association does not identify causality: simply reducing outdoor forecast
+temperatures is not demonstrated to correct the indoor cold bias. All observed
+targets lie within the broad modeled intervals (mean width 10.4133°F), which
+also does not establish useful point-forecast accuracy.
+
+Reproduce the bounded, source-bound audit without writes:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --since 2026-10-01T15:00:00Z --until 2026-10-02T08:00:00Z \
+  --require-capture --horizon-hours 12 --include-pairs \
+  --artifact-id 5dc0d548aefe0e60299dab1ae4b71372dc0f95f49f3034ab480f56194fe32be6 \
+  --runtime-root /home/sat/openhab/scripts
+```
+
+Later reruns may mature the remaining targets and therefore change the counts.
+These outcomes strengthen the existing decision to retain shadow mode and
+investigate forcing/action assumptions. No artifact, coefficient, source,
+training label, journal or control was modified by this audit. Durable radiation
+history and the zero-duration shade fix still await their bounded design
+approvals; the truthful signed Primal trial remains separate.
+
 ## Why this is needed
 
 The September 25–29 qualified charge-time/afternoon outcomes can be paired
