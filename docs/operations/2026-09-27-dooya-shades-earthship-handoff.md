@@ -1,5 +1,16 @@
 # Dooya shades: Earthship UI and thermal-learning handoff
 
+## Current inventory — October 2 correction
+
+The operator corrected the total to **26 shades**, with **four** in Bathroom.
+The current catalog is Kitchen 1–8 (8), Living Room 9–17 (9), Bathroom 18–21
+(4), and Bedroom 22–26 (5). The two room-paired views remain unchanged.
+All/zone/individual controls and shared preview use this same inventory; slot
+27 is no longer valid. Hardware Item/RF mappings remain unconfigured, and
+preview movement is not motor evidence or a thermal-learning observation.
+Older dated qualification notes below describe the former 27-slot preview,
+not the current inventory. README screenshots are regenerated for 26 slots.
+
 ## Ownership and present state
 
 The transport adapter remains in the separate
@@ -21,10 +32,10 @@ changed for this UI foundation.
 
 ## Earthship UI foundation
 
-`src/screens/Shades.svelte` adds a sixth primary page with 27 numbered slots,
+`src/screens/Shades.svelte` adds a sixth primary page with 26 numbered slots,
 sized for Lenovo Tab M9 1340×800 and the 1280×720 laptop floor. The owner
-confirmed Kitchen 1–8 and Living Room 9–17 on the first view, Bathroom 18–22
-and Bedroom 23–27 on the second. Cards and zone controls use room names so
+confirmed Kitchen 1–8 and Living Room 9–17 on the first view, Bathroom 18–21
+and Bedroom 22–26 on the second after the October 2 correction. Cards and zone controls use room names so
 operators never need to infer the zone from a number. No individual window
 location or RF ID is guessed. The page shows percent **open** as
 `100 - reported_position`, while preserving the adapter's 0=open, 100=closed
@@ -47,7 +58,7 @@ has no slider thumb or fabricated percentage.
 
 ## Observation and learning path
 
-The purpose of the 27-shade data is to learn when opening or closing a
+The purpose of the 26-shade data is to learn when opening or closing a
 particular window helps heat or cool the Earthship by season, sun position,
 time and environmental conditions. The next implementation stage belongs in
 the Earthship thermal data pipeline, after one-shade hardware qualification:
@@ -87,7 +98,7 @@ the Earthship thermal data pipeline, after one-shade hardware qualification:
    origins and no future report leakage. A proxy sensor is lower-quality
    evidence, not a direct room outcome. The current model
    has one coarse `indoor_shade_closed` feature from manual action history;
-   do **not** silently map 27 motor reports into that binary feature or treat
+   do **not** silently map 26 motor reports into that binary feature or treat
    correlation with weather and human decisions as a proven causal benefit.
 4. Run any future policy in shadow first. Require measured per-shade outcomes,
    confidence and coverage gates, manual override/hold, explicit command

@@ -7,12 +7,12 @@ export const SHADE_GROUPS = Object.freeze([
     temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_kitchen_reference' }),
   Object.freeze({ id: 'living', label: 'Living Room', first: 9, last: 17,
     temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_proxy' }),
-  Object.freeze({ id: 'bathroom', label: 'Bathroom', first: 18, last: 22,
+  Object.freeze({ id: 'bathroom', label: 'Bathroom', first: 18, last: 21,
     temperatureItem: null, temperatureRole: 'unavailable' }),
-  Object.freeze({ id: 'bedroom', label: 'Bedroom', first: 23, last: 27,
+  Object.freeze({ id: 'bedroom', label: 'Bedroom', first: 22, last: 26,
     temperatureItem: null, temperatureRole: 'unavailable' }),
 ]);
-export const SHADE_COUNT = 27;
+export const SHADE_COUNT = 26;
 export const SHADE_VIEWS = Object.freeze([
   Object.freeze({ id: 'living-zones', label: 'Kitchen + Living Room', rooms: Object.freeze(['kitchen', 'living']) }),
   Object.freeze({ id: 'private-zones', label: 'Bathroom + Bedroom', rooms: Object.freeze(['bathroom', 'bedroom']) }),

@@ -11,7 +11,7 @@ describe('shade inventory and report presentation', () => {
   it('permits preview only for the full inventory with no partial or complete Item mappings', () => {
     expect(shadePreviewEnabled(SHADE_SLOTS)).toBe(true);
     expect(shadePreviewEnabled([])).toBe(false);
-    expect(shadePreviewEnabled(SHADE_SLOTS.slice(0, 26))).toBe(false);
+    expect(shadePreviewEnabled(SHADE_SLOTS.slice(0, 25))).toBe(false);
     for (const key of ['positionItem', 'availabilityItem', 'stateItem']) {
       const partial = SHADE_SLOTS.map((slot, index) => index === 0 ? { ...slot, [key]: 'Commissioned_Item' } : slot);
       expect(shadePreviewEnabled(partial)).toBe(false);
@@ -22,16 +22,17 @@ describe('shade inventory and report presentation', () => {
     expect(shadePreviewEnabled(complete)).toBe(false);
   });
 
-  it('reserves 27 unique numbered slots in the operator-approved rooms without guessed mappings', () => {
-    expect(SHADE_COUNT).toBe(27);
+  it('reserves 26 unique numbered slots with four Bathroom controls and five Bedroom controls', () => {
+    expect(SHADE_COUNT).toBe(26);
     expect(SHADE_GROUPS.map((group) => [group.label, group.first, group.last])).toEqual([
-      ['Kitchen', 1, 8], ['Living Room', 9, 17], ['Bathroom', 18, 22], ['Bedroom', 23, 27],
+      ['Kitchen', 1, 8], ['Living Room', 9, 17], ['Bathroom', 18, 21], ['Bedroom', 22, 26],
     ]);
     expect(SHADE_VIEWS.map((view) => view.rooms)).toEqual([['kitchen', 'living'], ['bathroom', 'bedroom']]);
-    expect(SHADE_SLOTS.map((slot) => slot.number)).toEqual(Array.from({ length: 27 }, (_, i) => i + 1));
-    expect(SHADE_GROUPS.map((group) => SHADE_SLOTS.filter((slot) => slot.room === group.id).length)).toEqual([8, 9, 5, 5]);
+    expect(SHADE_SLOTS.map((slot) => slot.number)).toEqual(Array.from({ length: 26 }, (_, i) => i + 1));
+    expect(SHADE_GROUPS.map((group) => SHADE_SLOTS.filter((slot) => slot.room === group.id).length)).toEqual([8, 9, 4, 5]);
     expect(SHADE_SLOTS[8].label).toBe('Living Room Shade 09');
-    expect(SHADE_SLOTS[26].label).toBe('Bedroom Shade 27');
+    expect(SHADE_SLOTS[21].label).toBe('Bedroom Shade 22');
+    expect(SHADE_SLOTS[25].label).toBe('Bedroom Shade 26');
     expect(SHADE_SLOTS.every((slot) => slot.positionItem === null && slot.availabilityItem === null && slot.stateItem === null)).toBe(true);
   });
 

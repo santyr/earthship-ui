@@ -1,5 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 shade inventory correction
+
+The operator corrected the total to 26 shades: Kitchen 1–8 (8), Living Room
+9–17 (9), Bathroom 18–21 (4), Bedroom 22–26 (5). The catalog, all/zone controls,
+shared preview and README screenshots use this inventory. No hardware mapping,
+motor command or thermal observation is inferred from preview state. Older
+September 27 entries describe the former 27-slot preview; see the corrected
+[shade handoff](2026-09-27-dooya-shades-earthship-handoff.md#current-inventory--october-2-correction).
+
 ## October 2 production recovery and radiation activation
 
 Weather/thermal forecast refreshes failed overnight on timeouts and DNS

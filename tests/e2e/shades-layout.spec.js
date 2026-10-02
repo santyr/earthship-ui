@@ -49,8 +49,28 @@ test('Bedroom never borrows the relocated Office Hallway sensor or held Item', a
   await expect(label).toHaveText('Zone temperature pending');
 });
 
+test('shared preview accepts all 26 slots but rejects the removed 27th shade', async ({ request }) => {
+  const headers = { Origin: new URL(baseURL).origin };
+  const valid = await request.post(`${baseURL}api/shades-preview`, {
+    headers, data: { slots: Array.from({ length: 26 }, (_, i) => i + 1), openPercent: 50 },
+  });
+  expect(valid.status()).toBe(200);
+  const snapshot = await valid.json();
+  expect(snapshot.positions).toEqual(Array(26).fill(50));
+  const invalid = await request.post(`${baseURL}api/shades-preview`, {
+    headers, data: { slots: [27], openPercent: 0 },
+  });
+  expect(invalid.status()).toBe(400);
+  const next = await request.post(`${baseURL}api/shades-preview`, {
+    headers, data: { slots: [26], openPercent: 50 },
+  });
+  const unchanged = await next.json();
+  expect(unchanged.positions).toEqual(Array(26).fill(50));
+  expect(unchanged.revision).toBe(snapshot.revision + 1);
+});
+
 for (const target of TARGETS) {
-  test(`${target.name}: 27 local-preview shades fit and never submit movement`, async ({ page }) => {
+  test(`${target.name}: 26 local-preview shades fit and never submit movement`, async ({ page }) => {
     const writes = [];
     const errors = [];
     page.on('request', (request) => { if (request.method() !== 'GET') writes.push(request.url()); });
@@ -62,24 +82,24 @@ for (const target of TARGETS) {
     await page.goto(`${baseURL}#/shades`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: 'Window shades' })).toBeVisible();
-    await expect(page.getByText('27 planned · 0 mapped · 0 reporting')).toBeVisible();
+    await expect(page.getByText('26 planned · 0 mapped · 0 reporting')).toBeVisible();
     await expect(page.getByText(/preview only · no shade commands/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open all' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Close all' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('background-color', 'rgb(76, 113, 132)');
     await expect(page.getByRole('button', { name: 'Open all' })).toHaveCSS('opacity', '1');
     await expect(page.getByRole('button', { name: 'Kitchen + Living Room' })).toHaveCSS('background-color', 'rgb(76, 113, 132)');
-    const master = page.getByRole('article', { name: 'All 27 shades: Local preview' });
+    const master = page.getByRole('article', { name: 'All 26 shades: Local preview' });
     await expect(master).toBeVisible();
     await expect(master.locator('.position-value')).toHaveText(/^(?:\d{1,2}|100)%$/);
-    await expect(page.getByRole('slider', { name: 'All 27 shades local preview percent open' })).toBeEnabled();
+    await expect(page.getByRole('slider', { name: 'All 26 shades local preview percent open' })).toBeEnabled();
     const tones = await page.locator('.zone:first-child .shade-card').evaluateAll((cards) => cards.slice(0, 3)
       .map((card) => getComputedStyle(card).backgroundImage));
     expect(tones[1]).not.toBe(tones[2]);
     expect(await master.evaluate((card) => getComputedStyle(card).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
     for (const [view, zones, count, last] of [
       ['Kitchen + Living Room', ['Kitchen', 'Living Room'], 17, 'Living Room Shade 17'],
-      ['Bathroom + Bedroom', ['Bathroom', 'Bedroom'], 10, 'Bedroom Shade 27'],
+      ['Bathroom + Bedroom', ['Bathroom', 'Bedroom'], 9, 'Bedroom Shade 26'],
     ]) {
       await page.getByRole('button', { name: view }).click();
       await expect(page.locator('.shade-grid .shade-card')).toHaveCount(count + zones.length);
@@ -157,7 +177,10 @@ for (const target of TARGETS) {
     await page.getByRole('button', { name: 'Set shade percentage' }).click();
     const editor = page.getByRole('dialog', { name: 'Set shade percentage' });
     await expect(editor).toBeVisible();
-    await expect(editor.locator('option')).toHaveCount(32);
+    await expect(editor.locator('option')).toHaveCount(31);
+    await expect(editor.getByRole('option', { name: 'Bathroom (all 4)', exact: true })).toHaveCount(1);
+    await expect(editor.getByRole('option', { name: 'Bedroom Shade 22', exact: true })).toHaveCount(1);
+    await expect(editor.getByRole('option', { name: 'Bedroom Shade 27', exact: true })).toHaveCount(0);
     const editorGeometry = await editor.evaluate((element) => {
       const box = element.getBoundingClientRect();
       return { right: box.right, bottom: box.bottom, left: box.left, top: box.top,
@@ -192,11 +215,11 @@ test('preview sliders update individual, zone and all positions without shade co
     slider.dispatchEvent(new Event('input', { bubbles: true }));
     slider.dispatchEvent(new Event('change', { bubbles: true }));
   }, value);
-  const master = page.getByRole('article', { name: 'All 27 shades: Local preview' });
+  const master = page.getByRole('article', { name: 'All 26 shades: Local preview' });
   const kitchen = page.getByRole('article', { name: 'Kitchen Shade 01: Local preview' });
   const living = page.getByRole('article', { name: 'Living Room Shade 09: Local preview' });
 
-  await setRange('All 27 shades local preview percent open', 76);
+  await setRange('All 26 shades local preview percent open', 76);
   await expect(master.locator('.position-value')).toHaveText('76%');
   await expect(kitchen.locator('.position-value')).toHaveText('76%');
   await expect(living.locator('.position-value')).toHaveText('76%');
@@ -212,7 +235,7 @@ test('preview sliders update individual, zone and all positions without shade co
   await expect(page.getByRole('article', { name: 'Kitchen Shade 08: Local preview' }).locator('.position-value')).toHaveText('25%');
   await expect(living.locator('.position-value')).toHaveText('76%');
 
-  await setRange('All 27 shades local preview percent open', 100);
+  await setRange('All 26 shades local preview percent open', 100);
   await expect(master.locator('.position-value')).toHaveText('100%');
   await expect(kitchen.locator('.position-value')).toHaveText('100%');
   await expect(living.locator('.position-value')).toHaveText('100%');
@@ -232,7 +255,7 @@ test('preview sliders update individual, zone and all positions without shade co
   await expect(openAll).toHaveClass(/pressed/);
   await expect(master.locator('.position-value')).toHaveText('100%');
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('article', { name: 'All 27 shades: Local preview' }).locator('.position-value')).toHaveText('100%');
+  await expect(page.getByRole('article', { name: 'All 26 shades: Local preview' }).locator('.position-value')).toHaveText('100%');
   expect(writes).toEqual([]);
 });
 
@@ -349,7 +372,7 @@ test('preview positions synchronize between separate tablet and laptop clients',
   expect(invalidStatus).toBe(400);
   await expect(kitchenB.locator('.position-value')).toHaveText('61%');
   await b.getByRole('button', { name: 'Open all' }).click();
-  await expect(a.getByRole('article', { name: 'All 27 shades: Local preview' }).locator('.position-value')).toHaveText('100%');
+  await expect(a.getByRole('article', { name: 'All 26 shades: Local preview' }).locator('.position-value')).toHaveText('100%');
   await expect(kitchenA.locator('.position-value')).toHaveText('100%');
   await expect(a.getByRole('article', { name: 'Living Room Shade 09: Local preview' }).locator('.position-value')).toHaveText('100%');
   expect(actualCommands).toEqual([]);

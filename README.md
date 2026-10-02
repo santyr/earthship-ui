@@ -52,10 +52,12 @@ hardware commands.
 
 [![Shade percentage preview editor](docs/screenshots/shades-percentage-editor.png)](docs/screenshots/shades-percentage-editor.png)
 
-The 27 shade slots and their all/zone/individual controls are preview-only
+The 26 shade slots and their all/zone/individual controls are preview-only
 until hardware is mapped and commissioned. **Set %** selects an individual,
 room, or all shades for exact percent-open entry, five-point steps, or full
 open/close. Apply changes only the shared preview; Cancel leaves it unchanged.
+Kitchen has 8 shades (1–8), Living Room 9 (9–17), Bathroom 4 (18–21),
+and Bedroom 5 (22–26).
 Regenerate these three images with
 `node scripts/capture-shades-screenshots.mjs`.
 
