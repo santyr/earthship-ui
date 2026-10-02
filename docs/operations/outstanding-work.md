@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 next file-first candidate: Astro Moon Thing
+
+The managed Astro Moon Thing now has a staged exact site/cadence declaration;
+the installed 5.2.1 offline parser accepts it and rejects malformed input.
+Current dependent inventory is 28 Items across 27 of 34 channels. The Moon
+icon enters the greywater-input sky writer, but actual live-script VM testing
+of 90 Moon-fault combinations shows it cannot change eligibility condition;
+the adjacent source suite passes 96 tests. This does not complete dynamic
+consumer or protected-control recovery review. Effective isolated provider,
+restart/rollback and all dependent history checks remain before a guarded
+attended handoff. Production Thing ownership is unchanged; no deployment,
+restart or premature manifest declaration. See
+[exact next candidate and release gates](2026-10-02-astro-moon-thing-candidate.md).
+
 ## October 2 later thermal outcomes and weather-only attribution
 
 The current artifact now has four qualified near-one-hour pairs (model MAE

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(new URL('../openhab/file-config/automation/js/sky-condition-calculator.js', import.meta.url), 'utf8');
 const NOW = Date.parse('2026-09-29T11:30:00Z');
 
-function runRule(overrides = {}) {
+function runRule(overrides = {}, missingItems = []) {
   const states = {
     Sun_SunPhaseName: 'DAY',
     Sun_TotalRadiation: '100 W/m²',
@@ -28,7 +28,7 @@ function runRule(overrides = {}) {
   }
   const items = {
     getItem(name) {
-      if (!(name in states)) throw new Error(`unexpected Item ${name}`);
+      if (!(name in states) || missingItems.includes(name)) throw new Error(`unexpected Item ${name}`);
       return {
         state: states[name],
         postUpdate(value) { updates.push([name, value]); states[name] = value; },
@@ -81,6 +81,31 @@ describe('staged file-backed sky-condition rule', () => {
     expect(states.SkyCondition).toBe('NIGHT');
     expect(states.SkyConditionIcon).toBe('iconify:mdi:moon-waning-crescent');
   });
+
+  const moonFaultCases = ['DAY', 'NIGHT', 'UNKNOWN'].flatMap(phase =>
+    ['0 W/m²', '50 W/m²', '100 W/m²'].flatMap(radiation =>
+      ['OK', 'STALE'].flatMap(health =>
+        ['iconify:mdi:moon-full', 'NULL', 'UNDEF', '', 'missing'].map(moon =>
+          [phase, radiation, health, moon]))));
+
+  it.each(moonFaultCases)('Moon input cannot alter control condition: %s / %s / %s / %s',
+    (phase, radiation, health, moon) => {
+      const inputs = {
+        Sun_SunPhaseName: phase,
+        AmbientWeatherWS2902A_SolarRadiation: radiation,
+        WeatherData_HealthStatus: health,
+      };
+      const baseline = runRule(inputs);
+      const result = runRule({ ...inputs, MoonPhaseicon: moon },
+        moon === 'missing' ? ['MoonPhaseicon'] : []);
+      expect(result.states.SkyCondition).toBe(baseline.states.SkyCondition);
+      expect(result.updates.every(([name]) => [
+        'SkyCondition', 'SkyConditionIcon', 'SkyCondition_LastEval', 'SkyCondition_Diagnostic',
+      ].includes(name))).toBe(true);
+      if (phase === 'NIGHT' && moon !== 'iconify:mdi:moon-full') {
+        expect(result.states.SkyConditionIcon).toBe('iconify:mdi:weather-night');
+      }
+    });
 
   it('marks aged weather stale and accepts a fresh degraded station', () => {
     expect(runRule({ WeatherData_WH65B_AgeSeconds: '181 s' }).states.SkyCondition).toBe('STALE');

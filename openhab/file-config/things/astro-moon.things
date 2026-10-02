@@ -1,0 +1,6 @@
+// Staged only: do not install while astro:moon:local remains managed.
+// Preserve the existing site and five-minute cadence; channels use binding defaults.
+Thing astro:moon:local "Moon" [
+    geolocation="38.3739919,-105.7744609",
+    interval=300
+]

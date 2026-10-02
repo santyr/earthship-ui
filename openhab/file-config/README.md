@@ -98,6 +98,14 @@ copies; see the [production receipt](../../docs/operations/2026-10-02-display-pr
 
 ## Staged migration and rollback
 
+`things/astro-moon.things` is **staged, uninstalled**. It preserves the managed
+Moon Thing's exact site/cadence and default channels; the version-matched offline
+parser accepts it. Ninety no-hardware cases qualify the Moon icon's current
+sky-rule path, but dynamic-consumer review, effective provider/restart/rollback,
+all 28 dependent Item/history checks and an exact guarded live plan remain.
+There is no premature Thing ownership declaration. See the
+[Moon Thing candidate](../../docs/operations/2026-10-02-astro-moon-thing-candidate.md).
+
 `items/moon-phase-readings.items` is **live, verified file-owned** for
 `Moon_MoonPhaseName` and `Moon_MoonIllumination` only. Their labels, semantic
 membership, fractional illumination unit `one` and exact existing link profiles
