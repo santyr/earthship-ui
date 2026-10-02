@@ -1,5 +1,89 @@
 # Exact morning weather-input archive
 
+## October 2 later mature outcomes and qualified-weather attribution
+
+At `2026-10-02T22:16:30.024515Z`, a bounded GET/SELECT-only multi-horizon
+audit scored the current accepted artifact
+`2435c01964842c98829d25499b161b68dfab1d83a389e8b4ce0689eff2391d79`.
+It fetched five original publications since 14:00Z once, cached original
+capture verification, and retained receipt-qualified source clocks. No later
+artifact or weather fetch replaces original inputs. Targets remain the existing
+nearest hourly point within 30 minutes of issue+horizon, **not exact elapsed
+horizons**. Missing/future outcomes are withheld.
+
+| Horizon | Mature overlapping pairs | Model MAE °F | Persistence MAE °F | Non-overlapping pairs / model MAE °F |
+| --- | ---: | ---: | ---: | --- |
+| Near 1 hour | 4 | 0.8145 | 2.3850 | 4 / 0.8145 |
+| Near 6 hours | 2 | 0.3820 | 12.4200 | 1 / 0.1180 |
+| Near 12 hours | 0 | unavailable | unavailable | 0 / unavailable |
+
+The second six-hour pair was issued at `15:32:11.579258Z`, targeting
+`22:00:00Z`: indoor model error **+0.646°F**, persistence **-12.600°F**, and
+outdoor forecast error **+0.060°F**. Both six-hour outcomes overlap; their
+MAE does not represent two independent days. Four short-horizon pairs split
+three model wins and one persistence win. They also show changing weather-error
+signs (+4.40, -4.32, -2.72 and -1.96°F), not one constant outdoor bias.
+All scored intervals cover their outcomes but remain about 10.414°F wide.
+Low confidence, absent confirmed-action evaluation and unspecified operational
+graduation thresholds remain; there is no model graduation or coefficient fit.
+
+### Retrospective observed-outdoor-only counterfactual
+
+The largest previously scored cold miss was examined more directly than a
+uniform temperature-offset hypothesis. The original October 1
+`20261001T150530Z-25496c123c0be79f.json.gz` capture first replayed **exactly**
+under a private, temporary reconstruction of its original full runtime pin
+`7f57eb3f00dcc13e09958d6200d99e0ff172be48c5659ad660de22e90bd19095`.
+Only the code-only diagnostic copy used the retained pre-correction behavior
+module; installed source and the accepted artifact were untouched.
+
+The experiment copied `forecast_rows` in memory and replaced only `tempF`
+at the 13 hourly timestamps from the origin's lower interpolation bracket
+(`2026-10-01T15:00:00Z`) through the mature target (`2026-10-02T03:00:00Z`).
+Every replacement comes from the existing strict outdoor reader and passes its
+closed receipt/identity/expiry contract at that timestamp. The qualified indoor
+target is independently validated. Current observations, embedded artifact,
+weather timestamps, solar radiation and all other forcing fields stay exact;
+later unelapsed temperatures remain the original forecast. Interpolation
+between hourly observations is still modeled, not measured five-minute forcing.
+
+This is explicitly **retrospective**: later observations were not available
+at original issue and cannot be used as an as-issued forecast, training/action
+label, learned correction or live publication. The comparison includes modeled
+schedule reselection, but selected schedules happen to remain unchanged here.
+
+| Target result | Temperature / error °F |
+| --- | ---: |
+| Qualified indoor outcome | 68.540 |
+| Original indoor prediction | 64.039 / -4.501 |
+| Observed-outdoor-only counterfactual | 63.743 / -4.797 |
+| Change from original prediction | -0.296 |
+
+The hourly original outdoor errors vary from **-6.64 to +9.24°F**; the
+target-hour error alone (+6.70°F) does not describe the entire forcing path.
+Using qualified outdoor measurements at every hourly bracket does **not**
+remove this case's indoor cold bias. It therefore does not justify an
+outdoor-temperature-only indoor correction. It also does not identify which
+solar/shade/airflow/mass/internal-gain coefficient is wrong: those inputs and
+states have not been independently observed throughout this window.
+
+Assessment: `2026-10-02T22:19:26.580143Z`.
+Original output SHA:
+`25496c123c0be79f021e4858fb6dfe93f04cf106fdbb07dd2a594c6e1994de89`.
+Original artifact SHA:
+`5dc0d548aefe0e60299dab1ae4b71372dc0f95f49f3034ab480f56194fe32be6`.
+The exact original output/artifact references, target timestamp and 13 outdoor
+plus one indoor receipt objects are bound by canonical, sorted compact JSON
+(aware datetime values serialized with `isoformat`) SHA
+`110caa2513fd021a84b97dccc7e8e326e76a6fa1694768b1fae3172e067b30f0`.
+No original archive, journal, SQLite database, SQL row, service, Item, artifact
+or coefficient was written. The owned temporary replay directory was removed.
+
+The existing original-publication scoring and exact-replay regression suites
+pass **57 tests in 0.61 seconds**, with no skips. Task-owned fixtures were
+removed and pytest cache/bytecode generation stayed disabled. This is validation
+of those existing contracts, not a new production model or whole-project audit.
+
 ## October 2 completed targets and offline temperature sensitivity
 
 The existing read-only audit was rerun after all nine original October 1
