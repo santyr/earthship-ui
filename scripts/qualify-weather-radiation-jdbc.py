@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real file-owned HTTP/JDBC and restart tests in disconnected containers only."""
 import importlib.util
+import argparse
 import io
 import json
 from pathlib import Path
@@ -138,7 +139,8 @@ class RadiationDatabase(jdbc.Database):
         assert json.loads(self.current(container, header))['record']['receivedAt']==original['record']['receivedAt']
         print('original_receipt_and_unchanged_poll_history=verified', flush=True)
 
-        expired = {**original, 'record': invalid(original['record'], 'expired')}
+        expired = {**original, 'faultCount': original['faultCount'] + 1,
+                   'record': invalid(original['record'], 'expired')}
         invalid_body = self.write_source(container, expired)
         wait(lambda: self.received(container, header, invalid_body), 'expiry barrier JDBC')
         # Restore the actual producer's fresh source; no synthetic Item PUT.
@@ -193,7 +195,9 @@ class RadiationDatabase(jdbc.Database):
         print('radiation_jvm_restart_exact_history_and_new_source=verified', flush=True)
 
 
-def main():
+def main(argv=None):
+    # A help/invalid invocation must not start the minutes-long container fixture.
+    argparse.ArgumentParser(description=__doc__).parse_args(argv)
     assert ITEM_SOURCE.is_file() and THING_SOURCE.is_file(), 'radiation collection definitions missing'
     with RadiationDatabase() as database:
         jdbc.provider.main(database)

@@ -1,5 +1,21 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 strict radiation reader and live fault visibility
+
+The native 16-second/HTTP 30-second cadence can overwrite an invalid packet
+between polls. A regression-tested v2 cumulative fault counter now preserves
+that uncertainty without faster polling. Only the radiation receiver module
+was deployed through a guarded, user-owned Gunicorn graceful reload; all four
+temperatures/rain recovered and OpenHAB stayed at PID 1696. Original v2 receipts
+persist naturally in Item 664 from `2026-10-02T20:00:09.206165Z`; old v1 history
+is retained. The strict SELECT-only as-of/window/day reader is implemented,
+withheld the apparently covered but unverified old v1 total, and qualified a
+short actual v2 window. All 312 weather/qualifier-CLI tests and the
+real isolated HTTP/JDBC restore/fault rehearsal pass. No forecast publication,
+learner or household control was activated. Complete clean days and later
+evidence-gated integration remain open; see
+[strict reader and v2 deployment](2026-10-02-radiation-history-and-shade-collision.md#strict-reader-and-v2-fault-visibility--october-2).
+
 ## October 2 attended Primal question
 
 The operator clarified a physical all-indoor-shades closure at 12:30 MDT,
@@ -227,7 +243,7 @@ runtime/evidence before treating any earlier “pending” statement as current.
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; Moon actual rollback/history/natural source gates pass. Current inventory has zero issues, but 380 Items/80 Things/37 rules remain managed. | Qualify complete, clean source days and continue individually qualified migration. Moon restart recovery remains provisional; do not repeat the completed `gForecast` restart or authorize general protected-control work. |
 | Supporting Energy quality | September 30 auxiliary/switch sources pass 100%-coverage strict checks and seven temperature changes match. Actual October 2 JVM unavailable barriers and native recovery now pass. October 1 has small BMS/switch gaps and remains partial; all 30 temperature changes match, and the combined dry-run withholds affected load totals. Disposable original-row SQL recovery passes. Separate qualified AC v4 accounting is unchanged. | Finish independent physical-fault qualification, then the exact reversible user-level switch/BMS quality release and next natural aggregate/UI verification. Do not conceal current optional switch warnings, rewrite older snapshots or request completed grants again. |
-| Radiation collection | Natural station-206 raw-lux capture and file-owned READONLY Item/Thing history are live at unique JDBC Item 664. Strict decoder-based 120-second expiry is unchanged; isolated HTTP-fault, JVM restore and fresh-recovery checks pass. The approved restricted SELECT grant is applied and verified without write privileges. October 2 is partial. | Implement the strict read-only interval/day consumer; assess the first possible complete day (October 3) after October 4 local midnight. Production restart continuity and later learning remain separate gates. Never backfill from held numeric radiation or the unrelated latest-only exporter. |
+| Radiation collection | Natural v2 station-206 capture/file-owned history is live at Item 664 with unchanged decoder-based 120-second expiry. Cumulative faults preserve between-poll invalid/expiry evidence. The strict SELECT-only point/window/DST-day reader is implemented; a real short v2 window qualifies, while v1 diagnostic totals stay withheld. Isolated HTTP-fault/JVM restore and restricted SQL tests pass; old history and read-only grants are unchanged. October 2 remains partial. | Assess the first possible complete clean v2 day (October 3) after October 4 midnight and its closing receipt. Qualify production JVM continuity and integrate only evidence-gated learning. Never backfill or relabel old v1, held numeric radiation or the unrelated latest-only exporter as clean v2 evidence. |
 | Shades and recovery | 26 preview slots and zone controls are live: Kitchen 1–8, Living Room 9–17, Bathroom 18–21, Bedroom 22–26. Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
 September 30 20:15 MDT post-update battery-runtime discharge evidence closes

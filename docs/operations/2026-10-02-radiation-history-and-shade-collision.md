@@ -145,3 +145,83 @@ partial: the receiver restarted at 08:16 MDT and durable history began at
 October 4 local midnight if source continuity passes. Neither held numeric
 radiation nor HTTP polling may backfill missing source evidence. Production
 restart continuity and learning remain separate gates.
+
+## Strict reader and v2 fault visibility — October 2
+
+Natural native radiation arrives about every 16 seconds, versus the unchanged
+30-second HTTP poll. Legitimate sequence jumps therefore cannot by themselves
+prove a missed fault: an invalid packet could be overwritten by the next valid
+packet before OpenHAB reads it. The v2 envelope adds cumulative `faultCount`;
+the original nested source record remains v1. Invalid selected-source packets
+and expiry each count once. Expiry is checked before a new packet can overwrite
+it, not only on GET. Counters reset only with a visible new receiver epoch.
+Unchanged GETs/duplicates still cannot renew source time, expiry or sequence.
+
+`weather_radiation_reader.py` now provides pure strict as-of and elapsed-window
+qualification with a one-pass uncertainty sweep; `weather_radiation_history.py` supplies bounded SELECT-only
+Item-name mapping and stable SQL reads, plus completed local-day/DST handling.
+Explicit policy, original source/cutover times, exact conversion, finite numbers,
+closed JSON schemas, canonical epochs and monotonic native/counter progress are
+required. Malformed/NULL/oversized rows, source replays, expiry and restart stay
+barriers. Hidden faults conservatively invalidate time since the preceding
+source observation; recovery never backfills those intervals.
+
+Clean totals additionally require a valid native closing receipt at/past end,
+within one TTL and the assessment time. Post-window values never contribute to
+the integral. Valid v2 downsampling with unchanged fault count is supported;
+legacy v1 remains diagnostic-only/unverified. Partial windows expose no qualified
+total. The integral is explicitly **persisted sample-and-hold lux-derived
+irradiance proxy in Wh/m²**, not calibrated radiation or PV kWh. Imports do not
+connect, publish, train or activate a service.
+
+Four new receiver regressions failed before their respective fixes. The final
+complete weather/qualifier-CLI slice passed **312 tests in 11.64 seconds**, with no skips,
+including actual restricted PostgreSQL permission/timeout/mapping barriers,
+23/25-hour DST days and unchanged existing temperature/rain/legacy responses.
+A separate 2,001-receipt overlapping-fault regression passes with exact gap
+accounting; the sweep avoids quadratic rescanning of every fault at every sample.
+The real disconnected OpenHAB/PostgreSQL HTTP/JDBC qualifier passed unchanged
+poll, v2 expiry, HTTP fault/recovery, provider withdrawal/history preservation
+and HTTP-unavailable JVM restore/new receipt checks; owned containers/storage
+were removed. This proves the v2 transport contract, not production JVM or
+whole-host recovery. Its entrypoint previously ignored `--help` and launched the
+fixture; argument parsing now exits before allocation, with two passing CLI
+regressions. No repeated full fixture was needed for that CLI-only correction.
+
+A bounded live pre-upgrade read under `energy_power_reader` returned 900 seconds
+of apparent coverage but correctly marked v1 fault visibility/closing evidence
+unverified and withheld its total. No old history is relabelled clean.
+
+Only `/home/sat/bin/weather_radiation_receiver.py` was installed. Exact preimage
+`c4ff6cdede9ae9448c57d7223be106687c0fcc4206fd64b08201221a50e2a550`
+is retained mode 0600 under private rollback directory
+`/home/sat/.local/state/weather-radiation-v2-rollback-IDkZQY73`.
+Candidate/deployed SHA-256 is
+`9f49e459fbc0ef4c984c144691bc87825c4f0a723910565d4702e980548bcc92`.
+The sudo restart was unavailable; its guarded failure path restored the exact
+preimage without stopping the running service. The actual installed Gunicorn
+20.1.0 HUP handler was inspected, then the exact sat-owned master was gracefully
+reloaded after guarded candidate installation. OpenHAB PID 1696 and weather
+master PID 80148 remain active/unchanged; no radio restart or unit/policy edits.
+Unchanged wrapper, temperature and rain source pins were verified before apply.
+
+All four temperature streams, rain and natural v2 radiation recovered with new
+radiation epoch `c75b060e-09dc-4637-8b03-8e26a951dba3`, fault count zero.
+First natural v2 JDBC receipt is **`2026-10-02T20:00:09.206165Z`**; the unique
+file-owned Item/table remains **664 / `public.item0664`**, with old v1 rows still
+present. Four advancing v2 rows passed a restricted-reader check. The elapsed
+`20:00:39.206669Z`–`20:01:09.206002Z` interval qualifies at 29.999333/29.999333
+seconds, with original input digest
+`571b6c8c19f9a85a825302dff97b6b41d39046a87c2799dd53131fe8fd79cb61`.
+Its 5.064637393725 Wh/m² proxy is a read-only diagnostic, not published or used
+for training. SQL/persistence strategy, grants, Item/Thing definitions and all
+forecast/model/control release gates are unchanged.
+
+October 2 is still partial. October 3 remains the first possible complete clean
+v2 day, assessable after October 4 midnight plus its natural closing receipt.
+The strict reader is source-ready and manually verified, not installed into a
+live learner. Complete-day and production JVM continuity qualification, then
+explicit evidence-gated learner integration remain next. Rollback must guard
+the deployed candidate hash, atomically restore the retained preimage and
+gracefully reload the currently verified sat-owned weather master; preserve
+all v1/v2 JDBC history and recognize the new epoch/collection gap.

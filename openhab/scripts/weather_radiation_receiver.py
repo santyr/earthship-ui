@@ -32,6 +32,7 @@ class RadiationCollector:
             self.expires_tick = None
             self.last_at = self.last_tick = None
             self.sequence = 0
+            self.fault_count = 0
             # Preserve the source high-water mark across capture/clock faults:
             # an old HTTP replay cannot recover a previously invalidated value.
 
@@ -52,6 +53,7 @@ class RadiationCollector:
     def observe(self, packet):
         with self.lock:
             at, tick = self._now()
+            self._expire(at, tick)  # Preserve an unpolled outage before replacement.
             record = radiation_receipt(packet, policy=self.policy,
                                        stream_epoch=self.epoch, received_at=at)
             if record is None:
@@ -72,19 +74,26 @@ class RadiationCollector:
                   and record['radioDecodedAt'] == self.highwater):
                 return
             self.sequence += 1
+            if record['status'] != 'valid':
+                self.fault_count += 1
             self.record = {**record, 'sequence': self.sequence}
             self.received_tick = tick
             self.expires_tick = (tick + (datetime.fromisoformat(record['validUntil']) - at).total_seconds()
                                  if record['status'] == 'valid' else None)
 
+    def _expire(self, at, tick):
+        if self.record is not None and self.record['status'] == 'valid':
+            deadline = datetime.fromisoformat(self.record['validUntil'])
+            if at >= deadline or tick >= self.expires_tick:
+                self.record = invalid(self.record, 'expired')
+                self.fault_count += 1
+
     def snapshot(self):
         with self.lock:
             at, tick = self._now()
-            if self.record is not None and self.record['status'] == 'valid':
-                deadline = datetime.fromisoformat(self.record['validUntil'])
-                if at >= deadline or tick >= self.expires_tick:
-                    self.record = invalid(self.record, 'expired')
-            return {'version': 1, 'streamEpoch': self.epoch, 'sequence': self.sequence,
+            self._expire(at, tick)
+            return {'version': 2, 'streamEpoch': self.epoch, 'sequence': self.sequence,
+                    'faultCount': self.fault_count,
                     'record': deepcopy(self.record)}
 
 

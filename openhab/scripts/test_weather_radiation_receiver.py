@@ -48,6 +48,57 @@ def test_new_same_value_packet_advances_original_receipt_not_cached_value():
     assert state['record']['irradianceWm2'] == 100
 
 
+def test_fault_overwritten_between_polls_remains_visible():
+    collector, now, ticks, _ = collector_fixture()
+    collector.observe(packet())
+    first = collector.snapshot()
+    collector.observe(packet(light_lux=None))  # Not polled by OpenHAB.
+    now[0] += timedelta(seconds=16)
+    ticks[0] += 16
+    collector.observe(packet(radio_decode_utc='2026-10-01 12:00:16'))
+    recovered = collector.snapshot()
+    assert recovered['version'] == 2
+    assert first['faultCount'] == 0 and recovered['faultCount'] == 1
+    assert recovered['sequence'] == 3 and recovered['record']['status'] == 'valid'
+
+
+def test_expiry_counts_once_without_new_source_time_or_sequence():
+    collector, now, ticks, _ = collector_fixture()
+    collector.observe(packet())
+    original = collector.snapshot()
+    now[0] += timedelta(seconds=120)
+    ticks[0] += 120
+    expired = collector.snapshot()
+    assert expired['faultCount'] == 1
+    assert expired['sequence'] == original['sequence']
+    assert expired['record']['recordedAt'] == original['record']['recordedAt']
+    assert collector.snapshot() == expired
+    collector.observe(packet())
+    assert collector.snapshot() == expired
+
+
+def test_fault_count_resets_only_with_visible_epoch_change():
+    collector, _, _, pid = collector_fixture()
+    collector.observe(packet(light_lux=None))
+    before = collector.snapshot()
+    assert before['faultCount'] == 1
+    pid[0] += 1
+    after = collector.snapshot()
+    assert after['streamEpoch'] != before['streamEpoch']
+    assert after['faultCount'] == after['sequence'] == 0 and after['record'] is None
+
+
+def test_unpolled_expiry_is_counted_before_new_packet_overwrites_it():
+    collector, now, ticks, _ = collector_fixture()
+    collector.observe(packet())
+    now[0] += timedelta(seconds=121)
+    ticks[0] += 121
+    collector.observe(packet(radio_decode_utc='2026-10-01 12:02:01'))
+    current = collector.snapshot()
+    assert current['record']['status'] == 'valid' and current['sequence'] == 2
+    assert current['faultCount'] == 1
+
+
 @pytest.mark.parametrize('changes,reason', [
     ({'radio_decode_utc': '2026-10-01 11:59:59'}, 'source_time_regressed'),
     ({'light_lux': '25340', 'solarradiation': '200'}, 'source_time_conflict'),
