@@ -174,8 +174,16 @@ class RadiationDatabase(jdbc.Database):
         print('file_item_link_recovery_and_history_prefix=verified', flush=True)
 
     def restart(self, container, header):
+        # Keep the real HTTP source unavailable across restart so an ordinary
+        # poll cannot impersonate restoreOnStartup with the identical payload.
+        self.write_source(container, {}, status=503)
+        jdbc.run(['docker', 'exec', container, 'rm', '-f',
+                  '/tmp/radiation-http-last-status'])
         super().restart(container, header)
         wait(lambda: self.definitions(container, header), 'post-restart definitions')
+        wait(lambda: jdbc.run(['docker', 'exec', container, 'cat',
+                              '/tmp/radiation-http-last-status']).strip()==b'503',
+             'post-restart source remains unavailable')
         wait(lambda: self.current(container, header)==self.radiation_body,
              'restart restores exact old source receipt, not fresh timestamps')
         assert self.rows(container, header)[:len(self.radiation_prefix)]==self.radiation_prefix
