@@ -607,6 +607,14 @@ timer both still report `LoadState=not-found`, `ActiveState=inactive`. This
 does not identify which relay failed or prove operator non-receipt. Actual
 receipt/authenticated reply remains the next trial gate.
 
+The October 2 21:18Z forecast-work follow-through performed one further bounded
+poll, preserving the frozen runtime and existing question. It returned
+`accepted=0`, `operator_read_verified=false`, `relay_failures=1` and
+`withheld=1` (exit 3), with one pending inbox refusal and next retry at
+`2026-10-02T21:23:07Z`. No replacement question or recurring listener was
+started. Post-check permanent service/timer states remain not-found/inactive.
+This is an unresolved authenticated-reply gate, not proof of client receipt.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private

@@ -5,6 +5,80 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 2 completed PV, charge and selected pre-dusk comparison
+
+The read-only October 1 join retains the original morning weather issue
+`2026-10-01T12:40:30.513835Z`, its exact archived raw-weather digest
+`ea7bac6fb4a7435bb80f4e72fd967da9191aa3a7a6c0549005693509ab6c72e7`,
+and the original public prediction receipt. Its SoC assessment is separately
+`12:40:30.519Z`, slightly later than the weather issue; do not backdate it.
+The source-qualified native MPPT daily outcome is **6.697 kWh**, with
+99.939745% coverage and 2,020 receipts. The original **6.58 kWh** forecast
+misses by -0.117 kWh (-1.75%). Original forecast radiation is 18.21 MJ/m²
+(5.058333 kWh/m²); resource gain 1.3 gives 6.576 kWh, the limiting branch.
+The retained diagnostics give direct demand 5.403 kWh, charge deficit
+6.683 kWh and combined demand 12.086 kWh.
+
+The earlier exploratory resource-gain/direct-demand pair 2.45/4.1, which
+looked useful on September 29, instead predicts **10.78 kWh** from the
+same October 1 inputs: +4.083 kWh, approximately +61%. This rejects a
+blanket coefficient increase, not a causal conclusion about PV production.
+The qualified PV calibration release remains false.
+
+Independent inverter-only qualified AC integration measures 5.857844 kWh
+for the full day (99.930279% coverage), including 1.197069 kWh before
+the morning SoC assessment, **3.154324 kWh from that assessment to the
+original Astro sunset** (99.996247% coverage), and 1.506450 kWh afterward.
+The 16,664 source-qualified intervals have tuple digest
+`15992f44a99a08a9561dfc5c6bf2bdbe5412e3e5ae73a5b5007c8f53a7b3637b`.
+AC load is a useful timing covariate, **not** interchangeable with DC
+direct demand. No conversion efficiency or battery energy balance is inferred.
+
+The larger October 1 forecast miss is dusk SoC: **74.458% estimated versus
+87% measured at the original sunset**, from 69% at the morning origin.
+There was no reported 100% before sunset. The completed charge profile
+has 99.991455% coverage and digest
+`75123d3a977e57e9b57062005b259e6592578db60f8bc51bd7541bfdd35a9765`.
+September 30 likewise had no full-charge report: morning 85%, sunset 83%,
+99.991549% coverage, digest
+`749c29ae2e6fe5efec9c3324e5d510858aeb3d0d5a77ce1cae792a90d2e08c6f`.
+The bounded September 25–October 1 replay now has **seven** qualified
+charge profiles: four reported-full outcomes and three right-censored
+no-full outcomes. An intelligent scheduler cannot always wait for 100%.
+
+The source-only `scripts/experiment-sunset-soc-drop.py --include-pre-dusk`
+now reuses the existing strict original morning/late/numeric/native-source
+qualification chain. It substitutes measured prior sunset-to-trough drops
+only, keeps the original three selected prior dates and cloud penalty,
+and preserves the actual late SoC and positive-half-up rounding. Prior
+profiles must be unique, newest-first, within the original four-day selection
+window, available by the original morning, and at least 99.5% covered.
+Later actual troughs are used only for scoring, never candidate inputs.
+
+| Prediction day | Original late SoC | Original drop | Candidate drop | Original trough | Candidate trough | Actual trough |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sep 29 | 99% | 18.333 pp | 16.000 pp | 81% | 83% | 81% |
+| Sep 30 | 85% | 21.000 pp | 14.667 pp | 64% | 70% | 65% |
+| Oct 1 | 87% | 22.000 pp | 15.333 pp | 65% | 72% | 72% |
+
+The original selected pre-dusk MAE is **2.667 pp**, versus **2.333 pp**
+for this counterfactual. The small average improvement hides worse results
+on two of three nights and shifts the mean error from -2.667 to +2.333 pp.
+It is **not released**. These original issues preceded true sunset:
+late-to-sunset SoC changes were -1, -2 and 0 pp respectively. Matching
+the actual pre-dusk phase to the trough, plus separate remaining-day and
+overnight load/weather, is the next diagnostic; do not disguise an earlier
+phase time as Astro sunset or promote a three-night fit.
+
+The bounded replay completed at `2026-10-02T21:07:00.138028Z`, with four
+older days explicitly lacking a qualified pre-dusk issue. The private rolling
+state digest stayed
+`26987242320a094645ea8c06e223e3d7405aea5a9558aada842777e28d94c23f`.
+All **105** affected benchmark, sunset/charge, original-source, issue-history
+and tuning/outcome tests pass without skips. Testing fixtures are cleaned.
+This is read-only diagnosis and a source-only optional benchmark: no model,
+coefficient, production worker, timer, message or household control changed.
+
 ## What the available data says about charge timing
 
 The 06:40 `Forecast_10Day_JSON` JDBC archive retains hourly Open-Meteo

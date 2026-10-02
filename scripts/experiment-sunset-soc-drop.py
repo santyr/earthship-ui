@@ -8,6 +8,7 @@ from hashlib import sha256
 import json
 import math
 from pathlib import Path
+import re
 import sys
 from zoneinfo import ZoneInfo
 
@@ -66,11 +67,61 @@ def counterfactual(record, profiles):
     return baseline, candidate
 
 
+def pre_dusk_counterfactual(record, profiles, late):
+    """Change only prior measured drops, never late SoC or later outcomes.
+
+    Caller must first qualify the original late/numeric/atomic-source chain.
+    Keep the morning's exact prior-day selection to isolate this one change.
+    """
+    counterfactual(record, profiles)  # Existing component/range consistency gate.
+    morning = datetime.fromisoformat(record['temperature_issued_at'])
+    issued = datetime.fromisoformat(late['issuedAt'])
+    linked = datetime.fromisoformat(late['morningIssuedAt'])
+    days = record['overnight_drop_sample_days']
+    if (any(at.utcoffset() is None for at in (morning, issued, linked))
+            or not morning == linked < issued or not isinstance(days, list) or len(days) != 3):
+        raise ValueError('original pre-dusk/morning link invalid')
+    sample_days = [date.fromisoformat(value) for value in days]
+    local_day = morning.astimezone(ZONE).date()
+    if (len(set(sample_days)) != 3 or sample_days != sorted(sample_days, reverse=True)
+            or any(not 1 <= (local_day-day).days <= 4 for day in sample_days)):
+        raise ValueError('original sample date selection invalid')
+    for ending, profile in zip(sample_days, profiles):
+        night = ending-timedelta(days=1)
+        assessed = datetime.fromisoformat(profile['as_of'])
+        if (assessed.utcoffset() is None or assessed > morning
+                or trough_window(night, 'America/Denver').end > morning
+                or profile['prediction_day'] != night.isoformat()
+                or not isinstance(profile['evidence_digest'], str)
+                or re.fullmatch('[0-9a-f]{64}', profile['evidence_digest']) is None
+                or any(type(profile[key]) not in (int,float) or not math.isfinite(profile[key])
+                       or not .995 <= profile[key] <= 1
+                       for key in ('coverage','canonical_coverage'))):
+            raise ValueError('prior profile not qualified at original morning')
+    soc, old, baseline = late['socAtIssuePct'], late['overnightDropPct'], late['overnightTroughSocPct']
+    if (type(soc) not in (int,float) or not math.isfinite(soc) or not 0 <= soc <= 100
+            or type(old) not in (int,float) or not math.isfinite(old) or not 1 <= old <= 50
+            or old != record['overnight_drop_final_pct'] or type(baseline) is not int
+            or baseline != math.floor(max(12,min(99,soc-old))+.5)):
+        raise ValueError('original pre-dusk value/drop mismatch')
+    drop = sum(max(1., profile['drop_pct']) for profile in profiles)/3 + record['tomorrow_cloud_drop_penalty_pct']
+    if not 1 <= drop <= 50:
+        raise ValueError('candidate drop outside pre-dusk contract')
+    return {'scope':'retrospective_non_actuating_counterfactual', 'issued_at':issued.isoformat(),
+        'soc_at_issue_pct':soc, 'baseline_pct':baseline,
+        'candidate_pct':math.floor(max(12,min(99,soc-drop))+.5),
+        'original_drop_pct':old, 'candidate_drop_pct':round(drop,3),
+        'input_profile_digests':[profile['evidence_digest'] for profile in profiles],
+        'future_outcome_used_as_input':False}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--start-day', type=date.fromisoformat, required=True)
     parser.add_argument('--end-day', type=date.fromisoformat, required=True,
                         help='exclusive; at most fourteen issue dates')
+    parser.add_argument('--include-pre-dusk', action='store_true',
+                        help='also score original source-qualified pre-dusk receipts; no live correction')
     args = parser.parse_args()
     if not 1 <= (args.end_day-args.start_day).days <= 14:
         raise ValueError('bounded issue interval required')
@@ -190,7 +241,7 @@ def main():
                 charge = charge_profile(day=day, origin=origin, sunset=boundary[1],
                     sunset_persisted_at=boundary[0], as_of=now, observations=rows,
                     epoch_start=epoch_start, epoch_end=epoch_end)
-                result.append({'day':day.isoformat(), 'origin':origin.isoformat(),
+                scored = {'day':day.isoformat(), 'origin':origin.isoformat(),
                     'baseline_pct':baseline, 'sunset_drop_counterfactual_pct':candidate,
                     'actual_trough_pct':actual['min_soc_pct'], 'dusk_estimate_pct':record['dusk_soc_estimate_pct'],
                     'actual_sunset_soc_pct':target_profile['sunset_soc_pct'] if target_profile else None,
@@ -199,7 +250,31 @@ def main():
                     'charge_profile':charge,
                     'prior_sunset_drops_pct':[p['drop_pct'] for p in profiles],
                     'input_digests':[p['evidence_digest'] for p in profiles],
-                    'outcome_digest':actual['evidence_digest']})
+                    'outcome_digest':actual['evidence_digest']}
+                if args.include_pre_dusk:
+                    from pre_dusk_release import _qualified_with_receipts, NaturalIssueUnavailable
+                    from pre_dusk_issue_source import read_issue_source
+                    def original_source(late):
+                        return read_issue_source(lambda: psycopg2.connect(
+                            **settings.connect_kwargs, connect_timeout=3,
+                            options='-c default_transaction_read_only=on -c statement_timeout=2000'), late)
+                    try:
+                        verified, original_morning, late = _qualified_with_receipts(
+                            oh.get, original_source, day=day, now=now)
+                        if verified['status'] != 'qualified_natural_issue' or original_morning != matched[0]:
+                            raise ValueError('original late/morning pair unavailable')
+                        comparison = pre_dusk_counterfactual(record, profiles, late)
+                        observed = actual['min_soc_pct']
+                        comparison.update({'actual_trough_pct':observed,
+                            'baseline_error_pp':comparison['baseline_pct']-observed,
+                            'candidate_error_pp':comparison['candidate_pct']-observed,
+                            'source_persisted_at':verified['source_persisted_at'],
+                            'source_digest_sha256':verified['source_digest_sha256']})
+                        scored['pre_dusk_counterfactual'] = comparison
+                    except (NaturalIssueUnavailable, KeyError, TypeError, ValueError):
+                        counts['pre_dusk_comparison_unavailable'] += 1
+                        scored['pre_dusk_counterfactual'] = None
+                result.append(scored)
     print(json.dumps({'status':'diagnostic_only', 'production_changed':False,
         'state_sha256':sha256(raw).hexdigest(), 'as_of':now.isoformat(),
         'counts':dict(counts), 'rows':result}, indent=2))
