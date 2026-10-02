@@ -58,19 +58,18 @@ automatic writes; only the managed observational
 receipts. This collector does not command either plug or qualify daily Energy
 Analytics by itself; see `docs/operations/outstanding-work.md` for the
 remaining full-day and fault/restart gates.
-The display-only `update_days_until_season` rule is provisionally file-owned
+The display-only `update_days_until_season` rule is verified file-owned
 in `automation/js/update_days_until_season.js` after an isolated provider and
 managed-rollback rehearsal plus a guarded live handoff. Its natural
 state-change output passed at 14:51 MDT September 29 with matching Astro
-source, file-rule event and JDBC history. A later production restart check remains open;
-retain the private managed-rule backup until it passes. See the
+source, file-rule event and JDBC history. The October 2 production restart
+and subsequent natural output now qualify; retain the private backup. See the
 [rule cutover receipt](../../docs/operations/2026-09-29-season-countdown-rule-file-candidate.md).
-The separate `DaysUntilNextSeason` Item is provisionally file-owned in
+The separate `DaysUntilNextSeason` Item is verified file-owned in
 `items/days-until-next-season.items` after its approved September 29 19:21 MDT
 handoff, actual managed rollback exercise and exact Item-176 history checks.
-Its next natural Astro-triggered writer receipt and later production restart
-check remain open; unchanged source updates or persistence restoration do not
-close those gates. Retain the private backup; see the
+Its natural writer and October 2 production restart checks pass, including
+the unchanged original 217-row Item-176 history prefix. Retain the private backup; see the
 [Item cutover receipt](../../docs/operations/2026-09-29-season-countdown-item-candidate.md).
 `automation/js/sky-condition-calculator.js` is a **staged, uninstalled**
 candidate. The initially successful live file handoff was rolled back after
@@ -78,33 +77,37 @@ candidate. The initially successful live file handoff was rolled back after
 managed rule is again the sole production provider; a control-input migration
 needs protected-control restart/rollback qualification. See the
 [sky rollback receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
-The rolling `temp-highlow-24h` Earthship display writer is provisionally
+The rolling `temp-highlow-24h` Earthship display writer is verified
 file-owned in `automation/js/temperature-highlow-24h.js` after exact
 consumer review, isolated provider/rollback rehearsal and guarded live
-handoff. Its natural 06:00 writer run passed; a later production restart check remains open; see
+handoff. Its natural runs and October 2 production restart checks pass; see
 the [extrema rule receipt](../../docs/operations/2026-09-29-temperature-extrema-rule-file-cutover.md).
-The Bitcoin 24-hour percentage display rule is also provisionally file-owned
+The Bitcoin 24-hour percentage display rule is also verified file-owned
 at `automation/js/bitcoin-24h-change.js`. Its 06:22:44 natural price update
-and JDBC history gate passed; a later production restart check remains. The one-time
+and JDBC history gate passed, as did the October 2 production restart. The one-time
 handoff gate is re-locked and its private managed-rule backup is retained; see
 the [Bitcoin rule receipt](../../docs/operations/2026-09-29-bitcoin-change-rule-file-candidate.md).
 
-All three display rules passed a shared **isolated** full-JVM exit/restart and
-exact managed rollback on September 30. This verifies file-rule loading and
-trigger/provider continuity, not production restart recovery, JDBC continuity
-through that restart or protected-control safety. The private rollback copies
-and provisional manifest status remain; see the
-[isolated restart checkpoint](../../docs/operations/2026-09-20-file-first-inventory.md#september-30-shared-display-rule-jvm-restart-rehearsal).
+All three display rules passed an isolated restart/managed rollback on
+September 30 and actual production restart qualification on October 2.
+Their exact source, sole file providers, healthy triggers, natural outputs
+and JDBC mappings pass; runtime `privId` values are not stable source IDs.
+Only these three rules and the countdown Item are promoted. This does not
+qualify protected controls or the broader installation. Retain rollback
+copies; see the [production receipt](../../docs/operations/2026-10-02-display-provider-restart-qualification.md).
 
 ## Staged migration and rollback
 
-`items/moon-phase-readings.items` is a **staged, uninstalled** candidate for
+`items/moon-phase-readings.items` is **live, provisionally file-owned** for
 `Moon_MoonPhaseName` and `Moon_MoonIllumination` only. Their labels, semantic
 membership, fractional illumination unit `one` and exact existing link profiles
-are preserved. The Moon Group and Thing remain untouched. Provider/restart/
-managed-rollback and isolated JDBC state/history rehearsals are documented in
-the [Moon candidate](../../docs/operations/2026-09-30-moon-phase-readings-candidate.md);
-live handoff and natural-source gates remain open. No file ownership is claimed.
+are preserved. The approved October 1 handoff, actual managed rollback and
+natural-source gates pass. October 2's restarted Item/link definitions and
+both original JDBC prefixes also match, but the broader protected-definition
+digest differs from the cutover receipt and must be explained before promotion.
+Do not repeat a restart to conceal that mismatch. See the
+[executed Moon plan](../../docs/operations/2026-09-30-moon-phase-readings-cutover-plan.md)
+and [current restart receipt](../../docs/operations/2026-10-02-display-provider-restart-qualification.md).
 
 1. Inspect exact live configuration, metadata, links, groups, consumers and history
    mapping. For rules, trace every written Item to *live downstream rule

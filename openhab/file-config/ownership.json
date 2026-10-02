@@ -594,7 +594,7 @@
       "kind": "item",
       "id": "DaysUntilNextSeason",
       "provider": "file",
-      "migration": "provisional",
+      "migration": "verified",
       "source": "items/days-until-next-season.items",
       "destination": "/etc/openhab/items/days-until-next-season.items",
       "state_writer": "update_days_until_season"
@@ -603,7 +603,7 @@
       "kind": "rule",
       "id": "update_days_until_season",
       "provider": "file",
-      "migration": "provisional",
+      "migration": "verified",
       "source": "automation/js/update_days_until_season.js",
       "destination": "/etc/openhab/automation/js/update_days_until_season.js",
       "state_writer": "DaysUntilNextSeason"
@@ -612,7 +612,7 @@
       "kind": "rule",
       "id": "temp-highlow-24h",
       "provider": "file",
-      "migration": "provisional",
+      "migration": "verified",
       "source": "automation/js/temperature-highlow-24h.js",
       "destination": "/etc/openhab/automation/js/temperature-highlow-24h.js",
       "state_writer": "IndoorTemp_24h_Low, IndoorTemp_24h_High, OutdoorTemp_24h_Low, OutdoorTemp_24h_High"
@@ -621,7 +621,7 @@
       "kind": "rule",
       "id": "hex_btc_24h_change",
       "provider": "file",
-      "migration": "provisional",
+      "migration": "verified",
       "source": "automation/js/bitcoin-24h-change.js",
       "destination": "/etc/openhab/automation/js/bitcoin-24h-change.js",
       "state_writer": "BTC_Price_24h_PercentChange"

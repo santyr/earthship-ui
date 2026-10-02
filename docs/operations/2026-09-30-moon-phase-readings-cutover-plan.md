@@ -3,6 +3,10 @@
 Status: **approved handoff completed October 1; apply gate reclosed; file
 ownership provisional pending production restart qualification**. The ordered
 procedure below is retained as the executed plan, not a request for approval.
+October 2 update: restarted Item/link definitions and both original JDBC
+prefixes match, but the broad protected-definition digest differs from the
+cutover. Promotion remains gated on explaining that drift, not performing
+another restart. See the [current proof](2026-10-02-display-provider-restart-qualification.md#moon-remains-provisional-protected-digest-drift).
 The prepared adapter is `scripts/migrate-moon-phase-readings.py`. Its `--check`
 path is read-only, while `--apply` refuses before database/REST access unless
 the one-shot `RELEASE_READY` gate is deliberately opened for this plan.

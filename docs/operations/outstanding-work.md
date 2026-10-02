@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 production display-provider restart gates
+
+The existing 07:25 MDT JVM now qualifies the countdown Item and the season,
+temperature-extrema and Bitcoin-change display rules. Exact installed source,
+sole providers, original triggers, natural post-restart outputs and JDBC
+continuity pass; countdown's original 217-row CSV prefix is unchanged.
+Only these four manifest declarations become verified. The operational
+countdown verifier's hardcoded `privId=i0` bug is fixed regression-first;
+91 affected tests pass; completed one-shot rule handoff gates are reclosed.
+No production restart, rule/source mutation or
+equipment command was performed. Moon Items/links and original history also
+match, but their broad protected-definition digest differs, so all four Moon
+declarations remain provisional pending diagnosis rather than another restart.
+See [exact completed gates and held Moon proof](2026-10-02-display-provider-restart-qualification.md).
+
 ## October 2 matched pre-dusk-phase qualification
 
 The bounded original-issue benchmark now measures prior discharge at each

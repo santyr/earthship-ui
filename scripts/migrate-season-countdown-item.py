@@ -11,6 +11,7 @@ import json
 from hashlib import sha256
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -23,6 +24,7 @@ spec.loader.exec_module(migration)
 ITEM = 'DaysUntilNextSeason'
 RULE = 'update_days_until_season'
 WRITER_SHA256 = 'd101eff0c4acf86ad900637e28cc7b30c1cf1185c5b3bcd116bef65e2114ed36'
+WRITER_TARGET = Path('/etc/openhab/automation/js/update_days_until_season.js')
 ITEM_ID = 176
 SOURCE = ROOT / 'openhab/file-config/items/days-until-next-season.items'
 TARGET = Path('/etc/openhab/items/days-until-next-season.items')
@@ -42,16 +44,22 @@ def rule_idle():
                       and rule.get('status') == {
                           'status': 'IDLE', 'statusDetail': 'NONE'},
                       'season countdown file writer unavailable')
+    actions = rule.get('actions', [])
+    action_config = actions[0].get('configuration', {}) if len(actions) == 1 else {}
     migration.require(
         len(rule.get('triggers', [])) == 1 and
         rule['triggers'][0].get('type') == 'core.ItemStateChangeTrigger' and
         rule['triggers'][0].get('configuration') == {'itemName': 'Sun_TimeLeft'} and
         rule.get('conditions') == [] and
-        len(rule.get('actions', [])) == 1 and
-        rule['actions'][0].get('type') == 'jsr223.ScriptedAction' and
-        rule['actions'][0].get('configuration') == {'privId': 'i0'},
+        len(actions) == 1 and actions[0].get('type') == 'jsr223.ScriptedAction' and
+        isinstance(action_config, dict) and set(action_config) == {'privId'} and
+        isinstance(action_config['privId'], str) and
+        re.fullmatch(r'i[0-9]{1,9}', action_config['privId']) is not None,
         'season countdown writer registry drift')
-    installed = Path('/etc/openhab/automation/js/update_days_until_season.js')
+    # privId is a runtime-generated script registration ID, not a source
+    # identity. It changed from i0 to i4 after the production JVM restart.
+    # Preserve exact UID/trigger/module shape and pinned installed source.
+    installed = WRITER_TARGET
     migration.require(installed.is_file() and not installed.is_symlink() and
                       sha256(installed.read_bytes()).hexdigest() == WRITER_SHA256,
                       'season countdown writer source drift')
