@@ -38,6 +38,10 @@ failed before the correction and passed afterward.
 
 Only `thermal_model/behavior.py` is eligible for installation into the existing
 thermal runtime: the repository contains other, undeployed thermal candidates.
+The installed preimage predates the source-tested cyclic initial-state
+correction, so this one-file release includes that correction as well as the
+coincident-transition fix. It preserves a modeled closed interval spanning
+midnight; this is a modeled schedule, not a claim of measured shade state.
 An isolated copy of the actual installed runtime with just this file changed
 has runtime revision
 `7316fa8b1e408544463b3f44e64772e56c7f36b57a9d6325ccca3353bea03af5`,
