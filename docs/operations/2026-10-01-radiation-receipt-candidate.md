@@ -159,6 +159,11 @@ removed after terminal verification; the narrow private backup is retained.
 
 ## Pending privileged activation
 
+**October 2 update:** this historical activation blocker is closed. The exact
+guarded block below passed once noninteractive sudo became available, and
+natural station-206 radiation plus all existing temperature/rain streams
+recovered. See [activation evidence and remaining durable-history gates](2026-10-02-forecast-recovery-and-radiation-activation.md).
+
 Noninteractive sudo currently requires a password. No source-level implicit
 enable fallback or alternate receiver was added to bypass that boundary.
 The existing single weather/RF system services are retained; adding parallel

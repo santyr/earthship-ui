@@ -1,5 +1,24 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 production recovery and radiation activation
+
+Weather/thermal forecast refreshes failed overnight on timeouts and DNS
+resolution errors. After verified DNS/HTTPS recovery, both existing
+display-only services exited zero at 08:14 MDT; production Item readbacks and
+actual UI parsers accept ten weather days and 72 thermal trajectory points.
+No OpenHAB restart, model promotion, notification or household control.
+
+Passwordless sudo is now available. The previously approved seven-pin guarded
+radiation activation completed at 08:16:31 MDT, restarting only the two weather
+services. Natural station-206 raw-lux/decoder-time receipts now advance, and all
+four temperature streams plus rain recovered. This supersedes the October 1
+privileged-activation blocker below: **volatile radiation capture is live**.
+Durable Item/JDBC collection, live expiry/fault recovery, activated rollback,
+strict clean-day qualification and learner integration remain open; October 2
+contains a restart boundary. See
+[exact recovery and activation evidence](2026-10-02-forecast-recovery-and-radiation-activation.md).
+Other October 1 release gates below remain unchanged.
+
 ## Current execution queue — October 1
 
 October 1 approved-release checkpoint: the battery estimator is now live at
