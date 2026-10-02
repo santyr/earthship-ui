@@ -1560,6 +1560,25 @@ def test_pipeline_applies_nonwinter_shade_transitions_and_emits_matching_markers
     assert actual == expected
 
 
+def test_pipeline_coincident_learned_shade_times_produce_available_forecast(monkeypatch):
+    import thermal_model.behavior as behavior
+    monkeypatch.setattr(behavior, '_has_learned_timing',
+                        lambda _model, _mode, actions: 'indoor_shade_open' in actions)
+    monkeypatch.setattr(behavior, '_learned_minute',
+                        lambda _model, action, _rows, default:
+                        {'indoor_shade_close': 604, 'indoor_shade_open': 606}.get(action, default))
+
+    output = run_shadow(registry=AcceptedRegistry(), current=current_states(),
+                        forecast=forecast_hours(), now=NOW)
+
+    assert output['confidence']['grade'] != 'unavailable', output['reasons']
+    validate_shadow_output(output)
+    assert output['forecast']['availableHours'] == 72
+    assert len(output['forecast']['trajectory']) == 73  # Initial hour plus 72 future hours.
+    assert not any(action.startswith('indoor_shade_')
+                   for point in output['forecast']['trajectory'] for action in point['actions'])
+
+
 def test_pipeline_fall_charge_forcing_keeps_shades_open_without_markers():
     hourly = [{**row, "mode": "fall_charge"} for row in forecast_hours(30)]
     rows = interpolate_hourly_forecast(

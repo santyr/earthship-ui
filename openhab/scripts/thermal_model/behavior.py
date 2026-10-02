@@ -663,6 +663,10 @@ def _nonwinter_shade_schedule(model, mode, rows):
             ),
         ]
         transitions = tuple(sorted(transitions, key=lambda item: item["at"]))
+        # Equal rounded times mean zero closed duration in the cyclic state
+        # calculation below. Do not emit contradictory simultaneous actions.
+        if close_minute == open_minute:
+            transitions = ()
         source = "learned"
         status = "fitted"
     else:
@@ -707,7 +711,7 @@ def _nonwinter_shade_schedule(model, mode, rows):
         day_state = "closed" if any(daylight_states) else "open"
         night_state = "closed" if night_states and all(night_states) else "open"
     else:
-        day_state = "closed"
+        day_state = "open" if learned and close_minute == open_minute else "closed"
         night_state = "open"
     return {
         "indoorShadeDay": day_state,

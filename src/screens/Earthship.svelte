@@ -16,7 +16,6 @@
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { items, connection, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
-  import { OFFICE_HALLWAY_TEMPERATURE_ITEM, OFFICE_HALLWAY_VALID_FROM, officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
 
   // Minute wall clock (mirrors Home.svelte): "last run … ago" must keep
   // advancing on a quiet stream, not only when $items identity changes.
@@ -47,7 +46,6 @@
   const roomTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
   const wallTemp = $derived(num($items.Shelly_HT1_Indoor_Temperature));
   const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
-  const officeHallwayTemp = $derived($connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null);
 
   function openZonesChart() {
     openChart({
@@ -61,16 +59,9 @@
           color: '#38bdf8',
           label: 'Outdoor',
         },
-        { name: OFFICE_HALLWAY_TEMPERATURE_ITEM, color: '#a78bfa', label: 'Office Hallway', validFrom: OFFICE_HALLWAY_VALID_FROM },
       ],
       hours: 24,
     });
-  }
-
-  function openOfficeHallwayChart() {
-    openChart({ title: 'Office Hallway Temperature (24h)',
-      series: [{ name: OFFICE_HALLWAY_TEMPERATURE_ITEM, color: '#a78bfa', label: 'Office Hallway', validFrom: OFFICE_HALLWAY_VALID_FROM }],
-      hours: 24 });
   }
 
   // ---- Thermal Mass — the house's heat "state of charge" -------------------
@@ -232,7 +223,6 @@
         outdoor={outdoorTemp}
         onZoneClick={openZonesChart}
       />
-      <button class="office-hallway-reading" onclick={openOfficeHallwayChart}>Office Hallway {officeHallwayTemp === null ? '—' : `${officeHallwayTemp.toFixed(1)}°F`}</button>
     </Tile>
   </div>
 
@@ -309,18 +299,6 @@
 </div>
 
 <style>
-  .office-hallway-reading {
-    display: block;
-    margin: .25rem auto 0;
-    border: 1px solid #4d416b;
-    border-radius: 4px;
-    padding: .3rem .6rem;
-    background: #201d2b;
-    color: #c4b5fd;
-    font: inherit;
-    font-size: .8rem;
-    cursor: pointer;
-  }
   .earthship-grid {
     block-size: 100%;
     min-width: 0;

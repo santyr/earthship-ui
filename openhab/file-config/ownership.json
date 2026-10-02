@@ -562,6 +562,23 @@
       "destination": "/etc/openhab/items/weather-rain-evidence.items"
     },
     {
+      "kind": "thing", "id": "http:url:weatherRadiationEvidence", "provider": "file",
+      "migration": "observational", "source": "things/weather-radiation-evidence.things",
+      "destination": "/etc/openhab/things/weather-radiation-evidence.things"
+    },
+    {
+      "kind": "item", "id": "Weather_Radiation_Evidence_JSON", "provider": "file",
+      "migration": "observational", "source": "items/weather-radiation-evidence.items",
+      "destination": "/etc/openhab/items/weather-radiation-evidence.items",
+      "state_writer": "http:url:weatherRadiationEvidence:snapshot"
+    },
+    {
+      "kind": "link", "id": "Weather_Radiation_Evidence_JSON -> http:url:weatherRadiationEvidence:snapshot",
+      "provider": "file", "migration": "observational",
+      "source": "items/weather-radiation-evidence.items",
+      "destination": "/etc/openhab/items/weather-radiation-evidence.items"
+    },
+    {
       "kind": "item", "id": "Astro_Forecast_Context_JSON", "provider": "file",
       "migration": "observational", "source": "items/astro-forecast-context.items",
       "destination": "/etc/openhab/items/astro-forecast-context.items",

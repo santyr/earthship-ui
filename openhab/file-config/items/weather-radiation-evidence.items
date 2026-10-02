@@ -1,0 +1,2 @@
+// Observational receipt snapshot only; never use held state as fresh evidence.
+String Weather_Radiation_Evidence_JSON "Weather radiation receipt evidence" { channel="http:url:weatherRadiationEvidence:snapshot" }

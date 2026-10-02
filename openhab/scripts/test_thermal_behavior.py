@@ -744,6 +744,32 @@ def test_learned_shade_initial_state_respects_transition_before_origin(
     assert evening is not None and evening['indoor_shade_closed'] == 0.
 
 
+@pytest.mark.parametrize('mode', ['warm', 'spring'])
+@pytest.mark.parametrize('close_minute,open_minute', [
+    (600, 600), (604, 606), (0, 0), (1439, 1439),
+])
+def test_coincident_learned_shade_times_leave_zero_closed_interval(
+        monkeypatch, mode, close_minute, open_minute):
+    monkeypatch.setattr(behavior, '_has_learned_timing', lambda *_: True)
+    monkeypatch.setattr(behavior, '_learned_minute',
+                        lambda _model, action, _rows, _default:
+                        close_minute if action == 'indoor_shade_close' else open_minute)
+    start = datetime(2026, 9, 29, 6, tzinfo=DENVER)
+    rows = [{'at': start+i*STEP, 'outdoor_f': 65., 'radiation_wm2': 300.}
+            for i in range(48*12+1)]
+
+    shade = behavior._nonwinter_shade_schedule(None, mode, rows)
+
+    assert shade['shadeTransitions'] == ()
+    assert shade['indoorShadeInitial'] == 'open'
+    assert shade['indoorShadeDay'] == shade['indoorShadeNight'] == 'open'
+    assert shade['shadeOpenAt'] is None and shade['shadeCloseAt'] is None
+    assert shade['shadeTimingSource'] == 'learned'
+    schedule = {'mode': mode, 'outdoorShade': 'present', 'airflowSegments': (), **shade}
+    assert all(f['indoor_shade_closed'] == 0.
+               for f in behavior._forcing_rows(rows, schedule))
+
+
 def test_fit_persists_observed_seasonal_action_vocabulary_and_boosted_windows():
     model = fit_behavior(warm_samples_with_boosted_doors())
     vocabulary = {item.mode: item for item in model.seasonal_vocabulary}["warm"]
