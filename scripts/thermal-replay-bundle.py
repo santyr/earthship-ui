@@ -27,6 +27,23 @@ MAX_FILE = 2_000_000
 MAX_FILES = 10_000
 MAX_TOTAL = 100_000_000
 MODEL_NAMES = ('accepted.json', 'candidate.json', 'previous.json', 'backtest-report.json')
+LEGACY_RUNTIME_PATHS = (
+    'thermal_intel.py', 'forecast_intel.py', 'thermal_temperature_runtime.py',
+    'hourly_temperature_runtime.py', 'daily_temperature_runtime.py',
+    'weather_temperature_reader.py', 'weather_temperature_history.py',
+    'weather_temperature_evidence.py', 'weather_temperature_config.py',
+    'thermal_model/temperature_history.py', 'thermal_model/__init__.py',
+    'thermal_model/actions.py', 'thermal_model/artifacts.py', 'thermal_model/behavior.py',
+    'thermal_model/dataset.py', 'thermal_model/dynamics.py', 'thermal_model/evaluation.py',
+    'thermal_model/journal.py', 'thermal_model/pipeline.py', 'thermal_model/schema.py',
+    'thermal_model/solar.py',
+)
+RADIATION_RUNTIME_PATHS = (
+    *LEGACY_RUNTIME_PATHS[:3], 'thermal_radiation_runtime.py',
+    'weather_radiation_reader.py', 'weather_radiation_history.py',
+    'weather_radiation_evidence.py', 'weather_radiation_config.py',
+    *LEGACY_RUNTIME_PATHS[3:],
+)
 CAPTURE_NAME = re.compile(r'^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{16}\.json\.gz$')
 
 
@@ -61,7 +78,7 @@ def _paths(source):
     if len(values) != 1:
         raise ValueError('exactly one runtime revision path list required')
     paths = ast.literal_eval(values[0])
-    if (not isinstance(paths, tuple) or len(paths) != 21
+    if (not isinstance(paths, tuple) or paths not in (LEGACY_RUNTIME_PATHS, RADIATION_RUNTIME_PATHS)
             or len(set(paths)) != len(paths)
             or any(not isinstance(name, str) or not _safe_name(name) for name in paths)
             or paths[0] != 'thermal_intel.py'):

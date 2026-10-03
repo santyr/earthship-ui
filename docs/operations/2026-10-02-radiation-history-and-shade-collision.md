@@ -146,6 +146,82 @@ October 4 local midnight if source continuity passes. Neither held numeric
 radiation nor HTTP polling may backfill missing source evidence. Production
 restart continuity and learning remain separate gates.
 
+## Thermal current-radiation worker — October 2 evening source candidate
+
+The actual thermal shadow input builder still reads radiation through numeric
+JDBC history and the Item's `lastStateUpdate`. The new independent opt-in
+`thermal_radiation_runtime.py` supplies a **current native v2 receipt instead**.
+It is wired into `_current_states`, while an absent opt-in preserves the
+installed legacy contract. Explicit bad activation or missing/invalid evidence
+refuses shadow publication; neither held numeric history nor Item-update times
+can rescue the qualified radiation path.
+
+Only the current target is needed by this input builder. The worker therefore
+uses one bounded subprocess and one dedicated read-only repeatable-read
+connection through `fetch_radiation_grid`, rather than reading another 24 hours
+of radiation on every forecast. Original decoder/receiver/JDBC times, expiry,
+epoch, sequence, cumulative fault count and original snapshot SHA remain in
+`current.radiation.sourceEvidence`. The radiation reading's `at` is the native
+decoder clock, not command time. The unchanged lux conversion remains a proxy,
+not calibrated pyranometer or PV-energy evidence. Original source expiry is
+checked again after model computation, inside the unavailable-output boundary.
+
+The proposed explicit private settings are:
+
+```text
+THERMAL_RADIATION_SHADOW_QUALIFIED_ENABLE=1
+THERMAL_RADIATION_DB_CONFIG=/home/sat/.config/hex/energy-power-reader.jdbc
+THERMAL_RADIATION_POLICY=/home/sat/.config/hex/weather-radiation-policy.json
+THERMAL_RADIATION_EVIDENCE_CUTOVER=2026-10-02T20:00:09.206165+00:00
+```
+
+These settings are **not installed or enabled**. The worker reuses only the
+already approved private local `energy_power_reader` configuration, with a
+closed, bounded, no-symlink loader and read-only connection startup. It refuses
+implicit libpq service files. No new database grant or credential is needed.
+This gate applies only to the current shadow observation; training and daily
+radiation scoring still require their separate complete-clean-v2-window/day
+qualification and must not be enabled by this flag.
+
+The deployment manifest and runtime hash now bind the worker and all four
+radiation dependencies. Replay bundles accept the exact new 26-file inventory
+and the exact original 21-file inventory, retaining old bundle/runtime/training
+identities rather than relabeling them. Regression checks reject changed,
+missing or reordered inventory, bind each new dependency to the runtime hash,
+and reopen the entire source receipt in an immutable forcing capture. An
+isolated file rehearsal used the **actual candidate code manifest** with
+temporary target preimages: an interrupted installation restored original
+bytes/modes and removed newly introduced radiation files; successful install,
+verification and explicit restore also passed. This is an isolated file
+transaction proof, not an attended production deployment or live publication.
+
+The complete affected weather/thermal-input/publication/capture/deploy/replay
+slice passed **769 tests in 43.24 seconds**, with no skips, including actual
+disposable restricted PostgreSQL. Test containers and owned temporary storage
+were removed. No bytecode/test-cache artifacts were created.
+
+A separate actual worker subprocess, using only the existing restricted live
+reader, qualified a receipt at `2026-10-03T00:44:30.398706Z`: decoder time
+`00:44:03Z`, receiver `00:44:04.209737Z`, original JDBC storage
+`00:44:09.379230Z`, expiry `00:46:03Z`, native age **27.398706 seconds**,
+verified fault visibility and **1.71 W/m² irradiance proxy**. Original snapshot
+SHA-256 is `f1a1bbf32af9223a0ad131c1f929f37d3c17e721b6e3eeaac21a0802b8595887`.
+This was read-only diagnostic execution, not a shadow publication, model
+update, action label, completed-day proof or installed worker activation.
+
+The production digest comparison finds all five radiation modules absent and
+the expected entrypoint difference. It also identifies **pre-existing separate
+source/runtime differences** in `thermal_model/artifacts.py`, `dynamics.py`,
+`evaluation.py`, `journal.py` and `schema.py`; the forecast helper and remaining
+temperature/publication modules match. Do **not** install the whole repository
+manifest as a radiation-only rollout. The next deployment candidate must pin
+and recover the exact installed runtime, change only the entrypoint plus these
+five radiation modules, independently qualify its resulting publication
+revision and original accepted-artifact replay, and retain rollback/config
+evidence before enabling the current-input flag. Complete v2 days and thermal
+skill/action gates remain separate. No production source, private environment,
+service, model, collector, forecast publication or household control changed.
+
 ## Strict reader and v2 fault visibility — October 2
 
 Natural native radiation arrives about every 16 seconds, versus the unchanged

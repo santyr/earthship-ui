@@ -16,7 +16,7 @@ bundle = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(bundle)
 
 
-def fixture(tmp_path):
+def fixture(tmp_path, *, legacy=False):
     runtime = tmp_path / 'runtime'
     state = tmp_path / 'state'
     models = state / 'models'
@@ -27,6 +27,8 @@ def fixture(tmp_path):
         directory.chmod(0o700)
     paths = bundle._paths((Path(__file__).resolve().parents[2]
                            / 'openhab/scripts/thermal_intel.py').read_bytes())
+    if legacy:
+        paths = bundle.LEGACY_RUNTIME_PATHS
     entries = {}
     for name in paths:
         path = runtime / name
@@ -60,6 +62,28 @@ def test_private_roundtrip_binds_accepted_runtime_and_captures(tmp_path):
         assert archive.getmember('code/thermal_model/forcing_capture.py').isfile()
     with pytest.raises(FileExistsError):
         bundle.create(output, runtime_root=runtime, state_root=state)
+
+
+def test_legacy_21_file_runtime_still_roundtrips_unchanged(tmp_path):
+    runtime, state, output, accepted = fixture(tmp_path, legacy=True)
+    created = bundle.create(output, runtime_root=runtime, state_root=state)
+    assert created == bundle.verify(output)
+    assert created['accepted_code_revision'] == accepted
+    with tarfile.open(output, 'r:gz') as archive:
+        manifest = json.loads(archive.extractfile('manifest.json').read())
+        assert tuple(manifest['code_revision_paths']) == bundle.LEGACY_RUNTIME_PATHS
+        assert 'code/thermal_radiation_runtime.py' not in archive.getnames()
+
+
+@pytest.mark.parametrize('damage', ['missing', 'extra', 'reordered', 'substitute'])
+def test_runtime_inventory_requires_exact_legacy_or_radiation_contract(damage):
+    paths = list(bundle.RADIATION_RUNTIME_PATHS)
+    if damage == 'missing': paths.pop()
+    elif damage == 'extra': paths.append('unknown.py')
+    elif damage == 'reordered': paths[2:4] = reversed(paths[2:4])
+    elif damage == 'substitute': paths[-1] = 'unknown.py'
+    with pytest.raises(ValueError, match='unexpected runtime revision manifest'):
+        bundle._paths(f'RUNTIME_REVISION_PATHS = {tuple(paths)!r}\n'.encode())
 
 
 def test_mismatched_accepted_artifact_fails_without_output(tmp_path):

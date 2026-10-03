@@ -36,6 +36,11 @@ RUNTIME_REVISION_PATHS = (
     "thermal_intel.py",
     "forecast_intel.py",
     "thermal_temperature_runtime.py",
+    "thermal_radiation_runtime.py",
+    "weather_radiation_reader.py",
+    "weather_radiation_history.py",
+    "weather_radiation_evidence.py",
+    "weather_radiation_config.py",
     "hourly_temperature_runtime.py",
     "daily_temperature_runtime.py",
     "weather_temperature_reader.py",
@@ -414,7 +419,11 @@ def _aligned_observed_history(histories):
 
 def _current_states(now, series_reader=None, state_reader=None):
     from thermal_temperature_runtime import configured_shadow_temperatures
-    qualified = configured_shadow_temperatures(now)
+    from thermal_radiation_runtime import configured_shadow_radiation
+    qualified = dict(configured_shadow_temperatures(now) or {})
+    radiation = configured_shadow_radiation(now)
+    if radiation is not None:
+        qualified['radiation'] = radiation
     series_reader = series_reader or _jdbc_series
     state_reader = state_reader or (lambda item: forecast_intel.oh_get(f"/items/{item}"))
     start = now - timedelta(hours=24)
@@ -477,6 +486,7 @@ def publish_shadow_output(payload, put_state=None):
 def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             published_clock=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
+    from thermal_radiation_runtime import validate_shadow_radiation_expiry
     started = time.monotonic()
     current = None
     failed_input = "site settings input"
@@ -534,8 +544,9 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
         # decision clock's full precision for capture-safe provenance.
         if output.get('status') == 'shadow':
             output['generatedAt'] = now.isoformat()
-        validate_shadow_receipt_expiry(
-            current, now + timedelta(seconds=max(0, time.monotonic()-started)))
+        evidence_check_at = now + timedelta(seconds=max(0, time.monotonic()-started))
+        validate_shadow_receipt_expiry(current, evidence_check_at)
+        validate_shadow_radiation_expiry(current, evidence_check_at)
     except (JournalUnavailable, psycopg2.Error):
         output = build_unavailable_shadow(
             now=now,

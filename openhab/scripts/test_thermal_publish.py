@@ -149,6 +149,11 @@ def test_runtime_revision_manifest_is_exact_and_complete():
         "thermal_intel.py",
         "forecast_intel.py",
         "thermal_temperature_runtime.py",
+        "thermal_radiation_runtime.py",
+        "weather_radiation_reader.py",
+        "weather_radiation_history.py",
+        "weather_radiation_evidence.py",
+        "weather_radiation_config.py",
         "hourly_temperature_runtime.py",
         "daily_temperature_runtime.py",
         "weather_temperature_reader.py",
@@ -182,6 +187,16 @@ def test_runtime_revision_changes_for_entrypoint_and_shared_helper(tmp_path):
     _copy_runtime_manifest(tmp_path)
     shared = tmp_path / "forecast_intel.py"
     shared.write_bytes(shared.read_bytes() + b"\n# reviewed helper change\n")
+    assert thermal_intel._runtime_manifest_revision(tmp_path) != original
+
+
+@pytest.mark.parametrize('relative', ['thermal_radiation_runtime.py', 'weather_radiation_reader.py',
+    'weather_radiation_history.py', 'weather_radiation_evidence.py', 'weather_radiation_config.py'])
+def test_runtime_revision_binds_each_new_radiation_dependency(tmp_path, relative):
+    _copy_runtime_manifest(tmp_path)
+    original = thermal_intel._runtime_manifest_revision(tmp_path)
+    path = tmp_path/relative
+    path.write_bytes(path.read_bytes()+b'\n# isolated dependency change\n')
     assert thermal_intel._runtime_manifest_revision(tmp_path) != original
 
 

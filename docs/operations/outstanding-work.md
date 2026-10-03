@@ -1,5 +1,21 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 evening receipt-qualified current thermal radiation candidate
+
+The independent source-only worker now connects the thermal current input to
+native v2 radiation evidence without held numeric/Item-update fallback. It
+reads only the current target in one bounded subprocess/connection, preserves
+full source metadata in replay captures and rechecks original expiry before
+publication. Exact deploy/runtime manifests and old/new replay inventories
+are covered; actual candidate-file interruption/restore passes in temporary
+targets. All **769 affected tests pass without skips**, and the actual restricted
+live worker qualified a 27.4-second-old native receipt without publication.
+Nothing is installed/activated. Five unrelated model/journal source differences
+make bulk manifest installation inappropriate: qualify/recover the exact
+installed runtime and a narrow six-file radiation delta before live activation.
+Complete clean v2 days, learning and graduation gates remain separate. See
+[worker contract, exact proof and deployment boundary](2026-10-02-radiation-history-and-shade-collision.md#thermal-current-radiation-worker--october-2-evening-source-candidate).
+
 ## October 2 evening efficient radiation-grid foundation
 
 The new source-only v2 as-of grid resolves up to 301 targets over 25 hours in
@@ -9,8 +25,9 @@ and a v2 wrapper cannot make an old legacy record fresh. All 335 weather/CLI
 tests pass, including disposable restricted PostgreSQL and 3,800 differential
 matches. A real three-hour grid qualified 37/37 targets through one connection;
 its original result digest rechecks exactly. This is not a complete-day or
-learning gate. Libraries are not installed into the thermal worker; explicit
-worker/manifest/recovery integration and clean v2 days remain. No production
+learning gate. Libraries are not installed into the thermal worker; source-only
+worker/manifest/recovery integration is now implemented above, while exact
+production runtime qualification/activation and clean v2 days remain. No production
 source, model, publication, privilege or control changed. See
 [batch contract and exact verification](2026-10-02-radiation-history-and-shade-collision.md#october-2-evening-source-only-batched-radiation-grid-foundation).
 
