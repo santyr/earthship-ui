@@ -1,0 +1,10 @@
+# Candidate only. Do not install until source, systemd and rollback qualification.
+[Unit]
+Description=Bounded recovery of the existing morning forecast service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/forecast_fetch_recovery.py --run
+TimeoutStartSec=30
+NoNewPrivileges=true
+MemoryMax=96M

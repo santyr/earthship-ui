@@ -1,0 +1,9 @@
+# One-shot OnFailure target; intentionally not enabled at startup.
+[Unit]
+Description=Delay a failed morning forecast recovery by fifteen minutes
+
+[Timer]
+OnActiveSec=15min
+AccuracySec=30s
+RemainAfterElapse=false
+Unit=forecast-intel-fetch-recovery.service

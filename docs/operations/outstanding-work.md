@@ -373,9 +373,9 @@ one Hex DM was sent. All three approved relays ACKed it; actual Primal receipt
 and authenticated reply are still pending. Original question cipher and ACKs
 are backed up and reopened through the application. No chat label, recurring
 collector, source release flag, operator-signer change or household control.
-The latest October 3 07:21Z checkpoint (October 3 early morning MDT) accepted zero
+The latest October 3 08:23Z checkpoint (October 3 early morning MDT) accepted zero
 replies and reported one relay failure with one pending inbox refusal; its next
-retry is `2026-10-03T08:22:04Z`. Independent read-only verification still finds
+retry is `2026-10-03T09:23:50Z`. Independent read-only verification still finds
 exactly one question and zero authenticated receipts. Repeated trial approval
 does not supply the authenticated action reply. No replacement question was sent.
 The check ended and permanent collector/timer remain absent/inactive. Relay
@@ -612,6 +612,15 @@ morning issue is absent after the documented DNS failure. No historical issue
 is backfilled, and the live 06:40 timer remains unchanged. Do not fit charge
 timing from two censored outcomes. See
 [independent assessment and exact remaining evidence](2026-09-29-prediction-learning-review.md#october-3-independent-completed-charge-assessment).
+
+October 3's bounded morning fetch-recovery source candidate now passes 158
+focused tests and actual isolated user-systemd rearming across two simulated
+DNS failures followed by success. It preserves the original service/policy
+drop-ins and learning consumption markers, refuses duplicate daily issues and
+unknown/later-stage failures, and remains default-off/uninstalled. Temporary
+fixture units and files were removed. Exact production-source handoff/rollback
+and next natural issue remain before release; no early issue or October 2
+backfill. See [candidate and release gates](2026-10-03-forecast-fetch-recovery-candidate.md).
 
 September 30 20:15 MDT post-update battery-runtime discharge evidence closes
 the previously missing natural median gate. The candidate replay and an

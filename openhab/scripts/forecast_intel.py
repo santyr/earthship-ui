@@ -1355,7 +1355,10 @@ def main():
     save_state(st)  # Persist consumed daily evidence before the fallible forecast fetch.
 
     # ---- Phase 3: fetch forecast, predict today ----
-    snapshot = fetch_forecast()
+    from forecast_fetch_recovery import fetch_for_issue
+    snapshot = fetch_for_issue(fetch_forecast,st,save_state,
+        now=lambda:datetime.now(timezone.utc),invocation_id=os.environ.get('INVOCATION_ID',''),
+        timezone_name=SITE_TZ_NAME)
     weather_origin = capture_weather_inputs(snapshot, log)
     forecast_issued_at = datetime.now(timezone.utc).isoformat()
     try:

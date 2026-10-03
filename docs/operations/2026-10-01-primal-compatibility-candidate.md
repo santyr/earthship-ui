@@ -685,10 +685,10 @@ OpenHAB remains active at PID 1696. No duplicate question, recurring release,
 synthetic label or household command was issued. Do not poll before that next
 deadline merely to restate unchanged status.
 
-The latest due October 3 07:21Z bounded poll again reused the original frozen trial
+The latest due October 3 08:23Z bounded poll again reused the original frozen trial
 without sending a replacement. It ended with `accepted=0`,
 `operator_read_verified=false`, `relay_failures=1` and `withheld=1` (exit 3).
-The one pending refusal next retries at `2026-10-03T08:22:04Z`. Independent
+The one pending refusal next retries at `2026-10-03T09:23:50Z`. Independent
 read-only ledger verification still finds one question and zero authenticated
 receipts; permanent collector/timer are not-found/inactive with no process.
 Repeated approval of the one-question trial is not its authenticated action
