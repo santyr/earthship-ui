@@ -351,9 +351,11 @@ one Hex DM was sent. All three approved relays ACKed it; actual Primal receipt
 and authenticated reply are still pending. Original question cipher and ACKs
 are backed up and reopened through the application. No chat label, recurring
 collector, source release flag, operator-signer change or household control.
-The latest October 3 05:18Z checkpoint (October 2 evening MDT) accepted zero
+The latest October 3 06:18Z checkpoint (October 3 early morning MDT) accepted zero
 replies and reported one relay failure with one pending inbox refusal; its next
-retry is `2026-10-03T06:18:42Z`. No replacement question was sent.
+retry is `2026-10-03T07:19:03Z`. Independent read-only verification still finds
+exactly one question and zero authenticated receipts. Repeated trial approval
+does not supply the authenticated action reply. No replacement question was sent.
 The check ended and permanent collector/timer remain absent/inactive. Relay
 acceptance is still not operator delivery proof.
 The 21:29Z metadata-only diagnosis identifies that refusal as an authenticated
