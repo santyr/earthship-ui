@@ -228,6 +228,62 @@ def test_multi_horizon_legacy_cli_result_and_explicit_batch_cli(monkeypatch, cap
     assert multi['results']['1']['operational_readiness_blockers'] == legacy['operational_readiness_blockers']
 
 
+def test_fixed_assessment_reproduces_scores_and_bounds_all_reads(monkeypatch, capsys):
+    assessed = ISSUE.replace(hour=8, minute=0)
+    queries, reads = [], []
+    def get(query):
+        queries.append(query)
+        return {'data': [row()]}
+    def collect(request, **kwargs):
+        reads.append(request)
+        return [(target, receipt(target)) for target in request['targets']]
+    monkeypatch.setattr(audit.oh, 'get', get)
+    monkeypatch.setattr(audit, 'collect', collect)
+    argv = ['audit', '--since', '2026-09-20T00:00:00Z', '--horizons', '1', '6',
+            '--assessed-at', assessed.isoformat()]
+    with patch.object(sys, 'argv', argv):
+        audit.main()
+    first = json.loads(capsys.readouterr().out)
+    with patch.object(sys, 'argv', argv):
+        audit.main()
+    assert json.loads(capsys.readouterr().out) == first
+    assert first['assessed_at'] == assessed.isoformat()
+    assert all(request['assessed_at'] == assessed for request in reads)
+    from urllib.parse import parse_qs, urlsplit
+    assert all(parse_qs(urlsplit(query).query)['endtime'] == [assessed.isoformat()] for query in queries)
+
+
+@pytest.mark.parametrize('assessed,until', [
+    ('2099-01-01T00:00:00Z', None),
+    ('2026-09-20T08:00:00', None),
+    ('2026-09-20T08:00:00Z', '2026-09-20T09:00:00Z'),
+    ('2026-09-20T00:00:00Z', None),
+])
+def test_invalid_assessment_refuses_before_any_external_read(monkeypatch, assessed, until):
+    calls = []
+    monkeypatch.setattr(audit.oh, 'get', lambda request: calls.append(request))
+    monkeypatch.setattr(audit, 'collect', lambda *args, **kwargs: calls.append(args))
+    argv = ['audit', '--since', '2026-09-20T00:00:00Z', '--assessed-at', assessed]
+    if until:
+        argv += ['--until', until]
+    with patch.object(sys, 'argv', argv), pytest.raises(ValueError):
+        audit.main()
+    assert calls == []
+
+
+def test_fixed_assessment_does_not_mature_a_future_outcome(monkeypatch, capsys):
+    monkeypatch.setattr(audit.oh, 'get', lambda _: {'data': [row()]})
+    reads = []
+    monkeypatch.setattr(audit, 'collect', lambda *args, **kwargs: reads.append(args))
+    with patch.object(sys, 'argv', ['audit', '--since', '2026-09-20T00:00:00Z',
+            '--assessed-at', '2026-09-20T03:00:00Z', '--horizons', '6', '24']):
+        audit.main()
+    result = json.loads(capsys.readouterr().out)
+    assert reads == []
+    assert all(value['counts'] == {'outcome_not_yet_due': 1} for value in result['results'].values())
+    assert all(value['groups'] == {} for value in result['results'].values())
+
+
 class PublicationAuditTests(unittest.TestCase):
     def test_nonoverlapping_group_excludes_shared_forecast_windows(self):
         def shifted(hours):

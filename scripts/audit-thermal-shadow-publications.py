@@ -415,6 +415,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--since', default='2026-09-20T00:00:00+00:00')
     parser.add_argument('--until', default=None)
+    parser.add_argument('--assessed-at', default=None,
+                        help='optional elapsed assessment clock for reproducible read-only scoring')
     parser.add_argument('--require-capture', action='store_true',
                         help='score only publications with an exact private forcing archive')
     horizon_args = parser.add_mutually_exclusive_group()
@@ -434,7 +436,10 @@ def main():
         parser.error('--artifact-id requires --require-capture')
     if args.horizons is not None and len(set(args.horizons)) != len(args.horizons):
         parser.error('--horizons requires unique supported horizons')
-    now = datetime.now(timezone.utc)
+    actual_now = datetime.now(timezone.utc)
+    now = aware(args.assessed_at) if args.assessed_at else actual_now
+    if now > actual_now:
+        raise ValueError('assessment clock must not be in the future')
     start = aware(args.since)
     end = aware(args.until) if args.until else now
     if not start < end <= now or end - start > timedelta(days=31):
@@ -469,6 +474,7 @@ def main():
                            horizon_hours=args.horizon_hours,
                            include_pairs=args.include_pairs,
                            target_artifact_id=args.artifact_id)
+    result['assessed_at'] = now.isoformat()
     result['verifier_runtime_root'] = str(RUNTIME_ROOT)
     result['verifier_source_sha256'] = {
         name: sha256((RUNTIME_ROOT / name).read_bytes()).hexdigest()

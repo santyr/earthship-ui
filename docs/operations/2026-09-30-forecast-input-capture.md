@@ -1,5 +1,57 @@
 # Exact morning weather-input archive
 
+## October 3 fixed-clock assessment and second 24-hour outcome
+
+The read-only audit now accepts an elapsed `--assessed-at` clock. It refuses
+future or timezone-naive clocks and publication windows extending beyond that
+clock before any external read. Outcome maturity and original receipt/capture
+qualification remain unchanged. This does not override training or live-job
+clocks, create labels, or enable advice or controls. All **124 affected tests**
+pass, including repeated-score equality and rejection of premature outcomes.
+
+Two actual live reads used this exact assessment:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/home/sat/Solar_PV/analytics/src \
+  python3 scripts/audit-thermal-shadow-publications.py \
+  --since 2026-10-02T14:00:00Z --until 2026-10-03T17:00:00Z \
+  --assessed-at 2026-10-03T17:05:56.834594Z \
+  --require-capture --horizons 1 6 12 24 --include-pairs \
+  --runtime-root /home/sat/openhab/scripts
+```
+
+Both canonical reports have SHA-256
+`8f002ec1d063a48061ae6e574a7c5ec8af2ca5841d439cd0086cc53c267c68dd`.
+Fifteen persisted publications bind fifteen verified original forcing
+captures. Twenty-five distinct indoor/outdoor targets use two bounded
+transactions per source stream, not one query per overlapping forecast.
+The installed verifier runtime remains `cd77cd16...`.
+
+| Horizon | October 2 artifact overlapping pairs | Model / persistence MAE °F | Non-overlapping pairs | Non-overlapping model / persistence MAE °F |
+| --- | ---: | --- | ---: | --- |
+| Near 1 hour | 13 | 1.0304 / 1.4400 | 12 | 1.0152 / 1.4700 |
+| Near 6 hours | 12 | 1.9083 / 5.5200 | 3 | 1.2437 / 7.2000 |
+| Near 12 hours | 9 | 2.1234 / 6.6800 | 2 | 0.6445 / 6.4800 |
+| Near 24 hours | 2 | 2.6755 / 3.4200 | 1 | 2.2810 / 2.8800 |
+
+The predecessor `2435c019...` has a second mature 24-hour pair: its
+October 2 15:32:11.579258Z issue predicts October 3 16:00Z **3.070°F cold**,
+versus persistence **3.960°F cold**. Original outdoor forcing is **1.540°F
+cold**, unlike the first pair's **7.400°F warm** outdoor error. Two cold
+indoor misses under opposite outdoor-error signs do not establish a blanket
+weather correction. The second pair overlaps the first; these are not two
+independent physical days.
+
+The new artifact `d9163729...` is scored separately. Its only two mature
+near-one-hour pairs have MAE **0.291°F** versus persistence **1.800°F**,
+bias **+0.181°F**, and two non-overlapping windows. Their model errors are
+−0.110°F and +0.472°F. It has **no mature 6/12/24-hour pairs** at this
+assessment. Intervals still span roughly **10.414°F** with low confidence;
+coverage alone is not useful calibration or action-benefit evidence. No
+retrospective correction, model promotion, gate relaxation or action label
+was made. Continue chronological, artifact-specific scoring and genuine
+confirmed-action evaluation before graduation.
+
 ## October 3 new-artifact publication and first prior-artifact 24-hour outcome
 
 The next natural shadow job started at 07:39:03 MDT, finished at 07:39:07,
