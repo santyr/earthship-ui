@@ -373,11 +373,16 @@ one Hex DM was sent. All three approved relays ACKed it; actual Primal receipt
 and authenticated reply are still pending. Original question cipher and ACKs
 are backed up and reopened through the application. No chat label, recurring
 collector, source release flag, operator-signer change or household control.
-The latest October 3 10:37Z bounded checkpoint accepted zero replies and
+The latest October 3 12:54Z bounded checkpoint accepted zero replies and
 reported one relay failure and one withheld message. Its existing inbox
 refusal now has `due=0`, `pending=1` and a future retry deadline of
-`2026-10-03T11:37:56Z`; do not poll before that deadline unless the operator
+`2026-10-03T13:54:58Z`; do not poll before that deadline unless the operator
 reports a new reply. The exact existing question/policy was not replaced.
+The operator reports replying, but metadata-only checks of both protocols on
+the two reachable relays find no new bound message; Damus is unavailable.
+The assistant's shorthand-time instruction was also wrong across dates:
+the October 2 action needs `2026-10-02T12:30:00-06:00`, not `12:30` in a
+reply signed October 3. No unrelated DM or chat report was ingested.
 Independent read-only verification still finds
 exactly one question and zero authenticated receipts. Repeated trial approval
 does not supply the authenticated action reply. No replacement question was sent.

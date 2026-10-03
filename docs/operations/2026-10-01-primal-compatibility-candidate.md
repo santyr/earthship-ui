@@ -527,6 +527,24 @@ Current candidate source identities:
 
 ### October 2 approved one-question trial — sent, reply pending
 
+October 3 operator-reported reply follow-through: the 12:54Z bounded poll
+accepted zero replies; its next refusal retry is `2026-10-03T13:54:58Z`.
+Separate metadata-only reads at 12:58–12:59Z found only the previously refused
+October 2 21:01:57Z unrelated kind-4 message on nos.lol, zero kind-4 messages
+on Primal, and no authenticated operator kind-1059 replies on either reachable
+relay. Damus was unavailable. This does not prove the operator never sent a
+message. No transport fallback, ingest, ACK or journal write occurred.
+The ledger remains one question/zero authenticated receipts; recurring units
+remain absent. The temporary diagnosis script was removed.
+
+The earlier assistant instruction `yes <reference> 12:30` was incorrect for a
+reply signed the following morning: shorthand means the signed message's local
+date and is currently future-dated. For the reported October 2 action use
+`yes <reference> 2026-10-02T12:30:00-06:00`. A local frozen-runtime parser check
+maps that to October 2 18:30Z and refuses the shorthand at this checkpoint.
+This format check is not an authenticated reply or training label; the original
+question/policy and exact parser are unchanged.
+
 October 3 10:37Z follow-through: the approved bounded poll completed (exit 3)
 with `accepted=0`, `operator_read_verified=false`, one relay failure and one
 withheld message. The existing refusal now reports `due=0`, `pending=1` and
