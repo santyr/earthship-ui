@@ -675,6 +675,16 @@ release, journal label or household command occurred. Do not poll before the
 new deadline merely for an unchanged status or treat relay failure as proof
 that the operator did or did not receive the original question.
 
+The next due bounded poll ran at October 3 04:18Z. It again returned
+`accepted=0`, `operator_read_verified=false`, `relay_failures=1`, `withheld=1`
+(exit 3); the existing pending refusal now retries at
+`2026-10-03T05:18:18Z`. Read-only SQLite verification still finds one question
+and zero authenticated receipts. The transient poll has ended and no transient
+unit remains; permanent collector/timer are not-found/inactive. Production
+OpenHAB remains active at PID 1696. No duplicate question, recurring release,
+synthetic label or household command was issued. Do not poll before that next
+deadline merely to restate unchanged status.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private
