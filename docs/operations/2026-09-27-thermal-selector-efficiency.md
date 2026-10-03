@@ -82,6 +82,30 @@ receipt engine with source root `<receipt-parent>/source`, receipt directory
 `phase=code`, `mode=0644`. Stop/restore only the two thermal user timers around
 that guarded transaction; refuse later unowned edits and preserve the backups.
 
+### First natural post-prefix publication verified
+
+The unchanged timer triggered at **19:53:36.437651Z**; invocation
+`3335c9fad08d4fc9883829a5dba85e7e` started at 19:53:36.449676Z and exited
+zero at 19:53:40.450974Z, with no restart/retry. Decision and publication clocks
+are 19:53:38.161057Z and 19:53:40.406428Z. The live Item, exactly one original
+JDBC row at **19:53:40.407Z**, and saved capture
+`20261003T195338Z-2a5f3d2bc4eb195d.json.gz` match output SHA
+`2a5f3d2bc4eb195dbc45bd4a193f81866b400a429834753eefb7ce05c6d033c0`.
+Exact replay passes under explicit installed `ae5310c4...`; the accepted
+artifact remains `d9163729...` with original training revision `cd77cd16...`.
+Native radiation and all three temperature receipt expiries pass at decision
+and publication, with matching source identities. The output has 72 forecast
+points and remains shadow/low confidence, with learning and controls off.
+Invocation/source/Item readbacks remain unchanged through verification.
+
+This closes the first natural publisher/import/source/history/replay continuity
+gate. It does not exercise the optimized training prefixes; October 4's 06:50
+trainer is still required for whole-run resource and artifact acceptance.
+The 19:41 recovery archives predate this publication; its original capture is
+stored separately in the normal private capture history. Both timers remain
+enabled/active. At 19:53:20Z, the read-only, non-atomic global ownership inventory
+reports zero issues (380 managed/65 file-owned Items, 79/7 Things, 37/5 rules).
+
 The 400-day trainer remains shadow-only. A representative isolated two-fit
 `cProfile` run spent 2.208 seconds selecting multihorizon endpoints and
 11.614 seconds in the numerical objective/gradient. Endpoint selection
