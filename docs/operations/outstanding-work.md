@@ -1,5 +1,21 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 production current-radiation rollout and one-shot writer
+
+The guarded six-file runtime `c732feed...` and current-radiation user drop-in
+were installed at October 3 01:50:59Z (October 2 evening MDT). All 21 unrelated
+runtime files, existing temperature/capture settings, timers and the accepted
+artifact are preserved. A bounded installed-runtime shadow writer then
+published at 01:58:02Z; OpenHAB readback and exact as-issued replay match its
+original capture. Native radiation source time, original expiry and fault
+metadata survive in that capture. A private mode-0600 publication replay
+archive and guarded rollback receipt are retained. This enables only the
+qualified current shadow input, not training, clean-day learning, action
+collection or thermal graduation. The unchanged natural shadow timer is next
+due at 21:35:56 MDT; its first new-runtime publication remains to be verified.
+OpenHAB was not restarted; permanent Primal units remain absent/inactive.
+See [actual rollout and retained recovery](2026-10-02-radiation-history-and-shade-collision.md#production-current-input-rollout--october-3-0150z).
+
 ## October 2 evening guarded current-radiation rollout
 
 The source adapter now pins the exact six-file mixed runtime, privately backs
@@ -11,8 +27,9 @@ in receipt expiry without extending TTLs. The corrected candidate is
 `c732feed...`; original replays, isolated rollback and actual current receipt
 checks pass. All 819 affected tests pass, no skips. Live registry has 42 rules
 and no thermal forecast consumers; selected accepted artifact matches the
-latest capture canonically. Actual private preparation/apply and subsequent
-writer/capture/natural-timer evidence remain before claiming live completion.
+latest capture canonically. Private preparation/apply, installed writer,
+capture/readback and explicit-runtime replay now pass as recorded above;
+the first new-runtime natural timer publication remains to be verified.
 See [rollout, recovery command and clock regression](2026-10-02-radiation-history-and-shade-collision.md#guarded-rollout-and-receipt-clock-correction--october-3-0142z).
 
 ## October 2 evening exact installed-radiation runtime qualification

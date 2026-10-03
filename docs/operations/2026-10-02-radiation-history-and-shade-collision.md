@@ -338,6 +338,54 @@ production apply, writer/capture verification and natural timer proof are
 recorded separately after execution. No learning or thermal graduation is
 implied by the current-input rollout.
 
+### Production current-input rollout — October 3 01:50Z
+
+The guarded adapter installed the exact six-file mixed runtime
+`c732feed23f4a9dd323a85a77dec9872d821c626d6619a642548dc7b752baaac`
+and the four-setting current-radiation user drop-in at **01:50:59Z**.
+All 21 unrelated runtime files, existing temperature/capture drop-ins, timers,
+private configuration and accepted artifact are preserved. The pre-apply
+native zero was 32.38 seconds old with original expiry 01:52:27Z. No OpenHAB,
+protected-control, training or scheduled service was restarted.
+
+Private mode-0700 recovery receipt:
+`/home/sat/.local/state/thermal-intel/deploy-receipts/radiation-current-20261003T015000Z-43f9a127`.
+It contains frozen source, durable original-file/absence markers and mode-0600
+configuration/artifact snapshots. Restore uses the command above with this
+exact receipt; changed later configuration/artifacts deliberately refuse.
+The receipt remains `installed_waiting_natural_publication`.
+
+A bounded transient writer using the actual installed source and existing
+production settings then published at **2026-10-03T01:58:02.671486Z**.
+An initial verification-wrapper invocation had failed before `_shadow` on a
+missing required helper argument; it produced neither output nor capture.
+The corrected invocation completed successfully. OpenHAB `Thermal_Model_JSON`
+readback matches canonical output SHA-256
+`5f053eec5272386de340274a349d664cdba7203a24fc3b93f77829def3281520`.
+Original capture is
+`20261003T015802Z-5f053eec5272386d.json.gz`; full as-issued replay matches under
+the explicit installed publication revision. Native radiation was 39.67
+seconds old at decision with original expiry 01:59:23Z and verified fault
+visibility; these are historical receipt facts, not renewed freshness.
+The trained artifact retains its original `7f57eb3f...` source identity and
+low/shadow confidence. No chat report or shade preview became a training label.
+
+The independently verified private `publication-replay.tar.gz` inside that
+receipt contains 144 members: exact runtime/capture helper, four model-state
+files and 113 original captures. Its SHA-256 is
+`99bce9cce7fe9c430bf1cbfc2018929499ad40f9a227573c07463ee8038672b9`.
+Explicit publication binding distinguishes current publisher from the older
+trained artifact; this is not off-host/full-host recovery or a claim that all
+older captures replay under new code.
+
+Post-apply exact source/unit/configuration/artifact checks pass. OpenHAB stays
+active at PID 1696; Primal service/timer remain absent/inactive. Transients and
+task-owned test storage are cleaned; purposeful recovery evidence is retained.
+The unchanged two-hour natural shadow timer is next due **October 2 21:35:56
+MDT**. The successful one-shot is not that natural-run gate. Verify its next
+original capture, publication/readback and explicit-runtime replay before
+closing that gate. Complete-clean-v2-day learning and graduation remain off.
+
 ## Strict reader and v2 fault visibility — October 2
 
 Natural native radiation arrives about every 16 seconds, versus the unchanged
