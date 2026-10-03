@@ -9,7 +9,8 @@ fixture_module = pytest.importorskip('advisory_db_fixture', reason='explicit dis
 advisory_db = fixture_module.advisory_db
 
 from test_weather_radiation_reader import AT, POLICY, raw
-from weather_radiation_history import ITEM, RadiationHistoryUnavailable, fetch_radiation_at, fetch_radiation_window
+from weather_radiation_history import (ITEM, RadiationHistoryUnavailable, fetch_radiation_at,
+                                      fetch_radiation_grid, fetch_radiation_window)
 
 
 def test_original_jdbc_read_barriers_permissions_mapping_timeout_and_closure(advisory_db):
@@ -31,7 +32,12 @@ def test_original_jdbc_read_barriers_permissions_mapping_timeout_and_closure(adv
     def interval():
         return fetch_radiation_window(connect, start=AT, end=AT + timedelta(seconds=120),
             assessed_at=AT + timedelta(seconds=240), cutover=AT - timedelta(hours=1), policy=POLICY)
+    def batch():
+        return fetch_radiation_grid(connect,
+            targets=[AT + timedelta(seconds=s) for s in (60, 61, 120)],
+            assessed_at=AT + timedelta(seconds=240), cutover=AT - timedelta(hours=1), policy=POLICY)
     assert point()['irradianceWm2'] == 100  # 61-second future row is never selected.
+    assert [value['irradianceWm2'] for _, value in batch()] == [100, 200, 200]
     result = interval()
     assert result['status'] == 'ok' and result['observed_high_w_m2'] == 200
     assert result['irradiance_wh_m2'] == pytest.approx((61 * 100 + 59 * 200) / 3600)
@@ -39,6 +45,8 @@ def test_original_jdbc_read_barriers_permissions_mapping_timeout_and_closure(adv
         with c.cursor() as q:
             q.execute('INSERT INTO public.item0664 VALUES (%s,%s)', (AT + timedelta(seconds=30), None))
     assert point() is None and interval()['irradiance_wh_m2'] is None
+    values = batch()
+    assert values[0][1] is None and values[1][1]['irradianceWm2'] == 200
     with closing(advisory_db.connect_owner()) as c, c:
         with c.cursor() as q:
             q.execute('INSERT INTO public.item0664 VALUES (%s,%s)', (AT + timedelta(seconds=40), raw(40, sequence=3)))
@@ -47,6 +55,7 @@ def test_original_jdbc_read_barriers_permissions_mapping_timeout_and_closure(adv
         with c.cursor() as q:
             q.execute('INSERT INTO public.item0664 VALUES (%s,%s)', (AT + timedelta(seconds=50), 'x' * 9000))
     assert point() is None  # SQL NULL size barrier is retained, not dropped.
+    assert batch()[0][1] is None
     with closing(advisory_db.connect_owner()) as locker:
         with locker.cursor() as q:
             q.execute('LOCK TABLE public.item0664 IN ACCESS EXCLUSIVE MODE')
@@ -58,9 +67,11 @@ def test_original_jdbc_read_barriers_permissions_mapping_timeout_and_closure(adv
         with c.cursor() as q:
             q.execute('REVOKE SELECT ON public.item0664 FROM advisory_assessor')
     with pytest.raises(RadiationHistoryUnavailable, match='^radiation history unavailable$'): point()
+    with pytest.raises(RadiationHistoryUnavailable, match='^radiation history unavailable$'): batch()
     with closing(advisory_db.connect_owner()) as c, c:
         with c.cursor() as q:
             q.execute('GRANT SELECT ON public.item0664 TO advisory_assessor')
             q.execute('INSERT INTO public.items VALUES (665,%s)', (ITEM,))
     with pytest.raises(RadiationHistoryUnavailable): point()
+    with pytest.raises(RadiationHistoryUnavailable): batch()
     assert all(c.closed for c in connections)

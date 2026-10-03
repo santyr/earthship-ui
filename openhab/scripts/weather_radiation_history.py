@@ -7,7 +7,8 @@ from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from weather_radiation_evidence import RadiationPolicy
-from weather_radiation_reader import MAX_BYTES, MAX_ROWS, _utc, _validate, select_radiation_at, select_radiation_window
+from weather_radiation_reader import (MAX_BYTES, MAX_ROWS, MAX_GRID_TARGETS, _utc, _validate,
+    select_radiation_at, select_radiation_grid, select_radiation_window)
 
 ITEM = 'Weather_Radiation_Evidence_JSON'
 
@@ -68,6 +69,28 @@ def fetch_radiation_at(connection_factory, *, target, assessed_at, cutover, poli
         kwargs = dict(target=target, assessed_at=assessed_at, history_start=history, cutover=cutover, policy=policy)
         _validate(start=target, end=target, assessed_at=assessed_at, history_start=history, cutover=cutover, policy=policy)
         return select_radiation_at(_fetch(connection_factory, history, target), **kwargs)
+    except Exception:
+        raise RadiationHistoryUnavailable('radiation history unavailable') from None
+
+
+def fetch_radiation_grid(connection_factory, *, targets, assessed_at, cutover, policy):
+    """One dedicated snapshot/connection for the entire v2-only as-of grid.
+
+    No full-day qualification, training activation or per-target SQL queries.
+    Validation occurs before connecting; original carry and all intervening
+    snapshots are preserved by the existing bounded SELECT-only transport.
+    """
+    try:
+        if not isinstance(policy, RadiationPolicy):
+            raise ValueError('explicit radiation policy required')
+        if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= MAX_GRID_TARGETS:
+            raise ValueError('bounded radiation target grid required')
+        targets = [_utc(target) for target in targets]
+        history = targets[0] - timedelta(seconds=policy.validity_seconds)
+        kwargs = dict(targets=targets, assessed_at=assessed_at, history_start=history,
+                      cutover=cutover, policy=policy)
+        select_radiation_grid([], **kwargs)  # Refuse invalid requests before PostgreSQL.
+        return select_radiation_grid(_fetch(connection_factory, history, targets[-1]), **kwargs)
     except Exception:
         raise RadiationHistoryUnavailable('radiation history unavailable') from None
 

@@ -225,3 +225,59 @@ explicit evidence-gated learner integration remain next. Rollback must guard
 the deployed candidate hash, atomically restore the retained preimage and
 gracefully reload the currently verified sat-owned weather master; preserve
 all v1/v2 JDBC history and recognize the new epoch/collection gap.
+
+## October 2 evening: source-only batched radiation grid foundation
+
+`select_radiation_grid` and `fetch_radiation_grid` now provide bounded,
+**as-of v2-only** receipt observations for future thermal integration. At most
+301 strictly increasing targets span at most 25 elapsed hours, accommodating
+a five-minute grid across the long DST day. Each original snapshot is parsed
+once; one dedicated read-only repeatable-read PostgreSQL connection fetches
+the original carry plus intervening rows through two source SELECTs. The
+existing unique Item mapping, row/payload limits and query/lock timeouts remain.
+Invalid requests refuse before connecting, and connections close on failure.
+
+Results retain original decoder, receiver, persistence, expiry, epoch, sequence,
+fault counter, conversion and snapshot digest. Target timestamps never replace
+receipt clocks. Missing/expired/malformed/replayed evidence is unavailable, not
+filled or interpolated. Legacy v1 cannot qualify: an unverified legacy row also
+blocks a later v2 wrapper around its same old native record until a genuinely
+newer decoder/receiver receipt arrives. That edge regression failed before its
+fix. Existing single-point diagnostic and interval/day APIs remain unchanged.
+
+This grid does **not** prove complete exposure or authorize training. A hidden
+fault disclosed by a later counter can invalidate a past interval even though
+the earlier point was usable as-of its own timestamp. The existing complete
+v2 window/day and native closing-receipt gates remain independently required
+before learned forcing or calibration. Grid points must not bypass them.
+
+Verification:
+
+- New reader/transport tests failed against the missing APIs before implementation.
+- The 25-hour fixture parses exactly 3,001 snapshots once for 301 targets.
+  Fifty deterministic v2 fault/restoration histories produce **3,800** exact
+  matches against the unchanged single-point engine; legacy-grid refusal is
+  deliberately stricter than that engine's retained v1 diagnostic behavior.
+- The actual disposable restricted PostgreSQL test now exercises the grid's
+  future-value exclusion, malformed/oversized barriers, permission denial,
+  ambiguous mapping and closure alongside the original point/window checks.
+  The full weather/qualifier-CLI slice passes **335 tests in 12.63 seconds**,
+  with no skips. Owned fixtures, containers and pytest directories are removed;
+  bytecode and pytest-cache writes were disabled.
+- At `2026-10-03T00:12:09.870254Z` (October 2, 18:12 MDT), a real SELECT-only
+  check under the existing restricted `energy_power_reader` qualified **37/37**
+  five-minute targets from `2026-10-02T21:10:00Z` to `2026-10-03T00:10:00Z`,
+  using one connection that closed cleanly. Its explicit v2 cutover remains
+  `2026-10-02T20:00:09.206165Z`. Canonical result SHA-256 is
+  `866ff49d4b1d0846029aa2e4eb0b99f6f06df9f61b1c2014fc6d8f947bf2e98d`;
+  a fixed-original-assessment recheck after the legacy-barrier fix matches it
+  exactly. This short grid is not complete-day qualification or calibration.
+
+Both radiation reader modules remain absent from `/home/sat/openhab/scripts`;
+the new API is repository source, manually exercised read-only, not installed
+into the active thermal worker. No new credential/grant, source opt-in, service,
+artifact, SQL row, forecast publication or household control was changed.
+The next step is an explicit fail-closed worker/manifest/cutover integration
+with original-input replay and coordinated recovery; learner activation still
+waits for complete clean v2 days. October 3 local remains the first possible
+full day, assessable after October 4 midnight and its closing receipt.

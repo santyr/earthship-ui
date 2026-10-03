@@ -16,6 +16,7 @@ from weather_radiation_evidence import CONVERSION, MODELS, RadiationPolicy
 
 MAX_BYTES = 8192
 MAX_ROWS = 10000
+MAX_GRID_TARGETS = 301  # Five-minute targets including both ends of a 25-hour DST day.
 FIELDS = {'version', 'streamEpoch', 'recordedAt', 'model', 'sourceModel',
           'sensorId', 'field', 'status', 'reason', 'timeBasis', 'radioDecodedAt',
           'receivedAt', 'validUntil', 'lightLux', 'irradianceWm2', 'conversion', 'sequence'}
@@ -204,6 +205,50 @@ def select_radiation_at(rows, *, target, assessed_at, history_start, cutover, po
                 and evidence['radioDecodedAt'] <= target < evidence['validUntil'] else None)
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
         return None
+
+
+def select_radiation_grid(rows, *, targets, assessed_at, history_start, cutover, policy):
+    """One-pass, v2-only as-of observations for at most 301 elapsed targets.
+
+    Returns (target, original receipt metadata or None); target clocks never
+    replace receiver/decoder clocks or extend native expiry. Unknown, invalid,
+    restored and legacy v1 snapshots are not qualified values. Ordering/query
+    errors refuse the entire batch. The original carry and complete intervening
+    history must be supplied; selecting only each target's latest row is unsafe.
+
+    This is an as-of grid, NOT complete-window or learning qualification. Later
+    cumulative faults cannot rewrite what was available at a past target, but
+    can invalidate that exposure retrospectively. Learning must independently
+    pass select_radiation_window's clean v2/closing-receipt gate.
+    """
+    if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= MAX_GRID_TARGETS:
+        raise ValueError('bounded radiation target grid required')
+    targets = [_utc(target) for target in targets]
+    _validate(start=targets[0], end=targets[-1], assessed_at=assessed_at,
+              history_start=history_start, cutover=cutover, policy=policy)
+    if any(left >= right for left, right in zip(targets, targets[1:])):
+        raise ValueError('strictly increasing radiation targets required')
+    timeline, _ = _timeline([(at, raw) for at, raw in _rows(rows) if at <= targets[-1]], policy)
+    cutover = _utc(cutover)
+    index, evidence, barrier, result = 0, None, None, []
+    for target in targets:
+        while index < len(timeline) and timeline[index][0] <= target:
+            stored, candidate, _ = timeline[index]
+            if candidate is None or candidate['fault_visibility'] != 'verified':
+                evidence, barrier = None, stored
+            elif barrier is not None and min(candidate['receivedAt'], candidate['radioDecodedAt']) <= barrier:
+                # A later v2 wrapper around a legacy/unknown source record is
+                # not a new RF observation. Recover only beyond the barrier.
+                evidence, barrier = None, stored
+            else:
+                evidence = candidate
+            index += 1
+        qualified = (evidence is not None and evidence['fault_visibility'] == 'verified'
+                     and min(evidence['storedAt'], evidence['receivedAt'],
+                             evidence['radioDecodedAt']) >= cutover
+                     and evidence['radioDecodedAt'] <= target < evidence['validUntil'])
+        result.append((target, dict(evidence) if qualified else None))
+    return result
 
 
 def select_radiation_window(rows, *, start, end, assessed_at, history_start, cutover, policy):

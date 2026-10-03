@@ -6,7 +6,7 @@ import pytest
 from test_weather_rain_history import Connection
 from test_weather_radiation_reader import AT, POLICY, raw
 from weather_radiation_history import (ITEM, RadiationHistoryUnavailable,
-    fetch_radiation_at, fetch_radiation_day, fetch_radiation_window)
+    fetch_radiation_at, fetch_radiation_day, fetch_radiation_window, fetch_radiation_grid)
 
 
 def read(connection):
@@ -88,3 +88,41 @@ def test_row_budget_and_out_of_query_rows_refuse():
     c = fixture(); c.rows.append((AT + timedelta(minutes=1, seconds=1), raw(61, sequence=3)))
     with pytest.raises(RadiationHistoryUnavailable):
         read(c)
+
+
+def test_grid_uses_one_readonly_connection_and_original_carry_for_all_targets():
+    c = fixture(); c.carry = (AT - timedelta(seconds=150), raw(-150))
+    targets = [AT + timedelta(minutes=5*i) for i in range(289)]
+    calls = []
+    def factory():
+        calls.append(True)
+        return c
+    result = fetch_radiation_grid(factory, targets=targets,
+        assessed_at=targets[-1], cutover=AT - timedelta(hours=1), policy=POLICY)
+    assert len(result) == 289 and result[0][1]['irradianceWm2'] == 100
+    assert all(value is None for _, value in result[1:])
+    assert calls == [True] and c.closed
+    assert c.session == dict(readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
+    selects = [(sql, args) for sql, args in c.queries if 'SELECT time' in sql]
+    assert len(selects) == 2
+    assert selects[0][1] == (AT - timedelta(seconds=120),)
+    assert selects[1][1] == (AT - timedelta(seconds=120), targets[-1])
+    assert not any(word in sql for sql, _ in c.queries for word in ('INSERT', 'UPDATE', 'DELETE', 'COMMIT'))
+
+
+@pytest.mark.parametrize('targets', [[], [AT, AT], [AT, AT - timedelta(seconds=1)],
+                                    [AT] * 302, [AT + timedelta(days=2)]])
+def test_invalid_grid_refuses_before_opening_database(targets):
+    calls = []
+    with pytest.raises(RadiationHistoryUnavailable, match='^radiation history unavailable$'):
+        fetch_radiation_grid(lambda: calls.append(True), targets=targets,
+            assessed_at=AT + timedelta(days=1), cutover=AT, policy=POLICY)
+    assert calls == []
+
+
+def test_grid_permission_error_sanitized_and_connection_closed():
+    c = fixture(fail_source=True)
+    with pytest.raises(RadiationHistoryUnavailable, match='^radiation history unavailable$'):
+        fetch_radiation_grid(lambda: c, targets=[AT], assessed_at=AT,
+                             cutover=AT - timedelta(hours=1), policy=POLICY)
+    assert c.closed
