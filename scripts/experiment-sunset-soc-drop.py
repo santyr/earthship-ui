@@ -143,13 +143,63 @@ def phase_matched_counterfactual(record, profiles, late):
         'input_phase_starts':[profile['phase_start_at'] for profile in profiles]}
 
 
+def charge_origin(record, receipt):
+    """Keep the atomic SoC assessment clock distinct from the weather issue."""
+    origin = record.get('soc_origin')
+    fields = {'version','assessedAtMs','recordedAtMs','validUntilMs',
+              'streamEpoch','evidenceSha256','socPct'}
+    if (not isinstance(origin,dict) or set(origin) != fields
+            or json.dumps(origin,sort_keys=True) != json.dumps(receipt.get('energySocOrigin'),sort_keys=True)
+            or type(origin['version']) is not int
+            or origin['version'] != 1 or any(type(origin[key]) is not int or origin[key] < 0
+                for key in ('assessedAtMs','recordedAtMs','validUntilMs'))
+            or not origin['recordedAtMs'] <= origin['assessedAtMs'] < origin['validUntilMs']
+            or type(origin['socPct']) not in (int,float) or not math.isfinite(origin['socPct'])
+            or not 0 <= origin['socPct'] <= 100 or origin['socPct'] != record.get('soc_reference_pct')
+            or not isinstance(origin['evidenceSha256'],str)
+            or re.fullmatch('[0-9a-f]{64}',origin['evidenceSha256']) is None):
+        raise ValueError('original atomic charge input required')
+    weather = datetime.fromisoformat(record['temperature_issued_at'])
+    assessed = datetime.fromtimestamp(origin['assessedAtMs']/1000,timezone.utc)
+    # The assessment is recorded at millisecond precision; never relabel it
+    # with the earlier microsecond weather clock, even when they share a ms.
+    if (weather.utcoffset() is None or receipt.get('issuedAt') != record['temperature_issued_at']
+            or not -timedelta(milliseconds=1) < assessed-weather <= timedelta(seconds=120)
+            or assessed.astimezone(ZONE).date() != weather.astimezone(ZONE).date()):
+        raise ValueError('independent charge/weather clocks unavailable')
+    return assessed
+
+
+def verify_charge_input(record, receipt, rows):
+    """Require the latest original persisted receipt, never a later or held SoC."""
+    from pre_dusk_tuning import verify_issue_soc
+    from earthship_energy.bms_evidence import parse_evidence
+    assessed = charge_origin(record,receipt)
+    origin = record['soc_origin']
+    prior = [(at,raw) for at,raw in rows if at <= assessed]
+    if not prior or len({at for at,_ in prior}) != len(prior):
+        raise ValueError('unique original charge receipt required')
+    persisted,raw = max(prior,key=lambda row:row[0])
+    verify_issue_soc({'issuedAt':assessed.isoformat(),
+        'socRecordedAt':datetime.fromtimestamp(origin['recordedAtMs']/1000,timezone.utc).isoformat(),
+        'socStreamEpoch':origin['streamEpoch'],'socEvidenceSha256':origin['evidenceSha256'],
+        'socAtIssuePct':origin['socPct']},raw,persisted.isoformat())
+    evidence = parse_evidence(raw,persisted)
+    if int(evidence.valid_until.timestamp()*1000) != origin['validUntilMs']:
+        raise ValueError('charge source expiry changed')
+    return assessed
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--start-day', type=date.fromisoformat, required=True)
     parser.add_argument('--end-day', type=date.fromisoformat, required=True,
                         help='exclusive; at most fourteen issue dates')
-    parser.add_argument('--include-pre-dusk', action='store_true',
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--include-pre-dusk', action='store_true',
                         help='also score source-qualified sunset and phase-matched pre-dusk comparisons; no live correction')
+    mode.add_argument('--charge-only', action='store_true',
+                      help='assess completed charge days after sunset without waiting for the overnight trough; no live correction')
     args = parser.parse_args()
     if not 1 <= (args.end_day-args.start_day).days <= 14:
         raise ValueError('bounded issue interval required')
@@ -200,10 +250,10 @@ def main():
                 raise ValueError('sunset archive exceeds bound')
             for offset in range((args.end_day-args.start_day).days):
                 day = args.start_day+timedelta(days=offset)
-                if not trough_window(day, 'America/Denver').is_complete(now):
+                if not args.charge_only and not trough_window(day, 'America/Denver').is_complete(now):
                     counts['target_incomplete'] += 1; continue
                 record = state['predictions'].get(day.isoformat())
-                if not record or len(record.get('overnight_drop_sample_days', [])) != 3:
+                if not record or (not args.charge_only and len(record.get('overnight_drop_sample_days', [])) != 3):
                     counts['origin_components_unavailable'] += 1; continue
                 origin = datetime.fromisoformat(record['temperature_issued_at'])
                 if origin.utcoffset() is None or origin.astimezone(ZONE).date() != day or origin > now:
@@ -224,6 +274,33 @@ def main():
                         matched.append(receipt)
                 if len(matched) != 1:
                     counts['original_issue_unavailable'] += 1; continue
+                if args.charge_only:
+                    receipt = matched[0]
+                    boundary = sunset_at(sunsets,day,origin)
+                    if boundary is None:
+                        counts['charge_sunset_unavailable'] += 1; continue
+                    if boundary[1] > now:
+                        counts['charge_day_incomplete'] += 1; continue
+                    try:
+                        assessed = charge_origin(record,receipt)
+                        rows = fetch_freshness_observations(db,tables['BMS_SOC_Evidence_JSON'],
+                            assessed-timedelta(seconds=120),boundary[1]+timedelta(microseconds=1),
+                            row_limit=10001)
+                        verify_charge_input(record,receipt,rows)
+                        charge = charge_profile(day=day,origin=assessed,sunset=boundary[1],
+                            sunset_persisted_at=boundary[0],as_of=now,observations=rows,
+                            epoch_start=epoch_start,epoch_end=epoch_end)
+                        if charge is None or charge['soc_at_origin_pct'] != record['soc_reference_pct']:
+                            raise ValueError('qualified charge outcome unavailable')
+                    except (KeyError,TypeError,ValueError):
+                        counts['charge_origin_or_outcome_unavailable'] += 1; continue
+                    result.append({'day':day.isoformat(),'weather_origin':origin.isoformat(),
+                        'soc_assessed_at':assessed.isoformat(),'sunset_at':boundary[1].isoformat(),
+                        'soc_input_digest':record['soc_origin']['evidenceSha256'],
+                        'charge_profile':charge})
+                    counts['qualified_charge_days'] += 1
+                    counts['charge_'+charge['status']] += 1
+                    continue
                 def observations(night, lead_seconds=0):
                     boundary = sunset_at(sunsets, night, origin)
                     if boundary is None:
@@ -335,6 +412,7 @@ def main():
                         scored['pre_dusk_counterfactual'] = None
                 result.append(scored)
     print(json.dumps({'status':'diagnostic_only', 'production_changed':False,
+        'assessment_mode':'charge_only' if args.charge_only else 'overnight_counterfactual',
         'state_sha256':sha256(raw).hexdigest(), 'as_of':now.isoformat(),
         'counts':dict(counts), 'rows':result}, indent=2))
 

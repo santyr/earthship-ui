@@ -2,6 +2,8 @@ from datetime import date, datetime, timedelta, timezone
 from copy import deepcopy
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from hashlib import sha256
+import json
 
 import pytest
 
@@ -128,3 +130,129 @@ def test_phase_comparison_refuses_mismatched_phase_and_sunset_context(damage):
     elif damage == 'sunset_day': profiles[0]['sunset_at'] = profiles[1]['sunset_at']
     else: profiles[0]['sunset_persisted_at'] = profiles[0]['sunset_at']
     with pytest.raises(ValueError): experiment.phase_matched_counterfactual(record, profiles, late)
+
+
+def charge_input_fixture():
+    weather=datetime(2026,10,2,12,40,30,513835,tzinfo=timezone.utc)
+    assessed=weather.replace(microsecond=519000)
+    observed=assessed-timedelta(seconds=10)
+    stamp=lambda at:int(at.timestamp()*1000)
+    raw=json.dumps({'version':1,'streamEpoch':'123e4567-e89b-42d3-a456-426614174000',
+        'recordedAt':stamp(observed),'status':'valid','reason':'ok',
+        'observedAt':stamp(observed),'scaleObservedAt':stamp(observed),
+        'validUntil':stamp(observed+timedelta(seconds=120)),'soc':79})
+    origin={'version':1,'assessedAtMs':stamp(assessed),'recordedAtMs':stamp(observed),
+        'validUntilMs':stamp(observed+timedelta(seconds=120)),
+        'streamEpoch':'123e4567-e89b-42d3-a456-426614174000',
+        'evidenceSha256':sha256(raw.encode()).hexdigest(),'socPct':79}
+    record={'temperature_issued_at':weather.isoformat(),'soc_origin':origin,'soc_reference_pct':79}
+    receipt={'issuedAt':weather.isoformat(),'energySocOrigin':deepcopy(origin)}
+    return record,receipt,[(observed+timedelta(seconds=1),raw)],assessed
+
+
+def test_charge_assessment_keeps_the_later_atomic_clock_without_mutating_origins():
+    record,receipt,rows,assessed=charge_input_fixture()
+    before=deepcopy((record,receipt,rows))
+    assert experiment.verify_charge_input(record,receipt,rows)==assessed
+    assert assessed>datetime.fromisoformat(record['temperature_issued_at'])
+    assert (record,receipt,rows)==before
+
+
+@pytest.mark.parametrize('fault',['missing_public','bool_version','bool_public_version','bool_clock',
+    'expired','future_recorded','bad_digest','soc_mismatch','weather_backdate','weather_naive',
+    'assessment_too_late','different_weather_issue','extra_origin_field','wrong_stream','altered_expiry',
+    'later_fault','duplicate','only_future_source','wrong_digest'])
+def test_charge_input_refuses_unqualified_origins_or_source_substitutions(fault):
+    record,receipt,rows,assessed=charge_input_fixture()
+    origin=record['soc_origin']
+    if fault=='missing_public':receipt.pop('energySocOrigin')
+    elif fault=='bool_public_version':receipt['energySocOrigin']['version']=True
+    elif fault=='bool_version':origin['version']=True
+    elif fault=='bool_clock':origin['assessedAtMs']=True
+    elif fault=='expired':origin['validUntilMs']=origin['assessedAtMs']
+    elif fault=='future_recorded':origin['recordedAtMs']=origin['assessedAtMs']+1
+    elif fault=='bad_digest':origin['evidenceSha256']='unbound'
+    elif fault=='soc_mismatch':record['soc_reference_pct']=80
+    elif fault=='weather_backdate':record['temperature_issued_at']=(assessed+timedelta(seconds=1)).isoformat()
+    elif fault=='weather_naive':record['temperature_issued_at']='2026-10-02T12:40:30'
+    elif fault=='assessment_too_late':origin['assessedAtMs']+=121000;origin['validUntilMs']+=121000
+    elif fault=='different_weather_issue':receipt['issuedAt']='2026-10-02T12:39:00+00:00'
+    elif fault=='extra_origin_field':origin['extra']='unreviewed'
+    elif fault=='wrong_stream':origin['streamEpoch']='123e4567-e89b-42d3-a456-426614174001'
+    elif fault=='altered_expiry':origin['validUntilMs']+=1000
+    elif fault=='later_fault':rows.append((assessed-timedelta(seconds=1),'{}'))
+    elif fault=='duplicate':rows.append(rows[0])
+    elif fault=='only_future_source':rows=[(assessed+timedelta(seconds=1),rows[0][1])]
+    else:origin['evidenceSha256']='a'*64
+    if fault not in ('missing_public','bool_public_version','different_weather_issue'):
+        receipt['energySocOrigin']=deepcopy(origin)
+    if fault in ('weather_backdate','weather_naive'):
+        receipt['issuedAt']=record['temperature_issued_at']
+    with pytest.raises(ValueError):experiment.verify_charge_input(record,receipt,rows)
+
+
+def test_charge_only_cli_assesses_after_sunset_before_trough_without_prior_nights(monkeypatch,tmp_path,capsys):
+    from types import SimpleNamespace
+    import forecast_intel
+    import psycopg2
+    from earthship_energy import db as db_module, materialize, reader
+    record,receipt,rows,assessed=charge_input_fixture()
+    sunset=assessed+timedelta(hours=12)
+    now=sunset+timedelta(minutes=1)
+    assert not experiment.trough_window(date(2026,10,2),'America/Denver').is_complete(now)
+    record['trough']=80
+    receipt.update(version=1,predictionDay='2026-10-02',overnightTroughSocPct=80)
+    for second in range(30,12*3600+1,30):
+        at=assessed+timedelta(seconds=second)
+        value=json.loads(rows[0][1]); stamp=int(at.timestamp()*1000)
+        for key in ('recordedAt','observedAt','scaleObservedAt'):value[key]=stamp
+        value['validUntil']=stamp+120000
+        rows.append((at,json.dumps(value)))
+    path=tmp_path/'state.json';path.write_text(json.dumps({'predictions':{'2026-10-02':record}}))
+    monkeypatch.setattr(forecast_intel,'STATE_FILE',str(path))
+    before=path.read_bytes()
+    monkeypatch.setattr(experiment.sys,'argv',['benchmark','--start-day','2026-10-02',
+        '--end-day','2026-10-03','--charge-only'])
+    class Clock(datetime):
+        @classmethod
+        def now(cls,tz=None):return now
+    monkeypatch.setattr(experiment,'datetime',Clock)
+    monkeypatch.setattr(experiment,'read_day_issues',lambda *a,**k:[{'receipt':receipt}])
+    monkeypatch.setattr(db_module,'parse_openhab_jdbc_config',lambda *_:SimpleNamespace(
+        host='127.0.0.1',port=5432,dbname='openhab',user='energy_power_reader',connect_kwargs={}))
+    monkeypatch.setattr(materialize,'load_epoch_config',lambda:[SimpleNamespace(
+        current_analytics=True,start_local_date=date(2026,7,19),end_local_date_exclusive=None)])
+    monkeypatch.setattr(reader,'fetch_freshness_observations',lambda *a,**k:rows)
+    calls=[]
+    class Cursor:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def execute(self,sql,params=None):
+            calls.append((str(sql),params))
+            self.result=[(1 if params[0]=='Sun_Set_Start' else 613,)] if str(sql).startswith(
+                'SELECT itemid') else [(
+                    Clock.fromtimestamp((assessed-timedelta(hours=6)).timestamp(),timezone.utc),
+                    Clock.fromtimestamp(sunset.timestamp(),timezone.utc))]
+        def fetchall(self):return self.result
+    class Database:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def set_session(self,**kwargs):assert kwargs['readonly'] is True
+        def cursor(self):return Cursor()
+    monkeypatch.setattr(psycopg2,'connect',lambda *a,**k:Database())
+    experiment.main()
+    result=json.loads(capsys.readouterr().out)
+    assert result['assessment_mode']=='charge_only'
+    assert result['counts']['qualified_charge_days']==1
+    assert result['rows'][0]['charge_profile']['status']=='no_full_report'
+    assert result['rows'][0]['soc_assessed_at']==assessed.isoformat()
+    assert result['production_changed'] is False and path.read_bytes()==before
+    assert not any(word in sql.upper().split() for sql,_ in calls
+                   for word in ('INSERT','UPDATE','DELETE','DROP'))
+
+
+def test_charge_only_and_overnight_modes_cannot_be_mixed(monkeypatch):
+    monkeypatch.setattr(experiment.sys,'argv',['benchmark','--start-day','2026-10-01',
+        '--end-day','2026-10-03','--charge-only','--include-pre-dusk'])
+    with pytest.raises(SystemExit) as error:experiment.main()
+    assert error.value.code==2

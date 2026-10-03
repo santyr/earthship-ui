@@ -5,6 +5,59 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 3 independent completed-charge assessment
+
+The benchmark now supports `--charge-only`, independent of the next day's
+unfinished 20:00–11:00 trough. The existing overnight modes and live forecasts
+are unchanged. This mode requires sunset to have passed, its original archived
+context to have been available at the morning issue, and the original atomic
+SoC receipt to match both private state and the public prediction receipt.
+It verifies the latest persisted source at the **SoC assessment clock**, not
+the slightly earlier weather issue; native expiry, epoch, digest and SoC must
+match. A later fault cannot be bypassed by selecting an older valid receipt.
+Prior-night drop samples are not a prerequisite for this separate target.
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/experiment-sunset-soc-drop.py \
+  --start-day 2026-09-25 --end-day 2026-10-03 --charge-only
+```
+
+The actual restricted read-only run at `2026-10-03T08:05:56.198603Z`
+qualifies two original-input/outcome pairs:
+
+| Date | Atomic SoC assessment, UTC | Morning → sunset SoC | Coverage | Charge outcome |
+| --- | --- | --- | --- | --- |
+| Sep 30 | 12:40:30.518 | 85 → 83% | 99.991549% | No full report; censored at sunset |
+| Oct 1 | 12:40:30.519 | 69 → 87% | 99.991455% | No full report; censored at sunset |
+
+Their weather clocks remain respectively `12:40:30.514550` and
+`12:40:30.513835`; none is backdated to the other. New outcome digests are
+`172efc70f5f40d066afacda28d0d7c70808d2f7f7035e406dc9ea23b42a04ff1`
+and `175ad0e8dea837bb94659d03fe8c59826ca51082ac3d10c25502e7d4fa3efa53`.
+These differ from earlier weather-clock profiles because the assessed horizon
+and evidence binding now use the exact atomic clock; older evidence is retained,
+not relabeled. Five earlier dates lack this stronger original-input pairing.
+Their previously qualified observational charge outcomes are not discarded,
+but are not promoted into paired forecast-training inputs by this command.
+
+October 2 has no original morning prediction in state. Sanitized user-unit
+journal evidence traces its 06:40 job failure to `getaddrinfo` during the
+Open-Meteo fetch. The documented 08:14 recovery started only weather JSON and
+thermal shadow jobs; it did not create a replacement morning energy issue.
+Do not backfill October 2 from that later weather revision or run a historical
+production issue now. The October 3 morning timer remains active at 06:40 MDT.
+State SHA-256 remains
+`26987242320a094645ea8c06e223e3d7405aea5a9558aada842777e28d94c23f`.
+
+The focused source/profile/history/release regression slice passes **145
+tests**, including real native-evidence CLI assessment after sunset while the
+overnight window is incomplete, strict-source refusal cases, and incompatible
+mode rejection. This closes assessment latency and exact-input pairing, not
+charge-timing model skill. There are no paired reported-full examples in this
+run: a survival/full-charge timing fit must wait for adequate chronological
+paired events rather than fitting two censored outcomes. No training, timer,
+prediction, notification, label or household control changed.
+
 ## October 2 matched pre-dusk phase benchmark
 
 The source-only `pre_dusk_phase_profile` now measures **true Astro sunset
