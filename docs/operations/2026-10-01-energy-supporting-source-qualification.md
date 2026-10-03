@@ -1,5 +1,34 @@
 # Energy supporting-source qualification — October 1
 
+## October 3 operator acceptance and guarded deployment
+
+The operator accepted the actual-binding fault/JVM qualification in place of a
+deliberate physical household outage. The adapter's source release gate is now
+open; explicit CLI write authority, the unchanged rehearsed receipt, idle
+aggregate/publisher and clear timer window remain mandatory.
+
+The current 136-input receipt below passed fresh verification, then the exact
+guarded `apply --allow-apply`. Independent reopening now reports
+`installed_waiting_natural_aggregate`. The user service manager confirms all
+three expected drop-ins, the exact combined argv and original PYTHONPATH.
+Only `zz-qualified-switch.conf` was installed; no job, timer, SQL write,
+OpenHAB restart or household control was started or changed. Original power
+and temperature readers remain, with the qualified switch and BMS auxiliary
+readers added. The existing next natural timer is October 4 at 00:21:01 MDT.
+Require that aggregate and subsequent UI publication before claiming end-to-end
+completion; partial source days must remain partial and AC-v4 stays separate.
+
+Private receipt:
+`/home/sat/.local/state/earthship-energy/deploy-receipts/quality-20261003T093300Z-c10e7482`.
+Installed qualification SHA-256:
+`8ce0ea2f32ea3f4ee2c612f41264c2f9472fbb00c780ac8993cfbe92d9ce59e1`.
+Approved adapter SHA-256:
+`62160f4c678ee640c19915f32b1e36bee62b488cbecc6d65b74faab8e63b961d`.
+The combined Energy/file-engine/Moon affected suite passes 313 tests without
+skips. The following earlier staging sections are historical checkpoints,
+not current closed-gate status. Receipt-bound rollback remains available and
+refuses later unowned file edits; it needs no apply release gate.
+
 ## October 3 refreshed source-pin receipt
 
 The original 135-input point remains retained but stale. A new default-off point

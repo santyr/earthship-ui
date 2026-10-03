@@ -61,6 +61,10 @@
       "source": "things/bitcoin-price.things", "destination": "/etc/openhab/things/bitcoin-price.things"
     },
     {
+      "kind": "thing", "id": "astro:moon:local", "provider": "file", "migration": "verified",
+      "source": "things/astro-moon.things", "destination": "/etc/openhab/things/astro-moon.things"
+    },
+    {
       "kind": "thing", "id": "openmeteo:forecast:local:site", "provider": "file", "migration": "verified",
       "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
     },

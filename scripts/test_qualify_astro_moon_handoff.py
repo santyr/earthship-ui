@@ -61,7 +61,18 @@ def test_sun_fixture_comparator_drops_only_declared_probe_link_enrichment():
 
 
 def test_fixture_does_not_open_production_gates():
-    assert m.m.LIVE_RELEASE_READY is False and m.m.METADATA_DEVIATION_APPROVED is False
+    # Metadata approval is independent of authority to mutate production.
+    assert m.m.LIVE_RELEASE_READY is False
+
+
+def test_fixture_refuses_open_live_gate_even_with_metadata_approved(monkeypatch):
+    monkeypatch.setattr(m.m, 'METADATA_DEVIATION_APPROVED', True)
+    monkeypatch.setattr(m.m, 'LIVE_RELEASE_READY', True)
+    monkeypatch.setattr(m.q, 'validate_container', lambda *_: None)
+    monkeypatch.setattr(m.q.runtime, 'run', lambda *_: b'[{}]')
+    ops = m.FixtureOperations({'container': 'owned', 'marker': 'owner'}, None)
+    with pytest.raises(RuntimeError, match='live gate'):
+        ops.validate()
 
 
 @pytest.mark.parametrize('method,path,body',[('POST','/items/SouthOutlet',{}),('DELETE','/things/other',None),

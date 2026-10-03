@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Default-off, receipt-bound supporting Energy daily-quality unit handoff.
+"""Receipt-bound supporting Energy daily-quality unit handoff.
 
 Only one user drop-in can change. Prepare/rehearse do not touch live units;
 apply/restore/recover require explicit CLI authority and an idle timer window.
@@ -28,7 +28,10 @@ CANDIDATE = SOLAR/'deploy/systemd/user/energy-daily-aggregate.service.d/zz-quali
 CANDIDATE_SHA = '6a12658f41ba8e6b32e6543681cfd05676f5c4830a6e6f20f62b4f9b40d5a5e5'
 RECEIPTS = Path('/home/sat/.local/state/earthship-energy/deploy-receipts')
 PYTHONPATH = '/home/sat/Solar_PV/analytics/src:/home/sat/earthship-ui/openhab/scripts'
-SUPPORTING_QUALITY_RELEASE_READY = False
+# Operator accepted actual-binding fault/JVM qualification on October 3, 2026,
+# instead of deliberately faulting household equipment. Explicit CLI authority,
+# unchanged rehearsed receipt and idle-window/readback gates remain mandatory.
+SUPPORTING_QUALITY_RELEASE_READY = True
 SCHEMA = 'earthship-energy-quality-unit/v1'
 SOURCE = 'candidate/zz-qualified-switch.conf'
 

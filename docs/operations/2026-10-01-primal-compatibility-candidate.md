@@ -525,7 +525,48 @@ Current candidate source identities:
 
 ## Remaining work before a live Primal collector
 
-### October 2 approved one-question trial — sent, reply pending
+### October 2 approved one-question trial — authenticated and recovered October 3
+
+After the operator reported sending the explicitly dated reply, the approved
+bounded poll accepted one authenticated NIP-04 reply. Its first receipt is
+`2026-10-03T14:02:23.796322Z`, public event ID
+`66fd98c7bf7bfad7ae5041ee8f7d1c5732be43c3275b8c031a917f3249e980fe`.
+The original encrypted event digest is
+`5f42bc50bf00d23b56ecc02eaae3363b692192569e93115f0cecfff85a5ca207`.
+Reopening the ledger revalidates signature, operator/collector identities,
+original outgoing question and ciphertext, exact reply binding and first receipt
+time. Independent read-only PostgreSQL readback matches the entire immutable
+action and original-cipher receipt digest: `indoor_shade=closed`, effective
+October 2 at 18:30Z (12:30 MDT), source `nostr_confirmed`, confidence 1. No
+window/skylight state, motor report or percentage is inferred. Poll exit 3
+reflects an unrelated deferred refusal and one relay failure, not rejection of
+this accepted reply. Its acknowledgement was accepted on all three routes;
+operator receipt of that acknowledgement is not claimed.
+
+The stopped/absent collector units remain inactive. A complete private v6
+snapshot captures both Primal SQLite databases, exact policy/routes and the
+original PostgreSQL journal archive. At 14:12:09Z an actual cold copy reopened
+the authenticated original ledger and signed route configuration, then restored
+the archive to disposable PostgreSQL. All original row digests and schema match:
+11 action events, five message receipts and four mode events. Exact action and
+receipt readback passes in the cold restore and again in unchanged production.
+No production SQL write, new DM, collector enable or household control occurs
+in this verification. The owned container and cold temporary directory are
+removed. Snap Docker cannot launch under `NoNewPrivileges=true`; that optional
+setting was omitted only from this disposable verification unit, not from any
+production service. Failed duplicate backup attempts are cleaned after retaining
+the independently qualified point.
+
+Retained recovery point:
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-10-03-primal-confirmed-94dea187`.
+Trusted v6 snapshot manifest SHA-256:
+`d42be04cf9a5c863fae8b91ea1b340311db2ccab385a5cfed525efa4c016c3b8`.
+Frozen trial runtime remains
+`129b950c4332bd47bc49fd6c829e0fd2119ee0f7e94c038dcd94036c1d1f5cd1`.
+This closes the approved single-question Primal signed-ingress/journal/recovery
+trial. Recurring collector policy, cadence and activation remain a separate
+release; no chat recollection or unrelated refusal becomes a training label.
+Earlier pending-reply checkpoints below are historical, not the current result.
 
 October 3 operator-reported reply follow-through: the 12:54Z bounded poll
 accepted zero replies; its next refusal retry is `2026-10-03T13:54:58Z`.

@@ -98,26 +98,18 @@ copies; see the [production receipt](../../docs/operations/2026-10-02-display-pr
 
 ## Staged migration and rollback
 
-`things/astro-moon.things` is **staged, uninstalled**. It preserves the managed
-Moon Thing's exact site/cadence and default channels; the version-matched offline
-parser accepts it. Ninety no-hardware cases qualify the Moon icon's current
-sky-rule path. All 28 original live history baselines now pass. A separately
-named, exact current-binding metadata alternative also passes disconnected
-file-provider/full-JVM/original-managed rollback qualification; the literal
-legacy comparator still refuses its 39 descriptor differences. Operator
-descriptor choice and an exact guarded live plan with actual cutover/rollback
-history checks remain.
-The named consumer/shared-binary source review now has a passing GET-only
-drift guard, `scripts/preflight-astro-moon-consumers.py`; it is not global
-dependency closure or live apply authority. The pending exact descriptor
-choice and guarded live/history gates are unchanged.
-The default-off `scripts/migrate-astro-moon-thing.py` now supports GET/SELECT-only
-check and private original REST/CSV backup preparation. Its same transaction
-core now passes an actual contained OpenHAB/PostgreSQL round trip with all 28
-original histories and shared-Sun natural updates. The exact unbound-core
-metadata contract is qualified; both live release gates remain off. Production
-cutover/JDBC and attended authority remain open; see the same candidate doc.
-There is no premature Thing ownership declaration. See the
+`things/astro-moon.things` is **live, verified file-owned** after the attended
+October 3 hot handoff. The operator accepted exactly 39 metadata-only binding
+differences; every other descriptor remains compared. The actual round trip
+verified file ownership, original managed rollback, then final file ownership,
+including all 28 original JDBC prefixes and new native Moon/Sun events in each
+phase. Final independent readback matched the source, sole noneditable ONLINE
+Moon provider, unchanged Item/link/Group definitions and original histories.
+New source-attributed Moon illumination and Sun elevation changes match actual
+post-cutover JDBC rows. Sun remained ONLINE and OpenHAB PID 1696 never changed.
+The one-shot live apply gate is re-locked; metadata acceptance stays recorded.
+Keep the private original REST/CSV recovery point. Production whole-JVM restart
+recovery and global dynamic-consumer closure are not claimed. See the
 [Moon Thing candidate](../../docs/operations/2026-10-02-astro-moon-thing-candidate.md).
 
 `items/moon-phase-readings.items` is **live, verified file-owned** for

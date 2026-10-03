@@ -43,8 +43,11 @@ TARGET = q.TARGET
 BACKUP_ROOT = Path('/home/sat/.local/state/openhab-config-migration')
 EVENT_LOG = Path('/var/log/openhab/events.log')
 DELETE_PATH = '/things/' + q.UID + '?force=true'
+# October 3 attended handoff completed; one-shot mutation authority is re-locked.
 LIVE_RELEASE_READY = False
-METADATA_DEVIATION_APPROVED = False
+# Accepted October 3, 2026: exactly the qualified 39 binding metadata fields.
+# This decision alone does not authorize the attended production handoff.
+METADATA_DEVIATION_APPROVED = True
 
 
 def require(ok, reason):

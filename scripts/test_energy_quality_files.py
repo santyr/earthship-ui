@@ -122,7 +122,7 @@ def test_unowned_later_unit_is_not_destroyed_on_restore(tmp_path, monkeypatch):
     assert e.UNIT.read_bytes() == b'operator changed this unit'
 
 
-def test_default_off_cli_cannot_open_release(tmp_path, monkeypatch, capsys):
+def test_closed_source_gate_cli_cannot_open_release(tmp_path, monkeypatch, capsys):
     receipt, _, _ = setup(tmp_path, monkeypatch)
     monkeypatch.setattr(e,'SUPPORTING_QUALITY_RELEASE_READY',False)
     assert e.main(['apply','--receipt',str(receipt),'--allow-apply']) == 1

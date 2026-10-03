@@ -228,7 +228,7 @@ class FixtureOperations:
 
     def validate(self):
         q.validate_container(json.loads(q.runtime.run(['docker','inspect',self.container]))[0], self.marker)
-        require(not m.LIVE_RELEASE_READY and not m.METADATA_DEVIATION_APPROVED, 'production gates unexpectedly open')
+        require(not m.LIVE_RELEASE_READY, 'production live gate unexpectedly open')
 
     def get(self,path):
         require(path.startswith(('/things','/items','/links','/rules')), 'unknown fixture resource')
@@ -309,7 +309,7 @@ class FixtureOperations:
 
 def main():
     require(sys.argv[1:] == [], 'no live/apply/target interface')
-    require(not m.LIVE_RELEASE_READY and not m.METADATA_DEVIATION_APPROVED, 'production gates open')
+    require(not m.LIVE_RELEASE_READY, 'production live gate open')
     archived=recovered(); types=source_column_types()
     history=HistoryFixture(secrets.token_hex(8),types)
     try:

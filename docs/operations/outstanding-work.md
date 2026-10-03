@@ -1,5 +1,49 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 natural thermal publication and matured predecessor result
+
+Today's new `d9163729...` artifact published naturally at 07:39 MDT; original
+capture, live Item, exact JDBC row and installed-runtime replay agree. The
+predecessor remains separately scored: its first qualified 24-hour target is
+2.281°F cold versus persistence 2.880°F cold. This is one low-confidence target,
+not graduation or evidence for the new artifact. Confirmed action availability
+must remain at its actual first receipt, after today's training/publication.
+Continue independent-day outcome and action evaluation without refitting or
+weakening gates. See
+[natural publication and original-outcome audit](2026-09-30-forecast-input-capture.md#october-3-new-artifact-publication-and-first-prior-artifact-24-hour-outcome).
+
+## October 3 authenticated Primal trial complete
+
+The correctly dated operator reply was authenticated, stored and acknowledged
+on three relays. Independent original-cipher/journal readback confirms all
+indoor shades closed October 2 at 12:30 MDT. A retained full v6 five-file
+snapshot now passes actual cold SQLite/config and PostgreSQL restore, with all
+original row digests equal and unchanged production. The disposable container,
+cold directory and duplicate test attempts are cleaned; one qualified private
+recovery point is retained. No recurring collector or household control was
+enabled. Next: bounded recurring policy/cadence and explicit activation, not
+another trial question or unsigned chat label. See
+[authenticated trial and recovery](2026-10-01-primal-compatibility-candidate.md#october-2-approved-one-question-trial--authenticated-and-recovered-october-3).
+
+## October 3 accepted Energy and Moon decisions
+
+The operator accepted actual-binding fault/JVM tests instead of deliberate
+household outages for supporting Energy quality. The exact receipt-bound
+user drop-in is now deployed; fresh effective-argv/readback passes. No jobs,
+timers or controls were started. Its status is
+`installed_waiting_natural_aggregate`: verify the October 4 00:21 MDT natural
+daily aggregation and subsequent UI publication, retaining partial days and
+independent qualified AC-v4. See
+[guarded deployment](2026-10-01-energy-supporting-source-qualification.md#october-3-operator-acceptance-and-guarded-deployment).
+
+Moon's exact 39-field deviation and fresh attendance were confirmed. The actual
+hot file → original managed rollback → final file handoff now passes all
+28 history prefixes, exact dependent/consumer definitions and natural Moon/Sun
+updates. Independent final native events match new JDBC rows; Moon is declared
+file-owned only after this readback. The one-shot gate is re-locked and OpenHAB
+was not restarted. Production JVM recovery remains a later separate gate. See
+[attended handoff and JDBC verification](2026-10-02-astro-moon-thing-candidate.md#october-3-attended-production-handoff-and-natural-jdbc-verification).
+
 ## October 2 late-evening all-Moon history baseline
 
 The next file-first Moon candidate now verifies all 28 original JDBC identities

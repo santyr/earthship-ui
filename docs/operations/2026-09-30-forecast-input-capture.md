@@ -1,5 +1,41 @@
 # Exact morning weather-input archive
 
+## October 3 new-artifact publication and first prior-artifact 24-hour outcome
+
+The next natural shadow job started at 07:39:03 MDT, finished at 07:39:07,
+and exited zero. Its original publication at **13:39:05.222543Z** embeds the
+new canonical artifact `d9163729...`, created at 12:50:57.029705Z. The private
+forcing capture, current `Thermal_Model_JSON` and exact JDBC row at
+**13:39:07.463Z** agree. Output SHA-256:
+`0a2f55931fbcbf1beebaf83b9ba458390a7ee756fdee3b441245bd08c71b2fe6`.
+Capture:
+`/home/sat/.local/state/thermal-intel/forcing-captures/2026-10/20261003T133905Z-0a2f55931fbcbf1b.json.gz`.
+Exact as-issued replay under the pinned installed `cd77cd16...` runtime passes;
+the new artifact's training/publication revisions match. No worker was started
+manually, fit repeated or current data substituted for original forcing.
+
+The 14:21:19Z capture-strict shared-grid audit preserves the prior October 2
+artifact `2435c019...` as a separate target. Fourteen publication rows yield
+13 distinct verified captures and 22 qualified indoor/outdoor targets through
+one bounded transaction per stream. The new artifact has no mature outcome in
+this window and is not assigned its predecessor's scores.
+
+| Horizon | Prior-artifact overlapping pairs | Model / persistence MAE °F | Non-overlapping pairs | Independent model / persistence MAE °F |
+| --- | ---: | --- | ---: | --- |
+| Near 1 hour | 13 | 1.0304 / 1.4400 | 12 | 1.0152 / 1.4700 |
+| Near 6 hours | 11 | 2.0205 / 5.9400 | 3 | 1.2437 / 7.2000 |
+| Near 12 hours | 8 | 2.3604 / 7.1325 | 1 | 1.0610 / 9.9000 |
+| Near 24 hours | 1 | 2.2810 / 2.8800 | 1 | 2.2810 / 2.8800 |
+
+The first mature operational 24-hour target is **2.281°F cold**, versus
+persistence **2.880°F cold**; its original outdoor forcing is **7.400°F warm**.
+All intervals cover their outcomes, but their width remains about 10.414°F,
+confidence is low, and one 24-hour target is not independent-day support.
+No coefficient or advisory graduation is promoted from this score. The new
+authenticated shade receipt first arrived at 14:02:23Z, after the new artifact
+and 13:39 publication: do not backdate its availability into either. Confirmed
+action-outcome evaluation and approved graduation thresholds remain required.
+
 ## October 3 natural training — terminal result and new artifact
 
 The same observed PID 1871293 finished naturally with exit zero and

@@ -1,11 +1,75 @@
 # Astro Moon Thing: staged exact file-provider candidate
 
-Status: **the exact current-binding metadata alternative passes isolated
-file handoff, full JVM restart and original managed rollback; the literal
-legacy comparison still refuses its 39 differences. All 28 original live
-history baselines pass. Uninstalled; production remains managed.** The named
-descriptor choice is pending. This is the next migration candidate, not a completed provider
-handoff or authorization for a whole-OpenHAB restart.
+Status: **the accepted, attended October 3 hot handoff is complete. Moon is
+verified file-owned and ONLINE, with managed rollback exercised and all 28
+original histories preserved. The one-shot live mutation gate is re-locked.**
+Production whole-JVM restart recovery is not claimed or authorized.
+
+## October 3 attended production handoff and natural JDBC verification
+
+The operator confirmed current physical attendance and both pumps OFF. Fresh
+output readback also showed both OFF, BMS comms OK and qualified Schneider
+telemetry. The exact adapter then captured a new private original preimage and
+completed **file-1 → original managed rollback → file-2**. Every phase verified
+the exact full provider descriptor, all dependent definitions, source/consumer
+guards, new distinct native Moon/Sun events and all 28 original JDBC prefixes.
+No Item/link migration, synthetic state, SQL write, household command or
+OpenHAB restart was performed. File ownership is now declared only after actual
+independent readback; site/cadence and full source bytes match the candidate.
+
+Private original recovery point:
+`/home/sat/.local/state/openhab-config-migration/astro-moon-yr3s8zaj`.
+Its original 28-history baseline contains **1,090,404 rows / 53,989,970 COPY
+bytes**. Thirty-file preimage manifest SHA-256:
+`0306f3837e7cb2e208988acf8acfbaa1554ce769cb6bef86ee9da12626ec4255`.
+The three phase receipts and separate `jdbc-natural.json` remain private beside
+the original preimages. An independent process reopens every preimage, restores
+typed ISO cutoff timestamps for the strict comparator, and verifies all 28
+original prefixes after the final cutover. The first diagnostic passed raw
+JSON strings to the typed comparator and correctly refused; explicit timestamp
+rehydration fixed that diagnostic without changing the comparator or history.
+
+At 14:19:01Z, original native Moon illumination at **14:16:17.930Z** matches
+Item 41's new JDBC row at **14:16:17.932334Z**. Native Sun elevation at
+**14:18:55.279Z** matches unchanged Item 16's JDBC row at
+**14:18:55.281324Z**. Both numeric values are compared, not just timestamps;
+held states alone cannot pass. Moon is solely noneditable/ONLINE and Sun remains
+managed/ONLINE. The one-shot live gate is false; metadata acceptance stays true.
+Final adapter SHA-256:
+`c5ddc55471699127f2f470a234cf30f490f42874d69706faa09ba454b72fcd57`.
+
+This qualifies the actual hot handoff, managed rollback, final provider and
+natural JDBC continuity. Earlier isolated JVM recovery retains its exact scope;
+no later production restart or global dynamic-consumer closure is inferred.
+Private recovery data must be retained; only owned disposable tests are removed.
+Final inventory has zero issues (86 Things: 79 managed/seven non-managed).
+All 313 affected transaction tests and 14 ownership-inventory tests pass.
+OpenHAB remains active at PID 1696, both pump outputs OFF, BMS comms OK and
+Schneider telemetry fresh. No new ERROR line appears in the bounded log scan
+since 08:15 MDT. Three old rules report UNINITIALIZED/DISABLED, not a new
+provider failure; their disabled posture is preserved and they are not started.
+
+## October 3 accepted metadata decision
+
+`METADATA_DEVIATION_APPROVED` now records the operator's acceptance of exactly
+27 generated tag lists, 11 explicit false `forceEvent` defaults and one age
+description. Every other descriptor comparison remains exact; neither the
+full comparator nor the independent live gate is weakened. The contained
+qualification harness requires the live gate closed regardless of metadata
+approval. A new regression test proves it still refuses an open live gate.
+
+Fresh GET/read-only SQL preflight passes all 28 histories: 1,090,377 rows,
+53,988,642 COPY bytes, original-prefix digest
+`87f6eb1bb103ab246515b35fb8d69ca44472f1384f555cc036892f4b9850efbb`.
+Its output explicitly reports metadata approved, live release false, zero
+production writes. The affected combined suite passes 313 tests without skips.
+Adapter SHA-256:
+`fe0f38b8b06c88c669df1ec4bbb02838ba07ca6f14732a4e4b177294c87fc101`.
+Harness SHA-256:
+`e6d71b246bccf67e76d316533ed3c5e679026d1e9ab4ac20da291b04ebed8e50`.
+Older source pins and pending-choice statements below retain their historical
+scope. The subsequently attended hot handoff and original-history/natural-JDBC
+checks are complete in the section above. No production restart was performed.
 
 ## Exact current scope
 
