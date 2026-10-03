@@ -1,5 +1,33 @@
 # Separate pre-dusk SoC trough issue
 
+## October 3 natural refresh verified
+
+The enabled user timer naturally fired at **17:30 MDT** (23:30Z), invocation
+`03ad8748f81546ec9047cbf15ec6be3c`, and exited zero with no retry or manual
+start. The new issue replaces the retained October 1 **65%** estimate with
+**74%** for October 3 night. Original source-bound SoC is 100%; the unchanged
+as-issued overnight-drop input is 26.333 points. Sunset is 18:42:07.214 MDT,
+so the issue is inside the existing 60–90-minute gate.
+
+The read-only `scripts/qualify-pre-dusk-natural-issue.py --day 2026-10-03`
+returns `qualified_natural_issue`: morning origin 12:40:58.396244Z,
+pre-dusk issue 23:30:00.934426Z, numeric JDBC row 23:30:00.936Z and receipt
+row 23:30:00.938Z. The exact original atomic input persisted at
+23:30:00.847423Z, before issue, with stream epoch
+`61b2c967-b217-429e-840f-eebf68a36da0` and SHA-256
+`1c6aa1d514e5fbfdfb901fb252ed797a0fa61c9491f037252024de147888d4bf`.
+The original receipt/source/numeric clocks and equality pass; no held-value
+fallback, backdated companion or coefficient/model change occurred.
+
+The CLI does not perform browser checks (`display_selection_verified=false`).
+A separate actual **1340×800** local Energy browser read verifies exactly one
+`Estimated trough 74%` label and title `Pre-dusk estimate for Oct 3 night; not
+a measured minimum.`, with zero page errors. External traffic and all mutation
+requests were blocked; the browser closed without screenshots/artifacts.
+This closes today's natural refresh/JDBC/display gate, not forecast accuracy.
+The October 3 completed-night outcome must wait for its actual closing window
+on October 4; do not fabricate it or combine it with the morning forecast.
+
 The 06:40 `forecast-intel.timer` remains responsible for weather/PV issuance,
 scoring and coefficient updates. It currently projects dusk SoC from morning
 atomic SoC plus predicted full-day PV. Moving that unchanged formula later
