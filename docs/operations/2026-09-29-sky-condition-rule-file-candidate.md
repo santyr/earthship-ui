@@ -1,5 +1,16 @@
 # Sky-condition control-input rule: file-provider candidate
 
+## October 3 later recovery finding — handoff held
+
+The subsequent interrupted-ledger fault tests exposed an automatic-start
+durability defect in the copied live pump source. The source-only correction
+is now in `southoutlet-cycle-current.js`, but is not deployed or actual-JDBC/
+full-JVM qualified. Keep this sky handoff held pending that separate protected
+repair and recovery checks; the earlier missing/expired/comms experiment below
+does not cover the defect. Its action pin remains `e697e262...` and intentionally
+refuses the new source rather than silently qualifying a different candidate.
+See [exact candidate, tests and next release boundary](2026-09-23-greywater-timer-watchdog.md#october-3-interrupted-ledger-durability-repair--source-only).
+
 ## October 3 isolated consumer/restart/rollback qualification
 
 Production remains **managed**, and `RELEASE_READY['sky']` remains false.
@@ -8,8 +19,9 @@ The extended, networkless provider harness now includes the exact current
 its name. Both live action pins were independently checked:
 
 - Managed sky action: `d99c01c15682b1cda7ed29d1255b877630ff1e329e08c12ba3ce26b59e11fd0c`.
-- Current pump action: `e697e2626a5e1ab4e4d079612c4b85d16dd79178a4ff80a5208b4bb108970d18`,
-  identical to `openhab/rules/southoutlet-cycle-current.js`.
+- Pump action at that experiment: `e697e2626a5e1ab4e4d079612c4b85d16dd79178a4ff80a5208b4bb108970d18`,
+  then identical to `openhab/rules/southoutlet-cycle-current.js` (now advanced
+  by the later source-only repair above).
 - Staged sky file: `6921170816d665062ff934c7a3e1b371b6ed565d35c081ec89ff4338859b4320`.
 
 Run the scoped experiment with:

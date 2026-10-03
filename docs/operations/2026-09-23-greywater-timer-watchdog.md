@@ -1,5 +1,46 @@
 # Greywater cycle-timer fail-safe — September 23, 2026
 
+## October 3 interrupted-ledger durability repair — source only
+
+Recovery qualification reproduced a separate live-source defect without hardware:
+with a restored `accepted` request, old independently restored cooldown, fresh
+native SoC and otherwise eligible conditions, failed JDBC persistence or bounded
+readback still allowed an automatic ON command. `postUpdate` had already changed
+the registry to `failed/restart_uncertain`, so subsequent evaluations and manual
+requests could also bypass the unresolved durable write. Six of the first nine
+regressions failed against the exact production action
+`e697e2626a5e1ab4e4d079612c4b85d16dd79178a4ff80a5208b4bb108970d18`.
+An additional failing regression demonstrated loss of volatile recovery state
+while the terminal registry remained ahead of JDBC.
+
+The staged `southoutlet-cycle-current.js` candidate is
+`4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b`.
+It retains the exact bounded before/after ledger obligation in shared cache,
+rejects unowned replacements including reused request IDs, and clears the hold
+only after the existing exact registry/JDBC readback succeeds. It also checks
+terminal `restart_uncertain` records against JDBC if volatile state is lost.
+Failure forces both outputs OFF; existing BMS/voltage/daylight safety diagnostics
+retain priority. New manual requests cannot replace a pending recovery. Automatic
+recovery consumes one evaluation before normal eligibility may resume. No SoC
+threshold, timing, alternating-pump policy, ledger schema or ordinary automatic
+policy for unrelated unreadable ledgers changes.
+
+All **15** no-hardware durability regressions and the full **2,089-test** UI/
+OpenHAB suite pass. The **18** affected Python historical-release/probe tests
+also pass. The historical SoC deployment helper still pins its original release
+hash and refuses the new source before REST access; the sky consumer qualification
+likewise still pins the old action rather than accepting this candidate silently.
+
+This is **not deployed or real-JDBC/full-JVM qualified**. Read-only production
+inspection at approximately 22:43Z found the old hash, `IDLE/NONE`, both pump
+Items OFF, healthy BMS communications and an ordinary cooldown. No production
+request, pump command, rule run, restart or rollback was performed. Next require
+an isolated actual OpenHAB/JDBC failure/readback/restart/rollback rehearsal,
+an exact reviewed protected-rule replacement transaction, private recovery,
+fresh operator attendance and physical OFF confirmation. Keep the sky provider
+handoff on hold pending these checks. Earlier timer evidence below is historical,
+not qualification of this new candidate.
+
 ## Observed gap
 
 A read-only query of the existing `SouthOutlet_AutoStatus` JDBC history found

@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 interrupted greywater recovery defect — live release held
+
+Isolated fault injection against the exact live pump source found automatic
+starts after interrupted-ledger persistence/readback failure, including later
+evaluations after the registry changed ahead of JDBC. The source-only repair
+retains exact recovery debt, rejects ledger drift and rechecks JDBC after
+volatile state loss; it preserves all existing safety, thresholds and timing.
+All 15 new regressions, 2,089 full JS tests and 18 affected Python tests pass.
+Production still has the original `e697e262...` action; no control mutation or
+test command occurred. The old deployment/sky probe pins deliberately refuse
+the new canonical source. **Do not perform the sky provider handoff yet.**
+Actual isolated OpenHAB/JDBC recovery and a specifically reviewed protected
+replacement/rollback remain before attended live release. See
+[candidate and evidence](2026-09-23-greywater-timer-watchdog.md#october-3-interrupted-ledger-durability-repair--source-only).
+
 ## October 3 protected sky-input isolated recovery progress
 
 The staged sky provider now has an actual networkless file-load/full-JVM/

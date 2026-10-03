@@ -18,7 +18,15 @@ def item(state):
 
 def test_exact_transition_hashes_are_pinned():
     assert release.guard.OLD_SHA == '312cf24ceba5c63e30c4ecd0104bbf3bcf646f1e203b8c6c9c964e58dd7b84df'
-    assert release.guard.NEW_SHA == release.guard.digest(release.guard.SOURCE.read_text())
+    # This historical release must not silently accept a later source-only fix.
+    assert release.guard.NEW_SHA == 'e697e2626a5e1ab4e4d079612c4b85d16dd79178a4ff80a5208b4bb108970d18'
+
+
+def test_historical_adapter_refuses_unqualified_current_candidate(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['deploy-greywater-soc-evidence.py'])
+    monkeypatch.setattr(release.guard.oh, 'get', lambda *_: pytest.fail('unexpected live read'))
+    with pytest.raises(RuntimeError, match='source differs from reviewed candidate'):
+        release.guard.main()
 
 
 def test_valid_receipt_reaches_existing_rollback_adapter(monkeypatch):

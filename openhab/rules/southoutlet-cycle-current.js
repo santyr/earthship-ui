@@ -65,6 +65,7 @@ const CFG = {
 };
 
 const BUSY_KEY = 'earthship.southoutlet.busy';
+const RECOVERY_PENDING_KEY = 'earthship.southoutlet.recovery.pending';
 const MAX_LEDGER_BYTES = 8192;
 const MAX_LEDGER_ENTRIES = 32;
 const LEDGER_READBACK_ATTEMPTS = 20;
@@ -391,6 +392,42 @@ function recoverInterruptedLedger(ledger, updatedAt) {
   };
 }
 
+function recoverLedgerDurably(requestItem, ledger) {
+  const original = JSON.stringify(ledger);
+  const next = recoverInterruptedLedger(ledger, nowInstantText());
+  const pending = JSON.parse(cache.shared.get(RECOVERY_PENDING_KEY, () => JSON.stringify({
+    before: original, after: JSON.stringify(next),
+  })));
+  // Reject unowned drift, including a replacement reusing the same requestId.
+  // The original registry is also allowed when postUpdate itself failed.
+  if (original !== pending.before && original !== pending.after) {
+    throw new Error('ledger_recovery_failed');
+  }
+  const recovered = JSON.parse(pending.after);
+  const first = recovered.entries[0];
+  if (!first) throw new Error('ledger_recovery_failed');
+  // postUpdate changes the registry before JDBC confirms the write. Retain the
+  // known recovery obligation across evaluations even if that registry now
+  // looks terminal. Only the exact durable readback may discharge it.
+  writeLedger(requestItem, recovered, first.requestId, first.status);
+  cache.shared.remove(RECOVERY_PENDING_KEY);
+  return recovered;
+}
+
+function hasInterruptedRecovery(ledger) {
+  return ledger.entries.some((entry) => entry.status === 'accepted'
+    || (entry.status === 'failed' && entry.reason === 'restart_uncertain'));
+}
+
+function ledgerNeedsRecovery(requestItem, ledger) {
+  if (ledger.entries.some((entry) => entry.status === 'accepted')) return true;
+  if (!hasInterruptedRecovery(ledger)) return false;
+  // Rule-context/JVM replacement can lose the volatile pending marker. A
+  // terminal registry recovery is not proof that its JDBC write succeeded.
+  const previous = requestItem.persistence.previousState(false, 'jdbc');
+  return previous === null || previous.state.toString() !== JSON.stringify(ledger);
+}
+
 function releaseBusy(token) {
   if (cache.shared.get(BUSY_KEY) === token) cache.shared.remove(BUSY_KEY);
 }
@@ -592,32 +629,41 @@ function runAutomatic() {
     }
     if (busyAge > CFG.cycleMs) releaseBusy(busyToken);
   }
-  // Best-effort ledger recovery: a restart between accept and completion leaves
-  // an 'accepted' entry that must never be replayed. Non-fatal so ledger
-  // corruption can never block the safety force-off chain below. Recovery does
+  // A restart between accept and completion leaves an 'accepted' entry that
+  // must never be replayed. Failed recovery blocks new starts but must never
+  // block the safety force-off chain below. Recovery does
   // NOT short-circuit the orphan-outlet force-off: an evaluation that both
   // recovers the ledger AND observes the pump still energized with no live timer
   // must de-energize it in this same evaluation, never wait for the next cron.
   let recoveredRequestId = null;
+  let recoveryAttempted = false;
+  let recoveryFailed = cache.shared.get(RECOVERY_PENDING_KEY) !== null;
   try {
     const requestItem = items.getItem(CFG.requestItem);
     const ledger = parseLedger(requestItem);
-    if (
-      cache.shared.get(BUSY_KEY) === null
-      && ledger.entries.some((entry) => entry.status === 'accepted')
-    ) {
-      const recovered = recoverInterruptedLedger(ledger, nowInstantText());
-      writeLedger(requestItem, recovered, recovered.entries[0].requestId, recovered.entries[0].status);
-      recoveredRequestId = recovered.entries[0].requestId;
+    if (cache.shared.get(BUSY_KEY) === null) {
+      recoveryAttempted = recoveryFailed || hasInterruptedRecovery(ledger);
+      if (recoveryFailed || ledgerNeedsRecovery(requestItem, ledger)) {
+        const recovered = recoverLedgerDurably(requestItem, ledger);
+        recoveredRequestId = recovered.entries[0].requestId;
+        recoveryFailed = false;
+      }
     }
   } catch {
-    // Ledger unreadable on the automatic path: fall through to the safety chain.
+    // Unrelated unreadable ledgers retain the existing automatic policy; a
+    // known interrupted recovery can never silently fall through to a start.
+    recoveryFailed = recoveryFailed || recoveryAttempted;
   }
 
   const soc = trustedSoc();
   const gate = safetyReason(soc);
   if (gate) {
     forceOff(gate.reason, gate.fields);
+    return;
+  }
+
+  if (recoveryFailed || cache.shared.get(RECOVERY_PENDING_KEY) !== null) {
+    forceOff('ledger_recovery_failed');
     return;
   }
 
@@ -732,6 +778,11 @@ function runManual(triggerEvent) {
   }
 
   let ledger;
+  if (cache.shared.get(RECOVERY_PENDING_KEY) !== null) {
+    safeOffAllPumps();
+    safeResult(request.requestId, 'denied', 'ledger_recovery_failed');
+    return;
+  }
   try {
     ledger = parseLedger(requestItem);
   } catch (error) {
@@ -739,17 +790,14 @@ function runManual(triggerEvent) {
     return;
   }
 
-  if (
-    cache.shared.get(BUSY_KEY) === null
-    && ledger.entries.some((entry) => entry.status === 'accepted')
-  ) {
-    ledger = recoverInterruptedLedger(ledger, nowInstantText());
-    try {
-      writeLedger(requestItem, ledger, ledger.entries[0].requestId, ledger.entries[0].status);
-    } catch {
-      safeResult(request.requestId, 'denied', 'ledger_recovery_failed');
-      return;
+  try {
+    if (cache.shared.get(BUSY_KEY) === null && ledgerNeedsRecovery(requestItem, ledger)) {
+      ledger = recoverLedgerDurably(requestItem, ledger);
     }
+  } catch {
+    safeOffAllPumps();
+    safeResult(request.requestId, 'denied', 'ledger_recovery_failed');
+    return;
   }
 
   if (ledger.entries.some((entry) => entry.requestId === request.requestId)) {
