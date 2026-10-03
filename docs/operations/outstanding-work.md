@@ -14,6 +14,11 @@ reads. **No live replacement yet.** It needs the exact reviewed approval and
 fresh physical OFF/attendance; no restart, pump command or provider migration
 is included. See [proof and precise plan](2026-09-23-greywater-timer-watchdog.md#october-3-actual-jdbcjvm-recovery-and-proposed-attended-replacement).
 
+The display-only recovery hold now explicitly identifies unverified request
+storage without promising a next start. Its reproducing test, all 39 focused
+regressions, build and actual local served-module check pass. The East pump
+was running naturally at 23:18Z; no protected update was attempted during it.
+
 ## October 3 interrupted greywater recovery defect — live release held
 
 Isolated fault injection against the exact live pump source found automatic

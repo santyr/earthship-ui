@@ -33,6 +33,13 @@ describe('greywater next eligibility presentation', () => {
     expect(greywaterSchedule({ ...input, south: 'OFF', status: blocked + 'cycle_timer_expired' }).next)
       .toBe('Safety hold');
   });
+  it('explains unresolved request-history storage without promising a new start', () => {
+    const blocked = 'scheduleVersion=1,evaluatedAt=2026-09-20T18:30:00Z,scheduling=blocked,reason=ledger_recovery_failed';
+    const result = greywaterSchedule({ ...input, south: 'OFF', status: blocked });
+    expect(result).toMatchObject({ label: 'Idle', next: 'Recovery hold', running: false });
+    expect(result.detail).toContain('verified storage');
+    expect(result.detail).toContain('No new pump start');
+  });
   it('distinguishes eligibility from a scheduled command', () => {
     expect(greywaterSchedule({ ...input, status: status.replace('19:24:00Z', '18:30:00Z') }).next).toBe('East eligible now');
   });

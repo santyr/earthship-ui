@@ -7,6 +7,7 @@ const blocks = {
   absurd_voltage: 'Safety hold',
   busy: 'Controller busy', multiple_pumps_on: 'Safety hold',
   orphan_outlet_off: 'Safety hold', ledger_recovered: 'Recovery hold',
+  ledger_recovery_failed: 'Recovery hold',
   cycle_timer_expired: 'Safety hold', cycle_timer_invalid: 'Safety hold',
   cycle_interrupted: 'Cycle interrupted',
 };
@@ -34,6 +35,9 @@ export function greywaterSchedule({ south, east, status, now = Date.now() }) {
   if (fields.scheduling === 'blocked') {
     result.next = blocks[fields.reason] || 'Waiting for controller';
     result.detail = 'No start time promised while controller conditions block a run';
+    if (fields.reason === 'ledger_recovery_failed') {
+      result.detail = 'Request history is awaiting verified storage. No new pump start is authorized.';
+    }
   } else if (fields.scheduling === 'conditional') {
     const candidate = instant(fields.nextEligibleAt);
     if (!Object.hasOwn(names, fields.nextPump) || !Number.isFinite(candidate) ||

@@ -43,6 +43,14 @@ production preflight and all related definition/history reads pass.
 Release adapter SHA:
 `3ed4f258cc95e451d88d06b2b91d83470b6d3df36979a8bda74b2965ce004030`.
 
+The display-only schedule presenter now labels `ledger_recovery_failed` as
+**Recovery hold**, explaining that request history awaits verified storage and
+no new pump start is authorized. A reproducing UI test failed before the edit;
+all 39 affected presentation/controller regressions and the UI build pass.
+The active local UI serves the changed module. This changes no scheduling,
+rule source, hardware state or freshness policy; live controller replacement
+still needs the separate approval below.
+
 ### Exact protected-rule release plan — approval still required
 
 1. Require specific approval of only `hex_southoutlet_cycle` action
