@@ -685,6 +685,15 @@ OpenHAB remains active at PID 1696. No duplicate question, recurring release,
 synthetic label or household command was issued. Do not poll before that next
 deadline merely to restate unchanged status.
 
+The due October 3 05:18Z bounded poll again reused the original frozen trial
+without sending a replacement. It ended with `accepted=0`,
+`operator_read_verified=false`, `relay_failures=1` and `withheld=1` (exit 3).
+The one pending refusal next retries at `2026-10-03T06:18:42Z`. Independent
+read-only ledger verification still finds one question and zero authenticated
+receipts; permanent collector/timer are not-found/inactive with no process.
+No journal label, recurring release or household command occurred. Do not
+poll again before the new deadline merely to restate unchanged status.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private
