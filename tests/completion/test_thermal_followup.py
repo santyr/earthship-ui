@@ -329,3 +329,69 @@ def test_reader_rejects_forged_relational_metadata(field):
     row = relational_row()
     row[field] = NOW if field in (3, 6) else 'forged'
     with pytest.raises(t.Refused): read(ReadConnection([row]))
+
+
+def configuration():
+    return dict(version=1, activated_at=(NOW-timedelta(hours=1)).isoformat(),
+                bank_epoch='test-bank', site_timezone='America/Denver', max_questions_per_day=1)
+
+
+@pytest.mark.parametrize('field,value', [('version', True), ('max_questions_per_day', 2),
+    ('max_questions_per_day', True), ('site_timezone', 'UTC'), ('bank_epoch', ''),
+    ('activated_at', (NOW+timedelta(seconds=1)).isoformat())])
+def test_automatic_settings_are_exact_single_day_consent(field, value):
+    value_set = configuration(); value_set[field] = value
+    with pytest.raises(t.Refused): f.load_configuration(t.canonical(value_set), now=NOW)
+
+
+def test_configuration_pin_survives_reopen_and_refuses_activation_or_identity_change(tmp_path):
+    path = tmp_path/'fixture.sqlite3'
+    settings = f.load_configuration(t.canonical(configuration()), now=NOW)
+    with sqlite3.connect(path) as db:
+        f.initialize(db)
+        f.pin_configuration(db, settings, policy=policy())
+    with sqlite3.connect(path) as db:
+        f.initialize(db)
+        f.pin_configuration(db, settings, policy=policy())
+        changed = {**settings, 'activated_at': (NOW-timedelta(hours=2)).isoformat()}
+        with pytest.raises(t.Refused): f.pin_configuration(db, changed, policy=policy())
+        different = t.Policy('3'*64, frozenset({O}), (), 2)
+        with pytest.raises(t.Refused): f.pin_configuration(db, settings, policy=different)
+        assert not db.in_transaction
+
+
+@pytest.mark.parametrize('override', [dict(user='postgres'), dict(user='advisory_writer'),
+    dict(host='192.0.2.1'), dict(port='5433'), dict(dbname='other'), dict(password=''),
+    dict(service='ambient')])
+def test_private_reader_dsn_does_not_adopt_other_credentials(override):
+    from psycopg2.extensions import make_dsn
+    values = dict(host='127.0.0.1', port='5432', dbname='openhab',
+                  user='advisory_assessor', password='fixture')
+    dsn = make_dsn(**(values|override))
+    with pytest.raises(t.Refused): f.reader_dsn({'ADVISORY_ASSESS_DSN': dsn})
+
+
+def test_exact_assessor_dsn_is_separate_and_ambient_services_are_refused():
+    dsn = 'host=127.0.0.1 port=5432 dbname=openhab user=advisory_assessor password=fixture'
+    assert f.reader_dsn({'ADVISORY_ASSESS_DSN': dsn}) == dsn
+    with pytest.raises(t.Refused):
+        f.reader_dsn({'ADVISORY_ASSESS_DSN': dsn, 'PGSERVICE': 'unexpected'})
+    with pytest.raises(t.Refused): f.reader_dsn({'THERMAL_DATABASE_URL': dsn})
+
+
+def test_more_than_one_hundred_retained_questions_do_not_disable_reply_recovery(tmp_path):
+    import thermal_nip04 as n
+    ledger = n.PrimalLedger(tmp_path/'state')
+    try:
+        f.initialize(ledger.db)
+        for number in range(101):
+            issued = NOW-timedelta(days=number+1)
+            p = t.Policy.load(t.canonical(dict(version=2, recipient=C, operators=[O], prompts=[dict(
+                operator=O, issued_at=issued.isoformat(), expires_at=(issued+timedelta(hours=1)).isoformat(),
+                actions={'window': 'open'})])), assign_ids=True).prompts[0]
+            ledger.db.execute('INSERT INTO questions VALUES (?,?,?,?,?,?,?)',
+                (p.event_id, t.canonical(p.snapshot()).decode(), C, O, format(number, '064x'), b'fixture', '4'*64))
+        ledger.db.commit()
+        assert len(f.combined_policy(ledger.db, policy=policy()).prompts) == 101
+        assert policy().prompts == ()  # The external reviewed policy was not changed.
+    finally: ledger.close()

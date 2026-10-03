@@ -1,14 +1,15 @@
 """Bounded, default-off automatic thermal follow-up planning.
 
-No signer, relay, journal, forecast, actuator or service access. Caller supplies
-immutable publication evidence and holds the collector state lock. Reservations
-live inside its existing backed-up SQLite ledger, never a third state store.
-This candidate is not yet wired into a production command or release bundle.
+No signer, relay, journal, forecast, actuator or service access. The optional
+reader accesses immutable publication evidence only. Caller holds the collector
+state lock. Reservations and pinned settings live inside its existing backed-up
+SQLite ledger, never a third state store. Generic source stays release-gated.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 from hashlib import sha256
 import re
+import os
 
 from advisory_records import build_decision_record, build_result_record
 import thermal_confirmation as t
@@ -33,6 +34,60 @@ class Candidate:
 def require(condition, message):
     if not condition:
         raise t.Refused(message)
+
+
+def require_release():
+    require(AUTOMATIC_RELEASE_READY is True, 'automatic thermal follow-up release is not qualified')
+
+
+def load_configuration(raw, *, now):
+    value = t.strict_json(raw)
+    require(isinstance(value, dict) and set(value) == {
+        'version', 'activated_at', 'bank_epoch', 'site_timezone', 'max_questions_per_day'},
+        'explicit automatic follow-up settings required')
+    require(type(value['version']) is int and value['version'] == 1
+            and value['site_timezone'] == 'America/Denver'
+            and type(value['max_questions_per_day']) is int and value['max_questions_per_day'] == 1
+            and isinstance(value['bank_epoch'], str)
+            and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:/+\-]{0,95}', value['bank_epoch']) is not None
+            and t.aware(value['activated_at']) <= t.aware(now), 'invalid automatic follow-up settings')
+    return {**value, 'activated_at': t.iso(t.aware(value['activated_at']))}
+
+
+def reader_dsn(environ=None):
+    """Exact private loopback assessor connection, never the journal/writer DSN."""
+    from psycopg2.extensions import parse_dsn
+    import psycopg2
+    env = os.environ if environ is None else environ
+    try:
+        require(not env.get('PGSERVICE') and not env.get('PGSERVICEFILE'),
+                'ambient advisory service configuration forbidden')
+        dsn = env.get('ADVISORY_ASSESS_DSN')
+        require(isinstance(dsn, str) and 0 < len(dsn) <= 4096, 'private assessor credential required')
+        fields = parse_dsn(dsn)
+        require(set(fields) == {'host', 'port', 'dbname', 'user', 'password'}
+                and fields['host'] == '127.0.0.1' and fields['port'] == '5432'
+                and fields['dbname'] == 'openhab' and fields['user'] == 'advisory_assessor'
+                and bool(fields['password']), 'exact restricted loopback assessor required')
+        return dsn
+    except (ValueError, TypeError, psycopg2.Error):
+        raise t.Refused('private assessor connection refused') from None
+
+
+def read_publications(config, *, now):
+    import psycopg2
+    dsn = reader_dsn()
+    connection = None
+    try:
+        connection = psycopg2.connect(dsn, connect_timeout=3, hostaddr='127.0.0.1', sslmode='disable',
+            options='-c statement_timeout=2000 -c lock_timeout=1000 -c idle_in_transaction_session_timeout=5000')
+        return fetch_publications(connection, now=now,
+            activated_at=t.aware(config['activated_at']), bank_epoch=config['bank_epoch'])
+    except psycopg2.Error:
+        raise t.Retryable('recommendation evidence unavailable') from None
+    finally:
+        if connection is not None:
+            connection.close()
 
 
 def _record(encoded, kind):
@@ -181,6 +236,58 @@ def initialize(db):
                     'automatic question index differs')
             unique_keys.add(tuple(row[2] for row in db.execute('PRAGMA index_info(' + index[1] + ')')))
     require(unique_keys == {('local_day',), ('decision_id',)}, 'automatic question uniqueness differs')
+    db.execute('''CREATE TABLE IF NOT EXISTS automatic_configuration (
+        singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+        settings_json TEXT NOT NULL, collector TEXT NOT NULL, operator TEXT NOT NULL)''')
+    db.commit()
+
+
+def pin_configuration(db, settings, *, policy):
+    """Freeze activation/bank/identities; changed startup policy is not a new grant."""
+    operator = _authority(policy)
+    require(not db.in_transaction, 'configuration pin needs idle connection')
+    values = (t.canonical(settings).decode(), policy.recipient, operator)
+    db.execute('BEGIN IMMEDIATE')
+    try:
+        previous = db.execute('SELECT settings_json, collector, operator FROM automatic_configuration '
+                              'WHERE singleton=1').fetchone()
+        if previous is None:
+            db.execute('INSERT INTO automatic_configuration VALUES (1,?,?,?)', values)
+        else:
+            require(tuple(previous) == values, 'automatic collector settings or identity changed')
+        db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+
+
+def combined_policy(db, *, policy):
+    """Merge verified retained questions without authorizing fresh manual sends.
+
+    The 100-prompt cap still applies to the external reviewed policy. Derived
+    retained history has its own explicit 4096+100 bound; each stored snapshot is
+    independently revalidated. Old prompts support idempotent receipt/ACK replay
+    only: the transport still enforces expiry for fresh ingress and publication.
+    """
+    _authority(policy)
+    known = {p.event_id: p for p in policy.prompts}
+    rows = db.execute('SELECT prompt_json, collector, operator FROM questions LIMIT ?',
+                      (MAX_RESERVATIONS + 1,)).fetchall()
+    require(len(rows) <= MAX_RESERVATIONS, 'reviewed question retention required')
+    snapshots = []
+    for encoded, collector, operator in rows:
+        require(collector == policy.recipient and operator in policy.operators,
+                'retained question authority differs')
+        restored = t.Policy.load(t.canonical(dict(version=2, recipient=collector,
+            operators=sorted(policy.operators), prompts=[t.strict_json(encoded.encode())])))
+        snapshots.extend(restored.prompts)
+    snapshots.extend(retained_prompts(db, policy=policy))
+    for prompt in snapshots:
+        require(prompt.event_id not in known or known[prompt.event_id] == prompt,
+                'retained question differs from reviewed policy')
+        known[prompt.event_id] = prompt
+    require(len(known) <= MAX_RESERVATIONS + 100, 'derived policy exceeds retained inventory bound')
+    return replace(policy, prompts=tuple(sorted(known.values(), key=lambda p: (p.issued_at, p.event_id))))
 
 
 def _authority(policy):

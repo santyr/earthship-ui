@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "activated_at": "SET_AT_QUALIFIED_RELEASE_WITH_EXPLICIT_UTC_OFFSET",
+  "bank_epoch": "discover_4_module_2026",
+  "site_timezone": "America/Denver",
+  "max_questions_per_day": 1
+}

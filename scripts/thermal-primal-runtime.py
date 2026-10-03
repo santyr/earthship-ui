@@ -2,8 +2,8 @@
 """Stage/verify a frozen, inactive Primal code closure, never shared model code.
 
 CLI modes perform no secret, dependency, journal, signer, network or service access.
-The separately called private environment writer accepts only the seven reviewed
-runtime fields; it never prints or returns their values.
+The private environment writer accepts the seven original runtime fields plus
+an optional separate restricted assessor credential; it never prints values.
 Dependency/identity/configuration and full recovery checks are separate gates.
 """
 import argparse
@@ -15,26 +15,30 @@ from pathlib import Path
 import re
 import stat
 
-FILES = (
+LEGACY_FILES = (
     'thermal_confirmation.py', 'thermal_messaging.py', 'thermal_nip04.py',
     'thermal_state_backup.py', 'thermal_primal.py', 'thermal_model/__init__.py',
     'thermal_model/schema.py', 'thermal_model/journal.py',
     'thermal_model/airflow_migration.py',
 )
+FILES = LEGACY_FILES + ('thermal_followup.py', 'advisory_records.py', 'advisory_windows.py')
 GATES = {
     'thermal_confirmation.py': ('POSITION_INGRESS_RELEASE_READY',),
     'thermal_messaging.py': ('POSITION_DELIVERY_RELEASE_READY', 'POLL_RELEASE_READY'),
     'thermal_nip04.py': ('PRIMAL_RELEASE_READY',),
     'thermal_model/journal.py': ('V2_WRITE_RELEASE_READY',),
     'thermal_model/airflow_migration.py': ('RELEASE_READY',),
+    'thermal_followup.py': ('AUTOMATIC_RELEASE_READY',),
 }
-SCHEMA = 'earthship-primal-inactive-code/v1'
+SCHEMA = 'earthship-primal-inactive-code/v2'
+LAYOUTS = {'earthship-primal-inactive-code/v1': LEGACY_FILES, SCHEMA: FILES}
 MAX_FILE = 256 * 1024
 ENVIRONMENT_KEYS = frozenset({
     'NOSTR_SECRET_KEY', 'THERMAL_DATABASE_URL', 'THERMAL_DATABASE_RUNTIME_ROLE',
     'THERMAL_DATABASE_EXPECTED_OWNER', 'EARTHSHIP_PRIMAL_NAK',
     'EARTHSHIP_PRIMAL_NAK_SHA256', 'EARTHSHIP_PRIMAL_NAK_VERSION',
 })
+FOLLOWUP_ENVIRONMENT_KEYS = ENVIRONMENT_KEYS | {'ADVISORY_ASSESS_DSN'}
 
 
 def private_directory(path):
@@ -80,10 +84,10 @@ def write_new(path, value):
 
 
 def write_environment(path, values):
-    """New private systemd environment file; no shell execution or overwrite."""
+    """New private environment, with optional assessor; no execution/overwrite."""
     path = Path(path)
     private_directory(path.parent)
-    if (not isinstance(values, dict) or set(values) != ENVIRONMENT_KEYS
+    if (not isinstance(values, dict) or set(values) not in (ENVIRONMENT_KEYS, FOLLOWUP_ENVIRONMENT_KEYS)
             or any(not isinstance(value, str) or not 0 < len(value) <= 4096
                    or any(ord(char) < 32 or ord(char) == 127 for char in value)
                    for value in values.values())):
@@ -142,17 +146,19 @@ def verify(directory, expected_manifest_sha256):
         raise ValueError('runtime manifest byte pin differs')
     manifest = json.loads(raw)
     if (not isinstance(manifest, dict) or set(manifest) != {'schema', 'release_enabled', 'files_sha256'}
-            or manifest['schema'] != SCHEMA or manifest['release_enabled'] is not False
+            or not isinstance(manifest['schema'], str) or manifest['schema'] not in LAYOUTS
+            or manifest['release_enabled'] is not False
             or not isinstance(manifest['files_sha256'], dict)
-            or set(manifest['files_sha256']) != set(FILES)):
+            or set(manifest['files_sha256']) != set(LAYOUTS[manifest['schema']])):
         raise ValueError('unexpected inactive runtime manifest')
+    expected_files = LAYOUTS[manifest['schema']]
     actual = set()
     for path in (directory/'code').rglob('*'):
         name = path.relative_to(directory/'code').as_posix()
         if name == 'thermal_model' and path.is_dir() and not path.is_symlink():
             continue
         actual.add(name)
-    if actual != set(FILES):
+    if actual != set(expected_files):
         raise ValueError('unexpected runtime code inventory')
     for name, expected in manifest['files_sha256'].items():
         value = read(directory/'code'/name, private=True)
@@ -160,7 +166,7 @@ def verify(directory, expected_manifest_sha256):
             raise ValueError('frozen runtime code differs')
         check_source(name, value)
     return {'status': 'inactive_code_verified', 'scope': 'code-only-no-dependency-or-secret-qualification',
-            'release_enabled': False, 'files': len(FILES),
+            'release_enabled': False, 'files': len(expected_files),
             'manifest_sha256': expected_manifest_sha256, 'collector_activated': False}
 
 

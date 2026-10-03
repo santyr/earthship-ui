@@ -25,7 +25,7 @@ def test_frozen_code_runs_default_off_without_shared_openhab_or_solarpv(tmp_path
     target = tmp_path/'release'
     result = runtime.stage(ROOT/'openhab/scripts', target)
     assert result['status'] == 'inactive_code_staged'
-    assert result['release_enabled'] is False and result['files'] == 9
+    assert result['release_enabled'] is False and result['files'] == len(runtime.FILES) == 12
     command = subprocess.run([sys.executable, '-S', str(target/'code/thermal_primal.py'),
                               '--poll-replies', '--state-dir', str(tmp_path/'state')],
                              capture_output=True, text=True, timeout=10,
@@ -33,7 +33,7 @@ def test_frozen_code_runs_default_off_without_shared_openhab_or_solarpv(tmp_path
                                   'PYTHONDONTWRITEBYTECODE': '1'})
     assert command.returncode == 2 and 'refused' in command.stderr
     assert not (tmp_path/'state').exists()
-    assert runtime.verify(target, result['manifest_sha256'])['files'] == 9
+    assert runtime.verify(target, result['manifest_sha256'])['files'] == 12
 
 
 def test_existing_release_is_never_overwritten(tmp_path):
@@ -43,6 +43,26 @@ def test_existing_release_is_never_overwritten(tmp_path):
     with pytest.raises(ValueError, match='existing'):
         runtime.stage(ROOT/'openhab/scripts', target)
     assert marker.read_bytes() == b'existing deployment' and list(target.iterdir()) == [marker]
+
+
+def test_original_nine_file_trial_manifests_remain_independently_verifiable(tmp_path, monkeypatch):
+    runtime = load_runtime()
+    monkeypatch.setattr(runtime, 'FILES', runtime.LEGACY_FILES)
+    monkeypatch.setattr(runtime, 'SCHEMA', 'earthship-primal-inactive-code/v1')
+    result = runtime.stage(ROOT/'openhab/scripts', tmp_path/'legacy')
+    assert result['files'] == 9
+    assert load_runtime().verify(tmp_path/'legacy', result['manifest_sha256'])['files'] == 9
+
+
+def test_private_environment_accepts_only_the_separate_assessor_addition(tmp_path):
+    runtime = load_runtime()
+    values = {name: 'synthetic' for name in runtime.FOLLOWUP_ENVIRONMENT_KEYS}
+    destination = tmp_path/'runtime.env'
+    runtime.write_environment(destination, values)
+    assert destination.stat().st_mode & 0o777 == 0o600
+    values['UNAPPROVED_ADMIN_DSN'] = 'synthetic'
+    with pytest.raises(ValueError): runtime.write_environment(tmp_path/'refused.env', values)
+    assert not (tmp_path/'refused.env').exists()
 
 
 def test_recurring_unit_selects_trialled_v2_code_without_automatic_questions():
@@ -67,7 +87,7 @@ def test_poll_timer_waits_after_completion_and_does_not_catch_up():
     assert not any(line.startswith(('OnCalendar=', 'OnUnitActiveSec=')) for line in lines)
 
 
-@pytest.mark.parametrize('change', ['gate', 'symlink', 'syntax'])
+@pytest.mark.parametrize('change', ['gate', 'automatic_gate', 'symlink', 'syntax'])
 def test_invalid_source_refuses_before_destination_creation(tmp_path, change):
     runtime = load_runtime()
     source = tmp_path/'source'
@@ -79,6 +99,10 @@ def test_invalid_source_refuses_before_destination_creation(tmp_path, change):
     if change == 'gate':
         changed.write_text(changed.read_text().replace('PRIMAL_RELEASE_READY = False',
                                                       'PRIMAL_RELEASE_READY = True'))
+    elif change == 'automatic_gate':
+        changed = source/'thermal_followup.py'
+        changed.write_text(changed.read_text().replace('AUTOMATIC_RELEASE_READY = False',
+                                                      'AUTOMATIC_RELEASE_READY = True'))
     elif change == 'syntax':
         changed.write_text('this is not valid Python !')
     else:
