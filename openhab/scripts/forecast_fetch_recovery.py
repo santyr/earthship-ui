@@ -18,7 +18,7 @@ import sys
 from urllib.error import HTTPError, URLError
 from zoneinfo import ZoneInfo
 
-RELEASE_READY = False
+RELEASE_READY = os.environ.get('EARTHSHIP_FORECAST_FETCH_RECOVERY_ENABLE') == '1'
 KEY = 'forecast_fetch_failure'
 FIELDS = {'version','phase','day','timezone','failed_at','invocation_id','failure_count','retryable'}
 ZONE = ZoneInfo('America/Denver')

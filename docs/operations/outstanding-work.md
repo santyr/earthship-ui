@@ -613,17 +613,19 @@ is backfilled, and the live 06:40 timer remains unchanged. Do not fit charge
 timing from two censored outcomes. See
 [independent assessment and exact remaining evidence](2026-09-29-prediction-learning-review.md#october-3-independent-completed-charge-assessment).
 
-October 3's bounded morning fetch-recovery bundle now passes 260 tests and
+October 3's bounded morning fetch-recovery bundle now passes 278 tests and
 actual isolated user-systemd rearming across two simulated DNS failures then
 success. Exact disabled production install/rollback/reinstall also passes,
 preserving the original service, four policies and byte-identical learned state.
-The installed instrumentation and recovery units remain release-disabled;
-original timers remain active. Temporary fixtures were removed. Next: open the
-bounded recovery gate and verify the next natural issue, not another rehearsal
-of unchanged files. No early issue or October 2 backfill. Supporting Energy's
+The dedicated recovery opt-in is now active, with exact effective unit readback
+and a collected read-only process confirming release enabled but no current
+eligibility/start. Original timers remain active and learned state is unchanged.
+Temporary fixtures were removed. Next: verify the natural 06:40 MDT original
+issue/publication, not another rehearsal of unchanged files or forced DNS fault.
+No early issue or October 2 backfill. Supporting Energy's
 older 135-input receipt now correctly refuses canonical source drift; prepare
 and rehearse a new receipt after its separate qualification decision. See
-[handoff receipt and release gates](2026-10-03-forecast-fetch-recovery-candidate.md#october-3-0905z--disabled-production-handoff-and-rollback-passed).
+[activation receipt and remaining natural check](2026-10-03-forecast-fetch-recovery-candidate.md#october-3-0919z--bounded-recovery-activated).
 
 September 30 20:15 MDT post-update battery-runtime discharge evidence closes
 the previously missing natural median gate. The candidate replay and an

@@ -114,3 +114,62 @@ verification. No further rehearsal of this unchanged bundle is required.
 The supporting-Energy prepared receipt correctly refuses its now-changed
 canonical input pins; prepare/rehearse a new receipt once its separate
 qualification decision is resolved.
+
+## October 3, 09:19Z — bounded recovery activated
+
+Recovery now requires the exact dedicated setting
+`EARTHSHIP_FORECAST_FETCH_RECOVERY_ENABLE=1`. It defaults off outside that
+service. The qualified `enabled.conf` drop-in supplies only this setting;
+the original forecasting job and its learning/data-source settings are not
+overridden. The morning window, 15-minute delay, eight-failure limit, current
+failed-invocation binding and duplicate-issue refusal are unchanged.
+
+All **278** recovery/forecast/transaction/activation tests pass. New tests cover
+exact setting syntax, configuration/backup/source drift, corrupt receipts,
+failed readback rollback and later operator-owned edits. Testing caught a
+partial-upgrade edge case when an unowned opt-in appeared between prepare and
+apply; both original targets are now checked before either phase changes them.
+The existing staging adapter also retains explicit support for the previous
+closed-generation source pins and private receipts.
+
+The receipt-bound `scripts/activate-forecast-recovery.py` changed only the helper
+and new opt-in drop-in, then reloaded the user service manager. Effective
+FragmentPath, argv, drop-ins and Environment match exactly. No job or timer was
+started/enabled, and no DNS fault or production state was fabricated. A separate
+collected, read-only user-systemd check using that setting returned:
+
+```json
+{"eligible": false, "release_ready": true, "start_requested": false}
+```
+
+The probe is now not-found/inactive. Original daily/JSON timers are active,
+recovery units remain inactive/static until an eligible failure, and OpenHAB
+remains active at PID 1696. Learned forecast state still has the original
+`26987242...` hash above. This verifies activation, not a natural recovery
+event or a new prediction. Next is the normal October 3 06:40 MDT original
+issue and publication; no early run/backfill or additional unchanged-file
+rehearsal is needed.
+
+Private activation receipt:
+`/home/sat/.local/state/forecast-intel/deploy-receipts/fetch-20261003T091900Z-fce14280`.
+Its qualification SHA-256 is
+`7070b852944bc56fd31333dc9077309bcc8b595dacfa44b816ab87724034e9ad`.
+Activated helper SHA-256:
+`efcaa18f39fcd7c08619f7507ad8c310ad604ce1148e1e9b370017b4f6ba0f33`.
+Opt-in SHA-256:
+`8e98cdb91652d8fd9c9af0c180f7d4718fbb41774e510c96d7eb164e010629fe`.
+Activation adapter SHA-256:
+`0c3405aefdde0e939f83689b86b2c2099da1ccf60bd20802e147e91e39549d6e`.
+
+To restore only the activation, during the same idle/clear timer posture:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/activate-forecast-recovery.py restore \
+  --allow-apply \
+  --receipt /home/sat/.local/state/forecast-intel/deploy-receipts/fetch-20261003T091900Z-fce14280
+```
+
+It restores the exact prior helper and absent opt-in, reloads and verifies the
+closed gate; it refuses later operator edits. Restore activation **before** any
+separate rollback of the parent instrumentation bundle. Both private recovery
+points are intentionally retained; task-owned test/probe resources are removed.

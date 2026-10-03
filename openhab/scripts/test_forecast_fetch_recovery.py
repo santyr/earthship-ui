@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import socket
+import subprocess
+import sys
 from types import SimpleNamespace
 from urllib.error import HTTPError,URLError
 
@@ -12,6 +14,17 @@ import forecast_fetch_recovery as m
 
 NOW=datetime(2026,10,3,13,10,tzinfo=timezone.utc)
 IDENTITY='a'*32
+
+
+@pytest.mark.parametrize('value,enabled',[(None,False),('1',True),('0',False),('true',False),('1 ',False)])
+def test_release_requires_exact_dedicated_service_setting(value,enabled):
+    environment=dict(os.environ,PYTHONDONTWRITEBYTECODE='1')
+    environment.pop('EARTHSHIP_FORECAST_FETCH_RECOVERY_ENABLE',None)
+    if value is not None:environment['EARTHSHIP_FORECAST_FETCH_RECOVERY_ENABLE']=value
+    script='import forecast_fetch_recovery as m; print(m.RELEASE_READY)'
+    result=subprocess.run([sys.executable,'-c',script],cwd=Path(m.__file__).parent,
+        env=environment,capture_output=True,text=True,check=True,timeout=10)
+    assert result.stdout.strip()==str(enabled)
 
 
 def fixture():

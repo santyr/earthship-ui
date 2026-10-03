@@ -31,6 +31,8 @@ CANDIDATES={
     'deploy/forecast-intel-fetch-recovery.service':'606368e47408f2539ad142401424eb3f252c3f198abc15cddedf693b4bbe0ef9',
     'deploy/forecast-intel-fetch-recovery.timer':'f52834d9e38de531ba712b96afe5c65475717649f3675dd026f41673f03a9294',
     'deploy/forecast-intel.service.d/fetch-recovery.conf':'1ed6e2bcdd5fcfc53f4ebf940277d7af4e8786f383da8d31b4f0c114e33bff71'}
+LEGACY_CANDIDATES=dict(CANDIDATES)
+CANDIDATES['openhab/scripts/forecast_fetch_recovery.py']='efcaa18f39fcd7c08619f7507ad8c310ad604ce1148e1e9b370017b4f6ba0f33'
 SPEC=importlib.util.spec_from_file_location('forecast_recovery_secure_files',ROOT/'scripts/thermal-model-files.py')
 files=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(files)
 
@@ -86,7 +88,7 @@ def idle_window():
         if not limits or min(limits)<120:raise ValueError('clear natural forecast timer window required')
 
 
-def verify_effective(installed):
+def verify_effective(installed,recovery_enabled=False):
     if systemctl('show',BASE.name,'-p','FragmentPath','--value')!=str(BASE):
         raise ValueError('original forecast provider required')
     expected=list(map(str,sorted((*DROPINS,*((Path(str(BASE)+'.d/fetch-recovery.conf'),) if installed else ())))))
@@ -104,7 +106,9 @@ def verify_effective(installed):
     for path in (helper,timer):
         actual=systemctl('show',path.name,'-p','FragmentPath','--value')
         if actual!=(str(path) if installed else ''):raise ValueError('recovery unit provider drift')
-        if systemctl('show',path.name,'-p','DropInPaths','--value')!='':
+        expected_dropin=(str(Path(str(helper)+'.d/enabled.conf'))
+            if path==helper and recovery_enabled else '')
+        if systemctl('show',path.name,'-p','DropInPaths','--value')!=expected_dropin:
             raise ValueError('no unreviewed recovery-unit overrides allowed')
         if systemctl('show',path.name,'-p','ActiveState','--value')!='inactive':
             raise ValueError('recovery units must remain inactive during handoff')
@@ -127,9 +131,9 @@ def state(receipt):
     if (checksum!=sha256(files._canonical(data)).hexdigest()
             or set(data)!={'version','status','policies','candidate_sha256'} or data['version']!=1
             or data['status'] not in {'prepared','rehearsal_passed','installed_disabled','rolled_back'}
-            or data['policies']!=policies() or data['candidate_sha256']!=CANDIDATES):
+            or data['policies']!=policies() or data['candidate_sha256'] not in (CANDIDATES,LEGACY_CANDIDATES)):
         raise ValueError('unchanged forecast qualification required')
-    for source,digest in CANDIDATES.items():
+    for source,digest in data['candidate_sha256'].items():
         if sha256(read(receipt/'source'/source)[0]).hexdigest()!=digest:
             raise ValueError('frozen candidate changed')
     for index,record in enumerate(data['policies'].values()):
@@ -138,7 +142,7 @@ def state(receipt):
             raise ValueError('original policy archive changed')
     engine=files._load_receipt(receipt/'files',manifest())
     for record in engine['entries']:
-        if (record['source_sha256']!=CANDIDATES[record['source']]
+        if (record['source_sha256']!=data['candidate_sha256'][record['source']]
                 or (record['source'].endswith('/forecast_intel.py') and record.get('prior_sha256')!=OLD)
                 or (not record['source'].endswith('/forecast_intel.py') and record['prior']!='absent')):
             raise ValueError('exact original forecast rollback required')
