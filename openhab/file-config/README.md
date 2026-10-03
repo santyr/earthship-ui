@@ -96,6 +96,15 @@ Only these three rules and the countdown Item are promoted. This does not
 qualify protected controls or the broader installation. Retain rollback
 copies; see the [production receipt](../../docs/operations/2026-10-02-display-provider-restart-qualification.md).
 
+`automation/js/battery-icon.js` is a **qualified, uninstalled** candidate for
+managed rule `UpdateBatteryIcon`. Its original dual-output action is preserved
+byte-for-byte; 528 JavaScript parity cases, isolated file loading/full-JVM
+restart/managed rollback and GET-only live preflight pass. Its apply gate is off
+and no ownership is transferred. This preserves display semantics, not source
+freshness authority. Attended handoff, natural production output/history and
+production restart gates remain; see the
+[candidate receipt](../../docs/operations/2026-10-03-battery-icon-rule-file-candidate.md).
+
 ## Staged migration and rollback
 
 `things/astro-moon.things` is **live, verified file-owned** after the attended
@@ -279,14 +288,19 @@ records this exact provider transfer and the inventory checks for provider drift
 Preserve the power observer's explicit immutable JDBC writes, its automatic
 write exclusion and restore strategy. Preserve existing forecast behavior during
 migration, including the existing `forecast, everyChange` combination. The
-prepared `items/forecast-group.items` is **not installed**: in a disconnected
+`items/forecast-group.items` definition is **installed and verified file-owned**
+after the approved September 24 cold cutover and natural forecast/JDBC gate.
+Do not repeat that cutover or request another restart; see the
+[completed receipt](../../docs/operations/2026-09-24-gforecast-cold-cutover-receipt.md).
+Its earlier disconnected rehearsal established why hot transfer was unsafe:
+in a disconnected
 OpenHAB/PostgreSQL rehearsal, `gForecast*` failed to persist 48/7/7 synthetic
 forecast series while the Group provider was absent, even though its ten
 file-owned member references remained visible. Series before and after the
-gap persisted and the missing gap series did not backfill. Do not hot-transfer
-this Group; the stopped-service alternative still requires an attended live
-restart decision. See the [gap receipt](../../docs/operations/2026-09-23-forecast-group-hot-jdbc-gap.md).
-Preserve the existing managed Group until that safe transfer is qualified. The
+gap persisted and the missing gap series did not backfill. That historical gap
+must not be backfilled as original forecasts; see the
+[gap receipt](../../docs/operations/2026-09-23-forecast-group-hot-jdbc-gap.md).
+Preserve the current file-owned Group and its qualified stable identities. The
 [official persistence documentation](https://www.openhab.org/docs/configuration/persistence)
 discourages that combination; reviewing it is separate from reproducing current
 behavior. The transfer passed isolated syntax/load, strategy, rollback, restart,

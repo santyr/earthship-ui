@@ -38,6 +38,20 @@ class DisplayRule:
 
 
 RULES = {
+    'battery-icon': DisplayRule(
+        uid='UpdateBatteryIcon',
+        script_sha='834544eb8a9648a6c3082a8a135b3d22b5ef5ae0922a86fb9ee3e4f4fb110e2f',
+        source=ROOT / 'openhab/file-config/automation/js/battery-icon.js',
+        source_sha='bc6c0954b232902d4b5af444b6381cf5c8ea4af062aa5a12b8195de364729b45',
+        target=Path('/etc/openhab/automation/js/battery-icon.js'),
+        triggers=(('timer.GenericCronTrigger',
+                   (('cronExpression', '0/30 * * * * ?'),)),),
+        items=(('BMS_SOC', 'Number'), ('DCData_Current', 'Number:ElectricCurrent'),
+               ('BatteryIcon', 'String'), ('BatteryChargingStatus', 'Switch')),
+        outputs=('BatteryIcon', 'BatteryChargingStatus'),
+        backup_prefix='battery-icon-rule-',
+        outputs_must_hold=False,  # real charge transitions are not state corruption
+    ),
     'season': DisplayRule(
         uid='update_days_until_season',
         script_sha='d43b3f993991966ade5d428bc4ff6af603a253a06f336ff93221cc22cc332311',
@@ -109,7 +123,8 @@ RULES = {
 }
 
 RULE = RULES['season'].uid  # Historical import compatibility for focused tests.
-RELEASE_READY = {'season': False, 'sky': False, 'extrema': False, 'bitcoin': False}
+RELEASE_READY = {'season': False, 'sky': False, 'extrema': False, 'bitcoin': False,
+                 'battery-icon': False}
 # Completed display handoffs stay closed; a future transfer needs its own gate.
 # SkyCondition gates greywater eligibility; its cutover remains held.
 BACKUP_ROOT = Path('/home/sat/.local/state')

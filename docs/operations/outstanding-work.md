@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 next observational file-rule candidate
+
+The managed `UpdateBatteryIcon` writer now has an exact-action, uninstalled
+file candidate. Its two display outputs and charging hysteresis are unchanged:
+528 JavaScript output-parity cases pass, as do the actual networkless file
+provider/full-JVM restart/original managed rollback rehearsal and GET-only live
+preflight. Thirty affected tests pass. Both disposable attempts were cleaned;
+production remains managed on unchanged PID 1696 with zero inventory issues.
+The adapter is default-off. Next is a fresh attended, privately backed-up
+handoff followed by genuine natural output/JDBC verification, not a production
+restart or synthetic reading. See the
+[exact scope and remaining gates](2026-10-03-battery-icon-rule-file-candidate.md).
+
 ## October 3 recurring thermal confirmations deployed
 
 The approved one-question-per-Mountain-day recommendation follow-up collector

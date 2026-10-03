@@ -38,6 +38,18 @@ def test_existing_managed_baseline_still_requires_exact_action_hash(baseline):
         q.managed_baseline(replace(config, baseline='0'*64), managed)
 
 
+def test_managed_payload_preserves_absent_optional_description_and_drops_runtime(baseline):
+    _, managed, _, _ = baseline
+    original = {**managed, 'name': 'Actual name', 'tags': [],
+                'status': {'status': 'IDLE'}}
+    payload = q.managed_payload(original)
+    assert 'description' not in payload
+    assert 'editable' not in payload and 'status' not in payload
+    assert payload == {key: value for key, value in original.items()
+                       if key not in ('editable', 'status')}
+    assert q.managed_payload({**original, 'description': ''}) == {**payload, 'description': ''}
+
+
 def test_file_owned_baseline_requires_private_exact_preimage(baseline):
     config, managed, file_rule, backup = baseline
     assert q.managed_baseline(config, file_rule, backup) == managed

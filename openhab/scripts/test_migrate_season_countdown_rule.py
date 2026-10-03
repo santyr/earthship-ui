@@ -21,7 +21,7 @@ ORIGINAL = {
     'conditions': [], 'actions': [], 'editable': True,
     'status': {'status': 'IDLE', 'statusDetail': 'NONE'},
 }
-@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema', 'bitcoin'])
+@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema', 'bitcoin', 'battery-icon'])
 @pytest.mark.parametrize('install_fails', [False, True])
 def test_handoff_never_leaves_two_providers_and_restores_managed_on_failure(
         monkeypatch, kind, install_fails):
@@ -78,7 +78,7 @@ def test_handoff_never_leaves_two_providers_and_restores_managed_on_failure(
         assert calls == ['withdraw', 'install']
 
 
-@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema', 'bitcoin'])
+@pytest.mark.parametrize('kind', ['season', 'sky', 'extrema', 'bitcoin', 'battery-icon'])
 def test_held_apply_refuses_before_live_preflight_or_backup(monkeypatch, kind):
     monkeypatch.setattr(sys, 'argv', [str(SCRIPT), '--kind', kind, '--apply'])
     monkeypatch.setattr(migration, 'preflight',

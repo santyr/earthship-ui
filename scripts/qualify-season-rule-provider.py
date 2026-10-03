@@ -35,6 +35,20 @@ class DisplayRule:
 
 
 RULES = {
+    'battery-icon': DisplayRule(
+        uid='UpdateBatteryIcon',
+        source=ROOT / 'openhab/file-config/automation/js/battery-icon.js',
+        baseline='834544eb8a9648a6c3082a8a135b3d22b5ef5ae0922a86fb9ee3e4f4fb110e2f',
+        label='hex.battery.icon.rule.qualification',
+        items=b'''Number BMS_SOC
+Number:ElectricCurrent DCData_Current
+String BatteryIcon
+Switch BatteryChargingStatus
+''',
+        startup_item='BMS_SOC',
+        triggers=(('timer.GenericCronTrigger',
+                   (('cronExpression', '0/30 * * * * ?'),)),),
+    ),
     'season': DisplayRule(
         uid='update_days_until_season',
         source=ROOT / 'openhab/file-config/automation/js/update_days_until_season.js',
@@ -106,6 +120,14 @@ Number BTC_Price_24h_PercentChange
 def trigger_contract(rule):
     return tuple((trigger.get('type'), tuple(sorted(trigger.get('configuration', {}).items())))
                  for trigger in rule.get('triggers', []))
+
+
+def managed_payload(rule):
+    # Optional descriptive fields can be absent in a genuine managed DTO.
+    # Preserve omission rather than inventing values or exporting runtime status.
+    return {key: rule[key] for key in (
+        'uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')
+        if key in rule}
 
 
 def wait_for(check, *, seconds=90):
@@ -226,8 +248,7 @@ def main(kind, *, managed_backups=None, restart=False):
             return int(status), decoded
 
         runtime.run(['docker', 'exec', container, 'mkdir', '-p', '/openhab/conf/automation/js'])
-        managed = {name: {key: baselines[name][key] for key in (
-            'uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')} for name in kinds}
+        managed = {name: managed_payload(baselines[name]) for name in kinds}
         for name, config in zip(kinds, configs):
             if rest('POST', '/rules', managed[name])[0] != 201:
                 raise RuntimeError('isolated managed rule creation failed')
