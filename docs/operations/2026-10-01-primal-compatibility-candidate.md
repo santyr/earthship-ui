@@ -685,16 +685,20 @@ OpenHAB remains active at PID 1696. No duplicate question, recurring release,
 synthetic label or household command was issued. Do not poll before that next
 deadline merely to restate unchanged status.
 
-The latest due October 3 08:23Z bounded poll again reused the original frozen trial
+The latest due October 3 09:24Z bounded poll again reused the original frozen trial
 without sending a replacement. It ended with `accepted=0`,
-`operator_read_verified=false`, `relay_failures=1` and `withheld=1` (exit 3).
-The one pending refusal next retries at `2026-10-03T09:23:50Z`. Independent
+`operator_read_verified=false`, `relay_failures=2` and `withheld=0` (exit 3).
+The one pending refusal remains due (`due=1`, `next_retry_at=null`). The exact
+status query's null means no future refusal deadline, **not** exhausted retries
+or a confirmed reply. With no new eligible receipt, make no further poll before
+`2026-10-03T10:27:00Z` unless the operator reports a new reply; this is an
+operational one-hour network retry interval, not a journal/policy mutation. Independent
 read-only ledger verification still finds one question and zero authenticated
 receipts; permanent collector/timer are not-found/inactive with no process.
 Repeated approval of the one-question trial is not its authenticated action
 reply. OpenHAB remains active at PID 1696; no journal label, recurring release
 or household command occurred. Do not
-poll again before the new deadline merely to restate unchanged status.
+poll again before that interval merely to restate unchanged status.
 
 ### Remaining recurring-release gates
 

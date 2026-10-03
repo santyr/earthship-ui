@@ -373,9 +373,12 @@ one Hex DM was sent. All three approved relays ACKed it; actual Primal receipt
 and authenticated reply are still pending. Original question cipher and ACKs
 are backed up and reopened through the application. No chat label, recurring
 collector, source release flag, operator-signer change or household control.
-The latest October 3 08:23Z checkpoint (October 3 early morning MDT) accepted zero
-replies and reported one relay failure with one pending inbox refusal; its next
-retry is `2026-10-03T09:23:50Z`. Independent read-only verification still finds
+The latest October 3 09:24Z checkpoint (October 3 early morning MDT) accepted zero
+replies and reported two relay failures with one still-due inbox refusal.
+Its `next_retry_at=null` means no future deadline, not exhaustion or a reply.
+Use a conservative operational retry no earlier than `2026-10-03T10:27:00Z`
+unless the operator reports a new reply; no ledger/policy was rewritten.
+Independent read-only verification still finds
 exactly one question and zero authenticated receipts. Repeated trial approval
 does not supply the authenticated action reply. No replacement question was sent.
 The check ended and permanent collector/timer remain absent/inactive. Relay
