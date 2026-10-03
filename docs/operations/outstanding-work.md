@@ -1,5 +1,27 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 fit-local numerical preprocessing optimization deployed
+
+Removing duplicate auxiliary glazing-row construction preserves complete fit
+results, validation and chronological inputs. Interleaved 400-day synthetic
+fits improve approximately 9%; this is not a whole-trainer claim. The 72-test
+dynamics and 238-test pipeline/v2/artifact groups pass (303 distinct cases).
+Production received only the compatible v4 one-file backport; actual original
+rollback/reinstall, unchanged other 25 files/four model reports, timer deadline
+and OpenHAB PID checks pass. Runtime is now `ccddda9b...`; accepted training
+remains `cd77cd16...`. Private pre/post archives, independent cold recovery of
+all 122 captures, seven cold regressions and exact original-publication replay
+pass. Next: natural 21:53Z publication and October 4 06:50 MDT training resource/
+accepted-artifact gates. No new model, label or household control. See
+[exact scope, measurements and rollback](2026-09-27-thermal-selector-efficiency.md#october-3-fit-local-glazing-row-reuse-deployed).
+
+At the frozen **21:06:10.158300Z** outcome cutoff, today's four short-horizon
+pairs have model/cycle/persistence MAE **0.430/0.990/1.935 F**, but the older
+artifact loses to recent cycles on aggregate one-hour error and to persistence
+on its four overlapping daily outcomes. Only one independent daily window
+exists. Keep artifacts separate and shadow gates unchanged. See
+[settled outcomes and repeatable evidence](2026-09-30-forecast-input-capture.md#october-3-fourth-settled-short-horizon-and-predecessor-daily-outcomes).
+
 ## October 3 recent-cycle baseline made repeatable
 
 The capture-strict operational scorer has an opt-in seven-qualified-day

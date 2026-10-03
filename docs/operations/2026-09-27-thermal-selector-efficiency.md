@@ -1,5 +1,79 @@
 # Thermal endpoint-selector efficiency — September 27
 
+## October 3 fit-local glazing-row reuse deployed
+
+A deterministic 400-day, 114,624-training-row profile found `_glazing_rows`
+built the same auxiliary design twice in each fit (2.579 seconds cumulative
+under profiling). Selection now retains those already validated rows for that
+fit. The original selection/diagnostic contracts, envelope and auxiliary
+validation, equations, solver, chronological inputs and acceptance gates remain
+unchanged. Each subsequent fit builds its own rows; there is no cross-fit or
+cross-run cache, warm start, shortened training window or reused model.
+
+Two interleaved single-thread 400-day fits took **4.414680 / 4.427041 seconds**
+before and **4.031289 / 4.033409 seconds** after: approximately **9% faster for
+this isolated synthetic fit**, not a measured whole-trainer improvement. Every
+complete fit has SHA-256
+`3ca0ce06a668d4e17e0e7a345a01c9e28208a1478fa423560b281cadac5eb739`
+and final objective `0.00016809381152404807`.
+
+Seven new regressions cover one construction per fit, no reuse across fits,
+changed inputs, exact complete-fit parity in both inactive-action modes,
+selector/diagnostic compatibility and unchanged malformed-input refusals.
+The dynamics group passes **72 tests** and the pipeline/v2/artifact group
+**238 tests** (303 distinct cases; the seven new cases occur in both groups).
+
+Production received only a compatible backport onto its actual installed v4
+file, not the repository's unrelated split-airflow/solar changes. Original
+`dynamics.py` SHA is
+`3b50fec19289ed09fbc2a507f0b5747e7906d427ae009e596835d8b54ecd87ce`;
+installed SHA is
+`adc2908c357f4ace67857fb50fa744a0c1130dd30db7a360368d75afe811d85b`.
+All other module AST is identical. The seven regressions also pass against
+the compatible runtime, and its complete 30-day fit matches the actual old
+runtime exactly, SHA
+`754def4eb21d19a31f2e3ab894b40ea8f356843286517c5ba8b54fc58b3da091`.
+
+At **21:23:49.670342Z**, the existing receipt-bound file engine performed an
+actual `install -> original restore -> reinstall` with digest verification.
+Private source, original rollback bytes, before/round-trip/timer receipts and
+the one-shot transaction code remain at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/glazing-reuse-20261003T2125Z/`.
+All 25 other runtime files and all four model/report files are byte-identical.
+OpenHAB PID 1696 is unchanged. Only the two thermal user timers were briefly
+stopped, then restored active/enabled with the original shadow deadline
+`1d 8h 28min 29.734179s`. No worker, refit, forecast publication, label,
+household control or OpenHAB restart was started by this transaction.
+
+The publication runtime is now
+`ccddda9bb8bf2d005d91376662be7dba7c6e89800f6060f2c96fa59e46f730bb`;
+accepted training retains its original `cd77cd16...` revision. Intentional
+private pre/post recovery archives each verify 153 data members and 122 captures:
+
+- `/home/sat/backups/earthship-energy/thermal-pre-glazing-20261003T2123Z-ae5310c4.tar.gz`,
+  SHA `316216a5110b32a5ba9ed731d74ddca71308427420188bca4413ce058d71ccbc`.
+- `/home/sat/backups/earthship-energy/thermal-post-glazing-20261003T2125Z-ccddda9b.tar.gz`,
+  SHA `d8d51d74b0da6df6f224a36c60a5d5c5cd438f701bca63a32c16817058e68e27`.
+
+Independent cold extraction matches the full new runtime, validates the typed
+unchanged accepted artifact and all 122 captures, reproduces the identical
+30-day fit, and passes all seven regressions. The original 19:53:38Z capture
+replays exactly from restored code under the explicit new runtime pin, output
+SHA `2a5f3d2bc4eb195dbc45bd4a193f81866b400a429834753eefb7ce05c6d033c0`.
+Training/publication identities remain distinct. This is cold code/model/capture
+recovery, not a new whole-host restore or a natural new-runtime publication.
+The owned temporary source/extraction/test directories and one-shot script
+were removed; the qualified private receipt and recovery archives remain.
+
+The next natural **21:53Z publisher** and **October 4 06:50 MDT trainer** remain
+continuity/resource/accepted-artifact gates. No accuracy or shadow-exit claim.
+To roll back with both workers idle and a clear timer window, use the existing
+receipt engine, source root `<receipt-parent>/source`, receipt directory
+`<receipt-parent>/files` and this exact single-entry manifest:
+`source=dynamics.py`, `target=/home/sat/openhab/scripts/thermal_model/dynamics.py`,
+`phase=code`, `mode=0644`. Stop/restore only the two thermal user timers around
+the guarded transaction; refuse later unowned edits and retain recovery bytes.
+
 ## October 3 chronological-prefix bookkeeping deployed
 
 The evaluator previously scanned the whole sample set for each daily training

@@ -355,7 +355,8 @@ def _full_rank(design, names):
     return np.isfinite(matrix).all() and np.linalg.matrix_rank(matrix) == len(names)
 
 
-def _selection(samples):
+def _selection_with_glazing(samples):
+    """Select and validate once; retain auxiliary rows for this fit only."""
     ordered = tuple(samples)
     for row in ordered:
         _reject_split_airflow(row)
@@ -379,7 +380,7 @@ def _selection(samples):
             excluded_unknown += 1
             continue
         selected.append((left, right))
-    glazing_design, _ = _glazing_rows(selected)
+    glazing_design, glazing_target = _glazing_rows(selected)
     auxiliary_fitted = (
         len(glazing_design) if _full_rank(glazing_design, GLAZING_NAMES) else 0
     )
@@ -410,6 +411,11 @@ def _selection(samples):
         ),
         "action_label_coverage_fraction": len(selected) / total if total else 0.0,
     }
+    return selected, diagnostics, glazing_design, glazing_target
+
+
+def _selection(samples):
+    selected, diagnostics, _, _ = _selection_with_glazing(samples)
     return selected, diagnostics
 
 
@@ -595,12 +601,11 @@ def _fit_with_inactive_action_columns(
 
 
 def _fit_five_minute_dynamics(samples, *, allow_inactive_action_forcing):
-    pairs = _selected_pairs(samples)
+    pairs, _, glazing_design, glazing_target = _selection_with_glazing(samples)
     air_design = []
     air_target = []
     mass_design = []
     mass_target = []
-    glazing_design, glazing_target = _glazing_rows(pairs)
     outside_exchange, _ = _fit_envelope_exchange(pairs)
     if outside_exchange <= 0.0:
         raise ValueError("positive envelope exchange was not identified")

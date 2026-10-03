@@ -1,5 +1,42 @@
 # Exact morning weather-input archive
 
+## October 3 fourth settled short-horizon and predecessor daily outcomes
+
+The receipt/capture-strict recent-cycle audit assessed at
+**21:06:10.158300Z** repeats identically at that frozen cutoff, report SHA
+`56870050718fba2e6438f1f81b770a2f7074740f049e5f61a49f3f9d092b411d`.
+It includes 17 original publications and 444 unique historical targets in
+325 small native batches. Nothing was refitted, relabelled or published.
+
+Today's `d9163729...` artifact has four non-overlapping near-one-hour pairs:
+model/recent-cycle/persistence MAE **0.430 / 0.990 / 1.935 F**. All four model
+predictions beat both comparators. Its original **19:53:38.161057Z -> 21:00Z**
+prediction is **0.025 F low**, versus cycle **0.720 F low** and persistence
+**1.080 F low**. The cycle prediction is 80.600 F, with seven qualified lags
+1–7 and evidence digest
+`fba7987d4eff8e077f8c3fb2c56f878fad752eb93306552717d5354b9c49e9d4`.
+The unchanged five-minute settlement gate passed. Outdoor forcing is 2.400 F
+cold; the 10.414 F-wide interval covers the target. These are four same-day
+windows, not four independent days, seasonal evidence or action-benefit proof.
+Its one six-hour pair remains **1.742 / 6.300 / 12.780 F** MAE; no current
+artifact 12/24-hour outcome is qualified at this cutoff.
+
+Keep predecessor `2435c019...` separate: its 12 non-overlapping one-hour pairs
+have model/cycle/persistence MAE **1.0152 / 0.9150 / 1.470 F**; recent cycles
+beat the model in nine of twelve. Its newest overlapping daily outcome,
+**October 2 19:34:05.199785Z -> October 3 20:00Z**, is 2.946 F low, versus
+cycle 5.400 F low and persistence 4.140 F low. The cycle uses lags 2–8 because
+all historical targets must precede the original issue. Across four overlapping
+24-hour pairs, model/cycle/persistence MAE is **4.1618 / 4.410 / 3.825 F**,
+model bias is -4.1618 F, and interval coverage is 3/4. Only **one** daily window
+is non-overlapping. Aggregate daily model error still exceeds persistence;
+today's short-horizon wins do not qualify graduation or justify pooling artifacts.
+
+Reproduce the frozen comparison using the prior command with
+`--since 2026-10-02T12:00:00Z --until 2026-10-03T21:00:00Z`,
+`--assessed-at 2026-10-03T21:06:10.158300Z` and `--horizons 1 6 12 24`;
+retain capture, pair, recent-cycle, artifact-selection and runtime options.
+
 ## October 3 repeatable recent-cycle operational comparator
 
 `scripts/audit-thermal-shadow-publications.py --recent-cycles` now adds the
