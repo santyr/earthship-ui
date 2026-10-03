@@ -5,6 +5,76 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 3 comparison frozen before tonight's outcome
+
+At **2026-10-03T23:46:16.838503Z** (17:46 MDT), a bounded, restricted
+SELECT-only calculation qualified the original morning/late/numeric/native
+SoC chain and calculated the two existing counterfactuals. It read **no
+October 3 target outcome**. Creation precedes both today's true sunset and
+the canonical 20:00–11:00 overnight window; this is an unscored comparison,
+not an original 17:30 production issue or evidence of forecast skill.
+
+The original late issue is `2026-10-03T23:30:00.934426Z`, linked to morning
+`2026-10-03T12:40:58.396244Z`, with source SoC **100%** and true sunset
+`2026-10-04T00:42:07.214Z`. Its native receipt persisted at
+`2026-10-03T23:30:00.847423Z`, epoch
+`61b2c967-b217-429e-840f-eebf68a36da0`, digest
+`1c6aa1d514e5fbfdfb901fb252ed797a0fa61c9491f037252024de147888d4bf`.
+The numeric and issue receipts persisted at `23:30:00.936Z` and
+`23:30:00.938Z`, respectively. The live estimate remains **74%**.
+
+| Calculation | Drop, percentage points | Frozen trough |
+| --- | --- | --- |
+| Original live proxy | 26.333 | 74% |
+| Measured sunset-to-trough | 16.667 | 83% |
+| Measured matching pre-dusk-phase-to-trough | 17.667 | 82% |
+
+Both alternatives retain the exact original three sample **ending dates**,
+October 2, October 1 and September 30, the original source SoC, zero cloud
+penalty and existing rounding/clamps. All historical profiles are assessed
+only at the original morning clock. The phase comparison uses tonight's exact
+**4326.279574-second** sunset-relative lead, not a fixed clock or season proxy.
+
+| Prior prediction night | Phase start, UTC | Phase SoC | Sunset SoC | Canonical trough | Phase drop | Phase / canonical coverage |
+| --- | --- | --- | --- | --- | --- | --- |
+| October 1 | 23:33:08.184426 | 87% | 87% | 72% | 15 pp | 99.879810% / 99.861448% |
+| September 30 | 23:34:42.374426 | 85% | 83% | 65% | 20 pp | 99.949861% / 99.943067% |
+| September 29 | 23:36:16.895426 | 99% | 98% | 81% | 18 pp | 99.992628% / 99.992570% |
+
+Frozen phase input digests, in that order:
+
+- `4f0992ce8fccf8639d1fffd3de34a0f0251fcdf54d758ae753654d7f625f06f5`
+- `4160e091112cb4940c3337a5f67c3d042fbda84bf420b5b895b78bd1b5c0dc97`
+- `caa6c312017f843f3342eebfcfd6661254e3f3bf974edf9d1a4bc377a8aed16e`
+
+Frozen sunset-only input digests, in the same order:
+
+- `4e1ce21a4999e38ce7d785321d2ca126a48d118515e8560f635ef851c3ccc4fd`
+- `cb71d50e76a4ce964ea5749ef5792d1ba4249e65b85c7e2dab4c0a8b205b2dfd`
+- `6096972afbe52a70520f0a69a6d9192020a62c3d77ab2125ea23430b11d32989`
+
+Forecast-state SHA-256 at creation:
+`e60f26adb4ff14d2cb3a5994c13576cbbf5acb60705009ef881151f4c9c73fc7`.
+Existing benchmark source SHA-256:
+`cc3c92322f23a34d4b84fc1db84dd6f5ee1ddc91f173e73c9e577206e3c9a563`.
+No model, learned state, schedule, display value, notification or control
+changed; no temporary file, service, container or diagnostic process remains.
+
+After **October 4 11:00 MDT plus receipt settling**, use the unchanged
+completed-target benchmark to score this frozen comparison:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/experiment-sunset-soc-drop.py \
+  --start-day 2026-10-03 --end-day 2026-10-04 --include-pre-dusk
+```
+
+Require the same original issue, lead and input digests; do not silently
+replace this comparison using revised samples or input clocks. Compare 74%,
+82% and 83% against the same qualified canonical minimum. An unavailable
+outcome stays unscored. A single night's result cannot establish seasonal
+skill or justify promoting the fixed three-night average, which still lacks
+an explicit remaining-daylight charge/load and overnight-load model.
+
 ## October 3 shared charge qualification across benchmark modes
 
 The combined overnight benchmark still used the weather clock for its optional

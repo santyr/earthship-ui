@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 trough comparison frozen before outcome
+
+The qualified live pre-dusk estimate remains **74%**. At 17:46 MDT, before
+sunset or tonight's canonical window, the existing read-only benchmark
+functions produced **82%** from matched pre-dusk-phase drops and **83%** from
+sunset-only drops. The exact original SoC, morning-selected dates, lead and
+input digests are frozen in the
+[learning review](2026-09-29-prediction-learning-review.md#october-3-comparison-frozen-before-tonights-outcome).
+No target outcome was read and no production calculation changed. Score all
+three against the same qualified October 4 11:00 MDT completed minimum;
+do not promote a candidate from this single night or replace its frozen inputs.
+
 ## October 3 pre-dusk estimate refreshed naturally
 
 The actual 17:30 MDT timer invocation exited zero and replaced the retained
