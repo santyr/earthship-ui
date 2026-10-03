@@ -222,6 +222,66 @@ evidence before enabling the current-input flag. Complete v2 days and thermal
 skill/action gates remain separate. No production source, private environment,
 service, model, collector, forecast publication or household control changed.
 
+### Exact installed-runtime qualification — October 3 01:07Z
+
+`scripts/qualify-thermal-radiation-runtime.py` now freezes the **actual installed
+runtime**, not the broader repository candidate. The installed entrypoint's
+SHA-256 exactly matches the pre-radiation commit:
+`8d7873a0b37dc252cdc2fb59175a18952df229e69505402d28ec40e2bb88fcc2`.
+The reviewed installed full runtime remains
+`7316fa8b1e408544463b3f44e64772e56c7f36b57a9d6325ccca3353bea03af5`.
+Only the six-file radiation delta is overlaid; **21 other files**, including
+the separately differing model/journal modules, remain byte-identical to
+installation. The resulting qualified mixed runtime revision is
+`b700545b101e5aa441d35f4d1d4214ae2df5cb5a030aa3af0e0ce9275a0a7da6`.
+
+Both original immutable publications replay exactly under the installed and
+mixed candidate runtimes and again after an isolated file handoff:
+
+| Original capture | Unchanged output SHA-256 |
+| --- | --- |
+| `20261002T193405Z-930f9e4af7b20516.json.gz` | `930f9e4af7b205166e9432afa37fb490e5b339cbddf352cb031512fc4b4faa32` |
+| `20261002T233514Z-c52967e2973b64e1.json.gz` | `c52967e2973b64e1f31eb59f28da92e088751b216e4c12a9ac28ea2db061e499` |
+
+The captures' original embedded training revision remains `7f57eb3f...`,
+distinct from both publication runtimes. No artifact or historical capture
+was rewritten. Actual original bytes are guarded again after qualification.
+The existing durable file adapter verifies all unchanged dependencies, exercises
+an interrupted six-file update and a successful update/restore in temporary
+targets, removes new radiation files on rollback, and restores the exact old
+full runtime hash. No service or production path is installed by this script.
+
+The optional actual-current-input probe first refused because its temporary
+service lacked the existing qualified-temperature **drop-in** settings. The
+actual shadow unit already has those settings; no production defect or
+configuration change is inferred from that deliberately incomplete probe.
+After supplying the exact three nonsecret existing drop-in settings alongside
+the process-local radiation settings, qualification passed at
+`2026-10-03T01:07:29.173995Z`. Indoor, mass and outdoor readings all have valid
+native receipt expiry. Radiation is **0 W/m²**, from a native receipt **46.174
+seconds old**, expiring at `01:08:43Z`, with verified fault visibility and
+snapshot SHA `e67069d6afc13ebd805def2fb4a28ce5c85c386d25713bfc694604676821b200`.
+This zero is measured proxy evidence, not an astronomical/nighttime fill.
+The check uses the existing private environment and explicit process-local
+overrides; it performs no shadow publication, training, journal write,
+recurring listener, control or permanent unit/configuration change.
+
+The **235 directly affected qualifier/worker/deploy/hash/replay tests** pass
+in 2.87 seconds; the earlier full affected 769-test result remains unchanged.
+Tests cover pre-allocation refusal, unrelated-source preservation, source and
+capture drift, replay identity divergence, optional-probe refusal and cleanup.
+The actual transient units were collected and temporary trees removed.
+
+These gates now qualify the narrow **runtime/source/input** candidate. Before
+production handoff, still take a private exact installed-code/config recovery
+point, recheck idle workers and unchanged source pins, install dependencies
+before the entrypoint, retain the existing temperature drop-in, and qualify a
+separate current-radiation drop-in and its rollback. Require a natural shadow
+publication and preserved original artifact/capture identities afterward.
+Do not promote training, daily calibration, action collection or the wider
+repository models as part of this rollout; complete clean v2 days and skill
+gates remain separate. Production runtime and source activation remain unchanged.
+
 ## Strict reader and v2 fault visibility — October 2
 
 Natural native radiation arrives about every 16 seconds, versus the unchanged

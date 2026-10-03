@@ -1,5 +1,21 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 evening exact installed-radiation runtime qualification
+
+The six-file candidate is now qualified against the actual installed bytes,
+preserving all 21 other runtime files rather than the wider repository models.
+Two original publications replay exactly before/after isolated handoff; both
+interrupted and successful handoffs restore the original full runtime pin.
+The optional actual current-input probe passes with the production temperature
+drop-in settings: all three temperatures are receipt-qualified, and radiation
+is a genuine native zero with its original expiry. The mixed candidate revision
+is `b700545b...`; all 235 direct qualifier/worker/deploy/replay tests pass.
+No production source/configuration, publication, training, collector or control
+changed. Next: exact private code/config recovery, guarded dependencies-first
+handoff, current-radiation drop-in rollback and a natural shadow publication.
+Complete-day learning and thermal graduation remain separate. See
+[exact frozen runtime, original replay and live-input proof](2026-10-02-radiation-history-and-shade-collision.md#exact-installed-runtime-qualification--october-3-0107z).
+
 ## October 2 evening receipt-qualified current thermal radiation candidate
 
 The independent source-only worker now connects the thermal current input to
@@ -11,8 +27,9 @@ are covered; actual candidate-file interruption/restore passes in temporary
 targets. All **769 affected tests pass without skips**, and the actual restricted
 live worker qualified a 27.4-second-old native receipt without publication.
 Nothing is installed/activated. Five unrelated model/journal source differences
-make bulk manifest installation inappropriate: qualify/recover the exact
-installed runtime and a narrow six-file radiation delta before live activation.
+make bulk manifest installation inappropriate: exact installed-runtime and
+six-file isolated qualification now pass above; private production recovery,
+guarded handoff and live activation remain.
 Complete clean v2 days, learning and graduation gates remain separate. See
 [worker contract, exact proof and deployment boundary](2026-10-02-radiation-history-and-shade-collision.md#thermal-current-radiation-worker--october-2-evening-source-candidate).
 
