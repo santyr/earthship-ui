@@ -1,5 +1,64 @@
 # Exact morning weather-input archive
 
+## October 3 repeatable recent-cycle operational comparator
+
+`scripts/audit-thermal-shadow-publications.py --recent-cycles` now adds the
+same-local-clock comparator to the existing capture-strict score, without
+changing its default report, forecasts, models, source gates or controls.
+It takes captured current air temperature plus the median measured change
+between the original origin/target local clocks on seven prior qualified days.
+All historical reader assessments use the **original issue**, not audit time;
+native receipt expiry, digest/epoch and receipt/storage bounds remain enforced.
+Missing cycles extend search only to 31 days; fewer than seven withholds the
+comparator, while malformed grids/receipts abort. No legacy held-value fallback.
+
+Local dates use America/Denver. Ambiguous/nonexistent shifted clocks are
+rejected using UTC round trips; shifted windows must have the same elapsed
+duration as the original. All historical targets must precede the original
+issue, including 24/48-hour horizons. Native requests retain their 24-hour
+span limit. A CLI run is bounded to 96 unique mature pairs; split larger windows.
+Cached native points are keyed by **issue clock and historical target**, not
+target alone, and never shared across different evidence cutoffs.
+
+Model/persistence/cycle metrics use the same baseline-qualified cohort, with
+separate artifact and chronological non-overlapping groups. Lack of baseline
+history does not remove a valid original model outcome or count as a win.
+`--include-pairs` adds selected lag days and canonical receipt-evidence digests;
+the report supplies code and read-count evidence, not new advisory authority.
+The synthetic DST tests do not close November's required live winter check.
+
+Seventy-one focused tests and all **91** expanded publication/baseline/
+graduation-audit tests pass. Two actual native read-only audits at the
+fixed **20:06:33.047835Z** assessment are identical; stripping only optional
+cycle fields exactly reconstructs the existing default report. Canonical
+extended-report SHA-256:
+`b6adb3e6e78cc9da8a1e060e007f0d69b7a80afae5666e61a6a72feeadbfcb5a`.
+There are four publication rows, three verified captures, four indoor/outdoor
+outcome targets and 49 unique historical targets in 28 small native batches.
+
+| Today's artifact cohort | Qualified pairs | Model MAE | Recent-cycle MAE | Persistence MAE |
+| --- | --- | --- | --- | --- |
+| Near one hour, non-overlapping | 3 | 0.565 F | 1.080 F | 2.220 F |
+| Near six hours, non-overlapping | 1 | 1.742 F | 6.300 F | 12.780 F |
+
+The six-hour prediction reproduces the prior diagnostic **74.120 F** and
+**-6.300 F** error. Its new evidence digest
+`f9e89f58a0282ec92014d3173c1f8602ea263c37b32a537a1161e4eec30b5364`
+uses the reusable helper's named-cycle schema, not the earlier ad-hoc digest
+encoding. These are same-day observational windows, not independent seasons
+or evidence of action benefit. The model remains shadow/low confidence.
+
+Reproduce from the repository (no deployment/restart needed):
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --since 2026-10-03T13:00:00Z --until 2026-10-03T20:00:00Z \
+  --assessed-at 2026-10-03T20:06:33.047835Z \
+  --require-capture --horizons 1 6 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9 \
+  --runtime-root /home/sat/openhab/scripts
+```
+
 ## October 3 third original-artifact 24-hour miss and settled one-hour pair
 
 The capture-strict audit at **19:01:30Z** repeats identically across two live

@@ -60,6 +60,133 @@ def receipt(target):
             'snapshotSha256': 'b' * 64}
 
 
+def recent_grid(targets, original_issue):
+    assert all(at < original_issue for at in targets)
+    return [(at, {**receipt(at), 'temperatureF': 70 if index == 0 else 73})
+            for index, at in enumerate(targets)]
+
+
+def test_recent_cycles_require_capture_before_any_evidence_read():
+    with pytest.raises(ValueError, match='recent-cycle comparator requires exact forcing capture'):
+        audit.score([row()], now=TARGET + timedelta(hours=1), outcome_reader=receipt,
+                    recent_cycle_reader=lambda *_: pytest.fail('unexpected read'))
+    with pytest.raises(ValueError, match='recent-cycle comparator requires exact forcing capture'):
+        audit.score_horizons([row()], now=TARGET + timedelta(hours=1), horizons=(6,),
+            outcome_grid_reader=lambda *_: pytest.fail('unexpected read'),
+            recent_cycle_reader=lambda *_: pytest.fail('unexpected read'))
+
+
+def test_recent_cycles_add_matched_cohorts_without_changing_original_metrics():
+    forcing = {'sha256': {'artifact': 'a' * 64}}
+    options = dict(now=TARGET + timedelta(hours=1), outcome_reader=receipt,
+                   capture_reader=lambda _: forcing, horizon_hours=6, include_pairs=True,
+                   target_artifact_id='a' * 64)
+    original = audit.score([row()], **options)
+    result = audit.score([row()], recent_cycle_reader=recent_grid, **options)
+    for key in original:
+        if key != 'pairs': assert result[key] == original[key]
+    detail = result['pairs'][0]['recent_cycle_baseline']
+    assert detail['status'] == 'available' and detail['prediction_f'] == 71
+    assert detail['signed_error_f'] == 1
+    cohort = result['recent_cycle_baseline']['groups']['nonoverlap:artifact:' + 'a'*64]
+    assert cohort['n'] == 1 and cohort['model_mae_f'] == 2
+    assert cohort['persistence_mae_f'] == 2 and cohort['recent_cycle_mae_f'] == 1
+    assert cohort['paired_recent_cycle_wins'] == 1
+    assert result['advisory_graduation_claimed'] is False
+
+
+def test_recent_cycles_missing_history_does_not_remove_valid_model_outcomes():
+    result = audit.score([row()], now=TARGET + timedelta(hours=1), outcome_reader=receipt,
+        capture_reader=lambda _: {'sha256': {'artifact': 'a'*64}}, horizon_hours=6,
+        recent_cycle_reader=lambda targets, assessed: [(at, None) for at in targets])
+    assert result['counts']['scored'] == 1 and result['groups']['overall']['n'] == 1
+    assert result['recent_cycle_baseline']['counts'] == {'insufficient_qualified_history': 1}
+    assert result['recent_cycle_baseline']['groups']['overall'] == {'n': 0}
+
+
+def test_recent_cycle_multi_horizon_matches_individual_scores():
+    options = dict(now=TARGET + timedelta(hours=1), include_pairs=True,
+        capture_reader=lambda _: {'sha256': {'artifact': 'a'*64}},
+        target_artifact_id='a'*64, recent_cycle_reader=recent_grid)
+    result = audit.score_horizons([row()], horizons=(1, 6),
+        outcome_grid_reader=lambda targets, assessed: [(at, receipt(at)) for at in targets], **options)
+    for horizon in (1, 6):
+        assert result['results'][str(horizon)] == audit.score([row()], horizon_hours=horizon,
+                                                            outcome_reader=receipt, **options)
+
+
+def test_recent_cycle_cli_caches_only_exact_original_issue_targets(monkeypatch, capsys):
+    calls = []
+    monkeypatch.setattr(audit.oh, 'get', lambda _: {'data': [row(), row()]})
+    monkeypatch.setattr(audit, 'capture_for_publication', lambda _: {
+        'sha256': {'artifact': 'a'*64},
+        'forecast_rows': [dict(point, tempF=75) for point in published()['forecast']['trajectory']]})
+    def collected(request, **_kwargs):
+        calls.append(request)
+        return [(at, receipt(at)) for at in request['targets']]
+    monkeypatch.setattr(audit, 'collect', collected)
+    with patch.object(sys, 'argv', ['audit', '--since', '2026-09-20T00:00:00Z',
+        '--until', '2026-09-20T03:00:00Z', '--assessed-at', '2026-09-21T03:00:00Z',
+        '--horizons', '1', '6', '--require-capture', '--recent-cycles']):
+        audit.main()
+    result = json.loads(capsys.readouterr().out)
+    historical = [call for call in calls if call['assessed_at'] == ISSUE]
+    assert len(historical) == 14  # Seven first-horizon pairs, seven new second-horizon targets.
+    assert sum(len(call['targets']) for call in historical) == 21
+    assert all(at < ISSUE for call in historical for at in call['targets'])
+    assert result['recent_cycle_read_counts'] == {'batches': 14, 'targets': 21}
+    assert result['results']['6']['recent_cycle_baseline']['groups']['overall']['n'] == 2
+
+
+def test_recent_cycle_cli_refuses_missing_capture_option_before_live_reads(monkeypatch):
+    monkeypatch.setattr(audit.oh, 'get', lambda *_: pytest.fail('unexpected REST read'))
+    with patch.object(sys, 'argv', ['audit', '--recent-cycles']):
+        with pytest.raises(SystemExit): audit.main()
+
+
+def test_recent_cycle_cli_does_not_share_historical_receipts_across_issue_clocks(monkeypatch, capsys):
+    second_issue = ISSUE + timedelta(seconds=1)
+    second = published()
+    second['generatedAt'] = second_issue.isoformat()
+    rows = [row(), {'time': int((second_issue + timedelta(seconds=3)).timestamp()*1000),
+                    'state': json.dumps(second)}]
+    calls = []
+    monkeypatch.setattr(audit.oh, 'get', lambda _: {'data': rows})
+    monkeypatch.setattr(audit, 'capture_for_publication', lambda _: {
+        'sha256': {'artifact': 'a'*64},
+        'forecast_rows': [dict(point, tempF=75) for point in published()['forecast']['trajectory']]})
+    def collected(request, **_kwargs):
+        calls.append(request)
+        return [(at, receipt(at)) for at in request['targets']]
+    monkeypatch.setattr(audit, 'collect', collected)
+    with patch.object(sys, 'argv', ['audit', '--since', '2026-09-20T00:00:00Z',
+        '--until', '2026-09-20T03:00:00Z', '--assessed-at', '2026-09-21T03:00:00Z',
+        '--horizons', '6', '--require-capture', '--recent-cycles']):
+        audit.main()
+    result = json.loads(capsys.readouterr().out)
+    assert result['recent_cycle_read_counts'] == {'batches': 14, 'targets': 28}
+    for issue in (ISSUE, second_issue):
+        historical = [call for call in calls if call['assessed_at'] == issue]
+        assert len(historical) == 7
+        assert all(at < issue for call in historical for at in call['targets'])
+
+
+def test_recent_cycle_cli_bounds_mature_pairs_before_capture_or_temperature(monkeypatch):
+    rows = []
+    for index in range(97):
+        publication = published()
+        publication['generatedAt'] = (ISSUE + timedelta(seconds=index)).isoformat()
+        rows.append({'state': json.dumps(publication),
+                     'time': int((ISSUE + timedelta(seconds=index+3)).timestamp()*1000)})
+    monkeypatch.setattr(audit.oh, 'get', lambda _: {'data': rows})
+    monkeypatch.setattr(audit, 'collect', lambda *_args, **_kw: pytest.fail('unexpected temperature read'))
+    monkeypatch.setattr(audit, 'capture_for_publication', lambda *_: pytest.fail('unexpected capture read'))
+    with patch.object(sys, 'argv', ['audit', '--since', '2026-09-20T00:00:00Z',
+        '--until', '2026-09-20T03:00:00Z', '--assessed-at', '2026-09-21T03:00:00Z',
+        '--horizon-hours', '6', '--require-capture', '--recent-cycles']):
+        with pytest.raises(ValueError, match='exceeds 96 mature pairs'): audit.main()
+
+
 def test_multi_horizon_preserves_each_original_score_with_shared_reads():
     now = TARGET + timedelta(days=3)
     rows = [row(), row()]

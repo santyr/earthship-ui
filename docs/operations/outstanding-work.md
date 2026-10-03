@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 recent-cycle baseline made repeatable
+
+The capture-strict operational scorer has an opt-in seven-qualified-day
+local-clock comparator, with strict original-issue receipt cutoffs, DST clock
+refusals, matched cohorts, separate artifact/non-overlapping metrics and bounded
+cached reads. All 91 expanded audit tests pass. Two frozen-clock native audits
+repeat identically and preserve the old default report exactly. Today's three
+near-one-hour pairs have model/cycle/persistence MAE **0.565/1.080/2.220 F**;
+its first near-six-hour pair has **1.742/6.300/12.780 F**. This supplies a
+stronger repeatable benchmark, not seasonal/action skill, a corrected forecast
+or model graduation. No service/model/control change. See
+[policy, evidence and command](2026-09-30-forecast-input-capture.md#october-3-repeatable-recent-cycle-operational-comparator).
+
 ## October 3 attended BatteryIcon rule handoff verified
 
 Fresh operator attendance and read-only source/consumer/type/control checks

@@ -26,12 +26,14 @@ if (not RUNTIME_ROOT.is_dir()
         or not (RUNTIME_ROOT / 'thermal_model/forcing_capture.py').is_file()):
     raise ValueError('complete thermal audit runtime root required')
 sys.path.insert(0, str(RUNTIME_ROOT))
+sys.path.append(str(ROOT / 'scripts'))
 import openhab_sanity_check as oh  # noqa: E402
 from thermal_temperature_runtime import collect  # noqa: E402
 from thermal_model.temperature_history import _validate_receipt  # noqa: E402
 from thermal_model.forcing_capture import (  # noqa: E402
     _canonical, _private_directory, verify_capture,
 )
+from thermal_recent_cycles import compare as compare_recent_cycles, POLICY as RECENT_CYCLE_POLICY  # noqa: E402
 
 ITEM = 'Thermal_Model_JSON'
 CONFIG = '/home/sat/.config/hex/weather-temperature-db.json'
@@ -131,11 +133,14 @@ def select_pair(row, *, now, horizon_hours=24):
 
 
 def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None,
-          horizon_hours=24, include_pairs=False, target_artifact_id=None):
+          horizon_hours=24, include_pairs=False, target_artifact_id=None,
+          recent_cycle_reader=None):
     if type(horizon_hours) is not int or horizon_hours not in SUPPORTED_HORIZONS:
         raise ValueError('supported horizon required')
     if outdoor_reader is not None and capture_reader is None:
         raise ValueError('outdoor diagnostic requires exact forcing capture')
+    if recent_cycle_reader is not None and capture_reader is None:
+        raise ValueError('recent-cycle comparator requires exact forcing capture')
     if type(include_pairs) is not bool or include_pairs and capture_reader is None:
         raise ValueError('pair diagnostics require exact forcing capture')
     if target_artifact_id is not None and (not isinstance(target_artifact_id, str)
@@ -149,6 +154,8 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     weather_errors = []
     scored_windows = []
     pair_details = []
+    baseline_windows = []
+    baseline_counts = Counter()
     for row in rows:
         pair, reason = select_pair(row, now=now, horizon_hours=horizon_hours)
         if reason:
@@ -197,6 +204,17 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                       'interval_covered': error[2],
                       'interval_width_f': round(error[3], 3),
                       'outdoor_forecast_error_f': None}
+        if recent_cycle_reader is not None:
+            baseline = compare_recent_cycles(issue=pair['issue'], target=pair['target'],
+                current_f=pair['persistence_f'], grid_reader=recent_cycle_reader)
+            baseline_counts[baseline['status']] += 1
+            if baseline['status'] == 'available':
+                baseline_error = baseline['prediction_f'] - observed
+                baseline_windows.append((pair['issue'], pair['target'], pair['revision'][:12],
+                    pair['model_metadata_id'], artifact_id, (error[0], error[1], baseline_error)))
+                baseline = {**baseline, 'signed_error_f': round(baseline_error, 3)}
+            if detail is not None:
+                detail['recent_cycle_baseline'] = baseline
         if outdoor_reader is not None:
             forcing_rows = capture.get('forecast_rows')
             if not isinstance(forcing_rows, list):
@@ -298,6 +316,32 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
                      'approved_operational_graduation_thresholds_not_supplied'))
     result['advisory_graduation_claimed'] = False
     result['operational_readiness_blockers'] = blockers
+    if recent_cycle_reader is not None:
+        cohorts = {'overall': baseline_windows,
+                   'nonoverlap:overall': non_overlapping(baseline_windows)}
+        for artifact_id in sorted({window[4] for window in baseline_windows if window[4] is not None}):
+            matched = [window for window in baseline_windows if window[4] == artifact_id]
+            cohorts['artifact:' + artifact_id] = matched
+            cohorts['nonoverlap:artifact:' + artifact_id] = non_overlapping(matched)
+        def baseline_metrics(windows):
+            if not windows:
+                return {'n': 0}
+            errors = [window[-1] for window in windows]
+            differences = [abs(model) - abs(baseline) for model, _, baseline in errors]
+            n = len(errors)
+            return {'n': n,
+                'model_mae_f': round(sum(abs(error[0]) for error in errors) / n, 4),
+                'persistence_mae_f': round(sum(abs(error[1]) for error in errors) / n, 4),
+                'recent_cycle_mae_f': round(sum(abs(error[2]) for error in errors) / n, 4),
+                'recent_cycle_bias_f': round(sum(error[2] for error in errors) / n, 4),
+                'paired_model_minus_recent_cycle_mae_f': round(sum(differences) / n, 4),
+                'paired_model_wins': sum(value < 0 for value in differences),
+                'paired_ties': sum(value == 0 for value in differences),
+                'paired_recent_cycle_wins': sum(value > 0 for value in differences)}
+        result['recent_cycle_baseline'] = {
+            'policy': dict(RECENT_CYCLE_POLICY), 'counts': dict(sorted(baseline_counts.items())),
+            'groups': {key: baseline_metrics(value) for key, value in sorted(cohorts.items())},
+            'cohort_policy': 'compare_all_predictors_only_where_seven_prior_cycles_qualify'}
     if include_pairs:
         selected = {(issue.isoformat(), target.isoformat(), revision, metadata_id, artifact_id)
                     for issue, target, revision, metadata_id, artifact_id, _ in selected_overall}
@@ -321,7 +365,7 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
 
 def score_horizons(rows, *, now, horizons, outcome_grid_reader,
                    capture_reader=None, outdoor_grid_reader=None,
-                   include_pairs=False, target_artifact_id=None):
+                   include_pairs=False, target_artifact_id=None, recent_cycle_reader=None):
     """Share capture verification and bounded receipt grids; retain score parity.
 
     Grids use the existing 289-target/24-hour reader contract. Original receipt
@@ -340,7 +384,7 @@ def score_horizons(rows, *, now, horizons, outcome_grid_reader,
           capture_reader=capture_reader,
           outdoor_reader=(lambda _: None) if outdoor_grid_reader is not None else None,
           horizon_hours=horizons[0], include_pairs=include_pairs,
-          target_artifact_id=target_artifact_id)
+          target_artifact_id=target_artifact_id, recent_cycle_reader=recent_cycle_reader)
     captures = {}
     def cached_capture(publication):
         key = _canonical(publication)
@@ -407,7 +451,8 @@ def score_horizons(rows, *, now, horizons, outcome_grid_reader,
             outcome_reader=indoor.__getitem__, capture_reader=selected_capture,
             outdoor_reader=outdoor.__getitem__ if outdoor_grid_reader is not None else None,
             horizon_hours=horizon, include_pairs=include_pairs,
-            target_artifact_id=target_artifact_id) for horizon in horizons},
+            target_artifact_id=target_artifact_id,
+            recent_cycle_reader=recent_cycle_reader) for horizon in horizons},
     }
 
 
@@ -427,6 +472,8 @@ def main():
                         help='bounded signed-error details; requires --require-capture')
     parser.add_argument('--artifact-id',
                         help='full SHA-256 digest of the captured validated artifact to assess separately')
+    parser.add_argument('--recent-cycles', action='store_true',
+                        help='add a seven-qualified-day local-clock comparator; requires --require-capture')
     parser.add_argument('--runtime-root', type=Path, default=DEFAULT_RUNTIME_ROOT,
                         help='coherent thermal runtime source; use installed v4 for live v4 captures')
     args = parser.parse_args()
@@ -434,6 +481,8 @@ def main():
         parser.error('--include-pairs requires --require-capture')
     if args.artifact_id and not args.require_capture:
         parser.error('--artifact-id requires --require-capture')
+    if args.recent_cycles and not args.require_capture:
+        parser.error('--recent-cycles requires --require-capture')
     if args.horizons is not None and len(set(args.horizons)) != len(args.horizons):
         parser.error('--horizons requires unique supported horizons')
     actual_now = datetime.now(timezone.utc)
@@ -449,6 +498,32 @@ def main():
     rows = oh.get('/persistence/items/' + ITEM + '?' + query)['data']
     if len(rows) > 1000:
         raise ValueError('publication row bound exceeded')
+    if args.recent_cycles:
+        horizons = args.horizons if args.horizons is not None else [args.horizon_hours]
+        eligible = set()
+        for row in rows:
+            for horizon in horizons:
+                pair, reason = select_pair(row, now=now, horizon_hours=horizon)
+                if not reason:
+                    eligible.add((pair['issue'], pair['target']))
+        if len(eligible) > 96:
+            raise ValueError('recent-cycle audit exceeds 96 mature pairs; split the publication window')
+    recent_cache = {}
+    recent_reads = 0
+    def recent_reader(targets, original_issue):
+        nonlocal recent_reads
+        missing = [target for target in targets if (original_issue, target) not in recent_cache]
+        if missing:
+            returned = collect({'stream': 'indoor', 'targets': missing, 'assessed_at': original_issue},
+                               config_path=CONFIG, policy_path=POLICY)
+            if not isinstance(returned, list) or len(returned) != len(missing):
+                raise ValueError('incomplete cached comparator grid')
+            for target, row in zip(missing, returned):
+                if not isinstance(row, (list, tuple)) or len(row) != 2 or aware(row[0]) != target:
+                    raise ValueError('cached comparator grid target mismatch')
+                recent_cache[original_issue, target] = row[1]
+            recent_reads += 1
+        return [(target, recent_cache[original_issue, target]) for target in targets]
     def qualified(stream, target):
         receipts = collect({'stream': stream, 'targets': [target], 'assessed_at': target},
                        config_path=CONFIG, policy_path=POLICY)
@@ -464,7 +539,8 @@ def main():
             outdoor_grid_reader=(lambda targets, assessed: grid('outdoor', targets, assessed))
                                 if args.require_capture else None,
             capture_reader=capture_for_publication if args.require_capture else None,
-            include_pairs=args.include_pairs, target_artifact_id=args.artifact_id)
+            include_pairs=args.include_pairs, target_artifact_id=args.artifact_id,
+            recent_cycle_reader=recent_reader if args.recent_cycles else None)
     else:
         result = score(rows, now=now,
                            outcome_reader=lambda target: qualified('indoor', target),
@@ -473,7 +549,12 @@ def main():
                            if args.require_capture else None,
                            horizon_hours=args.horizon_hours,
                            include_pairs=args.include_pairs,
-                           target_artifact_id=args.artifact_id)
+                           target_artifact_id=args.artifact_id,
+                           recent_cycle_reader=recent_reader if args.recent_cycles else None)
+    if args.recent_cycles:
+        result['recent_cycle_read_counts'] = {'batches': recent_reads, 'targets': len(recent_cache)}
+        result['recent_cycle_verifier_sha256'] = sha256(
+            (ROOT / 'scripts/thermal_recent_cycles.py').read_bytes()).hexdigest()
     result['assessed_at'] = now.isoformat()
     result['verifier_runtime_root'] = str(RUNTIME_ROOT)
     result['verifier_source_sha256'] = {
