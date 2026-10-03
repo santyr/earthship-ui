@@ -1,9 +1,10 @@
 # Astro Moon Thing: staged exact file-provider candidate
 
-Status: **source/parser, isolated managed baseline, managed rollback and all
-28 original live history baselines qualified; file descriptor gate refused;
-uninstalled; production remains
-managed**. This is the next migration candidate, not a completed provider
+Status: **the exact current-binding metadata alternative passes isolated
+file handoff, full JVM restart and original managed rollback; the literal
+legacy comparison still refuses its 39 differences. All 28 original live
+history baselines pass. Uninstalled; production remains managed.** The named
+descriptor choice is pending. This is the next migration candidate, not a completed provider
 handoff or authorization for a whole-OpenHAB restart.
 
 ## Exact current scope
@@ -228,3 +229,68 @@ file/restart qualification and exact attended authority remain open. Production
 OpenHAB is still active at PID **1696**, Moon is managed, and the watched file
 destination is absent. Do not repeat the selected-reading-only baseline checks
 or infer a broader migration release from this result.
+
+### October 3 05:35Z: exact binding-metadata alternative passes isolated recovery
+
+The operator choice is now supported by a separate actual-runtime candidate,
+not an ignored-field or UID-only comparison. The default no-argument probe
+still requires the literal original descriptor and would refuse the previously
+recorded 39 differences. This explicit alternative is isolated-only:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualify-astro-moon-thing-provider.py --qualify-binding-metadata-candidate
+```
+
+The expected alternative is constructed **before fixture allocation** from
+the original descriptor and the independently byte-pinned Astro 5.2.1 XML.
+It permits exactly 27 channel default tag lists, 11 explicit boolean
+`forceEvent=false` defaults and the one `phase#age` wording change. The pinned
+XML independently requires offset zero and false force-event defaults. Current
+GET-only channel-type checks also match the XML tag ordering and age text.
+Missing/extra/duplicate channels, type/UID drift, existing nonempty tags,
+nonzero offsets, an existing force-event override, other age wording or a
+different change count refuse before allocating the fixture. All other full
+Thing/channel fields remain in the exact comparison; managed baseline and
+rollback always use the unmodified original descriptor, never this alternative.
+
+Intended provider-neutral full-descriptor SHA-256:
+`3c4b60e6d22f3e8b452b1e2834d02d6cf5f1b12bcd3745563d330209adf90595`.
+Executed qualifier source SHA-256:
+`17a17c8f3d4992b5a83d567d3d606530d93fe0203cff5dc46ffced3cc1e45301`.
+The affected provider/history/adjacent-migration tests pass **107 cases in
+0.20 seconds**, without skips; 13 cases specifically cover the new alternative.
+
+The actual owner-labelled fixture `e7e192742ab8` completed these checkpoints:
+
+1. Exact original managed baseline, all 34 channel descriptors, 28 linked
+   dependents and a new source-attributed native Astro update.
+2. Exact alternative file provider, unchanged original Item/link/unit and
+   complete membership/27 Point-parent semantic comparisons, and a new native
+   update. No dependent Item or link ownership was transferred.
+3. Full isolated JVM stop/start, a different sole JVM PID, the same exact file
+   descriptor/dependent comparisons and a new post-restart source-attributed
+   illumination change. During the initial logging gap, a valid numeric state
+   alone did not pass; the same original process waited for the native event
+   at the preserved five-minute cadence, without retrying the entire run or
+   forcing a new binding state.
+4. Verified withdrawal of only the exact file, original managed creation/update,
+   full original comparisons and another new source-attributed update.
+5. Owner-checked container/tmpfs removal; independent Docker census is empty.
+
+Containment stayed networkless, read-only-root, no host mounts/ports/devices,
+no household rules or database. Memory and memory-plus-swap were both 1,536
+MiB, CPU limited to one; observed usage was about 269 MiB, with no OOM kill.
+No new test directory, diagnostic or fixture remains. Production OpenHAB
+remains active at PID **1696**; the Moon Thing remains managed and its watched
+file remains absent. No production REST/SQL write, restart, Item command or
+synthetic state occurred.
+
+The final output explicitly reports `qualification_target=binding_metadata_candidate`,
+`production_deviation_approved=false` and `production_history_recovery=not_tested`.
+This is successful qualification of the named **alternative**, not acceptance
+of a production metadata deviation or completion of live cutover/history
+recovery. Await the operator's descriptor choice; then finish dynamic/shared
+consumer review and the fresh, exclusive, rollback-backed attended adapter.
+The already verified all-28 original-history baseline must be captured fresh
+and checked after both live handoff and rollback, rather than treated as that
+future proof. No whole-production restart is authorized by this fixture.

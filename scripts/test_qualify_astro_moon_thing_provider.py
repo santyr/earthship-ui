@@ -388,3 +388,62 @@ def test_read_only_check_refuses_changed_prefix_or_definition(monkeypatch, fault
     monkeypatch.setattr(db, 'copy_expert', copy)
     with pytest.raises(RuntimeError, match='changed'): m.check_history()
     assert db.closed
+
+
+def binding_metadata_fixture():
+    original = {'UID': m.UID, 'label': 'Moon', 'configuration': {'interval': 300},
+                'channels': []}
+    metadata = {}
+    for index in range(34):
+        name = 'phase#age' if index == 0 else f'fixture#{index}'
+        configurable = 1 <= index <= 11
+        original['channels'].append({'id': name, 'uid': m.UID + ':' + name,
+            'channelTypeUID': f'astro:type{index}', 'kind': 'STATE',
+            'defaultTags': [], 'configuration': {'offset': 0} if configurable else {},
+            'description': 'The age of the moon in days' if index == 0 else 'retained',
+            'label': 'retained', 'properties': {'retained': 'yes'}})
+        metadata[name] = {'type': f'astro:type{index}',
+                          'tags': ['Calculation'] if index < 27 else [],
+                          'configurable': configurable,
+                          'description': 'The age of the moon' if index == 0 else 'unused'}
+    return original, metadata
+
+
+def test_binding_metadata_candidate_changes_only_exact_39_named_fields():
+    original, metadata = binding_metadata_fixture()
+    retained = deepcopy(original)
+    candidate = m.binding_metadata_candidate(original, metadata)
+    assert original == retained
+    assert len(m.difference_paths(m.definition(original), m.definition(candidate))) == 39
+    assert candidate['label'] == original['label']
+    assert candidate['configuration'] == original['configuration']
+    for old, new in zip(original['channels'], candidate['channels']):
+        assert new['label'] == old['label'] and new['properties'] == old['properties']
+        assert new['channelTypeUID'] == old['channelTypeUID'] and new['uid'] == old['uid']
+
+
+@pytest.mark.parametrize('fault', ['missing', 'extra', 'duplicate', 'wrong_type',
+                                  'wrong_uid', 'tags', 'offset', 'force_event',
+                                  'old_age_text', 'new_age_text', 'delta_count'])
+def test_binding_metadata_candidate_refuses_any_unreviewed_descriptor_change(fault):
+    original, metadata = binding_metadata_fixture()
+    if fault == 'missing': metadata.pop('fixture#33')
+    elif fault == 'extra': metadata['unexpected'] = metadata['fixture#33']
+    elif fault == 'duplicate': original['channels'][-1] = deepcopy(original['channels'][0])
+    elif fault == 'wrong_type': metadata['fixture#1']['type'] = 'astro:other'
+    elif fault == 'wrong_uid': original['channels'][1]['uid'] = 'astro:sun:local:fixture#1'
+    elif fault == 'tags': original['channels'][1]['defaultTags'] = ['Other']
+    elif fault == 'offset': original['channels'][1]['configuration']['offset'] = 1
+    elif fault == 'force_event': original['channels'][1]['configuration']['forceEvent'] = True
+    elif fault == 'old_age_text': original['channels'][0]['description'] = 'Other'
+    elif fault == 'new_age_text': metadata['phase#age']['description'] = 'Other'
+    else: metadata['fixture#33']['tags'] = ['Extra']
+    with pytest.raises(RuntimeError, match='metadata'): m.binding_metadata_candidate(original, metadata)
+
+
+def test_binding_metadata_candidate_interface_is_explicit_and_isolated(monkeypatch):
+    calls = []
+    monkeypatch.setattr(m, 'main', lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr(m, 'check_history', lambda: pytest.fail('history audit'))
+    m.command(['--qualify-binding-metadata-candidate'])
+    assert calls == [{'binding_metadata': True}]

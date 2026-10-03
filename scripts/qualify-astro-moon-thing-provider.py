@@ -6,6 +6,8 @@ definitions, cached Astro/MAP bundles and an isolated API identity. No host
 mounts, network, household rules, database, synthetic states or Item commands.
 --check-history instead checks every original production JDBC prefix using two
 read-only snapshots; it allocates no fixture and does not qualify a cutover.
+--qualify-binding-metadata-candidate tests a separate exact current-binding
+descriptor alternative in the isolated fixture; it is not deviation approval.
 """
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -18,6 +20,8 @@ import secrets
 import sys
 import time
 from urllib.parse import quote
+from xml.etree import ElementTree
+from zipfile import ZipFile
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -326,17 +330,98 @@ def check_history():
                       'provider_handoff': 'not_tested'}, sort_keys=True, default=str))
 
 
+def binding_channel_metadata():
+    """Independent expected changes from the byte-pinned binding, not the file result."""
+    require(sha256(ASTRO.read_bytes()).hexdigest() == ASTRO_SHA, 'Moon metadata binding drift')
+    with ZipFile(ASTRO) as archive:
+        channels = ElementTree.fromstring(archive.read('OH-INF/thing/channels.xml'))
+        moon = ElementTree.fromstring(archive.read('OH-INF/thing/moon.xml'))
+        config = ElementTree.fromstring(archive.read('OH-INF/config/config.xml'))
+    groups = {row.attrib['id']: row for row in channels.findall('channel-group-type')}
+    types = {row.attrib['id']: row for row in channels.findall('channel-type')}
+    configs = [row for row in config.findall('config-description')
+               if row.attrib.get('uri') == 'channel-type:astro:config']
+    require(len(configs) == 1, 'Moon metadata channel configuration missing')
+    defaults = {row.attrib['name']: row.findtext('default') for row in configs[0].findall('parameter')}
+    require(defaults.get('offset') == '0' and defaults.get('forceEvent') == 'false',
+            'Moon metadata event defaults changed')
+    result = {}
+    for group in moon.findall('thing-type/channel-groups/channel-group'):
+        for channel in groups[group.attrib['typeId']].findall('channels/channel'):
+            name = group.attrib['id'] + '#' + channel.attrib['id']
+            require(name not in result, 'Moon metadata duplicate channel')
+            row = types[channel.attrib['typeId']]
+            reference = row.find('config-description-ref')
+            require(reference is None or reference.attrib.get('uri') == 'channel-type:astro:config',
+                    'Moon metadata unreviewed channel configuration')
+            result[name] = {'type': 'astro:' + channel.attrib['typeId'],
+                            'tags': [tag.text for tag in row.findall('tags/tag')],
+                            'configurable': reference is not None,
+                            'description': row.findtext('description')}
+    require(len(result) == 34, 'Moon metadata channel membership changed')
+    return result
+
+
+def binding_metadata_candidate(original, metadata):
+    """Exact named 27-tag/11-false-default/one-description alternative only.
+
+    This does not accept a live deviation, remove comparison fields or alter
+    managed recovery. Every other full descriptor remains the original one.
+    """
+    channels = original.get('channels', [])
+    names = {row.get('id') for row in channels}
+    require(original.get('UID') == UID and len(channels) == len(names) == len(metadata) == 34
+            and names == set(metadata), 'Moon metadata original membership changed')
+    expected = deepcopy(original)
+    changes = {'tags': 0, 'force_event': 0, 'description': 0}
+    for channel in expected['channels']:
+        name, meta = channel['id'], metadata[channel['id']]
+        require(channel.get('uid') == UID + ':' + name
+                and channel.get('channelTypeUID') == meta['type']
+                and channel.get('defaultTags') == []
+                and type(meta['configurable']) is bool,
+                'Moon metadata original identity or tags changed')
+        wanted = {'offset': 0} if meta['configurable'] else {}
+        require(channel.get('configuration') == wanted
+                and (not meta['configurable'] or type(channel['configuration']['offset']) is int),
+                'Moon metadata original event configuration changed')
+        channel['defaultTags'] = deepcopy(meta['tags'])
+        changes['tags'] += bool(meta['tags'])
+        if meta['configurable']:
+            channel['configuration']['forceEvent'] = False
+            changes['force_event'] += 1
+        if name == 'phase#age':
+            require(channel.get('description') == 'The age of the moon in days'
+                    and meta['description'] == 'The age of the moon',
+                    'Moon metadata age description changed outside named alternative')
+            channel['description'] = meta['description']
+            changes['description'] += 1
+    require(changes == {'tags': 27, 'force_event': 11, 'description': 1}
+            and len(difference_paths(definition(original), definition(expected))) == 39,
+            'Moon metadata differences outside exact named alternative')
+    return expected
+
+
 def command(args):
-    require(args in ([], ['--check-history']),
+    require(args in ([], ['--check-history'], ['--qualify-binding-metadata-candidate']),
             'no arbitrary target or production apply interface')
-    if args:
+    if args == ['--check-history']:
         check_history()
+    elif args:
+        main(binding_metadata=True)
     else:
         main()
 
 
-def main():
+def main(*, binding_metadata=False):
     original, original_links, original_items = preflight()
+    require(type(binding_metadata) is bool, 'Moon metadata candidate selector invalid')
+    intended_file = (binding_metadata_candidate(original, binding_channel_metadata())
+                     if binding_metadata else original)
+    target = 'binding_metadata_candidate' if binding_metadata else 'literal_original_descriptor'
+    print(json.dumps({'qualification_target': target, 'production_deviation_approved': False,
+                      'intended_definition_sha256': sha256(json.dumps(definition(intended_file),
+                       sort_keys=True, separators=(',', ':')).encode()).hexdigest()}, sort_keys=True), flush=True)
     marker, container = secrets.token_hex(8), None
     try:
         supervisor = (
@@ -469,9 +554,10 @@ def main():
             code, thing = rest('GET', '/things/' + UID)
             if code != 200 or not thing or thing.get('editable') is not editable:
                 return diagnose('thing_registration_or_provider')
+            intended = original if editable else intended_file
             if (thing.get('statusInfo') != {'status': 'ONLINE', 'statusDetail': 'NONE'}
-                    or definition(thing) != definition(original)):
-                return diagnose('thing_definition', difference_paths(definition(original), definition(thing)))
+                    or definition(thing) != definition(intended)):
+                return diagnose('thing_definition', difference_paths(definition(intended), definition(thing)))
             code, links = rest('GET', '/links')
             selected = sorted([row for row in links if row.get('channelUID', '').startswith(UID + ':')],
                               key=lambda row: row['itemName'])
@@ -515,7 +601,8 @@ def main():
         file_failed = False
         try:
             q.wait_for(lambda: ready(False, phase), seconds=360)
-            print('isolated_file_moon_exact=true; all_original_dependents_preserved=true', flush=True)
+            print('isolated_file_moon_exact=true; qualification_target=' + target
+                  + '; all_original_dependents_preserved=true', flush=True)
             before = q.java_pids(container)
             require(len(before) == 1, 'one isolated JVM required')
             try:
@@ -551,7 +638,8 @@ def main():
             require(owner == marker, 'Moon cleanup ownership mismatch')
             runtime.run(['docker', 'rm', '-f', '-v', container], timeout=45)
             print('owned_moon_container_and_tmpfs_removed=true', flush=True)
-    print('status=passed; production_writes=0; production_history_recovery=not_tested')
+    print('status=passed; qualification_target=' + target
+          + '; production_deviation_approved=false; production_writes=0; production_history_recovery=not_tested')
 
 
 if __name__ == '__main__':

@@ -13,6 +13,15 @@ coverage, not cutover history recovery. The descriptor decision and qualified
 file/restart/attended handoff remain open. See
 [complete baseline and remaining scope](2026-10-02-astro-moon-thing-candidate.md#october-3-0514z-all-28-original-live-history-baselines-verified).
 
+The separately named current-binding descriptor alternative now also passes
+actual disconnected file handoff, full JVM/native recovery and original managed
+rollback, with exact 34-channel and 28-dependent comparisons. All 107 affected
+tests pass; the owner-labelled fixture and temporary test directory are removed.
+The default literal-legacy comparator remains strict. Exact 39-field descriptor
+choice is now awaiting the operator; dynamic/shared-consumer review and guarded
+fresh-history live handoff remain open. No production release or restart. See
+[actual alternative recovery and scope](2026-10-02-astro-moon-thing-candidate.md#october-3-0535z-exact-binding-metadata-alternative-passes-isolated-recovery).
+
 ## October 2 late-evening independent-window tuning result
 
 New qualified targets now provide two selected non-overlapping six-hour windows

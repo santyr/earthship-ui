@@ -101,8 +101,12 @@ copies; see the [production receipt](../../docs/operations/2026-10-02-display-pr
 `things/astro-moon.things` is **staged, uninstalled**. It preserves the managed
 Moon Thing's exact site/cadence and default channels; the version-matched offline
 parser accepts it. Ninety no-hardware cases qualify the Moon icon's current
-sky-rule path, but dynamic-consumer review, effective provider/restart/rollback,
-all 28 dependent Item/history checks and an exact guarded live plan remain.
+sky-rule path. All 28 original live history baselines now pass. A separately
+named, exact current-binding metadata alternative also passes disconnected
+file-provider/full-JVM/original-managed rollback qualification; the literal
+legacy comparator still refuses its 39 descriptor differences. Operator
+descriptor choice, dynamic/shared-consumer review and an exact guarded live
+plan with actual cutover/rollback history checks remain.
 There is no premature Thing ownership declaration. See the
 [Moon Thing candidate](../../docs/operations/2026-10-02-astro-moon-thing-candidate.md).
 
