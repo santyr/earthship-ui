@@ -1,5 +1,72 @@
 # Exact morning weather-input archive
 
+## October 3 native held-shade forcing diagnostic
+
+The source-only `hold_confirmed_shades` helper now overlays only recent,
+qualified indoor/outdoor shade observations onto an independently supplied
+native forcing grid. It preserves ventilation and all weather/initial inputs.
+Unknown, inferred, zero-confidence, future-received/committed or more-than-48-hour
+old physical states are refused or excluded. A late receipt cannot renew the
+age of its physical observation. The 48-hour hold limit is an explicit diagnostic
+assumption, not learned persistence or proof the shades remained unchanged.
+The complete five-minute grid is bounded at the actual 72-hour model horizon;
+no future forcing is labelled as observed action evidence or control authority.
+Window and skylight observations never become aggregate-vent forcing.
+
+`replay-thermal-forcing.py` has a Python-only selected-forcing observer. It
+records native schedule simulations in memory, restores the simulator on both
+success and failure, and exports a private copy only after exact as-issued
+output equality, final runtime-pin equality and matching every published
+air/mass trajectory point. Empty or inconsistent trajectories refuse export.
+The normal CLI/output does not expose private five-minute forcing grids.
+
+Two original captures were assessed using restricted, exact-v2-schema-audited
+journal reads at their original publication clocks. Only indoor shades were
+qualified as closed; no window/skylight/vent/outdoor-shade state was added.
+Both native outputs replay exactly under installed runtime
+`cd77cd16bda18fa2beb60391e5663518650b2aaac0119b7ced09b2726505252e`.
+An independent unchanged-grid re-simulation of the 17:53 capture also equals
+every retained native prediction, not merely the rounded public points.
+
+| Original UTC issue | Capture basename | Origin action-snapshot SHA-256 |
+| --- | --- | --- |
+| 2026-10-03T15:40:07.386987Z | `20261003T154007Z-08a89eacdf72363b.json.gz` | `1ec8bcd04f916298f60114c2b091d5df020a64c759d2a97177e9c697278add14` |
+| 2026-10-03T17:53:37.617985Z | `20261003T175337Z-4e1729cc5ab6ba22.json.gz` | `5d3d15412ae3851c64c793b521add3009005e8079f17edbd626f3911662675c4` |
+
+Holding indoor shades closed leaves the near-one-hour predictions unchanged.
+For the 15:40 issue the six-hour result is unchanged, but the 12/24/48-hour
+differences are **+2.0208/+5.6439/+6.6622°F**. For the 17:53 issue the
+6/12/24/48-hour differences are **+1.2967/+1.2917/+8.9721/+11.0170°F**.
+These are modeled differences, not outcome scores or evidence of useful skill.
+Targets are the nearest native five-minute steps, not the public near-hour
+evaluation grid. Timestamp keys were normalized to UTC before comparisons.
+
+The surprising warming reproduces the already documented **legacy joint-shade
+paradox**, not a replay or clock mismatch. At October 3 23:45Z, the original
+forcing is indoor-open/outdoor-present, radiation 201.75 W/m² and vent closed.
+Its legacy solar terms are `(0, 0, 1300)`; closing the indoor shade changes
+them to `(0, 1300, 0)`. The accepted air gains are approximately
+`solar_outdoor=2.8138e-17` and `solar_indoor_closed=0.00033936`, yielding
+an immediate **+0.44117°F** modeled difference. Indoor closure bypasses the
+assumed outdoor shade in this old three-regime basis. No outdoor shade
+observation was established by the diagnostic.
+
+Consequently **do not deploy this overlay with the legacy accepted model**.
+The [versioned four-regime candidate](2026-09-29-prediction-learning-review.md#september-30-versioned-joint-shade-solar-candidate)
+already addresses the source-model interaction without imposing a false ordering
+between indoor-only and outdoor-only gains. It still requires independently
+qualified action data, chronological household refit, captured origin-time
+inputs and out-of-sample validation. Unknown windows/skylights remain unknown;
+old coefficients and artefacts cannot be relabelled into the new model.
+
+All **255 affected tests and 17 subtests** pass (including the initial 128-test
+focused run), covering observation age,
+confidence/source bounds, independent fractions, full native horizon, exact
+private-grid export, runtime drift, combined-shade monotonicity and legacy
+compatibility. Installed model/training code, artifacts, journal, Items,
+collector and controls were not changed. The source-only v2 reader gate remains
+off outside the bounded read-only qualification process.
+
 ## October 3 authenticated action availability and recovered weather fetch
 
 A restricted, exact-v2-schema-audited **read-only** journal batch checks three

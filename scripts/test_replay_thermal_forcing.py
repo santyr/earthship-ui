@@ -1,5 +1,6 @@
 import importlib.util
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import subprocess
 import sys
@@ -40,6 +41,102 @@ def test_closed_vent_schedule_changes_only_vent_assumptions():
     assert changed['ventOpenAt'] is None
     assert changed['airflowSegments'] == ()
     assert changed['indoorShadeInitial'] == 'closed'
+
+
+def test_forcing_recorder_restores_runtime_and_retains_actual_selected_inputs(monkeypatch):
+    original = replay.pipeline._simulate_schedule
+    initial = {'air_f': 70., 'mass_f': 68.}
+    forcing = [{'at': 'next', 'indoor_shade_closed': 0.}]
+    predictions = [{'at': 'next', 'air_f': 71., 'mass_f': 68.1}]
+    monkeypatch.setattr(replay.pipeline, '_schedule_forcings', lambda *_: forcing)
+    monkeypatch.setattr(replay.pipeline, 'simulate', lambda *_: predictions)
+    def run(**kwargs):
+        assert replay.pipeline._simulate_schedule('model', [], {}, initial) == predictions
+        return {'status': 'fixture'}
+    monkeypatch.setattr(replay.pipeline, 'run_shadow', run)
+    records = []
+    capture = {'current': {}, 'forecast_rows': [], 'decision_at': '2026-09-28T00:00:00+00:00'}
+    assert replay._run(capture, None, records) == {'status': 'fixture'}
+    assert replay.pipeline._simulate_schedule is original
+    assert records == [{'initial': initial, 'forcings': forcing, 'predictions': predictions}]
+    forcing[0]['indoor_shade_closed'] = 1.
+    assert records[0]['forcings'][0]['indoor_shade_closed'] == 0.
+
+
+def test_forcing_recorder_restores_runtime_after_failed_simulation(monkeypatch):
+    original = replay.pipeline._simulate_schedule
+    monkeypatch.setattr(replay.pipeline, '_schedule_forcings', lambda *_: [])
+    def fail(*args): raise ValueError('fixture failure')
+    monkeypatch.setattr(replay.pipeline, 'simulate', fail)
+    monkeypatch.setattr(replay.pipeline, 'run_shadow',
+                        lambda **kwargs: replay.pipeline._simulate_schedule(None, [], {}, {}))
+    capture = {'current': {}, 'forecast_rows': [], 'decision_at': '2026-09-28T00:00:00+00:00'}
+    with pytest.raises(ValueError, match='fixture failure'):
+        replay._run(capture, None, [])
+    assert replay.pipeline._simulate_schedule is original
+
+
+def test_invalid_forcing_observer_refuses_before_capture_read(monkeypatch):
+    monkeypatch.setattr(replay, 'verify_capture', lambda *_: pytest.fail('capture read'))
+    with pytest.raises(ValueError, match='observer'):
+        replay.replay('capture', selected_forcing_observer='unsafe')
+
+
+def observer_fixture(monkeypatch):
+    origin = datetime(2026, 9, 28, 14, 20, 30, 123000, tzinfo=timezone.utc)
+    at = origin.replace(second=0, microsecond=0) + timedelta(minutes=5)
+    selected = {'initial': {'air_f': 70., 'mass_f': 68.},
+                'forcings': [{'at': at, 'indoor_shade_closed': 0.}],
+                'predictions': [{'air_f': 70.1254, 'mass_f': 68.0014}]}
+    issued = {'generatedAt': origin.isoformat(), 'status': 'shadow',
+              'forecast': {'trajectory': [
+                  {'at': at.isoformat(), 'hallwayF': 70.125, 'massF': 68.001}]}}
+    capture = {'schema': 'earthship-thermal-shadow-forcing-capture/v2',
+               'artifact': {}, 'decision_at': origin.isoformat(), 'output': issued,
+               'sha256': {'output': 'c' * 64}}
+    monkeypatch.setattr(replay, 'verify_capture', lambda _: capture)
+    monkeypatch.setattr(replay, '_artifact_from_payload',
+                        lambda _: SimpleNamespace(code_revision='a' * 64))
+    monkeypatch.setattr(replay, '_runtime_manifest_revision', lambda _: 'a' * 64)
+    def run(inputs, artifact, records):
+        records.append(selected)
+        result = deepcopy(issued)
+        result['generatedAt'] = origin.replace(microsecond=0).isoformat()
+        return result
+    monkeypatch.setattr(replay, '_run', run)
+    return origin, selected, issued
+
+
+def test_observer_exports_only_verified_selected_native_grid_and_isolated_copy(monkeypatch):
+    origin, selected, issued = observer_fixture(monkeypatch)
+    exported = []
+    result = replay.replay('capture', selected_forcing_observer=exported.append)
+    assert result['exact_as_issued'] is True
+    assert 'forcings' not in result
+    assert exported == [{'origin': origin, **selected}]
+    exported[0]['forcings'][0]['indoor_shade_closed'] = 1.
+    assert selected['forcings'][0]['indoor_shade_closed'] == 0.
+    assert issued['forecast']['trajectory'][0]['hallwayF'] == 70.125
+
+
+@pytest.mark.parametrize('damage', ['air', 'mass', 'timestamp', 'short_grid', 'empty_trajectory'])
+def test_observer_refuses_unverified_selected_grid_before_export(monkeypatch, damage):
+    _, selected, issued = observer_fixture(monkeypatch)
+    if damage == 'air': selected['predictions'][0]['air_f'] += .01
+    if damage == 'mass': selected['predictions'][0]['mass_f'] += .01
+    if damage == 'timestamp': selected['forcings'][0]['at'] += timedelta(minutes=5)
+    if damage == 'short_grid': selected['predictions'].clear()
+    if damage == 'empty_trajectory': issued['forecast']['trajectory'].clear()
+    with pytest.raises(ValueError):
+        replay.replay('capture', selected_forcing_observer=lambda _: pytest.fail('unverified export'))
+
+
+def test_observer_refuses_changed_runtime_before_export(monkeypatch):
+    observer_fixture(monkeypatch)
+    pins = iter(['a' * 64, 'b' * 64])
+    monkeypatch.setattr(replay, '_runtime_manifest_revision', lambda _: next(pins))
+    with pytest.raises(ValueError, match='runtime source changed'):
+        replay.replay('capture', selected_forcing_observer=lambda _: pytest.fail('drifted export'))
 
 
 def test_horizon_deltas_keep_exact_target_and_sign():

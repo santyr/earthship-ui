@@ -4,6 +4,7 @@ This is an epistemic snapshot, not proof that planned actions occurred and not
 an advisory/actuation authority. A backdated receipt is unavailable until its
 actual database creation time; later corrections cannot rewrite past origins.
 """
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from math import isfinite
 
@@ -14,6 +15,8 @@ MAX_ORIGINS = 96
 MAX_ORIGIN_WINDOW = timedelta(days=14)
 MODES = frozenset(('spring', 'warm', 'fall_charge', 'winter'))
 V2_FETCH_RELEASE_READY = False  # Exact household journal/runtime cutover pending.
+MAX_HELD_SHADE_AGE = timedelta(hours=48)
+MAX_HELD_SHADE_HORIZON = timedelta(hours=72)
 
 
 def _utc(value):
@@ -80,6 +83,76 @@ def select_origin_actions(action_rows, mode_rows, *, origin, vocabulary_version=
     if vocabulary_version == 2:
         result['vocabulary_version'] = 2
     return result
+
+
+def hold_confirmed_shades(forcings, *, snapshot, origin):
+    """Pure scenario: hold recent confirmed shades, never label future actions.
+
+    The caller must supply a qualified origin-time journal snapshot. This does
+    not authenticate arbitrary dictionaries, read a database, choose a schedule,
+    publish advice or command devices. Unsupported/unknown airflow remains an
+    explicitly unresolved baseline assumption, never inferred from windows.
+    This is not approved for live legacy three-regime dynamics: compound shade
+    forcing can increase that model's solar gain. Use the qualified versioned
+    joint-shade model and its own refit for operational forecasts.
+    """
+    from .operational_origin import _validate_actions
+
+    origin = _utc(origin)
+    _validate_actions(snapshot, origin)
+    kinds = ACTION_KINDS if snapshot.get('vocabulary_version', 1) == 1 else ACTION_KINDS_V2
+    mapping = {
+        'indoor_shade': ('indoor_shade_closed', {'open': 0., 'closed': 1.}),
+        'outdoor_shade': ('outdoor_shade_present',
+                          {'absent': 0., 'removed': 0., 'present': 1., 'installed': 1.}),
+    }
+    held, overrides = {}, {}
+    for name, (field, states) in mapping.items():
+        event = snapshot['actions'].get(name)
+        if event is None:
+            continue
+        confidence = event['confidence']
+        if (type(confidence) not in (int, float) or not isfinite(confidence)
+                or not 0 <= confidence <= 1):
+            raise ValueError('invalid shade confidence')
+        if (event['source'] not in {'nostr_confirmed', 'manual_dm'} or confidence == 0
+                or origin-_utc(event['effective_at']) > MAX_HELD_SHADE_AGE):
+            continue
+        if event['state'] not in states or not isinstance(event['event_id'], str) or not event['event_id']:
+            raise ValueError('invalid confirmed shade state or identity')
+        held[name] = deepcopy(event)
+        overrides[field] = states[event['state']]
+    if not held:
+        raise ValueError('no recent confirmed shade state for held scenario')
+    if not isinstance(forcings, (list, tuple)) or not 1 <= len(forcings) <= 864:
+        raise ValueError('bounded nonempty forcing grid required')
+    fields = {'at', 'outdoor_f', 'radiation_wm2', 'vent_open',
+              'indoor_shade_closed', 'outdoor_shade_present'}
+    result, previous = [], None
+    for row in forcings:
+        if not isinstance(row, dict) or set(row) != fields:
+            raise ValueError('closed held-shade forcing contract required')
+        at = _utc(row['at'])
+        if (not origin < at <= origin+MAX_HELD_SHADE_HORIZON
+                or previous is None and at-origin > timedelta(minutes=5)
+                or previous is not None and at-previous != timedelta(minutes=5)):
+            raise ValueError('complete future five-minute forcing grid required')
+        if any(type(row[key]) not in (int, float) or not isfinite(row[key])
+               for key in fields-{'at'}):
+            raise ValueError('finite forcing values required')
+        if (not -40 <= row['outdoor_f'] <= 140 or not 0 <= row['radiation_wm2'] <= 1600
+                or not 0 <= row['vent_open'] <= 2
+                or any(not 0 <= row[field] <= 1 for field, _ in mapping.values())):
+            raise ValueError('forcing values outside qualified bounds')
+        result.append({**row, **overrides})
+        previous = at
+    return {'schema': 'earthship-held-shade-forcing/v1', 'origin': origin,
+            'forcings': result, 'held_actions': held,
+            'unresolved_forcing_actions': sorted(set(kinds)-set(held)),
+            'interpretation': 'held_last_confirmed_shade_state_not_future_observation',
+            'maximum_observation_age_hours': 48,
+            'maximum_scenario_horizon_hours': 72,
+            'future_action_evidence': False, 'actuation_authority': False}
 
 
 def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1,

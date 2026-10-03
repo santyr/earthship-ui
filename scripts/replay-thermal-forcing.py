@@ -40,14 +40,26 @@ import thermal_model.pipeline as pipeline  # noqa: E402
 HORIZONS = (1, 6, 12, 24, 48)
 
 
-def _run(capture, artifact):
+def _run(capture, artifact, forcing_records=None):
     registry = SimpleNamespace(load_accepted=lambda: artifact, last_load_source=None)
-    return pipeline.run_shadow(
-        registry=registry,
-        current=capture['current'],
-        forecast=capture['forecast_rows'],
-        now=datetime.fromisoformat(capture['decision_at']),
-    )
+    original = pipeline._simulate_schedule
+    if forcing_records is not None:
+        def record(dynamics, rows, schedule, initial):
+            forcings = pipeline._schedule_forcings(rows, schedule)
+            predictions = pipeline.simulate(dynamics, initial, forcings)
+            forcing_records.append(deepcopy({'initial': initial, 'forcings': forcings,
+                                            'predictions': predictions}))
+            return predictions
+        pipeline._simulate_schedule = record
+    try:
+        return pipeline.run_shadow(
+            registry=registry,
+            current=capture['current'],
+            forecast=capture['forecast_rows'],
+            now=datetime.fromisoformat(capture['decision_at']),
+        )
+    finally:
+        pipeline._simulate_schedule = original
 
 
 def _closed_vent_schedule(model, rows, original):
@@ -117,7 +129,9 @@ def _schedule_changed(issued, hypothetical):
 
 
 def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
-           solar_scale=None, outdoor_offset_f=None):
+           solar_scale=None, outdoor_offset_f=None, selected_forcing_observer=None):
+    if selected_forcing_observer is not None and not callable(selected_forcing_observer):
+        raise ValueError('selected forcing observer must be callable')
     if solar_scale is not None and (
             type(solar_scale) not in (int, float) or not math.isfinite(solar_scale)
             or not 0 <= solar_scale <= 2):
@@ -144,7 +158,8 @@ def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
     elif revision != expected_runtime_revision:
         raise ValueError('selected runtime does not match explicit revision pin')
     issued = capture['output']
-    replayed = _run(capture, artifact)
+    records = [] if selected_forcing_observer is not None else None
+    replayed = _run(capture, artifact) if records is None else _run(capture, artifact, records)
     decision = datetime.fromisoformat(capture['decision_at']).astimezone(timezone.utc)
     # The pure simulator emits whole seconds. The publication path preserves
     # the full input-bound decision timestamp; only that representation differs.
@@ -208,6 +223,28 @@ def replay(path, *, assume_vents_closed=False, expected_runtime_revision=None,
         }
     if _runtime_manifest_revision(RUNTIME_ROOT) != revision:
         raise ValueError('runtime source changed during replay')
+    if selected_forcing_observer is not None:
+        if not records:
+            raise ValueError('exact selected forcing was not retained')
+        selected = records[-1]
+        forcings, predictions = selected['forcings'], selected['predictions']
+        if not forcings or len(forcings) != len(predictions):
+            raise ValueError('selected forcing/prediction grid is incomplete')
+        trajectory = issued['forecast']['trajectory']
+        if not trajectory:
+            raise ValueError('published trajectory is empty')
+        states = {row['at'].astimezone(timezone.utc): state
+                  for row, state in zip(forcings, predictions)}
+        states[forcings[0]['at'].astimezone(timezone.utc)-timedelta(minutes=5)] = selected['initial']
+        for point in trajectory:
+            state = states.get(datetime.fromisoformat(point['at']).astimezone(timezone.utc))
+            if (state is None or round(float(state['air_f']), 3) != point['hallwayF']
+                    or round(float(state['mass_f']), 3) != point['massF']):
+                raise ValueError('selected forcing does not reproduce published trajectory')
+        # The last native _simulate_schedule call produces the selected output,
+        # not a speculative search candidate. Export only after exact output
+        # equality and final runtime-pin checks; never print private grids.
+        selected_forcing_observer(deepcopy({'origin': decision, **selected}))
     return result
 
 

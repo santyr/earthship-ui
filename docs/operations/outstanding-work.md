@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 held-shade native-forcing qualification
+
+The source-only recent-confirmed-shade overlay and private native-forcing
+observer now pass 255 affected tests/17 subtests. Two original captures replay
+exactly with qualified origin-clock indoor-shade state; unchanged native
+re-simulation also matches. Early predictions are unchanged, but longer held
+scenarios reproduce the known legacy joint-shade heating paradox. This is not
+an observed improvement and must not be deployed against the accepted legacy
+model. The existing versioned four-regime/split-airflow candidate needs its
+own qualified household refit and original-input-captured validation. Unknown
+window/skylight/vent/outdoor-shade states remain unknown; no label, model,
+collector, Item or control changed. See
+[exact diagnostic and remaining release prerequisite](2026-09-30-forecast-input-capture.md#october-3-native-held-shade-forcing-diagnostic).
+
 ## October 3 action-consumption gap and shadow fetch recovery
 
 The authenticated shade closure is unavailable at today's training/07:39

@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 from thermal_model.action_history import (fetch_origin_actions,
                                          fetch_origin_actions_batch,
+                                         hold_confirmed_shades,
                                          select_origin_actions)
 
 ORIGIN = datetime(2026, 9, 23, 15, 0, tzinfo=timezone.utc)
@@ -159,6 +160,93 @@ class ActionHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'not release-qualified'):
             fetch_origin_actions_batch(lambda: self.fail('connection opened'),
                                        origins=[ORIGIN], vocabulary_version=2)
+
+    def test_confirmed_closed_shade_overrides_protocol_but_not_separate_airflow(self):
+        shade = row('shade', name='indoor_shade', state='closed', source='nostr_confirmed')
+        window = row('window', name='window', state='open', source='nostr_confirmed')
+        snapshot = select_origin_actions([shade, window], [], origin=ORIGIN, vocabulary_version=2)
+        forcing = [{'at': ORIGIN+timedelta(minutes=5), 'outdoor_f': 60.,
+                    'radiation_wm2': 400., 'vent_open': 0.,
+                    'indoor_shade_closed': 0., 'outdoor_shade_present': 0.}]
+        result = hold_confirmed_shades(forcing, snapshot=snapshot, origin=ORIGIN)
+        self.assertEqual(result['forcings'][0]['indoor_shade_closed'], 1.)
+        self.assertEqual(result['forcings'][0]['vent_open'], 0.)
+        self.assertEqual(forcing[0]['indoor_shade_closed'], 0.)
+        self.assertEqual(result['held_actions']['indoor_shade']['event_id'], 'shade')
+        self.assertIn('window', result['unresolved_forcing_actions'])
+        self.assertFalse(result['future_action_evidence'])
+        self.assertFalse(result['actuation_authority'])
+
+    def test_unknown_or_expired_shades_do_not_become_held_observations(self):
+        forcing = [{'at': ORIGIN+timedelta(minutes=5), 'outdoor_f': 60.,
+                    'radiation_wm2': 400., 'vent_open': 0.,
+                    'indoor_shade_closed': 0., 'outdoor_shade_present': 0.}]
+        for event in [None,
+                      row('old', name='indoor_shade', state='closed',
+                          effective=ORIGIN-timedelta(days=3)),
+                      row('inferred', name='indoor_shade', state='closed', source='model_inferred')]:
+            snapshot = select_origin_actions([event] if event else [], [], origin=ORIGIN)
+            with self.assertRaisesRegex(ValueError, 'recent confirmed shade'):
+                hold_confirmed_shades(forcing, snapshot=snapshot, origin=ORIGIN)
+
+    def test_held_shade_refuses_future_receipt_and_malformed_forcing(self):
+        event = row('shade', name='indoor_shade', state='closed', source='nostr_confirmed')
+        snapshot = select_origin_actions([event], [], origin=ORIGIN)
+        base = {'at': ORIGIN+timedelta(minutes=5), 'outdoor_f': 60.,
+                'radiation_wm2': 400., 'vent_open': 0.,
+                'indoor_shade_closed': 0., 'outdoor_shade_present': 0.}
+        for rows in [[], [base, base], [{**base, 'at': ORIGIN}],
+                     [{**base, 'radiation_wm2': float('nan')}],
+                     [{**base, 'indoor_shade_closed': True}], [{**base, 'unexpected': 1}]]:
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                hold_confirmed_shades(rows, snapshot=snapshot, origin=ORIGIN)
+        snapshot['actions']['indoor_shade']['created_at'] = ORIGIN+timedelta(seconds=1)
+        with self.assertRaises(ValueError):
+            hold_confirmed_shades([base], snapshot=snapshot, origin=ORIGIN)
+
+    def test_held_shades_preserve_full_native_horizon_and_independent_fraction(self):
+        event = row('shade', name='indoor_shade', state='closed', source='nostr_confirmed')
+        snapshot = select_origin_actions([event], [], origin=ORIGIN)
+        rows = [{'at': ORIGIN+timedelta(minutes=5*(i+1)), 'outdoor_f': 60.,
+                 'radiation_wm2': 400., 'vent_open': 1.5,
+                 'indoor_shade_closed': .25, 'outdoor_shade_present': .75} for i in range(864)]
+        result = hold_confirmed_shades(rows, snapshot=snapshot, origin=ORIGIN)
+        self.assertEqual(len(result['forcings']), 864)
+        self.assertEqual(result['maximum_scenario_horizon_hours'], 72)
+        self.assertTrue(all(r['indoor_shade_closed'] == 1. and r['outdoor_shade_present'] == .75
+                            and r['vent_open'] == 1.5 for r in result['forcings']))
+        with self.assertRaises(ValueError):
+            hold_confirmed_shades(rows+[{**rows[-1], 'at': ORIGIN+timedelta(hours=72, minutes=5)}],
+                                  snapshot=snapshot, origin=ORIGIN)
+
+    def test_held_outdoor_shade_and_confidence_boundaries(self):
+        base = {'at': ORIGIN+timedelta(minutes=5), 'outdoor_f': 60.,
+                'radiation_wm2': 400., 'vent_open': 0.,
+                'indoor_shade_closed': .25, 'outdoor_shade_present': .75}
+        for state, expected in [('absent', 0.), ('removed', 0.), ('present', 1.), ('installed', 1.)]:
+            snapshot = select_origin_actions([row('outdoor', state=state)], [], origin=ORIGIN)
+            result = hold_confirmed_shades([base], snapshot=snapshot, origin=ORIGIN)
+            self.assertEqual(result['forcings'][0]['outdoor_shade_present'], expected)
+            self.assertEqual(result['forcings'][0]['indoor_shade_closed'], .25)
+        for confidence in (True, -1., 1.1, float('nan'), float('inf'), 0.):
+            snapshot = select_origin_actions([row('outdoor')], [], origin=ORIGIN)
+            snapshot['actions']['outdoor_shade']['confidence'] = confidence
+            with self.subTest(confidence=confidence), self.assertRaises(ValueError):
+                hold_confirmed_shades([base], snapshot=snapshot, origin=ORIGIN)
+
+    def test_held_shade_expiry_uses_effective_time_not_recent_receipt(self):
+        base = {'at': ORIGIN+timedelta(minutes=5), 'outdoor_f': 60.,
+                'radiation_wm2': 400., 'vent_open': 0.,
+                'indoor_shade_closed': 0., 'outdoor_shade_present': 0.}
+        event = row('shade', name='indoor_shade', state='closed', source='nostr_confirmed',
+                    effective=ORIGIN-timedelta(hours=48))
+        snapshot = select_origin_actions([event], [], origin=ORIGIN)
+        self.assertEqual(hold_confirmed_shades([base], snapshot=snapshot, origin=ORIGIN)
+                         ['forcings'][0]['indoor_shade_closed'], 1.)
+        event['effective_at'] -= timedelta(microseconds=1)
+        snapshot = select_origin_actions([event], [], origin=ORIGIN)
+        with self.assertRaisesRegex(ValueError, 'recent confirmed shade'):
+            hold_confirmed_shades([base], snapshot=snapshot, origin=ORIGIN)
 
 
 if __name__ == '__main__':
