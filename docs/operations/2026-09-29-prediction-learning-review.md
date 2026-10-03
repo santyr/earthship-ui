@@ -5,6 +5,29 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 3 shared charge qualification across benchmark modes
+
+The combined overnight benchmark still used the weather clock for its optional
+charge profile even after `--charge-only` gained atomic-input qualification.
+Both modes now share exact public/private/native SoC verification, use the
+actual assessment clock, and bind only the charge window (including its
+120-second input lookback). Later overnight rows cannot change that target's
+digest. Missing original charge input withholds only that optional profile;
+independently qualified trough/pre-dusk comparisons are retained.
+
+The restricted read-only comparison at `2026-10-03T10:44:43.735470Z` proves
+identical charge targets across both modes: September 30 digest
+`a8f3cde709c5d61d1c7991fd9c2dd27a18679c987ef776fc30212adef4a350b6`
+and October 1 digest
+`0e4fa03a3444b70d22888aba8cf97870fb74b56acb614c35a6c6a2dad7dc1afe`.
+Both remain no-full outcomes; five earlier optional charge profiles are
+withheld, not relabeled as paired training examples. Historical digests below
+retain their original, differently bounded evidence scope. All 152 affected
+tests pass, including both CLI modes, missing-source refusal, preserved trough
+scores and extra overnight observations. The learned-state SHA remains
+`26987242320a094645ea8c06e223e3d7405aea5a9558aada842777e28d94c23f`.
+No live worker, prediction, model, timer, label or household control changed.
+
 ## October 3 independent completed-charge assessment
 
 The benchmark now supports `--charge-only`, independent of the next day's

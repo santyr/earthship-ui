@@ -190,6 +190,24 @@ def verify_charge_input(record, receipt, rows):
     return assessed
 
 
+def qualified_charge_profile(record, receipt, *, day, boundary, now, rows,
+                             epoch_start, epoch_end):
+    """Bind either benchmark mode to the same original atomic SoC input."""
+    assessed = verify_charge_input(record, receipt, rows)
+    # Overnight mode reads a longer window. Bind only this charge target's
+    # input/observation horizon so unrelated later rows cannot change its digest.
+    charge_rows = [(at, raw) for at, raw in rows
+                   if assessed-timedelta(seconds=120) <= at <= boundary[1]]
+    profile = charge_profile(day=day, origin=assessed, sunset=boundary[1],
+        sunset_persisted_at=boundary[0], as_of=now, observations=charge_rows,
+        epoch_start=epoch_start, epoch_end=epoch_end)
+    if profile is None or profile['soc_at_origin_pct'] != record['soc_reference_pct']:
+        raise ValueError('qualified charge outcome unavailable')
+    return {**profile, 'weather_origin': record['temperature_issued_at'],
+        'soc_assessed_at': assessed.isoformat(),
+        'soc_input_digest': record['soc_origin']['evidenceSha256']}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--start-day', type=date.fromisoformat, required=True)
@@ -286,12 +304,9 @@ def main():
                         rows = fetch_freshness_observations(db,tables['BMS_SOC_Evidence_JSON'],
                             assessed-timedelta(seconds=120),boundary[1]+timedelta(microseconds=1),
                             row_limit=10001)
-                        verify_charge_input(record,receipt,rows)
-                        charge = charge_profile(day=day,origin=assessed,sunset=boundary[1],
-                            sunset_persisted_at=boundary[0],as_of=now,observations=rows,
+                        charge = qualified_charge_profile(record,receipt,day=day,
+                            boundary=boundary,now=now,rows=rows,
                             epoch_start=epoch_start,epoch_end=epoch_end)
-                        if charge is None or charge['soc_at_origin_pct'] != record['soc_reference_pct']:
-                            raise ValueError('qualified charge outcome unavailable')
                     except (KeyError,TypeError,ValueError):
                         counts['charge_origin_or_outcome_unavailable'] += 1; continue
                     result.append({'day':day.isoformat(),'weather_origin':origin.isoformat(),
@@ -344,9 +359,13 @@ def main():
                     counts['target_unqualified'] += 1; continue
                 target_profile = measure(day=day, sunset=boundary[1], sunset_persisted_at=boundary[0],
                     as_of=now, observations=rows, epoch_start=epoch_start, epoch_end=epoch_end)
-                charge = charge_profile(day=day, origin=origin, sunset=boundary[1],
-                    sunset_persisted_at=boundary[0], as_of=now, observations=rows,
-                    epoch_start=epoch_start, epoch_end=epoch_end)
+                try:
+                    charge = qualified_charge_profile(record,matched[0],day=day,
+                        boundary=boundary,now=now,rows=rows,
+                        epoch_start=epoch_start,epoch_end=epoch_end)
+                except (KeyError,TypeError,ValueError):
+                    counts['charge_origin_or_outcome_unavailable'] += 1
+                    charge = None
                 scored = {'day':day.isoformat(), 'origin':origin.isoformat(),
                     'baseline_pct':baseline, 'sunset_drop_counterfactual_pct':candidate,
                     'actual_trough_pct':actual['min_soc_pct'], 'dusk_estimate_pct':record['dusk_soc_estimate_pct'],

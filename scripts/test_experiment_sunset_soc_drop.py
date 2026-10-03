@@ -191,7 +191,10 @@ def test_charge_input_refuses_unqualified_origins_or_source_substitutions(fault)
     with pytest.raises(ValueError):experiment.verify_charge_input(record,receipt,rows)
 
 
-def test_charge_only_cli_assesses_after_sunset_before_trough_without_prior_nights(monkeypatch,tmp_path,capsys):
+@pytest.mark.parametrize('charge_only', [True, False])
+@pytest.mark.parametrize('missing_charge_origin', [False, True])
+def test_cli_charge_outcome_requires_original_atomic_input_in_both_modes(
+        monkeypatch,tmp_path,capsys,charge_only,missing_charge_origin):
     from types import SimpleNamespace
     import forecast_intel
     import psycopg2
@@ -200,19 +203,42 @@ def test_charge_only_cli_assesses_after_sunset_before_trough_without_prior_night
     sunset=assessed+timedelta(hours=12)
     now=sunset+timedelta(minutes=1)
     assert not experiment.trough_window(date(2026,10,2),'America/Denver').is_complete(now)
+    if not charge_only:
+        now=assessed+timedelta(hours=30)
+        record.update(overnight_drop_sample_days=['2026-10-01','2026-09-30','2026-09-29'],
+                      overnight_drop_samples_pct=[20,20,20],dusk_soc_estimate_pct=99)
+        monkeypatch.setattr(experiment,'counterfactual',lambda *a:(80,84))
+        def measured(**kwargs):
+            return dict(trough_soc_pct=79,drop_pct=20,sunset_soc_pct=79,coverage=1,
+                        evidence_digest='a'*64)
+        monkeypatch.setattr(experiment,'measure',measured)
+        from earthship_energy import trough_assessment
+        monkeypatch.setattr(trough_assessment,'assess_trough_measurement',lambda **k:
+            dict(status='measured',min_soc_pct=70,evidence_digest='b'*64))
+        monkeypatch.setattr(experiment,'sunset_at',lambda rows,day,origin:
+            (assessed-timedelta(days=4),sunset-timedelta(days=(date(2026,10,2)-day).days)))
     record['trough']=80
     receipt.update(version=1,predictionDay='2026-10-02',overnightTroughSocPct=80)
+    if missing_charge_origin:
+        receipt.pop('energySocOrigin')
     for second in range(30,12*3600+1,30):
         at=assessed+timedelta(seconds=second)
         value=json.loads(rows[0][1]); stamp=int(at.timestamp()*1000)
         for key in ('recordedAt','observedAt','scaleObservedAt'):value[key]=stamp
         value['validUntil']=stamp+120000
         rows.append((at,json.dumps(value)))
+    if not charge_only:
+        # Later overnight observations must not alter the charge-target digest.
+        later=sunset+timedelta(seconds=30)
+        value=json.loads(rows[-1][1]);stamp=int(later.timestamp()*1000)
+        for key in ('recordedAt','observedAt','scaleObservedAt'):value[key]=stamp
+        value.update(validUntil=stamp+120000,soc=78)
+        rows.append((later,json.dumps(value)))
     path=tmp_path/'state.json';path.write_text(json.dumps({'predictions':{'2026-10-02':record}}))
     monkeypatch.setattr(forecast_intel,'STATE_FILE',str(path))
     before=path.read_bytes()
     monkeypatch.setattr(experiment.sys,'argv',['benchmark','--start-day','2026-10-02',
-        '--end-day','2026-10-03','--charge-only'])
+        '--end-day','2026-10-03']+(['--charge-only'] if charge_only else []))
     class Clock(datetime):
         @classmethod
         def now(cls,tz=None):return now
@@ -242,10 +268,25 @@ def test_charge_only_cli_assesses_after_sunset_before_trough_without_prior_night
     monkeypatch.setattr(psycopg2,'connect',lambda *a,**k:Database())
     experiment.main()
     result=json.loads(capsys.readouterr().out)
-    assert result['assessment_mode']=='charge_only'
-    assert result['counts']['qualified_charge_days']==1
-    assert result['rows'][0]['charge_profile']['status']=='no_full_report'
-    assert result['rows'][0]['soc_assessed_at']==assessed.isoformat()
+    assert result['assessment_mode']==('charge_only' if charge_only else 'overnight_counterfactual')
+    if missing_charge_origin:
+        assert result['counts']['charge_origin_or_outcome_unavailable']==1
+        if charge_only:
+            assert not result['rows']
+        else:
+            assert result['rows'][0]['charge_profile'] is None
+            assert result['rows'][0]['actual_trough_pct']==70
+    else:
+        assert result['rows'][0]['charge_profile']['status']=='no_full_report'
+        profile=result['rows'][0]['charge_profile']
+        assert profile['soc_assessed_at']==assessed.isoformat()
+        assert profile['weather_origin']==record['temperature_issued_at']
+        assert profile['soc_input_digest']==record['soc_origin']['evidenceSha256']
+        assert profile['evidence_digest']==experiment.charge_profile(day=date(2026,10,2),
+            origin=assessed,sunset=sunset,sunset_persisted_at=(
+                assessed-timedelta(hours=6) if charge_only else assessed-timedelta(days=4)),
+            as_of=now,observations=[row for row in rows if row[0]<=sunset],
+            epoch_start=datetime(2026,7,19,6,tzinfo=timezone.utc))['evidence_digest']
     assert result['production_changed'] is False and path.read_bytes()==before
     assert not any(word in sql.upper().split() for sql,_ in calls
                    for word in ('INSERT','UPDATE','DELETE','DROP'))
