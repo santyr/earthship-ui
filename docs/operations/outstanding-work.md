@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 late-evening all-Moon history baseline
+
+The next file-first Moon candidate now verifies all 28 original JDBC identities
+and ordered prefixes, not only its selected displayed readings. Two actual
+server-confirmed read-only/repeatable snapshots match 1,089,408 rows and
+53,941,693 streamed bytes, with unchanged full Thing/Item/link/semantic
+definitions. All 94 affected tests pass; temporary test files/bytecode are
+removed. Production remains managed at OpenHAB PID 1696; no file, worker,
+control, synthetic state or SQL write occurred. This closes original-baseline
+coverage, not cutover history recovery. The descriptor decision and qualified
+file/restart/attended handoff remain open. See
+[complete baseline and remaining scope](2026-10-02-astro-moon-thing-candidate.md#october-3-0514z-all-28-original-live-history-baselines-verified).
+
 ## October 2 late-evening independent-window tuning result
 
 New qualified targets now provide two selected non-overlapping six-hour windows

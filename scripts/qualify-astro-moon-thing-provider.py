@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Networkless Astro Moon Thing provider/restart/rollback qualification.
 
-Production access is GET-only. A clean isolated runtime contains only Moon
+Production REST access is GET-only. A clean isolated runtime contains only Moon
 definitions, cached Astro/MAP bundles and an isolated API identity. No host
 mounts, network, household rules, database, synthetic states or Item commands.
+--check-history instead checks every original production JDBC prefix using two
+read-only snapshots; it allocates no fixture and does not qualify a cutover.
 """
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -46,6 +48,20 @@ REGIONAL = {'language': 'en', 'region': 'US', 'timezone': 'America/Denver',
             'measurementSystem': 'US'}
 ITEM_FIELDS = ('name', 'type', 'label', 'category', 'tags', 'groupNames', 'metadata',
                'unitSymbol', 'stateDescription', 'editable')
+HISTORY_IDS = {
+    'MoonPhaseicon': 60, 'Moon_Apogee_Date': 67, 'Moon_Apogee_Distance': 68,
+    'Moon_Azimuth': 44, 'Moon_Distance_Date': 42, 'Moon_Distance_Distance': 43,
+    'Moon_Eclipse_PartialElevation': 64, 'Moon_Eclipse_TotalElevation': 62,
+    'Moon_FirstQuarter': 54, 'Moon_FullMoon': 56, 'Moon_MoonIllumination': 41,
+    'Moon_MoonPhaseName': 59, 'Moon_NewMoon': 57, 'Moon_PartialMoonEclipse': 63,
+    'Moon_Perigee_Date': 65, 'Moon_Perigee_Distance': 66, 'Moon_Phase_Age': 58,
+    'Moon_Phase_AgeDegree': 39, 'Moon_Phase_AgePercent': 40,
+    'Moon_Position_Elevation': 45, 'Moon_Rise_End': 51, 'Moon_Rise_Start': 52,
+    'Moon_Set_End': 50, 'Moon_Set_Start': 53, 'Moon_ShadeLengthRatio': 69,
+    'Moon_Sign': 70, 'Moon_ThirdQuarter': 55, 'Moon_TotalMoonEclipse': 61,
+}
+MAX_TABLE_HISTORY_BYTES = 32 * 1024**2
+MAX_TOTAL_HISTORY_BYTES = 128 * 1024**2
 
 
 def require(ok, reason):
@@ -202,6 +218,121 @@ def preflight():
     dependent_definitions(items)
     require(sha256(ASTRO.read_bytes()).hexdigest() == ASTRO_SHA, 'Astro binding drift')
     return thing, links, items
+
+
+def aware_time(value):
+    return isinstance(value, datetime) and value.utcoffset() is not None
+
+
+class HistoryDigest:
+    """Stream original COPY bytes; do not retain or print observation values."""
+    def __init__(self, remaining=None):
+        self.digest = sha256()
+        self.size = 0
+        self.remaining = MAX_TOTAL_HISTORY_BYTES if remaining is None else remaining
+
+    def write(self, value):
+        body = value.encode() if isinstance(value, str) else value
+        self.size += len(body)
+        require(self.size <= MAX_TABLE_HISTORY_BYTES, 'Moon history table bound exceeded')
+        require(self.size <= self.remaining, 'Moon total history bound exceeded')
+        self.digest.update(body)
+
+
+def history_prefixes(db, *, before=None):
+    """Pinned identities and ordered duplicate-preserving original prefixes.
+
+    The second transaction fixes each original maximum, excluding genuine later
+    appends. No renamed/remapped/aliased Item can acquire a different table, and
+    absent history is explicitly refused rather than called recovered history.
+    """
+    if before is not None:
+        require(set(before) == set(HISTORY_IDS)
+                and all(row.get('id') == HISTORY_IDS[name]
+                        and aware_time(row.get('cutoff')) for name, row in before.items()),
+                'Moon original prefix identity or cutoff invalid')
+    db.set_session(readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
+    result, total = {}, 0
+    with db:
+        with db.cursor() as cursor:
+            cursor.execute('SHOW transaction_read_only')
+            require(cursor.fetchone() == ('on',), 'Moon history transaction is not read-only')
+            cursor.execute('SHOW transaction_isolation')
+            require(cursor.fetchone() == ('repeatable read',),
+                    'Moon history transaction is not a consistent snapshot')
+            cursor.execute("SET LOCAL statement_timeout='20s'")
+            cursor.execute("SET LOCAL lock_timeout='3s'")
+            cursor.execute("SET LOCAL TIME ZONE 'UTC'")
+            cursor.execute("SET LOCAL DateStyle='ISO, YMD'")
+            cursor.execute('SELECT itemname,itemid FROM public.items '
+                           'WHERE itemname=ANY(%s) OR itemid=ANY(%s) ORDER BY itemname',
+                           (sorted(HISTORY_IDS), sorted(HISTORY_IDS.values())))
+            # Database collation may order underscores/case differently from
+            # Python; identity multiplicity is exact, but row order is not one.
+            require(sorted(cursor.fetchall()) == sorted(HISTORY_IDS.items()),
+                    'Moon JDBC identity missing, remapped, duplicated or aliased')
+            for name, identity in sorted(HISTORY_IDS.items()):
+                # Only hard-coded integer identities reach this SQL identifier.
+                require(type(identity) is int and 0 < identity < 10000,
+                        'Moon JDBC identity outside pinned scope')
+                table = f'public.item{identity:04d}'
+                where = '' if before is None else ' WHERE time<=%s'
+                args = () if before is None else (before[name]['cutoff'],)
+                cursor.execute('SELECT count(*),min(time),max(time) FROM ' + table + where, args)
+                count, first, maximum = cursor.fetchone()
+                require(type(count) is int and count > 0 and aware_time(first)
+                        and aware_time(maximum) and first <= maximum,
+                        'Moon original history empty or timestamp contract invalid')
+                if before is not None:
+                    require(maximum <= before[name]['cutoff'], 'Moon original prefix cutoff expanded')
+                command = cursor.mogrify('COPY (SELECT time,value FROM ' + table
+                                         + ' WHERE time<=%s ORDER BY time,value) TO STDOUT WITH CSV',
+                                         (maximum,)).decode()
+                writer = HistoryDigest(MAX_TOTAL_HISTORY_BYTES - total)
+                cursor.copy_expert(command, writer)
+                total += writer.size
+                require(total <= MAX_TOTAL_HISTORY_BYTES, 'Moon total history bound exceeded')
+                result[name] = {'id': identity, 'count': count, 'first': first,
+                                'cutoff': maximum, 'sha256': writer.digest.hexdigest(),
+                                'bytes': writer.size}
+    return result
+
+
+def check_history():
+    original, links, items = preflight()
+    require({row['itemName'] for row in links} == set(HISTORY_IDS),
+            'Moon history linked scope changed')
+    transport = load('moon_history_transport', 'migrate-astro-icon-items.py')
+    settings = transport.parse_openhab_jdbc_config('/var/lib/openhab/config/org/openhab/jdbc.config')
+    db = transport.psycopg2.connect(**settings.connect_kwargs, connect_timeout=5)
+    try:
+        before = history_prefixes(db)
+        require(history_prefixes(db, before=before) == before, 'Moon original history prefix changed')
+    finally:
+        db.close()
+    after, after_links, after_items = preflight()
+    require(definition(original) == definition(after) and original['editable'] == after['editable']
+            and sorted(links, key=lambda row: row['itemName'])
+            == sorted(after_links, key=lambda row: row['itemName'])
+            and dependent_definitions(items) == dependent_definitions(after_items),
+            'Moon original definition, link or dependent changed during history audit')
+    canonical = json.dumps(before, sort_keys=True, default=str, separators=(',', ':')).encode()
+    print(json.dumps({'status': 'original_history_baseline_verified',
+                      'assessed_at': datetime.now(timezone.utc).isoformat(),
+                      'items': len(before), 'rows': sum(row['count'] for row in before.values()),
+                      'bytes': sum(row['bytes'] for row in before.values()),
+                      'prefixes_sha256': sha256(canonical).hexdigest(), 'prefixes': before,
+                      'production_writes': 0, 'production_history_recovery': 'not_tested',
+                      'provider_handoff': 'not_tested'}, sort_keys=True, default=str))
+
+
+def command(args):
+    require(args in ([], ['--check-history']),
+            'no arbitrary target or production apply interface')
+    if args:
+        check_history()
+    else:
+        main()
 
 
 def main():
@@ -425,8 +556,7 @@ def main():
 
 if __name__ == '__main__':
     try:
-        require(not sys.argv[1:], 'no arbitrary target or production apply interface')
-        main()
+        command(sys.argv[1:])
     except (Exception, KeyboardInterrupt) as error:
         # Report code location only, never exception text, locals or subprocess
         # output: API authorization and private production reads remain opaque.

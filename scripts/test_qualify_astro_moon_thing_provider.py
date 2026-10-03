@@ -210,3 +210,181 @@ def test_channel_fragment_is_encoded_in_isolated_link_path():
 ])
 def test_link_url_scope_refuses_unrelated_target(link):
     with pytest.raises(RuntimeError, match='scope'): m.link_path(link)
+
+
+class HistoryDB:
+    def __init__(self):
+        self.calls = []
+        self.mapping = sorted(m.HISTORY_IDS.items())
+        self.stats = (2, AFTER, NOW)
+        self.body = b'original first row\noriginal second row\n'
+        self.closed = False
+        self.transaction_read_only = 'on'
+        self.transaction_isolation = 'repeatable read'
+
+    def set_session(self, **kwargs): self.calls.append(('session', kwargs))
+    def __enter__(self): return self
+    def __exit__(self, *_): return False
+    def cursor(self): return self
+    def execute(self, query, args=()):
+        self.query = query
+        self.calls.append(('execute', query, args))
+    def fetchall(self): return self.mapping
+    def fetchone(self):
+        if self.query == 'SHOW transaction_read_only': return (self.transaction_read_only,)
+        if self.query == 'SHOW transaction_isolation': return (self.transaction_isolation,)
+        return self.stats
+    def mogrify(self, query, args):
+        self.calls.append(('mogrify', query, args))
+        return query.encode()
+    def copy_expert(self, query, writer):
+        self.calls.append(('copy', query))
+        writer.write(self.body)
+    def close(self): self.closed = True
+
+
+def test_history_check_pins_every_linked_item_and_exact_read_only_snapshot():
+    db = HistoryDB()
+    proof = m.history_prefixes(db)
+    assert len(proof) == 28
+    assert set(proof) == set(m.HISTORY_IDS)
+    assert db.calls[0] == ('session', {'readonly': True, 'autocommit': False,
+                                     'isolation_level': 'REPEATABLE READ'})
+    assert all(row['count'] == 2 and row['cutoff'] == NOW for row in proof.values())
+    assert all(row['sha256'] == m.sha256(db.body).hexdigest() for row in proof.values())
+    assert len([call for call in db.calls if call[0] == 'copy']) == 28
+    assert all('ORDER BY time,value' in call[1] and 'TO STDOUT' in call[1]
+               for call in db.calls if call[0] == 'copy')
+
+
+def test_mapping_database_collation_order_is_not_an_identity_change():
+    db = HistoryDB(); db.mapping.reverse()
+    assert len(m.history_prefixes(db)) == 28
+
+
+@pytest.mark.parametrize('field,value', [('transaction_read_only', 'off'),
+                                      ('transaction_isolation', 'read committed')])
+def test_server_must_confirm_read_only_repeatable_snapshot_before_history(field, value):
+    db = HistoryDB(); setattr(db, field, value)
+    with pytest.raises(RuntimeError, match='transaction'): m.history_prefixes(db)
+    assert not any(call[0] == 'copy' or call[0] == 'execute' and 'public.' in call[1]
+                   for call in db.calls)
+
+
+@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'remapped', 'alias'])
+def test_history_mapping_drift_refuses_before_value_reads(fault):
+    db = HistoryDB()
+    if fault == 'missing': db.mapping.pop()
+    elif fault == 'duplicate': db.mapping.append(db.mapping[0])
+    elif fault == 'remapped': db.mapping[0] = (db.mapping[0][0], 9999)
+    else: db.mapping.append(('NotMoon', db.mapping[0][1]))
+    with pytest.raises(RuntimeError, match='identity'): m.history_prefixes(db)
+    assert not any(call[0] == 'copy' for call in db.calls)
+
+
+@pytest.mark.parametrize('stats', [(0, None, None), (2, AFTER, None),
+                                  (2, NOW, AFTER), (2, AFTER.replace(tzinfo=None), NOW)])
+def test_empty_or_ambiguous_history_does_not_qualify(stats):
+    db = HistoryDB(); db.stats = stats
+    with pytest.raises(RuntimeError, match='history'): m.history_prefixes(db)
+    assert not any(call[0] == 'copy' for call in db.calls)
+
+
+def test_later_append_does_not_expand_original_history_prefix():
+    db = HistoryDB(); before = m.history_prefixes(db)
+    db.calls.clear()
+    assert m.history_prefixes(db, before=before) == before
+    counts = [call for call in db.calls if call[0] == 'execute' and 'count(*)' in call[1]]
+    assert len(counts) == 28
+    assert all('WHERE time<=%s' in call[1] and call[2] == (NOW,) for call in counts)
+    assert all(call[2] == (NOW,) for call in db.calls if call[0] == 'mogrify')
+
+
+@pytest.mark.parametrize('field,value', [('id', 9999), ('cutoff', None)])
+def test_invalid_original_prefix_refuses_before_database_access(field, value):
+    db = HistoryDB(); before = m.history_prefixes(db)
+    before[next(iter(before))][field] = value
+    db.calls.clear()
+    with pytest.raises(RuntimeError, match='prefix'): m.history_prefixes(db, before=before)
+    assert not db.calls
+
+
+@pytest.mark.parametrize('bound', ['table', 'total'])
+def test_history_stream_resource_bound_is_enforced(monkeypatch, bound):
+    db = HistoryDB()
+    monkeypatch.setattr(m, 'MAX_TABLE_HISTORY_BYTES' if bound == 'table'
+                        else 'MAX_TOTAL_HISTORY_BYTES', len(db.body) - 1)
+    with pytest.raises(RuntimeError, match='bound'): m.history_prefixes(db)
+
+
+def test_read_only_history_mode_does_not_allocate_provider_fixture(monkeypatch):
+    calls = []
+    monkeypatch.setattr(m, 'check_history', lambda: calls.append('history'))
+    monkeypatch.setattr(m, 'main', lambda: pytest.fail('fixture allocation'))
+    m.command(['--check-history'])
+    assert calls == ['history']
+
+
+def test_existing_no_argument_provider_interface_remains_unchanged(monkeypatch):
+    calls = []
+    monkeypatch.setattr(m, 'main', lambda: calls.append('fixture'))
+    monkeypatch.setattr(m, 'check_history', lambda: pytest.fail('history mode'))
+    m.command([])
+    assert calls == ['fixture']
+
+
+@pytest.mark.parametrize('args', [['--apply'], ['--check-history', 'other'], ['--target', 'other']])
+def test_history_mode_has_no_arbitrary_target_or_mutator(args):
+    with pytest.raises(RuntimeError, match='interface'): m.command(args)
+
+
+def test_read_only_check_rechecks_prefix_and_definitions_and_closes_database(monkeypatch, capsys):
+    db = HistoryDB()
+    thing = {'UID': m.UID, 'editable': True, 'channels': []}
+    links = [{'itemName': name} for name in m.HISTORY_IDS]
+    items = semantic_fixture()
+    monkeypatch.setattr(m, 'preflight', lambda: (thing, links, items))
+    transport = m.load('test_moon_history_transport', 'migrate-astro-icon-items.py')
+    monkeypatch.setattr(transport.psycopg2, 'connect', lambda **_: db)
+    monkeypatch.setattr(transport, 'parse_openhab_jdbc_config',
+                        lambda _: type('Settings', (), {'connect_kwargs': {}})())
+    monkeypatch.setattr(m, 'load', lambda *_: transport)
+    m.check_history()
+    import json
+    result = json.loads(capsys.readouterr().out)
+    assert result['items'] == 28 and result['rows'] == 56
+    assert result['production_writes'] == 0
+    assert result['production_history_recovery'] == 'not_tested'
+    assert result['provider_handoff'] == 'not_tested'
+    assert db.closed
+    assert len([call for call in db.calls if call[0] == 'session']) == 2
+    assert 'original first row' not in json.dumps(result)
+
+
+@pytest.mark.parametrize('fault', ['history', 'definition'])
+def test_read_only_check_refuses_changed_prefix_or_definition(monkeypatch, fault):
+    db = HistoryDB()
+    thing = {'UID': m.UID, 'editable': True, 'channels': []}
+    links = [{'itemName': name} for name in m.HISTORY_IDS]
+    items = semantic_fixture()
+    calls = []
+    def preflight():
+        calls.append('preflight')
+        row = deepcopy(thing)
+        if fault == 'definition' and len(calls) > 1: row['label'] = 'changed'
+        return row, links, items
+    monkeypatch.setattr(m, 'preflight', preflight)
+    transport = m.load('test_moon_changed_history_transport', 'migrate-astro-icon-items.py')
+    monkeypatch.setattr(transport.psycopg2, 'connect', lambda **_: db)
+    monkeypatch.setattr(transport, 'parse_openhab_jdbc_config',
+                        lambda _: type('Settings', (), {'connect_kwargs': {}})())
+    monkeypatch.setattr(m, 'load', lambda *_: transport)
+    original_copy = db.copy_expert
+    copied = []
+    def copy(query, writer):
+        copied.append(query)
+        if fault == 'history' and len(copied) > 28: db.body = b'changed original row\n'
+        original_copy(query, writer)
+    monkeypatch.setattr(db, 'copy_expert', copy)
+    with pytest.raises(RuntimeError, match='changed'): m.check_history()
+    assert db.closed
