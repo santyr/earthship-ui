@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 bounded shadow retry live
+
+The shadow-only user unit retries a failure after 15 minutes, with at most two
+worker starts per 90-minute native rate window. The original two-hour timer,
+worker, input/capture policies and runtime/artifact pins are unchanged. Five
+actual policy/systemd tests and 84 file-engine tests pass, including persistent
+failure exhaustion and next-timer recovery. Live install/original rollback/
+reinstall and effective readback pass without starting a job or restarting
+OpenHAB. Fixtures and the redundant rolled-back receipt are removed; one
+qualified private recovery point remains. Observe the next natural publication
+and eventual real failed-run retry; do not fabricate a production fault or claim
+model graduation. See
+[exact scope and rollback](2026-10-03-forecast-fetch-recovery-candidate.md#october-3-shadow-only-bounded-retry-deployed).
+
 ## October 3 held-shade native-forcing qualification
 
 The source-only recent-confirmed-shade overlay and private native-forcing

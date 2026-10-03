@@ -1,5 +1,80 @@
 # Bounded morning forecast-fetch recovery — source candidate
 
+## October 3 shadow-only bounded retry deployed
+
+`deploy/thermal-model-shadow.service.d/bounded-retry.conf` is now installed as
+a user-unit drop-in. Only four native systemd settings change:
+`Restart=on-failure`, `RestartSec=15min`, `StartLimitIntervalSec=90min`,
+`StartLimitBurst=2`. The exact `thermal_intel.py shadow --publish` worker,
+180-second timeout, three original capture/qualified-input policies, environment
+and two-hour timer remain unchanged.
+
+Unlike the morning helper, this permits retry of **any failed shadow attempt**,
+not just typed fetch failures. At most two workers execute per rate window,
+including manual starts: normally one scheduled attempt and one delayed retry.
+A further automatic start is denied without executing another worker. The
+unchanged two-hour timer resumes after the rate window expires. Manual resets
+or unit unloading can reset native counters; this is not a durable daily ledger.
+Fresh input, decision-clock, artifact and unavailable-output checks remain in
+force. No training, journal writer, notification or actuator is added. No code,
+runtime manifest, artifact or capture schema changes. A retry is a new genuine
+forecast, not backfill.
+
+All five policy/actual-user-systemd tests and 84 atomic file/rollback tests pass.
+Counter-only fixtures prove no retry after clean success, failure followed by
+successful retry, persistent failure capped at two executions, and recovery on
+the same timer's next cycle without a reset or manual start. Only fixture timing
+is scaled (2-second retry, 10-second rate window, 16-second timer); they have no
+network, credential, OpenHAB, training, DM or household-control callback.
+The first test incorrectly expected `Result=start-limit-hit`; systemd 255
+oneshot preserves `exit-code` on this host. Final checks use terminal state,
+restart requests and actual execution counts. Exact production-duration parsing
+also passes. Fixture units and temporary files are removed.
+
+At **18:49:12Z**, actual atomic `install -> original rollback -> reinstall`
+and effective readback passed without starting any job/timer. An earlier
+verifier safely rolled back because it compared volatile ExecStart run-history
+metadata cleared by daemon-reload; the corrected comparison pins executable,
+argv and error-ignore flag. Original service/timer/input-policy bytes are
+identical. MainPID/NRestarts remain zero, and the timer deadline remains
+**109709716162 monotonic microseconds**. OpenHAB stays active at PID 1696.
+
+Installed SHA-256:
+`26aa046ecdddd7c1a78c9595a9e086db3c1342c21f98f7e57cff7230a01f54fc`.
+Retained private receipt:
+`/home/sat/.local/state/thermal-intel/deploy-receipts/shadow-retry-20261003T184912Z`.
+The redundant rolled-back receipt was removed after final verification. Next:
+natural publication and eventual real failure/retry, not a manufactured outage
+or model graduation.
+
+Restore only when the shadow worker is inactive, has no queued job, and its
+timer is more than two minutes from the next deadline. The fixed receipt engine
+will refuse later unowned edits; do not delete a changed operator policy:
+
+```sh
+cd /home/sat/earthship-ui
+env PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
+import importlib.util
+from pathlib import Path
+import subprocess
+root = Path('/home/sat/earthship-ui')
+spec = importlib.util.spec_from_file_location('files', root/'scripts/thermal-model-files.py')
+files = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(files)
+units = Path('/home/sat/.config/systemd/user')
+manifest = tuple([dict(source='deploy/'+name, target=str(units/name), phase='verify', mode=0o644)
+    for name in ('thermal-model-shadow.service', 'thermal-model-shadow.timer')]
+    + [dict(source='deploy/thermal-model-shadow.service.d/bounded-retry.conf',
+        target=str(units/'thermal-model-shadow.service.d/bounded-retry.conf'), phase='unit', mode=0o644)])
+receipt = Path('/home/sat/.local/state/thermal-intel/deploy-receipts/shadow-retry-20261003T184912Z')
+files.restore(root, receipt, manifest=manifest)
+subprocess.run(['systemctl', '--user', 'daemon-reload'], check=True)
+PY
+systemctl --user show thermal-model-shadow.service -p Restart -p DropInPaths
+```
+
+Expect `Restart=no`, absent `bounded-retry.conf`, original three input policies.
+
 ## October 3 natural morning publication verified
 
 The original scheduled worker ran 06:40:56–06:40:59 MDT and exited zero;

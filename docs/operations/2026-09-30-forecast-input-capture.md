@@ -118,8 +118,10 @@ capture and one new JDBC row at **17:53:39.874Z**. Original-input capture:
 `4e1729cc5ab6ba22560847452957aa1b0ce28522d88dc90187566b96fac5a3b3`.
 It retains artifact `d9163729...` and low confidence. This is successful bounded
 recovery, not a scheduled natural run, autonomous retry qualification or new
-action knowledge in the model. The morning-only recovery timer does not cover
-shadow-job failures.
+action knowledge in the model. At this checkpoint the morning-only retry did
+not cover shadow-job failures. The later separately qualified
+[native shadow retry](2026-10-03-forecast-fetch-recovery-candidate.md#october-3-shadow-only-bounded-retry-deployed)
+now does; it does not retroactively change this recovery into an automatic run.
 
 ## October 3 fixed-clock assessment and second 24-hour outcome
 
