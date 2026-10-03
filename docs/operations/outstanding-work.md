@@ -1,5 +1,38 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 first six-hour comparison and verified refit-input blocker
+
+The artifact-selected, capture-strict audit at **20:06:33.047835Z** qualifies
+today's original **13:39:05.222543Z -> 20:00Z** target. Model error is
+**-1.742 F**, persistence **-12.780 F**, and outdoor forcing **-3.660 F** cold;
+the unchanged 10.414 F-wide interval covers the target. Three later six-hour
+issues are not mature. One window does not qualify seasonal or causal skill.
+
+A stronger comparator adds the median measured change from the same local
+origin/target clocks on the seven preceding days to the captured current air
+temperature. All 14 historical points use native receipts with
+`receivedAt <= storedAt <= target < validUntil`, and their targets are strictly
+before the original issue. Reader assessment is the original issue clock.
+Those seven cycles have no DST transition; this does not qualify a general
+ambiguous/nonexistent-clock implementation. Prediction is **74.120 F**, error
+**-6.300 F**, so today's model beats this comparator too. Evidence digest:
+`20e10f016c273f329f0d612d52342a3d6e47d105a479314b1e5000d52f54577a`.
+No model, coefficient, forecast, action label or control changed.
+
+At **20:20:10.970744Z**, a read-only repeatable snapshot under the configured
+nonowner/nonsuperuser journal role finds **zero window rows and zero skylight
+rows**, enforcing effective/receipt/commit clocks at or before assessment.
+Its 11 visible action rows comprise one authenticated indoor-shade closure,
+eight model-inferred Kiva rows, one reconstructed outdoor-shade row and one
+manual-DM outdoor-shade row. The split-airflow builder does not infer either
+opening from legacy vent assumptions, so a full candidate household fit lacks
+eligible input support and was not started merely to rediscover that gap.
+Signed current-state confirmations have been proposed for operator review,
+separately from completed-action evidence: actual observation clocks, no action
+outcome attribution, shared one-question-per-day limit, and exact DM review
+before any live trial. No question/schema/collector change or backdated label
+was made. Existing hardware, attendance, complete-day and accuracy gates remain.
+
 ## October 3 training-prefix optimization deployed without model changes
 
 Fit-local binary-search prefixes and cumulative provenance histograms remove
