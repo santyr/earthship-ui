@@ -1,5 +1,31 @@
 # Exact morning weather-input archive
 
+## October 3 second settled six-hour outcome
+
+At **22:19:03.064431Z**, the original `d9163729...` prediction issued at
+**15:40:07.386987Z**, targeting **22:00Z**, qualifies after the unchanged
+settlement gate. It is **0.117 F low**, versus persistence **12.240 F low**
+and the seven-qualified-cycle prediction **6.480 F low** (75.200 F forecast).
+Outdoor forcing is 1.740 F cold. The original 10.413 F-wide interval covers
+the target; cycle lags are 1–7 and receipt-evidence digest is
+`1b9a861b237376faa68cdb3742c7dcd31f59b110e14b2ef049346c31a897fafe`.
+
+A bounded audit of just the two mature six-hour issues (13:00–16:00Z source
+window) repeats identically at that cutoff, canonical report SHA
+`2a83d1fe941f032c66100bbc2af63ac760705f9366d29d47936ce9464c96c496`.
+It verifies two captures, two indoor/outdoor outcome targets, and 28 historical
+targets in 14 small cycle batches, without repeating the broad 325-batch audit.
+Matched model/cycle/persistence MAE is **0.9295 / 6.390 / 12.510 F**.
+Both model predictions win, but the windows overlap: the chronological
+non-overlapping group still has one original pair, **1.742 / 6.300 / 12.780 F**.
+No independent-day/seasonal/action skill, coefficient change or graduation is
+claimed. The artifact and original training revision remain unchanged.
+
+Reproduce with `--since 2026-10-03T13:00:00Z --until 2026-10-03T16:00:00Z`,
+`--assessed-at 2026-10-03T22:19:03.064431Z`, `--horizons 6`, and the unchanged
+strict capture, pair, recent-cycle, `d9163729...` artifact and installed-runtime
+options in the command below.
+
 ## October 3 fourth settled short-horizon and predecessor daily outcomes
 
 The receipt/capture-strict recent-cycle audit assessed at

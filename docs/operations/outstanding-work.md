@@ -1,5 +1,27 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 protected sky-input isolated recovery progress
+
+The staged sky provider now has an actual networkless file-load/full-JVM/
+original-managed-rollback experiment with the exact current greywater consumer.
+All three phases reject missing/expired SoC receipts and stale communications
+despite held SoC 100/CLEAR sky, with both synthetic pumps OFF and no ON command.
+All three fresh-data positive controls execute one unlinked synthetic output,
+then safety returns both OFF. All 43 affected Python and 148 focused JS tests
+pass. The labeled container/ephemeral volumes are removed; production sky and
+pump rules remain managed, source-identical and healthy, with PID 1696 and zero
+inventory issues. This is scoped recovery evidence, not physical/JDBC/interrupted
+ledger recovery, general restart authority or a live handoff. The adapter stays
+off; the [specific proposed plan and remaining boundaries](2026-09-29-sky-condition-rule-file-candidate.md#october-3-isolated-consumerrestartrollback-qualification)
+remain before execution.
+
+Today's newly mature second six-hour forecast is 0.117 F low, versus cycle
+6.480 F and persistence 12.240 F low. A bounded fixed-cutoff audit of both
+original pairs repeats identically, model/cycle/persistence MAE
+**0.9295/6.390/12.510 F**. They overlap: only one independent window, no
+seasonal/action qualification or graduation. See
+[original clocks and read-bound evidence](2026-09-30-forecast-input-capture.md#october-3-second-settled-six-hour-outcome).
+
 ## October 3 daily-endpoint allocation optimization deployed
 
 The thermal selector now ranks validated daily origins before constructing their

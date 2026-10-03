@@ -89,3 +89,10 @@ def test_jvm_identity_check_reports_only_java_pids(monkeypatch):
     monkeypatch.setattr(q.runtime, 'run', lambda *_:
         b'PID STAT COMMAND\n1 S sh\n22 Sl java\n23 Z java\n99 R ps\n')
     assert q.java_pids('isolated') == (22,)
+
+
+@pytest.mark.parametrize('kind,restart', [('season', True), ('display-set', True), ('sky', False)])
+def test_control_probe_requires_exact_sky_restart_scope_before_any_live_read(monkeypatch, kind, restart):
+    monkeypatch.setattr(q.runtime.oh, 'get', lambda *_: pytest.fail('unexpected live read'))
+    with pytest.raises(RuntimeError, match='sky control probe requires'):
+        q.main(kind, restart=restart, sky_control=True)
