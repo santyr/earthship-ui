@@ -426,3 +426,68 @@ fixtures. Next: qualify the new adapter's actual isolated round trip including
 Sun continuity and withdrawal metadata, obtain the exact descriptor/live-plan
 decisions, then capture a fresh preimage during the attended handoff. Source
 green, a backup or this one-shot negative check must not open either live gate.
+
+### October 3 07:47Z: actual contained adapter round trip qualified
+
+`scripts/qualify-astro-moon-handoff.py` now executes the adapter's **same
+transaction core**, with explicit contained capabilities rather than the
+production `--apply` interface. Both live gates remain false. The original
+private manifest above is pinned and reopened; all 28 typed CSV histories
+(1,089,603 rows) are restored into disposable PostgreSQL 16. A SELECT-only
+fixture role independently reproduces every original prefix before the
+OpenHAB fixture starts and at each transaction boundary.
+
+Both containers have no network access or published ports. OpenHAB has no
+host mounts, devices or household rules. PostgreSQL's only host mount is an
+owned, private temporary Unix-socket directory, not production data/config.
+Docker is Snap-installed and cannot see host `/tmp`; the first socket attempt
+failed before importing history. The corrected socket directory is created
+under the workspace, owner-checked and removed on exit. Database creation
+reports only safe failure categories, never credential-bearing arguments.
+
+The first actual withdrawal exposed an incomplete guard: channel-derived
+patterns and option lists disappear as well as read-only flags. Installed
+`ChannelStateDescriptionProvider` skips missing channels; the default core
+provider supplies type-derived patterns. The corrected comparator requires
+the **exact** fallback pattern, `readOnly:false` and empty options. It refuses
+explicit state-description metadata, formatted labels, unreviewed types or
+descriptor fields before planned withdrawal. All links, Group relationships,
+units, providers and persistent metadata remain exact; normal provider phases
+retain full original/intended descriptor comparisons. Nothing is normalized
+away. The reviewed default-provider core binary is now also pinned by the
+GET-only consumer guard; its fresh source-pin digest is
+`81223186eb62fe65a26f0c224e302755934511c024ccba539d398043fe99d569`.
+
+The corrected actual run passed **file-1 → original managed rollback →
+file-2**, requiring new distinct source-attributed Moon illumination and Sun
+elevation events, full dependent definitions and all 28 original history
+prefixes in every phase. The shared Sun retains its original site, cadence and
+full definition except the explicitly different single fixture probe link.
+Household pump Items are absent, not simulated OFF; the real production OFF
+gate is separately regression-tested. The test's container-local file transport
+qualifies transaction logic, not the production filesystem's atomic-link
+implementation, which retains its own interruption/ownership tests.
+
+All **284 affected regression tests pass**, without skips. The source pins are:
+
+- Adapter: `d336992e9a13f553197cb57221a3a873e3ac543341018c368401d4d0852a5daa`.
+- Provider qualifier: `0790ddad7a11679a90b1320c2c5d8b55cb2be32162c7a647ed5eb1dd216e2aa6`.
+- Actual handoff harness: `c2dbd5dc40398bce0bc4dd89c212810f2637b9d21b1ab92636650bcdfb1591b3`.
+- Expanded consumer guard: `89c7b52107b855d094b47dfc58da71e0950379c83f0226c7b3dffb5585c3759a`.
+
+Every owned test container, socket directory and disposable test fixture is
+removed; the original private recovery point is deliberately retained.
+Production remains managed, with no watched Moon Thing file and unchanged
+OpenHAB PID 1696. No production REST/SQL write, restart or household command.
+The final 07:50Z read-only production preflight also passes the new withdrawal
+provenance guard and both snapshots of all 28 current prefixes (1,089,702 rows,
+53,955,969 bytes). The independent configuration inventory reports zero issues.
+
+This closes actual new-adapter transaction/withdrawal/Sun-continuity and
+original-prefix recovery qualification. It does **not** test a natural JDBC
+writer in the fixture, a production filesystem handoff, a new adapter JVM
+restart or global consumer closure. Earlier JVM evidence retains its recorded
+source scope. The exact 39-field metadata choice and attended live plan remain
+pending. Only after those decisions may a fresh private preimage and guarded
+live rollback/readback establish production cutover and new natural JDBC
+receipts. Do not open either live gate from this isolated pass.

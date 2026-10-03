@@ -420,9 +420,18 @@ def command(args):
         main()
 
 
-def main(*, binding_metadata=False):
+def main(*, binding_metadata=False, shared_sun=False, fixture_hook=None):
     original, original_links, original_items = preflight()
     require(type(binding_metadata) is bool, 'Moon metadata candidate selector invalid')
+    require(type(shared_sun) is bool and (fixture_hook is None or
+            callable(fixture_hook) and shared_sun and binding_metadata),
+            'Moon fixture callback scope invalid')
+    sun = runtime.oh.get('/things/astro:sun:local') if shared_sun else None
+    if sun is not None:
+        require(sun.get('UID') == 'astro:sun:local' and sun.get('thingTypeUID') == 'astro:sun'
+                and sun.get('editable') is True
+                and sun.get('statusInfo') == {'status': 'ONLINE', 'statusDetail': 'NONE'},
+                'original shared Sun unavailable')
     intended_file = (binding_metadata_candidate(original, binding_channel_metadata())
                      if binding_metadata else original)
     target = 'binding_metadata_candidate' if binding_metadata else 'literal_original_descriptor'
@@ -500,6 +509,24 @@ def main(*, binding_metadata=False):
             return int(code), json.loads(payload) if payload.startswith((b'{', b'[')) else None
 
         q.wait_for(lambda: rest('GET', '/thing-types/astro:moon')[0] == 200, seconds=90)
+        if shared_sun:
+            full = {key: deepcopy(sun[key]) for key in ('UID', 'thingTypeUID', 'label',
+                    'bridgeUID', 'location', 'configuration', 'properties', 'channels') if key in sun}
+            for channel in full['channels']:
+                channel.pop('linkedItems', None)
+            require(rest('POST', '/things', {key: value for key, value in full.items()
+                                           if key != 'channels'})[0] in (200, 201, 202),
+                    'isolated Sun creation refused')
+            require(rest('PUT', '/things/astro:sun:local', full)[0] == 200,
+                    'isolated Sun descriptor refused')
+            require(rest('PUT', '/items/Sun_Position_Elevation',
+                    {'name': 'Sun_Position_Elevation', 'type': 'Number:Angle'})[0] in (200, 201),
+                    'isolated Sun probe refused')
+            require(rest('PUT', '/links/Sun_Position_Elevation/astro%3Asun%3Alocal%3Aposition%23elevation',
+                    {'itemName': 'Sun_Position_Elevation',
+                     'channelUID': 'astro:sun:local:position#elevation', 'configuration': {}})[0]
+                    in (200, 201, 202, 204), 'isolated Sun link refused')
+            print('isolated_shared_sun_original_site_and_cadence=true', flush=True)
         require(rest('PUT', '/items/Moon', managed_item(original_items['Moon']))[0] in (200, 201),
                 'isolated Moon Group refused')
         phase = datetime.now(timezone.utc)
@@ -600,6 +627,11 @@ def main(*, binding_metadata=False):
 
         q.wait_for(lambda: ready(True, phase), seconds=360)
         print('isolated_managed_moon_exact=true; channels=34; dependents=28', flush=True)
+        if fixture_hook is not None:
+            fixture_hook({'container': container, 'marker': marker, 'rest': rest,
+                          'original': original, 'intended': intended_file,
+                          'links': expected_links, 'dependents': expected_items, 'sun': sun})
+            return  # finally removes the same owned fixture; no second round trip.
         require(rest('DELETE', '/things/' + UID + '?force=true')[0] in (200, 202, 204),
                 'isolated managed Moon withdrawal refused')
         q.wait_for(lambda: rest('GET', '/things/' + UID)[0] == 404)

@@ -4,6 +4,12 @@ from pathlib import Path
 
 import pytest
 
+
+def test_reviewed_withdrawal_defaults_core_is_pinned():
+    pins={str(path):digest for path,digest,_ in m.FILE_PINS}
+    assert pins['/usr/share/openhab/runtime/system/org/openhab/core/bundles/org.openhab.core/5.2.1/org.openhab.core-5.2.1.jar']==(
+        '68e37d9c0eaf2343603082b12f460523f328f6f02efbe9a99b19502fb44f78ed')
+
 spec = spec_from_file_location('moon_consumers', Path(__file__).with_name('preflight-astro-moon-consumers.py'))
 m = module_from_spec(spec)
 spec.loader.exec_module(m)

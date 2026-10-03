@@ -130,28 +130,53 @@ def original_history(db, directory=None):
     return prefixes
 
 
-def current_dependents():
-    links = [row for row in oh.get('/links')
+def current_dependents(get=None):
+    get = get or oh.get
+    links = [row for row in get('/links')
              if row.get('channelUID', '').startswith(q.UID + ':')]
     require(len(links) == len({row['itemName'] for row in links}) == 28
             and {row['itemName'] for row in links} == set(q.HISTORY_IDS),
             'Moon linked scope changed')
-    items = {name: oh.get('/items/' + name + '?metadata=.*') for name in q.HISTORY_IDS}
-    items['Moon'] = oh.get('/items/Moon?metadata=.*')
+    items = {name: get('/items/' + name + '?metadata=.*') for name in q.HISTORY_IDS}
+    items['Moon'] = get('/items/Moon?metadata=.*')
     return sorted(links, key=lambda row: row['itemName']), q.dependent_definitions(items)
 
 
-def verify_unchanged(snapshot, *, withdrawal=False):
-    links, items = current_dependents()
+def withdrawal_dependents(dependents):
+    """Exact unbound-core defaults for this fixed, non-overridden Moon scope.
+
+    ChannelStateDescriptionProvider loses its fragment while the Thing is absent.
+    DefaultStateDescriptionFragmentProvider then supplies the Item-type pattern,
+    with false readOnly and empty options. Never discard the descriptor wholesale.
+    """
+    result = deepcopy(dependents)
+    patterns = {'String': '%s', 'DateTime': '%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS',
+                'Number': '%.0f'}
+    for name, row in result.items():
+        if name not in q.HISTORY_IDS:
+            continue  # The unlinked Moon Group keeps its complete original contract.
+        old = row.get('stateDescription') or {}
+        require(set(old) == {'pattern', 'readOnly', 'options'} and old['readOnly'] is True
+                and isinstance(old['pattern'], str) and isinstance(old['options'], list)
+                and 'stateDescription' not in (row.get('metadata') or {})
+                and '[' not in (row.get('label') or '') and ']' not in (row.get('label') or ''),
+                'Moon withdrawal descriptor overrides outside qualified scope')
+        kind = row.get('type')
+        pattern = '%.0f %unit%' if kind in (
+            'Number:Angle', 'Number:Length', 'Number:Time', 'Number:Dimensionless') else patterns.get(kind)
+        require(pattern is not None, 'Moon withdrawal Item type outside qualified scope')
+        row['stateDescription'] = {'pattern': pattern, 'readOnly': False, 'options': []}
+    return result
+
+
+def verify_unchanged(snapshot, *, withdrawal=False, get=None):
+    links, items = current_dependents(get) if get is not None else current_dependents()
     expected = snapshot['dependents']
     if withdrawal:
-        # Only binding-derived readOnly=true -> false may vanish while absent.
-        items = deepcopy(items)
-        for name, before in expected.items():
-            old = before.get('stateDescription') or {}
-            now = items[name].get('stateDescription') or {}
-            if old.get('readOnly') is True and now.get('readOnly') is False:
-                now['readOnly'] = True
+        expected = withdrawal_dependents(expected)
+        require(all(items[name].get('stateDescription', {}).get('readOnly') is False
+                    for name in q.HISTORY_IDS if name in expected),
+                'Moon withdrawal readOnly contract changed')
     require(links == snapshot['links'] and items == expected,
             'Moon dependent definition drift')
 
@@ -164,6 +189,7 @@ def capture(directory=None):
     snapshot = {'thing': original, 'links': sorted(links, key=lambda row: row['itemName']),
                 'items': raw_items, 'dependents': q.dependent_definitions(raw_items),
                 'consumer_guard': guard}
+    withdrawal_dependents(snapshot['dependents'])  # Refuse unsupported overrides before withdrawal.
     intended = q.binding_metadata_candidate(original, q.binding_channel_metadata())
     require(sha256(encoded(q.definition(intended))).hexdigest()
             == '3c4b60e6d22f3e8b452b1e2834d02d6cf5f1b12bcd3745563d330209adf90595',
@@ -325,16 +351,16 @@ def remove_owned_file(identity):
     sync_directory(TARGET.parent)
 
 
-def provider_ready(verified, file_owned):
-    current = get_thing()
+def provider_ready(verified, file_owned, getter=None):
+    current = (getter or get_thing)()
     expected = verified['intended'] if file_owned else verified['snapshot']['thing']
     return (isinstance(current, dict) and current.get('editable') is (not file_owned)
             and current.get('statusInfo') == {'status': 'ONLINE', 'statusDetail': 'NONE'}
             and q.definition(current) == q.definition(expected))
 
 
-def history_unchanged(verified):
-    db = database()
+def history_unchanged(verified, factory=None):
+    db = (factory or database)()
     try:
         require(q.history_prefixes(db, before=verified['history']) == verified['history'],
                 'Moon original history changed; manual recovery required')
@@ -360,88 +386,118 @@ def natural_updates_after(after):
         size = os.fstat(stream.fileno()).st_size
         stream.seek(max(0, size - 4 * 1024**2))
         log = stream.read(4 * 1024**2).decode(errors='replace')
+    return native_events(log, after)
+
+
+def native_events(log, after):
     now = datetime.now(timezone.utc)
     return (q.native_update_after(log, after, now)
             and q.native_update_after(log, after, now, item='Sun_Position_Elevation',
                                       channel='astro:sun:local:position#elevation'))
 
 
-def qualify_phase(directory, verified, file_owned, after, name):
-    wait(lambda: provider_ready(verified, file_owned))
-    verify_unchanged(verified['snapshot'])
-    guard_unchanged(verified)
-    wait(lambda: natural_updates_after(after), seconds=360)
-    require(provider_ready(verified, file_owned), 'Moon provider changed after native witness')
-    verify_unchanged(verified['snapshot'])
-    guard_unchanged(verified)
-    history_unchanged(verified)
+def qualify_phase(directory, verified, file_owned, after, name, operations=None):
+    ops = operations or ProductionOperations()
+    ops.wait(lambda: ops.provider_ready(verified, file_owned))
+    ops.verify_unchanged(verified['snapshot'])
+    ops.guard_unchanged(verified)
+    ops.wait(lambda: ops.natural_updates_after(after), seconds=360)
+    require(ops.provider_ready(verified, file_owned), 'Moon provider changed after native witness')
+    ops.verify_unchanged(verified['snapshot'])
+    ops.guard_unchanged(verified)
+    ops.history_unchanged(verified)
     private_file(directory / (name + '.json'), encoded({'status': 'verified', 'file_owned': file_owned,
                  'native_moon_and_sun_after': after, 'history_prefixes_unchanged': 28}))
     sync_directory(directory)
 
 
-def rollback(directory, verified, identity):
+def rollback(directory, verified, identity, operations=None):
+    ops = operations or ProductionOperations()
     original = verified['snapshot']['thing']
-    if TARGET.exists() or TARGET.is_symlink():
-        current = get_thing()
+    if ops.target_exists():
+        current = ops.get_thing()
         require(current is None or (current.get('editable') is False
                 and q.definition(current) == q.definition(verified['intended'])),
                 'unexpected provider during rollback; manual recovery required')
-        remove_owned_file(identity)
-        wait(lambda: get_thing() is None, seconds=60)
-    current = get_thing()
+        ops.remove_owned_file(identity)
+        ops.wait(lambda: ops.get_thing() is None, seconds=60)
+    current = ops.get_thing()
     if current is None:
-        verify_unchanged(verified['snapshot'], withdrawal=True)
+        ops.verify_unchanged(verified['snapshot'], withdrawal=True)
         full = q.managed_thing(original)
-        request('POST', '/things', original, {key: value for key, value in full.items() if key != 'channels'})
+        ops.request('POST', '/things', original, {key: value for key, value in full.items() if key != 'channels'})
         # Acknowledge loss/races conservatively: never PUT over an unexpected
         # managed definition. New factory metadata must match the tested one.
-        wait(lambda: get_thing() is not None, seconds=30)
-        current = get_thing()
+        ops.wait(lambda: ops.get_thing() is not None, seconds=30)
+        current = ops.get_thing()
         require(current.get('editable') is True
                 and q.definition(current) in (q.definition(original), q.definition(verified['intended'])),
                 'managed recreation descriptor drift; manual recovery required')
-        request('PUT', '/things/' + q.UID, original, full)
+        ops.request('PUT', '/things/' + q.UID, original, full)
     else:
         require(current.get('editable') is True and q.definition(current) == q.definition(original),
                 'unexpected managed provider; manual recovery required')
-    wait(lambda: provider_ready(verified, False))
+    ops.wait(lambda: ops.provider_ready(verified, False))
+
+
+class ProductionOperations:
+    """Production mutations always retain their independent live gate checks."""
+    def target_exists(self): return TARGET.exists() or TARGET.is_symlink()
+    def get_thing(self): return get_thing()
+    def wait(self, *a, **k): return wait(*a, **k)
+    def request(self, *a, **k): return request(*a, **k)
+    def install_source(self, *a, **k): return install_source(*a, **k)
+    def remove_owned_file(self, *a, **k): return remove_owned_file(*a, **k)
+    def provider_ready(self, *a, **k): return provider_ready(*a, **k)
+    def verify_unchanged(self, *a, **k): return verify_unchanged(*a, **k)
+    def guard_unchanged(self, *a, **k): return guard_unchanged(*a, **k)
+    def history_unchanged(self, *a, **k): return history_unchanged(*a, **k)
+    def pumps_off(self): return pumps_off()
+    def natural_updates_after(self, *a, **k): return natural_updates_after(*a, **k)
+    def qualify_phase(self, *a, **k): return qualify_phase(*a, **k)
+    def rollback(self, *a, **k): return rollback(*a, **k)
 
 
 def apply(directory, verified):
     require(LIVE_RELEASE_READY and METADATA_DEVIATION_APPROVED, 'Moon live release gates are off')
     verify_backup(directory, verified)
+    return round_trip(directory, verified, ProductionOperations())
+
+
+def round_trip(directory, verified, ops):
+    # No default backend: a fixture must supply its contained capabilities.
+    # Production REST remains gated inside request as well as apply itself.
     ownership, changed = {'identity': None}, False
     try:
         for index in (1, 2):
-            require(not TARGET.exists() and not TARGET.is_symlink() and provider_ready(verified, False),
+            require(not ops.target_exists() and ops.provider_ready(verified, False),
                     'managed handoff preimage drift')
-            verify_unchanged(verified['snapshot'])
-            guard_unchanged(verified)
-            history_unchanged(verified)
-            pumps_off()
+            ops.verify_unchanged(verified['snapshot'])
+            ops.guard_unchanged(verified)
+            ops.history_unchanged(verified)
+            ops.pumps_off()
             changed = True  # Lost DELETE response may still have removed it.
-            request('DELETE', DELETE_PATH, verified['snapshot']['thing'])
-            wait(lambda: get_thing() is None, seconds=60)
-            verify_unchanged(verified['snapshot'], withdrawal=True)
-            guard_unchanged(verified)
+            ops.request('DELETE', DELETE_PATH, verified['snapshot']['thing'])
+            ops.wait(lambda: ops.get_thing() is None, seconds=60)
+            ops.verify_unchanged(verified['snapshot'], withdrawal=True)
+            ops.guard_unchanged(verified)
             after = datetime.now(timezone.utc)
-            install_source(lambda identity: ownership.update(identity=identity))
-            qualify_phase(directory, verified, True, after, 'file-' + str(index))
+            ops.install_source(lambda identity: ownership.update(identity=identity))
+            ops.qualify_phase(directory, verified, True, after, 'file-' + str(index))
             if index == 1:
-                pumps_off()
+                ops.pumps_off()
                 after = datetime.now(timezone.utc)
-                rollback(directory, verified, ownership['identity'])
+                ops.rollback(directory, verified, ownership['identity'])
                 ownership['identity'] = None
-                qualify_phase(directory, verified, False, after, 'managed-rollback')
+                ops.qualify_phase(directory, verified, False, after, 'managed-rollback')
         return {'status': 'provisional_file_provider_verified', 'private_backup': str(directory),
                 'original_history_items': 28, 'managed_rollback_exercised': True,
                 'production_restart': False, 'production_restart_recovery': 'not_tested'}
     except BaseException:
         if changed:
             after = datetime.now(timezone.utc)
-            rollback(directory, verified, ownership['identity'])
-            qualify_phase(directory, verified, False, after, 'failure-recovery')
+            ops.rollback(directory, verified, ownership['identity'])
+            ops.qualify_phase(directory, verified, False, after, 'failure-recovery')
         raise
 
 

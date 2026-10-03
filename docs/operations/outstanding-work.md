@@ -32,15 +32,17 @@ capture or apply authority. Fresh receipt-backed history/live rollback and the
 descriptor choice remain open. See
 [source review and repeatable guard](2026-10-02-astro-moon-thing-candidate.md#october-3-0629z-named-consumer-review-and-read-only-drift-guard).
 
-A default-off Moon handoff adapter now has 240 affected offline tests and a
+A default-off Moon handoff adapter now has 284 affected offline tests and a
 real private original recovery point: all 28 CSV prefixes, 1,089,603 rows and
 53,951,135 bytes, independently reopened with exact definitions/source. The
 planned flow verifies file -> original managed rollback -> final file, with
-new Moon/Sun events and unchanged histories at each boundary. Neither live
-gate is open. Qualify this new adapter's actual isolated runtime flow and
-withdrawal metadata before attended release; the pending descriptor/live-plan
-decisions are unchanged. See
-[adapter, recovery proof and remaining gates](2026-10-02-astro-moon-thing-candidate.md#october-3-default-off-handoff-adapter-and-original-csv-recovery-point).
+new Moon/Sun events and unchanged histories at each boundary. The same
+transaction core now passes the actual networkless OpenHAB/PostgreSQL round
+trip using the original CSV histories. Its exact type-derived withdrawal
+metadata contract is runtime-qualified; no descriptor field is ignored.
+Neither live gate is open. The pending descriptor/live-plan decisions,
+fresh production preimage and live natural-JDBC checks are unchanged. See
+[actual adapter qualification and remaining gates](2026-10-02-astro-moon-thing-candidate.md#october-3-0747z-actual-contained-adapter-round-trip-qualified).
 
 ## October 2 late-evening independent-window tuning result
 
@@ -371,9 +373,9 @@ one Hex DM was sent. All three approved relays ACKed it; actual Primal receipt
 and authenticated reply are still pending. Original question cipher and ACKs
 are backed up and reopened through the application. No chat label, recurring
 collector, source release flag, operator-signer change or household control.
-The latest October 3 06:18Z checkpoint (October 3 early morning MDT) accepted zero
+The latest October 3 07:21Z checkpoint (October 3 early morning MDT) accepted zero
 replies and reported one relay failure with one pending inbox refusal; its next
-retry is `2026-10-03T07:19:03Z`. Independent read-only verification still finds
+retry is `2026-10-03T08:22:04Z`. Independent read-only verification still finds
 exactly one question and zero authenticated receipts. Repeated trial approval
 does not supply the authenticated action reply. No replacement question was sent.
 The check ended and permanent collector/timer remain absent/inactive. Relay

@@ -173,17 +173,61 @@ def test_provider_check_keeps_full_named_alternative_and_provider(monkeypatch, f
 
 
 @pytest.mark.parametrize('fault', [None, 'metadata', 'pattern', 'missing_readonly', 'bool_type'])
-def test_withdrawal_exception_is_only_true_to_false_readonly(monkeypatch, fault):
-    before = {'Moon': {'metadata': {}, 'stateDescription': {'readOnly': True, 'pattern': 'kept'}}}
-    after = deepcopy(before); after['Moon']['stateDescription']['readOnly'] = False
-    if fault == 'metadata': after['Moon']['metadata']['extra'] = 'unexpected'
-    elif fault == 'pattern': after['Moon']['stateDescription']['pattern'] = 'unexpected'
-    elif fault == 'missing_readonly': after['Moon']['stateDescription'].pop('readOnly')
-    elif fault == 'bool_type': after['Moon']['stateDescription']['readOnly'] = 0
+def test_withdrawal_contract_is_exact_type_default_without_overrides(monkeypatch, fault):
+    name='Moon_Apogee_Date'
+    before = {name: {'type':'DateTime','metadata': {}, 'stateDescription': {
+        'readOnly': True, 'pattern': 'binding-date-pattern','options':[]}}}
+    after = m.withdrawal_dependents(before)
+    if fault == 'metadata': after[name]['metadata']['extra'] = 'unexpected'
+    elif fault == 'pattern': after[name]['stateDescription']['pattern'] = 'unexpected'
+    elif fault == 'missing_readonly': after[name]['stateDescription'].pop('readOnly')
+    elif fault == 'bool_type': after[name]['stateDescription']['readOnly'] = 0
     monkeypatch.setattr(m, 'current_dependents', lambda: ([], after))
     if fault:
         with pytest.raises(RuntimeError): m.verify_unchanged({'links': [], 'dependents': before}, withdrawal=True)
     else: m.verify_unchanged({'links': [], 'dependents': before}, withdrawal=True)
+
+
+@pytest.mark.parametrize('fault',['explicit_metadata','formatted_label','unknown_type','extra_descriptor','writable'])
+def test_withdrawal_refuses_unknown_original_descriptor_provenance(fault):
+    row={'type':'String','metadata':{},'label':'Moon name',
+         'stateDescription':{'readOnly':True,'pattern':'%s','options':[]}}
+    if fault=='explicit_metadata':row['metadata']['stateDescription']={'config':{'pattern':'custom'}}
+    elif fault=='formatted_label':row['label']='Moon [%s]'
+    elif fault=='unknown_type':row['type']='Number:Unknown'
+    elif fault=='extra_descriptor':row['stateDescription']['maximum']=100
+    else:row['stateDescription']['readOnly']=False
+    with pytest.raises(RuntimeError):m.withdrawal_dependents({'Moon_MoonPhaseName':row})
+
+
+@pytest.mark.parametrize('fault',['nonempty_options','missing_pattern','extra_descriptor','group_drift','link_drift'])
+def test_withdrawal_does_not_hide_other_changes(monkeypatch,fault):
+    before={'Moon_MoonPhaseName':{'type':'String','metadata':{},'stateDescription':{
+        'readOnly':True,'pattern':'%s','options':[{'value':'FULL','label':'Full Moon'}]}},
+        'Moon':{'type':'Group','label':'Moon','stateDescription':None}}
+    after=m.withdrawal_dependents(before);links=[]
+    d=after['Moon_MoonPhaseName']['stateDescription']
+    if fault=='nonempty_options':d['options']=[{'value':'other'}]
+    elif fault=='missing_pattern':d.pop('pattern')
+    elif fault=='extra_descriptor':d['maximum']=100
+    elif fault=='group_drift':after['Moon']['label']='Other'
+    else:links=[{'itemName':'unexpected'}]
+    monkeypatch.setattr(m,'current_dependents',lambda:(links,after))
+    with pytest.raises(RuntimeError):m.verify_unchanged({'links':[],'dependents':before},withdrawal=True)
+
+
+@pytest.mark.parametrize('kind,pattern',[
+    ('String','%s'),('DateTime','%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS'),('Number','%.0f'),
+    ('Number:Angle','%.0f %unit%'),('Number:Length','%.0f %unit%'),
+    ('Number:Time','%.0f %unit%'),('Number:Dimensionless','%.0f %unit%')])
+def test_withdrawal_projects_only_pinned_core_defaults_without_mutating_preimage(kind,pattern):
+    original={'Moon_MoonPhaseName':{'type':kind,'metadata':{},'stateDescription':{
+        'readOnly':True,'pattern':'binding-format','options':[{'value':'FULL'}]}}}
+    frozen=deepcopy(original)
+    result=m.withdrawal_dependents(original)
+    assert result['Moon_MoonPhaseName']['stateDescription']=={
+        'pattern':pattern,'readOnly':False,'options':[]}
+    assert original==frozen
 
 
 def native_line(item, channel, at):

@@ -39,6 +39,8 @@ FILE_PINS = (
      '1a3b8207ec49834022706359bff60ff2f4eaa1354d392c48850cb418de63e7db', None),
     (Path('/usr/share/openhab/runtime/system/org/openhab/core/bundles/org.openhab.core.thing/5.2.1/org.openhab.core.thing-5.2.1.jar'),
      '1a0892c0faf8a6f6acd6efd17131dadbead6453ae6c5a13baa1a2a9dd4ea7572', None),
+    (Path('/usr/share/openhab/runtime/system/org/openhab/core/bundles/org.openhab.core/5.2.1/org.openhab.core-5.2.1.jar'),
+     '68e37d9c0eaf2343603082b12f460523f328f6f02efbe9a99b19502fb44f78ed', None),
 )
 
 

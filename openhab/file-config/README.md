@@ -112,8 +112,11 @@ drift guard, `scripts/preflight-astro-moon-consumers.py`; it is not global
 dependency closure or live apply authority. The pending exact descriptor
 choice and guarded live/history gates are unchanged.
 The default-off `scripts/migrate-astro-moon-thing.py` now supports GET/SELECT-only
-check and private original REST/CSV backup preparation. Its dormant live round
-trip is not runtime-qualified or authorized yet; see the same candidate doc.
+check and private original REST/CSV backup preparation. Its same transaction
+core now passes an actual contained OpenHAB/PostgreSQL round trip with all 28
+original histories and shared-Sun natural updates. The exact unbound-core
+metadata contract is qualified; both live release gates remain off. Production
+cutover/JDBC and attended authority remain open; see the same candidate doc.
 There is no premature Thing ownership declaration. See the
 [Moon Thing candidate](../../docs/operations/2026-10-02-astro-moon-thing-candidate.md).
 
