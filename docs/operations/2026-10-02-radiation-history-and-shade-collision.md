@@ -282,6 +282,62 @@ Do not promote training, daily calibration, action collection or the wider
 repository models as part of this rollout; complete clean v2 days and skill
 gates remain separate. Production runtime and source activation remain unchanged.
 
+### Guarded rollout and receipt-clock correction — October 3 01:42Z
+
+Pre-apply review found that the final expiry check added total command elapsed
+time to a decision clock that already included input-fetch latency. A 60-second
+fetch followed by 10 seconds of computation was assessed as 130 seconds rather
+than 70, incorrectly withholding a genuinely fresh 120-second receipt. The
+regression failed before anchoring elapsed time to command start. The check
+still honors a forward decision clock and refuses genuinely expired receipts;
+no TTL is extended. This affects both qualified temperatures and radiation.
+
+The corrected six-file candidate is now pinned to
+`c732feed23f4a9dd323a85a77dec9872d821c626d6619a642548dc7b752baaac`
+(superseding the earlier `b700545b...` candidate). Both original publications
+again replay exactly, interrupted/successful isolated install and restore pass,
+and actual current receipt input passes at `2026-10-03T01:42:10.798560Z`.
+The new entrypoint SHA is
+`9cdb624727122d65b50ab6d80f742ee562b78d99087f1e2f02434e767f26161d`.
+The complete affected suite now passes **819 tests in 44.67 seconds**, with no
+skips and actual disposable PostgreSQL; test storage is cleaned.
+
+`scripts/thermal-radiation-files.py` uses the existing durable file adapter.
+`prepare` creates only a new private receipt containing the frozen mixed
+runtime, original code/absence markers, exact current configuration snapshots
+and accepted artifact. `apply` and `restore` require `--allow-apply` and refuse
+active jobs, changed source/configuration, or a natural forecast deadline less
+than 90 seconds away. Dependencies are installed before the entrypoint. Only
+the new `qualified-radiation.conf` is added; existing temperature/capture
+drop-ins and both timers remain unchanged. Readback requires the exact runtime
+revision and four current-radiation environment settings. Failed apply restores
+the complete original file state and reloads the user manager; `recover`
+handles an interrupted file transaction before restoring. No service/timer is
+started, stopped or restarted by the adapter, and no OpenHAB restart occurs.
+
+The recovery command, run as `sat` from the repository, is:
+
+```sh
+python3 scripts/thermal-radiation-files.py restore --receipt /home/sat/.local/state/thermal-intel/deploy-receipts/RADIATION_RECEIPT_NAME --allow-apply
+```
+
+Use the actual recorded receipt name; use `recover` instead of `restore` only
+for an interrupted transaction. A configuration/artifact change after capture
+is deliberately a refusal, not permission to overwrite later operator work.
+Configuration snapshots are same-host mode-0600 recovery evidence inside a
+mode-0700 directory, never Git or an off-host copy.
+
+Read-only live registry inspection reports **42 rules, none referencing
+`Thermal_Model_JSON`**. The selected accepted artifact has canonical SHA
+`2435c019...`, identical to the latest original capture. Its on-disk JSON byte
+SHA is `0a6a9ae0f224642f65ccfd72deef74626eb349e0c091436a7211120c2faeb72c`;
+canonical data identity and serialized file identity are distinct. The
+existing natural shadow job exited zero at 19:36 MDT without a source change.
+The new adapter/drop-in are source-qualified here; actual private preparation,
+production apply, writer/capture verification and natural timer proof are
+recorded separately after execution. No learning or thermal graduation is
+implied by the current-input rollout.
+
 ## Strict reader and v2 fault visibility — October 2
 
 Natural native radiation arrives about every 16 seconds, versus the unchanged

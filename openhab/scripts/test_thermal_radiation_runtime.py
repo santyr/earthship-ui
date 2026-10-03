@@ -260,3 +260,29 @@ def test_unavailable_qualified_radiation_cannot_enter_any_legacy_read(monkeypatc
     with pytest.raises(ValueError, match='qualified shadow radiation evidence unavailable'):
         thermal_intel._current_states(AT, series_reader=lambda *args: pytest.fail('legacy history read'),
                                       state_reader=lambda *args: pytest.fail('legacy state read'))
+
+
+@pytest.mark.parametrize('elapsed,expected',[(70,0),(130,1)])
+def test_input_fetch_latency_is_not_counted_twice_in_receipt_expiry(monkeypatch,tmp_path,elapsed,expected):
+    import thermal_intel
+    from test_thermal_pipeline import current_states,NOW
+    current=current_states()
+    for role in ('air','mass','outdoor','radiation'):
+        current[role]['at']=NOW
+        current[role]['validUntil']=NOW+timedelta(seconds=120)
+    ticks=iter([0,elapsed])
+    monkeypatch.setattr(thermal_intel.time,'monotonic',lambda:next(ticks))
+    monkeypatch.setattr(thermal_intel.forecast_intel,'load_site_settings',lambda:None)
+    monkeypatch.setattr(thermal_intel,'_current_states',lambda now:current)
+    monkeypatch.setattr(thermal_intel.forecast_intel,'fetch_forecast',lambda:{})
+    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *args:[{'mode':'warm'}])
+    monkeypatch.setattr(thermal_intel,'run_shadow',lambda **kwargs:{'confidence':{'grade':'high'}})
+    monkeypatch.setattr(thermal_intel,'ArtifactRegistry',lambda *args:None)
+    monkeypatch.setattr(thermal_intel,'write_shadow_output',lambda *args:None)
+    monkeypatch.delenv('THERMAL_SHADOW_CAPTURE_DIR',raising=False)
+    published=[]
+    monkeypatch.setattr(thermal_intel,'publish_shadow_output',lambda *args,**kwargs:published.append(args))
+    result=thermal_intel._shadow(SimpleNamespace(output=tmp_path/'shadow.json',publish=True),NOW,
+        decision_clock=lambda:NOW+timedelta(seconds=60))
+    # Total elapsed is 70 seconds, not 60+70. Source expiry remains 120s.
+    assert result==expected and len(published)==(0 if expected else 1)

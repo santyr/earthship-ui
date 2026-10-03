@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 evening guarded current-radiation rollout
+
+The source adapter now pins the exact six-file mixed runtime, privately backs
+up code/configuration/accepted artifact, installs dependencies first and
+requires idle jobs and a clear natural timer window. It changes no timers,
+starts no jobs, preserves all unrelated runtime files and supports guarded
+rollback/crash recovery. Review also fixed double-counted input-fetch latency
+in receipt expiry without extending TTLs. The corrected candidate is
+`c732feed...`; original replays, isolated rollback and actual current receipt
+checks pass. All 819 affected tests pass, no skips. Live registry has 42 rules
+and no thermal forecast consumers; selected accepted artifact matches the
+latest capture canonically. Actual private preparation/apply and subsequent
+writer/capture/natural-timer evidence remain before claiming live completion.
+See [rollout, recovery command and clock regression](2026-10-02-radiation-history-and-shade-collision.md#guarded-rollout-and-receipt-clock-correction--october-3-0142z).
+
 ## October 2 evening exact installed-radiation runtime qualification
 
 The six-file candidate is now qualified against the actual installed bytes,

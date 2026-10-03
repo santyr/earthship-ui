@@ -488,6 +488,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     from thermal_radiation_runtime import validate_shadow_radiation_expiry
     started = time.monotonic()
+    started_at = now
     current = None
     failed_input = "site settings input"
     try:
@@ -544,7 +545,11 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
         # decision clock's full precision for capture-safe provenance.
         if output.get('status') == 'shadow':
             output['generatedAt'] = now.isoformat()
-        evidence_check_at = now + timedelta(seconds=max(0, time.monotonic()-started))
+        # The decision clock already includes input-fetch latency. Anchor total
+        # monotonic elapsed time to command start, never add it twice. A forward
+        # wall-clock change still cannot move expiry assessment into the past.
+        evidence_check_at = max(now, started_at + timedelta(
+            seconds=max(0, time.monotonic()-started)))
         validate_shadow_receipt_expiry(current, evidence_check_at)
         validate_shadow_radiation_expiry(current, evidence_check_at)
     except (JournalUnavailable, psycopg2.Error):
