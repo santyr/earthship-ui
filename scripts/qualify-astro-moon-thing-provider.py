@@ -166,11 +166,16 @@ def restore_managed(rest, original):
             'isolated original Moon descriptor restoration refused')
 
 
-def native_update_after(log, after, now):
+def native_update_after(log, after, now, *, item='Moon_MoonIllumination',
+                        channel='astro:moon:local:phase#illumination'):
     """A new source-attributed binding event, never a held numeric state alone."""
-    source = '(source: org.openhab.core.thing$astro:moon:local:phase#illumination)'
+    require((item, channel) in (
+        ('Moon_MoonIllumination', 'astro:moon:local:phase#illumination'),
+        ('Sun_Position_Elevation', 'astro:sun:local:position#elevation')),
+        'native Astro witness outside qualified scope')
+    source = '(source: org.openhab.core.thing$' + channel + ')'
     for line in log.splitlines():
-        if "Item 'Moon_MoonIllumination' changed" not in line or source not in line:
+        if ("Item '" + item + "' changed") not in line or source not in line:
             continue
         try:
             at = datetime.strptime(line[:23], '%Y-%m-%d %H:%M:%S.%f').replace(
@@ -243,7 +248,7 @@ class HistoryDigest:
         self.digest.update(body)
 
 
-def history_prefixes(db, *, before=None):
+def history_prefixes(db, *, before=None, writer_factory=None):
     """Pinned identities and ordered duplicate-preserving original prefixes.
 
     The second transaction fixes each original maximum, excluding genuine later
@@ -292,7 +297,9 @@ def history_prefixes(db, *, before=None):
                 command = cursor.mogrify('COPY (SELECT time,value FROM ' + table
                                          + ' WHERE time<=%s ORDER BY time,value) TO STDOUT WITH CSV',
                                          (maximum,)).decode()
-                writer = HistoryDigest(MAX_TOTAL_HISTORY_BYTES - total)
+                remaining = MAX_TOTAL_HISTORY_BYTES - total
+                writer = (HistoryDigest(remaining) if writer_factory is None
+                          else writer_factory(name, remaining))
                 cursor.copy_expert(command, writer)
                 total += writer.size
                 require(total <= MAX_TOTAL_HISTORY_BYTES, 'Moon total history bound exceeded')

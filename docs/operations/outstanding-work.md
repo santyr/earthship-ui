@@ -32,6 +32,16 @@ capture or apply authority. Fresh receipt-backed history/live rollback and the
 descriptor choice remain open. See
 [source review and repeatable guard](2026-10-02-astro-moon-thing-candidate.md#october-3-0629z-named-consumer-review-and-read-only-drift-guard).
 
+A default-off Moon handoff adapter now has 240 affected offline tests and a
+real private original recovery point: all 28 CSV prefixes, 1,089,603 rows and
+53,951,135 bytes, independently reopened with exact definitions/source. The
+planned flow verifies file -> original managed rollback -> final file, with
+new Moon/Sun events and unchanged histories at each boundary. Neither live
+gate is open. Qualify this new adapter's actual isolated runtime flow and
+withdrawal metadata before attended release; the pending descriptor/live-plan
+decisions are unchanged. See
+[adapter, recovery proof and remaining gates](2026-10-02-astro-moon-thing-candidate.md#october-3-default-off-handoff-adapter-and-original-csv-recovery-point).
+
 ## October 2 late-evening independent-window tuning result
 
 New qualified targets now provide two selected non-overlapping six-hour windows

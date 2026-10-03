@@ -111,6 +111,9 @@ The named consumer/shared-binary source review now has a passing GET-only
 drift guard, `scripts/preflight-astro-moon-consumers.py`; it is not global
 dependency closure or live apply authority. The pending exact descriptor
 choice and guarded live/history gates are unchanged.
+The default-off `scripts/migrate-astro-moon-thing.py` now supports GET/SELECT-only
+check and private original REST/CSV backup preparation. Its dormant live round
+trip is not runtime-qualified or authorized yet; see the same candidate doc.
 There is no premature Thing ownership declaration. See the
 [Moon Thing candidate](../../docs/operations/2026-10-02-astro-moon-thing-candidate.md).
 

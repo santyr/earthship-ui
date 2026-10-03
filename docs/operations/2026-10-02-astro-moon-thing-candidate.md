@@ -357,3 +357,72 @@ the future adapter a repeatable drift check. It does not waive fresh private
 preimages, original-history/cutover/rollback verification, unexpected registry
 drift, independent natural Moon/Sun updates or the pending exact descriptor
 choice and attended live authority. No guarded live adapter is released.
+
+### October 3: default-off handoff adapter and original CSV recovery point
+
+`scripts/migrate-astro-moon-thing.py` now implements the guarded provider
+round trip, but both `LIVE_RELEASE_READY` and `METADATA_DEVIATION_APPROVED`
+remain **false**. It is an uninstalled/unreleased candidate, not live-cutover
+authority. Its supported safe paths are:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/migrate-astro-moon-thing.py --check
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/migrate-astro-moon-thing.py --prepare
+```
+
+Check uses only GET and server-confirmed read-only/repeatable-read SQL.
+Prepare additionally retains private mode-0700/0600 original Thing, Item,
+link and source definitions plus all 28 exact original ordered CSV prefixes.
+The qualifier's default digest-only behavior is unchanged; its new optional
+writer hook archives the same bounded COPY stream, without a third SQL scan.
+Each recovery point has an exclusive, fsynced 30-file preimage manifest.
+Independent reopening refuses extra/missing files, symlinks, unsafe modes,
+changed definitions, source bytes or original CSV digests. A permanent small
+private flock file prevents overlapping prepare/apply executions; it is an
+intentional operational lock, not a leftover worker.
+
+The actual backup-only run retained
+`/home/sat/.local/state/openhab-config-migration/astro-moon-y363q6hk`:
+**1,089,603 rows**, **53,951,135 original CSV bytes**, all 28 original mappings.
+Independent process reopening verifies all 30 files and the original source.
+Manifest SHA-256:
+`af9d6449122165ab6cbb1e1cbae929c4b11dfa4d2426b539b2d31d361b9f7091`;
+snapshot SHA-256:
+`06354e287a3f81d122eb3c45fc925f374b70a46ad8336d2672bb70ca23a0f9a0`.
+The bounded native-event reader also accepts distinct recent production
+Moon-illumination and Sun-elevation events. That qualifies its current log
+reader, **not** post-cutover natural recovery. No observation values or private
+definition bodies were printed or committed.
+
+The dormant apply flow requires both pumps' output Items OFF immediately
+before planned withdrawal, then checks the exact alternative file descriptor,
+all dependent definitions and original histories. It requires new, distinct,
+source-attributed Moon and Sun events at the preserved cadence. It exercises
+original managed rollback and the same checks before installing the final file.
+Only exact Moon Thing DELETE/POST/PUT is supported; no Item/link mutation,
+household command, SQL write or production restart exists. Installation never
+overwrites a destination; owned-inode/source checks guard withdrawal. Lost
+DELETE responses still enter recovery, and ownership is retained before a
+later directory-sync failure. Unexpected provider drift refuses an overwrite
+and retains the private recovery point for attended manual recovery.
+
+The affected guard/provider/Bitcoin/seasonal regression slice passes **240
+tests** without skips. These are offline transaction/refusal tests, not an
+actual runtime execution of the new adapter's whole round trip. The new
+source hashes are adapter
+`d0f96210e15ead1c17bdd1a5d2d3f8a49b6b797c999ddbae97bdbc192364c0f8`
+and qualifier
+`0e17fef9b748b2db87aeb3e9402f95043d82d1795bd5548800718c55f15ae460`.
+Earlier isolated outcomes remain evidence for their recorded source pins;
+they are not relabeled as a runtime qualification of this new apply flow.
+
+An attempted closed-gate CLI check of the apply interface was rejected by the
+execution safety reviewer before any command ran because live authority and
+the exact metadata choice are outstanding. It was not retried or bypassed;
+the independent backup/log verification ran separately, read-only. Production
+still has its original managed Moon Thing, no watched Moon file, and OpenHAB
+PID 1696. Retain this private recovery point; remove only disposable test
+fixtures. Next: qualify the new adapter's actual isolated round trip including
+Sun continuity and withdrawal metadata, obtain the exact descriptor/live-plan
+decisions, then capture a fresh preimage during the attended handoff. Source
+green, a backup or this one-shot negative check must not open either live gate.
