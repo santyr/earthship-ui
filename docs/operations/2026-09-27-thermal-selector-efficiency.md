@@ -66,6 +66,28 @@ stopped/restored. Retain the qualified private evidence. The **21:53Z natural
 publisher** and **October 4 06:50 MDT trainer** remain production continuity/
 resource/accepted-artifact gates; no accuracy or shadow-exit claim is made.
 
+### First natural post-selector publication verified
+
+The original timer triggered at **21:53:54.173331Z**; invocation
+`a7532cb92efc4f1895e036f581161d82` started at 21:53:54.187839Z and exited zero
+at 21:53:58.197399Z, with `NRestarts=0`. Decision/publication clocks are
+21:53:55.878437Z / 21:53:58.152849Z. The unchanged accepted `d9163729...`
+artifact retains training revision `cd77cd16...`, while the installed runtime
+is explicitly `15267d7a...`. The 72-point output remains shadow/low confidence,
+with learning and household controls off.
+
+The live Item, exactly one original JDBC row at **21:53:58.153Z**, and capture
+`20261003T215355Z-fddbb7fe6f231109.json.gz` match output SHA
+`fddbb7fe6f231109615d8ae0cac29320f25c9c0a06ec5b5275bb7ddc50329496`.
+Native radiation and all three temperature receipts pass at decision and
+publication; radiation was decoded at 21:53:39Z and expires at 21:55:39Z.
+Exact installed-runtime replay passes. Repeated source/invocation/Item checks
+are unchanged through verification at **21:55:16.255637Z**. The private
+`natural-publication.json` proof is retained in the selector receipt parent.
+Both user timers remain active/enabled; OpenHAB PID remains 1696. This closes
+natural publisher continuity for the two fit optimizations, not October 4's
+whole-training resource/acceptance gate or scientific model graduation.
+
 ## October 3 fit-local glazing-row reuse deployed
 
 A deterministic 400-day, 114,624-training-row profile found `_glazing_rows`
