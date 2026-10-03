@@ -1,6 +1,30 @@
 # Energy supporting-source qualification — October 1
 
-## October 3 source-pin follow-through
+## October 3 refreshed source-pin receipt
+
+The original 135-input point remains retained but stale. A new default-off point
+now passes prepare, actual parser/install/interrupted-rollback rehearsal and
+read-only verification against **136** current inputs and 18 original private
+configuration archives:
+`/home/sat/.local/state/earthship-energy/deploy-receipts/quality-20261003T093300Z-c10e7482`.
+Its qualification SHA-256 is
+`1b4ac6dc89d0da5d2969b0f22bf0ce0afaa144a467f5bd24f9f72056b9ffc91b`.
+All **109** affected adapter/file-engine tests pass; temporary fixtures are
+removed. Production retains only its two original drop-ins, idle writer,
+active daily timer and closed release gate. No job, SQL write or control.
+
+Exact candidate-flag restricted dry runs for September 30 and October 2 succeed.
+October 2 returns 21 source-quality records: 17 `ok`, four `partial`. These are
+per-source policy results, not proof of a fully continuous day. Both optional
+switch loads correctly retain null ON-hours and energy with
+`withheld_incomplete_switch_evidence`. Qualified observed PV input/output are
+11.461099274/11.032701699 kWh; these are actual observations, not reconstructed
+forecast inputs. The independent snapshot balance still withholds qualified
+AC load and does not replace the separately qualified AC-v4 publication.
+The physical-fault qualification decision and natural post-release aggregate/UI
+checks remain required before activation; completed grants must not be reasked.
+
+## October 3 earlier source-pin follow-through
 
 The later forecast-fetch source/instrumentation changes invalidate the earlier
 135-input receipt below. Its read-only `verify` now correctly refuses with

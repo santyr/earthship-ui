@@ -67,6 +67,54 @@ created by this diagnostic. The first fixed-artifact 24-hour target is due
 after October 3 08:00 MDT plus the five-minute lag; use this captured artifact
 identity even if the next scheduled trainer accepts a newer artifact first.
 
+## October 3, 09:45Z — additional overnight targets and current-runtime replay
+
+The same fixed `2435c019...` artifact now has additional source-qualified
+targets. The bounded read-only audit verified 11 original captures and used
+only two receipt-grid transactions across 12 publications:
+
+| Near horizon | Overlapping pairs | Model / persistence MAE, °F | Non-overlapping pairs |
+| --- | ---: | --- | ---: |
+| 1 hour | 11 | 1.1085 / 1.6036 | 10 |
+| 6 hours | 8 | 2.0826 / 6.9075 | 2 |
+| 12 hours | 4 | 1.8075 / 5.7600 | 1 |
+
+These are not independent days or seasonal/action qualification. All remain
+low-confidence with roughly 10.414°F-wide intervals. The two additional
+12-hour errors are -2.379/-2.612°F at 06:00/08:00Z, while their original outdoor
+forecast errors are +6.64/+10.30°F. The six-hour 01:58Z issue misses the 08:00Z
+indoor outcome by -2.795°F despite outdoor forcing being +11.80°F warm.
+Cold indoor bias therefore is not explained by uniformly cold outdoor forcing.
+No model, coefficient, action label or publication changed.
+
+An initial replay with the older `c732feed...` pin correctly refused: the
+shared forecast instrumentation changed the runtime fingerprint. Independently
+comparing all **26** named source files against the retained radiation rollout
+source shows exactly one change, `forecast_intel.py`, from SHA `943c09d4...`
+to the reviewed `1b902853...`. All other source bytes are identical. Current
+runtime revision is
+`cd77cd16bda18fa2beb60391e5663518650b2aaac0119b7ced09b2726505252e`.
+
+With that independently verified pin, the original
+`20261003T015802Z-5f053eec5272386d.json.gz` replays **exactly as issued**.
+The closed-vent hypothesis adds 1.132°F at six hours, reducing that miss to
+-1.663°F but not eliminating it. A separate uniform -3°F outdoor hypothesis
+lowers the forecast another 0.273°F, worsening the miss to -3.068°F; it also
+reselects the modeled schedule. These are independent in-memory hypotheses,
+not observed ventilation/weather or learned corrections. Continue identifying
+actual airflow/shade and stored-heat dynamics; do not promote a weather-only
+offset or override the existing solar-rejection result.
+
+The refreshed private publication replay archive is
+`/home/sat/backups/earthship-energy/thermal-replay-pub-cd77-20261003T095300Z.tar.gz`,
+SHA-256 `98abea33b4cd210e3fe852578cee7b44394a37c7dcc636535e980e313fe24274`.
+It verifies 148 members/117 captures, explicitly separates training revision
+`7f57eb3f...` from publication runtime `cd77cd16...`, and passes the exact
+overnight replay from a fresh restored source/capture tree. That temporary
+tree is removed; original recovery points are preserved. This qualifies this
+same-host replay scope, not a whole-host/off-host or PostgreSQL restore.
+The first fixed-artifact 24-hour target still must wait until 08:05 MDT.
+
 ## October 2 evening mature 12-hour outcome and batched scoring
 
 At `2026-10-03T02:19:25.104725Z`, the current captured artifact
