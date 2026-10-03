@@ -5,6 +5,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import pytest
+from thermal_model.action_history import select_origin_actions
 
 spec = spec_from_file_location('operational_origin_audit',
     Path(__file__).with_name('audit-thermal-operational-origins.py'))
@@ -69,3 +70,37 @@ def test_audit_rejects_unbounded_or_future_windows_before_read(monkeypatch):
     with pytest.raises(ValueError, match='five minutes'):
         module.audit(START + timedelta(minutes=1), START + timedelta(hours=1),
                      assessed_at=START + timedelta(hours=2), **base)
+
+
+def test_action_batch_is_read_once_and_bound_to_exact_origins(monkeypatch):
+    reads, selections = [], []
+    def batch(*, origins):
+        reads.append(origins)
+        return [select_origin_actions([], [], origin=at) for at in origins]
+    def pair(origin, **kwargs):
+        snapshot = kwargs['action_reader'](origin=origin)
+        assert snapshot['origin'] == origin
+        selections.append(origin)
+        return {'status': 'pending'}
+    monkeypatch.setattr(module, 'pair_persistence_outcome', pair)
+    result = module.audit(START, START+timedelta(hours=18), step_hours=6,
+        horizon_hours=24, assessed_at=START+timedelta(hours=18),
+        forecast_reader=lambda **kwargs: None, temperature_reader=lambda **kwargs: None,
+        action_batch_reader=batch)
+    assert len(reads) == 1 and reads[0] == selections
+    assert result['action_as_of_requested'] is True
+
+
+@pytest.mark.parametrize('damage', ['short', 'wrong_origin', 'dual_readers'])
+def test_invalid_action_batch_refuses_before_forecast_reads(monkeypatch, damage):
+    monkeypatch.setattr(module, 'pair_persistence_outcome',
+                        lambda *args, **kwargs: pytest.fail('forecast read reached'))
+    def batch(*, origins):
+        if damage == 'dual_readers': pytest.fail('batch read reached')
+        if damage == 'short': return []
+        return [select_origin_actions([], [], origin=START+timedelta(hours=1))]
+    with pytest.raises(ValueError):
+        module.audit(START, START+timedelta(hours=1), step_hours=1, horizon_hours=24,
+            assessed_at=START+timedelta(hours=1), forecast_reader=lambda **kwargs: None,
+            temperature_reader=lambda **kwargs: None, action_batch_reader=batch,
+            action_reader=(lambda **kwargs: None) if damage == 'dual_readers' else None)

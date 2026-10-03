@@ -4,12 +4,14 @@ This is an epistemic snapshot, not proof that planned actions occurred and not
 an advisory/actuation authority. A backdated receipt is unavailable until its
 actual database creation time; later corrections cannot rewrite past origins.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import isfinite
 
 from .schema import ACTION_KINDS, ACTION_KINDS_V2, SOURCE_WEIGHTS
 
 MAX_ROWS = 10000
+MAX_ORIGINS = 96
+MAX_ORIGIN_WINDOW = timedelta(days=14)
 MODES = frozenset(('spring', 'warm', 'fall_charge', 'winter'))
 V2_FETCH_RELEASE_READY = False  # Exact household journal/runtime cutover pending.
 
@@ -82,8 +84,26 @@ def select_origin_actions(action_rows, mode_rows, *, origin, vocabulary_version=
 
 def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1,
                          runtime_role=None, expected_owner=None):
-    """Read both journal tables in one bounded, repeatable-read transaction."""
-    origin = _utc(origin)
+    """Compatibility entrypoint for one exact origin-time snapshot."""
+    return fetch_origin_actions_batch(connection_factory, origins=[origin],
+        vocabulary_version=vocabulary_version, runtime_role=runtime_role,
+        expected_owner=expected_owner)[0]
+
+
+def fetch_origin_actions_batch(connection_factory, *, origins, vocabulary_version=1,
+                               runtime_role=None, expected_owner=None):
+    """Share one bounded read snapshot; select receipt knowledge per origin.
+
+    Later receipts/corrections remain unavailable to earlier origins. This
+    avoids two journal queries per forecast without mixing knowledge clocks.
+    Results preserve caller order. No write, commit or runtime gate activation.
+    """
+    if not isinstance(origins, (list, tuple)) or not 1 <= len(origins) <= MAX_ORIGINS:
+        raise ValueError('bounded nonempty origin list required')
+    origins = tuple(_utc(origin) for origin in origins)
+    if len(set(origins)) != len(origins) or max(origins)-min(origins) > MAX_ORIGIN_WINDOW:
+        raise ValueError('unique origins within a bounded window required')
+    last_origin = max(origins)
     if type(vocabulary_version) is not int or vocabulary_version not in (1, 2):
         raise ValueError('unsupported action vocabulary version')
     if vocabulary_version == 2 and not V2_FETCH_RELEASE_READY:
@@ -122,7 +142,7 @@ def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1,
                     WHERE e.received_at <= %s AND r.created_at <= %s
                       AND e.effective_at <= %s
                     ORDER BY e.effective_at, e.received_at, e.event_id
-                    LIMIT %s''', (origin, origin, origin, MAX_ROWS + 1))
+                    LIMIT %s''', (last_origin, last_origin, last_origin, MAX_ROWS + 1))
                 rows = cursor.fetchall()
                 if len(rows) > MAX_ROWS:
                     raise ValueError('action journal row bound exceeded')
@@ -131,7 +151,8 @@ def fetch_origin_actions(connection_factory, *, origin, vocabulary_version=1,
                     for row in rows]
             actions = read('action_events', 'action', 'state')
             modes = read('mode_events', 'mode', 'mode')
-        return select_origin_actions(actions, modes, origin=origin,
-                                     vocabulary_version=vocabulary_version)
+        return [select_origin_actions(actions, modes, origin=origin,
+                                      vocabulary_version=vocabulary_version)
+                for origin in origins]
     finally:
         connection.close()

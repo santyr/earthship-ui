@@ -1,5 +1,23 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 action-consumption gap and shadow fetch recovery
+
+The authenticated shade closure is unavailable at today's training/07:39
+publication clocks and available at 09:40; window/skylight states are still
+unknown. The installed training dataset reads actions, but the shadow entrypoint
+reads only modes and uses an assumed behavior schedule. New publication does
+not prove physical action-state consumption. A causal action-aware forecast with
+original-input capture remains required before action-skill graduation.
+The read-only origin audit now shares one bounded journal snapshot across up to
+96 origins while preserving receipt/commit cutoffs; 132 tests/five subtests pass.
+No live model, journal writer or persistent gate was activated.
+
+Today's 11:40 MDT shadow run exhausted weather retries and failed terminally.
+One bounded, real-clock retry at 11:53:36 succeeded, with matching new live
+forecast/capture/JDBC state and unchanged low-confidence artifact. No fit,
+synthetic-time issue or automated retry policy was enabled. See the
+[action clocks and recovery receipt](2026-09-30-forecast-input-capture.md#october-3-authenticated-action-availability-and-recovered-weather-fetch).
+
 ## October 3 next observational file-rule candidate
 
 The managed `UpdateBatteryIcon` writer now has an exact-action, uninstalled

@@ -2,7 +2,9 @@ from datetime import datetime, timedelta, timezone
 import unittest
 from unittest.mock import Mock
 
-from thermal_model.action_history import fetch_origin_actions, select_origin_actions
+from thermal_model.action_history import (fetch_origin_actions,
+                                         fetch_origin_actions_batch,
+                                         select_origin_actions)
 
 ORIGIN = datetime(2026, 9, 23, 15, 0, tzinfo=timezone.utc)
 
@@ -86,6 +88,77 @@ class ActionHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'not release-qualified'):
             fetch_origin_actions(lambda: self.fail('database connection opened'),
                                  origin=ORIGIN, vocabulary_version=2)
+
+    def test_batch_uses_one_snapshot_and_keeps_receipt_availability_at_each_origin(self):
+        cursor = Mock()
+        cursor.__enter__ = Mock(return_value=cursor)
+        cursor.__exit__ = Mock(return_value=None)
+        cursor.fetchone.return_value = ('on',)
+        event = row('new', name='indoor_shade', state='closed',
+                    received=ORIGIN + timedelta(minutes=5),
+                    created=ORIGIN + timedelta(minutes=6))
+        cursor.fetchall.side_effect = [[tuple(event[key] for key in (
+            'event_id', 'received_at', 'created_at', 'effective_at', 'name',
+            'state', 'source', 'confidence', 'supersedes'))], []]
+        connection = Mock()
+        connection.get_transaction_status.return_value = 0
+        connection.cursor.return_value = cursor
+        origins = [ORIGIN, ORIGIN + timedelta(minutes=5), ORIGIN + timedelta(minutes=6)]
+        snapshots = fetch_origin_actions_batch(lambda: connection, origins=origins)
+        self.assertEqual([s['actions'] for s in snapshots[:2]], [{}, {}])
+        self.assertEqual(snapshots[2]['actions']['indoor_shade']['state'], 'closed')
+        self.assertEqual([s['origin'] for s in snapshots], origins)
+        self.assertEqual(cursor.execute.call_count, 5)
+        connection.set_session.assert_called_once_with(
+            readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
+        connection.close.assert_called_once()
+
+    def test_batch_invalid_bounds_refuse_before_connection(self):
+        cases = [[], [ORIGIN, ORIGIN], [ORIGIN.replace(tzinfo=None)],
+                 [ORIGIN, ORIGIN + timedelta(days=15)],
+                 [ORIGIN + timedelta(minutes=i) for i in range(97)]]
+        for origins in cases:
+            with self.subTest(origins=origins), self.assertRaises(ValueError):
+                fetch_origin_actions_batch(lambda: self.fail('connection opened'), origins=origins)
+
+    def test_batch_closes_connection_on_incomplete_query(self):
+        cursor = Mock()
+        cursor.__enter__ = Mock(return_value=cursor)
+        cursor.__exit__ = Mock(return_value=None)
+        cursor.fetchone.return_value = ('on',)
+        cursor.fetchall.side_effect = RuntimeError('query unavailable')
+        connection = Mock()
+        connection.get_transaction_status.return_value = 0
+        connection.cursor.return_value = cursor
+        with self.assertRaises(RuntimeError):
+            fetch_origin_actions_batch(lambda: connection, origins=[ORIGIN])
+        connection.close.assert_called_once()
+
+    def test_batch_preserves_requested_order_without_backdating_correction(self):
+        cursor = Mock()
+        cursor.__enter__ = Mock(return_value=cursor)
+        cursor.__exit__ = Mock(return_value=None)
+        cursor.fetchone.return_value = ('on',)
+        old = row('old', name='indoor_shade', state='open')
+        late = row('late', name='indoor_shade', state='closed', supersedes='old',
+                   received=ORIGIN+timedelta(minutes=1), created=ORIGIN+timedelta(minutes=2))
+        keys = ('event_id', 'received_at', 'created_at', 'effective_at', 'name',
+                'state', 'source', 'confidence', 'supersedes')
+        cursor.fetchall.side_effect = [[tuple(r[k] for k in keys) for r in (old, late)], []]
+        connection = Mock()
+        connection.get_transaction_status.return_value = 0
+        connection.cursor.return_value = cursor
+        origins = [ORIGIN+timedelta(minutes=3), ORIGIN]
+        result = fetch_origin_actions_batch(lambda: connection, origins=origins)
+        self.assertEqual([s['origin'] for s in result], origins)
+        self.assertEqual([s['actions']['indoor_shade']['state'] for s in result], ['closed', 'open'])
+        for call in cursor.execute.call_args_list[-2:]:
+            self.assertEqual(call.args[1], (origins[0],)*3 + (10001,))
+
+    def test_batch_v2_gate_remains_closed_before_connection(self):
+        with self.assertRaisesRegex(ValueError, 'not release-qualified'):
+            fetch_origin_actions_batch(lambda: self.fail('connection opened'),
+                                       origins=[ORIGIN], vocabulary_version=2)
 
 
 if __name__ == '__main__':

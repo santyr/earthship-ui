@@ -20,9 +20,10 @@ sys.path.insert(0, '/home/sat/Solar_PV/analytics/src')
 
 import psycopg2  # noqa: E402
 from earthship_energy.db import parse_openhab_jdbc_config  # noqa: E402
-from thermal_model.action_history import fetch_origin_actions  # noqa: E402
+from thermal_model.action_history import fetch_origin_actions_batch  # noqa: E402
 from thermal_model.forecast_history import _utc, fetch_origin_forecast  # noqa: E402
-from thermal_model.operational_origin import pair_persistence_outcome  # noqa: E402
+from thermal_model.operational_origin import (pair_persistence_outcome,
+                                              _validate_actions)  # noqa: E402
 from thermal_temperature_runtime import collect  # noqa: E402
 
 CONFIG = '/home/sat/.config/hex/weather-temperature-db.json'
@@ -43,7 +44,7 @@ def aware(text):
 
 
 def audit(start, end, *, step_hours, horizon_hours, assessed_at,
-          forecast_reader, temperature_reader, action_reader=None):
+          forecast_reader, temperature_reader, action_reader=None, action_batch_reader=None):
     start, end, assessed_at = map(_utc, (start, end, assessed_at))
     if any(at.second or at.microsecond or at.minute % 5 for at in (start, end)):
         raise ValueError('origin bounds must align to five minutes')
@@ -60,6 +61,16 @@ def audit(start, end, *, step_hours, horizon_hours, assessed_at,
         if len(origins) > MAX_ORIGINS:
             raise ValueError('origin count exceeds bound')
         at += timedelta(hours=step_hours)
+    if action_reader is not None and action_batch_reader is not None:
+        raise ValueError('choose one origin action reader')
+    if action_batch_reader is not None:
+        snapshots = action_batch_reader(origins=origins)
+        if not isinstance(snapshots, (list, tuple)) or len(snapshots) != len(origins):
+            raise ValueError('complete origin action batch required')
+        for origin, snapshot in zip(origins, snapshots):
+            _validate_actions(snapshot, origin)
+        by_origin = dict(zip(origins, snapshots))
+        action_reader = lambda *, origin: by_origin[origin]
     counts = Counter()
     pairs = []
     for origin in origins:
@@ -114,19 +125,19 @@ def main():
     def temperature_reader(*, stream, targets, assessed_at):
         return collect({'stream': stream, 'targets': targets, 'assessed_at': assessed_at},
                        config_path=CONFIG, policy_path=POLICY)
-    action_reader = None
+    action_batch_reader = None
     if args.actions:
         dsn = os.environ.get('THERMAL_DATABASE_URL')
         if not dsn:
             parser.error('--actions requires THERMAL_DATABASE_URL')
         action_factory = lambda: psycopg2.connect(dsn, connect_timeout=5)
-        action_reader = lambda *, origin: fetch_origin_actions(action_factory,
-                                                               origin=origin)
+        action_batch_reader = lambda *, origins: fetch_origin_actions_batch(
+            action_factory, origins=origins)
     result = audit(start, end, step_hours=args.step_hours,
         horizon_hours=args.horizon_hours, assessed_at=now,
         forecast_reader=lambda *, origin, horizon_hours: fetch_origin_forecast(
             forecast_factory, origin=origin, horizon_hours=horizon_hours),
-        temperature_reader=temperature_reader, action_reader=action_reader)
+            temperature_reader=temperature_reader, action_batch_reader=action_batch_reader)
     print(json.dumps(result, sort_keys=True))
 
 

@@ -1,5 +1,59 @@
 # Exact morning weather-input archive
 
+## October 3 authenticated action availability and recovered weather fetch
+
+A restricted, exact-v2-schema-audited **read-only** journal batch checks three
+original clocks in one repeatable-read transaction. Its two journal-data queries
+are shared; later receipts/corrections are selected separately at each origin.
+The diagnostic opened the v2 reader gate only in its own process, then closed
+it; generic source gates, installed forecast/training code and controls remain
+unchanged. No journal row or training label was written.
+
+| Original UTC clock | Confirmed indoor-shade closure available? |
+| --- | --- |
+| October 3 training cutoff, 12:50:57.029705Z | No |
+| Original shadow issue, 13:39:05.222543Z | No |
+| Original shadow issue, 15:40:07.386987Z | Yes |
+
+The authenticated closure was physically effective October 2 18:30Z, first
+received October 3 **14:02:23.796322Z**, and committed as a receipt at
+**14:02:24.430268Z**. Event `8cb8510c8040bfb265634fb7` has source
+`nostr_confirmed`, confidence 1 and state `closed`. Both receipt clocks must
+precede an origin. Window/skylight states remain unknown at all three clocks;
+chat recollections cannot fill them or become aggregate-vent labels.
+
+The installed daily dataset reads journal actions and can project this supported
+shade state on its next fit. Today's trained artifact predates the receipt.
+The installed shadow entrypoint reads journal **modes only**, while its scenario
+engine supplies an assumed behavior schedule. Verified captures contain no
+origin action snapshot. Thus later shadow publication is not proof that known
+physical shade/window/skylight state entered its forcing. Qualifying a causal,
+original-input-captured action-aware forecast and independent split airflow
+remains required; do not retrospectively relabel old scenarios as observations.
+
+`fetch_origin_actions_batch` now supports up to 96 unique origins within 14 days,
+preserving the single-origin API, schema/role/gate checks, per-table row bounds,
+read-only transactions and correction availability. The historical-origin audit
+uses it instead of two action queries per origin. Incomplete/misaligned batches
+and dual readers refuse before forecast reads. All **132 affected tests plus
+five subtests** pass, including delayed commit, late correction, requested order,
+closed gates, connection cleanup and downstream split-airflow/capture checks.
+This is an audit efficiency improvement, not deployed model-input activation.
+
+Separately, the actual 11:40 MDT shadow job exhausted three Open-Meteo attempts
+and stopped at 11:41:05 with exit 1 and a read timeout; it published no new
+forecast. After confirming terminal failure and PID 0, one bounded retry of the
+unchanged observational unit began at 11:53:36, used fresh inputs/current time,
+and finished at 11:53:39 with exit zero. No early/fake-time job or fit was run.
+Its **17:53:37.617985Z** publication matches the live Item, verified private
+capture and one new JDBC row at **17:53:39.874Z**. Original-input capture:
+`20261003T175337Z-4e1729cc5ab6ba22.json.gz`; output SHA-256
+`4e1729cc5ab6ba22560847452957aa1b0ce28522d88dc90187566b96fac5a3b3`.
+It retains artifact `d9163729...` and low confidence. This is successful bounded
+recovery, not a scheduled natural run, autonomous retry qualification or new
+action knowledge in the model. The morning-only recovery timer does not cover
+shadow-job failures.
+
 ## October 3 fixed-clock assessment and second 24-hour outcome
 
 The read-only audit now accepts an elapsed `--assessed-at` clock. It refuses
