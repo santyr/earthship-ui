@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 real JDBC pump recovery qualified; live approval pending
+
+The disposable OpenHAB/PostgreSQL rehearsal now proves actual denied ledger
+writes, three repeated automatic refusals and a native manual refusal, restored
+accepted history across genuine JVM replacement, orphan OFF, durable recovery
+without same-pass start, one synthetic positive cycle, safety OFF and original
+action rollback/return. A separate repeat also passes explicit restarted
+action/trigger readback. Both runs' owned containers and volumes are removed.
+The exact managed-action release adapter passes 47 affected Python tests,
+read-only live OFF/freshness/cooldown preflight and bounded definition/history
+reads. **No live replacement yet.** It needs the exact reviewed approval and
+fresh physical OFF/attendance; no restart, pump command or provider migration
+is included. See [proof and precise plan](2026-09-23-greywater-timer-watchdog.md#october-3-actual-jdbcjvm-recovery-and-proposed-attended-replacement).
+
 ## October 3 interrupted greywater recovery defect — live release held
 
 Isolated fault injection against the exact live pump source found automatic
@@ -11,7 +25,7 @@ All 15 new regressions, 2,089 full JS tests and 18 affected Python tests pass.
 Production still has the original `e697e262...` action; no control mutation or
 test command occurred. The old deployment/sky probe pins deliberately refuse
 the new canonical source. **Do not perform the sky provider handoff yet.**
-Actual isolated OpenHAB/JDBC recovery and a specifically reviewed protected
+At that initial checkpoint, actual isolated OpenHAB/JDBC recovery and a specifically reviewed protected
 replacement/rollback remain before attended live release. See
 [candidate and evidence](2026-09-23-greywater-timer-watchdog.md#october-3-interrupted-ledger-durability-repair--source-only).
 

@@ -1,5 +1,71 @@
 # Greywater cycle-timer fail-safe — September 23, 2026
 
+## October 3 actual JDBC/JVM recovery and proposed attended replacement
+
+At 22:57Z, `scripts/qualify-greywater-recovery-jdbc.py` passed in disposable
+OpenHAB 5.2.1/PostgreSQL 16 containers sharing only a networkless namespace.
+The exact candidate action `4c34780e...` used synthetic unlinked Items, the
+canonical change-only/restore JDBC strategy and a restricted disposable JDBC
+role. Revoking INSERT on only its uniquely identified ledger table retained
+the original accepted history through three automatic dispatches and one
+native manual command: both outputs stayed OFF and no ON command appeared.
+A genuine JVM replacement restored that durable accepted request and a
+synthetic orphan ON state; the candidate switched it OFF and kept the hold.
+Restoring INSERT allowed exact durable recovery with no same-pass start; the
+next eligible pass started exactly one synthetic output, and missing SoC
+evidence immediately forced both OFF. Original-action rollback and candidate
+return matched exact actions, retained the original JDBC prefix and remained
+fail-closed on missing evidence. All owned containers/volumes were removed.
+
+This first harness revision was `b7b5306396e3d362792704fa5b846c11736d50b5bd6cd0f9efdca99d6eecfe3f`.
+The follow-up also passed every phase, with explicit exact action/trigger
+readback immediately after JVM replacement. Final qualified harness SHA:
+`aed5c27f82663453ec8f9d4268724dd2049de920d065c732ae88d98aab7a94bb`.
+Its fresh owned containers/volumes were also removed; this was a separate run.
+The fixture deliberately omits the automatic cron to avoid unsolicited fault
+dispatches. It retains the native manual trigger and exact action; this does
+not prove hardware transport, physical flow, every trigger timing or a
+production whole-OpenHAB restart. Production remains on the old action.
+
+The default-read-only `scripts/deploy-greywater-durable-recovery.py` pins exact
+old/new sources and the original live trigger/managed-provider contract.
+It extends the established disable/PUT/readback/enable rollback transaction
+with repeated fresh source-bound SoC, healthy Schneider telemetry/voltage,
+both explicit OFF states, and (in daylight) five minutes before eligibility.
+Private backup retains the exact original rule plus related Item/link
+definitions and a fixed last-day REST/JDBC snapshot, including explicit
+absence where no history exists. This is bounded continuity, not a full
+database backup. Definition/history checks run inside the rollback boundary;
+unowned rule or Item drift refuses unsafe overwrite/re-enable. All **47**
+affected Python guard/probe/transaction tests pass, including original-source
+rollback on enable failure and leaving unowned drift disabled. Read-only
+production preflight and all related definition/history reads pass.
+Release adapter SHA:
+`3ed4f258cc95e451d88d06b2b91d83470b6d3df36979a8bda74b2965ce004030`.
+
+### Exact protected-rule release plan — approval still required
+
+1. Require specific approval of only `hex_southoutlet_cycle` action
+   `e697e262...` -> `4c34780e...`, fresh physical attendance and both pumps
+   physically OFF. Recheck the live preflight and cooldown immediately before
+   applying; do not squeeze the update into an approaching cycle boundary.
+2. Use the new adapter with `--apply --attended --physical-pumps-off` only after
+   that approval. Privately back up, disable only this managed rule, recheck
+   OFF/telemetry/definitions, replace only its action, verify exact disabled
+   readback, enable and verify exact enabled source and fixed histories.
+3. On an owned transaction failure, restore and verify the exact original
+   source. If drift makes recovery unsafe, leave the protected rule disabled,
+   report the failure and require operator direction; never overwrite drift.
+4. Independently inspect source/status, both pump states and the release log
+   window, then require the next natural minute status and unchanged triggers.
+   No restart, manual run, synthetic production input or pump command is part
+   of this release. Do not force a fault/cycle to manufacture natural evidence.
+
+This repairs managed logic, not a file-provider migration. Keep the sky
+provider handoff separately held until the repaired consumer is actually
+installed and its remaining scope is requalified. Generic historical adapters
+remain pinned/default-off; their pins are not silently broadened.
+
 ## October 3 interrupted-ledger durability repair — source only
 
 Recovery qualification reproduced a separate live-source defect without hardware:
@@ -31,7 +97,7 @@ also pass. The historical SoC deployment helper still pins its original release
 hash and refuses the new source before REST access; the sky consumer qualification
 likewise still pins the old action rather than accepting this candidate silently.
 
-This is **not deployed or real-JDBC/full-JVM qualified**. Read-only production
+At this earlier source-only checkpoint it was **not deployed or real-JDBC/full-JVM qualified**. Read-only production
 inspection at approximately 22:43Z found the old hash, `IDLE/NONE`, both pump
 Items OFF, healthy BMS communications and an ordinary cooldown. No production
 request, pump command, rule run, restart or rollback was performed. Next require

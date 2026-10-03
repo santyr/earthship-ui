@@ -3,9 +3,9 @@
 ## October 3 later recovery finding — handoff held
 
 The subsequent interrupted-ledger fault tests exposed an automatic-start
-durability defect in the copied live pump source. The source-only correction
-is now in `southoutlet-cycle-current.js`, but is not deployed or actual-JDBC/
-full-JVM qualified. Keep this sky handoff held pending that separate protected
+durability defect in the copied live pump source. The correction
+is now in `southoutlet-cycle-current.js`; its separate actual-JDBC/JVM rehearsal
+subsequently passed, but it is not deployed. Keep this sky handoff held pending that separate protected
 repair and recovery checks; the earlier missing/expired/comms experiment below
 does not cover the defect. Its action pin remains `e697e262...` and intentionally
 refuses the new source rather than silently qualifying a different candidate.
