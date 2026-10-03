@@ -7,6 +7,15 @@ the evidence gates or equate a working shadow publisher with completion.
 
 ## Current evidence, September20
 
+The latest [October 2 late-evening independent-window comparison](2026-09-30-forecast-input-capture.md#october-2-late-evening-independent-window-solar-rejection)
+rejects the blanket 90% solar hypothesis: both selected six-hour windows and
+both mature 12-hour targets worsen in aggregate, despite pooled six-hour MAE
+improving on one large miss. Two 12-hour errors have opposite signs; closed-vent
+sensitivity helps one and hurts the other. Current-artifact 24-hour outcomes
+remain immature. Keep the model in shadow and prioritize independently known
+shade/window/skylight state and chronological identification; do not promote
+an unqualified scalar correction or turn chat recollections into labels.
+
 The October 2 evening [first natural radiation-enabled current-input
 publication](2026-10-02-radiation-history-and-shade-collision.md#first-natural-qualified-current-publication--october-3-0336z)
 now passes actual timer/capture/Item/JDBC, exact replay and cold-code recovery

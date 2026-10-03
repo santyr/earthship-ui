@@ -1,5 +1,72 @@
 # Exact morning weather-input archive
 
+## October 2 late-evening independent-window solar rejection
+
+At `2026-10-03T04:49:18.093326Z`, the capture-strict shared-grid audit scores
+nine original publications for the fixed October 2 artifact `2435c019...`.
+Eight distinct captures verify; 12 indoor and 12 outdoor targets require only
+one bounded read transaction per stream. Targets remain nearest hourly points
+within 30 minutes, with the unchanged five-minute maturity and original-source
+qualification gates. The current-radiation delivery proof remains valid and
+the accepted artifact/configuration still match the original rollout receipt.
+
+| Horizon | Mature overlapping pairs | Model / persistence MAE °F | Non-overlapping pairs | Independent model / persistence MAE °F |
+| --- | ---: | --- | ---: | --- |
+| Near 1 hour | 8 | 1.1851 / 1.8225 | 7 | 1.1811 / 1.9286 |
+| Near 6 hours | 5 | 1.4222 / 7.7040 | 2 | 0.9650 / 9.0900 |
+| Near 12 hours | 2 | 1.1195 / 8.2800 | 1 | 1.0610 / 9.9000 |
+| Near 24 hours | 0 | withheld | 0 | withheld |
+
+The new near-12-hour target, issued `2026-10-02T15:32:11.579258Z` for
+`2026-10-03T04:00:00Z`, is **1.178°F cold**, versus persistence **6.660°F
+cold**. Its original outdoor forecast is **5.180°F warm**. The earlier
+12-hour target is **1.061°F warm**, so neither a constant cold-bias correction
+nor an outdoor-forecast-only correction is established by this cohort.
+The new six-hour window, issued `2026-10-02T21:35:05.178763Z` for that same
+04:00Z outcome, is **1.812°F cold** and is the second selected non-overlapping
+six-hour window. Overlapping 6/12-hour scores against one target are not two
+independent physical observations. Every interval still covers its outcome
+but is approximately 10.414°F wide; all outputs remain low-confidence.
+
+### Unchanged hypotheses tested against the later outcome
+
+All five contributing original captures replay **exactly** under pinned
+installed runtime `c732feed...`. The earlier fixed 90% solar hypothesis and a
+separate closed-vent hypothesis are independently applied in memory; they do
+not combine, change initial observations, refit coefficients or create action
+labels. The solar hypothesis does not change any modeled schedule.
+
+The new six-hour solar result is **-2.544°F**, worse than the original
+**-1.812°F**. Across all five overlapping six-hour targets, MAE superficially
+improves from **1.4222 to 1.2966°F**, but just **one of five** targets improves.
+The two selected independent windows instead worsen from **0.9650 to
+2.0475°F**. Both mature 12-hour targets worsen under 90% solar: errors become
+**-1.517 and -2.781°F**, raising MAE from **1.1195 to 2.1490°F**. This later
+outcome rejects a blanket solar reduction despite its improvement on the
+earlier largest afternoon miss. It does not identify a calibrated irradiance,
+shade, mass or airflow coefficient, nor constitute seasonal validation.
+
+Assuming closed vents changes none of the five six-hour targets. At 12 hours,
+it changes errors to **+1.516 and -0.233°F**: overlapping MAE improves to
+**0.8745°F**, but the one independent selected 12-hour window worsens. This
+is sensitivity to a coarse legacy modeled vent schedule, not confirmation of
+windows/skylights, causal action benefit or permission to relabel chat reports.
+Independent source-bound shade/window/skylight observations and chronological
+joint-model identification remain the next path; no scalar adjustment is
+promoted from these mixed errors.
+
+The existing multi-horizon command in the section below reproduces the audit;
+add `--horizons 1 6 12 24` for the full maturity check. The five-capture replay
+uses `replay-thermal-forcing.py` with explicit runtime SHA, `--solar-scale 0.9`
+and `--assume-vents-closed`; each hypothesis starts separately from the original
+capture, and comparison joins targets by aware UTC timestamp, not string prefix.
+Audit source SHA remains `2a89cae4...`; replay source SHA remains `d999c917...`.
+No code, accepted artifact, journal, sensor state, forecast, worker/timer or
+household control changed. No new temporary files or test containers were
+created by this diagnostic. The first fixed-artifact 24-hour target is due
+after October 3 08:00 MDT plus the five-minute lag; use this captured artifact
+identity even if the next scheduled trainer accepts a newer artifact first.
+
 ## October 2 evening mature 12-hour outcome and batched scoring
 
 At `2026-10-03T02:19:25.104725Z`, the current captured artifact
