@@ -1,5 +1,31 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 recurring thermal confirmations deployed
+
+The approved one-question-per-Mountain-day recommendation follow-up collector
+is deployed as user units, with five-minute completion-based scheduling. Exact
+private profile/code/signing identity/schema checks and full cold recovery pass;
+all original signed reply/ciphertext and journal proofs remain intact. First
+invocation selected `idle` and sent no question. Damus currently requires relay
+authentication; nos.lol and Primal are readable. Authentication is still off and
+the operator decision is pending, so all-relay health and a new natural automatic
+question/reply remain open. No actuator or model graduation is enabled. See
+[exact recovery, release and stop procedure](2026-10-03-thermal-recurring-confirmations.md#exact-recovery-and-release--october-3).
+
+## October 3 estimated-trough update diagnosis
+
+The retained Energy estimate is 65%, issued October 1 at 17:30 MDT. October 2's
+06:40 weather fetch exhausted three DNS-failure retries; the 17:30 pre-dusk
+worker correctly withheld because no valid same-day morning record existed.
+The current UI explicitly dates completed estimates and retains them until a
+qualified replacement. October 3's original morning publication and frozen
+overnight-drop inputs are valid (27/34/18 points; final 26.333). Today's Astro
+sunset is 18:42:07 MDT, so the configured 17:30 check falls inside the 60–90
+minute issue window. Verify that natural publication after it runs; do not
+manufacture yesterday's missing issue or execute a synthetic-time live worker.
+The bounded morning fetch recovery is installed, but has not yet exercised a
+natural production fetch failure/retry.
+
 ## October 3 natural thermal publication and matured predecessor result
 
 Today's new `d9163729...` artifact published naturally at 07:39 MDT; original

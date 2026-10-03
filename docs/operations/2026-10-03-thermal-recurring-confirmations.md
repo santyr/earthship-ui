@@ -8,10 +8,105 @@ approval for observational collection, not actuator access, model promotion,
 inferred compliance, or new thermal advice. No further policy approval is needed
 for this scope; the remaining work is implementation and release qualification.
 
-**Not live yet.** `thermal-primal.service` and `.timer` remain not-found/inactive.
-No question was sent or journal row written in these checks. The successful
-October 2/3 attended Primal trial and its recovered authentic shade observation
-remain intact. See [the trial evidence](2026-10-01-primal-compatibility-candidate.md).
+**Deployed October 3 at 10:26 MDT; relay degradation remains.** The user timer is
+enabled with five-minute completion-based polling. Its first invocation selected
+`followup_status=idle`, sent no question, and retained the authentic trial.
+It exited 3 because Damus required explicitly approved NIP-42 authentication.
+Read-only relay probes independently verified that nos.lol returned two events
+and relay.primal.net was readable with zero events. Authentication remains off;
+an operator decision is pending. Do not describe this as all-relay healthy or
+proof of a new automatic question/reply. The timer continues retrying without
+overlap. See [the trial evidence](2026-10-01-primal-compatibility-candidate.md).
+
+The sections below retain dated preparation evidence. Their inactive/unchanged
+SQLite statements describe those earlier checks, not the current deployment.
+
+## Exact recovery and release — October 3
+
+The new activation boundary is `2026-10-03T15:57:16.140816+00:00`.
+Under the shared state lock, only the approved SQLite reservation/configuration
+metadata was added. Activation, bank epoch, collector and operator are durably
+pinned; zero automatic questions existed at release. The original authenticated
+shade reply and original acknowledgement ciphertext were independently checked
+after offline dependency rebuild and cold reopening.
+
+The original read-only PostgreSQL archive restored into an owned disposable
+PostgreSQL database. Idempotent acknowledgement authorization exercised exact
+journal readback there, with no relay publication. All original rows and digests
+matched before/after: 5 message receipts, 11 action events and 4 mode events.
+Production table proofs also remained unchanged. The disposable container and
+temporary rebuild directory were removed before qualification was recorded.
+
+Docker's Snap launcher cannot operate inside the parent unit's address-family
+restriction: it failed with missing `cap_dac_override`. Adding AF_NETLINK did
+not resolve it. Only the disposable-container **orchestrator** ran without that
+restriction/NoNewPrivileges. The actual cold consumer and production collector
+both retained NoNewPrivileges and AF_UNIX/AF_INET/AF_INET6 restrictions.
+No system-wide permissions or production hardening were relaxed.
+
+The retained private recovery root is
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-10-03-primal-recurring-v3`.
+Its five-file v6 data manifest is
+`35fd3320685a76d671a2fff58d2648bc375e0f96c2b78f160c1b28c69ce60b74`;
+the completed cold qualification is
+`c0f014c94ee43c6269d01fbcd57f0afff3f7cfb20cccaf0b53be3c8e8bb75420`.
+The final 33-file outer bundle includes exact code, requirements/hash-pinned
+wheels, signer, credentials, policy/routes, original SQLite/journal data,
+qualification, release profile, rendered units and final orchestrator. Its
+manifest is
+`53edb033c0b1008829ba8f4c880f386743ea6ba0ebc819c9341bb76c579f5145`.
+Off-host copying remains explicitly deferred.
+
+The active private profile is
+`/home/sat/.config/hex/thermal-primal/recurring-v3-profile.json`, SHA-256
+`a714bfedc5195eac83dc694991564a165eb0da34e6c2f131effa3612ae44efe8`.
+The profile pins the separately installed launcher/verifier, frozen 12-file
+closure, interpreter, credentials, identities, signer, policies/routes and cold
+qualification. It refuses drift before importing application code or enabling
+collection. Generic repository/frozen source gates remain false; only this
+profile opens Primal, automatic-follow-up and v2 journal gates process-locally.
+It accepts no arbitrary command or transport override, and currently no relay
+authentication override.
+
+The exact installed launcher passed `--check-release` under production unit
+restrictions with zero messages/journal writes. All 25 release tests passed,
+including tampered code/config/proofs, unsafe paths/permissions, identity drift,
+closed check mode and fixed run arguments. Unit syntax verification passed.
+Effective live ExecStart uses the pinned profile and v3 code, the dedicated
+eight-field environment, 192 MiB limit and the reviewed restrictions.
+
+The combined release/stager/follow-up/CLI regression passed **110 tests, no
+skips, in 33.32 seconds**. The former poll-only unit assertion was updated to
+verify the approved pinned recurring entrypoint, exact closed argv, retained
+restrictions and byte-equivalent rendered template, not weakened or removed.
+Two actual timer invocations (10:26:29 and 10:31:43 MDT) both selected idle;
+the second respected the persisted refusal retry delay. Read-only comparison
+after both runs proves every original ledger/configuration/reservation row
+unchanged and all three production journal table digests exactly equal to the
+cold-recovery baseline. No duplicate confirmation or new action was written.
+
+### Stop and restore
+
+To stop recurrence without deleting history:
+
+```sh
+systemctl --user disable --now thermal-primal.timer
+systemctl --user stop thermal-primal.service
+```
+
+Require the service to be terminal, then hold the collector state lock before
+any database restore. Verify every outer `files_sha256` entry and the v6 data
+manifest; do not copy a running SQLite file or overwrite a later signed reply.
+The bundle's `restore_paths` maps the private profile/configuration, state,
+runtime, recovery and user-unit destinations. Rebuild the dedicated interpreter
+environment offline using its retained requirements and wheels; verify the
+profile's interpreter/runtime/signer byte pins before check mode. A Python
+binary upgrade requires renewed qualification, not editing the pin to bypass it.
+Journal restoration is a separately attended operation using the proven v2
+archive workflow; do not replace live PostgreSQL rows as part of a routine
+collector restart. After restoration, require exact original ciphertext/journal
+proofs, then the installed launcher `--check-release` and unit readback before
+enabling the timer. No operator signing key or household control is included.
 
 ## Fixed recurring runtime mismatch
 
@@ -164,7 +259,7 @@ enabled automatic-follow-up source gate. Owned disposable test directories were
 removed after all processes completed; the qualified host runtimes and intentional
 private recovery points remain.
 
-Before enabling recurrence:
+Original prerelease checklist (completed by the exact recovery/deployment above):
 
 1. The command integration, frozen closure and separate credential staging above
    are done. Build/qualify the exact pinned active entry point and user-unit
@@ -191,3 +286,9 @@ Before enabling recurrence:
 
 The broad Earthship/OpenHAB goal remains active. This change does not graduate
 the thermal model or enable any household actuator.
+
+Current remaining collection work: resolve the explicitly requested relay-auth
+decision and observe a genuinely eligible future recorded recommendation,
+automatic question, operator receipt and authenticated reply. Do not manufacture
+an advisory to close these natural-behavior gates. Signed action consumption
+and model skill/graduation remain separate work.

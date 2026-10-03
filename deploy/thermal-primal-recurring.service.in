@@ -7,7 +7,7 @@ UMask=0077
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONPATH=/home/sat/.local/libexec/earthship-thermal/primal-v3/code
 EnvironmentFile=/home/sat/.config/hex/thermal-primal-followup.env
-ExecStart=/home/sat/.local/libexec/earthship-thermal/primal-v1/venv/bin/python /home/sat/.local/libexec/earthship-thermal/primal-v3/run-recurring.py --run --profile /home/sat/.config/hex/thermal-primal/recurring-v3-profile.json --profile-sha256 a714bfedc5195eac83dc694991564a165eb0da34e6c2f131effa3612ae44efe8
+ExecStart=/home/sat/.local/libexec/earthship-thermal/primal-v1/venv/bin/python /home/sat/.local/libexec/earthship-thermal/primal-v3/run-recurring.py --run --profile /home/sat/.config/hex/thermal-primal/recurring-v3-profile.json --profile-sha256 @PROFILE_SHA256@
 TimeoutStartSec=360
 TimeoutStopSec=10
 KillMode=control-group
