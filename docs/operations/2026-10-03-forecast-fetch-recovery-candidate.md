@@ -1,5 +1,33 @@
 # Bounded morning forecast-fetch recovery — source candidate
 
+## October 3 natural morning publication verified
+
+The original scheduled worker ran 06:40:56–06:40:59 MDT and exited zero;
+the helper has never run in production. Restricted read-only checks at
+`2026-10-03T13:06:52.482946Z` verify exactly one original morning receipt,
+matching persisted public values, private issue components and atomic native
+SoC source. The weather issue is `12:40:58.396244Z`; the separately preserved
+SoC assessment is `12:40:58.411Z`, at 87%. Neither clock is substituted for
+the other. The raw weather archive completed at `12:40:58.391135Z`, before
+the issue, and its exact digest matches the public/private references:
+`e32239c47921c3a7285b4768be06116dba0b628474d2721c5d6c1d1fc6e786ea`.
+
+The receipt persisted at `12:40:58.553Z`: PV 7.13 kWh, morning trough 69%,
+diagnostic dusk estimate 95.010%. These remain unscored predictions, not
+actual charge or overnight outcomes. Learned state naturally advanced to SHA
+`e60f26adb4ff14d2cb3a5994c13576cbbf5acb60705009ef881151f4c9c73fc7`;
+the failure marker is absent and October 2 has not been backfilled.
+
+The scheduled 06:45 snapshot job also exited zero. All **1,458** normalized
+facts exactly match the original detailed forecast by issue, target, metric,
+value, unit and provenance, with no duplicates/missing/extra rows. The detail
+issued at `06:40:56-06:00`, persisted at `12:40:58.584Z`, and has UTF-8 SHA
+`14903e72a8d5e23eea8a57b8dccb0e9e83b72f42e4056cabb9b99beaca460775`.
+Its analytics capture is `12:45:56.964878Z`, not retroactively available at
+the earlier producer issue. Verification wrote no SQL/Item/state or controls.
+This closes normal post-install issue/source/snapshot continuity, **not** a
+natural failed-fetch recovery event or forecast accuracy/calibration release.
+
 ## Cause and scope
 
 October 2's DNS outage prevented the original 06:40 forecast-intelligence issue.

@@ -657,11 +657,14 @@ preserving the original service, four policies and byte-identical learned state.
 The dedicated recovery opt-in is now active, with exact effective unit readback
 and a collected read-only process confirming release enabled but no current
 eligibility/start. Original timers remain active and learned state is unchanged.
-Temporary fixtures were removed. Next: verify the natural 06:40 MDT original
-issue/publication, not another rehearsal of unchanged files or forced DNS fault.
-No early issue or October 2 backfill. Supporting Energy's
-older 135-input receipt now correctly refuses canonical source drift; prepare
-and rehearse a new receipt after its separate qualification decision. See
+Temporary fixtures were removed. October 3's natural 06:40 worker and 06:45
+snapshot now pass original public/private/JDBC/native-SoC/raw-weather checks,
+with all 1,458 immutable normalized facts matching exactly. The issue uses 87%
+SoC and predicts PV 7.13 kWh/morning trough 69%; outcomes remain pending.
+No early issue or October 2 backfill. Natural failed-fetch recovery remains
+unobserved; do not force a household DNS fault to create it. Supporting Energy
+has its newer qualified 136-input receipt but still awaits its separate
+qualification decision. See
 [activation receipt and remaining natural check](2026-10-03-forecast-fetch-recovery-candidate.md#october-3-0919z--bounded-recovery-activated).
 
 September 30 20:15 MDT post-update battery-runtime discharge evidence closes
