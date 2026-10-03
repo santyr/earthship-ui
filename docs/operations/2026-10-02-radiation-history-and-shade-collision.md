@@ -1,5 +1,68 @@
 # Radiation history, shade collision and Office Hallway display
 
+## First natural qualified-current publication — October 3 03:36Z
+
+The unchanged timer actually triggered at **03:36:03.554478Z**, with natural
+invocation `8513301a55e846f5b55656c50ad2a4d8`. Its main process was observed
+live at PID 1229712, then the same invocation exited successfully at
+**03:36:07.513108Z**. No manual service start or restart was used. The original
+decision is **03:36:05.250859Z**; live `Thermal_Model_JSON`, original capture
+and JDBC state match canonical output SHA-256
+`a293131eab07e966cd3e44b98b2e1fd34a54f6fca6afc9a001ce3f8d0866912d`.
+JDBC stored it at **03:36:07.471Z**.
+
+Original capture:
+`20261003T033605Z-a293131eab07e966.json.gz`, compressed-file SHA-256
+`3a67587ae2195eadf50d77438da7939670488f737886009b9975ec91775cf234`.
+Native radiation was decoded at **03:35:31Z**, 34.251 seconds before decision,
+with original expiry **03:37:31Z**. It is the qualified light-derived irradiance
+proxy, not newly calibrated measured irradiance. Original decoder/receiver/
+storage clocks and verified cumulative-fault metadata pass at decision; expiry
+also passes at publication. Those historical times are not renewed freshness
+at a later verification. All three current temperature expiries pass too.
+
+The accepted artifact remains canonical `2435c019...`, trained under `7f57eb3f...`.
+As-issued replay passes under the explicit installed publication runtime
+`c732feed...`; the older training revision is not relabelled. A separate cold
+replay of this **new** capture also passes using only the exact code restored
+from the existing `99bce9cc...` private replay archive. Its temporary runtime
+was removed; no redundant full archive was created.
+
+`scripts/verify-thermal-natural-publication.py` now binds precise actual
+systemd timer/start/exit times and invocation ID, immutable private capture,
+unchanged installed code/configuration/artifact/drop-in, source expiry,
+current Item, one ordered original JDBC record and explicit-runtime replay.
+Default is read-only. Recording writes only `natural-publication.json` and
+its SHA pin in the **existing private rollout receipt**, never models, source,
+configuration, Items, journal, services or timers. The receipt now reports
+**`installed_natural_publication_verified`**. Proof is owned mode 0600 with SHA
+`c729efed79145da58124007bebc4d816f88e0d469b93f0f7f76fa3d2a7a7e99c`.
+Repeated record verification returns that identical proof rather than replacing
+the evidence. Interrupted proof-before-pin commits recover without rewriting
+another invocation's evidence; proof drift refuses, and rollback preserves it.
+
+Reverify the completed invocation while it is still the unit's latest run:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/verify-thermal-natural-publication.py \
+  --receipt /home/sat/.local/state/thermal-intel/deploy-receipts/radiation-current-20261003T015000Z-43f9a127
+```
+
+The first live verifier attempt used the wrong registry directory and could
+not load the artifact; it wrote no proof. The corrected verifier uses the
+installed **pure parser**, not a registry load that could quarantine/restore
+models, and selects the installed closure before recovery-helper imports.
+The root registry lock predated the test (August 20); it was preserved.
+All **92** affected delivery/file-transaction/replay tests pass without skips,
+including early/manual/failed runs, missing/conflicting/future JDBC rows,
+import ordering, private commit interruption, idempotency and exact rollback.
+Owned temporary test storage is removed. OpenHAB remains active at PID 1696.
+
+This closes the first natural **current-input delivery** gate only. Complete
+clean-day radiation learning, confirmed-action collection, held-out predictive
+skill, reviewed graduation thresholds and household automation remain separate.
+Permanent Primal collector units remain off; no user report became a label.
+
 ## Approved scope
 
 The operator approved durable read-only radiation history and the coincident

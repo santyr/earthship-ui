@@ -87,13 +87,23 @@ def _revision(root):
 
 def _state(receipt):
     data = json.loads(q.bundle._read(receipt/'qualification.json', private=True))
-    if (set(data) != {'version','old_revision','new_revision','configs','source_sha256','status'}
+    keys = {'version','old_revision','new_revision','configs','source_sha256','status'}
+    if (set(data) not in (keys, keys | {'natural_publication_sha256'})
             or type(data['version']) is not int or data['version'] != 1
-            or data['status'] not in {'prepared','installed_waiting_natural_publication','rolled_back'}
+            or data['status'] not in {'prepared','installed_waiting_natural_publication',
+                                     'installed_natural_publication_verified','rolled_back'}
             or data['old_revision'] != OLD or data['new_revision'] != NEW
             or set(data['configs']) != {str(path) for path in CONFIGS}
             or set(data['source_sha256']) != set(CODE_ORDER) | {UNIT_SOURCE}):
         raise ValueError('exact private rollout qualification required')
+    pin = data.get('natural_publication_sha256')
+    if data['status'] == 'installed_natural_publication_verified' and pin is None:
+        raise ValueError('durable natural publication proof required')
+    if pin is not None:
+        if (data['status'] not in {'installed_natural_publication_verified','rolled_back'}
+                or not isinstance(pin,str) or re.fullmatch('[0-9a-f]{64}',pin) is None
+                or sha256(q.bundle._read(receipt/'natural-publication.json',private=True)).hexdigest()!=pin):
+            raise ValueError('unchanged private natural publication proof required')
     for path, digest in data['configs'].items():
         if sha256(q.bundle._read(Path(path))).hexdigest() != digest:
             raise ValueError('unchanged configuration and accepted artifact required')

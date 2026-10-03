@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 evening natural radiation publication gate closed
+
+The actual 21:36 MDT timer invocation was observed live, then exited zero.
+Its original radiation-enabled capture matches the current Item/JDBC and
+replays exactly under installed `c732feed...`, also from the retained archive's
+cold-restored code. Original source clocks and all current-input expiries pass
+at publication; no later check renews freshness. The private rollout receipt
+now reports `installed_natural_publication_verified` with a durable, SHA-pinned
+mode-0600 proof. All 92 affected delivery/file/replay tests pass. Private proof
+interruption recovery, idempotency and original-code rollback are qualified;
+temporary test storage is removed. No manual worker start, restart, model fit,
+label, recurring collector or control occurred. Current-radiation **delivery**
+is complete, not clean-day learning or thermal graduation. See
+[actual invocation, original capture and recovery proof](2026-10-02-radiation-history-and-shade-collision.md#first-natural-qualified-current-publication--october-3-0336z).
+
 ## October 2 actual HS103 binding transport qualification
 
 The new disconnected rehearsal uses the actual cached binding, original

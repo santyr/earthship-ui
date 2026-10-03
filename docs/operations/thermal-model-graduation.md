@@ -7,6 +7,13 @@ the evidence gates or equate a working shadow publisher with completion.
 
 ## Current evidence, September20
 
+The October 2 evening [first natural radiation-enabled current-input
+publication](2026-10-02-radiation-history-and-shade-collision.md#first-natural-qualified-current-publication--october-3-0336z)
+now passes actual timer/capture/Item/JDBC, exact replay and cold-code recovery
+checks. Its private rollout proof is pinned. This closes delivery, not
+complete-day radiation learning, confirmed actions, predictive skill or
+graduation. Existing numerical and independent-observation gates still apply.
+
 For the latest October 2 evening evidence, see the
 [mature current-artifact targets and exact solar tradeoff](2026-09-30-forecast-input-capture.md#october-2-evening-mature-12-hour-outcome-and-batched-scoring).
 One qualified current-artifact near-12-hour target is substantially better than
