@@ -625,6 +625,16 @@ worsens it. No correction, action label or graduation is promoted. See
 | Radiation collection | Natural v2 station-206 capture/file-owned history is live at Item 664 with unchanged decoder-based 120-second expiry. Cumulative faults preserve between-poll invalid/expiry evidence. The strict SELECT-only point/window/DST-day reader is implemented; a real short v2 window qualifies, while v1 diagnostic totals stay withheld. Isolated HTTP-fault/JVM restore and restricted SQL tests pass; old history and read-only grants are unchanged. October 2 remains partial. | Assess the first possible complete clean v2 day (October 3) after October 4 midnight and its closing receipt. Qualify production JVM continuity and integrate only evidence-gated learning. Never backfill or relabel old v1, held numeric radiation or the unrelated latest-only exporter as clean v2 evidence. |
 | Shades and recovery | 26 preview slots and zone controls are live: Kitchen 1–8, Living Room 9–17, Bathroom 18–21, Bedroom 22–26. Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
+October 3's natural training is now terminal: exit zero after 26m04s,
+365.15 MiB peak memory and zero swap, with no restarted job. Accepted artifact
+`d9163729...` validates under installed `cd77cd16...`; the window advances one
+day and remains exactly 400 days. Qualified air/outdoor/mass data and fitted
+dynamics changed, so this was not byte-identical retraining. The retrospective
+24-hour model still loses to persistence and confirmed-action support remains
+zero. The provisional gate's true flag reflects its existing 0.75°F tolerance,
+not actual superior skill or shadow exit. See
+[terminal run and artifact evidence](2026-09-30-forecast-input-capture.md#october-3-natural-training--terminal-result-and-new-artifact).
+
 Both offline benchmark modes now require the same original atomic SoC input
 and bounded charge-target evidence. The actual read-only comparison agrees
 on September 30/October 1 while withholding five weaker historical charge

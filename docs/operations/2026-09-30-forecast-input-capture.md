@@ -1,5 +1,34 @@
 # Exact morning weather-input archive
 
+## October 3 natural training — terminal result and new artifact
+
+The same observed PID 1871293 finished naturally with exit zero and
+`Result=success` at 07:17:00 MDT, after starting at 06:50:56: **26m04s**.
+Final systemd counters retain peak memory **382,889,984 bytes (365.15 MiB)**
+and peak swap **0 bytes**. The observation deadline was not a failure and no
+job was restarted. This run is longer than October 2's 19m26s, but swapping
+does not explain it; retain performance/parity requirements for further tuning.
+
+The actual accepted v4 artifact passes eligible-artifact validation and binds
+the installed `cd77cd16...` runtime. Its canonical SHA-256 is
+`d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9`;
+the exact accepted file SHA is
+`9baa9f4931e9f8c6ca26ba6ba98e36e43289a9769b6b9f4dbc03bf3cb9b21a0b`.
+The window advances to August 29, 2025 through October 3, 2026 at
+`12:50:57.029705Z`, exactly 400 days. Canonical training data and fitted
+dynamics changed: compared with the retained predecessor it has 287 additional
+qualified air/outdoor targets and 286 mass targets. This was not a duplicate
+fit of byte-identical inputs; the canonical sample count is 99,882.
+
+Retrospective 24-hour air MAE remains **2.17855°F**, versus **1.689895°F**
+for persistence (119 targets). Confirmed-action training/evaluation support
+remains zero, operational graduation thresholds are null and `shadow_only`
+is true. The historically named `air_24h_beats_persistence` provisional gate
+actually permits the operator-approved **0.75°F** MAE tolerance; its true flag
+is not proof of beating persistence or graduating advice. No gate was relaxed.
+The next natural publication must bind the new artifact; the first old
+`2435c019...` 24-hour target must still be scored separately after 08:05 MDT.
+
 ## October 2 late-evening independent-window solar rejection
 
 At `2026-10-03T04:49:18.093326Z`, the capture-strict shared-grid audit scores
