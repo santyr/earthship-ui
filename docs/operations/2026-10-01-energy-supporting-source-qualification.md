@@ -1,5 +1,70 @@
 # Energy supporting-source qualification — October 1
 
+## October 2 prepared daily-quality handoff and rollback
+
+The default-off `scripts/energy-quality-files.py` adapter is now implemented
+and qualified. Its only production target is the user drop-in
+`/home/sat/.config/systemd/user/energy-daily-aggregate.service.d/zz-qualified-switch.conf`.
+It reuses the existing secure, no-follow, journaled file-transaction engine;
+there is no second deployment engine, new timer, SQL write, OpenHAB request or
+household control. Apply/restore/recover require `--allow-apply`, an idle daily
+aggregate and publisher, an active existing timer and at least a 90-second
+clear timer window. Apply additionally requires the **still-false** source
+release flag and a successfully rehearsed receipt. CLI authority alone cannot
+open that gate.
+
+The exact live baseline, FragmentPath, two original drop-ins, full effective
+argv and PYTHONPATH were independently verified. The private staged receipt is
+`/home/sat/.local/state/earthship-energy/deploy-receipts/quality-20261003T043300Z-40b305ea`.
+It pins 135 actual source/configuration inputs by hash and mode and privately
+backs up 18 original unit/policy/connection files with explicit original path
+identities. Python source is fingerprinted, not needlessly duplicated; no code
+is installed by this handoff. Its frozen candidate hash remains `6a12658f...`.
+The separate exact file manifest records the new target as originally absent.
+Receipt directories are owned mode 0700 and private files mode 0600; secrets
+and original private configuration are not printed or committed.
+
+The actual user-systemd parser accepted temporary copies of the original,
+installed candidate and restored original. Actual journaled interruption after
+file replacement then recovered the absent target and unchanged original
+bytes/modes. This is a **temporary-target** install/rollback rehearsal, not an
+attended production cutover or service-manager activation. All **53** affected
+adapter/adjacent file tests pass without skips, including drift, missing or
+corrupt archives/manifests, wrong effective argv, failed parser/readback,
+interrupted recovery, later unowned edits, busy/imminent jobs and both CLI/source
+gates. A deterministic archive-order regression was fixed before private
+staging. All owned test/parser storage, including the initial failed-test
+fixtures, is removed; the intentional private recovery receipt is retained.
+
+A fresh read-only aggregate using the **exact candidate flags** again qualifies
+September 30: **21/21** unique source-quality checks are `ok`, qualified-power
+accounting is preserved, and pinned inputs/receipt remain unchanged. Its output
+SHA-256 is `5fd4c0410b80cebcae7450116e50f1a5302e103996f3335252952ebd3b179b2a`.
+No historical aggregate or snapshot is rewritten. The final adapter SHA-256 is
+`4d8e74467dbc8dafe5bfc5848598ae0a0856821be9864f56dfa7c366468e3050`;
+private qualification SHA-256 is
+`86d2b97f48e692be2ab1082082945d2a8bdeb4f7240884ad82c27be710a2a323`.
+
+Read-only verification:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/energy-quality-files.py verify \
+  --receipt /home/sat/.local/state/earthship-energy/deploy-receipts/quality-20261003T043300Z-40b305ea
+```
+
+The result is `rehearsal_passed`, `release_ready:false`; the production target
+remains absent, the daily job inactive and OpenHAB active at PID 1696. Do not
+open the gate without the outstanding qualification decision and evidence
+review. After eligibility is established, the exact attended apply must verify
+the effective service-manager command and roll back its owned file on failure;
+then require the next **natural** previous-day aggregate and subsequent UI
+publication. Natural partial days must remain partial; September 30's clean
+qualification does not turn later gaps into complete coverage. Publisher live
+BMS-health opt-in, AC accounting and household controls stay separate. An
+emergency receipt-bound restore/recover uses `--allow-apply` but does not need
+the apply release flag; it refuses later unowned edits rather than deleting
+them. No start/restart/enable is part of either path.
+
 ## October 2 actual BMS Modbus transport qualification
 
 `scripts/qualify-bms-transport.py` exercises the cached **5.2.1 Modbus binding
