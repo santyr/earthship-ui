@@ -1,5 +1,87 @@
 # Thermal endpoint-selector efficiency — September 27
 
+## October 3 chronological-prefix bookkeeping deployed
+
+The evaluator previously scanned the whole sample set for each daily training
+prefix and rescanned that prefix for both provenance histograms. `_TrainingPrefixes`
+now selects the same strictly earlier tuple with `bisect_left`, counts each newly
+eligible training row once, and returns detached histogram snapshots. It is
+fit-local only: no model/fit reuse, cross-run cache, changed 400-day window,
+different forecast equation or relaxed validation. Origins with no complete
+future horizon still skip without consuming training provenance.
+
+Two interleaved 115,200-row / 386-fold metadata-only comparisons took
+5.996741 / 5.981424 seconds before and 0.133852 / 0.134652 seconds after.
+Both complete metadata digests equal
+`7e4733d49550f7cd56d7db38927097eaaf47d28e03c55c5b4964bbc5272e0892`.
+This saves about six seconds of bookkeeping, **not** a 45-fold speedup of the
+whole trainer. Numerical fitting remains dominant; October 3's unchanged
+natural trainer took 26m04s, about 365.15 MiB peak memory and zero peak swap.
+
+Five new regressions were observed failing against the old evaluator, then
+passed with the implementation; the final six-case group adds skipped-origin
+coverage. The evaluator/pipeline/artifact group passes
+252 tests. Complete reports and every fit input match a separate naive-scan
+reference, including mixed action/radiation provenance, missing intervals,
+repeated/strict cutoffs and failed fits. Tests also prove once-per-row counting,
+detached earlier evidence, skipped unscorable origins and reverse-prefix refusal.
+
+Production retains its existing 15% persistence shrinkage; the repository's
+separate raw-trajectory scoring change was **not** deployed. An isolated
+compatible copy started from installed SHA
+`aa8f380d189c0f852bee2621a0275ec5cce4ae9b0e19e675d1e20df27d91ff43`
+and changes only this import/helper and chronological-prefix bookkeeping.
+All other module AST and the model-scoring AST are unchanged. Against the
+installed v4 import tree, the complete report and all 31 fit inputs match the
+actual pre-change module, with report SHA
+`18ee5e972a0fdafcfbdea2f5ceac67e477e4c1e12f661af9675c9a3da61294ca`;
+all six prefix regressions pass there as well.
+
+At **19:41:35Z**, the existing receipt-bound engine performed an actual one-file
+`install -> original restore -> reinstall`, verified each digest and retained
+the compatible desired source and original rollback bytes at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/evaluation-prefix-20261003T1943Z/`.
+Installed evaluator SHA is
+`b5f3ba2f24b92702d95b9f0bf7147f397a8fba1fb23682f9f184d8ed9a8581f1`.
+The other 25 runtime files and all four artifact/report files are byte-identical.
+Both thermal user timers were briefly stopped and restored active/enabled;
+their original shadow deadline remains `109709716162` monotonic microseconds.
+No job was started, model refitted/relabelled, input/label published, household
+control touched or OpenHAB restarted (PID 1696 unchanged).
+
+The new publication/training runtime revision is
+`ae5310c43d833c420871a98daf6b3ae132a1f2ab49920c7b3b7b8eff27574517`;
+the accepted artifact retains its original `cd77cd16...` training revision.
+Private pre/post publication-runtime archives both verify 152 members and 121
+captures, preserving distinct training/runtime bindings:
+
+- `/home/sat/backups/earthship-energy/thermal-pre-prefix-20261003T1943Z-cd77cd16.tar.gz`,
+  SHA `3b1e4731be7a40f8b255e7621c0036c9edf573fef4ed11638097d4d184186e4c`.
+- `/home/sat/backups/earthship-energy/thermal-post-prefix-20261003T1943Z-ae5310c4.tar.gz`,
+  SHA `a828d8435d7f37ce332735898bd2344a87baa5a54f4dcedd61cdc5847bc7d106`.
+
+An independent extraction of the post-install archive imported only restored
+thermal code, matched the full new runtime revision, validated the unchanged
+accepted artifact and all 121 captures, and passed the six prefix regressions.
+The original 17:53:37Z publication also replays exactly using that restored
+runtime/capture, output SHA
+`4e1729cc5ab6ba22560847452957aa1b0ce28522d88dc90187566b96fac5a3b3`.
+It also replays from the installed runtime under the same explicit source pin;
+this is not a natural publication generated under the newer runtime. The
+temporary test/staging/extraction directories were removed; the qualified
+receipt and intentional recovery archives remain. This is cold-source/model/
+capture recovery, not a new whole-host restore rehearsal.
+The next natural publisher and October 4 06:50 MDT trainer remain the deployed
+continuity/resource/accepted-artifact gates. No accuracy or shadow-exit claim.
+Do not copy the whole repository evaluator into v4 production. To roll back
+when both workers are idle and the timer window is clear, use the existing
+receipt engine with source root `<receipt-parent>/source`, receipt directory
+`<receipt-parent>/files` and the exact one-entry manifest:
+`source=evaluation.py`,
+`target=/home/sat/openhab/scripts/thermal_model/evaluation.py`,
+`phase=code`, `mode=0644`. Stop/restore only the two thermal user timers around
+that guarded transaction; refuse later unowned edits and preserve the backups.
+
 The 400-day trainer remains shadow-only. A representative isolated two-fit
 `cProfile` run spent 2.208 seconds selecting multihorizon endpoints and
 11.614 seconds in the numerical objective/gradient. Endpoint selection

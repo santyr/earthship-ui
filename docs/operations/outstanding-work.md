@@ -1,5 +1,32 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 training-prefix optimization deployed without model changes
+
+Fit-local binary-search prefixes and cumulative provenance histograms remove
+repeated whole-history scans while preserving every strict training input and
+complete backtest report. The 115,200-row bookkeeping benchmark saves about
+six seconds; numerical fitting is still the main cost. All 252 affected tests
+and six installed-v4 regressions pass. Production's existing shrinkage is
+unchanged; the unrelated source-only scoring change was not deployed. Actual
+one-file install/restore/reinstall, pre/post private recovery inventories, all
+25 other runtime files, four model/report files and timer deadline preservation
+pass. New runtime is `ae5310c4...`, accepted training remains `cd77cd16...`.
+Verify the next natural publication and October 4's trainer; do not infer
+whole-run speedup or scientific graduation. See
+[measured scope and exact recovery](2026-09-27-thermal-selector-efficiency.md#october-3-chronological-prefix-bookkeeping-deployed).
+
+## October 3 new mature thermal outcome: long-horizon correction still gated
+
+The original predecessor now has three overlapping 24-hour pairs: MAE 4.567°F
+versus persistence 3.720°F and interval coverage 2/3. The new third miss is
+8.350°F cold, with only 4.500°F cold outdoor forcing. Exact original replay
+passes; independent closed-vent and warmer-outdoor hypotheses each recover
+less than 0.85°F and do not explain it. Only one non-overlapping 24-hour window
+exists. Today's artifact is separate: after the unchanged five-minute settlement
+gate, three near-one-hour pairs have MAE 0.565°F versus persistence 2.220°F;
+longer horizons remain unqualified. No correction, label or model graduation.
+See [original clocks, repeatable audit and residual diagnosis](2026-09-30-forecast-input-capture.md#october-3-third-original-artifact-24-hour-miss-and-settled-one-hour-pair).
+
 ## October 3 bounded shadow retry live
 
 The shadow-only user unit retries a failure after 15 minutes, with at most two
@@ -753,7 +780,7 @@ worsens it. No correction, action label or graduation is promoted. See
 | Charge/PV/trough tuning | Seven observational charge profiles are retained, but only September 30/October 1 pass shared original-publication/private-input/native-clock qualification; both are no-full/censored. Original October 1 PV is 6.58 versus qualified 6.697 kWh, but estimated dusk SoC is 74.458 versus actual 87%. Native AC timing is qualified separately, not equated to DC demand. The larger exploratory PV gain overpredicts October 1 by about 61%. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Retain no-full censoring; do not train full-charge timing from these two outcomes, backdate companions or promote a short-window fit. |
 | Pre-dusk estimate | Three qualified completed comparisons: September 29 actual/pre-dusk/morning 81/81/53%; September 30 65/64/47%; October 1 72/65/52%. MAE is 2.67 points pre-dusk versus 22 morning; all pre-dusk misses are nonpositive. The retained 65% October 1 issue follows October 2's DNS-failed morning fetch and correctly withheld pre-dusk issue. October 3's original morning inputs qualify. | Verify today's natural 17:30 MDT issue, then continue original-issue completed-night scoring and held-out analysis. Three nights are not seasonal graduation. Do not manufacture a missing issue, force an early job or repeat the completed Primal trial. |
 | Thermal collection | Exact v2 journal retains 11 action/5 receipt/4 mode rows. The signed Primal shade-closure trial, original-cipher recovery and cold journal replay pass. Approved v4 recurring user units are live: maximum one recommendation follow-up per Mountain day, five-minute completion-based inbox polls and Hex-only relay authentication. nos.lol and Primal are readable; Damus AUTH fails because of its server's unconfigured serviceUrl. Generic source gates remain false; household controls remain off. | Observe a naturally eligible recommendation/question/authenticated reply and verify original evidence before model consumption. Resolve or monitor the external Damus failure without weakening routes or using the operator key. Chat reports and relay ACKs are not labels; do not repeat completed provisioning or activation approvals. |
-| Thermal skill and efficiency | October 3 natural training finished in 26m04s, peak 365.15 MiB and zero swap. Retrospective 24-hour MAE remains 2.17855°F versus persistence 1.689895°F. The new artifact has two mature one-hour pairs (0.291°F versus 1.800°F), but no mature longer horizons. The predecessor has two overlapping 24-hour pairs, only one non-overlapping window; cold indoor misses coexist with opposite outdoor-error signs. Fixed-clock live audits repeat identically and all 124 affected tests pass. | Require chronological held-out improvement, independent-day support and genuine shade/window/skylight/action evidence before graduation. Score each original artifact separately as outcomes mature; continue measured performance optimization without weakening parity. Do not promote a blanket weather/solar correction or confuse delivery/replay qualification with learning and skill. |
+| Thermal skill and efficiency | October 3 natural training finished in 26m04s, peak 365.15 MiB and zero swap. Retrospective 24-hour MAE remains 2.17855°F versus persistence 1.689895°F. Today's artifact has three mature near-one-hour pairs (0.565°F versus 2.220°F), but no mature longer horizons at 19:06Z. Its predecessor has three overlapping 24-hour pairs (4.567°F versus 3.720°F), only one non-overlapping window and interval coverage 2/3; neither independent closed-vent nor warmer-outdoor hypotheses explains its 8.350°F cold miss. Fit-local prefix bookkeeping is deployed with exact report/fit-input parity, preserving production shrinkage and all models; 252 affected tests and six installed-v4 regressions pass. | Verify the next natural post-optimization publisher and October 4 trainer. Require chronological held-out improvement, independent-day support and genuine shade/window/skylight/action evidence before graduation. Score original artifacts separately; do not promote a blanket weather/solar correction, infer whole-run speedup from a substep benchmark or confuse delivery/replay qualification with learning and skill. |
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
 | Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; exact rollback/history/natural-source/restart gates pass. October 3 17:05Z read-only inventory has zero issues: 380 Items/79 Things/37 rules remain managed, with 65 Items/7 Things file-owned. | Qualify complete, clean source days and continue individually qualified migration. Do not repeat the completed Moon or `gForecast` restart checks or infer general protected-control authority. |
 | Supporting Energy quality | The operator accepted actual-binding fault/JVM qualification instead of deliberate household outages. The receipt-bound combined switch/BMS-aux user drop-in is deployed and effective argv/readback pass; its source pin covers 136 current inputs/18 configurations. October 2 preserves partial sources and withheld switch totals; separate qualified AC-v4 is unchanged. | Verify the October 4 approximately 00:21 MDT natural aggregate and subsequent UI publication. Preserve partial days and warnings; do not force a partial-day run, request the accepted decision again or rewrite history. |

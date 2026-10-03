@@ -1,5 +1,46 @@
 # Exact morning weather-input archive
 
+## October 3 third original-artifact 24-hour miss and settled one-hour pair
+
+The capture-strict audit at **19:01:30Z** repeats identically across two live
+reads (canonical report SHA-256
+`ba41e18d060a5d03caa59dd6c4467e8b07bffd0903c231152e69e96037704d8b`).
+It retains 16 publication rows, verifies 15 original captures and uses two
+bounded batches per sensor stream. The newly elapsed 19:00Z target remains
+withheld until the unchanged five-minute settlement gate passes.
+
+At **19:06:16.933206Z**, a subsequent real-clock read verifies all 16 captures
+and 27 qualified indoor/outdoor targets. Report SHA-256:
+`81cc294da7c10582686e70136be73cc6e3e891127e9e151615008e8558cddff7`.
+Today's `d9163729...` artifact now has three non-overlapping near-one-hour
+pairs: model MAE **0.565°F**, persistence MAE **2.220°F**, bias **−0.2503°F**.
+The original 17:53:37.617985Z forecast's 19:00Z error is **−1.113°F**, versus
+persistence **−3.060°F**; its raw outdoor forcing is **−2.180°F** cold.
+No longer-horizon target for this artifact is yet qualified. Do not assign
+its predecessor's observations to it or relax settlement to score earlier.
+
+The predecessor `2435c019...` has a third overlapping 24-hour outcome:
+original issue **October 2 17:33:05.430979Z**, target **October 3 18:00Z**.
+Its prediction is **67.210°F**, with model error **−8.350°F**, persistence
+error **−4.320°F** and outdoor forecast error **−4.500°F**. The actual falls
+outside its roughly 10.414°F-wide interval. Across all three overlapping
+24-hour pairs the model MAE is **4.567°F** versus persistence **3.720°F**,
+with interval coverage **2/3**. They still provide only one non-overlapping
+window: these are not three independent operational days.
+
+Exact as-issued replay of `20261002T173305Z-934722f199e5e15c.json.gz` passes
+under the explicitly pinned installed `cd77cd16...` runtime; original output
+SHA-256 is `934722f199e5e15cca4868f648244ba0366ba1762c5fe155f068f5d13d197c7c`.
+Independent closed-vent and uniform **+4.5°F outdoor** hypotheses move its
+24-hour estimate only **+0.796°F** and **+0.849°F**, leaving respectively
+**−7.554°F** and **−7.501°F** modeled residuals against that target. Neither
+explains this miss. The hypotheses are not combined, learned corrections,
+observed weather histories, physical action evidence or training labels.
+In particular, the later shade receipt was not available at this original
+issue. No model, artifact, journal, source gate, Item or control was changed.
+Continue joint-shade/action-input qualification and artifact-specific outcomes;
+do not promote an arbitrary offset or claim shadow graduation.
+
 ## October 3 native held-shade forcing diagnostic
 
 The source-only `hold_confirmed_shades` helper now overlays only recent,

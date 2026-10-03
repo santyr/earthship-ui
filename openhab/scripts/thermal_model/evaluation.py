@@ -1,5 +1,6 @@
 """Strictly chronological evaluation for the non-actuating thermal shadow."""
 
+from bisect import bisect_left
 from collections import Counter, defaultdict
 from datetime import timedelta, timezone
 import math
@@ -147,6 +148,44 @@ def _provenance(sample):
     if confidence >= 0.15:
         return "model_inferred"
     return "unknown"
+
+
+class _TrainingPrefixes:
+    """Fit-local chronological prefixes with once-per-row provenance counts.
+
+    Inputs are already sorted and validated by the evaluator. This changes
+    bookkeeping only: every fit still receives the same strictly earlier rows,
+    and neither fitting results nor data are cached between folds or runs.
+    """
+
+    def __init__(self, ordered, confirmed_action_rows, radiation_provenance_by_at):
+        self._ordered = ordered
+        self._times = tuple(sample.at for sample in ordered)
+        self._confirmed = confirmed_action_rows
+        self._radiation = radiation_provenance_by_at
+        self._stop = 0
+        self._action_counts = Counter()
+        self._radiation_counts = Counter()
+
+    def action_provenance(self, sample):
+        label = _provenance(sample)
+        if label == "confirmed" and sample.at not in self._confirmed:
+            return "unknown"
+        return label
+
+    def before(self, origin_at):
+        stop = bisect_left(self._times, origin_at)
+        if stop < self._stop:
+            raise ValueError("training prefixes must be chronological")
+        for sample in self._ordered[self._stop:stop]:
+            self._action_counts[self.action_provenance(sample)] += 1
+            self._radiation_counts[self._radiation[sample.at]] += 1
+        self._stop = stop
+        return (
+            self._ordered[:stop],
+            self._action_counts.copy(),
+            self._radiation_counts.copy(),
+        )
 
 
 def _recent_cycle_prediction(by_at, origin, hours, state):
@@ -447,36 +486,29 @@ def walk_forward_evaluate(samples, fit):
     confirmed_training_rows = 0
     confirmed_evaluation_targets = 0
     confirmed_disjoint_folds = 0
+    prefixes = _TrainingPrefixes(
+        ordered, confirmed_action_rows, radiation_provenance_by_at
+    )
 
     for local_day, origin in sorted(origins.items()):
         if (local_day - first_local_day).days < MIN_TRAINING_DAYS:
             continue
         if origin.at - ordered[0].at < timedelta(days=MIN_TRAINING_DAYS):
             continue
-        train = tuple(sample for sample in ordered if sample.at < origin.at)
         available = {
             hours: future
             for hours in HORIZONS_HOURS
             if (future := _continuous_future(by_at, origin, hours)) is not None
         }
-        if not train or not available:
+        if not available:
+            continue
+        train, training_provenance, training_radiation = prefixes.before(origin.at)
+        if not train:
             continue
 
-        def action_provenance(sample):
-            label = _provenance(sample)
-            if label == "confirmed" and sample.at not in confirmed_action_rows:
-                return "unknown"
-            return label
-
-        training_provenance = Counter(
-            action_provenance(sample) for sample in train
-        )
         evaluation_targets = available[max(available)]
         evaluation_provenance = Counter(
-            action_provenance(sample) for sample in evaluation_targets
-        )
-        training_radiation = Counter(
-            radiation_provenance_by_at[sample.at] for sample in train
+            prefixes.action_provenance(sample) for sample in evaluation_targets
         )
         evaluation_radiation = Counter(
             radiation_provenance_by_at[sample.at]
