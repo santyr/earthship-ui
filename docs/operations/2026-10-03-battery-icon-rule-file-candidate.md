@@ -11,6 +11,9 @@ Managed action SHA-256:
 It has one `0/30 * * * * ?` cron trigger and no conditions. The complete action
 is retained byte-for-byte inside `automation/js/battery-icon.js`; complete source
 SHA-256: `bc6c0954b232902d4b5af444b6381cf5c8ea4af062aa5a12b8195de364729b45`.
+The exact original action includes a whitespace-only line (file line 107).
+Its expected trailing-whitespace diff warning is retained deliberately; stripping
+it would change the byte-preservation/source pins, not improve runtime behavior.
 
 | Item | Role | Preserved type |
 | --- | --- | --- |
