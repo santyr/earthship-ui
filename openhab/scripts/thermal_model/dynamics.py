@@ -198,26 +198,24 @@ def _eligible_daily_endpoints_from_prepared(prepared, horizon_steps):
         run_length = run_lengths[origin_index]
         if run_length < horizon_steps:
             continue
-        forcings = ordered[
-            origin_index + 1:origin_index + horizon_steps + 1
-        ]
-        endpoint = RolloutEndpoint(
-            origin=origin,
-            forcings=forcings,
-            target=forcings[-1],
-            confidence=prefix_minimum[origin_index],
-        )
         local_day = origin.at.astimezone(SITE_TIMEZONE).date()
         current = best_by_day.get(local_day)
         candidate_key = (-run_length, origin.at)
         if current is None or candidate_key < current[0]:
-            best_by_day[local_day] = (candidate_key, endpoint)
-    return tuple(
-        value[1]
-        for _, value in sorted(
-            best_by_day.items(), key=lambda entry: entry[1][1].origin.at
-        )
-    )
+            best_by_day[local_day] = (candidate_key, origin_index)
+
+    # Validation and daily ranking are complete. Materialize only the retained
+    # prefixes, not every eligible timestamp that will immediately be discarded.
+    endpoints = []
+    for _, origin_index in sorted(best_by_day.values(), key=lambda value: ordered[value[1]].at):
+        forcings = ordered[origin_index + 1:origin_index + horizon_steps + 1]
+        endpoints.append(RolloutEndpoint(
+            origin=ordered[origin_index],
+            forcings=forcings,
+            target=forcings[-1],
+            confidence=prefix_minimum[origin_index],
+        ))
+    return tuple(endpoints)
 
 
 def _eligible_daily_endpoints(samples, horizon_steps, inactive_features=()):

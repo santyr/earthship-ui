@@ -1,5 +1,71 @@
 # Thermal endpoint-selector efficiency — September 27
 
+## October 3 deferred daily-endpoint materialization deployed
+
+The next measured selector cost was constructing a `RolloutEndpoint` and its
+up-to-288-row prefix for every eligible timestamp, then discarding almost all
+of them during daily ranking. The selector now retains each winning index,
+then materializes just the selected daily prefixes. Complete row validation,
+contiguity/forcing eligibility, confidence minima, longest-run/earliest-origin
+ranking, local-day assignment and final chronological order are unchanged.
+No training input, horizon, solver, equation or acceptance gate changes.
+
+The new allocation regression fails on the actual old implementation: **576
+endpoints constructed for three returned daily origins**. Twenty-three new
+cases cover an independent eager reference at all five horizons, missing rows,
+unknown actions, inactive solar, confidence minima, Mountain local midnight and
+fall DST, empty/short inputs, refusal behavior and complete-fit equality.
+The dynamics/glazing/selector group passes **95 tests** and the pipeline/v2/
+artifact/selector group **254 tests** (326 distinct cases). These synthetic
+DST cases do not replace a live winter qualification.
+
+Two interleaved 400-day comparisons retain identical origin/target/forcing
+objects and confidences at every horizon. Selector-only times are
+**0.892159 / 0.884018 seconds** before and **0.359813 / 0.353040 seconds**
+after. Complete fits take **4.071683 / 4.083921 seconds** before and
+**3.541060 / 3.543602 seconds** after: approximately **13% further improvement
+for this isolated synthetic fit**, not a measured whole-run speedup or a
+percentage to add to the previous optimization. Complete fit SHA remains
+`3ca0ce06a668d4e17e0e7a345a01c9e28208a1478fa423560b281cadac5eb739`.
+
+The compatible v4 backport changes only `_eligible_daily_endpoints_from_prepared`;
+all other installed module AST is identical. Its 30-day complete-fit SHA remains
+`754def4eb21d19a31f2e3ab894b40ea8f356843286517c5ba8b54fc58b3da091`,
+and all 30 new selector/prior-glazing cases pass against that actual candidate.
+Original file SHA is `adc2908c357f4ace67857fb50fa744a0c1130dd30db7a360368d75afe811d85b`;
+installed SHA is `24d7b3039ec46346c46ee49acf06a0967f14076c8bff0107eefb4981f0fdd719`.
+At **21:45:02.801952Z**, actual receipt-bound install/original restore/reinstall
+passed. Private source, rollback bytes, transaction code and timer/source/model
+receipts remain at
+`/home/sat/.local/state/thermal-intel/deploy-receipts/endpoint-materialization-20261003T2146Z/`.
+All 25 other files, four models/reports, OpenHAB PID 1696 and original shadow
+deadline are unchanged. Both user timers are active/enabled; no job, household
+control, label, model refit or OpenHAB restart was started. The transaction
+explicitly refuses application at/after 21:50Z, ahead of the natural publisher.
+
+Current runtime is
+`15267d7af9323d7c23dc14d6b3c5526515195474ab983e004b101c66e656cb8c`,
+superseding `ccddda9b...` before its first natural publication; accepted training
+still retains `cd77cd16...`. Reuse the qualified post-glazing archive below as
+the exact preimage recovery point; no redundant preimage archive was created.
+The new private postimage archive is
+`/home/sat/backups/earthship-energy/thermal-post-endpoint-20261003T2145Z-15267d7a.tar.gz`,
+SHA `d638c6a6a9a81eb00eca58edb87b7a7a07939c199c112dfffc5c4ab7ee575125`.
+Creation and independent verification agree on 153 members and 122 captures.
+Independent cold imports match the new runtime, validate the unchanged typed
+eligible artifact and all 122 captures, reproduce the unchanged 30-day fit,
+and pass all 30 regressions. The original 19:53:38Z forecast replays exactly
+from cold code, output SHA
+`2a5f3d2bc4eb195dbc45bd4a193f81866b400a429834753eefb7ce05c6d033c0`.
+The two owned temporary compatibility/extraction directories were removed;
+the qualified private transaction and recovery archives remain.
+
+Rollback uses this receipt parent and the same guarded single-entry `dynamics.py`
+manifest documented below, with both workers idle and only their timers briefly
+stopped/restored. Retain the qualified private evidence. The **21:53Z natural
+publisher** and **October 4 06:50 MDT trainer** remain production continuity/
+resource/accepted-artifact gates; no accuracy or shadow-exit claim is made.
+
 ## October 3 fit-local glazing-row reuse deployed
 
 A deterministic 400-day, 114,624-training-row profile found `_glazing_rows`
