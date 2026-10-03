@@ -52,7 +52,7 @@ The actual production-state **read-only** check reported `eligible=false`,
 `release_ready=false`, `start_requested=false`. This is a valid negative check,
 not proof of a successful live recovery. OpenHAB remained active, PID 1696.
 
-## Release remains pending
+## Initial source checkpoint
 
 No production script, unit, timer, state or source release flag was changed.
 Candidate forecast SHA-256:
@@ -68,3 +68,49 @@ next natural original issue. Rebuild supporting-Energy source/consumer pins if
 this forecast source changes. Do not run an early issue, backfill October 2,
 change prediction coefficients, activate notifications or label a fixture as
 live forecast evidence to close this gate.
+
+## October 3, 09:05Z — disabled production handoff and rollback passed
+
+The subsequent `scripts/forecast-recovery-files.py` adapter uses the existing
+secure file engine for the exact two code files and three user unit files.
+It requires idle forecast/JSON jobs, unchanged original policies, active original
+timers and a 120-second clear timer window. It never starts jobs, enables timers
+or overrides the recovery release flag. Private original policy archives and
+the exact old script/absent-target preimages precede installation. Changed
+sources, policies, modes, archives, targets or effective unit commands refuse.
+
+All **260** recovery/forecast/adapter/file-engine tests pass without skips.
+An added effective-unit test initially had a mock argument mismatch; that was
+corrected and all positive/negative cases rerun. The actual prepared bundle
+passed original/candidate/restored systemd parsing and interrupted code/unit
+replacement recovery in temporary targets. Those targets were removed.
+The real production sequence then passed:
+
+`disabled install -> exact original rollback -> disabled reinstall`
+
+Readback verifies the original service FragmentPath, effective command and
+four original policy drop-ins, plus only the new failure-target drop-in.
+Rollback restored original forecast SHA `943c09d4...`, removed both recovery
+units/helper and cleared `OnFailure`. Reinstallation matches both candidate
+code hashes above. Recovery service/timer are inactive/static, not enabled at
+startup. Both original forecast timers remain active; the daily job is still
+scheduled for 06:40 MDT. Forecast state stayed byte-identical throughout:
+`26987242320a094645ea8c06e223e3d7405aea5a9558aada842777e28d94c23f`.
+The installed helper check reports eligibility, release and start all false.
+No forecast job, DM, Item write, training or OpenHAB restart was performed.
+OpenHAB remains active at PID 1696.
+
+Retained private receipt:
+`/home/sat/.local/state/forecast-intel/deploy-receipts/fetch-20261003T090000Z-bd0c92ae`.
+Qualification SHA-256:
+`3967ea4affe575e4a1bd00f79a47f8ee4cda7740a971ac3d549e8da6c6513fd1`.
+Adapter SHA-256:
+`6a78b1217fdb7e054a9503f93e77c721c1d01d05f1b826d700ec2c1f2fc3726f`.
+
+This closes actual file/service-manager handoff and rollback, **not** automatic
+recovery activation or a natural new forecast issue. Next: bounded release-gate
+activation with the policy unchanged, then natural 06:40 publication/state
+verification. No further rehearsal of this unchanged bundle is required.
+The supporting-Energy prepared receipt correctly refuses its now-changed
+canonical input pins; prepare/rehearse a new receipt once its separate
+qualification decision is resolved.

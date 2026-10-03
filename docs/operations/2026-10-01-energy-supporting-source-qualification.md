@@ -1,5 +1,14 @@
 # Energy supporting-source qualification — October 1
 
+## October 3 source-pin follow-through
+
+The later forecast-fetch source/instrumentation changes invalidate the earlier
+135-input receipt below. Its read-only `verify` now correctly refuses with
+`ValueError`; no supporting-quality target was installed. The release gate
+remains off. Preserve the old recovery point, but prepare/rehearse a **new**
+receipt under current source pins after the outstanding qualification decision.
+The earlier result below is historical, not a current live-apply authorization.
+
 ## October 2 prepared daily-quality handoff and rollback
 
 The default-off `scripts/energy-quality-files.py` adapter is now implemented
