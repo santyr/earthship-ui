@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 combined Energy daily-quality source candidate
+
+The existing staged switch drop-in now also forwards both BMS auxiliary
+policy/reader arguments, preserving power/temperature flags and writer/read
+separation. All 84 affected source/unit/scheduled/reader tests plus two actual
+disposable producer-to-SQL/grant-withdrawal integrations pass. The actual unit
+and old drop-ins parse in temporary original/candidate/restored phases without
+changing live files. The candidate remains uninstalled; physical-source fault
+qualification, exact guarded handoff and natural aggregate/UI checks stay open.
+The fresh full ownership census has zero issues: the BMS runtime input
+manifest gap was already closed, and all 16 unlinked structural candidates
+belong to out-of-scope Lightning Goats. No new declaration or production
+configuration was changed. See [combined candidate qualification](2026-10-01-energy-supporting-source-qualification.md#october-2-combined-daily-unit-source-candidate).
+
 ## October 2 evening mature thermal target and efficient audit
 
 The current artifact's first mature near-12-hour prediction is 1.061°F warm,

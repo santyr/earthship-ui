@@ -1,5 +1,32 @@
 # Energy supporting-source qualification — October 1
 
+## October 2 combined daily-unit source candidate
+
+The trusted Solar_PV repository's existing, **uninstalled**
+`deploy/systemd/user/energy-daily-aggregate.service.d/zz-qualified-switch.conf`
+now adds both BMS auxiliary arguments as well as both switch arguments. It
+preserves current power/temperature flags, separate aggregate writer and
+restricted evidence reader, source paths, original lock and previous-day
+selection. SHA-256 is
+`6a12658f41ba8e6b32e6543681cfd05676f5c4830a6e6f20f62b4f9b40d5a5e5`.
+Two regressions reproduced missing BMS arguments, then passed. All 84 affected
+unit/scheduled/CLI/source-quality/reader tests pass, plus two actual disposable
+producer/SQL/grant-withdrawal integrations. Their simulated faults do not
+qualify a physical household outage.
+
+Temporary copies of the actual daily unit and its existing two drop-ins pass
+the user-systemd parser in original/candidate/restored phases. Original copied
+bytes and live files remain unchanged; no daemon reload, service/timer start,
+database snapshot write, publisher opt-in or physical action occurred. Test
+storage and containers are removed. This closes combined source-unit syntax
+and argument forwarding, not a production cutover or natural writer gate.
+
+Independent physical-source fault qualification and exact private rollback/
+guarded live handoff remain. Keep the prior full-day/parity and October 2
+actual JVM recovery evidence below, preserve partial days, then verify the
+next natural aggregate/UI output after any eligible release. Publisher BMS
+live-health opt-in is separate; qualified AC/EFC accounting is unchanged.
+
 ## Scope
 
 Read-only completed-day qualification at `2026-10-01T19:05:14.338649Z` closes
