@@ -527,6 +527,14 @@ Current candidate source identities:
 
 ### October 2 approved one-question trial — sent, reply pending
 
+October 3 10:37Z follow-through: the approved bounded poll completed (exit 3)
+with `accepted=0`, `operator_read_verified=false`, one relay failure and one
+withheld message. The existing refusal now reports `due=0`, `pending=1` and
+`next_retry_at=2026-10-03T11:37:56+00:00`; respect that future deadline.
+Independent read-only ledger counts remain one question and zero authenticated
+receipts. Both permanent units remain not-found/inactive. Repeated trial
+approval does not authorize a duplicate question or supply an action reply.
+
 The operator personally reported closing all physical indoor shades at 12:30
 MDT on October 2, reviewed the exact rendered question, and approved one
 bounded Primal trial. The chat report is **not** a training label. Only an
