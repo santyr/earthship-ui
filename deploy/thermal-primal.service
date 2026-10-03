@@ -5,9 +5,9 @@ Description=Earthship bounded Primal thermal reply collector (release-gated)
 Type=oneshot
 UMask=0077
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=PYTHONPATH=/home/sat/.local/libexec/earthship-thermal/primal-v1/code
+Environment=PYTHONPATH=/home/sat/.local/libexec/earthship-thermal/primal-v2/code
 EnvironmentFile=/home/sat/.config/hex/thermal-primal.env
-ExecStart=/home/sat/.local/libexec/earthship-thermal/primal-v1/venv/bin/python /home/sat/.local/libexec/earthship-thermal/primal-v1/code/thermal_primal.py --poll-replies --policy /home/sat/.config/hex/thermal-primal/policy.json --routes /home/sat/.config/hex/thermal-primal/routes.json --state-dir /home/sat/.local/state/thermal-primal --nak ${EARTHSHIP_PRIMAL_NAK} --nak-sha256 ${EARTHSHIP_PRIMAL_NAK_SHA256} --nak-version ${EARTHSHIP_PRIMAL_NAK_VERSION}
+ExecStart=/home/sat/.local/libexec/earthship-thermal/primal-v1/venv/bin/python /home/sat/.local/libexec/earthship-thermal/primal-v2/code/thermal_primal.py --poll-replies --policy /home/sat/.config/hex/thermal-primal/policy.json --routes /home/sat/.config/hex/thermal-primal/routes.json --state-dir /home/sat/.local/state/thermal-primal --nak ${EARTHSHIP_PRIMAL_NAK} --nak-sha256 ${EARTHSHIP_PRIMAL_NAK_SHA256} --nak-version ${EARTHSHIP_PRIMAL_NAK_VERSION}
 TimeoutStartSec=360
 TimeoutStopSec=10
 KillMode=control-group
@@ -20,3 +20,5 @@ StandardError=journal
 
 # No Install section: only the separately reviewed timer schedules this unit.
 # Do not install/start until exact signer, routes, storage and restore gates pass.
+# v2 code includes the successful authenticated trial's default-sink fix.
+# The unchanged v1 venv supplies the two hash-pinned dependencies only.

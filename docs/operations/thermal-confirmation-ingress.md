@@ -249,6 +249,12 @@ pending failed message is not a way to abandon or rewrite its receipt.
 
 ## Required production acceptance; still open
 
+October 3 recurring-policy approval and current qualification status are in
+[recurring confirmations](2026-10-03-thermal-recurring-confirmations.md). Automatic
+questions are limited to published recommendations and at most one per Mountain
+day. This observational approval does not enable actuator access; the permanent
+collector remains off until its exact runtime and recovery checks pass.
+
 Run the full existing repository suites plus `python3 -m pytest tests/completion/ -q`.
 Then qualify the exact approved nak/keyer and PostgreSQL implementation in isolation:
 

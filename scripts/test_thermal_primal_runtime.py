@@ -45,6 +45,28 @@ def test_existing_release_is_never_overwritten(tmp_path):
     assert marker.read_bytes() == b'existing deployment' and list(target.iterdir()) == [marker]
 
 
+def test_recurring_unit_selects_trialled_v2_code_without_automatic_questions():
+    unit = (ROOT/'deploy/thermal-primal.service').read_text()
+    lines = unit.splitlines()
+    argv = next(line.removeprefix('ExecStart=') for line in lines if line.startswith('ExecStart='))
+    assert argv.startswith('/home/sat/.local/libexec/earthship-thermal/primal-v1/venv/bin/python '
+                           '/home/sat/.local/libexec/earthship-thermal/primal-v2/code/thermal_primal.py ')
+    assert 'Environment=PYTHONPATH=/home/sat/.local/libexec/earthship-thermal/primal-v2/code' in lines
+    assert '--poll-replies' in argv and '--send-prompts' not in argv
+    assert '--process-reply' not in argv and '--relay-auth' not in argv
+    assert '[Install]' not in lines
+    for setting in ('UMask=0077', 'NoNewPrivileges=true', 'MemoryMax=192M',
+                    'TimeoutStartSec=360', 'TimeoutStopSec=10', 'KillMode=control-group'):
+        assert setting in lines
+
+
+def test_poll_timer_waits_after_completion_and_does_not_catch_up():
+    lines = (ROOT/'deploy/thermal-primal.timer').read_text().splitlines()
+    assert 'OnUnitInactiveSec=5min' in lines and 'Persistent=false' in lines
+    assert 'Unit=thermal-primal.service' in lines
+    assert not any(line.startswith(('OnCalendar=', 'OnUnitActiveSec=')) for line in lines)
+
+
 @pytest.mark.parametrize('change', ['gate', 'symlink', 'syntax'])
 def test_invalid_source_refuses_before_destination_creation(tmp_path, change):
     runtime = load_runtime()

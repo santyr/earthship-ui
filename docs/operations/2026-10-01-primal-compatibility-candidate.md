@@ -525,6 +525,13 @@ Current candidate source identities:
 
 ## Remaining work before a live Primal collector
 
+The operator approved automatic follow-ups to recorded recommendations, at most
+once per Mountain day, on October 3. The repaired recurring runtime, default-off
+selector/reservation candidate and remaining integration/recovery work are
+tracked in [recurring confirmations](2026-10-03-thermal-recurring-confirmations.md).
+The permanent collector remains off; this approval does not reopen the completed
+one-question trial or authorize another trial DM.
+
 ### October 2 approved one-question trial — authenticated and recovered October 3
 
 After the operator reported sending the explicitly dated reply, the approved
