@@ -1,5 +1,37 @@
 # Exact morning weather-input archive
 
+## October 3 fifth settled short-horizon outcome
+
+At the fixed **23:50:20.245458Z** assessment, the original
+**21:53:55.878437Z -> 23:00Z** prediction qualifies from its exact capture
+and native indoor/outdoor receipts. The `d9163729...` model is **2.009 F
+high**, versus persistence **0.720 F high** and the seven-cycle comparator
+**0.540 F high**. This is today's first short-horizon model loss to both
+comparators, not a delivery or source-freshness failure. Its outdoor forcing
+is **2.360 F high**; this association alone does not identify the cause.
+The unchanged 10.414 F interval covers the target. Cycle lags are 1–7,
+evidence digest
+`31bfba32f3d1fce46bd6c104512101d0578dbe40b39b8943bf53329ad7d1170d`.
+
+A bounded same-artifact audit now includes five non-overlapping one-hour
+pairs: model/cycle/persistence MAE **0.7458 / 0.9000 / 1.6920 F**, model
+bias **+0.2466 F**, with four model wins and one loss against each comparator.
+These remain five same-day windows, not five independent days. The latest
+loss materially narrows the earlier advantage; retain it in tuning and do
+not promote from the preceding four wins or from broad interval coverage.
+Long-horizon, seasonal and genuine action-outcome gates remain unchanged.
+
+Reproduce with the existing capture/pair/recent-cycle/installed-runtime and
+full `d9163729...` artifact options below, `--since 2026-10-03T13:00:00Z`,
+`--until 2026-10-03T22:30:00Z`,
+`--assessed-at 2026-10-03T23:50:20.245458Z`, and `--horizons 1`.
+Canonical full report SHA-256:
+`04802e22dc86cc28d6e55fe32a856733a4dfdbbda56b68396d197bd9e9665f54`.
+Five captures and five indoor/outdoor targets qualify in two outcome batches;
+the cycle baseline uses 70 historical targets in 35 bounded batches. No
+training, coefficient, artifact, label, notification or control changed;
+no temporary diagnostic remains.
+
 ## October 3 second settled six-hour outcome
 
 At **22:19:03.064431Z**, the original `d9163729...` prediction issued at
