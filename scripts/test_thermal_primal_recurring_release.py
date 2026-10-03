@@ -142,3 +142,48 @@ def test_bad_pin_or_arguments_never_echo_private_values(profile, capsys):
     with pytest.raises(SystemExit):
         release.main(['--run', '--arbitrary-command', 'synthetic-secret'])
     assert 'synthetic-secret' not in capsys.readouterr().err
+
+
+def authenticated_profile(bundle, *, enabled=True):
+    release, path, manifest, _ = bundle
+    manifest.update(version=2, relay_authentication=dict(enabled=enabled,
+                                                        relays=list(release.APPROVED_RELAYS)))
+    write(path, manifest)
+    return release, path, manifest
+
+
+@pytest.mark.parametrize('enabled', [False, True])
+def test_auth_is_selected_only_by_the_exact_pinned_profile(profile, monkeypatch, enabled):
+    release, path, value = authenticated_profile(profile, enabled=enabled)
+    assert verify(profile)[0] == value
+    calls = []
+    cli = SimpleNamespace(n=SimpleNamespace(PRIMAL_RELEASE_READY=False), main=lambda args:calls.append(args) or 0)
+    monkeypatch.setattr(release, 'preflight', lambda *args:(cli, SimpleNamespace(AUTOMATIC_RELEASE_READY=False)))
+    assert release.main(['--run', '--profile', str(path),
+                         '--profile-sha256', sha256(path.read_bytes()).hexdigest()]) == 0
+    assert ('--relay-auth' in calls[0]) is enabled
+    assert '--send-prompts' not in calls[0] and '--process-reply' not in calls[0]
+
+
+@pytest.mark.parametrize('change', ['string', 'integer', 'other_relay', 'duplicate', 'extra', 'v1'])
+def test_auth_consent_cannot_be_coerced_or_expanded(profile, change):
+    release, path, value = authenticated_profile(profile)
+    auth = value['relay_authentication']
+    if change == 'string': auth['enabled'] = 'true'
+    elif change == 'integer': auth['enabled'] = 1
+    elif change == 'other_relay': auth['relays'][0] = 'wss://unapproved.example'
+    elif change == 'duplicate': auth['relays'].append(auth['relays'][0])
+    elif change == 'extra': auth['operator_signer'] = True
+    elif change == 'v1': value['version'] = 1
+    write(path, value)
+    with pytest.raises(ValueError): verify(profile)
+
+
+@pytest.mark.parametrize('side', ['collector', 'operator'])
+def test_runtime_routes_cannot_expand_auth_consent(profile, side):
+    release, _, value = authenticated_profile(profile)
+    routes = {value['collector']:release.APPROVED_RELAYS, value['operator']:release.APPROVED_RELAYS}
+    obj = SimpleNamespace(routes=routes, for_recipient=lambda identity:routes[identity])
+    release.verify_auth_routes(value, obj)
+    routes[value[side]] = (*release.APPROVED_RELAYS, 'wss://unapproved.example')
+    with pytest.raises(ValueError): release.verify_auth_routes(value, obj)

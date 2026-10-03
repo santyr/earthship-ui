@@ -66,22 +66,24 @@ def test_private_environment_accepts_only_the_separate_assessor_addition(tmp_pat
     assert not (tmp_path/'refused.env').exists()
 
 
-def test_recurring_unit_selects_only_the_pinned_approved_v3_entrypoint():
+def test_recurring_unit_selects_only_the_pinned_approved_authenticated_entrypoint():
     unit = (ROOT/'deploy/thermal-primal.service').read_text()
     lines = unit.splitlines()
     argv = next(line.removeprefix('ExecStart=') for line in lines if line.startswith('ExecStart='))
     assert argv.startswith('/home/sat/.local/libexec/earthship-thermal/primal-v1/venv/bin/python '
-                           '/home/sat/.local/libexec/earthship-thermal/primal-v3/run-recurring.py ')
-    assert 'Environment=PYTHONPATH=/home/sat/.local/libexec/earthship-thermal/primal-v3/code' in lines
+                           '/home/sat/.local/libexec/earthship-thermal/primal-v4/run-recurring.py ')
+    assert 'Environment=PYTHONPATH=/home/sat/.local/libexec/earthship-thermal/primal-v4/code' in lines
     assert 'EnvironmentFile=/home/sat/.config/hex/thermal-primal-followup.env' in lines
     command = shlex.split(argv)
     assert command[2:5] == ['--run', '--profile',
-                           '/home/sat/.config/hex/thermal-primal/recurring-v3-profile.json']
+                           '/home/sat/.config/hex/thermal-primal/recurring-v4-auth-profile.json']
     assert len(command) == 7 and command[5] == '--profile-sha256'
     assert re.fullmatch('[0-9a-f]{64}', command[6])
     template = (ROOT/'deploy/thermal-primal-recurring.service.in').read_text()
     assert template.count('@PROFILE_SHA256@') == 1
-    assert template.replace('@PROFILE_SHA256@', command[6]) == unit
+    rendered = template.replace('primal-v3/', 'primal-v4/').replace(
+        'recurring-v3-profile.json', 'recurring-v4-auth-profile.json').replace('@PROFILE_SHA256@', command[6])
+    assert rendered == unit
     assert '--poll-replies' not in argv and '--send-prompts' not in argv
     assert '--process-reply' not in argv and '--relay-auth' not in argv
     assert '[Install]' not in lines

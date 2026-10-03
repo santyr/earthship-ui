@@ -42,6 +42,15 @@ def require(condition, reason):
         raise t.Refused(reason)
 
 
+def auth_required_reason(reason):
+    """Recognize NIP-42 and Damus's observed ERROR-prefixed challenge reason.
+
+    Never match arbitrary embedded text or relax authentication/route consent.
+    Existing one-challenge, deadline and frame limits still apply.
+    """
+    return reason.startswith(('auth-required:', 'ERROR: auth-required:'))
+
+
 def collector_public_key(value: str) -> str:
     """Normalize CLI input only; signed events and policy files stay strict hex.
 
@@ -267,7 +276,7 @@ class Relay:
                             if message[2]:
                                 return
                             # NIP-42 relays may reject the first EVENT before AUTH finishes.
-                            if self.auth and (auth_id is not None or not challenged) and message[3].startswith('auth-required:'):
+                            if self.auth and (auth_id is not None or not challenged) and auth_required_reason(message[3]):
                                 continue
                             raise t.Retryable('relay did not accept encrypted event')
                 raise t.Retryable('relay response budget exceeded')
@@ -364,7 +373,7 @@ class Relay:
                                 and isinstance(message[2], str), 'malformed inbox closure')
                         # NIP-42 allows AUTH to arrive before or after CLOSED.
                         # Wait for at most one explicitly approved challenge.
-                        if self.auth and message[2].startswith('auth-required:') and not authenticated:
+                        if self.auth and auth_required_reason(message[2]) and not authenticated:
                             continue
                         raise t.Retryable('inbox subscription closed')
                     elif message[0] == 'EVENT':

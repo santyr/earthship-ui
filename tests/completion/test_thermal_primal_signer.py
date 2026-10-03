@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import threading
+import time
 
 import pytest
 
@@ -67,3 +68,39 @@ def test_primal_relay_authentication_requires_explicit_permission_and_actual_sig
             with pytest.raises(t.Refused): relay.publish(url,event)
             assert messages==[['EVENT',event]]
         server.shutdown(); worker.join(timeout=3)
+
+
+@pytest.mark.parametrize('reason', ['auth-required: restricted', 'ERROR: auth-required: restricted'])
+@pytest.mark.parametrize('closure_first', [False, True])
+def test_primal_inbox_finishes_auth_after_initial_subscription_closure(
+        codec, monkeypatch, reason, closure_first):
+    monkeypatch.setattr(n, 'PRIMAL_RELEASE_READY', True)
+    frames = []
+    def handler(ws):
+        request = json.loads(ws.recv(timeout=3)); frames.append(request)
+        challenge = ['AUTH', 'synthetic-inbox-challenge']
+        closed = ['CLOSED', request[1], reason]
+        for frame in ((closed, challenge) if closure_first else (challenge, closed)):
+            ws.send(t.canonical(frame).decode())
+        response = json.loads(ws.recv(timeout=3)); frames.append(response)
+        assert response[0] == 'AUTH'
+        signed = response[1]; codec.keyer.verify(signed, 22242)
+        assert signed['pubkey'] == C and signed['content'] == ''
+        assert signed['tags'] == [['relay', url], ['challenge', 'synthetic-inbox-challenge']]
+        ws.send(t.canonical(['OK', signed['id'], True, 'accepted']).decode())
+        repeated = json.loads(ws.recv(timeout=3)); frames.append(repeated)
+        assert repeated == request
+        ws.send(t.canonical(['EOSE', repeated[1]]).decode())
+    with local_server(handler) as server:
+        worker = threading.Thread(target=server.serve_forever, daemon=True); worker.start()
+        url = f'ws://127.0.0.1:{server.socket.getsockname()[1]}'
+        relay = n.PrimalRelay(codec.keyer, C, frozenset({O}), auth=True, local_test=True)
+        assert relay.fetch(url, since=int(time.time())-60) == []
+        assert len(frames) == 3 and frames[0] == frames[2]
+        server.shutdown(); worker.join(timeout=3)
+
+
+@pytest.mark.parametrize('reason', ['ERROR: blocked: forbidden', 'not auth-required:',
+                                    'ERROR: ERROR: auth-required: nested', 'AUTH-REQUIRED:'])
+def test_auth_reason_compatibility_does_not_match_other_errors(reason):
+    assert m.auth_required_reason(reason) is False

@@ -23,6 +23,8 @@ FILES = ('launcher', 'verifier', 'credentials', 'followup_policy', 'base_policy'
          'routes', 'qualification')
 FIELDS = {'version', 'scope', 'runtime', 'runtime_manifest_sha256', 'state_dir',
           'interpreter', 'interpreter_sha256', 'collector', 'operator', 'signer', *FILES}
+AUTH_FIELD = 'relay_authentication'
+APPROVED_RELAYS = ('wss://nos.lol', 'wss://relay.damus.io', 'wss://relay.primal.net')
 
 
 class Parser(argparse.ArgumentParser):
@@ -86,9 +88,14 @@ def verify_profile(path, pin):
     raw = read(path)
     require(sha256(raw).hexdigest() == digest(pin))
     profile = document(raw)
-    require(isinstance(profile, dict) and set(profile) == FIELDS
-            and type(profile['version']) is int and profile['version'] == 1
+    require(isinstance(profile, dict) and type(profile.get('version')) is int
+            and profile['version'] in (1, 2)
+            and set(profile) == (FIELDS if profile['version'] == 1 else FIELDS | {AUTH_FIELD})
             and profile['scope'] == SCOPE)
+    if profile['version'] == 2:
+        auth = profile[AUTH_FIELD]
+        require(isinstance(auth, dict) and set(auth) == {'enabled', 'relays'}
+                and type(auth['enabled']) is bool and auth['relays'] == list(APPROVED_RELAYS))
     root = private_path(profile['runtime'], directory=True)
     private_path(profile['state_dir'], directory=True)
     require(profile['collector'] != profile['operator'])
@@ -155,14 +162,24 @@ def preflight(profile, qualification):
     args = argparse.Namespace(policy=Path(profile['base_policy']['path']),
         routes=Path(profile['routes']['path']), nak=Path(profile['signer']['path']),
         nak_sha256=profile['signer']['sha256'], nak_version=profile['signer']['version'])
-    policy, _, _ = cli.configuration(args)
+    policy, routes, _ = cli.configuration(args)
     require(policy.recipient == profile['collector'] and policy.operators == {profile['operator']})
+    verify_auth_routes(profile, routes)
     followup.load_configuration(read(profile['followup_policy']['path']), now=cli.utc_now())
     followup.reader_dsn()
     # Schema audit only. This gate alone cannot publish or ingest a message.
     journal.V2_WRITE_RELEASE_READY = True
     cli.t.JournalSink().require_v2_storage()
     return cli, followup
+
+
+def verify_auth_routes(profile, routes):
+    if profile['version'] == 2:
+        # AUTH applies to the shared relay transport. Bind both incoming and
+        # outgoing routes, so a future signed list cannot expand this consent.
+        require(set(routes.routes) == {profile['collector'], profile['operator']}
+                and all(set(routes.for_recipient(identity)) == set(APPROVED_RELAYS)
+                        for identity in routes.routes))
 
 
 def main(argv=None):
@@ -183,11 +200,14 @@ def main(argv=None):
             return 0
         cli.n.PRIMAL_RELEASE_READY = True
         followup.AUTOMATIC_RELEASE_READY = True
-        return cli.main(['--follow-recommendations', '--policy', profile['base_policy']['path'],
+        command = ['--follow-recommendations', '--policy', profile['base_policy']['path'],
             '--routes', profile['routes']['path'], '--state-dir', profile['state_dir'],
             '--followup-config', profile['followup_policy']['path'],
             '--nak', profile['signer']['path'], '--nak-sha256', profile['signer']['sha256'],
-            '--nak-version', profile['signer']['version']])
+            '--nak-version', profile['signer']['version']]
+        if profile['version'] == 2 and profile[AUTH_FIELD]['enabled']:
+            command.append('--relay-auth')
+        return cli.main(command)
     except Exception:
         print('recurring thermal release refused; profile or recovery not qualified', file=sys.stderr)
         return 2

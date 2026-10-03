@@ -8,18 +8,81 @@ approval for observational collection, not actuator access, model promotion,
 inferred compliance, or new thermal advice. No further policy approval is needed
 for this scope; the remaining work is implementation and release qualification.
 
-**Deployed October 3 at 10:26 MDT; relay degradation remains.** The user timer is
-enabled with five-minute completion-based polling. Its first invocation selected
-`followup_status=idle`, sent no question, and retained the authentic trial.
-It exited 3 because Damus required explicitly approved NIP-42 authentication.
-Read-only relay probes independently verified that nos.lol returned two events
-and relay.primal.net was readable with zero events. Authentication remains off;
-an operator decision is pending. Do not describe this as all-relay healthy or
-proof of a new automatic question/reply. The timer continues retrying without
-overlap. See [the trial evidence](2026-10-01-primal-compatibility-candidate.md).
+**Deployed October 3; authentication enabled at 10:55 MDT.** The user timer is
+enabled with five-minute completion-based polling. Automatic advice selection
+remains idle, no new question was sent, and the authentic trial is preserved.
+The operator explicitly approved Hex NIP-42 authentication on all three existing
+relays. nos.lol and Primal are readable. Damus now receives the signed challenge
+but rejects it with a server configuration error; the collector correctly
+reports this degraded route instead of claiming all-relay health. It continues
+retrying without overlap. See [the trial evidence](2026-10-01-primal-compatibility-candidate.md).
 
 The sections below retain dated preparation evidence. Their inactive/unchanged
 SQLite statements describe those earlier checks, not the current deployment.
+
+## Approved relay authentication and compatibility fix — October 3
+
+The version-2 release profile explicitly enables authentication on only
+`wss://nos.lol`, `wss://relay.damus.io` and `wss://relay.primal.net`. It binds both
+collector and operator signed route inventories to that exact set; adding an
+endpoint, coercing the boolean or passing a CLI/environment override refuses.
+Only Hex signs AUTH. No operator key, bunker change, public note, new DM or
+household actuator is involved. Version-1 profiles remain unauthenticated and
+the original complete v3 rollback bundle remains intact.
+
+The real Damus exchange exposed an exact protocol compatibility failure: its
+initial CLOSED reason is `ERROR: auth-required: requested filter requires
+authentication`, not the unprefixed `auth-required:` expected by the client.
+The bounded transport now recognizes those two exact prefixes only, without
+loosening its one-challenge, signature, endpoint, frame or deadline checks.
+Four actual loopback tests verify both response prefixes and both AUTH/CLOSED
+orders using disposable keys and the installed stdin signer. Other errors and
+embedded/nested authentication text still refuse.
+
+With the fix, live Damus proceeds to the AUTH acknowledgement but returns:
+`error: relay needs serviceUrl to be configured before AUTH can work`.
+This is an external relay configuration rejection, not a missing local operator
+key or unverified recipient. No permission or credential bypass was attempted.
+The same probe verifies nos.lol readable (two events) and Primal readable (zero).
+The source and public signed relay lists are not silently changed to evade it.
+
+The frozen 12-file v4 runtime at
+`/home/sat/.local/libexec/earthship-thermal/primal-v4` has manifest
+`dd3fc03c41dcc22612512434dd4fa9607e551a0b60766db8aca04a1ff32e3508`.
+Its exact updated code, dependencies, signer, current SQLite pair, original
+reply/ack ciphertext and v2 journal passed a new full cold rebuild/restore.
+All 5 receipt/11 action/4 mode rows retain their original digests. Activation
+remains `2026-10-03T15:57:16.140816+00:00`; neither daily budget nor consent was
+reset. The disposable database and cold directory were removed.
+
+The full recovery root is
+`/home/sat/.local/state/thermal-intel/collector-recovery/2026-10-03-primal-recurring-auth-v4`.
+Data manifest:
+`e4db72eacaa8db7a789f95f3df7030603a7a458fca123e9ddfddb945e289e002`.
+Cold qualification:
+`4656919bf3400b6e72705fcffa41d8f98be4b74931a1716c55c2c1b35aef2ded`.
+Complete bundle manifest:
+`83c78af91876876fe532c62e708b23fc713eab97c1f529595df6b372053f27d2`.
+The exact active profile is
+`/home/sat/.config/hex/thermal-primal/recurring-v4-auth-profile.json`, SHA
+`e1449a99983f1a82878edff89b9f780459d3c8f2bb1d4a622e9a6da2784594fe`.
+The pre-existing v3 profile/launcher/bundle and original unit are retained for
+rollback, not overwritten. The unused intermediate authentication draft and
+owned test files are removed after verification.
+
+All **84 affected release/stager/actual-signer/loopback-delivery tests passed,
+no skips, in 64.97 seconds**. The actual v4 launcher passed read-only release
+checks under the unchanged production restrictions. The final installed unit
+matches the repo definition; the enabled timer uses that exact pinned profile.
+Its 10:55:30 MDT invocation selected idle, sent nothing, and retained one
+refusal-backoff entry. It exited 3 with one relay failure: Damus remains degraded.
+Do not equate installed AUTH support or two readable relays with successful
+Damus authentication, a new human receipt or model graduation.
+
+For rollback, stop the timer, allow the current bounded worker to become
+terminal, restore this bundle's `previous.service` as the user service, reload
+the user manager and restart the timer. This selects the unchanged v3 profile;
+do not restore older SQLite/journal files over later authenticated replies.
 
 ## Exact recovery and release — October 3
 
@@ -287,8 +350,8 @@ Original prerelease checklist (completed by the exact recovery/deployment above)
 The broad Earthship/OpenHAB goal remains active. This change does not graduate
 the thermal model or enable any household actuator.
 
-Current remaining collection work: resolve the explicitly requested relay-auth
-decision and observe a genuinely eligible future recorded recommendation,
+Current remaining collection work: observe external Damus recovery and a
+genuinely eligible future recorded recommendation,
 automatic question, operator receipt and authenticated reply. Do not manufacture
 an advisory to close these natural-behavior gates. Signed action consumption
 and model skill/graduation remain separate work.

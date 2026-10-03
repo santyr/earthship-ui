@@ -34,6 +34,8 @@ BASELINE = RECOVERY.parent/'2026-10-01-primal-inactive'
 TRIAL_EVENT = '66fd98c7bf7bfad7ae5041ee8f7d1c5732be43c3275b8c031a917f3249e980fe'
 TRIAL_CIPHER = '5f42bc50bf00d23b56ecc02eaae3363b692192569e93115f0cecfff85a5ca207'
 STEP = 'preflight'
+AUTH_V4 = False
+AUTH_V4_PIN = 'dd3fc03c41dcc22612512434dd4fa9607e551a0b60766db8aca04a1ff32e3508'
 
 
 def checkpoint(name):
@@ -131,7 +133,8 @@ def prepare_and_rehearse(resume_pin=None):
         if name in ('runtime/requirements.txt', 'runtime/nak') or name.startswith('runtime/wheels/'):
             require(sha256((BASELINE/name).read_bytes()).hexdigest() == pin)
     if resume_pin is None:
-        require(not RECOVERY.exists() and not (CONFIG/'followup-v3.json').exists()
+        require(not RECOVERY.exists() and ((CONFIG/'followup-v3.json').exists() if AUTH_V4
+                                          else not (CONFIG/'followup-v3.json').exists())
                 and not (RUNTIME/'run-recurring.py').exists() and not (RUNTIME/'verify-runtime.py').exists())
     else:
         require(not (RECOVERY/'qualification.json').exists()
@@ -149,11 +152,13 @@ def prepare_and_rehearse(resume_pin=None):
     cli.t.JournalSink().require_v2_storage()  # Read-only exact production schema.
     settings = (dict(version=1, activated_at=cli.t.iso(datetime.now(timezone.utc)),
         bank_epoch='discover_4_module_2026', site_timezone='America/Denver', max_questions_per_day=1)
-        if resume_pin is None else cli.t.strict_json(stage.read(CONFIG/'followup-v3.json', private=True)))
+        if resume_pin is None and not AUTH_V4
+        else cli.t.strict_json(stage.read(CONFIG/'followup-v3.json', private=True)))
     settings = followup.load_configuration(cli.t.canonical(settings), now=cli.utc_now())
     checkpoint('private_metadata_preparation')
     if resume_pin is None:
-        stage.write_new(CONFIG/'followup-v3.json', cli.t.canonical(settings)+b'\n')
+        if not AUTH_V4:
+            stage.write_new(CONFIG/'followup-v3.json', cli.t.canonical(settings)+b'\n')
         stage.write_new(RUNTIME/'verify-runtime.py', (REPO/'scripts/thermal-primal-runtime.py').read_bytes())
         stage.write_new(RUNTIME/'run-recurring.py', (REPO/'scripts/thermal-primal-recurring-release.py').read_bytes())
         RECOVERY.mkdir(mode=0o700)
@@ -243,7 +248,8 @@ def prepare_and_rehearse(resume_pin=None):
                 '--property=TimeoutStartSec=120', '--property=TimeoutStopSec=10',
                 '--property=KillMode=control-group', '--property=MemoryMax=192M',
                 '--property=NoNewPrivileges=true', '--property=RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6',
-                str(working/'venv/bin/python'), str(working/'qualify.py'), '--cold-probe', str(working)],
+                str(working/'venv/bin/python'), str(working/'qualify.py'), '--cold-probe', str(working),
+                *(['--auth-v4'] if AUTH_V4 else [])],
                 capture_output=True, text=True, timeout=150)
             if probe.returncode != 0:
                 require(False)
@@ -332,16 +338,86 @@ def stage_release():
         bundle_files=len(files), collector_activated=False, controls_enabled=False)))
 
 
+def stage_authenticated_release():
+    """Require the compatibility-qualified closure, not the superseded draft."""
+    require(AUTH_V4)
+    return stage_v4_authenticated_release()
+
+
+def stage_v4_authenticated_release():
+    stage = load('auth_v4_stage', REPO/'scripts/thermal-primal-runtime.py')
+    stage.verify(RUNTIME, AUTH_V4_PIN)
+    old_runtime = RUNTIME.parent/'primal-v3'
+    previous = load('original_release', old_runtime/'run-recurring.py')
+    profile, _ = previous.verify_profile(CONFIG/'recurring-v3-profile.json',
+        'a714bfedc5195eac83dc694991564a165eb0da34e6c2f131effa3612ae44efe8')
+    launcher = RUNTIME/'run-recurring.py'
+    release = load('auth_v4_release', launcher)
+    require(stage.read(launcher, private=True) == (REPO/'scripts/thermal-primal-recurring-release.py').read_bytes())
+    profile.update(version=2, runtime=str(RUNTIME), runtime_manifest_sha256=AUTH_V4_PIN,
+        relay_authentication=dict(enabled=True, relays=list(release.APPROVED_RELAYS)))
+    for name, path in dict(launcher=launcher, verifier=RUNTIME/'verify-runtime.py',
+                          qualification=RECOVERY/'qualification.json').items():
+        profile[name] = dict(path=str(path), sha256=sha256(stage.read(path, private=True)).hexdigest())
+    encoded = json.dumps(profile, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()+b'\n'
+    profile_pin = sha256(encoded).hexdigest()
+    profile_path = CONFIG/'recurring-v4-auth-profile.json'
+    require(not profile_path.exists() and not (RECOVERY/'bundle-manifest.json').exists())
+    stage.write_new(profile_path, encoded)
+    verified, qualification = release.verify_profile(profile_path, profile_pin)
+    release.preflight(verified, qualification)
+    stage.write_new(RECOVERY/'profile.json', encoded)
+    service = (REPO/'deploy/thermal-primal-recurring.service.in').read_bytes()
+    require(service.count(b'@PROFILE_SHA256@') == 1)
+    service = service.replace(b'primal-v3/', b'primal-v4/').replace(
+        b'recurring-v3-profile.json', b'recurring-v4-auth-profile.json').replace(
+        b'@PROFILE_SHA256@', profile_pin.encode())
+    stage.write_new(RECOVERY/'thermal-primal.service', service)
+    stage.write_new(RECOVERY/'thermal-primal.timer', (REPO/'deploy/thermal-primal.timer').read_bytes())
+    original = RECOVERY.parent/'2026-10-03-primal-recurring-v3'
+    previous_unit = stage.read(original/'thermal-primal.service', private=True)
+    require(previous_unit == stage.read(Path('/home/sat/.config/systemd/user/thermal-primal.service'), private=True))
+    stage.write_new(RECOVERY/'previous.service', previous_unit)
+    stage.write_new(RECOVERY/'qualified-orchestrator.py', Path(__file__).read_bytes())
+    files = {str(path.relative_to(RECOVERY)):sha256(path.read_bytes()).hexdigest()
+             for path in sorted(RECOVERY.rglob('*')) if path.is_file()}
+    manifest = dict(version=2, scope='earthship-primal-recurring-bundle/v1',
+        profile_sha256=profile_pin, files_sha256=files,
+        restore_paths=dict(profile=str(profile_path), runtime=str(RUNTIME),
+            followup_policy=str(CONFIG/'followup-v3.json'), credentials=str(ENVIRONMENT),
+            base_policy=str(CONFIG/'policy.json'), routes=str(CONFIG/'routes.json'),
+            state_dir=str(STATE), recovery=str(RECOVERY), interpreter=sys.executable,
+            unit_dir='/home/sat/.config/systemd/user'),
+        cold_recovery_qualification_sha256=profile['qualification']['sha256'],
+        approved_relays=list(release.APPROVED_RELAYS), original_rollback_bundle=str(original),
+        controls_enabled=False, operator_key_used=False, off_host_backup_deferred=True)
+    stage.write_new(RECOVERY/'bundle-manifest.json', json.dumps(manifest, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()+b'\n')
+    print(json.dumps(dict(status='authenticated_v4_release_staged', profile_sha256=profile_pin,
+        bundle_manifest_sha256=sha256((RECOVERY/'bundle-manifest.json').read_bytes()).hexdigest(),
+        collector_activated=False, messages_sent=0, controls_enabled=False)))
+
+
 def main():
+    global AUTH_V4, RUNTIME, RUNTIME_PIN, RECOVERY
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--prepare-and-rehearse', action='store_true')
     mode.add_argument('--cold-probe', type=Path)
     mode.add_argument('--rehearse-existing', metavar='DATA_MANIFEST_SHA256')
     mode.add_argument('--stage-release', action='store_true')
+    mode.add_argument('--stage-authenticated-release', action='store_true')
+    parser.add_argument('--auth-v4', action='store_true')
     args = parser.parse_args()
     try:
-        if args.stage_release: stage_release()
+        if args.auth_v4:
+            require(not args.stage_release)
+            AUTH_V4 = True
+            RUNTIME = RUNTIME.parent/'primal-v4'
+            RUNTIME_PIN = AUTH_V4_PIN
+            RECOVERY = RECOVERY.parent/'2026-10-03-primal-recurring-auth-v4'
+        if args.stage_authenticated_release: stage_authenticated_release()
+        elif args.stage_release: stage_release()
         elif args.cold_probe is not None: cold_probe(args.cold_probe)
         else: prepare_and_rehearse(args.rehearse_existing)
         return 0

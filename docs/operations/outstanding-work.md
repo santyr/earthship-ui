@@ -6,9 +6,11 @@ The approved one-question-per-Mountain-day recommendation follow-up collector
 is deployed as user units, with five-minute completion-based scheduling. Exact
 private profile/code/signing identity/schema checks and full cold recovery pass;
 all original signed reply/ciphertext and journal proofs remain intact. First
-invocation selected `idle` and sent no question. Damus currently requires relay
-authentication; nos.lol and Primal are readable. Authentication is still off and
-the operator decision is pending, so all-relay health and a new natural automatic
+invocation selected `idle` and sent no question. The approved Hex authentication
+and exact Damus ERROR-prefix compatibility fix are now deployed in the recovered,
+pinned v4 runtime. nos.lol and Primal are readable; Damus rejects signed AUTH
+because its server `serviceUrl` is not configured. No local credential bypass or
+relay-list change was made. All-relay health and a new natural automatic
 question/reply remain open. No actuator or model graduation is enabled. See
 [exact recovery, release and stop procedure](2026-10-03-thermal-recurring-confirmations.md#exact-recovery-and-release--october-3).
 
