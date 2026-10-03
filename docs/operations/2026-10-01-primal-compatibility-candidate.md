@@ -665,6 +665,16 @@ remain one question and zero reply receipts; permanent collector/timer remain
 not-found/inactive, and OpenHAB remains active at PID 1696. This check is not
 an authenticated thermal observation or evidence of actual operator receipt.
 
+After that retry deadline, the October 3 03:17Z bounded check again reused the
+same frozen one-question runtime without resending. It returned `accepted=0`,
+`operator_read_verified=false`, `relay_failures=1`, `withheld=1` (exit 3).
+The one pending refusal next retries at `2026-10-03T04:17:50Z`. Read-only ledger
+verification still finds exactly one question and zero authenticated reply
+receipts; permanent collector/timer remain not-found/inactive. No recurring
+release, journal label or household command occurred. Do not poll before the
+new deadline merely for an unchanged status or treat relay failure as proof
+that the operator did or did not receive the original question.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private

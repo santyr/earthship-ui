@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 actual HS103 binding transport qualification
+
+The new disconnected rehearsal uses the actual cached binding, original
+transform, six collector triggers and JDBC. Unchanged OFF receipts renew;
+each peer's real TCP failure independently persists an unavailable barrier
+without invalidating the other field; recovery requires a new native report.
+The binding's fresh-timestamped UNDEF update is correctly unavailable, not a
+fresh switch value. All 40 affected tests and the complete actual-JVM run
+pass. Every task container is removed; production OpenHAB retains PID 1696.
+This closes the tested transport path, not an observed household physical
+outage or the remaining live quality release gates. The combined daily drop-in
+remains uninstalled. See [scope, original row hashes and repeatable command](2026-10-01-energy-supporting-source-qualification.md#october-2-actual-binding-disconnected-transport-qualification).
+
 ## October 2 combined Energy daily-quality source candidate
 
 The existing staged switch drop-in now also forwards both BMS auxiliary

@@ -1,5 +1,63 @@
 # Energy supporting-source qualification — October 1
 
+## October 2 actual-binding disconnected transport qualification
+
+`scripts/qualify-tplink-transport.py` now exercises the cached **5.2.1 HS103
+binding**, original switch observation Items/JS transform, exact six collector
+triggers, unchanged v2 collector and actual JDBC persistence. The two peers
+listen only on `127.0.0.1` and `127.0.0.2:9999` inside an owned networkless
+PostgreSQL/OpenHAB namespace. They accept only the binding's exact read-only
+`get_sysinfo` query; every other command is refused and counted. There are no
+household routes, published ports, host mounts/devices, production credentials
+or production writes. Container memory equals memory+swap limits; cleanup is
+ownership guarded in success and failure finalizers.
+
+The Java peer's frame encoder/decoder is checked against the actual binding's
+`CryptUtil`, including zero/negative/oversized and truncated frame refusal.
+The successful October 3 03:14–03:15Z run proves:
+
+- Unchanged OFF reports acquire new original receipt clocks and renew the
+  periodic persisted envelope after 60.142 seconds. This is not freshness
+  inferred from a change-only numeric Item.
+- Each plug independently suffers a real TCP read failure. The real handler
+  reports OFFLINE, its peer records the fault, and the original collector
+  persists `source_unavailable` with null value/source time/expiry. The other
+  plug remains valid.
+- The binding actively publishes **UNDEF** on this failure. Its JS acquisition
+  wrapper obtains a new host timestamp, but that unavailable channel update
+  does not become a valid switch observation. Initial fixture assumptions
+  that the Item would necessarily retain OFF were corrected; no production
+  collector/parser behavior was changed or weakened.
+- Restoring the read-only peer produces a new native OFF observation after
+  the barrier. The stream epoch and consecutive sequence remain intact; exact
+  original checkpoints are found in strictly ordered JDBC history.
+
+| Field | Persisted fault (UTC) | New native recovery envelope (UTC) | Rows inspected |
+| --- | --- | --- | ---: |
+| Dishwasher | 2026-10-03 03:15:26.310 | 2026-10-03 03:15:30.327 | 7 |
+| Cistern Pump | 2026-10-03 03:15:32.323 | 2026-10-03 03:15:36.337 | 10 |
+
+Original ordered row-list hashes (compact sorted-key JSON) are respectively
+`56bc2bad89b9b6fa6c0bdd892f1174ecd67863d54271b1c1e8b2139bbb314013`
+and `98ba089af6c5cb8c3f2f4dd8f31aef86c78d5b9dda9a6e35cac012bdb060c538`.
+Binding SHA-256 is
+`96adea67cf034952a1d4d19b14f809089ca5e0b46662451f1e564e35f3318999`;
+unchanged collector SHA-256 is
+`40b34d9b2afa3ce9451aecdf5b26aef3f46a85adda402cb6a0f7f6106f4466d9`.
+All **40** affected harness/evidence/history/deployment tests pass, no skips.
+Both finalizers and independent Docker queries confirm all task containers
+were removed; failed predecessor runs were removed as well. Production
+OpenHAB remains active under PID 1696.
+
+Repeat with `PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualify-tplink-transport.py`.
+This fixture intentionally polls every **1 second**, not production's
+30-second cadence; the original 95-second TTL and 60-second publication bound
+are unchanged. It qualifies the actual binding transport/collector/JDBC path,
+**not an observed physical household outage**, every timeout mode, or a live
+consumer release. Keep the independent physical-source gate, guarded user-unit
+handoff/rollback and next natural aggregate/UI gates separate. Neither staged
+quality flags nor permanent collector units were installed or activated.
+
 ## October 2 combined daily-unit source candidate
 
 The trusted Solar_PV repository's existing, **uninstalled**
