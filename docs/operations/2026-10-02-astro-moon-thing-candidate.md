@@ -294,3 +294,66 @@ consumer review and the fresh, exclusive, rollback-backed attended adapter.
 The already verified all-28 original-history baseline must be captured fresh
 and checked after both live handoff and rollback, rather than treated as that
 future proof. No whole-production restart is authorized by this fixture.
+
+### October 3 06:29Z: named consumer review and read-only drift guard
+
+Fresh GET-only inspection covers all 42 registered rules' module configurations.
+Acorn parses all 29 managed JavaScript action bodies and the five installed
+file-rule sources without executing them. The remaining managed script is the
+933-byte `mppt60_native_status_mapper` Rules DSL action, not failed JavaScript;
+manual review confirms a fixed charger-code switch from
+`MPPT60_Native_ChargerStatusCode` to `ChargerStatus`. No script-bearing
+conditions or triggers occur in this snapshot. The only literal Moon input
+found in those sources is the already VM-qualified sky rule's `MoonPhaseicon`.
+Literal absence is not proof that an arbitrary computed/external consumer
+cannot exist.
+
+The live greywater and night-load scripts match their canonical source bytes.
+The greywater `getItem(name)` helpers receive fixed CFG fields or its two-pump
+list; its astronomical gate is `Sun_Position_Elevation`, and its eligibility
+input is `SkyCondition`. The night-load device lookup validates keys with
+`hasOwnProperty` against its fixed three-device map. No registry-wide Item
+selection is introduced by these reviewed paths. The five installed file
+scripts match their canonical bytes; their fixed temperature, Bitcoin and
+seasonal helpers do not select Moon Items. The astronomy forecast publisher
+selects `astro:sun:local` for both Thing and actions. Its OSGi service lookup
+is the read-only timezone provider, not a Moon-dependent action dispatcher.
+
+Installed Astro/core bytecode independently confirms per-handler scheduler
+maps and locks, new Sun/Moon handler instances, and Moon disposal cancelling
+only its own scheduled futures and clearing its own cached Moon. Astro actions
+have prototype service scope and an instance handler reference. Core service
+registration/removal is keyed by that Thing UID; removing Moon does not remove
+the Sun's registered action set. This is a **compiled-source lifecycle review**,
+not a two-Thing runtime fault/recovery test or proof of all shared services.
+No production bundle, scheduler or service was restarted.
+
+The repeatable guard is:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/preflight-astro-moon-consumers.py
+```
+
+It verifies three named managed script hashes/languages/providers, the five
+installed file-rule sources/providers, the current canonical Astro MAP, and
+the pinned Astro 5.2.1/core-Thing binaries. A second independent rule/Sun read
+must match the first full definitions; only live rule execution status is
+excluded. Every unknown definition field remains compared. Production passes
+with all 42 rules, unchanged managed ONLINE Sun, and no inventory issues.
+The rule-graph digest is
+`b1ac9ecbe6cf7b763cf00837d018a9894ea5436de5bc4329dfb64e65db178c53`;
+source-pin digest is
+`ce5578f79282d40143f268fd0c2c36fcc89fb6fbeb8941a86cb1fda2120309b2`.
+The guard/provider/adjacent preflight regression slice passes **147 tests in
+0.20 seconds**, with no skips; 22 cases exercise the new guard's drift/refusal
+and read-only contracts. Test fixtures and their temporary directories are
+removed after verification.
+Exact individual pins are maintained in the guard, not inferred from collector
+health. Its output explicitly reports `all_consumer_closure=false`,
+`atomic_snapshot=false`, `apply_available=false`, and zero production writes.
+
+This closes the named current consumer/shared-binary source review and gives
+the future adapter a repeatable drift check. It does not waive fresh private
+preimages, original-history/cutover/rollback verification, unexpected registry
+drift, independent natural Moon/Sun updates or the pending exact descriptor
+choice and attended live authority. No guarded live adapter is released.

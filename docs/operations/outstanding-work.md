@@ -22,6 +22,16 @@ choice is now awaiting the operator; dynamic/shared-consumer review and guarded
 fresh-history live handoff remain open. No production release or restart. See
 [actual alternative recovery and scope](2026-10-02-astro-moon-thing-candidate.md#october-3-0535z-exact-binding-metadata-alternative-passes-isolated-recovery).
 
+The subsequent named consumer/shared-binary review verifies the current
+greywater/night-load lookup paths, Sun-only forecast actions, all five installed
+file-rule sources, and per-Thing Astro lifecycle/service cleanup. A new GET-only
+guard checks exact reviewed source pins plus two independent full rule/Sun
+definition reads. Production passes with 42 rules and zero inventory issues;
+the guard explicitly does not claim global dynamic dependency closure, atomic
+capture or apply authority. Fresh receipt-backed history/live rollback and the
+descriptor choice remain open. See
+[source review and repeatable guard](2026-10-02-astro-moon-thing-candidate.md#october-3-0629z-named-consumer-review-and-read-only-drift-guard).
+
 ## October 2 late-evening independent-window tuning result
 
 New qualified targets now provide two selected non-overlapping six-hour windows

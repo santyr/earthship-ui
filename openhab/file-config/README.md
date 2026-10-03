@@ -105,8 +105,12 @@ sky-rule path. All 28 original live history baselines now pass. A separately
 named, exact current-binding metadata alternative also passes disconnected
 file-provider/full-JVM/original-managed rollback qualification; the literal
 legacy comparator still refuses its 39 descriptor differences. Operator
-descriptor choice, dynamic/shared-consumer review and an exact guarded live
-plan with actual cutover/rollback history checks remain.
+descriptor choice and an exact guarded live plan with actual cutover/rollback
+history checks remain.
+The named consumer/shared-binary source review now has a passing GET-only
+drift guard, `scripts/preflight-astro-moon-consumers.py`; it is not global
+dependency closure or live apply authority. The pending exact descriptor
+choice and guarded live/history gates are unchanged.
 There is no premature Thing ownership declaration. See the
 [Moon Thing candidate](../../docs/operations/2026-10-02-astro-moon-thing-candidate.md).
 
