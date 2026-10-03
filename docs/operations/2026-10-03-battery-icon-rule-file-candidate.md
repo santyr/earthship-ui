@@ -1,8 +1,73 @@
-# Battery-icon display writer — qualified, uninstalled candidate
+# Battery-icon display writer — attended file handoff verified
 
-The next file-first rule candidate is `UpdateBatteryIcon`. Production remains
-managed. No live rule, Item, link, persistence mapping, control or service was
-changed, and no rule ownership declaration has been added.
+`UpdateBatteryIcon` is now file-owned after the October 3 attended handoff
+recorded below. Its action/cron and both outputs are unchanged. No Item, link,
+persistence mapping, household control or service was changed or restarted.
+The earlier candidate checks below remain their original scoped evidence.
+
+## October 3 attended production handoff
+
+The operator confirmed current attendance. Fresh read-only preflight verified
+the exact managed action/candidate pins, four Item types, healthy BMS/Schneider
+communications, both greywater output Items OFF and no other literal rule
+consumer of either display output among 42 live rules. This remains a literal,
+not arbitrary dynamic/external, consumer review.
+
+At **20:47:23.027391Z**, the corrected attended transaction privately backed
+up the exact managed rule, source, definitions and two full CSV histories at:
+`/home/sat/.local/state/battery-icon-rule-wxbdt3fh/` (directory 0700,
+files 0600). Actual **file -> original managed rollback -> final file** passes
+source/UID/cron/provider checks, all 41 unrelated rule definitions, all existing
+JS sources, four Item definitions/links and unchanged OpenHAB PID **1696**.
+Independent final readback repeats these checks. The file declaration was added
+only afterward; no whole-OpenHAB restart or synthetic Item update occurred.
+
+| Original output history | JDBC ID | Rows retained | Ordered CSV SHA-256 |
+| --- | --- | --- | --- |
+| BatteryIcon | 31 | 136,593 | `efc23e979e4249881cb622a6cda2b4135c07853c90158b8e57a02fcb8dd8b026` |
+| BatteryChargingStatus | 154 | 97,335 | `c600417984aab5082d78674f8a528131662e028a860aafdbb35c5dfad921118d` |
+
+All SQL was read-only. Each original prefix is compared through its own last
+timestamp; genuine later rows are permitted, not treated as corruption. Four
+known live REST bookkeeping fields (`state`, `lastState`, `lastStateChange`,
+`lastStateUpdate`) are excluded from **definition** comparison, not from
+history validation. All other definition fields remain exact.
+
+The first attempt at 20:46Z passed file loading and managed rollback, then
+automatically restored managed ownership when an ordinary current update
+changed REST's `lastState`/timestamps. Independent comparison proves those
+were the only differences; no actual definition/source/PID drift occurred.
+The corrected preflight and complete second round trip—not the failed final
+phase—qualify the deployment. The redundant first backup is cleaned only after
+its original rule/histories are proven equal to the retained recovery point.
+
+All 28 affected provider/parity/inventory tests were rerun successfully.
+Independent final SQL readback repeats both original history checks, and the
+live ownership inventory has zero issues (36 managed/six non-managed rules).
+No new ERROR/Exception appears in the bounded post-handoff log. Original isolated JVM and
+528-case output parity qualification are unchanged. The source's original
+staging comment is intentionally retained to preserve qualified source bytes;
+the manifest and this receipt describe current production ownership.
+
+Current output remains `iconify:mdi:battery`, charging OFF, with SoC 100%.
+This rule suppresses unchanged posts. A **source-attributed natural changed
+output with matching new JDBC row remains pending**; do not force a charge
+transition, run the rule manually or publish a fabricated value to close it.
+Production whole-JVM recovery is a later, separately attended gate. The
+general adapter gate remains false; this was a one-shot attended transaction.
+
+### Retained guarded rollback
+
+Use the retained `managed-rule.json` and the pinned adapter's REST/wait helpers
+in `scripts/migrate-season-countdown-rule.py`. First recheck attendance,
+protected state, sole file ownership and exact installed source SHA above;
+abort on drift. Move **only** `/etc/openhab/automation/js/battery-icon.js`
+into the retained private directory, wait for UID withdrawal, POST the exact
+original fields named by the adapter's `FIELDS` (preserving absent fields),
+and require `managed_rule_ok(actual, original)`. Recheck both JDBC prefixes,
+unchanged other definitions/PID and remove only this rule's file declaration
+after successful managed readback. Never add a managed duplicate while the
+file rule exists, edit JSONDB directly or restart OpenHAB for this rollback.
 
 ## Exact scope and consumer review
 
@@ -73,18 +138,17 @@ At 17:31:07Z production OpenHAB remains PID 1696; inventory has zero issues,
 37 managed/five non-managed rules. The staged target is absent. The candidate
 is not automatically added to the earlier three-rule `display-set` scope.
 
-## Remaining release and recovery gates
+## Remaining natural-update and recovery gates
 
-`RELEASE_READY['battery-icon']` remains **false**. An attended handoff needs a
-fresh consumer/source/type/provider/control-state check and private managed
-backup. The adapter preserves both outputs and their existing Item ownership;
-it never commands or fabricates values. Natural charging transitions are allowed
-during handoff, not mistaken for state corruption. Failed provider readback
-withdraws only the exact owned candidate and restores the managed preimage.
-No production restart is proposed.
+`RELEASE_READY['battery-icon']` remains **false**. The attended, backed-up
+handoff and sole-provider/source/trigger/Item/JDBC checks are now complete.
+The adapter preserves both outputs and their existing Item ownership; it never
+commands or fabricates values. Natural charging transitions were allowed during
+handoff, not mistaken for state corruption. Failed provider readback withdrew
+only the exact owned candidate and restored the managed preimage.
 
-After handoff, independently verify sole file ownership, exact source/trigger,
-unchanged Item/JDBC identities and history, and a source-attributed natural
-display change. Declare file ownership only after readback and retain rollback.
-Production JVM recovery is a separate future attended gate. Isolated provider
-tests and Node parity do not prove production history or unrelated controls.
+The source-attributed natural display change/new JDBC row and production
+whole-JVM recovery remain separate future gates. Retain rollback. Isolated
+provider tests and Node parity alone do not prove production history or
+unrelated controls; the live comparisons above supply the stated hot-handoff
+evidence without claiming general protected-control restart qualification.

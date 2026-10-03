@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 attended BatteryIcon rule handoff verified
+
+Fresh operator attendance and read-only source/consumer/type/control checks
+qualified the display-only `UpdateBatteryIcon` handoff. The actual file ->
+original managed rollback -> final file round trip and independent readback
+pass both original JDBC prefixes (Items 31/154, 136,593/97,335 rows), all 41
+unrelated rules, unchanged Item/link definitions and OpenHAB PID 1696. All 28
+affected tests pass and the live inventory has zero issues. The sole file
+provider is now declared; the general adapter gate remains false.
+No restart, device command or synthetic reading occurred. A first attempt
+rolled back safely on normal live-current REST bookkeeping; the exact drift
+was diagnosed before the successful corrected round trip. Natural changed
+display output/JDBC and later production whole-JVM recovery remain open.
+See [handoff and retained recovery](2026-10-03-battery-icon-rule-file-candidate.md#october-3-attended-production-handoff).
+
 ## October 3 first six-hour comparison and verified refit-input blocker
 
 The artifact-selected, capture-strict audit at **20:06:33.047835Z** qualifies

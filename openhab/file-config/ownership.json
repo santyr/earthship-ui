@@ -605,6 +605,15 @@
     },
     {
       "kind": "rule",
+      "id": "UpdateBatteryIcon",
+      "provider": "file",
+      "migration": "verified",
+      "source": "automation/js/battery-icon.js",
+      "destination": "/etc/openhab/automation/js/battery-icon.js",
+      "state_writer": "BatteryIcon, BatteryChargingStatus"
+    },
+    {
+      "kind": "rule",
       "id": "update_days_until_season",
       "provider": "file",
       "migration": "verified",

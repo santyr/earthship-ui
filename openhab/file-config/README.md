@@ -96,13 +96,15 @@ Only these three rules and the countdown Item are promoted. This does not
 qualify protected controls or the broader installation. Retain rollback
 copies; see the [production receipt](../../docs/operations/2026-10-02-display-provider-restart-qualification.md).
 
-`automation/js/battery-icon.js` is a **qualified, uninstalled** candidate for
-managed rule `UpdateBatteryIcon`. Its original dual-output action is preserved
-byte-for-byte; 528 JavaScript parity cases, isolated file loading/full-JVM
-restart/managed rollback and GET-only live preflight pass. Its apply gate is off
-and no ownership is transferred. This preserves display semantics, not source
-freshness authority. Attended handoff, natural production output/history and
-production restart gates remain; see the
+`automation/js/battery-icon.js` is **live, verified file-owned** for
+`UpdateBatteryIcon` after the attended October 3 file -> original managed
+rollback -> final file handoff. Its original dual-output action is preserved
+byte-for-byte; 528 JavaScript parity cases and isolated file loading/full-JVM
+restart/managed rollback pass. Both original JDBC prefixes (Items 31/154), all
+41 unrelated rule definitions and OpenHAB PID 1696 are unchanged. The adapter's
+apply gate remains off. This preserves display semantics, not source freshness
+authority. A source-attributed natural changed output and production whole-JVM
+recovery remain separate gates; retain the private original backup. See the
 [candidate receipt](../../docs/operations/2026-10-03-battery-icon-rule-file-candidate.md).
 
 ## Staged migration and rollback
