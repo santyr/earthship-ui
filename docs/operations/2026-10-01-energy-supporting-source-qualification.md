@@ -1,5 +1,69 @@
 # Energy supporting-source qualification — October 1
 
+## October 2 actual BMS Modbus transport qualification
+
+`scripts/qualify-bms-transport.py` exercises the cached **5.2.1 Modbus binding
+and transport**, original native uint32 channels, exact eight collector
+triggers, unchanged BMS auxiliary collector and actual JDBC. Before allocation,
+the exact four live Thing configurations must match the read-only source
+contract. The actual production collector hash and trigger list were also
+independently checked and match. Unlike the faster HS103 fixture, this run
+preserves production's **30,000-ms** refresh, 34 holding registers starting at
+64, unit 190, three read attempts, unchanged-value updates, connection defaults,
+120-second receipt TTL and 60-second publication interval. Only host/port change
+to loopback `127.0.0.1:1503` instead of the household gateway's port 503.
+
+The isolated Java peer accepts only that unit/function-3/register-block read;
+there is no write implementation. Its MBAP framing, response register values
+and transaction/unit identities pass an offline self-test against the exact
+embedded `net.wimpi.modbus` protocol classes. Wrong protocol, length, unit,
+function, address, quantity and truncated requests are refused. Both owned
+containers share only an otherwise networkless namespace, with no host mounts,
+devices, published ports, household routes or production credentials. OpenHAB
+memory+swap is capped at 2 GiB and PostgreSQL at 384 MiB; OpenHAB's root is
+read-only and its caps are dropped. Cleanup is ownership checked. No production
+write or household command occurs.
+
+The actual October 3 run qualified eight strictly ordered original JDBC rows:
+
+| Checkpoint | UTC |
+| --- | --- |
+| Both native values first valid | 2026-10-03 04:12:00.045 |
+| Unchanged values renew the periodic envelope | 2026-10-03 04:13:10.043 |
+| Real TCP failure; both source barriers persisted | 2026-10-03 04:13:30.413 |
+| New native reports recover both fields | 2026-10-03 04:14:30.418 |
+
+During the three actual failed TCP reads, the real poller became OFFLINE, but
+the numeric Items **remained 320 Ah and 29315**. Those held values were not
+treated as fresh: both original evidence fields became `source_unavailable`
+with null value, observation time and expiry. Recovery after restoring the peer
+requires new original channel receipts after the barrier, not parent health or
+retained numbers alone. The epoch and consecutive sequence are preserved.
+The peer recorded nine requests, three faults and **zero forbidden requests**.
+
+Original ordered row-list SHA-256 (compact sorted-key JSON):
+`9dd52e5434b8ca5024748d84251dab94f82794871d06d3d6a89ebbcc21077e15`.
+Binding SHA-256:
+`8563c9d3e5852873470225fc80722e0ba5556579b8e4c862d2fd0bc4d2993884`.
+Transport SHA-256:
+`cd95c445719a33a658c6d948bb8f8ad37c6ec6056896ace1eb82220a5f57533b`.
+Unchanged collector SHA-256:
+`c57778dceca6f78c3db41a05605918e1bd9db3ad10aea13579ea453587391618`.
+All **70** focused harness/parser/history tests pass, with no skips; the actual
+JVM/transport/JDBC run also exits zero. Both finalizers and independent Docker
+queries confirm no task containers remain. Production OpenHAB retains PID 1696.
+
+Repeat with `PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualify-bms-transport.py`.
+This closes the tested actual transport/collector/persistence path, **not an
+observed physical household outage** or all possible connection failures. It
+does not activate the supporting quality flags or change aggregate snapshots,
+temperature scaling, the battery estimator, pumps or watchdogs. The operator
+has been asked whether these actual-binding tests together with the already
+verified production JVM recovery may substitute for waiting on a physical
+outage. Until that decision, retain the physical-source gate; exact guarded
+rollback, complete-day qualification and natural aggregate/UI verification are
+still required even if the substitution is approved.
+
 ## October 2 actual-binding disconnected transport qualification
 
 `scripts/qualify-tplink-transport.py` now exercises the cached **5.2.1 HS103
