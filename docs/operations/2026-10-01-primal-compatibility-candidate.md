@@ -648,6 +648,14 @@ collected. Permanent collector/timer remain inactive, production OpenHAB
 remains active at PID 1696, and no household control or thermal label was
 enabled. Do not treat approval of the trial as an authenticated reply to it.
 
+At the October 3 00:30Z checkpoint (October 2 evening MDT), one bounded poll
+again returned `accepted=0`, `operator_read_verified=false`,
+`relay_failures=1`, `withheld=1` (exit 3). The single pending inbox refusal's
+next retry is `2026-10-03T01:09:29Z`. No duplicate question was sent, and the
+transient check ended. Subsequent readback confirms the permanent collector
+and timer remain not-found/inactive and OpenHAB remains active at PID 1696.
+Neither trial approval nor the unrelated refused DM is a thermal observation.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private
