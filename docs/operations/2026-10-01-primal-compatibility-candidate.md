@@ -656,6 +656,15 @@ transient check ended. Subsequent readback confirms the permanent collector
 and timer remain not-found/inactive and OpenHAB remains active at PID 1696.
 Neither trial approval nor the unrelated refused DM is a thermal observation.
 
+At the October 3 02:16Z approval follow-through, a single bounded check waited
+for the existing refusal retry deadline and reused the original frozen trial.
+It returned `accepted=0`, `operator_read_verified=false`, `relay_failures=1`
+and `withheld=1` (exit 3). The one pending inbox refusal next retries at
+`2026-10-03T03:16:54Z`. No duplicate question was sent. Read-only SQLite counts
+remain one question and zero reply receipts; permanent collector/timer remain
+not-found/inactive, and OpenHAB remains active at PID 1696. This check is not
+an authenticated thermal observation or evidence of actual operator receipt.
+
 ### Remaining recurring-release gates
 
 1. Qualify the complete installed command/service bundle, dependencies, private
