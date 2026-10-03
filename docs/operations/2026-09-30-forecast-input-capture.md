@@ -67,6 +67,42 @@ created by this diagnostic. The first fixed-artifact 24-hour target is due
 after October 3 08:00 MDT plus the five-minute lag; use this captured artifact
 identity even if the next scheduled trainer accepts a newer artifact first.
 
+## October 3, 10:50Z — nighttime forcing basis isolated
+
+The exact `20261003T015802Z-5f053eec5272386d.json.gz` capture was verified
+under installed runtime `cd77cd16...`, not the separate newer repository model
+schema. Two bounded qualified-temperature grids assessed all nine elapsed
+hourly targets at `2026-10-03T10:50:56.146206Z`. Every forcing temperature
+equals the original raw Open-Meteo hour after explicit America/Denver-to-UTC
+conversion; the archived unit is Fahrenheit. This rules out an added learned
+correction or time/unit mismatch for these nine captured values, not a general
+sensor, location or provider accuracy claim.
+
+| Target UTC | Raw outdoor forecast | Qualified outdoor actual | Indoor model error |
+| --- | ---: | ---: | ---: |
+| 02:00 | 59.70°F | 55.40°F | -0.201°F |
+| 03:00 | 57.50°F | 50.18°F | -1.213°F |
+| 04:00 | 55.60°F | 47.12°F | -1.932°F |
+| 05:00 | 54.00°F | 45.14°F | -2.300°F |
+| 06:00 | 52.50°F | 43.16°F | -2.769°F |
+| 07:00 | 51.60°F | 41.54°F | -2.863°F |
+| 08:00 | 51.90°F | 40.10°F | -2.795°F |
+| 09:00 | 52.90°F | 39.02°F | -2.768°F |
+| 10:00 | 53.00°F | 38.30°F | -2.821°F |
+
+`thermal_intel._forecast_rows()` calls `build_forecast_payloads()` without
+the learned daily adjustment/hourly model; that path uses raw temperatures.
+The weather UI supplies those corrections separately. Current learned state
+must not be substituted retroactively into this capture or called as-issued
+corrected forcing. A future forcing comparison needs origin-frozen corrections
+and held-out qualification. Raw outdoor bias grows from +4.30°F to +14.70°F
+while the indoor forecast remains cold: correcting weather alone is not
+established as a fix for the building forecast. Existing closed-vent sensitivity
+and the remaining airflow/thermal-dynamics qualification therefore remain
+important. This is one overlapping night, not nine independent training cases.
+No model, coefficient, source receipt, action label or production configuration
+was changed.
+
 ## October 3, 09:45Z — additional overnight targets and current-runtime replay
 
 The same fixed `2435c019...` artifact now has additional source-qualified

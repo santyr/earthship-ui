@@ -627,6 +627,14 @@ profiles without dropping qualified trough results; all 152 affected tests
 pass and learned state is unchanged. See
 [shared qualification](2026-09-29-prediction-learning-review.md#october-3-shared-charge-qualification-across-benchmark-modes).
 
+The October 3 overnight forcing audit also verifies nine elapsed raw-provider
+hours against qualified indoor/outdoor grids: no added correction or time/unit
+mismatch in those captured values. Outdoor warm error rises from +4.30°F to
++14.70°F while the indoor model remains cold. The thermal path currently uses
+raw weather, unlike the corrected weather UI; do not retrofit today's learned
+state into yesterday's issue or treat weather correction alone as the fix.
+See [forcing-basis diagnosis](2026-09-30-forecast-input-capture.md#october-3-1050z--nighttime-forcing-basis-isolated).
+
 October 3's source-only charge assessment now runs independently after sunset,
 without awaiting an unfinished overnight trough or requiring prior-night drops.
 Exact public/private/native atomic-origin pairing qualifies September 30 and
