@@ -1,5 +1,22 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 2 evening mature thermal target and efficient audit
+
+The current artifact's first mature near-12-hour prediction is 1.061°F warm,
+versus a 9.900°F persistence miss. Six short-horizon pairs and four overlapping
+six-hour pairs also qualify; they remain one-day, low-confidence evidence.
+Exact original replay isolates a +4.210°F afternoon miss as highly solar-
+sensitive, but a fixed 90% solar hypothesis improves only that miss while
+worsening the other three targets and the selected independent window. No
+multiplier or bias correction is promoted. The repeatable multi-horizon audit
+now shares capture verification and bounded receipt grids; actual live results
+match the original point-reader audit exactly using two rather than 20
+transactions. All 160 affected tests pass. No production model, forecast,
+collector, training label or control changed. Next: independent held-out
+solar/shade/mass attribution, genuine signed action evidence, later matured
+targets and the already scheduled new-runtime publication gate.
+See [mature targets, solar tradeoff and repeatable command](2026-09-30-forecast-input-capture.md#october-2-evening-mature-12-hour-outcome-and-batched-scoring).
+
 ## October 2 production current-radiation rollout and one-shot writer
 
 The guarded six-file runtime `c732feed...` and current-radiation user drop-in

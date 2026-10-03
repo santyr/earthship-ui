@@ -1,5 +1,97 @@
 # Exact morning weather-input archive
 
+## October 2 evening mature 12-hour outcome and batched scoring
+
+At `2026-10-03T02:19:25.104725Z`, the current captured artifact
+`2435c01964842c98829d25499b161b68dfab1d83a389e8b4ce0689eff2391d79`
+has its first mature near-12-hour target. Original captured publications and
+receipt-qualified indoor/outdoor outcomes are used; these are nearest hourly
+targets within 30 minutes, not exact elapsed horizons.
+
+| Horizon | Mature overlapping pairs | Model / persistence MAE °F | Non-overlapping pairs / model MAE °F |
+| --- | ---: | --- | --- |
+| Near 1 hour | 6 | 1.1372 / 1.9800 | 6 / 1.1372 |
+| Near 6 hours | 4 | 1.3247 / 8.1450 | 1 / 0.1180 |
+| Near 12 hours | 1 | 1.0610 / 9.9000 | 1 / 1.0610 |
+
+The first 12-hour target was issued at `2026-10-02T14:14:36.083052Z`,
+targeting `2026-10-03T02:00:00Z`. Its indoor error is **+1.061°F**, persistence
+error **-9.900°F**, and original outdoor forecast error **+2.800°F**. Unlike
+the previous artifact's cold errors, this target is warm. One target cannot
+justify a signed-bias correction or seasonal graduation. All scored intervals
+cover outcomes but remain about 10.414°F wide; confidence remains low, and
+confirmed-action evaluation and reviewed numerical graduation gates are absent.
+
+### Exact replay and solar-forcing tradeoff
+
+The newly matured six-hour miss from
+`20261002T173305Z-934722f199e5e15c.json.gz` predicts **81.570°F** at
+`2026-10-03T00:00:00Z`, versus qualified **77.360°F** (error +4.210°F).
+Its entire as-issued output first replays exactly under explicitly pinned
+installed runtime `c732feed23f4a9dd323a85a77dec9872d821c626d6619a642548dc7b752baaac`.
+Separate hypotheses show zero six-hour closed-vent change (modeled opening is
+later), only -0.077°F change for a uniform -3°F outdoor shift, but -15.574°F
+for a 50% solar reduction. These are modeled sensitivities, not observations,
+solar calibration, confirmed shade/vent state or a fitted correction.
+
+A fixed 90% solar hypothesis was then evaluated against **all four** mature
+six-hour targets of this artifact, each after exact replay and independent
+receipt validation. No schedules changed. Assessment ended at
+`2026-10-03T02:22:16.026579Z`.
+
+| Target UTC | Original error °F | 90% solar error °F |
+| --- | ---: | ---: |
+| October 2 20:00 | -0.118 | -1.551 |
+| October 2 22:00 | +0.646 | -0.833 |
+| October 3 00:00 | +4.210 | +0.457 |
+| October 3 02:00 | +0.325 | -1.098 |
+
+Overlapping MAE improves from **1.32475 to 0.98475°F**, but only the largest
+miss improves; the other three worsen. The audit's one selected non-overlapping
+window worsens from 0.118 to 1.551°F. This is not independent held-out tuning
+or evidence for deploying a solar multiplier. It identifies solar/shade/mass
+forcing as a useful diagnosis path without proving which term is wrong. The
+operator's chat shade report remains context, not a signed training label.
+
+### Efficient repeatable multi-horizon audit
+
+`audit-thermal-shadow-publications.py --horizons 1 6 12` now shares immutable
+original-capture verification and sorts/deduplicates receipt targets. Reads
+remain within the existing 289-target/24-hour qualified grid contract, with
+original source/expiry clocks revalidated at every target. Future targets,
+missing captures and unavailable indoor outcomes cause no unnecessary outdoor
+read; missing outcomes remain withheld, not fabricated or interpolated.
+The existing single `--horizon-hours` output and all per-horizon metrics,
+artifact grouping, independent-window policy and readiness blockers are
+preserved. No new schedule, learner, action or release authority is supplied.
+
+At `2026-10-03T02:27:44.549713Z`, actual restricted live batch reads reproduce
+the original point-reader results **exactly** on the same eight publications
+and assessment time: six original capture verifications and ten targets per
+stream, using **two** transactions rather than **20** cached point transactions.
+Canonical full `results` SHA-256 is
+`a24b39ea896e212f4b8c19da3682b3fa51a82266f336e234b3939e6e71f14957`;
+audit source SHA is
+`2a89cae4aae90b52ca9798eef5196188fde5c4bfd85252b05321af3ebdab4f76`.
+
+Reproduce from the repository using the existing private host environment:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --since 2026-10-02T14:00:00Z --require-capture --horizons 1 6 12 \
+  --include-pairs --artifact-id 2435c01964842c98829d25499b161b68dfab1d83a389e8b4ce0689eff2391d79 \
+  --runtime-root /home/sat/openhab/scripts
+```
+
+Later maturity can legitimately change counts. All **160 affected scorer,
+replay, graduation and qualified-temperature reader tests pass**, no skips.
+Tests cover differential score equality, legacy CLI, bad/expired receipts,
+missing/future evidence, invalid options, ordering, day-span and 289-target
+batch limits. This is not a whole-project or fresh container-backed audit.
+No model, artifact, journal, sensor state, production forecast, service/timer
+or household control was changed. The tool runs from the repository and needs
+no forecast-worker install or restart.
+
 ## October 2 later mature outcomes and qualified-weather attribution
 
 At `2026-10-02T22:16:30.024515Z`, a bounded GET/SELECT-only multi-horizon

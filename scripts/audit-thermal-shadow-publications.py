@@ -319,13 +319,108 @@ def score(rows, *, now, outcome_reader, capture_reader=None, outdoor_reader=None
     return result
 
 
+def score_horizons(rows, *, now, horizons, outcome_grid_reader,
+                   capture_reader=None, outdoor_grid_reader=None,
+                   include_pairs=False, target_artifact_id=None):
+    """Share capture verification and bounded receipt grids; retain score parity.
+
+    Grids use the existing 289-target/24-hour reader contract. Original receipt
+    clocks are validated at each target, never relabeled to assessment time.
+    This optimization supplies no new release, action or training authority.
+    """
+    if (not isinstance(horizons, (list, tuple)) or not 1 <= len(horizons) <= 5
+            or any(type(h) is not int or h not in SUPPORTED_HORIZONS for h in horizons)
+            or len(set(horizons)) != len(horizons)):
+        raise ValueError('unique supported horizons required')
+    if not isinstance(rows, list) or len(rows) > 1000:
+        raise ValueError('bounded publication rows required')
+    now = aware(now)
+    # Validate all existing option contracts before any external evidence read.
+    score([], now=now, outcome_reader=lambda _: None,
+          capture_reader=capture_reader,
+          outdoor_reader=(lambda _: None) if outdoor_grid_reader is not None else None,
+          horizon_hours=horizons[0], include_pairs=include_pairs,
+          target_artifact_id=target_artifact_id)
+    captures = {}
+    def cached_capture(publication):
+        key = _canonical(publication)
+        if key not in captures:
+            captures[key] = capture_reader(publication)
+        return captures[key]
+    selected_capture = cached_capture if capture_reader is not None else None
+    prepared = []
+    for row in rows:
+        for horizon in horizons:
+            pair, reason = select_pair(row, now=now, horizon_hours=horizon)
+            if reason:
+                continue
+            capture = selected_capture(json.loads(row['state'])) if selected_capture else None
+            if selected_capture is not None and capture is None:
+                continue
+            prepared.append((pair['target'], capture))
+    counts = dict(indoor_batches=0, outdoor_batches=0, indoor_targets=0,
+                  outdoor_targets=0, capture_verifications=len(captures))
+    def read_grids(targets, reader, stream):
+        ordered = sorted(set(targets))
+        counts[stream + '_targets'] = len(ordered)
+        values = {}
+        cursor = 0
+        while cursor < len(ordered):
+            stop = cursor + 1
+            while (stop < len(ordered) and stop-cursor < 289
+                   and ordered[stop]-ordered[cursor] <= timedelta(days=1)):
+                stop += 1
+            chunk = ordered[cursor:stop]
+            returned = reader(chunk, now)
+            if not isinstance(returned, list) or len(returned) != len(chunk):
+                raise ValueError('incomplete qualified outcome grid')
+            for target, row in zip(chunk, returned):
+                if (not isinstance(row, (list, tuple)) or len(row) != 2
+                        or aware(row[0]) != target):
+                    raise ValueError('qualified outcome grid target mismatch')
+                value = row[1]
+                if value is not None:
+                    _validate_receipt(value, target)
+                values[target] = value
+            counts[stream + '_batches'] += 1
+            cursor = stop
+        return values
+    indoor = read_grids([target for target, _ in prepared], outcome_grid_reader, 'indoor')
+    outdoor_targets = set()
+    if outdoor_grid_reader is not None:
+        for target, capture in prepared:
+            if indoor[target] is None:
+                continue
+            forcing = capture.get('forecast_rows')
+            if not isinstance(forcing, list):
+                raise ValueError('forcing capture has no hourly rows')
+            matches = [entry for entry in forcing if isinstance(entry, dict)
+                       and aware(entry.get('at')) == target]
+            if len(matches) == 1:
+                outdoor_targets.add(target)
+    outdoor = read_grids(outdoor_targets, outdoor_grid_reader, 'outdoor')
+    return {
+        'scope': 'observational_shadow_publications_not_graduation',
+        'assessed_at': now.isoformat(), 'publication_rows': len(rows),
+        'horizons_hours': list(horizons), 'read_counts': counts,
+        'results': {str(horizon): score(rows, now=now,
+            outcome_reader=indoor.__getitem__, capture_reader=selected_capture,
+            outdoor_reader=outdoor.__getitem__ if outdoor_grid_reader is not None else None,
+            horizon_hours=horizon, include_pairs=include_pairs,
+            target_artifact_id=target_artifact_id) for horizon in horizons},
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--since', default='2026-09-20T00:00:00+00:00')
     parser.add_argument('--until', default=None)
     parser.add_argument('--require-capture', action='store_true',
                         help='score only publications with an exact private forcing archive')
-    parser.add_argument('--horizon-hours', type=int, choices=SUPPORTED_HORIZONS, default=24)
+    horizon_args = parser.add_mutually_exclusive_group()
+    horizon_args.add_argument('--horizon-hours', type=int, choices=SUPPORTED_HORIZONS, default=24)
+    horizon_args.add_argument('--horizons', nargs='+', type=int, choices=SUPPORTED_HORIZONS,
+                              help='score several horizons with shared original captures and receipt grids')
     parser.add_argument('--include-pairs', action='store_true',
                         help='bounded signed-error details; requires --require-capture')
     parser.add_argument('--artifact-id',
@@ -337,6 +432,8 @@ def main():
         parser.error('--include-pairs requires --require-capture')
     if args.artifact_id and not args.require_capture:
         parser.error('--artifact-id requires --require-capture')
+    if args.horizons is not None and len(set(args.horizons)) != len(args.horizons):
+        parser.error('--horizons requires unique supported horizons')
     now = datetime.now(timezone.utc)
     start = aware(args.since)
     end = aware(args.until) if args.until else now
@@ -353,7 +450,18 @@ def main():
         if not isinstance(receipts, list) or len(receipts) != 1 or receipts[0][0] != target:
             raise ValueError('qualified outcome reader returned unexpected target')
         return receipts[0][1]
-    result = score(rows, now=now,
+    if args.horizons is not None:
+        def grid(stream, targets, assessed_at):
+            return collect({'stream': stream, 'targets': targets, 'assessed_at': assessed_at},
+                           config_path=CONFIG, policy_path=POLICY)
+        result = score_horizons(rows, now=now, horizons=args.horizons,
+            outcome_grid_reader=lambda targets, assessed: grid('indoor', targets, assessed),
+            outdoor_grid_reader=(lambda targets, assessed: grid('outdoor', targets, assessed))
+                                if args.require_capture else None,
+            capture_reader=capture_for_publication if args.require_capture else None,
+            include_pairs=args.include_pairs, target_artifact_id=args.artifact_id)
+    else:
+        result = score(rows, now=now,
                            outcome_reader=lambda target: qualified('indoor', target),
                            capture_reader=capture_for_publication if args.require_capture else None,
                            outdoor_reader=(lambda target: qualified('outdoor', target))

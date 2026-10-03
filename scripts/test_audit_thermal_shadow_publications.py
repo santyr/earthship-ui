@@ -7,6 +7,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+
+import pytest
 
 SOURCE = Path(__file__).with_name('audit-thermal-shadow-publications.py')
 SPEC = importlib.util.spec_from_file_location('thermal_publication_audit', SOURCE)
@@ -55,6 +58,174 @@ def receipt(target):
             'validUntil': target + timedelta(seconds=90),
             'streamEpoch': '864142d5-99ee-4b7a-b5fc-e6a96e7274d8',
             'snapshotSha256': 'b' * 64}
+
+
+def test_multi_horizon_preserves_each_original_score_with_shared_reads():
+    now = TARGET + timedelta(days=3)
+    rows = [row(), row()]
+    captures = []
+    reads = []
+    forcing = {'forecast_rows': published()['forecast']['trajectory'],
+               'sha256': {'artifact': 'a' * 64}}
+    forcing = {**forcing, 'forecast_rows': [dict(point, tempF=75)
+                                           for point in forcing['forecast_rows']]}
+    def captured(publication):
+        captures.append(publication)
+        return forcing
+    def grid(stream):
+        def read(targets, assessed_at):
+            reads.append((stream, targets, assessed_at))
+            return [(target, receipt(target)) for target in targets]
+        return read
+    result = audit.score_horizons(rows, now=now, horizons=(1, 6, 12),
+        outcome_grid_reader=grid('indoor'), outdoor_grid_reader=grid('outdoor'),
+        capture_reader=captured, include_pairs=True, target_artifact_id='a' * 64)
+    assert len(captures) == 1
+    assert len(reads) == 2
+    assert all(call[2] == now for call in reads)
+    assert result['read_counts'] == {'indoor_batches': 1, 'outdoor_batches': 1,
+        'indoor_targets': 3, 'outdoor_targets': 3, 'capture_verifications': 1}
+    for horizon in (1, 6, 12):
+        expected = audit.score(rows, now=now, horizon_hours=horizon,
+            outcome_reader=receipt, outdoor_reader=receipt,
+            capture_reader=lambda _: forcing, include_pairs=True,
+            target_artifact_id='a' * 64)
+        assert result['results'][str(horizon)] == expected
+
+
+def test_multi_horizon_never_reads_future_missing_capture_or_unqualified_indoor():
+    future_now = ISSUE + timedelta(minutes=10)
+    def forbidden(*args):
+        raise AssertionError('unexpected evidence read')
+    result = audit.score_horizons([row()], now=future_now, horizons=(1, 24),
+        outcome_grid_reader=forbidden, capture_reader=forbidden,
+        outdoor_grid_reader=forbidden)
+    assert result['read_counts']['indoor_batches'] == 0
+    assert result['read_counts']['capture_verifications'] == 0
+    result = audit.score_horizons([row()], now=TARGET + timedelta(minutes=10),
+        horizons=(24,), outcome_grid_reader=forbidden,
+        capture_reader=lambda _: None, outdoor_grid_reader=forbidden)
+    assert result['results']['24']['counts'] == {'forcing_capture_missing': 1}
+    result = audit.score_horizons([row()], now=TARGET + timedelta(minutes=10),
+        horizons=(24,), outcome_grid_reader=lambda targets, now: [(t, None) for t in targets],
+        capture_reader=lambda _: {'forecast_rows': [{'at': TARGET.isoformat(), 'tempF': 75}]},
+        outdoor_grid_reader=forbidden)
+    assert result['read_counts']['outdoor_batches'] == 0
+    assert result['results']['24']['counts']['qualified_outcome_unavailable'] == 1
+
+
+@pytest.mark.parametrize('horizons', [(), (1, 1), (3,), (True,), (1.0,), '1', None])
+def test_multi_horizon_rejects_invalid_horizons_before_evidence(horizons):
+    with pytest.raises(ValueError, match='unique supported horizons'):
+        audit.score_horizons([row()], now=TARGET, horizons=horizons,
+                             outcome_grid_reader=lambda *args: pytest.fail('read'))
+
+
+@pytest.mark.parametrize('bad', ['short', 'reordered', 'wrong_target', 'invalid_receipt'])
+def test_multi_horizon_refuses_incomplete_or_changed_grid(bad):
+    def read(targets, assessed_at):
+        values = [(t, receipt(t)) for t in targets]
+        if bad == 'short': return values[:-1]
+        if bad == 'reordered': return list(reversed(values))
+        if bad == 'wrong_target': return [(t + timedelta(seconds=1), value) for t, value in values]
+        return [(t, {**value, 'storedAt': t + timedelta(seconds=1)}) for t, value in values]
+    with pytest.raises(ValueError):
+        audit.score_horizons([row()], now=TARGET + timedelta(days=1), horizons=(1, 6),
+                             outcome_grid_reader=read)
+
+
+def test_multi_horizon_batches_at_existing_day_and_target_bounds():
+    now = TARGET + timedelta(days=32)
+    rows = []
+    for day in range(3):
+        value = published()
+        delta = timedelta(days=day)
+        value['generatedAt'] = (ISSUE + delta).isoformat()
+        for point in value['forecast']['trajectory']:
+            point['at'] = (datetime.fromisoformat(point['at']) + delta).isoformat()
+        rows.append({'time': int((ISSUE+delta+timedelta(seconds=3)).timestamp()*1000),
+                     'state': json.dumps(value)})
+    calls = []
+    def read(targets, assessed_at):
+        calls.append(targets)
+        return [(t, receipt(t)) for t in targets]
+    result = audit.score_horizons(rows, now=now, horizons=(1, 6, 12, 24, 48),
+                                 outcome_grid_reader=read)
+    assert len(calls) > 1
+    assert all(len(targets) <= 289 and targets[-1]-targets[0] <= timedelta(days=1)
+               for targets in calls)
+    assert all(a < b for targets in calls for a, b in zip(targets, targets[1:]))
+    assert result['read_counts']['indoor_targets'] == len({t for targets in calls for t in targets})
+    for horizon in (1, 6, 12, 24, 48):
+        assert result['results'][str(horizon)] == audit.score(
+            rows, now=now, horizon_hours=horizon, outcome_reader=receipt)
+
+
+def test_multi_horizon_enforces_289_target_limit_and_publication_bound():
+    rows = []
+    for index in range(350):
+        value = published()
+        delta = timedelta(seconds=30*index)
+        value['generatedAt'] = (ISSUE+delta).isoformat()
+        for point in value['forecast']['trajectory']:
+            point['at'] = (datetime.fromisoformat(point['at'])+delta).isoformat()
+        rows.append({'time': int((ISSUE+delta+timedelta(seconds=3)).timestamp()*1000),
+                     'state': json.dumps(value)})
+    sizes = []
+    def read(targets, assessed_at):
+        sizes.append(len(targets))
+        return [(t, receipt(t)) for t in targets]
+    result = audit.score_horizons(rows, now=TARGET+timedelta(days=1), horizons=(24,),
+                                 outcome_grid_reader=read)
+    assert sizes == [289, 61]
+    assert result['results']['24']['counts']['scored'] == 350
+    with pytest.raises(ValueError, match='bounded publication rows'):
+        audit.score_horizons([row()]*1001, now=TARGET, horizons=(24,),
+                             outcome_grid_reader=lambda *args: pytest.fail('read'))
+
+
+@pytest.mark.parametrize('options', [
+    {'include_pairs': True}, {'target_artifact_id': 'a'*64},
+    {'target_artifact_id': 'a'*12, 'capture_reader': lambda _: None},
+    {'outdoor_grid_reader': lambda *args: pytest.fail('read')},
+])
+def test_multi_horizon_validates_options_before_any_capture_or_grid(options):
+    with pytest.raises(ValueError):
+        audit.score_horizons([row()], now=TARGET, horizons=(24,),
+                             outcome_grid_reader=lambda *args: pytest.fail('read'), **options)
+
+
+def test_multi_horizon_missing_outdoor_receipts_preserve_indoor_score():
+    forcing = {'forecast_rows': [{'at': TARGET.isoformat(), 'tempF': 75}]}
+    result = audit.score_horizons([row()], now=TARGET+timedelta(minutes=10), horizons=(24,),
+        outcome_grid_reader=lambda targets, now: [(t, receipt(t)) for t in targets],
+        outdoor_grid_reader=lambda targets, now: [(t, None) for t in targets],
+        capture_reader=lambda _: forcing)
+    assert result['results']['24'] == audit.score([row()], now=TARGET+timedelta(minutes=10),
+        outcome_reader=receipt, outdoor_reader=lambda _: None, capture_reader=lambda _: forcing)
+
+
+def test_multi_horizon_legacy_cli_result_and_explicit_batch_cli(monkeypatch, capsys):
+    monkeypatch.setattr(audit.oh, 'get', lambda _: {'data': [row()]})
+    calls = []
+    def collect(request, **kwargs):
+        calls.append(request)
+        return [(target, receipt(target)) for target in request['targets']]
+    monkeypatch.setattr(audit, 'collect', collect)
+    with patch.object(sys, 'argv', ['audit', '--since', '2026-09-20T00:00:00Z',
+                                  '--until', '2026-09-20T03:00:00Z', '--horizon-hours', '1']):
+        audit.main()
+    legacy = json.loads(capsys.readouterr().out)
+    assert legacy['horizon_hours'] == 1 and 'results' not in legacy
+    calls.clear()
+    with patch.object(sys, 'argv', ['audit', '--since', '2026-09-20T00:00:00Z',
+                                  '--until', '2026-09-20T03:00:00Z', '--horizons', '1', '6']):
+        audit.main()
+    multi = json.loads(capsys.readouterr().out)
+    assert set(multi['results']) == {'1', '6'}
+    assert len(calls) == 1
+    assert multi['results']['1']['groups'] == legacy['groups']
+    assert multi['results']['1']['operational_readiness_blockers'] == legacy['operational_readiness_blockers']
 
 
 class PublicationAuditTests(unittest.TestCase):

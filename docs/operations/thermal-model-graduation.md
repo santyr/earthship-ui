@@ -7,6 +7,16 @@ the evidence gates or equate a working shadow publisher with completion.
 
 ## Current evidence, September20
 
+For the latest October 2 evening evidence, see the
+[mature current-artifact targets and exact solar tradeoff](2026-09-30-forecast-input-capture.md#october-2-evening-mature-12-hour-outcome-and-batched-scoring).
+One qualified current-artifact near-12-hour target is substantially better than
+persistence, but it is only one target. A 90% solar hypothesis improves the
+largest of four overlapping six-hour misses while worsening the other three
+and the selected independent window. No coefficient or forcing multiplier is
+promoted. Efficient shared-grid auditing now preserves exact original scores;
+it does not close confirmed-action, independent seasonal skill or reviewed
+numerical graduation gates. The model remains in shadow.
+
 The scheduled trainer uses the400-day default, bounded physical fitting and
 chronological walk-forward evaluation. Today's accepted artifact is in use.
 Live Thermal_Model_JSON at23:29:48Z reports low confidence, reconstructed action
