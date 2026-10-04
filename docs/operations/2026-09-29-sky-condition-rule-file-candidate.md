@@ -1,5 +1,58 @@
 # Sky-condition control-input rule: file-provider candidate
 
+## October 4 specific protected transaction — source only
+
+`scripts/deploy-sky-control-input.py` implements the proposed guarded
+**file -> exact managed rollback -> final file** protocol, reusing the existing
+display engine's provider predicates, backup, REST and wait helpers. It does
+not open the generic display gate. Its own `RELEASE_READY` is **false**, and
+`--apply` additionally requires fresh `--attended --physical-pumps-off` flags.
+Default invocation is read-only and creates no backup or runtime file.
+Candidate SHA-256:
+`0160efbdfde35b9259d74fcfdb932eda205762972b160d1a777f1f66ef2e8e20`.
+
+Before each mutation, it requires the exact repaired managed pump consumer,
+fresh native SoC, healthy Schneider/BMS inputs, both output Items OFF and
+verified current native v2 radiation evidence from the restricted reader. The
+native Sun Thing must be ONLINE. It requires at least **15 minutes** before
+possible pump eligibility: a remaining daytime cooldown or an actual upcoming
+native sunrise. A past sunrise is never advanced by an invented day. Neither
+held numeric SoC nor collector health alone qualifies freshness. Naturally
+changing sky outputs are not written back or frozen to force equality.
+
+Continuity compares all 41 unrelated rule definitions, 26 related Item
+definitions/links, native Sun definition, six other watched JS sources,
+OpenHAB PID and exact JDBC identities **172/173/540/541**. The original
+previous-complete-local-day history is an explicit bounded prefix check,
+**not a full-table history export**. Two read-only October 4 snapshots match
+SHA `d2ed72bb77ececef5d5a6d3d254110c40ce5a0ac15e8c700927f513f81b997bd`;
+October 3 row counts are 75/77/1032/1090 respectively. No SQL writes or new
+grants are needed. Apply would privately retain its exact managed preimage,
+continuity receipt and withdrawn owned files. It never changes the ownership
+manifest automatically; declaration still follows independent live readback.
+
+File installation publishes an atomic, no-overwrite hard link from an unwatched
+temporary filename. Withdrawal/completion verifies both exact bytes and the
+owned inode, refusing symlinks, unexpected files or same-byte replacements.
+Managed rollback preserves `visibility` and `configuration` as well as original
+action/triggers/descriptive fields. Any unowned continuity or protected-input
+drift can refuse rollback; retain the private recovery point and require
+attended inspection rather than overwriting unknown ownership.
+
+All **102** affected Python cases pass without skips, including 26 new
+transaction/preflight cases. The first real read exposed an adapter-only health
+casing mismatch (`ok`); two reproducing tests failed before matching the
+existing sky producer's uppercase normalization. The corrected read-only
+preflight qualifies native receipts but **refuses the current expired cooldown**.
+Do not call it a passed complete live preflight or bypass that window because
+the pumps happen to be OFF. No production mutation has occurred.
+
+The actual container proof below qualifies the current source and original
+provider/JVM/rollback paths, not this new exclusive-install transaction code.
+Next exercise that exact transaction in the inspected isolated provider, then
+review its final immutable pin and obtain separate fresh protected-release
+authority/attendance. No production restart or test pump cycle is included.
+
 ## October 4 repaired consumer requalified in isolation
 
 The qualifier now explicitly selects `consumer_revision='durable-recovery'`,

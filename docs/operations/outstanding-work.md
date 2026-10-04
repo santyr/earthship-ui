@@ -1,5 +1,23 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 4 protected sky transaction implemented, not released
+
+The dedicated default-off handoff candidate now implements exact
+file/managed/file round-trip, exclusive no-overwrite install, owned-inode/source
+withdrawal, complete managed metadata rollback and pre-mutation continuity/
+native-freshness checks. All 102 affected Python cases pass, including 26 new
+cases. Two genuine bounded definition/history reads match all 41 unrelated
+rules, 26 related Items, six other JS sources, four JDBC identities/prefixes
+and original PID 1696. The corrected real read-only safety preflight refuses
+the **expired cooldown window**; both pumps being OFF is not sufficient.
+
+No production file, provider, manifest, backup, job, timer, SQL write or pump
+command was changed. The candidate and generic gates both remain false.
+Next qualify this exact transaction's exclusive file publication and guarded
+rollback in the inspected isolated provider, then review its immutable pin
+and arrange specific fresh authority/attendance plus a protected timing window.
+See [candidate scope, actual readback and remaining gates](2026-09-29-sky-condition-rule-file-candidate.md#october-4-specific-protected-transaction--source-only).
+
 ## October 4 repaired sky consumer and natural training gates
 
 The exact repaired pump consumer now passes the actual networkless sky
