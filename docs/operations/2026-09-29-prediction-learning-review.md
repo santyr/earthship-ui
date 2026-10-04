@@ -5,6 +5,63 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 3 original low-temperature correction watch
+
+At **2026-10-04T00:03:11.344244Z** (October 3 18:03 MDT), a restricted
+read-only comparison paired six immutable advisory **tomorrow-low** origins
+with six completed outdoor calendar-day outcomes. Each native outcome was
+re-read at its original recorded assessment clock and passed the current
+strict complete-coverage contract, matching every archived value and history
+digest. Older archived summaries lack `gap_count`; they were not rewritten
+or given a fabricated field. The fresh native replay supplies that verification.
+Every origin has exactly one matching target, precedes target start, validates
+under the closed decision schema and preserves its original applied bias.
+
+| Target day | Original issue date, 06:40 MDT | Raw low | Applied bias | Corrected low | Actual low | Corrected error |
+| --- | --- | --- | --- | --- | --- | --- |
+| September 21 | September 20 | 52.600 F | 7.297 F | 45.303 F | 45.860 F | -0.557 F |
+| September 22 | September 21 | 54.000 F | 7.297 F | 46.703 F | 48.020 F | -1.317 F |
+| September 25 | September 24 | 51.100 F | 7.187 F | 43.913 F | 45.500 F | -1.587 F |
+| September 26 | September 25 | 49.700 F | 7.187 F | 42.513 F | 40.640 F | +1.873 F |
+| September 27 | September 26 | 53.300 F | 7.247 F | 46.053 F | 42.980 F | +3.073 F |
+| October 1 | September 30 | 48.900 F | 7.422 F | 41.478 F | 39.380 F | +2.098 F |
+
+Raw MAE is **7.870 F**; original corrected MAE is **1.750833 F**, with
+corrected signed bias **+0.597167 F**. Correction wins **six of six** pairs.
+Three corrected misses are cold and three warm; the three later available
+dates still have warm residuals of 1.873–3.073 F. This narrows the old generic
+under-correction watch to a chronological/regime-specific residual watch.
+It does **not** justify increasing the global low bias from the raw-MAE Item,
+which measures a different predictor and horizon. Missing fully covered days
+stay excluded; do not mistake this selected complete-day cohort for seasonal
+coverage or reconstruct unobserved lows from change-only numeric history.
+
+This verifies frozen **advisory predictor inputs**, not delivery or rendering
+of every weather UI revision. No current Kalman bias is substituted into an
+old issue; the thermal path's separate raw-weather forcing is unchanged.
+Neither interval calibration, seasonal skill nor thermal graduation is proved.
+No state, forecast, filter, notification, Item, journal or control changed.
+Forecast-state SHA-256 remains
+`e60f26adb4ff14d2cb3a5994c13576cbbf5acb60705009ef881151f4c9c73fc7`.
+
+Original decision IDs, in table order:
+
+- `19f39fb4-e0e6-4f10-8edd-59abd2c56602`
+- `01657602-ef24-4aa8-990c-5d15085070bb`
+- `2aae0b06-f84e-4dde-94ac-f6af0ea4f45e`
+- `b180fe8d-f568-4955-b73a-8e324242e82f`
+- `307b6cce-8f99-4a6e-9e3a-d375dda1c877`
+- `a494c9f3-c87a-457c-8c14-edb3107a00c4`
+
+Replayed native outcome digests, in the same order:
+
+- `bdeaa3d2c793cf1e813b80c4b898cb95483bdee64e071014e628f95dbf14da39`
+- `bafafff30eb0985fbf3d22fc11febfc70b871bd53976c92f2bea615e8a256b37`
+- `d1e6843c85997f0913aa98962ab68195c967f9c4168e1e5c98c44e943b3dc889`
+- `b80b658436cdb9ccb8543bcd9f6dee86cfb2c2c3f077ce4c9772d0ca67bd3892`
+- `1bfe61f2fc734fb1377fd34164ec124a868cfdfe144192a953336cb5cb6b51aa`
+- `da5c4f302c751fa08545a5529b820b617a1ba5602a6cb9dbb22ed492332fba79`
+
 ## October 3 comparison frozen before tonight's outcome
 
 At **2026-10-03T23:46:16.838503Z** (17:46 MDT), a bounded, restricted
