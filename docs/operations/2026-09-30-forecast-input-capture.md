@@ -1,6 +1,49 @@
 # Exact morning weather-input archive
 
 
+## October 4 first new-artifact six-hour and fourth daily outcome qualified
+
+At frozen assessment **2026-10-04T20:06:09Z**, the 20:00Z native outcome has
+passed the required five-minute maturity lag. Two independent read-only audits
+per artifact agree. Original publication bounds and per-pair artifact identity
+checks preserve the separate October 3 and October 4 cohorts.
+
+| Original issue UTC | Artifact | Near horizon | Target UTC | Model signed error | Cycle signed error | Persistence signed error |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| October 4 13:58:05.252516 | `a4ea9f4a...` | 6 hours | October 4 20:00 | -0.020 F | -5.040 F | -11.340 F |
+| October 3 19:53:38.161057 | `d9163729...` | 24 hours | October 4 20:00 | -0.197 F | -0.900 F | +0.720 F |
+
+Both original captures, indoor/outdoor observations and seven prior same-clock
+cycles qualify. Outdoor forcing errors are -0.420/-4.220 F respectively.
+Today's first six-hour pair beats both baselines, with its original 10.414 F
+interval covering the actual. It is one independent window on one issue day;
+low confidence, seasonal/action evidence and graduation gates remain.
+Its existing three non-overlapping short windows remain unchanged. Two other
+six-hour targets and all 12/24/48-hour targets of this bounded cohort remain
+future at this assessment.
+
+Yesterday's four overlapping daily pairs now have model/cycle/persistence MAE
+**2.6197/1.2150/0.5850 F** and interval coverage **3/4**. The new pair wins,
+but the earlier -7.750 F interval miss remains in the cohort. Mean daily error
+still exceeds both baselines. Greedy non-overlap still selects only the original
+first daily window, with MAE 0.486/1.620/0.540 F; this additional overlapping
+pair does not increase independent-day support. Two daily targets remain
+future, at 22:00Z and October 5 00:00Z; all six 48-hour targets remain future.
+
+Canonical repeated-report SHA-256 values:
+
+- October 3 cohort: `4a90255519d9d9d644f9c99902dc9e021c9cd5326a5018b8940fe5a408fa7e35`.
+- October 4 cohort: `85a069aceac583bd615931f8f69d15f268c8bfd5682b9a747f47c0bdf1e420ed`.
+
+Receipts are `/tmp/earthship-d916-2005-matured.json` and
+`/tmp/earthship-a4-2005-matured.json`, each with an identical `-repeat.json`
+counterpart (0600). Reproduce using the preceding bounded cohort commands,
+horizons 1/6/12/24/48 and fixed assessment 20:06:09Z. No additional venting
+sensitivity run, model calculation, coefficient, action label, publication,
+notification, schedule, live gate or household control was added or changed.
+
+
+
 ## October 4 third daily miss and third short outcome qualified
 
 At frozen assessment **2026-10-04T19:56:48Z**, two independent native reads

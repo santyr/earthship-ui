@@ -5,6 +5,21 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 4 first six-hour acceptance evidence
+
+The [first new-artifact six-hour outcome](2026-09-30-forecast-input-capture.md#october-4-first-new-artifact-six-hour-and-fourth-daily-outcome-qualified)
+now qualifies at 20:06:09Z. Model/cycle/persistence MAE is
+0.020/5.040/11.340 F for one independent window, still one issue day.
+Yesterday's fourth daily pair improves its overlapping cohort MAE to
+2.6197/1.2150/0.5850 F, but the earlier interval miss and only one independent
+daily window remain. This closes an additional outcome-qualification step,
+not the full graduation requirement. No extra ventilation calculation or
+live model change was made.
+
+The operator additionally directed a no-venting forecast default starting in
+November. Its ending rule is being clarified; this is a future default policy,
+not a confirmed physical state, historical training label or equipment command.
+
 ## October 4 acceptance evidence update
 
 The latest [original daily and short outcome qualification](2026-09-30-forecast-input-capture.md#october-4-third-daily-miss-and-third-short-outcome-qualified)
