@@ -5,6 +5,24 @@ recorded below. Its action/cron and both outputs are unchanged. No Item, link,
 persistence mapping, household control or service was changed or restarted.
 The earlier candidate checks below remain their original scoped evidence.
 
+## October 4 natural changed icon and new JDBC rows verified
+
+The file writer naturally logged `battery-90` at October 3 19:45:00.607 MDT
+(SoC 97%, current -4.2 A), and `battery-80` at October 4 03:15:00.607 MDT
+(SoC 89%, current -2.28 A). Both log records are explicitly attributed to
+`jsscripting.file.battery-icon.js`, not the retired managed writer. Bounded
+post-handoff JDBC history has those same values at
+`2026-10-04T01:45:00.609Z` and `2026-10-04T09:15:00.608Z` respectively.
+
+Independent readback verifies exact installed/canonical SHA `bc6c0954...`,
+file ownership, IDLE/NONE, the sole original 30-second cron and unchanged
+JDBC identities 31/154. This closes the natural **icon-change** gate without
+any synthetic update, manual rule execution or charge manipulation. Charging
+remained OFF: no new charging-status row exists in this interval, as expected
+for change-only posting. A genuine changed charging-status receipt and the
+separately attended production whole-JVM gate remain unproved. This display
+writer does not certify its held numeric inputs as fresh control evidence.
+
 ## October 3 attended production handoff
 
 The operator confirmed current attendance. Fresh read-only preflight verified

@@ -1,5 +1,31 @@
 # Exact morning weather-input archive
 
+## October 4 newly settled twelve-hour original-artifact outcomes
+
+At fixed assessment `2026-10-04T13:18:46Z`, the existing capture-strict audit
+qualifies the two original `d9163729...` morning predictions. It uses the same
+13:00–16:00Z October 3 issue range and installed-runtime command below, with
+`--horizons 12`. Both original captures and two native indoor/outdoor targets
+qualify in one batch per outcome stream. Canonical report SHA-256:
+`1d5f132a511ae52e2336272c751ade1f1c9d8591bd6b189bf6ee23be202d0d2f`.
+
+| Original issue UTC | Actual target UTC | Model error | Recent-cycle error | Persistence error | Outdoor forecast error |
+| --- | --- | --- | --- | --- | --- |
+| October 3 13:39:05.222543 | October 4 02:00 | +1.888 F | -4.140 F | -8.280 F | +4.460 F |
+| October 3 15:40:07.386987 | October 4 04:00 | +0.225 F | -0.900 F | -3.960 F | +9.200 F |
+
+Model/cycle/persistence MAE is **1.0565/2.520/6.120 F**; the model wins both
+paired comparisons. The two windows overlap, leaving just one non-overlapping
+pair, **1.888/4.140/8.280 F**. Cycle comparators use seven original prior-day
+trajectories; their evidence digests are `024fcc41...` and `8467a4ea...`.
+The broad ~10.414 F intervals cover both outcomes, not calibrated narrow
+uncertainty or seasonal/action skill. Warm outdoor-forcing residuals remain
+in the divergence watch; association alone is not causal attribution.
+
+The newly accepted October 4 `a4ea9f4a...` artifact is a separate cohort and
+must not be substituted into these original forecasts. No correction, model
+refit, journal label, notification or household control was made by this audit.
+
 ## October 3 fifth settled short-horizon outcome
 
 At the fixed **23:50:20.245458Z** assessment, the original

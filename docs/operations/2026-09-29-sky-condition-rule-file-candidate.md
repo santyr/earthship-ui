@@ -1,5 +1,38 @@
 # Sky-condition control-input rule: file-provider candidate
 
+## October 4 repaired consumer requalified in isolation
+
+The qualifier now explicitly selects `consumer_revision='durable-recovery'`,
+pinned to the deployed pump action
+`4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b`.
+The original default remains pinned to `e697e262...` for the historical repair
+adapter; no arbitrary hash, automatic "latest" revision or live release gate
+is accepted. It also checks the exact copied consumer payload before each
+probe phase, including after actual JVM replacement.
+
+Seven new revision-selection cases failed before implementation; an additional
+post-restart payload case failed before its guard. All **76** affected Python
+cases now pass without skips. The existing command below then passed actual
+**file-hot -> full JVM replacement -> original managed sky rollback** with
+the repaired consumer. Every phase kept both synthetic pumps OFF for missing
+and expired native SoC evidence and stale BMS communications, verified no
+transient ON command, and exercised one unlinked positive control followed by
+safety OFF. This is sky-provider/consumer evidence, not a replacement for the
+separate actual-JDBC interrupted-ledger qualification already completed.
+
+Harness SHA-256:
+`8d6dbc73a09223b95059e3e644c866bb9c17fd919db4e81b60ca680a21deb7a2`.
+Probe SHA-256:
+`b77b6b543f010531eaa8908f14a0e4ab9c23a74a64fa905528989197e10b05c4`.
+The owned networkless container and ephemeral volumes were removed. Independent
+13:20Z readback confirms original managed sky action `d99c01c1...`, five
+triggers, repaired managed pump action and two triggers, both IDLE/NONE,
+both pump Items OFF, absent watched sky file, zero ownership issues and
+unchanged OpenHAB PID 1696. No production write, test cycle or restart occurred.
+`RELEASE_READY['sky']` remains false. The specifically guarded handoff below
+still requires its own reviewed authority and fresh physical attendance/OFF.
+Earlier action-pin/refusal checkpoints below are historical.
+
 ## October 3 later recovery finding — handoff held
 
 The subsequent interrupted-ledger fault tests exposed an automatic-start

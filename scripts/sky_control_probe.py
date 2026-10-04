@@ -11,6 +11,7 @@ import re
 
 UID = 'hex_southoutlet_cycle'
 ACTION_SHA = 'e697e2626a5e1ab4e4d079612c4b85d16dd79178a4ff80a5208b4bb108970d18'
+DURABLE_ACTION_SHA = '4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b'
 TRIGGERS = (
     ('core.ItemCommandTrigger', (('itemName', 'SouthOutlet_ManualRequest'),)),
     ('timer.GenericCronTrigger', (('cronExpression', '0 * * * * ?'),)),
@@ -33,7 +34,15 @@ String SouthOutlet_LastCycle
 '''
 
 
-def control_payload(rule, source):
+def control_payload(rule, source, *, consumer_revision='original'):
+    # Keep the original deployment adapter's baseline unchanged. Qualification
+    # of the attended repair must explicitly select its separately reviewed pin.
+    if consumer_revision == 'original':
+        expected = ACTION_SHA
+    elif consumer_revision == 'durable-recovery':
+        expected = DURABLE_ACTION_SHA
+    else:
+        raise RuntimeError('reviewed sky-consumer revision required')
     triggers = tuple((x.get('type'), tuple(sorted(x.get('configuration', {}).items())))
                      for x in rule.get('triggers', []))
     actions = rule.get('actions', [])
@@ -42,8 +51,8 @@ def control_payload(rule, source):
             or triggers != TRIGGERS or rule.get('conditions')
             or len(actions) != 1 or actions[0].get('type') != 'script.ScriptAction'
             or actions[0].get('configuration', {}).get('type') != 'application/javascript'
-            or sha256(actions[0]['configuration']['script'].encode()).hexdigest() != ACTION_SHA
-            or sha256(source).hexdigest() != ACTION_SHA):
+            or sha256(actions[0]['configuration']['script'].encode()).hexdigest() != expected
+            or sha256(source).hexdigest() != expected):
         raise RuntimeError('exact current sky-consumer source/provider required')
     return {key: rule[key] for key in
             ('uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')

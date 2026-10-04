@@ -96,3 +96,36 @@ def test_control_probe_requires_exact_sky_restart_scope_before_any_live_read(mon
     monkeypatch.setattr(q.runtime.oh, 'get', lambda *_: pytest.fail('unexpected live read'))
     with pytest.raises(RuntimeError, match='sky control probe requires'):
         q.main(kind, restart=restart, sky_control=True)
+
+
+def test_sky_qualifier_explicitly_selects_durable_consumer_before_container_operations(tmp_path, monkeypatch):
+    source = tmp_path / 'openhab/rules/southoutlet-cycle-current.js'
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b'synthetic current consumer')
+    monkeypatch.setattr(q, 'ROOT', tmp_path)
+    rule = {'uid': q.sky_control_probe.UID}
+    monkeypatch.setattr(q.runtime.oh, 'get', lambda *_: rule)
+    monkeypatch.setattr(q, 'managed_baseline', lambda *_: {})
+    observed = []
+    def selected(actual, canonical, **kwargs):
+        observed.append((actual, canonical, kwargs))
+        return {}
+    monkeypatch.setattr(q.sky_control_probe, 'control_payload', selected)
+    monkeypatch.setattr(q.runtime, 'GRAAL', tmp_path)
+    monkeypatch.setattr(q.runtime, 'run', lambda *_: pytest.fail('unexpected container operation'))
+    with pytest.raises(RuntimeError, match='resources unavailable'):
+        q.main('sky', restart=True, sky_control=True)
+    assert observed == [(rule, b'synthetic current consumer',
+                         {'consumer_revision': 'durable-recovery'})]
+
+
+def test_healthy_consumer_requires_original_payload_after_restart():
+    original = {'uid': q.sky_control_probe.UID, 'triggers': [{'id': 'original'}],
+                'actions': [{'configuration': {'script': 'original exact action'}}]}
+    actual = {**original, 'editable': True,
+              'status': {'status': 'IDLE', 'statusDetail': 'NONE'}}
+    assert q._healthy_control(lambda *_: (200, actual), original) == actual
+    for damaged in ({**actual, 'actions': []}, {**actual, 'triggers': []},
+                    {**actual, 'editable': False},
+                    {**actual, 'status': {'status': 'UNINITIALIZED', 'statusDetail': 'NONE'}}):
+        assert q._healthy_control(lambda *_: (200, damaged), original) is None

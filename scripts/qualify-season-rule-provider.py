@@ -190,7 +190,11 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
     control = sky_control_probe.control_payload(
         runtime.oh.get('/rules/' + sky_control_probe.UID),
         (ROOT / 'openhab/rules/southoutlet-cycle-current.js').read_bytes(),
+        consumer_revision='durable-recovery',
     ) if sky_control else None
+    if sky_control:
+        print('isolated_sky_consumer_revision=durable-recovery; action_sha256='
+              + sky_control_probe.DURABLE_ACTION_SHA, flush=True)
     bundles = sorted(runtime.GRAAL.glob('org.graalvm.*/25.0.1/*.jar'))
     if len(bundles) != 22 or not runtime.ADDON.is_file() or any(not c.source.is_file() for c in configs):
         raise RuntimeError('isolated JavaScript resources unavailable')
@@ -262,7 +266,7 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
         runtime.run(['docker', 'exec', container, 'mkdir', '-p', '/openhab/conf/automation/js'])
         def probe_control(phase):
             if sky_control:
-                wait_for(lambda: _healthy_control(rest), seconds=120)
+                wait_for(lambda: _healthy_control(rest, control), seconds=120)
                 sky_control_probe.run_probe(rest, lambda: runtime.run([
                     'docker', 'exec', container, 'cat', '/openhab/userdata/logs/events.log']).decode(),
                     wait_for, phase=phase)
@@ -364,9 +368,10 @@ def _managed_rule(rest, uid):
                    and rule.get('editable') is True) else None
 
 
-def _healthy_control(rest):
+def _healthy_control(rest, expected):
     rule = _managed_rule(rest, sky_control_probe.UID)
-    return rule if rule and rule.get('status') == {'status': 'IDLE', 'statusDetail': 'NONE'} else None
+    return rule if (rule and rule.get('status') == {'status': 'IDLE', 'statusDetail': 'NONE'}
+                    and managed_payload(rule) == expected) else None
 
 
 if __name__ == '__main__':

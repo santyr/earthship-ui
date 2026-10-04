@@ -1,5 +1,34 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 4 repaired sky consumer and natural training gates
+
+The exact repaired pump consumer now passes the actual networkless sky
+file-load/full-JVM/managed-rollback experiment, including missing/expired
+SoC and stale-comms refusal, positive unlinked control and safety OFF in every
+phase. All 76 affected Python tests pass; the owned container/volumes are
+removed. Production remains unchanged, inventory has zero issues and PID
+1696 is retained. The generic live gate remains off; a specifically guarded
+transaction and separate fresh authority/attendance remain before sky migration.
+See [new pinned qualification](2026-09-29-sky-condition-rule-file-candidate.md#october-4-repaired-consumer-requalified-in-isolation).
+
+The natural optimized trainer completed at 07:15 MDT, exit zero, ~24m55s
+elapsed, 365.88 MiB peak and no swap. Its actual candidate/accepted artifact
+`a4ea9f4a...` validates against runtime `15267d7a...`, with the original
+400-day window and previous artifact retained. It remains shadow-only with
+no confirmed-action evaluation or operational thresholds. The original 07:57
+publisher's new-artifact continuity is the next natural gate. See
+[training and artifact evidence](2026-09-27-thermal-selector-efficiency.md#october-4-natural-optimized-training-verified).
+
+Both newly mature twelve-hour `d9163729...` predictions beat their matched
+cycle/persistence comparators (MAE 1.0565/2.520/6.120 F), but overlap and give
+only one independent window. Keep the new artifact separate and shadow gates
+unchanged; see [original-input outcomes](2026-09-30-forecast-input-capture.md#october-4-newly-settled-twelve-hour-original-artifact-outcomes).
+
+The file-owned BatteryIcon writer now has source-attributed natural changes
+and matching new JDBC rows, closing its icon writer gate. Charging remained
+OFF with no changed row; that distinct transition and production whole-JVM
+gate remain open. See [natural icon proof](2026-10-03-battery-icon-rule-file-candidate.md#october-4-natural-changed-icon-and-new-jdbc-rows-verified).
+
 ## October 4 completed-day qualification and Energy label correction
 
 The first natural supporting-source aggregate and subsequent v4 UI revision

@@ -1,6 +1,7 @@
 """No hardware: guards and synthetic native-input contracts for sky recovery."""
 from datetime import datetime, timezone
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
@@ -25,9 +26,34 @@ def test_exact_live_and_canonical_action_required(monkeypatch):
         probe.control_payload(rule, b'other')
 
 
+def test_durable_consumer_requires_explicit_revision_and_exact_canonical_source():
+    source = (Path(__file__).resolve().parents[1]
+              / 'openhab/rules/southoutlet-cycle-current.js').read_bytes()
+    rule = baseline(source.decode())
+    assert sha256(source).hexdigest() == probe.DURABLE_ACTION_SHA
+    assert probe.control_payload(rule, source, consumer_revision='durable-recovery') == {
+        key: value for key, value in rule.items() if key not in ('editable', 'status')}
+    # The original release adapter's default stays pinned to its old baseline.
+    with pytest.raises(RuntimeError):
+        probe.control_payload(rule, source)
+    with pytest.raises(RuntimeError):
+        probe.control_payload(rule, source + b'\n', consumer_revision='durable-recovery')
+    rule['actions'][0]['configuration']['script'] += '\n'
+    with pytest.raises(RuntimeError):
+        probe.control_payload(rule, source, consumer_revision='durable-recovery')
+
+
+@pytest.mark.parametrize('revision', ['', None, True, 'latest', '0'*64])
+def test_unreviewed_consumer_revision_refused(revision):
+    with pytest.raises(RuntimeError, match='consumer revision'):
+        probe.control_payload(baseline(), b'fixture', consumer_revision=revision)
+
+
 @pytest.mark.parametrize('damage', ['uid', 'provider', 'trigger', 'action', 'condition', 'status'])
-def test_control_drift_refused(monkeypatch, damage):
+@pytest.mark.parametrize('revision', ['original', 'durable-recovery'])
+def test_control_drift_refused(monkeypatch, damage, revision):
     monkeypatch.setattr(probe, 'ACTION_SHA', sha256(b'fixture').hexdigest())
+    monkeypatch.setattr(probe, 'DURABLE_ACTION_SHA', sha256(b'fixture').hexdigest())
     rule = baseline()
     if damage == 'uid': rule['uid'] = 'another'
     elif damage == 'provider': rule['editable'] = False
@@ -35,7 +61,8 @@ def test_control_drift_refused(monkeypatch, damage):
     elif damage == 'action': rule['actions'][0]['configuration']['script'] = 'changed'
     elif damage == 'condition': rule['conditions'] = [{'type': 'unexpected'}]
     else: rule['status'] = {'status': 'UNINITIALIZED', 'statusDetail': 'HANDLER_MISSING_ERROR'}
-    with pytest.raises(RuntimeError): probe.control_payload(rule, b'fixture')
+    with pytest.raises(RuntimeError):
+        probe.control_payload(rule, b'fixture', consumer_revision=revision)
 
 
 def test_synthetic_receipts_explicitly_distinguish_fresh_and_expired():

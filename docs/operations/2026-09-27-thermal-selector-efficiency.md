@@ -1,5 +1,32 @@
 # Thermal endpoint-selector efficiency — September 27
 
+## October 4 natural optimized training verified
+
+The original timer's invocation `24237cadfa43441da7db987649ea17b9` ran
+06:50:56–07:15:51 MDT, then exited zero; original PID 3344497 is gone and the
+service is inactive/dead. It consumed **24m50.609s CPU**, approximately
+24m55s elapsed, **365.88 MiB peak memory** and **zero peak swap**. No job or
+timer was manually started or restarted. These are actual-run measurements,
+not a controlled same-input attribution of speedup to the source optimizations.
+
+The actual training output reports `promoted` within the existing provisional
+shadow gates. Installed typed validation independently accepts both candidate
+and accepted model, canonical artifact SHA
+`a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df`,
+with code revision equal to installed runtime `15267d7a...`. The previous
+slot retains the unchanged original `d9163729...` artifact and `cd77cd16...`
+training revision. The independently validated backtest report and accepted
+manifest retain **400 days**, August 30, 2025–October 4, 2026 at
+12:50:57.033872Z, **99,914 canonical rows**, 378 folds and 298 scored folds.
+Canonical row digest:
+`b6bb1644855e436845df0bb2ee578bc25375848277f90bfecf2273d761a96d52`.
+
+`promotion.shadow_only` remains true, operational graduation thresholds remain
+null, and confirmed-action training/evaluation/disjoint-fold counts are zero.
+Do not confuse provisional offline acceptance with leaving shadow mode. The
+next original publisher is scheduled for **07:57 MDT**; its natural new-artifact
+capture/Item/JDBC continuity remains pending. No manual publication or control.
+
 ## October 3 deferred daily-endpoint materialization deployed
 
 The next measured selector cost was constructing a `RolloutEndpoint` and its
