@@ -58,7 +58,7 @@
   const pvPredicted = $derived(predictionReceipt?.pvTodayKwh ?? null);
   const pvPredictionText = $derived(pvForecastComparison(pvToday, pvPredicted));
   const pvError = $derived(num($items.Forecast_PV_Error_7d));
-  const pvAccuracyBadge = $derived(pvError === null ? 'calibrating' : `±${Math.round(Math.abs(pvError))}% (7d)`);
+  const pvAccuracyBadge = $derived(pvError === null ? 'Forecast error unavailable' : `Forecast error ${Math.round(Math.abs(pvError))}%`);
 
   // ---- Curtailment ------------------------------------------------------
   const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
@@ -116,7 +116,7 @@
             <span class="pv-unit">kWh today</span>
           </div>
           <div class="pv-sub">{pvPredictionText}</div>
-          <span class="pv-badge">{pvAccuracyBadge}</span>
+          <span class="pv-badge" title="Mean absolute percentage error of recent scored PV forecasts; not a prediction interval.">{pvAccuracyBadge}</span>
         </div>
         <div class="pv-chart">
           <HistoryChart

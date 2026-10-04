@@ -116,6 +116,20 @@ test('Energy withholds a held numeric SoC when source evidence is unavailable', 
   await expect(page.locator('.hero-soc')).toHaveText('SoC —');
 });
 
+test('Energy PV forecast error is not presented as a prediction interval', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0]);
+  const badge = page.locator('.pv-badge');
+  await expect(badge).toHaveText('Forecast error 13%');
+  await expect(badge).toHaveAttribute('title', /mean absolute percentage error.*not a prediction interval/i);
+});
+
+test('Energy PV forecast error is explicitly unavailable without a score', async ({ page }) => {
+  await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
+    Forecast_PV_Error_7d: 'UNDEF',
+  });
+  await expect(page.locator('.pv-badge')).toHaveText('Forecast error unavailable');
+});
+
 test('Energy distinguishes stale BMS telemetry from a reported fault', async ({ page }) => {
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     BMS_Comms_Status: 'STALE age=120s',

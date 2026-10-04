@@ -1,5 +1,18 @@
 # Radiation history, shade collision and Office Hallway display
 
+## October 4 first complete qualified v2 radiation day
+
+A bounded SELECT-only replay of October 3, assessed after local midnight,
+passes the strict day reader: **86,400/86,400 seconds covered**, zero gaps,
+2,869 original rows and no rejection reasons. It uses the installed source
+cutover `2026-10-02T20:00:09.206165Z`, not legacy numeric carry. The history
+digest is `86e575b483b3d8b628675603ab8e3dde81b3cae263e66e845c372332ac89d1ae`.
+Integrated exposure is **4,234.767238 Wh/m²**, with a 750.9 W/m² maximum.
+These are the existing **lux-derived irradiance proxy**, not calibrated
+pyranometer energy or PV production kWh. This closes the first-clean-day
+collection check; it does not activate new radiation learning, recalibrate
+forecasts or qualify a thermal control. No SQL write or live job was performed.
+
 ## First natural qualified-current publication — October 3 03:36Z
 
 The unchanged timer actually triggered at **03:36:03.554478Z**, with natural

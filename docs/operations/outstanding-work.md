@@ -1,5 +1,31 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 4 completed-day qualification and Energy label correction
+
+The first natural supporting-source aggregate and subsequent v4 UI revision
+qualify: October 3 has 21/21 source-quality rows `ok` under their individual
+policies, and exact published snapshot digest parity. Observed EFC is 2.41
+through October 3. Separate qualified AC energy is 4.861 kWh; unavailable
+meters and aggregate balances remain withheld. See the
+[natural aggregate receipt](2026-10-01-energy-supporting-source-qualification.md#october-4-natural-aggregate-and-ui-revision-verified).
+
+October 3 is the first fully covered native v2 radiation day (86,400 seconds,
+zero gaps), not a reconstructed legacy numeric day. Its lux-derived exposure
+does not by itself activate new learning. The completed charge-day reader also
+finds the first paired reported-full event at 10:00 MDT; one full and two
+censored days are not sufficient for scheduling-model promotion. See
+[radiation day](2026-10-02-radiation-history-and-shade-collision.md#october-4-first-complete-qualified-v2-radiation-day)
+and [original full-charge clocks](2026-09-29-prediction-learning-review.md#october-4-first-paired-reported-full-day).
+
+The display-only PV badge now says `Forecast error` instead of presenting
+mean absolute percentage error as a ± interval. Missing scores are explicitly
+unavailable. All 17 Energy browser regressions and the build pass. The approved
+greywater repair is independently reread as `4c34780e...`, IDLE/NONE and both
+pump Items OFF; original OpenHAB PID 1696 is unchanged. Separate sky-consumer
+requalification and migration authority remain pending. The natural October 4
+trainer is still running at this checkpoint; do not claim its exit or new
+artifact acceptance. Overnight comparison scoring waits until 11:00 MDT.
+
 ## October 3 attended greywater recovery repair complete
 
 Following exact operator approval and fresh physical OFF/attendance, the

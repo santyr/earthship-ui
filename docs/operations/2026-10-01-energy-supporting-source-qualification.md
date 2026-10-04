@@ -1,5 +1,35 @@
 # Energy supporting-source qualification — October 1
 
+## October 4 natural aggregate and UI revision verified
+
+The original daily timer ran at 00:20:56–00:21:00 MDT and exited zero with
+both qualified switch and BMS auxiliary readers in its effective arguments.
+October 3 snapshot 14 has **21/21 source-quality records `ok`** under their
+respective policies; this does not claim zero gaps for every source. Its
+canonical payload digest matches the naturally published v4 latest revision:
+`c57af3dd5a1c10f415d1bf5d43529ed498b4572129fca315594db33e629ce817`.
+The supporting-source natural aggregate/publication gate is now closed.
+
+The observed period is September 20–October 3: **2.4109403678 EFC** over
+14 days. October 3 observed PV is **6.3061348186 kWh**. The separate natural
+AC day writer exited zero at 00:41 MDT, with revision 13 reporting
+**4.8608748661 kWh** at 99.992363% coverage and digest
+`bcbeec8d016d1383f3172c3e565558b0321130be82dc36bc6b599e35b89c95dc`.
+Unqualified meters and aggregate energy balances remain withheld; the public
+Energy status correctly remains partial/degraded despite qualified source health.
+No job, control, synthetic value or timer was manually triggered.
+
+The PV badge exposed a separate labeling defect: the producer stores the mean
+absolute percentage error of the last seven scored forecasts, not a prediction
+interval or necessarily seven consecutive days. The display-only correction
+names it `Forecast error`, explicitly marks a missing score unavailable, and
+explains its meaning in the title. The numeric producer and forecast
+calculations are unchanged. Both reproducing tests failed before the change;
+all 17 Energy browser tests and the production build pass afterward.
+The actual locally served 1340×800 page renders both battery and PV history
+charts and `Forecast error 22%`, with zero page errors, horizontal overflow or
+write attempts in a read-only browser probe. No UI or OpenHAB restart was needed.
+
 ## October 3 operator acceptance and guarded deployment
 
 The operator accepted the actual-binding fault/JVM qualification in place of a

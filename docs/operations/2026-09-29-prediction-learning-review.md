@@ -5,6 +5,24 @@ Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.
 No Hexmem task is used as an authority for this review.
 
+## October 4 first paired reported-full day
+
+The existing SELECT-only `--charge-only` assessment, run after October 3
+sunset at `2026-10-04T12:54:19.972849Z`, qualifies one `reported_full` day.
+Its original morning issue is `2026-10-03T12:40:58.396244Z`; the atomic SoC
+assessment is the distinct `12:40:58.411000Z` clock, with **87%** SoC.
+The first native reported **100%** occurs at `16:00:58.575454Z` (10:00 MDT),
+12,000.164454 seconds later. True sunset is `2026-10-04T00:42:07.214Z`,
+with sunset SoC 99% and charge-day coverage 99.982747%.
+
+Source digest: `c8755608e6c60a9cda92f215bb813d14b55e278c199cf2102536ad6c7119b19b`.
+Charge-profile digest: `e07c08f5e5619a7df2abc78dd2d4aeb50ba8eecc5181a1f92c635a7946c94b46`.
+Forecast-state SHA-256: `44aba2710926998a2d710c8220f252fa5f6e3493af4a483ad0d27a1f67d842aa`.
+This is a reported-full observation, not the exact physical charge-completion
+instant. Together with the two earlier censored days, it remains insufficient
+to fit full-charge scheduling. No production model changed. October 3's
+separately frozen overnight comparisons still wait for October 4 11:00 MDT.
+
 ## October 3 original low-temperature correction watch
 
 At **2026-10-04T00:03:11.344244Z** (October 3 18:03 MDT), a restricted
