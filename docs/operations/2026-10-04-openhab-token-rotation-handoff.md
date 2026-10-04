@@ -1,15 +1,16 @@
-# OpenHAB token rotation: prepared, awaiting operator action and approval
+# OpenHAB token rotation: approved, awaiting private replacement
 
 ## Scope and current state
 
-This is a read-only preparation receipt for `SECURITY-TOKEN-ROTATION` in
-`docs/qa/ui-audit-matrix.csv`. No token was created, replaced or revoked, and
-no service was restarted. The approved sky handoff is already complete;
-its approval does not authorize this separate credential transaction.
+This records preparation and the subsequent explicit approval for
+`SECURITY-TOKEN-ROTATION` in `docs/qa/ui-audit-matrix.csv`. No token has been
+created, replaced or revoked, and no service has been restarted by this
+transaction. The separate approved sky handoff is already complete.
 
-The QA matrix requires fresh explicit approval to rotate the token and
-restart only Earthship UI. The local home-automation assignment also requires
-task-specific authority for service restarts and live changes.
+The operator explicitly approved credentials and private staging on October 4,
+following the scoped transaction below. Approval is received for replacement,
+UI-only restart, conditional UI-only recovery restart and final named revocation.
+The missing input is the private replacement credential, not further permission.
 
 On October 4, authenticated `GET /rest/auth/apitokens` returned three metadata
 records containing only name, scope and creation time. The private environment
@@ -93,11 +94,37 @@ fails, retain the working replacement and report the remaining exposed token;
 do not revert a healthy UI to the old credential. After successful revocation,
 the old secret cannot be restored as a usable rollback credential.
 
-## Approval and remaining inputs
+## Approval received and current preflight
 
-Execution requires explicit approval for the environment replacement, UI-only
-restart, conditional UI-only recovery restart and final named revocation.
-Token creation additionally requires the operator's authenticated interface
-step and private staging file. Preparation is complete; rotation remains
-pending. No production OpenHAB restart, physical action, notification,
-helper schedule change or broader credential migration is authorized here.
+At 18:08:54 UTC on October 4, authenticated metadata still contained exactly
+`Hex`, `lightning` and `solar`, all with empty scope. An unauthenticated request
+to `/rest/auth/apitokens` returned 401, confirming this endpoint can distinguish
+successful authentication from anonymous Item access.
+
+Privileged read-only accounting examined 46 UID-1000 processes with no existing
+unreadable processes. Three environment holders matched the current credential;
+all belonged to the UI family (419027, 419043 and 419044). This closes the earlier
+owner-process visibility gap for this instant, not arbitrary external consumers.
+Fresh checks are still required at replacement and revocation. Sanitized evidence:
+`/tmp/earthship-token-rotation-approved-preflight.json` (0600, UID 1000).
+
+Private storage is ready: `/home/sat/.config/hex` is 0700 and `openhab.env`
+is a regular non-symlink 0600 file, both owned by UID 1000. The UI remains active
+with MainPID 419027 and its original environment-file configuration. The proposed
+`openhab.next.env` staging file is absent.
+
+The installed OpenHAB 5.2.1 console also supports
+`openhab:users addApiToken <userId> <tokenName> <scope>` through the normal user
+registry; its matching official `UserConsoleCommandExtension` source was checked.
+A bounded read-only console connection failed with
+`No more authentication methods available`. The configured console account has
+a hashed password; no configured public-key login or SSH-agent key is available.
+No password was guessed, reset or extracted, and no registry file was modified.
+
+The operator has been asked to create the same-account empty-scope replacement
+using the normal authenticated interface and stage it privately, or identify an
+existing private account-credential file. Do not send secrets in chat. Receipt
+of that input permits continuation of the already approved transaction without
+another approval request. Production OpenHAB restart, physical action,
+notifications, helper schedule changes and broader credential migration remain
+outside this transaction. Rotation remains incomplete; `Hex` is still valid.
