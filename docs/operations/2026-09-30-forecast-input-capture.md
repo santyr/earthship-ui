@@ -1,6 +1,36 @@
 # Exact morning weather-input archive
 
 
+## October 4 fourth settled short outcome qualified
+
+At frozen assessment **2026-10-04T21:26:07Z**, two independent capture-strict
+read-only audits agree on the bounded October 4 artifact cohort. The original
+**20:00:58.555231Z** issue now qualifies against its **21:00Z** native target,
+with model/cycle/persistence signed errors **-0.139/-0.540/-1.440 F**.
+All seven prior same-clock cycles qualify, the original 10.414 F interval
+covers the observation, and the outdoor forecast error is -1.620 F.
+
+The four one-hour windows are all non-overlapping and remain one issue day:
+model/cycle/persistence MAE is **0.2497/0.5850/1.5300 F**. The model wins three
+pairs against both baselines and loses the first. Its first six-hour result
+remains unchanged; longer unelapsed targets remain withheld. There is no new
+24-hour result at this assessment, and no model, interval, control threshold,
+action label or release gate was changed.
+
+Each audit verifies four original captures and uses one indoor and one outdoor
+batch with five targets per stream. Every scored pair is explicitly checked
+against artifact `a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df`;
+`--artifact-id` alone is not a publication filter. Repeated-report canonical
+SHA-256 is `9517e31f27ca1bfe69bd35dab52152ac920672a2f185f0154d9d5d7ddb90e51f`.
+Private receipts are `/tmp/earthship-a4-2125-matured.json` and its `-repeat`
+peer. The scorer uses installed coherent runtime `e32fdb8b...`, while original
+publication/training metadata correctly retain `15267d7a...`.
+
+The next new six-hour/daily target is 22:00Z, eligible only after its five-minute
+maturity lag. Short performance on one issue day does not prove long-horizon,
+seasonal, interval or independently confirmed-action skill.
+
+
 ## October 4 first new-artifact six-hour and fourth daily outcome qualified
 
 At frozen assessment **2026-10-04T20:06:09Z**, the 20:00Z native outcome has

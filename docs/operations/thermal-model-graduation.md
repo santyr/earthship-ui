@@ -5,6 +5,23 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 4 fourth short outcome and current graduation audit
+
+The [fourth settled original short forecast](2026-09-30-forecast-input-capture.md#october-4-fourth-settled-short-outcome-qualified)
+adds another independent one-hour window at the 21:00Z target. Model/cycle/
+persistence MAE is now **0.2497/0.5850/1.5300 F** across four windows, all on
+one issue day. Repeated audits agree; the first six-hour result is unchanged.
+
+A fresh read-only accepted-artifact/report audit under installed `e32fdb8b...`
+confirms unchanged graduation blockers. The 119 historical 24-hour comparisons
+have model/persistence/cycle MAE **2.17855/1.68989/1.83416 F**, with interval
+coverage **0.81356** against nominal 0.9. Confirmed training rows, evaluation
+targets and disjoint folds remain zero; `shadow_only` is true and graduation
+thresholds remain unapproved. This audit does not replace prospective scores.
+Aggregate-only recurring collection still has one question, one receipt, one
+terminal prompt and zero automatic questions/corrections. No synthetic label,
+manual question, model refit or operational release was introduced.
+
 ## October 4 first six-hour acceptance evidence
 
 The [first new-artifact six-hour outcome](2026-09-30-forecast-input-capture.md#october-4-first-new-artifact-six-hour-and-fourth-daily-outcome-qualified)
