@@ -1,6 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
 
+## October 4 tablet and laptop physical signoff complete
+
+The operator confirmed: "Tablet and laptop are signed off as good."
+`DEVICE-M9-SIGNOFF` and `DEVICE-LAPTOP-SIGNOFF` in the canonical QA matrix
+are now `verified-live`, with the operator's October 4 physical signoff recorded
+alongside their existing automated geometry evidence. Neither UI device signoff
+remains an outstanding task or completion blocker. This closes the UI-device
+acceptance gates; equipment commissioning and production recovery retain their
+own requirements.
+
+
+
 ## October 4 first new-artifact six-hour outcome qualified
 
 The original 13:58Z `a4ea9f4a...` prediction now qualifies at 20:00Z:
@@ -1227,6 +1239,7 @@ worsens it. No correction, action label or graduation is promoted. See
 
 | Track | Current verified state | Next required work |
 | --- | --- | --- |
+| UI device acceptance | The operator signed off the tablet and laptop as good on October 4. Both canonical physical-device QA rows are verified-live alongside existing automated geometry evidence. | Complete; do not request these same physical signoffs again. |
 | Charge/PV/trough tuning | Original-publication/private-input/native-clock qualification now covers September 30, October 1 and October 3: two no-full/censored days and one reported-full day. October 3 PV is 7.13 versus native 6.309 kWh; dusk is 95.01 versus 99%, and morning trough 69 versus 86%. Original October 1 PV is 6.58 versus 6.697 kWh, with dusk 74.458 versus 87%. The exploratory gain/direct-demand pair has mixed branch-dependent errors; native AC timing remains separate from DC demand. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Preserve censoring and original input clocks; three paired days with one reported-full outcome cannot train or promote full-charge timing or establish seasonal skill. |
 | Pre-dusk estimate | Four qualified completed comparisons: September 29 actual/pre-dusk/morning 81/81/53%; September 30 65/64/47%; October 1 72/65/52%; October 3 86/74/69%. MAE is 5.00 points pre-dusk versus 20.75 morning; all pre-dusk misses are nonpositive. October 2 correctly withheld after DNS failure. October 3's frozen phase/sunset comparisons score 82/83% against the same 86% with all six original input digests verified. | Continue original-issue held-out analysis and explicit remaining-daylight/overnight-load design; October 3 scoring is complete. Four scored nights are not seasonal graduation. Do not manufacture a missing issue, force an early job or repeat the completed Primal trial. |
 | Thermal collection | Exact v2 journal retains 11 action/5 receipt/4 mode rows. The signed Primal shade-closure trial, original-cipher recovery and cold journal replay pass. Approved v4 recurring user units are live: maximum one recommendation follow-up per Mountain day, five-minute completion-based inbox polls and Hex-only relay authentication. nos.lol and Primal are readable; Damus AUTH fails because of its server's unconfigured serviceUrl. Generic source gates remain false; household controls remain off. | Observe a naturally eligible recommendation/question/authenticated reply and verify original evidence before model consumption. Resolve or monitor the external Damus failure without weakening routes or using the operator key. Chat reports and relay ACKs are not labels; do not repeat completed provisioning or activation approvals. |
