@@ -1,5 +1,68 @@
 # Exact morning weather-input archive
 
+## October 4 complete matured horizons for the October 3 artifact
+
+At fixed assessment **2026-10-04T17:43:01Z**, two independent native reads
+agree on the six original post-training `d9163729...` issues from October 3
+13:39 through 23:54Z. All six original forcing captures qualify. All declared
+1/6/12-hour targets are complete; two daily targets qualify and four remain
+future outcomes at this cutoff.
+
+| Near horizon | Mature pairs | Model MAE | Seven-cycle MAE | Persistence MAE |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 6 | 0.8028 F | 0.9600 F | 1.7700 F |
+| 6 hours | 6 | 1.4795 F | 4.6800 F | 8.3400 F |
+| 12 hours | 6 | 1.0598 F | 4.5300 F | 8.2500 F |
+| 24 hours | 2 | 1.2660 F | 1.3500 F | 0.6300 F |
+
+Declared greedy non-overlap selection is applied separately within this exact
+artifact cohort:
+
+| Near horizon | Non-overlapping pairs | Model MAE | Seven-cycle MAE | Persistence MAE |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 6 | 0.8028 F | 0.9600 F | 1.7700 F |
+| 6 hours | 2 | 0.9110 F | 5.9400 F | 10.5300 F |
+| 12 hours | 1 | 1.8880 F | 4.1400 F | 8.2800 F |
+| 24 hours | 1 | 0.4860 F | 1.6200 F | 0.5400 F |
+
+The two six-hour selections are the original **13:39:05.222543Z** and
+**21:53:55.878437Z** issues, targeting October 3 20:00Z and October 4 04:00Z.
+The 12/24-hour selection retains the first 13:39 issue. Overlap removal does
+not create independent issue days; this entire cohort remains one issue day.
+Targets are the original hourly points within the existing half-hour horizon
+tolerance, not newly interpolated exact elapsed-hour outcomes.
+
+The model improves against both matched baselines in the 1/6/12-hour cohort
+means. Daily mean error still exceeds persistence; the single selected daily
+pair's 0.054 F improvement is unchanged. All publications remain low confidence,
+with broad roughly 10.414 F intervals. Independent-day/seasonal, calibrated
+interval and genuine confirmed-action skill remain unproved; no graduation
+threshold, coefficient, forcing correction, action label, message or control
+changed. Today's `a4ea9f4a...` artifact stays separate.
+
+The initial whole-day inspection also contained seven earlier predecessor
+issues. `--artifact-id` selects the readiness target but does not filter every
+row. The final report below uses the actual post-training time bounds and
+checks every pair's artifact identity; its overall and artifact-specific groups
+are identical. Do not use pooled whole-day or global non-overlap metrics as
+this artifact's proof.
+
+Canonical report SHA-256:
+`8565d605d93215a5693f706bad9c3c060843e4c7d5c714b70d1ab4c654e9091a`.
+Receipts: `/tmp/earthship-d916-artifact-only-horizons.json` and its
+`-repeat.json` counterpart. The audit shares six capture checks and seventeen
+unique native indoor/outdoor targets in two batches per stream. Reproduce with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-03T13:00:00Z --until 2026-10-04T00:00:00Z \
+  --assessed-at 2026-10-04T17:43:01Z \
+  --require-capture --horizons 1 6 12 24 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9
+```
+
+
 ## October 4 second short outcome for the new artifact
 
 At frozen assessment **2026-10-04T17:27:05Z**, independent native reads agree
