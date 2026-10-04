@@ -1,5 +1,23 @@
 # Temperature extrema display writer: file-provider handoff
 
+## Current status: production restart gate already verified
+
+The original September 29 provisional checkpoint below was superseded by the
+[October 2 production restart qualification](2026-10-02-display-provider-restart-qualification.md#four-completed-display-gates).
+That audit proves the source predates the actual 07:25:20 MDT JVM start,
+unique file ownership, original timer, natural post-restart extrema and original
+JDBC identities 178/179/180/181. Its manifest declaration is verified; this
+resource does not need another restart to repeat that completed gate.
+
+October 4 read-only recheck again finds exact canonical/installed SHA
+`4c6c32a4847c93792f9748028ad8d53ac7116bc837a385544b7523fcd5c62297`,
+a unique noneditable IDLE/NONE rule and the original fifteen-minute cron.
+The same JVM remains PID 1696 with October 2 07:25:20 MDT start. Current
+indoor extrema are 68.18/81.86 F and outdoor extrema 42.80/84.02 F. This is a
+current provider/source recheck, not a new full-history export or whole-system
+recovery claim. The original private managed rollback copy is retained.
+
+
 At the September 29 preflight, `temp-highlow-24h` was one healthy managed
 JavaScript rule with a single `0 0/15 * * * ?` timer. Its 1,146-byte action
 had SHA-256

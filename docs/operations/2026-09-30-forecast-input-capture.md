@@ -1,6 +1,46 @@
 # Exact morning weather-input archive
 
 
+## October 4 first settled outcome for the new artifact
+
+At fixed assessment **2026-10-04T15:34:35Z**, two independent native read-only
+runs produce the same report for today's `a4ea9f4a...` artifact. Its original
+**13:58:05.252516Z** issue targets **15:00Z** at the declared one-hour horizon;
+the original forcing capture, indoor/outdoor observations and seven strictly
+prior same-local-clock cycles all qualify.
+
+| Predictor | Signed error | Absolute error |
+| --- | --- | --- |
+| Original model | +0.508 F | 0.508 F |
+| Original persistence | -0.360 F | 0.360 F |
+| Seven-cycle comparator | -0.360 F | 0.360 F |
+
+The model loses to both matched baselines by **0.148 F**. This is one
+non-overlapping short-horizon window from one day, kept separate from the
+October 3 `d9163729...` artifact. The original outdoor forcing is **2.620 F
+cold**; that does not independently explain the model's warm residual.
+The 10.414 F interval covers the observation, without proving calibration.
+Low confidence, missing confirmed-action outcomes and absent operational
+graduation thresholds remain explicit blockers. No coefficient, model,
+training label, notification, source gate or household control changed.
+
+Canonical report SHA-256:
+`410198dbf6be6e38e709311c2ffef21e9f89b0bdd472d6b1fe664ced35198115`.
+Cycle evidence SHA-256:
+`1e85c5c74edfab08fc9f130e5bb57e5107b0471a3e05198420bf07f3c47cba7f`;
+selected lags are 1–7. The bounded audit uses one capture verification, one
+indoor and one outdoor target batch, plus fourteen cycle targets in seven
+small batches. Reproduce the unchanged original forecast comparison with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-04T13:00:00Z --until 2026-10-04T14:00:00Z \
+  --assessed-at 2026-10-04T15:34:35Z \
+  --require-capture --horizons 1 --include-pairs --recent-cycles \
+  --artifact-id a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df
+```
+
 ## October 4 first settled daily outcome for the October 3 artifact
 
 At frozen assessment **2026-10-04T14:28:33.428642Z**, two independent live
