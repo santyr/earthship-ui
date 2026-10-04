@@ -605,6 +605,15 @@
     },
     {
       "kind": "rule",
+      "id": "sky-condition-calculator",
+      "provider": "file",
+      "migration": "verified",
+      "source": "automation/js/sky-condition-calculator.js",
+      "destination": "/etc/openhab/automation/js/sky-condition-calculator.js",
+      "state_writer": "SkyCondition, SkyConditionIcon, SkyCondition_LastEval, SkyCondition_Diagnostic"
+    },
+    {
+      "kind": "rule",
       "id": "UpdateBatteryIcon",
       "provider": "file",
       "migration": "verified",

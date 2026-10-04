@@ -3,6 +3,34 @@
 
 
 
+## October 4 natural battery charging gate closed
+
+The file-owned battery display writer naturally changed charging OFF/ON/OFF/ON
+at 08:03:30, 08:04:30 and 08:09:30 MDT. Each original changed event names the
+actual file source, with matching new original JDBC charging/icon rows and
+unchanged source, provider, cron and identities 31/154. This closes the separate
+natural charging-status gate; production whole-JVM recovery still requires its
+own attended window. See [exact receipts and fixed history query](2026-10-03-battery-icon-rule-file-candidate.md#october-4-natural-charging-status-transitions-verified).
+
+## October 4 approved sky live handoff complete
+
+The operator-approved exact file/managed/file transaction passes in the native
+cooldown after the original east-pump cycle naturally completed at 09:21 MDT.
+Independent readback verifies unique file ownership, all five triggers, exact
+source/inode, original managed rollback receipt, repaired consumer, all unrelated
+definitions/sources, original PID 1696 and fixed October 3 JDBC prefixes and
+identities. Both pump Items are OFF; disk release gates remain false.
+
+The genuine 09:22:55 MDT LastEval changed event explicitly names the installed
+file writer, with matching new original LastEval/Diagnostic JDBC rows. Ownership
+was declared only afterward; the final live inventory has zero issues, with
+35 managed/seven non-managed rules. The corrected pinned-environment complete
+Python suite passes **4,052 tests**, 10 explicitly gated integration skips and
+91 passing subtests; all 201 focused dependency/signer cases pass. No production
+restart, forced cycle, manual invocation or synthetic Item update occurred.
+See [retained recovery point, exact proofs and remaining scope](2026-09-29-sky-condition-rule-file-candidate.md#october-4-approved-live-handoff-and-natural-evaluation-verified).
+Production whole-JVM recovery and physical signoff remain separate gates.
+
 ## October 4 exact sky transaction isolated qualification complete
 
 The final reviewed `5d3791fc...` transaction now passes actual exclusive
@@ -1090,7 +1118,7 @@ worsens it. No correction, action label or graduation is promoted. See
 | Thermal collection | Exact v2 journal retains 11 action/5 receipt/4 mode rows. The signed Primal shade-closure trial, original-cipher recovery and cold journal replay pass. Approved v4 recurring user units are live: maximum one recommendation follow-up per Mountain day, five-minute completion-based inbox polls and Hex-only relay authentication. nos.lol and Primal are readable; Damus AUTH fails because of its server's unconfigured serviceUrl. Generic source gates remain false; household controls remain off. | Observe a naturally eligible recommendation/question/authenticated reply and verify original evidence before model consumption. Resolve or monitor the external Damus failure without weakening routes or using the operator key. Chat reports and relay ACKs are not labels; do not repeat completed provisioning or activation approvals. |
 | Thermal skill and efficiency | October 3 natural training took 26m04s, peak 365.15 MiB and zero swap. At the settled 21:06Z cutoff, today's model/cycle/persistence MAE is 0.430/0.990/1.935 F for four one-hour pairs and 1.742/6.300/12.780 F for one six-hour pair. Its predecessor loses to recent cycles on aggregate one-hour error and to persistence over four overlapping daily pairs; only one daily window is independent. Exact-parity prefix bookkeeping, glazing-row reuse and deferred endpoint materialization are deployed. Runtime is `15267d7a...`, original accepted training `cd77cd16...`; models and production shrinkage are unchanged. All 326 distinct affected dynamics/pipeline cases, compatible/cold regressions, actual rollback/reinstall and original replay pass. The natural 21:53:54Z publisher passes source expiry, Item/JDBC/capture and explicit new-runtime replay with no retry. | Verify October 4's trainer under the new runtime. Require chronological held-out improvement, independent-day support and genuine shade/window/skylight/action evidence before graduation. Keep artifacts separate; do not promote blanket weather/solar corrections, infer whole-run speedup from isolated fits, or confuse delivery/recovery with model skill. |
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
-| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; exact rollback/history/natural-source/restart gates pass. October 3 17:05Z read-only inventory has zero issues: 380 Items/79 Things/37 rules remain managed, with 65 Items/7 Things file-owned. | Qualify complete, clean source days and continue individually qualified migration. Do not repeat the completed Moon or `gForecast` restart checks or infer general protected-control authority. |
+| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; exact rollback/history/natural-source/restart gates pass. October 4 15:23:54Z read-only inventory has zero issues: 380 Items/79 Things/35 rules remain managed, with 65 Items/7 Things/seven rules non-managed. Sky and BatteryIcon writers are file-owned with genuine natural output/JDBC receipts. | Qualify complete, clean source days and continue individually qualified migration. Do not repeat the completed Moon or `gForecast` restart checks or infer general protected-control authority. |
 | Supporting Energy quality | The operator accepted actual-binding fault/JVM qualification instead of deliberate household outages. The receipt-bound combined switch/BMS-aux user drop-in is deployed and effective argv/readback pass; its source pin covers 136 current inputs/18 configurations. October 2 preserves partial sources and withheld switch totals; separate qualified AC-v4 is unchanged. | Verify the October 4 approximately 00:21 MDT natural aggregate and subsequent UI publication. Preserve partial days and warnings; do not force a partial-day run, request the accepted decision again or rewrite history. |
 | Radiation collection | Natural v2 station-206 capture/file-owned history is live at Item 664 with unchanged decoder-based 120-second expiry. Cumulative faults preserve between-poll invalid/expiry evidence. The strict SELECT-only point/window/DST-day reader is implemented; a real short v2 window qualifies, while v1 diagnostic totals stay withheld. Isolated HTTP-fault/JVM restore and restricted SQL tests pass; old history and read-only grants are unchanged. October 2 remains partial. | Assess the first possible complete clean v2 day (October 3) after October 4 midnight and its closing receipt. Qualify production JVM continuity and integrate only evidence-gated learning. Never backfill or relabel old v1, held numeric radiation or the unrelated latest-only exporter as clean v2 evidence. |
 | Shades and recovery | 26 preview slots and zone controls are live: Kitchen 1–8, Living Room 9–17, Bathroom 18–21, Bedroom 22–26. Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
