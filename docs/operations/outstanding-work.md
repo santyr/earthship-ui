@@ -1,5 +1,14 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 4 OpenHAB credential rotation removed from scope
+
+The operator removed OpenHAB credential rotation from the requirements and
+plan and directed reuse of the existing private `Hex` token. Rotation is no
+longer an outstanding task or completion gate. The canonical QA row and its
+required-ID contract were removed, and the former rotation procedure was
+replaced by the [credential reuse decision](2026-10-04-openhab-credential-reuse.md).
+
+
 ## October 4 complete matured October 3 thermal cohort verified
 
 Six original `d9163729...` issues now qualify at every matured 1/6/12-hour

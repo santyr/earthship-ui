@@ -62,8 +62,6 @@ describe('canonical UI audit matrix', () => {
       'verified-live',
       'pending-device-signoff',
       'pending-operator-approval',
-      'pending-private-token',
-      'deferred-operator-request',
       'deferred-future-feature',
     ]);
     for (const row of rows) {
@@ -92,7 +90,6 @@ describe('canonical UI audit matrix', () => {
       'CONTROLS-SAFETY',
       'OPENHAB-MAINUI-ACTUATORS',
       'DEPLOY-USER-SERVICE',
-      'SECURITY-TOKEN-ROTATION',
       'DEVICE-M9-SIGNOFF',
       'WEATHER-DETAIL-MODAL',
     ])));
