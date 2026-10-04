@@ -5,6 +5,25 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 4 acceptance evidence update
+
+The latest [original daily and short outcome qualification](2026-09-30-forecast-input-capture.md#october-4-third-daily-miss-and-third-short-outcome-qualified)
+keeps artifacts separate and freezes assessment at 19:56:48Z. Today's artifact
+has three non-overlapping short windows on one day, model/cycle/persistence
+MAE 0.2867/0.6000/1.5600 F. Yesterday's third daily target has a -7.750 F
+model error outside its original interval; its three overlapping daily pairs
+have MAE 3.4273/1.3200/0.5400 F and interval coverage 2/3. Only one independent
+daily window remains, so neither pooled results nor the strong short pair
+establish long-horizon or seasonal acceptance.
+
+The failed original daily output replays exactly under the verified installed
+runtime. Separate closed-vent and warmer-outdoor sensitivity runs leave
+-6.132/-7.030 F error; the legacy held-shade overlay remains rejected. Continue
+chronological, artifact-specific qualification and independently confirmed
+physical-state/action evidence before refitting or advisory integration.
+Graduation remains incomplete; no acceptance threshold, model, interval,
+action label, live gate or control was changed.
+
 ## Current evidence, September20
 
 The latest [October 2 late-evening independent-window comparison](2026-09-30-forecast-input-capture.md#october-2-late-evening-independent-window-solar-rejection)

@@ -1,5 +1,80 @@
 # Exact morning weather-input archive
 
+
+## October 4 third daily miss and third short outcome qualified
+
+At frozen assessment **2026-10-04T19:56:48Z**, two independent native reads
+agree for each separately bounded artifact cohort. Every scored pair retains
+its original artifact identity, qualified private forcing capture and native
+indoor/outdoor receipts. The 1/6/12-hour October 3 results are unchanged.
+
+| Artifact and near horizon | Mature pairs | Model MAE | Seven-cycle MAE | Persistence MAE |
+| --- | ---: | ---: | ---: | ---: |
+| October 3 `d9163729...`, 24 hours | 3 | 3.4273 F | 1.3200 F | 0.5400 F |
+| October 4 `a4ea9f4a...`, 1 hour | 3 | 0.2867 F | 0.6000 F | 1.5600 F |
+
+The third October 3 daily issue, **17:53:37.617985Z**, targets October 4
+**18:00Z**. Original prediction is **67.810 F**, interval
+**62.603–73.017 F**, and qualified actual is **75.560 F**. Model/cycle/
+persistence signed errors are **-7.750/-1.260/-0.360 F**. The actual is above
+the original interval: daily interval coverage is now **2/3**, and the model
+loses to both baselines on this pair. The cycle reader excludes one candidate
+that was not strictly historical at issue time and selects lags 2–8 instead.
+This pair overlaps the first daily window; the single selected independent
+window remains model/cycle/persistence MAE **0.486/1.620/0.540 F**. Three daily
+and all six 48-hour targets remain future at this fixed assessment.
+
+The third October 4 short issue, **18:00:04.759666Z**, targets **19:00Z**.
+Model/cycle/persistence signed errors are **-0.004/-0.540/-1.800 F**, with
+outdoor forecast error -1.620 F. All three short windows are non-overlapping,
+but remain one issue day, low confidence and 10.414 F-wide intervals. No
+6/12/24/48-hour target of this new artifact is mature at the cutoff. A good
+short result does not cancel the older artifact's daily miss or prove
+independent-day, interval, seasonal or action skill.
+
+### Original daily miss replay
+
+The failed daily capture
+`20261003T175337Z-4e1729cc5ab6ba22.json.gz` replays exactly as issued under
+verified installed runtime
+`15267d7af9323d7c23dc14d6b3c5526515195474ab983e004b101c66e656cb8c`.
+Its output SHA-256 remains
+`4e1729cc5ab6ba22560847452957aa1b0ce28522d88dc90187566b96fac5a3b3`.
+Two independent replay processes agree. This validates reproduction under the
+current optimized runtime; it does not identify the physical cause of error.
+
+Independent in-memory sensitivity runs leave original inputs and artifacts
+intact. Assuming vents closed raises the exact daily target by **1.618 F**,
+leaving error **-6.132 F**. A separate uniform +3 F outdoor-input hypothesis
+raises it **0.720 F**, leaving error **-7.030 F**, with the selected schedule unchanged.
+Neither explains the full miss. The observed outdoor forecast error at this
+target is -6.720 F, but that single endpoint does not establish a uniform
+forcing error over the entire original trajectory. Do not combine these
+hypotheses, promote offsets, assert observed ventilation or create labels.
+The prior held-shade overlay remains rejected with this legacy solar basis;
+its modeled warming is not a repair for the newly observed error.
+
+Canonical repeated-report SHA-256 values:
+
+- October 3 cohort: `61fb03fac13cfa910ddb763be8d7a1fd5b7d57e4a38f4b3fbae374996604a918`.
+- October 4 cohort: `2fbee6ff7621f1b3d0410b9d07c7f7455ae4d7e2d2ead84698ce5a5c5eebae15`.
+- Exact replay/sensitivities: `4ca662ab61c6974fda45b7cea6b53b2b889d18e24c3ed7cd42345055cbb42d9c`.
+
+Receipts are `/tmp/earthship-d916-1958-matured.json`,
+`/tmp/earthship-a4-1958-matured.json` and
+`/tmp/earthship-d916-daily-miss-replay.json`, each with an identical
+`-repeat.json` counterpart (0600). Capture-strict native audits use horizons
+1/6/12/24/48, seven prior cycles and fixed assessment 19:56:48Z. The October 3
+publication bounds are 13:00Z–October 4 00:00Z; October 4 bounds are
+13:00–19:00Z. `--artifact-id` is not a row filter, so every pair's artifact is
+checked explicitly. The October 3 audit uses six capture checks and eighteen
+indoor/outdoor targets; October 4 uses three captures and three targets.
+
+No live model, coefficient, artifact, action label, source gate, publication,
+notification, schedule or household control changed. Thermal graduation remains
+open, with this new daily interval failure part of its acceptance evidence.
+
+
 ## October 4 complete matured horizons for the October 3 artifact
 
 At fixed assessment **2026-10-04T17:43:01Z**, two independent native reads
