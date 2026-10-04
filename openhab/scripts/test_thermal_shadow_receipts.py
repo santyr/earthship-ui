@@ -92,7 +92,7 @@ def test_expiry_during_shadow_computation_prevents_publication(monkeypatch,tmp_p
     monkeypatch.setattr(thermal_intel.forecast_intel,'load_site_settings',lambda:None)
     monkeypatch.setattr(thermal_intel,'_current_states',lambda now:current)
     monkeypatch.setattr(thermal_intel.forecast_intel,'fetch_forecast',lambda:{})
-    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *args:[{'mode':'warm'}])
+    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *args:[{'at':NOW,'mode':'warm'}])
     monkeypatch.setattr(thermal_intel,'run_shadow',lambda **kwargs:{'confidence':{'grade':'high'}})
     monkeypatch.setattr(thermal_intel,'ArtifactRegistry',lambda *args:None)
     publications=[]

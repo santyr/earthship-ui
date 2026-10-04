@@ -137,7 +137,7 @@ def test_radiation_expiry_during_compute_prevents_publication(monkeypatch, tmp_p
     monkeypatch.setattr(thermal_intel.forecast_intel, 'load_site_settings', lambda: None)
     monkeypatch.setattr(thermal_intel, '_current_states', lambda now: current)
     monkeypatch.setattr(thermal_intel.forecast_intel, 'fetch_forecast', lambda: {})
-    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda *args: [{'mode': 'warm'}])
+    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda *args: [{'at': NOW, 'mode': 'warm'}])
     monkeypatch.setattr(thermal_intel, 'run_shadow', lambda **kwargs: {'confidence': {'grade': 'high'}})
     monkeypatch.setattr(thermal_intel, 'ArtifactRegistry', lambda *args: None)
     published = []
@@ -275,7 +275,7 @@ def test_input_fetch_latency_is_not_counted_twice_in_receipt_expiry(monkeypatch,
     monkeypatch.setattr(thermal_intel.forecast_intel,'load_site_settings',lambda:None)
     monkeypatch.setattr(thermal_intel,'_current_states',lambda now:current)
     monkeypatch.setattr(thermal_intel.forecast_intel,'fetch_forecast',lambda:{})
-    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *args:[{'mode':'warm'}])
+    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *args:[{'at':NOW,'mode':'warm'}])
     monkeypatch.setattr(thermal_intel,'run_shadow',lambda **kwargs:{'confidence':{'grade':'high'}})
     monkeypatch.setattr(thermal_intel,'ArtifactRegistry',lambda *args:None)
     monkeypatch.setattr(thermal_intel,'write_shadow_output',lambda *args:None)
