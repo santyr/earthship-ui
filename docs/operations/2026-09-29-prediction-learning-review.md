@@ -1,5 +1,68 @@
 # Prediction learning review — September 29, 2026
 
+## October 4 frozen October 3 overnight comparison qualified
+
+The canonical October 3 **20:00 to October 4 11:00 MDT** window is now
+complete. Restricted native reads at **17:22:56.375488Z** and
+**17:24:19.001895Z** qualify an actual trough of **86%**, with
+**99.9893741%** canonical coverage. The same original late issue, atomic
+source digest, morning link, three ending dates and 4326.279574-second
+sunset-relative lead from the frozen section below remain exact.
+
+| Prediction | Frozen estimate | Signed error against 86% |
+| --- | --- | --- |
+| Original morning issue | 69% | -17 percentage points |
+| Original live pre-dusk issue | 74% | -12 percentage points |
+| Frozen phase comparison | 82% | -4 percentage points |
+| Frozen sunset comparison | 83% | -3 percentage points |
+
+This closes the completed-night scoring gate for October 3. Across the four
+qualified live pre-dusk nights (September 29, September 30, October 1 and
+October 3), MAE is **5.00 points**, versus **20.75** for their original morning
+issues. All pre-dusk misses remain nonpositive. The 82% and 83% alternatives
+are the pre-outcome frozen comparisons, not extra original production issues
+or independent nights. A single night does not establish seasonal skill,
+action benefit or permission to change the live estimator.
+
+### Exact frozen-prefix replay
+
+The unchanged benchmark source still matches
+`cc3c92322f23a34d4b84fc1db84dd6f5ee1ddc91f173e73c9e577206e3c9a563`.
+Its ordinary sunset-only reads start at sunset minus 120 seconds. The frozen
+sunset calculation instead reused the earlier phase-profile observation
+prefix. Consequently its ordinary regenerated digests differ even though
+all three drop values and the resulting 83% are unchanged. Those ordinary
+digests were not accepted as replacements for the frozen evidence.
+
+A read-only replay calls the unchanged `sunset_soc_profile.measure` with each
+original prior sunset/persistence clock, bank epoch and original morning
+`as_of=2026-10-03T12:40:58.396244Z`. Read each native prefix from
+`min(sunset - 4326.279574 seconds, canonical_window.start) - 120 seconds`
+through the original canonical window end, using the restricted
+`energy_power_reader`, REPEATABLE READ, a 2-second statement limit and 10,001
+row limit. All three reconstructed sunset digests exactly match the frozen
+`4e1ce21a...`, `cb71d50e...` and `6096972a...` values below. All three phase
+digests also match directly. No current outcome is admitted as a predictor
+input; no source, database row, policy, threshold, notification or control changed.
+
+Full receipts:
+`/tmp/earthship-oct3-frozen-overnight-qualified.json` and
+`/tmp/earthship-oct3-frozen-overnight-qualified-repeat.json`.
+Their only differences are the top-level assessment clock, charge-assessment
+clock and target-phase assessment clock. Removing exactly those three explicit
+clock fields yields identical reports with canonical SHA-256
+`532967f762c9a2cc8ad7c0c5525bd98b57dd4e444dae1eb4b6eb7a2cefd4fa15`.
+The first full canonical report SHA-256 is
+`d989fdacbab75c8d75c3bde2264f188d160c204358b90e4aa8802b4af1798de6`;
+the second canonical report hash is `b0a3a4a8a0bb9e2cdede969f90c2e19f117aa8ca8a736a3832bba5c4ecad7095`.
+Canonical native outcome digest:
+`d86f076910c0c0a8d6952f29b37405e8246af5926002f33493ea41e4f41aabd2`.
+Current learned-state SHA-256 remains
+`44aba2710926998a2d710c8220f252fa5f6e3493af4a483ad0d27a1f67d842aa`
+across these read-only repeats; this later full-file state is not substituted
+for the original frozen issue or its input clocks.
+
+
 This is an origin-aware design review, not a new control or model release.
 Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.

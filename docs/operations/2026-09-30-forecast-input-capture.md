@@ -1,5 +1,45 @@
 # Exact morning weather-input archive
 
+## October 4 second short outcome for the new artifact
+
+At frozen assessment **2026-10-04T17:27:05Z**, independent native reads agree
+for both original `a4ea9f4a...` short forecasts. The newly settled
+**15:59:04.788916Z** issue targets **17:00Z**. Its original forcing capture,
+indoor/outdoor observations and seven prior same-local-clock cycles qualify.
+
+| Original target UTC | Model signed error | Cycle signed error | Persistence signed error | Outdoor forcing error |
+| --- | --- | --- | --- | --- |
+| October 4 15:00 | +0.508 F | -0.360 F | -0.360 F | -2.620 F |
+| October 4 17:00 | +0.348 F | -0.900 F | -2.520 F | -5.320 F |
+
+The second pair beats both baselines. Combined model/cycle/persistence MAE
+is **0.428/0.630/1.440 F**, with one win and one loss against each baseline.
+Both windows are non-overlapping under the declared issue/target policy,
+but still belong to one day. This improves the short-horizon evidence for
+this artifact without establishing independent-day, long-horizon, seasonal,
+action or operational graduation skill. Low confidence and 10.414 F intervals
+remain; both intervals cover their targets, without proving calibration.
+October 3's `d9163729...` cohort stays separate. No model, correction, label,
+notification, source gate or household control changed.
+
+Canonical repeated-report SHA-256:
+`b4bda1db88d96cbacdf65d15641eb825cbc544587c0befabd7044281135d331c`.
+Second-pair cycle evidence:
+`f26623fb1743629449327bd82cde53fd4197b1fd36977e9e19eca95524bb9402`;
+selected lags are 1–7. Full receipts are
+`/tmp/earthship-a4-two-short-outcomes.json` and its `-repeat.json` counterpart.
+Reproduce the unchanged original-input calculation with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-04T13:00:00Z --until 2026-10-04T16:00:00Z \
+  --assessed-at 2026-10-04T17:27:05Z \
+  --require-capture --horizons 1 --include-pairs --recent-cycles \
+  --artifact-id a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df
+```
+
+
 ## October 4 second settled daily outcome for the October 3 artifact
 
 At frozen assessment **2026-10-04T16:14:41Z**, two independent native reads
