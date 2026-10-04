@@ -63,6 +63,7 @@ describe('canonical UI audit matrix', () => {
       'pending-device-signoff',
       'pending-operator-approval',
       'pending-private-token',
+      'deferred-operator-request',
       'deferred-future-feature',
     ]);
     for (const row of rows) {

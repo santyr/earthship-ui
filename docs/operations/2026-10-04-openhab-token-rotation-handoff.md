@@ -1,4 +1,4 @@
-# OpenHAB token rotation: approved, awaiting private replacement
+# OpenHAB credential: existing Hex retained, rotation deferred
 
 ## Scope and current state
 
@@ -10,7 +10,9 @@ transaction. The separate approved sky handoff is already complete.
 The operator explicitly approved credentials and private staging on October 4,
 following the scoped transaction below. Approval is received for replacement,
 UI-only restart, conditional UI-only recovery restart and final named revocation.
-The missing input is the private replacement credential, not further permission.
+The operator subsequently instructed: "Reuse the hex token." This supersedes
+execution of the rotation plan: retain and reuse the existing private `Hex`
+credential. Replacement and revocation are deferred; the security item stays open.
 
 On October 4, authenticated `GET /rest/auth/apitokens` returned three metadata
 records containing only name, scope and creation time. The private environment
@@ -53,7 +55,7 @@ provides metadata readback and named revocation with
 `DELETE /rest/auth/apitokens/{name}` for the authenticated user's token.
 Revocation is the final step, after replacement verification.
 
-## Exact proposed transaction
+## Deferred rotation procedure
 
 1. The operator creates a token in OpenHAB's normal authenticated interface
    for the same account that owns `Hex`, named `Earthship20261004` (or another unused alphanumeric name), with an
@@ -94,7 +96,7 @@ fails, retain the working replacement and report the remaining exposed token;
 do not revert a healthy UI to the old credential. After successful revocation,
 the old secret cannot be restored as a usable rollback credential.
 
-## Approval received and current preflight
+## Earlier approval and rotation preflight
 
 At 18:08:54 UTC on October 4, authenticated metadata still contained exactly
 `Hex`, `lightning` and `solar`, all with empty scope. An unauthenticated request
@@ -121,10 +123,19 @@ A bounded read-only console connection failed with
 a hashed password; no configured public-key login or SSH-agent key is available.
 No password was guessed, reset or extracted, and no registry file was modified.
 
-The operator has been asked to create the same-account empty-scope replacement
-using the normal authenticated interface and stage it privately, or identify an
-existing private account-credential file. Do not send secrets in chat. Receipt
-of that input permits continuation of the already approved transaction without
-another approval request. Production OpenHAB restart, physical action,
-notifications, helper schedule changes and broader credential migration remain
-outside this transaction. Rotation remains incomplete; `Hex` is still valid.
+The earlier request for a privately staged replacement was superseded by the
+operator's instruction to reuse `Hex`. No replacement staging or account-login
+input is required for continuing work with that existing credential. Resume
+rotation only if the operator directs that task again. Production OpenHAB
+restart, physical action, notifications, helper schedule changes and broader
+credential migration remain outside this transaction. Rotation remains
+incomplete; `Hex` is still valid.
+
+## Existing credential reuse verification
+
+At 2026-10-04 19:48:57 UTC, authenticated `GET /rest/auth/apitokens` using
+the existing private environment credential returned 200 and three tokens,
+including `Hex` with empty scope. Earthship UI remained active/running with
+MainPID 419027. No credential file was changed, token created or revoked, or
+service restarted. The QA row is deferred by operator request, not verified
+rotation. The earlier replacement-staging request is no longer pending.
