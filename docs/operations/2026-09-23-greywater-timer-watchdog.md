@@ -1,5 +1,46 @@
 # Greywater cycle-timer fail-safe — September 23, 2026
 
+## October 3 attended durable recovery fix deployed
+
+The operator specifically approved the greywater recovery fix and confirmed
+current physical attendance and both pumps physically OFF. Fresh preflight
+passed exact old/new action pins, managed provider and original triggers,
+repeated explicit OFF states, fresh native SoC, healthy BMS/Schneider telemetry
+and the safe nighttime posture. The unchanged release adapter's **17** focused
+transaction tests passed immediately before application.
+
+At **2026-10-04T01:16:12.287124Z** (October 3 19:16 MDT), the adapter privately
+backed up the original rule and related definitions/fixed-day JDBC histories:
+`/home/sat/.local/state/greywater-rule-release/timer-guard-auwu0glg/`.
+Directory permissions are 0700; `original-rule.json` and `continuity.json` are
+0600. This intentional recovery point is retained, not test residue.
+
+The guarded disable/action-only PUT/exact disabled readback/enable transaction
+completed successfully, without needing rollback. Independent REST verification
+at **01:17:26.918489Z** confirms action SHA-256
+`4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b`,
+`IDLE/NONE`, both pump Items OFF and equality with the original DTO except
+for that exact script. Manual-command and one-minute cron triggers are unchanged.
+All saved related Item/link definitions and bounded JDBC histories independently
+repeat unchanged. OpenHAB remains active at original PID **1696**.
+
+The natural **01:17:00.438Z** evaluation reports `after_dark`, elevation
+-7.3 degrees, source SoC 98%, `scheduling=blocked`, with both pumps OFF.
+The bounded release-window log check through **01:18:03.376654Z** finds no
+ERROR/Exception and no pump ON command. No rule run, manual request, synthetic
+Item update, test pump command, provider migration or service restart was used.
+The read-only ownership inventory at **01:18:58Z** reports zero issues;
+its multi-request snapshot is explicitly non-atomic, not a global atomic proof.
+Actual fault/restart/rollback recovery qualification remains the earlier isolated
+JDBC/JVM evidence, not a claimed production fault injection or physical flow test.
+
+The live managed-action repair is complete. The sky provider handoff remains
+separately held: its old consumer pin intentionally refuses this new source;
+requalify that exact consumer and obtain its separate release authority rather
+than silently broadening the pin. Preserve the private original rule/history
+point for any reviewed guarded rollback; do not run the old-baseline apply
+command again against the now-repaired live source.
+
 ## October 3 actual JDBC/JVM recovery and proposed attended replacement
 
 At 22:57Z, `scripts/qualify-greywater-recovery-jdbc.py` passed in disposable

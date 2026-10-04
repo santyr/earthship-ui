@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 3 attended greywater recovery repair complete
+
+Following exact operator approval and fresh physical OFF/attendance, the
+guarded managed-action update succeeded at 19:16 MDT. Independent readback
+confirms `4c34780e...`, IDLE/NONE, original triggers and unchanged related
+definitions/fixed-day JDBC histories. The natural 19:17 evaluation reports
+`after_dark` with both pumps OFF; bounded logs show no error or pump ON command.
+OpenHAB PID remains 1696. Private original-rule/history recovery is retained;
+no test command or restart occurred. See the
+[attended release receipt](2026-09-23-greywater-timer-watchdog.md#october-3-attended-durable-recovery-fix-deployed).
+The sky provider handoff still needs its exact new-consumer qualification and
+separate authority; do not treat this repair as approval for that migration.
+
 ## October 3 trough comparison frozen before outcome
 
 The qualified live pre-dusk estimate remains **74%**. At 17:46 MDT, before
