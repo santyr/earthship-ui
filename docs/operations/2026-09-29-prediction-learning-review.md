@@ -1,5 +1,63 @@
 # Prediction learning review — September 29, 2026
 
+## October 4 original October 3 PV, charge and overnight join
+
+Two independent restricted reads at fixed assessment
+**2026-10-04T17:35:59Z** verify the original October 3 issue, public prediction
+receipt, private raw-weather capture, atomic SoC input and native MPPT day.
+The original issue is **12:40:58.396244Z**, after the archived weather capture
+at **12:40:58.391135Z**. The distinct atomic SoC assessment remains
+**12:40:58.411Z**, with 87% SoC; none of these clocks is backdated.
+
+| Quantity | Original forecast/estimate | Qualified outcome | Signed error |
+| --- | --- | --- | --- |
+| Daily native PV harvest | 7.130 kWh | 6.309 kWh | +0.821 kWh (+13.013156%) |
+| Sunset SoC | 95.010% | 99% | -3.990 percentage points |
+| Canonical overnight trough | 69% | 86% | -17 percentage points |
+
+Native PV Item mapping **655** has **2,038** original receipts and
+**99.9459201%** source coverage over the October 3 Mountain calendar day.
+The original forecast radiation is **19.74 MJ/m²** (5.483333 kWh/m²).
+Published as-issued diagnostics retain gain 1.3, resource 7.128 kWh, direct
+demand 5.403 kWh, charge deficit 2.803 kWh and combined demand 8.206 kWh;
+resource is the limiting branch. These rounded original diagnostics are not
+recomputed using today's learned coefficients.
+
+The existing qualified charge receipt binds the same issue/atomic source:
+first reported 100% at **16:00:58.575454Z** (10:00 MDT), 99% at the original
+sunset and 99.982747% charge-day coverage. Reported-full timing remains an
+observation, not the exact physical completion instant. Original input
+qualification now covers **three** days: September 30 and October 1 remain
+right-censored no-full days; October 3 is the first reported-full day.
+
+The previously explored gain/direct-demand pair **2.45/4.1** gives a
+retrospective **6.90 kWh** using the original radiation and retained published
+charge deficit: +0.591 kWh. Here the demand branch limits it, whereas that
+same pair overpredicted October 1 by about 61%. This mixed chronological
+behavior does not support a blanket gain increase, a fitted full-charge
+scheduler, or a promoted joint model. No new forecast issue, refit, model
+coefficient, state, action label, notification or household control changed.
+The larger October 3 miss is the original overnight proxy; the join does not
+establish physical or causal load attribution or an AC-to-DC conversion.
+
+Weather input SHA-256:
+`e32239c47921c3a7285b4768be06116dba0b628474d2721c5d6c1d1fc6e786ea`.
+Atomic SoC input digest:
+`c8755608e6c60a9cda92f215bb813d14b55e278c199cf2102536ad6c7119b19b`.
+Ordered native PV row tuple digest (timestamp ISO string, original value):
+`4c7ffc87acef3bbdc640f4b04b05b3d170345e2712b4a55f23773db1b5dba000`.
+Both full canonical joint reports have SHA-256
+`d21ed28a32b0a6082f75f564c1636400e2e57b9987f141b60c1f39e9ba40485b`.
+They are retained at `/tmp/earthship-oct3-joint-source-audit.json` and its
+`-repeat.json` counterpart. The pure native `qualify_pv_day` uses a bounded
+SELECT-only REPEATABLE READ snapshot, 2-second statement and 1-second lock
+limits, original rows without repair, and the restricted energy reader.
+The existing archive `read_as_of` requires the private digest/capture clock
+and matches the public receipt. Current state SHA-256 remains `44aba271...`
+across both read-only audits. Original charge and overnight proofs retain
+their separate exact digests in the sections below.
+
+
 ## October 4 frozen October 3 overnight comparison qualified
 
 The canonical October 3 **20:00 to October 4 11:00 MDT** window is now

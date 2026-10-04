@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 4 third original-input-qualified charge/PV day joined
+
+October 3's original 7.13 kWh forecast now pairs with a qualified native PV
+outcome of 6.309 kWh (2,038 receipts, 99.9459201% coverage). The original
+public/private weather and atomic SoC origins verify in two identical reads.
+Together with its existing reported-full charge and 86% overnight trough,
+this completes the original daily join: dusk error -3.99 points, morning
+trough error -17 points. Three charge days now have strict paired origins,
+with only one reported-full day; no coefficient or scheduler promotion.
+See [exact original inputs, native row proof and remaining joint-model limits](2026-09-29-prediction-learning-review.md#october-4-original-october-3-pv-charge-and-overnight-join).
+
+
 ## October 4 second new-artifact short outcome qualified
 
 Today's original 15:59Z short forecast now qualifies at 17:00Z, with
@@ -1165,7 +1177,7 @@ worsens it. No correction, action label or graduation is promoted. See
 
 | Track | Current verified state | Next required work |
 | --- | --- | --- |
-| Charge/PV/trough tuning | Seven observational charge profiles are retained, but only September 30/October 1 pass shared original-publication/private-input/native-clock qualification; both are no-full/censored. Original October 1 PV is 6.58 versus qualified 6.697 kWh, but estimated dusk SoC is 74.458 versus actual 87%. Native AC timing is qualified separately, not equated to DC demand. The larger exploratory PV gain overpredicts October 1 by about 61%. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Retain no-full censoring; do not train full-charge timing from these two outcomes, backdate companions or promote a short-window fit. |
+| Charge/PV/trough tuning | Original-publication/private-input/native-clock qualification now covers September 30, October 1 and October 3: two no-full/censored days and one reported-full day. October 3 PV is 7.13 versus native 6.309 kWh; dusk is 95.01 versus 99%, and morning trough 69 versus 86%. Original October 1 PV is 6.58 versus 6.697 kWh, with dusk 74.458 versus 87%. The exploratory gain/direct-demand pair has mixed branch-dependent errors; native AC timing remains separate from DC demand. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Preserve censoring and original input clocks; three paired days with one reported-full outcome cannot train or promote full-charge timing or establish seasonal skill. |
 | Pre-dusk estimate | Four qualified completed comparisons: September 29 actual/pre-dusk/morning 81/81/53%; September 30 65/64/47%; October 1 72/65/52%; October 3 86/74/69%. MAE is 5.00 points pre-dusk versus 20.75 morning; all pre-dusk misses are nonpositive. October 2 correctly withheld after DNS failure. October 3's frozen phase/sunset comparisons score 82/83% against the same 86% with all six original input digests verified. | Continue original-issue held-out analysis and explicit remaining-daylight/overnight-load design; October 3 scoring is complete. Four scored nights are not seasonal graduation. Do not manufacture a missing issue, force an early job or repeat the completed Primal trial. |
 | Thermal collection | Exact v2 journal retains 11 action/5 receipt/4 mode rows. The signed Primal shade-closure trial, original-cipher recovery and cold journal replay pass. Approved v4 recurring user units are live: maximum one recommendation follow-up per Mountain day, five-minute completion-based inbox polls and Hex-only relay authentication. nos.lol and Primal are readable; Damus AUTH fails because of its server's unconfigured serviceUrl. Generic source gates remain false; household controls remain off. | Observe a naturally eligible recommendation/question/authenticated reply and verify original evidence before model consumption. Resolve or monitor the external Damus failure without weakening routes or using the operator key. Chat reports and relay ACKs are not labels; do not repeat completed provisioning or activation approvals. |
 | Thermal skill and efficiency | October 4 natural optimized training exited zero after about 24m55s, peak 365.88 MiB, no swap. Accepted artifact `a4ea9f4a...` validates under runtime `15267d7a...`; its original 07:58 MDT natural publisher, capture/Item/JDBC and exact replay pass. Its two settled non-overlapping one-hour pairs have model/cycle/persistence MAE 0.428/0.630/1.440 F; the first loses and the second wins against both baselines, still on one day. The separate October 3 artifact has two overlapping daily pairs, model/cycle/persistence MAE 1.266/1.350/0.630 F, leaving one independent window; the latest pair loses to both baselines. | Accumulate and score original outcomes by artifact. Require chronological baseline improvement, independent-day/seasonal support and genuine confirmed actions before graduation. Training and first natural delivery are complete; do not rerun them or pool artifacts. |
