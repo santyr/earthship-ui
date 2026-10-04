@@ -1,5 +1,86 @@
 # Sky-condition control-input rule: file-provider candidate
 
+
+## October 4 exact protected transaction qualified in isolation
+
+The final independently reviewed transaction passes the **actual** inspected,
+networkless OpenHAB 5.2.1 provider experiment. It runs the same `Transaction`
+class and actual `os.link`, inode checks and `Path.rename` against the watched
+container filesystem through an explicitly injected isolated REST client.
+The deployment adapter and generic sky release gate both remain **false**.
+
+The completed experiment proves:
+
+- A real registered file followed by injected first-readback failure returns
+  the exact original managed rule, including `visibility`/`configuration`.
+- Actual exclusive file -> original managed rollback -> final file succeeds,
+  retaining exact source and inode ownership.
+- The actual server JVM exits and is replaced; original file rule/trigger and
+  consumer definitions return. A saved inode receipt then permits exact
+  post-restart managed restoration through the same transaction code.
+- Hot-file, restarted-file and managed-rollback phases each reject missing/
+  expired native SoC evidence and stale communications with both synthetic
+  pumps OFF and no transient ON command. Each phase also executes one fresh
+  unlinked positive control, then the safety path returns both outputs OFF.
+- The labelled container and ephemeral volumes are removed; final exit is zero.
+
+All **105** affected Python tests pass without skips. Independent source review
+has no remaining critical/important findings. Reproducing regressions identified
+and fixed staged-inode adoption at publication, a withdrawal inode substitution,
+and automatic restore after that substitution. Ownership now comes from
+`fstat` before publication and is checked again on the withdrawn file before
+chmod or managed restore. Once ownership verification fails, both transfer
+paths permanently refuse further mutation in that transaction. An unexpected
+file already moved during a concurrent rename is retained for inspection;
+this is not a claim that pathname races can prevent every filesystem move.
+
+The real fixture initially exposed an `EXDEV` mismatch between its separate
+conf/userdata tmpfs mounts. Production's watched directory and private backup
+root both have device ID **64512**. The isolated recovery directory now lives
+outside watched automation under the same conf mount; the adapter additionally
+refuses different device IDs **before any provider withdrawal**. No production
+layout or source was changed. The isolated consumer copy preserves its real
+managed metadata rather than accepting invented defaults.
+
+Exact qualified SHA-256 pins:
+
+- `deploy-sky-control-input.py`: `5d3791fc8ac6d2478e03dcff531c6a7460a4791dcdb5990609c4ba4e4dad6d24`.
+- `qualify-season-rule-provider.py`: `e9c722f61cca1d3483cd5ed09cc017c0e6ac79587729956e557d8dc23cd41947`.
+- `isolated-sky-transaction.py`: `5b40aa0151c845dc21aec23863f0adf5126afc3e4ba001616c129e2653261950`.
+- `migrate-season-countdown-rule.py`: `066efd3641a4983a3bb5442c93600f5fc852b0a801a83fd2d560f3ad726ddf31`.
+- `sky_control_probe.py`: `b77b6b543f010531eaa8908f14a0e4ab9c23a74a64fa905528989197e10b05c4`.
+
+Qualification output SHA-256: `6210115a3e09d9ca9a941a7cab343cafb02e885f53591146a9cf5d59cffb4c1a`.
+Run the exact experiment with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/qualify-season-rule-provider.py \
+  --kind sky --restart --sky-control-probe --protected-transaction
+```
+
+The added mode refuses any other scope before production reads. Its cached
+standalone Python runtime enters only the inspected disposable container's
+userdata via tar stdin, with no production mount, network, device, port or
+channel link. The short-lived container API token travels to the runner over
+stdin and is neither retained nor printed. The unwatched private recovery
+receipt preserves ownership across the isolated JVM replacement.
+
+Independent repeated **read-only** production continuity matches original SHA
+`d2ed72bb77ececef5d5a6d3d254110c40ce5a0ac15e8c700927f513f81b997bd`:
+41 unrelated rules, 26 related Items/links, six other JS files and all four
+original October 3 JDBC prefixes (75/77/1032/1090 rows). OpenHAB PID remains
+**1696**, both original production rules remain managed with exact action pins,
+both pump Items are OFF and the watched sky file is absent. The ownership
+inventory has zero issues. Final candidate read-only safety preflight still
+refuses **`15-minute cooldown window required`**; OFF alone does not qualify.
+
+This closes exact isolated transaction qualification, not native production
+telemetry/history protection, physical actuation safety, actual-JDBC pump
+recovery or whole-production JVM recovery. The real guard retains those native
+checks. Next obtain specific fresh handoff authority/physical attendance and a
+qualifying protected timing window, then perform independent live readback
+before ownership declaration. No production release or restart was performed.
+
 ## October 4 specific protected transaction — source only
 
 `scripts/deploy-sky-control-input.py` implements the proposed guarded

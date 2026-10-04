@@ -14,12 +14,14 @@ from pathlib import Path
 import re
 import secrets
 import stat
+import subprocess
 import time
 
 import sky_control_probe
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLED_RULE_DIRECTORY = Path('/etc/openhab/automation/js')
+ISOLATED_PYTHON = Path('/home/sat/.local/share/uv/python/cpython-3.13.12-linux-x86_64-gnu')
 spec = importlib.util.spec_from_file_location(
     'isolated_jss_runtime', ROOT / 'scripts/qualify-inverter-ac-evidence-runtime.py')
 runtime = importlib.util.module_from_spec(spec)
@@ -128,7 +130,8 @@ def managed_payload(rule):
     # Optional descriptive fields can be absent in a genuine managed DTO.
     # Preserve omission rather than inventing values or exporting runtime status.
     return {key: rule[key] for key in (
-        'uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions')
+        'uid', 'name', 'description', 'tags', 'triggers', 'conditions', 'actions',
+        'visibility', 'configuration')
         if key in rule}
 
 
@@ -170,6 +173,11 @@ def managed_baseline(config, live, backup=None):
     return live
 
 
+def exact_control_payload(live, source):
+    result = sky_control_probe.control_payload(live, source, consumer_revision='durable-recovery')
+    return {**result, **{k: live[k] for k in ('visibility', 'configuration') if k in live}}
+
+
 def java_pids(container):
     listing = runtime.run(['docker', 'exec', container, 'ps', '-eo', 'pid,stat,comm']).decode()
     return tuple(int(fields[0]) for line in listing.splitlines()
@@ -177,7 +185,9 @@ def java_pids(container):
                  and not fields[1].startswith('Z'))
 
 
-def main(kind, *, managed_backups=None, restart=False, sky_control=False):
+def main(kind, *, managed_backups=None, restart=False, sky_control=False, protected_transaction=False):
+    if protected_transaction and (kind != 'sky' or not restart or not sky_control):
+        raise RuntimeError('protected sky transaction requires sky scope, restart and control probe')
     if sky_control and (kind != 'sky' or not restart):
         raise RuntimeError('sky control probe requires sky scope and isolated JVM restart')
     kinds = ('season', 'extrema', 'bitcoin') if kind == 'display-set' else (kind,)
@@ -187,10 +197,9 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
         raise RuntimeError('backup supplied for a rule outside selected scope')
     baselines = {name: managed_baseline(RULES[name], runtime.oh.get('/rules/' + RULES[name].uid),
                                       managed_backups.get(name)) for name in kinds}
-    control = sky_control_probe.control_payload(
+    control = exact_control_payload(
         runtime.oh.get('/rules/' + sky_control_probe.UID),
         (ROOT / 'openhab/rules/southoutlet-cycle-current.js').read_bytes(),
-        consumer_revision='durable-recovery',
     ) if sky_control else None
     if sky_control:
         print('isolated_sky_consumer_revision=durable-recovery; action_sha256='
@@ -198,6 +207,8 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
     bundles = sorted(runtime.GRAAL.glob('org.graalvm.*/25.0.1/*.jar'))
     if len(bundles) != 22 or not runtime.ADDON.is_file() or any(not c.source.is_file() for c in configs):
         raise RuntimeError('isolated JavaScript resources unavailable')
+    if protected_transaction and not (ISOLATED_PYTHON / 'bin/python3.13').is_file():
+        raise RuntimeError('cached isolated Python unavailable')
     marker = secrets.token_hex(8)
     label = 'hex.display.rules.qualification' if kind == 'display-set' else configs[0].label
     command = ('cp -a /openhab/dist/conf/. /openhab/conf/; cp -a /openhab/dist/userdata/. /openhab/userdata/; '
@@ -224,6 +235,21 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
                 or host.get('Binds') or host.get('Devices') or host.get('PortBindings')
                 or info['AppArmorProfile'] != 'docker-default'):
             raise RuntimeError('isolated container policy mismatch')
+        if protected_transaction:
+            runtime.run(['docker', 'exec', container, 'mkdir', '-p',
+                         '/openhab/userdata/qualification-python'])
+            archive = runtime.run(['tar', '-cf', '-', '-C', str(ISOLATED_PYTHON), '.'], timeout=90)
+            runtime.run(['docker', 'exec', '-i', container, 'tar', '-xf', '-',
+                         '-C', '/openhab/userdata/qualification-python'], archive, timeout=90)
+            for relative in ('scripts/isolated-sky-transaction.py',
+                             'scripts/deploy-sky-control-input.py',
+                             'scripts/migrate-season-countdown-rule.py',
+                             'scripts/sky_control_probe.py',
+                             'openhab/scripts/openhab_sanity_check.py',
+                             'openhab/file-config/automation/js/sky-condition-calculator.js'):
+                runtime.install(container, 'userdata/sky-transaction/' + relative,
+                                (ROOT / relative).read_bytes())
+            runtime.install(container, 'userdata/sky-transaction/permit', marker.encode())
         runtime.install(container, 'conf/items/display-rehearsal.items', b'\n'.join(c.items for c in configs))
         if sky_control:
             runtime.install(container, 'conf/items/sky-control-rehearsal.items', sky_control_probe.ITEMS)
@@ -273,11 +299,29 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
 
         if sky_control and rest('POST', '/rules', control)[0] != 201:
             raise RuntimeError('isolated exact managed sky consumer creation failed')
+        def exact_transaction(phase):
+            packet = dict(token=token, original=baselines['sky'], consumer=control)
+            result = subprocess.run(['docker', 'exec', '-i', container,
+                '/openhab/userdata/qualification-python/bin/python3.13', '-B',
+                '/openhab/userdata/sky-transaction/scripts/isolated-sky-transaction.py', phase],
+                input=json.dumps(packet).encode(), capture_output=True, timeout=420)
+            if result.returncode:
+                diagnostic = result.stderr.decode(errors='replace').replace(token, '[withheld]')
+                raise RuntimeError('isolated exact transaction failed: ' + diagnostic[-2500:])
+            print(result.stdout.decode().strip(), flush=True)
+
+        if protected_transaction:
+            for name in sky_control_probe.PUMPS:
+                if rest('PUT', '/items/' + name + '/state', 'OFF', content_type='text/plain')[0] != 202:
+                    raise RuntimeError('isolated initial pump OFF failed')
         managed = {name: managed_payload(baselines[name]) for name in kinds}
         for name, config in zip(kinds, configs):
             if rest('POST', '/rules', managed[name])[0] != 201:
                 raise RuntimeError('isolated managed rule creation failed')
             wait_for(lambda: _managed_rule(rest, config.uid))
+            if protected_transaction:
+                exact_transaction('apply')
+                continue
             if rest('DELETE', '/rules/' + config.uid)[0] not in (200, 204):
                 raise RuntimeError('isolated managed withdrawal failed')
             wait_for(lambda: rest('GET', '/rules/' + config.uid)[0] == 404)
@@ -312,6 +356,10 @@ def main(kind, *, managed_backups=None, restart=False, sky_control=False):
             print('isolated_full_jvm_restart=true; file_rule_count=' + str(len(configs)), flush=True)
             probe_control('file-restarted')
         for name, config in zip(kinds, configs):
+            if protected_transaction:
+                exact_transaction('restore')
+                print('isolated_managed_rollback_uid=' + config.uid, flush=True)
+                continue
             runtime.run(['docker', 'exec', container, 'rm', '/openhab/conf/automation/js/' + config.source.name])
             wait_for(lambda: rest('GET', '/rules/' + config.uid)[0] == 404)
             if rest('POST', '/rules', managed[name])[0] != 201:
@@ -381,6 +429,8 @@ if __name__ == '__main__':
     parser.add_argument('--restart', action='store_true', help='Verify an isolated full JVM restart, not production recovery')
     parser.add_argument('--sky-control-probe', action='store_true',
                         help='Include the exact pump consumer and synthetic fail-closed/positive probes, only with --kind sky --restart')
+    parser.add_argument('--protected-transaction', action='store_true',
+                        help='Exercise exact guarded exclusive-install/fault/rollback code inside sky container')
     args = parser.parse_args()
     backups = {}
     for value in args.managed_backup:
@@ -388,4 +438,5 @@ if __name__ == '__main__':
         if not separator or name not in RULES or name in backups or not path:
             parser.error('managed backups must be unique KIND=PATH entries')
         backups[name] = Path(path)
-    main(args.kind, managed_backups=backups, restart=args.restart, sky_control=args.sky_control_probe)
+    main(args.kind, managed_backups=backups, restart=args.restart, sky_control=args.sky_control_probe,
+         protected_transaction=args.protected_transaction)

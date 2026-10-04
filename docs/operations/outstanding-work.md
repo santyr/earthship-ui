@@ -1,5 +1,45 @@
 # Outstanding Earthship and OpenHAB work
 
+
+
+
+## October 4 exact sky transaction isolated qualification complete
+
+The final reviewed `5d3791fc...` transaction now passes actual exclusive
+file/managed/file publication, injected readback-failure rollback, complete
+metadata restoration, full isolated JVM replacement and post-restart owned
+rollback. All three phases pass missing/expired SoC and stale-comms refusal,
+unlinked positive control and safety OFF; the container/volumes are removed.
+All **105** affected Python cases pass. Independent review drove tested fixes
+for inode adoption and unsafe automatic restore after ownership loss.
+
+Production continuity still matches the exact original definitions/fixed-day
+histories and PID 1696; ownership inventory has zero issues. The specific and
+generic release gates remain false. Read-only protected preflight still refuses
+the expired cooldown; specific fresh release authority/physical attendance and
+at least fifteen minutes of protected timing remain before migration. See
+[qualified pins, exact scope and repeat command](2026-09-29-sky-condition-rule-file-candidate.md#october-4-exact-protected-transaction-qualified-in-isolation).
+
+## October 4 first daily outcome for the October 3 artifact scored
+
+The first original `d9163729...` 24-hour outcome now qualifies at the frozen
+14:28:33Z cutoff; two native read-only audits agree. Model/cycle/persistence
+absolute errors are **0.486/1.620/0.540 F**, giving one independent daily
+window for this artifact. Keep artifacts separate and shadow gates unchanged;
+its 0.054 F improvement over persistence does not prove calibrated or seasonal
+skill. See [original issue, target and repeat command](2026-09-30-forecast-input-capture.md#october-4-first-settled-daily-outcome-for-the-october-3-artifact).
+
+## October 4 new-artifact natural publisher continuity complete
+
+The original 07:58 MDT timer-bound shadow invocation exited zero. Its first
+`a4ea9f4a...` accepted-artifact capture, live Item, single original JDBC row,
+source-expiry checks and exact installed-runtime replay agree; repeat reads
+retain the same invocation, source hash and output. This closes the new
+artifact's natural publication gate following today's successful optimized
+training. It remains shadow / low confidence, with independent outcomes and
+confirmed-action evaluation still required. See
+[original clocks, output identity and replay command](2026-09-27-thermal-selector-efficiency.md#october-4-first-natural-new-artifact-publication-verified).
+
 ## October 4 protected sky transaction implemented, not released
 
 The dedicated default-off handoff candidate now implements exact

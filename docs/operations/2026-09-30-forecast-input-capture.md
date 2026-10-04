@@ -1,5 +1,37 @@
 # Exact morning weather-input archive
 
+
+## October 4 first settled daily outcome for the October 3 artifact
+
+At frozen assessment **2026-10-04T14:28:33.428642Z**, two independent live
+reads of the existing capture-strict scorer produce identical reports for the
+first original `d9163729...` near-24-hour publication. The original issue
+**October 3 13:39:05.222543Z** targets **October 4 14:00Z**. Its original
+capture, native indoor/outdoor outcome receipts and seven strictly prior
+qualified cycles all verify. Model/cycle/persistence signed errors are
+**-0.486 / -1.620 / -0.540 F**; outdoor forecast error is **-0.160 F**.
+
+The model beats both matched comparators here, but its absolute improvement
+against persistence is only **0.054 F**. This is one independent daily outcome
+for this artifact, with low confidence and a **10.414 F** interval. It does
+not overturn the earlier artifacts' baseline losses or establish seasonal,
+action or interval-calibration skill. Today's `a4ea9f4a...` artifact remains a
+separate cohort. No refit, correction, training label, notification or control.
+
+Canonical report SHA-256: `b678bee989a20ff83e23e3b73126860ce4afc9106d9ab846130108b9ff43db2e`.
+Recent-cycle evidence: `25c843928d8fedcc821dbc97a7c4ce07d983f80154734925f3f1c8b1320ac4a9`.
+The repeat uses the following exact original-input command, with one capture
+verification, one indoor/outdoor batch each and fourteen prior-cycle targets:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-03T13:00:00Z --until 2026-10-03T14:00:00Z \
+  --assessed-at 2026-10-04T14:28:33.428642Z \
+  --require-capture --horizons 24 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9
+```
+
 ## October 4 newly settled twelve-hour original-artifact outcomes
 
 At fixed assessment `2026-10-04T13:18:46Z`, the existing capture-strict audit
