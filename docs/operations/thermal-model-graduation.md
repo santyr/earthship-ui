@@ -16,9 +16,12 @@ daily window remain. This closes an additional outcome-qualification step,
 not the full graduation requirement. No extra ventilation calculation or
 live model change was made.
 
-The operator additionally directed a no-venting forecast default starting in
-November. Its ending rule is being clarified; this is a future default policy,
-not a confirmed physical state, historical training label or equipment command.
+The operator additionally directed a no-venting forecast default from November 1,
+2026 midnight Mountain, **until they change it**. The [forecast-only policy is
+installed and qualified](2026-10-04-november-vent-default.md). It is an explicit
+assumption, not a confirmed physical state, historical label or equipment command.
+Original forecast replay remains exact; natural new-runtime delivery and actual
+November observations remain separate evidence gates.
 
 ## October 4 acceptance evidence update
 
