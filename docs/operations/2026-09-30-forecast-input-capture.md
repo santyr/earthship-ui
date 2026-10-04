@@ -1,5 +1,52 @@
 # Exact morning weather-input archive
 
+## October 4 second settled daily outcome for the October 3 artifact
+
+At frozen assessment **2026-10-04T16:14:41Z**, two independent native reads
+produce identical capture-strict reports for the original `d9163729...`
+daily forecasts. The newly settled **October 3 15:40:07.386987Z** issue
+targets **October 4 16:00Z**. Original input capture, indoor/outdoor receipts
+and seven strictly historical cycles qualify.
+
+| Original target UTC | Model signed error | Cycle signed error | Persistence signed error | Outdoor forcing error |
+| --- | --- | --- | --- | --- |
+| October 4 14:00 | -0.486 F | -1.620 F | -0.540 F | -0.160 F |
+| October 4 16:00 | -2.046 F | -1.080 F | -0.720 F | -6.820 F |
+
+The second pair loses to persistence by **1.326 F** and recent cycles by
+**0.966 F**. Across both pairs, model/cycle/persistence MAE is
+**1.266/1.350/0.630 F**: the model slightly beats cycles overall but loses
+to persistence. Both original windows overlap; the declared greedy
+non-overlap policy retains only the first pair, not two independent days.
+Its 0.054 F improvement over persistence remains insufficient seasonal
+or confirmed-action evidence. Both low-confidence 10.414 F intervals cover
+the observations, without proving interval calibration.
+
+This cohort stays separate from October 4's `a4ea9f4a...` artifact. The
+second pair's cold outdoor forcing and cold indoor residual do not establish
+causal attribution. No refit, historical forcing correction, action label,
+notification, graduation threshold or household control changed.
+
+Canonical report SHA-256:
+`3f1846c34199abbb26aa85b49a628e12cc0924e86a489129f97511b7de0cf30e`.
+Second-pair cycle evidence SHA-256:
+`b04e34c00b61f83a9d6921db006a481fc7e7a722e81b6ebd9b4c984bd0eedecd`.
+Both comparators select lags 2–8, excluding the immediately prior overlapping
+cycle as not strictly historical. The audit verifies two original captures,
+uses one indoor/outdoor batch each and 28 prior-cycle points in 28 batches.
+Receipts are `/tmp/earthship-d916-two-daily-outcomes.json` and its
+`-repeat.json` counterpart. Reproduce with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-03T13:00:00Z --until 2026-10-03T16:00:00Z \
+  --assessed-at 2026-10-04T16:14:41Z \
+  --require-capture --horizons 24 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9
+```
+
+
 
 ## October 4 first settled outcome for the new artifact
 
