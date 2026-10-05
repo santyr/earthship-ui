@@ -52,6 +52,12 @@ OpenHAB/PostgreSQL harness. Separate ON and OFF rehearsals both passed:
 Neither exercise contains the production charging writer, channel links or hardware.
 Synthetic values are confined to disposable isolation.
 
+Independent review of commit `0c7d121` against `d0dbf0d` is clear of
+Important/Critical findings. It confirms the exact Switch descriptor, absent
+production target, unchanged ownership manifest, isolated ON/OFF transport,
+native recovery/cleanup logs and all 15 retained capsule hashes. The recovered
+original compressed history contains exactly 97,347 rows.
+
 Reproduction:
 
 ```bash
@@ -69,8 +75,8 @@ are retained. Original CSV/history identities are never committed to Git.
 
 ## Remaining live gates
 
-Complete independent review, then prepare the closed, exact one-Item attended
-transport and its recovery path. Revalidate
+Isolated qualification and independent review are complete. Prepare the closed,
+exact one-Item attended transport and its recovery path. Revalidate
 the existing writer, target absence, current provider/descriptor, original
 history and protected definitions/PID at the actual handoff boundary. Pause
 only this display writer if needed; preserve its original enabled state and
