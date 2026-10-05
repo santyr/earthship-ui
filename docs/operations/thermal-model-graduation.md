@@ -5,6 +5,25 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 5 offline error diagnosis completed
+
+[The frozen offline diagnosis](2026-10-05-thermal-offline-error-diagnosis.md)
+replays 19/19 original captures exactly twice, scores 56 mature pairs by artifact,
+and produces byte-identical corrected results. It confirms that the installed
+three-regime solar model discards outdoor shading when indoor shading closes;
+all three captured artifacts then increase modeled solar air gain. It also
+confirms raw observed wall versus filtered forecast mass semantics in the plot.
+Observed outdoor replacement worsens all seven matched October 4 six-hour cases;
+night residuals and mixed parameter sensitivities reject a universal bias fix.
+Independent native-observer parity passes 3,420 points and 88 latest-state checks.
+
+The October 5 fit's first original one-hour outcome is now qualified: model/
+cycle/persistence signed errors **+0.584/−0.360/−0.540 F**, with original interval
+coverage and one window. This is separate from older cohorts and from diagnostic
+hindsight. The report records next accuracy priorities and a private hashed
+capsule; the model remains shadow and no coefficient, vent scenario, training,
+publisher, production restart, action label or household control was changed.
+
 ## October 5 new-fit delivery complete; first daily and 48-hour outcomes
 
 The first naturally scheduled publication of accepted file `acf1d315...`
