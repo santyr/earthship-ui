@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 fourth joint night and additional thermal horizons qualified
+
+[Repeated original-source assessments](2026-10-05-matured-outcomes.md) at
+18:16:05Z close October 4's overnight target: minimum 85%, 99.9885950% coverage,
+887 native receipts, original morning/pre-dusk errors −16/−11 points. Four
+PV/charge/night joins now exist, two reported-full. The new thermal fit has two
+one-hour outcomes: model MAE 0.4045°F versus cycle 0.1800°F; longer horizons
+remain pending. Older cohorts are assessed separately, including October 4's
+three daily pairs (model/cycle MAE 1.4777/0.2400°F) and October 3's 48-hour
+interval miss of −7.112°F. All four reports repeat exactly; private native rows,
+source pins and digests are retained. No production model or control changed.
+Restart authentication, seasonal evidence and action-outcome gates remain open.
+
 ## October 5 south planter fan automatic rule enabled
 
 The operator-requested [fan rule](2026-10-05-south-planter-fan.md) is live and

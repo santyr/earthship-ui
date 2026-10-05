@@ -1,5 +1,17 @@
 # Prediction learning review — September 29, 2026
 
+## October 5 fourth original PV/charge/night comparison completed
+
+The [18:16:05Z assessment](2026-10-05-matured-outcomes.md) closes October 4's
+canonical overnight target with **85%** minimum and **99.9885950%** qualified
+coverage from 887 native receipts. Original morning **69%** and pre-dusk
+**74%** errors are **−16** and **−11 percentage points**, respectively.
+Exact original receipt/weather/atomic inputs and native PV 6.126 kWh agree;
+two independent restricted reads produce identical reports and original night
+row archives. Four complete source-qualified joint days now exist, including
+two reported-full days. The pending statements below record earlier clocks.
+Calibration, seasonal and causal action-outcome gates remain open.
+
 ## October 5 completed October 4 original PV and sunset comparison
 
 Two restricted source reads at fixed **2026-10-05T13:30:00Z** qualify the
