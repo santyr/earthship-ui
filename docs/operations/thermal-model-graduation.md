@@ -5,6 +5,42 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 5 natural training and matured original cohort
+
+The scheduled trainer invocation `853e7f8e4453482cb390b2bd9bf9195c` starts at
+**12:50:56Z** and exits zero at **13:16:05Z**, wall time 25m09s and recorded
+CPU time 25m04.619s. The actual handle is terminal/inactive with PID zero.
+No job was manually started. Accepted file SHA is
+`acf1d315ef3a0ce1ec8ece8b74216afcf841f34c6f8e5a25986c8b7b567f6946`;
+backtest report SHA is
+`6656af71a4b1e57c60d377a354340ab1fb7f52ca424805fca5a6456799a9d279`.
+The new artifact correctly records installed training revision `e32fdb8b...`,
+created/trained-through **12:50:57.027920Z**, with a 400-day raw window from
+August 31, 2025. Physical dynamics, behavior parameters and dataset manifest
+all change; the fit uses 78,838 pairs. This is a real new fit, while first
+natural publication of this particular accepted artifact remains pending.
+
+The coherent installed validator accepts the artifact/report pair. Historical
+24-hour air metrics still contain 119 matched comparisons, with model/cycle/
+persistence MAE **2.17855/1.83416/1.68989 F**. Interval coverage is **0.81356**
+against nominal 0.9, with 118 interval-scored cases. These daily metrics are
+unchanged from the prior artifact even though its final fitted parameters
+change. Confirmed-action training rows, evaluation targets and disjoint folds
+remain zero; shadow-only remains true and graduation thresholds remain null.
+The natural confirmation poll has no new question/receipt: one question/one
+receipt, zero automatic questions/corrections. This does not establish a
+confirmed action's physical outcome or authorize source/control changes.
+
+The separately [matured original October 4 artifact cohort](2026-09-30-forecast-input-capture.md#october-5-morning-original-october-4-artifact-cohort)
+now has 12/9/6 short/six-hour/twelve-hour pairs and 12/3/1 non-overlapping
+windows. Model/cycle/persistence MAE is 0.5237/0.4950/1.0200 F at one hour,
+1.4488/3.2800/6.4200 F at six hours, and 1.0087/4.1100/7.7700 F at twelve
+hours. Short skill still trails the cycle baseline, with only two issue dates;
+longer independent/seasonal/action evidence remains limited. These forecasts
+belong to `a4ea9f4a...`, not the new October 5 fit. No cross-artifact pooling or
+graduation is justified. Native and accepted-model proofs are private in
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+
 ## October 4 evening cohort completion and natural new-runtime delivery
 
 [Natural delivery under the installed November-default runtime](2026-10-04-november-vent-default.md#october-4-evening-natural-delivery-verified-october-5-utc)

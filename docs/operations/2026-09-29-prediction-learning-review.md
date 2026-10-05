@@ -1,5 +1,40 @@
 # Prediction learning review — September 29, 2026
 
+## October 5 completed October 4 original PV and sunset comparison
+
+Two restricted source reads at fixed **2026-10-05T13:30:00Z** qualify the
+October 4 native PV calendar day and agree exactly. Original public receipt,
+private raw-weather digest/capture clock and atomic SoC origin match the already
+qualified sunset comparison below. The original 06:40 MDT issue is retained;
+today's updated coefficients and forecast are not substituted into it.
+
+| Quantity | Original forecast | Qualified outcome | Signed error |
+| --- | --- | --- | --- |
+| Native PV harvest | 6.780 kWh | 6.126 kWh | +0.654 kWh (+10.675808%) |
+| Sunset SoC | 93.386% | 98% | -4.614 percentage points |
+
+Native Item 655 contributes **1,998** original receipts with **99.9612986%**
+coverage over October 4 06:00Z through October 5 06:00Z. Original radiation is
+18.77 MJ/m2 (published 5.214 kWh/m2), gain 1.3, resource 6.778 kWh, direct
+demand 5.403 kWh, charge deficit 2.803 kWh and combined demand 8.206 kWh.
+These are retained as-issued diagnostics; resource is the limiting branch.
+There is no new gain/direct-demand fit or exploratory recalculation.
+
+The first reported-full observation remains October 4 16:04:16.538195Z;
+its independent charge source coverage is 99.9855%. Four source-qualified
+PV/charge days now exist, including two reported-full days. Only three have
+completed joint overnight outcomes: October 4's original morning 69% and late
+74% trough predictions still wait for the October 5 **11:00 Mountain / 17:00Z**
+closing window. The fourth full joint comparison remains pending.
+
+Ordered original native PV row digest:
+`2e8ea3dc2e99ceb0fe5e47e3a9e73c7c3b09f4e5208aec5bbe540df674c4e42a`.
+Canonical source-bound report SHA-256:
+`cefb6dd66d33f46053c2c7051fa728f11413efe39c67c9fbe4fc3ce622fb9c65`.
+Reports `oct4-pv.json` and `oct4-pv-repeat.json` are durably private under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+No forecast, filter, threshold, state, notification, journal or control changed.
+
 ## October 4 original sunset forecast qualified after natural close
 
 The real October 4 sunset at **October 5 00:40:34.220Z** has closed. A

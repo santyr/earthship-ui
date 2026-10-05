@@ -1,6 +1,55 @@
 # Exact morning weather-input archive
 
 
+## October 5 morning original October 4 artifact cohort
+
+At fixed assessment **2026-10-05T13:29:43Z**, two capture-strict native audits
+agree exactly for the twelve original `a4ea9f4a...` issues between October 4
+13:00Z and October 5 13:00Z. This includes the verified 00:01Z post-install
+publication and later natural issues through 12:05:58Z. Every pair retains its
+exact original forcing capture and artifact; the newly trained October 5 model
+is excluded. Source-qualified indoor/outdoor reads each use one batch for the
+21 distinct target times. Targets become eligible only after their original
+five-minute maturity lag.
+
+| Horizon | Mature overlapping pairs | Model MAE F | Cycle MAE F | Persistence MAE F | Original interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 h | 12 | 0.5237 | 0.4950 | 1.0200 | 12/12 |
+| 6 h | 9 | 1.4488 | 3.2800 | 6.4200 | 8/9 |
+| 12 h | 6 | 1.0087 | 4.1100 | 7.7700 | 6/6 |
+
+Non-overlapping selection within each horizon retains **12/3/1** windows:
+
+| Horizon | Selected windows | Model / cycle / persistence MAE F |
+| --- | ---: | --- |
+| 1 h | 12 | 0.5237 / 0.4950 / 1.0200 |
+| 6 h | 3 | 0.9023 / 3.3600 / 6.7200 |
+| 12 h | 1 | 1.8270 / 3.4200 / 7.3800 |
+
+The twelve short issues span two Mountain issue dates. The model wins against
+the recent-cycle baseline in five short pairs and loses seven, so short skill
+still does not beat both baselines. All three selected six-hour windows beat
+both baselines; one selected twelve-hour window is still weak independent-day
+support. Do not sum windows across horizons as independent observations or
+infer seasonal/action skill. The original six-hour 0.027 F interval miss remains
+excluded from coverage; no interval widening or new ventilation calculation.
+
+Seven new short, six new six-hour and six new twelve-hour outcomes are added.
+The first twelve-hour target at **02:00Z** has +1.827 F model error versus
+-3.420 F cycle and -7.380 F persistence. The first post-install 00:01Z capture's
+01:00Z, 06:00Z and 12:00Z targets have model errors -0.752/-2.127/-1.386 F.
+All twelve daily and 48-hour targets in this cohort remain future at assessment.
+The earliest original daily target becomes eligible at **14:05Z**; the older
+October 3 artifact's first 48-hour target has that same maturity checkpoint.
+Artifacts remain separate even when their native target time is shared.
+
+Private native reports `a4-matured.json` and `a4-matured-repeat.json`, plus the
+exact added-pair summary, are durably retained under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+Full canonical report SHA-256:
+`c78e290b6f6c7e918c2577b8d8b719bdce894aa73af311fd385e14bc11c323ff`.
+No new issue, refit, model promotion, notification or physical control was run.
+
 ## October 4 evening settled short, six-hour and complete daily cohorts
 
 At frozen assessment **2026-10-05T00:05:40Z** (October 4 18:05:40 MDT), all
