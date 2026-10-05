@@ -1,5 +1,53 @@
 # Prediction learning review — September 29, 2026
 
+## October 4 original sunset forecast qualified after natural close
+
+The real October 4 sunset at **October 5 00:40:34.220Z** has closed. A
+restricted native assessment at 00:41:01.651098Z and its later independent
+repeat agree on the charge-target values, source coverage and original digest.
+A separate 00:49:50Z audit validates the original private weather capture against
+its public receipt and the exact atomic SoC origin. These are observations and
+an as-issued comparison; no new candidate, fit, forecast or control was run.
+
+| Quantity | Original issue or qualified outcome |
+| --- | --- |
+| Original weather capture | October 4 12:40:57.822554Z |
+| Original forecast issue | October 4 12:40:57.827890Z |
+| Distinct atomic SoC assessment | October 4 12:40:57.840Z, 87% |
+| Public receipt persisted | October 4 12:40:57.970Z |
+| Original sunset SoC estimate | 93.386% |
+| Native sunset SoC | 98% |
+| Signed sunset error | -4.614 percentage points |
+| First reported 100% | October 4 16:04:16.538195Z (10:04 MDT) |
+| Charge-day coverage | 99.9855% |
+
+The original 6.78 kWh PV forecast and 69% morning trough remain unscored for
+October 4: their full-day and overnight windows have not closed. The independently
+qualified original pre-dusk forecast is 74%; its outcome also waits until
+October 5 11:00 Mountain. No later outcome became a predictor input.
+
+The private record's full-state SHA remains `44aba271...`, matching the already
+recorded October 4 17:35Z audit before this sunset target closed. `read_as_of`
+validates weather input SHA
+`41dc2160f7f23c28d12cd3af0b8d0ca497f02516685057bd64b458aca3459096`
+and its capture clock against the public original receipt. The exact atomic
+input digest is
+`ad686a3f171952a754905cfea7eeb92379774b0fc48399cbac9b1891aa8d329f`.
+Repeated native charge target digest remains
+`e7769e2332d2fcfd218940e2751f57d6a07ce05a0cf13327e608683eab50bb9f`.
+Private reports `oct4-sunset-original-qualified.json` and
+`oct4-charge-outcome-repeat.json` are durably retained alongside the first
+charge receipt under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/pre-dusk-unchanged-20261004/`.
+
+This is the **second reported-full day** with qualified original inputs. The
+four such charge days comprise two no-full days and two reported-full days;
+only three currently have the completed joint PV/charge/night outcomes.
+The additional negative sunset error does not establish causal load attribution,
+calibration, seasonal skill or enough independent cases to fit full-charge
+scheduling. Keep the existing forecast and thresholds until their learning gates
+are actually met.
+
 ## October 4 original October 3 PV, charge and overnight join
 
 Two independent restricted reads at fixed assessment

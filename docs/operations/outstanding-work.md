@@ -1,6 +1,38 @@
 # Outstanding Earthship and OpenHAB work
 
 
+## October 4 original sunset error and current forecast-history upper bound
+
+The original October 4 morning estimate now qualifies against the closed
+sunset target: **93.386% estimated versus 98% native SoC**, error **-4.614
+points**. Exact public/private weather and atomic SoC origins pass; the repeated
+native target digest and earlier frozen state SHA remain unchanged. This is the
+second input-qualified reported-full charge day. Full-day PV and overnight
+windows remain pending, so there are still only three completed joint days.
+See [original inputs and qualified sunset comparison](2026-09-29-prediction-learning-review.md#october-4-original-sunset-forecast-qualified-after-natural-close).
+
+Task 19's September 5 count of nine issue dates was historical. A restricted
+SELECT-only snapshot at **October 5 00:51:08Z** now contains **616,740** archived
+forecast rows across **38 distinct Mountain issue dates**, August 20 through
+October 4, preserving the August 28–September 4 capture gap. This is an upper
+bound on potentially paired days, **not 38 qualified outcome pairs**. Even that
+upper bound is below the roughly 90-day prerequisite; no analog or GBM model is
+trained or promoted. The private count proof is
+`/home/sat/.local/state/thermal-intel/qualification-receipts/forecast-history-20261005/raw-issue-date-upper-bound.json`.
+
+At **00:55:32Z**, the actual user units are loaded: publication and recurring
+collection timers are active, while publisher, trainer and collector services
+are terminal/inactive with exit zero and PID zero. The natural 18:53 MDT
+Primal poll is complete; counts remain one question/one receipt, zero automatic
+questions/corrections, and one ingested/one refused inbox record. No new
+confirmed-action training evidence exists. OpenHAB remains PID 1696 from the
+October 2 start, so the later planned production restart gate remains open.
+Private authoritative-unit/count proof:
+`/home/sat/.local/state/thermal-intel/qualification-receipts/outstanding-checkpoint-20261005T0055Z/runtime-gates.json`.
+This is a terminal-job/future-evidence checkpoint, not a running-job wait or a
+claim of full goal completion. No job, notification, control or restart was
+manually triggered.
+
 ## October 4 unchanged pre-dusk issue qualified
 
 The original 23:30Z issue predicts 74%, repeating October 3's value. The
@@ -1304,7 +1336,7 @@ worsens it. No correction, action label or graduation is promoted. See
 | Track | Current verified state | Next required work |
 | --- | --- | --- |
 | UI device acceptance | The operator signed off the tablet and laptop as good on October 4. Both canonical physical-device QA rows are verified-live alongside existing automated geometry evidence. | Complete; do not request these same physical signoffs again. |
-| Charge/PV/trough tuning | Original-publication/private-input/native-clock qualification now covers September 30, October 1 and October 3: two no-full/censored days and one reported-full day. October 3 PV is 7.13 versus native 6.309 kWh; dusk is 95.01 versus 99%, and morning trough 69 versus 86%. Original October 1 PV is 6.58 versus 6.697 kWh, with dusk 74.458 versus 87%. The exploratory gain/direct-demand pair has mixed branch-dependent errors; native AC timing remains separate from DC demand. October 4 charge-only evidence now qualifies after actual sunset: morning 87%, reported-full at 10:04 MDT, sunset 98%, coverage 99.9855%; full-day PV and overnight outcomes remain pending. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Preserve censoring and original input clocks; three paired days with one reported-full outcome cannot train or promote full-charge timing or establish seasonal skill. |
+| Charge/PV/trough tuning | Original-publication/private-input/native-clock qualification now covers September 30, October 1 and October 3: two no-full/censored days and one reported-full day. October 3 PV is 7.13 versus native 6.309 kWh; dusk is 95.01 versus 99%, and morning trough 69 versus 86%. Original October 1 PV is 6.58 versus 6.697 kWh, with dusk 74.458 versus 87%. The exploratory gain/direct-demand pair has mixed branch-dependent errors; native AC timing remains separate from DC demand. October 4 charge-only evidence now qualifies after actual sunset: morning 87%, reported-full at 10:04 MDT, original dusk estimate 93.386% versus native sunset 98% (-4.614 points), coverage 99.9855%; exact original public/private inputs and repeated target digest agree. Full-day PV and overnight outcomes remain pending. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Preserve censoring and original input clocks; three paired days with one reported-full outcome cannot train or promote full-charge timing or establish seasonal skill. |
 | Pre-dusk estimate | Four qualified completed comparisons: September 29 actual/pre-dusk/morning 81/81/53%; September 30 65/64/47%; October 1 72/65/52%; October 3 86/74/69%. MAE is 5.00 points pre-dusk versus 20.75 morning; all pre-dusk misses are nonpositive. October 2 correctly withheld after DNS failure. October 3's frozen phase/sunset comparisons score 82/83% against the same 86% with all six original input digests verified. October 4's original 74% issue now qualifies with unchanged-value numeric provenance; its night outcome is pending. | Continue original-issue held-out analysis and explicit remaining-daylight/overnight-load design; October 3 scoring is complete; score the qualified October 4 issue only after its October 5 11:00 Mountain outcome boundary. Four scored nights are not seasonal graduation. Do not manufacture a missing issue, force an early job or repeat the completed Primal trial. |
 | Thermal collection | Exact v2 journal retains 11 action/5 receipt/4 mode rows. The signed Primal shade-closure trial, original-cipher recovery and cold journal replay pass. Approved v4 recurring user units are live: maximum one recommendation follow-up per Mountain day, five-minute completion-based inbox polls and Hex-only relay authentication. nos.lol and Primal are readable; Damus AUTH fails because of its server's unconfigured serviceUrl. Generic source gates remain false; household controls remain off. | Observe a naturally eligible recommendation/question/authenticated reply and verify original evidence before model consumption. Resolve or monitor the external Damus failure without weakening routes or using the operator key. Chat reports and relay ACKs are not labels; do not repeat completed provisioning or activation approvals. |
 | Thermal skill and efficiency | October 4 natural optimized training is complete: about 24m55s, 365.88 MiB, no swap. Artifact `a4ea9f4a...` retains training `15267d7a...`; natural publication under installed `e32fdb8b...` now passes source/Item/JDBC/replay. At October 5 00:05:40Z, five non-overlapping short windows have model/cycle/persistence MAE 0.5804/0.5400/1.3320 F, still one issue day. Three overlapping six-hour pairs have MAE 1.9673/3.9600/8.7000 F and interval coverage 2/3; one independent selected window remains. The October 3 artifact has all six matured daily pairs scored, MAE 2.2828/1.1100/0.5400 F and coverage 5/6, with only one independent daily window. [Original outcomes](2026-09-30-forecast-input-capture.md#october-4-evening-settled-short-six-hour-and-complete-daily-cohorts). | Score original outcomes by artifact as they mature. Require chronological baseline improvement, independent-day/seasonal support and genuine confirmed actions before graduation. Delivery and prior training are complete; do not rerun them or pool artifacts. |
@@ -5535,7 +5567,7 @@ remain in Git.
 | Task 96: energy forecast snapshot ingestion | September 5 repaired capture service succeeded, storing 1,446 v2 rows with genuine issue time 2026-09-05T13:45:29Z. Live analytics forecast now current. Both existing timers restored active. | Completed. Preserve the August 27–September 5 capture gap; no fabricated historical origins. |
 | Task 18: Bandit thresholds | Deferred per its explicit prerequisite instruction. Immutable decision/result capture and completed-night assessment are live. Read-only September 23 verification found two naturally measured, frozen nights (September 20–21), with 99.98%+ qualified SoC coverage and a live seven-night diagnostic of 4.0 percentage points from two samples; see [receipt](2026-09-23-natural-trough-outcomes.md). Both outcomes explicitly forbid bandit eligibility and do not assess action attribution. | First natural assessment is verified. Next qualify action confirmation, delivery/compliance attribution, and a bounded reward/tuning design before any threshold change. Forecast residuals alone are not advisory benefit or DM utility. Keep current 95/92/90 F advisory and 30% DM thresholds unchanged. |
 | Task 16: forecast ML v3 | Conformal trough/PV intervals remain unpublished; legacy seven-error buffers are not qualified interval samples. October 3 read-only original-advisory/native-outcome pairing verifies six next-day lows: raw MAE 7.870 F, original corrected MAE 1.750833 F, signed corrected bias +0.597167 F; all six corrections improve error, with three cold and three warm residuals. See the [original-correction watch](2026-09-29-prediction-learning-review.md#october-3-original-low-temperature-correction-watch). | Accumulate distinct qualified original-issue/outcome samples and demonstrate chronological interval coverage before publication. The generic raw-MAE under-correction concern is narrowed to the later warm residuals, not evidence for a larger global bias. Continue lead/regime-specific checks; do not retrospectively apply today's correction, manufacture missing days or equate advisory-input accuracy with all UI delivery. |
-| Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion was repaired September 5; current history has nine distinct local issue dates. | Accumulate and verify usable paired history; approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
+| Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion was repaired September 5. October 5 00:51Z SELECT-only read now verifies 616,740 rows across 38 distinct Mountain issue dates (August 20–October 4), retaining the August 28–September 4 gap. This is a raw upper bound, not qualified paired days. | Accumulate and verify usable paired history; approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
 | Task 21: live winter timezone verification | Pending November MST verification; summer checks cannot satisfy its explicit requirement. | Inspect actual winter data after transition, including sunny/cloudy boundary cases and calibration attribution. |
 | Task 22: rain/wind learned corrections | Task description explicitly defers rain and requires a wind consumer, scoring, and renewed approval. | Resolve deferred scope with operator; satisfy outcome/scoring prerequisites before implementing learned gains. |
 
