@@ -52,7 +52,7 @@ The source/qualification reviews cover all five lost-write acknowledgements, for
 
 - [x] Add exactly one file-provider ownership entry after independent live readback. Retain `production_restart_qualified: false` and a separate natural changed-output/JDBC gate if no genuine transition has occurred.
 - [x] Run the read-only full registry inventory and exact source/provider/history checks. Require zero structural issues; do not infer whole-installation completion.
-- [ ] Request one read-only final review of the executed evidence/ownership/docs, then commit and integrate locally under the existing authorization. Keep source gate closed and do not push.
+- [x] Request one read-only final review of the executed evidence/ownership/docs, then commit and integrate locally under the existing authorization. Keep source gate closed and do not push.
 
 ## Task 4: Refresh the approved production restart baseline
 
@@ -74,3 +74,5 @@ Live sole file provider, actual original managed rollback, valid recovered Switc
 - Genuine changed-output/JDBC and production restart gates remain unqualified. Full goal is active.
 
 - At 21:12:38Z the approved production restart was attempted directly and refused by host sudo authentication. Fresh `restart-20261005-t2vrscku` baseline has 56 file sources, 40 native history prefixes and three validated private archives. At 21:13:16Z PID 1696 remains active, disabled rules/source hashes are preserved, battery telemetry is healthy and no new runtime errors appear. See [attempt receipt](../../operations/2026-10-05-production-restart-attempt.md). No restart qualification is claimed.
+
+- Final independent review verifies all 99 manifested evidence files with no Critical/Important issues. Its Minor queue-clock correction is applied. Commit `1482018` is integrated by local fast-forward into main; all 74 focused transport/shared/inventory checks pass on the merged tree. Worktree remains retained for the pending restart verifier; no push occurred.

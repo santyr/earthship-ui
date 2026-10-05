@@ -174,3 +174,53 @@ all 17 retained files are mode 0600 and hash-manifested. Earlier capsules are
 unchanged. This is prospective outcome evidence under the original issue;
 no model, threshold, forcing, vent calculation, trainer, publisher, action
 label, notification or household control changed.
+
+
+## October 5 fourth short target for the new fit
+
+Two byte-identical original-source audits at fixed **2026-10-05T21:18:08Z**
+qualify the original **20:07:04.913974Z** issue's **21:00Z** target. The qualified
+native indoor observation is **81.68°F**. Original model, recent-cycle and
+persistence predictions are **81.187 / 80.96 / 80.24°F**; signed errors are
+**−0.493 / −0.720 / −1.440°F**. The original interval covers the observation.
+The seven prior local-clock cycles are selected strictly before the original
+issue and reproduce the original comparator evidence digest.
+
+| Horizon | Pairs / selected windows | Model MAE °F | Recent-cycle MAE °F | Persistence MAE °F | Interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 h | 4 / 4 | 0.5518 | 0.5850 | 1.6650 | 4/4 |
+| 6 h | 1 / 1 | 0.8570 | 6.1200 | 12.4200 | 1/1 |
+
+The short cohort now leads the cycle baseline by the report's rounded
+**0.0333°F** MAE; pairwise wins are **2–2**. This replaces the earlier three-pair
+cohort's small deficit only at this later assessment clock. Four short targets
+from one issue day do not establish chronological held-out skill across days,
+seasonal support, confirmed-action outcomes or operational readiness. All
+publications remain low confidence. Twelve-hour, daily and 48-hour targets
+remain immature; the next six-hour target is 22:00Z, eligible after 22:05Z.
+Intervals average **10.4138°F** wide for the four short pairs.
+
+Both reports have SHA-256
+`9a66bb04b375789d7ed88b619023bb2642b50fbd6bb9f2ab88f952538b115723`.
+Independent native reads agree at the new target. Literal original trajectory,
+current-state persistence, interval coverage and signed errors are checked
+against those observations. All four previously qualified pairs, including
+the first six-hour outcome, remain unchanged; the same four persisted
+publications are reread exactly. All 17 files in the prior first-six-hour
+capsule retain their hashes.
+
+The sealed mode-0700 capsule is
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-fourth-short-w012qami/`.
+Its 17 mode-0600 files retain both reports, four native publication rows, the
+fourth original forcing capture, repeated native target receipts, all seven
+prior-cycle native grids and independent pair proof, prior-capsule reference
+and pinned audit/runtime reader sources. Reproduce using the previous audit
+command with `--assessed-at` and `--until` set to **2026-10-05T21:18:08Z**;
+keep the original 14:00Z lower bound and full `bad329` artifact selector.
+No model, forecast, trainer, publisher, forcing, action label, notification,
+vent calculation or household control was changed.
+
+Independent read-only review verifies all 17 new capsule hashes, original
+capture chronology, repeated native receipt, seven-cycle evidence digest,
+unchanged prior pairs/publications and the rounded cohort arithmetic. No
+findings; the maturity, confidence and readiness limits remain unchanged.
