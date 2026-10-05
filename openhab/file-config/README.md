@@ -111,15 +111,15 @@ retain the private original backup. See the
 
 ## Staged migration and rollback
 
-`items/battery-charging-status.items` is a **staged, uninstalled** candidate
-for the existing unlinked Switch `BatteryChargingStatus`. The label, display
-writer and original Item-154 history stay unchanged. Its dedicated provider/JDBC
-qualifiers operate only in owned isolation. The dedicated one-Item transport
-has a read-only preflight and a closed live release gate. Exact native round
-trip, accepted-write fault recovery, delayed writer/JDBC receipt and isolated
-cold-JVM recovery pass; independent closed-source review and 4,159 repository
-tests pass. Live handoff and production restart remain pending. This source
-does not transfer live ownership. See the [candidate receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
+`items/battery-charging-status.items` is **live, verified file-owned** for the
+unlinked `BatteryChargingStatus` Switch after the October 5 attended original
+managed/file/managed/file round trip. Its exact descriptor, recovered OFF state,
+sole display writer and all 97,347 original Item-154 rows are preserved. Exact
+native fault/delayed-JDBC/cold-JVM qualification and independent reviews pass;
+4,159 repository tests and fresh 60-case focused checks pass. The transport
+release gate is closed. A genuine changed writer/JDBC output and production
+restart remain separate gates; retain the private original recovery point.
+See the [handoff receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
 
 `automation/js/south-planter-fan.js` is the new live, file-owned
 `hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound

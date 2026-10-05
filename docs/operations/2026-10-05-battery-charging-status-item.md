@@ -1,9 +1,11 @@
-# Battery charging-status Item — isolated file candidate
+# Battery charging-status Item — attended file handoff
 
-`BatteryChargingStatus` remains the original managed, unlinked Switch. The
-prepared file is **not installed** and no ownership declaration is added.
-This continues the approved file-first migration pattern without changing the
-display writer, Item name/type/label, charging semantics or persistence.
+`BatteryChargingStatus` is now the sole file-owned, unlinked Switch after the
+October 5 attended managed/file round trip. Its exact label, display writer,
+charging semantics and original Item-154 JDBC history are preserved. The
+production source release gate remains closed; a natural changed writer/JDBC
+receipt and household restart qualification remain separate live gates.
+The earlier candidate and native rehearsal sections retain their original scope.
 
 ## Exact scope and live preflight
 
@@ -200,18 +202,66 @@ private reproduction drivers, review pins, full-suite logs and cleanup proof:
 Its manifest seals the retained files. Original candidate and initial transport
 capsules remain intact. Fixture credentials and native history stay out of Git.
 
+## October 5 attended live handoff
+
+The existing operator authorization to continue live file-first migration
+covers this qualified observational Item. The [attended plan](../superpowers/plans/2026-10-05-battery-charging-status-cutover.md)
+records the sequencing ruling: isolated recovery gates pass for this resource;
+production whole-JVM restart remains a separate gate requiring host authentication.
+The current literal live/source census finds only the unchanged display writer
+and Home battery-direction display. The Item has no links, groups or tags;
+the census does not prove the absence of dynamic external consumers.
+
+An independently reviewed private bootstrap invoked the unchanged **4c1ec58...**
+transport with a one-call in-memory release. Its added check preserves the original
+candidate's raw CSV digest **b89e3ce4...** and compressed archive **eb9bf5b2...**
+through every guarded phase. Extra observational checkpoints record both actual
+file readbacks and the intermediate original managed provider. The bootstrap's
+three injected checkpoint failures were independently tested: each restored the
+managed Item and original enabled writer. The Git transport's release flag never
+changed, and the imported flag was closed in `finally`.
+
+Live readback at **2026-10-05T20:58:16.831761Z** confirms:
+
+- First file provider, actual original managed rollback, then final file provider;
+  exact source, Switch descriptor and created inode, recovered **OFF** throughout.
+- JDBC identity **154**, all **97,347** original native rows, exact original and
+  writer-paused prefixes, plus the earlier candidate prefix remain intact.
+- All unrelated Item/rule/Thing/link definitions, installed sources and JVM match
+  the original protected signature. PID remains **1696**.
+- Original three disabled rules remain disabled; every other rule is healthy.
+  `UpdateBatteryIcon` returns to its original enabled **IDLE/NONE** status.
+- No new ERROR/Exception lines in the bounded runtime log, and read-only JSONDB
+  inspection confirms the selected Item is absent from managed storage.
+
+The native registry inventory at **20:58:51Z** has zero structural issues:
+**354 managed / 91 non-managed Items**, **78 / 8 Things**, **35 / 8 rules** and
+**219 / 49 links**. Exactly one ownership declaration is added after readback;
+all prior declarations are unchanged. The source's original staging comments
+are retained with its qualified bytes. Fresh focused transport/shared checks
+pass **60** tests; code hashes remain those of the qualified 4,159-test suite.
+No source revision, control, manual rule execution, synthetic state, SQL write or
+production restart was performed by this handoff.
+
+Recoverable original/writer-paused history, source and actual provider checkpoints:
+`/home/sat/.local/state/openhab-config-migration/charging-status-file-9spb743v/`.
+The separate mode-0700 attended evidence envelope is
+`/home/sat/.local/state/openhab-config-migration/charging-status-attended-20261005-37dz7c3f/`.
+It retains mode-0600 registry/ownership preimages, source/bootstrap/plan pins,
+execution log, independent review, final readback, inventory and bounded logs.
+Original candidate and exact-native qualification capsules remain intact.
+
 ## Remaining live gates
 
-The candidate and exact transport's isolated qualifications and closed-source
-review are complete. Live handoff and household restart remain outstanding. Revalidate
-the existing writer, target absence, current provider/descriptor, original
-history and protected definitions/PID at the actual handoff boundary. Pause
-only this display writer if needed; preserve its original enabled state and
-never stop the forecast publisher or another owner. Perform an actual original
-managed rollback before final file ownership and verify a natural writer/JDBC
-receipt. Never restore through synthetic production Item updates.
+Observe a genuine naturally changed `UpdateBatteryIcon` output and its native
+Item-154 JDBC row. The final current state/history are verified, but an unchanged
+healthy cron evaluation does not create a changed-output receipt. Do not force
+an ON/OFF value or call `/runnow` to manufacture this evidence. Keep the original
+managed recovery point and the natural-output flag unqualified until its own proof.
 
-The already approved production restart remains blocked by host
-authentication. This candidate is staged while that qualification is pending;
-its isolated restart does not close the household restart gate. No production
-service, rule, Item, link, control or notification changed in this preparation.
+The already approved production restart still requires host authentication.
+Refresh its source/provider/history baseline after this intentional Item transfer,
+then verify actual new JVM identity, recovered configuration/providers, every
+pinned original history and fresh source telemetry. Isolated restart evidence
+never closes that household gate. Full migration and protected-control recovery
+remain incomplete.
