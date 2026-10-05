@@ -1,5 +1,20 @@
 # Separate pre-dusk SoC trough issue
 
+## October 4 unchanged-value issue qualified
+
+The original October 4 17:30 MDT issue again predicts 74%. Its fresh immutable
+receipt and original atomic SoC source qualify, but `everyChange` legitimately
+has no new numeric row. The corrected read-only checker retains the last actual
+numeric change at October 3 23:30:00.936Z and explicitly reports unchanged-value
+provenance. Two native checks agree. A separate live 1340×800 read verifies
+exactly one 74% label dated for October 4 night, with zero page errors and all
+mutation/external requests blocked. The night outcome remains pending until
+October 5 11:00 MDT. See
+[qualification contract, bounded lookup and evidence](2026-10-04-pre-dusk-unchanged-qualification.md).
+The single-new-write requirements in the original September release account
+below are historical; matching unchanged history now has the bounded path
+above. Live publishing and forecasting calculations are unchanged.
+
 ## October 3 natural refresh verified
 
 The enabled user timer naturally fired at **17:30 MDT** (23:30Z), invocation

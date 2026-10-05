@@ -191,10 +191,11 @@ def test_charge_input_refuses_unqualified_origins_or_source_substitutions(fault)
     with pytest.raises(ValueError):experiment.verify_charge_input(record,receipt,rows)
 
 
+@pytest.mark.parametrize('oversized_archive', [False, True])
 @pytest.mark.parametrize('charge_only', [True, False])
 @pytest.mark.parametrize('missing_charge_origin', [False, True])
 def test_cli_charge_outcome_requires_original_atomic_input_in_both_modes(
-        monkeypatch,tmp_path,capsys,charge_only,missing_charge_origin):
+        monkeypatch,tmp_path,capsys,charge_only,missing_charge_origin,oversized_archive):
     from types import SimpleNamespace
     import forecast_intel
     import psycopg2
@@ -244,6 +245,27 @@ def test_cli_charge_outcome_requires_original_atomic_input_in_both_modes(
         def now(cls,tz=None):return now
     monkeypatch.setattr(experiment,'datetime',Clock)
     monkeypatch.setattr(experiment,'read_day_issues',lambda *a,**k:[{'receipt':receipt}])
+    if oversized_archive:
+        import openhab_sanity_check as oh
+        import pre_dusk_tuning_history as history
+        # A valid receipt plus a large ignored field fools the unbounded
+        # adapter. The real bounded reader must stop before parsing it.
+        receipt_row = {'time': int((assessed+timedelta(seconds=1)).timestamp()*1000),
+                       'state': json.dumps(receipt)}
+        payload = {'name': history.MORNING_ITEM, 'datapoints': '1',
+                   'data': [receipt_row], 'ignored': 'x'*32769}
+        raw = json.dumps(payload).encode()
+        class Response:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def read(self, size): return raw[:size]
+        class Opener:
+            def open(self, request, timeout): return Response()
+        monkeypatch.setattr(history, 'build_opener', lambda *_: Opener())
+        monkeypatch.setattr(oh, 'token', lambda: 'test-private-token')
+        monkeypatch.setattr(oh, 'get', lambda _: payload)
+        monkeypatch.setattr(experiment, 'read_day_issues', history.read_day_issues)
     monkeypatch.setattr(db_module,'parse_openhab_jdbc_config',lambda *_:SimpleNamespace(
         host='127.0.0.1',port=5432,dbname='openhab',user='energy_power_reader',connect_kwargs={}))
     monkeypatch.setattr(materialize,'load_epoch_config',lambda:[SimpleNamespace(
@@ -269,7 +291,10 @@ def test_cli_charge_outcome_requires_original_atomic_input_in_both_modes(
     experiment.main()
     result=json.loads(capsys.readouterr().out)
     assert result['assessment_mode']==('charge_only' if charge_only else 'overnight_counterfactual')
-    if missing_charge_origin:
+    if oversized_archive:
+        assert result['counts']['original_issue_unavailable']==1
+        assert not result['rows']
+    elif missing_charge_origin:
         assert result['counts']['charge_origin_or_outcome_unavailable']==1
         if charge_only:
             assert not result['rows']

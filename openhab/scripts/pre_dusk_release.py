@@ -6,11 +6,12 @@ import math
 from advisory_windows import trough_window
 from pre_dusk_tuning import PairUnavailable, score_pair
 from pre_dusk_tuning_history import (MORNING_ITEM, PRE_DUSK_ITEM, ZONE,
-    IssueHistoryUnavailable, read_day_issues, read_numeric_day, select_pair)
+    IssueHistoryUnavailable, read_day_issues, read_numeric_day,
+    read_numeric_before_day, select_pair)
 
 
 class NaturalIssueUnavailable(ValueError):
-    """The natural issue, numeric write or original SoC input is unqualified."""
+    """The natural issue, numeric history or original SoC input is unqualified."""
 
 
 class NightScoreUnavailable(ValueError):
@@ -48,8 +49,17 @@ def _qualified_with_receipts(get, source_reader, *, day, now):
                     'display_selection_verified': False}, None, None)
         morning, late = select_pair(mornings, late_rows)
         numbers = read_numeric_day(get, day=day)
-        if len(numbers) != 1:
-            raise ValueError('one natural numeric write required')
+        if len(numbers) > 1:
+            raise ValueError('ambiguous numeric history')
+        unchanged = not numbers
+        if unchanged:
+            # The publisher commits its fresh receipt only after a successful
+            # Number PUT. With everyChange, an equal value has no new row.
+            # Require the latest original anchor, retaining its actual clock.
+            anchor = read_numeric_before_day(get, day=day)
+            if anchor is None:
+                raise ValueError('original numeric anchor unavailable')
+            numbers = [anchor]
         morning_at, issued_at = _instant(morning['issuedAt']), _instant(late['issuedAt'])
         sunset_at, soc_at = _instant(late['sunsetAt']), _instant(late['socRecordedAt'])
         numeric_at = _instant(numbers[0]['persisted_at'])
@@ -60,7 +70,7 @@ def _qualified_with_receipts(get, source_reader, *, day, now):
                 or sunset_at.astimezone(ZONE).date() != day
                 or not 3600 <= (sunset_at-issued_at).total_seconds() < 5400
                 or not 0 <= (issued_at-soc_at).total_seconds() <= 120
-                or not 0 <= (numeric_at-issued_at).total_seconds() <= 600
+                or (not unchanged and not 0 <= (numeric_at-issued_at).total_seconds() <= 600)
                 or type(soc) not in (int, float) or not math.isfinite(soc)
                 or not 0 <= soc <= 100
                 or type(drop) not in (int, float) or not math.isfinite(drop)
@@ -82,6 +92,8 @@ def _qualified_with_receipts(get, source_reader, *, day, now):
                 'pre_dusk_issued_at': issued_at.isoformat(),
                 'pre_dusk_persisted_at': late_rows[0]['persisted_at'],
                 'numeric_persisted_at': numbers[0]['persisted_at'],
+                'numeric_state_basis': ('unchanged_persisted_value' if unchanged
+                                        else 'new_persisted_value'),
                 'trough_soc_pct': value,
                 'source_item': source['source_item'],
                 'source_persisted_at': source['source_persisted_at'],
