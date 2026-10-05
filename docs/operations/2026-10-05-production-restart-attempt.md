@@ -1,5 +1,19 @@
 # October 5 production restart attempt
 
+The latest operator-requested attempt at **23:07:59.548832Z** again returned
+`sudo: a password is required`; OpenHAB remains PID **1696**. The preflight
+waited for the existing south pump's actual 15-minute timer to finish naturally
+around 23:06Z. Both Item states and separate read-only physical outlet queries
+then confirmed OFF. All **27** feeder ledger entries were complete, battery
+telemetry was healthy, disabled rules matched the retained baseline and no
+unexpectedly unhealthy rule was present. After the refusal, all **56** installed
+source hashes still matched, both pump Items remained OFF and no new runtime
+ERROR/Exception appeared. No restart or household command occurred.
+
+This new mode-0600 receipt is retained separately from the sealed baseline:
+`/home/sat/.local/state/openhab-config-migration/restart-operator-request-20261005-_eejcd65.json`.
+Approval remains recorded; host authentication is still the required next step.
+
 The operator-approved restart was attempted at **2026-10-05 21:12:38Z** with
 `sudo -n systemctl restart openhab.service`. The host returned exit 1:
 `sudo: a password is required`. No restart occurred. OpenHAB remains active on

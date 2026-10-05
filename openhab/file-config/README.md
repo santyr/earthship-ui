@@ -126,8 +126,10 @@ managed/file/managed/file round trip. Its exact descriptor, recovered OFF state,
 sole display writer and all 97,347 original Item-154 rows are preserved. Exact
 native fault/delayed-JDBC/cold-JVM qualification and independent reviews pass;
 4,159 repository tests and fresh 60-case focused checks pass. The transport
-release gate is closed. A genuine changed writer/JDBC output and production
-restart remain separate gates; retain the private original recovery point.
+release gate is closed. Four natural source-attributed ON/OFF transitions and
+their native JDBC rows now qualify changed-output continuity, preserving the
+entire original prefix. Production restart remains open; retain the private
+original recovery point.
 See the [handoff receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
 
 `automation/js/south-planter-fan.js` is the new live, file-owned

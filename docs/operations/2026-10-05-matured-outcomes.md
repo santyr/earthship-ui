@@ -269,3 +269,50 @@ Independent review verifies the new 17-file capsule, original chronology,
 repeated native receipt, seven-cycle digest, all five preserved prior pairs,
 and the two-pair/one-window distinction. No findings; source and operational
 gates retain their stated scopes.
+
+## October 5 fifth short target for the new fit
+
+Two byte-identical audits at fixed **2026-10-05T23:08:33Z** qualify the original
+**22:08:05.232363Z** issue's **23:00Z** target. Qualified native indoor temperature
+is **81.14°F**. Original model, recent-cycle and persistence predictions are
+**83.751 / 82.40 / 82.76°F**, giving signed errors **+2.611 / +1.260 / +1.620°F**.
+The model loses to both matched baselines on this target. Its original interval
+covers the observation and is **10.414°F** wide.
+
+| Horizon | Pairs / selected windows | Model MAE °F | Recent-cycle MAE °F | Persistence MAE °F | Original interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 h | 5 / 5 | 0.9636 | 0.7200 | 1.6560 | 5/5 |
+| 6 h | 2 / 1 | 0.9260 | 6.6600 | 12.5100 | 2/2 |
+
+The five-pair short cohort now trails the cycle baseline by **0.2436°F** MAE,
+with model/cycle pairwise wins **2–3**. This later outcome reverses the earlier
+four-pair cohort's small model lead; the earlier assessment remains a dated
+snapshot. All six previously qualified horizon pairs remain byte-identical,
+and all five original persisted publications are reread exactly. The six-hour
+selected-window result remains **0.857 / 6.120 / 12.420°F**. Twelve-hour, daily
+and 48-hour targets remain immature at this clock; all publications retain low
+confidence. Five selected short windows from one issue day do not establish
+independent-day skill, seasonal calibration or confirmed-action outcomes.
+
+At this new target, the original captured outdoor forcing is **81.10°F** versus
+qualified native **75.74°F**, an error of **+5.360°F**. This coincides with the
+warm indoor miss, but does not establish its cause or the benefit of replacing
+weather inputs. The original forcing, model and reconstructed action assumptions
+remain unchanged; no hindsight substitution is included in the skill result.
+
+Both reports have SHA-256
+`d545e4b7091b1a323da3c5028c948fac45e64f55047c77b67dacb8443a17973a`.
+Repeated indoor and outdoor native receipts agree. Literal original trajectory,
+current-state persistence and interval bounds independently reproduce the new
+errors. Seven strictly prior matching-clock grids reproduce the original cycle
+digest `b6025cf304003094ee2ba0a55e7300804dcf6ac4aac879342f08cfcae2286939`.
+
+The sealed mode-0700 capsule is
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-fifth-short-nft70klf/`.
+Its 17 mode-0600 files retain reports, all five original native publications,
+the original forcing capture, repeated target receipts, seven prior-cycle grids,
+independent pair arithmetic and unchanged prior-evidence/source pins. Reproduce
+with the earlier command, setting `--assessed-at` and `--until` to
+**2026-10-05T23:08:33Z**. The original lower bound and full artifact selector
+remain required. No training, publishing, model, vent calculation, action label,
+notification or household control changed.

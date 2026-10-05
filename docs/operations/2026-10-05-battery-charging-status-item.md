@@ -3,9 +3,58 @@
 `BatteryChargingStatus` is now the sole file-owned, unlinked Switch after the
 October 5 attended managed/file round trip. Its exact label, display writer,
 charging semantics and original Item-154 JDBC history are preserved. The
-production source release gate remains closed; a natural changed writer/JDBC
-receipt and household restart qualification remain separate live gates.
+production source release gate remains closed. Natural changed writer/JDBC
+output is now qualified; household restart qualification remains open.
 The earlier candidate and native rehearsal sections retain their original scope.
+
+## October 5 natural changed output and history qualified
+
+Read-only qualification at **23:25Z** closes the natural changed-output/JDBC
+gate following the attended Item handoff. The unchanged file writer produces
+four natural transitions, each recorded by a source-attributed native event
+and the original JDBC identity **154**:
+
+| Native JDBC time (UTC) | New state | Writer diagnostic current |
+| --- | --- | ---: |
+| 23:00:00.170364 | ON | 2.99 A |
+| 23:11:00.170939 | OFF | −1.50 A |
+| 23:11:30.169562 | ON | 2.54 A |
+| 23:24:00.170104 | OFF | −1.33 A |
+
+The diagnostics retain SoC 99% and the original hysteresis: enter ON above
+2.5 A, remain ON at or above 1.0 A, otherwise OFF. Every event explicitly
+identifies `org.openhab.automation.jsscripting$file:battery-icon.js` as its
+source. No state, command or rule execution was manually issued.
+
+All **97,347** original ordered history rows through the original cutoff
+remain byte-identical, SHA-256
+`b89e3ce4daee7d52483e821dc516e948238b4fe780ec02b68e7511e8f1f14d58`.
+The four later rows increase the total to **97,351**. The live Switch is OFF,
+sole file-owned and unlinked, with its original descriptor, watched file inode,
+source bytes and enabled IDLE writer/30-second trigger intact. All **56**
+declared installed-source hashes and OpenHAB PID **1696** are preserved.
+
+The complete registry-definition comparison records exactly two differences:
+Open-Meteo air-quality and forecast Things' binding-maintained `last-updated`
+properties advance from 20:27Z to 22:27Z. Their exact values are retained;
+all other Item/rule/Thing definitions and links match the attended baseline.
+These observed timestamp advances are not silently normalized into a claim
+that the entire registry stayed byte-identical.
+
+Sealed private capsule:
+`/home/sat/.local/state/openhab-config-migration/charging-status-natural-20261005-s3a_1csz/`.
+Its 14 mode-0600 files in a mode-0700 directory retain the original recoverable
+prefix, native registry/rows, writer events and current diagnostics, exact
+sources/ownership, qualification script, installed-source pins and a verified
+26-file attended-capsule reference. The one-shot transport release stays
+closed. This closes natural display-writer/history continuity, not telemetry
+freshness authority, battery-control safety or production JVM recovery.
+
+The current inventory flag is reconciled to this qualified result. Fourteen
+inventory tests pass, and fresh read-only inventory at **23:32:57Z** has zero
+structural issues: 354 managed/91 non-managed Items, 78/8 Things, 35/8 rules,
+219/49 links and one non-managed persistence service. This inventory is a
+non-atomic graph check, not a household recovery qualification.
 
 ## Exact scope and live preflight
 
@@ -253,15 +302,15 @@ Original candidate and exact-native qualification capsules remain intact.
 
 ## Remaining live gates
 
-Observe a genuine naturally changed `UpdateBatteryIcon` output and its native
-Item-154 JDBC row. The final current state/history are verified, but an unchanged
-healthy cron evaluation does not create a changed-output receipt. Do not force
-an ON/OFF value or call `/runnow` to manufacture this evidence. Keep the original
-managed recovery point and the natural-output flag unqualified until its own proof.
+The natural changed-output gate is closed by the four source-attributed
+`UpdateBatteryIcon` transitions and corresponding native Item-154 rows above.
+The current ownership inventory marks that result qualified. Keep the original
+managed recovery point; no forced value or `/runnow` invocation is needed.
 
 The already approved production restart still requires host authentication.
-Refresh its source/provider/history baseline after this intentional Item transfer,
-then verify actual new JVM identity, recovered configuration/providers, every
+The refreshed 56-source/40-history baseline already includes this Item transfer.
+After the authenticated restart, verify actual new JVM identity, recovered
+configuration/providers, every
 pinned original history and fresh source telemetry. Isolated restart evidence
 never closes that household gate. Full migration and protected-control recovery
 remain incomplete.

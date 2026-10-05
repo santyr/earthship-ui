@@ -1213,7 +1213,7 @@
       "state_writer": "UpdateBatteryIcon",
       "jdbc_identity": 154,
       "receipt": "docs/operations/2026-10-05-battery-charging-status-item.md",
-      "natural_changed_output_qualified": false,
+      "natural_changed_output_qualified": true,
       "production_restart_qualified": false
     }
   ]

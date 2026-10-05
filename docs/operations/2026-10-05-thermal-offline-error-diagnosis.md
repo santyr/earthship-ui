@@ -205,6 +205,25 @@ control, synthetic label, Nostr request or promotion is part of this diagnosis.
 
 ## Reproduction and evidence
 
+### Later natural short-target check
+
+The [23:08:33Z original-source assessment](2026-10-05-matured-outcomes.md#october-5-fifth-short-target-for-the-new-fit)
+adds the October 5 22:08Z issue's 23:00Z target without changing the frozen
+diagnostic cohorts below. Native indoor temperature falls from the issue's
+82.76°F to 81.14°F; the model predicts 83.751°F, while the strictly prior-cycle
+baseline predicts 82.40°F. Model/cycle/persistence errors are
++2.611/+1.260/+1.620°F. The new fit's five short pairs now trail the cycle
+baseline on MAE, 0.9636 versus 0.7200°F, with pairwise wins 2–3.
+
+Original outdoor forcing at the target is 81.10°F versus native 75.74°F,
+an error of +5.360°F. The coincident warm miss is an additional diagnostic
+case, not unique causal attribution or evidence for a weather-input correction.
+Original coefficients, forcing and reconstructed actions remain fixed. This
+later natural result preserves the priority of chronological baseline checks
+and the prohibition on promoting a favorable small earlier cohort. Its sealed
+17-file evidence capsule is linked in the outcome receipt; all six earlier
+horizon pairs and all five original publications are unchanged.
+
 Private capsule:
 `/home/sat/.local/state/thermal-intel/qualification-receipts/offline-error-diagnosis-20261005/`
 (directory mode 0700, files 0600, 94 hashed files plus final manifest; no credentials).
