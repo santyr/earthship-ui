@@ -71,12 +71,13 @@ handoff, actual managed rollback exercise and exact Item-176 history checks.
 Its natural writer and October 2 production restart checks pass, including
 the unchanged original 217-row Item-176 history prefix. Retain the private backup; see the
 [Item cutover receipt](../../docs/operations/2026-09-29-season-countdown-item-candidate.md).
-`automation/js/sky-condition-calculator.js` is a **staged, uninstalled**
-candidate. The initially successful live file handoff was rolled back after
-`SkyCondition` was identified as a greywater control input. The original
-managed rule is again the sole production provider; a control-input migration
-needs protected-control restart/rollback qualification. See the
-[sky rollback receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
+`automation/js/sky-condition-calculator.js` is **live, verified file-owned**
+after the approved October 4 protected-input handoff. Its actual file -> exact
+original managed rollback -> final file round trip, sole provider, unchanged
+pump consumer/definitions/history and natural file-writer/JDBC evaluation pass.
+Production whole-JVM recovery remains separate; the earlier September 29 rollback
+is historical. The one-shot apply gate is reclosed. See the
+[sky handoff receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
 The rolling `temp-highlow-24h` Earthship display writer is verified
 file-owned in `automation/js/temperature-highlow-24h.js` after exact
 consumer review, isolated provider/rollback rehearsal and guarded live
@@ -103,11 +104,18 @@ byte-for-byte; 528 JavaScript parity cases and isolated file loading/full-JVM
 restart/managed rollback pass. Both original JDBC prefixes (Items 31/154), all
 41 unrelated rule definitions and OpenHAB PID 1696 are unchanged. The adapter's
 apply gate remains off. This preserves display semantics, not source freshness
-authority. A source-attributed natural changed output and production whole-JVM
-recovery remain separate gates; retain the private original backup. See the
+authority. October 4 native icon and charging-status changes now pass exact
+file-writer/JDBC qualification. Production whole-JVM recovery remains open;
+retain the private original backup. See the
 [candidate receipt](../../docs/operations/2026-10-03-battery-icon-rule-file-candidate.md).
 
 ## Staged migration and rollback
+
+`items/battery-charging-status.items` is a **staged, uninstalled** candidate
+for the existing unlinked Switch `BatteryChargingStatus`. The label, display
+writer and original Item-154 history stay unchanged. Its dedicated provider/JDBC
+qualifiers operate only in owned isolation; this source does not transfer live
+ownership. See the [candidate receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
 
 `automation/js/south-planter-fan.js` is the new live, file-owned
 `hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound
