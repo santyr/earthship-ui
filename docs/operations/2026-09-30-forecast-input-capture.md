@@ -1,6 +1,65 @@
 # Exact morning weather-input archive
 
 
+## October 4 evening settled short, six-hour and complete daily cohorts
+
+At frozen assessment **2026-10-05T00:05:40Z** (October 4 18:05:40 MDT), all
+midnight UTC targets have passed the five-minute maturity lag. Two independent
+capture-strict native audits per artifact agree. Bounds retain the six original
+October 3 issues and five October 4 issues through 22:00Z; the new 00:01Z
+publication is excluded, and no artifacts are pooled.
+
+| Original issue UTC | Artifact | Near horizon | Target UTC | Model error | Cycle error | Persistence error |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| October 3 21:53:55.878437 | `d9163729...` | 24 h | October 4 22:00 | +0.322 F | +0.180 F | +0.180 F |
+| October 3 23:54:05.315134 | `d9163729...` | 24 h | October 5 00:00 | +2.896 F | +1.620 F | +0.720 F |
+| October 4 22:00:58.876561 | `a4ea9f4a...` | 1 h | October 4 23:00 | +1.903 F | +0.360 F | +0.540 F |
+| October 4 15:59:04.788916 | `a4ea9f4a...` | 6 h | October 4 22:00 | +0.648 F | -5.760 F | -11.340 F |
+| October 4 18:00:04.759666 | `a4ea9f4a...` | 6 h | October 5 00:00 | +5.234 F | -1.080 F | -3.420 F |
+
+The first four additions are covered by their original intervals. The last
+six-hour prediction is **84.214 F**, interval **79.007–89.421 F**, against
+qualified actual **78.980 F**: below the lower bound by 0.027 F. Strict original
+coverage is false; no rounding allowance or retrospective interval widening
+was introduced. Outdoor forecast errors for these additions are respectively
+-6.260/-0.220/+2.700/-2.360/+1.880 F. Opposite-signed errors remain distinct;
+no additional ventilation calculation or model adjustment was performed.
+
+| Artifact and horizon | Mature pairs | Model MAE | Cycle MAE | Persistence MAE | Original interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| October 3 `d9163729...`, 24 h | 6 | 2.2828 F | 1.1100 F | 0.5400 F | 5/6 |
+| October 4 `a4ea9f4a...`, 1 h | 5 | 0.5804 F | 0.5400 F | 1.3320 F | 5/5 |
+| October 4 `a4ea9f4a...`, 6 h | 3 | 1.9673 F | 3.9600 F | 8.7000 F | 2/3 |
+
+All five short windows are non-overlapping, still one issue day; the fifth
+loses to both baselines and reverses the aggregate model-versus-cycle ordering.
+The three six-hour predictions overlap and retain one independent selected
+window, **0.020/5.040/11.340 F** model/cycle/persistence. The older daily cohort
+also retains one independent window, **0.486/1.620/0.540 F**. All its six daily
+targets are now scored; its six 48-hour targets remain future. The newer
+artifact's 12/24/48-hour outcomes remain future at this assessment.
+
+The new six-hour miss replays exactly in two independent processes under
+installed `e32fdb8b...`, original output SHA
+`edb6cc605b07177837d41560178ed21e42a11a069220493b71b7ccce67f9891a`.
+Canonical replay-report SHA is
+`d26d608453fdb4855c699fe29b757c770127706fdd146f33d7e793c5ad959b47`.
+The private `/tmp/earthship-a4-third-six-hour-miss-replay.json` and `-repeat`
+peer retain the original proof. This establishes reproduction, not cause.
+
+Repeated native reports have canonical SHA-256:
+
+- October 3 cohort: `3c16374c2ed2196208744c91c7c63cb665618b575a1e67ff78d094d2efa0d796`.
+- October 4 cohort: `5eaf780c9882d298afd79697c71d472638035235dd7dc150c4c675d1e333ce74`.
+
+Private receipt prefixes are `/tmp/earthship-d916-20261005T000540Z` and
+`/tmp/earthship-a4-20261005T000540Z`, each with original and repeat mature
+reports. Every pair's artifact identity is checked explicitly. The older
+cohort verifies six captures and two indoor/outdoor batches with 21 targets;
+the newer verifies five captures and one batch per stream with eight targets.
+The model remains shadow-only; no action evidence or graduation is claimed.
+
+
 ## October 4 fourth settled short outcome qualified
 
 At frozen assessment **2026-10-04T21:26:07Z**, two independent capture-strict

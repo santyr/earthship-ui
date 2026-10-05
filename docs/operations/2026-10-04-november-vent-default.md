@@ -6,6 +6,30 @@ default, **until the operator changes it**. The effective boundary is
 Midnight precedes that day's daylight-saving fallback. The default persists
 through subsequent months and years; it has no automatic spring ending.
 
+## October 4 evening natural delivery verified (October 5 UTC)
+
+The original timer triggered at **2026-10-05T00:01:03.554751Z**. Invocation
+`97bef7cff1b94b798b3eddae4fca4101` started at 00:01:03.563819Z and finished
+successfully at **00:01:08.607911Z**, with no manually started publisher.
+Decision/publication clocks are **00:01:06.283960Z / 00:01:08.564709Z**.
+The original private capture, current `Thermal_Model_JSON` Item and exactly
+one original JDBC row at **00:01:08.566Z** agree. Output SHA-256 is
+`3c58aa54d96a4324f4ab3802741a0a734fbc9aa93b7e5081fde2bf2f5dcad16c`.
+
+The existing natural-delivery validator passes actual terminal service and
+precise timer clocks, original capture/accepted-artifact identity, both
+current-source expiry checks and bounded Item/JDBC equality. Native radiation
+decoded at 00:00:33Z and remains valid until 00:02:33Z, after publication.
+Independent selected-runtime replay reproduces the original output exactly
+under `e32fdb8b...`; accepted training correctly retains `15267d7a...`.
+Invocation, runtime and Item remain identical through verification at
+**00:01:58.303769Z**. Private proof is retained as
+`natural-publication-20261005T000106Z.json` in the deployment receipt parent.
+
+This closes the post-install natural import/source/delivery/history/replay
+continuity gate. It does not test the future November boundary, establish
+accuracy or graduate the model. The output remains shadow/low confidence.
+
 ## Implemented behavior
 
 The publisher attaches `_ventClosedFrom` to affected forecast inputs. The
@@ -57,7 +81,8 @@ All 24 other runtime files and four model/report files are byte-identical.
 OpenHAB remains PID 1696. No worker, publisher, training job or equipment command
 was started. Schedule triggers were briefly paused only for coherent source
 installation, then restored active/enabled with the original shadow deadline.
-The next natural publication remains a separate continuity checkpoint.
+The natural continuity checkpoint is now complete, as recorded above; actual
+November observations remain required.
 
 Private source, original rollback bytes and transaction receipts:
 `/home/sat/.local/state/thermal-intel/deploy-receipts/november-closed-vent-20261004/`.

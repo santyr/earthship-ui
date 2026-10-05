@@ -5,6 +5,25 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 4 evening cohort completion and natural new-runtime delivery
+
+[Natural delivery under the installed November-default runtime](2026-10-04-november-vent-default.md#october-4-evening-natural-delivery-verified-october-5-utc)
+now verifies precise timer/service clocks, original capture/current Item/JDBC,
+source expiry and exact selected-runtime replay. This closes post-install
+continuity, while the future November boundary remains an observation gate.
+
+The [settled evening audit](2026-09-30-forecast-input-capture.md#october-4-evening-settled-short-six-hour-and-complete-daily-cohorts)
+finishes all six older daily targets: model/cycle/persistence MAE is
+**2.2828/1.1100/0.5400 F**, with interval coverage 5/6 and only one independent
+window. The newer artifact's fifth short target loses to both baselines,
+raising five-window MAE to **0.5804/0.5400/1.3320 F**, still one issue day.
+Its three overlapping six-hour pairs have MAE **1.9673/3.9600/8.7000 F** and
+coverage 2/3. The third is a +5.234 F error, with actual 0.027 F below its
+original interval. Exact replay passes; no interval widening, vent sensitivity,
+coefficient change, fabricated label or release was introduced. Independent
+long-horizon/seasonal evidence, confirmed actions and reviewed graduation
+thresholds remain unmet.
+
 ## October 4 fourth short outcome and current graduation audit
 
 The [fourth settled original short forecast](2026-09-30-forecast-input-capture.md#october-4-fourth-settled-short-outcome-qualified)
