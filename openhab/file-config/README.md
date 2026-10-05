@@ -115,9 +115,11 @@ retain the private original backup. See the
 for the existing unlinked Switch `BatteryChargingStatus`. The label, display
 writer and original Item-154 history stay unchanged. Its dedicated provider/JDBC
 qualifiers operate only in owned isolation. The dedicated one-Item transport
-has a read-only preflight and a closed live release gate; its exact native
-rehearsal and review remain pending. This source does not transfer live
-ownership. See the [candidate receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
+has a read-only preflight and a closed live release gate. Exact native round
+trip, accepted-write fault recovery, delayed writer/JDBC receipt and isolated
+cold-JVM recovery pass; independent closed-source review and 4,159 repository
+tests pass. Live handoff and production restart remain pending. This source
+does not transfer live ownership. See the [candidate receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
 
 `automation/js/south-planter-fan.js` is the new live, file-owned
 `hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound

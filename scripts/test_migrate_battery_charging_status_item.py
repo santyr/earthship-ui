@@ -3,6 +3,7 @@ from copy import deepcopy
 from hashlib import sha256
 import importlib.util
 from pathlib import Path
+import tempfile
 import pytest
 
 spec = importlib.util.spec_from_file_location('charging_item_migration',
@@ -113,6 +114,49 @@ def test_withdrawal_preserves_original_and_refuses_existing_recovery_entry(tmp_p
     with pytest.raises(RuntimeError, match='recovery entry'):
         m.withdraw_owned(target, directory, sha256(b'qualified source').hexdigest(), identity, 1)
     assert target.exists() and saved.read_bytes() == b'qualified source'
+
+
+def test_owned_withdrawal_preserves_backup_on_another_filesystem(tmp_path):
+    if not Path('/dev/shm').is_dir():
+        pytest.skip('no separate temporary filesystem available')
+    target=tmp_path/'candidate.items';target.write_bytes(b'qualified source')
+    identity=(target.stat().st_dev,target.stat().st_ino)
+    with tempfile.TemporaryDirectory(prefix='charging-withdrawal-',dir='/dev/shm') as backup:
+        directory=Path(backup)
+        if directory.stat().st_dev==target.stat().st_dev:
+            pytest.skip('temporary directories share a filesystem')
+        saved=m.withdraw_owned(target,directory,sha256(target.read_bytes()).hexdigest(),identity,1)
+        assert not target.exists() and saved.read_bytes()==b'qualified source'
+        assert saved.stat().st_dev!=identity[0] and saved.stat().st_mode&0o777==0o600
+
+
+def test_failed_recovery_copy_fsync_preserves_watched_file(tmp_path,monkeypatch):
+    target=tmp_path/'candidate.items';target.write_bytes(b'qualified source')
+    identity=(target.stat().st_dev,target.stat().st_ino)
+    directory=tmp_path/'private';directory.mkdir(mode=0o700)
+    def failed_sync(_fd):
+        raise OSError('injected recovery-copy fsync failure')
+    monkeypatch.setattr(m.os,'fsync',failed_sync)
+    with pytest.raises(OSError,match='recovery-copy fsync failure'):
+        m.withdraw_owned(target,directory,sha256(target.read_bytes()).hexdigest(),identity,1)
+    assert target.exists() and (target.stat().st_dev,target.stat().st_ino)==identity
+
+
+def test_replacement_after_durable_backup_is_never_removed(tmp_path,monkeypatch):
+    target=tmp_path/'candidate.items';target.write_bytes(b'qualified source')
+    identity=(target.stat().st_dev,target.stat().st_ino)
+    directory=tmp_path/'private';directory.mkdir(mode=0o700)
+    original_sync=m.history_tools.sync_directory
+    def replaced_after_sync(path):
+        original_sync(path)
+        if path==directory:
+            replacement=tmp_path/'replacement';replacement.write_bytes(target.read_bytes())
+            replacement.replace(target)
+    monkeypatch.setattr(m.history_tools,'sync_directory',replaced_after_sync)
+    with pytest.raises(RuntimeError,match='watched file ownership drift'):
+        m.withdraw_owned(target,directory,sha256(target.read_bytes()).hexdigest(),identity,1)
+    assert target.exists() and (target.stat().st_dev,target.stat().st_ino)!=identity
+    assert (directory/'withdrawal-1.items').read_bytes()==b'qualified source'
 
 
 @pytest.fixture
@@ -335,3 +379,46 @@ def test_unrestored_provider_with_changed_original_history_refuses_withdrawal(
         ops.recover_managed()
     assert target.exists() and state['managed'] is None
     assert state['writer']['status']['statusDetail']=='DISABLED'
+
+
+@pytest.mark.parametrize('failure', ['directory-sync', 'withdrawal-readback'])
+@pytest.mark.parametrize('cached_reads', [0, 1, 3])
+def test_recovery_waits_for_removed_owned_file_provider_before_managed_restore(
+        handoff_environment, monkeypatch, failure, cached_reads):
+    state, target = handoff_environment
+    ops = m.Operations(object())
+    ops.backup(); ops.withdraw_managed(); ops.install_file(); ops.verify_file()
+    cached = {**ORIGINAL, 'editable': False}
+    real_read = m.item
+    pending_reads = [cached_reads]
+    failed = [False]
+    def delayed_withdrawal():
+        if state['managed'] is not None or target.exists():
+            return real_read()
+        if failure == 'withdrawal-readback' and not failed[0]:
+            failed[0] = True
+            raise OSError('injected post-unlink readback failure')
+        if pending_reads[0]:
+            pending_reads[0] -= 1
+            return deepcopy(cached)
+        return None
+    real_sync = m.history_tools.sync_directory
+    def failed_parent_sync(path):
+        if failure == 'directory-sync' and path == target.parent and not target.exists() and not failed[0]:
+            failed[0] = True
+            raise OSError('injected post-unlink directory sync failure')
+        real_sync(path)
+    def bounded_wait(predicate, seconds=90):
+        for _ in range(10):
+            if predicate(): return
+        raise RuntimeError('provider or writer recovery timeout')
+    monkeypatch.setattr(m, 'item', delayed_withdrawal)
+    monkeypatch.setattr(m.history_tools, 'sync_directory', failed_parent_sync)
+    monkeypatch.setattr(m, 'wait_for', bounded_wait)
+    with pytest.raises(OSError, match='injected post-unlink'):
+        ops.withdraw_file()
+    assert not target.exists()
+    ops.recover_managed(); ops.resume_writer()
+    assert state['managed'] == ORIGINAL
+    assert state['writer']['status'] == {'status': 'IDLE', 'statusDetail': 'NONE'}
+    assert (ops.directory/'withdrawal-1.items').read_bytes() == m.SOURCE.read_bytes()

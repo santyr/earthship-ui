@@ -114,16 +114,35 @@ def file_identity(target, digest):
     return info.st_dev, info.st_ino
 
 
-def withdraw_owned(target, directory, digest, identity, number):
+def withdraw_owned(target, directory, digest, identity, number, on_unlinked=None):
     b.require(file_identity(target, digest) == identity, 'watched file ownership drift')
     saved = directory/('withdrawal-'+str(number)+'.items')
     b.require(not saved.exists() and not saved.is_symlink(), 'recovery entry exists')
-    # Hard-link the verified inode exclusively before removing its watched name.
-    os.link(target, saved, follow_symlinks=False)
-    b.require(file_identity(target, digest) == identity and
-              file_identity(saved, digest) == identity, 'watched file ownership drift')
+    # A private recovery directory can reside on another filesystem. Copy
+    # through the verified source descriptor and make the recovery bytes
+    # durable before removing only the original watched inode.
+    fd = os.open(target, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, 'rb') as source:
+        original = os.fstat(source.fileno())
+        b.require(stat.S_ISREG(original.st_mode) and
+                  (original.st_dev, original.st_ino) == identity,
+                  'watched file ownership drift')
+        body = source.read()
+        b.require(sha256(body).hexdigest() == digest, 'watched file source drift')
+    fd = os.open(saved, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as backup:
+        created = os.fstat(backup.fileno())
+        backup.write(body)
+        backup.flush()
+        os.fchmod(backup.fileno(), 0o600)
+        os.fsync(backup.fileno())
+    b.require(file_identity(saved, digest) == (created.st_dev, created.st_ino),
+              'recovery file ownership drift')
+    history_tools.sync_directory(directory)
+    b.require(file_identity(target, digest) == identity, 'watched file ownership drift')
     target.unlink()
-    saved.chmod(0o600)
+    if on_unlinked is not None:
+        on_unlinked()
     history_tools.sync_directory(target.parent)
     history_tools.sync_directory(directory)
     return saved
@@ -248,6 +267,7 @@ class Operations:
         self.original, self.before, self.guard = preflight(db)
         self.directory = None
         self.owned_identity = None
+        self.file_withdrawal_pending = False
         self.withdrawals = 0
         self.pause_attempted = False
         self.item_change_attempted = False
@@ -360,9 +380,15 @@ class Operations:
 
     def withdraw_file(self):
         self.withdrawals += 1
-        withdraw_owned(TARGET,self.directory,SOURCE_SHA256,self.owned_identity,self.withdrawals)
-        self.owned_identity = None
+        def unlinked():
+            # Record our actual unlink before later directory-sync/readback
+            # failures; the registry can still expose its withdrawing provider.
+            self.owned_identity = None
+            self.file_withdrawal_pending = True
+        withdraw_owned(TARGET,self.directory,SOURCE_SHA256,self.owned_identity,
+                       self.withdrawals,on_unlinked=unlinked)
         self.wait_item(None)
+        self.file_withdrawal_pending = False
 
     def restore_managed(self):
         b.require(not TARGET.exists() and not TARGET.is_symlink() and item() is None,
@@ -386,11 +412,17 @@ class Operations:
             current = item()
             if current is not None:
                 validate_descriptor(current,managed=current.get('editable'))
+                b.require(not self.file_withdrawal_pending or current['editable'] is False,
+                          'unexpected provider during owned file withdrawal')
                 native_state = current.get('state')
                 if native_state in ('ON','OFF'):
                     def caught_up():
                         observed = item()
-                        validate_item(observed,managed=current['editable'],state=native_state)
+                        if observed is None:
+                            b.require(self.file_withdrawal_pending,
+                                      'unexpected provider disappearance during catch-up')
+                        else:
+                            validate_item(observed,managed=current['editable'],state=native_state)
                         b.require(history(self.db,datetime.fromisoformat(self.before['cutoff']))
                                   == self.before,'original JDBC history prefix changed during catch-up')
                         return history(self.db)['last_state'] == native_state
@@ -405,6 +437,9 @@ class Operations:
                               'unrestored provider has unexpected persisted state')
         if TARGET.exists() or TARGET.is_symlink():
             self.withdraw_file()  # Refuses unknown inode/source; never adopts a foreign file.
+        if self.file_withdrawal_pending:
+            self.wait_item(None)
+            self.file_withdrawal_pending = False
         if self.item_change_attempted and item() is None:
             self.restore_managed()
         self.wait_item(True)
