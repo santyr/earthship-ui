@@ -1,6 +1,72 @@
 # Exact morning weather-input archive
 
 
+## October 5 first daily and 48-hour targets; new-fit natural delivery
+
+At fixed assessment **2026-10-05T14:06:14Z**, two capture-strict audits per
+artifact agree exactly. Their original **14:00Z** targets have passed the
+five-minute maturity lag. The October 4 and October 3 cohorts remain separate,
+and neither includes the new October 5 accepted model.
+
+| Original issue UTC | Artifact | Horizon | Model error F | Cycle error F | Persistence error F |
+| --- | --- | ---: | ---: | ---: | ---: |
+| October 4 13:58:05.252516 | `a4ea9f4a...` | 24 h | +0.067 | +0.180 | +0.540 |
+| October 3 13:39:05.222543 | `d9163729...` | 48 h | +0.943 | -0.900 | 0.000 |
+| October 5 02:17:05.996562 | `a4ea9f4a...` | 12 h | -0.811 | +3.600 | +7.560 |
+| October 5 08:04:05.255241 | `a4ea9f4a...` | 6 h | -0.806 | +1.260 | +2.700 |
+
+All four original intervals cover their native targets. The first daily pair
+beats both matched baselines; the older 48-hour pair loses to both. Each longer
+horizon still has only **one independent window**. The original outdoor
+forecast errors for those daily/48-hour pairs are +5.14/+7.14 F, retained as
+diagnostics rather than retrospectively corrected forcing or action attribution.
+
+The `a4ea9f4a...` cohort now has 12/10/7/1 matured 1/6/12/24-hour pairs,
+with 12/4/2/1 non-overlapping windows. Six-hour matched model/cycle/persistence
+MAE is **1.3845/3.0780/6.0480 F**; selected-window MAE is
+**0.8783/2.8350/5.7150 F**. Twelve-hour matched MAE is
+**0.9804/4.0371/7.7400 F**; selected-window MAE is
+**1.3190/3.5100/7.4700 F**. Six/twelve-hour interval coverage is 9/10 and 7/7.
+Short skill remains unchanged at 0.5237/0.4950/1.0200 F. The earlier six-hour
+interval miss is preserved. Eleven daily and all twelve 48-hour targets in this
+cohort remain future at assessment; five older 48-hour targets remain future.
+
+Canonical native report SHA-256 values:
+
+- `a4ea9f4a...`: `9f593dc67144da33d4da45e09d4803dbffe97cb8227dd05fa4a0ebd2f9c21826`
+- `d9163729...`: `af050a50e18af82d39e97addc09f574e3e156dc670cb9811afda5deea8e86453`
+
+The four original reports and added-pair summary with `20261005T140614Z`
+filenames are durably private under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+No artifact pooling, model correction, interval widening or new vent calculation.
+
+The new October 5 fit's **first natural publication** separately passes.
+Timer trigger is **14:05:56.968573Z**, decision **14:05:58.184291Z**,
+publication **14:06:00.449779Z**, and original JDBC storage **14:06:00.450Z**.
+Service invocation `a81d3e1d84ec4ecf8a779df6bc6c5801` exits zero at
+14:06:00.491620Z. Current accepted file SHA remains `acf1d315...`; its captured
+validated artifact identity is
+`bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09`.
+These are different digest scopes, not competing artifact identities.
+
+The immutable capture is `20261005T140558Z-84677b99eb80217f.json.gz`,
+output SHA `84677b99eb80217f0eaa02601645257c31bc1abc1b747ee11677276b4c242a6c`.
+Two exact original-output replays agree under installed `e32fdb8b...`, which
+also matches this artifact's training revision. Original radiation is decoded
+at 14:05:37Z and expires at 14:07:37Z; publication occurs inside its native
+120-second validity interval. All three temperature sources are valid at
+original decision and publication. Current Item, exact original JDBC row,
+immutable capture, accepted artifact and terminal timer-bound handle agree;
+no job was manually triggered. Private proof
+`natural-publication-20261005T140558Z.json` has SHA-256
+`ced0fbe7ae871f68fbca26eeeefaac07fcd9d0133be3afe015fe7c39c9c5ed20`.
+This closes new-fit delivery; its first one-hour outcome is only eligible at
+**15:05Z**, not at this delivery checkpoint. Seasonal, action and predictive
+release gates remain open.
+
+
+
 ## October 5 morning original October 4 artifact cohort
 
 At fixed assessment **2026-10-05T13:29:43Z**, two capture-strict native audits

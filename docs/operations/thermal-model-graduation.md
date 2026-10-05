@@ -5,6 +5,31 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 5 new-fit delivery complete; first daily and 48-hour outcomes
+
+The first naturally scheduled publication of accepted file `acf1d315...`
+passes exact capture/artifact/runtime/source-expiry/timer/Item/JDBC checks.
+It decides at **14:05:58.184291Z**, publishes at 14:06:00.449779Z and stores
+at 14:06:00.450Z. Two original-output replays agree under `e32fdb8b...`, also
+this artifact's training revision. The captured artifact identity is
+`bad329e1...`; first prospective one-hour scoring waits until **15:05Z**.
+The earlier training and new-artifact delivery gates are both now complete.
+
+Separately, four repeated native audits at **14:06:14Z** qualify the older
+cohorts' 14:00Z targets. The `a4ea9f4a...` first daily forecast has
++0.067 F error versus +0.180/+0.540 F cycle/persistence; the `d9163729...`
+first 48-hour forecast has +0.943 F error versus -0.900/0.000 F.
+Both original intervals cover their targets, with one independent window per
+longer horizon. The newer cohort's six/twelve-hour non-overlap now has 4/2
+windows and retains the earlier interval miss. These are original cohort
+results, not measurements of the new October 5 fit or seasonal/action skill.
+
+[Exact original clocks, cohort metrics and private proofs](2026-09-30-forecast-input-capture.md#october-5-first-daily-and-48-hour-targets-new-fit-natural-delivery)
+close delivery and add first longer-horizon outcomes without changing the
+historical daily baseline deficit, interval-calibration deficit, zero genuine
+confirmed-action targets or null graduation thresholds. The model remains
+shadow; no graduation, notification or household control is introduced.
+
 ## October 5 natural training and matured original cohort
 
 The scheduled trainer invocation `853e7f8e4453482cb390b2bd9bf9195c` starts at
