@@ -114,7 +114,9 @@ retain the private original backup. See the
 `items/battery-charging-status.items` is a **staged, uninstalled** candidate
 for the existing unlinked Switch `BatteryChargingStatus`. The label, display
 writer and original Item-154 history stay unchanged. Its dedicated provider/JDBC
-qualifiers operate only in owned isolation; this source does not transfer live
+qualifiers operate only in owned isolation. The dedicated one-Item transport
+has a read-only preflight and a closed live release gate; its exact native
+rehearsal and review remain pending. This source does not transfer live
 ownership. See the [candidate receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
 
 `automation/js/south-planter-fan.js` is the new live, file-owned
