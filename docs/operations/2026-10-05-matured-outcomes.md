@@ -126,3 +126,51 @@ authentication; no restart receipt is claimed. Forecasts, coefficients,
 filters, thresholds, training, publishers, notifications, action labels and
 household commands were not changed by these assessments. November's approved
 no-venting default remains intact.
+
+
+## October 5 first six-hour outcome for the new fit
+
+Two independent original-source audits at fixed **2026-10-05T20:36:00Z**
+qualify the `bad329e1...` artifact's first six-hour target. Its original
+publication is **14:05:58.184291Z**, with the published hourly target at
+**20:00Z**. Native indoor temperature is **80.06°F**; the original model,
+recent-cycle and persistence predictions are **79.203 / 73.94 / 67.64°F**.
+Their signed errors are **−0.857 / −6.120 / −12.420°F**. The model beats
+both matched baselines on this one selected six-hour window. Its original
+interval covers the observation and remains **10.414°F** wide.
+
+| Horizon | Pairs / selected windows | Model MAE °F | Recent-cycle MAE °F | Persistence MAE °F | Original interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 h | 3 / 3 | 0.5713 | 0.5400 | 1.7400 | 3/3 |
+| 6 h | 1 / 1 | 0.8570 | 6.1200 | 12.4200 | 1/1 |
+
+The third short target at **19:00Z**, from the original **18:06:05.394708Z**
+publication, has model/cycle/persistence errors **−0.905 / −1.260 / −2.520°F**.
+The full short cohort still trails the cycle baseline by **0.0313°F** MAE.
+Four native publications are in this bounded read; only three have any mature
+outcomes. Every previously qualified pair is unchanged. No October 3/4
+artifact is pooled into the new fit, and the earlier 18:16Z table retains its
+own assessment clock. Twelve-hour, daily and 48-hour targets for this fit
+remain immature. All scored publications retain low confidence; one issue day
+and one six-hour window do not establish independent-day, seasonal or action
+qualification, interval sharpness, or operational readiness.
+
+Both complete reports are byte-identical, SHA-256
+`10dd7d712589727c4f2d1a3fe7bf5dd25a4ac4ffa095d1d93bec01b3f83964bb`.
+Separate repeated native receipt reads agree at all four distinct targets.
+The literal original trajectory/current predictions are checked directly
+against those observations; all four pair errors and interval coverage match.
+The seven strictly prior local-clock cycles are independently reread and
+reproduce each original baseline, evidence digest and selected lag exactly.
+The private capsule retains those native baseline grids and three verified
+original forcing captures, rather than relying only on report summaries.
+
+Reproduce with the existing audit command above, replacing `--assessed-at`
+and `--until` with **2026-10-05T20:36:00Z**, keeping `--since
+2026-10-05T14:00:00Z` and the full `bad329` artifact selector. The separately
+sealed mode-0700 capsule is
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-first-six-hour-4li9rgvx/`;
+all 17 retained files are mode 0600 and hash-manifested. Earlier capsules are
+unchanged. This is prospective outcome evidence under the original issue;
+no model, threshold, forcing, vent calculation, trainer, publisher, action
+label, notification or household control changed.
