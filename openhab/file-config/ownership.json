@@ -1192,6 +1192,16 @@
       "destination": "/etc/openhab/things/weather-temperature-evidence.things",
       "production_restart_qualified": false,
       "receipt": "docs/operations/2026-10-05-moon-weather-file-migration.md"
+    },
+    {
+      "kind": "rule",
+      "id": "hex_south_planter_fan",
+      "provider": "file",
+      "migration": "verified",
+      "source": "automation/js/south-planter-fan.js",
+      "destination": "/etc/openhab/automation/js/south-planter-fan.js",
+      "production_restart_qualified": false,
+      "receipt": "docs/operations/2026-10-05-south-planter-fan.md"
     }
   ]
 }

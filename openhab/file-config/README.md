@@ -109,6 +109,14 @@ recovery remain separate gates; retain the private original backup. See the
 
 ## Staged migration and rollback
 
+`automation/js/south-planter-fan.js` is the new live, file-owned
+`hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound
+SoC >=98%, OFF below 98% or on invalid battery telemetry. Native device readback
+confirms its first natural ON at 99%; isolated restart/fail-closed/withdrawal
+checks pass. Outlet 2's pump owner is unchanged. See the
+[fan receipt](../../docs/operations/2026-10-05-south-planter-fan.md).
+
+
 The October 5 observational batch is now live and verified file-owned:
 `items/moon-display-readings.items` contains the remaining 25 Moon display
 Items and their exact 25 links; `things/weather-temperature-evidence.things`

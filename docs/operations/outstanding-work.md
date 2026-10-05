@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 south planter fan automatic rule enabled
+
+The operator-requested [fan rule](2026-10-05-south-planter-fan.md) is live and
+file-owned: outlet 1 ON at fresh SoC >=98%, OFF below 98% or on invalid battery
+telemetry. At 17:49:00Z, a natural source-bound 99% evaluation commanded ON;
+read-only TP-Link device query confirms actual fan ON. Outlet 2's protected
+pump owner is unchanged. Native isolated threshold/fail-closed/full-JVM restart
+and withdrawal checks pass, independent review is clear and seven focused
+tests pass. Item 46's 1,875 original history rows and all existing definitions
+are preserved. Natural live OFF transitions and production restart recovery
+remain follow-up gates; private original recovery evidence is retained.
+
+
 ## October 5 Moon display and temperature evidence migrated to files
 
 The [attended batch](2026-10-05-moon-weather-file-migration.md) transfers 25 Moon
