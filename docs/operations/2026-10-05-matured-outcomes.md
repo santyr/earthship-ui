@@ -224,3 +224,48 @@ Independent read-only review verifies all 17 new capsule hashes, original
 capture chronology, repeated native receipt, seven-cycle evidence digest,
 unchanged prior pairs/publications and the rounded cohort arithmetic. No
 findings; the maturity, confidence and readiness limits remain unchanged.
+
+
+## October 5 second six-hour pair for the new fit
+
+Two byte-identical audits at fixed **2026-10-05T22:35:44Z** qualify the original
+**16:05:58.303629Z** issue's **22:00Z** target. Qualified native indoor temperature
+is **82.76°F**. Original model, recent-cycle and persistence predictions are
+**81.765 / 75.56 / 70.16°F**; signed errors are **−0.995 / −7.200 / −12.600°F**.
+The original interval covers the observation and remains **10.414°F** wide.
+
+The full six-hour cohort now has **two pairs**, with model/cycle/persistence MAE
+**0.926 / 6.660 / 12.510°F**. Both model errors beat the matched cycle and
+persistence errors. The second issue precedes the first target, so the scorer
+correctly excludes it from its greedy non-overlapping selection: there remains
+**one selected window**. The selected-window MAEs stay **0.857 / 6.120 / 12.420°F**.
+Neither selection establishes independent-day or confirmed-action evidence.
+
+The four short pairs and all five earlier qualified pairs remain unchanged.
+The four earlier native publications are reread exactly; the fifth natural
+publication is included without inventing an outcome for its future targets.
+Twelve-hour, daily and 48-hour targets for this fit remain immature. All scored
+publications retain low confidence; seasonal and operational gates remain open.
+
+Both reports have SHA-256
+`dc3815cdcd7aadd51efea56a09bc740e4863486b480941edd474ddd7400a2c69`.
+Independent repeated target receipts agree. Literal original model/current
+predictions and interval coverage reproduce the new signed errors. Seven
+strictly prior same-clock cycles reproduce the original baseline digest
+`1881cecf368bd65e602b6f0c5aba8c6af3ccb9b1a3e6a96317daff6a7b56858f`.
+
+The mode-0700 capsule is
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-second-six-hour-9xdaqvf7/`.
+Its 17 mode-0600 files retain both reports, five native publications, the
+original forcing capture, repeated target observations, all seven prior-cycle
+native grids and independent arithmetic proof, the verified prior-capsule
+reference and pinned audit/native-reader sources. Reproduce using the earlier
+command with `--assessed-at` and `--until` set to **2026-10-05T22:35:44Z**, preserving
+the original lower bound and full artifact selector. No trainer, publisher,
+forecast, model, action label, vent calculation, notification or household
+control changed.
+
+Independent review verifies the new 17-file capsule, original chronology,
+repeated native receipt, seven-cycle digest, all five preserved prior pairs,
+and the two-pair/one-window distinction. No findings; source and operational
+gates retain their stated scopes.

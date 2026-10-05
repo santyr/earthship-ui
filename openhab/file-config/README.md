@@ -111,6 +111,15 @@ retain the private original backup. See the
 
 ## Staged migration and rollback
 
+`items/weather-health-group.items` is a staged, uninstalled plain Group
+candidate for `gWeatherHealth`. Its isolated stopped transfer, full restart,
+original managed rollback and final file round trip preserve all six managed
+members and every copied original history row. Sixteen guard tests pass.
+REST Group deletion removes member references, so the production handoff needs
+the qualified cold path and host authentication. Production ownership remains
+managed; see the [candidate receipt](../../docs/operations/2026-10-05-weather-health-group-candidate.md).
+
+
 `items/battery-charging-status.items` is **live, verified file-owned** for the
 unlinked `BatteryChargingStatus` Switch after the October 5 attended original
 managed/file/managed/file round trip. Its exact descriptor, recovered OFF state,
