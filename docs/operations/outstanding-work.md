@@ -1,5 +1,22 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 Moon display and temperature evidence migrated to files
+
+The [attended batch](2026-10-05-moon-weather-file-migration.md) transfers 25 Moon
+Items, their 25 links and one read-only temperature evidence HTTP Thing. Actual
+original managed rollback and final file ownership pass for both batches;
+26 original JDBC histories/identities are intact. Eight dynamic Moon readings
+have native post-transfer events and rows; temperature JSON publication matches
+native JDBC under its unchanged source epoch. Isolated provider/JDBC/full-JVM
+recovery and independent review pass; 90 focused tests pass. Registry inventory
+has zero structural issues: 355 managed Items, 78 Things, 35 rules and 219 links
+remain. Source and 51 ownership declarations are tracked, with private recovery
+points retained. OpenHAB PID 1696 and all rule definitions remain unchanged.
+Production whole-JVM recovery and the 17 stable Moon readings' next natural
+calendar/sign changes remain separate gates. Protected controls and Goat-owned
+resources remain outside this batch; the full migration is still incomplete.
+
+
 
 ## October 5 offline error diagnosis completed
 

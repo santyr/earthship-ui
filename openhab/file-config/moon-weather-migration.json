@@ -1,0 +1,1002 @@
+{
+  "moon": {
+    "Moon_Apogee_Date": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Date",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Apogee_Date",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 67,
+      "link": {
+        "channelUID": "astro:moon:local:apogee#date",
+        "configuration": {},
+        "itemName": "Moon_Apogee_Date"
+      }
+    },
+    "Moon_Apogee_Distance": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Distance",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Apogee_Distance",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.1f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Length",
+        "unitSymbol": "in"
+      },
+      "jdbc_id": 68,
+      "link": {
+        "channelUID": "astro:moon:local:apogee#distance",
+        "configuration": {},
+        "itemName": "Moon_Apogee_Distance"
+      }
+    },
+    "Moon_Azimuth": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Azimuth",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Azimuth",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Angle",
+        "unitSymbol": "\u00b0"
+      },
+      "jdbc_id": 44,
+      "link": {
+        "channelUID": "astro:moon:local:position#azimuth",
+        "configuration": {},
+        "itemName": "Moon_Azimuth"
+      }
+    },
+    "Moon_Distance_Date": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Date",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Distance_Date",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 42,
+      "link": {
+        "channelUID": "astro:moon:local:distance#date",
+        "configuration": {},
+        "itemName": "Moon_Distance_Date"
+      }
+    },
+    "Moon_Distance_Distance": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Distance",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Distance_Distance",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.1f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Length",
+        "unitSymbol": "in"
+      },
+      "jdbc_id": 43,
+      "link": {
+        "channelUID": "astro:moon:local:distance#distance",
+        "configuration": {},
+        "itemName": "Moon_Distance_Distance"
+      }
+    },
+    "Moon_Eclipse_PartialElevation": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Elevation",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Eclipse_PartialElevation",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Angle",
+        "unitSymbol": "\u00b0"
+      },
+      "jdbc_id": 64,
+      "link": {
+        "channelUID": "astro:moon:local:eclipse#partialElevation",
+        "configuration": {},
+        "itemName": "Moon_Eclipse_PartialElevation"
+      }
+    },
+    "Moon_Eclipse_TotalElevation": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Elevation",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Eclipse_TotalElevation",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Angle",
+        "unitSymbol": "\u00b0"
+      },
+      "jdbc_id": 62,
+      "link": {
+        "channelUID": "astro:moon:local:eclipse#totalElevation",
+        "configuration": {},
+        "itemName": "Moon_Eclipse_TotalElevation"
+      }
+    },
+    "Moon_FirstQuarter": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "First Quarter",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_FirstQuarter",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 54,
+      "link": {
+        "channelUID": "astro:moon:local:phase#firstQuarter",
+        "configuration": {},
+        "itemName": "Moon_FirstQuarter"
+      }
+    },
+    "Moon_FullMoon": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Full Moon",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_FullMoon",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 56,
+      "link": {
+        "channelUID": "astro:moon:local:phase#full",
+        "configuration": {},
+        "itemName": "Moon_FullMoon"
+      }
+    },
+    "Moon_NewMoon": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "New Moon",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_NewMoon",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 57,
+      "link": {
+        "channelUID": "astro:moon:local:phase#new",
+        "configuration": {},
+        "itemName": "Moon_NewMoon"
+      }
+    },
+    "Moon_PartialMoonEclipse": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Partial Moon Eclipse",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_PartialMoonEclipse",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 63,
+      "link": {
+        "channelUID": "astro:moon:local:eclipse#partial",
+        "configuration": {},
+        "itemName": "Moon_PartialMoonEclipse"
+      }
+    },
+    "Moon_Perigee_Date": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Date",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Perigee_Date",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 65,
+      "link": {
+        "channelUID": "astro:moon:local:perigee#date",
+        "configuration": {},
+        "itemName": "Moon_Perigee_Date"
+      }
+    },
+    "Moon_Perigee_Distance": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Distance",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Perigee_Distance",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.1f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Length",
+        "unitSymbol": "in"
+      },
+      "jdbc_id": 66,
+      "link": {
+        "channelUID": "astro:moon:local:perigee#distance",
+        "configuration": {},
+        "itemName": "Moon_Perigee_Distance"
+      }
+    },
+    "Moon_Phase_Age": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Moon Age",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Phase_Age",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%d %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Time",
+        "unitSymbol": "s"
+      },
+      "jdbc_id": 58,
+      "link": {
+        "channelUID": "astro:moon:local:phase#age",
+        "configuration": {},
+        "itemName": "Moon_Phase_Age"
+      }
+    },
+    "Moon_Phase_AgeDegree": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Moon Age",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Phase_AgeDegree",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Angle",
+        "unitSymbol": "\u00b0"
+      },
+      "jdbc_id": 39,
+      "link": {
+        "channelUID": "astro:moon:local:phase#ageDegree",
+        "configuration": {},
+        "itemName": "Moon_Phase_AgeDegree"
+      }
+    },
+    "Moon_Phase_AgePercent": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Moon Age",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Phase_AgePercent",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Dimensionless",
+        "unitSymbol": "one"
+      },
+      "jdbc_id": 40,
+      "link": {
+        "channelUID": "astro:moon:local:phase#agePercent",
+        "configuration": {},
+        "itemName": "Moon_Phase_AgePercent"
+      }
+    },
+    "Moon_Position_Elevation": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Elevation",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Position_Elevation",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f %unit%",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number:Angle",
+        "unitSymbol": "\u00b0"
+      },
+      "jdbc_id": 45,
+      "link": {
+        "channelUID": "astro:moon:local:position#elevation",
+        "configuration": {},
+        "itemName": "Moon_Position_Elevation"
+      }
+    },
+    "Moon_Rise_End": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "End Time",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Rise_End",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 51,
+      "link": {
+        "channelUID": "astro:moon:local:rise#end",
+        "configuration": {},
+        "itemName": "Moon_Rise_End"
+      }
+    },
+    "Moon_Rise_Start": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Start Time",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Rise_Start",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 52,
+      "link": {
+        "channelUID": "astro:moon:local:rise#start",
+        "configuration": {},
+        "itemName": "Moon_Rise_Start"
+      }
+    },
+    "Moon_Set_End": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "End Time",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Set_End",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 50,
+      "link": {
+        "channelUID": "astro:moon:local:set#end",
+        "configuration": {},
+        "itemName": "Moon_Set_End"
+      }
+    },
+    "Moon_Set_Start": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Start Time",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Set_Start",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 53,
+      "link": {
+        "channelUID": "astro:moon:local:set#start",
+        "configuration": {},
+        "itemName": "Moon_Set_Start"
+      }
+    },
+    "Moon_ShadeLengthRatio": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Shade Length Ratio",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_ShadeLengthRatio",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%.2f",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "Number",
+        "unitSymbol": null
+      },
+      "jdbc_id": 69,
+      "link": {
+        "channelUID": "astro:moon:local:position#shadeLength",
+        "configuration": {},
+        "itemName": "Moon_ShadeLengthRatio"
+      }
+    },
+    "Moon_Sign": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Sign",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_Sign",
+        "stateDescription": {
+          "options": [
+            {
+              "label": "Aries",
+              "value": "ARIES"
+            },
+            {
+              "label": "Taurus",
+              "value": "TAURUS"
+            },
+            {
+              "label": "Gemini",
+              "value": "GEMINI"
+            },
+            {
+              "label": "Cancer",
+              "value": "CANCER"
+            },
+            {
+              "label": "Leo",
+              "value": "LEO"
+            },
+            {
+              "label": "Virgo",
+              "value": "VIRGO"
+            },
+            {
+              "label": "Libra",
+              "value": "LIBRA"
+            },
+            {
+              "label": "Scorpio",
+              "value": "SCORPIO"
+            },
+            {
+              "label": "Sagittarius",
+              "value": "SAGITTARIUS"
+            },
+            {
+              "label": "Capricorn",
+              "value": "CAPRICORN"
+            },
+            {
+              "label": "Aquarius",
+              "value": "AQUARIUS"
+            },
+            {
+              "label": "Pisces",
+              "value": "PISCES"
+            }
+          ],
+          "pattern": "%s",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "String",
+        "unitSymbol": null
+      },
+      "jdbc_id": 70,
+      "link": {
+        "channelUID": "astro:moon:local:zodiac#sign",
+        "configuration": {},
+        "itemName": "Moon_Sign"
+      }
+    },
+    "Moon_ThirdQuarter": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Third Quarter",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_ThirdQuarter",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 55,
+      "link": {
+        "channelUID": "astro:moon:local:phase#thirdQuarter",
+        "configuration": {},
+        "itemName": "Moon_ThirdQuarter"
+      }
+    },
+    "Moon_TotalMoonEclipse": {
+      "item": {
+        "category": "",
+        "groupNames": [
+          "Moon"
+        ],
+        "label": "Total Moon Eclipse",
+        "metadata": {
+          "semantics": {
+            "config": {
+              "isPointOf": "Moon"
+            },
+            "editable": false,
+            "value": "Point"
+          }
+        },
+        "name": "Moon_TotalMoonEclipse",
+        "stateDescription": {
+          "options": [],
+          "pattern": "%1$tF %1$tR",
+          "readOnly": true
+        },
+        "tags": [
+          "Point"
+        ],
+        "type": "DateTime",
+        "unitSymbol": null
+      },
+      "jdbc_id": 61,
+      "link": {
+        "channelUID": "astro:moon:local:eclipse#total",
+        "configuration": {},
+        "itemName": "Moon_TotalMoonEclipse"
+      }
+    }
+  },
+  "schema": "openhab-moon-weather-migration/v1",
+  "weather": {
+    "item_name": "Weather_Temperature_Evidence_JSON",
+    "jdbc_id": 646,
+    "thing": {
+      "UID": "http:url:weatherTemperatureEvidence",
+      "bridgeUID": null,
+      "channels": [
+        {
+          "channelTypeUID": "http:request-date-time",
+          "configuration": {},
+          "defaultTags": [
+            "Status",
+            "Timestamp"
+          ],
+          "id": "last-failure",
+          "itemType": "DateTime",
+          "kind": "STATE",
+          "label": "Last Failure",
+          "linkedItems": [],
+          "properties": {},
+          "uid": "http:url:weatherTemperatureEvidence:last-failure"
+        },
+        {
+          "channelTypeUID": "http:request-date-time",
+          "configuration": {},
+          "defaultTags": [
+            "Status",
+            "Timestamp"
+          ],
+          "id": "last-success",
+          "itemType": "DateTime",
+          "kind": "STATE",
+          "label": "Last Success",
+          "linkedItems": [],
+          "properties": {},
+          "uid": "http:url:weatherTemperatureEvidence:last-success"
+        },
+        {
+          "channelTypeUID": "http:string",
+          "configuration": {
+            "mode": "READONLY"
+          },
+          "defaultTags": [],
+          "id": "snapshot",
+          "itemType": "String",
+          "kind": "STATE",
+          "label": "Complete temperature evidence snapshot",
+          "linkedItems": [
+            "Weather_Temperature_Evidence_JSON"
+          ],
+          "properties": {},
+          "uid": "http:url:weatherTemperatureEvidence:snapshot"
+        }
+      ],
+      "configuration": {
+        "authMode": "BASIC",
+        "baseURL": "http://127.0.0.1:5000/temperature_evidence",
+        "bufferSize": 16384,
+        "commandMethod": "GET",
+        "delay": 0,
+        "ignoreSSLErrors": false,
+        "refresh": 30,
+        "stateMethod": "GET",
+        "timeout": 3000
+      },
+      "label": "Weather temperature receipt evidence",
+      "location": null,
+      "properties": {
+        "thingTypeVersion": "2"
+      },
+      "thingTypeUID": "http:url"
+    }
+  }
+}

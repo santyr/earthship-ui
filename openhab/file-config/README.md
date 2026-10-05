@@ -109,6 +109,18 @@ recovery remain separate gates; retain the private original backup. See the
 
 ## Staged migration and rollback
 
+The October 5 observational batch is now live and verified file-owned:
+`items/moon-display-readings.items` contains the remaining 25 Moon display
+Items and their exact 25 links; `things/weather-temperature-evidence.things`
+contains the existing read-only HTTP snapshot Thing. Actual file/managed/file
+rollback, all 26 original JDBC prefixes, natural dynamic Moon updates and
+native temperature publication pass. Isolated full-JVM recovery passes;
+production restart and the stable Moon readings' next calendar changes remain
+separate gates. The temperature Item/link and all household rule definitions
+retain their original providers. See the
+[batch receipt](../../docs/operations/2026-10-05-moon-weather-file-migration.md).
+
+
 `things/astro-moon.things` is **live, verified file-owned** after the attended
 October 3 hot handoff. The operator accepted exactly 39 metadata-only binding
 differences; every other descriptor remains compared. The actual round trip
