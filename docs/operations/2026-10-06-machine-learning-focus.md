@@ -96,6 +96,51 @@ label provenance and rank/identifiability requirements, and keep original coeffi
 separate. The track preference is pending; no new candidate implementation, production
 training, model replacement, action label, notification or household command occurred.
 
+## Outdoor-weather algorithm comparison
+
+The existing `experiment-forecast-solar-context.py` now reaches its unchanged
+minimum of **ten training days and five held-out days**. The split remains
+September29 **08:45 Mountain**, fixed before fitting, with ridge strength 1
+and training-only feature scaling. Fifteen source-qualified pairs use archived
+raw forecasts available by each 08:45 origin and qualified outdoor temperature
+receipts at the 24h target. Training origins are September19–28; test origins
+are September29/30 and October1/3/4. October2 lacks a usable forecast. Fourteen
+earlier requested dates lack qualified outdoor outcomes and remain excluded.
+
+| Residual variant | Held-out MAE°F | Signed bias°F | Maximum absolute error°F |
+| --- | ---: | ---: | ---: |
+| Raw forecast | 2.1870 | -0.5050 | 4.8400 |
+| Fitted constant bias | 3.3736 | -2.6260 | 6.9610 |
+| Season only | 3.2040 | -2.3433 | 6.6783 |
+| Daylight only | 2.3871 | -1.0177 | 5.0272 |
+| Daylight and season | 2.3407 | -0.5609 | 4.4206 |
+
+Every fitted variant loses to raw on MAE. The combined variant reduces the
+maximum error on these five days but does not meet the MAE improvement goal;
+no weight or coefficient is promoted. This is a retrospective diagnostic of
+archived raw-provider forecasts, not a comparison with the current production
+Kalman correction, an untouched prospective validation, a thermal forecast,
+or seasonal skill. All five test days are autumn, with daylight spanning only
+11.586–11.791h; broader regimes remain untested.
+
+The initial September20-onward extraction had only nine training days and
+correctly withheld fitting. Extending the earlier bound to September5 adds
+September19's already-qualified pair; split, thresholds, ridge strength and
+held-out cohort are unchanged. No minimum is relaxed and no weights are tuned
+on the test errors. Two complete restricted reads reproduce identical pairs,
+reader returns and metrics; only report/request assessment clocks differ.
+Offline replay reconstructs both pair assembly and every fitted result from
+those retained inputs. All24 existing experiment/ablation tests pass.
+
+Pair SHA-256:
+`d36c0b1be3f58da56cf96980ae21b3dc86630cc4388ff319da9eaf5b2d776385`.
+Sealed private capsule: `ml-weather-holdout-20261006-vyp5tj75/`, below the evidence
+root. It retains original reader returns, paired rows, both reports, read-only
+capture/offline-replay scripts, source pins, the insufficient initial assessment
+and verification, with mode0600 files in mode0700 directories. Historical
+forecast and model state, publishers, journal labels and household controls
+are unchanged.
+
 ## Evidence
 
 Private original forecasts/outcomes, repeated report, current accepted/backtest

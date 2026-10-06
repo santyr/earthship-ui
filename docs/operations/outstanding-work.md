@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 6 ML algorithm comparison
+
+The [ML checkpoint](2026-10-06-machine-learning-focus.md#outdoor-weather-algorithm-comparison)
+now runs the existing archived-raw outdoor residual experiment with ten training
+and five held-out days, unchanged September29 split and fixed ridge strength.
+All four fitted corrections lose to raw MAE: raw2.187°F, bias3.374, season3.204,
+daylight2.387, combined2.341. Independent source reads and offline assembly/fit
+replay agree; all24 existing tests pass. This rejects these corrections for this
+small retrospective cohort; it does not score current production Kalman or
+establish prospective/seasonal skill. No coefficients or operational paths change.
+Migration and restart work remain deferred under the operator's ML focus.
+
 ## October 6 ML accuracy assessment
 
 The [ML-focused checkpoint](2026-10-06-machine-learning-focus.md) verifies today's
