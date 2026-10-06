@@ -6,7 +6,9 @@ migration with the existing cold Group transfer approach.
 
 The Group is an unlinked, untagged plain `Group`, label `Weather Health`,
 NULL state, no parent Groups, metadata, aggregate type/function or JDBC identity.
-Its six members remain separately managed:
+The current provider mix is four managed members and two file-owned age members.
+The original rehearsal below used six managed members; the refreshed evidence
+for the current mix appears at the end. Stable identities remain:
 
 | Member | Original JDBC identity |
 | --- | ---: |
@@ -73,7 +75,7 @@ protected definitions and fresh native telemetry. Operator approval already
 exists; this candidate does not bypass the host authentication policy.
 
 
-## Completed native qualification
+## Original all-managed native qualification
 
 The sealed mode-0700 capsule is `/home/sat/.local/state/openhab-config-migration/weather-health-group-20261005-w6dvsfyp`. It retains 35
 mode-0600 evidence files and their hash manifest, including the seven Item
@@ -101,3 +103,48 @@ with no Critical/Important findings. Both prior Minor issues are resolved.
 The frozen repository suite passes **4,175 tests**, with **10 skips** and
 **91 subtests**; all 16 guards pass independently. These checks qualify the
 staged candidate and its isolation, while actual cold ownership stays pending.
+
+## October 5 current mixed-provider qualification
+
+After the two age Item handoff, the original seven-managed-record capture was
+stale. The current qualifier captures **five managed records** (Group plus four
+members), four managed metadata namespaces, the exact existing age file and
+an inert native Thing with exactly two channels. The age definitions, metadata
+and links remain file-owned in every phase; health status, outdoor age,
+diagnostic and last-evaluation members remain managed. No binding endpoints,
+HTTP handler, executable rule or production database credentials enter the
+fixture. Binding fetch and household cold recovery remain separate scopes.
+
+The stopped-copy transformer accepts only the all-managed case or the closed
+pair of file-owned age members. It rejects managed duplicates, unsupported
+provider mixes, missing/extra references and a changed Group record. Eleven new
+red/green tests cover this boundary, with all 55 Group/age guards passing.
+The provider mix is derived from live member flags and cross-checked against
+persisted records, so leftover managed entries cannot select an all-managed fixture.
+Cold copies use archive streams across Docker's packaged-client filesystem
+boundary; the caller first proves its owned JVM is stopped. Only non-secret
+definition copies use mode 0644 inside the fixture; private credential files
+remain mode 0600 and all capabilities remain dropped.
+
+The complete native round trip now passes five phases across five distinct
+JVMs. Both age Item/link/metadata providers, all six member definitions and
+states, original IDs and **1,672,046** original CSV rows survive every phase.
+The Group retains no JDBC identity. All **57** installed production sources,
+every protected definition and PID **1696** are unchanged; production receives
+no writes and both owned containers and their anonymous volumes are removed.
+
+Private evidence is retained in
+`/home/sat/.local/state/openhab-config-migration/weather-health-group-mixed-20261005-bycqxdnl/`.
+The historical capsule remains retained. No production Group file is installed
+and no file ownership declaration is added. The existing authenticated
+stop/start and whole-household recovery requirements remain open.
+
+The frozen full repository suite passes **4,212 tests**, with **10 skips** and
+**91 subtests**, in its terminal run. Final source review has no Critical or
+Important findings; its stale seven-record docstring is corrected with an
+independently checked non-docstring AST equality proof.
+
+Two additional provider-preflight regressions pass after the 4,212-test run,
+covering **4,214 unique passing tests** in total. The fixture class AST is unchanged
+from the terminal native rehearsal, and the strengthened pure preflight accepts
+its retained native input and the current live provider map.

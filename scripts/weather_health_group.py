@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 
 GROUP = 'gWeatherHealth'
+FILE_MEMBERS = frozenset({'WeatherData_WH31E_AgeSeconds', 'WeatherData_WH32B_AgeSeconds'})
 MEMBERS = frozenset({'SkyCondition_Diagnostic', 'SkyCondition_LastEval',
     'WeatherData_HealthStatus', 'WeatherData_WH31E_AgeSeconds',
     'WeatherData_WH32B_AgeSeconds', 'WeatherData_WH65B_AgeSeconds'})
@@ -26,7 +27,19 @@ def members(rows):
             if GROUP in row.get('value', {}).get('groupNames', [])}
 
 
-def cold_edit(body, *, remove, original):
+def file_member_scope(registry, group):
+    refs = group.get('members', [])
+    require(len(refs) == len(MEMBERS) and {row.get('name') for row in refs} == MEMBERS,
+            'logical member scope drift')
+    require(all(type(row.get('editable')) is bool for row in refs), 'member provider unavailable')
+    scope = frozenset(row['name'] for row in refs if not row['editable'])
+    require(scope in (frozenset(), FILE_MEMBERS), 'unsupported live member providers')
+    require(isinstance(registry, dict) and not scope.intersection(registry)
+            and members(registry) == MEMBERS-scope, 'live and persisted member providers disagree')
+    return scope
+
+
+def cold_edit(body, *, remove, original, file_members=frozenset()):
     """Transform a stopped-registry copy without changing any member record.
 
     The caller must prove its owned JVM is stopped before installing the bytes.
@@ -34,8 +47,11 @@ def cold_edit(body, *, remove, original):
     """
     require(type(remove) is bool, 'cold operation must be boolean')
     require(original == GROUP_RECORD, 'original Group record drift')
+    require(isinstance(file_members, frozenset) and file_members in (frozenset(), FILE_MEMBERS),
+            'unsupported file member scope')
     rows = json.loads(body)
-    require(isinstance(rows, dict) and members(rows) == MEMBERS,
+    require(isinstance(rows, dict) and not file_members.intersection(rows)
+            and members(rows) == MEMBERS-file_members,
             'weather-health member references drift')
     if remove:
         require(rows.get(GROUP) == original, 'managed Group record drift')

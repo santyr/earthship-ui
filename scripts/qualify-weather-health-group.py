@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Cold Group/JDBC round trip in disconnected owned containers; live GET/SQL-read only.
 
-This qualifier has no production apply path. It copies only the seven selected
-managed Item records, their metadata and private API users into the fixture.
-No Things, links, rules, exec scripts or production database credentials enter it.
+This qualifier has no production apply path. It copies selected managed Item
+records (five in the current mix), their metadata and private API users.
+Current file-owned age members retain their exact file and two inert channels.
+No rules, hardware endpoints, exec scripts or production database credentials enter it.
 """
 from datetime import datetime, timezone
 from hashlib import sha256
 import argparse
 import gzip
+import io
+import tarfile
 import importlib.util
 import json
 import os
@@ -84,9 +87,23 @@ def capture(directory):
     g.require(sha256(SOURCE.read_bytes()).hexdigest()==SOURCE_SHA,'candidate source drift')
     guard=live_guard()
     registry=json.loads(Path('/var/lib/openhab/jsondb/org.openhab.core.items.Item.json').read_text())
-    g.require(registry.get(g.GROUP)==g.GROUP_RECORD and g.members(registry)==g.MEMBERS,
-              'selected native registry drift')
-    selected={n:registry[n] for n in sorted(g.MEMBERS|{g.GROUP})}
+    file_members=g.file_member_scope(registry,original)
+    g.cold_edit(b.encoded(registry),remove=True,original=g.GROUP_RECORD,file_members=file_members)
+    selected={n:registry[n] for n in sorted((g.MEMBERS-file_members)|{g.GROUP})}
+    if file_members:
+        import weather_health_age_items as age
+        source=age.SOURCE;target=Path('/etc/openhab/items/'+source.name)
+        digest='c1cba28d41c685d40eb61628d866b488365543d7f7bbff45a139a81aad3768e4'
+        g.require(not source.is_symlink() and not target.is_symlink() and source.read_bytes()==target.read_bytes()
+                  and sha256(source.read_bytes()).hexdigest()==digest,'file member source drift')
+        links=b.oh.get('/links')
+        for name in file_members:
+            age.validate_item(b.oh.get('/items/'+name+'?metadata=.*'),name,managed=False)
+            age.validate_links([link for link in links if link['itemName']==name],name,managed=False)
+        native=json.loads(Path('/var/lib/openhab/jsondb/org.openhab.core.thing.Thing.json').read_text())
+        save(directory,'dependency-age-source.items',source.read_bytes())
+        save(directory,'dependency-inert-thing.json',{'http:url:weatherHealth':age.inert_fixture_thing(native['http:url:weatherHealth'])})
+    save(directory,'file-member-context.json',{'names':sorted(file_members)})
     metadata=json.loads(Path('/var/lib/openhab/jsondb/org.openhab.core.items.Metadata.json').read_text())
     metadata={k:v for k,v in metadata.items() if
               v.get('value',{}).get('key',{}).get('segments',[None,None])[-1] in selected}
@@ -114,7 +131,7 @@ def capture(directory):
 class Fixture:
     def __init__(self):
         self.marker=secrets.token_hex(16); self.pg=None; self.oh=None
-        self.auth_wait_started={}; self.auth_events=[]; self.rest_events=[]
+        self.auth_wait_started={}; self.auth_events=[]; self.rest_events=[]; self.file_members=frozenset()
 
     def info(self, cid):
         value=json.loads(p.run(['docker','inspect',cid]))[0]
@@ -173,6 +190,15 @@ class Fixture:
         for path,body in [('org.openhab.core.items.Item.json',b.encoded(selected)),
                           ('org.openhab.core.items.Metadata.json',b.encoded(metadata)),('users.json',users)]:
             f.install_bytes(self.oh,'/openhab/userdata/jsondb',path,body,mode=0o600)
+        context=directory/'file-member-context.json'
+        if context.exists():self.file_members=frozenset(json.loads(context.read_text())['names'])
+        if self.file_members:
+            g.require(self.file_members==g.FILE_MEMBERS,'unsupported fixture file members')
+            source=(directory/'dependency-age-source.items').read_bytes()
+            g.require(sha256(source).hexdigest()=='c1cba28d41c685d40eb61628d866b488365543d7f7bbff45a139a81aad3768e4','fixture file dependency drift')
+            f.install_bytes(self.oh,'/openhab/conf/items','weather-health-ages.items',source)
+            f.install_bytes(self.oh,'/openhab/userdata/jsondb','org.openhab.core.thing.Thing.json',
+                            (directory/'dependency-inert-thing.json').read_bytes(),mode=0o600)
         for relative in p.isolated.BUNDLES:
             source=p.isolated.CACHE/relative
             f.install_bytes(self.oh,'/openhab/addons',source.name,source.read_bytes())
@@ -225,8 +251,8 @@ class Fixture:
             g.require(time.monotonic()<deadline,'member states not restored by JDBC')
             time.sleep(2); members={i['name']:i for i in self.rest('/items?metadata=.*') if i['name']!=g.GROUP}
         if baseline is not None: g.require(members==baseline,'member definitions/state/provider drift')
-        g.require(all(i.get('editable') is True and i['groupNames']==[g.GROUP]
-                      for i in members.values()),'member providers or references changed')
+        g.require(all(i.get('editable') is (name not in self.file_members) and i['groupNames']==[g.GROUP]
+                      for name,i in members.items()),'member providers or references changed')
         g.require(self.sql("SELECT count(*) FROM public.items WHERE itemname='gWeatherHealth';").strip()==b'0',
                   'Group unexpectedly acquired JDBC identity')
         for name,row in histories.items():
@@ -237,11 +263,20 @@ class Fixture:
                       'original member history prefix changed: '+name)
             g.require(self.sql("SELECT itemid FROM public.items WHERE itemname='"+name+"';").strip()
                       ==str(row['id']).encode(),'member identity drift')
-        g.require(self.rest('/rules')==[] and self.rest('/things')==[] and self.rest('/links')==[],
-                  'fixture contains executable rules, Things or links')
+        g.require(self.rest('/rules')==[],'fixture contains executable rules')
+        links=self.rest('/links');things=self.rest('/things')
+        if self.file_members:
+            import weather_health_age_items as age
+            g.require(len(links)==2 and len(things)==1,'fixture dependency scope drift')
+            age.validate_fixture_thing(things[0])
+            for name in self.file_members:
+                age.validate_item(members[name],name,managed=False)
+                age.validate_links([link for link in links if link['itemName']==name],name,managed=False)
+        else:g.require(things==[] and links==[],'unexpected fixture Things or links')
         info=self.info(self.oh)
         value={'at':datetime.now(timezone.utc).isoformat(),'phase':phase,'group':group,'members':members,
                'all_original_history_prefixes':True,'group_jdbc_identity_absent':True,
+               'file_member_names':sorted(self.file_members),'links':links,'things':things,
                'container_host_pid':info['State']['Pid'],'isolated_only':True,
                'startup_auth_events':list(self.auth_events),'rest_events':list(self.rest_events)}
         save(directory,phase+'.json',value); print(json.dumps({'phase':phase,'history_prefixes':6,
@@ -251,14 +286,19 @@ class Fixture:
     def stopped_edit(self, temporary, *, remove):
         self.info(self.oh); f.run(['docker','stop','-t','30',self.oh],timeout=60)
         g.require(not self.info(self.oh)['State']['Running'],'owned JVM still running')
-        users=p.run(['docker','cp',self.oh+':/openhab/userdata/jsondb/users.json',str(temporary/'users.json')])
-        (temporary/'users.json').chmod(0o600)
-        registry=temporary/'items.json'; p.run(['docker','cp',self.oh+':'+REGISTRY,str(registry)])
-        registry.chmod(0o644); registry.write_bytes(g.cold_edit(registry.read_bytes(),remove=remove,
-                                                            original=g.GROUP_RECORD))
-        p.run(['docker','cp',str(registry),self.oh+':'+REGISTRY])
-        source=temporary/SOURCE.name; source.write_bytes(SOURCE.read_bytes() if remove else b'');source.chmod(0o644)
-        p.run(['docker','cp',str(source),self.oh+':'+TARGET])
+        output=p.run(['docker','cp',self.oh+':'+REGISTRY,'-'])
+        with tarfile.open(fileobj=io.BytesIO(output),mode='r:') as archive:
+            entry=next(member for member in archive if member.isfile())
+            body=archive.extractfile(entry).read()
+        changed=g.cold_edit(body,remove=remove,original=g.GROUP_RECORD,file_members=self.file_members)
+        def cold_copy(directory,name,data):
+            output=io.BytesIO()
+            with tarfile.open(fileobj=output,mode='w') as archive:
+                member=tarfile.TarInfo(name);member.size=len(data);member.mode=0o644
+                archive.addfile(member,io.BytesIO(data))
+            p.run(['docker','cp','-',self.oh+':'+directory],output.getvalue())
+        cold_copy('/openhab/userdata/jsondb','org.openhab.core.items.Item.json',changed)
+        cold_copy('/openhab/conf/items',SOURCE.name,SOURCE.read_bytes() if remove else b'')
         p.run(['docker','start',self.oh])
 
     def cleanup(self):
@@ -326,7 +366,7 @@ def main():
          'source_sha256':SOURCE_SHA,'member_histories':histories,'production_guard':guard,
          'native_cold_round_trip':True,'native_file_restart':True,'production_writes':0,
          'production_group_still_managed':True,'production_restart_qualified':False,
-         'owned_fixture_removed':True})
+         'owned_fixture_removed':True,'file_member_names':sorted(fixture.file_members),'binding_fetch_qualified':False})
     print('qualification=passed production_writes=0 live_group_provider=managed',flush=True)
 
 

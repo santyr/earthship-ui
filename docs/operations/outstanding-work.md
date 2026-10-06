@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 weather-health Group refreshed for current member providers
+
+The [Group candidate](2026-10-05-weather-health-group-candidate.md#october-5-current-mixed-provider-qualification)
+now preserves four managed members and the two file-owned age members. Its
+closed stopped-copy guard rejects duplicates and unsupported provider mixes;
+all 55 Group/age guards and 4,214 unique tests pass across the full run and
+two added preflight regressions (10 skips, 91 subtests).
+Five distinct isolated JVM phases preserve all
+six IDs and 1,672,046 original history rows, both age links/metadata providers,
+all 57 installed sources and every production definition. Both owned fixtures
+are removed and production PID 1696 is unchanged. The Group remains managed
+and uninstalled; its real cold transfer still requires host authentication.
+
 ## October 5 weather-health age Items transferred to files
 
 The [two age Items](2026-10-05-weather-health-age-items.md) and their links and

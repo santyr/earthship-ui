@@ -113,8 +113,11 @@ retain the private original backup. See the
 
 `items/weather-health-group.items` is a staged, uninstalled plain Group
 candidate for `gWeatherHealth`. Its isolated stopped transfer, full restart,
-original managed rollback and final file round trip preserve all six managed
-members and every copied original history row. Sixteen guard tests pass.
+original managed rollback and final file round trip preserve all six members:
+four managed and the two file-owned ages, including their metadata and links.
+The refreshed native rehearsal preserves 1,672,046 original history rows.
+All 27 Group guards pass; the full run and two added provider regressions
+cover 4,214 unique passing tests.
 REST Group deletion removes member references, so the production handoff needs
 the qualified cold path and host authentication. Production ownership remains
 managed; see the [candidate receipt](../../docs/operations/2026-10-05-weather-health-group-candidate.md).

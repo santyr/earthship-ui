@@ -113,3 +113,58 @@ def test_file_provider_null_category_preserves_the_original_absent_icon():
 def test_nonempty_category_cannot_be_accepted_as_the_original_absent_icon():
     module = tools(); item = group_item(); item['category'] = 'pump'
     with pytest.raises(RuntimeError): module.validate_group(item, managed=True)
+
+
+FILE_MEMBERS = frozenset({'WeatherData_WH31E_AgeSeconds', 'WeatherData_WH32B_AgeSeconds'})
+
+
+def test_mixed_provider_cold_round_trip_preserves_managed_records():
+    module = tools(); original = registry()
+    for name in FILE_MEMBERS: del original[name]
+    removed = json.loads(module.cold_edit(json.dumps(original).encode(), remove=True,
+                        original=GROUP_RECORD, file_members=FILE_MEMBERS))
+    assert removed == {name: row for name, row in original.items() if name != 'gWeatherHealth'}
+    restored = json.loads(module.cold_edit(json.dumps(removed).encode(), remove=False,
+                         original=GROUP_RECORD, file_members=FILE_MEMBERS))
+    assert restored == original
+
+
+@pytest.mark.parametrize('file_members', [None, set(), frozenset({'WeatherData_WH31E_AgeSeconds'}),
+    frozenset({'WeatherData_HealthStatus'}), frozenset({'Unknown'}), 'WeatherData_WH31E_AgeSeconds'])
+def test_unsupported_file_member_scopes_are_rejected(file_members):
+    module = tools(); original = registry()
+    for name in FILE_MEMBERS: del original[name]
+    with pytest.raises(RuntimeError): module.cold_edit(json.dumps(original).encode(), remove=True,
+        original=GROUP_RECORD, file_members=file_members)
+
+
+def test_file_member_cannot_also_have_a_managed_provider():
+    module = tools(); original = registry()
+    with pytest.raises(RuntimeError): module.cold_edit(json.dumps(original).encode(), remove=True,
+        original=GROUP_RECORD, file_members=FILE_MEMBERS)
+
+
+def test_mixed_provider_missing_managed_reference_is_rejected():
+    module = tools(); original = registry()
+    for name in FILE_MEMBERS: del original[name]
+    original['WeatherData_HealthStatus']['value']['groupNames'] = []
+    with pytest.raises(RuntimeError): module.cold_edit(json.dumps(original).encode(), remove=True,
+        original=GROUP_RECORD, file_members=FILE_MEMBERS)
+
+
+def test_live_providers_select_the_exact_mixed_scope_and_reject_raw_duplicates():
+    module = tools(); rows = registry(); group = group_item()
+    for member in group['members']: member['editable'] = member['name'] not in FILE_MEMBERS
+    with pytest.raises(RuntimeError): module.file_member_scope(rows, group)
+    for name in FILE_MEMBERS: del rows[name]
+    assert module.file_member_scope(rows, group) == FILE_MEMBERS
+
+
+def test_missing_or_unexpected_live_member_provider_is_rejected():
+    module = tools(); rows = registry(); group = group_item()
+    for member in group['members']: member['editable'] = True
+    assert module.file_member_scope(rows, group) == frozenset()
+    group['members'][0]['editable'] = False
+    with pytest.raises(RuntimeError): module.file_member_scope(rows, group)
+    del group['members'][0]['editable']
+    with pytest.raises(RuntimeError): module.file_member_scope(rows, group)
