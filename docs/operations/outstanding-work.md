@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 Sun calendar display batch qualified in isolation
+
+The [eight season/eclipse display Items](2026-10-05-sun-calendar-items.md) now have
+exact canonical candidates and closed Item/link mutation guards. Native provider
+managed/file/cold/managed-rollback/final-file phases and isolated synthetic JDBC
+rollback/reload/restart pass; every owned fixture is removed. The full run passes
+4,256 tests and the later header regression separately, for 4,257 unique passing
+tests (10 skips, 91 subtests). At 03:16:15Z October 6, production readback verifies
+all 6,994 original history rows, 58 source pins, exact definitions and PID1696.
+All eight production Items/links remain managed and the candidate is uninstalled.
+The exact attended transport and live rollback are next. Sun elevation/daylight
+control inputs remain managed. Production restart still requires host authentication.
+
 ## October 5 sky diagnostic Items transferred to files
 
 The [diagnostic String and LastEval DateTime](2026-10-05-sky-diagnostic-items.md)

@@ -1,0 +1,282 @@
+{
+  "Sun_Autumn": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Autumn",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_Autumn",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 82,
+    "link": {
+      "channelUID": "astro:sun:local:season#autumn",
+      "configuration": {},
+      "itemName": "Sun_Autumn"
+    }
+  },
+  "Sun_Eclipse_PartialElevation": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Elevation",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_Eclipse_PartialElevation",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%.2f %unit%",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "Number:Angle",
+      "unitSymbol": "\u00b0"
+    },
+    "jdbc_id": 88,
+    "link": {
+      "channelUID": "astro:sun:local:eclipse#partialElevation",
+      "configuration": {},
+      "itemName": "Sun_Eclipse_PartialElevation"
+    }
+  },
+  "Sun_PartialEclipse": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Partial Eclipse",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_PartialEclipse",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 87,
+    "link": {
+      "channelUID": "astro:sun:local:eclipse#partial",
+      "configuration": {},
+      "itemName": "Sun_PartialEclipse"
+    }
+  },
+  "Sun_RingEclipse": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Ring Eclipse",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_RingEclipse",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 89,
+    "link": {
+      "channelUID": "astro:sun:local:eclipse#ring",
+      "configuration": {},
+      "itemName": "Sun_RingEclipse"
+    }
+  },
+  "Sun_Spring": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Spring",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_Spring",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 80,
+    "link": {
+      "channelUID": "astro:sun:local:season#spring",
+      "configuration": {},
+      "itemName": "Sun_Spring"
+    }
+  },
+  "Sun_Summer": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Summer",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_Summer",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 81,
+    "link": {
+      "channelUID": "astro:sun:local:season#summer",
+      "configuration": {},
+      "itemName": "Sun_Summer"
+    }
+  },
+  "Sun_TotalEclipse": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Total Eclipse",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_TotalEclipse",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 86,
+    "link": {
+      "channelUID": "astro:sun:local:eclipse#total",
+      "configuration": {},
+      "itemName": "Sun_TotalEclipse"
+    }
+  },
+  "Sun_Winter": {
+    "item": {
+      "category": null,
+      "groupNames": [
+        "Sun"
+      ],
+      "label": "Winter",
+      "metadata": {
+        "semantics": {
+          "config": {
+            "isPointOf": "Sun"
+          },
+          "editable": false,
+          "value": "Point"
+        }
+      },
+      "name": "Sun_Winter",
+      "stateDescription": {
+        "options": [],
+        "pattern": "%1$tF %1$tR",
+        "readOnly": true
+      },
+      "tags": [
+        "Point"
+      ],
+      "type": "DateTime",
+      "unitSymbol": null
+    },
+    "jdbc_id": 83,
+    "link": {
+      "channelUID": "astro:sun:local:season#winter",
+      "configuration": {},
+      "itemName": "Sun_Winter"
+    }
+  }
+}
