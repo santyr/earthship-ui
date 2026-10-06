@@ -1261,6 +1261,32 @@
       "destination": "/etc/openhab/items/weather-health-ages.items",
       "production_restart_qualified": false,
       "receipt": "docs/operations/2026-10-05-weather-health-age-items.md"
+    },
+    {
+      "kind": "item",
+      "id": "SkyCondition_Diagnostic",
+      "natural_changed_output_qualified": true,
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sky-diagnostics.items",
+      "destination": "/etc/openhab/items/sky-diagnostics.items",
+      "state_writer": "sky-condition-calculator",
+      "jdbc_identity": 541,
+      "receipt": "docs/operations/2026-10-05-sky-diagnostic-items.md",
+      "production_restart_qualified": false
+    },
+    {
+      "kind": "item",
+      "id": "SkyCondition_LastEval",
+      "natural_changed_output_qualified": true,
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sky-diagnostics.items",
+      "destination": "/etc/openhab/items/sky-diagnostics.items",
+      "state_writer": "sky-condition-calculator",
+      "jdbc_identity": 540,
+      "receipt": "docs/operations/2026-10-05-sky-diagnostic-items.md",
+      "production_restart_qualified": false
     }
   ]
 }

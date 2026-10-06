@@ -1,5 +1,20 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 sky diagnostic Items transferred to files
+
+The [diagnostic String and LastEval DateTime](2026-10-05-sky-diagnostic-items.md)
+and their metadata are now file-owned and unlinked. The unchanged sky rule
+publishes natural JDBC rows under original IDs 541/540. Its primary outputs
+remain identical when diagnostics are absent; protected inputs stay managed.
+The attended handoff preserves all 1,672,289 original rows and 57 prior source
+pins, making 58 source paths. Native diagnostic and resulting four-file-member
+Group transfer/restart/rollback pass, plus a fresh current-layout bootstrap.
+Verification covers 4,235 unique passes across the full run and one added
+startup regression (10 skips, 91 subtests), with 76 focused checks passing.
+The restart baseline now covers 58 sources, 44 original prefixes and 95 parsed
+JSONDB documents. Production Group transfer/restart remain pending host
+authentication; PID 1696 is unchanged.
+
 ## October 5 weather-health Group refreshed for current member providers
 
 The [Group candidate](2026-10-05-weather-health-group-candidate.md#october-5-current-mixed-provider-qualification)

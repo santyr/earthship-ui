@@ -114,10 +114,12 @@ retain the private original backup. See the
 `items/weather-health-group.items` is a staged, uninstalled plain Group
 candidate for `gWeatherHealth`. Its isolated stopped transfer, full restart,
 original managed rollback and final file round trip preserve all six members:
-four managed and the two file-owned ages, including their metadata and links.
-The refreshed native rehearsal preserves 1,672,046 original history rows.
-All 27 Group guards pass; the full run and two added provider regressions
-cover 4,214 unique passing tests.
+two managed eligibility inputs and four file-owned observers (ages and sky
+diagnostics), including their metadata and the two unchanged age links.
+The diagnostic/Group rehearsal preserves 1,672,266 original history rows;
+the fresh current-layout bootstrap preserves 1,672,372 original rows.
+The current diagnostic/Group rehearsal and fresh four-file-member bootstrap
+pass, with 4,235 unique test passes across the full run and startup regression.
 REST Group deletion removes member references, so the production handoff needs
 the qualified cold path and host authentication. Production ownership remains
 managed; see the [candidate receipt](../../docs/operations/2026-10-05-weather-health-group-candidate.md).
@@ -134,6 +136,12 @@ their native JDBC rows now qualify changed-output continuity, preserving the
 entire original prefix. Production restart remains open; retain the private
 original recovery point.
 See the [handoff receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
+
+`items/sky-diagnostics.items` is live and file-owned for the unlinked diagnostic
+String and LastEval DateTime, with exact original formatting and IDs 541/540.
+The unchanged sky rule publishes natural rows; its primary outputs and managed
+eligibility inputs are preserved. See the
+[diagnostic receipt](../../docs/operations/2026-10-05-sky-diagnostic-items.md).
 
 `items/weather-health-ages.items` is live and verified file-owned for the WH31E
 and indoor-console age Items, links and state-description metadata. Plain

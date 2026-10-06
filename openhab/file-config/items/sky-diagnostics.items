@@ -1,0 +1,8 @@
+// Observational outputs of the existing sky-condition-calculator rule.
+// SkyCondition and protected eligibility inputs retain their current providers.
+String SkyCondition_Diagnostic "Sky condition diagnostic" (gWeatherHealth) {
+  stateDescription=" " [ pattern="%s" ]
+}
+DateTime SkyCondition_LastEval "Sky condition last eval" (gWeatherHealth) {
+  stateDescription=" " [ pattern="%1$tF %1$tT" ]
+}

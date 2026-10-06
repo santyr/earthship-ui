@@ -93,6 +93,22 @@ retained. Both new age Items have natural post-handoff JDBC writes. PID **1696**
 is unchanged; no production service action occurred. Live backup capture is
 non-atomic, and production restore/restart qualification remains open.
 
+
+## Sky diagnostic baseline refresh
+
+After the diagnostic Item hot handoff, the latest baseline at **02:47:15Z
+October 6** is
+`/home/sat/.local/state/openhab-config-migration/restart-20261005-sky-diagnostics-qfk5_4lu/`.
+It pins **58** sources and **44** original history prefixes, including both
+new diagnostic tables. All 58 sources match the configuration archive and
+**95** JSONDB documents parse; archived managed diagnostic records are absent.
+The sparse-preserving archives total **1,801,758,720 bytes**. Its 55 private
+mode-600 files plus manifest are retained inside a mode-700 directory.
+`/tmp/openhab-restart-directory` selects it. The retained qualifier points to
+the diagnostic worktree and all 44 prefixes; earlier capsules remain retained.
+PID **1696** is unchanged. Capture is live and non-atomic, and production
+restore/restart qualification remains open pending host authentication.
+
 The operator must authenticate the same command on the host:
 
 ```bash

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Cold Group/JDBC round trip in disconnected owned containers; live GET/SQL-read only.
 
-This qualifier has no production apply path. It copies selected managed Item
-records (five in the current mix), their metadata and private API users.
+This qualifier has no production apply path. It copies the current managed
+Group/member records, their metadata and private API users.
 Current file-owned age members retain their exact file and two inert channels.
 No rules, hardware endpoints, exec scripts or production database credentials enter it.
 """
@@ -90,20 +90,26 @@ def capture(directory):
     file_members=g.file_member_scope(registry,original)
     g.cold_edit(b.encoded(registry),remove=True,original=g.GROUP_RECORD,file_members=file_members)
     selected={n:registry[n] for n in sorted((g.MEMBERS-file_members)|{g.GROUP})}
+    sources=[]
     if file_members:
         import weather_health_age_items as age
-        source=age.SOURCE;target=Path('/etc/openhab/items/'+source.name)
-        digest='c1cba28d41c685d40eb61628d866b488365543d7f7bbff45a139a81aad3768e4'
-        g.require(not source.is_symlink() and not target.is_symlink() and source.read_bytes()==target.read_bytes()
-                  and sha256(source.read_bytes()).hexdigest()==digest,'file member source drift')
+        validators=[(age,'c1cba28d41c685d40eb61628d866b488365543d7f7bbff45a139a81aad3768e4','dependency-age-source.items')]
+        if file_members==g.OBSERVER_FILE_MEMBERS:
+            import sky_diagnostic_items as diag
+            validators.append((diag,'3c6e43fbb3d6d03723341efa425c4dfb5143722fb2cdbcd0fe42ba43561ebca3','dependency-diagnostic-source.items'))
         links=b.oh.get('/links')
-        for name in file_members:
-            age.validate_item(b.oh.get('/items/'+name+'?metadata=.*'),name,managed=False)
-            age.validate_links([link for link in links if link['itemName']==name],name,managed=False)
+        for validator,digest,backup in validators:
+            source=validator.SOURCE;target=Path('/etc/openhab/items/'+source.name)
+            g.require(not source.is_symlink() and not target.is_symlink() and source.read_bytes()==target.read_bytes()
+                      and sha256(source.read_bytes()).hexdigest()==digest,'file member source drift')
+            for name in validator.ITEMS:validator.validate_item(b.oh.get('/items/'+name+'?metadata=.*'),name,managed=False)
+            if validator is age:
+                for name in age.ITEMS:age.validate_links([link for link in links if link['itemName']==name],name,managed=False)
+            else:validator.validate_links(links)
+            save(directory,backup,source.read_bytes());sources.append({'filename':source.name,'sha256':digest,'backup':backup})
         native=json.loads(Path('/var/lib/openhab/jsondb/org.openhab.core.thing.Thing.json').read_text())
-        save(directory,'dependency-age-source.items',source.read_bytes())
         save(directory,'dependency-inert-thing.json',{'http:url:weatherHealth':age.inert_fixture_thing(native['http:url:weatherHealth'])})
-    save(directory,'file-member-context.json',{'names':sorted(file_members)})
+    save(directory,'file-member-context.json',{'names':sorted(file_members),'sources':sources})
     metadata=json.loads(Path('/var/lib/openhab/jsondb/org.openhab.core.items.Metadata.json').read_text())
     metadata={k:v for k,v in metadata.items() if
               v.get('value',{}).get('key',{}).get('segments',[None,None])[-1] in selected}
@@ -191,12 +197,18 @@ class Fixture:
                           ('org.openhab.core.items.Metadata.json',b.encoded(metadata)),('users.json',users)]:
             f.install_bytes(self.oh,'/openhab/userdata/jsondb',path,body,mode=0o600)
         context=directory/'file-member-context.json'
-        if context.exists():self.file_members=frozenset(json.loads(context.read_text())['names'])
+        if context.exists():
+            context=json.loads(context.read_text());self.file_members=frozenset(context['names'])
         if self.file_members:
-            g.require(self.file_members==g.FILE_MEMBERS,'unsupported fixture file members')
-            source=(directory/'dependency-age-source.items').read_bytes()
-            g.require(sha256(source).hexdigest()=='c1cba28d41c685d40eb61628d866b488365543d7f7bbff45a139a81aad3768e4','fixture file dependency drift')
-            f.install_bytes(self.oh,'/openhab/conf/items','weather-health-ages.items',source)
+            g.require(self.file_members in g.FILE_MEMBER_SCOPES,'unsupported fixture file members')
+            expected={'weather-health-ages.items':'c1cba28d41c685d40eb61628d866b488365543d7f7bbff45a139a81aad3768e4'}
+            if self.file_members==g.OBSERVER_FILE_MEMBERS:expected['sky-diagnostics.items']='3c6e43fbb3d6d03723341efa425c4dfb5143722fb2cdbcd0fe42ba43561ebca3'
+            source_rows=context.get('sources',[{'filename':'weather-health-ages.items','sha256':expected['weather-health-ages.items'],'backup':'dependency-age-source.items'}])
+            g.require({row['filename']:row['sha256'] for row in source_rows}==expected and len(source_rows)==len(expected),'fixture dependency list drift')
+            for row in source_rows:
+                g.require(row['backup'] in ('dependency-age-source.items','dependency-diagnostic-source.items'),'unexpected private source path')
+                source=(directory/row['backup']).read_bytes();g.require(sha256(source).hexdigest()==row['sha256'],'fixture file dependency drift')
+                f.install_bytes(self.oh,'/openhab/conf/items',row['filename'],source)
             f.install_bytes(self.oh,'/openhab/userdata/jsondb','org.openhab.core.thing.Thing.json',
                             (directory/'dependency-inert-thing.json').read_bytes(),mode=0o600)
         for relative in p.isolated.BUNDLES:
@@ -241,15 +253,22 @@ class Fixture:
             except (RuntimeError,ValueError): time.sleep(2)
         raise RuntimeError('owned Group/provider/members did not recover')
 
+    def ready_items(self):
+        deadline=time.monotonic()+120
+        while time.monotonic()<deadline:
+            try:return self.rest('/items?metadata=.*')
+            except RuntimeError:time.sleep(2)
+        raise RuntimeError('owned Item census did not recover after REST startup transition')
+
     def checkpoint(self, directory, phase, histories, baseline=None, managed=True):
         group=self.wait_group(managed)
-        items=self.rest('/items?metadata=.*')
+        items=self.ready_items()
         g.require({i['name'] for i in items}==g.MEMBERS|{g.GROUP},'unexpected fixture Item')
         members={i['name']:i for i in items if i['name']!=g.GROUP}
         deadline=time.monotonic()+120
         while any(i['state'] in ('NULL','UNDEF') for i in members.values()):
             g.require(time.monotonic()<deadline,'member states not restored by JDBC')
-            time.sleep(2); members={i['name']:i for i in self.rest('/items?metadata=.*') if i['name']!=g.GROUP}
+            time.sleep(2); members={i['name']:i for i in self.ready_items() if i['name']!=g.GROUP}
         if baseline is not None: g.require(members==baseline,'member definitions/state/provider drift')
         g.require(all(i.get('editable') is (name not in self.file_members) and i['groupNames']==[g.GROUP]
                       for name,i in members.items()),'member providers or references changed')
@@ -269,9 +288,13 @@ class Fixture:
             import weather_health_age_items as age
             g.require(len(links)==2 and len(things)==1,'fixture dependency scope drift')
             age.validate_fixture_thing(things[0])
-            for name in self.file_members:
+            for name in age.ITEMS:
                 age.validate_item(members[name],name,managed=False)
                 age.validate_links([link for link in links if link['itemName']==name],name,managed=False)
+            if self.file_members==g.OBSERVER_FILE_MEMBERS:
+                import sky_diagnostic_items as diag
+                diag.validate_links(links)
+                for name in diag.ITEMS:diag.validate_item(members[name],name,managed=False)
         else:g.require(things==[] and links==[],'unexpected fixture Things or links')
         info=self.info(self.oh)
         value={'at':datetime.now(timezone.utc).isoformat(),'phase':phase,'group':group,'members':members,

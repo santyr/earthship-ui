@@ -168,3 +168,27 @@ def test_missing_or_unexpected_live_member_provider_is_rejected():
     with pytest.raises(RuntimeError): module.file_member_scope(rows, group)
     del group['members'][0]['editable']
     with pytest.raises(RuntimeError): module.file_member_scope(rows, group)
+
+
+def test_four_observational_file_members_preserve_two_protected_managed_members():
+    module=tools();file_members=FILE_MEMBERS|{'SkyCondition_Diagnostic','SkyCondition_LastEval'}
+    rows=registry()
+    for name in file_members:del rows[name]
+    removed=json.loads(module.cold_edit(json.dumps(rows).encode(),remove=True,original=GROUP_RECORD,file_members=file_members))
+    restored=json.loads(module.cold_edit(json.dumps(removed).encode(),remove=False,original=GROUP_RECORD,file_members=file_members))
+    assert restored==rows and 'WeatherData_HealthStatus' in restored and 'WeatherData_WH65B_AgeSeconds' in restored
+    group=group_item()
+    for member in group['members']:member['editable']=member['name'] not in file_members
+    assert module.file_member_scope(rows,group)==file_members
+
+
+def test_post_group_read_transport_transition_is_retried_before_item_census(monkeypatch):
+    path=Path(__file__).with_name('qualify-weather-health-group.py');spec=importlib.util.spec_from_file_location('group_census_readiness',path);driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
+    calls=[]
+    class StartingFixture(driver.Fixture):
+        def rest(self,path):
+            calls.append(path)
+            if len(calls)==1:raise RuntimeError('owned curl transport failure 7 during REST registration')
+            return []
+    monkeypatch.setattr(driver.time,'sleep',lambda _:None)
+    assert StartingFixture().ready_items()==[] and calls==['/items?metadata=.*','/items?metadata=.*']

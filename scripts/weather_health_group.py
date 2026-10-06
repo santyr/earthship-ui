@@ -4,6 +4,8 @@ import json
 
 GROUP = 'gWeatherHealth'
 FILE_MEMBERS = frozenset({'WeatherData_WH31E_AgeSeconds', 'WeatherData_WH32B_AgeSeconds'})
+OBSERVER_FILE_MEMBERS = FILE_MEMBERS|frozenset({'SkyCondition_Diagnostic','SkyCondition_LastEval'})
+FILE_MEMBER_SCOPES = (frozenset(), FILE_MEMBERS, OBSERVER_FILE_MEMBERS)
 MEMBERS = frozenset({'SkyCondition_Diagnostic', 'SkyCondition_LastEval',
     'WeatherData_HealthStatus', 'WeatherData_WH31E_AgeSeconds',
     'WeatherData_WH32B_AgeSeconds', 'WeatherData_WH65B_AgeSeconds'})
@@ -33,7 +35,7 @@ def file_member_scope(registry, group):
             'logical member scope drift')
     require(all(type(row.get('editable')) is bool for row in refs), 'member provider unavailable')
     scope = frozenset(row['name'] for row in refs if not row['editable'])
-    require(scope in (frozenset(), FILE_MEMBERS), 'unsupported live member providers')
+    require(scope in FILE_MEMBER_SCOPES, 'unsupported live member providers')
     require(isinstance(registry, dict) and not scope.intersection(registry)
             and members(registry) == MEMBERS-scope, 'live and persisted member providers disagree')
     return scope
@@ -47,7 +49,7 @@ def cold_edit(body, *, remove, original, file_members=frozenset()):
     """
     require(type(remove) is bool, 'cold operation must be boolean')
     require(original == GROUP_RECORD, 'original Group record drift')
-    require(isinstance(file_members, frozenset) and file_members in (frozenset(), FILE_MEMBERS),
+    require(isinstance(file_members, frozenset) and file_members in FILE_MEMBER_SCOPES,
             'unsupported file member scope')
     rows = json.loads(body)
     require(isinstance(rows, dict) and not file_members.intersection(rows)

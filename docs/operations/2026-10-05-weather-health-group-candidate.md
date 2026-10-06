@@ -6,7 +6,8 @@ migration with the existing cold Group transfer approach.
 
 The Group is an unlinked, untagged plain `Group`, label `Weather Health`,
 NULL state, no parent Groups, metadata, aggregate type/function or JDBC identity.
-The current provider mix is four managed members and two file-owned age members.
+The current provider mix is two managed members and four file-owned observer
+members (ages plus diagnostic/last-evaluation outputs).
 The original rehearsal below used six managed members; the refreshed evidence
 for the current mix appears at the end. Stable identities remain:
 
@@ -148,3 +149,16 @@ Two additional provider-preflight regressions pass after the 4,212-test run,
 covering **4,214 unique passing tests** in total. The fixture class AST is unchanged
 from the terminal native rehearsal, and the strengthened pure preflight accepts
 its retained native input and the current live provider map.
+
+## October 5 four-file-member layout qualified after diagnostic handoff
+
+The [diagnostic handoff](2026-10-05-sky-diagnostic-items.md) completes the four
+observational members. Health status and outdoor age stay managed. The closed
+transformer now accepts exactly the all-managed, age-pair and four-observer
+sets, rejecting duplicates or unsupported mixes. Nine native diagnostic/Group
+phases preserve all six prefixes and provider semantics. A fresh current-layout
+bootstrap copies three managed records, two managed metadata namespaces and
+both exact file definitions; four file members and their metadata recover.
+The two existing age links and inert channels remain unchanged. All owned
+fixtures are removed. Source/history/provider recovery is qualified for this
+current layout, while actual production stop/start and cold recovery remain open.
