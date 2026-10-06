@@ -1,5 +1,17 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 6 energy-model diagnosis
+
+The [ML checkpoint](2026-10-06-machine-learning-focus.md#pv-sunset-and-pre-dusk-model-diagnosis)
+now reproduces five qualified pre-dusk cases: existing phase-matched comparison
+MAE2.4 SoC points versus original6.2 (sunset-only2.2). One September case worsens,
+so the small retrospective comparison is not a release or seasonal-skill claim.
+Four original PV/sunset joins show gain alone cannot fix the opposing October3/4
+misses at fixed demand; only three have original raw-weather archives for an
+hourly-input fit. All44 retained profile calculations replay offline; all141
+existing tests pass. The bounded offline phase-predictor design prompt is pending;
+no production model or control changes. Migration/restart remain deferred.
+
 ## October 6 ML algorithm comparison
 
 The [ML checkpoint](2026-10-06-machine-learning-focus.md#outdoor-weather-algorithm-comparison)

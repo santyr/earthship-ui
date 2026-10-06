@@ -141,6 +141,66 @@ and verification, with mode0600 files in mode0700 directories. Historical
 forecast and model state, publishers, journal labels and household controls
 are unchanged.
 
+## PV, sunset and pre-dusk model diagnosis
+
+The unchanged restricted benchmark qualifies five complete September29–October4
+pre-dusk comparisons; October2 lacks origin components. The original morning
+issue, original late atomic SoC and the same three prior-night sample ending
+dates are retained. Historical profiles are assessed at the original morning
+clock and matched to each late issue's exact sunset-relative phase. Existing
+cloud penalty, rounding and clamps are unchanged.
+
+| Original prediction day | Qualified trough% | Original pre-dusk% | Phase-matched comparison% | Sunset-only comparison% |
+| --- | ---: | ---: | ---: | ---: |
+| September29 | 81 | 81 | 81 | 83 |
+| September30 | 65 | 64 | 68 | 70 |
+| October1 | 72 | 65 | 69 | 72 |
+| October3 | 86 | 74 | 82 | 83 |
+| October4 | 85 | 74 | 83 | 84 |
+
+On these five matched nights, original pre-dusk MAE is **6.2 SoC points**;
+phase-matched MAE is **2.4**, sunset-only **2.2**. Phase matching worsens
+September30's error from -1 to +3 points and improves the three October cases.
+The sunset-only comparison has slightly lower aggregate error here but omits
+the issue-to-sunset phase distinction. These are existing retrospective
+counterfactuals, not original issued predictions or newly fitted model skill;
+October3 separately retains its previously frozen pre-outcome comparison.
+Five nights cannot establish calibration or seasonal performance.
+
+Four qualified PV/sunset joins also reproduce from fresh restricted native
+PV reads and original public prediction receipts, with exact atomic-SoC
+origin binding. Original raw-weather archives verify for October1/3/4;
+September30's original morning record/receipt has no issue-bound archive/digest.
+Its recorded scalar quantities and qualified outcomes remain diagnostic evidence;
+it cannot supply the missing hourly weather curve for an hourly-input fit.
+
+| Day | PV error kWh | Sunset SoC error, points |
+| --- | ---: | ---: |
+| September30 | -0.958 | -14.807 |
+| October1 | -0.117 | -12.542 |
+| October3 | +0.821 | -3.990 |
+| October4 | +0.654 | -4.614 |
+
+All four originals use the resource-limited branch. At fixed direct demand,
+SoC and other inputs, increasing solar gain monotonically increases both PV
+and the modeled evening SoC (until their caps); decreasing it reduces both.
+Thus gain alone cannot simultaneously reduce the opposing PV/sunset misses
+on October3/4. This is a constraint of the current formula, not physical or
+causal load attribution. An effective-demand or joint energy-balance candidate
+needs its own qualified chronological evaluation; no inferred AC/DC conversion
+or harvested-PV-as-solar-potential label is introduced.
+
+Independent source repeats match after removing only the explicit assessment
+clocks. Offline replay reproduces all44 retained profile calculations and the
+component errors; all141 relevant existing tests pass. Native profile inputs,
+original public receipts/weather archives, qualified PV-reader returns,
+source pins and offline replay are sealed in
+`ml-energy-chain-20261006-4td1a0pz/` below the evidence root (25 files plus manifest).
+The proposed next bounded change is a pure offline phase predictor extracted
+from this existing comparison, preserving provenance and production behavior.
+The operator design prompt is pending; no predictor implementation or release,
+production training, Item write, notification or household command occurred.
+
 ## Evidence
 
 Private original forecasts/outcomes, repeated report, current accepted/backtest
