@@ -383,7 +383,7 @@ See `docs/operations/2026-09-20-persistence-provider-qualification.md` for the
 isolated and live receipts. Continue observing the natural forecast publisher
 and independent power writer; do not fill or silently score the collection gap.
 
-## Sun calendar display candidate — October 5
+## Sun calendar display candidate — October 5 (historical)
 
 The [eight season/eclipse display Items](../../docs/operations/2026-10-05-sun-calendar-items.md)
 have exact file candidates in `items/sun-calendar.items`. Native provider
@@ -392,3 +392,9 @@ pass. All 6,994 original production rows and 58 existing source pins are preserv
 production remains managed and the candidate is uninstalled. Sun elevation and
 daylight-start/sunset control inputs remain outside this batch. Attended transport
 and actual live rollback are pending; no file-ownership rows are added yet.
+
+October6 current checkpoint: all eight Sun calendar Items/links above are now
+file-owned after actual original-managed rollback and final transfer. Their
+6,994 original rows and latest JDBC values are independently verified. Current
+installed source paths total59. The operator then stopped migration and directed
+work to machine learning; the prior58-source restart baseline is unrefreshed.

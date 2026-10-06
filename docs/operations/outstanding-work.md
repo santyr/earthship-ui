@@ -1,5 +1,18 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 6 operator focus: machine learning
+
+The operator stopped migration work and directed efforts to machine learning.
+The already-completed Sun eight-Item/link round trip is recorded in the
+[transfer receipt](2026-10-05-sun-calendar-items.md#october-6-live-transfer-and-change-of-focus).
+All6,994 original rows and current JDBC values are verified; source paths now59,
+PID1696 unchanged. The previous58-source/44-prefix restart baseline was not
+refreshed after this focus change and must be refreshed before later qualification.
+Further migration and restart work is deferred. Prioritize the thermal structural
+solar-feature issue, chronological held-out skill, model outcomes and source-bound
+PV/charge/night learning. Keep existing November no-venting policy and genuine
+labels intact; device acceptance remains signed off.
+
 ## October 5 Sun calendar display batch qualified in isolation
 
 The [eight season/eclipse display Items](2026-10-05-sun-calendar-items.md) now have

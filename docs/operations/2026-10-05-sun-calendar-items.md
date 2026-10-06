@@ -86,3 +86,31 @@ and live original-managed rollback are the next stage. Stable calendar/eclipse
 outputs will retain their separate natural-change gates after transfer.
 Production whole-JVM qualification still requires host authentication for the
 already-approved service restart.
+
+## October 6 live transfer and change of focus
+
+The live file/original-managed/final-file round trip completed before the
+operator redirected work to machine learning. All eight Items and links are now
+file-owned. At 13:26:02Z, independent readback confirms their managed disk records
+are absent, all 6,994 original history rows are preserved, and all eight current
+values match their latest JDBC values. There are 21 additional rows; stable
+calendar/eclipse changes remain future observation gates. PID1696 is unchanged,
+and the Sun semantic representative is unchanged. Prior 58 source pins and all
+unrelated definitions, rule health and disabled states passed each checkpoint.
+The ownership manifest now adds exactly sixteen declarations for this batch;
+installed source paths total59. No household state, command or rule call occurred.
+
+The exact transport passed owned native managed/file/managed/file and cold
+recovery. Review-driven delayed-withdrawal, directory-durability and rule-health
+regressions pass. Verification covers 4,283 full-run passes plus two later
+durability regressions (10 skips,91 subtests); all50 affected guards pass.
+The final source review and preparation/evidence review are clear.
+
+Current recovery capsule:
+`/home/sat/.local/state/openhab-config-migration/sun-calendar-handoff-20261006-uo8orcd3/`.
+It retains fresh original managed definitions, users/configuration, eight
+recoverable histories and three attended phase receipts. The current restart
+baseline still pins58 sources/44 prefixes and needs refreshing before a later
+production qualification. That refresh and further migration work stopped at
+the operator's October6 instruction to focus on machine learning. Production
+restart qualification remains open.

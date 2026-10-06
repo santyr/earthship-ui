@@ -1287,6 +1287,22 @@
       "jdbc_identity": 540,
       "receipt": "docs/operations/2026-10-05-sky-diagnostic-items.md",
       "production_restart_qualified": false
-    }
+    },
+    {"kind": "item", "id": "Sun_Autumn", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#autumn"},
+    {"kind": "link", "id": "Sun_Autumn -> astro:sun:local:season#autumn", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_Eclipse_PartialElevation", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#partialElevation"},
+    {"kind": "link", "id": "Sun_Eclipse_PartialElevation -> astro:sun:local:eclipse#partialElevation", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_PartialEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#partial"},
+    {"kind": "link", "id": "Sun_PartialEclipse -> astro:sun:local:eclipse#partial", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_RingEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#ring"},
+    {"kind": "link", "id": "Sun_RingEclipse -> astro:sun:local:eclipse#ring", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_Spring", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#spring"},
+    {"kind": "link", "id": "Sun_Spring -> astro:sun:local:season#spring", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_Summer", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#summer"},
+    {"kind": "link", "id": "Sun_Summer -> astro:sun:local:season#summer", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_TotalEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#total"},
+    {"kind": "link", "id": "Sun_TotalEclipse -> astro:sun:local:eclipse#total", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {"kind": "item", "id": "Sun_Winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#winter"},
+    {"kind": "link", "id": "Sun_Winter -> astro:sun:local:season#winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"}
   ]
 }
