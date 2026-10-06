@@ -1,5 +1,25 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 south planter fan restricted to daylight
+
+The operator-required [daylight restriction](2026-10-05-south-planter-fan.md#october-5-daylight-restriction)
+is hot-loaded and verified file-owned IDLE with nine exact triggers. It requires
+fresh SoC >=98%, the original battery gates, fresh positive sun elevation and
+current time inside the existing daylight-start/sunset bounds; every dark,
+missing, stale or invalid case selects OFF. Native isolated boundary/expiry/
+cold-JVM/withdrawal tests and independent review pass, along with 32 focused
+checks and 4,175 repository tests. At 00:28Z October 6 (18:28 MDT October 5),
+the physical fan is ON at native SoC 98% and positive elevation. All 1,876
+current history rows, unrelated definitions, 55 other installed source files
+and PID 1696 are preserved. Two observed Open-Meteo timestamp advances are
+recorded explicitly. A natural fresh-97% threshold OFF at 18:33 MDT has its
+native row, and a physical below-horizon OFF pose at 18:38 is verified. Since
+SoC is already below 98%, a uniquely daylight-caused live stop at >=98% remains
+unobserved; isolated refusal is qualified. Whole-JVM recovery remains open.
+The [refreshed private restart baseline](2026-10-05-production-restart-attempt.md#daylight-rule-baseline-refresh)
+now pins the qualified daylight source and retains all 40 original history
+prefixes. No service restart or other household command was issued.
+
 ## October 5 charging-status natural output/JDBC gate closed
 
 The [natural writer receipt](2026-10-05-battery-charging-status-item.md#october-5-natural-changed-output-and-history-qualified)

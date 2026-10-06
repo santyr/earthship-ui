@@ -52,6 +52,27 @@ pre-handoff `restart-20261005-e19ac0u1` baseline, which remains retained.
 `/tmp/openhab-restart-directory` selects the refreshed capsule. The retained
 `qualification.py` uses the attended worktree's current ownership declaration.
 
+
+## Daylight rule baseline refresh
+
+After the operator required the fan to run only in daylight, the current
+restart capsule was refreshed without a service action:
+`/home/sat/.local/state/openhab-config-migration/restart-20261005-fan-daylight-p4m6vb5f/`.
+The current native registry and all **56** source hashes include the qualified
+fan source `bc269d77427c1fcf197844345992c30a240c7ca9922dbd984f035efa0373dedf`.
+The **40** fixed-cutoff history archives are retained byte-for-byte from the
+previous capsule. Fresh sparse-preserving configuration, userdata and add-on
+archives total **1,801,789,440 bytes**; all 56 source files match the configuration
+archive, and **95** JSONDB documents parse. The live fan is OFF, file-owned IDLE
+with nine triggers; PID **1696** remains unchanged.
+
+`/tmp/openhab-restart-directory` now selects this capsule. Its retained qualifier
+uses the daylight worktree, and its mode-600 files are hashed in `manifest.json`.
+The previous capsule remains retained. The capture is live and non-atomic;
+production restart and restore qualification remain open. The earlier
+charging-status changed-output gate has since closed with natural transitions,
+as recorded in the outstanding-work checkpoint.
+
 The operator must authenticate the same command on the host:
 
 ```bash

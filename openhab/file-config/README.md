@@ -134,7 +134,9 @@ See the [handoff receipt](../../docs/operations/2026-10-05-battery-charging-stat
 
 `automation/js/south-planter-fan.js` is the new live, file-owned
 `hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound
-SoC >=98%, OFF below 98% or on invalid battery telemetry. Native device readback
+SoC >=98% during valid daylight, OFF after dark, below 98% or on invalid battery
+or sun telemetry. The existing daylight/sunset bounds and fresh positive
+elevation are required. Native device readback
 confirms its first natural ON at 99%; isolated restart/fail-closed/withdrawal
 checks pass. Outlet 2's pump owner is unchanged. See the
 [fan receipt](../../docs/operations/2026-10-05-south-planter-fan.md).

@@ -1,7 +1,8 @@
 // Sole automatic owner of SouthOutlet outlet 1; greywater owns outlet 2.
-// Fresh source-bound SoC >=98% enables the fan; every other case selects OFF.
+// Fresh source-bound SoC >=98% enables the fan during daylight only.
 const { rules, triggers, items } = require('openhab');
 const FAN = 'SouthOutlet_Outlet1_Switch';
+const SUN = 'Sun_Position_Elevation';
 let lastCommand = null;
 let lastCommandAt = 0;
 
@@ -38,6 +39,32 @@ function trustedSoc(currentMs) {
   } catch (_) { return NaN; }
 }
 
+function eventTime(name) {
+  const raw = state(name);
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})$/.test(raw)) return NaN;
+  return Date.parse(raw);
+}
+
+function daylight(currentMs) {
+  try {
+    const sun = items.getItem(SUN);
+    const raw = String(sun.state);
+    const elevation = /^-?\d+(?:\.\d+)? °$/.test(raw) ? Number(raw.slice(0, -2)) : NaN;
+    const stamp = sun.lastStateUpdateInstant;
+    const updatedAt = stamp === null || stamp === undefined ? NaN : Number(stamp.toEpochMilli());
+    const start = eventTime('Sun_Daylight_Start');
+    const end = eventTime('Sun_Set_Start');
+    // Daily event bounds prevent a positive restored/held elevation from
+    // authorizing ON after sunset. Native Astro elevation updates every 16 s.
+    return Number.isFinite(elevation) && elevation > 0 && elevation <= 90
+      && Number.isSafeInteger(updatedAt) && updatedAt > 0 && updatedAt <= currentMs
+      && currentMs - updatedAt < 120000
+      && Number.isSafeInteger(start) && Number.isSafeInteger(end)
+      && start < end && end - start < 86400000
+      && currentMs >= start && currentMs < end;
+  } catch (_) { return false; }
+}
+
 function evaluate() {
   const now = Date.now();
   const soc = trustedSoc(now);
@@ -48,7 +75,8 @@ function evaluate() {
     && state('BMS_Comms_Status') === 'OK'
     && state('SchneiderTelemetry_Status').startsWith('OK,')
     && Number.isFinite(voltage) && voltage >= 40 && voltage <= 60;
-  const desired = healthy && soc >= 98 ? 'ON' : 'OFF';
+  const isDaylight = daylight(now);
+  const desired = healthy && soc >= 98 && isDaylight ? 'ON' : 'OFF';
   try {
     const fan = items.getItem(FAN);
     if (String(fan.state) === desired) return;
@@ -60,7 +88,7 @@ function evaluate() {
     lastCommandAt = now;
     fan.sendCommand(desired);
     console.info('[south-planter-fan] command=' + desired
-      + ' reason=' + (healthy ? 'soc_threshold' : 'invalid_telemetry')
+      + ' reason=' + (!healthy ? 'invalid_telemetry' : !isDaylight ? 'not_daylight' : 'soc_threshold')
       + ' soc=' + (Number.isFinite(soc) ? soc : 'unknown'));
   } catch (error) {
     console.error('[south-planter-fan] command failed: ' + error);
@@ -69,13 +97,16 @@ function evaluate() {
 
 rules.JSRule({
   id: 'hex_south_planter_fan',
-  name: 'South planter fan at 98% battery SoC',
-  description: 'Outlet 1 ON at fresh SoC >=98%; OFF below 98% or on invalid battery telemetry.',
+  name: 'South planter fan at 98% battery SoC during daylight',
+  description: 'Outlet 1 ON at fresh SoC >=98% during daylight; OFF after dark, below 98%, or on invalid telemetry.',
   triggers: [
     triggers.ItemStateUpdateTrigger('BMS_SOC_Evidence_JSON'),
     triggers.ItemStateChangeTrigger('BMS_Comms_Status'),
     triggers.ItemStateChangeTrigger('SchneiderTelemetry_Status'),
     triggers.ItemStateUpdateTrigger('DCData_Voltage'),
+    triggers.ItemStateUpdateTrigger(SUN),
+    triggers.ItemStateUpdateTrigger('Sun_Daylight_Start'),
+    triggers.ItemStateUpdateTrigger('Sun_Set_Start'),
     triggers.ItemStateChangeTrigger(FAN),
     triggers.GenericCronTrigger('0/30 * * * * ?'),
   ],

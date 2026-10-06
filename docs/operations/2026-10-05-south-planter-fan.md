@@ -1,5 +1,60 @@
 # South planter fan at 98% battery SoC
 
+## October 5 daylight restriction
+
+The operator subsequently required **daylight only**. The qualified rule is
+hot-loaded, file-owned and IDLE with nine exact triggers. At 00:28Z October 6
+(18:28 MDT October 5), native SoC is **98%**, sun elevation **1.62°**, and a
+read-only TP-Link query confirms the fan physically ON, with outlet 2 OFF.
+
+ON requires the original fresh battery gates, SoC >=98%, a fresh positive
+`Sun_Position_Elevation`, and current time inside the existing
+`Sun_Daylight_Start`–`Sun_Set_Start` window. Elevation must be at most 90° and
+its native update timestamp must be present, non-future and less than 120 seconds
+old. Event bounds must be valid, ordered and less than 24 hours apart. The
+daily bounds prevent an old positive elevation restored at startup from
+authorizing ON after sunset. Outside this window, at elevation <=0, or on
+missing/invalid/stale sun input, the fan selects OFF. No new astronomical or
+ventilation calculation is introduced.
+
+Three additional Item-update triggers cover elevation and both daily bounds.
+The unchanged 30-second cron also enforces clock boundaries and source expiry.
+The rule uses the [native Item update timestamp API](https://openhab.github.io/openhab-js/items_items.js.html);
+its behavior is verified in the actual isolated OpenHAB/Graal runtime.
+
+Source SHA-256:
+`bc269d77427c1fcf197844345992c30a240c7ca9922dbd984f035efa0373dedf`.
+Thirty-two focused checks and **4,175** repository tests pass (10 skipped,
+91 subtests). Independent source review is clear. Isolated native execution
+passes threshold/daylight boundaries, positive-elevation sun-data expiry while
+the battery evidence stays fresh, missing-input cold-JVM recovery and safe
+source withdrawal. Its owned networkless container is removed; no hardware
+links or production states enter the fixture.
+
+The attended source update retains all **1,876** current Item-46 history rows
+as an exact recoverable prefix. All other Item/rule/link definitions and all
+55 other installed-source hashes match the preimage. Exactly two Open-Meteo
+binding `last-updated` timestamps advance; their values are recorded explicitly.
+PID **1696** is unchanged. A brief 404 while the file rule deregistered during
+hot reload is reconciled by subsequent exact nine-trigger IDLE readback; the
+one-shot installer is not rerun.
+
+Private source preimage, history, isolated proof, tests, native registry and
+physical readback are retained in the mode-0700 directory
+`/home/sat/.local/state/openhab-config-migration/south-planter-fan-daylight-20261005-3_r5djhk/`.
+The first natural post-update OFF occurs at **18:33:05 MDT**, with fresh SoC
+97% and source-attributed `reason=soc_threshold`; its native Item-46 OFF row
+is retained. At **18:38:09 MDT**, elevation is **−0.354°** and a separate
+physical query confirms fan OFF and outlet 2 OFF. Because SoC already fell
+below 98%, this pose does not uniquely attribute a live stop to daylight.
+That specific >=98% night transition and household whole-JVM recovery remain
+separate observation gates; native isolated >=98% night refusal is qualified.
+The [current private restart baseline](2026-10-05-production-restart-attempt.md#daylight-rule-baseline-refresh)
+now includes the daylight source, all 56 current source pins and 40 original
+history prefixes; production restart still requires host authentication.
+The earlier sections below describe the original deployment before this
+operator-requested daylight restriction.
+
 The operator requested automatic control of `SouthOutlet_Outlet1_Switch` and
 confirmed **ON at SoC >=98%, OFF below 98%, OFF on stale/invalid telemetry**.
 The file-owned rule `hex_south_planter_fan` is enabled and verified IDLE.
@@ -19,8 +74,9 @@ used by the protected pump owner. It validates the closed schema, source epoch,
 value range, source/record clocks and 120-second source expiry. A held `BMS_SOC`
 display value cannot authorize ON. BMS comms must be `OK`, Schneider telemetry
 must start with `OK,`, and native DC voltage must be valid and within 40–60 V.
-Every invalid/below-threshold case selects OFF. The threshold applies at any
-time, without hysteresis or a fan duty cycle.
+Every invalid/below-threshold case selects OFF. This original deployment had
+no daylight gate; the later restriction above supersedes that behavior. There
+is no SoC hysteresis or fan duty cycle.
 
 Six triggers cover atomic SoC updates, BMS/Schneider status changes, voltage
 updates, fan state changes and a 30-second cron. The cron detects expired

@@ -9,23 +9,26 @@ def test_threshold_safety_expiry_retry_and_exclusive_actuator():
     runner = r'''
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync(process.argv[1],'utf8');
-let clock=1800000000000,rule,writes=[],attempts=0,fail=false,missing=new Set();
+let clock=1800000000000,rule,writes=[],attempts=0,fail=false,missing=new Set(),sunUpdate=clock-1000;
+function sunWindow(start=clock-3600000,end=clock+3600000){state.Sun_Daylight_Start=new Date(start).toISOString();state.Sun_Set_Start=new Date(end).toISOString();}
 const epoch='61b2c967-b217-429e-840f-eebf68a36da0';
 function receipt(soc=98){return {version:1,streamEpoch:epoch,recordedAt:clock-1000,
  status:'valid',reason:'ok',observedAt:clock-2000,scaleObservedAt:clock-1000,
  validUntil:clock-2000+120000,soc}}
 const state={BMS_SOC_Evidence_JSON:'',BMS_Comms_Status:'OK',
  SchneiderTelemetry_Status:'OK,chargeState=CHARGING,ages=dc:1/120',
- DCData_Voltage:'53.4 V',SouthOutlet_Outlet1_Switch:'OFF'};
+ DCData_Voltage:'53.4 V',SouthOutlet_Outlet1_Switch:'OFF',
+ Sun_Position_Elevation:'10 °',Sun_Daylight_Start:'',Sun_Set_Start:''};
 function reset(soc=98,fan='OFF') {clock+=31000;state.BMS_SOC_Evidence_JSON=JSON.stringify(receipt(soc));
  state.BMS_Comms_Status='OK';state.SchneiderTelemetry_Status='OK,chargeState=CHARGING';
- state.DCData_Voltage='53.4 V';state.SouthOutlet_Outlet1_Switch=fan;writes=[];attempts=0;missing.clear();fail=false;}
+ state.DCData_Voltage='53.4 V';state.SouthOutlet_Outlet1_Switch=fan;writes=[];attempts=0;missing.clear();fail=false;
+ state.Sun_Position_Elevation='10 °';sunUpdate=clock-1000;sunWindow();}
 const ctx={Date:class extends Date {static now(){return clock}},console:{info(){},warn(){},error(){}},
  require(name){assert.equal(name,'openhab');return {rules:{JSRule(r){assert.equal(rule,undefined);rule=r}},
  triggers:{ItemStateUpdateTrigger(itemName){return {type:'update',itemName}},
  ItemStateChangeTrigger(itemName){return {type:'change',itemName}},GenericCronTrigger(cron){return {type:'cron',cron}}},
  items:{getItem(n){assert(Object.hasOwn(state,n),'undeclared input '+n);if(missing.has(n))throw Error('missing');
- return {get state(){return state[n]},sendCommand(value){assert.equal(n,'SouthOutlet_Outlet1_Switch');
+ return {get state(){return state[n]},get lastStateUpdateInstant(){return sunUpdate===null?null:{toEpochMilli(){return sunUpdate}}},sendCommand(value){assert.equal(n,'SouthOutlet_Outlet1_Switch');
  assert(['ON','OFF'].includes(value));attempts++;if(fail)throw Error('transport');writes.push([n,value]);}}}}}}};
 vm.runInNewContext(source,ctx);
 assert.equal(rule.id,'hex_south_planter_fan');
@@ -59,7 +62,34 @@ reset(99,'UNDEF');rule.execute();assert.equal(writes.at(-1)[1],'ON');
 reset(99);fail=true;assert.doesNotThrow(()=>rule.execute());rule.execute();assert.equal(attempts,1);fail=false;clock+=30000;
 state.BMS_SOC_Evidence_JSON=JSON.stringify(receipt(99));rule.execute();assert.equal(writes.at(-1)[1],'ON');
 state.SouthOutlet_Outlet1_Switch='ON';state.BMS_Comms_Status='STALE';rule.execute();writes=[];clock-=1000;rule.execute();assert.equal(writes.at(-1)[1],'OFF');
-console.log('threshold, source validity, expiry, safety, exclusive output and bounded retries pass');
+// Daylight is a current astronomical window AND a fresh positive elevation.
+assert(rule.triggers.some(t=>t.type==='update'&&t.itemName==='Sun_Position_Elevation'));
+assert(rule.triggers.some(t=>t.type==='update'&&t.itemName==='Sun_Daylight_Start'));
+assert(rule.triggers.some(t=>t.type==='update'&&t.itemName==='Sun_Set_Start'));
+for(const sun of ['0 °','-0.001 °','-90 °','90.001 °','NULL','UNDEF','NaN °','10','10 rad']) {
+ reset(99,'ON');state.Sun_Position_Elevation=sun;rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+}
+for(const stamp of [null,0,clock+999999,NaN]) {
+ reset(99,'ON');sunUpdate=stamp;rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+}
+reset(99,'ON');sunUpdate=clock-120000;rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+reset(98);state.Sun_Position_Elevation='0.001 °';rule.execute();assert.equal(writes.at(-1)[1],'ON');
+for(const name of ['Sun_Position_Elevation','Sun_Daylight_Start','Sun_Set_Start']){
+ reset(99,'ON');missing.add(name);rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+}
+for(const name of ['Sun_Daylight_Start','Sun_Set_Start'])for(const bad of ['NULL','UNDEF','not a date','0']){
+ reset(99,'ON');state[name]=bad;rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+}
+for(const getBounds of [()=>[clock+1000,clock+3600000],()=>[clock-3600000,clock],()=>[clock,clock],
+ ()=>[clock+1000,clock-1000],()=>[clock-86400000,clock+1000]]){
+ reset(99,'ON');sunWindow(...getBounds());rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+}
+// A just-restored positive elevation must never bypass an expired daylight window.
+reset(99,'ON');sunWindow(clock-3600000,clock-1);rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+// Sunset OFF is immediate even after an unacknowledged ON command.
+reset(99);rule.execute();assert.equal(writes.at(-1)[1],'ON');writes=[];
+state.SouthOutlet_Outlet1_Switch='ON';state.Sun_Position_Elevation='-0.001 °';rule.execute();assert.equal(writes.at(-1)[1],'OFF');
+console.log('daylight boundaries, freshness, source validity, exclusive output and retries pass');
 '''
     result = subprocess.run(['node', '-e', runner, str(SOURCE)], capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
