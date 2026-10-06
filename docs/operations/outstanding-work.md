@@ -14,6 +14,16 @@ candidate is coupled to opening states absent from the journal; proposed next wo
 isolates the solar correction while preserving ventilation handling. No model or
 control changes are released. The operator's migration stop remains in effect.
 
+At 14:20:00Z the first original October5 daily target matures: model/cycle/
+persistence absolute errors are 1.373/3.060/2.520°F, from one selected window.
+Today's separate accepted artifact naturally reaches the Item and JDBC history
+at 08:11 MDT with exact installed-runtime replay and valid original inputs.
+A cutoff-bound journal projection supports only the both-closed confirmed shade
+regime (90.349 held-state hours); the other three have no jointly confirmed
+intervals. These are not qualified training hours or historical decision knowledge.
+The proposed solar-only candidate therefore also needs independent label support;
+no new candidate design or release is approved by an unanswered track prompt.
+
 ## October 6 operator focus: machine learning
 
 The operator stopped migration work and directed efforts to machine learning.

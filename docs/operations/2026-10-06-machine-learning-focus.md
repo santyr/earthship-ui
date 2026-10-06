@@ -38,6 +38,28 @@ seasonal support. Short selected origins span October5/6, with the latter day st
 partial. All scored intervals cover outcomes but remain about 10.414°F wide; all
 publications retain low confidence. Daily/48-hour targets were immature at this clock.
 
+## First daily outcome and today's natural delivery
+
+At fixed **14:20:00Z**, two original-source reports match byte-for-byte. The
+October5 publication issued at 14:05:58Z now has one mature 24h target at
+October6 14:00Z. Absolute errors are **1.373°F model, 3.060°F recent-cycle and
+2.520°F persistence**; all three underpredict. Its interval covers the target,
+with width 10.413°F and low confidence. The outdoor forecast error is +5.320°F;
+this does not identify the cause of the indoor error. This is one selected window
+from one issue day, not evidence of general daily skill or action readiness.
+The earlier 13:35 assessment remains a valid snapshot with no mature daily target.
+
+Today's new accepted artifact was naturally published at **08:11:01 MDT**.
+Its canonical captured artifact identity is
+`366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7`,
+separate from October5's `bad329e1...` cohort. Exact installed-runtime replay,
+current Item equality, one matching original JDBC row, successful terminal
+systemd invocation bound to its active timer, original accepted-file binding and
+unexpired native temperature/radiation receipts all pass. The capture decision
+is 14:10:59.369310Z and JDBC storage is 14:11:01.600Z. Delivery verification does
+not supply a mature daily outcome for this new artifact. No manual service start,
+training or publisher run was used.
+
 ## Structural correction and data requirements
 
 The current accepted coefficients still reproduce the compound-shade defect:
@@ -54,6 +76,18 @@ or skylight events**, one `nostr_confirmed` indoor-shade event, one `manual_dm`
 outdoor-shade event, one reconstructed outdoor-shade event and eight model-inferred
 Kiva events. Unknown openings must remain unknown. Existing genuine journal events
 must not be confused with the artifact's zero fully qualified action-training rows.
+
+A cutoff-bound projection of the journal over the accepted model's 400-day range
+finds **90.349 hours with both shades jointly confirmed closed** and no jointly
+confirmed intervals for the other three shade combinations. The other 9,509.651
+hours are not jointly confirmed. This is an upper bound from held journal states,
+not temperature-qualified training hours or proof of continuous physical state.
+It uses effective timestamps and reports received by the training cutoff; some
+reports arrived after their effective time, so it also does not establish what
+was known at each historical decision. Window/skylight states remain unknown.
+The retained installed projection functions reproduce the intervals exactly.
+A solar-only refactor removes the opening-state dependency but cannot independently
+validate four shade gains from the current confirmed labels.
 
 The proposed next model work is an **offline solar-only candidate**, retaining the
 existing ventilation contract and refitting its own four-regime coefficients.
@@ -74,3 +108,15 @@ original scorer reports and exact-repeat evidence are unchanged. Corrected local
 counts are independently checked against each selected-window count and retained in
 `/home/sat/.local/state/thermal-intel/qualification-receipts/ml-focus-20261006-d1o4hxuc-summary-correction/`.
 No raw household history is committed.
+
+Additional sealed private capsules (mode 0700 directories, mode 0600 files):
+
+- `solar-label-coverage-20261006-zcyce0_r/`: six files plus manifest, original
+  cutoff-bounded journal export, interval projection and offline reproduction.
+- `ml-daily-target-20261006-mqs6hyrv/`: five files plus manifest, exact-repeat
+  original-outcome reports, scorer/baseline source and fixed-clock read-only command.
+- `ml-natural-delivery-20261006-ns7wiror/`: ten files plus manifest, immutable
+  original capture, accepted artifact, delivery/replay evidence and verifier source.
+
+All three reside below
+`/home/sat/.local/state/thermal-intel/qualification-receipts/`.
