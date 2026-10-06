@@ -73,6 +73,26 @@ production restart and restore qualification remain open. The earlier
 charging-status changed-output gate has since closed with natural transitions,
 as recorded in the outstanding-work checkpoint.
 
+
+## Weather-health age baseline refresh
+
+Following the attended two-age-Item hot handoff, the latest baseline at
+**2026-10-06 01:42:46Z** is
+`/home/sat/.local/state/openhab-config-migration/restart-20261005-weather-health-ages-zqc4ttzi/`.
+It pins all **57** current source paths, including both the daylight fan and
+age definitions, and retains **42** recoverable history prefixes: all 40 prior
+prefixes plus the two age tables. Its fresh sparse-preserving archives total
+**1,801,768,960 bytes**. All 57 files match the configuration archive and all
+**95** JSONDB documents parse. Archived managed Item/link/metadata entries for
+the newly file-owned ages are absent, preserving single-provider recovery.
+
+The latest capsule has 53 mode-600 evidence files plus their manifest.
+`/tmp/openhab-restart-directory` selects it; the retained qualifier points to
+the age worktree and checks all 42 prefixes. The previous fan capsule remains
+retained. Both new age Items have natural post-handoff JDBC writes. PID **1696**
+is unchanged; no production service action occurred. Live backup capture is
+non-atomic, and production restore/restart qualification remains open.
+
 The operator must authenticate the same command on the host:
 
 ```bash

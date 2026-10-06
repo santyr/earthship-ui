@@ -132,6 +132,14 @@ entire original prefix. Production restart remains open; retain the private
 original recovery point.
 See the [handoff receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
 
+`items/weather-health-ages.items` is live and verified file-owned for the WH31E
+and indoor-console age Items, links and state-description metadata. Plain
+Number semantics, `%.0f s` formatting, `gWeatherHealth` membership and original
+JDBC IDs 532/534 are preserved. The Group and protected health/outdoor-age
+inputs remain managed. Native hot/cold/managed-rollback qualification and the
+attended handoff preserve all six original history prefixes. See the
+[age Item receipt](../../docs/operations/2026-10-05-weather-health-age-items.md).
+
 `automation/js/south-planter-fan.js` is the new live, file-owned
 `hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound
 SoC >=98% during valid daylight, OFF after dark, below 98% or on invalid battery

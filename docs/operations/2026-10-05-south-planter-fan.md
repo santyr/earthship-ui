@@ -49,8 +49,8 @@ physical query confirms fan OFF and outlet 2 OFF. Because SoC already fell
 below 98%, this pose does not uniquely attribute a live stop to daylight.
 That specific >=98% night transition and household whole-JVM recovery remain
 separate observation gates; native isolated >=98% night refusal is qualified.
-The [current private restart baseline](2026-10-05-production-restart-attempt.md#daylight-rule-baseline-refresh)
-now includes the daylight source, all 56 current source pins and 40 original
+The [current private restart baseline](2026-10-05-production-restart-attempt.md#weather-health-age-baseline-refresh)
+now includes the daylight source, all 57 current source pins and 42 original
 history prefixes; production restart still requires host authentication.
 The earlier sections below describe the original deployment before this
 operator-requested daylight restriction.

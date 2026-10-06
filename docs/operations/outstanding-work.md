@@ -1,5 +1,22 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 5 weather-health age Items transferred to files
+
+The [two age Items](2026-10-05-weather-health-age-items.md) and their links and
+state-description metadata are now file-owned with live numeric states. IDs
+532/534, plain Number semantics, exact formatting and group membership are
+preserved. The Group and protected health/outdoor-age inputs remain managed.
+Native hot/cold/managed-rollback qualification passes all six history prefixes;
+the actual handoff preserves all 1,671,800 original rows, unrelated definitions
+except two recorded pre-mutation binding freshness advances, the prior 56
+sources and PID 1696. Source paths now total 57.
+Verification covers 4,203 unique passing tests across the full run and isolated
+signer follow-up, with ten standard skips remaining. Natural changed JDBC rows are verified for each age Item, and persisted managed
+Item/link/metadata records are absent. The refreshed private restart baseline
+now pins 57 sources and 42 original history prefixes; all sources match its
+archive and 95 JSONDB documents parse. Production restart still requires host
+authentication; no household command occurred.
+
 ## October 5 south planter fan restricted to daylight
 
 The operator-required [daylight restriction](2026-10-05-south-planter-fan.md#october-5-daylight-restriction)
