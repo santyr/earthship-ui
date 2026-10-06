@@ -1,5 +1,19 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 6 ML accuracy assessment
+
+The [ML-focused checkpoint](2026-10-06-machine-learning-focus.md) verifies today's
+natural training exit 0 and audits original October5 forecasts separately. Twelve
+short pairs have model/recent-cycle/persistence MAE 0.9102/0.42/1.02°F; nine 6h pairs
+have 2.1463/3.02/6.28°F; six 12h pairs have 1.9267/3.72/7.35°F. Original-source repeated
+reports match exactly. Selected 6/12h windows still span only one Mountain issue day;
+daily/48h targets remain immature at 13:35:09Z. Today's accepted artifact's historical
+daily model still loses to both baselines, and confirmed-action fit counters remain 0.
+Current coefficients retain the compound-shade defect. The existing corrected solar
+candidate is coupled to opening states absent from the journal; proposed next work
+isolates the solar correction while preserving ventilation handling. No model or
+control changes are released. The operator's migration stop remains in effect.
+
 ## October 6 operator focus: machine learning
 
 The operator stopped migration work and directed efforts to machine learning.
