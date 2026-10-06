@@ -1,5 +1,15 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 6 ML source-recovery evidence
+
+The [native PV census](2026-09-28-pv-day-evidence-activation.md#october-6-natural-startup-and-stale-input-recovery-evidence)
+verifies16,177 original receipts, exact fixed-cutoff repeats and natural startup/
+stale-input recovery. The6.571-second observation gap stays unqualified. The only
+source-unavailable event occurs at startup, so the independent Thing-fault gate
+remains open. All59 existing producer/reader tests pass and the full original
+archive replays offline. Calibration stays closed; the offline predictor design
+response is still required before that new code work. Migration remains deferred.
+
 ## October 6 energy-model diagnosis
 
 The [ML checkpoint](2026-10-06-machine-learning-focus.md#pv-sunset-and-pre-dusk-model-diagnosis)

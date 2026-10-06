@@ -201,6 +201,17 @@ from this existing comparison, preserving provenance and production behavior.
 The operator design prompt is pending; no predictor implementation or release,
 production training, Item write, notification or household command occurred.
 
+## PV training-source recovery qualification
+
+The [native PV stream audit](2026-09-28-pv-day-evidence-activation.md#october-6-natural-startup-and-stale-input-recovery-evidence)
+replays16,177 original receipts and verifies one natural stale-input recovery:
+a6.571-second observation gap remains unqualified before a new valid acquisition.
+The sole source-unavailable event corresponds to the October2 startup and cannot
+close an independent physical Thing-fault gate. The fixed-cutoff census repeats
+exactly; all59 producer/strict-reader tests pass. This strengthens source recovery
+evidence while preserving the closed calibration flag and the pending offline
+predictor design prompt. No new model, action label or control is introduced.
+
 ## Evidence
 
 Private original forecasts/outcomes, repeated report, current accepted/backtest
