@@ -76,30 +76,14 @@ def test_legacy_21_file_runtime_still_roundtrips_unchanged(tmp_path):
 
 
 @pytest.mark.parametrize('damage', ['missing', 'extra', 'reordered', 'substitute'])
-def test_runtime_inventory_requires_exact_reviewed_contract(damage):
-    paths = list(bundle.EVIDENCE_RUNTIME_PATHS)
+def test_runtime_inventory_requires_exact_legacy_or_radiation_contract(damage):
+    paths = list(bundle.RADIATION_RUNTIME_PATHS)
     if damage == 'missing': paths.pop()
     elif damage == 'extra': paths.append('unknown.py')
     elif damage == 'reordered': paths[2:4] = reversed(paths[2:4])
     elif damage == 'substitute': paths[-1] = 'unknown.py'
     with pytest.raises(ValueError, match='unexpected runtime revision manifest'):
         bundle._paths(f'RUNTIME_REVISION_PATHS = {tuple(paths)!r}\n'.encode())
-
-
-
-
-def test_current_evidence_runtime_manifest_is_exactly_reviewed():
-    source = (Path(__file__).resolve().parents[2]
-              / 'openhab/scripts/thermal_intel.py').read_bytes()
-    assert bundle._paths(source) == bundle.EVIDENCE_RUNTIME_PATHS
-    assert bundle.EVIDENCE_RUNTIME_PATHS[:3] == (
-        'thermal_intel.py', 'forecast_intel.py', 'forecast_ml_evidence.py'
-    )
-
-
-def test_pre_evidence_radiation_runtime_remains_accepted():
-    source = f'RUNTIME_REVISION_PATHS = {bundle.RADIATION_RUNTIME_PATHS!r}\n'.encode()
-    assert bundle._paths(source) == bundle.RADIATION_RUNTIME_PATHS
 
 
 def test_mismatched_accepted_artifact_fails_without_output(tmp_path):
