@@ -90,7 +90,7 @@ def test_release_command_uses_native_identity_and_fresh_evaluator(tmp_path, monk
     assert payload['release']['sensorEpochs'] == data['sensor_epochs']
 
 
-@pytest.mark.parametrize('failure', ['source', 'missing_origin', 'runtime_drift', 'expired_during_qualification'])
+@pytest.mark.parametrize('failure', ['source', 'missing_origin', 'runtime_drift', 'expired_before_delivery'])
 def test_release_command_failure_publishes_unavailable(tmp_path, monkeypatch, failure):
     from copy import deepcopy
     from datetime import timedelta
@@ -111,7 +111,7 @@ def test_release_command_failure_publishes_unavailable(tmp_path, monkeypatch, fa
             if len(calls) > 1: result['code_revision'] = '0'*64
             return result
         monkeypatch.setattr(thermal, '_release_runtime_binding', changed)
-    clocks = iter([now, now+timedelta(minutes=21)] if failure == 'expired_during_qualification' else [now, now])
+    clocks = iter([now, now+timedelta(minutes=21)] if failure == 'expired_before_delivery' else [now, now])
     sent = []
     result = thermal._release(args, now, put_state=lambda *values: sent.append(values),
         decision_clock=lambda: now, qualification_clock=lambda: next(clocks))

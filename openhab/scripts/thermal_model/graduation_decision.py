@@ -26,11 +26,11 @@ from thermal_model.pipeline import _normalize_hourly_rows
 from thermal_model.policy_registration import read_registered_policy,SOURCE_FIELDS
 from thermal_model.graduation_evidence import _score_origin_record
 
-SCHEMA='earthship-thermal-qualification-report/v1'
+SCHEMA='earthship-thermal-qualification-report/v2'
 FORECAST_GATES={'preregistered_policy','frozen_candidate','frozen_runtime',
     'qualified_training_sources','original_source_pairs','measured_fit','predictive_skill'}
 FIELDS={'schema','assessed_at','candidate','intervals','policy_sha256','registration_sha256',
-    'policy','runtime','gates','fit','training_sources','statistics','original_pair_bindings','source_errors',
+    'policy','runtime','qualification_expires_at','gates','fit','training_sources','statistics','original_pair_bindings','source_errors',
     'forecast_qualified','advisory_qualified','recommended_stage',
     'automatic_actuation_authorized','report_sha256'}
 
@@ -124,6 +124,20 @@ def _stage(gates):
     return forecast,('forecast_active' if forecast else 'shadow' if structurally_ready else 'unavailable')
 
 
+
+def qualification_deadline(policy, rows):
+    """Earliest expiry of the latest qualified prospective outcome per horizon."""
+    intervals = policy['intervals']; latest = []
+    for horizon in policy['horizons']:
+        targets = [_utc(row['target_at']) for row in rows if row['horizon_hours'] == horizon
+            and _utc(row['issue_at']) >= _utc(intervals['prospective_start'])
+            and (intervals['prospective_end'] is None or _utc(row['target_at']) <= _utc(intervals['prospective_end']))]
+        if not targets:
+            return None
+        latest.append(max(targets))
+    return min(latest)+timedelta(hours=policy['max_qualification_age_hours'])
+
+
 def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_sources,
                       runtime_bundle_path,original_pairs,now):
     """Assess genuine source-bound evidence; missing inputs close their exact gates."""
@@ -183,8 +197,12 @@ def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_so
         if not gates['original_source_pairs']:scored=[];bindings=[]
         statistics=attempt('predictive_skill',lambda:assess_predictive_skill(policy,scored,now=now))
         gates['predictive_skill']=bool(statistics and statistics['statistical_forecast_gates_passed'])
+    deadline = (qualification_deadline(policy, scored) if policy is not None and gates['original_source_pairs'] else None)
+    if gates['predictive_skill'] and (deadline is None or not now < deadline):
+        gates['predictive_skill'] = False
+        errors['predictive_skill'] = 'qualified prospective outcomes expired or incomplete'
     forecast,stage=_stage(gates)
-    body=dict(schema=SCHEMA,assessed_at=now.isoformat(),candidate=deepcopy(policy['candidate']) if policy else None,
+    body=dict(schema=SCHEMA,assessed_at=now.isoformat(),qualification_expires_at=deadline.isoformat() if deadline else None,candidate=deepcopy(policy['candidate']) if policy else None,
         intervals=deepcopy(policy['intervals']) if policy else None,policy_sha256=policy['policy_sha256'] if policy else None,
         registration_sha256=registration['registration_sha256'] if registration else None,
         policy=deepcopy(policy),runtime=bundle,gates=gates,
@@ -218,7 +236,13 @@ def validate_qualification_report(record):
             raise ValueError('qualification report differs from frozen policy')
     if gates['frozen_runtime'] and (record['runtime'] is None or _digest(record['runtime']['runtime'])!=record['candidate']['runtime_sha256']):
         raise ValueError('runtime gate differs from frozen bundle')
-    _utc(record['assessed_at'])
+    assessed = _utc(record['assessed_at'])
+    if record['qualification_expires_at'] is not None:
+        expires = _utc(record['qualification_expires_at'])
+        if record['policy'] is None or expires > assessed+timedelta(hours=record['policy']['max_qualification_age_hours']):
+            raise ValueError('source qualification deadline exceeds declared freshness')
+    if forecast and (record['qualification_expires_at'] is None or not assessed < _utc(record['qualification_expires_at'])):
+        raise ValueError('active qualification lacks unexpired original outcomes')
     return record
 
 
@@ -226,7 +250,7 @@ def render_qualification_report(record):
     validate_qualification_report(record)
     lines=['# Thermal qualification decision','',f"Recommended stage: {record['recommended_stage']}",
         'Automatic actuation: disabled','',f"Candidate: {record['candidate']}",
-        f"Intervals: {record['intervals']}",'','| Gate | Result |','| --- | --- |']
+        f"Intervals: {record['intervals']}",f"Original outcome qualification expires: {record['qualification_expires_at']}",'','| Gate | Result |','| --- | --- |']
     lines.extend(f"| {name} | {'pass' if value else 'fail'} |" for name,value in record['gates'].items())
     if record['policy']:
         lines.extend(['','## Declared thresholds','',json.dumps(record['policy'],indent=2,sort_keys=True)])

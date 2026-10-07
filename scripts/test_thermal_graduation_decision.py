@@ -122,11 +122,17 @@ def classifier_case(monkeypatch,*,skill=True,fit=True):
     monkeypatch.setattr(decision,'_forcing',lambda *_:'d'*64)
     row=dict(artifact_sha256=policy['candidate']['artifact_sha256'],runtime_sha256=policy['candidate']['runtime_sha256'],
         sensor_epochs=policy['candidate']['sensor_epochs'])
-    monkeypatch.setattr(decision,'_score_origin_record',lambda *_args,**kwargs:dict(scored_pair=row,original_capture_sha256='e'*64))
+    assessment = NOW+timedelta(days=60)
+    def score(*_args, **kwargs):
+        hours = kwargs['horizon_hours']
+        scored = {**row, 'issue_at': (assessment-timedelta(hours=hours+1)).isoformat(),
+            'target_at': (assessment-timedelta(hours=1)).isoformat(), 'horizon_hours': hours}
+        return dict(scored_pair=scored, original_capture_sha256='e'*64)
+    monkeypatch.setattr(decision,'_score_origin_record',score)
     monkeypatch.setattr(decision,'assess_predictive_skill',lambda *_args,**kwargs:dict(statistical_forecast_gates_passed=skill))
     packet=dict(origin_path='private-original',publication={},horizon_hours=1,outcome={},recent_cycle_grid=[])
     return decision,dict(registration_path='private-registration',artifact=artifact,fit_evidence_path='private-fit',
-        training_sources={},runtime_bundle_path='private-runtime',original_pairs=[packet],now=NOW+timedelta(days=60))
+        training_sources={},runtime_bundle_path='private-runtime',original_pairs=[{**packet, 'horizon_hours': hours} for hours in (1,6,12,24)],now=assessment)
 
 
 def test_forecast_pass_is_independent_of_unqualified_action_advice(monkeypatch):

@@ -107,7 +107,7 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
             if age is None or age+elapsed.total_seconds()/60>20:raise ValueError('current thermal sensor stale')
         _sha(artifact_sha256);_sha(runtime_sha256);_epochs(sensor_epochs)
         report=qualification_loader(now)
-        if (not isinstance(report,dict) or report.get('schema')!='earthship-thermal-qualification-report/v1' or
+        if (not isinstance(report,dict) or report.get('schema')!='earthship-thermal-qualification-report/v2' or
                 report.get('automatic_actuation_authorized') is not False):raise ValueError('qualified decision required')
         body={key:value for key,value in report.items() if key!='report_sha256'}
         if sha256(_canonical(body)).hexdigest()!=report['report_sha256']:raise ValueError('qualification decision changed')
@@ -117,7 +117,7 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
                 _utc(shadow['model']['createdAt'])!=_utc(candidate['created_at']) or
                 _utc(shadow['model']['trainedThrough'])!=_utc(candidate['trained_through'])):
             raise ValueError('current artifact/runtime/epoch differs from frozen qualification')
-        assessed=_utc(report['assessed_at']);expires=assessed+timedelta(hours=policy['max_qualification_age_hours'])
+        assessed=_utc(report['assessed_at']);expires=min(_utc(report['qualification_expires_at']),assessed+timedelta(hours=policy['max_qualification_age_hours']))
         if not assessed<=now<expires:raise ValueError('qualification is stale or future')
         gates=report['gates']
         if not isinstance(gates,dict) or set(gates)!=FORECAST_GATES or any(type(value) is not bool for value in gates.values()):

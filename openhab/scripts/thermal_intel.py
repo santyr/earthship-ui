@@ -760,6 +760,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
              qualification_clock=None, published_clock=None):
     """Generate from original inputs, qualify afresh and deliver explicit v2."""
     from dataclasses import asdict
+    from copy import deepcopy
     from types import SimpleNamespace
     from thermal_model.forcing_capture import _canonical
     from thermal_model.graduation_decision import load_qualification_inputs
@@ -767,11 +768,27 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
     from thermal_model.release import build_release_output, unavailable_release, write_release_output
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     from thermal_radiation_runtime import validate_shadow_radiation_expiry
+    clock_reader = decision_clock or (lambda: datetime.now(timezone.utc))
     try:
-        loader = load_qualification_inputs(args.evidence_inputs)
-    except (OSError, RuntimeError, TypeError, ValueError):
-        def loader(_):
-            raise ValueError("original release evidence unavailable")
+        # Recompute original evidence once for this invocation before collecting
+        # short-lived current receipts. This is not a persistent report cache.
+        report = deepcopy(load_qualification_inputs(args.evidence_inputs)(now))
+        input_at = clock_reader()
+        if (not isinstance(input_at, datetime) or input_at.utcoffset() is None or input_at < now):
+            raise ValueError("release input clock invalid or moved backward")
+        now = input_at.astimezone(timezone.utc)
+    except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+        output = unavailable_release(now)
+        write_release_output(args.output, output)
+        if args.publish:
+            _publish_validated_release(output, put_state=put_state)
+        print(json.dumps(output, sort_keys=True, separators=(",", ":")), file=sys.stderr)
+        return 1
+
+    def loader(_):
+        # Preserve the actual earlier assessment clock and derived digest.
+        # Current artifact/runtime/epochs/regimes are checked by the builder.
+        return deepcopy(report)
 
     def finish(shadow, **context):
         def assessment_clock():
@@ -793,7 +810,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
             output = build_release_output(shadow=shadow, qualification_loader=loader, now=at,
                 artifact_sha256=artifact_digest, runtime_sha256=runtime_digest, sensor_epochs=epochs,
                 forecast_rows=context['rows'])
-            # Qualification can take time. Recheck original native expiry and
+            # Input assembly/output validation can take time. Recheck native expiry and
             # executing source identity immediately before persistence/delivery.
             completed = assessment_clock()
             _temperatures(context['origin_proofs'][0], context['current'],
@@ -835,7 +852,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
 
     return _shadow(SimpleNamespace(publish=False,
         model_directory=getattr(args, "model_directory", DEFAULT_STATE_DIRECTORY)), now, journal=journal,
-        decision_clock=decision_clock, output_handler=finish)
+        decision_clock=clock_reader, output_handler=finish)
 
 
 def main(argv=None):

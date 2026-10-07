@@ -25,7 +25,7 @@ The metadata retains the qualification/expires clocks, complete artifact/runtime
 policy/report hashes and frozen sensor epochs. Expiry uses the preregistered
 qualification freshness rule while original model/training ages remain visible.
 `advisory_active` is reserved and structurally validated, but the current combined
-v1 evaluator withholds advice; a genuine confirmed-action evaluator is still
+v2 evaluator withholds advice; a genuine confirmed-action evaluator is still
 required before the builder can produce that mode.
 
 `load_qualification_inputs` accepts an owned private file with this exact schema:
@@ -109,3 +109,28 @@ fall-charge map to the existing shoulder evidence stratum; no calendar inference
 or new physical calculation is introduced. Unsupported or missing forcing refuses
 active publication with explicit unavailable output. Unqualified diagnostic shadow
 output remains low confidence. Original v1 and v2 output field shapes are unchanged.
+
+## Assessment order and source freshness deadline
+
+The release command recomputes original evidence once for each invocation before
+collecting current sensor receipts and weather forcing. It then obtains a fresh
+input clock. The derived report is detached and held only inside that invocation;
+a serialized cache or active flag remains insufficient. Model/runtime/epoch and
+regime bindings are checked against the actual later prediction. Native receipt
+expiry and executing runtime are checked again before delivery. Failed assessment
+or an invalid post-assessment clock publishes explicit unavailable data without
+fetching current inputs.
+
+The qualification report is now `earthship-thermal-qualification-report/v2`.
+It adds `qualification_expires_at`, derived from the least recent of the latest
+qualified prospective outcomes across supported horizons, plus the policy's
+freshness limit. Missing horizons cannot provide a deadline. Both machine and
+human reports retain that deadline; old v1 report shapes are refused rather than
+upgraded. Original v1 shadow and v2 publication schemas remain unchanged.
+
+Publication expiry is the earlier of this source-derived deadline and the maximum
+report age. Assessment and prediction clocks remain their actual distinct clocks;
+long computation cannot refresh a report or extend outcome validity. Current
+sensor validity still starts from the newly collected native receipts. The tests
+simulate long assessment by advancing a controlled clock; they do not wait an
+hour, run real fitting or demonstrate a real candidate's release eligibility.
