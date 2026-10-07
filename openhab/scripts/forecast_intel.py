@@ -459,6 +459,7 @@ def prediction_learning_support(state, overnight_drop_sample_days):
                 and record.get("basis") == "qualified_source_bound"
                 and type(record.get("measured_kwh")) in (int, float)
                 and math.isfinite(record["measured_kwh"])
+                and record["measured_kwh"] >= 0
             ):
                 qualified_pv_days.append(day)
 
@@ -482,16 +483,34 @@ def prediction_learning_support(state, overnight_drop_sample_days):
             else:
                 bucket_counts.append(0)
 
-    soc = summarize_day_evidence(
+    def safe_summary(values, *, active_parameter_count, minimum_unique_days=None):
+        try:
+            result = summarize_day_evidence(
+                values,
+                active_parameter_count=active_parameter_count,
+                minimum_unique_days=minimum_unique_days,
+            )
+            result["status"] = "available"
+            return result
+        except (TypeError, ValueError):
+            result = summarize_day_evidence(
+                (),
+                active_parameter_count=active_parameter_count,
+                minimum_unique_days=minimum_unique_days,
+            )
+            result["status"] = "invalid_optional_state"
+            return result
+
+    soc = safe_summary(
         overnight_drop_sample_days,
         active_parameter_count=0,
         minimum_unique_days=3,
     )
-    pv = summarize_day_evidence(
+    pv = safe_summary(
         qualified_pv_days,
         active_parameter_count=2,
     )
-    hourly = summarize_day_evidence(
+    hourly = safe_summary(
         qualified_hourly_targets,
         active_parameter_count=24,
     )
