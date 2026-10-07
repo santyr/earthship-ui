@@ -1,0 +1,1094 @@
+{
+  "assessed_at": "2026-10-07T15:54:12.310066+00:00",
+  "by_artifact": {
+    "366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7": {
+      "1": {
+        "artifact_sha256": "366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7",
+        "excluded_other_artifact_count": 14,
+        "horizon_hours": 1,
+        "independent_local_days": 2,
+        "independent_origins": [
+          "2026-10-06T14:10:59.369310+00:00",
+          "2026-10-06T16:10:59.590834+00:00",
+          "2026-10-06T18:12:52.169718+00:00",
+          "2026-10-06T20:12:51.938168+00:00",
+          "2026-10-06T22:12:51.624758+00:00",
+          "2026-10-07T00:12:52.233180+00:00",
+          "2026-10-07T02:12:52.382350+00:00",
+          "2026-10-07T04:12:52.062975+00:00",
+          "2026-10-07T06:12:52.497933+00:00",
+          "2026-10-07T08:12:52.238653+00:00",
+          "2026-10-07T10:12:52.628375+00:00",
+          "2026-10-07T12:12:52.793931+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 12,
+          "winter": 0
+        },
+        "independent_window_count": 12,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 0.034083333333333334,
+            "mae_f": 0.7449166666666667,
+            "rmse_f": 0.8815071846937305
+          },
+          "persistence": {
+            "bias_f": 0.135,
+            "mae_f": 0.765,
+            "rmse_f": 0.9367496997597597
+          },
+          "recent_cycle": {
+            "bias_f": 0.135,
+            "mae_f": 0.345,
+            "rmse_f": 0.5523585791856591
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 12,
+        "raw_pair_count": 12,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 0.034083333333333334,
+            "mae_f": 0.7449166666666667,
+            "rmse_f": 0.8815071846937305
+          },
+          "persistence": {
+            "bias_f": 0.135,
+            "mae_f": 0.765,
+            "rmse_f": 0.9367496997597597
+          },
+          "recent_cycle": {
+            "bias_f": 0.135,
+            "mae_f": 0.345,
+            "rmse_f": 0.5523585791856591
+          }
+        },
+        "unique_local_days": 2
+      },
+      "12": {
+        "artifact_sha256": "366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7",
+        "excluded_other_artifact_count": 13,
+        "horizon_hours": 12,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-06T14:10:59.369310+00:00",
+          "2026-10-07T02:12:52.382350+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 2,
+          "winter": 0
+        },
+        "independent_window_count": 2,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 0.5920000000000001,
+            "mae_f": 1.8900000000000001,
+            "rmse_f": 1.9805463892572677
+          },
+          "persistence": {
+            "bias_f": 0.54,
+            "mae_f": 6.12,
+            "rmse_f": 6.143777339715364
+          },
+          "recent_cycle": {
+            "bias_f": 0.9,
+            "mae_f": 0.9,
+            "rmse_f": 1.2727922061357855
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 2,
+        "raw_pair_count": 7,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 0.5920000000000001,
+            "mae_f": 1.8900000000000001,
+            "rmse_f": 1.9805463892572677
+          },
+          "persistence": {
+            "bias_f": 0.54,
+            "mae_f": 6.12,
+            "rmse_f": 6.143777339715364
+          },
+          "recent_cycle": {
+            "bias_f": 0.9,
+            "mae_f": 0.9,
+            "rmse_f": 1.2727922061357855
+          }
+        },
+        "unique_local_days": 1
+      },
+      "24": {
+        "artifact_sha256": "366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7",
+        "excluded_other_artifact_count": 13,
+        "horizon_hours": 24,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-06T14:10:59.369310+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 0.45,
+            "mae_f": 0.45,
+            "rmse_f": 0.45
+          },
+          "persistence": {
+            "bias_f": 1.26,
+            "mae_f": 1.26,
+            "rmse_f": 1.26
+          },
+          "recent_cycle": {
+            "bias_f": 1.8,
+            "mae_f": 1.8,
+            "rmse_f": 1.8
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 0.45,
+            "mae_f": 0.45,
+            "rmse_f": 0.45
+          },
+          "persistence": {
+            "bias_f": 1.26,
+            "mae_f": 1.26,
+            "rmse_f": 1.26
+          },
+          "recent_cycle": {
+            "bias_f": 1.8,
+            "mae_f": 1.8,
+            "rmse_f": 1.8
+          }
+        },
+        "unique_local_days": 1
+      },
+      "48": {
+        "artifact_sha256": "366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7",
+        "excluded_other_artifact_count": 2,
+        "horizon_hours": 48,
+        "independent_local_days": 0,
+        "independent_origins": [],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 0,
+          "winter": 0
+        },
+        "independent_window_count": 0,
+        "interval_coverage": null,
+        "metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 0,
+        "raw_pair_count": 0,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "unique_local_days": 0
+      },
+      "6": {
+        "artifact_sha256": "366e01fe286804956d40bd4c233dd969f0cbb12d73f30bba1280f21e227665f7",
+        "excluded_other_artifact_count": 13,
+        "horizon_hours": 6,
+        "independent_local_days": 2,
+        "independent_origins": [
+          "2026-10-06T14:10:59.369310+00:00",
+          "2026-10-06T20:12:51.938168+00:00",
+          "2026-10-07T02:12:52.382350+00:00",
+          "2026-10-07T08:12:52.238653+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 4,
+          "winter": 0
+        },
+        "independent_window_count": 4,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -0.518,
+            "mae_f": 1.7735,
+            "rmse_f": 1.8710117583810104
+          },
+          "persistence": {
+            "bias_f": 0.2699999999999999,
+            "mae_f": 5.9399999999999995,
+            "rmse_f": 6.7888879796326
+          },
+          "recent_cycle": {
+            "bias_f": 0.855,
+            "mae_f": 1.125,
+            "rmse_f": 1.6174980680050286
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 4,
+        "raw_pair_count": 10,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -0.518,
+            "mae_f": 1.7735,
+            "rmse_f": 1.8710117583810104
+          },
+          "persistence": {
+            "bias_f": 0.2699999999999999,
+            "mae_f": 5.9399999999999995,
+            "rmse_f": 6.7888879796326
+          },
+          "recent_cycle": {
+            "bias_f": 0.855,
+            "mae_f": 1.125,
+            "rmse_f": 1.6174980680050286
+          }
+        },
+        "unique_local_days": 2
+      }
+    },
+    "a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df": {
+      "1": {
+        "artifact_sha256": "a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df",
+        "excluded_other_artifact_count": 25,
+        "horizon_hours": 1,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T12:05:58.565809+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -0.254,
+            "mae_f": 0.254,
+            "rmse_f": 0.254
+          },
+          "persistence": {
+            "bias_f": 0.36,
+            "mae_f": 0.36,
+            "rmse_f": 0.36
+          },
+          "recent_cycle": {
+            "bias_f": 0.36,
+            "mae_f": 0.36,
+            "rmse_f": 0.36
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -0.254,
+            "mae_f": 0.254,
+            "rmse_f": 0.254
+          },
+          "persistence": {
+            "bias_f": 0.36,
+            "mae_f": 0.36,
+            "rmse_f": 0.36
+          },
+          "recent_cycle": {
+            "bias_f": 0.36,
+            "mae_f": 0.36,
+            "rmse_f": 0.36
+          }
+        },
+        "unique_local_days": 1
+      },
+      "12": {
+        "artifact_sha256": "a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df",
+        "excluded_other_artifact_count": 19,
+        "horizon_hours": 12,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T12:05:58.565809+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 0.0,
+        "metrics": {
+          "model": {
+            "bias_f": 6.159,
+            "mae_f": 6.159,
+            "rmse_f": 6.159
+          },
+          "persistence": {
+            "bias_f": -11.34,
+            "mae_f": 11.34,
+            "rmse_f": 11.34
+          },
+          "recent_cycle": {
+            "bias_f": -6.3,
+            "mae_f": 6.3,
+            "rmse_f": 6.3
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 6.159,
+            "mae_f": 6.159,
+            "rmse_f": 6.159
+          },
+          "persistence": {
+            "bias_f": -11.34,
+            "mae_f": 11.34,
+            "rmse_f": 11.34
+          },
+          "recent_cycle": {
+            "bias_f": -6.3,
+            "mae_f": 6.3,
+            "rmse_f": 6.3
+          }
+        },
+        "unique_local_days": 1
+      },
+      "24": {
+        "artifact_sha256": "a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df",
+        "excluded_other_artifact_count": 13,
+        "horizon_hours": 24,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T12:05:58.565809+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -0.971,
+            "mae_f": 0.971,
+            "rmse_f": 0.971
+          },
+          "persistence": {
+            "bias_f": -2.34,
+            "mae_f": 2.34,
+            "rmse_f": 2.34
+          },
+          "recent_cycle": {
+            "bias_f": -2.88,
+            "mae_f": 2.88,
+            "rmse_f": 2.88
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -0.971,
+            "mae_f": 0.971,
+            "rmse_f": 0.971
+          },
+          "persistence": {
+            "bias_f": -2.34,
+            "mae_f": 2.34,
+            "rmse_f": 2.34
+          },
+          "recent_cycle": {
+            "bias_f": -2.88,
+            "mae_f": 2.88,
+            "rmse_f": 2.88
+          }
+        },
+        "unique_local_days": 1
+      },
+      "48": {
+        "artifact_sha256": "a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df",
+        "excluded_other_artifact_count": 1,
+        "horizon_hours": 48,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T12:05:58.565809+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 1.638,
+            "mae_f": 1.638,
+            "rmse_f": 1.638
+          },
+          "persistence": {
+            "bias_f": -1.08,
+            "mae_f": 1.08,
+            "rmse_f": 1.08
+          },
+          "recent_cycle": {
+            "bias_f": -1.98,
+            "mae_f": 1.98,
+            "rmse_f": 1.98
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 1.638,
+            "mae_f": 1.638,
+            "rmse_f": 1.638
+          },
+          "persistence": {
+            "bias_f": -1.08,
+            "mae_f": 1.08,
+            "rmse_f": 1.08
+          },
+          "recent_cycle": {
+            "bias_f": -1.98,
+            "mae_f": 1.98,
+            "rmse_f": 1.98
+          }
+        },
+        "unique_local_days": 1
+      },
+      "6": {
+        "artifact_sha256": "a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df",
+        "excluded_other_artifact_count": 22,
+        "horizon_hours": 6,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T12:05:58.565809+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 1.119,
+            "mae_f": 1.119,
+            "rmse_f": 1.119
+          },
+          "persistence": {
+            "bias_f": -6.84,
+            "mae_f": 6.84,
+            "rmse_f": 6.84
+          },
+          "recent_cycle": {
+            "bias_f": -1.44,
+            "mae_f": 1.44,
+            "rmse_f": 1.44
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 1.119,
+            "mae_f": 1.119,
+            "rmse_f": 1.119
+          },
+          "persistence": {
+            "bias_f": -6.84,
+            "mae_f": 6.84,
+            "rmse_f": 6.84
+          },
+          "recent_cycle": {
+            "bias_f": -1.44,
+            "mae_f": 1.44,
+            "rmse_f": 1.44
+          }
+        },
+        "unique_local_days": 1
+      }
+    },
+    "bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09": {
+      "1": {
+        "artifact_sha256": "bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09",
+        "excluded_other_artifact_count": 14,
+        "horizon_hours": 1,
+        "independent_local_days": 2,
+        "independent_origins": [
+          "2026-10-05T14:05:58.184291+00:00",
+          "2026-10-05T16:05:58.303629+00:00",
+          "2026-10-05T18:06:05.394708+00:00",
+          "2026-10-05T20:07:04.913974+00:00",
+          "2026-10-05T22:08:05.232363+00:00",
+          "2026-10-06T00:09:05.271506+00:00",
+          "2026-10-06T02:10:04.831773+00:00",
+          "2026-10-06T04:10:04.943363+00:00",
+          "2026-10-06T06:10:24.786861+00:00",
+          "2026-10-06T08:10:58.516199+00:00",
+          "2026-10-06T10:10:58.765415+00:00",
+          "2026-10-06T12:10:58.927293+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 12,
+          "winter": 0
+        },
+        "independent_window_count": 12,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -0.3401666666666667,
+            "mae_f": 0.9101666666666667,
+            "rmse_f": 1.079433107391715
+          },
+          "persistence": {
+            "bias_f": -0.09000000000000001,
+            "mae_f": 1.02,
+            "rmse_f": 1.26
+          },
+          "recent_cycle": {
+            "bias_f": 0.030000000000000002,
+            "mae_f": 0.42,
+            "rmse_f": 0.6059702963017247
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 12,
+        "raw_pair_count": 12,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -0.3401666666666667,
+            "mae_f": 0.9101666666666667,
+            "rmse_f": 1.079433107391715
+          },
+          "persistence": {
+            "bias_f": -0.09000000000000001,
+            "mae_f": 1.02,
+            "rmse_f": 1.26
+          },
+          "recent_cycle": {
+            "bias_f": 0.030000000000000002,
+            "mae_f": 0.42,
+            "rmse_f": 0.6059702963017247
+          }
+        },
+        "unique_local_days": 2
+      },
+      "12": {
+        "artifact_sha256": "bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09",
+        "excluded_other_artifact_count": 8,
+        "horizon_hours": 12,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T14:05:58.184291+00:00",
+          "2026-10-06T02:10:04.831773+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 2,
+          "winter": 0
+        },
+        "independent_window_count": 2,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -0.76,
+            "mae_f": 1.917,
+            "rmse_f": 2.062156395620856
+          },
+          "persistence": {
+            "bias_f": -1.3499999999999996,
+            "mae_f": 8.01,
+            "rmse_f": 8.122967438073355
+          },
+          "recent_cycle": {
+            "bias_f": -1.4400000000000002,
+            "mae_f": 3.96,
+            "rmse_f": 4.213691967859066
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 2,
+        "raw_pair_count": 12,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -0.76,
+            "mae_f": 1.917,
+            "rmse_f": 2.062156395620856
+          },
+          "persistence": {
+            "bias_f": -1.3499999999999996,
+            "mae_f": 8.01,
+            "rmse_f": 8.122967438073355
+          },
+          "recent_cycle": {
+            "bias_f": -1.4400000000000002,
+            "mae_f": 3.96,
+            "rmse_f": 4.213691967859066
+          }
+        },
+        "unique_local_days": 2
+      },
+      "24": {
+        "artifact_sha256": "bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09",
+        "excluded_other_artifact_count": 2,
+        "horizon_hours": 24,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T14:05:58.184291+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -1.373,
+            "mae_f": 1.373,
+            "rmse_f": 1.373
+          },
+          "persistence": {
+            "bias_f": -2.52,
+            "mae_f": 2.52,
+            "rmse_f": 2.52
+          },
+          "recent_cycle": {
+            "bias_f": -3.06,
+            "mae_f": 3.06,
+            "rmse_f": 3.06
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 12,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -1.373,
+            "mae_f": 1.373,
+            "rmse_f": 1.373
+          },
+          "persistence": {
+            "bias_f": -2.52,
+            "mae_f": 2.52,
+            "rmse_f": 2.52
+          },
+          "recent_cycle": {
+            "bias_f": -3.06,
+            "mae_f": 3.06,
+            "rmse_f": 3.06
+          }
+        },
+        "unique_local_days": 2
+      },
+      "48": {
+        "artifact_sha256": "bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09",
+        "excluded_other_artifact_count": 1,
+        "horizon_hours": 48,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-05T14:05:58.184291+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 1.904,
+            "mae_f": 1.904,
+            "rmse_f": 1.904
+          },
+          "persistence": {
+            "bias_f": -1.08,
+            "mae_f": 1.08,
+            "rmse_f": 1.08
+          },
+          "recent_cycle": {
+            "bias_f": -1.26,
+            "mae_f": 1.26,
+            "rmse_f": 1.26
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 1.904,
+            "mae_f": 1.904,
+            "rmse_f": 1.904
+          },
+          "persistence": {
+            "bias_f": -1.08,
+            "mae_f": 1.08,
+            "rmse_f": 1.08
+          },
+          "recent_cycle": {
+            "bias_f": -1.26,
+            "mae_f": 1.26,
+            "rmse_f": 1.26
+          }
+        },
+        "unique_local_days": 1
+      },
+      "6": {
+        "artifact_sha256": "bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09",
+        "excluded_other_artifact_count": 11,
+        "horizon_hours": 6,
+        "independent_local_days": 2,
+        "independent_origins": [
+          "2026-10-05T14:05:58.184291+00:00",
+          "2026-10-05T20:07:04.913974+00:00",
+          "2026-10-06T02:10:04.831773+00:00",
+          "2026-10-06T08:10:58.516199+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 4,
+          "winter": 0
+        },
+        "independent_window_count": 4,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": -1.3355000000000001,
+            "mae_f": 1.61,
+            "rmse_f": 1.8558263658004217
+          },
+          "persistence": {
+            "bias_f": -0.6749999999999998,
+            "mae_f": 5.535,
+            "rmse_f": 6.857149553568159
+          },
+          "recent_cycle": {
+            "bias_f": -0.72,
+            "mae_f": 2.34,
+            "rmse_f": 3.217421327709506
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 4,
+        "raw_pair_count": 12,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": -1.3355000000000001,
+            "mae_f": 1.61,
+            "rmse_f": 1.8558263658004217
+          },
+          "persistence": {
+            "bias_f": -0.6749999999999998,
+            "mae_f": 5.535,
+            "rmse_f": 6.857149553568159
+          },
+          "recent_cycle": {
+            "bias_f": -0.72,
+            "mae_f": 2.34,
+            "rmse_f": 3.217421327709506
+          }
+        },
+        "unique_local_days": 2
+      }
+    },
+    "f5b7d75322911cd63bc8274f671f1e379d3f46707d7b30e41f8c6e605dbeb7f2": {
+      "1": {
+        "artifact_sha256": "f5b7d75322911cd63bc8274f671f1e379d3f46707d7b30e41f8c6e605dbeb7f2",
+        "excluded_other_artifact_count": 25,
+        "horizon_hours": 1,
+        "independent_local_days": 1,
+        "independent_origins": [
+          "2026-10-07T14:12:52.768353+00:00"
+        ],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 1,
+          "winter": 0
+        },
+        "independent_window_count": 1,
+        "interval_coverage": 1.0,
+        "metrics": {
+          "model": {
+            "bias_f": 0.67,
+            "mae_f": 0.67,
+            "rmse_f": 0.67
+          },
+          "persistence": {
+            "bias_f": -0.54,
+            "mae_f": 0.54,
+            "rmse_f": 0.54
+          },
+          "recent_cycle": {
+            "bias_f": -0.18,
+            "mae_f": 0.18,
+            "rmse_f": 0.18
+          }
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 1,
+        "raw_pair_count": 1,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": {
+            "bias_f": 0.67,
+            "mae_f": 0.67,
+            "rmse_f": 0.67
+          },
+          "persistence": {
+            "bias_f": -0.54,
+            "mae_f": 0.54,
+            "rmse_f": 0.54
+          },
+          "recent_cycle": {
+            "bias_f": -0.18,
+            "mae_f": 0.18,
+            "rmse_f": 0.18
+          }
+        },
+        "unique_local_days": 1
+      },
+      "12": {
+        "artifact_sha256": "f5b7d75322911cd63bc8274f671f1e379d3f46707d7b30e41f8c6e605dbeb7f2",
+        "excluded_other_artifact_count": 20,
+        "horizon_hours": 12,
+        "independent_local_days": 0,
+        "independent_origins": [],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 0,
+          "winter": 0
+        },
+        "independent_window_count": 0,
+        "interval_coverage": null,
+        "metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 0,
+        "raw_pair_count": 0,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "unique_local_days": 0
+      },
+      "24": {
+        "artifact_sha256": "f5b7d75322911cd63bc8274f671f1e379d3f46707d7b30e41f8c6e605dbeb7f2",
+        "excluded_other_artifact_count": 14,
+        "horizon_hours": 24,
+        "independent_local_days": 0,
+        "independent_origins": [],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 0,
+          "winter": 0
+        },
+        "independent_window_count": 0,
+        "interval_coverage": null,
+        "metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 0,
+        "raw_pair_count": 0,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "unique_local_days": 0
+      },
+      "48": {
+        "artifact_sha256": "f5b7d75322911cd63bc8274f671f1e379d3f46707d7b30e41f8c6e605dbeb7f2",
+        "excluded_other_artifact_count": 2,
+        "horizon_hours": 48,
+        "independent_local_days": 0,
+        "independent_origins": [],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 0,
+          "winter": 0
+        },
+        "independent_window_count": 0,
+        "interval_coverage": null,
+        "metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 0,
+        "raw_pair_count": 0,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "unique_local_days": 0
+      },
+      "6": {
+        "artifact_sha256": "f5b7d75322911cd63bc8274f671f1e379d3f46707d7b30e41f8c6e605dbeb7f2",
+        "excluded_other_artifact_count": 23,
+        "horizon_hours": 6,
+        "independent_local_days": 0,
+        "independent_origins": [],
+        "independent_regime_counts": {
+          "shoulder": 0,
+          "unbound": 0,
+          "warm": 0,
+          "winter": 0
+        },
+        "independent_window_count": 0,
+        "interval_coverage": null,
+        "metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "nonoverlap_policy": "UTC next_issue_at_or_after_prior_actual_target",
+        "paired_three_predictor_count": 0,
+        "raw_pair_count": 0,
+        "release_qualification_claimed": false,
+        "schema": "earthship-thermal-evidence-summary/v1",
+        "three_predictor_metrics": {
+          "model": null,
+          "persistence": null,
+          "recent_cycle": null
+        },
+        "unique_local_days": 0
+      }
+    }
+  },
+  "error_precision_f": 0.001,
+  "interpretation": "Development evidence; no untouched holdout or release decision.",
+  "recommended_mode": "shadow",
+  "regime_definition": "as_issued_thermal_mode_warm_shouldering_winter",
+  "release_qualification_claimed": false,
+  "schema": "earthship-thermal-development-reassessment/v1",
+  "verification": {
+    "manifest_sha256": "95d8463ea761f58bc83ac8f41ddd52a79f446dc185359dc83c44d8809279596a",
+    "native_stream_epochs": {
+      "indoor": [
+        "04d50860-3122-4771-b4f6-0ab4b8e43152",
+        "0af53ca6-f6fe-4aa8-804f-0dd458b3b2ed",
+        "0ba37cce-aea4-45a6-aabe-da1f4371795f",
+        "12d07cf1-5831-49a9-b55a-421911d10ebc",
+        "253a9c36-7dea-4c59-bedc-f0dbc8e24ccc",
+        "3a8dc937-8752-4b4a-bf76-33cd50cede93",
+        "9d8b37f1-4c49-4948-9ee9-af681f9fb25f",
+        "bf34218f-7c1d-4303-b63f-a4d6b13e27ef",
+        "e7616f17-eaf6-4366-b150-824f9fe10690",
+        "ffda92fc-fdf4-4f67-89f4-80c38389e2b5"
+      ],
+      "outdoor": [
+        "0af53ca6-f6fe-4aa8-804f-0dd458b3b2ed",
+        "ffda92fc-fdf4-4f67-89f4-80c38389e2b5"
+      ]
+    },
+    "original_capture_count": 26,
+    "purpose": "development_reassessment_not_release_holdout",
+    "qualified_native_receipts": {
+      "indoor": 814,
+      "outdoor": 49
+    },
+    "release_binding_blockers": [
+      "initial_sensor_epochs_not_bound_at_issue",
+      "publication_runtime_not_bound_at_issue"
+    ],
+    "release_qualification_claimed": false,
+    "schema": "earthship-thermal-capsule-verification/v1",
+    "source_file_count": 62,
+    "verified_as_issued_pairs": 85
+  }
+}
