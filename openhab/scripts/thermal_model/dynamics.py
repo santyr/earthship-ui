@@ -768,10 +768,10 @@ def _validate_block_refit_stability(samples, baseline, *, fitter=None):
     rather than five-minute rows as the resampling unit.
     """
     ordered = tuple(samples)
+    fitted_pairs = _selected_pairs(ordered)
     unique_days = tuple(sorted({
-        row.at.astimezone(SITE_TIMEZONE).date()
-        for row in ordered
-        if row.at is not None and row.at.utcoffset() is not None
+        right.at.astimezone(SITE_TIMEZONE).date()
+        for _, right in fitted_pairs
     }))
     if len(unique_days) < BLOCK_REFIT_MIN_INDEPENDENT_DAYS:
         return {
