@@ -47,3 +47,34 @@ Verification on the household host was limited to one capped low-priority check:
 four pipeline/dataset-related cases were left for remote CI. Limits were 25% of
 one core, 768 MiB RAM, no swap, 48 tasks and low IO/process priority. No local
 container suite or model fitting ran.
+
+## Version 2 publication capture
+
+`earthship-thermal-origin-capture/v2` retains the exact version 2 thermal output
+and all the same original input/native-receipt/runtime bindings. Release
+artifact/runtime hashes and sensor epochs must match the retained bytes. The
+qualification must already exist and remain unexpired at publication
+acknowledgement. Native initial state must match the issued values. Unknown
+actions remain unknown; capture supplies no qualification or causal authority.
+
+The new builder/reader/writer are `build_release_origin_capture`,
+`read_release_origin_capture` and `write_release_origin_capture`. They use
+immutable private `*-origin-v2.json.gz` files. The original v1 reader and validator
+refuse v2. Explicit `read_observed_origin_capture` dispatch supports the two
+validated contracts for scoring and policy registration; it does not upgrade any
+legacy record. The scorer still requires an exact match with the real persisted
+publication and qualified later outcome/native recent-cycle receipts.
+
+The release command accepts `--origin-capture-dir /private/origins`, or the existing
+`THERMAL_ORIGIN_CAPTURE_DIR`. Configure this for a future staged production
+release. After an accepted available publication, it retains the complete release
+runtime bundle and original v2 record using the actual acknowledgement clock.
+Previews and unavailable withdrawals create no available-publication evidence.
+Capture/storage failures report an explicit gap and do not retry or invent proof
+for an already accepted write. Missing archive configuration also reports a gap.
+Cutover verification must require actual retained captures and ongoing mature
+source-bound baseline scores, not just an accepted UI state.
+
+The v2 implementation remains undeployed. Its storage/scoring tests use synthetic
+publication fixtures, including real private-file transactions; they do not prove
+that the household model qualifies for release.

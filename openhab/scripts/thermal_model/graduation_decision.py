@@ -15,7 +15,7 @@ from thermal_model.artifacts import validate_artifact
 from thermal_model.schema import ThermalSample
 from thermal_model.dataset import _observe_latent_mass
 from thermal_model.forcing_capture import _canonical
-from thermal_model.origin_capture import read_origin_capture
+from thermal_model.origin_capture import read_observed_origin_capture as read_origin_capture
 from thermal_model.runtime_bundle import read_runtime_bundle
 from thermal_model.fit_evidence import read_fit_evidence
 from thermal_model.graduation_policy import _utc,validate_policy

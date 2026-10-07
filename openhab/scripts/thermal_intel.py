@@ -115,6 +115,7 @@ def _build_parser():
     release.add_argument("--evidence-inputs", required=True, type=Path)
     release.add_argument("--output", type=Path, default=DEFAULT_STATE_DIRECTORY.parent / "release.json")
     release.add_argument("--publish", action="store_true", help="publish one qualified or unavailable v2 state")
+    release.add_argument("--origin-capture-dir", type=Path, help="private immutable v2 origin archive for accepted publications")
     return parser
 
 
@@ -590,6 +591,27 @@ def _archive_original_publication(directory, *, output, artifact, snapshot, rows
     return write_origin_capture(root, record)
 
 
+
+def _archive_release_publication(directory, *, output, artifact, snapshot, rows,
+        current, origin_temperatures, runtime, inputs_available_at, published_at):
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.origin_capture import build_release_origin_capture, write_release_origin_capture
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    root = _private_directory(Path(directory))
+    bundles = root / "runtime-bundles"
+    try:
+        bundles.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
+        _release_runtime_paths(), expected_binding=runtime)
+    record = build_release_origin_capture(output=output, artifact=artifact, snapshot=snapshot,
+        rows=rows, current=current, origin_temperatures=origin_temperatures,
+        runtime=runtime, inputs_available_at=inputs_available_at,
+        published_at=published_at, known_actions=None)
+    return write_release_origin_capture(root, record)
+
+
 def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             published_clock=None, output_handler=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
@@ -732,7 +754,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
 
 
 def _release(args, now, put_state=None, journal=None, decision_clock=None,
-             qualification_clock=None):
+             qualification_clock=None, published_clock=None):
     """Generate from original inputs, qualify afresh and deliver explicit v2."""
     from dataclasses import asdict
     from types import SimpleNamespace
@@ -788,6 +810,20 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
         write_release_output(args.output, output)
         if args.publish:
             _publish_validated_release(output, put_state=put_state)
+            if output['status'] != 'unavailable':
+                directory = getattr(args, 'origin_capture_dir', None) or os.environ.get('THERMAL_ORIGIN_CAPTURE_DIR')
+                try:
+                    if not directory:
+                        raise ValueError("release origin archive not configured")
+                    published = published_clock() if published_clock else datetime.now(timezone.utc)
+                    _archive_release_publication(directory, output=output,
+                        artifact=context['artifact_used'][0], snapshot=context['snapshot'],
+                        rows=context['rows'], current=context['current'],
+                        origin_temperatures=context['origin_proofs'][0], runtime=context['runtime'],
+                        inputs_available_at=context['now'], published_at=published)
+                except (ImportError, OSError, RuntimeError, TypeError, ValueError, IndexError):
+                    # Do not invent proof or retry an already accepted state write.
+                    print("thermal release capture gap: original proof unavailable", file=sys.stderr)
         unavailable = output['status'] == 'unavailable'
         print(json.dumps(output, sort_keys=True, separators=(",", ":")),
             file=sys.stderr if unavailable else sys.stdout)

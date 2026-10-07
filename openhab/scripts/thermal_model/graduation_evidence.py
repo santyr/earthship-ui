@@ -10,7 +10,7 @@ import json
 import math
 from pathlib import Path
 
-from thermal_model.origin_capture import read_origin_capture
+from thermal_model.origin_capture import read_observed_origin_capture as read_origin_capture
 from thermal_model.temperature_history import _validate_receipt
 from thermal_model.forcing_capture import _canonical
 from thermal_model.recent_cycles import compare

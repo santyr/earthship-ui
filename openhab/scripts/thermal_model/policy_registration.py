@@ -15,7 +15,8 @@ from uuid import uuid4
 
 from thermal_model.graduation_policy import validate_policy,RECORD_FIELDS,_utc
 from thermal_model.forcing_capture import _canonical,_private_directory
-from thermal_model.origin_capture import read_origin_capture,write_origin_capture
+from thermal_model.origin_capture import read_observed_origin_capture as read_origin_capture
+from thermal_model.origin_capture import write_observed_origin_capture as write_origin_capture
 from thermal_model.graduation_evidence import _score_origin_record
 
 SCHEMA='earthship-thermal-policy-registration/v1'

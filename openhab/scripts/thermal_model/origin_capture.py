@@ -21,6 +21,7 @@ from .schema import validate_shadow_output
 from .temperature_history import STREAMS,_validate_receipt
 
 SCHEMA='earthship-thermal-origin-capture/v1'
+RELEASE_SCHEMA='earthship-thermal-origin-capture/v2'
 VALUES={'output','artifact','raw_forecast','forecast_rows','current',
         'origin_temperatures','runtime','known_actions','source_epochs'}
 RUNTIME_FIELDS={'schema','code_revision','observer_revision','interpreter_sha256',
@@ -145,9 +146,33 @@ def _actions(value,issued_at):
 
 
 def validate_origin_capture(record):
+    return _validate_origin_capture(record, schema=SCHEMA, output_validator=validate_shadow_output)
+
+
+def validate_release_origin_capture(record):
+    from .release import validate_release_output
+    _validate_origin_capture(record, schema=RELEASE_SCHEMA, output_validator=validate_release_output)
+    metadata = record['output']['release']
+    if (metadata['artifactSha256'] != record['sha256']['artifact'] or
+            metadata['runtimeSha256'] != record['sha256']['runtime'] or
+            metadata['sensorEpochs'] != record['source_epochs']):
+        raise ValueError('published release identity differs from original inputs')
+    published = _utc(record['published_at'])
+    if not _utc(metadata['qualifiedAt']) <= published < _utc(metadata['expiresAt']):
+        raise ValueError('release qualification unavailable at publication acknowledgement')
+    return record
+
+
+def validate_observed_origin_capture(record):
+    if isinstance(record, dict) and record.get('schema') == RELEASE_SCHEMA:
+        return validate_release_origin_capture(record)
+    return validate_origin_capture(record)
+
+
+def _validate_origin_capture(record, *, schema, output_validator):
     if (not isinstance(record,dict) or set(record)!=VALUES|{
             'schema','issued_at','inputs_available_at','published_at','sha256'} or
-            record['schema']!=SCHEMA or not isinstance(record['sha256'],dict) or
+            record['schema']!=schema or not isinstance(record['sha256'],dict) or
             set(record['sha256'])!=VALUES):
         raise ValueError('closed origin capture contract required')
     for name in VALUES:
@@ -156,7 +181,7 @@ def validate_origin_capture(record):
     issue=_utc(record['issued_at']);published=_utc(record['published_at'])
     if not _utc(record['inputs_available_at'])<=issue<=published:
         raise ValueError('original inputs were unavailable at issue')
-    output=record['output'];validate_shadow_output(output)
+    output=record['output'];output_validator(output)
     if output['confidence']['grade']=='unavailable' or _utc(output['generatedAt'])!=issue:
         raise ValueError('only actual available issued output can be captured')
     from .artifacts import _artifact_from_payload
@@ -177,6 +202,18 @@ def validate_origin_capture(record):
 def build_origin_capture(*,output,artifact,snapshot,rows,current,origin_temperatures,
                          runtime,inputs_available_at,published_at,known_actions=None):
     """Detach one original observation with exact source and runtime bindings."""
+    return _build_origin_capture(output=output,artifact=artifact,snapshot=snapshot,rows=rows,
+        current=current,origin_temperatures=origin_temperatures,runtime=runtime,
+        inputs_available_at=inputs_available_at,published_at=published_at,known_actions=known_actions,
+        schema=SCHEMA,validator=validate_origin_capture)
+
+
+def build_release_origin_capture(**kwargs):
+    return _build_origin_capture(**kwargs, schema=RELEASE_SCHEMA, validator=validate_release_origin_capture)
+
+
+def _build_origin_capture(*,output,artifact,snapshot,rows,current,origin_temperatures,
+                         runtime,inputs_available_at,published_at,known_actions=None,schema,validator):
     issue=_utc(output['generatedAt']);published=_utc(published_at)
     values=dict(output=output,artifact=_artifact_payload(artifact,output),
         raw_forecast=snapshot,forecast_rows=rows,current=current,
@@ -186,10 +223,10 @@ def build_origin_capture(*,output,artifact,snapshot,rows,current,origin_temperat
     epochs,_=_temperatures(values['origin_temperatures'],values['current'],
                            issued_at=issue,published_at=published)
     values['source_epochs']=epochs
-    record=dict(schema=SCHEMA,issued_at=issue.isoformat(),
+    record=dict(schema=schema,issued_at=issue.isoformat(),
         inputs_available_at=_utc(inputs_available_at).isoformat(),published_at=published.isoformat(),
         sha256={name:sha256(_canonical(value)).hexdigest() for name,value in values.items()},**values)
-    return validate_origin_capture(record)
+    return validator(record)
 
 
 
@@ -218,6 +255,18 @@ def _object(pairs):
 
 
 def read_origin_capture(path):
+    return _read_origin_capture(path, validate_origin_capture)
+
+
+def read_release_origin_capture(path):
+    return _read_origin_capture(path, validate_release_origin_capture)
+
+
+def read_observed_origin_capture(path):
+    return _read_origin_capture(path, validate_observed_origin_capture)
+
+
+def _read_origin_capture(path, validator):
     from .forcing_capture import _private_directory
     path=Path(path)
     _private_directory(path.parent)
@@ -229,14 +278,29 @@ def read_origin_capture(path):
     def reject(_):raise ValueError('nonfinite origin archive JSON')
     try:record=json.loads(raw,object_pairs_hook=_object,parse_constant=reject)
     except (json.JSONDecodeError,UnicodeDecodeError):raise ValueError('origin archive JSON invalid') from None
-    return validate_origin_capture(record)
+    return validator(record)
 
 
 def write_origin_capture(directory,record):
-    """Publish immutable private evidence only; no UI/household API is called."""
+    """Publish immutable private v1 evidence only."""
+    return _write_origin_capture(directory, record, validate_origin_capture, 'v1')
+
+
+def write_release_origin_capture(directory, record):
+    return _write_origin_capture(directory, record, validate_release_origin_capture, 'v2')
+
+
+def write_observed_origin_capture(directory, record):
+    validate_observed_origin_capture(record)
+    return (write_release_origin_capture(directory, record) if record['schema'] == RELEASE_SCHEMA
+        else write_origin_capture(directory, record))
+
+
+def _write_origin_capture(directory, record, validator, suffix):
+    """Publish immutable private evidence only; no household API is called."""
     from .forcing_capture import _private_directory
     root=_private_directory(Path(directory))
-    raw=_canonical(validate_origin_capture(record))
+    raw=_canonical(validator(record))
     compressed=gzip.compress(raw,mtime=0)
     if len(compressed)>256000:raise ValueError('compressed origin archive exceeds bound')
     issued=_utc(record['issued_at'])
@@ -244,7 +308,7 @@ def write_origin_capture(directory,record):
     try:month.mkdir(mode=0o700)
     except FileExistsError:pass
     _private_directory(month)
-    target=month/(issued.strftime('%Y%m%dT%H%M%SZ')+'-'+record['sha256']['output'][:16]+'-origin-v1.json.gz')
+    target=month/(issued.strftime('%Y%m%dT%H%M%SZ')+'-'+record['sha256']['output'][:16]+'-origin-'+suffix+'.json.gz')
     temporary=month/('.origin-'+uuid4().hex+'.tmp')
     fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     try:

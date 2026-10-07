@@ -80,8 +80,8 @@ payloads. The existing card layout and independent household alerts remain intac
 
 This is source-only publication/consumer infrastructure. Installed services still
 use the legacy v4 runtime/artifact pair. The explicit source command is implemented; scheduled deployment, compatible
-runtime inventory, versioned prospective capture, rollback and real candidate
-cutover remain necessary. No active publication or installed service change occurred here.
+runtime inventory, natural versioned prospective capture/scoring verification,
+rollback and real candidate cutover remain necessary. No active publication or installed service change occurred here.
 
 Verification: 75 focused backend/qualification/schema checks and 64 frontend
 parser/card checks passed. Local runs were serial with 25% CPU, 768 MiB RAM, zero
