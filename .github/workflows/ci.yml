@@ -33,25 +33,17 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-test.txt
       - run: python -m pip install -r requirements-test.txt
-      - name: Fetch pinned companion library for Python tests
+      - name: Completion regression tests
+        run: python -m pytest tests/completion/ -q
+      - name: Existing OpenHAB Python tests (including disposable PostgreSQL)
+        run: python -m pytest openhab/scripts/ -q
+      - name: Fetch pinned companion library for operational tooling
         uses: actions/checkout@v4
         with:
           repository: santyr/Solar_PV
           ref: d24771b77de540f32e592a7c44a0bff6385e8cd4
           path: .ci/solar-pv
           persist-credentials: false
-      - name: Install system-Python dependencies for restored-consumer qualification
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq python3-numpy python3-scipy python3-psycopg2
-      - name: Completion regression tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
-        run: python -m pytest tests/completion/ -q
-      - name: Existing OpenHAB Python tests (including disposable PostgreSQL)
-        env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
-        run: python -m pytest openhab/scripts/ -q
       - name: Operational tooling regression tests
         env:
           PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
