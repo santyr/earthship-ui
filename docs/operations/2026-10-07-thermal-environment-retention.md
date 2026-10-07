@@ -37,3 +37,20 @@ required before production cutover.
 Local tests use tiny files in the established serial resource scope. The component
 does not rebuild or automatically copy the installed environment, change a service
 or publish a thermal state.
+
+## Reviewed tree inventory
+
+`inventory_environment_files(roots, aliases=...)` builds the explicit capture map
+from reviewed library roots. File and directory symlinks require an exact declared
+logical-path-to-resolved-target mapping. Unreviewed, changed or unused aliases
+refuse the inventory. Cycles, overlapping file coverage, unsafe entries and
+traversal/file-count limits are checked. Directory membership changes during the
+scan also refuse it. Bytecode cache directories are excluded; recovered execution
+must keep bytecode writes disabled.
+
+The resulting map feeds the streaming byte capturer. Inventory success establishes
+only the reviewed trees and aliases, not complete native-link closure, retained
+bytes, compatible relocation, cold journal recovery or release eligibility. Keep
+actual roots, alias maps and size measurements in private staging. No automatic
+installation, service change or full-environment copy is performed by the inventory
+function.

@@ -157,3 +157,61 @@ def capture_environment_files(directory, files):
         return target
     finally:
         if stage.exists(): shutil.rmtree(stage)
+
+
+def inventory_environment_files(roots, *, aliases):
+    """List reviewed library trees, following only explicitly bound aliases.
+
+    Bytecode cache directories are omitted. This is a finite file inventory,
+    not a claim that the supplied roots cover every runtime dependency.
+    """
+    if not isinstance(roots, (list, tuple)) or not 1 <= len(roots) <= 16:
+        raise ValueError('explicit bounded library roots required')
+    if not isinstance(aliases, dict) or len(aliases) > MAX_FILES:
+        raise ValueError('explicit bounded dependency aliases required')
+    approved = {_name(name): Path(target) for name, target in aliases.items()}
+    for target in approved.values():
+        _name(str(target))
+        if target.resolve() != target: raise ValueError('fully resolved alias destination required')
+    inventory = {}; used = set(); visited = 0
+
+    def visit(logical, source, ancestors):
+        nonlocal visited
+        _name(str(logical)); _name(str(source))
+        visited += 1
+        if visited > MAX_FILES*3 or len(ancestors) > 32:
+            raise ValueError('dependency traversal exceeds bound')
+        before = source.lstat()
+        if stat.S_ISLNK(before.st_mode):
+            name = str(logical)
+            if name not in approved or source.resolve(strict=True) != approved[name]:
+                raise ValueError('unreviewed or changed dependency alias')
+            used.add(name)
+            return visit(logical, approved[name], ancestors)
+        if (source.resolve() != source or before.st_uid not in (0, os.getuid()) or
+                before.st_mode & 0o022):
+            raise ValueError('safe resolved library entry required')
+        if stat.S_ISDIR(before.st_mode):
+            identity = (before.st_dev, before.st_ino)
+            if identity in ancestors: raise ValueError('dependency directory alias cycle')
+            for child in source.iterdir():
+                if child.name == '__pycache__' and child.is_dir(): continue
+                visit(logical/child.name, child, (*ancestors, identity))
+            after = source.lstat()
+            if (before.st_dev, before.st_ino, before.st_mtime_ns, before.st_ctime_ns) != (
+                    after.st_dev, after.st_ino, after.st_mtime_ns, after.st_ctime_ns):
+                raise ValueError('dependency directory changed during inventory')
+        elif stat.S_ISREG(before.st_mode):
+            if before.st_size > MAX_FILE_BYTES: raise ValueError('dependency exceeds file bound')
+            name = str(logical)
+            if name in inventory: raise ValueError('overlapping dependency roots')
+            inventory[name] = source
+            if len(inventory) > MAX_FILES: raise ValueError('dependency file count exceeds bound')
+        else: raise ValueError('unsupported dependency entry type')
+
+    for root in roots:
+        root = Path(root); _name(str(root))
+        if not root.is_dir(): raise ValueError('library root must be a directory')
+        visit(root, root, ())
+    if used != set(approved): raise ValueError('unused dependency alias declaration')
+    return inventory

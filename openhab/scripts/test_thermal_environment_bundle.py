@@ -93,3 +93,41 @@ def test_retention_flags_cannot_be_promoted_by_rehashing_manifest(tmp_path):
     value['bundle_sha256']=sha256(_canonical({key:item for key,item in value.items() if key!='bundle_sha256'})).hexdigest()
     path.write_text(json.dumps(value));new=archive/value['bundle_sha256'];target.rename(new)
     with pytest.raises(ValueError):module().read_environment_bundle(new)
+
+
+def test_inventory_requires_explicit_file_and_directory_aliases(tmp_path):
+    paths,_=files(tmp_path);root=next(iter(paths.values())).parent
+    outside=tmp_path/'outside';outside.mkdir(mode=0o700)
+    dependency=outside/'dependency.py';dependency.write_bytes(b'# required');dependency.chmod(0o600)
+    link=root/'external.py';link.symlink_to(dependency)
+    directory_link=root/'external-package';directory_link.symlink_to(outside,target_is_directory=True)
+    with pytest.raises(ValueError):module().inventory_environment_files([root],aliases={})
+    inventory=module().inventory_environment_files([root],aliases={str(link):dependency,str(directory_link):outside})
+    assert inventory[str(link)]==dependency
+    assert inventory[str(directory_link/'dependency.py')]==dependency
+    assert set(paths)<=set(inventory)
+
+
+def test_inventory_ignores_bytecode_but_rejects_unused_or_wrong_alias(tmp_path):
+    paths,_=files(tmp_path);root=next(iter(paths.values())).parent
+    cache=root/'__pycache__';cache.mkdir(mode=0o700);(cache/'module.pyc').write_bytes(b'cache')
+    assert module().inventory_environment_files([root],aliases={})==paths
+    with pytest.raises(ValueError):module().inventory_environment_files([root],aliases={str(root/'missing'):root})
+    link=root/'alias';source=next(iter(paths.values()));link.symlink_to(source)
+    with pytest.raises(ValueError):module().inventory_environment_files([root],aliases={str(link):root})
+
+
+def test_inventory_refuses_directory_alias_cycle_and_entry_overflow(tmp_path,monkeypatch):
+    paths,_=files(tmp_path);root=next(iter(paths.values())).parent
+    link=root/'loop';link.symlink_to(root,target_is_directory=True)
+    with pytest.raises(ValueError):module().inventory_environment_files([root],aliases={str(link):root})
+    link.unlink()
+    monkeypatch.setattr(module(),'MAX_FILES',1)
+    with pytest.raises(ValueError):module().inventory_environment_files([root],aliases={})
+
+
+def test_inventory_feeds_real_immutable_dependency_capture(tmp_path):
+    paths,archive=files(tmp_path);root=next(iter(paths.values())).parent
+    inventory=module().inventory_environment_files([root],aliases={})
+    target=module().capture_environment_files(archive,inventory)
+    assert set(module().read_environment_bundle(target)['files'])==set(paths)
