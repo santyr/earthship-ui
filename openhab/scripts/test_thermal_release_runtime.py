@@ -58,7 +58,7 @@ def release_case(tmp_path, monkeypatch):
         return deepcopy(current)
     monkeypatch.setattr(thermal_intel, '_current_states', observed)
     monkeypatch.setattr(thermal_intel.forecast_intel, 'fetch_forecast', lambda: {})
-    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda *_: [{'at': NOW, 'mode': 'warm'}])
+    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda *_: deepcopy(data['forecast_rows']))
     def predict(**kwargs):
         kwargs['artifact_observer'](original['artifact'])
         return deepcopy(data['shadow'])

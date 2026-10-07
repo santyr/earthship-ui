@@ -77,7 +77,23 @@ def unavailable_release(now,reason='thermal release qualification unavailable'):
     return validate_release_output(output)
 
 
-def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runtime_sha256,sensor_epochs):
+
+def forecast_regimes(forecast_rows, shadow):
+    """Thermal regimes actually consumed by the original published trajectory."""
+    from .pipeline import interpolate_hourly_forecast
+    validate_shadow_output(shadow)
+    if not isinstance(forecast_rows, (list, tuple)) or not 2 <= len(forecast_rows) <= 800:
+        raise ValueError('bounded original forecast forcing required for regime coverage')
+    trajectory = shadow['forecast']['trajectory']
+    if not trajectory:
+        raise ValueError('available original trajectory required')
+    forcing = interpolate_hourly_forecast(forecast_rows,
+        start=_utc(trajectory[0]['at']), end=_utc(trajectory[-1]['at']))
+    mapping = {'warm': 'warm', 'spring': 'shoulder', 'fall_charge': 'shoulder', 'winter': 'winter'}
+    return sorted({mapping[row['mode']] for row in forcing})
+
+
+def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runtime_sha256,sensor_epochs,forecast_rows=None):
     """Recompute qualification, bind current identity, and derive explicit mode."""
     now=_utc(now)
     try:
@@ -108,6 +124,8 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
             raise ValueError('complete recomputed forecast gates required')
         forecast=all(gates.values())
         if report['forecast_qualified'] is not forecast:raise ValueError('forecast pass differs from actual gates')
+        if forecast and not set(forecast_regimes(forecast_rows, shadow)).issubset(policy['regimes']):
+            raise ValueError('current thermal regimes lack preregistered qualified support')
         # The v1 combined evaluator currently withholds action advice.
         if report['advisory_qualified'] is not False:raise ValueError('confirmed action evaluator unavailable')
         if report['recommended_stage']=='unavailable':raise ValueError('source or numerical qualification unavailable')

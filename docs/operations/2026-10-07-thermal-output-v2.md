@@ -98,3 +98,14 @@ a real candidate has graduated.
 The source command also accepts `--model-directory` for a compatible staged
 registry. Qualification still binds the artifact actually used by the predictor;
 choosing a directory does not bypass candidate/runtime/epoch or evidence gates.
+
+Active publication also requires the original `forecast_rows`. The builder uses
+exactly the predictor's five-minute interpolation to identify thermal regimes
+consumed over the actual published trajectory. Those regimes must be supported
+by the preregistered policy. Warm-only qualification cannot authorize winter or
+shoulder operation, including a mode transition between output points. Later
+transitions outside the actual trajectory do not expand its coverage. Spring and
+fall-charge map to the existing shoulder evidence stratum; no calendar inference
+or new physical calculation is introduced. Unsupported or missing forcing refuses
+active publication with explicit unavailable output. Unqualified diagnostic shadow
+output remains low confidence. Original v1 and v2 output field shapes are unchanged.

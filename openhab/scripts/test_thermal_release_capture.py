@@ -17,7 +17,9 @@ def data(monkeypatch):
     original = capture_inputs()
     source = shift(json.loads(_canonical({key: value for key, value in original.items() if key != 'artifact'})))
     source['artifact'] = original['artifact']
-    source['output'] = release.build_release_output(**inputs(monkeypatch))
+    publication = inputs(monkeypatch)
+    source['rows'] = publication['forecast_rows']
+    source['output'] = release.build_release_output(**publication)
     return source
 
 

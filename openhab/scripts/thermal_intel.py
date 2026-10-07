@@ -517,7 +517,7 @@ def publish_shadow_output(payload, put_state=None):
 
 
 def publish_release_output(*, shadow, qualification_loader, now,
-        artifact_sha256, runtime_sha256, sensor_epochs, put_state=None):
+        artifact_sha256, runtime_sha256, sensor_epochs, forecast_rows=None, put_state=None):
     """Recompute qualification and publish one v2 state, including withdrawal.
 
     The caller supplies the current observed artifact/runtime/epochs and a
@@ -528,7 +528,7 @@ def publish_release_output(*, shadow, qualification_loader, now,
     output = build_release_output(shadow=shadow,
         qualification_loader=qualification_loader, now=now,
         artifact_sha256=artifact_sha256, runtime_sha256=runtime_sha256,
-        sensor_epochs=sensor_epochs)
+        sensor_epochs=sensor_epochs, forecast_rows=forecast_rows)
     _publish_validated_release(output, put_state=put_state)
     return output
 
@@ -791,7 +791,8 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
             artifact_digest = sha256(_canonical(asdict(context['artifact_used'][0]))).hexdigest()
             runtime_digest = sha256(_canonical(context['runtime'])).hexdigest()
             output = build_release_output(shadow=shadow, qualification_loader=loader, now=at,
-                artifact_sha256=artifact_digest, runtime_sha256=runtime_digest, sensor_epochs=epochs)
+                artifact_sha256=artifact_digest, runtime_sha256=runtime_digest, sensor_epochs=epochs,
+                forecast_rows=context['rows'])
             # Qualification can take time. Recheck original native expiry and
             # executing source identity immediately before persistence/delivery.
             completed = assessment_clock()

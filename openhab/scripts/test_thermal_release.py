@@ -30,6 +30,12 @@ def shift(value):
     return value
 
 
+
+def forecast_rows(mode='warm'):
+    return [dict(at=NOW+timedelta(hours=hour), tempF=50, radiationWm2=0,
+        windMph=0, weatherCode=0, mode=mode) for hour in range(3)]
+
+
 def inputs(monkeypatch,*,skill=True):
     decision,args=classifier_case(monkeypatch,skill=skill)
     report=decision.qualify_candidate(**args)
@@ -41,7 +47,7 @@ def inputs(monkeypatch,*,skill=True):
     def loader(at):assert at==NOW;return deepcopy(report)
     return dict(shadow=shadow,qualification_loader=loader,now=NOW,
         artifact_sha256=report['candidate']['artifact_sha256'],runtime_sha256=report['candidate']['runtime_sha256'],
-        sensor_epochs=report['candidate']['sensor_epochs'])
+        sensor_epochs=report['candidate']['sensor_epochs'],forecast_rows=forecast_rows())
 
 
 def test_forecast_active_has_explicit_version_and_withholds_action_advice(monkeypatch):
