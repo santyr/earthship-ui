@@ -85,7 +85,17 @@ def main():
         result = verify(args.runtime_root, args.expected_runtime_revision,
                         args.fixture_start, args.runtime_role)
     except Exception as error:
-        print(json.dumps({'status': 'withheld', 'error_type': type(error).__name__}))
+        # This probe runs only against a disposable restored database. Surface
+        # the invariant label for CI diagnosis without printing DSNs, payloads,
+        # credentials, or household records.
+        message = str(error)
+        if len(message) > 240:
+            message = message[:240]
+        print(json.dumps({
+            'status': 'withheld',
+            'error_type': type(error).__name__,
+            'error': message,
+        }, sort_keys=True))
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0
