@@ -40,6 +40,10 @@ jobs:
           ref: d24771b77de540f32e592a7c44a0bff6385e8cd4
           path: .ci/solar-pv
           persist-credentials: false
+      - name: Install system-Python dependencies for restored-consumer qualification
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-numpy python3-scipy python3-psycopg2
       - name: Completion regression tests
         env:
           PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
