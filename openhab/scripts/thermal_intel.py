@@ -96,6 +96,11 @@ def _build_parser():
         command.add_argument(
             "--state-dir", type=Path, default=DEFAULT_STATE_DIRECTORY
         )
+        if name == "train":
+            command.add_argument(
+                "--fit-evidence-dir", type=Path,
+                help="record strict final-fit evidence in an existing private directory (off-host qualification)",
+            )
 
     shadow = subparsers.add_parser(
         "shadow", help="write one bounded shadow prediction"
@@ -259,8 +264,18 @@ def _training_kwargs(args, parser, now):
 
 
 def _train(args, parser, now):
+    proof_directory = getattr(args, "fit_evidence_dir", None)
+    proof_writer = None
+    if proof_directory is not None:
+        from thermal_model.forcing_capture import _private_directory
+        from thermal_model.fit_evidence import write_fit_evidence
+        root = _private_directory(Path(proof_directory).expanduser().absolute())
+        proof_writer = lambda artifact, proof: write_fit_evidence(root, proof, artifact)
+    kwargs = _training_kwargs(args, parser, now)
+    if proof_writer is not None:
+        kwargs["fit_evidence_writer"] = proof_writer
     try:
-        result = run_training(**_training_kwargs(args, parser, now))
+        result = run_training(**kwargs)
     except TrainingRefused as exc:
         print(
             json.dumps(

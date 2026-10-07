@@ -18,6 +18,7 @@ jobs:
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
       NUMEXPR_NUM_THREADS: "1"
+      EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

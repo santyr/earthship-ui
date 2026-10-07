@@ -27,6 +27,7 @@ jobs:
       OMP_NUM_THREADS: 1
       MKL_NUM_THREADS: 1
       NUMEXPR_NUM_THREADS: 1
+      EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -54,6 +55,9 @@ jobs:
             openhab/scripts/test_qualified_soc_forecast.py \
             openhab/scripts/test_thermal_identifiability.py \
             openhab/scripts/test_thermal_dynamics.py \
+            openhab/scripts/test_thermal_fit_measurements.py \
+            openhab/scripts/test_thermal_fit_evidence.py \
+            openhab/scripts/test_thermal_fit_pipeline.py \
             openhab/scripts/test_thermal_pipeline.py \
             openhab/scripts/test_thermal_artifacts.py \
             tests/completion/test_thermal_replay_bundle.py

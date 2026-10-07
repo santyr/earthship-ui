@@ -346,8 +346,11 @@ def run_training(
     behavior_fitter=fit_behavior,
     evaluator=walk_forward_evaluate,
     artifact_validator=validate_artifact,
+    fit_evidence_writer=None,
 ):
-    """Fit, backtest, persist, validate, and promote an offline candidate."""
+    """Fit, backtest, persist, validate, and promote an offline shadow candidate."""
+    if fit_evidence_writer is not None and not callable(fit_evidence_writer):
+        raise ValueError("qualification fit evidence writer must be callable")
     del forecast_reader
     series_by_role, events, modes = _read_authorities(
         start=start,
@@ -357,7 +360,10 @@ def run_training(
         site_settings_loader=site_settings_loader,
     )
     samples = sample_builder(series_by_role, events, modes, start, end)
-    fitted_dynamics = dynamics_fitter(samples)
+    if fit_evidence_writer is None:
+        fitted_dynamics = dynamics_fitter(samples)
+    else:
+        fitted_dynamics = dynamics_fitter(samples, collect_graduation_evidence=True)
     if not isinstance(fitted_dynamics, MultihorizonDynamicsFit):
         raise ValueError(
             "training dynamics fitter must return multihorizon evidence"
@@ -392,6 +398,13 @@ def run_training(
     )
     try:
         artifact_validator(artifact)
+        if fit_evidence_writer is not None:
+            from .fit_evidence import build_fit_evidence
+            proof = build_fit_evidence(artifact, fitted_dynamics)
+            try:
+                fit_evidence_writer(artifact, proof)
+            except OSError:
+                raise ValueError("candidate fit evidence persistence failed") from None
         registry.save_candidate(artifact)
         promoted = registry.promote_candidate()
     except (ArtifactPromotionRefused, ArtifactValidationError, ValueError) as exc:
