@@ -35,6 +35,7 @@ MAX_SHADOW_BYTES = 16 * 1024
 RUNTIME_REVISION_PATHS = (
     "thermal_intel.py",
     "forecast_intel.py",
+    "forecast_ml_evidence.py",
     "thermal_temperature_runtime.py",
     "thermal_radiation_runtime.py",
     "weather_radiation_reader.py",
