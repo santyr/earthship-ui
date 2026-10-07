@@ -46,6 +46,13 @@ All references must be absolute. The returned evaluator rereads original private
 files and recomputes qualification on every invocation. There is no pass/status
 field in this input contract and no assessment-clock override.
 
+`thermal_intel.publish_release_output` provides the bounded transport boundary.
+It invokes the fresh evaluator through the builder and sends exactly one validated
+version 2 state to `Thermal_Model_JSON`. Failed qualification sends explicit
+unavailable data, replacing a previously active publication. Delivery errors
+propagate instead of producing a success claim. This callable is not yet wired
+into the installed scheduled emitter; it does not enable production by itself.
+
 The UI understands both versions. It displays explicit mode badges, immutable
 revision, forecast confidence and withheld action advice, retains model/training
 ages and calibrated intervals, and refuses forged/expired/incomplete active

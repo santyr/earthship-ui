@@ -507,6 +507,31 @@ def publish_shadow_output(payload, put_state=None):
     return encoded
 
 
+
+def publish_release_output(*, shadow, qualification_loader, now,
+        artifact_sha256, runtime_sha256, sensor_epochs, put_state=None):
+    """Recompute qualification and publish one v2 state, including withdrawal.
+
+    The caller supplies the current observed artifact/runtime/epochs and a
+    trusted source-backed evaluator. Cached reports and active overrides cannot
+    select the operating mode. Transport failure propagates to the caller.
+    """
+    from thermal_model.release import build_release_output, validate_release_output
+    output = build_release_output(shadow=shadow,
+        qualification_loader=qualification_loader, now=now,
+        artifact_sha256=artifact_sha256, runtime_sha256=runtime_sha256,
+        sensor_epochs=sensor_epochs)
+    validate_release_output(output)
+    encoded = json.dumps(output, separators=(",", ":"), allow_nan=False)
+    if len(encoded.encode("utf-8")) >= MAX_SHADOW_BYTES:
+        raise ValueError("thermal release exceeds the 16 KiB publication bound")
+    transport = forecast_intel.oh_put_state if put_state is None else put_state
+    # Unlike the legacy shadow publisher, unavailable v2 data must be sent:
+    # otherwise the last active publication would survive a failed gate.
+    transport(THERMAL_MODEL_ITEM, encoded)
+    return output
+
+
 def _origin_runtime_paths():
     paths = list(RUNTIME_REVISION_PATHS)
     if "thermal_model/runtime_bundle.py" not in paths:
