@@ -446,6 +446,71 @@ DEFAULT_STATE = {"k_res": 1.0, "d_direct": 4.0, "predictions": {},
                  "hourly_temp_targets": {}}
 
 
+def prediction_learning_support(state, overnight_drop_sample_days):
+    """Summarize independent learning support without changing any forecast."""
+    from forecast_ml_evidence import summarize_day_evidence
+
+    pv_evidence = state.get("pv_score_evidence", {})
+    qualified_pv_days = []
+    if isinstance(pv_evidence, dict):
+        for day, record in pv_evidence.items():
+            if (
+                isinstance(record, dict)
+                and record.get("basis") == "qualified_source_bound"
+                and type(record.get("measured_kwh")) in (int, float)
+                and math.isfinite(record["measured_kwh"])
+            ):
+                qualified_pv_days.append(day)
+
+    receipts = state.get("hourly_temp_evidence_receipts", [])
+    qualified_hourly_targets = []
+    if isinstance(receipts, list):
+        qualified_hourly_targets = [
+            record.get("target")
+            for record in receipts
+            if isinstance(record, dict) and isinstance(record.get("target"), str)
+        ]
+
+    model = state.get("hourly_temp_model", {})
+    bucket_counts = []
+    if isinstance(model, dict):
+        for hour in map(str, range(24)):
+            bucket = model.get(hour)
+            count = bucket.get("count") if isinstance(bucket, dict) else None
+            if isinstance(count, int) and not isinstance(count, bool) and count >= 0:
+                bucket_counts.append(count)
+            else:
+                bucket_counts.append(0)
+
+    soc = summarize_day_evidence(
+        overnight_drop_sample_days,
+        active_parameter_count=0,
+        minimum_unique_days=3,
+    )
+    pv = summarize_day_evidence(
+        qualified_pv_days,
+        active_parameter_count=2,
+    )
+    hourly = summarize_day_evidence(
+        qualified_hourly_targets,
+        active_parameter_count=24,
+    )
+    hourly.update({
+        "bucket_update_count": sum(bucket_counts),
+        "minimum_bucket_update_count": min(bucket_counts) if bucket_counts else 0,
+        "maximum_bucket_update_count": max(bucket_counts) if bucket_counts else 0,
+    })
+    pv["qualified_calibration_release_gate_open"] = bool(
+        PV_QUALIFIED_CALIBRATION_RELEASE
+    )
+    return {
+        "version": 1,
+        "soc_trough": soc,
+        "pv_calibration": pv,
+        "hourly_temperature": hourly,
+    }
+
+
 def _quarantine_state():
     quarantine = STATE_FILE + ".corrupt-" + datetime.now().strftime("%Y%m%d-%H%M%S")
     try:
@@ -1422,6 +1487,16 @@ def main():
         log.append("qualified atomic SoC unavailable; energy predictions withheld")
     elif not drops:
         log.append("qualified completed-night SoC unavailable; overnight drop uses configured baseline")
+
+    st["learning_evidence"] = prediction_learning_support(
+        st, drop_sample_days
+    )
+    log.append(
+        "learning evidence: "
+        f"SoC independent nights={st['learning_evidence']['soc_trough']['unique_unit_count']}; "
+        f"PV qualified days={st['learning_evidence']['pv_calibration']['unique_unit_count']}; "
+        f"hourly-temp qualified days={st['learning_evidence']['hourly_temperature']['unique_unit_count']}"
+    )
 
     # thermal advisory (thresholds from 45-day indoor/outdoor analysis).
     # ML v3a: advisory decisions and the Tomorrow items use Kalman
