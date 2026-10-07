@@ -117,7 +117,11 @@ def test_real_qualification_fit_is_exercised_only_on_the_hosted_runner():
     from thermal_model.pipeline import _complete_manifest
     evidence=module();samples,_=synthetic_2r2c_days(28,20261007)
     fitted=dynamics.fit_dynamics_with_evidence(samples,collect_graduation_evidence=True)
-    manifest=_complete_manifest(samples,(),(),fitted.evidence)
+    from thermal_model.schema import ModeEvent
+    mode=ModeEvent(event_id='synthetic-mode',idempotency_key='synthetic-mode',
+        received_at=samples[0].at,effective_at=samples[0].at,mode=samples[0].mode,
+        source='historical_reconstruction',confidence=.35)
+    manifest=_complete_manifest(samples,(),(mode,),fitted.evidence)
     artifact=valid_artifact(code_revision='f'*64)
     artifact=replace(artifact,dynamics=fitted.dynamics,data_manifest=manifest,
         trained_from=manifest['start'],trained_through=manifest['end'])
