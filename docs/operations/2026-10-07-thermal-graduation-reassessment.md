@@ -68,7 +68,7 @@ systemd-run --user --scope --quiet \
 
 After the operator reported a host hard reset, local work was limited to one
 small check at a time under verified cgroup CPU/memory/task limits. Forty-five
-focused evidence/comparator tests passed under the resource limits .
+focused evidence/comparator tests passed under the resource limits.
 Full suites and manual model fitting are kept off this household host; large
 validation runs in CI. No production service, forecast equation, actuator,
 notification policy or credential was changed by this reassessment.

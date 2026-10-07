@@ -369,7 +369,7 @@ def reassess_capsule(directory, *, artifact_sha256=None):
         artifacts=[artifact_sha256]
     return dict(schema='earthship-thermal-development-reassessment/v1',
         assessed_at=raw.get('assessed_at'),verification=verified,
-        error_precision_f=0.001,regime_definition='as_issued_thermal_mode_warm_shouldering_winter',
+        error_precision_f=0.001,regime_definition='as_issued_thermal_mode_to_warm_shoulder_winter',
         by_artifact={artifact:{horizon:summarize_pairs(result.get('pairs',[]),
             horizon_hours=int(horizon),artifact_sha256=artifact)
             for horizon,result in results.items()} for artifact in artifacts},

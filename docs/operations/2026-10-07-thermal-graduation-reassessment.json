@@ -1053,7 +1053,7 @@
   "error_precision_f": 0.001,
   "interpretation": "Development evidence; no untouched holdout or release decision.",
   "recommended_mode": "shadow",
-  "regime_definition": "as_issued_thermal_mode_warm_shouldering_winter",
+  "regime_definition": "as_issued_thermal_mode_to_warm_shoulder_winter",
   "release_qualification_claimed": false,
   "schema": "earthship-thermal-development-reassessment/v1",
   "verification": {
