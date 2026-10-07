@@ -1021,7 +1021,13 @@ def test_learning_evidence_summary_cannot_change_forecast_values(monkeypatch, tm
     monkeypatch.setattr(
         fi,
         'prediction_learning_support',
-        lambda *_args, **_kwargs: {'version': 1, 'sentinel': 'different'},
+        lambda *_args, **_kwargs: {
+            'version': 1,
+            'soc_trough': {'unique_unit_count': 999},
+            'pv_calibration': {'unique_unit_count': 999},
+            'hourly_temperature': {'unique_unit_count': 999},
+            'sentinel': 'different',
+        },
     )
     second, second_puts = _run_main(
         monkeypatch,
