@@ -500,6 +500,38 @@ def publish_shadow_output(payload, put_state=None):
     return encoded
 
 
+def _origin_runtime_paths():
+    paths = list(RUNTIME_REVISION_PATHS)
+    if "thermal_model/runtime_bundle.py" not in paths:
+        paths.append("thermal_model/runtime_bundle.py")
+    return paths
+
+
+def _origin_runtime_binding():
+    from thermal_model.origin_capture import build_runtime_binding
+    return build_runtime_binding(Path(__file__).resolve().parent, _origin_runtime_paths())
+
+
+def _archive_original_publication(directory, *, output, artifact, snapshot, rows,
+        current, origin_temperatures, runtime, inputs_available_at, published_at):
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.origin_capture import build_origin_capture, write_origin_capture
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    root = _private_directory(Path(directory))
+    bundles = root / "runtime-bundles"
+    try:
+        bundles.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
+        _origin_runtime_paths(), expected_binding=runtime)
+    record = build_origin_capture(output=output, artifact=artifact, snapshot=snapshot,
+        rows=rows, current=current, origin_temperatures=origin_temperatures,
+        runtime=runtime, inputs_available_at=inputs_available_at,
+        published_at=published_at, known_actions=None)
+    return write_origin_capture(root, record)
+
+
 def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             published_clock=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
@@ -507,11 +539,22 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
     started = time.monotonic()
     started_at = now
     current = None
+    origin_directory = (os.environ.get("THERMAL_ORIGIN_CAPTURE_DIR")
+        if getattr(args, "publish", False) else None)
+    origin_proofs = []
+    original_runtime = None
+    if origin_directory:
+        try:
+            original_runtime = _origin_runtime_binding()
+        except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+            # Missing observational proof never changes the default forecast.
+            pass
     failed_input = "site settings input"
     try:
         forecast_intel.load_site_settings()
         failed_input = "current state input"
-        current = _current_states(now)
+        current = (_current_states(now, origin_observer=origin_proofs.append)
+            if origin_directory else _current_states(now))
         failed_input = "forecast input"
         snapshot = forecast_intel.fetch_forecast()
         rows = _forecast_rows(
@@ -588,7 +631,19 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
     unavailable = output["confidence"]["grade"] == "unavailable"
     if getattr(args, "publish", False) and not unavailable:
         publish_shadow_output(output, put_state=put_state)
-        capture_dir = os.environ.get('THERMAL_SHADOW_CAPTURE_DIR')
+        capture_dir = os.environ.get("THERMAL_SHADOW_CAPTURE_DIR")
+        published_at = ((published_clock() if published_clock else datetime.now(timezone.utc))
+            if origin_directory or capture_dir else None)
+        if origin_directory:
+            try:
+                if len(origin_proofs) != 1 or len(artifact_used) != 1 or original_runtime is None:
+                    raise ValueError("complete original native/runtime proof unavailable")
+                _archive_original_publication(origin_directory, output=output,
+                    artifact=artifact_used[0], snapshot=snapshot, rows=rows, current=current,
+                    origin_temperatures=origin_proofs[0], runtime=original_runtime,
+                    inputs_available_at=now, published_at=published_at)
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+                print("thermal origin capture gap: original proof unavailable", file=sys.stderr)
         if capture_dir:
             try:
                 if len(artifact_used) != 1:
@@ -596,8 +651,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
                 capture_shadow_inputs(
                     capture_dir, output=output, snapshot=snapshot, rows=rows,
                     current=current, inputs_available_at=now,
-                    published_at=(published_clock() if published_clock else
-                                  datetime.now(timezone.utc)),
+                    published_at=published_at,
                     artifact=artifact_used[0],
                 )
             except (OSError, RuntimeError, TypeError, ValueError):

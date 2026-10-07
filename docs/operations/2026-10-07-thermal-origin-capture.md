@@ -36,8 +36,9 @@ idempotent; changed content cannot overwrite an existing origin identity.
 Reads reject unsafe ownership/modes, symlinks, malformed JSON, changed digests,
 unqualified native receipts, incorrect selected state or expired publication inputs.
 
-The producer hook, durable runtime-source bundle integration, qualification
-policy and production publication remain subsequent work. No installed service,
+The opt-in producer hook and durable declared-runtime bundle are implemented in
+`2026-10-07-thermal-runtime-retention.md`. Combined qualification, the compatible
+installed-runtime transition and production publication remain subsequent work. No installed service,
 legacy capture directory or live publication path has been enabled by this source
 change. Existing legacy captures are not upgraded.
 
