@@ -61,9 +61,9 @@ means forecast gates passed, 1 means a closed gate report, and 2 means input or
 report storage was refused. This command fits no model and invokes no household
 API. It uses the actual assessment clock and has no manual activation option.
 
-The current real model has not passed this evaluator. Complete native training
-snapshots still need retention in the qualification training path, and compatible
-natural publication capture remains disabled on the installed v4 pair. Fully
+The current real model has not passed this evaluator. The explicit off-host qualification training path now retains complete native
+training snapshots as described in `2026-10-07-thermal-training-snapshot.md`.
+Compatible natural publication capture remains disabled on the installed v4 pair. Fully
 assembled real candidate qualification, action-response qualification, version 2
 publication/UI and rollback remain open. Synthetic fixtures establish software
 behavior and are never release evidence.

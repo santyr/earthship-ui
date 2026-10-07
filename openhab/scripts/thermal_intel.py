@@ -250,12 +250,15 @@ def _offline_journal(parser):
 def _training_kwargs(args, parser, now):
     from thermal_temperature_runtime import configured_history
     start, end = _date_range(args, now)
+    retain_raw = getattr(args, "fit_evidence_dir", None) is not None
+    history = (configured_history(_jdbc_series, now, retain_raw=True)
+        if retain_raw else configured_history(_jdbc_series, now))
     return {
         "start": start,
         "end": end,
         "registry": ArtifactRegistry(args.state_dir),
         "journal": _offline_journal(parser),
-        "series_reader": configured_history(_jdbc_series, now),
+        "series_reader": history,
         "forecast_reader": forecast_intel.fetch_forecast,
         "clock": lambda: now,
         "revision_reader": _code_revision,
@@ -266,14 +269,18 @@ def _training_kwargs(args, parser, now):
 def _train(args, parser, now):
     proof_directory = getattr(args, "fit_evidence_dir", None)
     proof_writer = None
+    source_writer = None
     if proof_directory is not None:
         from thermal_model.forcing_capture import _private_directory
         from thermal_model.fit_evidence import write_fit_evidence
+        from thermal_model.training_sources import write_training_sources
         root = _private_directory(Path(proof_directory).expanduser().absolute())
         proof_writer = lambda artifact, proof: write_fit_evidence(root, proof, artifact)
+        source_writer = lambda artifact, snapshot: write_training_sources(root, snapshot, artifact)
     kwargs = _training_kwargs(args, parser, now)
     if proof_writer is not None:
         kwargs["fit_evidence_writer"] = proof_writer
+        kwargs["training_sources_writer"] = source_writer
     try:
         result = run_training(**kwargs)
     except TrainingRefused as exc:

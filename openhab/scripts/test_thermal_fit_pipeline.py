@@ -65,3 +65,40 @@ def test_bad_proof_directory_refuses_cli_before_any_fitting(tmp_path,monkeypatch
     def unexpected(*_):raise AssertionError('fitting started for unsafe directory')
     monkeypatch.setattr(thermal_intel,'_training_kwargs',unexpected)
     with pytest.raises(ValueError,match='0700'):thermal_intel._train(args,parser,NOW)
+
+
+def test_raw_training_snapshot_is_written_before_candidate_promotion(monkeypatch):
+    import thermal_model.training_sources as sources
+    events=[];registry=RecordingRegistry()
+    monkeypatch.setattr(sources,'build_training_sources',lambda samples,reader:dict(schema='earthship-thermal-training-sources/v1'))
+    def writer(artifact,record):
+        assert registry.calls==['report'];events.append('raw_sources')
+        assert record['schema']=='earthship-thermal-training-sources/v1'
+    pipeline.run_training(start=NOW-timedelta(days=30),end=NOW,registry=registry,journal=FakeJournal([]),
+        training_sources_writer=writer,**orchestration_dependencies([],eligible=True))
+    assert events==['raw_sources']
+    assert registry.calls==['report','candidate','promote']
+
+
+def test_raw_source_persistence_failure_preserves_previous_candidate(monkeypatch):
+    import thermal_model.training_sources as sources
+    registry=RecordingRegistry()
+    monkeypatch.setattr(sources,'build_training_sources',lambda *_:{})
+    def writer(*_):raise OSError('private storage failure')
+    with pytest.raises(pipeline.TrainingRefused,match='training source persistence failed'):
+        pipeline.run_training(start=NOW-timedelta(days=30),end=NOW,registry=registry,journal=FakeJournal([]),
+            training_sources_writer=writer,**orchestration_dependencies([],eligible=True))
+    assert registry.calls==['report'] and registry.artifact is None
+
+
+def test_cli_opt_in_supplies_raw_source_writer_together_with_fit_writer(tmp_path,monkeypatch):
+    import thermal_intel
+    tmp_path.chmod(0o700);parser=thermal_intel._build_parser()
+    args=parser.parse_args(['train','--fit-evidence-dir',str(tmp_path)])
+    monkeypatch.setattr(thermal_intel,'_training_kwargs',lambda *_:{})
+    def train(**kwargs):
+        assert callable(kwargs['training_sources_writer'])
+        assert callable(kwargs['fit_evidence_writer'])
+        return SimpleNamespace(artifact=SimpleNamespace(code_revision='f'*64,trained_through='2026-07-01T00:00:00Z'))
+    monkeypatch.setattr(thermal_intel,'run_training',train)
+    assert thermal_intel._train(args,parser,NOW)==0

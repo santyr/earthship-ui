@@ -13,16 +13,17 @@ from thermal_model.temperature_history import QualifiedTemperatureHistory, STREA
 from weather_temperature_reader import _utc
 
 
-def configured_history(legacy_reader, now, environ=None):
+def configured_history(legacy_reader, now, environ=None, *, retain_raw=False):
     env = dict(os.environ if environ is None else environ)
     enabled = env.get('THERMAL_TEMP_QUALIFIED_ENABLE')
     if enabled is None:
+        if retain_raw:raise ValueError('qualified native history required for raw training retention')
         return legacy_reader
     if enabled != '1':
         raise ValueError('explicit qualified thermal history is unavailable')
     cutover = _utc(env.get('THERMAL_TEMP_EVIDENCE_CUTOVER'))
     read = _configured_grid_reader(env, budget=900)
-    return QualifiedTemperatureHistory(legacy_reader, read, cutover=cutover, assessed_at=now)
+    return QualifiedTemperatureHistory(legacy_reader, read, cutover=cutover, assessed_at=now,retain_raw=retain_raw)
 
 
 def _configured_grid_reader(env, *, budget):

@@ -347,10 +347,13 @@ def run_training(
     evaluator=walk_forward_evaluate,
     artifact_validator=validate_artifact,
     fit_evidence_writer=None,
+    training_sources_writer=None,
 ):
     """Fit, backtest, persist, validate, and promote an offline shadow candidate."""
     if fit_evidence_writer is not None and not callable(fit_evidence_writer):
         raise ValueError("qualification fit evidence writer must be callable")
+    if training_sources_writer is not None and not callable(training_sources_writer):
+        raise ValueError("raw training sources writer must be callable")
     del forecast_reader
     series_by_role, events, modes = _read_authorities(
         start=start,
@@ -398,6 +401,13 @@ def run_training(
     )
     try:
         artifact_validator(artifact)
+        if training_sources_writer is not None:
+            from .training_sources import build_training_sources
+            snapshot = build_training_sources(samples, series_reader)
+            try:
+                training_sources_writer(artifact, snapshot)
+            except OSError:
+                raise ValueError("candidate training source persistence failed") from None
         if fit_evidence_writer is not None:
             from .fit_evidence import build_fit_evidence
             proof = build_fit_evidence(artifact, fitted_dynamics)

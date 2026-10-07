@@ -29,13 +29,16 @@ class QualifiedTemperatureHistory:
     Every post-cutover target is emitted, including NaN barriers. Other roles
     retain their existing source contract and are never called receipt-qualified.
     """
-    def __init__(self, legacy_reader, grid_reader, *, cutover, assessed_at):
+    def __init__(self, legacy_reader, grid_reader, *, cutover, assessed_at, retain_raw=False):
         self.cutover, self.assessed_at = _utc(cutover), _utc(assessed_at)
         if self.cutover != _ceil(self.cutover) or self.cutover > self.assessed_at:
             raise ValueError('elapsed five-minute-aligned cutover required')
         self.legacy_reader, self.grid_reader = legacy_reader, grid_reader
         self._evidence = {}
         self._window = None
+        if type(retain_raw) is not bool:raise ValueError('raw retention request must be boolean')
+        self._raw_grids = {} if retain_raw else None
+        self._raw_sizes = {}
 
     def __call__(self, item, start, end):
         start, end = _utc(start), _utc(end)
@@ -55,6 +58,8 @@ class QualifiedTemperatureHistory:
         evidence = dict(stream=stream, model=model, sensor_id=sensor_id, policy=dict(POLICY),
                         legacy_points=len(points), targets=0, qualified=0, missing=0)
         digest = sha256()
+        retained = [] if self._raw_grids is not None else None
+        retained_size = 0
         cursor = _ceil(max(start, self.cutover))
         while cursor < end:
             targets = []
@@ -73,14 +78,27 @@ class QualifiedTemperatureHistory:
                 canonical = None if value is None else {
                     key: _utc(val).isoformat() if key in ('receivedAt', 'storedAt', 'validUntil') else val
                     for key, val in value.items()}
-                digest.update((json.dumps([target.isoformat(), canonical], sort_keys=True,
-                                          separators=(',', ':'), allow_nan=False) + '\n').encode())
+                encoded=(json.dumps([target.isoformat(), canonical], sort_keys=True,
+                                    separators=(',', ':'), allow_nan=False) + '\n').encode()
+                digest.update(encoded)
+                if retained is not None:
+                    retained_size+=len(encoded)
+                    if retained_size+sum(size for name,size in self._raw_sizes.items() if name!=role)>64000000:
+                        raise ValueError('retained raw training receipt bytes exceed bound')
+                    retained.append([target.isoformat(),deepcopy(canonical)])
                 points.append((target, math.nan if value is None else float(value['temperatureF'])))
                 evidence['targets'] += 1
                 evidence['missing' if value is None else 'qualified'] += 1
         evidence['grid_sha256'] = digest.hexdigest()
         self._evidence[role] = evidence
+        if retained is not None:
+            self._raw_grids[role]=retained;self._raw_sizes[role]=retained_size
         return points
+
+    def temperature_grids(self):
+        if self._raw_grids is None or set(self._raw_grids)!=set(STREAMS):
+            raise ValueError('complete retained native training grids unavailable')
+        return deepcopy(self._raw_grids)
 
     def evidence_manifest(self):
         if set(self._evidence) != set(STREAMS):
