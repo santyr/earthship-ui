@@ -91,3 +91,8 @@ The separate [cold-reader check](2026-10-07-thermal-cold-reader.md) now rehearse
 the prior v4 artifact/publication through its own retained reader. That reader
 component has a real private rehearsal; the snapshot API and full environment,
 journal and install integration remain incomplete.
+
+[Dependency-byte retention](2026-10-07-thermal-environment-retention.md) now
+streams a reviewed explicit file inventory into immutable blobs. Complete
+retention, relocation and recovery integration remain required; host-specific
+inventory evidence stays in private staging.
