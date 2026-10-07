@@ -51,3 +51,20 @@ def test_prediction_learning_support_fails_closed_on_invalid_optional_state():
     assert result["pv_calibration"]["unique_unit_count"] == 0
     assert result["hourly_temperature"]["unique_unit_count"] == 0
     assert result["hourly_temperature"]["bucket_update_count"] == 0
+
+
+def test_prediction_learning_support_quarantines_malformed_optional_origins():
+    state = {
+        "pv_score_evidence": {
+            "not-a-date": {"basis": "qualified_source_bound", "measured_kwh": 5.0},
+        },
+        "hourly_temp_evidence_receipts": [
+            {"target": "also-not-a-timestamp"},
+        ],
+        "hourly_temp_model": fi.hourly_model_seed(),
+    }
+    result = fi.prediction_learning_support(state, [])
+    assert result["pv_calibration"]["status"] == "invalid_optional_state"
+    assert result["pv_calibration"]["unique_unit_count"] == 0
+    assert result["hourly_temperature"]["status"] == "invalid_optional_state"
+    assert result["hourly_temperature"]["unique_unit_count"] == 0
