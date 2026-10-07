@@ -2,7 +2,7 @@
 
 from collections import deque
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import math
@@ -250,12 +250,25 @@ def _identification_origin_counts(endpoints):
 
 
 @dataclass(frozen=True)
+class BlockRefitStabilityEvidence:
+    """Independent-day support and movement for the strict initializer refits."""
+
+    assessed: bool
+    independent_days: int
+    required_days: int
+    refit_count: int
+    max_bound_span_fraction: float | None
+    worst_coefficient: str | None
+
+
+@dataclass(frozen=True)
 class MultihorizonEvidence:
     """Exact bounded evidence for one multihorizon refinement."""
 
     origin_counts: tuple[tuple[str, int], ...]
     initial_objective: float
     final_objective: float
+    block_refit_stability: BlockRefitStabilityEvidence | None = None
 
 
 @dataclass(frozen=True)
@@ -1179,7 +1192,13 @@ def fit_dynamics_with_evidence(
     endpoints = _select_multihorizon_endpoints(samples, inactive)
     refined = _refine_multihorizon(initial, endpoints, inactive)
     if not allow_inactive_action_forcing:
-        _validate_block_refit_stability(samples, initial)
+        assessment = BlockRefitStabilityEvidence(
+            **_validate_block_refit_stability(samples, initial)
+        )
+        refined = replace(
+            refined,
+            evidence=replace(refined.evidence, block_refit_stability=assessment),
+        )
     return refined
 
 

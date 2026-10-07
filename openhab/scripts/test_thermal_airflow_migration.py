@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import sqlite3
+import socket
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 import importlib.util
@@ -37,8 +38,11 @@ def database():
     admin_password = uuid4().hex
     runtime_password = uuid4().hex
     role = f'thermal_airflow_{suffix}'
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        fixture_port = listener.getsockname()[1]
     subprocess.run(['docker', 'run', '--detach', '--rm', '--name', container,
-                    '--publish', '127.0.0.1::5432', '--env',
+                    '--publish', f'127.0.0.1:{fixture_port}:5432', '--env',
                     f'POSTGRES_PASSWORD={admin_password}', 'postgres:16'],
                    check=True, capture_output=True, text=True)
     try:
@@ -212,6 +216,33 @@ def test_restored_consumer_probe_preserves_legacy_support_on_v2(database, monkey
     assert reader.events_for_receipt(original.idempotency_key) == (original,)
     assert migration.audit_v2(database.admin_dsn, runtime_role=database.runtime_role,
                              expected_owner=database.owner)['status'] == 'exact_v2'
+
+
+def test_restored_consumer_uses_selected_python_environment(database, monkeypatch, tmp_path):
+    """The restored probe must use the interpreter with the parent's dependencies."""
+    import sys
+    import shlex
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location('thermal_selected_restore',
+        root/'scripts/qualify-thermal-journal-live-restore.py')
+    qualifier = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(qualifier)
+    import thermal_intel
+    monkeypatch.setattr(migration, 'RELEASE_READY', True)
+    migration.migrate_v2(database.admin_dsn, runtime_role=database.runtime_role,
+                        expected_owner=database.owner)
+    marker = tmp_path/'selected-python-used'
+    launcher = tmp_path/'selected-python'
+    launcher.write_text('#!/bin/sh\n'
+        + 'touch '+shlex.quote(str(marker))+'\n'
+        + 'exec '+shlex.quote(sys.executable)+' "$@"\n')
+    launcher.chmod(0o700)
+    monkeypatch.setattr(qualifier.sys, 'executable', str(launcher))
+    proof = qualifier.qualify_consumer(psycopg2.extensions.parse_dsn(database.admin_dsn),
+        database.runtime_role, root/'openhab/scripts', thermal_intel._code_revision())
+    assert proof['status'] == 'installed_consumer_qualified'
+    assert marker.exists(), 'probe bypassed the selected Python environment'
+    assert proof['connection_read_only'] is True and proof['runtime_role_verified'] is True
 
 
 def test_consumer_fixture_cannot_target_production_database():

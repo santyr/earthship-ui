@@ -53,6 +53,8 @@ Add a deterministic stability check to the strict artifact fit only.
 - Refuse only large instability: a coefficient moving by more than 25% of its entire allowed physical range under a one-block omission.
 - Evaluation-fold fitting with inactive action columns does not run the extra refits, preventing a large walk-forward compute multiplier.
 - Short synthetic/early datasets report insufficient support and retain the pre-existing behavior rather than fabricating a stability pass.
+- Return an immutable block-refit assessment at the public strict-fit boundary, including independent/required days, assessed flag, refit count and maximum physical-span movement. Evaluation-only fits carry no stability claim.
+- Keep the current persisted artifact schema exact; serializing graduation evidence requires a separately versioned contract.
 
 This check is about parameter identifiability; predictive skill is still judged by chronological backtesting.
 

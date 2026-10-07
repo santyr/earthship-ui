@@ -261,7 +261,7 @@ def qualify_consumer(params, role, runtime_root, expected_revision):
     probe_dsn = psycopg2.extensions.make_dsn(**params,
         options='-c default_transaction_read_only=on -c role='+role)
     env = {'PATH': '/usr/bin:/bin', 'THERMAL_RESTORE_PROBE_URL': probe_dsn}
-    result = subprocess.run(['/usr/bin/python3', str(ROOT/'scripts/verify-thermal-restored-consumer.py'),
+    result = subprocess.run([sys.executable, str(ROOT/'scripts/verify-thermal-restored-consumer.py'),
         '--runtime-root', str(runtime_root), '--expected-runtime-revision', expected_revision,
         '--fixture-start', start.isoformat(), '--runtime-role', role],
         env=env, capture_output=True, check=False, timeout=30)

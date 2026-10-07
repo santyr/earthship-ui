@@ -87,3 +87,27 @@ def test_block_refit_stability_does_not_invent_a_pass_for_short_history():
     assert result["assessed"] is False
     assert result["refit_count"] == 0
     assert result["max_bound_span_fraction"] is None
+
+
+@pytest.mark.parametrize("days,assessed", [(10, False), (30, True)])
+def test_strict_fit_returns_block_stability_evidence(days, assessed):
+    training, _ = synthetic_2r2c_days(days=days, seed=20261009)
+    fitted = dynamics.fit_dynamics_with_evidence(training)
+    evidence = fitted.evidence.block_refit_stability
+    assert evidence is not None
+    assert evidence.assessed is assessed
+    assert evidence.independent_days == days - 1
+    assert evidence.required_days == 24
+    if assessed:
+        assert evidence.refit_count == 4
+        assert 0 <= evidence.max_bound_span_fraction <= 0.25
+    else:
+        assert evidence.refit_count == 0
+        assert evidence.max_bound_span_fraction is None
+        assert evidence.worst_coefficient is None
+
+
+def test_evaluation_fit_does_not_claim_block_stability():
+    training, _ = synthetic_2r2c_days(days=10, seed=20261009)
+    fitted = dynamics.fit_dynamics_for_evaluation(training)
+    assert fitted.evidence.block_refit_stability is None

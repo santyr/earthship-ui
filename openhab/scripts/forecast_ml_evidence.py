@@ -5,7 +5,7 @@ forecast windows. Dense sensor rows are observations, not independent training
 experiments. The functions are pure and never read or mutate OpenHAB state.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 
@@ -82,22 +82,25 @@ def summarize_nonoverlapping_origins(origins, horizon):
         if not isinstance(value, datetime) or value.utcoffset() is None:
             raise ValueError("forecast origins must be timezone-aware datetimes")
         ordered.append(value)
-    ordered.sort()
-    if len(set(ordered)) != len(ordered):
+    ordered.sort(key=lambda origin: origin.astimezone(timezone.utc))
+    instants = [origin.astimezone(timezone.utc) for origin in ordered]
+    if len(set(instants)) != len(instants):
         raise ValueError("forecast origins must be unique")
 
     selected = []
     available_at = None
-    for origin in ordered:
-        if available_at is None or origin >= available_at:
+    for origin, instant in zip(ordered, instants):
+        if available_at is None or instant >= available_at:
             selected.append(origin)
-            available_at = origin + horizon
+            available_at = instant + horizon
     return {
         "version": 1,
         "evidence_unit": "nonoverlapping_forecast_window",
         "reported_origin_count": len(ordered),
         "independent_origin_count": len(selected),
-        "horizon_seconds": int(horizon.total_seconds()),
+        "horizon_seconds": (int(horizon.total_seconds())
+                            if horizon.total_seconds().is_integer()
+                            else horizon.total_seconds()),
         "first_origin": selected[0].isoformat() if selected else None,
         "last_origin": selected[-1].isoformat() if selected else None,
     }

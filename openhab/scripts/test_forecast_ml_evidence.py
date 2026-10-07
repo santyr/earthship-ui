@@ -52,3 +52,33 @@ def test_nonoverlapping_origins_refuse_duplicates_and_bad_horizon():
         summarize_nonoverlapping_origins([start, start], timedelta(hours=1))
     with pytest.raises(ValueError, match="positive"):
         summarize_nonoverlapping_origins([start], timedelta(0))
+
+
+def test_spring_dst_uses_elapsed_horizon_and_excludes_overlapping_day():
+    from zoneinfo import ZoneInfo
+    zone = ZoneInfo('America/Denver')
+    origins = [datetime(2026, 3, day, 8, 45, tzinfo=zone) for day in (7, 8, 9)]
+    result = summarize_nonoverlapping_origins(origins, timedelta(hours=24))
+    # March8 is only23 elapsed hours after March7; March9 is47 hours after it.
+    assert result['reported_origin_count'] == 3
+    assert result['independent_origin_count'] == 2
+    assert result['last_origin'] == '2026-03-09T08:45:00-06:00'
+
+
+def test_fall_dst_repeated_local_hour_has_two_distinct_elapsed_windows():
+    from zoneinfo import ZoneInfo
+    zone = ZoneInfo('America/Denver')
+    origins = [datetime(2026, 11, 1, 1, 30, tzinfo=zone, fold=fold) for fold in (1, 0)]
+    result = summarize_nonoverlapping_origins(origins, timedelta(hours=1))
+    assert result['reported_origin_count'] == result['independent_origin_count'] == 2
+    assert result['first_origin'] == '2026-11-01T01:30:00-06:00'
+    assert result['last_origin'] == '2026-11-01T01:30:00-07:00'
+
+
+def test_nonoverlapping_summary_preserves_declared_fractional_horizon():
+    start = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    result = summarize_nonoverlapping_origins(
+        [start, start + timedelta(milliseconds=400), start + timedelta(milliseconds=500)],
+        timedelta(milliseconds=500))
+    assert result['independent_origin_count'] == 2
+    assert result['horizon_seconds'] == 0.5

@@ -25,7 +25,15 @@ def write(path, value):
 
 
 @pytest.fixture
-def profile(tmp_path):
+def profile(tmp_path, monkeypatch):
+    # Legacy release authority requires its qualified dependency versions.
+    # Current tests install newer packages; supply only the environment metadata
+    # boundary here, keeping profile/file/interpreter qualification real.
+    import importlib.metadata
+    original_version = importlib.metadata.version
+    qualified = {'websockets': '15.0.1', 'psycopg2-binary': '2.9.10'}
+    monkeypatch.setattr(importlib.metadata, 'version', lambda name:
+        qualified[name] if name in qualified else original_version(name))
     tmp_path.chmod(0o700)
     runtime = tmp_path/'runtime'; runtime.mkdir(mode=0o700)
     launcher = runtime/'run.py'
@@ -187,3 +195,16 @@ def test_runtime_routes_cannot_expand_auth_consent(profile, side):
     release.verify_auth_routes(value, obj)
     routes[value[side]] = (*release.APPROVED_RELAYS, 'wss://unapproved.example')
     with pytest.raises(ValueError): release.verify_auth_routes(value, obj)
+
+
+@pytest.mark.parametrize("package,version", [
+    ("websockets", "14.2"), ("websockets", "16.0"),
+    ("websockets", "15.0.2"), ("psycopg2-binary", "2.9.13"),
+])
+def test_unqualified_dependency_refuses_legacy_release(profile, monkeypatch, package, version):
+    import importlib.metadata
+    original_version = importlib.metadata.version
+    monkeypatch.setattr(importlib.metadata, "version", lambda name:
+        version if name == package else original_version(name))
+    with pytest.raises(ValueError, match="recurring release refused"):
+        verify(profile)
