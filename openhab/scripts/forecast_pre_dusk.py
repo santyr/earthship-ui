@@ -6,7 +6,7 @@ within 60–90 minutes of today's Astro sunset can publish one separate receipt.
 No command, calibration update, or DM is sent by this worker.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import math
@@ -73,12 +73,28 @@ def estimate(now, sunset_state, soc_raw, morning):
     if morning_at.astimezone(ZONE).date().isoformat() != day or morning_at >= now:
         raise Withheld('morning forecast is not an earlier same-day issue')
     samples = morning.get('overnight_drop_samples_pct')
+    sample_days = morning.get('overnight_drop_sample_days')
     drop = morning.get('overnight_drop_final_pct')
     if (not isinstance(samples, list) or len(samples) < 2 or len(samples) > 3
             or any(type(value) not in (int, float) or not math.isfinite(value)
                    or not 0 <= value <= 50 for value in samples)
+            or not isinstance(sample_days, list) or len(sample_days) != len(samples)
             or type(drop) not in (int, float) or not math.isfinite(drop)
             or not 1 <= drop <= 50):
+        raise Withheld('qualified overnight-drop history unavailable')
+    try:
+        parsed_days = tuple(date.fromisoformat(value) for value in sample_days)
+    except (TypeError, ValueError):
+        raise Withheld('qualified overnight-drop history unavailable')
+    prediction_day = now.astimezone(ZONE).date()
+    if (
+        len(set(parsed_days)) != len(parsed_days)
+        or tuple(sorted(parsed_days, reverse=True)) != parsed_days
+        or any(
+            not prediction_day - timedelta(days=4) <= sample_day < prediction_day
+            for sample_day in parsed_days
+        )
+    ):
         raise Withheld('qualified overnight-drop history unavailable')
     soc = current_valid_soc(soc_raw, now)
     if soc is None:
