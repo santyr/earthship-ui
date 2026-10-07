@@ -417,10 +417,12 @@ def _aligned_observed_history(histories):
     ]
 
 
-def _current_states(now, series_reader=None, state_reader=None):
+def _current_states(now, series_reader=None, state_reader=None, *, origin_observer=None):
     from thermal_temperature_runtime import configured_shadow_temperatures
     from thermal_radiation_runtime import configured_shadow_radiation
-    qualified = dict(configured_shadow_temperatures(now) or {})
+    selected = (configured_shadow_temperatures(now) if origin_observer is None else
+                configured_shadow_temperatures(now, origin_observer=origin_observer))
+    qualified = dict(selected or {})
     radiation = configured_shadow_radiation(now)
     if radiation is not None:
         qualified['radiation'] = radiation

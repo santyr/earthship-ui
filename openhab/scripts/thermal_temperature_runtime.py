@@ -1,4 +1,5 @@
 """Opt-in, bounded read-only temperature worker for thermal history ingestion."""
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 import json
@@ -49,7 +50,7 @@ def _configured_grid_reader(env, *, budget):
     return read
 
 
-def configured_shadow_temperatures(now, environ=None):
+def configured_shadow_temperatures(now, environ=None, *, origin_observer=None):
     env = dict(os.environ if environ is None else environ)
     enabled = env.get('THERMAL_TEMP_SHADOW_QUALIFIED_ENABLE')
     if enabled is None:
@@ -57,12 +58,15 @@ def configured_shadow_temperatures(now, environ=None):
     if enabled != '1':
         raise ValueError('explicit qualified shadow temperatures unavailable')
     try:
-        return shadow_temperatures(now, _configured_grid_reader(env, budget=90))
+        reader = _configured_grid_reader(env, budget=90)
+        if origin_observer is None:
+            return shadow_temperatures(now, reader)
+        return shadow_temperatures(now, reader, origin_observer=origin_observer)
     except Exception:
         raise ValueError('qualified shadow temperature evidence unavailable') from None
 
 
-def shadow_temperatures(now, grid_reader):
+def shadow_temperatures(now, grid_reader, *, origin_observer=None):
     """Receipt-only trailing history and current observations; no legacy carry."""
     now = _utc(now)
     floor = now.replace(minute=now.minute//5*5, second=0, microsecond=0)
@@ -70,7 +74,9 @@ def shadow_temperatures(now, grid_reader):
     if targets[-1] != now:
         targets.append(now)
     result = {}
-    for role, (stream, _, _) in STREAMS.items():
+    proof = dict(schema='earthship-thermal-origin-temperatures/v1',
+                 assessed_at=now, roles={})
+    for role, (stream, model, sensor_id) in STREAMS.items():
         rows = grid_reader(stream, targets, now)
         if not isinstance(rows, list) or len(rows) != len(targets):
             raise ValueError('incomplete shadow receipt history')
@@ -89,9 +95,15 @@ def shadow_temperatures(now, grid_reader):
                 latest = value
         if latest is None:
             raise ValueError(f'unqualified current {role} temperature receipt')
+        if origin_observer is not None:
+            proof['roles'][role] = dict(
+                identity=dict(stream=stream, model=model, sensor_id=sensor_id),
+                grid=deepcopy(rows))
         result[role] = dict(history=tuple(history), current={
             'at': _utc(latest['receivedAt']), 'value': latest['temperatureF'],
             'validUntil': _utc(latest['validUntil'])})
+    if origin_observer is not None:
+        origin_observer(proof)
     return result
 
 

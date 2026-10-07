@@ -39,7 +39,7 @@
 - [x] Write boundary tests for non-overlap, revision stratification, native epoch qualification and altered capture/outcome refusal; observe RED.
 - [x] Implement pure evidence accounting and immutable source verification using existing capture/native receipt contracts.
 - [x] Reproduce the frozen October 7 reassessment; classify each existing blocker as closed, still_blocked, not_required_for_forecast_stage or required_for_advisory_stage. Record development-only status.
-- [ ] Run focused evidence tests and the tooling suite, then commit.
+- [x] Run focused evidence tests and the tooling suite, then commit. Full suites ran in remote CI, per host safety constraint.
 
 ## Task 2: Preregister a versioned policy and deterministic qualification
 
