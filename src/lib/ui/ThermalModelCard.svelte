@@ -41,7 +41,7 @@
   <Tile label="Thermal Model" accent="#a78bfa" fill clip padding="0.65rem 0.75rem">
     <div class="card-body">
       <div class="status-row">
-        <span class="shadow-badge">SHADOW</span>
+        <span class="shadow-badge">{result?.badge || 'SHADOW'}</span>
         <span class:stale={result?.state === 'stale'} class="freshness">{freshness}</span>
         <span class="confidence">{confidence}</span>
       </div>
@@ -49,9 +49,11 @@
       {#if unavailable}
         <div class="unavailable">Thermal model unavailable</div>
       {:else}
-        <div class="model-ages" aria-label="Shadow model evidence ages">
+        <div class="model-ages" aria-label="Thermal model evidence ages">
           <span>Model created · {modelAge ?? 'age unavailable'}</span>
           <span>Training data through · {trainingAge ?? 'age unavailable'}</span>
+          {#if result.artifactRevision}<span>Revision · {result.artifactRevision.slice(0, 12)}</span>{/if}
+          {#if result.actionConfidence === 'withheld'}<span>Action advice withheld</span>{/if}
         </div>
         <div class="metrics">
           <div class="metric">
@@ -81,6 +83,7 @@
               <strong>{result.ventWindow}</strong>
             </div>
           {/if}
+          {#if result.actionConfidence !== 'withheld'}
           <div class="effects">
             {#if modeledDelta(result.effect?.hallwayPeakDeltaF) !== null}
               <span>Peak delta <strong>{modeledDelta(result.effect.hallwayPeakDeltaF)}</strong></span>
@@ -89,11 +92,12 @@
               <span>Mass delta <strong>{modeledDelta(result.effect.morningMassDeltaF)}</strong></span>
             {/if}
           </div>
+          {/if}
         </div>
       {/if}
 
       {#if Array.isArray(result?.reasons) && result.reasons.length > 0}
-        <ul class="reasons" aria-label="Shadow model status details">
+        <ul class="reasons" aria-label="Thermal model status details">
           {#each result.reasons as reason}
             <li class:warning={/cadence|stale|unavailable|recovered/i.test(reason)}>{reason}</li>
           {/each}

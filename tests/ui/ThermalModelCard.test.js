@@ -165,3 +165,17 @@ describe('ThermalModelCard shadow-only presentation', () => {
     expect(plotSource).not.toMatch(/\bon(?:click|change|input|submit|keydown|keyup|pointerdown|pointerup)\s*=/i);
   });
 });
+
+describe('ThermalModelCard production modes', () => {
+  it('shows forecast mode, immutable revision and withheld action advice', () => {
+    const { getByText, queryByText } = render(ThermalModelCard, {
+      result: readyResult({ mode: 'forecast_active', badge: 'FORECAST', confidence: 'high',
+        artifactRevision: 'a'.repeat(64), actionConfidence: 'withheld', ventWindow: null,
+        effect: { morningMassDeltaF: 0, hallwayPeakDeltaF: 0 } }), nowMs: NOW,
+    });
+    expect(getByText('FORECAST')).toBeTruthy();
+    expect(getByText(/Action advice withheld/i)).toBeTruthy();
+    expect(getByText(/Revision · aaaaaaaaaaaa/i)).toBeTruthy();
+    expect(queryByText('Candidate vent window')).toBeNull();
+  });
+});

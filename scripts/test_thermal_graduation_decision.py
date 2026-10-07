@@ -220,3 +220,33 @@ def test_cli_refuses_unsafe_inputs_without_exposing_source_content(tmp_path,caps
     output=capsys.readouterr()
     assert 'do-not-expose' not in output.err+output.out
     assert list(tmp_path.glob('qualification-*'))==[]
+
+
+def test_release_input_reference_loader_recomputes_from_owned_source_files(tmp_path,monkeypatch):
+    import json
+    from dataclasses import asdict
+    from test_thermal_artifacts import valid_artifact
+    decision=module();tmp_path.chmod(0o700)
+    artifact=tmp_path/'artifact.json';artifact.write_text(json.dumps(asdict(valid_artifact())));artifact.chmod(0o600)
+    training=tmp_path/'training.json';training.write_text('{}');training.chmod(0o600)
+    pairs=tmp_path/'pairs.json';pairs.write_text('[]');pairs.chmod(0o600)
+    references=dict(schema='earthship-thermal-release-inputs/v1',registration_path=str(tmp_path/'registration.json'),
+        artifact_path=str(artifact),fit_evidence_path=str(tmp_path/'fit.json'),training_sources_path=str(training),
+        runtime_bundle_path=str(tmp_path/'runtime'),pairs_path=str(pairs))
+    source=tmp_path/'release-inputs.json';source.write_text(json.dumps(references));source.chmod(0o600)
+    calls=[]
+    def qualify(**kwargs):calls.append(kwargs);return {'forecast_qualified':False}
+    monkeypatch.setattr(decision,'qualify_candidate',qualify)
+    loader=decision.load_qualification_inputs(source)
+    at=datetime(2026,10,7,tzinfo=timezone.utc)
+    assert loader(at)=={'forecast_qualified':False}
+    assert loader(at)=={'forecast_qualified':False}
+    assert len(calls)==2 and all(call['now']==at for call in calls)
+    assert calls[0]['artifact'].schema==valid_artifact().schema
+
+
+def test_release_reference_file_cannot_supply_manual_active_or_cached_pass_flags(tmp_path):
+    import json
+    decision=module();tmp_path.chmod(0o700)
+    path=tmp_path/'release-inputs.json';path.write_text(json.dumps({'active':True,'forecast_qualified':True}));path.chmod(0o600)
+    with pytest.raises(ValueError):decision.load_qualification_inputs(path)

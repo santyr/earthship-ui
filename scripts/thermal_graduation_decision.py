@@ -236,3 +236,35 @@ def render_qualification_report(record):
         lines.extend(['','## Measured fit','',json.dumps(record['fit'],indent=2,sort_keys=True)])
     lines.extend(['','Action advice: withheld; separate confirmed-action qualification remains required.'])
     return '\n'.join(lines)+'\n'
+
+
+RELEASE_INPUT_FIELDS={'schema','registration_path','artifact_path','fit_evidence_path',
+    'training_sources_path','runtime_bundle_path','pairs_path'}
+
+
+def load_qualification_inputs(path):
+    """Create a trusted evaluator from private source references, never pass flags."""
+    from thermal_policy_registration import _read_private
+    from thermal_model.training_sources import _read_private as read_source_bytes
+    from thermal_model.origin_capture import _object
+    from thermal_model.artifacts import _artifact_from_payload
+    references=_read_private(Path(path))
+    if (not isinstance(references,dict) or set(references)!=RELEASE_INPUT_FIELDS or
+            references['schema']!='earthship-thermal-release-inputs/v1'):
+        raise ValueError('closed original release input references required')
+    for name,value in references.items():
+        if name=='schema':continue
+        if not isinstance(value,str) or not Path(value).is_absolute():raise ValueError('absolute original evidence paths required')
+    def read_json(file):
+        def reject(_):raise ValueError('nonfinite original qualification input')
+        try:return json.loads(read_source_bytes(Path(file)),object_pairs_hook=_object,parse_constant=reject)
+        except (UnicodeDecodeError,json.JSONDecodeError):raise ValueError('original qualification input JSON invalid') from None
+    def evaluate(now):
+        # Every call rereads the exact artifact/table/pairs; no report or clock override.
+        artifact=_artifact_from_payload(read_json(references['artifact_path']))
+        training=read_json(references['training_sources_path'])
+        pairs=read_json(references['pairs_path'])
+        return qualify_candidate(registration_path=references['registration_path'],artifact=artifact,
+            fit_evidence_path=references['fit_evidence_path'],training_sources=training,
+            runtime_bundle_path=references['runtime_bundle_path'],original_pairs=pairs,now=_utc(now))
+    return evaluate

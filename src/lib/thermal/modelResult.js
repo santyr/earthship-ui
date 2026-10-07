@@ -219,7 +219,79 @@ function validateReasons(value) {
   return [...value];
 }
 
+const RELEASE_FIELDS = new Set([
+  'schema', 'qualifiedAt', 'expiresAt', 'artifactSha256', 'runtimeSha256',
+  'policySha256', 'reportSha256', 'sensorEpochs', 'forecastQualified', 'advisoryQualified', 'automaticActuation',
+]);
+
+function validateReleasePayload(payload) {
+  exactObject(payload, new Set([...TOP_LEVEL_FIELDS, 'release']));
+  const release = exactObject(payload.release, RELEASE_FIELDS);
+  if (release.schema !== 'earthship-thermal-release/v1'
+    || !['shadow', 'forecast_active', 'advisory_active', 'unavailable'].includes(payload.status)) {
+    throw new TypeError('unsupported release publication');
+  }
+  for (const key of ['forecastQualified', 'advisoryQualified', 'automaticActuation']) {
+    if (typeof release[key] !== 'boolean') throw new TypeError('invalid release flags');
+  }
+  if (release.automaticActuation) throw new TypeError('automatic actuation prohibited');
+  const active = ['forecast_active', 'advisory_active'].includes(payload.status);
+  const available = payload.confidence.grade !== 'unavailable';
+  for (const key of ['artifactSha256', 'runtimeSha256', 'policySha256', 'reportSha256']) {
+    if (release[key] !== null && (typeof release[key] !== 'string' || !/^[0-9a-f]{64}$/.test(release[key]))) {
+      throw new TypeError('invalid release revision');
+    }
+    if (active && release[key] === null) throw new TypeError('active release lacks evidence identity');
+  }
+  let qualifiedAt = null;
+  let expiresAt = null;
+  if (active) {
+    if (!available || !release.forecastQualified || payload.confidence.grade !== 'high') {
+      throw new TypeError('active release lacks forecast qualification');
+    }
+    exactObject(release.sensorEpochs, new Set(['air', 'mass', 'outdoor']));
+    for (const value of Object.values(release.sensorEpochs)) {
+      if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) {
+        throw new TypeError('invalid release hardware epoch');
+      }
+    }
+    qualifiedAt = timestamp(release.qualifiedAt);
+    expiresAt = timestamp(release.expiresAt);
+    const issue = timestamp(payload.generatedAt);
+    if (!(issue.epochMicros < expiresAt.epochMicros && qualifiedAt.epochMicros < expiresAt.epochMicros)
+      || qualifiedAt.epochMicros > issue.epochMicros + 20n * 60_000_000n
+      || expiresAt.epochMicros - qualifiedAt.epochMicros > 24n * BigInt(HOUR_MS) * MICROSECONDS_PER_MILLISECOND) {
+      throw new TypeError('release evidence expired or future');
+    }
+  } else if (release.forecastQualified || release.advisoryQualified
+    || (payload.status === 'unavailable' ? available : !available || payload.confidence.grade !== 'low')) {
+    throw new TypeError('inactive release claims qualification');
+  }
+  if (payload.status === 'forecast_active' && release.advisoryQualified) throw new TypeError('forecast-only mode claims advice');
+  if (payload.status === 'advisory_active' && (!release.advisoryQualified || payload.confidence.actionLabels !== 'confirmed')) {
+    throw new TypeError('action advice lacks confirmed qualification');
+  }
+  if (!release.advisoryQualified) {
+    if (Object.keys(payload.schedule).length && (payload.schedule.candidate !== null
+      || Object.values(payload.schedule.effect).some((value) => value !== 0))) {
+      throw new TypeError('unqualified recommendation');
+    }
+    if (payload.forecast.trajectory.some((point) => point.actions.length)) throw new TypeError('unqualified action markers');
+  }
+  const base = structuredClone(payload);
+  delete base.release;
+  base.version = 1;
+  base.status = 'shadow';
+  if (base.confidence.grade === 'high') base.confidence.grade = 'low';
+  const parsed = validatePayload(base);
+  return { ...parsed, confidence: payload.confidence.grade, mode: payload.status,
+    release, qualifiedAtMs: qualifiedAt?.epochMs ?? null, expiresAtMs: expiresAt?.epochMs ?? null,
+    artifactRevision: release.artifactSha256,
+    actionConfidence: release.advisoryQualified ? 'confirmed' : 'withheld' };
+}
+
 function validatePayload(payload) {
+  if (payload?.version === 2) return validateReleasePayload(payload);
   exactObject(payload, TOP_LEVEL_FIELDS);
   if (payload.version !== 1 || !Number.isInteger(payload.version) || payload.status !== 'shadow') {
     throw new TypeError('unsupported thermal result');
@@ -404,12 +476,17 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
     const parsed = validatePayload(JSON.parse(raw));
     const ageMicros = millisecondsToMicros(nowMs) - parsed.generatedAtMicros;
     if (ageMicros < 0n) return unavailableResult();
-    if (parsed.confidence === 'unavailable') return unavailableResult(parsed.reasons);
+    if (parsed.confidence === 'unavailable') {
+      const unavailable = unavailableResult(parsed.reasons);
+      return parsed.mode ? { ...unavailable, mode: 'unavailable', badge: 'UNAVAILABLE' } : unavailable;
+    }
+    if (parsed.mode && (parsed.qualifiedAtMs > nowMs || parsed.expiresAtMs !== null && nowMs >= parsed.expiresAtMs)) return unavailableResult();
     if (ageMicros > UNAVAILABLE_US) return unavailableResult();
 
     return {
       state: ageMicros > FRESH_US ? 'stale' : 'ready',
-      badge: 'SHADOW',
+      badge: parsed.mode === 'forecast_active' ? 'FORECAST' : parsed.mode === 'advisory_active' ? 'ADVISORY' : 'SHADOW',
+      ...(parsed.mode ? { mode: parsed.mode, artifactRevision: parsed.artifactRevision, actionConfidence: parsed.actionConfidence } : {}),
       generatedAtMs: parsed.generatedAtMs,
       modelCreatedAtMs: parsed.modelCreatedAtMs,
       trainedThroughMs: parsed.trainedThroughMs,
