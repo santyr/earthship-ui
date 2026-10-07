@@ -86,3 +86,8 @@ its source tree. The normal private empty `.registry.lock` produced by an
 accepted-model read is allowed; other additional registry files still refuse
 verification. Prepared generation verification is a byte/identity check, not a
 replacement for the cold runtime/journal and natural-publication gates.
+
+The separate [cold-reader check](2026-10-07-thermal-cold-reader.md) now rehearses
+the prior v4 artifact/publication through its own retained reader. That reader
+component has a real private rehearsal; the snapshot API and full environment,
+journal and install integration remain incomplete.
