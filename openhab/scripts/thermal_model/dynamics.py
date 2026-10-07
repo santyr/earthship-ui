@@ -2,7 +2,7 @@
 
 from collections import deque
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import math
@@ -37,6 +37,10 @@ MASS_NAMES = (
     "solar_indoor_closed",
     "solar_outdoor",
 )
+NORMALIZED_CONDITION_NUMBER_LIMIT = 1.0 / math.sqrt(np.finfo(float).eps)
+BLOCK_REFIT_GROUPS = 4
+BLOCK_REFIT_MIN_INDEPENDENT_DAYS = 2 * (len(AIR_NAMES) + len(MASS_NAMES))
+BLOCK_REFIT_MAX_BOUND_SPAN_FRACTION = 0.25
 GLAZING_NAMES = (
     "intercept",
     "air",
@@ -246,12 +250,25 @@ def _identification_origin_counts(endpoints):
 
 
 @dataclass(frozen=True)
+class BlockRefitStabilityEvidence:
+    """Independent-day support and movement for the strict initializer refits."""
+
+    assessed: bool
+    independent_days: int
+    required_days: int
+    refit_count: int
+    max_bound_span_fraction: float | None
+    worst_coefficient: str | None
+
+
+@dataclass(frozen=True)
 class MultihorizonEvidence:
     """Exact bounded evidence for one multihorizon refinement."""
 
     origin_counts: tuple[tuple[str, int], ...]
     initial_objective: float
     final_objective: float
+    block_refit_stability: BlockRefitStabilityEvidence | None = None
 
 
 @dataclass(frozen=True)
@@ -351,6 +368,38 @@ def _full_rank(design, names):
         return False
     matrix = np.asarray(design, dtype=float)
     return np.isfinite(matrix).all() and np.linalg.matrix_rank(matrix) == len(names)
+
+
+def _normalized_design_condition_number(matrix):
+    """Condition number after column scaling; dense row count is not evidence."""
+    values = np.asarray(matrix, dtype=float)
+    if values.ndim != 2 or not values.size or not np.isfinite(values).all():
+        raise ValueError("design matrix must be finite and two-dimensional")
+    norms = np.linalg.norm(values, axis=0)
+    if not np.isfinite(norms).all() or np.any(norms == 0.0):
+        return math.inf
+    singular = np.linalg.svd(values / norms, compute_uv=False)
+    if (
+        singular.ndim != 1
+        or len(singular) != values.shape[1]
+        or not np.isfinite(singular).all()
+        or singular[-1] <= 0.0
+    ):
+        return math.inf
+    return float(singular[0] / singular[-1])
+
+
+def _require_well_conditioned(matrix, label):
+    condition = _normalized_design_condition_number(matrix)
+    if (
+        not math.isfinite(condition)
+        or condition > NORMALIZED_CONDITION_NUMBER_LIMIT
+    ):
+        raise ValueError(
+            f"{label} is ill-conditioned after column normalization "
+            f"(condition={condition:.6g})"
+        )
+    return condition
 
 
 def _selection_with_glazing(samples):
@@ -463,6 +512,7 @@ def _fit(design, target, bounds, names, *, ordered_solar=False):
         raise ValueError("fit inputs must be finite")
     if np.linalg.matrix_rank(matrix) < len(names):
         raise ValueError("fit design is rank deficient")
+    _require_well_conditioned(matrix, "fit design")
     result = lsq_linear(matrix, values, bounds=bounds, method="trf", lsmr_tol="auto")
     if not result.success or not np.isfinite(result.x).all():
         raise ValueError("bounded least-squares fit failed")
@@ -711,6 +761,92 @@ def _coefficient_vector(model):
     return vector
 
 
+def _coefficient_bound_spans():
+    spans = np.asarray(
+        AIR_BOUNDS[1] + MASS_BOUNDS[1], dtype=float
+    ) - np.asarray(AIR_BOUNDS[0] + MASS_BOUNDS[0], dtype=float)
+    if (
+        spans.shape != (len(AIR_NAMES) + len(MASS_NAMES),)
+        or not np.isfinite(spans).all()
+        or np.any(spans <= 0.0)
+    ):
+        raise ValueError("coefficient bound spans are invalid")
+    return spans
+
+
+def _validate_block_refit_stability(samples, baseline, *, fitter=None):
+    """Reject large coefficient movement when independent day blocks are omitted.
+
+    This runs only for the strict artifact fit. It deliberately uses local days
+    rather than five-minute rows as the resampling unit.
+    """
+    ordered = tuple(samples)
+    fitted_pairs = _selected_pairs(ordered)
+    unique_days = tuple(sorted({
+        right.at.astimezone(SITE_TIMEZONE).date()
+        for _, right in fitted_pairs
+    }))
+    if len(unique_days) < BLOCK_REFIT_MIN_INDEPENDENT_DAYS:
+        return {
+            "assessed": False,
+            "independent_days": len(unique_days),
+            "required_days": BLOCK_REFIT_MIN_INDEPENDENT_DAYS,
+            "refit_count": 0,
+            "max_bound_span_fraction": None,
+            "worst_coefficient": None,
+        }
+
+    base = _coefficient_vector(baseline)
+    spans = _coefficient_bound_spans()
+    names = AIR_NAMES + MASS_NAMES
+    refit = fitter or (
+        lambda rows: _fit_five_minute_dynamics(
+            rows, allow_inactive_action_forcing=False
+        )[0]
+    )
+    worst_fraction = 0.0
+    worst_name = None
+    refit_count = 0
+    for group in range(BLOCK_REFIT_GROUPS):
+        withheld = {
+            day for index, day in enumerate(unique_days)
+            if index % BLOCK_REFIT_GROUPS == group
+        }
+        retained = tuple(
+            row for row in ordered
+            if row.at.astimezone(SITE_TIMEZONE).date() not in withheld
+        )
+        try:
+            candidate = _coefficient_vector(refit(retained))
+        except ValueError as exc:
+            raise ValueError(
+                f"block-refit stability fit failed for group {group}: {exc}"
+            ) from exc
+        fractions = np.abs(candidate - base) / spans
+        if not np.isfinite(fractions).all():
+            raise ValueError("block-refit stability produced non-finite movement")
+        index = int(np.argmax(fractions))
+        fraction = float(fractions[index])
+        refit_count += 1
+        if fraction > worst_fraction:
+            worst_fraction = fraction
+            worst_name = names[index]
+
+    if worst_fraction > BLOCK_REFIT_MAX_BOUND_SPAN_FRACTION:
+        raise ValueError(
+            "block-refit coefficient instability exceeds allowed physical span: "
+            f"{worst_name} moved {worst_fraction:.6f}"
+        )
+    return {
+        "assessed": True,
+        "independent_days": len(unique_days),
+        "required_days": BLOCK_REFIT_MIN_INDEPENDENT_DAYS,
+        "refit_count": refit_count,
+        "max_bound_span_fraction": worst_fraction,
+        "worst_coefficient": worst_name,
+    }
+
+
 def _model_from_vector(vector, glazing):
     values = np.asarray(vector, dtype=float)
     expected = len(AIR_NAMES) + len(MASS_NAMES)
@@ -898,6 +1034,9 @@ def _validate_multihorizon_rank(sensitivity_rows, active_indices):
     normalized = matrix / column_norms
     if np.linalg.matrix_rank(normalized) < len(active_indices):
         raise ValueError("multihorizon objective inputs are rank deficient")
+    _require_well_conditioned(
+        normalized, "multihorizon sensitivity matrix"
+    )
 
 
 def _multihorizon_linear_constraints(
@@ -1051,7 +1190,16 @@ def fit_dynamics_with_evidence(
         allow_inactive_action_forcing=allow_inactive_action_forcing,
     )
     endpoints = _select_multihorizon_endpoints(samples, inactive)
-    return _refine_multihorizon(initial, endpoints, inactive)
+    refined = _refine_multihorizon(initial, endpoints, inactive)
+    if not allow_inactive_action_forcing:
+        assessment = BlockRefitStabilityEvidence(
+            **_validate_block_refit_stability(samples, initial)
+        )
+        refined = replace(
+            refined,
+            evidence=replace(refined.evidence, block_refit_stability=assessment),
+        )
+    return refined
 
 
 def fit_dynamics(samples):

@@ -261,10 +261,19 @@ def qualify_consumer(params, role, runtime_root, expected_revision):
     probe_dsn = psycopg2.extensions.make_dsn(**params,
         options='-c default_transaction_read_only=on -c role='+role)
     env = {'PATH': '/usr/bin:/bin', 'THERMAL_RESTORE_PROBE_URL': probe_dsn}
-    result = subprocess.run(['/usr/bin/python3', str(ROOT/'scripts/verify-thermal-restored-consumer.py'),
+    result = subprocess.run([sys.executable, str(ROOT/'scripts/verify-thermal-restored-consumer.py'),
         '--runtime-root', str(runtime_root), '--expected-runtime-revision', expected_revision,
         '--fixture-start', start.isoformat(), '--runtime-role', role],
-        env=env, capture_output=True, check=True, timeout=30)
+        env=env, capture_output=True, check=False, timeout=30)
+    if result.returncode != 0:
+        try:
+            failure = json.loads(result.stdout)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise ValueError('restored consumer probe failed') from None
+        raise ValueError(
+            'restored consumer probe failed: '
+            + str(failure.get('error', failure.get('error_type', 'withheld')))
+        )
     proof = json.loads(result.stdout)
     if proof.get('status') != 'installed_consumer_qualified' or proof.get('runtime_revision') != expected_revision:
         raise ValueError('restored consumer qualification failed')

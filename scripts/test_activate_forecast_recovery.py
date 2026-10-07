@@ -18,6 +18,13 @@ def setup(tmp_path,monkeypatch):
     for name in ('forecast-intel-fetch-recovery.service','forecast-intel-fetch-recovery.timer'):
         (units/name).write_bytes((a.s.ROOT/'deploy'/name).read_bytes())
     monkeypatch.setattr(a.s,'LIVE',live);monkeypatch.setattr(a.s,'UNITS',units)
+    # The fixture's installed forecast is current source, not the historical
+    # production bundle. Keep release pins unchanged outside this fixture.
+    monkeypatch.setattr(a.s, 'CANDIDATES', {
+        **a.s.CANDIDATES,
+        'openhab/scripts/forecast_intel.py': sha256(
+            (live/'forecast_intel.py').read_bytes()).hexdigest(),
+    })
     monkeypatch.setattr(a.s,'LEGACY_CANDIDATES',{**a.s.LEGACY_CANDIDATES,a.CODE:sha256(closed).hexdigest()})
     receipts=tmp_path/'receipts';receipts.mkdir(mode=0o700)
     monkeypatch.setattr(a.s,'RECEIPTS',receipts)

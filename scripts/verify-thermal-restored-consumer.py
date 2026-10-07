@@ -85,7 +85,12 @@ def main():
         result = verify(args.runtime_root, args.expected_runtime_revision,
                         args.fixture_start, args.runtime_role)
     except Exception as error:
-        print(json.dumps({'status': 'withheld', 'error_type': type(error).__name__}))
+        # Preserve the sanitized failure contract. Exception text can contain
+        # DSNs, source payloads or other private values, even in a failed probe.
+        print(json.dumps({
+            'status': 'withheld',
+            'error_type': type(error).__name__,
+        }, sort_keys=True))
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0

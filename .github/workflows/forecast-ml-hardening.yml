@@ -1,0 +1,59 @@
+name: Forecast ML hardening
+
+on:
+  pull_request:
+    paths:
+      - 'openhab/scripts/forecast_intel.py'
+      - 'openhab/scripts/forecast_ml_evidence.py'
+      - 'openhab/scripts/forecast_pre_dusk.py'
+      - 'openhab/scripts/qualified_soc_forecast.py'
+      - 'openhab/scripts/thermal_intel.py'
+      - 'openhab/scripts/thermal_model/**'
+      - 'openhab/scripts/test_forecast_ml_*.py'
+      - 'openhab/scripts/test_forecast_pre_dusk.py'
+      - 'openhab/scripts/test_forecast_intel.py'
+      - 'openhab/scripts/test_qualified_soc_forecast.py'
+      - 'openhab/scripts/test_thermal_*.py'
+      - 'scripts/thermal-replay-bundle.py'
+      - 'tests/completion/test_thermal_replay_bundle.py'
+      - '.github/workflows/forecast-ml-hardening.yml'
+
+jobs:
+  forecast-ml:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+      - run: python -m pip install -r requirements-test.txt
+      - name: Fetch pinned Solar_PV analytics dependency
+        uses: actions/checkout@v4
+        with:
+          repository: santyr/Solar_PV
+          ref: d24771b77de540f32e592a7c44a0bff6385e8cd4
+          path: .ci/solar-pv
+          persist-credentials: false
+      - name: Forecast and thermal ML regression suite
+        env:
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+        run: |
+          python -m pytest -q \
+            openhab/scripts/test_forecast_ml_evidence.py \
+            openhab/scripts/test_forecast_ml_support.py \
+            openhab/scripts/test_forecast_pre_dusk.py \
+            openhab/scripts/test_forecast_intel.py \
+            openhab/scripts/test_qualified_soc_forecast.py \
+            openhab/scripts/test_thermal_identifiability.py \
+            openhab/scripts/test_thermal_dynamics.py \
+            openhab/scripts/test_thermal_pipeline.py \
+            openhab/scripts/test_thermal_artifacts.py \
+            tests/completion/test_thermal_replay_bundle.py

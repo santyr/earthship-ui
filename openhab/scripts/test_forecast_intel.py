@@ -1004,6 +1004,53 @@ def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True,
     return saved, puts
 
 
+def test_learning_evidence_summary_cannot_change_forecast_values(monkeypatch, tmp_path):
+    from copy import deepcopy
+
+    yesterday = date.today() - timedelta(days=1)
+    initial = _scoring_state(yesterday.isoformat())
+    soc_inputs = (85, {yesterday: 80})
+
+    first, first_puts = _run_main(
+        monkeypatch,
+        tmp_path / 'first',
+        deepcopy(initial),
+        {},
+        soc_inputs=soc_inputs,
+    )
+    monkeypatch.setattr(
+        fi,
+        'prediction_learning_support',
+        lambda *_args, **_kwargs: {
+            'version': 1,
+            'soc_trough': {'unique_unit_count': 999},
+            'pv_calibration': {'unique_unit_count': 999},
+            'hourly_temperature': {'unique_unit_count': 999},
+            'sentinel': 'different',
+        },
+    )
+    second, second_puts = _run_main(
+        monkeypatch,
+        tmp_path / 'second',
+        deepcopy(initial),
+        {},
+        soc_inputs=soc_inputs,
+    )
+
+    today = date.today().isoformat()
+    first_prediction = deepcopy(first['predictions'][today])
+    second_prediction = deepcopy(second['predictions'][today])
+    # These provenance fields are expected to differ between independent runs
+    # because they bind the actual capture/issue clock and raw snapshot digest.
+    for prediction in (first_prediction, second_prediction):
+        prediction.pop('temperature_issued_at', None)
+        prediction.pop('weather_origin', None)
+    assert first_prediction == second_prediction
+    assert first['pv_days'] == second['pv_days']
+    assert first_puts == second_puts
+    assert first['learning_evidence'] != second['learning_evidence']
+
+
 @pytest.mark.parametrize('flag', [None, '0', '1'])
 def test_qualified_soc_forecast_uses_only_atomic_inputs(monkeypatch, tmp_path, flag):
     if flag is None:

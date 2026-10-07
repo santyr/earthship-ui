@@ -26,3 +26,24 @@ def test_non_disposable_or_writable_connection_refuses_before_connect(dsn, role)
     assert result.returncode == 2
     assert json.loads(result.stdout) == {'status': 'withheld', 'error_type': 'ValueError'}
     assert not result.stderr and 'fixture' not in result.stdout
+
+
+def test_probe_error_report_does_not_emit_arbitrary_exception_text(monkeypatch, capsys):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('restored_probe',
+        ROOT/'scripts/verify-thermal-restored-consumer.py')
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    def unavailable(*_args):
+        raise ValueError('fixture-private-value: do not expose exception details')
+    monkeypatch.setattr(probe, 'verify', unavailable)
+    monkeypatch.setattr(sys, 'argv', [str(spec.origin),
+        '--runtime-root', str(ROOT/'openhab/scripts'),
+        '--expected-runtime-revision', 'a'*64,
+        '--fixture-start', '2026-08-13T06:00:00+00:00',
+        '--runtime-role', 'fixture_reader'])
+    assert probe.main() == 2
+    captured = capsys.readouterr()
+    assert 'fixture-private-value' not in captured.out
+    assert json.loads(captured.out) == {'status': 'withheld', 'error_type': 'ValueError'}
+    assert not captured.err

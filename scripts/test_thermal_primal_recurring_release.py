@@ -25,8 +25,22 @@ def write(path, value):
 
 
 @pytest.fixture
-def profile(tmp_path):
+def profile(tmp_path, monkeypatch):
+    # Legacy release authority requires its qualified dependency versions.
+    # Current tests install newer packages; supply only the environment metadata
+    # boundary here, keeping profile/file/interpreter qualification real.
+    import importlib.metadata
+    original_version = importlib.metadata.version
+    qualified = {'websockets': '15.0.1', 'psycopg2-binary': '2.9.10'}
+    monkeypatch.setattr(importlib.metadata, 'version', lambda name:
+        qualified[name] if name in qualified else original_version(name))
     tmp_path.chmod(0o700)
+    # Keep the actual host interpreter untouched; CI toolcache binaries may be
+    # group writable, which the production release guard correctly refuses.
+    interpreter = tmp_path/'qualified-python'
+    shutil.copyfile(Path(sys.executable).resolve(), interpreter)
+    interpreter.chmod(0o700)
+    monkeypatch.setattr(sys, 'executable', str(interpreter))
     runtime = tmp_path/'runtime'; runtime.mkdir(mode=0o700)
     launcher = runtime/'run.py'
     shutil.copyfile(ROOT/'scripts/thermal-primal-recurring-release.py', launcher); launcher.chmod(0o600)
@@ -187,3 +201,34 @@ def test_runtime_routes_cannot_expand_auth_consent(profile, side):
     release.verify_auth_routes(value, obj)
     routes[value[side]] = (*release.APPROVED_RELAYS, 'wss://unapproved.example')
     with pytest.raises(ValueError): release.verify_auth_routes(value, obj)
+
+
+@pytest.mark.parametrize("package,version", [
+    ("websockets", "14.2"), ("websockets", "16.0"),
+    ("websockets", "15.0.2"), ("psycopg2-binary", "2.9.13"),
+])
+def test_unqualified_dependency_refuses_legacy_release(profile, monkeypatch, package, version):
+    import importlib.metadata
+    original_version = importlib.metadata.version
+    monkeypatch.setattr(importlib.metadata, "version", lambda name:
+        version if name == package else original_version(name))
+    with pytest.raises(ValueError, match="recurring release refused"):
+        verify(profile)
+
+
+def test_release_fixture_uses_private_interpreter_copy(profile):
+    executable = Path(profile[2]['interpreter']).resolve()
+    assert executable.parent == profile[1].parent
+    assert executable.stat().st_mode & 0o022 == 0
+    assert verify(profile)[0]['interpreter_sha256'] == sha256(executable.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize("fault", ["writable", "changed"])
+def test_unqualified_interpreter_refuses_release(profile, fault):
+    executable = Path(profile[2]['interpreter'])
+    if fault == "writable":
+        executable.chmod(0o775)
+    else:
+        executable.write_bytes(executable.read_bytes() + b'changed')
+    with pytest.raises(ValueError, match="recurring release refused"):
+        verify(profile)

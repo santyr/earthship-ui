@@ -23,6 +23,12 @@ def setup(tmp_path,monkeypatch):
     receipts=tmp_path/'receipts';receipts.mkdir(mode=0o700)
     monkeypatch.setattr(f,'RECEIPTS',receipts)
     monkeypatch.setattr(f,'OLD',sha256(original.read_bytes()).hexdigest())
+    # This transaction fixture selects the current source. Production pins still
+    # bind the separately qualified historical release and must not be repinned.
+    monkeypatch.setattr(f, 'CANDIDATES', {
+        source: sha256((f.ROOT/source).read_bytes()).hexdigest()
+        for source in f.CANDIDATES
+    })
     monkeypatch.setattr(f,'idle_window',lambda:None)
     calls=[]
     monkeypatch.setattr(f,'verify_effective',lambda installed:calls.append(('verify',installed)))
