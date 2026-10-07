@@ -33,6 +33,7 @@ def morning(**changes):
     return {
         'temperature_issued_at': '2026-09-29T12:40:17+00:00',
         'overnight_drop_samples_pct': [19, 15, 15],
+        'overnight_drop_sample_days': ['2026-09-28', '2026-09-27', '2026-09-26'],
         'overnight_drop_final_pct': 18.333,
         **changes,
     }
@@ -119,3 +120,30 @@ def test_receipt_is_not_written_after_value_failure(tmp_path):
         run(NOW, get=lambda path: {'state': items[path.removeprefix('/items/')]},
             put=put, state_path=state)
     assert attempted == [VALUE_ITEM]
+
+
+@pytest.mark.parametrize('days', [
+    ['2026-09-28', '2026-09-28', '2026-09-26'],
+    ['2026-09-27', '2026-09-28', '2026-09-26'],
+    ['2026-09-29', '2026-09-28', '2026-09-27'],
+    ['2026-09-20', '2026-09-19', '2026-09-18'],
+    ['not-a-day', '2026-09-27', '2026-09-26'],
+])
+def test_pre_dusk_requires_distinct_recent_historical_drop_nights(days):
+    with pytest.raises(Withheld, match='overnight-drop history'):
+        estimate(
+            NOW,
+            SUNSET,
+            evidence(),
+            morning(overnight_drop_sample_days=days),
+        )
+
+
+def test_pre_dusk_requires_one_night_identity_per_drop_sample():
+    with pytest.raises(Withheld, match='overnight-drop history'):
+        estimate(
+            NOW,
+            SUNSET,
+            evidence(),
+            morning(overnight_drop_sample_days=['2026-09-28', '2026-09-27']),
+        )
