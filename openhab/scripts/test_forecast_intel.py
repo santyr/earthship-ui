@@ -1038,7 +1038,14 @@ def test_learning_evidence_summary_cannot_change_forecast_values(monkeypatch, tm
     )
 
     today = date.today().isoformat()
-    assert first['predictions'][today] == second['predictions'][today]
+    first_prediction = deepcopy(first['predictions'][today])
+    second_prediction = deepcopy(second['predictions'][today])
+    # These provenance fields are expected to differ between independent runs
+    # because they bind the actual capture/issue clock and raw snapshot digest.
+    for prediction in (first_prediction, second_prediction):
+        prediction.pop('temperature_issued_at', None)
+        prediction.pop('weather_origin', None)
+    assert first_prediction == second_prediction
     assert first['pv_days'] == second['pv_days']
     assert first_puts == second_puts
     assert first['learning_evidence'] != second['learning_evidence']
