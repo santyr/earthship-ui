@@ -1,4 +1,5 @@
 """Receipt-bound Energy unit transactions against owned temporary targets."""
+from hashlib import sha256
 import importlib.util
 from pathlib import Path
 
@@ -18,7 +19,15 @@ def setup(tmp_path, monkeypatch):
     private = tmp_path/'reader.jdbc'
     private.write_bytes(b'PRIVATE-TEST-CONNECTION'); private.chmod(0o600)
     candidate = tmp_path/'candidate.conf'
-    candidate.write_bytes(e.CANDIDATE.read_bytes())
+    # Transaction tests select an isolated unit, independent of host checkout.
+    candidate.write_bytes(
+        b'[Service]\nExecStart=\n'
+        b'ExecStart=/usr/bin/flock --nonblock %t/fixture.lock /usr/bin/python3 '
+        b'-m fixture.aggregate --switch-evidence-policy /fixture/switch.json '
+        b'--switch-evidence-db-config /fixture/db.json '
+        b'--bms-aux-evidence-policy /fixture/bms.json '
+        b'--bms-aux-evidence-db-config /fixture/db.json\n')
+    monkeypatch.setattr(e, 'CANDIDATE_SHA', sha256(candidate.read_bytes()).hexdigest())
     receipts = tmp_path/'receipts'; receipts.mkdir(mode=0o700)
     monkeypatch.setattr(e, 'UNIT', target)
     monkeypatch.setattr(e, 'BASE', original)
@@ -183,3 +192,9 @@ def test_failed_parser_rehearsal_cannot_qualify_live_release(tmp_path,monkeypatc
     with pytest.raises(ValueError): e.rehearse(receipt)
     assert e.state(receipt)['status']=='prepared'
     assert not e.UNIT.exists()
+
+
+def test_transaction_fixture_does_not_read_host_companion_candidate(tmp_path, monkeypatch):
+    monkeypatch.setattr(e, 'CANDIDATE', tmp_path/'absent-host-companion.conf')
+    receipt, _, _ = setup(tmp_path, monkeypatch)
+    assert e.prepare(receipt)['status'] == 'prepared'
