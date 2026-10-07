@@ -44,6 +44,11 @@ RADIATION_RUNTIME_PATHS = (
     'weather_radiation_evidence.py', 'weather_radiation_config.py',
     *LEGACY_RUNTIME_PATHS[3:],
 )
+EVIDENCE_RUNTIME_PATHS = (
+    *RADIATION_RUNTIME_PATHS[:2],
+    'forecast_ml_evidence.py',
+    *RADIATION_RUNTIME_PATHS[2:],
+)
 CAPTURE_NAME = re.compile(r'^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{16}\.json\.gz$')
 
 
@@ -78,7 +83,8 @@ def _paths(source):
     if len(values) != 1:
         raise ValueError('exactly one runtime revision path list required')
     paths = ast.literal_eval(values[0])
-    if (not isinstance(paths, tuple) or paths not in (LEGACY_RUNTIME_PATHS, RADIATION_RUNTIME_PATHS)
+    if (not isinstance(paths, tuple) or paths not in (
+            LEGACY_RUNTIME_PATHS, RADIATION_RUNTIME_PATHS, EVIDENCE_RUNTIME_PATHS)
             or len(set(paths)) != len(paths)
             or any(not isinstance(name, str) or not _safe_name(name) for name in paths)
             or paths[0] != 'thermal_intel.py'):
