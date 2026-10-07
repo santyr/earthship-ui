@@ -142,6 +142,8 @@ def test_release_archive_retains_actual_runtime_bundle_and_private_origin(tmp_pa
         shutil.copyfile(runtime_source/relative, target)
         target.chmod(0o600)
     monkeypatch.setattr(thermal_intel, '__file__', str(runtime/'thermal_intel.py'))
+    from test_thermal_origin_capture import private_interpreter
+    private_interpreter(tmp_path, monkeypatch)
     binding = thermal_intel._release_runtime_binding()
     source['runtime'] = binding
     source['output']['release']['runtimeSha256'] = sha256(_canonical(binding)).hexdigest()

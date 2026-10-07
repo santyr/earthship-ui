@@ -158,6 +158,17 @@ def test_origin_archive_refuses_unowned_or_unsafe_storage(tmp_path,damage):
     with pytest.raises(ValueError):read_origin_capture(path)
 
 
+def private_interpreter(tmp_path, monkeypatch):
+    """Owned exact-byte fixture; CI toolcache executables may be writable."""
+    import shutil, sys
+    from pathlib import Path
+    executable = tmp_path/'qualified-python'
+    shutil.copyfile(Path(sys.executable).resolve(), executable)
+    executable.chmod(0o700)
+    monkeypatch.setattr(sys, 'executable', str(executable))
+    return executable
+
+
 def runtime_tree(tmp_path,monkeypatch):
     import shutil,sys
     from pathlib import Path
@@ -166,8 +177,7 @@ def runtime_tree(tmp_path,monkeypatch):
     (root/'thermal_intel.py').write_bytes(b'# fixture publication core\n')
     (root/'thermal_intel.py').chmod(0o600)
     observer=root/'thermal_model/origin_capture.py';observer.write_bytes(b'# fixture observer\n');observer.chmod(0o600)
-    executable=tmp_path/'qualified-python';shutil.copyfile(Path(sys.executable).resolve(),executable);executable.chmod(0o700)
-    monkeypatch.setattr(sys,'executable',str(executable))
+    executable=private_interpreter(tmp_path,monkeypatch)
     return root,executable
 
 

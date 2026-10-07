@@ -142,6 +142,8 @@ def test_release_runtime_binding_changes_with_executed_qualification_source(tmp_
         shutil.copyfile(source/relative, target)
         target.chmod(0o600)
     monkeypatch.setattr(thermal_intel, '__file__', str(tmp_path/'thermal_intel.py'))
+    from test_thermal_origin_capture import private_interpreter
+    private_interpreter(tmp_path, monkeypatch)
     original = thermal_intel._release_runtime_binding()
     changed = tmp_path/dependency
     changed.write_bytes(changed.read_bytes()+b'\n# runtime identity regression\n')
