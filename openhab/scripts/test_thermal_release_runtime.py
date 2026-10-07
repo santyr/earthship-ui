@@ -148,3 +148,17 @@ def test_release_runtime_binding_changes_with_executed_qualification_source(tmp_
     changed = tmp_path/dependency
     changed.write_bytes(changed.read_bytes()+b'\n# runtime identity regression\n')
     assert thermal_intel._release_runtime_binding() != original
+
+
+def test_release_uses_selected_registry_and_keeps_source_gates(tmp_path, monkeypatch):
+    thermal, args, _, now = release_case(tmp_path, monkeypatch)
+    args.model_directory = tmp_path/'models'; args.model_directory.mkdir(mode=0o700)
+    args.publish = False
+    predict = thermal.run_shadow; selected = []
+    def observe(**kwargs):
+        selected.append(kwargs['registry'].directory)
+        return predict(**kwargs)
+    monkeypatch.setattr(thermal, 'run_shadow', observe)
+    assert thermal._release(args, now, decision_clock=lambda: now,
+        qualification_clock=lambda: now) == 0
+    assert selected == [args.model_directory]

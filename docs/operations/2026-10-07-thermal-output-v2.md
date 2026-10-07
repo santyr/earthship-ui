@@ -94,3 +94,7 @@ regressions passed 57 tests, including non-publishing preview, source identity
 changes, failed-evidence withdrawal and expiry during qualification. Positive
 command fixtures use controlled qualifier boundaries and are not evidence that
 a real candidate has graduated.
+
+The source command also accepts `--model-directory` for a compatible staged
+registry. Qualification still binds the artifact actually used by the predictor;
+choosing a directory does not bypass candidate/runtime/epoch or evidence gates.

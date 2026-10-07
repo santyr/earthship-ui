@@ -19,7 +19,7 @@ from .forcing_capture import _canonical, _artifact_payload, _private_directory
 from .graduation_policy import _sha, _utc
 from .origin_capture import _source_bytes
 from .policy_registration import _read_private
-from .runtime_bundle import read_runtime_bundle, _write_private, _sync_directory
+from .runtime_bundle import read_runtime_bundle, _write_private, _sync_directory, _members, _owned_bytes
 from .schema import validate_shadow_output
 
 SCHEMA = 'earthship-thermal-rollback-snapshot/v1'
@@ -194,3 +194,51 @@ def prepare_restore(snapshot, destination, *, reason):
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
+
+
+PREPARATION_FIELDS = {'schema', 'snapshot_sha256', 'runtime_sha256', 'artifact_sha256',
+    'reason', 'prepared_at', 'installed', 'automatic_actuation', 'cold_runtime_qualified',
+    'dependency_environment_retained'}
+
+
+def verify_prepared_restore(snapshot, directory):
+    """Recheck recovery bytes without installing or promoting qualification flags."""
+    snapshot = Path(snapshot)
+    record = read_snapshot(snapshot)
+    directory = _private_directory(Path(directory))
+    if {entry.name for entry in directory.iterdir()} != {'runtime', 'models', 'last-shadow.json', 'rollback.json'}:
+        raise ValueError('exact prepared recovery generation required')
+    receipt = _read_private(directory/'rollback.json')
+    if (not isinstance(receipt, dict) or set(receipt) != PREPARATION_FIELDS or
+            receipt['schema'] != 'earthship-thermal-rollback-preparation/v1' or
+            receipt['reason'] not in REASONS or _utc(receipt['prepared_at']) > _clock() or
+            _utc(receipt['prepared_at']) < _utc(record['captured_at'])):
+        raise ValueError('closed recovery preparation receipt required')
+    for flag in ('installed', 'automatic_actuation', 'cold_runtime_qualified', 'dependency_environment_retained'):
+        if receipt[flag] is not False:
+            raise ValueError('preparation cannot claim installation or cold qualification')
+    for field in ('snapshot_sha256', 'runtime_sha256', 'artifact_sha256'):
+        if receipt[field] != record[field]:
+            raise ValueError('prepared recovery differs from retained snapshot')
+    bundle = read_runtime_bundle(snapshot/'bundles'/record['runtime_sha256'])
+    runtime = directory/'runtime'
+    if _members(runtime) != set(bundle['runtime']['source_manifest']):
+        raise ValueError('prepared source closure has missing or extra files')
+    for name, expected in bundle['runtime']['source_manifest'].items():
+        if sha256(_owned_bytes(runtime/name, 2000000)).hexdigest() != expected:
+            raise ValueError('prepared source bytes changed')
+    models = _private_directory(directory/'models')
+    model_files = {entry.name for entry in models.iterdir()}
+    if model_files not in ({'accepted.json'}, {'accepted.json', '.registry.lock'}):
+        raise ValueError('exact recovered model registry required')
+    if '.registry.lock' in model_files:
+        _owned_bytes(models/'.registry.lock', 0)
+    artifact = _read_private(models/'accepted.json')
+    output = _read_private(directory/'last-shadow.json')
+    if _digest(artifact) != record['artifact_sha256'] or _digest(output) != record['output_sha256']:
+        raise ValueError('recovered artifact or historical publication changed')
+    _pair(_artifact_from_payload(artifact), output)
+    _environment(bundle['runtime'])
+    if read_snapshot(snapshot) != record:
+        raise ValueError('snapshot changed during prepared recovery verification')
+    return receipt

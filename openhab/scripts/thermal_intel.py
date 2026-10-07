@@ -106,6 +106,8 @@ def _build_parser():
         "shadow", help="write one bounded shadow prediction"
     )
     shadow.add_argument("--output", type=Path, default=DEFAULT_SHADOW_PATH)
+    shadow.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY,
+        help="explicit model registry for a compatible staged recovery runtime")
     shadow.add_argument(
         "--publish",
         action="store_true",
@@ -113,6 +115,7 @@ def _build_parser():
     )
     release = subparsers.add_parser("release", help="recompute thermal release qualification and write explicit v2 output")
     release.add_argument("--evidence-inputs", required=True, type=Path)
+    release.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY)
     release.add_argument("--output", type=Path, default=DEFAULT_STATE_DIRECTORY.parent / "release.json")
     release.add_argument("--publish", action="store_true", help="publish one qualified or unavailable v2 state")
     release.add_argument("--origin-capture-dir", type=Path, help="private immutable v2 origin archive for accepted publications")
@@ -678,7 +681,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
         now = decision_at.astimezone(timezone.utc)
         failed_input = "accepted artifact input"
         output = run_shadow(
-            registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
+            registry=ArtifactRegistry(getattr(args, "model_directory", DEFAULT_STATE_DIRECTORY)),
             current=current,
             forecast=rows,
             now=now,
@@ -829,7 +832,8 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
             file=sys.stderr if unavailable else sys.stdout)
         return int(unavailable)
 
-    return _shadow(SimpleNamespace(publish=False), now, journal=journal,
+    return _shadow(SimpleNamespace(publish=False,
+        model_directory=getattr(args, "model_directory", DEFAULT_STATE_DIRECTORY)), now, journal=journal,
         decision_clock=decision_clock, output_handler=finish)
 
 

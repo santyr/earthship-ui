@@ -109,3 +109,48 @@ def test_preparation_cli_refuses_invalid_snapshot_without_success(tmp_path, caps
         '--reason', 'artifact_corrupt']) == 2
     captured = capsys.readouterr()
     assert captured.out == '' and 'refused' in captured.err
+
+
+def test_prepared_generation_verifier_rechecks_retained_bytes(tmp_path, monkeypatch):
+    snapshot, _, _ = saved(tmp_path, monkeypatch)
+    target = tmp_path/'recovery'
+    expected = module().prepare_restore(snapshot, target, reason='operator_rollback')
+    assert module().verify_prepared_restore(snapshot, target) == expected
+
+
+@pytest.mark.parametrize('damage', ['source', 'artifact', 'output', 'extra', 'true_flag', 'numeric_flag', 'symlink'])
+def test_prepared_generation_changes_cannot_pass_verification(tmp_path, monkeypatch, damage):
+    snapshot, _, _ = saved(tmp_path, monkeypatch)
+    target = tmp_path/'recovery'
+    module().prepare_restore(snapshot, target, reason='operator_rollback')
+    if damage == 'source': (target/'runtime/thermal_intel.py').write_text('# changed')
+    elif damage == 'artifact': (target/'models/accepted.json').write_text('{}')
+    elif damage == 'output': (target/'last-shadow.json').write_text('{}')
+    elif damage == 'extra': (target/'runtime/extra.py').write_text('# unexpected')
+    elif damage in ('true_flag', 'numeric_flag'):
+        path = target/'rollback.json'; value = json.loads(path.read_text())
+        value['cold_runtime_qualified'] = True if damage == 'true_flag' else 0
+        path.write_text(json.dumps(value))
+    else:
+        path = target/'models/accepted.json'; path.unlink(); path.symlink_to(snapshot/'artifact.json')
+    with pytest.raises(ValueError): module().verify_prepared_restore(snapshot, target)
+
+
+def test_cli_verify_only_reads_existing_prepared_generation(tmp_path, monkeypatch, capsys):
+    snapshot, _, _ = saved(tmp_path, monkeypatch)
+    target = tmp_path/'recovery'
+    module().prepare_restore(snapshot, target, reason='operator_rollback')
+    before = (target/'rollback.json').read_bytes()
+    assert cli().main(['--snapshot', str(snapshot), '--destination', str(target),
+        '--reason', 'operator_rollback', '--verify-only']) == 0
+    assert (target/'rollback.json').read_bytes() == before
+    assert json.loads(capsys.readouterr().out)['cold_runtime_qualified'] is False
+
+
+def test_recovered_registry_read_preserves_prepared_generation_verification(tmp_path, monkeypatch):
+    from thermal_model.artifacts import ArtifactRegistry
+    snapshot, previous, _ = saved(tmp_path, monkeypatch)
+    target = tmp_path/'recovery'
+    expected = module().prepare_restore(snapshot, target, reason='operator_rollback')
+    assert ArtifactRegistry(target/'models').load_accepted() == previous['artifact']
+    assert module().verify_prepared_restore(snapshot, target) == expected

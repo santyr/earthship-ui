@@ -216,3 +216,27 @@ def test_runtime_revision_fails_closed_when_manifest_file_is_missing(tmp_path):
     (tmp_path / "forecast_intel.py").unlink()
     with pytest.raises(RuntimeError, match="runtime revision file unavailable"):
         thermal_intel._runtime_manifest_revision(tmp_path)
+
+
+def test_shadow_cli_accepts_explicit_recovery_registry_without_changing_default():
+    parser = thermal_intel._build_parser()
+    default = parser.parse_args(['shadow'])
+    recovered = parser.parse_args(['shadow', '--model-directory', '/private/recovery/models'])
+    assert default.model_directory == thermal_intel.DEFAULT_STATE_DIRECTORY
+    assert recovered.model_directory == Path('/private/recovery/models')
+
+
+def test_shadow_uses_explicit_registry_for_recovery_prediction(tmp_path, monkeypatch):
+    payload = valid_shadow_payload(); registries = []
+    models = tmp_path/'models'; models.mkdir(mode=0o700)
+    monkeypatch.setattr(thermal_intel.forecast_intel, 'load_site_settings', lambda: None)
+    monkeypatch.setattr(thermal_intel, '_current_states', lambda _: {})
+    monkeypatch.setattr(thermal_intel.forecast_intel, 'fetch_forecast', lambda: {})
+    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda *_: [])
+    def predict(**kwargs):
+        registries.append(kwargs['registry'].directory)
+        return deepcopy(payload)
+    monkeypatch.setattr(thermal_intel, 'run_shadow', predict)
+    assert thermal_intel._shadow(SimpleNamespace(output=tmp_path/'fresh-shadow.json', publish=False,
+        model_directory=models), NOW) == 0
+    assert registries == [models]

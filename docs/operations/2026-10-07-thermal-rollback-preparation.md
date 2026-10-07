@@ -54,3 +54,35 @@ reconciliation, active-to-shadow UI withdrawal and natural fresh shadow
 publication verification. Prospective regression and calibration signals must
 feed withdrawal independently of capture caches. None of those gates is closed
 by this preparation component alone.
+
+## Recheck prepared recovery files
+
+The preparation command accepts `--verify-only` with the same snapshot,
+destination and reason. This reads existing recovery files without modifying
+them. `verify_prepared_restore` checks the exact source tree, private ownership
+and modes, retained hashes, model registry and historical output against the
+original snapshot. It checks the executing environment again. Extra files,
+changed bytes, symlinks and attempts to turn preparation flags into installation
+or cold-qualification claims are refused.
+
+Compatible staged versions of `thermal_intel.py` now accept `--model-directory`
+for `shadow` and `release`. The default registry remains the existing one.
+An isolated recovery preview can explicitly select its prepared model registry:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 python /private/recovery/runtime/thermal_intel.py shadow \
+  --model-directory /private/recovery/models \
+  --output /private/recovery-checks/fresh-shadow.json
+```
+
+Run that only after the cold-runtime/dependency/journal gates are satisfied for
+the retained generation. Earlier retained runtimes, including the installed v4
+runtime, may lack this option and need their compatible guarded launcher.
+Selecting a registry cannot bypass source-backed qualification on the release
+command. Nothing here invokes a live preview or publication automatically.
+
+Keep fresh outputs outside the retained generation and disable bytecode writes in
+its source tree. The normal private empty `.registry.lock` produced by an
+accepted-model read is allowed; other additional registry files still refuse
+verification. Prepared generation verification is a byte/identity check, not a
+replacement for the cold runtime/journal and natural-publication gates.
