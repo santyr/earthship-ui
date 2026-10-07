@@ -43,12 +43,12 @@
 
 ## Task 2: Preregister a versioned policy and deterministic qualification
 
-**Files:** `openhab/scripts/thermal_model/graduation.py`, `openhab/scripts/test_thermal_graduation.py`, `scripts/qualify-thermal-graduation.py`.
+**Files:** `openhab/scripts/thermal_model/graduation_policy.py`, `graduation_statistics.py`, `graduation.py`, their focused tests, `scripts/thermal_graduation_evidence.py`, `scripts/thermal_policy_registration.py` and `scripts/qualify-thermal-graduation.py`.
 
 **Interfaces:** `derive_policy(development, *, declared_at, intervals, candidate, regimes)` produces an exact versioned policy, numerical thresholds and derivation references. `qualify(policy, evidence, fit_evidence, *, now)` produces a versioned report with every gate and recommended stage. Unsupported or insufficient data is a refusal, never a fabricated pass.
 
 - [ ] Test missing policy, predeclaration after holdout, candidate/runtime/epoch mismatch, baseline loss, overlapping support, failed conditioning/stability and unqualified action evidence; observe RED.
-- [ ] Derive numerical caps/support from independent development baselines and declared statistical precision. Require paired skill against both baselines; record all assumptions before final evaluation.
+- [x] Implement numerical caps/support from independent development baselines and declared statistical precision, paired skill against both baselines, and immutable source-backed policy registration. Actual candidate policy registration still requires sufficient qualified development evidence before a future untouched interval.
 - [ ] Implement exact validation and deterministic per-horizon/regime qualification, separating forecast and advisory gates. Add forecast-qualified/advisory-ineligible and qualified confirmed-action cases.
 - [ ] Generate matching machine/human reports; run focused tests and commit.
 

@@ -44,7 +44,16 @@ def score_qualified_origin(*,origin_path,publication,horizon_hours,outcome,
     """Derive signed errors from original output and native measurements only."""
     if type(horizon_hours) is not int or horizon_hours not in (1,6,12,24,48):
         raise ValueError('supported source-scored horizon required')
-    record=read_origin_capture(Path(origin_path));issue=_utc(record['issued_at'])
+    record=read_origin_capture(Path(origin_path))
+    return _score_origin_record(record,publication=publication,horizon_hours=horizon_hours,
+        outcome=outcome,recent_cycle_grid=recent_cycle_grid,assessed_at=assessed_at)
+
+
+def _score_origin_record(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at):
+    # Internal adapter: callers must have validated/read this immutable record.
+    if type(horizon_hours) is not int or horizon_hours not in (1,6,12,24,48):
+        raise ValueError('supported source-scored horizon required')
+    issue=_utc(record['issued_at'])
     now=_utc(assessed_at)
     if (not isinstance(publication,dict) or set(publication)!={'time','state'} or
             type(publication['time']) is not int or not isinstance(publication['state'],str) or
