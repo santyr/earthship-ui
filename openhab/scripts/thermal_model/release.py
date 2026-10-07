@@ -125,3 +125,10 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
         return validate_release_output(output)
     except (OSError,RuntimeError,ValueError,TypeError,KeyError,AttributeError,OverflowError):
         return unavailable_release(now)
+
+
+def write_release_output(path, payload):
+    """Atomically persist one validated v2 state without changing the v1 writer."""
+    from .pipeline import _write_validated_output
+    validate_release_output(payload)
+    return _write_validated_output(path, payload)

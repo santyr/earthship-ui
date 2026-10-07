@@ -1291,6 +1291,11 @@ def build_shadow_output(**kwargs):
 def write_shadow_output(path, payload):
     """Atomically write one validated, compact local shadow JSON document."""
     validate_shadow_output(payload)
+    return _write_validated_output(path, payload)
+
+
+def _write_validated_output(path, payload):
+    """Shared atomic persistence, after the caller's version-specific validator."""
     encoded = (
         json.dumps(payload, allow_nan=False, separators=(",", ":"), sort_keys=True)
         + "\n"

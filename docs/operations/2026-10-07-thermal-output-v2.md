@@ -50,8 +50,28 @@ field in this input contract and no assessment-clock override.
 It invokes the fresh evaluator through the builder and sends exactly one validated
 version 2 state to `Thermal_Model_JSON`. Failed qualification sends explicit
 unavailable data, replacing a previously active publication. Delivery errors
-propagate instead of producing a success claim. This callable is not yet wired
-into the installed scheduled emitter; it does not enable production by itself.
+propagate instead of producing a success claim. The explicit `release` command now uses this transport boundary. It does not
+change the installed schedule or enable production by itself.
+
+The shared qualifier, policy registration, original-evidence scorer and recent-cycle
+comparator now reside in the deployable `thermal_model` package. Repository tooling
+keeps compatibility imports of those same modules, avoiding divergent evaluators.
+The release runtime binding includes their source bytes and the v2 validator.
+
+A compatible staged runtime can invoke `thermal_intel.py release --evidence-inputs
+/private/inputs.json --output /private/release.json` for a non-publishing preview.
+Only `--publish` enables the single OpenHAB state write; there is no `--active`
+override. The command generates the original prediction, retains the actually used
+artifact and native initial-state proof, then recomputes qualification. It hashes
+the actual artifact/runtime and derives epochs from that proof, rather than taking
+candidate identities from the input file. Original receipt expiry, forecast age
+and runtime identity are checked again after qualification. Both available and
+unavailable v2 states are atomically written locally; publication failure propagates.
+
+Keep executions serial under the documented host CPU/memory/task limits. Do not
+invoke this command against the installed legacy v4 runtime/artifact pair. Staging
+requires a compatible artifact/runtime, complete original evidence and rollback
+inventory before any schedule or live mode changes.
 
 The UI understands both versions. It displays explicit mode badges, immutable
 revision, forecast confidence and withheld action advice, retains model/training
@@ -59,12 +79,18 @@ ages and calibrated intervals, and refuses forged/expired/incomplete active
 payloads. The existing card layout and independent household alerts remain intact.
 
 This is source-only publication/consumer infrastructure. Installed services still
-use the legacy v4 runtime/artifact pair. The production emitter, compatible runtime
-inventory, versioned prospective capture, rollback and real candidate cutover remain
-necessary. No active publication or installed service change occurred here.
+use the legacy v4 runtime/artifact pair. The explicit source command is implemented; scheduled deployment, compatible
+runtime inventory, versioned prospective capture, rollback and real candidate
+cutover remain necessary. No active publication or installed service change occurred here.
 
 Verification: 75 focused backend/qualification/schema checks and 64 frontend
 parser/card checks passed. Local runs were serial with 25% CPU, 768 MiB RAM, zero
 swap, 48 tasks and low priority. A Node worker initially hit the task limit;
 limiting V8/libuv/build-worker threads resolved it without increasing the limits.
 Full suites and builds run in hosted CI.
+
+The deployable-package checks passed 97 tests; subsequent command/publication
+regressions passed 57 tests, including non-publishing preview, source identity
+changes, failed-evidence withdrawal and expiry during qualification. Positive
+command fixtures use controlled qualifier boundaries and are not evidence that
+a real candidate has graduated.
