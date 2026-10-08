@@ -1044,3 +1044,64 @@ qualification bindings, production publication/UI and live entry point, genuine
 native fitting/preregistration and sufficient untouched/prospective observations.
 Outdoor-installed and November no-vent assumptions persist; PR3 and recovery work
 remain separate. No absent unshaded coefficient is invented for this domain.
+
+### Versioned calibrated candidate, issuance and qualification
+
+The installed-shade aggregate candidate is now explicitly
+`earthship-installed-shade-candidate/v2`. It binds the unchanged original core,
+original source-replayed calibration, both runtimes and the extended learning
+cutoff. The calibrated runtime preserves every original source/dependency/
+interpreter/observer pin and includes the new modules. Public creation,
+preparation, private storage and reading replay the original source packages;
+compact radius metadata cannot override the original calibration.
+
+New forecast/origin/source-scored-pair namespaces are version 2. Their original
+1/6/12/24-hour bands bind the actual target, declared origin regime, nominal
+coverage and calibration identity. Missing calibration support or an unsupported
+origin regime refuses issuance. Later scores measure those actually issued bands,
+retain the actual v2 capture/publication/aggregate hashes, and reuse unchanged
+native/weather/physical/recent-cycle checks through an internal numerical view.
+That view never claims a fabricated v1 publication. Old readers refuse v2.
+
+The new registration namespace is installed-shade-policy-registration/v2. Its
+baseline-only development sources may retain typed original v1 or v2 captures;
+release rows require one exact frozen v2 aggregate/runtime/hardware phase. The
+installed-shade-qualification-report/v2 reader connects genuine core/calibration
+source replay, actual preregistration, archived runtime and original issued
+intervals to the unchanged independent support and current statistical gates.
+The exact rank/conditioning, day-block stability, 35-day/window horizon/regime
+support, positive paired baseline skill, coverage, width, bias and freshness
+limits remain unchanged. Candidate/calibration presence alone never activates.
+
+`python3 scripts/qualify-installed-shade.py --contract-version 2` selects the
+calibrated contract; the default preserves v1. Matching private machine/human
+reports include frozen cutoffs/evaluation intervals, thresholds, core numerical
+conditioning/support/stability, calibration, independent counts, baseline/error/
+coverage metrics, latest prospective monitoring, expiry and original source hashes.
+The clock is actual UTC and there is no date or active override. Exit zero means
+an honest report was written. Reports remain caches, not production authority.
+
+Verification: missing aggregate module RED, then 18 passing source/runtime/
+issuance checks; expanded 23 passing checks including public incomplete-source
+preparation, private original-source aggregate storage and old-reader refusal.
+Missing v2 pair adapter RED, then 20 passing new/old qualification checks.
+Missing detailed human view RED, then 7 passing v2 report/actual-CLI checks.
+A combined compatibility run reached the unchanged 90-second guard without a
+reported test failure. Smaller serial compatibility scope completed 69 checks.
+Thus 99 checks completed across the final artifact/origin, v2 qualification and
+legacy/native compatibility scopes, under CPU 20 percent, memory 256 MiB, zero
+swap allowance, 24 tasks, one numerical thread and hard 90-second limits.
+Scoped module, registration/gate, hosted-test and renderer reviews found no
+remaining material issues. The hosted-only multiday synthetic fixture now also
+exercises public aggregate build/write/read/preparation and v2 issuance; it was
+not run locally. Mathematical shape fixtures and mocked seal/loader orchestration
+are explicitly not household qualification or actual registration.
+
+The preceding calibration commit passed all three hosted workflows. Fresh live
+metadata still exposes source schema v1, the native rollout manifest is unapplied,
+and the trainer is inactive. No service, fit, live publication, model registry or
+household control changed. Production publication/UI/live entry-point integration,
+genuine native candidate fitting, actual preregistration and sufficient untouched/
+prospective outcomes remain required. Outdoor shades stay installed; November
+no-vent, no actuation, WeatherNext/PR3/recovery deferral and local resource limits
+remain unchanged.

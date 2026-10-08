@@ -223,6 +223,27 @@ def test_synthetic_multiday_original_source_replay_learns_all_required_bands(tmp
         assert cell['independent_days']==35 and cell['radius_f']==32.
     assert result['release_authorized'] is False and result['coverage_guaranteed'] is False
 
+    # Complete public preparation/read/issue integration uses the same retained
+    # synthetic sources; it remains unqualified (short core-fit evidence).
+    from thermal_model import installed_shade_calibrated_artifact as aggregate
+    from thermal_model import installed_shade_calibrated_origin as calibrated_origin
+    from test_installed_shade_calibrated import runtime as new_runtime
+    runtime=new_runtime(candidate);created=ISSUE+timedelta(days=36,minutes=10)
+    artifact=aggregate.build_calibrated_candidate(base_bundle=candidate[0],inputs=candidate[1],calibration=result,
+        original_pairs=packets,base_runtime=candidate[2],runtime=runtime,created_at=created)
+    root=tmp_path/'aggregate';root.mkdir(mode=0o700)
+    path=aggregate.write_calibrated_candidate(root,artifact,base_bundle=candidate[0],inputs=candidate[1],calibration=result,
+        original_pairs=packets,expected_runtime_revision=_digest(runtime),assessed_at=created)
+    assert aggregate.read_calibrated_candidate(path,expected_runtime_revision=_digest(runtime),assessed_at=created)['artifact']==artifact
+    prepared2=calibrated_origin.prepare_calibrated_candidate(artifact,base_bundle=candidate[0],inputs=candidate[1],calibration=result,
+        original_pairs=packets,expected_runtime_revision=_digest(runtime),assessed_at=created)
+    at=ISSUE+timedelta(days=37);current,proof=fixtures.native(at)
+    issued=calibrated_origin.build_calibrated_capture(prepared2,issued_at=at,inputs_available_at=at,published_at=at+timedelta(seconds=2),
+        runtime=runtime,forecast=fixtures.weather(at),current=current,origin_temperatures=proof,action_snapshot=fixtures.actions(at))
+    assert issued['output']['schema']=='earthship-installed-shade-forecast/v2'
+    assert issued['output']['prediction_intervals'][0]['nominal_coverage']==.9
+    assert issued['output']['release_authorized'] is False
+
 
 def synthetic_cycle_grid(at,hours):
     import test_installed_shade_origin as fixtures

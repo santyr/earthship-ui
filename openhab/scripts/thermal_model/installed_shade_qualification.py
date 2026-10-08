@@ -15,8 +15,11 @@ from .installed_shade_artifact import read_candidate_bundle, _digest, SCHEMA as 
 from .installed_shade_origin import read_issued_capture, score_issued_capture
 from .policy_registration import read_installed_shade_registered_policy, SOURCE_FIELDS
 from .runtime_bundle import read_runtime_bundle
+from .installed_shade_calibrated_artifact import read_calibrated_candidate, SCHEMA as CALIBRATED_CANDIDATE_SCHEMA
+from .policy_registration import read_calibrated_installed_shade_registered_policy
 
 SCHEMA='earthship-installed-shade-qualification-report/v1'
+CALIBRATED_SCHEMA='earthship-installed-shade-qualification-report/v2'
 FORECAST_GATES=BASE_GATES|{'calibrated_intervals'}
 FIELDS={'schema','assessed_at','candidate_schema','candidate','candidate_bundle','policy',
     'registration_sha256','runtime','gates','scored_pairs','support','original_pair_bindings',
@@ -41,9 +44,14 @@ def _support(rows):
     return result
 
 
-def _score_packets(packets,*,assessed_at,candidate=None):
+def _score_packets(packets,*,assessed_at,candidate=None,version=1):
     if not isinstance(packets,list) or not 1<=len(packets)<=10000:
         raise ValueError('bounded complete original score packets required')
+    reader,scorer=read_issued_capture,score_issued_capture
+    if version==2:
+        from .installed_shade_calibrated_origin import read_calibrated_capture,score_calibrated_capture
+        reader,scorer=read_calibrated_capture,score_calibrated_capture
+    elif version!=1:raise ValueError('explicit installed-domain pair contract required')
     records={};rows=[];bindings=[];seen=set();bytes_used=0
     for packet in packets:
         if not isinstance(packet,dict) or set(packet)!=SOURCE_FIELDS or not isinstance(packet['origin_path'],str):
@@ -51,9 +59,9 @@ def _score_packets(packets,*,assessed_at,candidate=None):
         path=packet['origin_path']
         if path not in records:
             if len(records)>=256:raise ValueError('original capture count exceeds bound')
-            records[path]=read_issued_capture(Path(path));bytes_used+=len(_canonical(records[path]))
+            records[path]=reader(Path(path));bytes_used+=len(_canonical(records[path]))
             if bytes_used>64000000:raise ValueError('original capture bytes exceed bound')
-        result=score_issued_capture(records[path],**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
+        result=scorer(records[path],**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
         row=result['scored_pair'];identity=(row['issue_at'],row['target_at'],row['horizon_hours'])
         if identity in seen:raise ValueError('duplicate original scored window')
         seen.add(identity)
@@ -65,25 +73,35 @@ def _score_packets(packets,*,assessed_at,candidate=None):
     return dict(rows=rows,bindings=bindings,calibrated_intervals=calibrated,support=_support(rows))
 
 
-def qualify_installed_shade_candidate(*,registration_path,candidate_path,runtime_bundle_path,original_pairs,now):
+def qualify_installed_shade_candidate(**values):
+    return _qualify_installed_shade_candidate(**values,version=1)
+
+
+def qualify_calibrated_installed_shade_candidate(**values):
+    return _qualify_installed_shade_candidate(**values,version=2)
+
+
+def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtime_bundle_path,original_pairs,now,version):
     now=_utc(now);gates={name:False for name in sorted(FORECAST_GATES)};errors={}
     registration=None;policy=None;bundle=None;runtime=None;pairs=None;statistics=None;deadline=None
+    registration_reader=read_calibrated_installed_shade_registered_policy if version==2 else read_installed_shade_registered_policy
+    candidate_reader=read_calibrated_candidate if version==2 else read_candidate_bundle
     def attempt(name,operation):
         try:return operation()
         except (OSError,ValueError,TypeError,KeyError,AttributeError,OverflowError):
             errors[name]='missing, invalid or incompatible original evidence';return None
     if registration_path is not None:
-        registration=attempt('preregistered_policy',lambda:read_installed_shade_registered_policy(registration_path))
+        registration=attempt('preregistered_policy',lambda:registration_reader(registration_path))
         if registration is not None:policy=registration['policy'];gates['preregistered_policy']=True
     if policy is not None and candidate_path is not None:
         def candidate():
-            loaded=read_candidate_bundle(candidate_path,expected_runtime_revision=policy['candidate']['runtime_sha256'],assessed_at=now)
+            loaded=candidate_reader(candidate_path,expected_runtime_revision=policy['candidate']['runtime_sha256'],assessed_at=now)
             artifact=loaded['artifact'];expected=policy['candidate']
             if (artifact['artifact_sha256']!=expected['artifact_sha256'] or
                 _utc(artifact['trained_through'])!=_utc(expected['trained_through']) or
                 _utc(artifact['created_at'])!=_utc(expected['created_at']) or
                 artifact['sensor_epochs']!=expected['sensor_epochs'] or
-                len(artifact['dynamics']['coefficients'])!=expected['active_parameter_count']):
+                len((artifact['base_candidate'] if version==2 else artifact)['dynamics']['coefficients'])!=expected['active_parameter_count']):
                 raise ValueError('frozen supported-domain candidate differs')
             return loaded
         bundle=attempt('frozen_candidate',candidate)
@@ -100,7 +118,7 @@ def qualify_installed_shade_candidate(*,registration_path,candidate_path,runtime
             return value
         runtime=attempt('frozen_runtime',runtime_source);gates['frozen_runtime']=runtime is not None
     if policy is not None and gates['frozen_candidate'] and gates['frozen_runtime']:
-        pairs=attempt('original_source_pairs',lambda:_score_packets(original_pairs,assessed_at=now,candidate=policy['candidate']))
+        pairs=attempt('original_source_pairs',lambda:_score_packets(original_pairs,assessed_at=now,candidate=policy['candidate'],version=version))
         gates['original_source_pairs']=pairs is not None
         gates['calibrated_intervals']=bool(pairs and pairs['calibrated_intervals'])
         if pairs is not None:
@@ -111,7 +129,7 @@ def qualify_installed_shade_candidate(*,registration_path,candidate_path,runtime
                 statistics=attempt('predictive_skill',lambda:assess_predictive_skill(policy,pairs['rows'],now=now))
                 gates['predictive_skill']=bool(statistics and statistics['statistical_forecast_gates_passed'] and deadline is not None and now<deadline)
     forecast,stage=_stage(gates)
-    body=dict(schema=SCHEMA,candidate_schema=CANDIDATE_SCHEMA,assessed_at=now.isoformat(),
+    body=dict(schema=CALIBRATED_SCHEMA if version==2 else SCHEMA,candidate_schema=CALIBRATED_CANDIDATE_SCHEMA if version==2 else CANDIDATE_SCHEMA,assessed_at=now.isoformat(),
         candidate=deepcopy(policy['candidate']) if policy else None,candidate_bundle=bundle,policy=deepcopy(policy),
         registration_sha256=registration['registration_sha256'] if registration else None,runtime=runtime,
         gates=gates,scored_pairs=pairs['rows'] if pairs else [],support=pairs['support'] if pairs else {},
@@ -119,12 +137,20 @@ def qualify_installed_shade_candidate(*,registration_path,candidate_path,runtime
         qualification_expires_at=deadline.isoformat() if deadline else None,source_errors=errors,
         forecast_qualified=forecast,advisory_qualified=False,recommended_stage=stage,automatic_actuation_authorized=False)
     body['report_sha256']=_digest(body)
-    return validate_installed_shade_qualification_report(body)
+    return _validate_installed_shade_qualification_report(body,version=version)
 
 
 def validate_installed_shade_qualification_report(record):
-    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA or
-            record['candidate_schema']!=CANDIDATE_SCHEMA or
+    return _validate_installed_shade_qualification_report(record,version=1)
+
+
+def validate_calibrated_installed_shade_qualification_report(record):
+    return _validate_installed_shade_qualification_report(record,version=2)
+
+
+def _validate_installed_shade_qualification_report(record,*,version):
+    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=(CALIBRATED_SCHEMA if version==2 else SCHEMA) or
+            record['candidate_schema']!=(CALIBRATED_CANDIDATE_SCHEMA if version==2 else CANDIDATE_SCHEMA) or
             _digest({k:v for k,v in record.items() if k!='report_sha256'})!=record['report_sha256']):
         raise ValueError('closed supported-domain qualification report required')
     gates=record['gates']
@@ -161,7 +187,15 @@ def validate_installed_shade_qualification_report(record):
 
 
 def render_installed_shade_qualification_report(record):
-    validate_installed_shade_qualification_report(record)
+    return _render_installed_shade_qualification_report(record,version=1)
+
+
+def render_calibrated_installed_shade_qualification_report(record):
+    return _render_installed_shade_qualification_report(record,version=2)
+
+
+def _render_installed_shade_qualification_report(record,*,version):
+    _validate_installed_shade_qualification_report(record,version=version)
     lines=['# Installed-shade thermal qualification', '',
         'Recommended stage: '+record['recommended_stage'],
         'Assessed at: '+record['assessed_at'],
@@ -178,19 +212,44 @@ def render_installed_shade_qualification_report(record):
     if record['source_errors']:
         lines.extend(['', 'Missing or incompatible evidence:'])
         lines.extend('- '+name+': '+reason for name,reason in sorted(record['source_errors'].items()))
+    if version==2:
+        import json
+        policy=record['policy'] or {};bundle=record['candidate_bundle'] or {}
+        artifact=bundle.get('artifact') or {};fit=bundle.get('fit_evidence') or {}
+        core=artifact.get('base_candidate') or {}
+        audit=dict(frozen_candidate=record['candidate'],
+            base_training_interval={key:core.get(key) for key in ('trained_from','trained_through')},
+            evaluation_intervals=policy.get('intervals'),
+            thresholds=policy.get('thresholds'),thresholds_by_regime=policy.get('thresholds_by_regime'),
+            statistical_confidence=policy.get('confidence_level'),
+            calibration=artifact.get('calibration'),
+            fit={key:fit.get(key) for key in ('optimizer','conditioning','support','stability','fit_gates_passed')},
+            independent_support=record['support'],statistics=record['statistics'],
+            qualification_expires_at=record['qualification_expires_at'],
+            original_pair_bindings=record['original_pair_bindings'])
+        lines.extend(['','Frozen evidence, thresholds and measured results:','```json',
+            json.dumps(audit,sort_keys=True,indent=2,allow_nan=False),'```'])
     lines.extend(['', 'This report is a diagnostic cache. Release must freshly replay the original sources.'])
     return '\n'.join(lines)+'\n'
 
 
 def write_installed_shade_qualification_report(directory,record):
+    return _write_installed_shade_qualification_report(directory,record,version=1)
+
+
+def write_calibrated_installed_shade_qualification_report(directory,record):
+    return _write_installed_shade_qualification_report(directory,record,version=2)
+
+
+def _write_installed_shade_qualification_report(directory,record,*,version):
     from .forcing_capture import _private_directory
     from .runtime_bundle import _owned_bytes,_write_private,_sync_directory
     from .rollback import _rename_new
     from uuid import uuid4
-    validate_installed_shade_qualification_report(record)
+    _validate_installed_shade_qualification_report(record,version=version)
     root=_private_directory(Path(directory));report=deepcopy(record)
-    members=((root/(report['report_sha256']+'.installed-shade-qualification-v1.json'),_canonical(report)),
-        (root/(report['report_sha256']+'.installed-shade-qualification-v1.md'),render_installed_shade_qualification_report(report).encode()))
+    members=((root/(report['report_sha256']+'.installed-shade-qualification-v'+str(version)+'.json'),_canonical(report)),
+        (root/(report['report_sha256']+'.installed-shade-qualification-v'+str(version)+'.md'),_render_installed_shade_qualification_report(report,version=version).encode()))
     for target,raw in members:
         if len(raw)>8000000:raise ValueError('bounded private qualification report required')
         if target.exists():
