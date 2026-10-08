@@ -590,3 +590,44 @@ forecasts and independent outcomes. The core alone cannot be loaded by the
 existing full-model registry or confer production confidence. Native collection
 still requires the operator's local systemctl authentication step. Keep the live
 v4 model and normal schedules unchanged while those dependencies remain open.
+
+
+### Native installed-shade development inputs and endpoint support
+
+Outdoor shades remain installed until the operator reports a change. The pure
+`thermal_model/installed_shade_inputs.py` adapter validates an explicitly pinned
+original native-v2 input snapshot, its three declared sensor phases, and capture
+availability at assessment. Legacy input snapshots are refused. Stream-session
+resets remain distinct from the persistent sensor phase, with original outdoor
+receipt snapshot digests retained alongside the complete input snapshot digest.
+
+Weather support and endpoint support are separate. Endpoint temperatures must
+have original native receipts; missing interior readings remain missing. Forcing
+requires a complete five-minute prefix of original outdoor receipts and observed
+radiation or explicitly labeled astronomical-night zeros. Interpolated/held
+radiation, missing outdoor receipts, detected outdoor jumps, exceptional heating
+and outdoor-shade removal/unknown state cannot supply an eligible prefix.
+Original journal timestamps also exclude short removal or heat episodes between
+five-minute targets; sampled labels cannot hide these domain violations. Origin
+indoor-shade and vent values remain frozen in predictive forcing; later action
+labels can exclude a case but cannot become predictive inputs. This adds no vent
+scenarios or recommendations and preserves the November no-vent default.
+
+The immutable development records explicitly deny release and as-issued
+forecast authority. One eligible origin per Denver date is a sampling convention;
+non-overlapping windows must still be counted separately. Observed future weather
+makes these conditional development hindcasts, never prospective release proof.
+The adapter is not installed or connected to the live model/runtime or registry.
+
+Verification: the initial ten boundary tests failed for the missing module, then
+passed after implementation. The strengthened native-input, numerical-core and
+original-capture checks pass together: 56 tests under CPU 20 percent, memory
+256 MiB, zero swap allowance, 24 tasks and one numerical thread. No fitting, live
+DB requests, service changes or activation were performed for this milestone.
+Source-bound horizon fitting, coefficient-block stability, versioned domain
+artifacts, a frozen candidate, preregistration and untouched/as-issued evidence
+remain required. PR3 and backup/recovery work remain deferred.
+
+Scoped independent review identified the off-grid eligibility gap; both synthetic
+removal/reinstall and heat-on/off cases failed before the correction. The corrected
+56-test run passes, and scoped re-review reports no remaining material findings.
