@@ -1,3 +1,9 @@
+> October 8 operator update: off-host execution is optional. Local ML fitting and
+> qualification are authorized with current resource checks, one serial job,
+> enforced CPU/memory/no-swap/process limits and a finite deadline. Earlier
+> off-host-only fitting restrictions below are superseded. Backup and recovery
+> work is deferred separately and is not an ML deployment prerequisite.
+
 # Original raw thermal training snapshots
 
 The explicit off-host `train --fit-evidence-dir` path now retains both the
@@ -39,7 +45,7 @@ The existing off-host command needs no additional source flag:
 ```
 
 Use the existing approved read-only qualified-source configuration. This command
-performs additional fitting and must not be run manually on the household host.
+performs additional fitting and requires resource-bounded serial execution.
 It has not been invoked against production here. Current installed v4 sources and
 services remain unchanged. A genuine frozen candidate and untouched/prospective
 release evidence are still required; no actual graduation claim is made.
@@ -88,7 +94,7 @@ invoked here. Household snapshots remain private and require an explicitly
 identified destination before transfer. The existing post-fit source contract,
 artifact validation and numerical qualification gates remain unchanged.
 
-## Fit a frozen snapshot off-host
+## Fit a frozen snapshot with resource limits
 
 `scripts/train-thermal-snapshot.py` verifies a retained input snapshot or delegates
 fitting to the existing training pipeline using only frozen series and journal
@@ -104,11 +110,11 @@ python scripts/train-thermal-snapshot.py \
 ```
 
 Run verification under the existing serial resource scope on this host. Run the
-following fitting command only on the designated off-host machine, after private
-transfer to an explicitly identified destination:
+following fitting command locally in a verified resource scope with a finite
+deadline, or on an optional private worker:
 
 ```text
-EARTHSHIP_REMOTE_QUALIFICATION_FIT=1 python scripts/train-thermal-snapshot.py \
+EARTHSHIP_QUALIFICATION_FIT=1 python scripts/train-thermal-snapshot.py \
   --snapshot /private/SNAPSHOT_SHA.training-inputs-v1.json --fit \
   --state-dir /private/new-model-directory \
   --fit-evidence-dir /private/new-proof-directory
@@ -117,8 +123,8 @@ EARTHSHIP_REMOTE_QUALIFICATION_FIT=1 python scripts/train-thermal-snapshot.py \
 Both output directories must already be empty, owned mode-0700 directories,
 resolved and separate, with neither nested inside the other. No production path
 is selected by default. The environment variable is an explicit workload opt-in;
-it does not prove that a machine is off-host. This fitting command has not been
-invoked on the household host.
+the legacy EARTHSHIP_REMOTE_QUALIFICATION_FIT name remains accepted as an alias.
+Neither name grants production release authority.
 
 Before candidate promotion, the pipeline saves the original training source proof,
 a private immutable `earthship-thermal-training-input-binding/v1` receipt linking

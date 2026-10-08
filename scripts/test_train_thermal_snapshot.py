@@ -28,16 +28,17 @@ def test_verify_only_reads_snapshot_without_fitting(tmp_path,monkeypatch,capsys)
 
 
 def test_fit_without_workload_optin_refuses_before_reading_snapshot(monkeypatch,tmp_path,capsys):
-    command=cli();monkeypatch.delenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT',raising=False)
+    command=cli();monkeypatch.delenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT',raising=False);monkeypatch.delenv('EARTHSHIP_QUALIFICATION_FIT',raising=False)
     def prohibited(*args,**kwargs):pytest.fail('unapproved workload reached input loading')
     monkeypatch.setattr(command,'read_training_inputs',prohibited)
     assert command.main(['--snapshot','/unread','--fit','--state-dir',str(tmp_path),'--fit-evidence-dir',str(tmp_path)])==2
     assert capsys.readouterr().out==''
 
 
-def test_explicit_fit_uses_new_private_isolated_directories(tmp_path,monkeypatch,capsys):
+@pytest.mark.parametrize("optin", ["EARTHSHIP_QUALIFICATION_FIT", "EARTHSHIP_REMOTE_QUALIFICATION_FIT"])
+def test_explicit_fit_uses_new_private_isolated_directories(tmp_path,monkeypatch,capsys,optin):
     path=snapshot(tmp_path);command=cli();state=tmp_path/'state';proof=tmp_path/'proof'
-    state.mkdir(mode=0o700);proof.mkdir(mode=0o700);monkeypatch.setenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT','1')
+    state.mkdir(mode=0o700);proof.mkdir(mode=0o700);monkeypatch.delenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT',raising=False);monkeypatch.setenv(optin,'1')
     calls=[]
     def train(record,**kwargs):
         assert kwargs['registry'].directory==state

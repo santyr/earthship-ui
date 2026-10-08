@@ -27,6 +27,16 @@ remain part of ML behavior, independent of disaster recovery.
 Earlier recovery addenda below record completed work and historical requirements;
 their recovery prerequisites are superseded by this operator scope update.
 
+## October 8 local execution update
+
+The operator removed the off-host execution requirement. Local fitting and
+qualification are permitted; an external runner is optional, not a dependency.
+Run one bounded job at a time, inspect current memory/CPU/I/O pressure before
+launch, enforce CPU/memory/no-swap/process/time limits, and stop on resource
+pressure or limit violations. Avoid full local suites and concurrent numerical
+jobs. Preserve training-source integrity and all predictive qualification gates.
+Earlier location restrictions are superseded; recovery work stays deferred.
+
 ## Global constraints
 
 - PR #2 is merged; PR #3 household-planner architecture remains deferred.
@@ -37,7 +47,7 @@ their recovery prerequisites are superseded by this operator scope update.
 - Legacy artifact/publication schemas remain exact. New release schema is `earthship-thermal-release/v1`; production output is version 2.
 - Forecast graduation and action-advice graduation have separate gates.
 - Preserve the November no-vent default until the operator changes it.
-- Protect the household host: only one small local check in verified CPUQuota=25%, MemoryMax=768M, MemorySwapMax=0, TasksMax=48 and nice15 scope; numerical threads1. Require verified low I/O weight when available, or verified idle I/O priority with mandatory byte pacing when the user I/O controller is not delegated. Run full suites in CI; no manual model fitting on the household host.
+- Protect the household host: only one small local check in verified CPUQuota=25%, MemoryMax=768M, MemorySwapMax=0, TasksMax=48 and nice15 scope; numerical threads1. Require verified low I/O weight when available, or verified idle I/O priority with mandatory byte pacing when the user I/O controller is not delegated. Run full suites in CI; local model fitting is allowed with verified resource limits and a finite deadline.
 
 ## Review focus
 
@@ -159,7 +169,7 @@ The input component, offline fitter integration and bounded capture transport
 and native-history budget adapter are implemented and tested. The guarded
 capture command integrates the bounded backends. Actual private capture with a
 verified source tree and complete development support, the designated
-off-host runner and genuine measured candidate fitting remain required. No Task 3
+Resource-bounded execution and genuine measured candidate fitting remain required. No Task 3
 completion or production qualification follows from component tests alone.
 
 
@@ -170,12 +180,12 @@ Assemble adjacent original measurement snapshots under the same byte, point and
 interval caps, while reading the correction-aware journal over the full interval.
 Keep native receipts and missing barriers exact. Bind original snapshot hashes,
 measurement/assembly code identities and final input identity in a versioned
-private assembly record. Retain and verify that lineage when fitting off-host.
+private assembly record. Retain and verify that lineage when fitting.
 The assembly library, guarded command and downstream fitting lineage verification
 are implemented and tested. The fitter retains original parents, combined input
 and assembly binding before promotion using fit binding v2. Actual guarded
 full-interval assembly and independent lineage verification are recorded in private
-staging. Genuine off-host fitting remains open. This changes input preparation,
+staging. Genuine measured fitting remains open. This changes input preparation,
 not the model or graduation gates.
 
 
@@ -314,13 +324,11 @@ restores and consumer compatibility; they do not establish household model skill
 The retained live publication remains shadow, and no new measured candidate has
 been installed. The prepared development inputs have not been fitted.
 
-The next scientific step requires the operator-designated private off-host runner.
-Credentials/private staging are already authorized; its destination details remain
-missing. Use that worker for actual development fitting,
-retain all household data privately, then freeze the improved candidate/runtime
-and register its policy before collecting untouched/prospective release evidence.
-The private execution audit records which original completion requirements remain
-unfulfilled. ML installation and schedule reconciliation remain open, as does the
-positive confirmed-action advisory path. Backup, cold recovery, restored-journal
-rehearsals and recovery installation are deferred and do not block the current ML
-deployment stage. Code/CI completion must not replace real model qualification.
+The next scientific step is a measured fit of the prepared private development
+inputs, followed by evidence-driven algorithm improvement. Local execution is
+permitted under the resource constraints above; a private off-host destination is
+not required. Keep household inputs private, freeze the improved candidate/runtime
+and register its policy before untouched/prospective release evaluation.
+ML installation, schedule reconciliation and the positive confirmed-action
+advisory path remain open. Backup and recovery work is deferred and does not block
+this stage. Code/CI success does not replace real model qualification.

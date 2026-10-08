@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Verify private inputs or explicitly fit a shadow candidate on an off-host worker."""
+"""Verify private inputs or explicitly fit a shadow candidate under resource limits."""
 import argparse
 from dataclasses import asdict
 from datetime import datetime,timezone
 from hashlib import sha256
 import json
-import os
 from pathlib import Path
 import sys
 
@@ -14,7 +13,7 @@ from thermal_model.artifacts import ArtifactRegistry
 from thermal_model.forcing_capture import _canonical,_private_directory
 from thermal_model.pipeline import TrainingRefused
 from thermal_model.training_inputs import read_training_inputs
-from thermal_model.offline_training import run_snapshot_training
+from thermal_model.offline_training import run_snapshot_training,require_fitting_optin
 from thermal_model.training_assembly import read_training_parts,read_training_assembly
 from thermal_intel import _release_runtime_paths
 from thermal_model.origin_capture import _source_bytes
@@ -53,7 +52,7 @@ def main(argv=None):
     if (args.assembly_binding is None)!= (not args.input_part):parser.error('assembly binding and original input parts required together')
     try:
         if args.fit:
-            if os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT')!='1':raise ValueError('explicit remote fitting opt-in required')
+            require_fitting_optin()
             state=_private_directory(args.state_dir);proof=_private_directory(args.fit_evidence_dir)
             if state==proof or state.is_relative_to(proof) or proof.is_relative_to(state):raise ValueError('separate fit directories required')
             if any(state.iterdir()) or any(proof.iterdir()):raise ValueError('new empty fit directories required')

@@ -25,14 +25,16 @@ def setup_case(tmp_path,monkeypatch):
 
 
 def test_default_workload_guard_refuses_before_reconstruction_or_fitting(monkeypatch,tmp_path):
-    source=module();monkeypatch.delenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT',raising=False)
+    source=module();monkeypatch.delenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT',raising=False);monkeypatch.delenv('EARTHSHIP_QUALIFICATION_FIT',raising=False)
     def prohibited(*args,**kwargs):pytest.fail('fitting or reconstruction reached without opt-in')
     monkeypatch.setattr(source,'restore_training_inputs',prohibited);monkeypatch.setattr(source,'run_training',prohibited)
     with pytest.raises(ValueError):source.run_snapshot_training({},registry=None,fit_evidence_directory=tmp_path,clock=lambda:None,revision_reader=lambda:'a'*64)
 
 
-def test_frozen_readers_and_both_proof_writers_reach_existing_pipeline(tmp_path,monkeypatch):
+@pytest.mark.parametrize("optin", ["EARTHSHIP_QUALIFICATION_FIT", "EARTHSHIP_REMOTE_QUALIFICATION_FIT"])
+def test_frozen_readers_and_both_proof_writers_reach_existing_pipeline(tmp_path,monkeypatch,optin):
     source=module();data,record,artifact=setup_case(tmp_path,monkeypatch);registry=object();calls=[]
+    monkeypatch.delenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT',raising=False);monkeypatch.setenv(optin,'1')
     def train(**kwargs):
         assert kwargs['registry'] is registry
         assert kwargs['start']==data['start'] and kwargs['end']==data['end']

@@ -1,4 +1,4 @@
-"""Train from frozen private inputs on an explicitly opted-in off-host worker.
+"""Train from frozen private inputs with explicit workload opt-in.
 
 The normal pipeline retains every artifact/numerical/promotion gate. This module
 never queries household services or grants production release authority.
@@ -38,11 +38,15 @@ def _persist_binding(root,record):
     return target
 
 
+def require_fitting_optin():
+    # Location-neutral intent; the old name remains a compatibility alias.
+    if (os.environ.get('EARTHSHIP_QUALIFICATION_FIT')!='1' and
+            os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT')!='1'):
+        raise ValueError('explicit fitting workload opt-in required')
+
+
 def run_snapshot_training(record,*,registry,fit_evidence_directory,clock,revision_reader,assembly_binding=None,assembly_inputs=None):
-    # This flag records explicit workload intent, not proof of machine location.
-    # Operators must select the approved off-host machine before setting it.
-    if os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT')!='1':
-        raise ValueError('explicit off-host fitting opt-in required')
+    require_fitting_optin()
     if (assembly_binding is None)!=(assembly_inputs is None):
         raise ValueError('assembly binding and original inputs required together')
     if assembly_binding is not None:

@@ -51,11 +51,12 @@ def test_capture_guard_refuses_before_worker_without_caps(monkeypatch):
 
 
 def test_capture_guard_runs_small_worker(tmp_path,monkeypatch):
+    monkeypatch.setenv("EARTHSHIP_QUALIFICATION_FIT","1")
     source=module();root,leaf,proc=fixture_limits(tmp_path)
     original=source.verify_resource_limits
     monkeypatch.setattr(source,'verify_resource_limits',lambda:original(cgroup_root=root,proc_cgroup=proc))
     monkeypatch.setattr(source.os,'getpriority',lambda *args:15)
-    assert module().run_guarded_capture([sys.executable,'-c',"import os; assert os.getenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT')=='0'; assert os.getenv('OMP_NUM_THREADS')=='1'"],seconds=5)==0
+    assert module().run_guarded_capture([sys.executable,'-c',"import os; assert os.getenv('EARTHSHIP_QUALIFICATION_FIT')=='0'; assert os.getenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT')=='0'; assert os.getenv('OMP_NUM_THREADS')=='1'"],seconds=5)==0
 
 
 def test_capture_guard_terminates_blocking_worker(tmp_path,monkeypatch):

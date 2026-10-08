@@ -11,6 +11,10 @@ The operator accepts rebuilding from GitHub code and fresh data after catastroph
 Historical recovery requirements below are superseded for this stage. Runtime
 forecast withdrawal, evidence gates and host resource limits remain required.
 
+October 8 execution update: local fitting and qualification are authorized under
+serial CPU/memory/no-swap/process/time limits and current resource checks.
+Off-host execution is optional and is not a prerequisite.
+
 The current fit artifact remains a shadow fit artifact. A separate versioned
 `earthship-thermal-release/v1` contract binds a frozen artifact, runtime, source
 and sensor epochs to a preregistered policy and independently reproduced
