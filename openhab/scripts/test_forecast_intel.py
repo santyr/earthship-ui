@@ -36,6 +36,30 @@ _SPEC.loader.exec_module(fi)
 UTC = timezone.utc
 
 
+_REAL_DATE = date
+_REAL_DATETIME = datetime
+
+
+@pytest.fixture(autouse=True)
+def coherent_forecast_test_clock(monkeypatch):
+    """One deterministic site day for fixtures and UTC source assessments."""
+    import sys
+    class Day(_REAL_DATE):
+        @classmethod
+        def today(cls): return cls(2026, 10, 7)
+    class ClockMeta(type):
+        def __instancecheck__(cls, value): return isinstance(value, _REAL_DATETIME)
+    class Clock(_REAL_DATETIME, metaclass=ClockMeta):
+        @classmethod
+        def now(cls, tz=None):
+            value = cls(2026, 10, 7, 18, tzinfo=UTC)
+            return value.astimezone(tz) if tz is not None else value.replace(tzinfo=None)
+    monkeypatch.setattr(sys.modules[__name__], 'date', Day)
+    monkeypatch.setattr(sys.modules[__name__], 'datetime', Clock)
+    monkeypatch.setattr(fi, 'date', Day)
+    monkeypatch.setattr(fi, 'datetime', Clock)
+
+
 # ---------------------------------------------------------------- scoring markers
 
 def test_should_score_fresh_state():

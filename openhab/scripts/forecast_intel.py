@@ -1295,8 +1295,8 @@ def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
 
 def main():
     st = load_state()
-    now = datetime.now()
-    today = date.today()
+    now = datetime.now(MOUNTAIN)
+    today = now.date()
     log = []
     put_failed = []
     capture = None
