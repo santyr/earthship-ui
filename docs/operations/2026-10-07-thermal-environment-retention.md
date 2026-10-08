@@ -54,3 +54,29 @@ bytes, compatible relocation, cold journal recovery or release eligibility. Keep
 actual roots, alias maps and size measurements in private staging. No automatic
 installation, service change or full-environment copy is performed by the inventory
 function.
+
+## Isolated dependency recovery
+
+`prepare_environment_restore(bundle, destination)` materializes verified retained
+blobs in a new private `rootfs` mirror. Logical absolute paths become relative
+paths inside that mirror; no original installed paths are written. Conflicting
+file/directory paths are refused. Copies remain non-executable 0600 files, and
+directories are private. An existing destination is never replaced. Partial copies
+are removed, and a verified complete preparation is synced and published atomically.
+
+`verify_environment_restore` rechecks the retained bundle, exact file and directory
+membership, private permissions, every mirrored byte count/hash and the closed
+preparation receipt. Changed files, extra directories, symlinks and attempts to
+claim installation or qualification are refused.
+
+The command `prepare-thermal-environment.py` accepts `--bundle`, `--destination`
+and optional `--verify-only`. It prepares new isolated files or rechecks an existing
+mirror. It never executes a recovered interpreter, installs files or changes a
+service. Its `earthship-thermal-environment-restore/v1` receipt always records
+`installed`, `cold_environment_qualified` and `production_qualified` as false.
+
+A mirror is not yet a runnable recovered environment. Native-link closure,
+interpreter/library relocation, cold application and restored-journal checks,
+compatible runtime/artifact integration and guarded installation remain required.
+Do not promote preparation flags manually. Use the existing resource limits and
+keep host-specific receipts and inventory details in private staging.

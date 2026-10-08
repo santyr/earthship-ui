@@ -131,3 +131,69 @@ def test_inventory_feeds_real_immutable_dependency_capture(tmp_path):
     inventory=module().inventory_environment_files([root],aliases={})
     target=module().capture_environment_files(archive,inventory)
     assert set(module().read_environment_bundle(target)['files'])==set(paths)
+
+
+def test_prepare_environment_mirrors_retained_bytes_without_install_or_execution(tmp_path):
+    paths,archive=files(tmp_path);bundle=module();retained=bundle.capture_environment_files(archive,paths)
+    target=tmp_path/'prepared'
+    receipt=bundle.prepare_environment_restore(retained,target)
+    assert receipt['installed'] is False and receipt['cold_environment_qualified'] is False
+    assert receipt['production_qualified'] is False
+    for logical,source in paths.items():
+        destination=target/'rootfs'/Path(logical).relative_to('/')
+        assert destination.read_bytes()==source.read_bytes()
+        assert destination.stat().st_mode & 0o777 == 0o600
+    assert bundle.verify_environment_restore(retained,target)==receipt
+
+
+@pytest.mark.parametrize('damage',['byte','extra','extra_directory','permission','symlink','flag'])
+def test_prepared_dependency_changes_refuse_verification(tmp_path,damage):
+    import json
+    paths,archive=files(tmp_path);bundle=module();retained=bundle.capture_environment_files(archive,paths)
+    target=tmp_path/'prepared';bundle.prepare_environment_restore(retained,target)
+    logical=next(iter(paths));path=target/'rootfs'/Path(logical).relative_to('/')
+    if damage=='byte':path.write_bytes(b'changed')
+    elif damage=='extra':(path.parent/'extra').write_bytes(b'unexpected')
+    elif damage=='extra_directory':(path.parent/'unexpected-package').mkdir(mode=0o700)
+    elif damage=='permission':path.chmod(0o755)
+    elif damage=='symlink':path.unlink();path.symlink_to(paths[logical])
+    else:
+        receipt=target/'restore.json';value=json.loads(receipt.read_text());value['installed']=True
+        receipt.write_text(json.dumps(value))
+    with pytest.raises(ValueError):bundle.verify_environment_restore(retained,target)
+
+
+def test_restore_cannot_replace_existing_directory_or_publish_interrupted_copy(tmp_path,monkeypatch):
+    paths,archive=files(tmp_path);bundle=module();retained=bundle.capture_environment_files(archive,paths)
+    target=tmp_path/'prepared';target.mkdir(mode=0o700);(target/'keep').write_text('untouched')
+    with pytest.raises(ValueError):bundle.prepare_environment_restore(retained,target)
+    assert (target/'keep').read_text()=='untouched'
+    def refused(*_):raise OSError('interrupted')
+    monkeypatch.setattr(bundle,'_copy_file',refused)
+    new=tmp_path/'new-prepared'
+    with pytest.raises(OSError):bundle.prepare_environment_restore(retained,new)
+    assert not new.exists() and not list(tmp_path.glob('.environment-restore-*'))
+
+
+def restore_cli():
+    import importlib.util
+    path=Path(__file__).resolve().parents[2]/'scripts/prepare-thermal-environment.py'
+    specification=importlib.util.spec_from_file_location('environment_restore_cli',path)
+    result=importlib.util.module_from_spec(specification);specification.loader.exec_module(result)
+    return result
+
+
+def test_environment_recovery_cli_prepares_then_verifies_without_live_install(tmp_path,capsys):
+    import json
+    paths,archive=files(tmp_path);retained=module().capture_environment_files(archive,paths)
+    target=tmp_path/'prepared';arguments=['--bundle',str(retained),'--destination',str(target)]
+    assert restore_cli().main(arguments)==0
+    assert json.loads(capsys.readouterr().out)['installed'] is False
+    before=(target/'restore.json').read_bytes()
+    assert restore_cli().main([*arguments,'--verify-only'])==0
+    assert (target/'restore.json').read_bytes()==before
+
+
+def test_environment_recovery_cli_refuses_invalid_bundle_without_success(tmp_path,capsys):
+    assert restore_cli().main(['--bundle',str(tmp_path/'missing'),'--destination',str(tmp_path/'prepared')])==2
+    result=capsys.readouterr();assert result.out=='' and 'refused' in result.err

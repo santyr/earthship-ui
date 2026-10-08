@@ -215,3 +215,93 @@ def inventory_environment_files(roots, *, aliases):
         visit(root, root, ())
     if used != set(approved): raise ValueError('unused dependency alias declaration')
     return inventory
+
+
+RESTORE_SCHEMA = 'earthship-thermal-environment-restore/v1'
+RESTORE_FIELDS = {'schema', 'bundle_sha256', 'installed', 'cold_environment_qualified', 'production_qualified'}
+
+
+def _mirror_paths(files):
+    names = set(files)
+    for name in names:
+        path = PurePosixPath(_name(name))
+        if len(path.parts) < 2 or any(str(parent) in names for parent in path.parents):
+            raise ValueError('dependency file paths conflict with mirror directories')
+    return {name: Path(*PurePosixPath(name).parts[1:]) for name in names}
+
+
+def _mirror_members(root):
+    members = set(); pending = [root]; count = 0
+    while pending:
+        current = _private_directory(pending.pop())
+        for entry in current.iterdir():
+            count += 1
+            if count > MAX_FILES*10: raise ValueError('environment mirror exceeds entry bound')
+            info = entry.lstat()
+            if stat.S_ISDIR(info.st_mode):
+                members.add(str(entry.relative_to(root))+'/'); pending.append(entry)
+            elif stat.S_ISREG(info.st_mode): members.add(str(entry.relative_to(root)))
+            else: raise ValueError('environment mirror contains unsupported entry')
+    return members
+
+
+def verify_environment_restore(bundle, directory):
+    """Verify an isolated mirror; never treats byte recovery as cold eligibility."""
+    original = read_environment_bundle(bundle)
+    root = _private_directory(Path(directory))
+    if {entry.name for entry in root.iterdir()} != {'restore.json', 'rootfs'}:
+        raise ValueError('exact isolated environment recovery required')
+    receipt = root/'restore.json'; _file_pin(receipt, private=True)
+    descriptor = os.open(receipt, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        with os.fdopen(descriptor, 'rb', closefd=False) as stream: raw = stream.read(8193)
+    finally: os.close(descriptor)
+    if len(raw) > 8192: raise ValueError('environment recovery receipt exceeds bound')
+    def constant(_): raise ValueError('nonfinite recovery receipt')
+    value = json.loads(raw, object_pairs_hook=_object, parse_constant=constant)
+    if (not isinstance(value, dict) or set(value) != RESTORE_FIELDS or value['schema'] != RESTORE_SCHEMA or
+            value['bundle_sha256'] != original['bundle_sha256'] or
+            any(value[name] is not False for name in ('installed', 'cold_environment_qualified', 'production_qualified'))):
+        raise ValueError('environment recovery cannot claim installation or qualification')
+    paths = _mirror_paths(original['files']); mirror = _private_directory(root/'rootfs')
+    expected_members = {str(relative) for relative in paths.values()}
+    expected_members.update(str(parent)+'/' for relative in paths.values() for parent in relative.parents if parent != Path('.'))
+    if _mirror_members(mirror) != expected_members:
+        raise ValueError('environment recovery has missing or extra files')
+    for name, relative in paths.items():
+        if _file_pin(mirror/relative, private=True) != original['files'][name]:
+            raise ValueError('prepared dependency bytes differ from retained bundle')
+    if read_environment_bundle(bundle) != original: raise ValueError('retained environment changed during recovery verification')
+    return value
+
+
+def prepare_environment_restore(bundle, destination):
+    """Materialize retained bytes in a new private mirror, without live replacement."""
+    original = read_environment_bundle(bundle); paths = _mirror_paths(original['files'])
+    destination = Path(destination)
+    if not destination.is_absolute() or destination.resolve() != destination:
+        raise ValueError('absolute isolated recovery path required')
+    parent = _private_directory(destination.parent)
+    if destination.exists() or destination.is_symlink(): raise ValueError('environment recovery destination already exists')
+    stage = parent/('.environment-restore-'+uuid4().hex); stage.mkdir(mode=0o700)
+    try:
+        mirror = stage/'rootfs'; mirror.mkdir(mode=0o700)
+        for name, relative in paths.items():
+            target = mirror/relative
+            current = mirror
+            for part in relative.parts[:-1]:
+                current = current/part
+                try: current.mkdir(mode=0o700)
+                except FileExistsError: _private_directory(current)
+            expected = original['files'][name]
+            if _copy_file(Path(bundle)/'blobs'/expected['sha256'], target) != expected:
+                raise ValueError('retained dependency changed while preparing recovery')
+        value = dict(schema=RESTORE_SCHEMA, bundle_sha256=original['bundle_sha256'], installed=False,
+            cold_environment_qualified=False, production_qualified=False)
+        _write_private(stage/'restore.json', _canonical(value))
+        verify_environment_restore(bundle, stage)
+        for current, _, _ in os.walk(mirror, topdown=False): _sync_directory(Path(current))
+        _sync_directory(stage); _rename_new(stage, destination); _sync_directory(parent)
+        return value
+    finally:
+        if stage.exists(): shutil.rmtree(stage)
