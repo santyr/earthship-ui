@@ -289,3 +289,22 @@ valid private snapshot; verify it with `train-thermal-snapshot.py --verify-only`
 before using it. Retained files are never replaced by a retry. No actual private
 capture, fitting, installation or production graduation follows from the synthetic
 CLI tests. Real capture must wait for hosted CI and a verified source tree.
+
+
+## Protect existing scheduled training
+
+`openhab/systemd/user/thermal-model-train.service.d/resource-limits.conf` caps the
+existing shadow trainer at 25% CPU, 768 MiB memory, zero swap and 48 tasks. It sets
+nice 15, idle I/O preference and single numerical threads, with group termination
+on an out-of-memory failure. It leaves the command, credential sources, schedule
+and existing timeout unchanged. Qualification fitting and full suites continue to
+belong on the designated off-host worker.
+
+Install the reviewed drop-in and reload user unit metadata without starting or
+restarting the trainer. Verify effective CPU, memory, swap, task, scheduling and
+thread settings and confirm the service remains inactive. Controller availability
+still determines whether I/O weight applies; idle I/O is a scheduling preference.
+When the scheduled job next runs naturally, inspect its actual cgroup limits and
+result. A resource-limited training failure must preserve the previous accepted
+artifact and must not authorize graduation. Removing only this drop-in and
+reloading metadata restores the previous resource settings.
