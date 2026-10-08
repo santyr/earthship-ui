@@ -20,7 +20,7 @@
 - Legacy artifact/publication schemas remain exact. New release schema is `earthship-thermal-release/v1`; production output is version 2.
 - Forecast graduation and action-advice graduation have separate gates.
 - Preserve the November no-vent default until the operator changes it.
-- Protect the household host: only one small local check in verified CPUQuota=25%, MemoryMax=768M, MemorySwapMax=0, TasksMax=48, IOWeight=10 and nice15 scope; numerical threads1. Run full suites in CI; no manual model fitting on the household host.
+- Protect the household host: only one small local check in verified CPUQuota=25%, MemoryMax=768M, MemorySwapMax=0, TasksMax=48 and nice15 scope; numerical threads1. Require verified low I/O weight when available, or verified idle I/O priority with mandatory byte pacing when the user I/O controller is not delegated. Run full suites in CI; no manual model fitting on the household host.
 
 ## Review focus
 
@@ -154,6 +154,35 @@ interval caps, while reading the correction-aware journal over the full interval
 Keep native receipts and missing barriers exact. Bind original snapshot hashes,
 measurement/assembly code identities and final input identity in a versioned
 private assembly record. Retain and verify that lineage when fitting off-host.
-The assembly library and guarded command are implemented. Actual full-interval
-assembly, downstream fitting lineage verification and genuine fitting remain open. This changes input preparation, not the model
-or graduation gates.
+The assembly library, guarded command and downstream fitting lineage verification
+are implemented and tested. The fitter retains original parents, combined input
+and assembly binding before promotion using fit binding v2. Actual guarded
+full-interval assembly and independent lineage verification are recorded in private
+staging. Genuine off-host fitting remains open. This changes input preparation,
+not the model or graduation gates.
+
+
+### Task 6 whole-branch review findings
+
+Independent review of the integrated branch found these blockers; scoped component
+tests did not prove their combined runtime behavior. Resolve with focused failing
+regressions, then rerun hosted suites and review before rollout:
+
+- [ ] Provide a supported default-off observational path to acquire first original
+  shadow forecasts under the full frozen release runtime without requiring existing
+  qualified pairs. Preserve the original v1 schema and low-confidence shadow
+  semantics; test first-origin acquisition and native outcome scoring. The current
+  ordinary shadow path binds a different source closure, while release refuses
+  publication captures until the source-pair gate passes.
+- [ ] Make Stage A forecast numbers use the stated baseline/as-issued assumptions.
+  Clearing candidate/advice metadata after simulating an optimized hypothetical
+  action schedule does not produce that forecast. Preserve existing default v1
+  behavior; test a real pipeline fixture where candidate and baseline differ.
+- [ ] Refuse mixed non-null sensor epochs across trailing origin receipts before
+  latent mass-state construction. Validate every receipt against the declared
+  epoch; test changing a non-latest receipt to a different valid UUID, including
+  rebuilt outer hashes and release refusal.
+
+These are implementation defects, separate from the still-missing real fitting,
+untouched/prospective evidence, restored-journal qualification, guarded recovery
+installation and confirmed-action advisory path. Activation remains closed.
