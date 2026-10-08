@@ -16,13 +16,14 @@ START=datetime(2026,9,24,18,tzinfo=timezone.utc)
 END=START+timedelta(minutes=70)
 
 
-def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdoor="installed",radiation_gap=False,transient_action=None):
+def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdoor="installed",radiation_gap=False,transient_action=None,steps=14,late_indoor=False):
+    end=START+timedelta(minutes=5*steps)
     policies={stream:TemperaturePolicy(model,sensor,**POLICY) for stream,model,sensor in STREAMS.values()}
     phases={STREAMS[role][0]:phase for role,phase in EPOCHS.items()}
     clock={'at':START,'tick':1000,'pid':1}
     source=TemperatureCollector(policies,sensor_epochs=phases,clock=lambda:clock['at'],monotonic=lambda:clock['tick'],process_id=lambda:clock['pid'])
     raw=[]
-    for index in range(14):
+    for index in range(steps):
         clock.update(at=START+timedelta(minutes=5*index),tick=1000+300*index,pid=1 if index<8 else 2)
         for role,(stream,model,sensor) in STREAMS.items():
             if missing==role and index==6:continue
@@ -34,7 +35,7 @@ def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdo
         return select_temperature_grid_v2([row for row in raw if row[0]<=targets[-1]],targets=targets,assessed_at=assessed,history_start=targets[0]-timedelta(seconds=120),stream=stream,policy=policies[stream],sensor_epoch=EPOCHS[role])
     def legacy(item,start,end):
         assert item==THERMAL_ITEMS['radiation'] or item not in {THERMAL_ITEMS[role] for role in STREAMS}
-        return [(START+timedelta(minutes=5*i),None if missing=='radiation' and i==6 else 200) for i in range(14) if not (radiation_gap and i==6)] if item==THERMAL_ITEMS['radiation'] else []
+        return [(START+timedelta(minutes=5*i),None if missing=='radiation' and i==6 else 200) for i in range(steps) if not (radiation_gap and i==6)] if item==THERMAL_ITEMS['radiation'] else []
     events=[ActionEvent('outdoor','receipt',START,START,'outdoor_shade',initial_outdoor,'manual_dm',1),ActionEvent('indoor','receipt',START,START,'indoor_shade','open','manual_dm',1),ActionEvent('vent','receipt',START,START,'vent','closed','manual_dm',1)]
     if future_indoor:events.append(ActionEvent('later','receipt',START+timedelta(minutes=20),START+timedelta(minutes=20),'indoor_shade','closed','manual_dm',1))
     if future_action is not None:
@@ -44,10 +45,12 @@ def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdo
         action,bad,good=transient_action
         for minute,state in ((12,bad),(14,good)):
             events.append(ActionEvent(f'transient-{minute}','receipt',START+timedelta(minutes=minute),START+timedelta(minutes=minute),action,state,'model_inferred',.5))
+    if late_indoor:
+        events.append(ActionEvent('retroactive','receipt',START+timedelta(minutes=20),START,'indoor_shade','closed','manual_dm',1))
     modes=[ModeEvent('mode','receipt',START,START,'warm','manual_dm',1)]
-    reader=QualifiedTemperatureHistoryV2(legacy,grid,cutover=START,assessed_at=END,sensor_epochs=EPOCHS,retain_raw=True)
+    reader=QualifiedTemperatureHistoryV2(legacy,grid,cutover=START,assessed_at=end,sensor_epochs=EPOCHS,retain_raw=True)
     journal=SimpleNamespace(effective_events=lambda *_:events,effective_modes=lambda *_:modes)
-    return capture_training_inputs_v2(start=START,end=END,series_reader=reader,journal=journal,clock=lambda:END,revision_reader=lambda:'a'*64)
+    return capture_training_inputs_v2(start=START,end=end,series_reader=reader,journal=journal,clock=lambda:end,revision_reader=lambda:'a'*64)
 
 
 def build(record):
@@ -135,4 +138,13 @@ def test_transient_off_grid_domain_or_heat_event_cannot_disappear(action,bad,goo
     # Every five-minute target appears safe; original sub-step events still
     # invalidate the entire conditional forecast window.
     assert all(row.outdoor_shade_present==1 and row.passive_fit_allowed for row in data.weather)
+    assert select(data)==()
+
+
+
+def test_retroactive_action_received_after_origin_cannot_supply_known_origin_state():
+    data=build(snapshot(late_indoor=True))
+    assert data.samples[0].indoor_shade_closed==1
+    # Retrospective labeling is retained for diagnostics, never mistaken for
+    # information actually available at the forecast origin.
     assert select(data)==()

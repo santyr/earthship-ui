@@ -736,3 +736,58 @@ remain required. PR3 and backup/recovery work remain deferred.
 Scoped independent review identified the off-grid eligibility gap; both synthetic
 removal/reinstall and heat-on/off cases failed before the correction. The corrected
 56-test run passes, and scoped re-review reports no remaining material findings.
+
+
+### Source-bound installed-shade horizon fitting
+
+`thermal_model/installed_shade_fit.py` now fits the separately identified
+installed-shade numerical core from validated native-v2 development inputs.
+The entry point requires the original snapshot digest, declared sensor phases,
+assessment time, and an exclusive training interval. It selects the required
+1/6/12/24-hour endpoints internally; no origin or target at/after the training
+cutoff enters optimization. Missing required horizon support refuses fitting.
+The fitted report retains the source digest, phases, training bounds, origin
+counts and separately counted non-overlapping windows. Observed-weather fitting
+remains conditional development hindcasting, not as-issued release evidence.
+
+The objective jointly fits air and mass endpoints with equal horizon weighting
+and analytic vectorized sensitivities. Existing coefficient bounds, shade-gain
+ordering, solver feasibility margin, convergence controls, exact rank and
+normalized conditioning limit remain enforced. Both the seed and final model
+must pass the strict core, including the 72-hour physics guard; final training
+rollouts are checked step by step. Finite intermediate optimizer trial states
+may exceed output bounds during line search, but never become returned forecasts
+or accepted models. Solver failure, worsened loss, invalid final physics or bad
+conditioning refuses the fit. No final holdout outcomes choose this objective.
+
+Final coefficient stability uses four deterministic Denver-day omission groups,
+retaining the existing conservative 24-day support minimum and 0.25 physical-span
+movement limit. Each refit excludes every endpoint window touching an omitted day
+and must retain every original training horizon. The same finite workload budget
+covers the fit and all refits. Short histories report stability unassessed; dense
+or overlapping rows cannot establish release support. This does not replace the
+separate untouched/prospective support floor or interval-calibration gates.
+
+Original action/mode events entered after their effective times remain intact
+for retrospective diagnostics, but affected forecast origins are excluded until
+the original receipt time. This prevents backdated labels from supplying future
+knowledge. Predictive action values remain frozen at eligible origins. Outdoor
+shades remain installed, and the November no-vent default is unchanged.
+
+Verification: nine initial missing-module failures; then analytic-gradient,
+known-coefficient synthetic optimization, exact physics, rank/conditioning,
+solver-failure, workload-deadline and block-stability checks. A real native-v2
+synthetic capture exercises source/cutoff integration with a stub fitter; it is
+not household fit evidence. Missing-horizon and retroactive-action gaps were
+reproduced before their guards. Final affected suite: 79 passed under CPU 20
+percent, memory 256 MiB, swap allowance zero, 24 tasks, one numerical thread and
+a 90-second process deadline. Scoped independent review found no remaining
+material issues. No household fitting, artifact creation, live installation,
+service change, production qualification or activation occurred.
+
+Next: independently version the supported-domain artifact and fit evidence,
+bind the runtime/publication and exact original evaluation to that identity,
+then fit a genuinely source-qualified candidate and assess baseline skill,
+coefficient stability and calibration. Native collection cutover, candidate
+freeze/preregistration and adequate untouched/as-issued evidence remain open.
+PR3 and recovery work remain deferred; local bounded execution is permitted.

@@ -38,6 +38,7 @@ class DevelopmentInputs:
     weather: tuple[DevelopmentWeather, ...]
     sensor_epochs: tuple[tuple[str, str], ...]
     ineligible_action_times: tuple[datetime, ...]
+    unavailable_origin_intervals: tuple[tuple[datetime, datetime], ...]
     start: datetime
     end: datetime
     captured_at: datetime
@@ -96,6 +97,11 @@ def build_development_inputs(record, *, expected_snapshot_sha256,
            (event.action == 'kiva' and
             (event.state in ('on', 'exceptional_heat_unknown') or
              'exceptional_heat_unknown' in event.note))}))
+    # Historical reconstruction may incorporate retroactively entered events.
+    # Preserve those diagnostic labels, but never claim they were known before
+    # their original receipt. Refuse affected origins rather than backfilling.
+    unavailable = tuple(sorted({(_utc(event.effective_at), _utc(event.received_at))
+        for event in (*events, *modes) if event.received_at > event.effective_at}))
     weather = []
     for at, receipt in sorted(native['outdoor'].items()):
         radiation = buckets['radiation'].get(at)
@@ -113,7 +119,7 @@ def build_development_inputs(record, *, expected_snapshot_sha256,
             at, outdoor, radiation, kind, receipt['sensorEpoch'],
             receipt['streamEpoch'], receipt['snapshotSha256'], passive,
             values['outdoor_shade_present']))
-    return DevelopmentInputs(samples, tuple(weather), tuple(sorted(phases.items())), barriers,
+    return DevelopmentInputs(samples, tuple(weather), tuple(sorted(phases.items())), barriers, unavailable,
                              frozen.start, frozen.end, captured, pin)
 
 
@@ -147,6 +153,9 @@ def select_development_endpoints(data, *, horizon_hours, start, end):
                 origin.indoor_shade_closed is None or
                 not 0 <= origin.indoor_shade_closed <= 1 or
                 origin.vent_open is None or not 0 <= origin.vent_open <= 2):
+            continue
+        if any(effective <= origin.at < received
+               for effective, received in data.unavailable_origin_intervals):
             continue
         if any(origin.at < at <= target_at for at in data.ineligible_action_times):
             continue
