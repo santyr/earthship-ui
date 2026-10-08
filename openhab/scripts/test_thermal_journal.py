@@ -1162,3 +1162,20 @@ def test_cli_has_no_transport_command_or_actuation_arguments():
         forbidden in result.stdout.lower()
         for forbidden in ("nostr", "relay", "shell", "openhab", "actuator", "command")
     )
+
+
+@pytest.mark.parametrize('kind',['action','mode'])
+def test_bounded_journal_projection_preserves_small_rows_and_refuses_large_originals(journal,ephemeral_postgres,kind):
+    # Real SQL compatibility runs only in the existing disposable CI database.
+    suffix=uuid4().hex;at=datetime(2030,1,1,tzinfo=timezone.utc)
+    make=_action if kind=='action' else _mode
+    method='effective_events' if kind=='action' else 'effective_modes'
+    small=make(event_id='bounded-small-'+suffix,key='bounded-small-key-'+suffix,received_at=at,effective_at=at,note='original note')
+    journal.append(small)
+    bounded=ActionJournal(ephemeral_postgres.runtime_dsn,read_limit=10000)
+    args=(at,at+timedelta(days=1))
+    assert getattr(bounded,method)(*args)==getattr(journal,method)(*args)
+    large=replace(small,event_id='bounded-large-'+suffix,idempotency_key='bounded-large-key-'+suffix,effective_at=at+timedelta(minutes=1),note='é'*1200)
+    journal.append(large)
+    assert large in getattr(journal,method)(*args)
+    with pytest.raises(JournalUnavailable,match='byte bound'):getattr(bounded,method)(*args)

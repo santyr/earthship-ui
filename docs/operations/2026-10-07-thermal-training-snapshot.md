@@ -211,3 +211,28 @@ scheduled collector path is unchanged. Tests exercise the real collector and
 receipt selection using fake SQL connections. This backend must run inside the
 capture guard; the operational capture command and bounded journal integration
 remain unfinished. No private development snapshot has been acquired by this work.
+
+
+## Bounded journal capture backend
+
+`configured_capture_journal` exposes only effective action/mode reads, with the
+shared connection-start budget and bounded interval. Its connection pins the
+local endpoint, enforces the existing timeouts, verifies read-only transactions,
+and closes on success and failure. It does not establish role privileges or
+replace restored-journal qualification.
+
+The journal's opt-in read limit preserves the original correction-aware queries,
+including persistent carry and kiva context. It requests at most 10,001 rows and
+refuses more than 10,000. A capture-only server projection checks each original
+row at 2,048 bytes across all fields. Oversized rows return a refusal marker
+without their large values; the entire read fails. Accepted rows retain their
+original values and source confidence. The bounded payload is about 20.5 MB plus
+fixed protocol overhead, before later snapshot validation. No partial result or
+truncated note can become training evidence. Existing unbounded journal callers
+keep their original query and connection defaults.
+
+Fake-connection tests cover query/context preservation, overflow, byte markers,
+retained fields, shared pacing, read-only checks, expiry and connection cleanup.
+Real PostgreSQL projection checks belong to the existing disposable hosted-CI
+suite; they must pass before live use. Operational worker/CLI integration and an
+actual private capture remain unfinished, and fitting stays off this host.

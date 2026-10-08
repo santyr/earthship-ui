@@ -140,7 +140,7 @@ fitting, installation or release authority.
 
 The input component, offline fitter integration and bounded capture transport
 and native-history budget adapter are implemented and tested. Operational
-capture tooling integrating the worker guard and bounded journal reads, an actual
+capture tooling integrating the worker guard and the bounded backends, an actual
 private development snapshot, the designated
 off-host runner and genuine measured candidate fitting remain required. No Task 3
 completion or production qualification follows from component tests alone.
