@@ -256,3 +256,17 @@ owns process-group/partial-file cleanup. It leaves the existing live restore
 helper unchanged. Its component tests do not establish source export provenance;
 connect/audit/snapshot/row-proof/dump/package receipt orchestration remains an
 open guarded-exporter step before genuine off-host journal qualification.
+
+
+The guarded source export command now joins the tested components under the fixed
+ninety-second guardian: restricted read-only snapshot/schema/role audit, row proofs,
+dump, exact retained-byte binding, stable source/configuration and private atomic
+generation. Source file bounds are enforced before descriptor reads, and the
+schema-audit helper participates in code identity. A nested dump remains in the
+outer guardian's process group. Dump supervision is a wall-clock bound; pg_dump
+resets SQL statement timeouts, so audited-connection limits do not transfer to it.
+
+Source snapshot observations do not independently authenticate the exporter.
+Receipts keep external authentication and all recovery/install/release authority
+closed. Trusted receipt verification/pinning, actual private source acquisition
+when headroom passes, and genuine off-host restored legacy rehearsal remain open.

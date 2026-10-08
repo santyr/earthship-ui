@@ -1,7 +1,7 @@
 """Tiny local subprocess fixtures only; never execute pg_dump or access a DB."""
 from pathlib import Path
 from hashlib import sha256
-import subprocess,sys
+import os,subprocess,sys
 import pytest
 
 
@@ -122,3 +122,30 @@ def test_replacement_between_cleanup_inspection_and_unlink_is_preserved(tmp_path
     with pytest.raises(ValueError):source.dump_journal(**data)
     if raced:assert data['target'].read_bytes()==b'foreign after inspection'
     else:assert not data['target'].exists()  # Staged cleanup never inspects this name.
+
+
+def test_outer_capture_deadline_terminates_nested_dump_child(tmp_path,monkeypatch):
+    import signal
+    from thermal_model import capture_guard
+    from uuid import uuid4
+    monkeypatch.setattr(capture_guard,'verify_host_headroom',lambda:None)
+    pin=tmp_path/'nested.pid';marker='guard-dump-fixture-'+uuid4().hex
+    payload='import os,time; from pathlib import Path; Path('+repr(str(pin))+').write_text(str(os.getpid())); time.sleep(20)'
+    code='import sys,subprocess; import thermal_journal_dump as dump; real=subprocess.Popen\n'
+    code+='def launch(argv,**kwargs): return real([sys.executable,"-c",'+repr(payload)+','+repr(marker)+'],**kwargs)\n'
+    code+='dump.subprocess.Popen=launch\n'
+    code+='dump.dump_journal(target='+repr(str(tmp_path/'nested.dump'))+',params=dict(host="127.0.0.1",port="5432",dbname="openhab",user="fixture_reader",password="synthetic-only"),snapshot="00000003-0000001B-1")\n'
+    with pytest.raises(ValueError,match='deadline'):
+        capture_guard.run_guarded_capture([sys.executable,'-c',code],seconds=3)
+    pid=int(pin.read_text());process=Path('/proc')/str(pid)
+    try:
+        alive=process.exists() and process.joinpath('stat').read_text().rsplit(')',1)[1].split()[0]!='Z'
+    except FileNotFoundError:alive=False
+    if alive:
+        # RED-path cleanup uses a stable pidfd and verifies this owned fixture.
+        descriptor=os.pidfd_open(pid)
+        try:
+            assert marker.encode() in process.joinpath('cmdline').read_bytes()
+            signal.pidfd_send_signal(descriptor,signal.SIGKILL)
+        finally:os.close(descriptor)
+    assert not alive,'nested dump escaped outer guardian deadline'

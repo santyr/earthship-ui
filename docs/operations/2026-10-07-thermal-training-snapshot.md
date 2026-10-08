@@ -603,3 +603,42 @@ recovery qualification. The caller must keep the audited source snapshot alive
 and bind the resulting archive bytes to the original row proofs. Household dump
 execution remains withheld while host memory preflight fails; fitting and restores
 remain off-host. Local tests use tiny Python children rather than PostgreSQL.
+
+
+### Guarded source export command
+
+`export-thermal-journal.py` now joins source audit, original row proofs and bounded
+dump transport. Use the established CPU/memory/task/idle-I/O scope and private
+configuration. Check paths first without opening a database:
+
+```sh
+python scripts/export-thermal-journal.py   --journal-dsn-file /private/config/journal-dsn   --destination /private/new-export   --source-schema v1 --check-only
+```
+
+For an actual export, select the independently verified source schema (`v1` or
+`v2`) explicitly, omit `--check-only`, and set
+`EARTHSHIP_THERMAL_JOURNAL_EXPORT=1`. The command refuses relaxed cgroup limits,
+insufficient host memory headroom, unguarded workers and changed code/configuration.
+It never creates a resource scope itself. Do not run the hidden worker manually.
+
+The audited connection holds one read-only repeatable-read snapshot through row
+proofs and dump generation, then rolls back and closes. A private new generation
+retains `source-receipt.json` and `transfer/<transfer-sha>/`. Stream hashes must
+match the retained archive, and source identity includes the schema-audit helper.
+Source reads enforce per-file and remaining aggregate byte limits at the descriptor.
+The command writes only its private destination; it never restores or installs.
+
+When running inside the guarded worker, the dump inherits the worker process
+group so the outer ninety-second guardian also terminates it. Standalone transport
+checks own a separate group. `pg_dump` resets SQL statement timeouts, so its bounds
+are the lock-wait option and seventy-second dump supervision, with the outer
+ninety-second deadline for the whole worker. The source audit/proof connection's
+five-second SQL limits remain separate. Environment options alone do not prove a
+five-second limit on every dump statement.
+
+The receipt records observed source-snapshot binding but keeps external source
+export authentication, restoration, installation and release flags false. An
+independently trusted/pinned receipt verification path and actual off-host
+rehearsal still remain required. Local checks used simulated database boundaries;
+real source/dump/package tests run only with synthetic disposable databases in CI.
+No household export has been performed with this command.

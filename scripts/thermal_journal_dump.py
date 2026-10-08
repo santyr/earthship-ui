@@ -25,6 +25,8 @@ def _request(params,snapshot):
     if (re.fullmatch('[a-z_][a-z0-9_]{0,62}',checked['user']) is None or
             not isinstance(snapshot,str) or re.fullmatch('[0-9A-F]{8}-[0-9A-F]{8}-[1-9][0-9]{0,9}',snapshot) is None or
             len(checked['password'])>4096):raise ValueError('bounded journal role and snapshot required')
+    # pg_dump resets statement/lock_timeout. PGOPTIONS is not their durable
+    # enforcement; lock-wait argv and the owned process deadline bound the dump.
     return {'PATH':'/usr/bin:/bin','PGHOST':'127.0.0.1','PGHOSTADDR':'127.0.0.1',
             'PGPORT':'5432','PGDATABASE':'openhab','PGUSER':checked['user'],'PGPASSWORD':checked['password'],
             'PGCONNECT_TIMEOUT':'3','PGCLIENTENCODING':'UTF8',
@@ -40,6 +42,7 @@ def dump_journal(*,target,params,snapshot):
     staged=Path(temporary.name)/'journal.dump'
     descriptor=os.open(staged,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     identity=os.fstat(descriptor);process=None;deadline=monotonic()+DUMP_SECONDS
+    guarded=os.environ.get('EARTHSHIP_GUARDED_CAPTURE_WORKER')=='1'
     count=0;header=b'';digest=sha256();pace=_pacer(1048576)
     def remaining():
         value=deadline-monotonic()
@@ -51,7 +54,7 @@ def dump_journal(*,target,params,snapshot):
                 process=subprocess.Popen(['/usr/bin/pg_dump','--format=custom','--schema=thermal_intel',
                     '--lock-wait-timeout=1000','--snapshot='+snapshot],env=env,
                     stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
-                    start_new_session=True,close_fds=True)
+                    start_new_session=not guarded,close_fds=True)
                 os.set_blocking(process.stdout.fileno(),False)
                 with selectors.DefaultSelector() as selector:
                     selector.register(process.stdout,selectors.EVENT_READ)
@@ -76,7 +79,9 @@ def dump_journal(*,target,params,snapshot):
                 output.flush();os.fsync(output.fileno());remaining()
             finally:
                 if process is not None:
-                    try:os.killpg(process.pid,signal.SIGKILL)
+                    try:
+                        if guarded:process.kill()  # Descendants remain in the outer guardian's group.
+                        else:os.killpg(process.pid,signal.SIGKILL)
                     except ProcessLookupError:pass
                     process.wait(timeout=2)
                     if process.stdout is not None:process.stdout.close()
