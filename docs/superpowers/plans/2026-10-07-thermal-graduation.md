@@ -591,3 +591,23 @@ must remain quiescent during cutover; native development fitting uses a separate
 private v6 registry and the existing resource/opt-in guards. A mixed receipt day
 cannot train daily corrections; the first complete native Denver day is required.
 Do not rewrite historical v1 receipts or relabel them with a hardware phase.
+
+
+### October 8 input installation readback
+
+The reviewed backward-compatible input/learning code is now installed. The
+receiver still serves source v1, and the original v1 policy and accepted model-v4
+artifact/runtime remain unchanged. A bounded read-only lookup through the
+installed hourly worker qualified one natural original receipt; no learned state,
+forecast publication or model fit was forced. Normal forecast, shadow and training
+timer cadence is restored; their services were inactive at readback.
+
+Native selection was not enabled. The cutover reached manager reload, where the
+host sudo policy requires local authentication specifically for `systemctl`.
+The unused new selector drop-ins were removed before normal schedules resumed;
+no sudo authentication restriction was bypassed. The private exact-generation
+stage retains the source-v2 policy and reviewed cutover driver. Its default
+invocation revalidates hashes/resources without writes, and `--apply` requires
+full exact-head CI plus local administrative authentication. After actual native
+adoption, verify natural source/JDBC receipts and subsequent scheduled consumer
+behavior. Synthetic bridge checks are not production model qualification.
