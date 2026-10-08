@@ -870,7 +870,8 @@ def capture_next_day_hourly(snapshot, now):
     return targets
 
 
-def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=None):
+def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=None,
+                         evidence_policy=None, sensor_epoch=None):
     """Score once; optional receipt reader never falls back to numeric history.
 
     qualified_reader(target=..., assessed_at=...) must be the strict evidence
@@ -939,6 +940,7 @@ def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=
         if not math.isfinite(raw):
             continue
         evidence = None
+        phase_metadata={}
         if qualified:
             captured = _target_instant(record.get('captured_at'))
             if captured is None or not cutover <= captured < target or target < cutover:
@@ -958,6 +960,10 @@ def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=
                 digest = evidence['snapshotSha256']
                 if not isinstance(digest, str) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
                     continue
+                if 'receiptVersion' in evidence:
+                    from weather_temperature_reader import validate_temperature_metadata_v2
+                    validate_temperature_metadata_v2(evidence,target,policy=evidence_policy,sensor_epoch=sensor_epoch)
+                    phase_metadata={key:evidence[key] for key in ('receiptVersion','sensorEpoch','streamEpoch')}
             except Exception:
                 continue  # unavailable evidence never invokes the old matcher
         else:
@@ -993,7 +999,8 @@ def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=
                 'cutover': cutover.isoformat(), 'assessed_at': now_utc.isoformat(),
                 'raw': raw, 'measured': measured, 'snapshotSha256': digest,
                 'receivedAt': received.isoformat(), 'storedAt': stored.isoformat(),
-                'validUntil': expires.isoformat(),
+                'validUntil':expires.isoformat(),
+                **phase_metadata,
             }])[-HOURLY_TARGET_LIMIT:]
         targets.pop(key, None)
         scored += 1

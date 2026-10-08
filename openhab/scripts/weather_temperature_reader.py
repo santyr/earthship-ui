@@ -77,6 +77,34 @@ def _snapshot(raw, stored_at, stream, policy, *, version=1, sensor_epoch=None):
     return epoch, result
 
 
+
+def validate_temperature_metadata_v2(value, target, *, policy, sensor_epoch):
+    """Validate retained native point metadata against its selected policy."""
+    fields = {'temperatureF', 'receivedAt', 'storedAt', 'validUntil',
+              'streamEpoch', 'snapshotSha256', 'receiptVersion', 'sensorEpoch'}
+    if not isinstance(policy, TemperaturePolicy):
+        raise ValueError('explicit temperature policy required')
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value['receiptVersion']) is not int or value['receiptVersion'] != 2
+            or sensor_epoch_id(value['sensorEpoch']) != sensor_epoch_id(sensor_epoch)):
+        raise ValueError('explicit native sensor phase receipt required')
+    session = value['streamEpoch']
+    if not isinstance(session, str) or str(UUID(session)) != session:
+        raise ValueError('canonical collector session required')
+    temperature = value['temperatureF']
+    if (type(temperature) not in (int, float) or not math.isfinite(temperature)
+            or not policy.minimum_f <= temperature <= policy.maximum_f):
+        raise ValueError('temperature outside selected policy')
+    received, stored, expires = (_utc(value[key]) for key in
+                                ('receivedAt', 'storedAt', 'validUntil'))
+    if (not received <= stored <= _utc(target) < expires
+            or not 0 < (expires - received).total_seconds() <= policy.validity_seconds):
+        raise ValueError('receipt outside selected lifetime')
+    digest = value['snapshotSha256']
+    if not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest):
+        raise ValueError('original snapshot digest required')
+
+
 def select_temperature_at(rows, *, target, assessed_at, history_start, stream, policy):
     """Return qualified metadata or None; never use a post-target snapshot.
 
@@ -90,6 +118,15 @@ def select_temperature_at(rows, *, target, assessed_at, history_start, stream, p
         return select_temperature_grid(rows, targets=[target], assessed_at=assessed_at,
             history_start=history_start, stream=stream, policy=policy)[0][1]
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
+        return None
+
+
+def select_temperature_at_v2(rows,*,target,assessed_at,history_start,stream,policy,sensor_epoch):
+    """Select a native hardware-bound point; invalid context/evidence is absent."""
+    try:
+        return select_temperature_grid_v2(rows,targets=[target],assessed_at=assessed_at,
+            history_start=history_start,stream=stream,policy=policy,sensor_epoch=sensor_epoch)[0][1]
+    except (ValueError,TypeError,KeyError,OverflowError,RecursionError):
         return None
 
 
@@ -180,8 +217,19 @@ def _select_normalized(normalized, targets, stream, policy, *, version=1, sensor
     return results
 
 
-def select_temperature_window(rows, *, start, end, assessed_at, history_start,
-                              stream, policy):
+def select_temperature_window(rows,*,start,end,assessed_at,history_start,stream,policy):
+    return _select_window(rows,start=start,end=end,assessed_at=assessed_at,
+        history_start=history_start,stream=stream,policy=policy,version=1,sensor_epoch=None)
+
+
+def select_temperature_window_v2(rows,*,start,end,assessed_at,history_start,stream,policy,sensor_epoch):
+    phase=sensor_epoch_id(sensor_epoch)
+    result=_select_window(rows,start=start,end=end,assessed_at=assessed_at,
+        history_start=history_start,stream=stream,policy=policy,version=2,sensor_epoch=phase)
+    return {**result,'receiptVersion':2,'sensorEpoch':phase}
+
+
+def _select_window(rows,*,start,end,assessed_at,history_start,stream,policy,version,sensor_epoch):
     """Exact qualified coverage and observed extrema over elapsed [start, end).
 
     Supports a 25-hour DST day. Uses every persisted change point, not a sampled
@@ -203,7 +251,7 @@ def select_temperature_window(rows, *, start, end, assessed_at, history_start,
         raise ValueError('invalid elapsed window')
     normalized = _normalize_rows(rows)
     targets = [start] + sorted({at for at, _ in normalized if start < at < end})
-    selected = _select_normalized(normalized, targets, stream, policy)
+    selected = _select_normalized(normalized,targets,stream,policy,version=version,sensor_epoch=sensor_epoch)
     covered = timedelta(0)
     gap = timedelta(0)
     maximum_gap = timedelta(0)

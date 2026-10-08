@@ -527,3 +527,27 @@ transport and classifier boundaries. Live receiver/consumer installation,
 measured model improvement, sufficient native evidence, genuine candidate/policy
 freeze and natural qualification/publication remain open. No source policy or
 production mode was changed, and backup/recovery work remains deferred.
+
+
+### Native point/window readers and hourly learning
+
+Explicit point/window v2 APIs retain declared hardware phases and collector
+sessions, source expiry, invalid barriers, original storage delay and half-open
+window bounds. Window provenance hashes the entire bounded original history,
+including carry and invalid rows. Neither API relabels legacy receipts.
+
+Hourly learning selects the new contract only with
+`HOURLY_TEMP_QUALIFIED_ENABLE=1` and `HOURLY_TEMP_RECEIPT_VERSION=2`, plus its
+existing private source-v2 policy, read-only database configuration and evidence
+cutover. The parent binds the selected outdoor phase before its bounded worker
+read; both parent and scorer validate metadata against that hourly policy's
+actual temperature range and receipt lifetime before a Kalman update. Equivalent
+valid evidence yields the identical existing numeric update. Diagnostic receipts
+retain native version, hardware phase and collector session. Missing, expired,
+legacy or mismatched native evidence skips learning without fallback.
+
+The daily learning consumer still requires explicit v2 migration. Keep the live
+receiver on its existing contract until all affected consumers can be reconciled
+together. These synthetic compatibility checks establish transport correctness,
+not learned skill or production qualification. Outdoor shades remain installed;
+do not fabricate unshaded development support or weaken the exact rank gate.

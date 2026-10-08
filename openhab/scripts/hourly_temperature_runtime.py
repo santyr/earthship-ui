@@ -13,7 +13,7 @@ import stat
 import subprocess
 import sys
 
-from weather_temperature_reader import _utc
+from weather_temperature_reader import _utc, validate_temperature_metadata_v2
 
 
 def read_db_config(path):
@@ -42,11 +42,29 @@ def read_db_config(path):
     return config
 
 
-def collect(request, *, config_path, policy_path):
+def collect(request,*,config_path,policy_path):
+    return _collect(request,config_path=config_path,policy_path=policy_path,version=1)
+
+
+def collect_v2(request,*,config_path,policy_path):
+    return _collect(request,config_path=config_path,policy_path=policy_path,version=2)
+
+
+def _native_outdoor_policy(path):
+    from weather_temperature_config import load_temperature_receiver_configuration
+    policies,epochs=load_temperature_receiver_configuration(path)
+    if epochs is None or 'outdoor' not in policies:raise ValueError('native outdoor policy required')
+    policy=policies['outdoor']
+    if policy.model!='Fineoffset-WH65B' or policy.sensor_id!=206:raise ValueError('approved outdoor identity required')
+    return policy,epochs['outdoor']
+
+
+def _collect(request,*,config_path,policy_path,version):
     from weather_temperature_config import load_temperature_policies
-    from weather_temperature_history import fetch_temperature_target, TemperatureHistoryUnavailable
+    from weather_temperature_history import fetch_temperature_target,fetch_temperature_target_v2,TemperatureHistoryUnavailable
     import psycopg2
-    if not isinstance(request, dict) or set(request) != {'targets', 'assessed_at'}:
+    fields={'targets','assessed_at'}|({'receipt_version','sensor_epoch'} if version==2 else set())
+    if not isinstance(request,dict) or set(request)!=fields:
         raise ValueError('closed request required')
     assessed = _utc(request['assessed_at'])
     if assessed > datetime.now(timezone.utc):
@@ -57,16 +75,24 @@ def collect(request, *, config_path, policy_path):
     parsed = [_utc(t) for t in targets]
     if len(set(parsed)) != len(parsed) or any(t > assessed for t in parsed):
         raise ValueError('unique elapsed targets required')
-    config = read_db_config(config_path)
-    policy = load_temperature_policies(policy_path)['outdoor']
+    kwargs={}
+    if version==2:
+        from weather_temperature_evidence import sensor_epoch_id
+        policy,epoch=_native_outdoor_policy(policy_path)
+        if type(request['receipt_version']) is not int or request['receipt_version']!=2 or sensor_epoch_id(request['sensor_epoch'])!=epoch:
+            raise ValueError('native outdoor phase differs from request')
+        kwargs['sensor_epoch']=epoch;fetch=fetch_temperature_target_v2
+    else:
+        policy=load_temperature_policies(policy_path)['outdoor'];fetch=fetch_temperature_target
+    config=read_db_config(config_path)
     if policy.model != 'Fineoffset-WH65B' or policy.sensor_id != 206:
         raise ValueError('approved outdoor identity required')
     results = {}
     for key, target in zip(targets, parsed):
         try:
-            value = fetch_temperature_target(
+            value = fetch(
                 lambda: psycopg2.connect(**config, connect_timeout=3),
-                target=target, assessed_at=assessed, stream='outdoor', policy=policy)
+                target=target,assessed_at=assessed,stream='outdoor',policy=policy,**kwargs)
         except TemperatureHistoryUnavailable:
             value = None
         results[key] = None if value is None else {
@@ -75,11 +101,12 @@ def collect(request, *, config_path, policy_path):
 
 
 def score_runtime_hourly(state, now, scorer):
-    enabled = os.environ.get('HOURLY_TEMP_QUALIFIED_ENABLE')
-    if enabled is None:
+    enabled=os.environ.get('HOURLY_TEMP_QUALIFIED_ENABLE')
+    version=os.environ.get('HOURLY_TEMP_RECEIPT_VERSION','1')
+    if enabled is None and version=='1':
         return scorer(state, now)
     try:
-        if enabled != '1':
+        if enabled!='1' or version not in ('1','2'):
             raise ValueError('invalid explicit activation')
         cutover = os.environ.get('HOURLY_TEMP_EVIDENCE_CUTOVER')
         selected = []
@@ -92,9 +119,14 @@ def score_runtime_hourly(state, now, scorer):
         preview = {k: deepcopy(state[k]) for k in ('hourly_temp_targets', 'hourly_temp_model') if k in state}
         scorer(preview, now, qualified_reader=select, evidence_cutover=cutover)
         results = {}
+        native_context = {}
         if selected:
-            request = {'targets': selected, 'assessed_at': assessment.isoformat()}
-            result = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--read'],
+            request={'targets':selected,'assessed_at':assessment.isoformat()};command='--read'
+            if version=='2':
+                policy,epoch=_native_outdoor_policy(os.environ.get('HOURLY_TEMP_POLICY'))
+                native_context = {'evidence_policy': policy, 'sensor_epoch': epoch}
+                request.update(receipt_version=2,sensor_epoch=epoch);command='--read-v2'
+            result = subprocess.run([sys.executable,str(Path(__file__).resolve()),command],
                 input=json.dumps(request), text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                 timeout=30, check=True)
             if len(result.stdout.encode()) > 32768:
@@ -102,14 +134,15 @@ def score_runtime_hourly(state, now, scorer):
             results = json.loads(result.stdout)
             if not isinstance(results, dict) or set(results) != set(selected):
                 raise ValueError('unexpected evidence result')
-            for evidence in results.values():
+            for target,evidence in results.items():
                 if evidence is not None:
                     if not isinstance(evidence, dict):
                         raise ValueError('invalid evidence result')
-                    for key in ('receivedAt', 'storedAt', 'validUntil'):
-                        evidence[key] = _utc(evidence[key])
+                    for key in ('receivedAt','storedAt','validUntil'):evidence[key]=_utc(evidence[key])
+                    if version=='2':
+                        validate_temperature_metadata_v2(evidence,_utc(target),policy=policy,sensor_epoch=epoch)
         count = scorer(state, now, qualified_reader=lambda **kw: results.get(kw['target'].isoformat()),
-                       evidence_cutover=cutover)
+                       evidence_cutover=cutover, **native_context)
         print(f'hourly qualified evidence: targets={len(selected)} scored={count}')
         return count
     except Exception:
@@ -119,12 +152,13 @@ def score_runtime_hourly(state, now, scorer):
 
 def main():
     try:
-        if sys.argv[1:] != ['--read']:
+        if sys.argv[1:] not in (['--read'],['--read-v2']):
             raise ValueError('read-only worker invocation required')
         raw = sys.stdin.buffer.read(16385)
         if len(raw) > 16384:
             raise ValueError('oversize request')
-        results = collect(json.loads(raw), config_path=os.environ.get('HOURLY_TEMP_DB_CONFIG'),
+        collector=collect_v2 if sys.argv[1:]==['--read-v2'] else collect
+        results = collector(json.loads(raw),config_path=os.environ.get('HOURLY_TEMP_DB_CONFIG'),
                           policy_path=os.environ.get('HOURLY_TEMP_POLICY'))
         print(json.dumps(results, allow_nan=False, separators=(',', ':')))
     except Exception:

@@ -9,7 +9,7 @@ import hashlib
 import json
 
 from weather_temperature_evidence import TemperaturePolicy
-from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_grid_v2, select_temperature_window
+from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_grid_v2, select_temperature_window,select_temperature_window_v2
 
 EVIDENCE_ITEM = 'Weather_Temperature_Evidence_JSON'
 
@@ -21,6 +21,11 @@ class TemperatureHistoryUnavailable(RuntimeError):
 def fetch_temperature_target(connection_factory, *, target, assessed_at, stream, policy):
     return fetch_temperature_grid(connection_factory, targets=[target], assessed_at=assessed_at,
                                   stream=stream, policy=policy)[0][1]
+
+
+def fetch_temperature_target_v2(connection_factory,*,target,assessed_at,stream,policy,sensor_epoch):
+    return fetch_temperature_grid_v2(connection_factory,targets=[target],assessed_at=assessed_at,
+        stream=stream,policy=policy,sensor_epoch=sensor_epoch)[0][1]
 
 
 def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, policy):
@@ -59,8 +64,19 @@ def _fetch_grid(connection_factory, *, targets, assessed_at, stream, policy, sel
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
 
 
-def fetch_temperature_window(connection_factory, *, start, end, assessed_at, stream, policy,
-                             include_provenance=False):
+def fetch_temperature_window(connection_factory,*,start,end,assessed_at,stream,policy,include_provenance=False):
+    return _fetch_window(connection_factory,start=start,end=end,assessed_at=assessed_at,
+        stream=stream,policy=policy,include_provenance=include_provenance,selector=select_temperature_window)
+
+
+def fetch_temperature_window_v2(connection_factory,*,start,end,assessed_at,stream,policy,sensor_epoch,include_provenance=False):
+    def select(rows,**kwargs):
+        return select_temperature_window_v2(rows,sensor_epoch=sensor_epoch,**kwargs)
+    return _fetch_window(connection_factory,start=start,end=end,assessed_at=assessed_at,
+        stream=stream,policy=policy,include_provenance=include_provenance,selector=select)
+
+
+def _fetch_window(connection_factory,*,start,end,assessed_at,stream,policy,include_provenance,selector):
     """Read all receipt changes for an elapsed window, including 25-hour days.
 
     Same restricted transport, row limits and no-fallback contract as grids.
@@ -72,9 +88,9 @@ def fetch_temperature_window(connection_factory, *, start, end, assessed_at, str
         history_start = start - timedelta(seconds=policy.validity_seconds)
         kwargs = dict(start=start, end=end, assessed_at=assessed_at,
                       history_start=history_start, stream=stream, policy=policy)
-        select_temperature_window([], **kwargs)  # Validate before connecting.
+        selector([], **kwargs)  # Validate before connecting.
         observations = _fetch_rows(connection_factory, history_start, end)
-        result = select_temperature_window(observations, **kwargs)
+        result = selector(observations, **kwargs)
         if include_provenance:
             # Hash the complete bounded input, including original carry and
             # invalid barriers. Never expose raw envelopes to the parent.
