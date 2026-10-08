@@ -38,6 +38,7 @@ class EndpointFit:
     conditioning_rank: int
     normalized_condition_number: float
     iterations: int
+    initial_coefficients: tuple[float, ...] = ()
     release_authorized: ClassVar[bool] = False
 
 
@@ -220,7 +221,7 @@ def _fit_endpoints(points, *, initial, deadline):
         _check_deadline(deadline)
         model.rollout(origin_at=point.origin.at, air_f=point.origin.air_f,
                       mass_f=point.origin.mass_f, forcings=point.forcings)
-    return EndpointFit(model, initial_loss, loss, rank, condition, int(result.nit))
+    return EndpointFit(model, initial_loss, loss, rank, condition, int(result.nit), original.coefficients)
 
 
 def _window_days(point):

@@ -791,3 +791,65 @@ then fit a genuinely source-qualified candidate and assess baseline skill,
 coefficient stability and calibration. Native collection cutover, candidate
 freeze/preregistration and adequate untouched/as-issued evidence remain open.
 PR3 and recovery work remain deferred; local bounded execution is permitted.
+
+
+### Distinct installed-shade candidate and numerical evidence bundle
+
+The separately identified ten-parameter model now has the explicit candidate
+schema `earthship-installed-shade-candidate/v1` and numerical evidence schema
+`earthship-installed-shade-fit-evidence/v1`. The existing full-model v5/v6
+contracts and readers are unchanged; the old full-model reader rejects this
+format. No absent unshaded coefficient is inserted or interpreted as learned.
+Its declared domain is installed outdoor shades, with original input snapshot,
+sensor phases, training interval, code revision and runtime revision retained.
+Status is explicitly `development_candidate`; release/as-issued authority is
+false. Production qualification remains a separate evidence-based decision.
+
+`installed_shade_artifact.build_candidate_bundle` requires a source-bound fit
+report and original native-v2 inputs. The fitter now retains its exact initial
+coefficient vector, allowing original endpoint losses to be reconstructed before
+and after refinement. Bundle validation replays the original capture, selects
+all required horizons strictly inside the training interval, verifies seed/final
+physics and every rollout step, recomputes rank/normalized conditioning, origin
+counts, non-overlapping windows and deterministic day-block movement. Every
+retained block coefficient vector must also pass source-derived conditioning
+and exact physics on the original retained windows. Numerical limits and all
+reported facts are checked, even when altered records are consistently rehashed.
+
+The candidate payload digest excludes the proof pointer; numerical evidence
+binds that payload, and the complete artifact binds the evidence digest. This
+avoids a circular hash dependency while preserving exact coefficient/source/
+runtime identity. Known mode labels stay intact; absent modes are counted as
+`unknown`, without promotion to a qualified seasonal regime. Regime counts count
+selected endpoint origins across horizons; they are not independent-day claims.
+Numerical/source consistency alone does not authenticate optimizer execution or
+prove predictive usefulness, calibrated intervals or as-issued skill. Actual
+fitting provenance and untouched/prospective qualification remain necessary.
+
+Private persistence requires an existing owned 0700 directory. It retains the
+original input snapshot before writing immutable 0600 evidence and candidate
+files at their digest addresses; the candidate is written last. Caller records
+are detached before verification/write. Repeated identical writes are safe;
+changed existing bytes are refused. Typed reads re-open the original evidence
+and source files and repeat validation. Missing/incompatible files cannot create
+an available production forecast. No existing accepted registry is modified.
+
+Verification: the initial 14 checks refused the missing retained seed field.
+The first candidate suite then passed 14 checks. Review identified mixed unknown/
+known regime sorting; the original native-capture case reproduced a TypeError,
+and explicit unknown counting fixed it. Final affected candidate/fit/input/core/
+capture suite: 94 passed under CPU 20 percent, memory 256 MiB, zero swap allowance,
+24 tasks, one numerical thread and a hard 90-second process deadline. Tests use
+synthetic native captures and mathematical fit reports; they are not household
+optimization or release evidence. Rehashed source/runtime/coefficient/loss/
+threshold/support/pass-flag changes, future candidates, missing seed, old-reader
+compatibility, immutable file transactions and mixed modes are covered. Scoped
+independent review reports no remaining material findings.
+
+Next integration must explicitly accept this domain/artifact identity in the
+appropriate runtime, original as-issued captures and qualification verifier.
+The existing model-v6 qualification/publication path must not silently accept
+these coefficients. Genuine native collection, fitting execution, baseline
+skill, block stability, calibrated uncertainty, candidate freeze/preregistration
+and adequate untouched/prospective windows remain open. Outdoors remain installed;
+November no-vent, PR3 deferral and separate deferred recovery work are unchanged.

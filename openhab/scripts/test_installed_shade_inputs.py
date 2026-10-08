@@ -16,7 +16,7 @@ START=datetime(2026,9,24,18,tzinfo=timezone.utc)
 END=START+timedelta(minutes=70)
 
 
-def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdoor="installed",radiation_gap=False,transient_action=None,steps=14,late_indoor=False):
+def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdoor="installed",radiation_gap=False,transient_action=None,steps=14,late_indoor=False,rich_actions=False,mode_delay_hours=0):
     end=START+timedelta(minutes=5*steps)
     policies={stream:TemperaturePolicy(model,sensor,**POLICY) for stream,model,sensor in STREAMS.values()}
     phases={STREAMS[role][0]:phase for role,phase in EPOCHS.items()}
@@ -47,7 +47,12 @@ def snapshot(*,missing=None,future_indoor=False,future_action=None,initial_outdo
             events.append(ActionEvent(f'transient-{minute}','receipt',START+timedelta(minutes=minute),START+timedelta(minutes=minute),action,state,'model_inferred',.5))
     if late_indoor:
         events.append(ActionEvent('retroactive','receipt',START+timedelta(minutes=20),START,'indoor_shade','closed','manual_dm',1))
-    modes=[ModeEvent('mode','receipt',START,START,'warm','manual_dm',1)]
+    if rich_actions:
+        for hour,action,state in ((12,'indoor_shade','closed'),(12,'vent','open'),(36,'vent','closed'),(60,'indoor_shade','open')):
+            at=START+timedelta(hours=hour)
+            if at<end:events.append(ActionEvent(f'rich-{hour}-{action}','receipt',at,at,action,state,'manual_dm',1))
+    mode_at=START+timedelta(hours=mode_delay_hours)
+    modes=[ModeEvent('mode','receipt',mode_at,mode_at,'warm','manual_dm',1)]
     reader=QualifiedTemperatureHistoryV2(legacy,grid,cutover=START,assessed_at=end,sensor_epochs=EPOCHS,retain_raw=True)
     journal=SimpleNamespace(effective_events=lambda *_:events,effective_modes=lambda *_:modes)
     return capture_training_inputs_v2(start=START,end=end,series_reader=reader,journal=journal,clock=lambda:end,revision_reader=lambda:'a'*64)
