@@ -94,3 +94,35 @@
 - [ ] Review the complete branch; correct material findings with RED/GREEN evidence. Merge only with passing required checks.
 - [ ] If real release gates pass, deploy Stage A with parallel baseline scoring and verify natural publication; Stage B only if separate action gates pass.
 - [ ] If physical evidence is insufficient, keep activation closed and state exact missing independent frozen-candidate/regime/action observations. Do not claim this goal achieved merely from code/CI completion.
+
+
+## Task 5 implementation boundary: preserve the real v4 recovery pair
+
+The retained pre-graduation artifact is v4. Current rollback snapshot v1 uses the
+v5 artifact decoder and runtime bundle v1 requires an origin-capture observer.
+Direct checks against the retained v4 inputs refuse both interfaces. Neither
+restriction may be relaxed or repaired by relabeling the old artifact or adding
+an observer to its historical source closure.
+
+Implement a separate versioned legacy recovery generation within Task 5:
+
+- Preserve the original artifact/publication bytes, complete declared source
+  closure, ordered runtime revision, interpreter identity and required environment
+  bundle identities. Use the retained library bindings and ancillary data.
+- Keep existing v1 snapshot/runtime contracts exact. An old reader must refuse
+  the new generation schema; preparation must explicitly select the legacy path.
+- Validate legacy artifact eligibility with its own pinned reader in the isolated
+  retained environment. A cached successful receipt or caller-supplied boolean
+  does not authorize installation or replace fresh byte checks.
+- Prepare a new private generation atomically, with an explicit rollback reason.
+  Never overwrite a destination or republish its historical output as fresh.
+- Prove both missing-input refusal and exact original available-forecast replay.
+  These existing private rehearsals establish compatibility for the tested cases,
+  not restored-journal qualification, predictive skill or production readiness.
+- Complete genuine restored-journal compatibility, guarded installation and
+  schedule reconciliation before calling rollback complete. Keep host-specific
+  archives, inventory and receipts private; heavy restore checks remain off-host.
+
+All preparation flags remain closed until their corresponding actual checks pass.
+This addendum does not change the model graduation gates or add household-planner
+scope.
