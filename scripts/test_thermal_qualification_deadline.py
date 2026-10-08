@@ -36,12 +36,13 @@ def test_absent_horizon_and_nonprospective_rows_cannot_provide_deadline():
     assert decision.qualification_deadline(policy(), rows) is None
 
 
-def test_report_v2_preserves_source_deadline_and_refuses_legacy_shape(monkeypatch):
+@pytest.mark.parametrize('legacy_schema',['v1','v2'])
+def test_report_v3_preserves_source_deadline_and_refuses_legacy_shape(monkeypatch,legacy_schema):
     module, args = classifier_case(monkeypatch)
     report = module.qualify_candidate(**args)
-    assert report['schema'] == 'earthship-thermal-qualification-report/v2'
+    assert report['schema'] == 'earthship-thermal-qualification-report/v3'
     assert report['qualification_expires_at'] is not None
-    report['schema'] = 'earthship-thermal-qualification-report/v1'
-    report.pop('qualification_expires_at')
+    report['schema'] = 'earthship-thermal-qualification-report/'+legacy_schema
+    if legacy_schema=='v1':report.pop('qualification_expires_at')
     report['report_sha256'] = sha256(_canonical({key: value for key, value in report.items() if key != 'report_sha256'})).hexdigest()
     with pytest.raises(ValueError): module.validate_qualification_report(report)
