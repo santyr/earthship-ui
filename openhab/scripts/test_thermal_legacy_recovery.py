@@ -103,3 +103,39 @@ def test_interrupted_copy_cleans_private_partial_generation(tmp_path,monkeypatch
     monkeypatch.setattr(module(),'_copy_file',interrupted)
     with pytest.raises(OSError):module().prepare_legacy_generation(target,**inputs)
     assert not target.exists() and not list(tmp_path.glob('.legacy-recovery-*'))
+
+
+@pytest.mark.parametrize('bad',[None,{}, {str(index):'/unused' for index in range(9)}, {'Bad label':'/unused'}])
+def test_invalid_environment_map_refuses_before_archive_reads(tmp_path,monkeypatch,bad):
+    inputs=fixture(tmp_path);inputs['environment_bundles']=bad
+    def unexpected(*args,**kwargs):pytest.fail('archive read before input validation')
+    monkeypatch.setattr(module(),'_reference',unexpected)
+    with pytest.raises(ValueError):module().prepare_legacy_generation(tmp_path/'refused',**inputs)
+
+
+@pytest.mark.parametrize('operation',['prepare','verify'])
+def test_pair_and_manifest_reads_are_reserved_before_io(tmp_path,monkeypatch,operation):
+    inputs=fixture(tmp_path);target=tmp_path/'recovery'
+    if operation=='verify':module().prepare_legacy_generation(target,**inputs)
+    credit=0;checked=[];original=module()._owned_bytes
+    class Pace:
+        def reserve(self,size):
+            nonlocal credit
+            credit+=size
+    monkeypatch.setattr(module(),'_pacer',lambda rate:Pace())
+    def checked_read(path,maximum):
+        nonlocal credit
+        if Path(path).name in ('artifact.json','output.json','accepted.json','last-shadow.json','manifest.json'):
+            assert credit>=maximum, 'bounded read must reserve before I/O'
+            credit-=maximum;checked.append(Path(path).name)
+        return original(path,maximum)
+    monkeypatch.setattr(module(),'_owned_bytes',checked_read)
+    # Archive reads have their own tested pacer; exclude their reservations here.
+    from thermal_model.environment_bundle import _read
+    def unpaced_reference(path,pace):
+        value=_read(path,addressed=True)
+        return dict(path=str(path),sha256=value['bundle_sha256']),value
+    monkeypatch.setattr(module(),'_reference',unpaced_reference)
+    if operation=='prepare':module().prepare_legacy_generation(target,**inputs,max_read_bytes_per_second=1)
+    else:module().verify_legacy_generation(target,max_read_bytes_per_second=1)
+    assert {'accepted.json','last-shadow.json','manifest.json'}<=set(checked)

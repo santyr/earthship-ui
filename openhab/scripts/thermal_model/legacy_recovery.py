@@ -56,6 +56,20 @@ def _pair(artifact_raw, output_raw):
     return output
 
 
+def _paced_owned_bytes(path, maximum, pace):
+    # Reserve the complete read bound before I/O. This remains conservative if
+    # the file changes size between metadata inspection and the guarded read.
+    if pace is not None: pace.reserve(maximum)
+    return _owned_bytes(path, maximum)
+
+
+def _environment_map(environments):
+    if not isinstance(environments, dict) or not 1 <= len(environments) <= 8:
+        raise ValueError('bounded retained environment references required')
+    if any(not isinstance(label, str) or re.fullmatch('[a-z][a-z0-9_]{0,31}', label) is None for label in environments):
+        raise ValueError('bounded environment labels required')
+
+
 def _reference(path, pace):
     path = Path(path); _name(str(path))
     value = _read(path, addressed=True, pace=pace)
@@ -67,8 +81,7 @@ def _inputs(record, pace):
             any(record[name] is not False for name in FLAGS)):
         raise ValueError('closed legacy preparation with explicit reason required')
     environments = record['environment_bundles']
-    if not isinstance(environments, dict) or not 1 <= len(environments) <= 8:
-        raise ValueError('bounded retained environment references required')
+    _environment_map(environments)
     refs = [record['source_bundle'], *environments.values()]; values = []; combined = {}
     for reference in refs:
         if not isinstance(reference, dict) or set(reference) != {'path', 'sha256'}:
@@ -79,8 +92,6 @@ def _inputs(record, pace):
         for logical, pin in value['files'].items():
             if logical in combined and combined[logical] != pin: raise ValueError('conflicting retained dependency versions')
             combined[logical] = pin
-    if any(not isinstance(label, str) or re.fullmatch('[a-z][a-z0-9_]{0,31}', label) is None for label in environments):
-        raise ValueError('bounded environment labels required')
     interpreter = _name(record['interpreter'])
     if interpreter not in combined: raise ValueError('interpreter bytes not retained')
     bindings = record['native_bindings']
@@ -121,7 +132,7 @@ def _verify(directory, pace):
     root = _private_directory(Path(directory))
     if {entry.name for entry in root.iterdir()} != {'manifest.json', 'models', 'runtime', 'last-shadow.json'}:
         raise ValueError('exact legacy generation required')
-    record = _document(_owned_bytes(root/'manifest.json', 128000))
+    record = _document(_paced_owned_bytes(root/'manifest.json', 128000, pace))
     if not isinstance(record, dict) or set(record) != FIELDS or record['schema'] != SCHEMA:
         raise ValueError('closed legacy generation schema required')
     if _digest({key: value for key, value in record.items() if key != 'generation_sha256'}) != record['generation_sha256']:
@@ -130,7 +141,7 @@ def _verify(directory, pace):
     sources, _ = _inputs(record, pace)
     models = _private_directory(root/'models')
     if {entry.name for entry in models.iterdir()} != {'accepted.json'}: raise ValueError('exact legacy model membership required')
-    artifact = _owned_bytes(models/'accepted.json', 4000000); output = _owned_bytes(root/'last-shadow.json', 16384)
+    artifact = _paced_owned_bytes(models/'accepted.json', 4000000, pace); output = _paced_owned_bytes(root/'last-shadow.json', 16384, pace)
     if sha256(artifact).hexdigest() != record['artifact_sha256'] or sha256(output).hexdigest() != record['output_sha256']:
         raise ValueError('original legacy pair bytes changed')
     if _utc(_pair(artifact, output)['generatedAt']) > _utc(record['created_at']):
@@ -158,7 +169,8 @@ def prepare_legacy_generation(destination, *, artifact_path, output_path, source
     if destination.resolve() != destination: raise ValueError('resolved private generation path required')
     parent = _private_directory(destination.parent)
     if destination.exists() or destination.is_symlink(): raise ValueError('legacy destination already exists')
-    artifact = _owned_bytes(Path(artifact_path), 4000000); output = _owned_bytes(Path(output_path), 16384)
+    _environment_map(environment_bundles)
+    artifact = _paced_owned_bytes(Path(artifact_path), 4000000, pace); output = _paced_owned_bytes(Path(output_path), 16384, pace)
     _pair(artifact, output)
     source_ref, _ = _reference(source_bundle, pace)
     refs = {name: _reference(path, pace)[0] for name, path in environment_bundles.items()}

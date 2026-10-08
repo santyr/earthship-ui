@@ -96,3 +96,27 @@ journal and install integration remain incomplete.
 streams a reviewed explicit file inventory into immutable blobs. Complete
 retention, relocation and recovery integration remain required; host-specific
 inventory evidence stays in private staging.
+
+## Preserve a legacy v4 generation
+
+`thermal_model.legacy_recovery.prepare_legacy_generation` separately preserves
+original v4 artifact and available v1 publication bytes with their original
+source closure. It requires explicit ordered revision paths, interpreter and
+native bindings, retained source/environment archive references and a rollback
+reason. It creates a new private generation atomically without replacing an
+existing destination. `verify_legacy_generation` checks the generation and all
+referenced archives again. The archives remain required recovery inputs; the
+generation does not duplicate the full dependency archives.
+
+This is a preservation contract, not a legacy numerical eligibility decision.
+Artifact-reader, cold-runtime, restored-journal, installation and automatic
+actuation flags stay false. Qualification must use the original pinned reader;
+v5 decoding and the existing v1 snapshot reader remain separate contracts.
+Historical output remains evidence and must never be published as current.
+
+Both functions accept `max_read_bytes_per_second`. Archive reads and source
+copies share a pacer; artifact, output and generation-manifest reads reserve
+their full bounded maximum before I/O. Small documents therefore also incur
+conservative pacing. Environment mapping type, count and labels are checked
+before archive reads. Continue using serial resource caps and private staging.
+This component does not provide guarded installation or schedule reconciliation.
