@@ -7,6 +7,8 @@ from hashlib import sha256
 from pathlib import Path
 import os,re,selectors,signal,stat,subprocess
 from time import monotonic,sleep
+from tempfile import TemporaryDirectory
+from thermal_model.rollback import _rename_new
 from psycopg2.extensions import make_dsn,parse_dsn
 from thermal_model.capture_readers import bounded_journal_dsn
 from thermal_model.forcing_capture import _private_directory
@@ -33,8 +35,11 @@ def dump_journal(*,target,params,snapshot):
     """Retain at most 32 MB; abort before writing any overflowing chunk."""
     env=_request(params,snapshot);target=Path(target);_private_directory(target.parent)
     if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved private dump target required')
-    descriptor=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
-    identity=os.fstat(descriptor);process=None;success=False;deadline=monotonic()+DUMP_SECONDS
+    if target.exists() or target.is_symlink():raise FileExistsError('journal dump destination exists')
+    temporary=TemporaryDirectory(prefix='.journal-dump-',dir=target.parent)
+    staged=Path(temporary.name)/'journal.dump'
+    descriptor=os.open(staged,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+    identity=os.fstat(descriptor);process=None;deadline=monotonic()+DUMP_SECONDS
     count=0;header=b'';digest=sha256();pace=_pacer(1048576)
     def remaining():
         value=deadline-monotonic()
@@ -75,15 +80,11 @@ def dump_journal(*,target,params,snapshot):
                     except ProcessLookupError:pass
                     process.wait(timeout=2)
                     if process.stdout is not None:process.stdout.close()
-        observed=target.lstat()
+        observed=staged.lstat()
         if ((observed.st_dev,observed.st_ino)!=(identity.st_dev,identity.st_ino) or
                 not stat.S_ISREG(observed.st_mode) or observed.st_size!=count or
                 observed.st_nlink!=1 or stat.S_IMODE(observed.st_mode)!=0o600):raise ValueError('journal dump target changed')
-        success=True
+        _rename_new(staged,target)
         return {'bytes':count,'sha256':digest.hexdigest()}
     finally:
-        if not success:
-            try:
-                observed=target.lstat()
-                if (observed.st_dev,observed.st_ino)==(identity.st_dev,identity.st_ino):target.unlink()
-            except FileNotFoundError:pass
+        temporary.cleanup()

@@ -69,9 +69,9 @@ def test_replaced_destination_is_never_removed_as_partial_output(tmp_path,monkey
         done=False
         def reserve(self,amount):
             if not self.done:
-                self.done=True;data['target'].unlink();data['target'].write_bytes(b'foreign replacement')
+                self.done=True;data['target'].write_bytes(b'foreign replacement')
     monkeypatch.setattr(module(),'_pacer',lambda rate:Changed())
-    with pytest.raises(ValueError,match='target changed'):module().dump_journal(**data)
+    with pytest.raises((ValueError,FileExistsError)):module().dump_journal(**data)
     assert data['target'].read_bytes()==b'foreign replacement'
 
 
@@ -108,3 +108,17 @@ def test_pipe_reads_are_reserved_before_receiving_bytes(tmp_path,monkeypatch):
     monkeypatch.setattr(source.os,'read',measured)
     result=source.dump_journal(**inputs(tmp_path))
     assert result['bytes']==14 and reads
+
+
+def test_replacement_between_cleanup_inspection_and_unlink_is_preserved(tmp_path,monkeypatch):
+    source=module();data=inputs(tmp_path);child(monkeypatch,'raise SystemExit(1)')
+    original=Path.lstat;raced=[]
+    def replaced(path,*args,**kwargs):
+        observed=original(path,*args,**kwargs)
+        if path==data['target'] and not raced:
+            raced.append(True);path.unlink();path.write_bytes(b'foreign after inspection')
+        return observed
+    monkeypatch.setattr(Path,'lstat',replaced)
+    with pytest.raises(ValueError):source.dump_journal(**data)
+    if raced:assert data['target'].read_bytes()==b'foreign after inspection'
+    else:assert not data['target'].exists()  # Staged cleanup never inspects this name.

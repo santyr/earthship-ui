@@ -592,8 +592,9 @@ loopback journal endpoint and explicit exported snapshot. Credentials travel in
 the child environment, while stderr is discarded. The pipe is nonblocking and
 read at at most 1 MiB/s, under a seventy-second deadline and 32 MB byte ceiling;
 no overflowing chunk is written. Targets must be new files in a private directory.
-Failure removes only the owned partial file and kills only the owned fresh process
-group. It retains the leader unreaped until cleanup so the process identifier
+Output is written in a unique private staging directory, then published with an
+atomic no-replace rename. Failure cleans staging and never unlinks the requested
+destination; it kills only the owned fresh process group. It retains the leader unreaped until cleanup so the process identifier
 cannot be reused during group signalling.
 
 This transport is for the pending guarded exporter. It does not establish
