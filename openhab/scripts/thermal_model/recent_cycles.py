@@ -7,7 +7,8 @@ from math import isfinite
 from statistics import median
 from zoneinfo import ZoneInfo
 
-from thermal_model.temperature_history import _validate_receipt
+from thermal_model.temperature_history import _validate_receipt,_validate_sensor_receipt
+from weather_temperature_evidence import sensor_epoch_id
 
 POLICY = {'timezone': 'America/Denver', 'required_cycles': 7, 'lookback_days': 31,
           'clock_policy': 'unique_local_clocks_equal_elapsed_duration',
@@ -38,7 +39,15 @@ def shifted_clock(value, days):
     return next(iter(candidates)) if len(candidates) == 1 else None
 
 
-def compare(*, issue, target, current_f, grid_reader):
+def compare(*,issue,target,current_f,grid_reader):
+    return _compare(issue=issue,target=target,current_f=current_f,grid_reader=grid_reader,sensor_epoch=None)
+
+
+def compare_v2(*,issue,target,current_f,grid_reader,sensor_epoch):
+    return _compare(issue=issue,target=target,current_f=current_f,grid_reader=grid_reader,sensor_epoch=sensor_epoch_id(sensor_epoch))
+
+
+def _compare(*,issue,target,current_f,grid_reader,sensor_epoch):
     """Use seven latest qualified cycles, all strictly known before issue.
 
     The reader is called with the original issue as assessment, not today's
@@ -73,7 +82,8 @@ def compare(*, issue, target, current_f, grid_reader):
                     raise ValueError('comparator grid target mismatch')
                 receipt = row[1]
                 if receipt is not None:
-                    _validate_receipt(receipt, at)
+                    if sensor_epoch is None:_validate_receipt(receipt,at)
+                    else:_validate_sensor_receipt(receipt,at,sensor_epoch=sensor_epoch)
                 receipts.append(receipt)
         if any(value is None for value in receipts):
             exclusions['qualified_cycle_unavailable'] += 1

@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-from thermal_model.temperature_history import QualifiedTemperatureHistory, QualifiedTemperatureHistoryV2, STREAMS, POLICY, _validate_receipt, _sensor_bindings
+from thermal_model.temperature_history import QualifiedTemperatureHistory, QualifiedTemperatureHistoryV2, STREAMS, POLICY, _validate_receipt, _validate_sensor_receipt, _sensor_bindings
 from weather_temperature_reader import _utc
 
 
@@ -56,11 +56,8 @@ def _configured_grid_reader(env, *, budget, sensor_epochs=None):
     return read
 
 
-def configured_history_v2(legacy_reader,now,environ=None,*,retain_raw=False):
+def _configured_sensor_epochs(env):
     from weather_temperature_config import load_temperature_receiver_configuration
-    env=dict(os.environ if environ is None else environ)
-    if env.get('THERMAL_TEMP_QUALIFIED_ENABLE')!='1':
-        raise ValueError('explicit native v2 history required')
     policies,epochs=load_temperature_receiver_configuration(env.get('THERMAL_TEMP_POLICY'))
     if epochs is None:raise ValueError('explicit v2 sensor phase policy required')
     bindings={}
@@ -68,7 +65,14 @@ def configured_history_v2(legacy_reader,now,environ=None,*,retain_raw=False):
         if stream not in policies or asdict(policies[stream])!=dict(model=model,sensor_id=sensor_id,**POLICY):
             raise ValueError('approved thermal identity and expiry policy required')
         bindings[role]=epochs[stream]
-    bindings=_sensor_bindings(bindings)
+    return _sensor_bindings(bindings)
+
+
+def configured_history_v2(legacy_reader,now,environ=None,*,retain_raw=False):
+    env=dict(os.environ if environ is None else environ)
+    if env.get('THERMAL_TEMP_QUALIFIED_ENABLE')!='1':
+        raise ValueError('explicit native v2 history required')
+    bindings=_configured_sensor_epochs(env)
     read=_configured_grid_reader(env,budget=900,sensor_epochs=bindings)
     return QualifiedTemperatureHistoryV2(legacy_reader,read,cutover=_utc(env.get('THERMAL_TEMP_EVIDENCE_CUTOVER')),
         assessed_at=now,sensor_epochs=bindings,retain_raw=retain_raw)
@@ -90,7 +94,27 @@ def configured_shadow_temperatures(now, environ=None, *, origin_observer=None):
         raise ValueError('qualified shadow temperature evidence unavailable') from None
 
 
+def configured_shadow_temperatures_v2(now,environ=None,*,origin_observer=None):
+    env=dict(os.environ if environ is None else environ)
+    if env.get('THERMAL_TEMP_SHADOW_QUALIFIED_ENABLE')!='1':
+        raise ValueError('explicit qualified native v2 shadow temperatures required')
+    try:
+        epochs=_configured_sensor_epochs(env)
+        reader=_configured_grid_reader(env,budget=90,sensor_epochs=epochs)
+        return shadow_temperatures_v2(now,reader,sensor_epochs=epochs,origin_observer=origin_observer)
+    except Exception:
+        raise ValueError('qualified native v2 shadow temperature evidence unavailable') from None
+
+
 def shadow_temperatures(now, grid_reader, *, origin_observer=None):
+    return _shadow_temperatures(now,grid_reader,origin_observer=origin_observer,sensor_epochs=None)
+
+
+def shadow_temperatures_v2(now,grid_reader,*,sensor_epochs,origin_observer=None):
+    return _shadow_temperatures(now,grid_reader,origin_observer=origin_observer,sensor_epochs=_sensor_bindings(sensor_epochs))
+
+
+def _shadow_temperatures(now,grid_reader,*,origin_observer,sensor_epochs):
     """Receipt-only trailing history and current observations; no legacy carry."""
     now = _utc(now)
     floor = now.replace(minute=now.minute//5*5, second=0, microsecond=0)
@@ -98,7 +122,7 @@ def shadow_temperatures(now, grid_reader, *, origin_observer=None):
     if targets[-1] != now:
         targets.append(now)
     result = {}
-    proof = dict(schema='earthship-thermal-origin-temperatures/v1',
+    proof = dict(schema='earthship-thermal-origin-temperatures/v2' if sensor_epochs is not None else 'earthship-thermal-origin-temperatures/v1',
                  assessed_at=now, roles={})
     for role, (stream, model, sensor_id) in STREAMS.items():
         rows = grid_reader(stream, targets, now)
@@ -110,7 +134,8 @@ def shadow_temperatures(now, grid_reader, *, origin_observer=None):
             if _utc(at) != target:
                 raise ValueError('shadow receipt target mismatch')
             if value is not None:
-                _validate_receipt(value, target)
+                if sensor_epochs is None:_validate_receipt(value,target)
+                else:_validate_sensor_receipt(value,target,sensor_epoch=sensor_epochs[role])
             # The exact current target is handled separately, not relabeled
             # to a historical bucket or fabricated sensor receipt timestamp.
             if target < now:
@@ -119,11 +144,11 @@ def shadow_temperatures(now, grid_reader, *, origin_observer=None):
                 latest = value
         if latest is None:
             raise ValueError(f'unqualified current {role} temperature receipt')
-        if len({value['streamEpoch'] for _, value in rows if value is not None})>1:
+        if sensor_epochs is None and len({value['streamEpoch'] for _, value in rows if value is not None})>1:
             raise ValueError(f'mixed native {role} sensor epochs')
         if origin_observer is not None:
             proof['roles'][role] = dict(
-                identity=dict(stream=stream, model=model, sensor_id=sensor_id),
+                identity=dict(stream=stream, model=model, sensor_id=sensor_id,**({} if sensor_epochs is None else dict(sensor_epoch=sensor_epochs[role]))),
                 grid=deepcopy(rows))
         result[role] = dict(history=tuple(history), current={
             'at': _utc(latest['receivedAt']), 'value': latest['temperatureF'],

@@ -360,8 +360,8 @@ default v1 readers refuse it. Training persists original sources and binding v3
 before saving any candidate. This is a tested offline boundary, not a live
 receiver configuration change or a qualified production candidate.
 
-Origin/outcome proofs, graduation/runtime bindings and publication consumers
-still require coordinated migration before live v2
+Production origin/outcome integration, graduation/runtime bindings and
+publication consumers still require coordinated migration before live v2
 adoption. Do not relabel older receipts or bypass physical/numerical gates.
 The operator confirms outdoor shades are still installed. Current native
 development data lacks unshaded solar support, so the existing complete model
@@ -389,3 +389,13 @@ fitting/resource requirements still govern `--fit`. Assembled training writes
 input binding v4 before saving a candidate; standalone training keeps binding
 v3. Legacy readers refuse these contracts. Live adoption and production
 qualification remain open pending the remaining consuming-path migration.
+
+
+Private native shadow origin capture v3 now binds source-v2 receipts to model
+v6 and to its declared hardware phases. It preserves collector sessions and
+original issue/forcing/initial-state/publication evidence. Its source scorer
+emits pair v2 and uses the original issue clock for persistence/recent-cycle
+comparisons; new sessions are accepted only within the same hardware phase.
+Legacy readers refuse the newer proofs. These are tested explicit APIs; the
+live publisher and production release capture/qualification consumers still
+need integration. No receipt history is backfilled and no activation is implied.

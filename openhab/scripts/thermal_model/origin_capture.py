@@ -18,10 +18,12 @@ from uuid import uuid4
 from .forcing_capture import _canonical,_artifact_payload
 from .dataset import latent_mass_from_series
 from .schema import validate_shadow_output
-from .temperature_history import STREAMS,_validate_receipt
+from .temperature_history import STREAMS,_validate_receipt,_validate_sensor_receipt
+from weather_temperature_evidence import sensor_epoch_id
 
 SCHEMA='earthship-thermal-origin-capture/v1'
 RELEASE_SCHEMA='earthship-thermal-origin-capture/v2'
+SENSOR_SCHEMA='earthship-thermal-origin-capture/v3'
 VALUES={'output','artifact','raw_forecast','forecast_rows','current',
         'origin_temperatures','runtime','known_actions','source_epochs'}
 RUNTIME_FIELDS={'schema','code_revision','observer_revision','interpreter_sha256',
@@ -77,9 +79,9 @@ def _runtime(value):
         raise ValueError('origin observer/runtime closure incomplete')
 
 
-def _temperatures(proof,current,*,issued_at,published_at):
+def _temperatures(proof,current,*,issued_at,published_at,version=1):
     if (not isinstance(proof,dict) or set(proof)!={'schema','assessed_at','roles'} or
-            proof['schema']!='earthship-thermal-origin-temperatures/v1' or
+            proof['schema']!=f'earthship-thermal-origin-temperatures/v{version}' or
             not isinstance(proof['roles'],dict) or set(proof['roles'])!=set(STREAMS)):
         raise ValueError('complete native origin temperatures required')
     observed=_utc(proof['assessed_at'])
@@ -90,8 +92,12 @@ def _temperatures(proof,current,*,issued_at,published_at):
     epochs={}; selected={}
     for role,(stream,model,sensor_id) in STREAMS.items():
         evidence=proof['roles'][role]
+        phase=None
+        if version==2 and isinstance(evidence,dict):
+            identity=evidence.get('identity')
+            phase=sensor_epoch_id(identity.get('sensor_epoch') if isinstance(identity,dict) else None)
         if (not isinstance(evidence,dict) or set(evidence)!={'identity','grid'} or
-                evidence['identity']!=dict(stream=stream,model=model,sensor_id=sensor_id) or
+                evidence['identity']!=dict(stream=stream,model=model,sensor_id=sensor_id,**({} if version==1 else dict(sensor_epoch=phase))) or
                 type(evidence['identity'].get('sensor_id')) is not int):
             raise ValueError('native origin identity differs')
         rows=evidence['grid']
@@ -102,10 +108,12 @@ def _temperatures(proof,current,*,issued_at,published_at):
             if not isinstance(row,list) or len(row)!=2 or _utc(row[0])!=target:
                 raise ValueError('native origin grid target differs')
             receipt=row[1]
-            if receipt is not None:_validate_receipt(receipt,target)
+            if receipt is not None:
+                if version==1:_validate_receipt(receipt,target)
+                else:_validate_sensor_receipt(receipt,target,sensor_epoch=phase)
             if target<observed:
                 history.append((target,math.nan if receipt is None else receipt['temperatureF']))
-        if len({row[1]['streamEpoch'] for row in rows if row[1] is not None})>1:
+        if version==1 and len({row[1]['streamEpoch'] for row in rows if row[1] is not None})>1:
             raise ValueError('mixed native origin sensor epochs')
         latest=rows[-1][1]
         if latest is None:raise ValueError('current native origin receipt unavailable')
@@ -123,7 +131,7 @@ def _temperatures(proof,current,*,issued_at,published_at):
             if latent is not None:expected=latent[1]
         if not math.isclose(_number(reading.get('value')),expected,rel_tol=0,abs_tol=1e-9):
             raise ValueError('original initial thermal state differs from native source/observer')
-        epochs[role]=latest['streamEpoch'];selected[role]=expected
+        epochs[role]=phase if version==2 else latest['streamEpoch'];selected[role]=expected
     return epochs,selected
 
 
@@ -151,6 +159,10 @@ def validate_origin_capture(record):
     return _validate_origin_capture(record, schema=SCHEMA, output_validator=validate_shadow_output)
 
 
+def validate_sensor_origin_capture(record):
+    return _validate_origin_capture(record,schema=SENSOR_SCHEMA,output_validator=validate_shadow_output,temperature_version=2)
+
+
 def validate_release_origin_capture(record):
     from .release import validate_release_output
     _validate_origin_capture(record, schema=RELEASE_SCHEMA, output_validator=validate_release_output)
@@ -166,12 +178,14 @@ def validate_release_origin_capture(record):
 
 
 def validate_observed_origin_capture(record):
+    if isinstance(record,dict) and record.get('schema')==SENSOR_SCHEMA:
+        return validate_sensor_origin_capture(record)
     if isinstance(record, dict) and record.get('schema') == RELEASE_SCHEMA:
         return validate_release_origin_capture(record)
     return validate_origin_capture(record)
 
 
-def _validate_origin_capture(record, *, schema, output_validator):
+def _validate_origin_capture(record, *, schema, output_validator,temperature_version=1):
     if (not isinstance(record,dict) or set(record)!=VALUES|{
             'schema','issued_at','inputs_available_at','published_at','sha256'} or
             record['schema']!=schema or not isinstance(record['sha256'],dict) or
@@ -187,11 +201,16 @@ def _validate_origin_capture(record, *, schema, output_validator):
     if output['confidence']['grade']=='unavailable' or _utc(output['generatedAt'])!=issue:
         raise ValueError('only actual available issued output can be captured')
     from .artifacts import _artifact_from_payload
-    _artifact_payload(_artifact_from_payload(record['artifact']),output)
+    artifact=_artifact_from_payload(record['artifact'])
+    expected='earthship-thermal-model/v6' if temperature_version==2 else 'earthship-thermal-model/v5'
+    if artifact.schema!=expected:raise ValueError('origin artifact sensor contract differs')
+    _artifact_payload(artifact,output)
     _runtime(record['runtime'])
     if not isinstance(record['current'],dict):raise ValueError('original current state required')
     epochs,selected=_temperatures(record['origin_temperatures'],record['current'],
-                                 issued_at=issue,published_at=published)
+                                 issued_at=issue,published_at=published,version=temperature_version)
+    if temperature_version==2 and epochs!={role:info['sensor_epoch'] for role,info in artifact.data_manifest['temperature_evidence']['roles'].items()}:
+        raise ValueError('origin hardware phase differs from fitted source')
     if epochs!=record['source_epochs']:raise ValueError('original sensor epochs differ')
     for role,field in (('air','hallwayF'),('mass','massF')):
         if not math.isclose(_number(output['current'][field]),selected[role],rel_tol=0,abs_tol=.00051):
@@ -210,12 +229,16 @@ def build_origin_capture(*,output,artifact,snapshot,rows,current,origin_temperat
         schema=SCHEMA,validator=validate_origin_capture)
 
 
+def build_sensor_origin_capture(**kwargs):
+    return _build_origin_capture(**kwargs,schema=SENSOR_SCHEMA,validator=validate_sensor_origin_capture,temperature_version=2)
+
+
 def build_release_origin_capture(**kwargs):
     return _build_origin_capture(**kwargs, schema=RELEASE_SCHEMA, validator=validate_release_origin_capture)
 
 
 def _build_origin_capture(*,output,artifact,snapshot,rows,current,origin_temperatures,
-                         runtime,inputs_available_at,published_at,known_actions=None,schema,validator):
+                         runtime,inputs_available_at,published_at,known_actions=None,schema,validator,temperature_version=1):
     issue=_utc(output['generatedAt']);published=_utc(published_at)
     values=dict(output=output,artifact=_artifact_payload(artifact,output),
         raw_forecast=snapshot,forecast_rows=rows,current=current,
@@ -223,7 +246,7 @@ def _build_origin_capture(*,output,artifact,snapshot,rows,current,origin_tempera
     # Serialize once to detach caller state and normalize all aware clocks.
     values=json.loads(_canonical(values))
     epochs,_=_temperatures(values['origin_temperatures'],values['current'],
-                           issued_at=issue,published_at=published)
+                           issued_at=issue,published_at=published,version=temperature_version)
     values['source_epochs']=epochs
     record=dict(schema=schema,issued_at=issue.isoformat(),
         inputs_available_at=_utc(inputs_available_at).isoformat(),published_at=published.isoformat(),
@@ -260,6 +283,10 @@ def read_origin_capture(path):
     return _read_origin_capture(path, validate_origin_capture)
 
 
+def read_sensor_origin_capture(path):
+    return _read_origin_capture(path,validate_sensor_origin_capture)
+
+
 def read_release_origin_capture(path):
     return _read_origin_capture(path, validate_release_origin_capture)
 
@@ -288,12 +315,17 @@ def write_origin_capture(directory,record):
     return _write_origin_capture(directory, record, validate_origin_capture, 'v1')
 
 
+def write_sensor_origin_capture(directory,record):
+    return _write_origin_capture(directory,record,validate_sensor_origin_capture,'v3')
+
+
 def write_release_origin_capture(directory, record):
     return _write_origin_capture(directory, record, validate_release_origin_capture, 'v2')
 
 
 def write_observed_origin_capture(directory, record):
     validate_observed_origin_capture(record)
+    if record['schema']==SENSOR_SCHEMA:return write_sensor_origin_capture(directory,record)
     return (write_release_origin_capture(directory, record) if record['schema'] == RELEASE_SCHEMA
         else write_origin_capture(directory, record))
 

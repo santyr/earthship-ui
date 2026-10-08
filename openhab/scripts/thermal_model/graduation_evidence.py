@@ -11,9 +11,9 @@ import math
 from pathlib import Path
 
 from thermal_model.origin_capture import read_observed_origin_capture as read_origin_capture
-from thermal_model.temperature_history import _validate_receipt
+from thermal_model.temperature_history import _validate_receipt,_validate_sensor_receipt
 from thermal_model.forcing_capture import _canonical
-from thermal_model.recent_cycles import compare
+from thermal_model.recent_cycles import compare,compare_v2
 
 
 def _utc(value):
@@ -75,9 +75,12 @@ def _score_origin_record(record,*,publication,horizon_hours,outcome,recent_cycle
         raise ValueError('qualified later outcome is not mature')
     if not isinstance(outcome,dict) or set(outcome)!={'target_at','receipt'} or _utc(outcome['target_at'])!=target:
         raise ValueError('native outcome target differs')
-    receipt=outcome['receipt'];_validate_receipt(receipt,target)
-    epoch=record['source_epochs']['air']
-    if receipt['streamEpoch']!=epoch:raise ValueError('native outcome sensor epoch differs')
+    sensor_origin=record['schema']=='earthship-thermal-origin-capture/v3'
+    receipt=outcome['receipt'];epoch=record['source_epochs']['air']
+    if sensor_origin:_validate_sensor_receipt(receipt,target,sensor_epoch=epoch)
+    else:
+        _validate_receipt(receipt,target)
+        if receipt['streamEpoch']!=epoch:raise ValueError('native outcome sensor epoch differs')
     if not isinstance(recent_cycle_grid,list) or len(recent_cycle_grid)>64:
         raise ValueError('bounded original recent-cycle receipt grid required')
     native={}
@@ -87,15 +90,18 @@ def _score_origin_record(record,*,publication,horizon_hours,outcome,recent_cycle
         if at>=issue or at in native:raise ValueError('future or duplicate native comparator target')
         value=row[1]
         if value is not None:
-            _validate_receipt(value,at)
-            if value['streamEpoch']!=epoch:raise ValueError('native comparator epoch differs')
+            if sensor_origin:_validate_sensor_receipt(value,at,sensor_epoch=epoch)
+            else:
+                _validate_receipt(value,at)
+                if value['streamEpoch']!=epoch:raise ValueError('native comparator epoch differs')
             value={**value,**{key:_utc(value[key]) for key in ('receivedAt','storedAt','validUntil')}}
         native[at]=value
     def read(targets,assessment):
         if assessment!=issue:raise ValueError('comparator used revised issue clock')
         return [(at,native.get(at)) for at in targets]
     current=_number(record['output']['current']['hallwayF'])
-    baseline=compare(issue=issue,target=target,current_f=current,grid_reader=read)
+    baseline=(compare_v2(issue=issue,target=target,current_f=current,grid_reader=read,sensor_epoch=epoch) if sensor_origin else
+              compare(issue=issue,target=target,current_f=current,grid_reader=read))
     if baseline['status']!='available':raise ValueError('seven original qualified cycles unavailable')
     observed=_number(receipt['temperatureF'])
     rows=[entry for entry in record['forecast_rows'] if _utc(entry['at'])<=issue]
@@ -111,7 +117,7 @@ def _score_origin_record(record,*,publication,horizon_hours,outcome,recent_cycle
         persistence_error_f=current-observed,recent_cycle_error_f=baseline['prediction_f']-observed,
         interval_width_f=_number(point['highF'])-_number(point['lowF']),
         interval_covered=point['lowF']<=observed<=point['highF'])
-    return dict(schema='earthship-thermal-source-scored-pair/v1',scored_pair=scored,
+    return dict(schema='earthship-thermal-source-scored-pair/v2' if sensor_origin else 'earthship-thermal-source-scored-pair/v1',scored_pair=scored,
         original_capture_sha256=sha256(_canonical(record)).hexdigest(),
         publication_sha256=sha256(_canonical(publication)).hexdigest(),
         outcome_receipt_sha256=sha256(_canonical(outcome)).hexdigest(),

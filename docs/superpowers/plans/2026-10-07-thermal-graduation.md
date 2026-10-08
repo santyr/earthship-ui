@@ -389,8 +389,9 @@ v1. A v2 input with a legacy assembly binding is refused; explicit assembly
 v2 provides the separately versioned lineage contract. Local fitting remains an explicit opt-in
 under enforced resource limits.
 
-Origin/outcome and native shadow proofs, graduation/runtime sensor bindings,
-production publication and live installation still need coordinated migration.
+Native private shadow origin/outcome proof APIs are integrated below;
+graduation/runtime bindings, production publication and live installation
+still need coordinated migration.
 Keep the live receiver policy v1 until consuming paths are qualified together.
 Synthetic checks establish contract behavior, not model skill or release readiness.
 Historical v1 receipts cannot be relabelled as v2 hardware evidence. Outdoor
@@ -408,7 +409,8 @@ phase and refuses phase drift before connecting. Capture workers require both
 qualification-fit opt-ins to be off. Check-only performs no source reads.
 
 Tests use real source-v2 receipts and native parsing with synthetic SQL transport;
-no household v2 capture or receiver policy change has been performed. Origin/outcome proofs and qualification/runtime/publication migration remain open.
+no household v2 capture or receiver policy change has been performed.
+Qualification/runtime/publication migration remains open.
 The latest operator confirmation keeps outdoor shades installed. The physical
 model still lacks unshaded training support; capture compatibility cannot supply
 that missing evidence or authorize graduation.
@@ -434,8 +436,33 @@ training continues to use input binding v3. Rehashed or mismatched lineage
 cannot reach fitting or repair source evidence.
 
 This completes the offline capture/assembly/training sensor-identity boundary
-on synthetic original receipts. Original issue/outcome/native-shadow proofs,
-graduation/runtime/publication bindings and live adoption still need migration.
+on synthetic original receipts. Qualification/runtime/publication bindings and
+live adoption still need migration; the private origin/outcome API is below.
 No measured candidate, statistical qualification or production activation is
 claimed. Outdoor shades remain installed and current data still lack the
 unshaded support required by the existing full model.
+
+### Native private shadow origins and outcomes
+
+`shadow_temperatures_v2` and explicit `configured_shadow_temperatures_v2` preserve
+original source-v2 receipts across collector sessions while validating one
+declared hardware phase per role. Their private proof is
+`earthship-thermal-origin-temperatures/v2`; it retains the same trailing grid,
+missing barriers and current receipt clocks. The configured reader shares fixed
+physical policy checks and the existing 90-second read budget.
+
+Private origin capture v3 requires model v6, checks hardware bindings against
+the fitted manifest and preserves exact forcing, initial/latent state, runtime,
+publication clock and content digests. Legacy origin v1 and release capture v2
+remain strict and refuse the new native sensor contract. The observed reader
+explicitly validates v3 before scoring. New source-scored pair v2 validates
+outcomes and original recent-cycle receipts against the declared hardware phase;
+collector-session changes do not impersonate hardware changes. Same-origin
+persistence and the seven-cycle baseline keep the original issue clock, target
+selection, elapsed-duration and source-freshness rules. Scoring grants neither
+release authority nor confirmed action-response evidence.
+
+This step is verified with real synthetic source-v2 packets/parser grids,
+including a collector reset. Live publisher selection, production release
+capture, qualification consumers and live policy adoption remain open. Historical
+v1 records are not relabelled, and no real model fit or activation occurred.
