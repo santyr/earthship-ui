@@ -348,3 +348,22 @@ The scorer also no longer emits `target_confidence:*` counts when no artifact
 was selected: those counts were previously inflated by missing artifact IDs
 matching an absent target (`None == None`). This was a diagnostic-only defect;
 it did not change the score, blocker logic, or live model.
+
+
+## October 8 sensor-identity migration boundary
+
+New receipt v2 separates collector session (`streamEpoch`) from the declared
+hardware phase (`sensorEpoch`). Source, bounded native history, model v6 and
+frozen training input/source v2 paths preserve both identities. Explicit
+`train-thermal-snapshot.py --receipt-version 2` selects this offline contract;
+default v1 readers refuse it. Training persists original sources and binding v3
+before saving any candidate. This is a tested offline boundary, not a live
+receiver configuration change or a qualified production candidate.
+
+Capture/assembly, origin/outcome proofs, graduation/runtime bindings and
+publication consumers still require coordinated migration before live v2
+adoption. Do not relabel older receipts or bypass physical/numerical gates.
+The operator confirms outdoor shades are still installed. Current native
+development data lacks unshaded solar support, so the existing complete model
+refuses its rank-deficient fit. Recovery work remains deferred; local ML work
+remains permitted within enforced resource limits.

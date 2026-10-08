@@ -322,10 +322,12 @@ The current integrated branch has passing hosted repository, ML hardening and
 thermal delivery checks. These tests include synthetic disposable source exports,
 restores and consumer compatibility; they do not establish household model skill.
 The retained live publication remains shadow, and no new measured candidate has
-been installed. The prepared development inputs have not been fitted.
+been installed. A bounded development fit was attempted and refused by the existing rank gate; no candidate was saved.
 
-The next scientific step is a measured fit of the prepared private development
-inputs, followed by evidence-driven algorithm improvement. Local execution is
+The next scientific steps are the sensor-identity migration and evidence-driven
+algorithm improvement. The operator confirms outdoor shades remain installed;
+current native development inputs have no unshaded solar support. The existing
+full physical model therefore cannot identify its unshaded gain from these inputs. Local execution is
 permitted under the resource constraints above; a private off-host destination is
 not required. Keep household inputs private, freeze the improved candidate/runtime
 and register its policy before untouched/prospective release evaluation.
@@ -371,3 +373,25 @@ This completes the source-to-native-history boundary on synthetic original sourc
 snapshots and replaced SQL transports. Versioned artifact/training-input/source
 formats, origin/outcome proof migration and graduation sensor binding remain open.
 Do not enable v2 in live policies before those consumers are verified together.
+
+### Model and frozen training evidence v2 integration
+
+Model schema `earthship-thermal-model/v6` requires temperature evidence manifest
+version 2. Frozen input/source schemas use version 2 and retain both the original
+collector session and declared hardware phase. Model v5 and input/source v1
+remain exact and refuse these newer evidence contracts. Physical constraints,
+rank, conditioning, coefficient stability and eligibility checks remain intact.
+
+The explicit `train-thermal-snapshot.py --receipt-version 2` path reconstructs
+original native grids, validates phase bindings, and persists source v2 plus
+training input binding v3 before candidate saving. Default invocation remains
+v1. A v2 input with a legacy assembly binding is refused; capture and assembly
+need their own versioned migration. Local fitting remains an explicit opt-in
+under enforced resource limits.
+
+Origin/outcome and native shadow proofs, graduation/runtime sensor bindings,
+production publication and live installation still need coordinated migration.
+Keep the live receiver policy v1 until consuming paths are qualified together.
+Synthetic checks establish contract behavior, not model skill or release readiness.
+Historical v1 receipts cannot be relabelled as v2 hardware evidence. Outdoor
+shades remain installed; no physical shade changes are requested for experiments.

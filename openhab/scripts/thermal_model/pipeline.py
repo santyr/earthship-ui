@@ -24,6 +24,7 @@ from .artifacts import (
     MASS_BOUNDS,
     MAX_VENT_FORCING,
     MODEL_SCHEMA,
+    SENSOR_MODEL_SCHEMA,
     MULTIHORIZON_CONTRACT,
     OUTPUT_RANGE_F,
     STABILITY_TOLERANCE,
@@ -389,7 +390,7 @@ def run_training(
         manifest['temperature_evidence'] = series_reader.evidence_manifest()
     created_at = _aware(clock(), "clock")
     artifact = ThermalArtifact(
-        schema=MODEL_SCHEMA,
+        schema=SENSOR_MODEL_SCHEMA if manifest.get('temperature_evidence', {}).get('version') == 2 else MODEL_SCHEMA,
         created_at=_iso_utc(created_at),
         trained_from=manifest["start"],
         trained_through=manifest["end"],

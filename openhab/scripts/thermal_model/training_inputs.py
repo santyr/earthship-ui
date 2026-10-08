@@ -17,11 +17,12 @@ from .origin_capture import _object
 from .pipeline import _read_authorities
 from .schema import ActionEvent,ModeEvent,THERMAL_ITEMS,OPTIONAL_OBSERVATION_ITEMS
 from .temperature_history import STREAMS,STEP
-from .training_sources import build_training_sources,validate_training_sources
+from .training_sources import build_training_sources,validate_training_sources,validate_sensor_training_sources
 from .runtime_bundle import _write_private,_sync_directory,_owned_bytes
 from .rollback import _rename_new
 
 SCHEMA='earthship-thermal-training-inputs/v1'
+SENSOR_SCHEMA='earthship-thermal-training-inputs/v2'
 MAX_BYTES=32000000
 MAX_SERIES_POINTS=120000
 MAX_EVENTS=10000
@@ -85,7 +86,15 @@ class _Journal:
 
 
 def restore_training_inputs(record):
-    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA or
+    return _restore_inputs(record,version=1)
+
+
+def restore_training_inputs_v2(record):
+    return _restore_inputs(record,version=2)
+
+
+def _restore_inputs(record,*,version):
+    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=(SENSOR_SCHEMA if version==2 else SCHEMA) or
             record['normalization']!=NORMALIZATION or any(record[key] is not False for key in FLAGS) or
             len(_canonical(record))>MAX_BYTES or
             _digest({key:value for key,value in record.items() if key!='snapshot_sha256'})!=record['snapshot_sha256']):
@@ -113,8 +122,10 @@ def restore_training_inputs(record):
     samples=build_samples(raw,events,modes,start,end)
     if dataset_manifest(samples,events,modes)!=record['dataset_manifest']:
         raise ValueError('dataset differs from captured original construction')
-    artifact=SimpleNamespace(data_manifest={**record['dataset_manifest'],'temperature_evidence':record['temperature_evidence']})
-    validate_training_sources(build_training_sources(samples,reader),artifact)
+    artifact=SimpleNamespace(schema='earthship-thermal-model/v6' if version==2 else 'earthship-thermal-model/v5',
+        data_manifest={**record['dataset_manifest'],'temperature_evidence':record['temperature_evidence']})
+    validator=validate_sensor_training_sources if version==2 else validate_training_sources
+    validator(build_training_sources(samples,reader),artifact)
     # Post-cutover point values must be the exact retained native grid, including
     # missing-receipt barriers. Rehashing a rebuilt dataset cannot change them.
     cutover=_utc(record['temperature_evidence']['cutover'])
@@ -126,7 +137,15 @@ def restore_training_inputs(record):
     return SimpleNamespace(start=start,end=end,series_reader=reader,journal=journal,samples=samples)
 
 
-def capture_training_inputs(*,start,end,series_reader,journal,clock,revision_reader,site_settings_loader=None):
+def capture_training_inputs(**kwargs):
+    return _capture_inputs(version=1,**kwargs)
+
+
+def capture_training_inputs_v2(**kwargs):
+    return _capture_inputs(version=2,**kwargs)
+
+
+def _capture_inputs(*,start,end,series_reader,journal,clock,revision_reader,site_settings_loader=None,version):
     if (getattr(series_reader,'retains_native_grids',False) is not True or
             not all(callable(getattr(series_reader,name,None)) for name in ('temperature_grids','evidence_manifest'))):
         raise ValueError('retained original native temperature reader required')
@@ -143,32 +162,49 @@ def capture_training_inputs(*,start,end,series_reader,journal,clock,revision_rea
         row=asdict(event)
         for name in ('received_at','effective_at'):row[name]=_utc(row[name]).isoformat()
         return row
-    body=dict(schema=SCHEMA,start=start.isoformat(),end=end.isoformat(),captured_at=captured.isoformat(),
+    body=dict(schema=SENSOR_SCHEMA if version==2 else SCHEMA,start=start.isoformat(),end=end.isoformat(),captured_at=captured.isoformat(),
         collection_code_revision=_sha(revision_reader()),normalization=NORMALIZATION,
         series_by_role={role:[[_utc(at).isoformat(),_measurement(value)] for at,value in rows] for role,rows in series.items()},
         events=[encode_event(event) for event in events],modes=[encode_event(mode) for mode in modes],
         temperature_evidence=series_reader.evidence_manifest(),temperature_grids=series_reader.temperature_grids(),
         dataset_manifest=dataset_manifest(samples,events,modes),**{key:False for key in FLAGS})
-    body['snapshot_sha256']=_digest(body);restore_training_inputs(body)
+    body['snapshot_sha256']=_digest(body)
+    _restore_inputs(body,version=version)
     return body
 
 
 def read_training_inputs(path,*,maximum_bytes=MAX_BYTES):
+    return _read_inputs(path,maximum_bytes=maximum_bytes,version=1)
+
+
+def read_training_inputs_v2(path,*,maximum_bytes=MAX_BYTES):
+    return _read_inputs(path,maximum_bytes=maximum_bytes,version=2)
+
+
+def _read_inputs(path,*,maximum_bytes,version):
     if type(maximum_bytes) is not int or not 1<=maximum_bytes<=MAX_BYTES:raise ValueError('bounded training input read required')
     path=Path(path);_private_directory(path.parent)
     if path.lstat().st_size>maximum_bytes:raise ValueError('training input snapshot exceeds bound')
     def reject(_):raise ValueError('nonfinite training input document')
     record=json.loads(_owned_bytes(path,maximum_bytes),object_pairs_hook=_object,parse_constant=reject)
-    restore_training_inputs(record)
-    if path.name!=record['snapshot_sha256']+'.training-inputs-v1.json':raise ValueError('training snapshot address differs')
+    _restore_inputs(record,version=version)
+    if path.name!=record['snapshot_sha256']+'.training-inputs-v'+str(version)+'.json':raise ValueError('training snapshot address differs')
     return record
 
 
 def write_training_inputs(directory,record):
-    restore_training_inputs(record);root=_private_directory(Path(directory));raw=_canonical(record)
-    target=root/(record['snapshot_sha256']+'.training-inputs-v1.json')
+    return _write_inputs(directory,record,version=1)
+
+
+def write_training_inputs_v2(directory,record):
+    return _write_inputs(directory,record,version=2)
+
+
+def _write_inputs(directory,record,*,version):
+    _restore_inputs(record,version=version);root=_private_directory(Path(directory));raw=_canonical(record)
+    target=root/(record['snapshot_sha256']+'.training-inputs-v'+str(version)+'.json')
     if target.exists():
-        if read_training_inputs(target)!=record:raise ValueError('original snapshot differs')
+        if _read_inputs(target,maximum_bytes=MAX_BYTES,version=version)!=record:raise ValueError('original snapshot differs')
         return target
     temporary=root/('.training-inputs-'+uuid4().hex)
     try:

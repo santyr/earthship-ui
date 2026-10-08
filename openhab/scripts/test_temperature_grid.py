@@ -58,9 +58,9 @@ def test_each_snapshot_is_parsed_once_for_a_full_day(monkeypatch):
     import weather_temperature_reader as reader
     original = reader._snapshot
     calls = []
-    def counted(*args):
+    def counted(*args, **kwargs):
         calls.append(1)
-        return original(*args)
+        return original(*args, **kwargs)
     monkeypatch.setattr(reader, '_snapshot', counted)
     rows = [(AT + timedelta(seconds=s), raw(s)) for s in range(0, 86401, 30)]
     result = grid(rows, offsets=range(0, 86401, 300))

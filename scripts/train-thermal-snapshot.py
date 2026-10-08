@@ -12,7 +12,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'openhab/scripts'))
 from thermal_model.artifacts import ArtifactRegistry
 from thermal_model.forcing_capture import _canonical,_private_directory
 from thermal_model.pipeline import TrainingRefused
-from thermal_model.training_inputs import read_training_inputs
+from thermal_model.training_inputs import read_training_inputs,read_training_inputs_v2
 from thermal_model.offline_training import run_snapshot_training,require_fitting_optin
 from thermal_model.training_assembly import read_training_parts,read_training_assembly
 from thermal_intel import _release_runtime_paths
@@ -39,6 +39,7 @@ def _fit_code_revision():
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--snapshot',required=True,type=Path)
+    parser.add_argument('--receipt-version',type=int,choices=(1,2),default=1)
     mode=parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--verify-only',action='store_true')
     mode.add_argument('--fit',action='store_true')
@@ -50,13 +51,14 @@ def main(argv=None):
     if args.fit and (args.state_dir is None or args.fit_evidence_dir is None):parser.error('fit requires explicit state and proof directories')
     if args.verify_only and (args.state_dir is not None or args.fit_evidence_dir is not None):parser.error('verification does not use fit directories')
     if (args.assembly_binding is None)!= (not args.input_part):parser.error('assembly binding and original input parts required together')
+    if args.receipt_version==2 and args.assembly_binding is not None:parser.error('sensor phase assemblies require a versioned binding')
     try:
         if args.fit:
             require_fitting_optin()
             state=_private_directory(args.state_dir);proof=_private_directory(args.fit_evidence_dir)
             if state==proof or state.is_relative_to(proof) or proof.is_relative_to(state):raise ValueError('separate fit directories required')
             if any(state.iterdir()) or any(proof.iterdir()):raise ValueError('new empty fit directories required')
-        record=read_training_inputs(args.snapshot)
+        record=(read_training_inputs_v2 if args.receipt_version==2 else read_training_inputs)(args.snapshot)
         lineage={}
         if args.assembly_binding is not None:
             parents=read_training_parts(args.input_part)

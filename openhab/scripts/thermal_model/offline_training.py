@@ -12,20 +12,21 @@ from uuid import uuid4
 
 from .forcing_capture import _canonical,_private_directory
 from .graduation_policy import _utc,_sha
-from .training_inputs import restore_training_inputs,write_training_inputs,_bounded
+from .training_inputs import restore_training_inputs,restore_training_inputs_v2,write_training_inputs,_bounded,SENSOR_SCHEMA as SENSOR_INPUT_SCHEMA
 from .training_assembly import verify_training_assembly,write_training_assembly
 from .pipeline import run_training
-from .training_sources import write_training_sources
+from .training_sources import write_training_sources,write_training_sources_v2
 from .fit_evidence import write_fit_evidence
 from .runtime_bundle import _write_private,_owned_bytes,_sync_directory
 from .rollback import _rename_new
 
 SCHEMA='earthship-thermal-training-input-binding/v1'
 ASSEMBLED_SCHEMA='earthship-thermal-training-input-binding/v2'
+SENSOR_BINDING_SCHEMA='earthship-thermal-training-input-binding/v3'
 
 
 def _persist_binding(root,record):
-    version='v2' if record['schema']==ASSEMBLED_SCHEMA else 'v1'
+    version='v3' if record['schema']==SENSOR_BINDING_SCHEMA else ('v2' if record['schema']==ASSEMBLED_SCHEMA else 'v1')
     raw=_canonical(record);target=root/(sha256(raw).hexdigest()+'.training-input-binding-'+version+'.json')
     if target.exists():
         if _owned_bytes(target,4096)!=raw:raise ValueError('original training input binding differs')
@@ -49,6 +50,9 @@ def run_snapshot_training(record,*,registry,fit_evidence_directory,clock,revisio
     require_fitting_optin()
     if (assembly_binding is None)!=(assembly_inputs is None):
         raise ValueError('assembly binding and original inputs required together')
+    sensor_inputs=isinstance(record,dict) and record.get('schema')==SENSOR_INPUT_SCHEMA
+    if sensor_inputs and assembly_binding is not None:
+        raise ValueError('sensor phase input assembly requires its own versioned binding')
     if assembly_binding is not None:
         assembly_inputs=_bounded(assembly_inputs,8)
         verify_training_assembly(record,assembly_binding,assembly_inputs)
@@ -56,17 +60,19 @@ def run_snapshot_training(record,*,registry,fit_evidence_directory,clock,revisio
     record=deepcopy(record)
     root=_private_directory(Path(fit_evidence_directory))
     now=_utc(clock());revision=_sha(revision_reader())
-    frozen=restore_training_inputs(record)
+    frozen=(restore_training_inputs_v2 if sensor_inputs else restore_training_inputs)(record)
     if _utc(record['captured_at'])>now:raise ValueError('future input snapshot unavailable for fitting')
     expected=record['dataset_manifest']
     def compatible(artifact):
+        if sensor_inputs and (artifact.schema!='earthship-thermal-model/v6' or artifact.data_manifest.get('temperature_evidence')!=record['temperature_evidence']):
+            raise ValueError('fitted sensor phase differs from original inputs')
         if (_utc(artifact.trained_from)!=frozen.start or _utc(artifact.trained_through)!=frozen.end or
                 artifact.code_revision!=revision or _sha(revision_reader())!=revision or
                 any(artifact.data_manifest.get(key)!=value for key,value in expected.items())):
             raise ValueError('fitted dataset or code differs from frozen training context')
     def sources(artifact,snapshot):
         compatible(artifact)
-        write_training_sources(root,snapshot,artifact)
+        (write_training_sources_v2 if sensor_inputs else write_training_sources)(root,snapshot,artifact)
         lineage={}
         if assembly_binding is not None:
             for parent in assembly_inputs:write_training_inputs(root,parent)
@@ -74,10 +80,11 @@ def run_snapshot_training(record,*,registry,fit_evidence_directory,clock,revisio
             write_training_assembly(root,record,assembly_binding,assembly_inputs)
             lineage=dict(assembly_binding_sha256=assembly_binding['binding_sha256'],
                          input_snapshot_sha256s=assembly_binding['input_snapshot_sha256s'])
-        _persist_binding(root,dict(schema=ASSEMBLED_SCHEMA if lineage else SCHEMA,snapshot_sha256=record['snapshot_sha256'],
+        phase_binding={} if not sensor_inputs else dict(sensor_epochs={role:info['sensor_epoch'] for role,info in record['temperature_evidence']['roles'].items()})
+        _persist_binding(root,dict(schema=SENSOR_BINDING_SCHEMA if sensor_inputs else (ASSEMBLED_SCHEMA if lineage else SCHEMA),snapshot_sha256=record['snapshot_sha256'],
             artifact_sha256=sha256(_canonical(asdict(artifact))).hexdigest(),
             collection_code_revision=record['collection_code_revision'],fit_code_revision=revision,
-            captured_at=record['captured_at'],start=record['start'],end=record['end'],release_authorized=False,**lineage))
+            captured_at=record['captured_at'],start=record['start'],end=record['end'],release_authorized=False,**lineage,**phase_binding))
     def proof(artifact,value):
         compatible(artifact)
         write_fit_evidence(root,value,artifact)

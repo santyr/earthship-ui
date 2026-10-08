@@ -8,12 +8,13 @@ import stat
 from uuid import uuid4
 
 from .dataset import _canonical_sample
-from .temperature_history import STREAMS,_validate_receipt,validate_evidence_manifest,_ceil,STEP
+from .temperature_history import STREAMS,_validate_receipt,_validate_sensor_receipt,validate_evidence_manifest,validate_sensor_evidence_manifest,_ceil,STEP
 from .forcing_capture import _canonical,_private_directory
 from .origin_capture import _object
 from .graduation_policy import _utc
 
 SCHEMA='earthship-thermal-training-sources/v1'
+SENSOR_SCHEMA='earthship-thermal-training-sources/v2'
 MAX_BYTES=64000000
 
 
@@ -26,21 +27,35 @@ def build_training_sources(samples,reader):
     ordered=sorted(samples,key=lambda row:row.at.astimezone(timezone.utc))
     provenance=getattr(samples,'radiation_provenance_by_at',None)
     rows=[_canonical_sample(row,'observed' if provenance is None else provenance[row.at]) for row in ordered]
-    record=dict(schema=SCHEMA,samples=rows,temperature_grids=reader.temperature_grids())
+    evidence = reader.evidence_manifest() if callable(getattr(reader,'evidence_manifest',None)) else {}
+    schema=SENSOR_SCHEMA if evidence.get('version')==2 else SCHEMA
+    record=dict(schema=schema,samples=rows,temperature_grids=reader.temperature_grids())
     encoded=_canonical(record)
     if len(encoded)>MAX_BYTES:raise ValueError('raw training snapshot exceeds bounded size')
     return json.loads(encoded)
 
 
 def validate_training_sources(record,artifact):
-    if not isinstance(record,dict) or set(record)!={'schema','samples','temperature_grids'} or record['schema']!=SCHEMA:
+    return _validate_sources(record,artifact,version=1)
+
+
+def validate_sensor_training_sources(record,artifact):
+    from .artifacts import SENSOR_MODEL_SCHEMA
+    if getattr(artifact,'schema',None)!=SENSOR_MODEL_SCHEMA:
+        raise ValueError('native sensor sources require model v6 binding')
+    return _validate_sources(record,artifact,version=2)
+
+
+def _validate_sources(record,artifact,*,version):
+    if not isinstance(record,dict) or set(record)!={'schema','samples','temperature_grids'} or record['schema']!=(SENSOR_SCHEMA if version==2 else SCHEMA):
         raise ValueError('closed raw training snapshot required')
     manifest=artifact.data_manifest;rows=record['samples'];grids=record['temperature_grids']
     if (not isinstance(rows,list) or len(rows)!=manifest['sample_count'] or
             _digest(rows)!=manifest['canonical_rows_sha256'] or len(_canonical(record))>MAX_BYTES):
         raise ValueError('raw training samples differ from artifact')
     temperature=manifest.get('temperature_evidence')
-    validate_evidence_manifest(temperature,start=manifest['start'],end=manifest['end'])
+    validate_temperature=validate_sensor_evidence_manifest if version==2 else validate_evidence_manifest
+    validate_temperature(temperature,start=manifest['start'],end=manifest['end'])
     if not isinstance(grids,dict) or set(grids)!=set(STREAMS):raise ValueError('complete original native grids required')
     for role in STREAMS:
         info=temperature['roles'][role];grid=grids[role]
@@ -51,7 +66,9 @@ def validate_training_sources(record,artifact):
             if not isinstance(row,list) or len(row)!=2 or _utc(row[0])!=target:raise ValueError('native grid target order differs')
             receipt=row[1]
             if receipt is not None:
-                _validate_receipt(receipt,target);qualified+=1
+                if version==2:_validate_sensor_receipt(receipt,target,sensor_epoch=info['sensor_epoch'])
+                else:_validate_receipt(receipt,target)
+                qualified+=1
             else:missing+=1
             digest.update((_canonical([target.isoformat(),receipt]).decode()+'\n').encode())
             target+=STEP
@@ -78,15 +95,32 @@ def _read_private(path):
 
 
 def read_training_sources(path,artifact):
+    return _read_sources(path,artifact,version=1)
+
+
+def read_training_sources_v2(path,artifact):
+    return _read_sources(path,artifact,version=2)
+
+
+def _read_sources(path,artifact,*,version):
     def reject(_):raise ValueError('nonfinite training snapshot')
     try:record=json.loads(_read_private(Path(path)),object_pairs_hook=_object,parse_constant=reject)
     except (UnicodeDecodeError,json.JSONDecodeError):raise ValueError('training snapshot JSON invalid') from None
-    return validate_training_sources(record,artifact)
+    return (validate_sensor_training_sources if version==2 else validate_training_sources)(record,artifact)
 
 
 def write_training_sources(directory,record,artifact):
-    root=_private_directory(Path(directory));raw=_canonical(validate_training_sources(record,artifact))
-    target=root/(_digest(artifact.data_manifest)+'.training-sources-v1.json')
+    return _write_sources(directory,record,artifact,version=1)
+
+
+def write_training_sources_v2(directory,record,artifact):
+    return _write_sources(directory,record,artifact,version=2)
+
+
+def _write_sources(directory,record,artifact,*,version):
+    validator=validate_sensor_training_sources if version==2 else validate_training_sources
+    root=_private_directory(Path(directory));raw=_canonical(validator(record,artifact))
+    target=root/(_digest(artifact.data_manifest)+'.training-sources-v'+str(version)+'.json')
     temporary=root/('.training-'+uuid4().hex+'.tmp')
     fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     try:
