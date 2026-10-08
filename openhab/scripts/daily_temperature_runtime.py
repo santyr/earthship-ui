@@ -24,9 +24,17 @@ SUMMARY_FIELDS = {'observed_high_f', 'observed_low_f', 'covered_seconds',
 SITE_ZONE = ZoneInfo('America/Denver')
 
 
-def _request(request):
-    if not isinstance(request, dict) or set(request) != {'start', 'end', 'assessed_at'}:
+def _request(request, *, version=1, sensor_epoch=None):
+    fields = {'start', 'end', 'assessed_at'}
+    if version == 2:
+        fields |= {'receipt_version', 'sensor_epoch'}
+    if not isinstance(request, dict) or set(request) != fields:
         raise ValueError('closed day request required')
+    if version == 2:
+        from weather_temperature_evidence import sensor_epoch_id
+        if (type(request['receipt_version']) is not int or request['receipt_version'] != 2
+                or sensor_epoch_id(request['sensor_epoch']) != sensor_epoch_id(sensor_epoch)):
+            raise ValueError('native daily phase differs from request')
     start, end, assessed = (_utc(request[k]) for k in ('start', 'end', 'assessed_at'))
     if not start < end <= assessed or end - start > timedelta(hours=25):
         raise ValueError('elapsed bounded window required')
@@ -39,37 +47,77 @@ def _request(request):
 
 
 def collect(request, *, config_path, policy_path):
+    return _collect(request, config_path=config_path, policy_path=policy_path, version=1)
+
+
+def collect_v2(request, *, config_path, policy_path):
+    return _collect(request, config_path=config_path, policy_path=policy_path, version=2)
+
+
+def _native_policy(path):
+    from dataclasses import asdict
+    from hourly_temperature_runtime import _native_outdoor_policy
+    policy, phase = _native_outdoor_policy(path)
+    if asdict(policy) != SOURCE_POLICY:
+        raise ValueError('reviewed daily outdoor policy required')
+    return policy, phase
+
+
+def _collect(request, *, config_path, policy_path, version):
     from dataclasses import asdict
     import psycopg2
     from hourly_temperature_runtime import read_db_config
     from weather_temperature_config import load_temperature_policies
-    from weather_temperature_history import fetch_temperature_window
-    start, end, assessed = _request(request)
+    from weather_temperature_history import fetch_temperature_window, fetch_temperature_window_v2
+    phase = None
+    if version == 2:
+        policy, phase = _native_policy(policy_path)
+    start, end, assessed = _request(request, version=version, sensor_epoch=phase)
     if assessed > datetime.now(timezone.utc):
         raise ValueError('future assessment')
     config = read_db_config(config_path)
-    policy = load_temperature_policies(policy_path)['outdoor']
+    if version == 1:
+        policy = load_temperature_policies(policy_path)['outdoor']
     if asdict(policy) != SOURCE_POLICY:
         raise ValueError('reviewed outdoor policy required')
-    summary = fetch_temperature_window(lambda: psycopg2.connect(**config, connect_timeout=3),
+    fetch = fetch_temperature_window_v2 if version == 2 else fetch_temperature_window
+    kwargs = {'sensor_epoch': phase} if version == 2 else {}
+    summary = fetch(lambda: psycopg2.connect(**config, connect_timeout=3),
         start=start, end=end, assessed_at=assessed, stream='outdoor', policy=policy,
-        include_provenance=True)
-    return dict(version=1, request=request, stream='outdoor', source_policy=SOURCE_POLICY,
-                coverage_policy=COVERAGE_POLICY, summary=summary)
+        include_provenance=True, **kwargs)
+    result = dict(version=version, request=request, stream='outdoor', source_policy=SOURCE_POLICY,
+                  coverage_policy=COVERAGE_POLICY, summary=summary)
+    if version == 2:
+        result['sensor_epoch'] = phase
+    return result
 
 
 def validate_result(result, request):
-    start, end, _ = _request(request)
+    return _validate_result(result, request, version=1, sensor_epoch=None)
+
+
+def validate_result_v2(result, request, *, sensor_epoch):
+    return _validate_result(result, request, version=2, sensor_epoch=sensor_epoch)
+
+
+def _validate_result(result, request, *, version, sensor_epoch):
+    start, end, _ = _request(request, version=version, sensor_epoch=sensor_epoch)
     if (not isinstance(result, dict) or set(result) != {
-            'version', 'request', 'stream', 'source_policy', 'coverage_policy', 'summary'}
-            or type(result['version']) is not int or result['version'] != 1
+            'version', 'request', 'stream', 'source_policy', 'coverage_policy', 'summary'} | ({'sensor_epoch'} if version == 2 else set())
+            or type(result['version']) is not int or result['version'] != version
             or result['request'] != request or result['stream'] != 'outdoor'
             or result['source_policy'] != SOURCE_POLICY
             or result['coverage_policy'] != COVERAGE_POLICY):
         raise ValueError('unexpected daily evidence metadata')
     summary = result['summary']
-    if not isinstance(summary, dict) or set(summary) != SUMMARY_FIELDS:
+    if not isinstance(summary, dict) or set(summary) != SUMMARY_FIELDS | ({'receiptVersion', 'sensorEpoch'} if version == 2 else set()):
         raise ValueError('closed daily summary required')
+    if version == 2:
+        from weather_temperature_evidence import sensor_epoch_id
+        if (sensor_epoch_id(result['sensor_epoch']) != sensor_epoch_id(sensor_epoch)
+                or sensor_epoch_id(summary['sensorEpoch']) != sensor_epoch_id(sensor_epoch)
+                or type(summary['receiptVersion']) is not int or summary['receiptVersion'] != 2):
+            raise ValueError('unexpected daily sensor phase')
     def finite(value):
         return type(value) in (int, float) and math.isfinite(value)
     for key in ('covered_seconds', 'total_seconds', 'maximum_gap_seconds'):
@@ -98,6 +146,9 @@ def read_daily_actuals(start, end, assessed_at, environ=None):
     """Return high, low and provenance; explicit bad config/evidence skips both."""
     env = dict(os.environ if environ is None else environ)
     try:
+        version = env.get('DAILY_TEMP_RECEIPT_VERSION', '1')
+        if version not in ('1', '2'):
+            raise ValueError('explicit receipt version required')
         if env.get('DAILY_TEMP_QUALIFIED_ENABLE') != '1':
             raise ValueError('qualified daily opt-in required')
         if env.get('DAILY_TEMP_COVERAGE_POLICY') != COVERAGE_POLICY:
@@ -105,14 +156,19 @@ def read_daily_actuals(start, end, assessed_at, environ=None):
         cutover = _utc(env.get('DAILY_TEMP_EVIDENCE_CUTOVER'))
         start, end, assessed_at = map(_utc, (start, end, assessed_at))
         request = dict(start=start.isoformat(), end=end.isoformat(), assessed_at=assessed_at.isoformat())
-        _request(request)
+        phase = None
+        if version == '2':
+            _, phase = _native_policy(env.get('DAILY_TEMP_POLICY'))
+            request.update(receipt_version=2, sensor_epoch=phase)
+        _request(request, version=int(version), sensor_epoch=phase)
         if start < cutover: raise ValueError('pre-cutover day')
-        child = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--read'],
+        child = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--read-v2' if version == '2' else '--read'],
             input=json.dumps(request), text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             timeout=30, check=True, env=env)
         if len(child.stdout.encode()) > 8192: raise ValueError('oversize daily evidence')
-        result = validate_result(json.loads(child.stdout, object_pairs_hook=_object,
-                                           parse_constant=_reject_constant), request)
+        decoded = json.loads(child.stdout, object_pairs_hook=_object, parse_constant=_reject_constant)
+        result = (validate_result_v2(decoded, request, sensor_epoch=phase) if version == '2'
+                  else validate_result(decoded, request))
         summary = result['summary']
         if not summary['fully_covered']:
             print('daily qualified temperatures: incomplete receipt coverage; scoring skipped')
@@ -161,10 +217,11 @@ def forecast_value_eligible(prediction, key, evidence):
 
 def main():
     try:
-        if sys.argv[1:] != ['--read']: raise ValueError('read-only invocation required')
+        if sys.argv[1:] not in (['--read'], ['--read-v2']): raise ValueError('read-only invocation required')
         raw = sys.stdin.buffer.read(4097)
         if len(raw) > 4096: raise ValueError('oversize request')
-        result = collect(json.loads(raw, object_pairs_hook=_object, parse_constant=_reject_constant),
+        collector = collect_v2 if sys.argv[1:] == ['--read-v2'] else collect
+        result = collector(json.loads(raw, object_pairs_hook=_object, parse_constant=_reject_constant),
             config_path=os.environ.get('DAILY_TEMP_DB_CONFIG'),
             policy_path=os.environ.get('DAILY_TEMP_POLICY'))
         print(json.dumps(result, allow_nan=False, separators=(',', ':')))

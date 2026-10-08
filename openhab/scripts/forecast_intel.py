@@ -733,7 +733,8 @@ def measured_day_weather(day):
 
 def measured_day_weather_with_evidence(day):
     """Migrate both daily and day-3 temperature actuals at one boundary."""
-    if os.environ.get('DAILY_TEMP_QUALIFIED_ENABLE') is None:
+    if (os.environ.get('DAILY_TEMP_QUALIFIED_ENABLE') is None
+            and os.environ.get('DAILY_TEMP_RECEIPT_VERSION', '1') == '1'):
         return (*measured_day_weather(day), None)
     from daily_temperature_runtime import read_daily_actuals
     window = local_day_window_utc(day)

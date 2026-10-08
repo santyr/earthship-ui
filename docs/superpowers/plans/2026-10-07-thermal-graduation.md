@@ -546,8 +546,20 @@ valid evidence yields the identical existing numeric update. Diagnostic receipts
 retain native version, hardware phase and collector session. Missing, expired,
 legacy or mismatched native evidence skips learning without fallback.
 
-The daily learning consumer still requires explicit v2 migration. Keep the live
-receiver on its existing contract until all affected consumers can be reconciled
-together. These synthetic compatibility checks establish transport correctness,
-not learned skill or production qualification. Outdoor shades remain installed;
-do not fabricate unshaded development support or weaken the exact rank gate.
+Daily learning now also selects native evidence explicitly with
+`DAILY_TEMP_RECEIPT_VERSION=2`, the existing qualified opt-in and
+`DAILY_TEMP_COVERAGE_POLICY=complete_receipt_coverage_v1`. Its private source-v2
+policy must retain the reviewed outdoor identity, range and 120-second lifetime.
+The parent and worker bind the declared phase before reading. Version 2 result
+and summary metadata must match that phase; complete receipt coverage over the
+actual Denver calendar day remains mandatory, including 23/25-hour DST days.
+Original bounded-history hashes and phase metadata are retained in daily and
+day-three learning diagnostics; their numeric equations remain unchanged.
+Explicit native selection without qualified opt-in skips temperature learning.
+
+Hourly and daily consumer code migration is implemented. Keep the live receiver
+on its existing contract until deployment, schedules and policy bindings are
+reconciled together. These synthetic compatibility checks establish transport
+correctness, not learned skill or production qualification. Outdoor shades
+remain installed; do not fabricate unshaded development support or weaken the
+exact rank gate.
