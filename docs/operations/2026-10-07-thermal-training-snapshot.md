@@ -80,9 +80,62 @@ readers serve only the exact frozen interval and known Items. Fitting, installat
 and release-authority flags remain false.
 
 This is a library component for private off-host preparation. The operational
-capture command and offline fitting integration remain unfinished. Supplied
+capture command and actual private development capture remain unfinished. The
+offline fitting integration is described below. Supplied
 backends still need their own query deadlines and read pacing before live use.
 Continue the serial CPU/memory/task scope; no live capture or local optimizer was
 invoked here. Household snapshots remain private and require an explicitly
 identified destination before transfer. The existing post-fit source contract,
 artifact validation and numerical qualification gates remain unchanged.
+
+## Fit a frozen snapshot off-host
+
+`scripts/train-thermal-snapshot.py` verifies a retained input snapshot or delegates
+fitting to the existing training pipeline using only frozen series and journal
+readers. No household database, weather fetch or site-settings callback is supplied.
+The existing artifact, conditioning, block-refit, evaluation and shadow-promotion
+gates remain in force.
+
+Verification is read-only and requires no fitting opt-in:
+
+```text
+python scripts/train-thermal-snapshot.py \
+  --snapshot /private/SNAPSHOT_SHA.training-inputs-v1.json --verify-only
+```
+
+Run verification under the existing serial resource scope on this host. Run the
+following fitting command only on the designated off-host machine, after private
+transfer to an explicitly identified destination:
+
+```text
+EARTHSHIP_REMOTE_QUALIFICATION_FIT=1 python scripts/train-thermal-snapshot.py \
+  --snapshot /private/SNAPSHOT_SHA.training-inputs-v1.json --fit \
+  --state-dir /private/new-model-directory \
+  --fit-evidence-dir /private/new-proof-directory
+```
+
+Both output directories must already be empty, owned mode-0700 directories,
+resolved and separate, with neither nested inside the other. No production path
+is selected by default. The environment variable is an explicit workload opt-in;
+it does not prove that a machine is off-host. This fitting command has not been
+invoked on the household host.
+
+Before candidate promotion, the pipeline saves the original training source proof,
+a private immutable `earthship-thermal-training-input-binding/v1` receipt linking
+the input snapshot to the candidate artifact, and the measured fit proof. Source,
+binding or proof persistence failure preserves the prior candidate. The wrapper
+requires the fitted interval and dataset manifest to match the frozen capture and
+rechecks the fit source revision before each proof write. The CLI source identity
+includes the release source closure, snapshot reader, training wrapper and CLI;
+it does not attest the interpreter/native dependency environment.
+
+Exit 0 means inputs verified or a shadow candidate accepted in the isolated
+registry; exit 1 means the existing training gates refused; exit 2 means input,
+workload intent or private destination checks refused. Successful fitting grants
+no production forecast/advisory authority. Preregistration, untouched/prospective
+source-bound skill and complete rollback qualification remain required.
+
+Local tests exercise real pipeline orchestration with all numerical boundaries
+replaced by controlled fixtures. Genuine optimizer verification runs in hosted CI
+or on the designated worker. Actual capture, off-host placement, real fitting and
+candidate qualification remain open.
