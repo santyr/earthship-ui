@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from thermal_journal_transfer import read_journal_transfer
+from thermal_journal_source_receipt import read_source_export
 from thermal_model.forcing_capture import _canonical,_private_directory
 from thermal_model.graduation_policy import _sha,_utc
 from thermal_model.origin_capture import _source_bytes
@@ -18,6 +19,7 @@ from thermal_model.runtime_bundle import _write_private,_sync_directory
 from thermal_model.rollback import _rename_new
 
 SCHEMA='earthship-thermal-journal-restore-report/v1'
+SOURCE_SCHEMA='earthship-thermal-journal-restore-report/v2'
 ROOT=Path(__file__).resolve().parents[1]
 
 
@@ -82,9 +84,19 @@ def _consumer(proof,revision):
 
 
 def qualify_journal_transfer(*,package,consumer_runtime,expected_consumer_revision,
-                             expected_interpreter_sha256,proof_directory,clock=lambda:datetime.now(timezone.utc),backend=None):
+                             expected_interpreter_sha256,proof_directory,clock=lambda:datetime.now(timezone.utc),backend=None,
+                             source_generation=None,expected_source_receipt_sha256=None,expected_exporter_revision=None):
     # Intent, not proof of location. Select the approved off-host worker first.
     if os.environ.get('EARTHSHIP_REMOTE_JOURNAL_RESTORE')!='1':raise ValueError('explicit off-host journal restore intent required')
+    source_inputs=(source_generation,expected_source_receipt_sha256,expected_exporter_revision)
+    if any(value is not None for value in source_inputs) and any(value is None for value in source_inputs):
+        raise ValueError('source generation and both independent source pins required together')
+    source_record=None
+    if source_generation is not None:
+        source_record=read_source_export(source_generation,expected_receipt_sha256=expected_source_receipt_sha256,
+            expected_exporter_revision=expected_exporter_revision,now=clock())
+        if Path(package)!=Path(source_generation)/'transfer'/source_record['transfer_sha256']:
+            raise ValueError('restore package differs from pinned original source generation')
     revision=_sha(expected_consumer_revision);interpreter=_sha(expected_interpreter_sha256)
     runtime=_private_directory(Path(consumer_runtime));root=_private_directory(Path(proof_directory))
     package=Path(package)
@@ -108,15 +120,24 @@ def qualify_journal_transfer(*,package,consumer_runtime,expected_consumer_revisi
     if read_journal_transfer(package)!=record:raise ValueError('journal package changed during rehearsal')
     assessed=_utc(clock())
     if assessed<_utc(record['prepared_at']):raise ValueError('restore clock predates its inputs')
-    report=dict(schema=SCHEMA,assessed_at=assessed.isoformat(),transfer_sha256=record['transfer_sha256'],
+    if source_record is not None:
+        if read_source_export(source_generation,expected_receipt_sha256=expected_source_receipt_sha256,
+                expected_exporter_revision=expected_exporter_revision,now=assessed)!=source_record:
+            raise ValueError('original source receipt changed during rehearsal')
+    report=dict(schema=SCHEMA if source_record is None else SOURCE_SCHEMA,assessed_at=assessed.isoformat(),transfer_sha256=record['transfer_sha256'],
         archive_sha256=record['archive_sha256'],source_schema_version=record['source_schema_version'],
         source_schema_fingerprint=record['source_schema_fingerprint'],consumer_revision=revision,
         consumer_interpreter_sha256=interpreter,consumer_probe=consumer,disposable_cleanup_verified=True,
         restored_rows_match_exporter_declarations=True,disposable_restore_qualified=True,consumer_qualified=True,
         source_export_authenticated=False,cold_environment_qualified=False,journal_recovery_qualified=False,
         installed=False,release_authorized=False,automatic_actuation=False)
+    if source_record is not None:
+        report['source_export_binding']={key:source_record[key] for key in ('source_receipt_sha256','source_code_revision',
+            'snapshot_identity','observed_at','prepared_at','configuration_binding_sha256')}
+        report['source_export_binding']['original_receipt_verified']=True
     report['report_sha256']=sha256(_canonical(report)).hexdigest()
-    target=root/(report['report_sha256']+'.journal-restore-report-v1.json');temporary=root/('.journal-proof-'+uuid4().hex)
+    version='v1' if source_record is None else 'v2'
+    target=root/(report['report_sha256']+'.journal-restore-report-'+version+'.json');temporary=root/('.journal-proof-'+uuid4().hex)
     try:
         _write_private(temporary,_canonical(report));_rename_new(temporary,target);_sync_directory(root)
     finally:

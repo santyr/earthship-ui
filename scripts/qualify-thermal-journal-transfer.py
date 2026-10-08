@@ -14,11 +14,16 @@ def main(argv=None):
     parser.add_argument('--expected-consumer-revision',required=True)
     parser.add_argument('--expected-interpreter-sha256',required=True)
     parser.add_argument('--proof-directory',required=True,type=Path)
+    parser.add_argument('--source-generation',type=Path)
+    parser.add_argument('--expected-source-receipt-sha256')
+    parser.add_argument('--expected-exporter-revision')
     args=parser.parse_args(argv)
     try:
         path=qualify_journal_transfer(package=args.transfer,consumer_runtime=args.consumer_runtime,
             expected_consumer_revision=args.expected_consumer_revision,
-            expected_interpreter_sha256=args.expected_interpreter_sha256,proof_directory=args.proof_directory)
+            expected_interpreter_sha256=args.expected_interpreter_sha256,proof_directory=args.proof_directory,
+            source_generation=args.source_generation,expected_source_receipt_sha256=args.expected_source_receipt_sha256,
+            expected_exporter_revision=args.expected_exporter_revision)
     except (OSError,RuntimeError,TypeError,ValueError,subprocess.SubprocessError,psycopg2.Error):
         print('off-host journal rehearsal withheld; check private inputs, pinned consumer and owned cleanup',file=sys.stderr)
         return 2

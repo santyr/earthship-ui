@@ -674,3 +674,21 @@ This component verifies original byte binding only. It opens no database and
 performs no restore. External exporter authentication, complete cold-environment
 qualification, installation and release flags remain false. Integration into the
 off-host restorer and genuine private source acquisition remain separate steps.
+
+
+### Bind the original source receipt during off-host restore
+
+The off-host `qualify-thermal-journal-transfer.py` command accepts the optional
+`--source-generation`, `--expected-source-receipt-sha256` and
+`--expected-exporter-revision` together. Supply independently obtained pins from
+the approved private source handoff. `--transfer` must select the exact nested
+package in that generation. Invalid/missing pins refuse before database work;
+receipt and transfer bytes are checked again after disposable cleanup.
+
+With these inputs, the command writes restore report version 2 and records
+`source_export_binding.original_receipt_verified=true` for byte integrity.
+External source authentication, cold environment, complete journal recovery,
+installation, release and actuation remain closed. Without the three source
+options, original restore report version 1 remains unchanged. Real v1/v2 schema
+restore and consumer compatibility tests with and without source pins run only
+on hosted synthetic databases. No restore has run on the household host.

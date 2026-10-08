@@ -18,7 +18,8 @@ import thermal_journal_restore_transfer as worker
 
 
 @pytest.mark.parametrize('version',['v1','v2'])
-def test_real_transfer_restore_and_consumer_are_recorded_after_owned_cleanup(database,tmp_path,monkeypatch,version):
+@pytest.mark.parametrize('source_binding',[False,True])
+def test_real_transfer_restore_and_consumer_are_recorded_after_owned_cleanup(database,tmp_path,monkeypatch,version,source_binding):
     live=worker._live();now=datetime.now(timezone.utc)
     live.journal.ActionJournal(database.admin_dsn).append(ActionEvent('transfer-fixture','transfer-receipt',now,now,'vent','closed','manual_dm',1.0))
     if version=='v2':
@@ -32,6 +33,26 @@ def test_real_transfer_restore_and_consumer_are_recorded_after_owned_cleanup(dat
     packages=tmp_path/'packages';packages.mkdir(mode=0o700)
     package=prepare_journal_transfer(archive=archive,directory=packages,source_schema=version,runtime_role=database.runtime_role,
         table_proofs=proofs,exported_at=now,source_code_revision='a'*64)
+    source_options={}
+    if source_binding:
+        from thermal_model.forcing_capture import _canonical
+        from thermal_journal_transfer import read_journal_transfer
+        transferred=read_journal_transfer(package)
+        stage=tmp_path/'source-stage';stage.mkdir(mode=0o700)
+        parent=stage/'transfer';parent.mkdir(mode=0o700)
+        shutil.move(str(package),str(parent/package.name));package=parent/package.name
+        prepared=datetime.now(timezone.utc)
+        source_record=dict(schema='earthship-thermal-journal-source-export/v1',observed_at=now.isoformat(),prepared_at=prepared.isoformat(),
+            source_schema_version=version,source_schema_fingerprint=transferred['source_schema_fingerprint'],runtime_role=database.runtime_role,
+            snapshot_identity=snapshot,source_code_revision='a'*64,configuration_binding_sha256='b'*64,
+            archive_sha256=transferred['archive_sha256'],archive_bytes=transferred['archive_bytes'],table_proofs=proofs,
+            transfer_sha256=transferred['transfer_sha256'],source_snapshot_observed=True,source_export_authenticated=False,
+            restored=False,installed=False,release_authorized=False,automatic_actuation=False)
+        source_record['source_receipt_sha256']=sha256(_canonical(source_record)).hexdigest()
+        receipt=stage/'source-receipt.json';receipt.write_bytes(_canonical(source_record));receipt.chmod(0o600)
+        generation=tmp_path/source_record['source_receipt_sha256'];stage.rename(generation)
+        package=generation/'transfer'/transferred['transfer_sha256']
+        source_options=dict(source_generation=generation,expected_source_receipt_sha256=source_record['source_receipt_sha256'],expected_exporter_revision='a'*64)
     runtime=tmp_path/'consumer';runtime.mkdir(mode=0o700);(runtime/'thermal_model').mkdir(mode=0o700)
     runtime_source=Path(__file__).resolve().parents[1]/'openhab/scripts'
     names=['thermal_intel.py']+['thermal_model/'+name+'.py' for name in ('__init__','journal','dataset','schema','actions','solar')]
@@ -46,8 +67,11 @@ def test_real_transfer_restore_and_consumer_are_recorded_after_owned_cleanup(dat
     destination=tmp_path/'proof';destination.mkdir(mode=0o700)
     monkeypatch.setenv('EARTHSHIP_REMOTE_JOURNAL_RESTORE','1')
     report_path=worker.qualify_journal_transfer(package=package,consumer_runtime=runtime,expected_consumer_revision=revision,
-        expected_interpreter_sha256=interpreter,proof_directory=destination)
+        expected_interpreter_sha256=interpreter,proof_directory=destination,**source_options)
     report=json.loads(report_path.read_text())
+    assert report['schema']=='earthship-thermal-journal-restore-report/'+('v2' if source_binding else 'v1')
+    if source_binding:assert report['source_export_binding']['original_receipt_verified'] is True
+    assert report['source_export_authenticated'] is False
     assert report['disposable_restore_qualified'] is True and report['consumer_qualified'] is True
     assert report['disposable_cleanup_verified'] is True
     assert report['consumer_probe']['connection_read_only'] is True

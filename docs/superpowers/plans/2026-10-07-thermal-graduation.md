@@ -278,3 +278,12 @@ hashes and transfer/schema/role/row-proof/clock binding. A file's self-declared
 positive flag does not authenticate it. The helper opens no connection or restore
 and keeps external authentication and release closed; actual off-host integration
 and trusted source handoff still remain open.
+
+
+The off-host restorer now optionally verifies the original source generation and
+independent pins before backend work and after owned cleanup. Exact nested package
+identity is required. Source-bound restore reports use version 2; original version
+1 remains exact without these options. Verified receipt integrity is distinct from
+external source authentication, complete cold recovery and installation/release
+qualification, which remain closed. Actual approved off-host execution and genuine
+legacy recovery are still required.

@@ -164,3 +164,60 @@ def test_database_failure_cleans_owned_target_without_success_proof(tmp_path,mon
     with pytest.raises(psycopg2.Error):module().qualify_journal_transfer(**args,backend=backend)
     assert backend.events[-1]=='cleanup'
     assert list(args['proof_directory'].iterdir())==[]
+
+
+def source_case(tmp_path,monkeypatch):
+    from test_thermal_journal_source_receipt import generation
+    _,args=case(tmp_path,monkeypatch)
+    generation_path,record=generation(tmp_path)
+    args.update(package=generation_path/'transfer'/record['transfer_sha256'],source_generation=generation_path,
+        expected_source_receipt_sha256=record['source_receipt_sha256'],expected_exporter_revision=record['source_code_revision'])
+    return record,args
+
+
+def test_original_source_binding_uses_v2_report_and_keeps_authority_closed(tmp_path,monkeypatch):
+    record,args=source_case(tmp_path,monkeypatch);backend=Backend(record['table_proofs'])
+    path=module().qualify_journal_transfer(**args,backend=backend)
+    result=json.loads(path.read_text())
+    assert result['schema']=='earthship-thermal-journal-restore-report/v2'
+    assert result['source_export_binding']['source_receipt_sha256']==record['source_receipt_sha256']
+    assert result['source_export_binding']['original_receipt_verified'] is True
+    assert result['source_export_authenticated'] is False and result['journal_recovery_qualified'] is False
+    assert result['installed'] is False and result['release_authorized'] is False
+    assert backend.events[-1]=='cleanup'
+
+
+@pytest.mark.parametrize('damage',['missing_pin','wrong_pin','wrong_code','other_package'])
+def test_invalid_source_context_refuses_before_backend_work(tmp_path,monkeypatch,damage):
+    record,args=source_case(tmp_path,monkeypatch);backend=Backend(record['table_proofs'])
+    if damage=='missing_pin':args['expected_source_receipt_sha256']=None
+    elif damage=='wrong_pin':args['expected_source_receipt_sha256']='f'*64
+    elif damage=='wrong_code':args['expected_exporter_revision']='f'*64
+    else:args['package']=tmp_path/'packages'/'another'
+    with pytest.raises(ValueError):module().qualify_journal_transfer(**args,backend=backend)
+    assert backend.events==[] and list(args['proof_directory'].iterdir())==[]
+
+
+def test_changed_original_receipt_after_consumer_refuses_success_proof(tmp_path,monkeypatch):
+    record,args=source_case(tmp_path,monkeypatch);backend=Backend(record['table_proofs']);original=backend.consumer
+    def changed(*values):
+        result=original(*values)
+        (args['source_generation']/'source-receipt.json').write_bytes(b'changed original')
+        return result
+    monkeypatch.setattr(backend,'consumer',changed)
+    with pytest.raises(ValueError):module().qualify_journal_transfer(**args,backend=backend)
+    assert backend.events[-1]=='cleanup' and list(args['proof_directory'].iterdir())==[]
+
+
+def test_cli_forwards_original_source_generation_and_independent_pins(monkeypatch,tmp_path):
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('source_bound_restore_cli',Path(__file__).with_name('qualify-thermal-journal-transfer.py'))
+    command=importlib.util.module_from_spec(spec);spec.loader.exec_module(command)
+    received=[]
+    def invoked(**kwargs):received.append(kwargs);return tmp_path/'private-report.json'
+    monkeypatch.setattr(command,'qualify_journal_transfer',invoked)
+    assert command.main(['--transfer','/private/source/transfer','--consumer-runtime','/private/runtime','--expected-consumer-revision','a'*64,
+        '--expected-interpreter-sha256','b'*64,'--proof-directory','/private/proof','--source-generation','/private/source',
+        '--expected-source-receipt-sha256','c'*64,'--expected-exporter-revision','d'*64])==0
+    assert received[0]['source_generation']==Path('/private/source')
+    assert received[0]['expected_source_receipt_sha256']=='c'*64 and received[0]['expected_exporter_revision']=='d'*64
