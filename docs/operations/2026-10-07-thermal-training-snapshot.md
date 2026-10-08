@@ -432,3 +432,51 @@ and their claimed effects. Existing seasonal protocol and the winter no-vent
 default are preserved. Forecast skill must still pass frozen-runtime, original
 publication and independent outcome gates; simulation correctness grants neither
 release nor actuation authority.
+
+
+## Acquire first frozen-candidate observations
+
+Ordinary shadow captures bind the smaller origin runtime closure. Their identity
+cannot be relabeled as the full release runtime. The explicit
+`thermal_intel.py observe-candidate` command instead generates a low-confidence
+v1 baseline forecast under the full frozen release closure, without requiring
+previous qualification pairs or loading a qualification report.
+
+After preparing a genuinely fitted candidate and freezing the intended runtime,
+use its canonical artifact digest and canonical runtime-binding digest (the same
+identities used by preregistration). Supply a separate private frozen model
+registry, private origin directory and private output directory. Output cannot
+overwrite the model registry, origin archive, runtime tree or interpreter. Use the existing
+verified resource scope, idle I/O priority and single numerical thread settings.
+The command does not fit a model, grant qualification, or call actuators.
+
+```bash
+python openhab/scripts/thermal_intel.py observe-candidate \
+  --model-directory /private/frozen-model \
+  --origin-capture-dir /private/origins \
+  --output /private/preview/shadow.json \
+  --candidate-sha256 CANDIDATE_SHA \
+  --runtime-sha256 RUNTIME_SHA
+```
+
+The default is preview: no transport or origin archive is invoked. Add `--publish`
+only when issuing the observation. It verifies the full runtime before collection
+and again after generation, the actual artifact used, original native temperatures
+and receipt expiry. The forecast uses baseline assumptions with no candidate
+search. A mismatch prevents delivery. Its output remains low-confidence shadow.
+
+After accepted delivery, the command archives the exact v1 output, original forcing
+and native receipts, and retains a runtime bundle of the full release closure.
+That first original can be scored against later native outcomes and original
+recent-cycle receipts using the existing source scorer. Different model/runtime
+identities still refuse release scoring. No old capture is rewritten. Native tuple
+rows and aware timestamps are normalized exactly as archive creation already does
+before strict origin validation in both observation and release paths.
+
+Exit 1 indicates refusal or transport failure. Exit 2 indicates accepted delivery
+with an archive gap: do not retry the accepted delivery or fabricate proof. Preview
+output is not a publication receipt. A scoreable observation is not a graduation
+pass. Preregister thresholds, candidate, runtime, epochs and untouched intervals
+before inspecting release outcomes; earlier inspected outcomes remain development
+data. Real numerical proof, independent outcome support and rollback gates remain
+required before activation.

@@ -113,6 +113,13 @@ def _build_parser():
         action="store_true",
         help="publish the validated shadow JSON to Thermal_Model_JSON",
     )
+    observe = subparsers.add_parser("observe-candidate", help="preview or explicitly publish one frozen-candidate shadow observation")
+    observe.add_argument("--model-directory", required=True, type=Path)
+    observe.add_argument("--origin-capture-dir", required=True, type=Path)
+    observe.add_argument("--output", required=True, type=Path)
+    observe.add_argument("--candidate-sha256", required=True)
+    observe.add_argument("--runtime-sha256", required=True)
+    observe.add_argument("--publish", action="store_true", help="publish low-confidence v1 shadow and retain its accepted original")
     release = subparsers.add_parser("release", help="recompute thermal release qualification and write explicit v2 output")
     release.add_argument("--evidence-inputs", required=True, type=Path)
     release.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY)
@@ -575,7 +582,7 @@ def _release_runtime_binding():
 
 
 def _archive_original_publication(directory, *, output, artifact, snapshot, rows,
-        current, origin_temperatures, runtime, inputs_available_at, published_at):
+        current, origin_temperatures, runtime, inputs_available_at, published_at, revision_paths=None):
     from thermal_model.forcing_capture import _private_directory
     from thermal_model.origin_capture import build_origin_capture, write_origin_capture
     from thermal_model.runtime_bundle import capture_runtime_bundle
@@ -586,7 +593,7 @@ def _archive_original_publication(directory, *, output, artifact, snapshot, rows
     except FileExistsError:
         pass
     capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
-        _origin_runtime_paths(), expected_binding=runtime)
+        _origin_runtime_paths() if revision_paths is None else revision_paths, expected_binding=runtime)
     record = build_origin_capture(output=output, artifact=artifact, snapshot=snapshot,
         rows=rows, current=current, origin_temperatures=origin_temperatures,
         runtime=runtime, inputs_available_at=inputs_available_at,
@@ -757,6 +764,85 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
 
 
 
+def _observe_candidate(args, now, put_state=None, journal=None, decision_clock=None,
+                       published_clock=None):
+    """Acquire original shadow evidence under the frozen release runtime.
+
+    Pins constrain observational identity, never authorize production. No
+    qualification loader is used, so the first pair can be acquired naturally.
+    """
+    from dataclasses import asdict
+    from types import SimpleNamespace
+    from thermal_model.forcing_capture import _canonical, _private_directory
+    from thermal_model.graduation_policy import _sha
+    from thermal_model.origin_capture import _temperatures
+    from thermal_temperature_runtime import validate_shadow_receipt_expiry
+    from thermal_radiation_runtime import validate_shadow_radiation_expiry
+    clock_reader = decision_clock or (lambda: datetime.now(timezone.utc))
+    try:
+        candidate_pin = _sha(args.candidate_sha256)
+        runtime_pin = _sha(args.runtime_sha256)
+        models = _private_directory(Path(args.model_directory))
+        origins = _private_directory(Path(args.origin_capture_dir))
+        output_path = Path(args.output)
+        _private_directory(output_path.parent)
+        if (not output_path.is_absolute() or output_path.resolve() != output_path or
+                output_path.is_relative_to(models) or output_path.is_relative_to(origins) or
+                output_path.is_relative_to(Path(__file__).resolve().parent) or
+                output_path == Path(sys.executable).resolve()):
+            raise ValueError("separate resolved private observation output required")
+        frozen_runtime = _release_runtime_binding()
+        if sha256(_canonical(frozen_runtime)).hexdigest() != runtime_pin:
+            raise ValueError("frozen observation runtime differs")
+    except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+        print("thermal candidate observation refused; check private paths and frozen identities", file=sys.stderr)
+        return 1
+
+    def finish(shadow, **context):
+        try:
+            validate_shadow_output(shadow)
+            if (shadow['confidence']['grade'] != 'low' or shadow['schedule']['candidate'] is not None or
+                    len(context['artifact_used']) != 1 or len(context['origin_proofs']) != 1 or
+                    context['runtime'] != frozen_runtime or
+                    sha256(_canonical(asdict(context['artifact_used'][0]))).hexdigest() != candidate_pin):
+                raise ValueError("complete frozen candidate observation required")
+            if _release_runtime_binding() != frozen_runtime:
+                raise ValueError("runtime changed during observation")
+            at = clock_reader()
+            if not isinstance(at, datetime) or at.utcoffset() is None or at < context['now']:
+                raise ValueError("observation clock moved backward")
+            at = max(at, context['started_at'] + timedelta(seconds=max(0, time.monotonic()-context['started'])))
+            validate_shadow_receipt_expiry(context['current'], at)
+            validate_shadow_radiation_expiry(context['current'], at)
+            _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'], issued_at=context['now'], published_at=at)
+        except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+            unavailable = build_unavailable_shadow(now=context['now'], reasons=("frozen candidate observation unavailable",))
+            write_shadow_output(output_path, unavailable)
+            print(json.dumps(unavailable, sort_keys=True, separators=(",", ":")), file=sys.stderr)
+            return 1
+        write_shadow_output(output_path, shadow)
+        if args.publish:
+            # Transport failure propagates; never archive an unaccepted write.
+            publish_shadow_output(shadow, put_state=put_state)
+            try:
+                published = published_clock() if published_clock else datetime.now(timezone.utc)
+                if not isinstance(published, datetime) or published.utcoffset() is None or published < at:
+                    raise ValueError("observation acknowledgement clock moved backward")
+                _archive_original_publication(origins, output=shadow, artifact=context['artifact_used'][0],
+                    snapshot=context['snapshot'], rows=context['rows'], current=context['current'],
+                    origin_temperatures=context['origin_proofs'][0], runtime=context['runtime'],
+                    inputs_available_at=context['now'], published_at=published,
+                    revision_paths=_release_runtime_paths())
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+                print("candidate shadow accepted but original observation proof unavailable; do not retry delivery", file=sys.stderr)
+                return 2
+        print(json.dumps(shadow, sort_keys=True, separators=(",", ":")))
+        return 0
+
+    return _shadow(SimpleNamespace(publish=False, model_directory=models), now, journal=journal,
+        decision_clock=clock_reader, output_handler=finish)
+
+
 def _release(args, now, put_state=None, journal=None, decision_clock=None,
              qualification_clock=None, published_clock=None):
     """Generate from original inputs, qualify afresh and deliver explicit v2."""
@@ -804,7 +890,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
             if (len(context['artifact_used']) != 1 or len(context['origin_proofs']) != 1
                     or context['runtime'] is None):
                 raise ValueError("complete actual artifact/runtime/native origin required")
-            epochs, _ = _temperatures(context['origin_proofs'][0], context['current'],
+            epochs, _ = _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'],
                 issued_at=context['now'], published_at=at)
             artifact_digest = sha256(_canonical(asdict(context['artifact_used'][0]))).hexdigest()
             runtime_digest = sha256(_canonical(context['runtime'])).hexdigest()
@@ -814,7 +900,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
             # Input assembly/output validation can take time. Recheck native expiry and
             # executing source identity immediately before persistence/delivery.
             completed = assessment_clock()
-            _temperatures(context['origin_proofs'][0], context['current'],
+            _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'],
                 issued_at=context['now'], published_at=completed)
             validate_shadow_receipt_expiry(context['current'], completed)
             validate_shadow_radiation_expiry(context['current'], completed)
@@ -871,6 +957,8 @@ def main(argv=None):
             return _train(args, parser, now)
         if args.subcommand == "backtest":
             return _backtest(args, parser, now)
+        if args.subcommand == "observe-candidate":
+            return _observe_candidate(args, now, decision_clock=lambda: datetime.now(timezone.utc))
         if args.subcommand == "release":
             return _release(args, now, decision_clock=lambda: datetime.now(timezone.utc))
         if args.subcommand == "shadow":

@@ -168,12 +168,17 @@ Independent review of the integrated branch found these blockers; scoped compone
 tests did not prove their combined runtime behavior. Resolve with focused failing
 regressions, then rerun hosted suites and review before rollout:
 
-- [ ] Provide a supported default-off observational path to acquire first original
+- [x] Provide a supported default-off observational path to acquire first original
   shadow forecasts under the full frozen release runtime without requiring existing
   qualified pairs. Preserve the original v1 schema and low-confidence shadow
   semantics; test first-origin acquisition and native outcome scoring. The current
   ordinary shadow path binds a different source closure, while release refuses
-  publication captures until the source-pair gate passes.
+  publication captures until the source-pair gate passes. The explicit
+  `observe-candidate` command now defaults to preview, pins actual candidate and
+  full release runtime hashes, simulates only baseline assumptions, and retains
+  accepted v1 originals plus the same full runtime bundle. First-pair source
+  scoring and failure-order tests pass; independent review confirms the path.
+  This does not provide real qualification observations or enable production.
 - [x] Make Stage A forecast numbers use the stated baseline/as-issued assumptions.
   Clearing candidate/advice metadata after simulating an optimized hypothetical
   action schedule does not produce that forecast. Preserve existing default v1
