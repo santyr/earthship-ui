@@ -217,3 +217,14 @@ false. The source exporter and off-host restorer must still bind one genuine
 read-only source snapshot, validate dump contents, compare restored row proofs,
 execute the compatible consumer and prove disposable cleanup before qualifying
 journal recovery. No Task 5 completion follows from package tests.
+
+The transferred-journal off-host worker and CLI now implement archive inventory
+inspection, explicit interpreter/consumer pins, declaration-to-restored row checks,
+read-only consumer rehearsal and token-labelled disposable cleanup before proof
+publication. They do not connect to the household source. The legacy same-host
+helper only gains an optional ownership label; its existing callers remain exact.
+Source authentication and full cold environment remain separate closed report
+gates. Mocked orchestration checks run under host caps; real v1/v2 disposable
+restore/consumer checks run only in hosted CI. A trusted bounded source exporter,
+actual approved off-host worker, genuine legacy rehearsal and guarded installation
+still remain required.

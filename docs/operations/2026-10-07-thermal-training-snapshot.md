@@ -509,3 +509,48 @@ source snapshot, and the restorer must validate permitted dump objects, restore
 only into an owned disposable target, compare genuine row digests and execute the
 retained compatible consumer. Those adapters and the real rehearsal remain open.
 Keep archives, manifests and row digests private; never attach them to hosted CI.
+
+
+## Rehearse a transferred journal off-host
+
+`scripts/qualify-thermal-journal-transfer.py` consumes a verified private transfer
+package without connecting to the household database. Before running it, select
+the approved off-host worker and compatible retained environment. Set
+`EARTHSHIP_REMOTE_JOURNAL_RESTORE=1` there; this records intent, not proof of location.
+Never run this Docker/PostgreSQL workload on the household host.
+
+```bash
+EARTHSHIP_REMOTE_JOURNAL_RESTORE=1 python scripts/qualify-thermal-journal-transfer.py \
+  --transfer /private/packages/TRANSFER_SHA \
+  --consumer-runtime /private/retained-consumer \
+  --expected-consumer-revision CONSUMER_REVISION \
+  --expected-interpreter-sha256 INTERPRETER_SHA \
+  --proof-directory /private/new-empty-proof
+```
+
+The interpreter pin is the exact executable digest. The consumer revision is its
+ordered application-code revision, not the larger publication runtime-binding
+digest. Consumer and proof directories must be private and separate; the proof
+directory must be new/empty. The worker verifies the transfer, uses the existing
+schema/table archive inventory check, restores the explicitly declared schema
+into a new owned disposable target, and compares actual row digests with exporter
+declarations before adding labelled disposable fixture observations. It executes
+the pinned consumer under a read-only database role. No fixture is household
+learning or confirmed-action evidence.
+
+The container is limited to 512 MiB, no additional swap, and one CPU, with a
+loopback-only dynamic database port. A random ownership token labels the new
+container. Cleanup resolves and validates the immutable full container ID,
+name and token, removes only that ID, and verifies its absence. A name replacement
+withholds success and is never removed. Cleanup must complete before a private
+atomic report is written. Failure to start, restore,
+match rows, run the consumer, reverify inputs, clean up or persist the report
+withholds success. Subprocess and database error details are not printed.
+
+The new `earthship-thermal-journal-restore-report/v1` records scoped disposable
+restore and consumer results. Source-export authentication, complete cold
+environment, whole journal-recovery qualification, installation, release and
+actuation remain false. Exporter declarations and archive inventory alone do not
+establish source authenticity or general SQL safety. The trusted source export,
+retained environment checks and real rehearsal must still be completed before
+qualifying rollback. The original transfer generation is never rewritten.

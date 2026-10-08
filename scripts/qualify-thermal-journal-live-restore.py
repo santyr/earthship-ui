@@ -100,11 +100,15 @@ def export_archive(target, params, snapshot):
     backup._check_journal_archive(target)
 
 
-def disposable_database(container, password, role):
+def disposable_database(container, password, role, *, ownership_token=None):
+    if ownership_token is not None and re.fullmatch("[0-9a-f]{32}", ownership_token) is None:
+        raise ValueError("exact disposable ownership token required")
     subprocess.run(['docker', 'run', '--detach', '--rm', '--name', container,
                     '--memory', '512m', '--memory-swap', '512m', '--cpus', '1',
                     '--publish', '127.0.0.1::5432', '--env',
-                    'POSTGRES_PASSWORD=' + password, 'postgres:16'],
+                    'POSTGRES_PASSWORD=' + password,
+                    *(['--label', 'earthship.thermal.restore-token='+ownership_token] if ownership_token is not None else []),
+                    'postgres:16'],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                    check=True, timeout=30)
     mapped = subprocess.run(['docker', 'port', container, '5432/tcp'],
