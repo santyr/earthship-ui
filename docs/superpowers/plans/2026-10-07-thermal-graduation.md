@@ -494,5 +494,36 @@ The 35 independent-day floor, positive skill against both baselines, absolute
 error/bias/calibration caps, original-source, measured-fit and freshness gates
 are unchanged. Advice and automatic actuation remain withheld. Controlled
 classifier tests prove gate routing, not real statistical graduation. Live
-publication/report-v4 consumers and production capture still need integration;
+publication/report-v4 consumers and production capture are integrated below;
 no actual native candidate or policy was frozen/registered in this step.
+
+### Explicit native runtime publication and truthful UI
+
+Native publication is version 3 with `earthship-thermal-release/v2` metadata
+and explicit `sensorEpochSemantics=declared_hardware_phase`. It consumes native
+qualification report v4 through its trusted evaluator. Default version 2
+publication remains exact and refuses this contract. Native shadow and active
+outputs require all three nonzero canonical hardware phases; unavailable output
+may have no bindings. Missing evidence produces honest unavailable version 3.
+
+`thermal_intel.py release --receipt-version 2` explicitly selects native sensors,
+release-input reference v2, report v4 and version 3 output. The default command
+remains legacy. Forecast-only grade/mode still derives from all scientific
+gates, current regime support and exact frozen artifact/runtime/phases. Native
+expiry and runtime identity are rechecked before writing/delivery. Preview
+performs no transport. Accepted output is archived as private origin capture v4;
+native scoring, qualification and preregistration explicitly accept it alongside
+private shadow capture v3.
+
+Frozen `observe-candidate --receipt-version 2` remains low-confidence public
+shadow while retaining typed private capture v3. It checks model v6 and fitted
+hardware compatibility before any prediction is written or delivered, in
+addition to frozen digests and receipt validity. The UI explicitly validates
+publication v3, its schema/phase bindings, flags, digests and clocks before
+displaying a forecast badge; action advice remains withheld.
+
+These are staged code paths verified against synthetic original receipt,
+transport and classifier boundaries. Live receiver/consumer installation,
+measured model improvement, sufficient native evidence, genuine candidate/policy
+freeze and natural qualification/publication remain open. No source policy or
+production mode was changed, and backup/recovery work remains deferred.

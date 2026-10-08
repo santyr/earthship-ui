@@ -75,7 +75,7 @@ def _score_origin_record(record,*,publication,horizon_hours,outcome,recent_cycle
         raise ValueError('qualified later outcome is not mature')
     if not isinstance(outcome,dict) or set(outcome)!={'target_at','receipt'} or _utc(outcome['target_at'])!=target:
         raise ValueError('native outcome target differs')
-    sensor_origin=record['schema']=='earthship-thermal-origin-capture/v3'
+    sensor_origin=record['schema'] in {'earthship-thermal-origin-capture/v3','earthship-thermal-origin-capture/v4'}
     receipt=outcome['receipt'];epoch=record['source_epochs']['air']
     if sensor_origin:_validate_sensor_receipt(receipt,target,sensor_epoch=epoch)
     else:

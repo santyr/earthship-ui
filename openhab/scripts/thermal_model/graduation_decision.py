@@ -212,7 +212,7 @@ def _qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_s
                     records[path]=read_origin_capture(Path(path));total+=len(_canonical(records[path]))
                     if total>64000000:raise ValueError('original capture bytes exceed bound')
                 record=records[path]
-                if version==2 and record['schema']!='earthship-thermal-origin-capture/v3':
+                if version==2 and record['schema'] not in {'earthship-thermal-origin-capture/v3','earthship-thermal-origin-capture/v4'}:
                     raise ValueError('native hardware-phase origin contract required')
                 result=_score_origin_record(record,**{key:packet[key] for key in SOURCE_FIELDS-{'origin_path'}},assessed_at=now)
                 if version==2 and result.get('schema')!='earthship-thermal-source-scored-pair/v2':

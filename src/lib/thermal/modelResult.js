@@ -225,11 +225,24 @@ const RELEASE_FIELDS = new Set([
 ]);
 
 function validateReleasePayload(payload) {
+  const native = payload.version === 3;
   exactObject(payload, new Set([...TOP_LEVEL_FIELDS, 'release']));
-  const release = exactObject(payload.release, RELEASE_FIELDS);
-  if (release.schema !== 'earthship-thermal-release/v1'
+  const release = exactObject(payload.release, native ? new Set([...RELEASE_FIELDS, 'sensorEpochSemantics']) : RELEASE_FIELDS);
+  if (release.schema !== (native ? 'earthship-thermal-release/v2' : 'earthship-thermal-release/v1')
+    || native && release.sensorEpochSemantics !== 'declared_hardware_phase'
     || !['shadow', 'forecast_active', 'advisory_active', 'unavailable'].includes(payload.status)) {
     throw new TypeError('unsupported release publication');
+  }
+  if (native) {
+    const epochs = release.sensorEpochs;
+    if (!epochs || typeof epochs !== 'object' || Array.isArray(epochs)) throw new TypeError('invalid native hardware phases');
+    if (payload.status !== 'unavailable' || Object.keys(epochs).length) {
+      exactObject(epochs, new Set(['air', 'mass', 'outdoor']));
+      for (const value of Object.values(epochs)) {
+        if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)
+          || value === '00000000-0000-0000-0000-000000000000') throw new TypeError('invalid native hardware phase');
+      }
+    }
   }
   for (const key of ['forecastQualified', 'advisoryQualified', 'automaticActuation']) {
     if (typeof release[key] !== 'boolean') throw new TypeError('invalid release flags');
@@ -251,7 +264,8 @@ function validateReleasePayload(payload) {
     }
     exactObject(release.sensorEpochs, new Set(['air', 'mass', 'outdoor']));
     for (const value of Object.values(release.sensorEpochs)) {
-      if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) {
+      if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)
+        || native && value === '00000000-0000-0000-0000-000000000000') {
         throw new TypeError('invalid release hardware epoch');
       }
     }
@@ -291,7 +305,7 @@ function validateReleasePayload(payload) {
 }
 
 function validatePayload(payload) {
-  if (payload?.version === 2) return validateReleasePayload(payload);
+  if (payload?.version === 2 || payload?.version === 3) return validateReleasePayload(payload);
   exactObject(payload, TOP_LEVEL_FIELDS);
   if (payload.version !== 1 || !Number.isInteger(payload.version) || payload.status !== 'shadow') {
     throw new TypeError('unsupported thermal result');

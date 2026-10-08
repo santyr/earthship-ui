@@ -14,6 +14,8 @@ from .forcing_capture import _canonical
 from .graduation_policy import _utc,_sha,validate_policy
 
 SCHEMA='earthship-thermal-release/v1'
+SENSOR_SCHEMA='earthship-thermal-release/v2'
+SENSOR_SEMANTICS='declared_hardware_phase'
 RELEASE_FIELDS={'schema','qualifiedAt','expiresAt','artifactSha256','runtimeSha256',
     'policySha256','reportSha256','sensorEpochs','forecastQualified','advisoryQualified','automaticActuation'}
 FORECAST_GATES={'preregistered_policy','frozen_candidate','frozen_runtime',
@@ -29,11 +31,24 @@ def _epochs(value,*,optional=False):
 
 
 def validate_release_output(payload):
-    if not isinstance(payload,dict) or set(payload)!=SHADOW_OUTPUT_FIELDS|{'release'} or type(payload['version']) is not int or payload['version']!=2 or payload['status'] not in MODES:
+    return _validate_release_output(payload,version=2)
+
+
+def validate_sensor_release_output(payload):
+    return _validate_release_output(payload,version=3)
+
+
+def _validate_release_output(payload,*,version):
+    if not isinstance(payload,dict) or set(payload)!=SHADOW_OUTPUT_FIELDS|{'release'} or type(payload['version']) is not int or payload['version']!=version or payload['status'] not in MODES:
         raise ValueError('exact version 2 thermal publication required')
     release=payload['release']
-    if not isinstance(release,dict) or set(release)!=RELEASE_FIELDS or release['schema']!=SCHEMA:
+    if not isinstance(release,dict) or set(release)!=(RELEASE_FIELDS|({'sensorEpochSemantics'} if version==3 else set())) or release['schema']!=(SENSOR_SCHEMA if version==3 else SCHEMA):
         raise ValueError('closed versioned release metadata required')
+    if version==3:
+        from weather_temperature_evidence import sensor_epoch_id
+        if release['sensorEpochSemantics']!=SENSOR_SEMANTICS:raise ValueError('declared hardware phase publication required')
+        _epochs(release['sensorEpochs'],optional=payload['status']=='unavailable')
+        for epoch in release['sensorEpochs'].values():sensor_epoch_id(epoch)
     for name in ('forecastQualified','advisoryQualified','automaticActuation'):
         if type(release[name]) is not bool:raise ValueError('exact release qualification flags required')
     if release['automaticActuation']:raise ValueError('automatic thermal actuation prohibited')
@@ -78,6 +93,14 @@ def unavailable_release(now,reason='thermal release qualification unavailable'):
 
 
 
+def unavailable_sensor_release(now,reason='thermal release evidence unavailable'):
+    output=unavailable_release(now,reason)
+    output['version']=3;output['release']['schema']=SENSOR_SCHEMA
+    output['release']['sensorEpochSemantics']=SENSOR_SEMANTICS
+    return validate_sensor_release_output(output)
+
+
+
 def forecast_regimes(forecast_rows, shadow):
     """Thermal regimes actually consumed by the original published trajectory."""
     from .pipeline import interpolate_hourly_forecast
@@ -100,7 +123,15 @@ def _published_clock_matches(published, original):
     return published.microsecond==0 and published==_utc(original).replace(microsecond=0)
 
 
-def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runtime_sha256,sensor_epochs,forecast_rows=None):
+def build_release_output(**kwargs):
+    return _build_release_output(**kwargs,version=2)
+
+
+def build_sensor_release_output(**kwargs):
+    return _build_release_output(**kwargs,version=3)
+
+
+def _build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runtime_sha256,sensor_epochs,forecast_rows=None,version):
     """Recompute qualification, bind current identity, and derive explicit mode."""
     now=_utc(now)
     try:
@@ -115,8 +146,11 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
             if age is None or age+elapsed.total_seconds()/60>20:raise ValueError('current thermal sensor stale')
         _sha(artifact_sha256);_sha(runtime_sha256);_epochs(sensor_epochs)
         report=qualification_loader(now)
-        if (not isinstance(report,dict) or report.get('schema')!='earthship-thermal-qualification-report/v3' or
+        if (not isinstance(report,dict) or report.get('schema')!=('earthship-thermal-qualification-report/v4' if version==3 else 'earthship-thermal-qualification-report/v3') or
                 report.get('automatic_actuation_authorized') is not False):raise ValueError('qualified decision required')
+        if version==3:
+            from .graduation_decision import validate_sensor_qualification_report
+            validate_sensor_qualification_report(report)
         body={key:value for key,value in report.items() if key!='report_sha256'}
         if sha256(_canonical(body)).hexdigest()!=report['report_sha256']:raise ValueError('qualification decision changed')
         policy=report['policy'];validate_policy(policy);candidate=report['candidate']
@@ -137,20 +171,20 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
         # The v1 combined evaluator currently withholds action advice.
         if report['advisory_qualified'] is not False:raise ValueError('confirmed action evaluator unavailable')
         if report['recommended_stage']=='unavailable':raise ValueError('source or numerical qualification unavailable')
-        output=deepcopy(shadow);output['version']=2;output['status']='forecast_active' if forecast else 'shadow'
+        output=deepcopy(shadow);output['version']=version;output['status']='forecast_active' if forecast else 'shadow'
         output['confidence']['grade']='high' if forecast else 'low'
         output['schedule']['candidate']=None
         output['schedule']['effect']={'morningMassDeltaF':0.0,'hallwayPeakDeltaF':0.0}
         for point in output['forecast']['trajectory']:point['actions']=[]
         output['provenance']['modelAgeHours']=round((issued-_utc(candidate['created_at'])).total_seconds()/3600,3)
         output['provenance']['trainingDataAgeHours']=round((issued-_utc(candidate['trained_through'])).total_seconds()/3600,3)
-        output['release']=dict(schema=SCHEMA,qualifiedAt=assessed.isoformat(),expiresAt=expires.isoformat(),
+        output['release']=dict(schema=SENSOR_SCHEMA if version==3 else SCHEMA,**({} if version==2 else dict(sensorEpochSemantics=SENSOR_SEMANTICS)),qualifiedAt=assessed.isoformat(),expiresAt=expires.isoformat(),
             artifactSha256=artifact_sha256,runtimeSha256=runtime_sha256,policySha256=policy['policy_sha256'],
             reportSha256=report['report_sha256'],sensorEpochs=deepcopy(sensor_epochs),
             forecastQualified=forecast,advisoryQualified=False,automaticActuation=False)
-        return validate_release_output(output)
+        return (validate_sensor_release_output if version==3 else validate_release_output)(output)
     except (OSError,RuntimeError,ValueError,TypeError,KeyError,AttributeError,OverflowError):
-        return unavailable_release(now)
+        return (unavailable_sensor_release if version==3 else unavailable_release)(now)
 
 
 def write_release_output(path, payload):
@@ -158,3 +192,9 @@ def write_release_output(path, payload):
     from .pipeline import _write_validated_output
     validate_release_output(payload)
     return _write_validated_output(path, payload)
+
+
+def write_sensor_release_output(path,payload):
+    from .pipeline import _write_validated_output
+    validate_sensor_release_output(payload)
+    return _write_validated_output(path,payload)

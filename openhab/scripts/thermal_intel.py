@@ -119,11 +119,13 @@ def _build_parser():
     observe.add_argument("--output", required=True, type=Path)
     observe.add_argument("--candidate-sha256", required=True)
     observe.add_argument("--runtime-sha256", required=True)
+    observe.add_argument("--receipt-version",type=int,choices=(1,2),default=1)
     observe.add_argument("--publish", action="store_true", help="publish low-confidence v1 shadow and retain its accepted original")
     release = subparsers.add_parser("release", help="recompute thermal release qualification and write explicit v2 output")
     release.add_argument("--evidence-inputs", required=True, type=Path)
     release.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY)
     release.add_argument("--output", type=Path, default=DEFAULT_STATE_DIRECTORY.parent / "release.json")
+    release.add_argument("--receipt-version",type=int,choices=(1,2),default=1)
     release.add_argument("--publish", action="store_true", help="publish one qualified or unavailable v2 state")
     release.add_argument("--origin-capture-dir", type=Path, help="private immutable v2 origin archive for accepted publications")
     return parser
@@ -454,11 +456,12 @@ def _aligned_observed_history(histories):
     ]
 
 
-def _current_states(now, series_reader=None, state_reader=None, *, origin_observer=None):
-    from thermal_temperature_runtime import configured_shadow_temperatures
+def _current_states(now, series_reader=None, state_reader=None, *, origin_observer=None,receipt_version=1):
+    from thermal_temperature_runtime import configured_shadow_temperatures,configured_shadow_temperatures_v2
     from thermal_radiation_runtime import configured_shadow_radiation
-    selected = (configured_shadow_temperatures(now) if origin_observer is None else
-                configured_shadow_temperatures(now, origin_observer=origin_observer))
+    if type(receipt_version) is not int or receipt_version not in (1,2):raise ValueError("explicit supported temperature receipt version required")
+    select=configured_shadow_temperatures_v2 if receipt_version==2 else configured_shadow_temperatures
+    selected = (select(now) if origin_observer is None else select(now,origin_observer=origin_observer))
     qualified = dict(selected or {})
     radiation = configured_shadow_radiation(now)
     if radiation is not None:
@@ -541,8 +544,8 @@ def publish_release_output(*, shadow, qualification_loader, now,
 
 
 def _publish_validated_release(output, put_state=None):
-    from thermal_model.release import validate_release_output
-    validate_release_output(output)
+    from thermal_model.release import validate_release_output,validate_sensor_release_output
+    (validate_sensor_release_output if output.get("version")==3 else validate_release_output)(output)
     encoded = json.dumps(output, separators=(",", ":"), allow_nan=False)
     if len(encoded.encode("utf-8")) >= MAX_SHADOW_BYTES:
         raise ValueError("thermal release exceeds the 16 KiB publication bound")
@@ -584,7 +587,7 @@ def _release_runtime_binding():
 def _archive_original_publication(directory, *, output, artifact, snapshot, rows,
         current, origin_temperatures, runtime, inputs_available_at, published_at, revision_paths=None):
     from thermal_model.forcing_capture import _private_directory
-    from thermal_model.origin_capture import build_origin_capture, write_origin_capture
+    from thermal_model.origin_capture import build_origin_capture,write_origin_capture,build_sensor_origin_capture,write_sensor_origin_capture
     from thermal_model.runtime_bundle import capture_runtime_bundle
     root = _private_directory(Path(directory))
     bundles = root / "runtime-bundles"
@@ -594,18 +597,21 @@ def _archive_original_publication(directory, *, output, artifact, snapshot, rows
         pass
     capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
         _origin_runtime_paths() if revision_paths is None else revision_paths, expected_binding=runtime)
-    record = build_origin_capture(output=output, artifact=artifact, snapshot=snapshot,
+    native=origin_temperatures.get("schema")=="earthship-thermal-origin-temperatures/v2"
+    builder=build_sensor_origin_capture if native else build_origin_capture
+    writer=write_sensor_origin_capture if native else write_origin_capture
+    record = builder(output=output, artifact=artifact, snapshot=snapshot,
         rows=rows, current=current, origin_temperatures=origin_temperatures,
         runtime=runtime, inputs_available_at=inputs_available_at,
         published_at=published_at, known_actions=None)
-    return write_origin_capture(root, record)
+    return writer(root, record)
 
 
 
 def _archive_release_publication(directory, *, output, artifact, snapshot, rows,
         current, origin_temperatures, runtime, inputs_available_at, published_at):
     from thermal_model.forcing_capture import _private_directory
-    from thermal_model.origin_capture import build_release_origin_capture, write_release_origin_capture
+    from thermal_model.origin_capture import build_release_origin_capture,write_release_origin_capture,build_sensor_release_origin_capture,write_sensor_release_origin_capture
     from thermal_model.runtime_bundle import capture_runtime_bundle
     root = _private_directory(Path(directory))
     bundles = root / "runtime-bundles"
@@ -615,11 +621,14 @@ def _archive_release_publication(directory, *, output, artifact, snapshot, rows,
         pass
     capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
         _release_runtime_paths(), expected_binding=runtime)
-    record = build_release_origin_capture(output=output, artifact=artifact, snapshot=snapshot,
+    native=output.get("version")==3
+    builder=build_sensor_release_origin_capture if native else build_release_origin_capture
+    writer=write_sensor_release_origin_capture if native else write_release_origin_capture
+    record = builder(output=output, artifact=artifact, snapshot=snapshot,
         rows=rows, current=current, origin_temperatures=origin_temperatures,
         runtime=runtime, inputs_available_at=inputs_available_at,
         published_at=published_at, known_actions=None)
-    return write_release_origin_capture(root, record)
+    return writer(root, record)
 
 
 def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
@@ -648,8 +657,10 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
     try:
         forecast_intel.load_site_settings()
         failed_input = "current state input"
-        current = (_current_states(now, origin_observer=origin_proofs.append)
-            if collect_origin else _current_states(now))
+        receipt_version=getattr(args,"receipt_version",1)
+        extra={} if receipt_version==1 else dict(receipt_version=receipt_version)
+        current = (_current_states(now,origin_observer=origin_proofs.append,**extra)
+            if collect_origin else _current_states(now,**extra))
         failed_input = "forecast input"
         snapshot = forecast_intel.fetch_forecast()
         rows = _forecast_rows(
@@ -778,6 +789,7 @@ def _observe_candidate(args, now, put_state=None, journal=None, decision_clock=N
     from thermal_model.origin_capture import _temperatures
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     from thermal_radiation_runtime import validate_shadow_radiation_expiry
+    receipt_version=getattr(args,"receipt_version",1)
     clock_reader = decision_clock or (lambda: datetime.now(timezone.utc))
     try:
         candidate_pin = _sha(args.candidate_sha256)
@@ -814,7 +826,12 @@ def _observe_candidate(args, now, put_state=None, journal=None, decision_clock=N
             at = max(at, context['started_at'] + timedelta(seconds=max(0, time.monotonic()-context['started'])))
             validate_shadow_receipt_expiry(context['current'], at)
             validate_shadow_radiation_expiry(context['current'], at)
-            _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'], issued_at=context['now'], published_at=at)
+            epochs,_=_temperatures(json.loads(_canonical(context['origin_proofs'][0])),context['current'],issued_at=context['now'],published_at=at,version=receipt_version)
+            if receipt_version==2:
+                from thermal_model.artifacts import validate_artifact
+                artifact=validate_artifact(context['artifact_used'][0])
+                if artifact.schema!='earthship-thermal-model/v6' or epochs!={role:info['sensor_epoch'] for role,info in artifact.data_manifest['temperature_evidence']['roles'].items()}:
+                    raise ValueError('frozen observation model/hardware phase differs')
         except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
             unavailable = build_unavailable_shadow(now=context['now'], reasons=("frozen candidate observation unavailable",))
             write_shadow_output(output_path, unavailable)
@@ -839,7 +856,7 @@ def _observe_candidate(args, now, put_state=None, journal=None, decision_clock=N
         print(json.dumps(shadow, sort_keys=True, separators=(",", ":")))
         return 0
 
-    return _shadow(SimpleNamespace(publish=False, model_directory=models), now, journal=journal,
+    return _shadow(SimpleNamespace(publish=False,model_directory=models,receipt_version=receipt_version), now, journal=journal,
         decision_clock=clock_reader, output_handler=finish)
 
 
@@ -850,9 +867,17 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
     from copy import deepcopy
     from types import SimpleNamespace
     from thermal_model.forcing_capture import _canonical
-    from thermal_model.graduation_decision import load_qualification_inputs
+    from thermal_model.graduation_decision import load_qualification_inputs,load_sensor_qualification_inputs
     from thermal_model.origin_capture import _temperatures
-    from thermal_model.release import build_release_output, unavailable_release, write_release_output
+    from thermal_model.release import (build_release_output,unavailable_release,write_release_output,
+        build_sensor_release_output,unavailable_sensor_release,write_sensor_release_output)
+    receipt_version=getattr(args,"receipt_version",1)
+    if type(receipt_version) is not int or receipt_version not in (1,2):raise ValueError("supported native receipt version required")
+    if receipt_version==2:
+        load_qualification_inputs=load_sensor_qualification_inputs
+        build_release_output=build_sensor_release_output
+        unavailable_release=unavailable_sensor_release
+        write_release_output=write_sensor_release_output
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     from thermal_radiation_runtime import validate_shadow_radiation_expiry
     clock_reader = decision_clock or (lambda: datetime.now(timezone.utc))
@@ -891,7 +916,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
                     or context['runtime'] is None):
                 raise ValueError("complete actual artifact/runtime/native origin required")
             epochs, _ = _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'],
-                issued_at=context['now'], published_at=at)
+                issued_at=context['now'],published_at=at,version=receipt_version)
             artifact_digest = sha256(_canonical(asdict(context['artifact_used'][0]))).hexdigest()
             runtime_digest = sha256(_canonical(context['runtime'])).hexdigest()
             output = build_release_output(shadow=shadow, qualification_loader=loader, now=at,
@@ -901,7 +926,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
             # executing source identity immediately before persistence/delivery.
             completed = assessment_clock()
             _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'],
-                issued_at=context['now'], published_at=completed)
+                issued_at=context['now'],published_at=completed,version=receipt_version)
             validate_shadow_receipt_expiry(context['current'], completed)
             validate_shadow_radiation_expiry(context['current'], completed)
             if _release_runtime_binding() != context['runtime']:
@@ -938,7 +963,7 @@ def _release(args, now, put_state=None, journal=None, decision_clock=None,
         return int(unavailable)
 
     return _shadow(SimpleNamespace(publish=False,
-        model_directory=getattr(args, "model_directory", DEFAULT_STATE_DIRECTORY)), now, journal=journal,
+        model_directory=getattr(args,"model_directory",DEFAULT_STATE_DIRECTORY),receipt_version=receipt_version), now, journal=journal,
         decision_clock=clock_reader, output_handler=finish)
 
 

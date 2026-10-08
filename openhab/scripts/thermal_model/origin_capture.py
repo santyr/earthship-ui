@@ -24,6 +24,7 @@ from weather_temperature_evidence import sensor_epoch_id
 SCHEMA='earthship-thermal-origin-capture/v1'
 RELEASE_SCHEMA='earthship-thermal-origin-capture/v2'
 SENSOR_SCHEMA='earthship-thermal-origin-capture/v3'
+SENSOR_RELEASE_SCHEMA='earthship-thermal-origin-capture/v4'
 VALUES={'output','artifact','raw_forecast','forecast_rows','current',
         'origin_temperatures','runtime','known_actions','source_epochs'}
 RUNTIME_FIELDS={'schema','code_revision','observer_revision','interpreter_sha256',
@@ -164,8 +165,17 @@ def validate_sensor_origin_capture(record):
 
 
 def validate_release_origin_capture(record):
-    from .release import validate_release_output
-    _validate_origin_capture(record, schema=RELEASE_SCHEMA, output_validator=validate_release_output)
+    return _validate_release_origin(record,version=1)
+
+
+def validate_sensor_release_origin_capture(record):
+    return _validate_release_origin(record,version=2)
+
+
+def _validate_release_origin(record,*,version):
+    from .release import validate_release_output,validate_sensor_release_output
+    _validate_origin_capture(record,schema=SENSOR_RELEASE_SCHEMA if version==2 else RELEASE_SCHEMA,
+        output_validator=validate_sensor_release_output if version==2 else validate_release_output,temperature_version=version)
     metadata = record['output']['release']
     if (metadata['artifactSha256'] != record['sha256']['artifact'] or
             metadata['runtimeSha256'] != record['sha256']['runtime'] or
@@ -178,6 +188,8 @@ def validate_release_origin_capture(record):
 
 
 def validate_observed_origin_capture(record):
+    if isinstance(record,dict) and record.get('schema')==SENSOR_RELEASE_SCHEMA:
+        return validate_sensor_release_origin_capture(record)
     if isinstance(record,dict) and record.get('schema')==SENSOR_SCHEMA:
         return validate_sensor_origin_capture(record)
     if isinstance(record, dict) and record.get('schema') == RELEASE_SCHEMA:
@@ -231,6 +243,10 @@ def build_origin_capture(*,output,artifact,snapshot,rows,current,origin_temperat
 
 def build_sensor_origin_capture(**kwargs):
     return _build_origin_capture(**kwargs,schema=SENSOR_SCHEMA,validator=validate_sensor_origin_capture,temperature_version=2)
+
+
+def build_sensor_release_origin_capture(**kwargs):
+    return _build_origin_capture(**kwargs,schema=SENSOR_RELEASE_SCHEMA,validator=validate_sensor_release_origin_capture,temperature_version=2)
 
 
 def build_release_origin_capture(**kwargs):
@@ -287,6 +303,10 @@ def read_sensor_origin_capture(path):
     return _read_origin_capture(path,validate_sensor_origin_capture)
 
 
+def read_sensor_release_origin_capture(path):
+    return _read_origin_capture(path,validate_sensor_release_origin_capture)
+
+
 def read_release_origin_capture(path):
     return _read_origin_capture(path, validate_release_origin_capture)
 
@@ -319,12 +339,17 @@ def write_sensor_origin_capture(directory,record):
     return _write_origin_capture(directory,record,validate_sensor_origin_capture,'v3')
 
 
+def write_sensor_release_origin_capture(directory,record):
+    return _write_origin_capture(directory,record,validate_sensor_release_origin_capture,'v4')
+
+
 def write_release_origin_capture(directory, record):
     return _write_origin_capture(directory, record, validate_release_origin_capture, 'v2')
 
 
 def write_observed_origin_capture(directory, record):
     validate_observed_origin_capture(record)
+    if record['schema']==SENSOR_RELEASE_SCHEMA:return write_sensor_release_origin_capture(directory,record)
     if record['schema']==SENSOR_SCHEMA:return write_sensor_origin_capture(directory,record)
     return (write_release_origin_capture(directory, record) if record['schema'] == RELEASE_SCHEMA
         else write_origin_capture(directory, record))

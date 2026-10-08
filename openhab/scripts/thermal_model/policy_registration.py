@@ -69,7 +69,7 @@ def _score_sources(sources,policy,registered,*,root=None,version=1):
             total_origin_bytes+=len(_canonical(origins[name]))
             if total_origin_bytes>64000000:raise ValueError('development origin bytes exceed bound')
         record=origins[name]
-        supported={'earthship-thermal-origin-capture/v3'} if version==2 else {'earthship-thermal-origin-capture/v1','earthship-thermal-origin-capture/v2'}
+        supported={'earthship-thermal-origin-capture/v3','earthship-thermal-origin-capture/v4'} if version==2 else {'earthship-thermal-origin-capture/v1','earthship-thermal-origin-capture/v2'}
         if record['schema'] not in supported:raise ValueError('development origin sensor contract differs')
         result=_score_origin_record(record,**{key:packet[key] for key in SOURCE_FIELDS-{'origin_path'}},assessed_at=registered)
         if version==2 and result.get('schema')!='earthship-thermal-source-scored-pair/v2':

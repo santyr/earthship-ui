@@ -408,4 +408,17 @@ inputs exist. Missing evidence produces failed gates and an unavailable report.
 The legacy default cannot interpret the newer phase contract. Source-bound
 threshold preregistration still must precede untouched/prospective intervals;
 all independent-support, baseline-skill, fit and freshness thresholds remain
-unchanged. Production publication/report-v4 consumption is still pending.
+unchanged. Production publication/report-v4 consumption is integrated below;
+live qualification and adoption remain open.
+
+
+Explicit native release mode now uses
+`thermal_intel.py release --receipt-version 2 --evidence-inputs PATH`. It emits
+publication v3 / release metadata v2 from fresh report v4 and native current
+receipts, with unavailable output when gates fail. The default command remains
+legacy. Native frozen observation also requires explicit `--receipt-version 2`
+and checks model-v6 hardware bindings before delivery. Original accepted native
+release output is retained as private capture v4 and scored as source pair v2.
+The UI validates v3 before showing mode/confidence and withholds unqualified
+action advice. This staged integration does not establish model readiness or
+authorize live source adoption; qualification and installation remain open.

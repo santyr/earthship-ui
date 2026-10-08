@@ -71,3 +71,43 @@ describe('version 2 thermal publication', () => {
     expect(parse(base).state).toBe('ready');
   });
 });
+
+describe('native sensor-phase publication v3', () => {
+  function nativePayload(mode = 'forecast_active') {
+    const value = payload(mode);
+    value.version = 3;
+    value.release.schema = 'earthship-thermal-release/v2';
+    value.release.sensorEpochSemantics = 'declared_hardware_phase';
+    return value;
+  }
+  it('shows qualified forecasting and withheld advice for native v3', () => {
+    const result = parse(nativePayload());
+    expect(result.state).toBe('ready');
+    expect(result.badge).toBe('FORECAST');
+    expect(result.actionConfidence).toBe('withheld');
+    expect(result.ventWindow).toBeNull();
+  });
+  it('preserves the shadow badge when native forecasting is unqualified', () => {
+    expect(parse(nativePayload('shadow')).badge).toBe('SHADOW');
+  });
+  it('requires complete hardware phases for native shadow output', () => {
+    const value = nativePayload('shadow');
+    value.release.sensorEpochs = {};
+    expect(parse(value).state).toBe('unavailable');
+  });
+  it('refuses a nil phase on native shadow output', () => {
+    const value = nativePayload('shadow');
+    value.release.sensorEpochs.air = '00000000-0000-0000-0000-000000000000';
+    expect(parse(value).state).toBe('unavailable');
+  });
+  it.each(['legacySchema', 'missingSemantics', 'sessionSemantics', 'expired', 'missingProof', 'nilEpoch'])('refuses native %s', (damage) => {
+    const value = nativePayload();
+    if (damage === 'legacySchema') value.release.schema = 'earthship-thermal-release/v1';
+    if (damage === 'missingSemantics') delete value.release.sensorEpochSemantics;
+    if (damage === 'sessionSemantics') value.release.sensorEpochSemantics = 'collector_session';
+    if (damage === 'expired') value.release.expiresAt = value.generatedAt;
+    if (damage === 'missingProof') value.release.forecastQualified = false;
+    if (damage === 'nilEpoch') value.release.sensorEpochs.air = '00000000-0000-0000-0000-000000000000';
+    expect(parse(value).state).toBe('unavailable');
+  });
+});
