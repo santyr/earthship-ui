@@ -720,3 +720,18 @@ receiver/reader tests do not prove thermal history, origin, scoring or graduatio
 integration. Keep the live policy at v1 until the complete consuming stack has
 been migrated and verified; no receiver restart or production activation follows
 from these source-side checks.
+
+The native v2 read path is explicitly `--read-v2` / `collect_v2`; its closed request
+adds `receipt_version=2` and the expected `sensor_epoch` to the existing stream,
+targets and assessment fields. A phase different from the configured source policy
+is refused before connecting. The dedicated transaction still uses read-only
+repeatable-read isolation, statement/lock timeouts, capped source rows and original
+carry timestamps.
+
+`configured_history_v2` / `QualifiedTemperatureHistoryV2` require all three declared
+role bindings, retain both `streamEpoch` and `sensorEpoch`, and produce temperature
+evidence version 2 with per-role `sensor_epoch`. They never use pre-cutover legacy
+temperatures as native evidence. Existing v1 manifest validators deliberately
+refuse this format. Artifact, training-source and origin/qualification migration
+is still required before enabling the live source policy or fitting a releasable
+v2-native candidate. Local SQL tests replace transport; full hosted checks follow.

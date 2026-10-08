@@ -8,6 +8,7 @@ import re
 from uuid import UUID
 
 from weather_temperature_reader import _utc
+from weather_temperature_evidence import sensor_epoch_id
 from .schema import THERMAL_ITEMS
 
 STEP = timedelta(minutes=5)
@@ -79,7 +80,7 @@ class QualifiedTemperatureHistory:
                 if _utc(at) != target:
                     raise ValueError('qualified grid target mismatch')
                 if value is not None:
-                    _validate_receipt(value, target)
+                    self._check_receipt(role, value, target)
                 canonical = None if value is None else {
                     key: _utc(val).isoformat() if key in ('receivedAt', 'storedAt', 'validUntil') else val
                     for key, val in value.items()}
@@ -99,6 +100,9 @@ class QualifiedTemperatureHistory:
         if retained is not None:
             self._raw_grids[role]=retained;self._raw_sizes[role]=retained_size
         return points
+
+    def _check_receipt(self, role, value, target):
+        _validate_receipt(value, target)
 
     def temperature_grids(self):
         if self._raw_grids is None or set(self._raw_grids)!=set(STREAMS):
@@ -154,3 +158,63 @@ def validate_evidence_manifest(evidence, *, start=None, end=None):
                 raise ValueError('temperature targets disagree with training window')
         if not isinstance(info['grid_sha256'], str) or not re.fullmatch('[0-9a-f]{64}', info['grid_sha256']):
             raise ValueError('temperature grid digest required')
+
+
+SENSOR_EVIDENCE_SEMANTICS='native_receipt_with_declared_sensor_epoch'
+
+
+def _sensor_bindings(value):
+    if not isinstance(value,dict) or set(value)!=set(STREAMS):
+        raise ValueError('complete native sensor phase bindings required')
+    return {role:sensor_epoch_id(epoch) for role,epoch in value.items()}
+
+
+def _validate_sensor_receipt(value,target,*,sensor_epoch):
+    fields={'temperatureF','receivedAt','storedAt','validUntil','streamEpoch','snapshotSha256'}
+    if (not isinstance(value,dict) or set(value)!=fields|{'sensorEpoch','receiptVersion'} or
+            type(value['receiptVersion']) is not int or value['receiptVersion']!=2 or
+            sensor_epoch_id(value['sensorEpoch'])!=sensor_epoch_id(sensor_epoch)):
+        raise ValueError('explicit native sensor phase receipt required')
+    _validate_receipt({key:value[key] for key in fields},target)
+
+
+class QualifiedTemperatureHistoryV2(QualifiedTemperatureHistory):
+    """Native-only v2 history with explicit hardware phases; no legacy relabel."""
+    def __init__(self,legacy_reader,grid_reader,*,cutover,assessed_at,sensor_epochs,retain_raw=False):
+        self.sensor_epochs=_sensor_bindings(sensor_epochs)
+        super().__init__(legacy_reader,grid_reader,cutover=cutover,assessed_at=assessed_at,retain_raw=retain_raw)
+
+    def __call__(self,item,start,end):
+        if item in {THERMAL_ITEMS[role] for role in STREAMS} and _utc(start)<self.cutover:
+            raise ValueError('native v2 history cannot use pre-cutover legacy temperatures')
+        return super().__call__(item,start,end)
+
+    def _check_receipt(self,role,value,target):
+        _validate_sensor_receipt(value,target,sensor_epoch=self.sensor_epochs[role])
+
+    def evidence_manifest(self):
+        result=super().evidence_manifest()
+        result.update(version=2,semantics=SENSOR_EVIDENCE_SEMANTICS)
+        for role in STREAMS:result['roles'][role]['sensor_epoch']=self.sensor_epochs[role]
+        validate_sensor_evidence_manifest(result)
+        return result
+
+
+def validate_sensor_evidence_manifest(evidence,*,start=None,end=None):
+    if (not isinstance(evidence,dict) or set(evidence)!={'version','cutover','semantics','roles'} or
+            type(evidence['version']) is not int or evidence['version']!=2 or
+            evidence['semantics']!=SENSOR_EVIDENCE_SEMANTICS or
+            not isinstance(evidence['roles'],dict) or set(evidence['roles'])!=set(STREAMS)):
+        raise ValueError('closed native sensor phase evidence required')
+    legacy=deepcopy(evidence)
+    legacy.update(version=1,semantics='legacy_before_cutover_receipt_asof_after')
+    for role in STREAMS:
+        info=legacy['roles'][role]
+        if not isinstance(info,dict) or 'sensor_epoch' not in info:
+            raise ValueError('declared role sensor phase required')
+        sensor_epoch_id(info.pop('sensor_epoch'))
+        if info.get('legacy_points')!=0:raise ValueError('native sensor phase evidence cannot contain legacy temperatures')
+    validate_evidence_manifest(legacy,start=start,end=end)
+    if start is not None and _utc(start)<_utc(evidence['cutover']):
+        raise ValueError('native sensor phase interval precedes cutover')
+    return evidence

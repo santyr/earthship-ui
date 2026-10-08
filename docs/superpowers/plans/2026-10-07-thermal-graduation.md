@@ -352,3 +352,22 @@ history, origin/outcome proofs, training-source validation and qualification sti
 need coordinated versioned v2 identity integration. Do not enable a v2 policy on
 the live receiver or claim a production candidate until the consuming paths are
 qualified together. Missing physical shade support remains a separate data gap.
+
+### Native reader and retained-history v2 integration
+
+`fetch_temperature_grid_v2` uses the same bounded read-only SQL transaction and
+source snapshot/carry queries as v1, but requires the declared sensor phase.
+`thermal_temperature_runtime.collect_v2` and explicit `--read-v2` requests bind
+the request phase to the private v2 policy before opening a connection. Fixed
+thermal model/sensor/range/expiry identities remain required.
+
+`configured_history_v2` pins complete role bindings into each worker request.
+`QualifiedTemperatureHistoryV2` retains original receipt metadata and emits a
+version 2 temperature evidence manifest. It preserves missing-point barriers and
+refuses old receipts, phase mismatches and pre-cutover legacy temperatures. The
+v1 history, worker, manifest validator and current production paths are unchanged.
+
+This completes the source-to-native-history boundary on synthetic original source
+snapshots and replaced SQL transports. Versioned artifact/training-input/source
+formats, origin/outcome proof migration and graduation sensor binding remain open.
+Do not enable v2 in live policies before those consumers are verified together.

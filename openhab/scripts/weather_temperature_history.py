@@ -9,7 +9,7 @@ import hashlib
 import json
 
 from weather_temperature_evidence import TemperaturePolicy
-from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_window
+from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_grid_v2, select_temperature_window
 
 EVIDENCE_ITEM = 'Weather_Temperature_Evidence_JSON'
 
@@ -30,6 +30,18 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
     reader only: callers must explicitly decide how unqualified targets affect
     training; never interpolate them into apparently healthy measurements.
     """
+    return _fetch_grid(connection_factory, targets=targets, assessed_at=assessed_at,
+                       stream=stream, policy=policy, selector=select_temperature_grid)
+
+
+def fetch_temperature_grid_v2(connection_factory, *, targets, assessed_at, stream, policy, sensor_epoch):
+    def select(rows, **kwargs):
+        return select_temperature_grid_v2(rows, sensor_epoch=sensor_epoch, **kwargs)
+    return _fetch_grid(connection_factory, targets=targets, assessed_at=assessed_at,
+                       stream=stream, policy=policy, selector=select)
+
+
+def _fetch_grid(connection_factory, *, targets, assessed_at, stream, policy, selector):
     try:
         if not isinstance(policy, TemperaturePolicy): raise ValueError('explicit policy required')
         if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= 289:
@@ -38,11 +50,11 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
         assessed_at = _utc(assessed_at)
         start = targets[0] - timedelta(seconds=policy.validity_seconds)
         target = targets[-1]
-        select_temperature_grid([], targets=targets, assessed_at=assessed_at,
-                                history_start=start, stream=stream, policy=policy)
+        selector([], targets=targets, assessed_at=assessed_at,
+                 history_start=start, stream=stream, policy=policy)
         observations = _fetch_rows(connection_factory, start, target)
-        return select_temperature_grid(observations, targets=targets, assessed_at=assessed_at,
-                                       history_start=start, stream=stream, policy=policy)
+        return selector(observations, targets=targets, assessed_at=assessed_at,
+                        history_start=start, stream=stream, policy=policy)
     except Exception:
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
 
