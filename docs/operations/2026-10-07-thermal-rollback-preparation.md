@@ -120,3 +120,43 @@ their full bounded maximum before I/O. Small documents therefore also incur
 conservative pacing. Environment mapping type, count and labels are checked
 before archive reads. Continue using serial resource caps and private staging.
 This component does not provide guarded installation or schedule reconciliation.
+
+The reproducible legacy preparation command is:
+
+```text
+python scripts/prepare-thermal-legacy-recovery.py \
+  --inputs /private/recovery-inputs.json \
+  --destination /private/new-legacy-generation \
+  --reason operator_rollback \
+  --max-read-bytes-per-second 5242880
+```
+
+Run it under the established serial resource-limited scope. The input document
+must be an owned mode-0600 JSON file in a mode-0700 directory. Its exact keys are
+`artifact_path`, `output_path`, `source_bundle`, `source_root`, `revision_paths`,
+`environment_bundles`, `interpreter` and `native_bindings`. Paths name the reviewed
+retained inputs; revision paths preserve the original ordered revision closure,
+environment bundles map bounded labels to retained archive paths, and native
+bindings map loader/library names to retained logical paths. Duplicate or extra
+keys, exposed files and invalid archive references refuse preparation. No input
+field can enable qualification or installation.
+
+Recheck an existing generation without creating another one:
+
+```text
+python scripts/prepare-thermal-legacy-recovery.py \
+  --destination /private/new-legacy-generation \
+  --reason operator_rollback --verify-only \
+  --max-read-bytes-per-second 5242880
+```
+
+The reason must match the retained manifest. Standard output contains only the
+schema, generation hash, reason and closed qualification flags. Archive inventory
+and paths remain private. Input-document reads also reserve their bounded maximum
+before I/O; device I/O and metadata still require the external resource scope.
+
+A real private generation has passed its original pinned v4 reader and an exact
+as-issued available forecast replay using sources imported from the generation.
+This is recovery parity for one retained development case. It adds no independent
+release observations and does not qualify the restored journal, guarded install,
+schedules or present-day publication. Detailed profiles and receipts stay private.
