@@ -5,6 +5,14 @@ import sys
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def synthetic_host_headroom(monkeypatch):
+    # Resource/lifecycle tests use synthetic cgroups; host capacity is covered
+    # independently in test_thermal_capture_headroom.py.
+    from thermal_model import capture_guard
+    monkeypatch.setattr(capture_guard,'verify_host_headroom',lambda:None)
+
+
 def module():
     from thermal_model import capture_guard
     return capture_guard

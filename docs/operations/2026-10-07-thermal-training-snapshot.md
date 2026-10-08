@@ -554,3 +554,14 @@ actuation remain false. Exporter declarations and archive inventory alone do not
 establish source authenticity or general SQL safety. The trusted source export,
 retained environment checks and real rehearsal must still be completed before
 qualifying rollback. The original transfer generation is never rewritten.
+
+
+### Host memory preflight
+
+The guarded capture/assembly launcher reads bounded `/proc/meminfo` immediately
+before spawning its worker. It refuses less than 3 GiB available RAM, more than
+128 MiB used swap, or missing/ambiguous memory metadata. This makes the existing
+manual launch thresholds mandatory in the command. CPU, memory, swap, task and
+I/O caps still apply independently. The preflight is a launch-time snapshot;
+it does not reserve host memory or establish the cause of the earlier lockup.
+Model fitting and disposable restores remain off-host.

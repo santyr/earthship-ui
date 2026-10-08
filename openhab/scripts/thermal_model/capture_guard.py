@@ -17,6 +17,26 @@ def _small_text(path):
     return data.decode('ascii').strip()
 
 
+def verify_host_headroom(*,meminfo=Path('/proc/meminfo')):
+    """Refuse a new acquisition when household memory has insufficient headroom."""
+    try:
+        values={}
+        for line in _small_text(meminfo).splitlines():
+            fields=line.split()
+            if fields and fields[0] in {'MemAvailable:','SwapTotal:','SwapFree:'}:
+                key=fields[0]
+                if key in values or len(fields)!=3 or fields[2]!='kB' or not fields[1].isascii() or not fields[1].isdecimal():
+                    raise ValueError('invalid host memory metadata')
+                values[key]=int(fields[1])
+        if set(values)!={'MemAvailable:','SwapTotal:','SwapFree:'}:
+            raise ValueError('incomplete host memory metadata')
+        if (values['MemAvailable:']<3145728 or values['SwapFree:']>values['SwapTotal:'] or
+                values['SwapTotal:']-values['SwapFree:']>131072):
+            raise ValueError('insufficient host memory headroom')
+    except (OSError,UnicodeError,ValueError):
+        raise ValueError('capture requires 3 GiB available RAM and at most 128 MiB used swap') from None
+
+
 def verify_resource_limits(*,cgroup_root=Path('/sys/fs/cgroup'),proc_cgroup=Path('/proc/self/cgroup')):
     try:
         rows=_small_text(proc_cgroup).splitlines()
@@ -51,6 +71,7 @@ def run_guarded_capture(argv,*,seconds=90):
     verify_resource_limits()
     if os.getpriority(os.PRIO_PROCESS,0)<15:raise ValueError('capture requires lowered scheduling priority')
     env=dict(os.environ,EARTHSHIP_GUARDED_CAPTURE_WORKER='1',EARTHSHIP_REMOTE_QUALIFICATION_FIT='0',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1')
+    verify_host_headroom()
     deadline=monotonic()+seconds
     worker=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
                             env=env,start_new_session=True,close_fds=True)
