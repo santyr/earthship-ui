@@ -45,8 +45,24 @@ and the captured publication. The v4 schema was preserved. No live Item update,
 service change, fitting or journal/database request occurred. The copied sources,
 private profile and receipt are retained in the ignored development staging area.
 
-This closes the artifact-reader compatibility rehearsal component. Complete prior
-dependency/native-library retention, restored-journal qualification, guarded
+Subsequent private recovery rehearsals retained the declared Python/native bytes,
+required library-name bindings, locale/timezone/conversion data, and an observed
+child helper with its dependencies. A composed read-only recovery root prevented
+fallback to installed files. The reader ran after privilege drop with zero
+effective capabilities in separate mount, PID and network namespaces. Its
+missing-input application check produced the expected unavailable v1 result.
+
+One available forecast was then replayed with its exact original captured
+artifact, forcing, initial state, forecast rows and issue clock. The retained
+application's shadow path returned the complete original output unchanged,
+including its canonical serialized hash. The replay used only frozen source
+adapters and private scratch storage; fitting, journal commands and publishing
+were disabled. This establishes recovery parity for that specific captured case,
+not new predictive-skill evidence, an untouched holdout or a production pass.
+Host-specific profiles, paths, inventories and receipts remain private.
+
+This closes the demonstrated artifact-reader and single-forecast compatibility
+rehearsals. Complete application/provider coverage, restored-journal qualification, guarded
 installation, schedule reconciliation and natural fresh shadow publication remain
 necessary for full rollback. The current snapshot-preparation API remains v5-only;
 its versioned legacy-pair retention/install integration is still required.
