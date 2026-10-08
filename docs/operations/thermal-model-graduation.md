@@ -506,3 +506,46 @@ invocation revalidates hashes/resources without writes, and `--apply` requires
 full exact-head CI plus local administrative authentication. After actual native
 adoption, verify natural source/JDBC receipts and subsequent scheduled consumer
 behavior. Synthetic bridge checks are not production model qualification.
+
+
+### October 8 installed-shade development diagnosis
+
+Original frozen development inputs contain 3,994 samples and 3,965 eligible
+five-minute pairs over 14 elapsed days (15 local dates, including partial dates).
+Every fitted pair has outdoor shades installed. The unchanged full model still
+fails rank: air 5/6 and mass 4/5, with an exactly zero unshaded solar column.
+
+A private exploratory installed-shade projection has rank 5/5 for air and 4/4
+for mass; column-normalized condition numbers are 5.57 and 2.33. Its small
+bounded development fit passed physical stability checks, but it produced no
+artifact and does not satisfy the existing complete-model contract. Any eventual
+replacement needs a separate explicit supported-domain contract; it must refuse
+unshaded use rather than fabricate an unobserved response. Existing full-model
+rank, conditioning, stability and release gates remain intact.
+
+Chronological development probing trained on the first ten elapsed days and
+used the remaining development data. Its weather forcing is observed, not
+as-issued, and predictions freeze action values known at the origin. These are
+conditional diagnostic hindcasts, not release evidence. In the probe with
+complete original forcing and qualified origin/target temperatures, air MAE is
+0.34/0.71/0.62/1.50 F at 1/6/12/24 hours over 5/5/4/4 local-date origins.
+The 24-hour persistence MAE is 1.17 F over the same four cases. The 1-hour recent
+cycle MAE is 0.29 F over the same five cases. The candidate therefore does not
+establish useful skill across the required horizons. Comparisons to recent
+cycle use the same eligible pairs; three, not four, 24-hour cases have all seven
+required previous cycles.
+
+The earlier complete-row diagnostic found zero 24-hour windows because 28
+sample gaps remove 38 five-minute rows; its longest run is 23h50m. Original
+outdoor/radiation forcing actually has a 95h35m complete run and supports four
+24-hour development dates with genuine origin/target temperatures. Missing
+interior-temperature rows must not be invented; forcing support and qualified
+outcomes should be represented separately in the next model investigation.
+Dense origins are not independent days. This diagnosis does not relax existing
+readers or qualify source-v1 data as declared hardware-phase evidence.
+
+Next scientific work is a separately identified supported-domain model with
+source-bound forecast-horizon fitting and evaluation, retaining physical,
+conditioning and coefficient-stability checks. One-step fit quality alone is
+insufficient. New native evidence, a real frozen candidate, preregistration and
+untouched/as-issued baseline wins remain required before production activation.
