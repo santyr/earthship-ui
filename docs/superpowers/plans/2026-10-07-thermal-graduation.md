@@ -563,3 +563,31 @@ reconciled together. These synthetic compatibility checks establish transport
 correctness, not learned skill or production qualification. Outdoor shades
 remain installed; do not fabricate unshaded development support or weaken the
 exact rank gate.
+
+
+### Native collection rollout with the existing shadow model
+
+`thermal_intel.py shadow --receipt-version 2` now exposes the already implemented
+native current-input selector. A legacy shadow caller can instead select native
+current inputs explicitly with `THERMAL_TEMP_SHADOW_RECEIPT_VERSION=2` and its
+existing qualified-shadow opt-in. Invalid selection or absent opt-in refuses
+inputs. Neither path promotes an older artifact or makes it native-qualified.
+
+The current live accepted artifact is model v4. The staged v5/v6 registry refuses
+v4 and may quarantine an incompatible accepted file. Therefore native collection
+rollout must preserve the installed v4 artifact validator, pipeline, model code
+and `thermal_intel.py`, updating only the reviewed input helpers and forecast
+learning consumers. The private deployment manifest pins those unchanged files.
+A synthetic bridge check exercises the exact installed current-state functions
+with a generated private v2 policy and real collector/parser fixtures; this proves
+input compatibility, not forecasting skill. Native original/release captures
+remain strict model v6 and cannot qualify the legacy v4 model.
+
+Keep the old source-v1 policy intact and use a separate private v2 policy for the
+new collection phase. Update hourly/daily version selectors and the legacy
+shadow input selector together, with dependencies installed before receiver
+restart. Preserve normal forecast timer cadence. The incompatible legacy trainer
+must remain quiescent during cutover; native development fitting uses a separate
+private v6 registry and the existing resource/opt-in guards. A mixed receipt day
+cannot train daily corrections; the first complete native Denver day is required.
+Do not rewrite historical v1 receipts or relabel them with a hardware phase.

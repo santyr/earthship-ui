@@ -80,6 +80,11 @@ def configured_history_v2(legacy_reader,now,environ=None,*,retain_raw=False):
 
 def configured_shadow_temperatures(now, environ=None, *, origin_observer=None):
     env = dict(os.environ if environ is None else environ)
+    version = env.get('THERMAL_TEMP_SHADOW_RECEIPT_VERSION', '1')
+    if version == '2':
+        return configured_shadow_temperatures_v2(now, environ=env, origin_observer=origin_observer)
+    if version != '1':
+        raise ValueError('explicit supported shadow receipt version required')
     enabled = env.get('THERMAL_TEMP_SHADOW_QUALIFIED_ENABLE')
     if enabled is None:
         return None

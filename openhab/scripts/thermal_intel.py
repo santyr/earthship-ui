@@ -105,6 +105,7 @@ def _build_parser():
     shadow = subparsers.add_parser(
         "shadow", help="write one bounded shadow prediction"
     )
+    shadow.add_argument("--receipt-version", type=int, choices=(1, 2), default=1)
     shadow.add_argument("--output", type=Path, default=DEFAULT_SHADOW_PATH)
     shadow.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY,
         help="explicit model registry for a compatible staged recovery runtime")
