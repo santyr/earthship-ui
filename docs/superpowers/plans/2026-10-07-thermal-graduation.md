@@ -10,6 +10,23 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-07-thermal-graduation-design.md`
 
+## October 8 operator scope update
+
+Backup and disaster-recovery implementation and tests are deferred to a separate
+later finishing stage. They are not prerequisites for current ML algorithm work
+or forecast deployment. The operator accepts rebuilding from GitHub code and
+fresh data after a catastrophe. Preserve existing recovery artifacts and code;
+do not expand or execute the recovery/export/restore workstream now.
+
+Prioritize development-only error diagnosis, measured algorithm improvement,
+frozen-candidate qualification, and deployment of the ML forecast path. Keep
+forecast withdrawal on invalid/stale inputs or baseline regression, host resource
+limits, source provenance, and no automatic actuation. These runtime safeguards
+remain part of ML behavior, independent of disaster recovery.
+
+Earlier recovery addenda below record completed work and historical requirements;
+their recovery prerequisites are superseded by this operator scope update.
+
 ## Global constraints
 
 - PR #2 is merged; PR #3 household-planner architecture remains deferred.
@@ -74,16 +91,16 @@
 - [ ] Update the UI to show validated mode, forecast/action confidence, revision, freshness and intervals; test truthful badges and stale/invalid fallback.
 - [ ] Run publication/UI suites and build, then commit.
 
-## Task 5: Tested rollback and prospective withdrawal
+## Task 5: Prospective withdrawal; recovery work deferred
 
-**Files:** Existing guarded thermal deployment tooling, compatible runtime/artifact inventory tests, `scripts/rollback-thermal-release.py`, rollback tests and graduation runbook.
+**Files:** ML release/monitor path, deployment validation and graduation runbook. Existing recovery tooling and tests are retained for the deferred stage.
 
-**Interfaces:** An immutable receipt binds prior compatible shadow runtime/artifact/output and release reasons. Withdrawal uses current prospective baseline/calibration evidence and source compatibility, independent of household safety alerts.
+**Interfaces:** Withdrawal uses current prospective baseline/calibration evidence and source compatibility, independent of household safety alerts. Recovery receipts and restoration transactions are deferred.
 
-- [ ] Test active-to-shadow rollback, incompatible pairs, corrupt artifact/proof, source epoch drift, prospective baseline regression and interrupted restore; observe RED.
-- [ ] Implement deterministic guarded rollback and release withdrawal. Preserve credentials and prior shadow behavior.
+- [ ] Test invalid/incompatible artifact refusal, source epoch drift and prospective baseline regression for the deployed ML path. Active-to-shadow recovery and interrupted-restore tests are deferred.
+- [ ] Implement release withdrawal for the ML path. Deterministic recovery installation and restoration are deferred.
 - [x] Add a versioned current-evidence monitor using the latest policy-required independent prospective days per horizon/regime. Preserve historical statistics v1, require statistics v2 in qualification report v3, and refuse prior v2 reports in release. Test pooled-history masking, regime-specific loss, calibration, sparse/stale support and ordering; guarded installation and live withdrawal remain open.
-- [ ] Rehearse in private staging with real file transactions/restored journal, run deployment and rollback suites, then commit.
+- Deferred: restored-journal rehearsals, cold recovery, legacy recovery installation and recovery suites. Keep these as a separate later workstream.
 
 ## Task 6: Qualification, CI and staged production decision
 
@@ -91,7 +108,7 @@
 
 **Interfaces:** All Tasks 1–5 feed the same deterministic decision. Neither a UI badge nor an artifact file enables production.
 
-- [ ] Run normal CI, ML hardening, thermal delivery, dynamics/artifacts/pipeline, qualification, prospective scoring, restored-journal, deployment/UI/rollback checks.
+- [ ] Run normal CI, ML hardening, thermal delivery, dynamics/artifacts/pipeline, qualification, prospective scoring and deployment/UI/fail-safe checks. Recovery-specific suites are deferred.
 - [ ] Review the complete branch; correct material findings with RED/GREEN evidence. Merge only with passing required checks.
 - [ ] If real release gates pass, deploy Stage A with parallel baseline scoring and verify natural publication; Stage B only if separate action gates pass.
 - [ ] If physical evidence is insufficient, keep activation closed and state exact missing independent frozen-candidate/regime/action observations. Do not claim this goal achieved merely from code/CI completion.
@@ -299,9 +316,11 @@ been installed. The prepared development inputs have not been fitted.
 
 The next scientific step requires the operator-designated private off-host runner.
 Credentials/private staging are already authorized; its destination details remain
-missing. Use that worker for actual development fitting and cold recovery checks,
+missing. Use that worker for actual development fitting,
 retain all household data privately, then freeze the improved candidate/runtime
 and register its policy before collecting untouched/prospective release evidence.
 The private execution audit records which original completion requirements remain
-unfulfilled. Guarded installation and the positive confirmed-action advisory path
-also remain open; code/CI completion must not be substituted for the full goal.
+unfulfilled. ML installation and schedule reconciliation remain open, as does the
+positive confirmed-action advisory path. Backup, cold recovery, restored-journal
+rehearsals and recovery installation are deferred and do not block the current ML
+deployment stage. Code/CI completion must not replace real model qualification.

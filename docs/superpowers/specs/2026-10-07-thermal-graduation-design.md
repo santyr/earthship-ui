@@ -4,6 +4,13 @@ The approved October 7 goal continues after PR #2, merged as `68364dd`.
 PR #3's household intelligence/planner architecture is deferred. This design
 covers the existing thermal forecast, its qualification, publication and rollback.
 
+October 8 operator update: backup and disaster recovery, including cold recovery,
+restored-journal tests and recovery installation, are deferred to a separate later
+finishing stage and do not block current algorithm improvement or ML deployment.
+The operator accepts rebuilding from GitHub code and fresh data after catastrophe.
+Historical recovery requirements below are superseded for this stage. Runtime
+forecast withdrawal, evidence gates and host resource limits remain required.
+
 The current fit artifact remains a shadow fit artifact. A separate versioned
 `earthship-thermal-release/v1` contract binds a frozen artifact, runtime, source
 and sensor epochs to a preregistered policy and independently reproduced
