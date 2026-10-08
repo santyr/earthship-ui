@@ -385,8 +385,8 @@ rank, conditioning, coefficient stability and eligibility checks remain intact.
 The explicit `train-thermal-snapshot.py --receipt-version 2` path reconstructs
 original native grids, validates phase bindings, and persists source v2 plus
 training input binding v3 before candidate saving. Default invocation remains
-v1. A v2 input with a legacy assembly binding is refused; capture and assembly
-need their own versioned migration. Local fitting remains an explicit opt-in
+v1. A v2 input with a legacy assembly binding is refused; assembly still
+needs its own versioned migration. Local fitting remains an explicit opt-in
 under enforced resource limits.
 
 Origin/outcome and native shadow proofs, graduation/runtime sensor bindings,
@@ -395,3 +395,21 @@ Keep the live receiver policy v1 until consuming paths are qualified together.
 Synthetic checks establish contract behavior, not model skill or release readiness.
 Historical v1 receipts cannot be relabelled as v2 hardware evidence. Outdoor
 shades remain installed; no physical shade changes are requested for experiments.
+
+### Guarded native capture v2 integration
+
+`capture-thermal-inputs.py --receipt-version 2` explicitly selects the v2
+policy, native collector/history and frozen input writer. Default v1 invocation
+refuses a v2 policy; explicit v2 refuses a v1 policy. Both retain the same closed
+private configuration, source-code pin, fixed physical sensor identities,
+request/byte pacing, read-only transactions, resource preflight and 90-second
+outer deadline. Native v2 binds each request to the initially declared hardware
+phase and refuses phase drift before connecting. Capture workers require both
+qualification-fit opt-ins to be off. Check-only performs no source reads.
+
+Tests use real source-v2 receipts and native parsing with synthetic SQL transport;
+no household v2 capture or receiver policy change has been performed. Assembly,
+origin/outcome proofs and qualification/runtime/publication migration remain open.
+The latest operator confirmation keeps outdoor shades installed. The physical
+model still lacks unshaded training support; capture compatibility cannot supply
+that missing evidence or authorize graduation.

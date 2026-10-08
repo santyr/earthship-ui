@@ -1238,7 +1238,7 @@ def validate_artifact(artifact, *, require_eligible=False):
     if not isinstance(artifact, ThermalArtifact):
         raise ArtifactValidationError("artifact must be a ThermalArtifact")
     if artifact.schema not in (MODEL_SCHEMA, SENSOR_MODEL_SCHEMA):
-        raise ArtifactValidationError('artifact schema must be model v5 or native sensor phase v6')
+        raise ArtifactValidationError(f'artifact schema must be {MODEL_SCHEMA} or {SENSOR_MODEL_SCHEMA}')
     created_at = _iso_utc(artifact.created_at, "artifact created_at")
     trained_from = _iso_utc(artifact.trained_from, "artifact trained_from")
     trained_through = _iso_utc(

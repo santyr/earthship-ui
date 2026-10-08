@@ -5,15 +5,33 @@ from psycopg2.extensions import make_dsn,parse_dsn
 
 from .capture_readers import bounded_journal_dsn
 from .graduation_policy import _utc
-from .temperature_history import QualifiedTemperatureHistory
+from .temperature_history import QualifiedTemperatureHistory,QualifiedTemperatureHistoryV2,STREAMS,POLICY
 
 
 def configured_capture_history(legacy_reader,now,*,environ,budget):
+    return _configured_capture_history(legacy_reader,now,environ=environ,budget=budget,version=1)
+
+
+def configured_capture_history_v2(legacy_reader,now,*,environ,budget):
+    return _configured_capture_history(legacy_reader,now,environ=environ,budget=budget,version=2)
+
+
+def _configured_capture_history(legacy_reader,now,*,environ,budget,version):
     env=dict(environ)
     if env.get('THERMAL_TEMP_QUALIFIED_ENABLE')!='1':raise ValueError('explicit native capture history required')
     for key in ('THERMAL_TEMP_DB_CONFIG','THERMAL_TEMP_POLICY'):
         if not isinstance(env.get(key),str) or not os.path.isabs(env[key]):raise ValueError('explicit absolute native capture configuration required')
     assessed=_utc(now);cutover=_utc(env.get('THERMAL_TEMP_EVIDENCE_CUTOVER'))
+    epochs=None
+    if version==2:
+        from dataclasses import asdict
+        from weather_temperature_config import load_temperature_receiver_configuration
+        policies,epochs=load_temperature_receiver_configuration(env['THERMAL_TEMP_POLICY'])
+        if epochs is None:raise ValueError('explicit v2 capture policy required')
+        for stream,model,sensor in STREAMS.values():
+            if stream not in policies or asdict(policies[stream])!=dict(model=model,sensor_id=sensor,**POLICY):
+                raise ValueError('fixed native capture policy required')
+        epochs={role:epochs[identity[0]] for role,identity in STREAMS.items()}
     def connect(config):
         # The existing collector first validates the private config and fixed reader role.
         params=parse_dsn(bounded_journal_dsn(make_dsn(**config)))
@@ -23,12 +41,18 @@ def configured_capture_history(legacy_reader,now,*,environ,budget):
         params['connect_timeout']=str(min(3,int(timeout)))
         return psycopg2.connect(make_dsn(**params))
     def read(stream,targets,assessed_at):
-        from thermal_temperature_runtime import collect
+        from thermal_temperature_runtime import collect,collect_v2
         budget.remaining()
         request=dict(stream=stream,targets=[at.isoformat() for at in targets],assessed_at=assessed_at.isoformat())
-        rows=collect(request,config_path=env['THERMAL_TEMP_DB_CONFIG'],policy_path=env['THERMAL_TEMP_POLICY'],connection_factory=connect)
+        collector=collect
+        if version==2:
+            role=next(role for role,identity in STREAMS.items() if identity[0]==stream)
+            request.update(receipt_version=2,sensor_epoch=epochs[role]);collector=collect_v2
+        rows=collector(request,config_path=env['THERMAL_TEMP_DB_CONFIG'],policy_path=env['THERMAL_TEMP_POLICY'],connection_factory=connect)
         budget.remaining()
         return rows
+    if version==2:
+        return QualifiedTemperatureHistoryV2(legacy_reader,read,cutover=cutover,assessed_at=assessed,retain_raw=True,sensor_epochs=epochs)
     return QualifiedTemperatureHistory(legacy_reader,read,cutover=cutover,assessed_at=assessed,retain_raw=True)
 
 

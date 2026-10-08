@@ -360,10 +360,19 @@ default v1 readers refuse it. Training persists original sources and binding v3
 before saving any candidate. This is a tested offline boundary, not a live
 receiver configuration change or a qualified production candidate.
 
-Capture/assembly, origin/outcome proofs, graduation/runtime bindings and
+Assembly, origin/outcome proofs, graduation/runtime bindings and
 publication consumers still require coordinated migration before live v2
 adoption. Do not relabel older receipts or bypass physical/numerical gates.
 The operator confirms outdoor shades are still installed. Current native
 development data lacks unshaded solar support, so the existing complete model
 refuses its rank-deficient fit. Recovery work remains deferred; local ML work
 remains permitted within enforced resource limits.
+
+
+Explicit guarded capture now supports `capture-thermal-inputs.py --receipt-version
+2`, paired with a private source-v2 policy. Use `--check-only` for configuration
+validation without source reads. Default capture remains v1, and mismatched
+policy versions refuse collection. The v2 backend preserves hardware/session
+identities under the existing read-only budgets and requires both fitting
+opt-ins off. This command has been checked with synthetic transports; keep
+live policy v1 until the remaining consumers are qualified together.
