@@ -192,3 +192,22 @@ wait may delay termination. It creates no resource scope and performs no live
 collection. Operational integration, source budgets and actual private capture
 remain unfinished. Small worker tests exercise success, timeout, signaled status
 and inherited-child cleanup; source collection and optimization are absent.
+
+
+## Native temperature capture backend
+
+`thermal_model.capture_backends.configured_capture_history` explicitly retains
+native grids and reuses the existing collector, private reader-role configuration,
+fixed temperature policy and receipt selection. It injects the shared read budget
+immediately before each database connection, pins the address and port, and forces
+read-only connection defaults. It refuses a connection when fewer than two seconds
+remain because libpq rounds smaller connection timeouts upward. The existing
+fetcher still checks read-only repeatable-read transactions, statement/lock timeouts,
+unique Item mapping, bounded rows and oversized-value barriers.
+
+Original qualified metadata and null barriers pass through the existing history
+reader without interpolation or legacy fallback after cutover. The default
+scheduled collector path is unchanged. Tests exercise the real collector and
+receipt selection using fake SQL connections. This backend must run inside the
+capture guard; the operational capture command and bounded journal integration
+remain unfinished. No private development snapshot has been acquired by this work.

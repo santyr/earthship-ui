@@ -115,7 +115,7 @@ def validate_shadow_receipt_expiry(current, at):
             raise ValueError(f'expired current {role} temperature receipt')
 
 
-def collect(request, *, config_path, policy_path):
+def collect(request, *, config_path, policy_path, connection_factory=None):
     import psycopg2
     from hourly_temperature_runtime import read_db_config
     from weather_temperature_config import load_temperature_policies
@@ -132,7 +132,8 @@ def collect(request, *, config_path, policy_path):
     if asdict(policy) != dict(model=expected[1], sensor_id=expected[2], **POLICY):
         raise ValueError('approved thermal identity and expiry policy required')
     config = read_db_config(config_path)
-    return fetch_temperature_grid(lambda: psycopg2.connect(**config, connect_timeout=3),
+    connect = (lambda: psycopg2.connect(**config, connect_timeout=3)) if connection_factory is None else (lambda: connection_factory(config))
+    return fetch_temperature_grid(connect,
         targets=request['targets'], assessed_at=assessed, stream=expected[0], policy=policy)
 
 
