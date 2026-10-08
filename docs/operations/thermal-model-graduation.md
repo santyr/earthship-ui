@@ -360,8 +360,8 @@ default v1 readers refuse it. Training persists original sources and binding v3
 before saving any candidate. This is a tested offline boundary, not a live
 receiver configuration change or a qualified production candidate.
 
-Assembly, origin/outcome proofs, graduation/runtime bindings and
-publication consumers still require coordinated migration before live v2
+Origin/outcome proofs, graduation/runtime bindings and publication consumers
+still require coordinated migration before live v2
 adoption. Do not relabel older receipts or bypass physical/numerical gates.
 The operator confirms outdoor shades are still installed. Current native
 development data lacks unshaded solar support, so the existing complete model
@@ -376,3 +376,16 @@ policy versions refuse collection. The v2 backend preserves hardware/session
 identities under the existing read-only budgets and requires both fitting
 opt-ins off. This command has been checked with synthetic transports; keep
 live policy v1 until the remaining consumers are qualified together.
+
+
+Multi-part capture v2 now has explicit assembly-v2 support through
+`assemble-thermal-inputs.py --receipt-version 2`. It requires adjacent original
+v2 inputs with one declared hardware phase per role, preserves source-session
+metadata and null barriers, and obtains one fresh journal view. The training
+command with `--receipt-version 2 --assembly-binding PATH --input-part PATH`
+(repeat the last option for every parent) verifies and retains the original
+lineage. Add `--verify-only` to validate without fitting; the existing explicit
+fitting/resource requirements still govern `--fit`. Assembled training writes
+input binding v4 before saving a candidate; standalone training keeps binding
+v3. Legacy readers refuse these contracts. Live adoption and production
+qualification remain open pending the remaining consuming-path migration.

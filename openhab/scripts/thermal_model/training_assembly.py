@@ -14,15 +14,17 @@ from .rollback import _rename_new
 from .temperature_history import STREAMS
 from .environment_bundle import _pacer
 from .training_inputs import (FIELDS,FLAGS,ITEMS,MAX_BYTES,MAX_SERIES_POINTS,_bounded,_digest,
-                              _window,_Series,_object,capture_training_inputs,restore_training_inputs,read_training_inputs)
+                              _window,_Series,_object,capture_training_inputs,restore_training_inputs,read_training_inputs,
+                              capture_training_inputs_v2,restore_training_inputs_v2,read_training_inputs_v2)
 
 SCHEMA='earthship-thermal-training-assembly/v1'
+SENSOR_SCHEMA='earthship-thermal-training-assembly/v2'
 BINDING_FIELDS={'schema','input_snapshot_sha256s','measurement_collection_code_revision',
     'assembly_code_revision','assembled_snapshot_sha256','journal_captured_at','start','end','binding_sha256'}|FLAGS
 IDENTITY={'stream','model','sensor_id','policy'}
 
 
-def _prepare(records,captured):
+def _prepare(records,captured,*,version=1):
     records=_bounded(records,8)
     if len(records)<2 or any(not isinstance(record,dict) or set(record)!=FIELDS for record in records):
         raise ValueError('two to eight closed original input snapshots required')
@@ -38,7 +40,8 @@ def _prepare(records,captured):
         raise ValueError('uniform measurement collection revision and cutover required')
     if sum(len(rows) for record in records for rows in record['series_by_role'].values())>MAX_SERIES_POINTS:
         raise ValueError('aggregate source points exceed bound')
-    for record in records:restore_training_inputs(record)
+    restore=restore_training_inputs_v2 if version==2 else restore_training_inputs
+    for record in records:restore(record)
     # Freeze validated originals before invoking the supplied journal callbacks.
     records=deepcopy(records)
     series={role:[row for record in records for row in record['series_by_role'][role]] for role in ITEMS}
@@ -46,8 +49,9 @@ def _prepare(records,captured):
     merged=deepcopy(records[0]['temperature_evidence'])
     for role in STREAMS:
         original=merged['roles'][role]
-        if any({key:record['temperature_evidence']['roles'][role][key] for key in IDENTITY}!=
-               {key:original[key] for key in IDENTITY} for record in records):raise ValueError('uniform native source identity required')
+        identity=IDENTITY|({'sensor_epoch'} if version==2 else set())
+        if any({key:record['temperature_evidence']['roles'][role][key] for key in identity}!=
+               {key:original[key] for key in identity} for record in records):raise ValueError('uniform native source identity required')
         for key in ('legacy_points','targets','qualified','missing'):
             original[key]=sum(record['temperature_evidence']['roles'][role][key] for record in records)
         digest=sha256()
@@ -60,29 +64,46 @@ def _prepare(records,captured):
 
 
 def assemble_training_inputs(records,*,journal,clock,revision_reader):
+    return _assemble_inputs(records,journal=journal,clock=clock,revision_reader=revision_reader,version=1)
+
+
+def assemble_training_inputs_v2(records,*,journal,clock,revision_reader):
+    return _assemble_inputs(records,journal=journal,clock=clock,revision_reader=revision_reader,version=2)
+
+
+def _assemble_inputs(records,*,journal,clock,revision_reader,version):
     captured=_utc(clock());revision=_sha(revision_reader())
-    originals,start,end,reader=_prepare(records,captured)
+    originals,start,end,reader=_prepare(records,captured,version=version)
     # Per-chunk events/modes are intentionally not used: corrections and carry
     # must come from one fresh full-interval journal view.
-    record=capture_training_inputs(start=start,end=end,series_reader=reader,journal=journal,
+    capture=capture_training_inputs_v2 if version==2 else capture_training_inputs
+    record=capture(start=start,end=end,series_reader=reader,journal=journal,
                                   clock=lambda:captured,revision_reader=lambda:revision)
     if _sha(revision_reader())!=revision:raise ValueError('assembly code changed during collection')
-    binding=dict(schema=SCHEMA,input_snapshot_sha256s=[value['snapshot_sha256'] for value in originals],
+    binding=dict(schema=SENSOR_SCHEMA if version==2 else SCHEMA,input_snapshot_sha256s=[value['snapshot_sha256'] for value in originals],
         measurement_collection_code_revision=originals[0]['collection_code_revision'],assembly_code_revision=revision,
         assembled_snapshot_sha256=record['snapshot_sha256'],journal_captured_at=record['captured_at'],
         start=record['start'],end=record['end'],**{key:False for key in FLAGS})
     binding['binding_sha256']=_digest(binding)
-    verify_training_assembly(record,binding,originals)
+    _verify_assembly(record,binding,originals,version=version)
     return record,binding
 
 
 def verify_training_assembly(record,binding,records):
-    if (not isinstance(binding,dict) or set(binding)!=BINDING_FIELDS or binding['schema']!=SCHEMA or
+    return _verify_assembly(record,binding,records,version=1)
+
+
+def verify_training_assembly_v2(record,binding,records):
+    return _verify_assembly(record,binding,records,version=2)
+
+
+def _verify_assembly(record,binding,records,*,version):
+    if (not isinstance(binding,dict) or set(binding)!=BINDING_FIELDS or binding['schema']!=(SENSOR_SCHEMA if version==2 else SCHEMA) or
             any(binding[key] is not False for key in FLAGS) or
             _digest({key:value for key,value in binding.items() if key!='binding_sha256'})!=binding['binding_sha256']):
         raise ValueError('closed original assembly binding required')
-    captured=_utc(record['captured_at']);originals,start,end,reader=_prepare(records,captured)
-    restore_training_inputs(record)
+    captured=_utc(record['captured_at']);originals,start,end,reader=_prepare(records,captured,version=version)
+    (restore_training_inputs_v2 if version==2 else restore_training_inputs)(record)
     expected=dict(input_snapshot_sha256s=[value['snapshot_sha256'] for value in originals],
         measurement_collection_code_revision=originals[0]['collection_code_revision'],
         assembly_code_revision=record['collection_code_revision'],assembled_snapshot_sha256=record['snapshot_sha256'],
@@ -98,9 +119,17 @@ def verify_training_assembly(record,binding,records):
 
 
 def write_training_assembly(directory,record,binding,records):
-    verify_training_assembly(record,binding,records)
+    return _write_assembly(directory,record,binding,records,version=1)
+
+
+def write_training_assembly_v2(directory,record,binding,records):
+    return _write_assembly(directory,record,binding,records,version=2)
+
+
+def _write_assembly(directory,record,binding,records,*,version):
+    _verify_assembly(record,binding,records,version=version)
     root=_private_directory(Path(directory));raw=_canonical(binding)
-    target=root/(binding['binding_sha256']+'.training-assembly-v1.json')
+    target=root/(binding['binding_sha256']+f'.training-assembly-v{version}.json')
     if target.exists():
         if _owned_bytes(target,16000)!=raw:raise ValueError('existing assembly binding differs')
         return target
@@ -130,20 +159,37 @@ def inspect_training_parts(paths):
 
 
 def read_training_parts(paths,*,max_read_bytes_per_second=1048576):
+    return _read_parts(paths,max_read_bytes_per_second=max_read_bytes_per_second,version=1)
+
+
+def read_training_parts_v2(paths,*,max_read_bytes_per_second=1048576):
+    return _read_parts(paths,max_read_bytes_per_second=max_read_bytes_per_second,version=2)
+
+
+def _read_parts(paths,*,max_read_bytes_per_second,version):
     if type(max_read_bytes_per_second) is not int or not 1<=max_read_bytes_per_second<=1048576:
         raise ValueError('bounded original input read pacing required')
     metadata=inspect_training_parts(paths);pace=_pacer(max_read_bytes_per_second);records=[]
+    read=read_training_inputs_v2 if version==2 else read_training_inputs
     for row in metadata:
-        pace.reserve(row['size']+1);records.append(read_training_inputs(Path(row['path']),maximum_bytes=row['size']))
+        pace.reserve(row['size']+1);records.append(read(Path(row['path']),maximum_bytes=row['size']))
     if inspect_training_parts([row['path'] for row in metadata])!=metadata:raise ValueError('original input files changed during loading')
     return records
 
 
 def read_training_assembly(path,record,records):
+    return _read_assembly(path,record,records,version=1)
+
+
+def read_training_assembly_v2(path,record,records):
+    return _read_assembly(path,record,records,version=2)
+
+
+def _read_assembly(path,record,records,*,version):
     path=Path(path);_private_directory(path.parent)
     def reject(value):raise ValueError('nonfinite assembly binding refused')
     binding=json.loads(_owned_bytes(path,16000),object_pairs_hook=_object,parse_constant=reject)
-    verify_training_assembly(record,binding,records)
-    if path.name!=binding['binding_sha256']+'.training-assembly-v1.json':
+    _verify_assembly(record,binding,records,version=version)
+    if path.name!=binding['binding_sha256']+f'.training-assembly-v{version}.json':
         raise ValueError('original assembly content-addressed filename required')
     return binding

@@ -12,8 +12,8 @@ from uuid import uuid4
 
 from .forcing_capture import _canonical,_private_directory
 from .graduation_policy import _utc,_sha
-from .training_inputs import restore_training_inputs,restore_training_inputs_v2,write_training_inputs,_bounded,SENSOR_SCHEMA as SENSOR_INPUT_SCHEMA
-from .training_assembly import verify_training_assembly,write_training_assembly
+from .training_inputs import restore_training_inputs,restore_training_inputs_v2,write_training_inputs,write_training_inputs_v2,_bounded,SENSOR_SCHEMA as SENSOR_INPUT_SCHEMA
+from .training_assembly import verify_training_assembly,write_training_assembly,verify_training_assembly_v2,write_training_assembly_v2
 from .pipeline import run_training
 from .training_sources import write_training_sources,write_training_sources_v2
 from .fit_evidence import write_fit_evidence
@@ -23,10 +23,11 @@ from .rollback import _rename_new
 SCHEMA='earthship-thermal-training-input-binding/v1'
 ASSEMBLED_SCHEMA='earthship-thermal-training-input-binding/v2'
 SENSOR_BINDING_SCHEMA='earthship-thermal-training-input-binding/v3'
+SENSOR_ASSEMBLED_SCHEMA='earthship-thermal-training-input-binding/v4'
 
 
 def _persist_binding(root,record):
-    version='v3' if record['schema']==SENSOR_BINDING_SCHEMA else ('v2' if record['schema']==ASSEMBLED_SCHEMA else 'v1')
+    version={SCHEMA:'v1',ASSEMBLED_SCHEMA:'v2',SENSOR_BINDING_SCHEMA:'v3',SENSOR_ASSEMBLED_SCHEMA:'v4'}[record['schema']]
     raw=_canonical(record);target=root/(sha256(raw).hexdigest()+'.training-input-binding-'+version+'.json')
     if target.exists():
         if _owned_bytes(target,4096)!=raw:raise ValueError('original training input binding differs')
@@ -51,11 +52,9 @@ def run_snapshot_training(record,*,registry,fit_evidence_directory,clock,revisio
     if (assembly_binding is None)!=(assembly_inputs is None):
         raise ValueError('assembly binding and original inputs required together')
     sensor_inputs=isinstance(record,dict) and record.get('schema')==SENSOR_INPUT_SCHEMA
-    if sensor_inputs and assembly_binding is not None:
-        raise ValueError('sensor phase input assembly requires its own versioned binding')
     if assembly_binding is not None:
         assembly_inputs=_bounded(assembly_inputs,8)
-        verify_training_assembly(record,assembly_binding,assembly_inputs)
+        (verify_training_assembly_v2 if sensor_inputs else verify_training_assembly)(record,assembly_binding,assembly_inputs)
         assembly_binding=deepcopy(assembly_binding);assembly_inputs=deepcopy(assembly_inputs)
     record=deepcopy(record)
     root=_private_directory(Path(fit_evidence_directory))
@@ -75,13 +74,14 @@ def run_snapshot_training(record,*,registry,fit_evidence_directory,clock,revisio
         (write_training_sources_v2 if sensor_inputs else write_training_sources)(root,snapshot,artifact)
         lineage={}
         if assembly_binding is not None:
-            for parent in assembly_inputs:write_training_inputs(root,parent)
-            write_training_inputs(root,record)
-            write_training_assembly(root,record,assembly_binding,assembly_inputs)
+            write_input=write_training_inputs_v2 if sensor_inputs else write_training_inputs
+            for parent in assembly_inputs:write_input(root,parent)
+            write_input(root,record)
+            (write_training_assembly_v2 if sensor_inputs else write_training_assembly)(root,record,assembly_binding,assembly_inputs)
             lineage=dict(assembly_binding_sha256=assembly_binding['binding_sha256'],
                          input_snapshot_sha256s=assembly_binding['input_snapshot_sha256s'])
         phase_binding={} if not sensor_inputs else dict(sensor_epochs={role:info['sensor_epoch'] for role,info in record['temperature_evidence']['roles'].items()})
-        _persist_binding(root,dict(schema=SENSOR_BINDING_SCHEMA if sensor_inputs else (ASSEMBLED_SCHEMA if lineage else SCHEMA),snapshot_sha256=record['snapshot_sha256'],
+        _persist_binding(root,dict(schema=(SENSOR_ASSEMBLED_SCHEMA if lineage else SENSOR_BINDING_SCHEMA) if sensor_inputs else (ASSEMBLED_SCHEMA if lineage else SCHEMA),snapshot_sha256=record['snapshot_sha256'],
             artifact_sha256=sha256(_canonical(asdict(artifact))).hexdigest(),
             collection_code_revision=record['collection_code_revision'],fit_code_revision=revision,
             captured_at=record['captured_at'],start=record['start'],end=record['end'],release_authorized=False,**lineage,**phase_binding))

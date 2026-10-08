@@ -385,8 +385,8 @@ rank, conditioning, coefficient stability and eligibility checks remain intact.
 The explicit `train-thermal-snapshot.py --receipt-version 2` path reconstructs
 original native grids, validates phase bindings, and persists source v2 plus
 training input binding v3 before candidate saving. Default invocation remains
-v1. A v2 input with a legacy assembly binding is refused; assembly still
-needs its own versioned migration. Local fitting remains an explicit opt-in
+v1. A v2 input with a legacy assembly binding is refused; explicit assembly
+v2 provides the separately versioned lineage contract. Local fitting remains an explicit opt-in
 under enforced resource limits.
 
 Origin/outcome and native shadow proofs, graduation/runtime sensor bindings,
@@ -408,8 +408,34 @@ phase and refuses phase drift before connecting. Capture workers require both
 qualification-fit opt-ins to be off. Check-only performs no source reads.
 
 Tests use real source-v2 receipts and native parsing with synthetic SQL transport;
-no household v2 capture or receiver policy change has been performed. Assembly,
-origin/outcome proofs and qualification/runtime/publication migration remain open.
+no household v2 capture or receiver policy change has been performed. Origin/outcome proofs and qualification/runtime/publication migration remain open.
 The latest operator confirmation keeps outdoor shades installed. The physical
 model still lacks unshaded training support; capture compatibility cannot supply
 that missing evidence or authorize graduation.
+
+### Adjacent native assembly v2 and training lineage integration
+
+Explicit assembly v2 combines two to eight adjacent source-v2 input snapshots.
+Every part must share the original measurement-code revision, cutover, fixed
+physical identity and declared hardware phase. Collector sessions may differ
+while their original receipt metadata remains unchanged. Counts and grid hashes
+are recomputed from retained originals; missing receipts remain null barriers.
+Journal labels come from one freshly read full-window view, preserving their
+source/confidence. A hardware-phase change or mixed input version refuses
+assembly before journal access. Legacy APIs remain strict v1.
+
+`assemble-thermal-inputs.py --receipt-version 2` selects these readers/writers
+and propagates the explicit version to its bounded worker. Both fitting flags
+must be off for assembly. `train-thermal-snapshot.py --receipt-version 2` can
+verify or explicitly fit a v2 snapshot with its assembly-v2 binding and original
+`--input-part` files. Source v2, all parent inputs, the assembled input, assembly
+binding v2 and input binding v4 persist before candidate saving. Standalone v2
+training continues to use input binding v3. Rehashed or mismatched lineage
+cannot reach fitting or repair source evidence.
+
+This completes the offline capture/assembly/training sensor-identity boundary
+on synthetic original receipts. Original issue/outcome/native-shadow proofs,
+graduation/runtime/publication bindings and live adoption still need migration.
+No measured candidate, statistical qualification or production activation is
+claimed. Outdoor shades remain installed and current data still lack the
+unshaded support required by the existing full model.

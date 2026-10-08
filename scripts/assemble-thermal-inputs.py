@@ -44,21 +44,27 @@ def _assembly_revision():
     return digest.hexdigest()
 
 
-def _worker(parts,dsn_file,root,expected):
-    from thermal_model.training_assembly import read_training_parts,assemble_training_inputs,write_training_assembly
-    from thermal_model.training_inputs import write_training_inputs
+def _worker(parts,dsn_file,root,expected,*,receipt_version=1):
+    from thermal_model.training_assembly import (read_training_parts,assemble_training_inputs,write_training_assembly,
+        read_training_parts_v2,assemble_training_inputs_v2,write_training_assembly_v2)
+    from thermal_model.training_inputs import write_training_inputs,write_training_inputs_v2
     from thermal_model.capture_backends import configured_capture_journal
     from thermal_model.capture_readers import ReadBudget
     from thermal_model.runtime_bundle import _owned_bytes,_write_private,_sync_directory
     from thermal_model.forcing_capture import _canonical
-    revision=_assembly_revision();records=read_training_parts(parts)
+    revision=_assembly_revision()
+    read_parts=read_training_parts_v2 if receipt_version==2 else read_training_parts
+    assemble=assemble_training_inputs_v2 if receipt_version==2 else assemble_training_inputs
+    write_binding=write_training_assembly_v2 if receipt_version==2 else write_training_assembly
+    write_input=write_training_inputs_v2 if receipt_version==2 else write_training_inputs
+    records=read_parts(parts)
     if _context(parts,dsn_file,root)[-1]!=expected:raise ValueError('assembly sources changed while loading')
     journal=configured_capture_journal(dsn=_owned_bytes(Path(dsn_file),4096).decode().strip(),budget=ReadBudget(70))
-    record,binding=assemble_training_inputs(records,journal=journal,clock=lambda:datetime.now(timezone.utc),revision_reader=_assembly_revision)
+    record,binding=assemble(records,journal=journal,clock=lambda:datetime.now(timezone.utc),revision_reader=_assembly_revision)
     if record['collection_code_revision']!=revision or _context(parts,dsn_file,root)[-1]!=expected:
         raise ValueError('assembly code or sources changed during collection')
-    write_training_assembly(root,record,binding,records)
-    write_training_inputs(root,record)
+    write_binding(root,record,binding,records)
+    write_input(root,record)
     receipt=dict(status='inputs_assembled',snapshot_sha256=record['snapshot_sha256'],binding_sha256=binding['binding_sha256'],fitting_executed=False,installed=False,release_authorized=False)
     _write_private(root/'assembly-receipt.json',_canonical(receipt));_sync_directory(root)
 
@@ -69,21 +75,22 @@ def main(argv=None):
     parser.add_argument('--journal-dsn-file',required=True,type=Path)
     parser.add_argument('--destination',required=True,type=Path)
     parser.add_argument('--check-only',action='store_true')
+    parser.add_argument('--receipt-version',type=int,choices=(1,2),default=1)
     parser.add_argument('--worker',action='store_true',help=argparse.SUPPRESS)
     parser.add_argument('--expected-context-digest',help=argparse.SUPPRESS)
     args=parser.parse_args(argv)
     try:
         if not args.check_only and os.environ.get('EARTHSHIP_THERMAL_INPUT_CAPTURE')!='1':raise ValueError('explicit assembly intent required')
         verify_resource_limits()
-        if args.worker and (args.check_only or os.environ.get('EARTHSHIP_GUARDED_CAPTURE_WORKER')!='1' or os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT')!='0' or os.getpriority(os.PRIO_PROCESS,0)<15):
+        if args.worker and (args.check_only or os.environ.get('EARTHSHIP_GUARDED_CAPTURE_WORKER')!='1' or os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT')!='0' or os.environ.get('EARTHSHIP_QUALIFICATION_FIT','0')!='0' or os.getpriority(os.PRIO_PROCESS,0)<15):
             raise ValueError('guarded assembly worker required')
         metadata,root,digest=_context(args.part,args.journal_dsn_file,args.destination)
         if args.check_only:receipt=dict(status='assembly_paths_verified',release_authorized=False)
         elif args.worker:
             if digest!=args.expected_context_digest:raise ValueError('assembly context changed')
-            _worker(args.part,args.journal_dsn_file,root,digest);return 0
+            _worker(args.part,args.journal_dsn_file,root,digest,receipt_version=args.receipt_version);return 0
         else:
-            worker=[sys.executable,str(Path(__file__).resolve()),'--journal-dsn-file',str(args.journal_dsn_file),'--destination',str(root),'--worker','--expected-context-digest',digest]
+            worker=[sys.executable,str(Path(__file__).resolve()),'--journal-dsn-file',str(args.journal_dsn_file),'--destination',str(root),'--receipt-version',str(args.receipt_version),'--worker','--expected-context-digest',digest]
             for path in args.part:worker+=['--part',str(path)]
             if run_guarded_capture(worker,seconds=90)!=0:raise ValueError('assembly worker refused')
             from thermal_model.runtime_bundle import _owned_bytes

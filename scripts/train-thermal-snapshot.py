@@ -14,7 +14,7 @@ from thermal_model.forcing_capture import _canonical,_private_directory
 from thermal_model.pipeline import TrainingRefused
 from thermal_model.training_inputs import read_training_inputs,read_training_inputs_v2
 from thermal_model.offline_training import run_snapshot_training,require_fitting_optin
-from thermal_model.training_assembly import read_training_parts,read_training_assembly
+from thermal_model.training_assembly import read_training_parts,read_training_assembly,read_training_parts_v2,read_training_assembly_v2
 from thermal_intel import _release_runtime_paths
 from thermal_model.origin_capture import _source_bytes
 
@@ -51,7 +51,6 @@ def main(argv=None):
     if args.fit and (args.state_dir is None or args.fit_evidence_dir is None):parser.error('fit requires explicit state and proof directories')
     if args.verify_only and (args.state_dir is not None or args.fit_evidence_dir is not None):parser.error('verification does not use fit directories')
     if (args.assembly_binding is None)!= (not args.input_part):parser.error('assembly binding and original input parts required together')
-    if args.receipt_version==2 and args.assembly_binding is not None:parser.error('sensor phase assemblies require a versioned binding')
     try:
         if args.fit:
             require_fitting_optin()
@@ -61,8 +60,8 @@ def main(argv=None):
         record=(read_training_inputs_v2 if args.receipt_version==2 else read_training_inputs)(args.snapshot)
         lineage={}
         if args.assembly_binding is not None:
-            parents=read_training_parts(args.input_part)
-            binding=read_training_assembly(args.assembly_binding,record,parents)
+            parents=(read_training_parts_v2 if args.receipt_version==2 else read_training_parts)(args.input_part)
+            binding=(read_training_assembly_v2 if args.receipt_version==2 else read_training_assembly)(args.assembly_binding,record,parents)
             lineage=dict(assembly_binding=binding,assembly_inputs=parents)
         if args.verify_only:
             result=dict(status='inputs_verified',snapshot_sha256=record['snapshot_sha256'],release_authorized=False)
