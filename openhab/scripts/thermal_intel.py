@@ -687,6 +687,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             now=now,
             site_timezone=forecast_intel.MOUNTAIN,
             artifact_observer=artifact_used.append,
+            **({"optimize_schedule": False} if output_handler is not None else {}),
         )
         # The model serializes to whole seconds. Preserve the post-input
         # decision clock's full precision for capture-safe provenance.

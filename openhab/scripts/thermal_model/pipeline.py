@@ -1063,7 +1063,7 @@ def _unavailable(
 
 
 def _build_available_shadow(
-    *, artifact, current, forecast, now, site_timezone, registry_reason=None
+    *, artifact, current, forecast, now, site_timezone, registry_reason=None, optimize_schedule=True
 ):
     model, model_age, data_age = _artifact_context(artifact, now)
     values, current_ages = _current_values(current, now)
@@ -1102,49 +1102,53 @@ def _build_available_shadow(
         baseline, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
     )
     baseline_predictions = _simulate_schedule(artifact.dynamics, rows, baseline, initial)
-    decorated = [dict(rows[0])]
-    for row, predicted in zip(rows[1:], baseline_predictions):
-        decorated.append(
-            {
-                **row,
-                "air_f": predicted["air_f"],
-                "mass_f": predicted["mass_f"],
-                "air_baseline_f": predicted["air_f"],
-                "mass_baseline_f": predicted["mass_f"],
-            }
-        )
-    search = search_candidate_schedule(
-        behavior=artifact.behavior,
-        dynamics=artifact.dynamics,
-        forecast=decorated,
-    )
-    selection_reason = search.modeled_difference.get("selectionReason")
-    improvement = _finite(
-        search.modeled_difference.get("scoreImprovement", 0.0),
-        "candidate score improvement",
-    )
-    candidate = (
-        _expand_nightly_venting(search.candidate, rows, site_timezone)
-        if search.candidate is not None
-        else None
-    )
-    if (
-        selection_reason != "bounded_candidate_improved"
-        or improvement < MINIMUM_IMPROVEMENT
-        or candidate == baseline
-    ):
-        candidate = None
-    elif candidate is not None:
-        try:
-            _validate_internal_schedule(
-                candidate, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+    if optimize_schedule:
+        decorated = [dict(rows[0])]
+        for row, predicted in zip(rows[1:], baseline_predictions):
+            decorated.append(
+                {
+                    **row,
+                    "air_f": predicted["air_f"],
+                    "mass_f": predicted["mass_f"],
+                    "air_baseline_f": predicted["air_f"],
+                    "mass_baseline_f": predicted["mass_f"],
+                }
             )
-        except ValueError:
+        search = search_candidate_schedule(
+            behavior=artifact.behavior,
+            dynamics=artifact.dynamics,
+            forecast=decorated,
+        )
+        selection_reason = search.modeled_difference.get("selectionReason")
+        improvement = _finite(
+            search.modeled_difference.get("scoreImprovement", 0.0),
+            "candidate score improvement",
+        )
+        candidate = (
+            _expand_nightly_venting(search.candidate, rows, site_timezone)
+            if search.candidate is not None
+            else None
+        )
+        if (
+            selection_reason != "bounded_candidate_improved"
+            or improvement < MINIMUM_IMPROVEMENT
+            or candidate == baseline
+        ):
+            candidate = None
+        elif candidate is not None:
+            try:
+                _validate_internal_schedule(
+                    candidate, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+                )
+            except ValueError:
+                candidate = None
+                selection_reason = "no_valid_candidate"
+        if candidate is not None and not _vent_schedule_is_valid(decorated, candidate):
             candidate = None
             selection_reason = "no_valid_candidate"
-    if candidate is not None and not _vent_schedule_is_valid(decorated, candidate):
+    else:
         candidate = None
-        selection_reason = "no_valid_candidate"
+        selection_reason = "forecast_only_baseline"
     selected = candidate or baseline
     predictions = (
         _simulate_schedule(artifact.dynamics, rows, selected, initial)
@@ -1172,6 +1176,7 @@ def _build_available_shadow(
     if candidate is None:
         reasons.append(
             {
+                "forecast_only_baseline": "forecast uses baseline schedule assumptions; action advice withheld",
                 "minimum_improvement_not_met": "minimum modeled improvement not met; no candidate emitted",
                 "protocol_constraint": "protocol constraint retained baseline; no candidate emitted",
                 "explicit_mode_transition": "explicit journal mode transition retained evidence-backed baseline; no candidate emitted",
@@ -1245,12 +1250,14 @@ def build_unavailable_shadow(
 
 
 def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE,
-               artifact_observer=None):
+               artifact_observer=None, optimize_schedule=True):
     """Return a bounded shadow result; invalid dependencies fail soft."""
     now = _aware(now, "now")
     artifact = None
     failed_input = "accepted artifact input"
     try:
+        if type(optimize_schedule) is not bool:
+            raise ValueError("explicit boolean schedule optimization selection required")
         artifact = registry.load_accepted()
         if artifact_observer is not None:
             artifact_observer(artifact)
@@ -1267,6 +1274,7 @@ def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE,
             now=now,
             site_timezone=site_timezone,
             registry_reason=registry_reason,
+            optimize_schedule=optimize_schedule,
         )
     except (
         AttributeError,

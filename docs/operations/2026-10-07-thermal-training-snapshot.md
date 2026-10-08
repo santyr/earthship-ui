@@ -415,3 +415,20 @@ Recomputing archive hashes cannot make a mixed history qualified. No reset or
 relabeling policy is inferred. The release command withdraws to unavailable when
 this source check fails. Historical archives that violate it remain unsuitable
 for release scoring; preserve their original bytes for diagnosis.
+
+
+## Stage A forecast assumptions
+
+The release command generates its forecast by simulating the existing baseline
+schedule, with candidate schedule search disabled. All trajectory points, extrema,
+intervals and morning mass values come from that simulation. The ordinary v1
+shadow path retains its existing default behavior. The release converter refuses
+a shadow with a non-null candidate schedule rather than clearing that schedule
+and retaining candidate-conditioned temperatures.
+
+The published baseline describes conditional assumptions, not confirmed future
+actions or qualified action advice. Stage A withholds candidate recommendations
+and their claimed effects. Existing seasonal protocol and the winter no-vent
+default are preserved. Forecast skill must still pass frozen-runtime, original
+publication and independent outcome gates; simulation correctness grants neither
+release nor actuation authority.

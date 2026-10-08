@@ -100,6 +100,7 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
         if not callable(qualification_loader):raise ValueError('fresh qualification evaluator required')
         validate_shadow_output(shadow)
         if shadow['confidence']['grade']=='unavailable':raise ValueError('thermal inputs unavailable')
+        if shadow['schedule']['candidate'] is not None:raise ValueError('baseline simulation required for forecast-only release')
         issued=_utc(shadow['generatedAt']);elapsed=now-issued
         if not timedelta(0)<=elapsed<=timedelta(minutes=20):raise ValueError('current forecast input is stale or future')
         for role in ('air','mass','outdoor','radiation'):

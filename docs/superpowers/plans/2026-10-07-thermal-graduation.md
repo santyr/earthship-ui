@@ -174,10 +174,14 @@ regressions, then rerun hosted suites and review before rollout:
   semantics; test first-origin acquisition and native outcome scoring. The current
   ordinary shadow path binds a different source closure, while release refuses
   publication captures until the source-pair gate passes.
-- [ ] Make Stage A forecast numbers use the stated baseline/as-issued assumptions.
+- [x] Make Stage A forecast numbers use the stated baseline/as-issued assumptions.
   Clearing candidate/advice metadata after simulating an optimized hypothetical
   action schedule does not produce that forecast. Preserve existing default v1
   behavior; test a real pipeline fixture where candidate and baseline differ.
+  Release now disables candidate search and preserves all baseline trajectory,
+  extrema and interval values. The converter refuses candidate-conditioned input.
+  Real simulation regressions at 24/72 hours preserve default v1 optimization and
+  existing winter baseline behavior; independent review confirms this fix.
 - [x] Refuse mixed non-null sensor epochs across trailing origin receipts before
   latent mass-state construction. Validate every receipt against the declared
   epoch; test changing a non-latest receipt to a different valid UUID, including
