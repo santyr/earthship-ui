@@ -1000,3 +1000,47 @@ explicit publication/UI adapters and the live entry point, then genuine native
 fitting, preregistration and sufficient untouched/prospective qualification.
 Outdoor shades remain installed and the November no-vent default persists until
 a confirmed operator change. PR3 and recovery work remain separate and deferred.
+
+### Separate source-bound installed-shade uncertainty calibration
+
+The operator reconfirms that outdoor shades remain installed until changed.
+`thermal_model/installed_shade_calibration.py` now learns development uncertainty
+from original source-replayed issued observations in a separate interval after
+base coefficient fitting and creation. The new closed calibration namespace
+retains the base candidate/runtime/hardware-phase identity, exact method,
+calibration dates, independent-window selections and original source bindings.
+
+The fixed 90 percent symmetric absolute-residual order statistic is one-based
+`ceil((n+1)*0.90)`, with no interpolation or clipping. The existing 35 independent
+day/window floor applies to all required horizons and every declared regime;
+regime bands use subsets of the same globally selected daily sample. Incomplete
+cells expose no usable radius. Correlated thermal time series confer no claimed
+coverage guarantee: unchanged untouched/current prospective coverage, width,
+bias and both-baseline skill gates remain mandatory.
+
+Private immutable storage retains original native-v2 inputs, core candidate/fit
+proof, captures and source-packet index before the calibration record. Reads
+replay these sources against an independently expected runtime. Numerical/source
+checks do not claim optimizer execution or legitimate household qualification.
+The existing uncalibrated schemas and publications remain unchanged; a new
+calibrated candidate/issuance adapter must bind these bands before release scoring.
+See [the calibration contract](../../operations/2026-10-08-installed-shade-calibration.md).
+
+Verification: initial missing-module failure, then 19 passing source/numerical
+checks; private storage missing-API failure, then 21 passing checks. Expanded
+calibration/policy/statistics verification: 65 passed, one hosted-only synthetic
+multiweek source integration skipped locally, under CPU 20 percent, 256 MiB,
+zero swap allowance, 24 tasks, one numerical thread and a hard 90-second deadline.
+Review found that the synthetic multiday baseline fixture incorrectly shifted
+UTC days across fall DST. Two targeted failures reproduced it. The fixture now
+uses the existing local-clock/elapsed-duration/31-day rules and acquires an extra
+date while omitting unsupported origins; no comparator rule changed. Scoped
+re-review found no remaining material issues. The multiday positive
+source fixture is explicitly synthetic and cannot count as natural release data.
+No household fit, service change, publication or activation occurred.
+
+Next: separately versioned calibrated candidate, original-issued uncertainty and
+qualification bindings, production publication/UI and live entry point, genuine
+native fitting/preregistration and sufficient untouched/prospective observations.
+Outdoor-installed and November no-vent assumptions persist; PR3 and recovery work
+remain separate. No absent unshaded coefficient is invented for this domain.
