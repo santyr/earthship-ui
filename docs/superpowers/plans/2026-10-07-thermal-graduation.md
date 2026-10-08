@@ -82,6 +82,7 @@
 
 - [ ] Test active-to-shadow rollback, incompatible pairs, corrupt artifact/proof, source epoch drift, prospective baseline regression and interrupted restore; observe RED.
 - [ ] Implement deterministic guarded rollback and release withdrawal. Preserve credentials and prior shadow behavior.
+- [x] Add a versioned current-evidence monitor using the latest policy-required independent prospective days per horizon/regime. Preserve historical statistics v1, require statistics v2 in qualification report v3, and refuse prior v2 reports in release. Test pooled-history masking, regime-specific loss, calibration, sparse/stale support and ordering; guarded installation and live withdrawal remain open.
 - [ ] Rehearse in private staging with real file transactions/restored journal, run deployment and rollback suites, then commit.
 
 ## Task 6: Qualification, CI and staged production decision

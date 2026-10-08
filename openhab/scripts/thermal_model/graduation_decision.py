@@ -19,14 +19,14 @@ from thermal_model.origin_capture import read_observed_origin_capture as read_or
 from thermal_model.runtime_bundle import read_runtime_bundle
 from thermal_model.fit_evidence import read_fit_evidence
 from thermal_model.graduation_policy import _utc,validate_policy
-from thermal_model.graduation_statistics import assess_predictive_skill
+from thermal_model.graduation_statistics import assess_current_predictive_skill as assess_predictive_skill
 from thermal_model.temperature_history import (STREAMS,STEP,_ceil,_validate_receipt,
                                                validate_evidence_manifest)
 from thermal_model.pipeline import _normalize_hourly_rows
 from thermal_model.policy_registration import read_registered_policy,SOURCE_FIELDS
 from thermal_model.graduation_evidence import _score_origin_record
 
-SCHEMA='earthship-thermal-qualification-report/v2'
+SCHEMA='earthship-thermal-qualification-report/v3'
 FORECAST_GATES={'preregistered_policy','frozen_candidate','frozen_runtime',
     'qualified_training_sources','original_source_pairs','measured_fit','predictive_skill'}
 FIELDS={'schema','assessed_at','candidate','intervals','policy_sha256','registration_sha256',

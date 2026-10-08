@@ -71,3 +71,38 @@ behavior and are never release evidence.
 Local verification passed 71 focused decision/source/policy/statistics tests in
 one low-priority scope limited to 25% CPU, 768 MiB RAM, zero swap and 48 tasks.
 Full suites run in hosted CI; no local fitting, service change or deployment ran.
+
+## Recent prospective withdrawal
+
+The current report is `earthship-thermal-qualification-report/v3`. Predictive
+qualification now requires the version 2 statistical assessment: both the original
+historical/pooled assessment and a separate recent prospective assessment must
+pass. The original version 1 statistical function retains its historical semantics
+for comparison; its result alone cannot activate the current release path.
+
+For each declared horizon and regime, the monitor uses the latest required number
+of independent days after the existing UTC non-overlap and first-issue-per-Denver-day
+selection. Block length is the maximum of the policy's minimum independent-window
+and independent-day counts. All error, bias, paired skill, interval coverage and
+width limits remain the preregistered development-derived limits. No new empirical
+loss tolerance is introduced. Horizon-wide recent evidence must also meet the
+original prospective freshness limit; regime evidence remains stratified.
+
+The report includes each monitoring block's actual first issue and latest target,
+required independent-day count, metrics and every gate. This is a block of
+independent observations, not a fixed calendar duration: sparse observations can
+span more calendar days. Missing support refuses qualification. Dense later issues
+cannot displace the first independent daily issue or inflate support. Every raw
+packet still undergoes source/candidate/epoch verification before this assessment.
+
+Sustained recent baseline losses or interval miscalibration close predictive
+qualification even when a long successful history still passes its pooled score.
+The existing release/publication path then emits explicit shadow or unavailable
+state rather than retaining an active badge. This decision does not install a
+rollback generation, reconcile schedules or publish a historical forecast.
+
+The monitoring rule is part of the frozen release runtime, which must be bound by
+the preregistered candidate before untouched/prospective evaluation. Older v2
+qualification reports are refused rather than upgraded. Genuine candidate evidence,
+restored-journal compatibility and guarded rollback remain required; the regression
+fixtures demonstrate software behavior only.

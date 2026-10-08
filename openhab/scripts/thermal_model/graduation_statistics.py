@@ -124,3 +124,41 @@ def assess_predictive_skill(policy,scored_pairs,*,now):
             {(r['issue_at'],r['target_at'],r['horizon_hours']) for r in prospective}),
         statistical_forecast_gates_passed=passed,action_evidence_evaluated=False,
         source_qualification_evaluated=False,fit_qualification_evaluated=False,release_authorized=False)
+
+
+def assess_current_predictive_skill(policy,scored_pairs,*,now):
+    """Require both historical skill and the latest independent prospective block.
+
+    The monitoring block length and every numerical cap come from the frozen
+    policy. Dense recent issues cannot displace independent days. The original
+    v1 assessment remains available with its original all-history semantics.
+    This diagnostic layer still grants no source, fit or release authority.
+    """
+    historical=assess_predictive_skill(policy,scored_pairs,now=now)
+    now=_utc(now);intervals=policy['intervals']
+    prospective=[row for row in scored_pairs if _utc(intervals['prospective_start'])<=_utc(row['issue_at']) and
+                 (intervals['prospective_end'] is None or _utc(row['target_at'])<=_utc(intervals['prospective_end']))]
+    def recent(rows,threshold,*,freshness_required=False):
+        _,independent=_sample(rows)
+        required=max(threshold['min_independent_windows'],threshold['min_independent_days'])
+        selected=independent[-required:]
+        result=_assess(selected,threshold,policy,now,freshness_required=freshness_required)
+        result['selection']=dict(required_independent_days=required,
+            first_issue_at=_utc(selected[0]['issue_at']).isoformat() if selected else None,
+            last_target_at=max(_utc(row['target_at']) for row in selected).isoformat() if selected else None)
+        return result
+    horizons={};by_regime={}
+    for hours in policy['horizons']:
+        key=str(hours);rows=[row for row in prospective if row['horizon_hours']==hours]
+        horizons[key]=recent(rows,policy['thresholds'][key],freshness_required=True)
+        by_regime[key]={regime:recent([row for row in rows if row['regime']==regime],
+            policy['thresholds_by_regime'][key][regime]) for regime in policy['regimes']}
+    passed=(historical['statistical_forecast_gates_passed'] and
+        all(value['statistical_gates_passed'] for value in horizons.values()) and
+        all(value['statistical_gates_passed'] for values in by_regime.values() for value in values.values()))
+    return dict(schema='earthship-thermal-statistical-assessment/v2',policy_sha256=policy['policy_sha256'],
+        assessed_at=now.isoformat(),historical_assessment=historical,recent_prospective=horizons,
+        recent_prospective_by_regime=by_regime,
+        monitoring_sampling_policy='latest_required_independent_days_after_declared_UTC_nonoverlap_and_Denver_daily_selection',
+        statistical_forecast_gates_passed=passed,action_evidence_evaluated=False,
+        source_qualification_evaluated=False,fit_qualification_evaluated=False,release_authorized=False)

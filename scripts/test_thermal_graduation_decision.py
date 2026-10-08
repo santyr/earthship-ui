@@ -256,3 +256,30 @@ def test_release_reference_file_cannot_supply_manual_active_or_cached_pass_flags
     decision=module();tmp_path.chmod(0o700)
     path=tmp_path/'release-inputs.json';path.write_text(json.dumps({'active':True,'forecast_qualified':True}));path.chmod(0o600)
     with pytest.raises(ValueError):decision.load_qualification_inputs(path)
+
+
+def test_recent_prospective_regression_closes_current_candidate_gate(monkeypatch):
+    """Real statistical evaluator; mocked source/fit boundaries are not release evidence."""
+    from test_thermal_graduation_statistics import extended_operational_history
+    from datetime import timedelta
+    real_evaluator=module().assess_predictive_skill
+    decision,args=classifier_case(monkeypatch)
+    policy=decision.read_registered_policy(None)['policy']
+    _,rows,now=extended_operational_history(recent_loss=True)
+    offset=timedelta(days=19)
+    for row in rows:
+        for field in ('issue_at','target_at'):row[field]=(datetime.fromisoformat(row[field])+offset).isoformat()
+        row.update(artifact_sha256=policy['candidate']['artifact_sha256'],runtime_sha256=policy['candidate']['runtime_sha256'],sensor_epochs=policy['candidate']['sensor_epochs'])
+    args['now']=now+offset-timedelta(minutes=1)
+    template=args['original_pairs'][0]
+    args['original_pairs']=[{**template,'publication':{'index':index},'horizon_hours':row['horizon_hours']} for index,row in enumerate(rows)]
+    monkeypatch.setattr(decision,'_score_origin_record',lambda *a,**kw:dict(scored_pair=rows[kw['publication']['index']],original_capture_sha256='e'*64))
+    # Exercise whichever evaluator production imports, without the fixture's stub.
+    monkeypatch.setattr(decision,'assess_predictive_skill',real_evaluator)
+    report=decision.qualify_candidate(**args)
+    assert report['forecast_qualified'] is False
+    assert report['gates']['predictive_skill'] is False
+    assert report['recommended_stage']=='shadow'
+    assert report['schema']=='earthship-thermal-qualification-report/v3'
+    assert report['statistics']['historical_assessment']['statistical_forecast_gates_passed'] is True
+    assert report['statistics']['recent_prospective']['24']['gates']['persistence_skill'] is False

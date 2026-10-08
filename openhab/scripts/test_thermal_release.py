@@ -109,3 +109,11 @@ def test_qualification_completing_after_origin_preserves_original_forecast_clock
     assert output['status']=='forecast_active'
     assert output['generatedAt']==data['shadow']['generatedAt']
     assert output['release']['qualifiedAt']==now.isoformat()
+
+
+def test_previous_qualification_report_cannot_skip_recent_monitoring(monkeypatch):
+    release=module();data=inputs(monkeypatch)
+    report=data['qualification_loader'](NOW);report['schema']='earthship-thermal-qualification-report/v2'
+    report['report_sha256']=sha256(_canonical({key:value for key,value in report.items() if key!='report_sha256'})).hexdigest()
+    data['qualification_loader']=lambda _:report
+    assert release.build_release_output(**data)['status']=='unavailable'

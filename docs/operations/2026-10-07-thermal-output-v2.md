@@ -121,7 +121,8 @@ expiry and executing runtime are checked again before delivery. Failed assessmen
 or an invalid post-assessment clock publishes explicit unavailable data without
 fetching current inputs.
 
-The qualification report is now `earthship-thermal-qualification-report/v2`.
+The current qualification report is `earthship-thermal-qualification-report/v3`;
+production refuses prior v2 reports because they lack the recent-evidence monitor.
 It adds `qualification_expires_at`, derived from the least recent of the latest
 qualified prospective outcomes across supported horizons, plus the policy's
 freshness limit. Missing horizons cannot provide a deadline. Both machine and

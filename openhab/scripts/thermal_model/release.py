@@ -107,7 +107,7 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
             if age is None or age+elapsed.total_seconds()/60>20:raise ValueError('current thermal sensor stale')
         _sha(artifact_sha256);_sha(runtime_sha256);_epochs(sensor_epochs)
         report=qualification_loader(now)
-        if (not isinstance(report,dict) or report.get('schema')!='earthship-thermal-qualification-report/v2' or
+        if (not isinstance(report,dict) or report.get('schema')!='earthship-thermal-qualification-report/v3' or
                 report.get('automatic_actuation_authorized') is not False):raise ValueError('qualified decision required')
         body={key:value for key,value in report.items() if key!='report_sha256'}
         if sha256(_canonical(body)).hexdigest()!=report['report_sha256']:raise ValueError('qualification decision changed')
