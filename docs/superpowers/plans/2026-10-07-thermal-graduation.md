@@ -154,6 +154,6 @@ interval caps, while reading the correction-aware journal over the full interval
 Keep native receipts and missing barriers exact. Bind original snapshot hashes,
 measurement/assembly code identities and final input identity in a versioned
 private assembly record. Retain and verify that lineage when fitting off-host.
-The assembly library is implemented; guarded operational integration and genuine
-full-interval fitting remain open. This changes input preparation, not the model
+The assembly library and guarded command are implemented. Actual full-interval
+assembly, downstream fitting lineage verification and genuine fitting remain open. This changes input preparation, not the model
 or graduation gates.

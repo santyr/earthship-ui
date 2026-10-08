@@ -2,6 +2,8 @@
 from copy import deepcopy
 from hashlib import sha256
 import json
+import os
+import stat
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,8 +12,9 @@ from .graduation_policy import _utc,_sha
 from .runtime_bundle import _owned_bytes,_write_private,_sync_directory
 from .rollback import _rename_new
 from .temperature_history import STREAMS
+from .environment_bundle import _pacer
 from .training_inputs import (FIELDS,FLAGS,ITEMS,MAX_BYTES,MAX_SERIES_POINTS,_bounded,_digest,
-                              _window,_Series,capture_training_inputs,restore_training_inputs)
+                              _window,_Series,capture_training_inputs,restore_training_inputs,read_training_inputs)
 
 SCHEMA='earthship-thermal-training-assembly/v1'
 BINDING_FIELDS={'schema','input_snapshot_sha256s','measurement_collection_code_revision',
@@ -107,3 +110,30 @@ def write_training_assembly(directory,record,binding,records):
     finally:
         if temporary.exists():temporary.unlink()
     return target
+
+
+def inspect_training_parts(paths):
+    paths=_bounded(paths,8)
+    if len(paths)<2:raise ValueError('two to eight original input paths required')
+    result=[];total=0
+    for name in paths:
+        path=Path(name)
+        if not path.is_absolute() or path.resolve()!=path or len(str(path))>1024:raise ValueError('resolved private input path required')
+        _private_directory(path.parent);info=path.lstat()
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1):
+            raise ValueError('owned private original input file required')
+        total+=info.st_size
+        if total>MAX_BYTES:raise ValueError('aggregate original input file bytes exceed bound')
+        result.append(dict(path=str(path),device=info.st_dev,inode=info.st_ino,size=info.st_size,mtime_ns=info.st_mtime_ns,ctime_ns=info.st_ctime_ns))
+    if len({row['path'] for row in result})!=len(result):raise ValueError('distinct original input paths required')
+    return result
+
+
+def read_training_parts(paths,*,max_read_bytes_per_second=1048576):
+    if type(max_read_bytes_per_second) is not int or not 1<=max_read_bytes_per_second<=1048576:
+        raise ValueError('bounded original input read pacing required')
+    metadata=inspect_training_parts(paths);pace=_pacer(max_read_bytes_per_second);records=[]
+    for row in metadata:
+        pace.reserve(row['size']+1);records.append(read_training_inputs(Path(row['path']),maximum_bytes=row['size']))
+    if inspect_training_parts([row['path'] for row in metadata])!=metadata:raise ValueError('original input files changed during loading')
+    return records

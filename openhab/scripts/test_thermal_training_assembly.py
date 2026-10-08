@@ -151,3 +151,34 @@ def test_rehashed_non_native_measurement_change_cannot_repair_lineage():
     binding['assembled_snapshot_sha256']=assembled['snapshot_sha256'];binding['binding_sha256']=_digest({key:value for key,value in binding.items() if key!='binding_sha256'})
     restore_training_inputs(assembled)  # The standalone snapshot is internally consistent.
     with pytest.raises(ValueError):source.verify_training_assembly(assembled,binding,records)
+
+
+def test_part_loader_refuses_total_file_size_before_loading(tmp_path,monkeypatch):
+    source=module();paths=[]
+    for name in ('a','b'):
+        path=tmp_path/name;path.write_bytes(b'1234');path.chmod(0o600);paths.append(path)
+    monkeypatch.setattr(source,'MAX_BYTES',7)
+    monkeypatch.setattr(source,'read_training_inputs',lambda *args:pytest.fail('oversize source loaded'))
+    with pytest.raises(ValueError):source.read_training_parts(paths)
+
+
+def test_part_loader_reads_original_private_snapshots(tmp_path):
+    from thermal_model.training_inputs import write_training_inputs
+    source=module();data,records=parts();paths=[write_training_inputs(tmp_path,record) for record in records]
+    assert source.read_training_parts(paths)==records
+
+
+def test_part_growth_during_pacing_refuses_before_larger_read(tmp_path,monkeypatch):
+    from thermal_model.training_inputs import write_training_inputs
+    source=module();data,records=parts();paths=[write_training_inputs(tmp_path,record) for record in records]
+    class Pacer:
+        def reserve(self,size):paths[0].write_bytes(paths[0].read_bytes()+b' ')
+    monkeypatch.setattr(source,'_pacer',lambda rate:Pacer())
+    original=source.read_training_inputs;calls=[]
+    def read(path,**kwargs):
+        calls.append(kwargs)
+        if 'maximum_bytes' not in kwargs:pytest.fail('file growth reached an unreserved read')
+        return original(path,**kwargs)
+    monkeypatch.setattr(source,'read_training_inputs',read)
+    with pytest.raises(ValueError):source.read_training_parts(paths)
+    assert calls

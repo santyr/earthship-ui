@@ -339,3 +339,31 @@ must retain and verify the binding alongside the source snapshots. Library
 verification proves consistency with the supplied originals; fresh journal
 provenance still depends on the supplied reader. No production release follows
 from assembly alone.
+
+
+## Guarded assembly command
+
+`scripts/assemble-thermal-inputs.py` takes repeated `--part` paths, an explicit
+`--journal-dsn-file` and a new empty private `--destination`. Use the same verified
+resource scope and `EARTHSHIP_THERMAL_INPUT_CAPTURE=1` as input capture. The parent
+launches a fixed worker under the existing 90-second guard with fitting disabled.
+No HTTP or native-history recollection occurs; only the full-interval journal is
+read again through the bounded read-only backend.
+
+`--check-only` checks private paths, aggregate file sizes and restricted journal
+configuration without parsing snapshots, querying the journal or launching a
+worker. It is path/configuration validation, not scientific qualification.
+The worker loads two to eight original files with mandatory read pacing at or
+below 1 MiB/s. It reserves each inspected size plus one byte and enforces that
+size at the actual read boundary, so growth during the pacing wait refuses before
+larger unreserved I/O. Private ownership, address, digest and dataset reconstruction
+remain required. File metadata is rechecked after loading and journal collection.
+
+The command hashes the capture source closure plus its assembly library and CLI.
+It persists the assembly binding before the assembled input snapshot, then writes
+a minimal private `assembly-receipt.json`. Failed persistence or changed source
+context never emits a success receipt. Outputs preserve false fitting,
+installation and release flags. Internal worker markers are cooperative, as in
+capture; operators invoke the ordinary parent command. Source-permission checks
+and hosted CI must pass before actual use. Downstream fitting lineage verification
+and real off-host optimization remain required.

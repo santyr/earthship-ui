@@ -17,8 +17,8 @@ from .origin_capture import _object
 from .pipeline import _read_authorities
 from .schema import ActionEvent,ModeEvent,THERMAL_ITEMS,OPTIONAL_OBSERVATION_ITEMS
 from .temperature_history import STREAMS,STEP
-from .training_sources import build_training_sources,validate_training_sources,_read_private
-from .runtime_bundle import _write_private,_sync_directory
+from .training_sources import build_training_sources,validate_training_sources
+from .runtime_bundle import _write_private,_sync_directory,_owned_bytes
 from .rollback import _rename_new
 
 SCHEMA='earthship-thermal-training-inputs/v1'
@@ -153,11 +153,12 @@ def capture_training_inputs(*,start,end,series_reader,journal,clock,revision_rea
     return body
 
 
-def read_training_inputs(path):
-    path=Path(path)
-    if path.lstat().st_size>MAX_BYTES:raise ValueError('training input snapshot exceeds bound')
+def read_training_inputs(path,*,maximum_bytes=MAX_BYTES):
+    if type(maximum_bytes) is not int or not 1<=maximum_bytes<=MAX_BYTES:raise ValueError('bounded training input read required')
+    path=Path(path);_private_directory(path.parent)
+    if path.lstat().st_size>maximum_bytes:raise ValueError('training input snapshot exceeds bound')
     def reject(_):raise ValueError('nonfinite training input document')
-    record=json.loads(_read_private(path),object_pairs_hook=_object,parse_constant=reject)
+    record=json.loads(_owned_bytes(path,maximum_bytes),object_pairs_hook=_object,parse_constant=reject)
     restore_training_inputs(record)
     if path.name!=record['snapshot_sha256']+'.training-inputs-v1.json':raise ValueError('training snapshot address differs')
     return record
