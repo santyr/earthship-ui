@@ -287,3 +287,21 @@ identity is required. Source-bound restore reports use version 2; original versi
 external source authentication, complete cold recovery and installation/release
 qualification, which remain closed. Actual approved off-host execution and genuine
 legacy recovery are still required.
+
+
+## Current execution dependency
+
+The current integrated branch has passing hosted repository, ML hardening and
+thermal delivery checks. These tests include synthetic disposable source exports,
+restores and consumer compatibility; they do not establish household model skill.
+The retained live publication remains shadow, and no new measured candidate has
+been installed. The prepared development inputs have not been fitted.
+
+The next scientific step requires the operator-designated private off-host runner.
+Credentials/private staging are already authorized; its destination details remain
+missing. Use that worker for actual development fitting and cold recovery checks,
+retain all household data privately, then freeze the improved candidate/runtime
+and register its policy before collecting untouched/prospective release evidence.
+The private execution audit records which original completion requirements remain
+unfulfilled. Guarded installation and the positive confirmed-action advisory path
+also remain open; code/CI completion must not be substituted for the full goal.
