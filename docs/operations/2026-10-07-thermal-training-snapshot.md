@@ -150,14 +150,18 @@ redirects, disables ambient proxies, and bounds responses at 1 MiB each and 32 M
 in total. Accepted points and requests have independent caps. Byte reads share
 mandatory pacing at no more than 1 MiB/s; callers may reduce that rate.
 
-`ReadBudget` checks a monotonic deadline before and after each operation. HTTP
+`ReadBudget` spaces operation starts by at least one second, with no idle-time
+burst credit; callers may choose an integer spacing up to five seconds. A shared
+budget covers HTTP and wrapped journal operations. Pacing refuses before a
+request if its wait would reach the deadline, and rechecks after every wait.
+It checks a monotonic deadline before and after each operation. HTTP
 socket timeouts are at most five seconds. The journal DSN helper pins the local
 address, port and database, rejects alternate routing fields, and overrides
 connection, statement and lock timeouts with read-only transaction defaults.
 It neither connects nor establishes that the supplied database role is read-only.
 
 These are transport bounds, not a hard process deadline. A blocking callback or
-repeated socket reads still require an external guardian. Server query pacing,
-verified resource containment, native-history integration and the operational
+repeated socket reads still require an external guardian. Integration of the shared budget into every capture backend, verified resource
+containment, native-history integration and the operational
 capture command remain required before live collection. The tests use fake HTTP
 and parse synthetic DSNs; no household data was collected or model fitted.

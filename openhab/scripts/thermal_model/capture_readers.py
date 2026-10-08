@@ -2,7 +2,7 @@
 from datetime import datetime,timedelta,timezone
 import json
 import math
-from time import monotonic
+from time import monotonic,sleep
 from urllib.parse import urlencode
 from urllib.request import Request,build_opener,HTTPRedirectHandler,ProxyHandler
 
@@ -21,10 +21,13 @@ BASES={'http://127.0.0.1:8080/rest','http://localhost:8080/rest','http://127.0.0
 
 
 class ReadBudget:
-    def __init__(self,seconds,*,clock=monotonic,max_requests=512):
+    def __init__(self,seconds,*,clock=monotonic,max_requests=512,min_request_interval=1,sleeper=sleep):
         if type(seconds) is not int or not 1<=seconds<=90 or type(max_requests) is not int or not 1<=max_requests<=512:
             raise ValueError('bounded read deadline and request count required')
+        if type(min_request_interval) is not int or not 1<=min_request_interval<=5:
+            raise ValueError('capture requests must be spaced by one to five seconds')
         self.clock=clock;self.deadline=clock()+seconds;self.max_requests=max_requests;self.requests=0
+        self.interval=min_request_interval;self.sleeper=sleeper;self.next_request=None
     def remaining(self):
         value=self.deadline-self.clock()
         if value<=0:raise ValueError('capture read deadline exceeded')
@@ -32,6 +35,13 @@ class ReadBudget:
     def begin(self):
         remaining=self.remaining()
         if self.requests>=self.max_requests:raise ValueError('capture request count exceeded')
+        if self.next_request is not None:
+            delay=max(0,self.next_request-self.clock())
+            if delay>=remaining:raise ValueError('capture request pacing exceeds deadline')
+            if delay:self.sleeper(delay)
+            remaining=self.remaining()
+            if self.clock()<self.next_request:raise ValueError('capture request pacing interrupted')
+        self.next_request=self.clock()+self.interval
         self.requests+=1
         return min(5,remaining)
     def call(self,operation,*args,**kwargs):
@@ -56,7 +66,7 @@ class BoundedJDBCReader:
             raise ValueError('bounded approved history request required')
         result=[];left=start
         while left<end:
-            right=min(end,left+timedelta(days=1));timeout=self.budget.begin()
+            right=min(end,left+timedelta(days=1));self.budget.remaining()
             fmt='%Y-%m-%dT%H:%M:%SZ'
             # Query whole seconds outward; retain the exact half-open interval below.
             query_left=left.replace(microsecond=0)
@@ -66,6 +76,7 @@ class BoundedJDBCReader:
             token=self.token_reader()
             if not isinstance(token,str) or not 1<=len(token)<=4096 or any(ord(char)<32 for char in token):raise ValueError('bounded token required')
             request=Request(url,headers={'Authorization':'Bearer '+token},method='GET')
+            timeout=self.budget.begin()
             with self.opener(request,timeout=timeout) as response:
                 if hasattr(response,'geturl') and response.geturl()!=url:raise ValueError('capture redirect refused')
                 raw=[];count=0

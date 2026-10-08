@@ -124,3 +124,74 @@ def test_capture_byte_pacing_cannot_be_disabled_or_raised(rate):
     source=module()
     with pytest.raises(ValueError):
         source.BoundedJDBCReader(base='http://127.0.0.1:8080/rest',token_reader=lambda:'synthetic',budget=source.ReadBudget(5),max_read_bytes_per_second=rate)
+
+
+def test_budget_spaces_request_starts_without_idle_burst_credit():
+    source=module();clock=[0.];waits=[];calls=[]
+    def sleep(seconds):waits.append(seconds);clock[0]+=seconds
+    budget=source.ReadBudget(10,clock=lambda:clock[0],sleeper=sleep)
+    operation=lambda:calls.append(clock[0])
+    budget.call(operation);budget.call(operation)
+    clock[0]=5
+    budget.call(operation);budget.call(operation)
+    assert calls==[0.,1.,5.,6.] and waits==[1.,1.]
+
+
+def test_budget_does_not_wait_or_query_past_deadline():
+    source=module();clock=[0.];waits=[]
+    budget=source.ReadBudget(1,clock=lambda:clock[0],sleeper=lambda delay:waits.append(delay))
+    budget.call(lambda:None)
+    with pytest.raises(ValueError):budget.call(lambda:pytest.fail('deadline reached server'))
+    assert waits==[] and budget.requests==1
+
+
+def test_budget_rechecks_deadline_after_pacing_wait():
+    source=module();clock=[0.]
+    def oversleep(seconds):clock[0]=6
+    budget=source.ReadBudget(5,clock=lambda:clock[0],sleeper=oversleep)
+    budget.call(lambda:None)
+    with pytest.raises(ValueError):budget.call(lambda:pytest.fail('expired pacing reached server'))
+    assert budget.requests==1
+
+
+@pytest.mark.parametrize('interval',[None,0,True,.5,6])
+def test_request_pacing_cannot_be_disabled_or_unbounded(interval):
+    with pytest.raises(ValueError):module().ReadBudget(5,min_request_interval=interval)
+
+
+def test_http_and_journal_operations_share_request_pacing():
+    source=module();clock=[0.];calls=[];now=datetime(2026,8,1,tzinfo=timezone.utc)
+    def sleep(seconds):clock[0]+=seconds
+    budget=source.ReadBudget(10,clock=lambda:clock[0],sleeper=sleep,min_request_interval=2)
+    def opener(request,timeout):calls.append(('http',clock[0]));return BytesIO(b'{"data":[]}')
+    reader=source.BoundedJDBCReader(base='http://127.0.0.1:8080/rest',token_reader=lambda:'synthetic',budget=budget,opener=opener)
+    reader(THERMAL_ITEMS['air'],now,now+timedelta(days=2))
+    budget.call(lambda:calls.append(('journal',clock[0])))
+    assert calls==[('http',0.),('http',2.),('journal',4.)] and budget.requests==3
+
+
+def test_interrupted_pacing_wait_refuses_before_operation():
+    source=module();clock=[0.]
+    budget=source.ReadBudget(5,clock=lambda:clock[0],sleeper=lambda seconds:None)
+    budget.call(lambda:None)
+    with pytest.raises(ValueError):budget.call(lambda:pytest.fail('interrupted pacing reached server'))
+    assert budget.requests==1
+
+
+def test_slow_token_read_cannot_collapse_http_dispatch_spacing():
+    source=module();clock=[0.];tokens=[];calls=[];now=datetime(2026,8,1,tzinfo=timezone.utc)
+    def sleep(seconds):clock[0]+=seconds
+    def token():
+        if not tokens:clock[0]+=2
+        tokens.append(True);return 'synthetic'
+    def opener(request,timeout):calls.append(clock[0]);return BytesIO(b'{"data":[]}')
+    reader=source.BoundedJDBCReader(base='http://127.0.0.1:8080/rest',token_reader=token,budget=source.ReadBudget(10,clock=lambda:clock[0],sleeper=sleep),opener=opener)
+    reader(THERMAL_ITEMS['air'],now,now+timedelta(days=2))
+    assert calls==[2.,3.]
+
+
+def test_token_read_expiring_deadline_refuses_http_dispatch():
+    source=module();clock=[0.];now=datetime(2026,8,1,tzinfo=timezone.utc)
+    def token():clock[0]=6;return 'synthetic'
+    reader=source.BoundedJDBCReader(base='http://127.0.0.1:8080/rest',token_reader=token,budget=source.ReadBudget(5,clock=lambda:clock[0]),opener=lambda *args,**kwargs:pytest.fail('expired token reached HTTP'))
+    with pytest.raises(ValueError):reader(THERMAL_ITEMS['air'],now,now+timedelta(hours=1))
