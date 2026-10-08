@@ -270,3 +270,11 @@ Source snapshot observations do not independently authenticate the exporter.
 Receipts keep external authentication and all recovery/install/release authority
 closed. Trusted receipt verification/pinning, actual private source acquisition
 when headroom passes, and genuine off-host restored legacy rehearsal remain open.
+
+
+Original source receipt integrity verification now requires independent receipt
+and exporter-code pins, exact private generation membership, immutable original
+hashes and transfer/schema/role/row-proof/clock binding. A file's self-declared
+positive flag does not authenticate it. The helper opens no connection or restore
+and keeps external authentication and release closed; actual off-host integration
+and trusted source handoff still remain open.

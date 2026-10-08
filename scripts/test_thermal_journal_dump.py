@@ -135,7 +135,7 @@ def test_outer_capture_deadline_terminates_nested_dump_child(tmp_path,monkeypatc
     monkeypatch.setattr(capture_guard,'verify_host_headroom',lambda:None)
     pin=tmp_path/'nested.pid';marker='guard-dump-fixture-'+uuid4().hex
     payload='import os,time; from pathlib import Path; Path('+repr(str(pin))+').write_text(str(os.getpid())); time.sleep(20)'
-    code='import sys,subprocess; import thermal_journal_dump as dump; real=subprocess.Popen\n'
+    code='import sys,subprocess; sys.path.insert(0,'+repr(str(Path(__file__).resolve().parent))+'); import thermal_journal_dump as dump; real=subprocess.Popen\n'
     code+='def launch(argv,**kwargs): return real([sys.executable,"-c",'+repr(payload)+','+repr(marker)+'],**kwargs)\n'
     code+='dump.subprocess.Popen=launch\n'
     code+='dump.dump_journal(target='+repr(str(tmp_path/'nested.dump'))+',params=dict(host="127.0.0.1",port="5432",dbname="openhab",user="fixture_reader",password="synthetic-only"),snapshot="00000003-0000001B-1")\n'

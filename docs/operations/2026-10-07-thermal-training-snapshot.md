@@ -658,3 +658,19 @@ file permissions, then reload unit definitions. The guard uses kernel memory
 metadata only, imports no model code and invokes no trainer. Condition exit 1
 skips training; the existing timer remains scheduled. Heavy qualification fits
 and journal restores still belong on the designated off-host worker.
+
+
+### Verify original source receipt integrity
+
+`thermal_journal_source_receipt.read_source_export` verifies a private generation
+against independently supplied original receipt and exporter-code digests. Obtain
+those pins through the approved private handoff; deriving the expected pins from
+the untrusted transferred files does not establish their origin. The verifier
+checks exact receipt fields, private ownership/modes, content addresses, source
+clocks and schema/role/table-proof bindings against the retained archive bytes.
+It rejects relabelled or rehashed authority claims.
+
+This component verifies original byte binding only. It opens no database and
+performs no restore. External exporter authentication, complete cold-environment
+qualification, installation and release flags remain false. Integration into the
+off-host restorer and genuine private source acquisition remain separate steps.

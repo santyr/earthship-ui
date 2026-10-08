@@ -8,6 +8,7 @@ from test_thermal_airflow_migration import database
 from thermal_model.schema import ActionEvent
 from thermal_journal_restore_transfer import _live
 from thermal_journal_transfer import read_journal_transfer
+from thermal_journal_source_receipt import read_source_export
 
 
 @pytest.mark.parametrize('version',['v1','v2'])
@@ -42,6 +43,7 @@ def test_disposable_source_exports_one_bound_original_generation(database,tmp_pa
     package=generation/'transfer'/record['transfer_sha256']
     assert read_journal_transfer(package)['archive_sha256']==record['archive_sha256']
     assert record['table_proofs']['action_events']['rows']==1
+    assert read_source_export(generation,expected_receipt_sha256=receipt['source_receipt_sha256'],expected_exporter_revision=record['source_code_revision'])==record
     assert record['source_snapshot_observed'] is True
     assert record['source_export_authenticated'] is False and record['release_authorized'] is False
     live.backup._check_journal_archive(package/'journal.dump')
