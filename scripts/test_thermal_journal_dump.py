@@ -128,6 +128,10 @@ def test_outer_capture_deadline_terminates_nested_dump_child(tmp_path,monkeypatc
     import signal
     from thermal_model import capture_guard
     from uuid import uuid4
+    # Lifecycle behavior is independent of the runner's cgroup and niceness.
+    # Dedicated capture_guard tests validate those preflight requirements.
+    monkeypatch.setattr(capture_guard,'verify_resource_limits',lambda:None)
+    monkeypatch.setattr(capture_guard.os,'getpriority',lambda *args:15)
     monkeypatch.setattr(capture_guard,'verify_host_headroom',lambda:None)
     pin=tmp_path/'nested.pid';marker='guard-dump-fixture-'+uuid4().hex
     payload='import os,time; from pathlib import Path; Path('+repr(str(pin))+').write_text(str(os.getpid())); time.sleep(20)'
