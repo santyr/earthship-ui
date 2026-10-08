@@ -480,3 +480,32 @@ pass. Preregister thresholds, candidate, runtime, epochs and untouched intervals
 before inspecting release outcomes; earlier inspected outcomes remain development
 data. Real numerical proof, independent outcome support and rollback gates remain
 required before activation.
+
+
+## Private journal transfer input format
+
+`scripts/thermal_journal_transfer.py` supplies `prepare_journal_transfer` and
+`read_journal_transfer` for a private `earthship-thermal-journal-transfer/v1`
+generation. This component only packages an existing archive and explicit exporter
+declarations; it does not export a database, transfer files over a network or run a
+restore. Use an existing private mode-0700 package directory and an owned mode-0600
+archive with a custom-format `PGDMP` marker. Files larger than 32 MB refuse before
+copy. Reads are streamed with mandatory pacing no faster than 1 MiB/s and exact
+inspected-file bounds at the descriptor. Source replacement/growth and changed
+metadata refuse preparation; partial unpublished generations are removed.
+
+The two-file generation contains `journal.dump` and `manifest.json`. The manifest
+binds actual archive digest/size to explicit v1/v2 schema fingerprint, restricted
+role name, all three table row proofs, source code digest and export/preparation
+clocks. Its content-addressed directory publishes atomically without replacement.
+Reading rechecks private ownership/modes, exact membership, address, manifest and
+archive bytes. Restore, consumer, installation and release flags must all be false,
+even after an outer rehash. No credentials are included in the manifest.
+
+Table proofs, source role and export time remain exporter declarations. The
+`PGDMP` marker is not SQL object validation or source authentication. Before actual
+off-host restore, a trusted bounded exporter must produce one consistent read-only
+source snapshot, and the restorer must validate permitted dump objects, restore
+only into an owned disposable target, compare genuine row digests and execute the
+retained compatible consumer. Those adapters and the real rehearsal remain open.
+Keep archives, manifests and row digests private; never attach them to hosted CI.

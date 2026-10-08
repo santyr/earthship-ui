@@ -199,3 +199,21 @@ regressions, then rerun hosted suites and review before rollout:
 These are implementation defects, separate from the still-missing real fitting,
 untouched/prospective evidence, restored-journal qualification, guarded recovery
 installation and confirmed-action advisory path. Activation remains closed.
+
+
+### Task 5 addendum: separate journal export from off-host restore
+
+The existing live journal qualification command couples a household export with
+Docker restore on the same machine. Host protection requires separating those
+steps before a genuine restore rehearsal can run on the designated off-host worker.
+
+The versioned private `thermal_journal_transfer` component binds a supplied custom
+archive to explicit exporter declarations: schema, role, table row digests, source
+code identity and clocks. It retains exact bytes under streaming size/pacing bounds
+and verifies immutable private membership and content addresses. It does not query
+a source, authenticate declarations, inspect SQL objects, run PostgreSQL/Docker or
+claim restore/consumer/install/release qualification. All corresponding flags stay
+false. The source exporter and off-host restorer must still bind one genuine
+read-only source snapshot, validate dump contents, compare restored row proofs,
+execute the compatible consumer and prove disposable cleanup before qualifying
+journal recovery. No Task 5 completion follows from package tests.
