@@ -161,7 +161,34 @@ connection, statement and lock timeouts with read-only transaction defaults.
 It neither connects nor establishes that the supplied database role is read-only.
 
 These are transport bounds, not a hard process deadline. A blocking callback or
-repeated socket reads still require an external guardian. Integration of the shared budget into every capture backend, verified resource
+repeated socket reads must run under the worker guard described below. Integration of the shared budget into every capture backend, verified resource
 containment, native-history integration and the operational
 capture command remain required before live collection. The tests use fake HTTP
 and parse synthetic DSNs; no household data was collected or model fitted.
+
+
+## Capture worker guard
+
+`thermal_model.capture_guard.run_guarded_capture` refuses unless the current
+Linux unified cgroup enforces CPU at or below 25%, memory at or below 768 MiB,
+zero swap and at most 48 tasks, and the process has nice priority 15 or lower
+scheduling priority. It checks kernel files rather than relying on requested
+systemd properties. Where the I/O controller is available, its default weight
+must be at most 10 with no device override. Otherwise the process must have
+verified idle I/O priority. Idle priority is scheduling preference, not an I/O
+throughput cap; transport byte pacing remains mandatory.
+
+A trusted caller supplies the fixed capture worker argv. The guard uses no shell,
+forces fitting intent off and numerical threads to one, and discards child stdout
+and stderr to avoid buffering data or leaking credentials. Private receipts must
+be written by the eventual capture worker. A monotonic deadline of at most 90
+seconds terminates the fresh worker process group, including inherited descendants,
+on timeout or leader exit. The leader remains unreaped until group cleanup to
+prevent PID reuse during signaling. Cleanup allows two seconds for leader reaping.
+
+This protects a cooperative, trusted capture worker. It does not prevent a
+malicious descendant from creating another session, and an uninterruptible kernel
+wait may delay termination. It creates no resource scope and performs no live
+collection. Operational integration, source budgets and actual private capture
+remain unfinished. Small worker tests exercise success, timeout, signaled status
+and inherited-child cleanup; source collection and optimization are absent.
