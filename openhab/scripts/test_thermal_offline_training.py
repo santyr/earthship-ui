@@ -115,3 +115,73 @@ def test_interrupted_binding_write_cleans_private_partial_file(tmp_path,monkeypa
     monkeypatch.setattr(source,'_write_private',interrupted)
     with pytest.raises(OSError):source._persist_binding(tmp_path,dict(schema=source.SCHEMA,release_authorized=False))
     assert list(tmp_path.iterdir())==[]
+
+
+def assembled_case(tmp_path,monkeypatch):
+    from test_thermal_training_assembly import parts,module as assembly_module
+    data,parents=parts()
+    record,binding=assembly_module().assemble_training_inputs(parents,journal=data['journal'],clock=lambda:data['end'],revision_reader=lambda:'c'*64)
+    _,_,artifact=setup_case(tmp_path,monkeypatch)
+    artifact=replace(artifact,data_manifest={**artifact.data_manifest,**record['dataset_manifest'],'temperature_evidence':record['temperature_evidence']})
+    return data,record,binding,parents,artifact
+
+
+@pytest.mark.parametrize('damage',['missing_binding','missing_parents','changed_parent'])
+def test_invalid_assembly_lineage_refuses_before_training(tmp_path,monkeypatch,damage):
+    source=module();data,record,binding,parents,_=assembled_case(tmp_path,monkeypatch)
+    if damage=='missing_binding':binding=None
+    elif damage=='missing_parents':parents=None
+    else:parents[0]['snapshot_sha256']='d'*64
+    monkeypatch.setattr(source,'run_training',lambda **kwargs:pytest.fail('invalid lineage reached fitting'))
+    with pytest.raises(ValueError):
+        source.run_snapshot_training(record,registry=None,fit_evidence_directory=tmp_path,clock=lambda:data['end'],revision_reader=lambda:'b'*64,assembly_binding=binding,assembly_inputs=parents)
+    assert list(tmp_path.iterdir())==[]
+
+
+@pytest.mark.parametrize('reversed_parts',[False,True])
+def test_assembled_training_retains_frozen_parents_and_binding_before_promotion(tmp_path,monkeypatch,reversed_parts):
+    source=module();data,record,binding,parents,artifact=assembled_case(tmp_path,monkeypatch)
+    original_ids=[parent['snapshot_sha256'] for parent in parents]
+    if reversed_parts:parents.reverse()
+    monkeypatch.setattr(source,'write_training_sources',lambda *args:None)
+    def train(**kwargs):
+        # Caller-owned inputs changing after validation must not alter retained proof.
+        parents[0]['snapshot_sha256']='d'*64;binding['binding_sha256']='e'*64
+        kwargs['training_sources_writer'](artifact,{})
+        retained=list(tmp_path.glob('*.training-inputs-v1.json'))
+        assert len(retained)==3
+        assert set(original_ids+[record['snapshot_sha256']])=={json.loads(path.read_text())['snapshot_sha256'] for path in retained}
+        assembly=list(tmp_path.glob('*.training-assembly-v1.json'));assert len(assembly)==1
+        values=list(tmp_path.glob('*.training-input-binding-v2.json'));assert len(values)==1
+        value=json.loads(values[0].read_text())
+        assert value['schema']=='earthship-thermal-training-input-binding/v2'
+        assert value['input_snapshot_sha256s']==original_ids
+        assert value['assembly_binding_sha256']==json.loads(assembly[0].read_text())['binding_sha256']
+        assert value['release_authorized'] is False
+        return SimpleNamespace(artifact=artifact,promoted=True)
+    monkeypatch.setattr(source,'run_training',train)
+    assert source.run_snapshot_training(record,registry=None,fit_evidence_directory=tmp_path,clock=lambda:data['end'],revision_reader=lambda:'b'*64,assembly_binding=binding,assembly_inputs=parents).promoted
+
+
+@pytest.mark.parametrize('failure',['parent','combined','assembly'])
+def test_real_pipeline_lineage_storage_failure_preserves_candidate(tmp_path,monkeypatch,failure):
+    from functools import partial
+    import thermal_model.pipeline as pipeline
+    import thermal_model.fit_evidence as fit_evidence
+    from test_thermal_pipeline import RecordingRegistry,multihorizon_fit_result,warm_behavior,backtest_report
+    source=module();data,record,binding,parents,_=assembled_case(tmp_path,monkeypatch);registry=RecordingRegistry()
+    monkeypatch.setattr(fit_evidence,'build_fit_evidence',lambda *args:dict(release_authorized=False))
+    monkeypatch.setattr(source,'run_training',partial(pipeline.run_training,
+        dynamics_fitter=lambda rows,**kwargs:multihorizon_fit_result(),behavior_fitter=lambda rows:warm_behavior(),
+        evaluator=lambda rows,fitter:backtest_report(eligible=True),artifact_validator=lambda artifact:artifact))
+    def interrupted(*args,**kwargs):raise OSError('controlled lineage storage failure')
+    if failure=='combined':
+        writer=source.write_training_inputs
+        def save_input(root,value):
+            if value['snapshot_sha256']==record['snapshot_sha256']:interrupted()
+            return writer(root,value)
+        monkeypatch.setattr(source,'write_training_inputs',save_input)
+    else:monkeypatch.setattr(source,'write_training_inputs' if failure=='parent' else 'write_training_assembly',interrupted)
+    with pytest.raises(pipeline.TrainingRefused):
+        source.run_snapshot_training(record,registry=registry,fit_evidence_directory=tmp_path,clock=lambda:data['end'],revision_reader=lambda:'b'*64,assembly_binding=binding,assembly_inputs=parents)
+    assert registry.calls==['report'] and registry.artifact is None

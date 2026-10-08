@@ -182,3 +182,17 @@ def test_part_growth_during_pacing_refuses_before_larger_read(tmp_path,monkeypat
     monkeypatch.setattr(source,'read_training_inputs',read)
     with pytest.raises(ValueError):source.read_training_parts(paths)
     assert calls
+
+
+@pytest.mark.parametrize('damage',['exposed','duplicate','nonfinite','wrong_address'])
+def test_private_assembly_reader_refuses_invalid_original(tmp_path,damage):
+    import json
+    data,records=parts();source=module()
+    record,binding=source.assemble_training_inputs(records,journal=data['journal'],clock=lambda:data['end'],revision_reader=lambda:'c'*64)
+    path=source.write_training_assembly(tmp_path,record,binding,records)
+    if damage=='exposed':path.chmod(0o644)
+    elif damage=='duplicate':path.write_text(path.read_text()[:-1]+',"release_authorized":false}')
+    elif damage=='nonfinite':path.write_text(path.read_text()[:-1]+',"unexpected":NaN}')
+    else:
+        changed=tmp_path/('d'*64+'.training-assembly-v1.json');path.rename(changed);path=changed
+    with pytest.raises(ValueError):source.read_training_assembly(path,record,records)

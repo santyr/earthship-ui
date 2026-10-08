@@ -69,3 +69,33 @@ def test_fit_revision_binds_snapshot_wrapper_and_cli_sources(monkeypatch):
     assert {'openhab/scripts/thermal_model/training_inputs.py','openhab/scripts/thermal_model/offline_training.py','scripts/train-thermal-snapshot.py'}<=set(seen)
     content[0]=b'changed source'
     assert command._fit_code_revision()!=first
+
+
+@pytest.mark.parametrize('helper',['rollback','training_assembly','environment_bundle'])
+def test_fit_revision_changes_when_executed_lineage_helper_changes(monkeypatch,helper):
+    command=cli();changed=[False]
+    def read(path,maximum):
+        return b'changed helper' if changed[0] and path.name==helper+'.py' else b'original source'
+    monkeypatch.setattr(command,'_source_bytes',read)
+    before=command._fit_code_revision();changed[0]=True
+    assert command._fit_code_revision()!=before
+
+
+def test_verify_assembled_lineage_without_fitting(tmp_path,monkeypatch,capsys):
+    from test_thermal_training_assembly import parts,module as assembly_module
+    data,parents=parts();source=assembly_module()
+    record,binding=source.assemble_training_inputs(parents,journal=data['journal'],clock=lambda:data['end'],revision_reader=lambda:'c'*64)
+    path=input_module().write_training_inputs(tmp_path,record)
+    binding_path=source.write_training_assembly(tmp_path,record,binding,parents)
+    parent_paths=[input_module().write_training_inputs(tmp_path,parent) for parent in parents]
+    command=cli();monkeypatch.setattr(command,'run_snapshot_training',lambda *args,**kwargs:pytest.fail('verification reached fitting'))
+    arguments=['--snapshot',str(path),'--verify-only','--assembly-binding',str(binding_path)]
+    for parent in parent_paths:arguments+=['--input-part',str(parent)]
+    assert command.main(arguments)==0
+    assert json.loads(capsys.readouterr().out)['assembly_binding_sha256']==binding['binding_sha256']
+    damaged=json.loads(binding_path.read_text());damaged['input_snapshot_sha256s'][0]='d'*64
+    from thermal_model.training_inputs import _digest
+    damaged['binding_sha256']=_digest({key:value for key,value in damaged.items() if key!='binding_sha256'})
+    wrong=tmp_path/(damaged['binding_sha256']+'.training-assembly-v1.json');wrong.write_text(json.dumps(damaged));wrong.chmod(0o600)
+    arguments[arguments.index(str(binding_path))]=str(wrong)
+    assert command.main(arguments)==2

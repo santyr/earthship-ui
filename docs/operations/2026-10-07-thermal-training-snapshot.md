@@ -333,10 +333,9 @@ measurements/grids; internally consistent rehashing of a changed assembled
 measurement cannot repair its lineage. Private content-addressed binding writes
 are atomic, do not replace files, and clean partial temporary files.
 
-This is a library component. The guarded assembly command, actual full-interval
-assembly and downstream fitting integration remain required. Downstream fitting
-must retain and verify the binding alongside the source snapshots. Library
-verification proves consistency with the supplied originals; fresh journal
+The guarded command and fitting integration below preserve this binding. Actual
+full-interval assembly and real off-host fitting still require private evidence.
+Library verification proves consistency with the supplied originals; fresh journal
 provenance still depends on the supplied reader. No production release follows
 from assembly alone.
 
@@ -365,5 +364,41 @@ a minimal private `assembly-receipt.json`. Failed persistence or changed source
 context never emits a success receipt. Outputs preserve false fitting,
 installation and release flags. Internal worker markers are cooperative, as in
 capture; operators invoke the ordinary parent command. Source-permission checks
-and hosted CI must pass before actual use. Downstream fitting lineage verification
-and real off-host optimization remain required.
+and hosted CI must pass before actual use. Real off-host optimization remains required.
+
+
+## Verify and retain assembly lineage during fitting
+
+For assembled inputs, supply `--assembly-binding` and repeat `--input-part` for
+every original snapshot when invoking `train-thermal-snapshot.py`, both for
+`--verify-only` and for off-host `--fit`. The options are required together.
+Original part reads retain their aggregate bounds and mandatory byte pacing.
+The binding reader requires a private, bounded, content-addressed original file
+and refuses duplicate keys and nonfinite JSON values. It verifies the complete
+assembly against the supplied original parts before fitting begins.
+
+```bash
+python scripts/train-thermal-snapshot.py \
+  --snapshot /private/COMBINED_SHA.training-inputs-v1.json \
+  --assembly-binding /private/BINDING_SHA.training-assembly-v1.json \
+  --input-part /private/FIRST_SHA.training-inputs-v1.json \
+  --input-part /private/SECOND_SHA.training-inputs-v1.json --verify-only
+```
+
+On the designated off-host worker, use the same lineage options with the existing
+explicit fitting opt-in, `--fit`, and new separate private state/proof directories.
+The wrapper freezes validated caller inputs, then persists the original parents,
+combined snapshot and assembly binding in the proof directory before candidate
+promotion. An `earthship-thermal-training-input-binding/v2` record binds the
+assembly digest and original input digests to the candidate artifact and fit code
+revision. Ordinary unassembled snapshots retain the v1 binding contract. Failed
+lineage persistence prevents promotion. No binding authorizes production release.
+
+The fit revision also includes the assembly verifier, pacing helper and atomic
+rename helper. Verification-only mode performs no optimizer work. Real numerical
+qualification, untouched evaluation and production gates remain separate.
+
+The underlying input schema remains v1 and does not itself distinguish an
+assembled snapshot from an ordinary capture. Supply the lineage options explicitly
+for assembled inputs; omitting both uses the ordinary snapshot path and does not
+verify parent lineage. Such verification is not a production release gate pass.

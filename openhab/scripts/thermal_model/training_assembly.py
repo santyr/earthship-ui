@@ -14,7 +14,7 @@ from .rollback import _rename_new
 from .temperature_history import STREAMS
 from .environment_bundle import _pacer
 from .training_inputs import (FIELDS,FLAGS,ITEMS,MAX_BYTES,MAX_SERIES_POINTS,_bounded,_digest,
-                              _window,_Series,capture_training_inputs,restore_training_inputs,read_training_inputs)
+                              _window,_Series,_object,capture_training_inputs,restore_training_inputs,read_training_inputs)
 
 SCHEMA='earthship-thermal-training-assembly/v1'
 BINDING_FIELDS={'schema','input_snapshot_sha256s','measurement_collection_code_revision',
@@ -137,3 +137,13 @@ def read_training_parts(paths,*,max_read_bytes_per_second=1048576):
         pace.reserve(row['size']+1);records.append(read_training_inputs(Path(row['path']),maximum_bytes=row['size']))
     if inspect_training_parts([row['path'] for row in metadata])!=metadata:raise ValueError('original input files changed during loading')
     return records
+
+
+def read_training_assembly(path,record,records):
+    path=Path(path);_private_directory(path.parent)
+    def reject(value):raise ValueError('nonfinite assembly binding refused')
+    binding=json.loads(_owned_bytes(path,16000),object_pairs_hook=_object,parse_constant=reject)
+    verify_training_assembly(record,binding,records)
+    if path.name!=binding['binding_sha256']+'.training-assembly-v1.json':
+        raise ValueError('original assembly content-addressed filename required')
+    return binding
