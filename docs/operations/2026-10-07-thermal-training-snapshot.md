@@ -139,3 +139,25 @@ Local tests exercise real pipeline orchestration with all numerical boundaries
 replaced by controlled fixtures. Genuine optimizer verification runs in hosted CI
 or on the designated worker. Actual capture, off-host placement, real fitting and
 candidate qualification remain open.
+
+
+## Capture transport limits
+
+The capture-only `thermal_model.capture_readers` library permits GET requests to
+explicit loopback OpenHAB endpoints for known training Items. It requests at most
+one day per query, preserves exact fractional interval boundaries, refuses
+redirects, disables ambient proxies, and bounds responses at 1 MiB each and 32 MB
+in total. Accepted points and requests have independent caps. Byte reads share
+mandatory pacing at no more than 1 MiB/s; callers may reduce that rate.
+
+`ReadBudget` checks a monotonic deadline before and after each operation. HTTP
+socket timeouts are at most five seconds. The journal DSN helper pins the local
+address, port and database, rejects alternate routing fields, and overrides
+connection, statement and lock timeouts with read-only transaction defaults.
+It neither connects nor establishes that the supplied database role is read-only.
+
+These are transport bounds, not a hard process deadline. A blocking callback or
+repeated socket reads still require an external guardian. Server query pacing,
+verified resource containment, native-history integration and the operational
+capture command remain required before live collection. The tests use fake HTTP
+and parse synthetic DSNs; no household data was collected or model fitted.

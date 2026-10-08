@@ -138,7 +138,8 @@ and bind post-cutover raw values directly to receipts. Collection and restored
 interval expansion must be bounded before I/O/building. No capture flag grants
 fitting, installation or release authority.
 
-The component is implemented and tested. Operational capture/query-budget tooling,
-offline fitter integration, an actual private development snapshot, the designated
+The input component, offline fitter integration and bounded capture transport
+are implemented and tested. Operational capture tooling with an external guardian,
+server query pacing and native-history integration, an actual private development snapshot, the designated
 off-host runner and genuine measured candidate fitting remain required. No Task 3
 completion or production qualification follows from component tests alone.
