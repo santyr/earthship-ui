@@ -178,10 +178,14 @@ regressions, then rerun hosted suites and review before rollout:
   Clearing candidate/advice metadata after simulating an optimized hypothetical
   action schedule does not produce that forecast. Preserve existing default v1
   behavior; test a real pipeline fixture where candidate and baseline differ.
-- [ ] Refuse mixed non-null sensor epochs across trailing origin receipts before
+- [x] Refuse mixed non-null sensor epochs across trailing origin receipts before
   latent mass-state construction. Validate every receipt against the declared
   epoch; test changing a non-latest receipt to a different valid UUID, including
-  rebuilt outer hashes and release refusal.
+  rebuilt outer hashes and release refusal. Native collection and both archive
+  versions now reject mixed histories before emitting state/proof or computing
+  latent mass. Missing barriers and distinct uniform epochs across roles remain
+  valid. Fifteen regression cases reproduced the gap before the fix; focused
+  origin/capture/native-receipt checks passed. Hosted full suites remain required.
 
 These are implementation defects, separate from the still-missing real fitting,
 untouched/prospective evidence, restored-journal qualification, guarded recovery

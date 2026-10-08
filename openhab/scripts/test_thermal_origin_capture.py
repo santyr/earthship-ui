@@ -229,3 +229,50 @@ def test_native_origin_identity_requires_integer_sensor_id():
     from thermal_model.origin_capture import build_origin_capture
     data=capture_inputs();data['origin_temperatures']['roles']['air']['identity']['sensor_id']=235.0
     with pytest.raises(ValueError,match='identity'):build_origin_capture(**data)
+
+
+@pytest.mark.parametrize('role',['air','mass','outdoor'])
+@pytest.mark.parametrize('rehashed',[False,True])
+def test_origin_refuses_valid_nonlatest_epoch_change_even_after_rehash(role,rehashed):
+    from hashlib import sha256
+    from thermal_model.forcing_capture import _canonical
+    from thermal_model.origin_capture import build_origin_capture,validate_origin_capture
+    data=capture_inputs()
+    if rehashed:
+        record=build_origin_capture(**data)
+        record['origin_temperatures']['roles'][role]['grid'][0][1]['streamEpoch']='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
+        record['sha256']['origin_temperatures']=sha256(_canonical(record['origin_temperatures'])).hexdigest()
+        with pytest.raises(ValueError,match='epoch'):validate_origin_capture(record)
+    else:
+        data['origin_temperatures']['roles'][role]['grid'][0][1]['streamEpoch']='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
+        with pytest.raises(ValueError,match='epoch'):build_origin_capture(**data)
+
+
+@pytest.mark.parametrize('stream',['indoor','north_wall','outdoor'])
+@pytest.mark.parametrize('observed',[False,True])
+def test_native_shadow_mixed_epoch_refuses_before_emitting_initial_state(stream,observed):
+    saved=[]
+    def changed(name,targets,assessed):
+        rows=grid(name,targets,assessed)
+        if name==stream:rows[0][1]['streamEpoch']='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
+        return rows
+    with pytest.raises(ValueError,match='epoch'):
+        shadow_temperatures(NOW,changed,origin_observer=saved.append if observed else None)
+    assert saved==[]
+
+
+@pytest.mark.parametrize('role',['air','mass','outdoor'])
+def test_missing_origin_history_barrier_preserves_uniform_remaining_epoch(role):
+    from thermal_model.origin_capture import build_origin_capture
+    data=capture_inputs();rows=data['origin_temperatures']['roles'][role]['grid'];rows[0]=(rows[0][0],None)
+    record=build_origin_capture(**data)
+    assert record['source_epochs'][role]==EPOCH
+    assert record['origin_temperatures']['roles'][role]['grid'][0][1] is None
+
+
+def test_distinct_role_epochs_are_preserved_when_each_history_is_uniform():
+    from thermal_model.origin_capture import build_origin_capture
+    data=capture_inputs();other='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
+    for _,receipt in data['origin_temperatures']['roles']['mass']['grid']:receipt['streamEpoch']=other
+    record=build_origin_capture(**data)
+    assert record['source_epochs']==dict(air=EPOCH,mass=other,outdoor=EPOCH)

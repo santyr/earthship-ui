@@ -96,6 +96,8 @@ def shadow_temperatures(now, grid_reader, *, origin_observer=None):
                 latest = value
         if latest is None:
             raise ValueError(f'unqualified current {role} temperature receipt')
+        if len({value['streamEpoch'] for _, value in rows if value is not None})>1:
+            raise ValueError(f'mixed native {role} sensor epochs')
         if origin_observer is not None:
             proof['roles'][role] = dict(
                 identity=dict(stream=stream, model=model, sensor_id=sensor_id),

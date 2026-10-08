@@ -402,3 +402,16 @@ The underlying input schema remains v1 and does not itself distinguish an
 assembled snapshot from an ordinary capture. Supply the lineage options explicitly
 for assembled inputs; omitting both uses the ordinary snapshot path and does not
 verify parent lineage. Such verification is not a production release gate pass.
+
+
+## Origin sensor epoch consistency
+
+Native initial-state collection and original v1/v2 archive validation require all
+non-null trailing receipts for each sensor role to share the current receipt's
+epoch. A valid UUID change within a history refuses that history before initial
+state or proof is emitted and before latent mass reconstruction. Different sensor
+roles may have different uniform epochs; missing receipts stay missing barriers.
+Recomputing archive hashes cannot make a mixed history qualified. No reset or
+relabeling policy is inferred. The release command withdraws to unavailable when
+this source check fails. Historical archives that violate it remain unsuitable
+for release scoring; preserve their original bytes for diagnosis.

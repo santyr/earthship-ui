@@ -158,3 +158,30 @@ def test_release_archive_retains_actual_runtime_bundle_and_private_origin(tmp_pa
     bundles = [entry for entry in bundles if entry.is_dir()]
     assert len(bundles) == 1
     assert read_runtime_bundle(bundles[0])['release_authorized'] is False
+
+
+@pytest.mark.parametrize('role',['air','mass','outdoor'])
+def test_release_mixed_origin_epoch_withdraws_before_active_publication(tmp_path,monkeypatch,role):
+    from test_thermal_release_runtime import release_case
+    from test_thermal_release import shift
+    from thermal_model.forcing_capture import _canonical
+    thermal,args,_,now=release_case(tmp_path,monkeypatch)
+    original=capture_inputs()
+    proof=shift(json.loads(_canonical(original['origin_temperatures'])))
+    current=shift(json.loads(_canonical(original['current'])))
+    proof['roles'][role]['grid'][0][1]['streamEpoch']='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
+    def observed(at,*,origin_observer):origin_observer(deepcopy(proof));return deepcopy(current)
+    monkeypatch.setattr(thermal,'_current_states',observed)
+    sent=[]
+    assert thermal._release(args,now,put_state=lambda item,raw:sent.append(json.loads(raw)),decision_clock=lambda:now,qualification_clock=lambda:now)==1
+    assert len(sent)==1 and sent[0]['status']=='unavailable'
+    assert sent[0]['forecast']['trajectory']==[]
+    assert sent[0]['release']['forecastQualified'] is False
+
+
+@pytest.mark.parametrize('role',['air','mass','outdoor'])
+def test_v2_origin_archive_refuses_mixed_epochs_after_rehash(monkeypatch,role):
+    record=origin_capture.build_release_origin_capture(**data(monkeypatch))
+    record['origin_temperatures']['roles'][role]['grid'][0][1]['streamEpoch']='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
+    record['sha256']['origin_temperatures']=sha256(_canonical(record['origin_temperatures'])).hexdigest()
+    with pytest.raises(ValueError,match='epoch'):origin_capture.validate_release_origin_capture(record)

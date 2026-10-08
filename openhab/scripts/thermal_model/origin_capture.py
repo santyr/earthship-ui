@@ -105,6 +105,8 @@ def _temperatures(proof,current,*,issued_at,published_at):
             if receipt is not None:_validate_receipt(receipt,target)
             if target<observed:
                 history.append((target,math.nan if receipt is None else receipt['temperatureF']))
+        if len({row[1]['streamEpoch'] for row in rows if row[1] is not None})>1:
+            raise ValueError('mixed native origin sensor epochs')
         latest=rows[-1][1]
         if latest is None:raise ValueError('current native origin receipt unavailable')
         if not _utc(latest['validUntil'])>published_at:
