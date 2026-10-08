@@ -111,3 +111,29 @@ def native_dependency_closure(seeds, *, libraries):
             queue.append((Path(libraries[name]), abi))
     return dict(schema='earthship-thermal-native-closure/v1', files=files,
         cold_environment_qualified=False, production_qualified=False)
+
+
+def bound_native_dependency_closure(seeds, *, libraries):
+    """Preserve required name bindings in a separate versioned metadata graph.
+
+    Bind this graph to retained byte manifests before recovery. It does not
+    attest loader search behavior, symbols, lazy dependencies or cold execution.
+    """
+    if not isinstance(seeds, (list, tuple)) or not 1 <= len(seeds) <= MAX_NATIVE_FILES:
+        raise ValueError('explicit bounded native roots required')
+    if not isinstance(libraries, dict) or len(libraries) > 20000:
+        raise ValueError('explicit bounded library bindings required')
+    original_seeds = [str(Path(path)) for path in seeds]
+    supplied = dict(libraries)
+    closure = native_dependency_closure(original_seeds, libraries=supplied)
+    required = set()
+    for metadata in closure['files'].values():
+        required.update(metadata['needed'])
+        if metadata['interpreter'] is not None: required.add(metadata['interpreter'])
+    bindings = {name: str(Path(supplied[name])) for name in sorted(required)}
+    if any(path not in closure['files'] for path in bindings.values()):
+        raise ValueError('native binding target absent from closure')
+    return dict(schema='earthship-thermal-native-closure/v2',
+        seeds=list(dict.fromkeys(original_seeds)), bindings=bindings,
+        files=closure['files'], cold_environment_qualified=False,
+        production_qualified=False)

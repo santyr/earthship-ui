@@ -66,3 +66,33 @@ def test_malformed_elf_metadata_cannot_claim_closure(tmp_path,damage):
     else:raw[0x230:0x240]=struct.pack('<qQ',1,1)
     path.write_bytes(raw)
     with pytest.raises(ValueError):module().elf_dependencies(path)
+
+
+def test_bound_closure_preserves_required_library_aliases_and_loader(tmp_path):
+    main=elf(tmp_path/'main',('liba.so','liba-alias.so'),interpreter='/reviewed/loader')
+    a=elf(tmp_path/'resolved-a.1',('libb.so',))
+    b=elf(tmp_path/'resolved-b.2',('liba.so',))
+    loader=elf(tmp_path/'resolved-loader')
+    libraries={'liba.so':a,'liba-alias.so':a,'libb.so':b,'/reviewed/loader':loader,'unused.so':tmp_path/'absent'}
+    result=module().bound_native_dependency_closure([main],libraries=libraries)
+    assert result['schema']=='earthship-thermal-native-closure/v2'
+    assert result['seeds']==[str(main)]
+    assert result['bindings']=={'liba.so':str(a),'liba-alias.so':str(a),'libb.so':str(b),'/reviewed/loader':str(loader)}
+    assert set(result['files'])=={str(main),str(a),str(b),str(loader)}
+    assert result['cold_environment_qualified'] is False
+    assert result['production_qualified'] is False
+    libraries['liba.so']=b
+    assert result['bindings']['liba.so']==str(a)
+
+
+def test_bound_closure_refuses_unbound_transitive_dependency(tmp_path):
+    main=elf(tmp_path/'main',('liba.so',));a=elf(tmp_path/'a',('missing.so',))
+    with pytest.raises(ValueError):
+        module().bound_native_dependency_closure([main],libraries={'liba.so':a})
+
+
+def test_metadata_only_closure_keeps_its_original_contract(tmp_path):
+    image=elf(tmp_path/'image')
+    result=module().native_dependency_closure([image],libraries={})
+    assert set(result)=={'schema','files','cold_environment_qualified','production_qualified'}
+    assert result['schema']=='earthship-thermal-native-closure/v1'
