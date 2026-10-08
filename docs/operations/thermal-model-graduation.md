@@ -748,3 +748,72 @@ these coefficients. Genuine native collection, fitting execution, baseline
 skill, block stability, calibrated uncertainty, candidate freeze/preregistration
 and adequate untouched/prospective windows remain open. Outdoors remain installed;
 November no-vent, PR3 deferral and separate deferred recovery work are unchanged.
+
+
+### Installed-shade original issuance, replay and outcome scoring
+
+`thermal_model/installed_shade_origin.py` now prepares a source-verified
+installed-shade candidate before origin acquisition, then constructs an explicit
+`earthship-installed-shade-forecast/v1` observation and
+`earthship-installed-shade-origin/v1` capture. The original artifact, complete
+runtime binding, weather issuance, qualified native-v2 temperature history and
+causal initial mass state, known-at-origin action snapshot and output remain
+bound to an immutable capture digest. Runtime identity must match the candidate
+and include the new domain code plus forecast archive verifier. Sensor hardware
+phases must match the fitted source; rotating collection sessions remain distinct.
+
+Weather retains the existing Open-Meteo source and six-hour issuance-age bound.
+New explicit `select_origin_forecast_with_receipts` and
+`fetch_origin_forecast_with_receipts` APIs preserve individual original
+metric values and capture clocks in `earthship-thermal-archived-forecast/v2`.
+The bounded, read-only SQL contract is shared with the unchanged default reader.
+Replay reconstructs selected hourly rows and the existing archive hash from
+those original metric receipts, checking every selected clock and value before
+prediction. It does not treat an unverified archive hash as source proof.
+
+The complete five-minute forcing is interpolated without extrapolation, then
+simulated through the strict core. Only exact hourly targets are exposed in the
+issued output, keeping it inside the existing 16-KiB publication byte budget.
+Future observed weather and future action changes never enter prediction. Known
+installed outdoor shades, indoor state and a passive heating state are required;
+on/unknown heating or the existing two-hour cooldown refuses this domain.
+November 1, 2026 Denver starts the persistent no-vent default. A new confirmed
+operator entry at/after that boundary can override it; older or reconstructed
+vent labels cannot. This creates one frozen-assumption forecast, with no action
+scenario comparison or advice. Confidence remains unqualified, intervals unset,
+release authority false and automatic actuation disabled.
+
+Private capture writes use an existing owned 0700 directory and immutable,
+digest-addressed 0600 files. Typed reads replay exact origin state and forecast
+outputs. `score_issued_capture` requires the actual persisted publication to
+match the original issued payload and to occur by the captured publication
+clock. Only mature, exact-horizon native-v2 outcomes in the same hardware phase
+can supply errors. The seven-cycle comparator uses the original issue clock and
+unchanged strictly historical Denver clock policy. At 24 hours, the cycle ending
+exactly at issue is excluded, so lags 2–8 supply the seven complete cycles.
+
+Scores retain candidate/runtime/source identities and separate model,
+persistence and recent-cycle errors under
+`earthship-installed-shade-source-scored-pair/v1`. Unqualified intervals remain
+null rather than claiming calibration; unknown seasons remain unknown.
+Observational scoring alone cannot grant release or confirmed action outcomes.
+The qualification/preregistration layer still needs an explicit adapter to this
+distinct candidate/capture format and genuine archived sources.
+
+Verification: initial missing-runtime failures, then 22 source/runtime/scoring
+checks passed. Delayed persisted publication and malformed action-map cases were
+reproduced before their refusal guards. Scoped review identified the dropped
+per-metric archive clocks; changed selected weather with a stale archive hash
+reproduced the gap. Seven missing-receipt API tests preceded implementation;
+40 receipt/runtime/legacy-weather checks then passed. Final affected verification:
+182 passed in 65.30 seconds under CPU 20 percent, memory 256 MiB, zero swap allowance,
+24 tasks, one numerical thread and a hard 90-second process deadline. Scoped
+re-review found no remaining material findings. All captures/publications/
+outcomes are synthetic test fixtures; no live household publication, fitting,
+sensor-policy adoption, registry mutation or service change occurred.
+
+Next: explicit supported-domain qualification/preregistration and calibrated
+publication/UI adapters, then the live entry point and genuine source-qualified
+candidate/outcomes. A useful baseline win, coefficient stability, intervals,
+frozen candidate and adequate untouched/as-issued support remain required.
+Outdoor shades remain installed; PR3 and recovery work remain deferred.
