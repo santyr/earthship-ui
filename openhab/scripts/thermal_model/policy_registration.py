@@ -21,6 +21,8 @@ from thermal_model.graduation_evidence import _score_origin_record
 
 SCHEMA='earthship-thermal-policy-registration/v1'
 SENSOR_SCHEMA='earthship-thermal-policy-registration/v2'
+INSTALLED_SCHEMA='earthship-installed-shade-policy-registration/v1'
+INSTALLED_CANDIDATE_SCHEMA='earthship-installed-shade-candidate/v1'
 SENSOR_SEMANTICS='declared_hardware_phase'
 SOURCE_FIELDS={'origin_path','publication','horizon_hours','outcome','recent_cycle_grid'}
 FIELDS={'schema','registered_at','policy','development_sources','development_origins',
@@ -53,6 +55,10 @@ def _score_sources(sources,policy,registered,*,root=None,version=1):
     if not isinstance(sources,list) or not 1<=len(sources)<=10000:
         raise ValueError('bounded raw development source packets required')
     if len(_canonical(sources))>MAX_BYTES:raise ValueError('development source index exceeds bound')
+    reader=read_origin_capture;scorer=_score_origin_record
+    if version==3:
+        from .installed_shade_origin import read_issued_capture,score_issued_capture
+        reader=read_issued_capture;scorer=score_issued_capture
     origins={};scored=[];total_origin_bytes=0
     expected_by_key={(row['issue_at'],row['target_at'],row['horizon_hours']):row for row in policy['development']}
     seen=set()
@@ -64,15 +70,18 @@ def _score_sources(sources,policy,registered,*,root=None,version=1):
         if root is not None:name=str(root/_relative(name))
         if name not in origins:
             if len(origins)>=128:raise ValueError('development origin count exceeds bound')
-            try:origins[name]=read_origin_capture(Path(name))
+            try:origins[name]=reader(Path(name))
             except (OSError,TypeError):raise ValueError('original development capture unavailable') from None
             total_origin_bytes+=len(_canonical(origins[name]))
             if total_origin_bytes>64000000:raise ValueError('development origin bytes exceed bound')
         record=origins[name]
-        supported={'earthship-thermal-origin-capture/v3','earthship-thermal-origin-capture/v4'} if version==2 else {'earthship-thermal-origin-capture/v1','earthship-thermal-origin-capture/v2'}
+        supported=({'earthship-installed-shade-origin/v1'} if version==3 else
+            {'earthship-thermal-origin-capture/v3','earthship-thermal-origin-capture/v4'} if version==2 else
+            {'earthship-thermal-origin-capture/v1','earthship-thermal-origin-capture/v2'})
         if record['schema'] not in supported:raise ValueError('development origin sensor contract differs')
-        result=_score_origin_record(record,**{key:packet[key] for key in SOURCE_FIELDS-{'origin_path'}},assessed_at=registered)
-        if version==2 and result.get('schema')!='earthship-thermal-source-scored-pair/v2':
+        result=scorer(record,**{key:packet[key] for key in SOURCE_FIELDS-{'origin_path'}},assessed_at=registered)
+        expected_schema='earthship-installed-shade-source-scored-pair/v1' if version==3 else 'earthship-thermal-source-scored-pair/v2'
+        if version>1 and result.get('schema')!=expected_schema:
             raise ValueError('development score sensor contract differs')
         row=result['scored_pair']
         if row['sensor_epochs']!=policy['candidate']['sensor_epochs']:
@@ -124,16 +133,29 @@ def read_sensor_registered_policy(path):
     return _read_registered_policy(path,version=2)
 
 
+def read_installed_shade_registered_policy(path):
+    return _read_registered_policy(path,version=3)
+
+
+def _installed_contract(policy):
+    if type(policy['candidate']['active_parameter_count']) is not int or policy['candidate']['active_parameter_count']!=10:
+        raise ValueError('installed candidate requires its exact ten-parameter contract')
+
+
 def _read_registered_policy(path,*,version):
     """Reproduce thresholds from sealed original captures and native receipts."""
     path=Path(path);record=_read_private(path)
-    expected_fields=FIELDS|({'sensor_epoch_semantics'} if version==2 else set())
-    if (not isinstance(record,dict) or set(record)!=expected_fields or record['schema']!=(SENSOR_SCHEMA if version==2 else SCHEMA) or
+    expected_fields=FIELDS|({'sensor_epoch_semantics'} if version>1 else set())|({'candidate_schema'} if version==3 else set())
+    schema=INSTALLED_SCHEMA if version==3 else SENSOR_SCHEMA if version==2 else SCHEMA
+    if (not isinstance(record,dict) or set(record)!=expected_fields or record['schema']!=schema or
             record['release_authorized'] is not False):raise ValueError('closed preregistration receipt required')
-    if version==2 and record['sensor_epoch_semantics']!=SENSOR_SEMANTICS:raise ValueError('native preregistration phase semantics required')
+    if version>1 and record['sensor_epoch_semantics']!=SENSOR_SEMANTICS:raise ValueError('native preregistration phase semantics required')
     body={key:value for key,value in record.items() if key!='registration_sha256'}
     if _digest(body)!=record['registration_sha256']:raise ValueError('policy receipt digest differs')
     policy=validate_policy(record['policy']);registered=_utc(record['registered_at'])
+    if version==3:
+        _installed_contract(policy)
+        if record['candidate_schema']!=INSTALLED_CANDIDATE_SCHEMA:raise ValueError('installed candidate namespace differs')
     _chronology(policy,registered)
     if registered>_clock():raise ValueError('policy registration is in the future')
     origins=_score_sources(record['development_sources'],policy,registered,root=path.parent,version=version)
@@ -150,6 +172,10 @@ def register_sensor_policy(directory,policy,development_sources):
     return _register_policy(directory,policy,development_sources,version=2)
 
 
+def register_installed_shade_policy(directory,policy,development_sources):
+    return _register_policy(directory,policy,development_sources,version=3)
+
+
 def _register_policy(directory,policy,development_sources,*,version):
     """Seal a policy before release intervals using the actual registration clock.
 
@@ -157,21 +183,26 @@ def _register_policy(directory,policy,development_sources,*,version):
     repeated unchanged; a failed attempt never publishes a registration receipt.
     """
     root=_private_directory(Path(directory));validate_policy(policy)
+    if version==3:_installed_contract(policy)
     registered=_clock();_chronology(policy,registered)
     origins=_score_sources(development_sources,policy,registered,version=version)
     source_root=root/'sources'
     try:source_root.mkdir(mode=0o700)
     except FileExistsError:pass
     _private_directory(source_root)
-    copied={name:write_origin_capture(source_root,record) for name,record in origins.items()}
+    writer=write_origin_capture
+    if version==3:
+        from .installed_shade_origin import write_issued_capture
+        writer=write_issued_capture
+    copied={name:writer(source_root,record) for name,record in origins.items()}
     packets=[{**packet,'origin_path':str(copied[packet['origin_path']].relative_to(root))} for packet in development_sources]
-    body=dict(schema=SENSOR_SCHEMA if version==2 else SCHEMA,**({} if version==1 else dict(sensor_epoch_semantics=SENSOR_SEMANTICS)),registered_at=registered.isoformat(),policy=policy,
+    body=dict(schema=INSTALLED_SCHEMA if version==3 else SENSOR_SCHEMA if version==2 else SCHEMA,**({} if version==1 else dict(sensor_epoch_semantics=SENSOR_SEMANTICS)),**(dict(candidate_schema=INSTALLED_CANDIDATE_SCHEMA) if version==3 else {}),registered_at=registered.isoformat(),policy=policy,
         development_sources=packets,
         development_origins={str(copied[name].relative_to(root)):_digest(record) for name,record in origins.items()},
         release_authorized=False)
     # Refuse a holdout that began while source verification/copying ran.
     _chronology(policy,_clock())
-    target=root/(policy['policy_sha256']+('.registration-v2.json' if version==2 else '.registration.json'))
+    target=root/(policy['policy_sha256']+('.installed-shade-registration-v1.json' if version==3 else '.registration-v2.json' if version==2 else '.registration.json'))
     body['registration_sha256']=_digest(body);raw=_canonical(body)
     if len(raw)>MAX_BYTES:raise ValueError('policy receipt exceeds bounded size')
     temporary=root/('.registration-'+uuid4().hex+'.tmp')

@@ -922,3 +922,81 @@ publication/UI adapters, then the live entry point and genuine source-qualified
 candidate/outcomes. A useful baseline win, coefficient stability, intervals,
 frozen candidate and adequate untouched/as-issued support remain required.
 Outdoor shades remain installed; PR3 and recovery work remain deferred.
+
+
+### Installed-domain preregistration and qualification reports
+
+The installed-shade candidate now has explicit source-backed registration APIs:
+`register_installed_shade_policy` and `read_installed_shade_registered_policy`.
+Their new receipt namespace is `earthship-installed-shade-policy-registration/v1`.
+It binds the distinct candidate schema, exact ten-parameter contract and declared
+hardware-phase semantics. The original registration clock, declaration-before-
+holdout/prospective checks, immutable private copying and baseline-derived policy
+rules are preserved. Existing full-model registration readers remain unchanged
+and reject this separate namespace. Development thresholds are reproduced from
+the retained original issued captures, persisted publications and native outcome/
+recent-cycle receipts; altering a cached baseline cannot seal a policy.
+
+`thermal_model/installed_shade_qualification.py` connects the registered policy,
+original candidate bundle with native training/source/numerical replay, retained
+runtime archive and original issued/outcome packets. Duplicate windows or mixed
+candidate/runtime/hardware phases are refused. Diagnostic support retains raw
+pair counts, independent non-overlapping windows, first local-day observations
+and paired model/persistence/recent-cycle metrics. Missing components close their
+specific gates rather than creating an active override. Current uncalibrated
+scores remain visible, but unset original intervals cannot pass release.
+
+The report namespace is `earthship-installed-shade-qualification-report/v1`.
+It preserves the existing forecast gates and adds explicit issued-interval
+availability. Statistical qualification and report replay use the existing
+current-monitoring evaluator: historical/holdout skill plus the latest required
+independent prospective block for every horizon and regime. Older good results
+cannot hide a recent loss. The predeclared 35 independent days/windows, convincing
+wins against both baselines, error/bias/interval caps, coefficient stability,
+source identity and prospective freshness rules are unchanged. Forecast advice
+and automatic actuation remain withheld. Cached reports grant no authority;
+production publication must freshly recompute from the original references.
+
+The reproducible command is `python3 scripts/qualify-installed-shade.py` with
+`--registration`, `--candidate`, `--runtime-bundle`, `--original-pairs` and
+`--output-dir`. Original packet indexes must be private original evidence;
+report output requires an existing owned 0700 directory. JSON and Markdown share
+one actual UTC assessment, decision and digest, and are written as immutable
+0600 files. No assessment-date or active override is accepted. Missing optional
+inputs deliberately generate an unavailable report, not synthetic qualification.
+Run it serially under the existing resource envelope, for example:
+
+```bash
+systemd-run --user --scope --quiet \
+  -p CPUQuota=20% -p MemoryMax=256M -p MemorySwapMax=0 -p TasksMax=24 \
+  /usr/bin/nice -n 15 /usr/bin/ionice -c 3 /usr/bin/env \
+  OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0 \
+  /usr/bin/timeout --signal=TERM --kill-after=5s 90s \
+  python3 scripts/qualify-installed-shade.py \
+  --registration "$THERMAL_REGISTRATION_PATH" \
+  --candidate "$THERMAL_CANDIDATE_PATH" \
+  --runtime-bundle "$THERMAL_RUNTIME_BUNDLE_PATH" \
+  --original-pairs "$THERMAL_ORIGINAL_PAIRS_PATH" \
+  --output-dir "$THERMAL_QUAL_REPORT_DIR"
+```
+
+Verification: eight initial missing-adapter/module failures, then source/gate
+integration. One seal-only test seam needed correct archive-relative path
+resolution; no source rule was relaxed. Review found accidental use of the older
+pooled evaluator. The existing recent-loss fixture reproduced a false pass;
+using the current prospective monitor in both decision and report replay fixed
+it. Missing human/CLI support was observed before implementation. Final affected
+registration/source/runtime/policy/statistics/decision/actual-CLI suite: 109 passed
+under CPU 20 percent, memory 256 MiB, zero swap allowance, 24 tasks, one numerical
+thread and a hard 90-second deadline. Scoped re-review found no material issues.
+Source adapter tests replay original synthetic captures; seal/loader orchestration
+seams are explicitly mocked and do not constitute a genuine preregistration or
+release. No actual policy, household fit/publication, registry/service change or
+production activation occurred.
+
+Next: calibrated uncertainty bound to the frozen candidate and original issuance,
+explicit publication/UI adapters and the live entry point, then genuine native
+fitting, preregistration and sufficient untouched/prospective qualification.
+Outdoor shades remain installed and the November no-vent default persists until
+a confirmed operator change. PR3 and recovery work remain separate and deferred.
