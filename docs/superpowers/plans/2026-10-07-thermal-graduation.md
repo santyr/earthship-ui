@@ -127,3 +127,18 @@ Implement a separate versioned legacy recovery generation within Task 5:
 All preparation flags remain closed until their corresponding actual checks pass.
 This addendum does not change the model graduation gates or add household-planner
 scope.
+
+### Task 3 addendum: pre-fit transfer boundary
+
+The current proof snapshot is written after optimization. Host protection requires
+a separate input-capture boundary before fitting can run elsewhere. The versioned
+`training_inputs` component retains the original series, journal events and native
+temperature grids; reconstruction must reproduce the captured dataset manifest
+and bind post-cutover raw values directly to receipts. Collection and restored
+interval expansion must be bounded before I/O/building. No capture flag grants
+fitting, installation or release authority.
+
+The component is implemented and tested. Operational capture/query-budget tooling,
+offline fitter integration, an actual private development snapshot, the designated
+off-host runner and genuine measured candidate fitting remain required. No Task 3
+completion or production qualification follows from component tests alone.

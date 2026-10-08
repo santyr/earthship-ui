@@ -40,6 +40,11 @@ class QualifiedTemperatureHistory:
         self._raw_grids = {} if retain_raw else None
         self._raw_sizes = {}
 
+    @property
+    def retains_native_grids(self):
+        """True only when original grid retention was explicitly requested."""
+        return self._raw_grids is not None
+
     def __call__(self, item, start, end):
         start, end = _utc(start), _utc(end)
         if not start < end <= self.assessed_at or end - start > timedelta(days=401):
