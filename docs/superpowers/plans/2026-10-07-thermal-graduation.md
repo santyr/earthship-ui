@@ -139,8 +139,8 @@ interval expansion must be bounded before I/O/building. No capture flag grants
 fitting, installation or release authority.
 
 The input component, offline fitter integration and bounded capture transport
-and native-history budget adapter are implemented and tested. Operational
-capture tooling integrating the worker guard and the bounded backends, an actual
-private development snapshot, the designated
+and native-history budget adapter are implemented and tested. The guarded
+capture command integrates the bounded backends. Actual private capture with a
+verified source tree and complete development support, the designated
 off-host runner and genuine measured candidate fitting remain required. No Task 3
 completion or production qualification follows from component tests alone.

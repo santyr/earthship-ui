@@ -236,3 +236,56 @@ retained fields, shared pacing, read-only checks, expiry and connection cleanup.
 Real PostgreSQL projection checks belong to the existing disposable hosted-CI
 suite; they must pass before live use. Operational worker/CLI integration and an
 actual private capture remain unfinished, and fitting stays off this host.
+
+
+## Guarded private capture command
+
+`scripts/capture-thermal-inputs.py --config <absolute-private-config> --destination
+<absolute-new-private-directory> --check-only` validates configuration without
+querying sources or launching a worker. Use the approved resource scope for this
+command: CPUQuota=25%, MemoryMax=768M, MemorySwapMax=0, TasksMax=48, nice 15,
+idle I/O priority where the I/O controller is absent, and one numerical thread.
+The command verifies enforced caps rather than assuming scope properties worked.
+
+The owned mode-0600 JSON config, in an owned mode-0700 directory, has exactly these
+string fields:
+
+| Field | Meaning |
+| --- | --- |
+| `start`, `end` | Explicit UTC development interval, completed before collection |
+| `openhab_base` | Approved loopback REST endpoint |
+| `token_file` | Absolute private file containing the existing OpenHAB token |
+| `journal_dsn_file` | Absolute private file containing the existing local journal DSN |
+| `native_db_config` | Absolute private native reader-role JSON config |
+| `native_policy` | Absolute private file containing the fixed three-stream temperature policy |
+| `native_cutover` | Explicit elapsed five-minute-aligned native-evidence cutover |
+
+Source configuration paths must be resolved private regular files. Native role,
+endpoint and sensor policy are checked before collection. The output directory
+must already exist, be owned mode-0700, be empty and separate from configuration.
+Credentials never appear in command arguments, receipts or error messages.
+
+Actual collection requires `EARTHSHIP_THERMAL_INPUT_CAPTURE=1` and omits
+`--check-only`. The parent launches a fixed worker under the 90-second guard;
+all backend connections share a 70-second read budget with mandatory request and
+byte pacing. Worker stdout/stderr are discarded. Internal worker arguments and
+the environment marker are cooperative coordination, not a security boundary or
+operator entrypoint. The source tree must satisfy the existing source-pinning
+permissions: no group/world write bits. Collection revision includes capture,
+pacing and atomic-write helpers, and code drift refuses before persistence.
+
+An interval whose minimum request count cannot fit the shared pacing budget
+refuses before source queries. Passing preflight does not guarantee that database
+or HTTP latency will fit; deadline expiry refuses the capture. This deliberately
+keeps each run bounded. A short captured development window is not sufficient
+release evidence by itself. Acquisition of a complete development history and a
+genuinely qualifying off-host fit remain required.
+
+A successful worker writes an immutable `*.training-inputs-v1.json` and an owned
+mode-0600 `capture-receipt.json`. The receipt contains only status, snapshot and
+collection revision hashes, and false fitting/installation/release flags. Failure
+never emits a success receipt to the caller. A receipt-write failure can leave a
+valid private snapshot; verify it with `train-thermal-snapshot.py --verify-only`
+before using it. Retained files are never replaced by a retry. No actual private
+capture, fitting, installation or production graduation follows from the synthetic
+CLI tests. Real capture must wait for hosted CI and a verified source tree.

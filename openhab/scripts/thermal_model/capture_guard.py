@@ -50,7 +50,7 @@ def run_guarded_capture(argv,*,seconds=90):
         raise ValueError('bounded explicit capture worker and deadline required')
     verify_resource_limits()
     if os.getpriority(os.PRIO_PROCESS,0)<15:raise ValueError('capture requires lowered scheduling priority')
-    env=dict(os.environ,EARTHSHIP_REMOTE_QUALIFICATION_FIT='0',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1')
+    env=dict(os.environ,EARTHSHIP_GUARDED_CAPTURE_WORKER='1',EARTHSHIP_REMOTE_QUALIFICATION_FIT='0',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1')
     deadline=monotonic()+seconds
     worker=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
                             env=env,start_new_session=True,close_fds=True)
