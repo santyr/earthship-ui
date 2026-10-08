@@ -12,7 +12,7 @@ from uuid import uuid4
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'openhab/scripts'))
 from thermal_model.artifacts import _artifact_from_payload
 from thermal_model.forcing_capture import _private_directory,_canonical
-from thermal_graduation_decision import qualify_candidate,render_qualification_report
+from thermal_graduation_decision import qualify_candidate,qualify_sensor_candidate,render_qualification_report
 
 
 def read_input(path,maximum=64000000):
@@ -67,13 +67,14 @@ def main(argv=None):
     for name in ('registration','artifact','fit-evidence','training-sources','runtime-bundle','pairs'):
         parser.add_argument('--'+name,type=Path)
     parser.add_argument('--report-directory',type=Path,required=True)
+    parser.add_argument('--receipt-version',type=int,choices=(1,2),default=1)
     args=parser.parse_args(argv)
     try:
         # Optional absent inputs generate explicit failed gates, not a pass.
         artifact=_artifact_from_payload(read_input(args.artifact)) if args.artifact else None
         training=read_input(args.training_sources) if args.training_sources else None
         pairs=read_input(args.pairs) if args.pairs else []
-        report=qualify_candidate(registration_path=args.registration,artifact=artifact,
+        report=(qualify_sensor_candidate if args.receipt_version==2 else qualify_candidate)(registration_path=args.registration,artifact=artifact,
             fit_evidence_path=args.fit_evidence,training_sources=training,
             runtime_bundle_path=args.runtime_bundle,original_pairs=pairs,now=datetime.now(timezone.utc))
         paths=write_report(args.report_directory,report)

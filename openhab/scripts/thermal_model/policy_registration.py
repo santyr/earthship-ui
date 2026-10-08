@@ -20,6 +20,8 @@ from thermal_model.origin_capture import write_observed_origin_capture as write_
 from thermal_model.graduation_evidence import _score_origin_record
 
 SCHEMA='earthship-thermal-policy-registration/v1'
+SENSOR_SCHEMA='earthship-thermal-policy-registration/v2'
+SENSOR_SEMANTICS='declared_hardware_phase'
 SOURCE_FIELDS={'origin_path','publication','horizon_hours','outcome','recent_cycle_grid'}
 FIELDS={'schema','registered_at','policy','development_sources','development_origins',
         'release_authorized','registration_sha256'}
@@ -47,7 +49,7 @@ def _relative(name):
     return name
 
 
-def _score_sources(sources,policy,registered,*,root=None):
+def _score_sources(sources,policy,registered,*,root=None,version=1):
     if not isinstance(sources,list) or not 1<=len(sources)<=10000:
         raise ValueError('bounded raw development source packets required')
     if len(_canonical(sources))>MAX_BYTES:raise ValueError('development source index exceeds bound')
@@ -67,7 +69,11 @@ def _score_sources(sources,policy,registered,*,root=None):
             total_origin_bytes+=len(_canonical(origins[name]))
             if total_origin_bytes>64000000:raise ValueError('development origin bytes exceed bound')
         record=origins[name]
+        supported={'earthship-thermal-origin-capture/v3'} if version==2 else {'earthship-thermal-origin-capture/v1','earthship-thermal-origin-capture/v2'}
+        if record['schema'] not in supported:raise ValueError('development origin sensor contract differs')
         result=_score_origin_record(record,**{key:packet[key] for key in SOURCE_FIELDS-{'origin_path'}},assessed_at=registered)
+        if version==2 and result.get('schema')!='earthship-thermal-source-scored-pair/v2':
+            raise ValueError('development score sensor contract differs')
         row=result['scored_pair']
         if row['sensor_epochs']!=policy['candidate']['sensor_epochs']:
             raise ValueError('development source epochs differ from frozen candidate')
@@ -111,22 +117,40 @@ def _read_private(path):
 
 
 def read_registered_policy(path):
+    return _read_registered_policy(path,version=1)
+
+
+def read_sensor_registered_policy(path):
+    return _read_registered_policy(path,version=2)
+
+
+def _read_registered_policy(path,*,version):
     """Reproduce thresholds from sealed original captures and native receipts."""
     path=Path(path);record=_read_private(path)
-    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA or
+    expected_fields=FIELDS|({'sensor_epoch_semantics'} if version==2 else set())
+    if (not isinstance(record,dict) or set(record)!=expected_fields or record['schema']!=(SENSOR_SCHEMA if version==2 else SCHEMA) or
             record['release_authorized'] is not False):raise ValueError('closed preregistration receipt required')
+    if version==2 and record['sensor_epoch_semantics']!=SENSOR_SEMANTICS:raise ValueError('native preregistration phase semantics required')
     body={key:value for key,value in record.items() if key!='registration_sha256'}
     if _digest(body)!=record['registration_sha256']:raise ValueError('policy receipt digest differs')
     policy=validate_policy(record['policy']);registered=_utc(record['registered_at'])
     _chronology(policy,registered)
     if registered>_clock():raise ValueError('policy registration is in the future')
-    origins=_score_sources(record['development_sources'],policy,registered,root=path.parent)
+    origins=_score_sources(record['development_sources'],policy,registered,root=path.parent,version=version)
     actual={str(Path(name).relative_to(path.parent)):_digest(value) for name,value in origins.items()}
     if actual!=record['development_origins']:raise ValueError('archived origin manifest differs')
     return record
 
 
 def register_policy(directory,policy,development_sources):
+    return _register_policy(directory,policy,development_sources,version=1)
+
+
+def register_sensor_policy(directory,policy,development_sources):
+    return _register_policy(directory,policy,development_sources,version=2)
+
+
+def _register_policy(directory,policy,development_sources,*,version):
     """Seal a policy before release intervals using the actual registration clock.
 
     No date/active override argument is accepted. Existing content can only be
@@ -134,20 +158,20 @@ def register_policy(directory,policy,development_sources):
     """
     root=_private_directory(Path(directory));validate_policy(policy)
     registered=_clock();_chronology(policy,registered)
-    origins=_score_sources(development_sources,policy,registered)
+    origins=_score_sources(development_sources,policy,registered,version=version)
     source_root=root/'sources'
     try:source_root.mkdir(mode=0o700)
     except FileExistsError:pass
     _private_directory(source_root)
     copied={name:write_origin_capture(source_root,record) for name,record in origins.items()}
     packets=[{**packet,'origin_path':str(copied[packet['origin_path']].relative_to(root))} for packet in development_sources]
-    body=dict(schema=SCHEMA,registered_at=registered.isoformat(),policy=policy,
+    body=dict(schema=SENSOR_SCHEMA if version==2 else SCHEMA,**({} if version==1 else dict(sensor_epoch_semantics=SENSOR_SEMANTICS)),registered_at=registered.isoformat(),policy=policy,
         development_sources=packets,
         development_origins={str(copied[name].relative_to(root)):_digest(record) for name,record in origins.items()},
         release_authorized=False)
     # Refuse a holdout that began while source verification/copying ran.
     _chronology(policy,_clock())
-    target=root/(policy['policy_sha256']+'.registration.json')
+    target=root/(policy['policy_sha256']+('.registration-v2.json' if version==2 else '.registration.json'))
     body['registration_sha256']=_digest(body);raw=_canonical(body)
     if len(raw)>MAX_BYTES:raise ValueError('policy receipt exceeds bounded size')
     temporary=root/('.registration-'+uuid4().hex+'.tmp')
@@ -158,7 +182,7 @@ def register_policy(directory,policy,development_sources):
         _chronology(policy,_clock())
         try:os.link(temporary,target,follow_symlinks=False)
         except FileExistsError:
-            previous=read_registered_policy(target)
+            previous=_read_registered_policy(target,version=version)
             def content(record):return {key:value for key,value in record.items() if key not in ('registered_at','registration_sha256')}
             if content(previous)!=content(body):raise ValueError('existing policy receipt has different content')
         fd=os.open(root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)

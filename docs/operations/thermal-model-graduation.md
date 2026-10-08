@@ -399,3 +399,13 @@ comparisons; new sessions are accepted only within the same hardware phase.
 Legacy readers refuse the newer proofs. These are tested explicit APIs; the
 live publisher and production release capture/qualification consumers still
 need integration. No receipt history is backfilled and no activation is implied.
+
+
+Native qualification now has explicit source assessment v2, preregistration v2
+and report v4 APIs. Use `qualify-thermal-graduation.py --receipt-version 2` with
+original model-v6/source-v2 evidence and native preregistration when those real
+inputs exist. Missing evidence produces failed gates and an unavailable report.
+The legacy default cannot interpret the newer phase contract. Source-bound
+threshold preregistration still must precede untouched/prospective intervals;
+all independent-support, baseline-skill, fit and freshness thresholds remain
+unchanged. Production publication/report-v4 consumption is still pending.

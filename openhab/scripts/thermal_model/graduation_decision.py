@@ -21,12 +21,14 @@ from thermal_model.fit_evidence import read_fit_evidence
 from thermal_model.graduation_policy import _utc,validate_policy
 from thermal_model.graduation_statistics import assess_current_predictive_skill as assess_predictive_skill
 from thermal_model.temperature_history import (STREAMS,STEP,_ceil,_validate_receipt,
-                                               validate_evidence_manifest)
+                                               validate_evidence_manifest,validate_sensor_evidence_manifest,_validate_sensor_receipt,_sensor_bindings)
 from thermal_model.pipeline import _normalize_hourly_rows
-from thermal_model.policy_registration import read_registered_policy,SOURCE_FIELDS
+from thermal_model.policy_registration import read_registered_policy,read_sensor_registered_policy,SOURCE_FIELDS
 from thermal_model.graduation_evidence import _score_origin_record
 
 SCHEMA='earthship-thermal-qualification-report/v3'
+SENSOR_SCHEMA='earthship-thermal-qualification-report/v4'
+SENSOR_SEMANTICS='declared_hardware_phase'
 FORECAST_GATES={'preregistered_policy','frozen_candidate','frozen_runtime',
     'qualified_training_sources','original_source_pairs','measured_fit','predictive_skill'}
 FIELDS={'schema','assessed_at','candidate','intervals','policy_sha256','registration_sha256',
@@ -39,11 +41,21 @@ def _digest(value):return sha256(_canonical(value)).hexdigest()
 
 
 def verify_training_sources(value,artifact,epochs):
+    return _verify_training_sources(value,artifact,epochs,version=1)
+
+
+def verify_sensor_training_sources(value,artifact,epochs):
+    return _verify_training_sources(value,artifact,_sensor_bindings(epochs),version=2)
+
+
+def _verify_training_sources(value,artifact,epochs,*,version):
     """Verify raw canonical samples and complete native grids against the artifact."""
-    if not isinstance(value,dict) or set(value)!={'schema','samples','temperature_grids'} or value['schema']!='earthship-thermal-training-sources/v1':
+    expected_model='earthship-thermal-model/v6' if version==2 else 'earthship-thermal-model/v5'
+    if getattr(artifact,'schema', 'earthship-thermal-model/v5')!=expected_model:raise ValueError('training source model contract differs')
+    if not isinstance(value,dict) or set(value)!={'schema','samples','temperature_grids'} or value['schema']!=f'earthship-thermal-training-sources/v{version}':
         raise ValueError('complete raw training samples and native grids required')
     manifest=artifact.data_manifest;temperature=manifest.get('temperature_evidence')
-    validate_evidence_manifest(temperature,start=artifact.trained_from,end=artifact.trained_through)
+    (validate_sensor_evidence_manifest if version==2 else validate_evidence_manifest)(temperature,start=artifact.trained_from,end=artifact.trained_through)
     start,end=map(_utc,(artifact.trained_from,artifact.trained_through))
     if start<_utc(temperature['cutover']):raise ValueError('legacy training rows are not receipt-qualified')
     rows=value['samples']
@@ -57,6 +69,7 @@ def verify_training_sources(value,artifact,epochs):
     native={};support={}
     for role in STREAMS:
         info=temperature['roles'][role];grid=grids[role]
+        if version==2 and info['sensor_epoch']!=epochs[role]:raise ValueError('training declared phase differs from frozen candidate')
         if info['legacy_points'] or not isinstance(grid,list) or len(grid)!=info['targets']:
             raise ValueError('training grid differs from native-only source manifest')
         cursor=_ceil(start);digest=sha256();mapping={};qualified=missing=0
@@ -65,8 +78,10 @@ def verify_training_sources(value,artifact,epochs):
                 raise ValueError('native training target order/coverage differs')
             receipt=pair[1]
             if receipt is not None:
-                _validate_receipt(receipt,cursor)
-                if receipt['streamEpoch']!=epochs[role]:raise ValueError('training hardware epoch differs')
+                if version==2:_validate_sensor_receipt(receipt,cursor,sensor_epoch=epochs[role])
+                else:
+                    _validate_receipt(receipt,cursor)
+                    if receipt['streamEpoch']!=epochs[role]:raise ValueError('training hardware epoch differs')
                 qualified+=1
             else:missing+=1
             digest.update((json.dumps([cursor.isoformat(),receipt],sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode())
@@ -92,7 +107,8 @@ def verify_training_sources(value,artifact,epochs):
     observed=_observe_latent_mass(parsed)
     if any(not math.isclose(expected.mass_f,row['mass_f'],rel_tol=0,abs_tol=1e-10) for expected,row in zip(observed,rows)):
         raise ValueError('training latent mass differs from original causal observer')
-    return dict(schema='earthship-thermal-training-source-assessment/v1',
+    return dict(schema=f'earthship-thermal-training-source-assessment/v{version}',
+        **({} if version==1 else dict(sensor_epoch_semantics=SENSOR_SEMANTICS)),
         training_inputs_sha256=manifest['canonical_rows_sha256'],source_sha256=_digest(value),
         sample_count=len(rows),roles=support)
 
@@ -138,8 +154,16 @@ def qualification_deadline(policy, rows):
     return min(latest)+timedelta(hours=policy['max_qualification_age_hours'])
 
 
-def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_sources,
-                      runtime_bundle_path,original_pairs,now):
+def qualify_candidate(**kwargs):
+    return _qualify_candidate(**kwargs,version=1)
+
+
+def qualify_sensor_candidate(**kwargs):
+    return _qualify_candidate(**kwargs,version=2)
+
+
+def _qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_sources,
+                      runtime_bundle_path,original_pairs,now,version):
     """Assess genuine source-bound evidence; missing inputs close their exact gates."""
     now=_utc(now);gates={name:False for name in sorted(FORECAST_GATES)};errors={}
     policy=None;registration=None;fit=None;training=None;statistics=None;bundle=None;bindings=[];scored=[]
@@ -148,12 +172,14 @@ def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_so
         except (OSError,ValueError,TypeError,KeyError,AttributeError,OverflowError):
             errors[name]='missing, invalid or incompatible original evidence';return None
     if registration_path is not None:
-        registration=attempt('preregistered_policy',lambda:read_registered_policy(registration_path))
+        registration=attempt('preregistered_policy',lambda:(read_sensor_registered_policy if version==2 else read_registered_policy)(registration_path))
         if registration is not None:
             policy=registration['policy'];gates['preregistered_policy']=True
     if artifact is not None and policy is not None:
         def candidate():
             validate_artifact(artifact)
+            if artifact.schema!=('earthship-thermal-model/v6' if version==2 else 'earthship-thermal-model/v5'):
+                raise ValueError('frozen candidate sensor contract differs')
             expected=policy['candidate']
             if (_digest(asdict(artifact))!=expected['artifact_sha256'] or
                     _utc(artifact.trained_through)!=_utc(expected['trained_through']) or
@@ -168,7 +194,7 @@ def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_so
         bundle=attempt('frozen_runtime',runtime)
         gates['frozen_runtime']=bundle is not None
     if gates['frozen_candidate']:
-        training=attempt('qualified_training_sources',lambda:verify_training_sources(training_sources,artifact,policy['candidate']['sensor_epochs']))
+        training=attempt('qualified_training_sources',lambda:(verify_sensor_training_sources if version==2 else verify_training_sources)(training_sources,artifact,policy['candidate']['sensor_epochs']))
         gates['qualified_training_sources']=training is not None
         if fit_evidence_path is not None:
             fit=attempt('measured_fit',lambda:read_fit_evidence(fit_evidence_path,artifact))
@@ -186,7 +212,11 @@ def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_so
                     records[path]=read_origin_capture(Path(path));total+=len(_canonical(records[path]))
                     if total>64000000:raise ValueError('original capture bytes exceed bound')
                 record=records[path]
+                if version==2 and record['schema']!='earthship-thermal-origin-capture/v3':
+                    raise ValueError('native hardware-phase origin contract required')
                 result=_score_origin_record(record,**{key:packet[key] for key in SOURCE_FIELDS-{'origin_path'}},assessed_at=now)
+                if version==2 and result.get('schema')!='earthship-thermal-source-scored-pair/v2':
+                    raise ValueError('native hardware-phase score contract required')
                 row=result['scored_pair'];candidate=policy['candidate']
                 if (row['artifact_sha256']!=candidate['artifact_sha256'] or row['runtime_sha256']!=candidate['runtime_sha256'] or
                         row['sensor_epochs']!=candidate['sensor_epochs']):raise ValueError('mixed candidate/runtime/epochs')
@@ -202,19 +232,29 @@ def qualify_candidate(*,registration_path,artifact,fit_evidence_path,training_so
         gates['predictive_skill'] = False
         errors['predictive_skill'] = 'qualified prospective outcomes expired or incomplete'
     forecast,stage=_stage(gates)
-    body=dict(schema=SCHEMA,assessed_at=now.isoformat(),qualification_expires_at=deadline.isoformat() if deadline else None,candidate=deepcopy(policy['candidate']) if policy else None,
+    body=dict(schema=SENSOR_SCHEMA if version==2 else SCHEMA,**({} if version==1 else dict(sensor_epoch_semantics=SENSOR_SEMANTICS)),assessed_at=now.isoformat(),qualification_expires_at=deadline.isoformat() if deadline else None,candidate=deepcopy(policy['candidate']) if policy else None,
         intervals=deepcopy(policy['intervals']) if policy else None,policy_sha256=policy['policy_sha256'] if policy else None,
         registration_sha256=registration['registration_sha256'] if registration else None,
         policy=deepcopy(policy),runtime=bundle,gates=gates,
         fit=fit,training_sources=training,statistics=statistics,original_pair_bindings=bindings,source_errors=errors,
         forecast_qualified=forecast,advisory_qualified=False,recommended_stage=stage,automatic_actuation_authorized=False)
     body['report_sha256']=_digest(body)
-    return validate_qualification_report(body)
+    return (validate_sensor_qualification_report if version==2 else validate_qualification_report)(body)
 
 
 def validate_qualification_report(record):
-    if not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA:
+    return _validate_qualification_report(record,version=1)
+
+
+def validate_sensor_qualification_report(record):
+    return _validate_qualification_report(record,version=2)
+
+
+def _validate_qualification_report(record,*,version):
+    expected_fields=FIELDS|({'sensor_epoch_semantics'} if version==2 else set())
+    if not isinstance(record,dict) or set(record)!=expected_fields or record['schema']!=(SENSOR_SCHEMA if version==2 else SCHEMA):
         raise ValueError('closed qualification report required')
+    if version==2 and record['sensor_epoch_semantics']!=SENSOR_SEMANTICS:raise ValueError('declared sensor phase semantics required')
     if _digest({key:value for key,value in record.items() if key!='report_sha256'})!=record['report_sha256']:
         raise ValueError('qualification report digest differs')
     gates=record['gates']
@@ -227,6 +267,8 @@ def validate_qualification_report(record):
     for gate,field in (('preregistered_policy','registration_sha256'),('frozen_candidate','candidate'),
             ('qualified_training_sources','training_sources'),('measured_fit','fit'),('predictive_skill','statistics')):
         if gates[gate] and record[field] is None:raise ValueError('passing gate lacks underlying evidence')
+    if version==2 and gates['qualified_training_sources'] and (record['training_sources'].get('schema')!='earthship-thermal-training-source-assessment/v2' or record['training_sources'].get('sensor_epoch_semantics')!=SENSOR_SEMANTICS):
+        raise ValueError('native source phase assessment required')
     if gates['original_source_pairs'] and not record['original_pair_bindings']:raise ValueError('original source bindings missing')
     if gates['measured_fit'] and record['fit']['fit_gates_passed'] is not True:raise ValueError('fit gate differs from measured proof')
     if gates['predictive_skill'] and record['statistics']['statistical_forecast_gates_passed'] is not True:raise ValueError('skill gate differs from actual statistics')
@@ -247,7 +289,7 @@ def validate_qualification_report(record):
 
 
 def render_qualification_report(record):
-    validate_qualification_report(record)
+    (validate_sensor_qualification_report if isinstance(record,dict) and record.get('schema')==SENSOR_SCHEMA else validate_qualification_report)(record)
     lines=['# Thermal qualification decision','',f"Recommended stage: {record['recommended_stage']}",
         'Automatic actuation: disabled','',f"Candidate: {record['candidate']}",
         f"Intervals: {record['intervals']}",f"Original outcome qualification expires: {record['qualification_expires_at']}",'','| Gate | Result |','| --- | --- |']
@@ -267,6 +309,14 @@ RELEASE_INPUT_FIELDS={'schema','registration_path','artifact_path','fit_evidence
 
 
 def load_qualification_inputs(path):
+    return _load_qualification_inputs(path,version=1)
+
+
+def load_sensor_qualification_inputs(path):
+    return _load_qualification_inputs(path,version=2)
+
+
+def _load_qualification_inputs(path,*,version):
     """Create a trusted evaluator from private source references, never pass flags."""
     from thermal_model.policy_registration import _read_private
     from thermal_model.training_sources import _read_private as read_source_bytes
@@ -274,7 +324,7 @@ def load_qualification_inputs(path):
     from thermal_model.artifacts import _artifact_from_payload
     references=_read_private(Path(path))
     if (not isinstance(references,dict) or set(references)!=RELEASE_INPUT_FIELDS or
-            references['schema']!='earthship-thermal-release-inputs/v1'):
+            references['schema']!=f'earthship-thermal-release-inputs/v{version}'):
         raise ValueError('closed original release input references required')
     for name,value in references.items():
         if name=='schema':continue
@@ -288,7 +338,7 @@ def load_qualification_inputs(path):
         artifact=_artifact_from_payload(read_json(references['artifact_path']))
         training=read_json(references['training_sources_path'])
         pairs=read_json(references['pairs_path'])
-        return qualify_candidate(registration_path=references['registration_path'],artifact=artifact,
+        return (qualify_sensor_candidate if version==2 else qualify_candidate)(registration_path=references['registration_path'],artifact=artifact,
             fit_evidence_path=references['fit_evidence_path'],training_sources=training,
             runtime_bundle_path=references['runtime_bundle_path'],original_pairs=pairs,now=_utc(now))
     return evaluate

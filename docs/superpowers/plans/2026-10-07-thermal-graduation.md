@@ -466,3 +466,33 @@ This step is verified with real synthetic source-v2 packets/parser grids,
 including a collector reset. Live publisher selection, production release
 capture, qualification consumers and live policy adoption remain open. Historical
 v1 records are not relabelled, and no real model fit or activation occurred.
+
+### Native qualification and preregistration
+
+`verify_sensor_training_sources` validates source v2 against model v6 and its
+frozen declared phases. Original sample digests, complete native grids, missing
+barriers, receipt clocks and the causal latent-mass reconstruction remain
+authoritative. Its source assessment is version 2 with explicit
+`declared_hardware_phase` semantics. The legacy source verifier remains v1.
+
+Native `register_sensor_policy` / `read_sensor_registered_policy` use private
+registration v2. They replay original capture-v3 / source-pair-v2 development
+packets and retain actual registration chronology, before untouched/prospective
+intervals, original source copies and digests. Legacy registrations cannot
+provide native preregistration solely through matching UUID strings. Threshold
+derivation and the version 1 numerical policy are unchanged.
+
+`qualify_sensor_candidate` requires model v6, native registration v2, original
+capture v3 and source-scored pair v2. It emits qualification report v4 with
+explicit phase semantics. Version 3 reports and the default qualifier remain
+legacy-only. `load_sensor_qualification_inputs` requires release-input reference
+v2 and rereads the actual candidate, sources and pairs on every evaluation.
+`qualify-thermal-graduation.py --receipt-version 2` writes matching machine/human
+reports, including failed gates when evidence is absent.
+
+The 35 independent-day floor, positive skill against both baselines, absolute
+error/bias/calibration caps, original-source, measured-fit and freshness gates
+are unchanged. Advice and automatic actuation remain withheld. Controlled
+classifier tests prove gate routing, not real statistical graduation. Live
+publication/report-v4 consumers and production capture still need integration;
+no actual native candidate or policy was frozen/registered in this step.
