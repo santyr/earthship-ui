@@ -144,3 +144,16 @@ capture command integrates the bounded backends. Actual private capture with a
 verified source tree and complete development support, the designated
 off-host runner and genuine measured candidate fitting remain required. No Task 3
 completion or production qualification follows from component tests alone.
+
+
+### Task 3 addendum: bounded multi-run acquisition
+
+A full development interval can exceed the safe duration of one paced capture.
+Assemble adjacent original measurement snapshots under the same byte, point and
+interval caps, while reading the correction-aware journal over the full interval.
+Keep native receipts and missing barriers exact. Bind original snapshot hashes,
+measurement/assembly code identities and final input identity in a versioned
+private assembly record. Retain and verify that lineage when fitting off-host.
+The assembly library is implemented; guarded operational integration and genuine
+full-interval fitting remain open. This changes input preparation, not the model
+or graduation gates.

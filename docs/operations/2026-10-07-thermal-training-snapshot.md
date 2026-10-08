@@ -308,3 +308,34 @@ When the scheduled job next runs naturally, inspect its actual cgroup limits and
 result. A resource-limited training failure must preserve the previous accepted
 artifact and must not authorize graduation. Removing only this drop-in and
 reloading metadata restores the previous resource settings.
+
+
+## Assemble bounded acquisition windows
+
+`thermal_model.training_assembly.assemble_training_inputs` combines original
+measurements from two to eight adjacent snapshots under aggregate 32 MB,
+120,000-point and existing interval bounds. It validates originals before journal
+access and requires one measurement collection revision, cutover and source
+identity. It preserves exact series, native receipts and missing barriers, and
+recomputes the combined native-grid hashes. Input order is normalized chronologically.
+
+Chunk journal subsets are not merged. A supplied trusted journal reader must
+fetch correction-aware action and mode context for the full combined interval.
+The existing dataset builder then reconstructs one ordinary input snapshot using
+that fresh view. No action confidence is promoted and no fitter or publisher is
+accepted by the assembler. Code drift refuses before returning an assembled result.
+
+The new `earthship-thermal-training-assembly/v1` binding records original input
+hashes, measurement and assembly revisions, combined snapshot identity, interval
+and journal capture time. Its fitting, installation and release flags stay false.
+`verify_training_assembly` rechecks supplied originals and exact combined
+measurements/grids; internally consistent rehashing of a changed assembled
+measurement cannot repair its lineage. Private content-addressed binding writes
+are atomic, do not replace files, and clean partial temporary files.
+
+This is a library component. The guarded assembly command, actual full-interval
+assembly and downstream fitting integration remain required. Downstream fitting
+must retain and verify the binding alongside the source snapshots. Library
+verification proves consistency with the supplied originals; fresh journal
+provenance still depends on the supplied reader. No production release follows
+from assembly alone.
