@@ -9,6 +9,7 @@ import os
 from pathlib import Path, PurePosixPath
 import shutil
 import stat
+from time import monotonic, sleep
 from uuid import uuid4
 
 from .forcing_capture import _canonical, _private_directory
@@ -33,7 +34,26 @@ def _name(value):
     return value
 
 
-def _file_pin(path, *, private=False, destination=None):
+class _ReadPacer:
+    def __init__(self, rate):
+        if type(rate) is not int or rate <= 0:
+            raise ValueError('positive integer read bytes per second required')
+        self.rate = rate
+        self.deadline = monotonic()
+
+    def reserve(self, size):
+        if size <= 0: return
+        now = monotonic()
+        # Idle time never earns credit for a later burst.
+        self.deadline = max(now, self.deadline) + size / self.rate
+        sleep(self.deadline - now)
+
+
+def _pacer(rate):
+    return None if rate is None else _ReadPacer(rate)
+
+
+def _file_pin(path, *, private=False, destination=None, pace=None):
     path = Path(path)
     if not path.is_absolute() or path.resolve() != path: raise ValueError('resolved dependency source required')
     info = path.lstat()
@@ -50,6 +70,7 @@ def _file_pin(path, *, private=False, destination=None):
             output = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         digest = sha256(); size = 0
         while True:
+            if pace is not None: pace.reserve(min(CHUNK, max(0, info.st_size-size)))
             chunk = os.read(descriptor, CHUNK)
             if not chunk: break
             size += len(chunk)
@@ -72,21 +93,27 @@ def _file_pin(path, *, private=False, destination=None):
         if output is not None: os.close(output)
 
 
-def _copy_file(source, destination):
-    return _file_pin(source, destination=destination)
+def _copy_file(source, destination, *, pace=None):
+    return _file_pin(source, destination=destination, pace=pace)
 
 
-def _read(directory, *, addressed):
+def _read(directory, *, addressed, pace=None):
     root = _private_directory(Path(directory))
     if {entry.name for entry in root.iterdir()} != {'manifest.json', 'blobs'}:
         raise ValueError('exact environment bundle membership required')
     manifest = root/'manifest.json'
     if manifest.stat().st_size > MAX_MANIFEST_BYTES: raise ValueError('environment manifest exceeds bound')
-    _file_pin(manifest, private=True)
+    _file_pin(manifest, private=True, pace=pace)
     def constant(_): raise ValueError('nonfinite environment manifest')
     descriptor = os.open(manifest, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     try:
-        with os.fdopen(descriptor, 'rb', closefd=False) as stream: raw = stream.read(MAX_MANIFEST_BYTES+1)
+        parts = []; count = 0; expected_size = os.fstat(descriptor).st_size
+        while count <= MAX_MANIFEST_BYTES:
+            if pace is not None: pace.reserve(min(CHUNK, max(0, expected_size-count)))
+            chunk = os.read(descriptor, min(CHUNK, MAX_MANIFEST_BYTES+1-count))
+            if not chunk: break
+            parts.append(chunk); count += len(chunk)
+        raw = b''.join(parts)
     finally: os.close(descriptor)
     if len(raw) > MAX_MANIFEST_BYTES: raise ValueError('environment manifest exceeds bound')
     value = json.loads(raw, object_pairs_hook=_object, parse_constant=constant)
@@ -111,23 +138,28 @@ def _read(directory, *, addressed):
     blobs = _private_directory(root/'blobs')
     if {entry.name for entry in blobs.iterdir()} != expected: raise ValueError('environment blobs missing or extra')
     verified = {}
-    for name in expected: verified[name] = _file_pin(blobs/name, private=True)
+    for name in expected: verified[name] = _file_pin(blobs/name, private=True, pace=pace)
     if any(verified[entry['sha256']] != entry for entry in files.values()):
         raise ValueError('retained dependency bytes differ')
     return value
 
 
-def read_environment_bundle(directory):
-    return _read(directory, addressed=True)
+def read_environment_bundle(directory, *, max_read_bytes_per_second=None):
+    return _read(directory, addressed=True, pace=_pacer(max_read_bytes_per_second))
 
 
-def capture_environment_files(directory, files):
-    """Retain exactly specified resolved files; no traversal, execution or install."""
+def capture_environment_files(directory, files, *, max_read_bytes_per_second=None):
+    """Retain explicit files; optional aggregate pacing covers all read passes.
+
+    The limit is bytes read per second, including integrity rechecks. Metadata
+    operations and fsync latency are not a kernel-enforced device I/O quota.
+    """
+    pace = _pacer(max_read_bytes_per_second)
     root = _private_directory(Path(directory))
     if not isinstance(files, dict) or not 1 <= len(files) <= MAX_FILES: raise ValueError('explicit bounded dependency map required')
     pins = {}; total = 0
     for name, source in files.items():
-        _name(name); pin = _file_pin(Path(source)); total += pin['bytes']
+        _name(name); pin = _file_pin(Path(source), pace=pace); total += pin['bytes']
         if total > MAX_TOTAL_BYTES: raise ValueError('environment inventory exceeds total bound')
         pins[name] = pin
     body = dict(schema=SCHEMA, files=pins, total_bytes=total, cold_environment_qualified=False, production_qualified=False)
@@ -141,18 +173,19 @@ def capture_environment_files(directory, files):
         for name, source in files.items():
             expected = pins[name]
             if expected['sha256'] not in copied:
-                if _copy_file(Path(source), stage/'blobs'/expected['sha256']) != expected:
+                options = {} if pace is None else {'pace': pace}
+                if _copy_file(Path(source), stage/'blobs'/expected['sha256'], **options) != expected:
                     raise ValueError('dependency changed during capture')
                 copied.add(expected['sha256'])
         for name, source in files.items():
-            if _file_pin(Path(source)) != pins[name]: raise ValueError('dependency changed across capture')
+            if _file_pin(Path(source), pace=pace) != pins[name]: raise ValueError('dependency changed across capture')
         _write_private(stage/'manifest.json', raw)
-        _read(stage, addressed=False)
+        _read(stage, addressed=False, pace=pace)
         _sync_directory(stage/'blobs'); _sync_directory(stage)
         target = root/body['bundle_sha256']
         try: _rename_new(stage, target)
         except ValueError:
-            if not target.exists() or read_environment_bundle(target) != body: raise
+            if not target.exists() or _read(target, addressed=True, pace=pace) != body: raise
         _sync_directory(root)
         return target
     finally:

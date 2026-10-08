@@ -38,6 +38,23 @@ Local tests use tiny files in the established serial resource scope. The compone
 does not rebuild or automatically copy the installed environment, change a service
 or publish a thermal state.
 
+## Resource-limited reads
+
+Capture and bundle verification accept optional `max_read_bytes_per_second`,
+a positive integer. One monotonic-clock budget paces fixed-size chunks across
+all files and integrity passes, including source pinning, copying, source
+rechecks and retained-blob checks. Idle time does not accumulate burst credit.
+The setting does not change manifest identity or evidence semantics. Invalid
+limits refuse capture before creating staging files; interruptions remove partial
+captures. Defaults preserve the existing API behavior.
+
+For private host retention, supply an explicit conservative rate in addition to
+the established serial CPU, memory, process and scheduling limits. Application
+pacing bounds read throughput; it is not a device I/O quota and does not eliminate
+filesystem metadata or sync latency. Never silently raise inventory limits to
+accommodate a combined map. Retain separately declared bounded inventories and
+keep their identities together for subsequent complete recovery verification.
+
 ## Reviewed tree inventory
 
 `inventory_environment_files(roots, aliases=...)` builds the explicit capture map

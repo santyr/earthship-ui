@@ -197,3 +197,55 @@ def test_environment_recovery_cli_prepares_then_verifies_without_live_install(tm
 def test_environment_recovery_cli_refuses_invalid_bundle_without_success(tmp_path,capsys):
     assert restore_cli().main(['--bundle',str(tmp_path/'missing'),'--destination',str(tmp_path/'prepared')])==2
     result=capsys.readouterr();assert result.out=='' and 'refused' in result.err
+
+
+def test_capture_and_verification_share_a_read_rate_limit_across_files(tmp_path,monkeypatch):
+    paths,archive=files(tmp_path);bundle=module()
+    normal=bundle.capture_environment_files(archive,paths)
+    clock=[0.0]
+    monkeypatch.setattr(bundle,'monotonic',lambda:clock[0],raising=False)
+    def advance(seconds):
+        assert seconds > 0
+        clock[0]+=seconds
+    monkeypatch.setattr(bundle,'sleep',advance,raising=False)
+    monkeypatch.setattr(bundle,'CHUNK',4)
+    rate=10
+    import os
+    identities={(path.stat().st_dev,path.stat().st_ino) for path in paths.values()}
+    actual_read=bundle.os.read;source_bytes=[0]
+    def observed_read(descriptor,count):
+        info=os.fstat(descriptor)
+        chunk=actual_read(descriptor,count)
+        if (info.st_dev,info.st_ino) in identities:
+            source_bytes[0]+=len(chunk)
+            assert source_bytes[0]<=clock[0]*rate+1e-8
+        return chunk
+    monkeypatch.setattr(bundle.os,'read',observed_read)
+    limited=bundle.capture_environment_files(archive,paths,max_read_bytes_per_second=rate)
+    assert limited==normal
+    size=sum(path.stat().st_size for path in paths.values())
+    # Pin, copy, source recheck, and retained-blob recheck all consume bandwidth.
+    assert clock[0]>=4*size/rate
+    before=clock[0]
+    bundle.read_environment_bundle(limited,max_read_bytes_per_second=rate)
+    assert clock[0]-before>=size/rate
+
+
+@pytest.mark.parametrize('rate',[0,-1,True,1.5,float('nan'),float('inf'),'10'])
+def test_invalid_read_rate_refuses_before_creating_bundle(tmp_path,rate):
+    paths,archive=files(tmp_path)
+    with pytest.raises(ValueError):
+        module().capture_environment_files(archive,paths,max_read_bytes_per_second=rate)
+    assert not list(archive.iterdir())
+
+
+def test_interrupted_rate_limited_capture_leaves_no_partial_bundle(tmp_path,monkeypatch):
+    paths,archive=files(tmp_path);bundle=module();calls=[0]
+    monkeypatch.setattr(bundle,'monotonic',lambda:0.0,raising=False)
+    def interrupted(_):
+        calls[0]+=1
+        if calls[0]>len(paths):raise OSError('interrupted pacing during copy')
+    monkeypatch.setattr(bundle,'sleep',interrupted,raising=False)
+    with pytest.raises(OSError,match='interrupted pacing'):
+        bundle.capture_environment_files(archive,paths,max_read_bytes_per_second=10)
+    assert not list(archive.iterdir())

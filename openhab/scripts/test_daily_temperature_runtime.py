@@ -163,12 +163,24 @@ def test_origin_cutover_and_forecast_horizons_are_not_relabelled():
     assert not runtime.origin_eligible(origin, START.date(), evidence, fi.MOUNTAIN, 0)
 
 
-def scoring_fixture(monkeypatch, *, qualified=True, old_origin=False):
+def scoring_fixture(monkeypatch, *, qualified=True, old_origin=False, utc_hour=18):
+    instant=datetime(2026,10,8,utc_hour,tzinfo=timezone.utc)
+    class ClockMeta(type):
+        def __instancecheck__(cls,value):return isinstance(value,datetime)
+    class Clock(datetime,metaclass=ClockMeta):
+        @classmethod
+        def now(cls,tz=None):
+            return instant.astimezone(tz) if tz is not None else instant.replace(tzinfo=None)
+    class HostDate(fi.date):
+        @classmethod
+        def today(cls):return instant.date()
+    monkeypatch.setattr(fi,'datetime',Clock)
+    monkeypatch.setattr(fi,'date',HostDate)
     # This fixture exercises temperature isolation and historical rain scoring;
     # rain/PV dated source-bound cutovers have dedicated tests elsewhere.
     monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', fi.date.max)
     monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', fi.date.max)
-    today = fi.date.today()
+    today = fi.datetime.now(fi.MOUNTAIN).date()
     yesterday = today - timedelta(days=1)
     start, end = fi.local_day_window_utc(yesterday)
     request = dict(start=start.isoformat(), end=end.isoformat(), assessed_at=(end + timedelta(hours=6)).isoformat())
@@ -207,8 +219,9 @@ def scoring_fixture(monkeypatch, *, qualified=True, old_origin=False):
     return state, saves, yesterday.isoformat()
 
 
-def test_both_horizons_learn_and_commit_provenance_once_before_fetch_failure(monkeypatch):
-    state, saves, day = scoring_fixture(monkeypatch)
+@pytest.mark.parametrize('utc_hour',[1,18])
+def test_both_horizons_learn_and_commit_provenance_once_before_fetch_failure(monkeypatch,utc_hour):
+    state, saves, day = scoring_fixture(monkeypatch,utc_hour=utc_hour)
     for _ in range(2):
         with pytest.raises(RuntimeError, match='after-scoring'): fi.main()
     assert state['temp_hi_errors'] == [4]
@@ -239,8 +252,9 @@ def test_provenance_bound_keeps_recent_records():
     assert state['daily_temperature_evidence'][0]['day'] == '4'
 
 
-def test_failed_temperature_evidence_does_not_disable_rain_or_pv_scoring(monkeypatch):
-    state, saves, day = scoring_fixture(monkeypatch, qualified=False)
+@pytest.mark.parametrize('utc_hour',[1,18])
+def test_failed_temperature_evidence_does_not_disable_rain_or_pv_scoring(monkeypatch,utc_hour):
+    state, saves, day = scoring_fixture(monkeypatch, qualified=False,utc_hour=utc_hour)
     before = deepcopy(state['kalman'])
     state['predictions'][day].update(pv=2, precip_in=2)
     state['horizon'][day]['precip_in'] = 3
