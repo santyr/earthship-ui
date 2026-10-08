@@ -278,15 +278,20 @@ def _mirror_members(root):
     return members
 
 
-def verify_environment_restore(bundle, directory):
+def verify_environment_restore(bundle, directory, *, max_read_bytes_per_second=None):
     """Verify an isolated mirror; never treats byte recovery as cold eligibility."""
-    original = read_environment_bundle(bundle)
+    return _verify_environment_restore(bundle, directory, pace=_pacer(max_read_bytes_per_second))
+
+
+def _verify_environment_restore(bundle, directory, *, pace):
+    original = _read(bundle, addressed=True, pace=pace)
     root = _private_directory(Path(directory))
     if {entry.name for entry in root.iterdir()} != {'restore.json', 'rootfs'}:
         raise ValueError('exact isolated environment recovery required')
-    receipt = root/'restore.json'; _file_pin(receipt, private=True)
+    receipt = root/'restore.json'; _file_pin(receipt, private=True, pace=pace)
     descriptor = os.open(receipt, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     try:
+        if pace is not None: pace.reserve(min(8193, os.fstat(descriptor).st_size))
         with os.fdopen(descriptor, 'rb', closefd=False) as stream: raw = stream.read(8193)
     finally: os.close(descriptor)
     if len(raw) > 8192: raise ValueError('environment recovery receipt exceeds bound')
@@ -302,15 +307,16 @@ def verify_environment_restore(bundle, directory):
     if _mirror_members(mirror) != expected_members:
         raise ValueError('environment recovery has missing or extra files')
     for name, relative in paths.items():
-        if _file_pin(mirror/relative, private=True) != original['files'][name]:
+        if _file_pin(mirror/relative, private=True, pace=pace) != original['files'][name]:
             raise ValueError('prepared dependency bytes differ from retained bundle')
-    if read_environment_bundle(bundle) != original: raise ValueError('retained environment changed during recovery verification')
+    if _read(bundle, addressed=True, pace=pace) != original: raise ValueError('retained environment changed during recovery verification')
     return value
 
 
-def prepare_environment_restore(bundle, destination):
+def prepare_environment_restore(bundle, destination, *, max_read_bytes_per_second=None):
     """Materialize retained bytes in a new private mirror, without live replacement."""
-    original = read_environment_bundle(bundle); paths = _mirror_paths(original['files'])
+    pace = _pacer(max_read_bytes_per_second)
+    original = _read(bundle, addressed=True, pace=pace); paths = _mirror_paths(original['files'])
     destination = Path(destination)
     if not destination.is_absolute() or destination.resolve() != destination:
         raise ValueError('absolute isolated recovery path required')
@@ -327,12 +333,13 @@ def prepare_environment_restore(bundle, destination):
                 try: current.mkdir(mode=0o700)
                 except FileExistsError: _private_directory(current)
             expected = original['files'][name]
-            if _copy_file(Path(bundle)/'blobs'/expected['sha256'], target) != expected:
+            options = {} if pace is None else {'pace': pace}
+            if _copy_file(Path(bundle)/'blobs'/expected['sha256'], target, **options) != expected:
                 raise ValueError('retained dependency changed while preparing recovery')
         value = dict(schema=RESTORE_SCHEMA, bundle_sha256=original['bundle_sha256'], installed=False,
             cold_environment_qualified=False, production_qualified=False)
         _write_private(stage/'restore.json', _canonical(value))
-        verify_environment_restore(bundle, stage)
+        _verify_environment_restore(bundle, stage, pace=pace)
         for current, _, _ in os.walk(mirror, topdown=False): _sync_directory(Path(current))
         _sync_directory(stage); _rename_new(stage, destination); _sync_directory(parent)
         return value

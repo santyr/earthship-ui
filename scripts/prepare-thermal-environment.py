@@ -14,10 +14,11 @@ def main(argv=None):
     parser.add_argument('--bundle',required=True,type=Path)
     parser.add_argument('--destination',required=True,type=Path)
     parser.add_argument('--verify-only',action='store_true')
+    parser.add_argument('--max-read-bytes-per-second',type=int,help='optional aggregate read limit across all copy and verification passes')
     args=parser.parse_args(argv)
     try:
         operation=verify_environment_restore if args.verify_only else prepare_environment_restore
-        receipt=operation(args.bundle,args.destination)
+        receipt=operation(args.bundle,args.destination,max_read_bytes_per_second=args.max_read_bytes_per_second)
     except (OSError,RuntimeError,TypeError,ValueError):
         print('thermal environment recovery refused; verify retained bundle and private destination',file=sys.stderr)
         return 2

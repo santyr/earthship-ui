@@ -87,7 +87,12 @@ preparation receipt. Changed files, extra directories, symlinks and attempts to
 claim installation or qualification are refused.
 
 The command `prepare-thermal-environment.py` accepts `--bundle`, `--destination`
-and optional `--verify-only`. It prepares new isolated files or rechecks an existing
+and optional `--verify-only` and `--max-read-bytes-per-second`. Preparation and
+verification also accept the `max_read_bytes_per_second` API keyword. One shared
+read budget spans bundle checks, copying, mirror verification and the final
+retained-source check; nested verification does not reset it. Invalid limits
+refuse before creating a destination. The optional limit preserves manifest and
+receipt identities and the existing unpaced default. It prepares new isolated files or rechecks an existing
 mirror. It never executes a recovered interpreter, installs files or changes a
 service. Its `earthship-thermal-environment-restore/v1` receipt always records
 `installed`, `cold_environment_qualified` and `production_qualified` as false.

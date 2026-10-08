@@ -249,3 +249,55 @@ def test_interrupted_rate_limited_capture_leaves_no_partial_bundle(tmp_path,monk
     with pytest.raises(OSError,match='interrupted pacing'):
         bundle.capture_environment_files(archive,paths,max_read_bytes_per_second=10)
     assert not list(archive.iterdir())
+
+
+def test_recovery_paces_bundle_copy_and_mirror_verification_reads(tmp_path,monkeypatch):
+    import os
+    paths,archive=files(tmp_path);bundle=module()
+    retained=bundle.capture_environment_files(archive,paths)
+    clock=[0.0]
+    monkeypatch.setattr(bundle,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(bundle,'sleep',lambda seconds:clock.__setitem__(0,clock[0]+seconds))
+    monkeypatch.setattr(bundle,'CHUNK',4)
+    actual_read=bundle.os.read;previous={};count=[0]
+    rate=10
+    def observed_read(descriptor,size):
+        info=os.fstat(descriptor);identity=(info.st_dev,info.st_ino)
+        path=os.readlink('/proc/self/fd/'+str(descriptor))
+        chunk=actual_read(descriptor,size)
+        if '/blobs/' in path or '/rootfs/' in path:
+            if chunk and identity in previous:
+                assert clock[0]-previous[identity]>=len(chunk)/rate-1e-8
+            previous[identity]=clock[0];count[0]+=len(chunk)
+        return chunk
+    monkeypatch.setattr(bundle.os,'read',observed_read)
+    target=tmp_path/'paced-prepared'
+    result=bundle.prepare_environment_restore(retained,target,max_read_bytes_per_second=rate)
+    assert result['installed'] is False
+    assert count[0]>=5*sum(path.stat().st_size for path in paths.values())
+    assert bundle.verify_environment_restore(retained,target,max_read_bytes_per_second=rate)==result
+
+
+def test_recovery_invalid_rate_never_creates_destination(tmp_path):
+    paths,archive=files(tmp_path);bundle=module();retained=bundle.capture_environment_files(archive,paths)
+    target=tmp_path/'refused'
+    with pytest.raises(ValueError):bundle.prepare_environment_restore(retained,target,max_read_bytes_per_second=0)
+    assert not target.exists()
+    with pytest.raises(ValueError):bundle.verify_environment_restore(retained,target,max_read_bytes_per_second=True)
+
+
+def test_recovery_cli_rate_option_runs_real_paced_preparation(tmp_path,monkeypatch,capsys):
+    paths,archive=files(tmp_path);bundle=module();retained=bundle.capture_environment_files(archive,paths)
+    clock=[0.0]
+    monkeypatch.setattr(bundle,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(bundle,'sleep',lambda seconds:clock.__setitem__(0,clock[0]+seconds))
+    target=tmp_path/'cli-paced'
+    args=['--bundle',str(retained),'--destination',str(target),'--max-read-bytes-per-second','10']
+    assert restore_cli().main(args)==0
+    assert clock[0]>0
+    before=clock[0]
+    assert restore_cli().main([*args,'--verify-only'])==0
+    assert clock[0]>before
+    invalid=tmp_path/'cli-refused'
+    assert restore_cli().main(['--bundle',str(retained),'--destination',str(invalid),'--max-read-bytes-per-second','0'])==2
+    assert not invalid.exists()
