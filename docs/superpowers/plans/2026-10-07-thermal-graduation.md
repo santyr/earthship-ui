@@ -249,3 +249,10 @@ It preserves original digest semantics and existing restore callers. Genuine
 PostgreSQL parity and oversized-row tests are hosted-only. This component does
 not open a connection or dump a source; the guarded source exporter and trusted
 receipt remain open implementation steps.
+
+
+A separate dump transport bounds stdout before retention, paces pipe reads and
+owns process-group/partial-file cleanup. It leaves the existing live restore
+helper unchanged. Its component tests do not establish source export provenance;
+connect/audit/snapshot/row-proof/dump/package receipt orchestration remains an
+open guarded-exporter step before genuine off-host journal qualification.

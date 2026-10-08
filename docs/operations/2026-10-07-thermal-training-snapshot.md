@@ -583,3 +583,22 @@ integrated into the guarded exporter that audits the exact source schema and
 keeps one snapshot alive through dump generation. A trusted source receipt,
 bounded dump transport, approved private off-host transfer and genuine restore
 remain required. Component tests do not authenticate a household export.
+
+
+### Bounded journal dump transport
+
+The `thermal_journal_dump` helper invokes only `/usr/bin/pg_dump` for the fixed
+loopback journal endpoint and explicit exported snapshot. Credentials travel in
+the child environment, while stderr is discarded. The pipe is nonblocking and
+read at at most 1 MiB/s, under a seventy-second deadline and 32 MB byte ceiling;
+no overflowing chunk is written. Targets must be new files in a private directory.
+Failure removes only the owned partial file and kills only the owned fresh process
+group. It retains the leader unreaped until cleanup so the process identifier
+cannot be reused during group signalling.
+
+This transport is for the pending guarded exporter. It does not establish
+source authentication, archive SQL-object validity, consumer compatibility or
+recovery qualification. The caller must keep the audited source snapshot alive
+and bind the resulting archive bytes to the original row proofs. Household dump
+execution remains withheld while host memory preflight fails; fitting and restores
+remain off-host. Local tests use tiny Python children rather than PostgreSQL.
