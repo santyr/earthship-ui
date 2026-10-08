@@ -241,3 +241,11 @@ still remain required.
   Regressions use a fractional artifact and real pipeline metadata conversion;
   three cases reproduced the failure before the fix. Focused release checks pass;
   hosted full CI and genuine qualification remain required.
+
+
+The source-export row-proof component now adds read-only repeatable-read
+verification, bounded table/UTF-8 row preflights and paced aggregate CSV hashing.
+It preserves original digest semantics and existing restore callers. Genuine
+PostgreSQL parity and oversized-row tests are hosted-only. This component does
+not open a connection or dump a source; the guarded source exporter and trusted
+receipt remain open implementation steps.

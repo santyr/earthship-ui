@@ -565,3 +565,21 @@ manual launch thresholds mandatory in the command. CPU, memory, swap, task and
 I/O caps still apply independently. The preflight is a launch-time snapshot;
 it does not reserve host memory or establish the cause of the earlier lockup.
 Model fitting and disposable restores remain off-host.
+
+
+### Bounded journal proof preparation
+
+The `thermal_journal_export_bounds` helper prepares original ordered CSV row
+hashes in an existing audited read-only repeatable-read transaction, requiring
+UTF-8 server and client encodings. It checks
+all three table sizes before COPY, refusing more than 10,000 rows per table,
+more than 2,048 UTF-8 column bytes in a row, or more than 8 MiB aggregate proof
+bytes. Both a conservative CSV size estimate and the actual stream are bounded.
+SQL statements have a five-second timeout and locks a one-second timeout; the
+proof stream uses at most 1 MiB/s and a seventy-second deadline.
+
+This helper neither opens a source connection nor exports a dump. It must be
+integrated into the guarded exporter that audits the exact source schema and
+keeps one snapshot alive through dump generation. A trusted source receipt,
+bounded dump transport, approved private off-host transfer and genuine restore
+remain required. Component tests do not authenticate a household export.
