@@ -14,6 +14,7 @@ on:
       - 'openhab/scripts/test_forecast_intel.py'
       - 'openhab/scripts/test_qualified_soc_forecast.py'
       - 'openhab/scripts/test_thermal_*.py'
+      - 'openhab/scripts/test_installed_shade_dynamics.py'
       - 'scripts/thermal-replay-bundle.py'
       - 'tests/completion/test_thermal_replay_bundle.py'
       - '.github/workflows/forecast-ml-hardening.yml'
@@ -54,6 +55,7 @@ jobs:
             openhab/scripts/test_forecast_intel.py \
             openhab/scripts/test_qualified_soc_forecast.py \
             openhab/scripts/test_thermal_identifiability.py \
+            openhab/scripts/test_installed_shade_dynamics.py \
             openhab/scripts/test_thermal_dynamics.py \
             openhab/scripts/test_thermal_fit_measurements.py \
             openhab/scripts/test_thermal_fit_evidence.py \

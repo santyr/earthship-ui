@@ -549,3 +549,44 @@ source-bound forecast-horizon fitting and evaluation, retaining physical,
 conditioning and coefficient-stability checks. One-step fit quality alone is
 insufficient. New native evidence, a real frozen candidate, preregistration and
 untouched/as-issued baseline wins remain required before production activation.
+
+
+### Installed-shade horizon refinement and isolated numerical core
+
+A private development-only refinement fits complete original weather forcing and
+qualified origin/target temperatures at 1/6/12/24 hours, without synthesizing
+missing interior temperatures. It uses only the first ten elapsed development
+days for fitting. Its analytic objective gradient agrees with centered numerical
+derivatives (maximum relative discrepancy below 4e-7); final sensitivity rank is
+10/10 with normalized condition number 18.82. Origin action values remain frozen.
+This is observed-weather conditional hindcasting, not as-issued release evidence.
+
+The joint-temperature refinement reduces development 24-hour air MAE from 1.50 F
+to 0.96 F versus paired persistence 1.17 F. It still slightly loses to recent
+cycle at 1 hour (0.303 F versus 0.293 F). A separate training-persistence-normalized,
+equal-local-day-weighted air objective reaches 0.85 F at 24 hours but worsens the
+1- and 12-hour results. Neither experiment establishes a release winner. There
+are four 24-hour development dates but only three non-overlapping 24-hour windows;
+training spans eleven local dates, including partial dates. Coefficient-block
+stability, calibrated intervals and untouched/prospective skill remain unproved.
+
+The original joint probe had an exact shade-order violation from solver roundoff
+and was refused by the strict core. Repeating with the existing solver feasibility
+margin passes exact coefficient/order/stability and the 72-hour guard. No validator
+was loosened and no candidate artifact was created.
+
+`thermal_model/installed_shade_dynamics.py` is now an isolated, pure numerical
+core for this ten-parameter domain. It has no unshaded coefficient, refuses unknown
+or removed outdoor shades, requires complete explicit five-minute forcing, returns
+immutable states/sensitivities, and retains the existing coefficient, solar,
+spectral, 72-hour and output-range protections. It neither fits nor qualifies,
+publishes, controls or installs a model. Numerical tests verify nonzero solar/vent
+sensitivities, physical drift refusal, missing-input refusal and immutability.
+Full-model fitting and its rank/conditioning/stability gates remain unchanged.
+
+Next integration must use an explicitly versioned supported-domain artifact and
+source-bound forcing/endpoints, fit evidence, preregistration, original published
+forecasts and independent outcomes. The core alone cannot be loaded by the
+existing full-model registry or confer production confidence. Native collection
+still requires the operator's local systemctl authentication step. Keep the live
+v4 model and normal schedules unchanged while those dependencies remain open.
