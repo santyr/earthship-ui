@@ -228,3 +228,16 @@ gates. Mocked orchestration checks run under host caps; real v1/v2 disposable
 restore/consumer checks run only in hosted CI. A trusted bounded source exporter,
 actual approved off-host worker, genuine legacy rehearsal and guarded installation
 still remain required.
+
+
+### Task 6 integrated review: published timestamp precision
+
+- [x] Preserve full-precision frozen artifact identity while matching the existing
+  whole-second publication metadata. The real training path retains fractional
+  seconds, so comparing published clocks directly to exact artifact clocks
+  rejected otherwise valid candidates. Release now uses the original capture
+  contract's UTC whole-second comparison semantics. Published fractional clocks,
+  a different published second and mismatched artifact hashes still refuse.
+  Regressions use a fractional artifact and real pipeline metadata conversion;
+  three cases reproduced the failure before the fix. Focused release checks pass;
+  hosted full CI and genuine qualification remain required.

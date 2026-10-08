@@ -93,6 +93,13 @@ def forecast_regimes(forecast_rows, shadow):
     return sorted({mapping[row['mode']] for row in forcing})
 
 
+def _published_clock_matches(published, original):
+    # The unchanged v1 pipeline publishes whole seconds. The full-precision
+    # original remains bound by the frozen artifact digest and policy.
+    published=_utc(published)
+    return published.microsecond==0 and published==_utc(original).replace(microsecond=0)
+
+
 def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runtime_sha256,sensor_epochs,forecast_rows=None):
     """Recompute qualification, bind current identity, and derive explicit mode."""
     now=_utc(now)
@@ -115,8 +122,8 @@ def build_release_output(*,shadow,qualification_loader,now,artifact_sha256,runti
         policy=report['policy'];validate_policy(policy);candidate=report['candidate']
         if (candidate!=policy['candidate'] or candidate['artifact_sha256']!=artifact_sha256 or
                 candidate['runtime_sha256']!=runtime_sha256 or candidate['sensor_epochs']!=sensor_epochs or
-                _utc(shadow['model']['createdAt'])!=_utc(candidate['created_at']) or
-                _utc(shadow['model']['trainedThrough'])!=_utc(candidate['trained_through'])):
+                not _published_clock_matches(shadow['model']['createdAt'],candidate['created_at']) or
+                not _published_clock_matches(shadow['model']['trainedThrough'],candidate['trained_through'])):
             raise ValueError('current artifact/runtime/epoch differs from frozen qualification')
         assessed=_utc(report['assessed_at']);expires=min(_utc(report['qualification_expires_at']),assessed+timedelta(hours=policy['max_qualification_age_hours']))
         if not assessed<=now<expires:raise ValueError('qualification is stale or future')

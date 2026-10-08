@@ -117,3 +117,36 @@ def test_previous_qualification_report_cannot_skip_recent_monitoring(monkeypatch
     report['report_sha256']=sha256(_canonical({key:value for key,value in report.items() if key!='report_sha256'})).hexdigest()
     data['qualification_loader']=lambda _:report
     assert release.build_release_output(**data)['status']=='unavailable'
+
+
+@pytest.mark.parametrize('field',['created_at','trained_through','both'])
+def test_fractional_artifact_clocks_match_real_published_metadata(monkeypatch,field):
+    from dataclasses import asdict,replace
+    from test_thermal_origin_capture import capture_inputs
+    from thermal_model.pipeline import _artifact_context
+    data=inputs(monkeypatch);report=data['qualification_loader'](NOW)
+    artifact=capture_inputs()['artifact']
+    changes={name:(datetime.fromisoformat(getattr(artifact,name))+timedelta(microseconds=123456)).isoformat()
+        for name in ('created_at','trained_through') if field in (name,'both')}
+    artifact=replace(artifact,**changes)
+    candidate=report['candidate'];candidate.update(changes)
+    candidate['artifact_sha256']=sha256(_canonical(asdict(artifact))).hexdigest()
+    report['policy']['candidate']=deepcopy(candidate)
+    report['policy']['policy_sha256']=sha256(_canonical({key:value for key,value in report['policy'].items() if key!='policy_sha256'})).hexdigest()
+    report['policy_sha256']=report['policy']['policy_sha256']
+    report['report_sha256']=sha256(_canonical({key:value for key,value in report.items() if key!='report_sha256'})).hexdigest()
+    data['artifact_sha256']=candidate['artifact_sha256']
+    data['qualification_loader']=lambda _:deepcopy(report)
+    data['shadow']['model']=_artifact_context(artifact,NOW)[0]
+    result=module().build_release_output(**data)
+    assert result['status']=='forecast_active'
+    assert result['release']['artifactSha256']==candidate['artifact_sha256']
+    for published in ('createdAt','trainedThrough'):
+        damaged=deepcopy(data['shadow'])
+        damaged['model'][published]=(datetime.fromisoformat(damaged['model'][published])+timedelta(seconds=1)).isoformat()
+        assert module().build_release_output(**{**data,'shadow':damaged})['status']=='unavailable'
+        fractional=deepcopy(data['shadow'])
+        fractional['model'][published]=(datetime.fromisoformat(fractional['model'][published])+timedelta(microseconds=123456)).isoformat()
+        assert module().build_release_output(**{**data,'shadow':fractional})['status']=='unavailable'
+    data['artifact_sha256']='a'*64
+    assert module().build_release_output(**data)['status']=='unavailable'
