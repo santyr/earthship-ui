@@ -642,3 +642,19 @@ independently trusted/pinned receipt verification path and actual off-host
 rehearsal still remain required. Local checks used simulated database boundaries;
 real source/dump/package tests run only with synthetic disposable databases in CI.
 No household export has been performed with this command.
+
+
+### Scheduled trainer headroom guard
+
+The existing scheduled shadow trainer now has a separate `memory-preflight.conf`
+`ExecCondition` using the adjacent standalone AWK script. It skips a scheduled
+job when available RAM is below 3 GiB or used swap exceeds 128 MiB, and refuses
+missing, duplicate or malformed memory fields. This gate complements the
+existing CPU/memory/swap/task caps and idle I/O priority. It does not reserve
+memory or establish the cause of the earlier host lockup.
+
+Install both files together in the user unit's drop-in directory with owner-only
+file permissions, then reload unit definitions. The guard uses kernel memory
+metadata only, imports no model code and invokes no trainer. Condition exit 1
+skips training; the existing timer remains scheduled. Heavy qualification fits
+and journal restores still belong on the designated off-host worker.
