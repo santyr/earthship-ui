@@ -698,3 +698,25 @@ installation, release and actuation remain closed. Without the three source
 options, original restore report version 1 remains unchanged. Real v1/v2 schema
 restore and consumer compatibility tests with and without source pins run only
 on hosted synthetic databases. No restore has run on the household host.
+
+### Collector sessions and declared sensor phases
+
+Source receiver policy version 2 separates a persistent hardware phase from the
+collector process session. Each stream retains its existing model, sensor ID,
+range and validity policy and additionally requires a canonical nonzero UUID in
+`sensor_epoch`. Retain that declaration across receiver restarts; change it when
+the hardware or its physical role assignment changes. Do not infer or backfill
+a hardware phase into retained version 1 receipts.
+
+New receiver snapshots use envelope/record version 2, retain `streamEpoch` as the
+collector session, and include `sensorEpoch` on fresh records.
+`select_temperature_grid_v2(..., sensor_epoch=...)` verifies the declared phase
+and source device identity before returning metadata with `receiptVersion=2`.
+A restart or clock reset still clears all receipts, and copied pre-restart values
+remain ineligible. Missing, mismatched or invalid sensor declarations are barriers.
+
+The existing v1 policy loader and native consumers refuse this schema. The source
+receiver/reader tests do not prove thermal history, origin, scoring or graduation
+integration. Keep the live policy at v1 until the complete consuming stack has
+been migrated and verified; no receiver restart or production activation follows
+from these source-side checks.

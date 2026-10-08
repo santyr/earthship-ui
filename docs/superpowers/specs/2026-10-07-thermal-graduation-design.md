@@ -57,3 +57,10 @@ corruption withdraws production eligibility. Existing safety alerts remain indep
 When qualified independent evidence physically does not exist, implement and test
 the remaining engineering, leave activation closed, and report the exact missing
 observations. Engineering completion does not complete this goal.
+
+The native receiver session UUID is distinct from a declared hardware phase.
+The source-side v2 contract carries both identities: a fresh `streamEpoch` and
+explicit persistent `sensorEpoch` per configured physical stream. Collector resets
+require fresh packets; hardware or physical role changes require a new declared
+phase. Existing v1 receipts cannot be reclassified with that phase. End-to-end
+thermal qualification migration is required before the source v2 policy is enabled.

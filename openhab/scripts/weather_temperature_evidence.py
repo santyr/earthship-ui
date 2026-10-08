@@ -20,6 +20,19 @@ MODELS = {
 NUMBER = re.compile(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z')
 
 
+def sensor_epoch_id(value):
+    """Validate a declared hardware phase; never derive it from a process UUID."""
+    if not isinstance(value, str):
+        raise ValueError('canonical declared sensor epoch required')
+    try:
+        epoch = UUID(value)
+    except ValueError:
+        raise ValueError('canonical declared sensor epoch required') from None
+    if str(epoch) != value or epoch.int == 0:
+        raise ValueError('canonical nonzero declared sensor epoch required')
+    return value
+
+
 def _finite(value):
     try:
         return type(value) in (int, float) and math.isfinite(value)

@@ -332,3 +332,23 @@ and register its policy before untouched/prospective release evaluation.
 ML installation, schedule reconciliation and the positive confirmed-action
 advisory path remain open. Backup and recovery work is deferred and does not block
 this stage. Code/CI success does not replace real model qualification.
+
+## Native sensor identity correction: source-side v2 boundary
+
+The receiver's `streamEpoch` is a process/session UUID, rotated on initialization,
+worker fork and clock rollback. It must not be treated as a persistent hardware
+phase. A v2 receiver policy explicitly declares `sensor_epoch` for each existing
+stream/model/sensor-ID policy. New source snapshots retain the collector UUID
+and add the declared `sensorEpoch` to each newly received v2 record. Restart
+clears all values and requires a fresh packet while retaining the declared phase.
+
+The v2 grid reader requires that declared phase, verifies device/policy identity,
+and preserves the original invalidation, expiry and no-copy restart barriers.
+Legacy v1 receiver policies and reader APIs retain their existing semantics; old
+readers refuse v2 snapshots. Old receipts are never retroactively relabelled.
+
+This source boundary does not complete the graduation correction. Thermal/native
+history, origin/outcome proofs, training-source validation and qualification still
+need coordinated versioned v2 identity integration. Do not enable a v2 policy on
+the live receiver or claim a production candidate until the consuming paths are
+qualified together. Missing physical shade support remains a separate data gap.
