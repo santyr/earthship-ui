@@ -265,3 +265,13 @@ provide no release authority. The new calibration API alone does not upgrade
 the current calibrated candidate, issuance, or production qualification path;
 those consumers still need an explicit stronger versioned integration before
 this provenance gap can be considered closed.
+
+
+`installed_shade_calibrated_artifact.build_raw_calibrated_candidate` creates
+`earthship-installed-shade-candidate/v3` with calibration/v2 metadata and its raw
+source contract. Build, validation, private storage, and readback replay the raw
+calibration sources. The aggregate retains the original base physics and
+learning cutoff and requires the complete raw replay/publication runtime source
+closure. Candidate/v2 APIs refuse v3 records. Candidate/v3 alone provides no
+release authority: issuance, preregistration, qualification, and publication
+still require their corresponding stronger contract integration.
