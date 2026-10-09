@@ -1,0 +1,2 @@
+// Separate numeric receipt for installed-domain original as-issued scoring.
+String Thermal_OriginalForecast_JSON "Thermal original forecast receipt"

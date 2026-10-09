@@ -1017,8 +1017,8 @@ fresh replay for calibrated candidates; a cached report or past active mode is
 never an activation input.
 
 This is capture/scoring infrastructure, not proof that a household model has
-qualified. The live collector/publication entry point and actual Item installation
-remain to be implemented and qualified. Genuine native-input adoption and enough
+qualified. The live collector/publication entry point is implemented and awaiting
+live integration qualification. Actual Item installation remains outstanding. Genuine native-input adoption and enough
 independent calibration, untouched and prospective outcomes still precede
 production cutover. Advice and automatic actuation remain disabled.
 
@@ -1035,5 +1035,88 @@ Final local verification of this milestone: 21 new capture/scoring/CLI cases,
 passed in separate serial workloads within the unchanged 90-second deadline and
 256-MiB memory cap. Scoped read-only reviews found no material defects. Fixture
 clocks, runtime ports and positive qualification math are explicitly synthetic;
-none establish household release eligibility. New-commit full hosted CI remains
-required before integration.
+none establish household release eligibility. Commit `8d578245b66263f34694439649f8b94e61f9c767`
+subsequently passed CI, Forecast ML and Thermal delivery. The live-entrypoint
+change below requires its own exact-commit hosted verification before integration.
+
+
+## Bounded installed-domain live entrypoint
+
+`openhab/scripts/thermal_installed_intel.py --config PRIVATE_CONFIG` checks only
+owned private configuration. It does not collect sources, create captures or
+publish. Only explicit `--publish` runs one scheduled cycle. There is no active
+switch, assessment-date override, fitting path, provider fallback or household
+command endpoint.
+
+The closed configuration schema is `earthship-installed-shade-live-config/v1`.
+It contains exactly `schema`, `openhab_base`, `evidence_directory`,
+`release_inputs_path`, `token_file`, `journal_dsn_file`, `forecast_dsn_file`,
+`native_db_config` and `native_policy`. File paths must be absolute and resolved;
+source files are owned mode 0600 in owned mode 0700 directories. The evidence
+output directory is owned mode 0700. Keep credential values and DSNs exclusively
+in private files. Reuse the approved Hex token file. The OpenHAB base must be an
+approved loopback REST endpoint. Database DSNs must satisfy the existing local,
+read-only, bounded-connection contract.
+
+Preparation replays original qualification sources before current input
+acquisition. The upcoming five-minute UTC issue must be within 60 seconds.
+Weather is selected only from archived forcing available at the actual
+precollection clock. Native v2 input receipts retain declared hardware phases
+and original grids. Journal actions are read with creation/receipt/effective
+cutoffs at that same precollection clock; the held issue snapshot acquires no
+future action knowledge. Source acquisition must finish before the issue. Its
+actual completion is retained as input availability, never backdated. Outdoor
+shades remain installed until an operator change; the November 1 Denver no-vent
+default remains until a new confirmed operator override.
+
+An owned private nonblocking lock serializes cycles. One immutable attempt
+marker per issue prevents reposting a partly accepted forecast as fresh evidence.
+The cycle sends the unchanged original numeric forecast to the fixed String
+Item `Thermal_OriginalForecast_JSON`, verifies the exact JDBC receipt, retains
+its immutable numeric capture, constructs the main version-4 envelope, sends
+it to `Thermal_Model_JSON`, verifies its exact JDBC receipt, and retains the
+immutable publication/v3 observation. A successful HTTP acknowledgement alone
+proves neither persistence nor delivery. Configuration/runtime/native expiry
+and publication deadlines are checked after Item lookup and request pacing,
+immediately before each send. Actual main-receipt expiry is replayed again.
+
+Failures attempt one unavailable publication. A withdrawal is reported verified
+only after JDBC returns its matching actual receipt; otherwise the status is
+`unverified_failure`. No successful source capture is fabricated from a failed
+main receipt or failed withdrawal. In-flight transport failures can still leave
+a prior value visible until its validated publication TTL; client freshness
+checks remain required.
+
+The service/timer files under `openhab/systemd/user/thermal-installed-forecast.*`
+are installation examples, not enabled services. The timer starts 45 seconds
+before each issue. The service uses CPU 20%, memory 256 MiB, zero cgroup swap,
+24 tasks, nice 15, idle I/O, I/O weight 10, one numerical thread and a 90-second
+service deadline. Its separate small-publication preflight requires at least
+1.5 GiB host available memory and memory PSI avg10 at most 0.5. This does not
+change the larger training/capture preflight or authorize concurrent work.
+
+Before installation, verify the exact candidate/runtime/interpreter binding,
+private source configuration, genuine native-v2 collection, both String Items
+and JDBC persistence, and the version-4 UI reader. The separate numeric Item
+example is `openhab/file-config/items/thermal-model-original.items`. Disable the
+competing legacy shadow publisher before enabling this timer. Honor the actual
+systemctl password requirement; do not bypass it. Run the private configuration
+check first, then qualify an actual scheduled shadow delivery with both original
+persisted receipts. Service enablement is separate from scientific graduation.
+
+Production remains gated on a genuine frozen candidate, stability and calibrated
+uncertainty, predeclared baseline wins, and enough untouched and prospective
+independent source-qualified days/windows. Fixtures and test clocks confer no
+release authority. Advice and automatic actuation remain disabled; PR #3,
+WeatherNext and deferred backup/recovery work remain outside this stage.
+
+
+Local live-entrypoint validation completed in separate serial capped workloads:
+26 live orchestration/input/transport checks, 24 publication compatibility checks,
+and 14 existing archived-weather checks passed. The two review findings were
+reproduced before their fixes: expiry during metadata/pacing and raw mass state
+with changing native observations. Follow-up review found no material remaining
+issues. The executable local import closure has 55 source files, all within the
+57-file declared runtime manifest (the legacy entrypoint and package identity
+are additionally retained). Systemd calendar/service/timer syntax checks passed.
+These checks make no claim about actual household qualification or publication.

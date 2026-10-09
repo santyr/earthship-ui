@@ -69,6 +69,27 @@ systemd-run --user --scope --quiet \
 After the operator reported a host hard reset, local work was limited to one
 small check at a time under verified cgroup CPU/memory/task limits. Forty-five
 focused evidence/comparator tests passed under the resource limits.
-Full suites and manual model fitting are kept off this household host; large
-validation runs in CI. No production service, forecast equation, actuator,
+Full suites run in CI. Subsequent operator approval removed the off-host
+execution requirement: small serial local fits are permitted with verified
+resource limits and host preflight. No production service, forecast equation, actuator,
 notification policy or credential was changed by this reassessment.
+
+
+## October 8 live-entrypoint engineering update
+
+The installed-domain publisher now has a bounded private CLI, real source
+collector and telemetry/JDBC transport, serial issue lock, immutable attempt
+markers, and two-receipt capture orchestration. The existing mass observer
+provides the initial thermal state while original sensor receipt metadata is
+retained. Send-time checks follow metadata lookup and request pacing. Failure
+withdrawal requires actual JDBC confirmation before it is called verified.
+Service/timer and separate numeric String Item templates await actual integration.
+See the [live entrypoint runbook](thermal-model-graduation.md#bounded-installed-domain-live-entrypoint).
+
+The previous committed milestone `8d578245b66263f34694439649f8b94e61f9c767`
+passed all three hosted workflows: CI `37865825960`, Forecast ML `37865825924`,
+and Thermal delivery `37865825904`. That result applies to that exact commit;
+new live-entrypoint changes require their own full hosted verification. These
+engineering checks do not change the October 7 statistical scores above.
+No new household candidate has qualified and no production cutover is claimed.
+The operator reconfirmed that outdoor shades remain installed.

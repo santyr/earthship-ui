@@ -104,9 +104,17 @@ def fetch_origin_forecast_with_receipts(connection_factory, *, origin, horizon_h
                                  horizon_hours=horizon_hours, retain_receipts=True)
 
 
-def _fetch_origin_forecast(connection_factory, *, origin, horizon_hours, retain_receipts):
+def fetch_pending_origin_forecast_with_receipts(connection_factory, *, origin, horizon_hours, available_by):
+    """Read a pending issue from weather already captured before collection."""
+    return _fetch_origin_forecast(connection_factory,origin=origin,horizon_hours=horizon_hours,
+        retain_receipts=True,available_by=available_by)
+
+
+def _fetch_origin_forecast(connection_factory, *, origin, horizon_hours, retain_receipts, available_by=None):
     """Use one bounded read-only snapshot of the archived Solar-PV forecast table."""
     origin, targets = _window(origin, horizon_hours)
+    known=origin if available_by is None else _utc(available_by)
+    if known>origin:raise ValueError('weather knowledge cannot follow pending issue')
     connection = connection_factory()
     try:
         if connection.get_transaction_status() != 0:
@@ -124,11 +132,13 @@ def _fetch_origin_forecast(connection_factory, *, origin, horizon_hours, retain_
                   AND captured_at <= %s AND valid_for >= %s AND valid_for <= %s
                   AND metric = ANY(%s)
                 ORDER BY issued_at DESC, valid_for, metric LIMIT %s''',
-                (SOURCE, origin, origin - MAX_ISSUE_AGE, origin,
+                (SOURCE, known, origin - MAX_ISSUE_AGE, known,
                  targets[0], targets[-1], list(METRICS), MAX_ROWS + 1))
             records = cursor.fetchall()
         if len(records) > MAX_ROWS:
             raise ValueError('archived forecast row bound exceeded')
+        if available_by is not None:
+            records=[row for row in records if _utc(row[0])<=known and _utc(row[1])<=known]
         return _select_origin_forecast(records, origin=origin, horizon_hours=horizon_hours, retain_receipts=retain_receipts)
     finally:
         connection.close()

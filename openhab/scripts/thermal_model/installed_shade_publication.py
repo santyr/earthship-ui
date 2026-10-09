@@ -24,6 +24,19 @@ from .temperature_history import _sensor_bindings
 
 # Pin the publication and its local Python dependency closure, including gates.
 RUNTIME_PATHS=frozenset({
+    'thermal_model/airflow_migration.py',
+    'thermal_model/journal.py',
+    'weather_temperature_receiver.py',
+    'thermal_installed_intel.py',
+    'thermal_model/installed_shade_live.py',
+    'thermal_model/installed_shade_live_inputs.py',
+    'thermal_model/action_history.py',
+    'thermal_model/capture_readers.py',
+    'thermal_model/capture_guard.py',
+    'thermal_temperature_runtime.py',
+    'hourly_temperature_runtime.py',
+    'weather_temperature_history.py',
+    'weather_temperature_config.py',
     'thermal_model/installed_shade_published_origin.py',
     'weather_temperature_evidence.py',
     'weather_temperature_reader.py',
