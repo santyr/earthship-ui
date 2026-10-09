@@ -1429,3 +1429,31 @@ The new graduation readers refuse this legacy diagnostic schema. Keep its
 archive separate from native-qualified candidate origins. Installation and
 entrypoint integration are still required; importing this module enables no
 live collection, publication, model fit, recommendation or household action.
+
+The guarded entrypoint is `thermal_legacy_observe.py`. Its closed private
+`earthship-thermal-legacy-observe-config/v1` configuration contains only
+`schema`, `legacy_root`, `source_sha256`, `archive`, and `shared_lock`.
+Use absolute resolved paths, owned0600 files and owned0700 directories.
+The code root is a separate private copy of the compatible original source
+closure plus the reviewed observer/entrypoint. Every code file must be declared
+and match its full digest; undeclared inventory members are refused. Preserve
+the deployed core files, accepted v4 artifact, existing environment and original
+shadow behavior. A newer v5/v6 reader cannot replace the compatible v4 reader.
+
+Default invocation verifies configuration/source bytes without loading original
+or numerical modules. Only `--observe` requests the literal original
+`shadow --publish` cycle. Actual CPU20%, memory256MiB, zero swap,24-task,
+IOWeight10 or verified idle I/O, nice15, one numerical thread, no bytecode writes,
+1.5GiB memory headroom and low memory pressure are required before protected
+imports. It acquires the existing shared consumer lock nonblocking; busy exits75
+without running a cycle. Config/source hashes and the held lock inode are checked
+again before imports and by the diagnostic runtime provider. A preloaded,
+unrelated original-module namespace is refused.
+
+Render `thermal-model-shadow.service.d/zzzz-legacy-origin-observer.conf` only
+after exact observer-head hosted checks and deployment review pass. It preserves
+the existing shadow cadence/environment and caps the process at90seconds. The
+entrypoint does not install units or enable timers. The original forcing archive
+and native-v2 environment must remain configured on the shadow service for the
+optional wrappers to receive original proof. Configuration verification alone
+is not live collection, verified delivery or a thermal qualification result.

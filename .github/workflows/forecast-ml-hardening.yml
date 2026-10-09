@@ -13,6 +13,7 @@ on:
       - 'openhab/scripts/forecast_temperature_batch.py'
       - 'openhab/scripts/test_forecast_temperature_batch.py'
       - 'openhab/systemd/user/forecast-temperature-score.*'
+      - 'openhab/systemd/user/thermal-model-shadow.service.d/zzzz-legacy-origin-observer.conf'
       - 'openhab/scripts/test_forecast_temperature_collect.py'
       - 'openhab/scripts/test_forecast_temperature_reads.py'
       - 'openhab/scripts/test_forecast_temperature_collection.py'
@@ -23,6 +24,7 @@ on:
       - 'openhab/scripts/qualified_soc_forecast.py'
       - 'openhab/scripts/thermal_intel.py'
       - 'openhab/scripts/thermal_legacy_origin.py'
+      - 'openhab/scripts/thermal_legacy_observe.py'
       - 'openhab/scripts/thermal_model/**'
       - 'openhab/scripts/test_forecast_ml_*.py'
       - 'openhab/scripts/test_forecast_pre_dusk.py'
@@ -117,5 +119,6 @@ jobs:
             openhab/scripts/test_thermal_pipeline.py \
             openhab/scripts/test_thermal_vent_default.py \
             openhab/scripts/test_thermal_legacy_origin.py \
+            openhab/scripts/test_thermal_legacy_observe.py \
             openhab/scripts/test_thermal_artifacts.py \
             tests/completion/test_thermal_replay_bundle.py

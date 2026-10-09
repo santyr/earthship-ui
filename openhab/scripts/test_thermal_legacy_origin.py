@@ -131,7 +131,9 @@ def test_original_writer_failure_is_preserved(tmp_path):
     assert list(archive.iterdir())==[]
 
 
-def test_runtime_binding_reads_original_sources_without_executing_them(tmp_path):
+def test_runtime_binding_reads_original_sources_without_executing_them(tmp_path,monkeypatch):
+    from test_thermal_origin_capture import private_interpreter
+    executable=private_interpreter(tmp_path,monkeypatch)
     root=tmp_path/'runtime';root.mkdir(mode=0o700)
     (root/'thermal_intel.py').write_text('raise RuntimeError("must never execute")\n')
     (root/'thermal_temperature_runtime.py').write_text('# original native worker\n')
@@ -140,6 +142,7 @@ def test_runtime_binding_reads_original_sources_without_executing_them(tmp_path)
     r=m.bind_legacy_runtime(root,['thermal_intel.py','thermal_temperature_runtime.py'])
     assert r['source_sha256']['thermal_intel.py']==sha256(b'raise RuntimeError("must never execute")\n').hexdigest()
     assert set(r['dependencies'])=={'numpy','scipy','psycopg2'}
+    assert r['interpreter_sha256']==sha256(executable.read_bytes()).hexdigest()
     (root/'thermal_intel.py').write_text('# changed original source\n')
     changed=m.bind_legacy_runtime(root,['thermal_intel.py','thermal_temperature_runtime.py'])
     assert changed['code_revision']!=r['code_revision']
