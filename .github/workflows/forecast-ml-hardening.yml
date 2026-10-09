@@ -59,6 +59,8 @@ on:
       - 'openhab/scripts/test_installed_shade_raw_qualification.py'
       - 'openhab/scripts/test_installed_shade_raw_publication.py'
       - 'scripts/thermal-replay-bundle.py'
+      - 'scripts/qualify-installed-shade.py'
+      - 'scripts/test_qualify_installed_shade_cli.py'
       - 'tests/completion/test_thermal_replay_bundle.py'
       - '.github/workflows/forecast-ml-hardening.yml'
 
@@ -139,4 +141,5 @@ jobs:
             openhab/scripts/test_thermal_legacy_origin.py \
             openhab/scripts/test_thermal_legacy_observe.py \
             openhab/scripts/test_thermal_artifacts.py \
+            scripts/test_qualify_installed_shade_cli.py \
             tests/completion/test_thermal_replay_bundle.py

@@ -202,3 +202,47 @@ installation. The timer runs every ten minutes without catch-up; the existing
 shared lock serializes it with input consumers. Do not enable it until genuine
 candidate publications and their declared queue exist. Adding these templates
 is not evidence of live scoring, a qualified candidate, or production cutover.
+
+## Reproduce the current raw-source qualification report
+
+The current publisher uses qualification-report/v4. The standalone command now
+exposes that profile explicitly with `--contract-version 4`; earlier profiles
+1/2/3 remain available for their original diagnostic contracts. They do not
+substitute for the current raw-source report.
+
+Run the v4 command with the existing global input-consumer lock, the original
+registered policy, frozen calibrated candidate/runtime bundle, and a private
+original-pairs JSON file. Each list entry is a closed reference to an immutable
+raw score packet:
+
+```json
+[{"raw_score_sources_path": "/absolute/private/original.raw-score-sources.json"}]
+```
+
+Use actual digest-addressed packet paths retained by the collector; this is a
+schema example, not a qualified input. Raw packet replay, candidate identity,
+independent window selection, statistical gates and freshness remain enforced.
+No error scalar, completion marker or cached qualification result can replace
+those originals.
+
+The following is one shell command. Replace absolute operands with reviewed
+private paths and execute from the pinned repository generation:
+
+```sh
+systemd-run --user --scope -p CPUQuota=20% -p MemoryMax=256M -p MemorySwapMax=0 -p TasksMax=24 -p IOWeight=10 nice -n 15 ionice -c 3 env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 timeout 90s python3 /absolute/pinned/repo/scripts/qualify-installed-shade.py --contract-version 4 --shared-lock /absolute/private/existing.lock --registration /absolute/private/original.registration.json --candidate /absolute/private/original.installed-shade-candidate-v2.json --runtime-bundle /absolute/private/original-runtime-bundle --original-pairs /absolute/private/original-pairs.json --output-dir /absolute/private/qualification-reports
+```
+
+The worker checks resource limits before numerical imports or original reads,
+holds the shared lock across replay and report writing, and disables fitting for
+this invocation. It restores the prior fitting environment on exit. The output
+root must already be owned mode 0700; original files retain their existing
+private immutable contracts. Replay keeps the library's aggregate/time limits
+and the outer command retains its hard process lifetime.
+
+Exit 75 means lock contention and produces no accepted report. Exit 1 means a
+sanitized invocation failure. Exit 0 means a report was written, including when
+its decision is unavailable: require the actual `forecast_qualified` value and
+every gate, exact candidate/runtime/policy identities, and current expiry. An
+unavailable report with absent evidence is honest refusal, not qualification.
+The command writes private machine/human reports and cannot enable a publisher,
+change telemetry Items, fit a model or activate forecasts.
