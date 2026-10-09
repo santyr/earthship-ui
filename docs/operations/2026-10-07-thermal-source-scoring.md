@@ -157,3 +157,48 @@ gate. A timer and bounded job-selection/completion mechanism are not provided by
 this one-job template. Those integrations must retain the first qualified original
 sources and avoid treating repeated attempts or overlapping horizons as independent
 evidence. No service is enabled merely by adding this template to the repository.
+
+## Queued prospective scoring
+
+The scorer also accepts `--batch --queue /absolute/private/jobs.json
+--shared-lock /absolute/private/existing.lock`. Default invocation still checks
+configuration only. Batch and explicit-origin collection are mutually exclusive.
+The owned mode-600 queue in an owned private directory has this closed schema:
+
+```json
+{
+  "schema": "earthship-installed-score-jobs/v1",
+  "jobs": [
+    {"origin_path": "/absolute/private/original.installed-shade-origin-v3.json", "horizon_hours": 24}
+  ]
+}
+```
+
+The queue is limited to 64 KiB and 256 unique jobs. Horizons are 1, 6, 12 or 24
+hours. Populate it from the declared sampling plan and original publications
+before inspecting their outcomes; do not select jobs by prediction error or
+replace an original with a reconstructed forecast. Queue entries do not declare
+independence: the qualification layer still derives independent windows from the
+original issued clocks, stratifies revisions and checks regime support.
+
+Each tick attempts at most one mature collection. An owned atomic cursor rotates
+past unsuccessful or malformed original sources, and limits a scan to eight
+uncompleted origins before resuming later. A changed queue during work refuses
+completion. Source inventory and replay have a 55-second shared check budget; the
+service retains its hard 90-second process limit and existing resource guards.
+
+A completion reference is written only after replaying the actual raw score
+packet and matching its original path, horizon and digest. Its scheduling metadata
+can suppress repeated acquisition, but supplies no support count or release pass.
+New work does not replay the entire completed prefix first. An idle tick instead
+replays one retained completion, rotating that audit between ticks. Missing or
+changed raw sources refuse that audit without reacquiring or rewriting its original
+completion. Qualification always replays the underlying sources independently.
+`completion_verified` describes one audit, not qualification of the whole queue.
+
+`thermal-installed-score-queue.service` and `.timer` are inert templates. Render
+reviewed private paths and a pinned worker containing the queue module before
+installation. The timer runs every ten minutes without catch-up; the existing
+shared lock serializes it with input consumers. Do not enable it until genuine
+candidate publications and their declared queue exist. Adding these templates
+is not evidence of live scoring, a qualified candidate, or production cutover.

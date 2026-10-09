@@ -204,3 +204,22 @@ def test_raw_score_reader_recomputes_score_and_refuses_lost_raw_source(collectio
     Path(backend.native_source_paths[0]).unlink()
     with pytest.raises((ValueError,OSError)):
         raw.read_raw_score_sources(Path(result['raw_packet_path']),assessed_at=issue+timedelta(hours=24,minutes=10))
+
+
+def test_queued_collection_replays_real_raw_binding_and_never_recollects_lost_sources(collection,monkeypatch):
+    from thermal_model import installed_shade_score_jobs as jobs
+    m,root,path,record,issue=collection;backend=RawBackend(record,root)
+    monkeypatch.setattr(jobs,'_clock',lambda:issue+timedelta(hours=24,minutes=10))
+    queue=root/'jobs.json';queue.write_text(json.dumps(dict(schema=jobs.SCHEMA,
+        jobs=[dict(origin_path=str(path),horizon_hours=1)])));queue.chmod(0o600)
+    result=jobs.collect_queued_score(queue_path=queue,output_directory=root,backend=backend)
+    assert result['status']=='scored' and result['release_authorized'] is False
+    retained=json.loads(Path(result['raw_packet_path']).read_text())
+    marker=next(root.glob('*.score-job-v1.json'));completed=json.loads(marker.read_text())
+    assert completed['raw_score_sources_sha256']==_digest(retained)
+    assert len(backend.native_source_paths)==8
+    assert jobs.collect_queued_score(queue_path=queue,output_directory=root,backend=backend)['status']=='completion_verified'
+    assert len(backend.native_source_paths)==8
+    Path(backend.native_source_paths[0]).unlink()
+    assert jobs.collect_queued_score(queue_path=queue,output_directory=root,backend=backend)['status']=='withheld'
+    assert len(backend.native_source_paths)==8 and marker.exists()

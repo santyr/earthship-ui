@@ -40,29 +40,37 @@ class SharedScoreLock:
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,required=True)
-    parser.add_argument('--collect',action='store_true')
+    intent=parser.add_mutually_exclusive_group()
+    intent.add_argument('--collect',action='store_true')
+    intent.add_argument('--batch',action='store_true')
+    parser.add_argument('--queue',type=Path)
     parser.add_argument('--origin',type=Path)
     parser.add_argument('--shared-lock',type=Path)
     parser.add_argument('--horizon',type=int,choices=(1,6,12,24))
     args=parser.parse_args(argv)
-    if args.collect and (args.origin is None or args.horizon is None or args.shared_lock is None):parser.error('explicit original publication, mature horizon and shared lock required')
-    if not args.collect and (args.origin is not None or args.horizon is not None or args.shared_lock is not None):parser.error('source reads require explicit --collect')
+    if args.collect and (args.origin is None or args.horizon is None or args.shared_lock is None or args.queue is not None):parser.error('explicit original publication, mature horizon and shared lock required')
+    if args.batch and (args.queue is None or args.shared_lock is None or args.origin is not None or args.horizon is not None):parser.error('explicit queue and shared lock required for batch')
+    if not (args.collect or args.batch) and any(value is not None for value in (args.origin,args.horizon,args.shared_lock,args.queue)):parser.error('source reads require explicit collection intent')
     try:
-        if args.collect:
+        if args.collect or args.batch:
             from thermal_installed_intel import _resource_preflight
             _resource_preflight()
             os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
         from thermal_model.installed_shade_score_inputs import load_score_settings,ScoreReader
         settings=load_score_settings(args.config)
-        if not args.collect:
+        if not (args.collect or args.batch):
             print(json.dumps(dict(status='configuration_verified',collection_executed=False,release_authorized=False)));return 0
         from thermal_model.installed_shade_score_collection import collect_published_score
         with SharedScoreLock(args.shared_lock) as held:
             backend=ScoreReader(settings,shared_lock_guard=held.verify)
-            result=collect_published_score(origin_path=args.origin,horizon_hours=args.horizon,
-                output_directory=settings['output_directory'],backend=backend)
+            if args.batch:
+                from thermal_model.installed_shade_score_jobs import collect_queued_score
+                result=collect_queued_score(queue_path=args.queue,output_directory=settings['output_directory'],backend=backend)
+            else:
+                result=collect_published_score(origin_path=args.origin,horizon_hours=args.horizon,
+                    output_directory=settings['output_directory'],backend=backend)
             held.verify()
-        print(json.dumps(result,sort_keys=True));return 0 if result['status'] in ('scored','pending','busy') else 1
+        print(json.dumps(result,sort_keys=True));return 0 if result['status'] in ('scored','pending','busy','queue_complete','completion_verified') else 1
     except BlockingIOError:
         print(json.dumps(dict(status='busy',collection_executed=False,release_authorized=False)));return 75
     except Exception:
