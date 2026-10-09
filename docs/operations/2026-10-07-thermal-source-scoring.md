@@ -275,3 +275,14 @@ learning cutoff and requires the complete raw replay/publication runtime source
 closure. Candidate/v2 APIs refuse v3 records. Candidate/v3 alone provides no
 release authority: issuance, preregistration, qualification, and publication
 still require their corresponding stronger contract integration.
+
+
+Raw candidate/v3 issuance uses the distinct origin/v4 capture, forecast/v3
+numeric output, and scored-pair/v4 contracts. Origin/v3 and scored-pair/v3 remain
+reserved for the earlier publication-capture contracts. Public
+`prepare_raw_calibrated_candidate` replays the raw candidate proof;
+`build_raw_calibrated_capture` requires its separate prepared type and refuses
+insufficient calibrated bands. Storage and scoring use explicit raw-calibrated
+APIs; older issuance readers refuse these schemas. Numerical captures remain
+shadow observations with no release or actuation authority. Production
+publication and release qualification still need the matching stronger profile.
