@@ -341,6 +341,22 @@ def _backtest(args, parser, now):
     return 0
 
 
+# Operator forecast assumption, effective at local midnight (still MDT).
+# Captured rows freeze it; replay never consults a later operator default.
+_VENT_CLOSED_FROM = datetime(2026, 11, 1, tzinfo=forecast_intel.MOUNTAIN)
+
+
+def _apply_vent_default(rows):
+    if not rows:
+        return rows
+    def at(row):
+        value = row["at"]
+        return datetime.fromisoformat(value) if isinstance(value, str) else value
+    if max(at(row) for row in rows) < _VENT_CLOSED_FROM:
+        return rows
+    return [{**row, "_ventClosedFrom": _VENT_CLOSED_FROM.isoformat()} for row in rows]
+
+
 _MODE_TIMELINE_FIELD = "_modeTimeline"
 _VALID_MODES = {"spring", "warm", "fall_charge", "winter"}
 
@@ -690,6 +706,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
                 now, horizon_end + timedelta(microseconds=1)
             )
             rows = _apply_mode_timeline(rows, modes, now)
+        rows = _apply_vent_default(rows)
         # The forecast fetch (and optional mode read) occurs after the command
         # starts. Stamp the decision only after those inputs are available; a
         # start-time stamp would falsely place them in the past for replay.

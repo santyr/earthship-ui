@@ -35,6 +35,7 @@ from .artifacts import (
     validate_artifact,
 )
 from .behavior import (
+    constrain_vent_default,
     AIRFLOW_LEVELS,
     MINIMUM_IMPROVEMENT,
     _forcing_rows as _behavior_forcing_rows,
@@ -460,6 +461,13 @@ def _normalize_hourly_rows(rows):
             for candidate in raw_timelines[1:]
         ):
             raise ValueError("forecast mode timelines disagree")
+    policies = [raw.get("_ventClosedFrom") for raw in rows if isinstance(raw, dict)]
+    cutoff = None
+    if any(value is not None for value in policies):
+        parsed = tuple(_parse_time(value, "forecast vent default timestamp") for value in policies)
+        cutoff = parsed[0]
+        if any(value != cutoff for value in parsed[1:]):
+            raise ValueError("forecast vent defaults disagree")
     normalized = []
     for raw in rows:
         if not isinstance(raw, dict):
@@ -502,6 +510,7 @@ def _normalize_hourly_rows(rows):
                 "wind_mph": wind,
                 "mode": mode,
                 "_modeTimeline": timeline,
+                **({"_ventClosedFrom": cutoff} if cutoff is not None else {}),
             }
         )
     normalized.sort(key=lambda row: row["at"].astimezone(timezone.utc))
@@ -575,6 +584,7 @@ def interpolate_hourly_forecast(rows, *, start, end):
                     else left["mode"] if fraction < 1.0 else right["mode"]
                 ),
                 "_modeTimeline": left["_modeTimeline"],
+                **({"_ventClosedFrom": left["_ventClosedFrom"]} if "_ventClosedFrom" in left else {}),
             }
         )
         cursor_utc += STEP
@@ -715,7 +725,7 @@ def _expand_nightly_venting(schedule, rows, timezone_value):
     )
     expanded = dict(schedule)
     expanded["airflowSegments"] = tuple(clipped)
-    return expanded
+    return constrain_vent_default(expanded, rows)
 
 
 def _validate_internal_schedule(schedule, *, horizon_start, horizon_end):
@@ -1170,6 +1180,9 @@ def _build_available_shadow(
     selected_morning = _morning_mass(rows, predictions, site_timezone)
     action_label, action_source = _action_label(artifact)
     reasons = []
+    cutoff = rows[0].get("_ventClosedFrom")
+    if cutoff is not None and cutoff <= rows[-1]["at"]:
+        reasons.append(f"operator closed-vent default from {_iso(cutoff)}; assumption, not observed action")
     if registry_reason is not None:
         reasons.append(registry_reason)
     if timedelta(hours=model_age) > DAILY_TRAINING_CADENCE:
@@ -1178,6 +1191,7 @@ def _build_available_shadow(
         reasons.append(
             {
                 "forecast_only_baseline": "forecast uses baseline schedule assumptions; action advice withheld",
+                "operator_vent_default": "operator closed-vent default retained baseline; no vent candidate emitted",
                 "minimum_improvement_not_met": "minimum modeled improvement not met; no candidate emitted",
                 "protocol_constraint": "protocol constraint retained baseline; no candidate emitted",
                 "explicit_mode_transition": "explicit journal mode transition retained evidence-backed baseline; no candidate emitted",

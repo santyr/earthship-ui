@@ -7,7 +7,7 @@ uses the existing dynamics simulator, and returns modeled schedule comparisons.
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import math
 
@@ -732,6 +732,39 @@ def _nonwinter_shade_schedule(model, mode, rows):
     }
 
 
+def _vent_closed_from(rows):
+    value = _value(rows[0], "_ventClosedFrom", None)
+    if value is None:
+        return None
+    at = datetime.fromisoformat(value) if isinstance(value, str) else value
+    if not isinstance(at, datetime) or at.tzinfo is None or at.utcoffset() is None:
+        raise ValueError("forecast vent default timestamp must be aware")
+    return at.astimezone(timezone.utc)
+
+
+def constrain_vent_default(schedule, rows):
+    """Clip forecast vent assumptions without changing mode or shade policy."""
+    cutoff = _vent_closed_from(rows)
+    if cutoff is None or cutoff > _value(rows[-1], "at"):
+        return dict(schedule)
+    clipped = tuple(
+        {**segment, "endAt": min(segment["endAt"], cutoff)}
+        for segment in schedule.get("airflowSegments", ())
+        if segment["startAt"] < cutoff
+    )
+    baseline = [segment for segment in clipped if segment["level"] == "baseline"]
+    result = {**schedule, "airflowSegments": clipped,
+              "ventOpenAt": baseline[0]["startAt"] if baseline else None,
+              "ventCloseAt": baseline[0]["endAt"] if baseline else None}
+    if baseline:
+        result.update(vent="open", ventFlow="baseline", ventForcing=AIRFLOW_LEVELS["baseline"])
+    else:
+        result.update(vent="closed", ventFlow="closed", ventForcing=AIRFLOW_LEVELS["closed"])
+    if _value(rows[0], "at") >= cutoff:
+        result.update(ventOpenMinute=None, ventCloseMinute=None)
+    return result
+
+
 def baseline_schedule(model, forecast):
     """Return a learned schedule or an explicitly marked protocol fallback."""
     rows = _forecast_rows(forecast)
@@ -825,6 +858,12 @@ def baseline_schedule(model, forecast):
         }
 
     shade_schedule = _nonwinter_shade_schedule(model, mode, rows)
+    cutoff = _vent_closed_from(rows)
+    if cutoff is not None and _value(rows[0], "at") >= cutoff:
+        return {**common, **shade_schedule, "vent": "closed", "ventFlow": "closed",
+                "ventForcing": 0.0, "ventOpenMinute": None, "ventCloseMinute": None,
+                "ventOpenAt": None, "ventCloseAt": None, "airflowSegments": (),
+                "ventTimingSource": "operator_default", "ventTimingStatus": "assumed"}
     learned = _has_learned_timing(
         model, mode, ("vent_open", "vent_close")
     )
@@ -849,7 +888,7 @@ def baseline_schedule(model, forecast):
         {"startAt": opened, "endAt": closed, "level": "baseline"},
         *_observed_boosted_segments(model, mode, rows),
     )
-    return {
+    return constrain_vent_default({
         **common,
         "vent": "open",
         "ventFlow": "baseline",
@@ -864,7 +903,7 @@ def baseline_schedule(model, forecast):
         "ventTimingStatus": timing_status,
         "timingSource": timing_source,
         "timingStatus": timing_status,
-    }
+    }, rows)
 
 
 @dataclass(frozen=True)
@@ -977,6 +1016,7 @@ def _forcing_rows(rows, schedule):
     winter_schedule = schedule["mode"] == "winter"
     sunny_winter = winter_schedule and schedule["indoorShadeDay"] == "open"
     outdoor_present = float(schedule["outdoorShade"] == "present")
+    cutoff = _vent_closed_from(rows)
     forcings = []
     for row in rows[1:]:
         at = _value(row, "at")
@@ -987,6 +1027,8 @@ def _forcing_rows(rows, schedule):
             if segment["startAt"] <= at < segment["endAt"]
         ]
         vent = max(active_levels, default=AIRFLOW_LEVELS["closed"])
+        if cutoff is not None and at >= cutoff:
+            vent = AIRFLOW_LEVELS["closed"]
         if row_mode == "winter":
             vent = AIRFLOW_LEVELS["closed"]
             if winter_schedule and sunny_winter:
@@ -1182,6 +1224,13 @@ def search_candidate_schedule(*, behavior, dynamics, forecast):
         )
     if mode == "winter":
         return _search_winter(rows, baseline, dynamics)
+    cutoff = _vent_closed_from(rows)
+    if cutoff is not None and cutoff <= _value(rows[-1], "at"):
+        return ScheduleSearchResult(
+            baseline=baseline, candidate=None,
+            modeled_difference=_difference(baseline_score, baseline_score, "operator_vent_default"),
+            rejected_candidate_counts={"operator_vent_default": 1},
+        )
 
     rejected = Counter()
     surviving = []
