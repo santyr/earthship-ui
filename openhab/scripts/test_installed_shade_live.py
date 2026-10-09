@@ -147,3 +147,36 @@ def test_guard_after_send_pacing_prevents_expired_numeric_or_main_forecast(cycle
     assert not list(root.glob('*.installed-shade-origin-v3.json'))
     if damage=='numeric_delay':assert [item for item,_ in backend.puts]==['Thermal_Model_JSON']
     assert all(value['status']=='unavailable' for item,value in backend.puts if item=='Thermal_Model_JSON')
+
+
+def test_numeric_capture_clock_follows_actual_submillisecond_jdbc_receipt(cycle):
+    from thermal_model.installed_shade_published_origin import read_publication_capture
+    m,root,issue=cycle
+    class MillisecondBackend(FakeBackend):
+        def __init__(self,*args):super().__init__(*args);self.send_clocks={}
+        def put(self,item,state,*,preflight=None):
+            if item=='Thermal_OriginalForecast_JSON':self.m._test_time=self.issue+timedelta(microseconds=158077)
+            sent_at=self.m._test_time
+            super().put(item,state,preflight=preflight)
+            self.send_clocks[item]=sent_at
+            # JDBC's millisecond timestamp can fall just after HTTP send time.
+            self.rows[item]['time']=int(sent_at.timestamp()*1000)+1
+    backend=MillisecondBackend(m,issue)
+    result=m.run_live_cycle(reference_path=root/'refs',archive=root,backend=backend)
+    assert result['status']=='published' and result['delivery_verified'] is True
+    record=read_publication_capture(Path(result['capture_path']))
+    stored=issue.replace(microsecond=159000)
+    assert backend.send_clocks['Thermal_OriginalForecast_JSON']<stored
+    assert stored<=datetime.fromisoformat(record['numeric_capture']['published_at'])
+    assert record['numeric_publication']==backend.rows['Thermal_OriginalForecast_JSON']
+
+
+def test_jdbc_receipt_later_than_confirmation_clock_is_still_refused(monkeypatch):
+    from datetime import timezone
+    m=module();at=datetime(2026,10,9,21,23,5,158077,tzinfo=timezone.utc)
+    monkeypatch.setattr(m,'_clock',lambda:at)
+    class Backend:
+        def persisted(self,item,state,*,since):
+            return dict(item=item,state=state,time=int(at.timestamp()*1000)+1)
+    with pytest.raises(ValueError,match='clock/state differs'):
+        m._confirmed_receipt(Backend(),'Thermal_Model_JSON','{}',since=at)
