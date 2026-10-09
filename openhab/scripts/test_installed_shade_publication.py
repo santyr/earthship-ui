@@ -245,3 +245,33 @@ def test_actual_runtime_binding_detects_native_helper_byte_drift(tmp_path,helper
     assert before['source_manifest'][helper]!=after['source_manifest'][helper]
     assert before['code_revision']!=after['code_revision']
     assert before['interpreter_sha256']==after['interpreter_sha256']
+
+
+@pytest.mark.parametrize('fit_passed',[True,False])
+@pytest.mark.parametrize('raw_profile',[False,True])
+def test_uncalibrated_shadow_bootstrap_requires_native_fit_without_calibration(tmp_path,release_case,monkeypatch,fit_passed,raw_profile):
+    from thermal_model.installed_shade_qualification import qualify_installed_shade_candidate,qualify_raw_published_installed_shade_candidate
+    artifact,_,_,now=release_case;m=module();tmp_path.chmod(0o700)
+    path=tmp_path/'refs.json';path.write_text(json.dumps(dict(schema=m.RAW_REFERENCE_SCHEMA if raw_profile else m.REFERENCE_SCHEMA,
+        registration_path=None,candidate_path='model.installed-shade-candidate-v1.json',
+        runtime_bundle_path='runtime',original_pairs_path=None)));path.chmod(0o600)
+    qualifier=qualify_raw_published_installed_shade_candidate if raw_profile else qualify_installed_shade_candidate
+    for name in m.RAW_RUNTIME_PATHS-artifact['runtime']['source_manifest'].keys():
+        artifact=deepcopy(artifact);artifact['runtime']['source_manifest'][name]='7'*64
+    monkeypatch.setattr(m,'build_runtime_binding',lambda *args:artifact['runtime'])
+    report=qualifier(registration_path=None,candidate_path=None,
+        runtime_bundle_path=None,original_pairs=[],now=now)
+    monkeypatch.setattr(m,'_clock',lambda:now)
+    monkeypatch.setattr(m,'read_runtime_bundle',lambda _:dict(runtime=artifact['runtime'],
+        revision_paths=['thermal_intel.py','thermal_model/installed_shade_publication.py']))
+    # Explicit reader boundary: this branch has no calibration record at all.
+    monkeypatch.setattr(m,'read_candidate_bundle',lambda *args,**kwargs:dict(
+        artifact=artifact,fit_evidence=dict(fit_gates_passed=fit_passed)))
+    monkeypatch.setattr(m,'read_calibrated_candidate',lambda *args,**kwargs:pytest.fail('uncalibrated bootstrap used calibrated reader'))
+    monkeypatch.setattr(m,'qualify_raw_published_installed_shade_candidate' if raw_profile else 'qualify_installed_shade_candidate',lambda **kwargs:report)
+    result=m.prepare_installed_qualification(path)
+    assert result.source_ready is fit_passed
+    assert result.registration_absent is True
+    assert result.require_raw_sources is raw_profile
+    decision=json.loads(result.report_json)
+    assert decision['forecast_qualified'] is False and decision['automatic_actuation_authorized'] is False

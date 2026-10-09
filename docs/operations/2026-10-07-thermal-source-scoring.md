@@ -120,3 +120,19 @@ candidate. Production activation and natural receipts remain unproven.
 Existing selected-receipt score archives cannot
 be retroactively described as retaining raw snapshots. Legacy v4 diagnostic
 origins remain outside the candidate graduation contract.
+
+## Shadow bootstrap before calibration
+
+An uncalibrated candidate v1 can supply original shadow forecasts for calibration
+when its native training fit gates pass and registration is explicitly absent.
+This path does not require a calibration record. It still requires a verified
+candidate, compatible executing runtime, qualified current inputs, and honest
+shadow publication. A configured invalid registration is not equivalent to
+absence and refuses bootstrap. Failed native fit gates refuse source preparation.
+
+Freeze the valid uncalibrated candidate first, retain its exact as-issued shadow
+forecasts, then collect naturally mature source-bound outcomes for calibration.
+Freeze the calibrated candidate separately and preregister its release policy
+before inspecting its untouched chronological holdout. Only fresh replay of the
+qualified calibrated candidate's own evidence can authorize forecast-active mode.
+Bootstrap fixtures and legacy diagnostic origins are not release evidence.
