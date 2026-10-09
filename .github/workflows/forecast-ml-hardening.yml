@@ -6,6 +6,8 @@ on:
       - 'openhab/scripts/forecast_intel.py'
       - 'openhab/scripts/forecast_ml_evidence.py'
       - 'openhab/scripts/forecast_temperature_origin.py'
+      - 'openhab/scripts/forecast_temperature_score.py'
+      - 'openhab/scripts/test_forecast_temperature_score.py'
       - 'openhab/scripts/test_forecast_temperature_origin.py'
       - 'openhab/scripts/forecast_pre_dusk.py'
       - 'openhab/scripts/qualified_soc_forecast.py'
@@ -72,6 +74,7 @@ jobs:
             openhab/scripts/test_forecast_pre_dusk.py \
             openhab/scripts/test_forecast_intel.py \
             openhab/scripts/test_forecast_temperature_origin.py \
+            openhab/scripts/test_forecast_temperature_score.py \
             openhab/scripts/test_qualified_soc_forecast.py \
             openhab/scripts/test_thermal_identifiability.py \
             openhab/scripts/test_installed_shade_dynamics.py \

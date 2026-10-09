@@ -1238,3 +1238,65 @@ unqualified. Existing forecast input timers resumed under a shared20%CPU,
 256MiB memory, zero swap and24task limit with a nonblocking serial lock; the
 legacy trainer remains stopped. The existing displayed thermal output remains
 low-confidence shadow output, and no production ML gate has passed.
+
+
+## Original temperature correction source replay
+
+`forecast_temperature_score.py` evaluates the existing bias correction from
+original source packets, without reading current learning state or changing any
+prediction. Its separate `earthship-temperature-correction-score-sources/v1`
+packet binds the immutable origin digest, actual exact persisted detail bytes
+and timestamp, original target, original native-history query interval, actual
+assessment clock and complete bounded raw native2 snapshots. A score cache is
+not accepted as a source packet.
+
+Only original future targets with exact original publication identity may be
+scored. The outcome must mature by five minutes and qualify through the existing
+native2 epoch/lifetime/barrier reader under the original policy. Invalid and
+expired outcomes are withheld; they never become zero-error observations.
+Original raw weather must explicitly use Fahrenheit. Raw and corrected hours
+match in original provider order, preserving valid repeated DST offsets and
+refusing nonexistent local hours or conflicting UTC targets.
+
+The summary replays raw packets, rejects duplicate issue/target pairs and
+stratifies source/interpreter revision, hardware phase, local hour, declared
+lead bucket, calendar season and original forecast weather-code category. These
+categories describe the original provider forecast, not retrospectively revised
+weather. Original adjustment-state strata remain explicit. Multiple issues for
+the same actual target in one stratum contribute one metric point, chosen by
+earliest original publication rather than smallest error. Metrics give equal
+weight to target calendar days after that selection.
+
+`complete_issued_hour_days` requires all expected hourly targets from one
+original issue for a whole local day, including23/25hour DST days. It is
+**not continuous sensor coverage**, and partial observations cannot establish it.
+Raw/qualified observation counts and unique target dates remain separate.
+All auxiliary score/summary outputs have `release_authority:false`; they grant
+no thermal or correction-model graduation.
+
+For a bounded offline repeat after installation or from the reviewed source
+checkout, run the following with the same interpreter/PYTHONPATH and
+CPU20%/256MiB/no-swap/task24/nice15/idle-I/O/thread1/90second limits used by the
+other local qualification commands. Set the two directories to the owned0700
+origin and source-packet archives; readers require owned0600 immutable files.
+
+```python
+from pathlib import Path
+import json
+from forecast_temperature_score import read_sources, summarize_sources
+
+origins = Path("/home/sat/.local/state/forecast-intel/temperature-origins-v1")
+sources = Path("/absolute/private/temperature-score-sources")
+packets = (read_sources(sources, path) for path in
+           sorted(sources.glob("*.temperature-score-sources-v1.json")))
+print(json.dumps(summarize_sources(origins, packets), indent=2))
+```
+
+The packet writer uses content-addressed immutable files and never overwrites
+a conflicting/corrupt existing source. Current real-source development replay
+has one short-lead qualified pair and zero complete issued-hour days; its raw
+and corrected errors reproduced with network/database connections blocked.
+That remains insufficient to claim general improvement. A scheduled source
+collector and ongoing evaluator still need integration. Use the already
+authorized OpenHAB `serviceId=jdbc` persistence API for exact detail receipts;
+existing native database reader permissions need no expansion.
