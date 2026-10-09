@@ -7,6 +7,20 @@ import sys
 import pytest
 from thermal_model.temperature_history import STREAMS,POLICY
 from test_thermal_sensor_epoch_history import EPOCHS
+from test_weather_temperature_history import Connection
+
+
+class WindowConnection(Connection):
+    """Read-only transport double honors the actual SQL endpoint bounds."""
+    def fetchone(self):
+        query,params=self.calls[-1]
+        if 'WHERE time <' in query:
+            return next((row for row in reversed(self.rows) if row[0]<params[0]),None)
+        return super().fetchone()
+    def fetchall(self):
+        query,params=self.calls[-1]
+        if 'WHERE time >=' in query:return [row for row in self.rows if params[0]<=row[0]<=params[1]]
+        return super().fetchall()
 
 
 def module():
@@ -110,14 +124,22 @@ def test_native_reader_retains_raw_query_and_returns_only_replayed_selection(set
     from test_weather_temperature_reader import AT
     from weather_temperature_sources import read_temperature_source,replay_temperature_source
     _,raw=sources(tmp_path,monkeypatch);m=module();reader=m.ScoreReader(settings[1])
-    connection=Connection(rows=raw);monkeypatch.setattr(reader,'_connect',lambda config:connection)
+    connections=[]
+    def connect(config):
+        connection=WindowConnection(rows=raw);connections.append(connection);return connection
+    monkeypatch.setattr(reader,'_connect',connect)
     targets=[AT+timedelta(seconds=60),AT+timedelta(seconds=360)]
     grid=reader.native(targets,assessed_at=AT+timedelta(minutes=10),sensor_epoch=EPOCHS['air'])
     assert [r['temperatureF'] for _,r in grid]==[70.,71.]
-    assert len(reader.native_source_paths)==1
-    p=Path(reader.native_source_paths[0]);packet=read_temperature_source(p.parent,p)
-    assert packet['native_rows'][0][1]==raw[0][1]
-    assert replay_temperature_source(packet)==grid and connection.closed
+    assert len(reader.native_source_paths)==2
+    selected=[]
+    for name in reader.native_source_paths:
+        p=Path(name);packet=read_temperature_source(p.parent,p)
+        assert len(packet['targets'])==1
+        selected.extend(replay_temperature_source(packet))
+    assert selected==grid and all(c.closed for c in connections)
+    assert len(connections)==2
+    assert all(c.calls[-1][1][1]-c.calls[-1][1][0]==timedelta(seconds=120) for c in connections)
 
 
 def test_configuration_drift_during_native_read_cannot_retain_a_score_source(settings,tmp_path,monkeypatch):
@@ -131,3 +153,49 @@ def test_configuration_drift_during_native_read_cannot_retain_a_score_source(set
     monkeypatch.setattr(reader,'_connect',connect)
     with pytest.raises(ValueError):reader.native([AT+timedelta(seconds=60)],assessed_at=AT+timedelta(minutes=10),sensor_epoch=EPOCHS['air'])
     assert list(Path(settings[1]['output_directory']).iterdir())==[]
+
+
+def test_identical_endpoint_reuses_immutable_source_but_replays_again(settings,tmp_path,monkeypatch):
+    from test_thermal_sensor_epoch_history import sources
+    from test_weather_temperature_reader import AT
+    _,raw=sources(tmp_path,monkeypatch);m=module();reader=m.ScoreReader(settings[1]);connections=[]
+    def connect(config):
+        c=WindowConnection(rows=raw);connections.append(c);return c
+    monkeypatch.setattr(reader,'_connect',connect)
+    target=AT+timedelta(seconds=60);assessed=AT+timedelta(minutes=10)
+    first=reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])
+    first[0][1]['temperatureF']=99.
+    second=reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])
+    assert second[0][1]['temperatureF']==70.
+    assert len(connections)==1 and len(reader.native_source_paths)==1
+    Path(reader.native_source_paths[0]).unlink()
+    with pytest.raises((ValueError,OSError)):reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])
+    assert len(connections)==1
+
+
+@pytest.mark.parametrize('barrier',[False,True])
+def test_far_endpoint_queries_keep_small_raw_windows_and_invalid_barriers(settings,monkeypatch,barrier):
+    import hourly_temperature_runtime
+    from weather_temperature_evidence import TemperaturePolicy,MODELS
+    from weather_temperature_receiver import TemperatureCollector
+    from weather_temperature_sources import read_temperature_source
+    from test_weather_temperature_reader import AT
+    policy=TemperaturePolicy('Fineoffset-WH32B',235,**POLICY);clock={'at':AT,'tick':1000}
+    source=TemperatureCollector({'indoor':policy},sensor_epochs={'indoor':EPOCHS['air']},clock=lambda:clock['at'],monotonic=lambda:clock['tick'],process_id=lambda:1)
+    raw=[]
+    for index in range(289):
+        at=AT+timedelta(minutes=5*index);clock.update(at=at,tick=1000+index*300)
+        source.observe({'model':policy.model,'id':str(policy.sensor_id),MODELS[policy.model][1]:'70'})
+        raw.append((at+timedelta(seconds=20),json.dumps(source.snapshot())))
+    targets=[AT+timedelta(seconds=60),AT+timedelta(days=1,seconds=60)]
+    if barrier:raw.append((targets[-1]-timedelta(seconds=10),None))
+    reader=module().ScoreReader(settings[1]);connections=[]
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    def connect(config):
+        c=WindowConnection(rows=raw);connections.append(c);return c
+    monkeypatch.setattr(reader,'_connect',connect)
+    selected=reader.native(targets,assessed_at=targets[-1]+timedelta(minutes=10),sensor_epoch=EPOCHS['air'])
+    assert [r['temperatureF'] if r else None for _,r in selected]==[70.,None if barrier else 70.]
+    packets=[read_temperature_source(Path(p).parent,Path(p)) for p in reader.native_source_paths]
+    assert sum(len(p['native_rows']) for p in packets)<=4
+    assert len(connections)==2 and all(c.closed for c in connections)

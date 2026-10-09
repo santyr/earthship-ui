@@ -40,7 +40,7 @@ def load_score_settings(path):
 
 class ScoreReader:
     def __init__(self,settings):
-        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24);self.native_source_paths=[]
+        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24);self.native_source_paths=[];self._native_sources={}
         self.hashes={key:sha256(_owned_bytes(Path(settings[key]),16384)).hexdigest() for key in SOURCE_PATHS}
         token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:token,budget=self.budget)
@@ -80,13 +80,24 @@ class ScoreReader:
         policies,epochs=load_temperature_receiver_configuration(self.settings['native_policy'])
         if epochs is None or epochs.get('indoor')!=sensor_epoch:raise ValueError('original native phase changed')
         config=read_db_config(self.settings['native_db_config'])
-        try:packet=fetch_temperature_source(lambda:self._connect(config),targets=targets,assessed_at=assessed_at,
-            stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch)
-        except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
-        self.verify_unchanged()
-        path=write_temperature_source(self.settings['output_directory'],packet)
-        retained=read_temperature_source(path.parent,path)
-        rows=replay_temperature_source(retained)
-        self.verify_unchanged()
-        if str(path) not in self.native_source_paths:self.native_source_paths.append(str(path))
+        rows=[]
+        for target in targets:
+            self.verify_unchanged()
+            key=(target,assessed_at,sensor_epoch)
+            path=self._native_sources.get(key)
+            if path is None:
+                try:packet=fetch_temperature_source(lambda:self._connect(config),targets=[target],assessed_at=assessed_at,
+                    stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch)
+                except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
+                self.verify_unchanged()
+                path=write_temperature_source(self.settings['output_directory'],packet)
+            retained=read_temperature_source(path.parent,path)
+            selected=replay_temperature_source(retained)
+            if (retained['targets']!=[target.isoformat()] or _utc(retained['assessed_at'])!=assessed_at or
+                    retained['sensor_epoch']!=sensor_epoch or retained['stream']!='indoor'):
+                raise ValueError('original endpoint query context differs')
+            self.verify_unchanged()
+            self._native_sources[key]=path
+            if str(path) not in self.native_source_paths:self.native_source_paths.append(str(path))
+            rows.extend(selected)
         return rows

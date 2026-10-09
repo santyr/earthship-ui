@@ -52,7 +52,16 @@ digest-addressed, owned private files in a private directory. Packet bounds are
 The candidate `ScoreReader.native` now retains each bounded query packet,
 reads it back from its immutable archive and returns only replayed selection.
 It verifies source configuration before querying, after querying and after
-readback. `native_source_paths` records the retained files for the caller.
+readback. Comparator requests are split into endpoint queries: each retains
+its policy-validity window and the original carry row rather than snapshots
+across the interval between endpoints. Each query still uses a dedicated
+read-only stable transaction and the same original assessment/phase.
+Identical endpoint/assessment/phase requests within one reader invocation reuse
+the first immutable packet path, with fresh readback and selection replay.
+Missing or changed cached source bytes refuse; no database fallback replaces
+that original. `native_source_paths` records the retained files for the caller.
+Seven complete cycles plus the outcome need at most 15 distinct endpoint
+queries and two publication reads, within the existing 24-request budget.
 The collector now writes a separate versioned
 `earthship-installed-shade-score-sources/v2` packet when its backend retains raw
 queries. It binds the unchanged original score inputs to the exact query paths,
