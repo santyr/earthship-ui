@@ -1300,3 +1300,38 @@ That remains insufficient to claim general improvement. A scheduled source
 collector and ongoing evaluator still need integration. Use the already
 authorized OpenHAB `serviceId=jdbc` persistence API for exact detail receipts;
 existing native database reader permissions need no expansion.
+
+
+## Explicit original temperature outcome collection
+
+`forecast_temperature_collect.py --config /absolute/private/config.json`
+checks configuration only. Add `--collect --origin-sha256 ORIGINAL_DIGEST
+--target ORIGINAL_ISO_TIMESTAMP` to collect one explicit as-issued target.
+The config schema is `earthship-temperature-correction-collect-config/v1`,
+with exactly `schema`, `openhab_base`, `token_file`, `native_db_config`,
+`shared_lock`, `origin_directory`, and `output_directory`. All paths must be
+absolute and resolved; files are owned single-link0600 and directories0700.
+Use the existing Hex token and dedicated weather_temperature_reader config,
+and the same existing native-input-consumers lock used by forecast workers.
+No database grant is required. Original and outcome directories are separate.
+
+Collection requires actual CPU20%/memory256MiB/zero-swap/24-task/IOWeight10
+limits, nice15, one numerical thread, at least1.5GiB available memory and
+low memory pressure. Bound the process with timeout90s and idle IO priority.
+The command acquires the shared consumer lock internally; do not wrap it
+with another flock acquisition on the same file. Pending targets and busy
+locks do not issue backend requests. Failure output contains status only.
+
+The read adapters fetch exact original Forecast_10Day_JSON JDBC bytes/time
+through the fixed loopback persistence GET and raw native rows through the
+existing read-only database role. Native barriers remain authoritative;
+NULL/oversized envelopes refuse the collection rather than exposing an older
+healthy value. Raw packets are content addressed. The first qualified packet
+for an origin/target is retained immutably and replays on subsequent calls;
+withheld packets remain diagnostic and may be retried. No model fitting,
+Item writes, notifications or release authority are exposed.
+
+This command is an engineering entrypoint. It does not install or schedule
+itself, and its existence is not evidence of chronological accuracy or
+production thermal qualification. Verify exact-head hosted checks before
+installation, then verify a natural raw packet and offline source replay.
