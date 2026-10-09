@@ -41,6 +41,11 @@ jobs:
           ref: d24771b77de540f32e592a7c44a0bff6385e8cd4
           path: .ci/solar-pv
           persist-credentials: false
+      - name: Verify disposable PostgreSQL image availability
+        timeout-minutes: 3
+        run: |
+          docker version
+          timeout 120s docker pull postgres:16
       - name: Completion regression tests
         env:
           PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
