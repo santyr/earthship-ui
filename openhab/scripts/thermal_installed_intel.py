@@ -34,11 +34,21 @@ def main(argv=None):
     intent=parser.add_mutually_exclusive_group()
     intent.add_argument('--publish',action='store_true')
     intent.add_argument('--check-only',action='store_true')
+    intent.add_argument('--withdraw',action='store_true')
+    parser.add_argument('--reason',help='private withdrawal reason, required with --withdraw')
     args=parser.parse_args(argv)
+    if args.withdraw and not args.reason:parser.error('--withdraw requires --reason')
+    if not args.withdraw and args.reason is not None:parser.error('--reason requires --withdraw')
     try:
-        if args.publish:
+        if args.publish or args.withdraw:
             _resource_preflight()
             os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
+        if args.withdraw:
+            from thermal_model.installed_shade_live_inputs import load_withdraw_settings,WithdrawalBackend
+            from thermal_model.installed_shade_live import withdraw_live_publication
+            settings=load_withdraw_settings(args.config)
+            result=withdraw_live_publication(archive=settings['evidence_directory'],backend=WithdrawalBackend(settings),reason=args.reason)
+            print(json.dumps(result,sort_keys=True));return 0 if result['status'] in ('withdrawn','busy') else 1
         from thermal_model.installed_shade_live_inputs import load_live_settings,LiveBackend
         settings=load_live_settings(args.config)
         if not args.publish:

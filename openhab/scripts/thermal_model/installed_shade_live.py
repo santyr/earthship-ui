@@ -164,3 +164,35 @@ def run_live_cycle(*,reference_path,archive,backend):
                 capture_sha256=capture['capture_sha256'],automatic_actuation=False)
         except ERRORS:return _withdraw(backend)
     finally:os.close(fd)
+
+
+def withdraw_live_publication(*,archive,backend,reason):
+    """One explicit unavailable publication with private reason and actual proof."""
+    fd=None
+    try:
+        if not isinstance(reason,str) or not 1<=len(reason)<=160 or any(ord(c)<32 for c in reason):
+            raise ValueError('bounded explicit withdrawal reason required')
+        root=_private_directory(Path(archive));lock=root/'.installed-shade-live.lock'
+        fd=os.open(lock,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600);info=os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1):
+            raise ValueError('owned private serial withdrawal lock required')
+        try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:return dict(status='busy',delivery_verified=False,automatic_actuation=False)
+        current=lock.lstat()
+        if (current.st_dev,current.st_ino)!=(info.st_dev,info.st_ino):raise ValueError('withdrawal lock replaced')
+        backend.verify_unchanged();output=unavailable_installed_publication(_clock());state=_canonical(output).decode();since=_utc(_clock())
+        def preflight():
+            backend.verify_unchanged()
+            current=lock.lstat()
+            if (current.st_dev,current.st_ino)!=(info.st_dev,info.st_ino):
+                raise ValueError('withdrawal lock replaced')
+        backend.put(PUBLICATION_ITEM,state,preflight=preflight);receipt=_confirmed_receipt(backend,PUBLICATION_ITEM,state,since=since)
+        backend.verify_unchanged()
+        from .installed_shade_calibration import _persist
+        record=dict(schema='earthship-installed-shade-withdrawal/v1',reason=reason,requested_at=since.isoformat(),
+            publication=receipt,mode='unavailable',delivery_verified=True,automatic_actuation=False)
+        path=_persist(root,record,_digest(record),'.installed-shade-withdrawal-v1.json')
+        return dict(status='withdrawn',mode='unavailable',delivery_verified=True,receipt_path=str(path),automatic_actuation=False)
+    except ERRORS:return dict(status='unverified_failure',mode='unavailable',delivery_verified=False,automatic_actuation=False)
+    finally:
+        if fd is not None:os.close(fd)

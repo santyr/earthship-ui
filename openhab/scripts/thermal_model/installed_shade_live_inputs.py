@@ -161,3 +161,43 @@ class LiveBackend:
             origin_temperatures=saved[0],action_snapshot=snapshot)
     def put(self,item,state,*,preflight=None):return self.transport.put(item,state,preflight=preflight)
     def persisted(self,item,state,*,since):return self.transport.persisted(item,state,since=since,until=_clock())
+
+
+WITHDRAW_SCHEMA='earthship-installed-shade-withdraw-config/v1'
+WITHDRAW_FIELDS={'schema','openhab_base','token_file','evidence_directory'}
+
+
+def load_withdraw_settings(path):
+    path=Path(path);_private_directory(path.parent);value=_read_private(path)
+    if not isinstance(value,dict) or set(value)!=WITHDRAW_FIELDS or value['schema']!=WITHDRAW_SCHEMA or value['openhab_base'] not in BASES:
+        raise ValueError('closed private withdrawal configuration required')
+    for name in ('token_file','evidence_directory'):
+        raw=value[name]
+        if not isinstance(raw,str) or not 1<=len(raw)<=1024:raise ValueError('bounded withdrawal source path required')
+        target=Path(raw)
+        if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved withdrawal source required')
+        if name=='evidence_directory':_private_directory(target)
+        else:_private_directory(target.parent);_owned_bytes(target,4096)
+    return deepcopy(value)
+
+
+class WithdrawalBackend:
+    def __init__(self,settings):
+        self.settings=deepcopy(settings);self.budget=ReadBudget(25,max_requests=8)
+        raw=_owned_bytes(Path(settings['token_file']),4096);self.token_sha256=sha256(raw).hexdigest();token=raw.decode().strip()
+        self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:token,budget=self.budget)
+    def verify_unchanged(self):
+        self.budget.remaining()
+        if sha256(_owned_bytes(Path(self.settings['token_file']),4096)).hexdigest()!=self.token_sha256:
+            raise ValueError('withdrawal credential changed')
+    def put(self,item,state,*,preflight=None):
+        if item!=PUBLICATION_ITEM:raise ValueError('withdrawal targets main thermal telemetry only')
+        def final_preflight():
+            self.verify_unchanged()
+            if preflight:preflight()
+        self.verify_unchanged();self.transport.put(item,state,preflight=final_preflight)
+    def persisted(self,item,state,*,since):
+        if item!=PUBLICATION_ITEM:raise ValueError('withdrawal receipt must be main thermal telemetry')
+        self.verify_unchanged()
+        receipt=self.transport.persisted(item,state,since=since,until=_utc(_clock()))
+        self.verify_unchanged();return receipt
