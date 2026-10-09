@@ -13,7 +13,8 @@ export function temperatureForecast(series, items, nowMs) {
     ? parseForecast10Day(items.Forecast_10Day_JSON, { nowMs })
     : parseThermalModelResult(items.Thermal_Model_JSON, nowMs);
   const status = outdoor ? result.status : result.state;
-  const label = outdoor ? 'Outdoor forecast' : 'Indoor forecast · shadow model';
+  const label = outdoor ? 'Outdoor forecast' : result.mode === 'forecast_active'
+    ? 'Indoor forecast · production' : 'Indoor forecast · shadow model';
   const rows = outdoor
     ? result.days.flatMap((day) => day.hours.map((hour) => ({ time: hour.atMs, state: hour.tempF })))
     : result.trajectory.map((hour) => ({ time: hour.atMs, state: hour.hallwayF }));

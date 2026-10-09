@@ -895,3 +895,80 @@ explicit publication/UI adapters and the live entry point, then genuine native
 fitting, preregistration and sufficient untouched/prospective qualification.
 Outdoor shades remain installed and the November no-vent default persists until
 a confirmed operator change. PR3 and recovery work remain separate and deferred.
+
+
+## Installed-domain production publication contract
+
+The installed-shade path now has a separate publication namespace,
+`earthship-installed-shade-publication/v1`, with outer output `version: 4`.
+It distinguishes `shadow`, `forecast_active`, and `unavailable`; action advice
+remains withheld and automatic actuation is false. It retains the original
+numeric forecast/v1 or forecast/v2 unchanged inside `forecast`. The inner
+numerical record's historical shadow semantics are preserved. Only the outer,
+source-replayed release decision can describe production eligibility.
+
+The calibrated candidate/v2 binds the source-verified base candidate, a separate
+calibration/v1 interval, and the executing runtime. Qualification report/v2 and
+policy registration/v2 retain the existing baseline, independent-day/window,
+current prospective monitoring, physical, conditioning, stability, freshness,
+and source gates. A numeric forecast/v1 cannot become active or acquire bands
+retroactively. Forecast/v2 supplies exactly four original calibrated intervals
+at 1, 6, 12, and 24 hours; the UI draws four individual interval markers and
+never interpolates or clips bands into other hours.
+
+`prepare_installed_qualification(reference_path)` accepts an owned private file
+with these exact fields:
+
+```json
+{
+  "schema": "earthship-installed-shade-release-inputs/v1",
+  "registration_path": "registration-relative-to-this-file",
+  "candidate_path": "candidate.installed-shade-candidate-v2.json",
+  "runtime_bundle_path": "runtime-relative-to-this-file",
+  "original_pairs_path": "original-pairs-relative-to-this-file"
+}
+```
+
+Each path points to original private evidence, not a saved qualification report.
+`original_pairs_path` may be null when collecting evidence. Only an explicitly
+null `registration_path` permits source-verified shadow bootstrap; a configured
+registration that fails validation produces unavailable output. Candidate fit
+and, for v2, calibration source gates must pass even for bootstrap. Missing
+source qualification does not become permission to use cached flags.
+
+The runtime bundle must contain `installed_shade_publication.RUNTIME_PATHS`,
+which pins the publication code and its local Python dependency closure,
+including the qualification gates, package initializer, and native temperature
+proof helpers. Preparation rebuilds the binding from the
+actual executing source files, interpreter, and dependency versions. Publication
+checks that binding again and replays current original input expiry. Runtime
+drift, a changed candidate, expired inputs, failed release gates, or unsupported
+current calibrated regime/width results in explicit unavailable output. There
+is no cached-report, active-switch, or assessment-date override input.
+
+Available publications expire no later than ten minutes after their original
+issue, and active publications also expire at their qualification deadline.
+The UI enforces the deadline and rejects future assessments at microsecond
+precision. Existing output versions 1, 2, and 3 remain readable. The card keeps
+its approved layout, shows forecast/shadow/unavailable mode and revision, and
+withholds action recommendations. Current origin vent assumptions are displayed
+without creating vent schedules. Outdoor shades remain installed until an
+operator change; the November no-vent rule remains unchanged.
+
+This milestone implements publication construction, validation, and display.
+It does not install a new Item, publish a household forecast, or activate a model.
+The next implementation must retain a separate actual persisted receipt for the
+unchanged numeric forecast and bind the main publication's actual persisted
+receipt in a new capture/scoring contract. HTTP acceptance alone is insufficient.
+That live entry point, native-input adoption, a genuinely qualified frozen
+candidate, and sufficient untouched/prospective independent outcomes remain
+required before cutover. Backup/recovery work and PR3 remain deferred.
+
+Verification: 24 backend mathematical-contract/source-factory orchestration tests
+passed in 24.60 seconds, plus
+direct Node parser/chart checks, and direct Svelte server rendering. Fixtures and
+mocked runtime/qualification ports are not household release evidence. Full
+Vitest/DOM and repository suites run in hosted CI; the local Vitest startup hit
+the 90-second guard without reporting test results, so it supplies no pass claim.
+All local workloads remain serial with CPU 20 percent, memory at most 256 MiB,
+zero swap allowance, and bounded execution time.

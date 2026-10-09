@@ -106,9 +106,13 @@
 
       <details>
         <summary>Model details</summary>
+        {#if !unavailable && result.uncertaintyMode === 'calibrated_targets'}
+          <p class="uncertainty-note">90% nominal hallway intervals at 1, 6, 12, and 24 hours.</p>
+        {/if}
         <ThermalModelPlot
           trajectory={unavailable ? [] : result.trajectory}
           observed={unavailable ? [] : result.observed}
+          uncertaintyMode={result?.uncertaintyMode || 'continuous'}
         />
       </details>
     </div>
@@ -236,6 +240,9 @@
     min-width: 0;
     color: #8b93a1;
     font-size: 0.66rem;
+  }
+  .uncertainty-note {
+    margin: 0.2rem 0;
   }
   summary {
     width: max-content;

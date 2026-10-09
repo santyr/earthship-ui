@@ -8,6 +8,8 @@ vi.mock('svelte', async () => import(
   `../../node_modules/svelte/src/index-client.js`
 ));
 
+import { installedPublication } from '../fixtures/installed-publication.js';
+import { parseThermalModelResult } from '../../src/lib/thermal/modelResult.js';
 import ThermalModelCard from '../../src/lib/ui/ThermalModelCard.svelte';
 
 const NOW = Date.parse('2026-08-13T12:30:00Z');
@@ -178,4 +180,16 @@ describe('ThermalModelCard production modes', () => {
     expect(getByText(/Revision · aaaaaaaaaaaa/i)).toBeTruthy();
     expect(queryByText('Candidate vent window')).toBeNull();
   });
+});
+
+it('renders a qualified installed forecast with target uncertainty and advice withheld', () => {
+  const value = installedPublication();const nowMs = Date.parse(value.generatedAt);
+  const result = parseThermalModelResult(JSON.stringify(value), nowMs);
+  const { container, getByText } = render(ThermalModelCard, { result, nowMs });
+  expect(getByText('FORECAST')).toBeTruthy();expect(getByText('High confidence')).toBeTruthy();
+  expect(getByText('Action advice withheld')).toBeTruthy();
+  expect(getByText('90% nominal hallway intervals at 1, 6, 12, and 24 hours.')).toBeTruthy();
+  expect(container.querySelectorAll('[data-series="forecast-target-interval"]')).toHaveLength(4);
+  expect(container.querySelector('polygon')).toBeNull();
+  expect(container.textContent).not.toContain('Candidate vent window');
 });

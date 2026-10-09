@@ -1,3 +1,4 @@
+import { validateInstalledPublication } from './installedShadeResult.js';
 const HOUR_MS = 60 * 60 * 1000;
 const FRESH_MS = 3 * HOUR_MS;
 const UNAVAILABLE_MS = 26 * HOUR_MS;
@@ -305,6 +306,7 @@ function validateReleasePayload(payload) {
 }
 
 function validatePayload(payload) {
+  if (payload?.version === 4) return validateInstalledPublication(payload, { exactObject, finiteNumber, timestamp });
   if (payload?.version === 2 || payload?.version === 3) return validateReleasePayload(payload);
   exactObject(payload, TOP_LEVEL_FIELDS);
   if (payload.version !== 1 || !Number.isInteger(payload.version) || payload.status !== 'shadow') {
@@ -486,14 +488,20 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
   const trimmed = raw.trim();
   if (!trimmed || ['NULL', 'UNDEF'].includes(trimmed)) return unavailableResult();
 
+  let publicationVersion = null;
   try {
-    const parsed = validatePayload(JSON.parse(raw));
+    const payload = JSON.parse(raw);publicationVersion = payload?.version;
+    const parsed = validatePayload(payload);
     const ageMicros = millisecondsToMicros(nowMs) - parsed.generatedAtMicros;
-    if (ageMicros < 0n) return unavailableResult();
+    if (ageMicros < 0n) return publicationVersion === 4 ? { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' } : unavailableResult();
+    if (parsed.validUntilMicros !== undefined && millisecondsToMicros(nowMs) >= parsed.validUntilMicros) {
+      return { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' };
+    }
     if (parsed.confidence === 'unavailable') {
       const unavailable = unavailableResult(parsed.reasons);
       return parsed.mode ? { ...unavailable, mode: 'unavailable', badge: 'UNAVAILABLE' } : unavailable;
     }
+    if (parsed.qualifiedAtMicros !== undefined && parsed.qualifiedAtMicros > millisecondsToMicros(nowMs)) return { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' };
     if (parsed.mode && (parsed.qualifiedAtMs > nowMs || parsed.expiresAtMs !== null && nowMs >= parsed.expiresAtMs)) return unavailableResult();
     if (ageMicros > UNAVAILABLE_US) return unavailableResult();
 
@@ -501,6 +509,7 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
       state: ageMicros > FRESH_US ? 'stale' : 'ready',
       badge: parsed.mode === 'forecast_active' ? 'FORECAST' : parsed.mode === 'advisory_active' ? 'ADVISORY' : 'SHADOW',
       ...(parsed.mode ? { mode: parsed.mode, artifactRevision: parsed.artifactRevision, actionConfidence: parsed.actionConfidence } : {}),
+      ...(parsed.uncertaintyMode ? { uncertaintyMode:parsed.uncertaintyMode } : {}),
       generatedAtMs: parsed.generatedAtMs,
       modelCreatedAtMs: parsed.modelCreatedAtMs,
       trainedThroughMs: parsed.trainedThroughMs,
@@ -509,9 +518,9 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
       hallwayHigh: parsed.forecast.hallwayHighF,
       hallwayLow: parsed.forecast.hallwayLowF,
       morningMass: parsed.forecast.morningMassF,
-      baselineVentAssumption: parsed.baselineWindow.opened === null
+      baselineVentAssumption: parsed.baselineVentAssumption ?? (parsed.baselineWindow.opened === null
         ? 'No venting assumed'
-        : `${formatLocalTime(parsed.baselineWindow.opened)}–${formatLocalTime(parsed.baselineWindow.closed)}`,
+        : `${formatLocalTime(parsed.baselineWindow.opened)}–${formatLocalTime(parsed.baselineWindow.closed)}`),
       ventWindow: parsed.candidateWindow === null
         ? null
         : `${formatLocalTime(parsed.candidateWindow.opened)}–${formatLocalTime(parsed.candidateWindow.closed)}`,
@@ -522,6 +531,6 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
       reasons: parsed.reasons,
     };
   } catch {
-    return unavailableResult();
+    return publicationVersion === 4 ? { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' } : unavailableResult();
   }
 }

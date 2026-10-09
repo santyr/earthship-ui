@@ -1,5 +1,5 @@
 <script>
-  let { trajectory = [], observed = [] } = $props();
+  let { trajectory = [], observed = [], uncertaintyMode = 'continuous' } = $props();
 
   const WIDTH = 720;
   const HEIGHT = 220;
@@ -48,7 +48,7 @@
     const temperatures = [
       ...observedRows.flatMap((row) => [row.hallwayF, row.massF]),
       ...forecastRows.flatMap((row) => [row.hallwayF, row.massF, row.lowF, row.highF]),
-    ];
+    ].filter(Number.isFinite);
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
     const minTemp = Math.min(...temperatures) - 1;
@@ -71,6 +71,7 @@
       observedRows,
       forecastSegments,
       observedSegments,
+      calibratedTargets: forecastRows.filter((row) => Number.isFinite(row.lowF) && Number.isFinite(row.highF)),
       actions: forecastRows.flatMap((row) => row.actions
         .filter((action) => ACTIONS.has(action))
         .map((action) => ({ action, atMs: row.atMs }))),
@@ -93,13 +94,24 @@
     <text class="axis-label" x="2" y={TOP + 4}>{Math.ceil(plot.maxTemp)}°</text>
     <text class="axis-label" x="2" y={HEIGHT - BOTTOM}>{Math.floor(plot.minTemp)}°</text>
 
-    {#each plot.forecastSegments as segment}
-      <polygon
-        data-series="forecast-interval"
-        points={intervalString(segment, plot.x, plot.y)}
-        class="interval"
-      />
-    {/each}
+    {#if uncertaintyMode === 'continuous'}
+      {#each plot.forecastSegments as segment}
+        <polygon
+          data-series="forecast-interval"
+          points={intervalString(segment, plot.x, plot.y)}
+          class="interval"
+        />
+      {/each}
+    {:else if uncertaintyMode === 'calibrated_targets'}
+      {#each plot.calibratedTargets as row}
+        <g data-series="forecast-target-interval" class="target-interval">
+          <title>90% nominal hallway interval</title>
+          <line x1={plot.x(row.atMs)} x2={plot.x(row.atMs)} y1={plot.y(row.lowF)} y2={plot.y(row.highF)} />
+          <line x1={plot.x(row.atMs) - 3} x2={plot.x(row.atMs) + 3} y1={plot.y(row.lowF)} y2={plot.y(row.lowF)} />
+          <line x1={plot.x(row.atMs) - 3} x2={plot.x(row.atMs) + 3} y1={plot.y(row.highF)} y2={plot.y(row.highF)} />
+        </g>
+      {/each}
+    {/if}
 
     {#each plot.observedSegments as segment}
       <polyline data-series="observed-hallway" points={pointString(segment, plot.x, plot.y, 'hallwayF')} class="line observed hallway" />
@@ -157,6 +169,10 @@
   .interval {
     fill: #38bdf8;
     opacity: 0.12;
+  }
+  .target-interval line {
+    stroke: #38bdf8;
+    stroke-width: 1.5;
   }
   .line {
     fill: none;

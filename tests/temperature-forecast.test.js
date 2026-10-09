@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { installedPublication } from './fixtures/installed-publication.js';
 import thermal from './fixtures/thermal-shadow-v1-available.json';
 import { temperatureForecast, OUTDOOR, INDOOR } from '../src/lib/charts/temperatureForecast.js';
 import { buildHistoryOption } from '../src/lib/charts/options.js';
@@ -23,6 +24,12 @@ describe('temperature modal forecasts', () => {
     expect(result.points.length).toBeGreaterThan(0);
     expect(result.description).toContain('shadow model');
     expect(result.points[0].state).toBe(thermal.forecast.trajectory[0].hallwayF);
+  });
+  it('labels qualified installed-shade forecasts as production', () => {
+    const value = installedPublication();
+    const result = temperatureForecast([{ name: INDOOR }], { Thermal_Model_JSON: JSON.stringify(value) }, Date.parse(value.generatedAt));
+    expect(result.source.label).toBe('Indoor forecast · production');
+    expect(result.points).toHaveLength(24);
   });
   it('does not invent forecasts for stale, malformed or unrelated sources', () => {
     expect(temperatureForecast([{ name: OUTDOOR }], { Forecast_10Day_JSON: forecast }, now + 5 * 3600000).points).toEqual([]);
