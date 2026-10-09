@@ -16,7 +16,8 @@ from .installed_shade_artifact import _digest,read_candidate_bundle
 from .installed_shade_calibrated_artifact import read_calibrated_candidate
 from .installed_shade_qualification import (qualify_installed_shade_candidate,
     qualify_published_installed_shade_candidate,validate_installed_shade_qualification_report,
-    validate_calibrated_installed_shade_qualification_report,validate_published_installed_shade_qualification_report)
+    validate_calibrated_installed_shade_qualification_report,validate_published_installed_shade_qualification_report,
+    qualify_raw_published_installed_shade_candidate,validate_raw_published_installed_shade_qualification_report)
 from .origin_capture import build_runtime_binding
 from .policy_registration import _read_private
 from .runtime_bundle import read_runtime_bundle
@@ -85,6 +86,12 @@ RUNTIME_PATHS=frozenset({
 
 SCHEMA='earthship-installed-shade-publication/v1'
 RELEASE_SCHEMA='earthship-installed-shade-release/v1'
+RAW_RUNTIME_PATHS=RUNTIME_PATHS|frozenset({
+    'weather_temperature_sources.py','forecast_input_capture.py','forecast_temperature_origin.py',
+    'thermal_model/installed_shade_raw_score_sources.py',
+    'thermal_model/installed_shade_score_inputs.py','thermal_model/installed_shade_score_collection.py',
+})
+RAW_REFERENCE_SCHEMA='earthship-installed-shade-release-inputs/v2'
 REFERENCE_SCHEMA='earthship-installed-shade-release-inputs/v1'
 REFERENCE_FIELDS={'schema','registration_path','candidate_path','runtime_bundle_path','original_pairs_path'}
 FIELDS={'schema','version','status','generatedAt','validUntil','model','forecast','confidence','release','reasons'}
@@ -108,9 +115,12 @@ class PreparedInstalledQualification:
     source_ready:bool
     registration_absent:bool=False
     runtime_paths:tuple[str,...]=()
+    require_raw_sources:bool=False
 
 
 def _validator(report):
+    if report.get('schema')=='earthship-installed-shade-qualification-report/v4':
+        return validate_raw_published_installed_shade_qualification_report(report)
     if report.get('schema')=='earthship-installed-shade-qualification-report/v3':
         return validate_published_installed_shade_qualification_report(report)
     if report.get('schema')=='earthship-installed-shade-qualification-report/v2':
@@ -122,8 +132,9 @@ def prepare_installed_qualification(reference_path):
     """Recompute gates before acquiring short-lived current origin inputs."""
     try:
         at=_utc(_clock());path=Path(reference_path);refs=_read_private(path)
-        if not isinstance(refs,dict) or set(refs)!=REFERENCE_FIELDS or refs['schema']!=REFERENCE_SCHEMA:
+        if not isinstance(refs,dict) or set(refs)!=REFERENCE_FIELDS or refs['schema'] not in (REFERENCE_SCHEMA,RAW_REFERENCE_SCHEMA):
             raise ValueError('closed original installed release references required')
+        raw_required=refs['schema']==RAW_REFERENCE_SCHEMA
         values={}
         for key in REFERENCE_FIELDS-{'schema'}:
             value=refs[key]
@@ -131,7 +142,8 @@ def prepare_installed_qualification(reference_path):
             if not isinstance(value,str) or not value:raise ValueError('private original source path required')
             target=Path(value);values[key]=target if target.is_absolute() else path.parent/target
         archived=read_runtime_bundle(values['runtime_bundle_path']);revision=_digest(archived['runtime'])
-        if not RUNTIME_PATHS <= set(archived['runtime']['source_manifest']):
+        required_paths=RAW_RUNTIME_PATHS if raw_required else RUNTIME_PATHS
+        if not required_paths <= set(archived['runtime']['source_manifest']):
             raise ValueError('publication/gate code missing from runtime closure')
         paths=tuple(archived['revision_paths'])
         if _canonical(build_runtime_binding(Path(__file__).resolve().parents[1],paths))!=_canonical(archived['runtime']):
@@ -140,15 +152,17 @@ def prepare_installed_qualification(reference_path):
         reader=read_calibrated_candidate if calibrated else read_candidate_bundle
         loaded=reader(values['candidate_path'],expected_runtime_revision=revision,assessed_at=at)
         pairs=[] if values['original_pairs_path'] is None else _read_private(values['original_pairs_path'])
-        qualify=qualify_published_installed_shade_candidate if calibrated else qualify_installed_shade_candidate
+        qualify=qualify_raw_published_installed_shade_candidate if raw_required else (qualify_published_installed_shade_candidate if calibrated else qualify_installed_shade_candidate)
         report=qualify(registration_path=values['registration_path'],candidate_path=values['candidate_path'],
             runtime_bundle_path=values['runtime_bundle_path'],original_pairs=pairs,now=at)
         _validator(report)
+        if raw_required and report['schema']!='earthship-installed-shade-qualification-report/v4':
+            raise ValueError('raw source qualification contract required')
         absent=values['registration_path'] is None
         if not absent and report['policy'] is None:
             raise ValueError('configured registration failed; bootstrap refused')
         ready=loaded['fit_evidence']['fit_gates_passed'] is True and (not calibrated or loaded['calibration']['summary']['complete'] is True)
-        return PreparedInstalledQualification(_canonical(report),_canonical(loaded['artifact']),ready,absent,paths)
+        return PreparedInstalledQualification(_canonical(report),_canonical(loaded['artifact']),ready,absent,paths,raw_required)
     except ERRORS:return PreparedInstalledQualification(None,None,False)
 
 
@@ -179,6 +193,8 @@ def build_installed_publication(original_path,prepared):
         if not isinstance(prepared,PreparedInstalledQualification) or prepared.source_ready is not True:
             raise ValueError('source-prepared qualification required')
         report=json.loads(prepared.report_json);artifact=json.loads(prepared.candidate_json);_validator(report)
+        if type(prepared.require_raw_sources) is not bool or (prepared.require_raw_sources and report['schema']!='earthship-installed-shade-qualification-report/v4'):
+            raise ValueError('prepared raw-source profile lacks v4 qualification')
         original,predict=_read_origin(original_path)
         if not prepared.runtime_paths or _canonical(build_runtime_binding(Path(__file__).resolve().parents[1],prepared.runtime_paths))!=_canonical(original['runtime']):
             raise ValueError('executing runtime changed before delivery')

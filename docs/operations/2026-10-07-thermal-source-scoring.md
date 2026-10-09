@@ -92,9 +92,22 @@ Use `validate_raw_published_installed_shade_qualification_report`,
 `render_raw_published_installed_shade_qualification_report` and
 `write_raw_published_installed_shade_qualification_report` for this version.
 Reports remain derived caches and cannot substitute for fresh source replay.
-The publisher/reference/current-monitor integration still consumes earlier
-contracts and must be migrated explicitly before this qualification path can
-authorize production. No active-model gate is fully integrated yet.
+The new private reference schema `earthship-installed-shade-release-inputs/v2`
+selects qualification v4 in the publisher's fresh preparation on each cycle.
+Its fields remain `registration_path`, `candidate_path`, `runtime_bundle_path`
+and `original_pairs_path`; the pair index contains raw archive references.
+The runtime bundle must include the complete 63-file raw-profile closure and
+match the executing code. A prepared raw profile rejects older reports before
+reading a current origin. The live path writes a v4 report cache and rechecks
+source, runtime and delivery freshness through the existing send guards.
+
+The reference schema and qualification schema are versioned independently from
+the public output. Mode, confidence, freshness, uncertainty and action authority
+retain the existing publication-v4 meanings and validation. Reference v1 remains
+an explicit earlier qualification path for compatibility; use reference v2 for
+the new deployment. Neither profile accepts a supplied cached report or active
+switch. The new profile has not been commissioned with a genuine frozen
+candidate. Production activation and natural receipts remain unproven.
 Existing selected-receipt score archives cannot
 be retroactively described as retaining raw snapshots. Legacy v4 diagnostic
 origins remain outside the candidate graduation contract.

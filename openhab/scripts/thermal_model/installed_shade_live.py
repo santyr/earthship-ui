@@ -22,7 +22,8 @@ from .installed_shade_publication import (prepare_installed_qualification,build_
 from .installed_shade_published_origin import (NUMERIC_ITEM,PUBLICATION_ITEM,build_publication_capture,
     write_publication_capture,_receipt)
 from .installed_shade_qualification import (write_installed_shade_qualification_report,
-    write_calibrated_installed_shade_qualification_report,write_published_installed_shade_qualification_report)
+    write_calibrated_installed_shade_qualification_report,write_published_installed_shade_qualification_report,
+    write_raw_published_installed_shade_qualification_report)
 from . import installed_shade_origin as base
 from . import installed_shade_calibrated_origin as calibrated
 
@@ -85,7 +86,8 @@ def _write_numeric(root,record):
 def _report_cache(root,report):
     writers={'earthship-installed-shade-qualification-report/v1':write_installed_shade_qualification_report,
         'earthship-installed-shade-qualification-report/v2':write_calibrated_installed_shade_qualification_report,
-        'earthship-installed-shade-qualification-report/v3':write_published_installed_shade_qualification_report}
+        'earthship-installed-shade-qualification-report/v3':write_published_installed_shade_qualification_report,
+        'earthship-installed-shade-qualification-report/v4':write_raw_published_installed_shade_qualification_report}
     return writers[report['schema']](root,report)
 
 
