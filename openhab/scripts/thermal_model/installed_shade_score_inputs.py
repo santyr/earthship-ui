@@ -40,7 +40,7 @@ def load_score_settings(path):
 
 class ScoreReader:
     def __init__(self,settings):
-        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24)
+        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24);self.native_source_paths=[]
         self.hashes={key:sha256(_owned_bytes(Path(settings[key]),16384)).hexdigest() for key in SOURCE_PATHS}
         token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:token,budget=self.budget)
@@ -67,15 +67,26 @@ class ScoreReader:
         except BaseException:connection.close();raise
     def native(self,targets,*,assessed_at,sensor_epoch):
         import psycopg2
-        from thermal_temperature_runtime import collect_v2
+        from hourly_temperature_runtime import read_db_config
+        from weather_temperature_config import load_temperature_receiver_configuration
+        from weather_temperature_sources import fetch_temperature_source,write_temperature_source,read_temperature_source,replay_temperature_source
         assessed_at=_utc(assessed_at)
         if (not isinstance(targets,list) or not 1<=len(targets)<=2 or sensor_epoch!=self.epochs['air']):raise ValueError('bounded same-phase native target request required')
         targets=list(map(_utc,targets))
         if (len(set(targets))!=len(targets) or targets!=sorted(targets) or targets[-1]>assessed_at or
                 targets[-1]-targets[0]>timedelta(days=1) or assessed_at>_utc(_clock())):
             raise ValueError('original elapsed native assessment required')
-        self.budget.remaining()
-        request=dict(stream='indoor',targets=[at.isoformat() for at in targets],assessed_at=assessed_at.isoformat(),receipt_version=2,sensor_epoch=sensor_epoch)
-        try:rows=collect_v2(request,config_path=self.settings['native_db_config'],policy_path=self.settings['native_policy'],connection_factory=self._connect)
+        self.verify_unchanged()
+        policies,epochs=load_temperature_receiver_configuration(self.settings['native_policy'])
+        if epochs is None or epochs.get('indoor')!=sensor_epoch:raise ValueError('original native phase changed')
+        config=read_db_config(self.settings['native_db_config'])
+        try:packet=fetch_temperature_source(lambda:self._connect(config),targets=targets,assessed_at=assessed_at,
+            stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch)
         except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
-        self.budget.remaining();return rows
+        self.verify_unchanged()
+        path=write_temperature_source(self.settings['output_directory'],packet)
+        retained=read_temperature_source(path.parent,path)
+        rows=replay_temperature_source(retained)
+        self.verify_unchanged()
+        if str(path) not in self.native_source_paths:self.native_source_paths.append(str(path))
+        return rows

@@ -46,13 +46,16 @@ def test_original_jdbc_query_uses_actual_receipt_window_instead_of_today(setting
 
 
 def test_native_reader_binds_original_phase_and_assessment_without_fallback(settings,monkeypatch):
-    import thermal_temperature_runtime as temperatures
-    m=module();reader=m.ScoreReader(settings[1]);now=datetime(2026,10,8,12,tzinfo=timezone.utc);seen=[]
-    def collect(request,**kwargs):seen.append(request);return [[now,None]]
-    monkeypatch.setattr(temperatures,'collect_v2',collect)
+    import hourly_temperature_runtime
+    from test_weather_temperature_history import Connection
+    m=module();reader=m.ScoreReader(settings[1]);now=datetime(2026,10,8,12,tzinfo=timezone.utc)
+    connection=Connection(rows=[])
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    monkeypatch.setattr(reader,'_connect',lambda config:connection)
     result=reader.native([now],assessed_at=now,sensor_epoch=EPOCHS['air'])
-    assert result==[[now,None]]
-    assert seen==[dict(stream='indoor',targets=[now.isoformat()],assessed_at=now.isoformat(),receipt_version=2,sensor_epoch=EPOCHS['air'])]
+    assert result==[(now,None)] and connection.closed
+    assert connection.calls[-1][1]==(now-timedelta(seconds=120),now)
+    assert len(reader.native_source_paths)==1
     with pytest.raises(ValueError):reader.native([now],assessed_at=now,sensor_epoch=EPOCHS['mass'])
 
 
@@ -99,3 +102,32 @@ def test_cli_missing_original_cannot_query_household_or_retain_data(settings):
         '--origin',str(path.parent/'missing.installed-shade-origin-v3.json'),'--horizon','1'],capture_output=True,text=True)
     assert result.returncode==1 and json.loads(result.stdout)['status']=='withheld'
     assert 'traceback' not in result.stderr.lower() and list(Path(config['output_directory']).iterdir())==[]
+
+
+def test_native_reader_retains_raw_query_and_returns_only_replayed_selection(settings,tmp_path,monkeypatch):
+    from test_thermal_sensor_epoch_history import sources
+    from test_weather_temperature_history import Connection
+    from test_weather_temperature_reader import AT
+    from weather_temperature_sources import read_temperature_source,replay_temperature_source
+    _,raw=sources(tmp_path,monkeypatch);m=module();reader=m.ScoreReader(settings[1])
+    connection=Connection(rows=raw);monkeypatch.setattr(reader,'_connect',lambda config:connection)
+    targets=[AT+timedelta(seconds=60),AT+timedelta(seconds=360)]
+    grid=reader.native(targets,assessed_at=AT+timedelta(minutes=10),sensor_epoch=EPOCHS['air'])
+    assert [r['temperatureF'] for _,r in grid]==[70.,71.]
+    assert len(reader.native_source_paths)==1
+    p=Path(reader.native_source_paths[0]);packet=read_temperature_source(p.parent,p)
+    assert packet['native_rows'][0][1]==raw[0][1]
+    assert replay_temperature_source(packet)==grid and connection.closed
+
+
+def test_configuration_drift_during_native_read_cannot_retain_a_score_source(settings,tmp_path,monkeypatch):
+    from test_thermal_sensor_epoch_history import sources
+    from test_weather_temperature_history import Connection
+    from test_weather_temperature_reader import AT
+    _,raw=sources(tmp_path,monkeypatch);m=module();reader=m.ScoreReader(settings[1])
+    def connect(config):
+        Path(settings[1]['token_file']).write_text('synthetic changed credential')
+        return Connection(rows=raw[:1])
+    monkeypatch.setattr(reader,'_connect',connect)
+    with pytest.raises(ValueError):reader.native([AT+timedelta(seconds=60)],assessed_at=AT+timedelta(minutes=10),sensor_epoch=EPOCHS['air'])
+    assert list(Path(settings[1]['output_directory']).iterdir())==[]

@@ -49,9 +49,13 @@ read-only repeatable-read transaction. Archive files are immutable, canonical,
 digest-addressed, owned private files in a private directory. Packet bounds are
 289 targets over at most one elapsed day, 10000 original rows and 8 MiB.
 
-This primitive is not yet connected to the scheduled candidate score collector.
-Its next integration must retain and reference packets for every origin/outcome
-and comparator query, replay the packet selections before scoring, and keep
-incomplete attempts explicit. Existing selected-receipt score archives cannot
+The candidate `ScoreReader.native` now retains each bounded query packet,
+reads it back from its immutable archive and returns only replayed selection.
+It verifies source configuration before querying, after querying and after
+readback. `native_source_paths` records the retained files for the caller.
+The next collector integration must bind these paths into versioned collected
+score sources, validate every outcome/comparator against independent raw
+packet replay, and keep incomplete attempts explicit. Collector result and
+release-consumer schemas do not yet establish this raw-source binding. Existing selected-receipt score archives cannot
 be retroactively described as retaining raw snapshots. Legacy v4 diagnostic
 origins remain outside the candidate graduation contract.
