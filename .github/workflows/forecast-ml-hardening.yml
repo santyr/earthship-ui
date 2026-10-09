@@ -17,6 +17,7 @@ on:
       - 'openhab/scripts/test_forecast_temperature_reads.py'
       - 'openhab/scripts/test_forecast_temperature_collection.py'
       - 'openhab/scripts/test_forecast_temperature_score.py'
+      - 'openhab/scripts/test_forecast_temperature_report.py'
       - 'openhab/scripts/test_forecast_temperature_origin.py'
       - 'openhab/scripts/forecast_pre_dusk.py'
       - 'openhab/scripts/qualified_soc_forecast.py'
@@ -84,6 +85,7 @@ jobs:
             openhab/scripts/test_forecast_intel.py \
             openhab/scripts/test_forecast_temperature_origin.py \
             openhab/scripts/test_forecast_temperature_score.py \
+            openhab/scripts/test_forecast_temperature_report.py \
             openhab/scripts/test_forecast_temperature_collection.py \
             openhab/scripts/test_forecast_temperature_reads.py \
             openhab/scripts/test_forecast_temperature_collect.py \

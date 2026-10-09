@@ -1366,3 +1366,37 @@ the hour's five-minute maturity delay, without missed-run catch-up. The service
 uses the existing shared input slice and acquires the shared lock internally.
 Verify exact-head hosted checks and actual cgroup limits before enabling it.
 This schedule neither fits a model nor publishes or activates a thermal output.
+
+### Existing temperature correction archive report
+
+The existing hourly corrections retain their operational equations. To evaluate
+retained attempts offline, use the source-replaying archive report from the
+reviewed checkout. Run under the same bounded resource scope as the collector;
+this command performs no network reads, fitting, or publication:
+
+```bash
+PYTHONPATH=openhab/scripts python3 - <<'PY'
+import json
+from pathlib import Path
+from forecast_temperature_score import report_archive
+config = json.loads(Path.home().joinpath('.config/hex/temperature-correction-score.json').read_text())
+report = report_archive(config['origin_directory'], config['output_directory'])
+print(json.dumps(report, sort_keys=True, indent=2, allow_nan=False))
+PY
+```
+
+The version-one archive report replays every matching content-addressed packet,
+including retries. For each original issue/normalized target, it selects the
+first qualified assessment, breaking equal assessment times by source digest;
+if none qualifies, it selects the earliest retained attempt. It never selects
+by forecast error. Retry and qualified-target hints have no evidence authority.
+Selected source filenames make the summary reproducible. Metrics retain the
+scorer's runtime, hardware epoch, hour, lead, season, weather-category, and
+adjustment-state stratification and equal target-day weighting.
+
+The report covers all retained raw packets, up to 2,048 attempts and 8,192 total
+archive entries. It refuses corruption or excess inventory rather than silently
+truncating. It does not promise an atomic snapshot of a concurrently growing
+archive: rerun after collection completes for a settled inventory. Counts of
+complete issued-hour days describe forecast-target coverage, not continuous
+sensor coverage. Neither the report nor its summary has release authority.

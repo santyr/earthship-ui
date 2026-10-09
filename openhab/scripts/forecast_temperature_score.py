@@ -232,3 +232,36 @@ def read_sources(directory,path):
     _source_packet(packet)
     if _canonical(packet)!=raw:raise ValueError('canonical original score source required')
     return packet
+
+
+def report_archive(origin_directory,source_directory):
+    """Replay a bounded complete archive, selecting attempts before aggregation.
+
+    Scheduling/index files have no evidence authority. Every raw packet must
+    validate, including unselected retries; corruption refuses the report.
+    Keep references, not raw packets, and fail rather than truncate limits.
+    """
+    root=_directory(Path(source_directory));selected={};attempts=0
+    statuses=defaultdict(int)
+    for n,path in enumerate(root.iterdir(),1):
+        if n>8192:raise ValueError('bounded source archive inventory required')
+        if not re.fullmatch(r'[0-9a-f]{64}\.temperature-score-sources-v1\.json',path.name):continue
+        attempts+=1
+        if attempts>MAX_PACKETS:raise ValueError('bounded original-source attempts required')
+        packet=read_sources(root,path);row=score_sources(origin_directory,packet)
+        statuses[row['status']]+=1
+        pair=(packet['origin_sha256'],_instant(packet['target']))
+        # First qualified assessment wins; otherwise earliest retained attempt.
+        # A digest tie-break makes selection independent of directory order.
+        key=(row['status']!='qualified',_instant(packet['assessed_at']),path.name)
+        previous=selected.get(pair)
+        if previous is None or key<previous[0]:selected[pair]=(key,path)
+    paths=[selected[pair][1] for pair in sorted(selected)]
+    summary=summarize_sources(origin_directory,(read_sources(root,path) for path in paths))
+    return {'schema':'earthship-temperature-correction-archive-report/v1',
+        'selection':'earliest_qualified_assessment_else_earliest_retained_assessment_digest_tiebreak',
+        'archive_scope':'all_retained_source_packets_within_hard_limits_no_truncation',
+        'retained_attempt_count':attempts,'additional_attempt_count':attempts-len(paths),
+        'attempt_status_counts':{s:statuses[s] for s in ('qualified','withheld','pending')},
+        'selected_sources':[path.name for path in paths],
+        'summary':summary,'release_authority':False}
