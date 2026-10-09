@@ -85,7 +85,15 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
         packet=json.loads(_canonical(dict(origin_path=str(path),publication=record['publication'],horizon_hours=horizon_hours,
             outcome=dict(target_at=target,receipt=rows[0][1]),recent_cycle_grid=[[at,value] for at,value in sorted(grid.items())])))
         backend.verify_unchanged()
-        score=score_publication_capture(record,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=_utc(_clock()))
+        assessed_at=_utc(_clock())
+        score=score_publication_capture(record,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
+        raw_sources=None
+        if hasattr(backend,'native_source_paths'):
+            from .installed_shade_raw_score_sources import build_native_score_binding
+            binding=build_native_score_binding(packet,source_paths=list(backend.native_source_paths),issue_at=issue,
+                sensor_epoch=phase,assessed_at=assessed_at)
+            raw_sources=dict(schema='earthship-installed-shade-score-sources/v2',score_sources=packet,
+                native_binding=binding,release_authority=False)
         # A self-contained capture3 can outlive a separate numeric file. Retain
         # the unchanged numeric source first for the explicit calibration API.
         writer=calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture
@@ -95,6 +103,10 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
         packet_path=_persist(root,[packet],_digest([packet]),'.installed-shade-score-sources-v1.json')
         numeric_packet_path=_persist(root,[raw],_digest([raw]),'.installed-shade-numeric-score-sources-v1.json')
         score_path=_persist(root,score,_digest(score),'.installed-shade-score-result-v1.json')
-        return dict(status='scored',packet_path=str(packet_path),numeric_packet_path=str(numeric_packet_path),
+        result=dict(status='scored',packet_path=str(packet_path),numeric_packet_path=str(numeric_packet_path),
             score_path=str(score_path),release_authorized=False)
+        if raw_sources is not None:
+            raw_path=_persist(root,raw_sources,_digest(raw_sources),'.installed-shade-score-sources-v2.json')
+            result['raw_packet_path']=str(raw_path)
+        return result
     except ERRORS:return dict(status='withheld',release_authorized=False)

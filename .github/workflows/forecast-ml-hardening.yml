@@ -50,6 +50,7 @@ on:
       - 'openhab/scripts/thermal_installed_score.py'
       - 'openhab/scripts/test_installed_shade_score_collection.py'
       - 'openhab/scripts/test_installed_shade_score_inputs.py'
+      - 'openhab/scripts/test_installed_shade_raw_score_sources.py'
       - 'scripts/thermal-replay-bundle.py'
       - 'tests/completion/test_thermal_replay_bundle.py'
       - '.github/workflows/forecast-ml-hardening.yml'
@@ -112,6 +113,7 @@ jobs:
             openhab/scripts/test_installed_shade_live_inputs.py \
             openhab/scripts/test_installed_shade_score_collection.py \
             openhab/scripts/test_installed_shade_score_inputs.py \
+            openhab/scripts/test_installed_shade_raw_score_sources.py \
             openhab/scripts/test_thermal_forecast_history.py \
             openhab/scripts/test_thermal_forecast_receipts.py \
             openhab/scripts/test_thermal_dynamics.py \

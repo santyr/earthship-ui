@@ -152,3 +152,55 @@ def test_uncalibrated_main_capture_retains_numeric_sources_for_explicit_calibrat
     replay=q._score_packets(packets,assessed_at=issue+timedelta(hours=24,minutes=10),version=1)
     assert replay['calibrated_intervals'] is False and replay['rows'][0]['interval_width_f'] is None
     assert packets[0]['origin_path'].endswith('.installed-shade-origin-v1.json')
+
+
+class RawBackend(Backend):
+    """Transport fixture emits whole native packets, not fabricated receipts."""
+    def __init__(self,record,root):
+        super().__init__(record);self.root=root;self.native_source_paths=[];self.raw_rows={}
+    def native(self,targets,*,assessed_at,sensor_epoch):
+        from weather_temperature_evidence import TemperaturePolicy,MODELS
+        from weather_temperature_receiver import TemperatureCollector
+        from weather_temperature_sources import build_temperature_source,write_temperature_source,replay_temperature_source
+        from thermal_model.temperature_history import POLICY
+        issue=datetime.fromisoformat(self.record['numeric_capture']['issued_at'])
+        policy=TemperaturePolicy('Fineoffset-WH32B',235,**POLICY);clock={'at':targets[0]-timedelta(seconds=30),'tick':1000}
+        source=TemperatureCollector({'indoor':policy},sensor_epochs={'indoor':sensor_epoch},clock=lambda:clock['at'],monotonic=lambda:clock['tick'],process_id=lambda:1)
+        raw=[]
+        for i,at in enumerate(targets):
+            clock.update(at=at-timedelta(seconds=30),tick=1000+i*86400)
+            source.observe({'model':policy.model,'id':str(policy.sensor_id),MODELS[policy.model][1]:'73' if at>=issue else '74'})
+            if at not in self.raw_rows:self.raw_rows[at]=(at-timedelta(seconds=20),json.dumps(source.snapshot()))
+            raw.append(self.raw_rows[at])
+        packet=build_temperature_source(rows=raw,targets=targets,assessed_at=assessed_at,stream='indoor',policy=policy,sensor_epoch=sensor_epoch)
+        path=write_temperature_source(self.root,packet);self.native_source_paths.append(str(path))
+        return replay_temperature_source(packet)
+
+
+@pytest.mark.parametrize('hours',[1,24])
+def test_collector_binds_raw_query_packets_to_exact_score_inputs(collection,hours,monkeypatch):
+    m,root,path,record,issue=collection;backend=RawBackend(record,root)
+    monkeypatch.setattr(m,'ERRORS',())
+    result=m.collect_published_score(origin_path=path,horizon_hours=hours,output_directory=root,backend=backend)
+    assert result['status']=='scored'
+    assert 'raw_packet_path' in result,'collector did not retain typed raw source binding'
+    from thermal_model.installed_shade_raw_score_sources import replay_native_score_binding
+    raw=json.loads(Path(result['raw_packet_path']).read_text())
+    assert raw['schema']=='earthship-installed-shade-score-sources/v2'
+    assert raw['release_authority'] is False
+    phase=record['numeric_capture']['source_epochs']['air']
+    replay_native_score_binding(raw['native_binding'],raw['score_sources'],issue_at=issue,sensor_epoch=phase,assessed_at=issue+timedelta(hours=24,minutes=10))
+    assert len(raw['native_binding']['query_sources'])==8
+
+
+def test_raw_score_reader_recomputes_score_and_refuses_lost_raw_source(collection):
+    m,root,path,record,issue=collection;backend=RawBackend(record,root)
+    result=m.collect_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored'
+    from thermal_model import installed_shade_raw_score_sources as raw
+    assert hasattr(raw,'read_raw_score_sources'),'missing independent raw score reader'
+    replay=raw.read_raw_score_sources(Path(result['raw_packet_path']),assessed_at=issue+timedelta(hours=24,minutes=10))
+    assert replay['score']==json.loads(Path(result['score_path']).read_text())
+    Path(backend.native_source_paths[0]).unlink()
+    with pytest.raises((ValueError,OSError)):
+        raw.read_raw_score_sources(Path(result['raw_packet_path']),assessed_at=issue+timedelta(hours=24,minutes=10))

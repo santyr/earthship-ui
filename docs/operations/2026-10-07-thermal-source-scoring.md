@@ -53,9 +53,26 @@ The candidate `ScoreReader.native` now retains each bounded query packet,
 reads it back from its immutable archive and returns only replayed selection.
 It verifies source configuration before querying, after querying and after
 readback. `native_source_paths` records the retained files for the caller.
-The next collector integration must bind these paths into versioned collected
-score sources, validate every outcome/comparator against independent raw
-packet replay, and keep incomplete attempts explicit. Collector result and
-release-consumer schemas do not yet establish this raw-source binding. Existing selected-receipt score archives cannot
+The collector now writes a separate versioned
+`earthship-installed-shade-score-sources/v2` packet when its backend retains raw
+queries. It binds the unchanged original score inputs to the exact query paths,
+original issue clock, phase and assessment. Each comparator query must use the
+original issue assessment; the later outcome must be mature. Every selected
+receipt must equal independent selection from the raw packet. The approved air
+identity, range and expiry policy are required. Repeated identical endpoints
+across adjacent 24-hour cycles are allowed; conflicting selections refuse.
+
+`read_raw_score_sources(path, assessed_at=...)` validates private ownership,
+outer digest, original publication capture and every raw query binding, then
+recomputes the score. Missing or changed raw files refuse even when the scalar
+score cache remains. At most 24 query paths and 64 MB of cumulative raw packet
+bytes may be consumed per binding. The source binding grants no release
+permission. Existing v1 diagnostic source packets remain distinct.
+
+The next release integration must use an explicitly versioned qualification
+contract that requires these raw-source packets for release-quality score
+pairs. Current qualification-report contracts do not yet require this binding.
+No active-model gate may be described as fully raw-source qualified yet.
+Existing selected-receipt score archives cannot
 be retroactively described as retaining raw snapshots. Legacy v4 diagnostic
 origins remain outside the candidate graduation contract.
