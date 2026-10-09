@@ -136,3 +136,24 @@ Freeze the calibrated candidate separately and preregister its release policy
 before inspecting its untouched chronological holdout. Only fresh replay of the
 qualified calibrated candidate's own evidence can authorize forecast-active mode.
 Bootstrap fixtures and legacy diagnostic origins are not release evidence.
+
+## One operational scoring job
+
+`openhab/systemd/user/thermal-installed-score.service` is an inert template for
+one explicit original publication and one horizon (1, 6, 12, or 24 hours). Render
+its source/config/capture/horizon operands from reviewed private staging before
+installation. The shared-lock operand must identify the existing owned private
+lock used by the other input consumers. Never use a different lock to bypass a
+busy worker. The service shares the input slice, caps CPU/memory/swap/tasks, and
+has a hard process lifetime. Collection now requires the explicit `--shared-lock`
+argument. The scorer opens an existing owned mode-600, single-link file with
+no-follow flags, holds its descriptor, and checks path/inode identity before
+source reads, including after request pacing. Missing, symlinked or replaced locks
+refuse collection. Exit 75 indicates lock contention, not an outcome.
+
+A successful collection still requires `status=scored` and the retained raw
+score-source packet. Pending, busy and withheld results do not satisfy an outcome
+gate. A timer and bounded job-selection/completion mechanism are not provided by
+this one-job template. Those integrations must retain the first qualified original
+sources and avoid treating repeated attempts or overlapping horizons as independent
+evidence. No service is enabled merely by adding this template to the repository.

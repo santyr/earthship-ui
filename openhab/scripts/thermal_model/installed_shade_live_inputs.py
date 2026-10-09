@@ -79,12 +79,12 @@ class TelemetryTransport:
         if item not in ITEMS or not isinstance(state,str) or len(state.encode())>=16384:raise ValueError('bounded fixed String telemetry write required')
         if item not in self.checked:self.require_string(item)
         self._request('/items/'+item+'/state',method='PUT',state=state,preflight=preflight)
-    def persisted(self,item,state,*,since,until):
+    def persisted(self,item,state,*,since,until,preflight=None):
         if item not in ITEMS:raise ValueError('fixed actual telemetry receipt required')
         since,until=map(_utc,(since,until));floor=since.replace(microsecond=since.microsecond//1000*1000)
         if not floor<=until or until-floor>timedelta(minutes=2):raise ValueError('bounded actual publication receipt interval required')
         query=urlencode(dict(serviceId='jdbc',starttime=floor.isoformat(),endtime=until.isoformat()))
-        value=self._request('/persistence/items/'+item+'?'+query)
+        value=self._request('/persistence/items/'+item+'?'+query,preflight=preflight)
         rows=value.get('data') if isinstance(value,dict) else None
         if not isinstance(rows,list) or len(rows)>32:raise ValueError('bounded actual persisted rows required')
         expected=json.loads(state,object_pairs_hook=_object)

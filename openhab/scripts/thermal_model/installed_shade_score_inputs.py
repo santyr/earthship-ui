@@ -39,7 +39,9 @@ def load_score_settings(path):
 
 
 class ScoreReader:
-    def __init__(self,settings):
+    def __init__(self,settings,*,shared_lock_guard=None):
+        self.shared_lock_guard=shared_lock_guard
+        if shared_lock_guard is not None:shared_lock_guard()
         self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24);self.native_source_paths=[];self._native_sources={}
         self.hashes={key:sha256(_owned_bytes(Path(settings[key]),16384)).hexdigest() for key in SOURCE_PATHS}
         token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
@@ -47,6 +49,8 @@ class ScoreReader:
         from thermal_temperature_runtime import _configured_sensor_epochs
         self.epochs=_configured_sensor_epochs(dict(THERMAL_TEMP_POLICY=settings['native_policy']))
     def verify_unchanged(self):
+        guard=getattr(self,'shared_lock_guard',None)
+        if guard is not None:guard()
         self.budget.remaining()
         if any(sha256(_owned_bytes(Path(self.settings[key]),16384)).hexdigest()!=value for key,value in self.hashes.items()):
             raise ValueError('original score source configuration changed')
@@ -54,13 +58,17 @@ class ScoreReader:
         if not isinstance(receipt,dict) or receipt.get('item') not in (NUMERIC_ITEM,PUBLICATION_ITEM):raise ValueError('fixed original telemetry receipt required')
         _,at=_receipt(receipt,receipt['item'])
         if at>_utc(_clock()):raise ValueError('future original telemetry receipt refused')
-        return self.transport.persisted(receipt['item'],receipt['state'],since=at,until=at+timedelta(milliseconds=1))
+        self.verify_unchanged()
+        result=self.transport.persisted(receipt['item'],receipt['state'],since=at,until=at+timedelta(milliseconds=1),preflight=self.verify_unchanged)
+        self.verify_unchanged();return result
     def _connect(self,config):
+        self.verify_unchanged()
         import psycopg2
         from psycopg2.extensions import make_dsn,parse_dsn
         params=parse_dsn(bounded_journal_dsn(make_dsn(**config)));timeout=self.budget.begin()
         if timeout<2:raise ValueError('bounded native connection deadline unavailable')
         params['connect_timeout']=str(min(3,int(timeout)))
+        self.verify_unchanged()
         try:connection=psycopg2.connect(make_dsn(**params))
         except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
         try:self.budget.remaining();return connection

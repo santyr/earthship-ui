@@ -52,7 +52,9 @@ def test_only_closed_private_settings_allow_score_reader(settings):
 def test_original_jdbc_query_uses_actual_receipt_window_instead_of_today(settings,monkeypatch):
     m=module();reader=m.ScoreReader(settings[1]);now=datetime(2026,10,8,12,tzinfo=timezone.utc)
     receipt=dict(item='Thermal_Model_JSON',time=int(now.timestamp()*1000),state='{}');observed=[]
-    def persisted(item,state,*,since,until):observed.append((item,state,since,until));return receipt
+    def persisted(item,state,*,since,until,preflight=None):
+        if preflight:preflight()
+        observed.append((item,state,since,until));return receipt
     monkeypatch.setattr(reader.transport,'persisted',persisted)
     assert reader.publication(receipt)==receipt
     assert observed==[('Thermal_Model_JSON','{}',now,now+timedelta(milliseconds=1))]
@@ -112,8 +114,10 @@ def test_real_jdbc_transport_is_get_only_and_preserves_exact_original_time(setti
 
 def test_cli_missing_original_cannot_query_household_or_retain_data(settings):
     path,config=settings;script=Path(__file__).resolve().parent/'thermal_installed_score.py'
+    lock=path.parent/'global-lock';lock.touch(mode=0o600)
     result=subprocess.run([sys.executable,str(script),'--config',str(path),'--collect',
-        '--origin',str(path.parent/'missing.installed-shade-origin-v3.json'),'--horizon','1'],capture_output=True,text=True)
+        '--origin',str(path.parent/'missing.installed-shade-origin-v3.json'),'--horizon','1',
+        '--shared-lock',str(lock)],capture_output=True,text=True)
     assert result.returncode==1 and json.loads(result.stdout)['status']=='withheld'
     assert 'traceback' not in result.stderr.lower() and list(Path(config['output_directory']).iterdir())==[]
 

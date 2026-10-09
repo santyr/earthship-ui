@@ -1,0 +1,28 @@
+# Template only. Render every @...@ operand from reviewed private staging.
+# One explicit original publication/horizon; no implicit archive scanning.
+[Unit]
+Description=Original installed-domain thermal forecast outcome collection
+
+[Service]
+Type=oneshot
+Slice=earthship-inputs.slice
+Environment=EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0
+Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+# The pre-existing owned private global lock serializes local input consumers.
+# Exit 75 means busy, not a scored outcome or permission to bypass the lock.
+# The scorer validates and rechecks the held global inode before source reads.
+ExecStart=/usr/bin/timeout 90s /usr/bin/python3 @VERIFIED_SCORER_SOURCES@/thermal_installed_score.py --config @VERIFIED_SCORE_CONFIG@ --collect --shared-lock @VERIFIED_SHARED_LOCK@ --origin @ORIGINAL_PUBLICATION_CAPTURE@ --horizon @MATURE_HORIZON_HOURS@
+TimeoutStartSec=95
+CPUAccounting=yes
+CPUQuota=20%
+MemoryAccounting=yes
+MemoryMax=256M
+MemorySwapMax=0
+TasksAccounting=yes
+TasksMax=24
+Nice=15
+IOSchedulingClass=idle
+IOAccounting=yes
+IOWeight=10
+OOMPolicy=kill
