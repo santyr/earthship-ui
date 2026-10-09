@@ -1400,3 +1400,32 @@ truncating. It does not promise an atomic snapshot of a concurrently growing
 archive: rerun after collection completes for a settled inventory. Counts of
 complete issued-hour days describe forecast-target coverage, not continuous
 sensor coverage. Neither the report nor its summary has release authority.
+
+### Preserve legacy shadow diagnostics separately
+
+The deployed v4 artifact must remain with its compatible reader. Opening its
+registry with the newer v5/v6 reader can quarantine the artifact; switching the
+whole shadow runtime merely to enable an origin hook is therefore refused.
+
+`thermal_legacy_origin.py` provides a separate
+`earthship-thermal-legacy-shadow-origin/v1` diagnostic contract and optional
+wrappers for the existing native reader and forcing-capture writer. It preserves
+the original writer's v2 forcing record (including the actual v4 artifact), the
+native receipt grid observed at the issue, and the executing runtime identity.
+It freezes the receipt proof, checks original clocks, receipt expiry and initial
+state binding, and refuses runtime changes across a capture. Extra diagnostic
+failures produce a sanitized gap while preserving the original return values
+and exceptions. It never opens a model registry or qualifies an artifact.
+
+The runtime fingerprint reads declared original source bytes without executing
+them and binds the actual loaded numerical dependency versions, interpreter,
+and observer hashes. A guarded integration must supply the complete executing
+and worker source closure. Fingerprints alone do not retain a compatible replay
+environment. The diagnostic record explicitly makes no claim of retained
+runtime bytes, raw native snapshot binding, verified JDBC publication delivery,
+or phase-qualified v4 training. These remain separate evidence requirements.
+
+The new graduation readers refuse this legacy diagnostic schema. Keep its
+archive separate from native-qualified candidate origins. Installation and
+entrypoint integration are still required; importing this module enables no
+live collection, publication, model fit, recommendation or household action.

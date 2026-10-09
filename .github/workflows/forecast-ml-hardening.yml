@@ -22,6 +22,7 @@ on:
       - 'openhab/scripts/forecast_pre_dusk.py'
       - 'openhab/scripts/qualified_soc_forecast.py'
       - 'openhab/scripts/thermal_intel.py'
+      - 'openhab/scripts/thermal_legacy_origin.py'
       - 'openhab/scripts/thermal_model/**'
       - 'openhab/scripts/test_forecast_ml_*.py'
       - 'openhab/scripts/test_forecast_pre_dusk.py'
@@ -115,5 +116,6 @@ jobs:
             openhab/scripts/test_thermal_fit_pipeline.py \
             openhab/scripts/test_thermal_pipeline.py \
             openhab/scripts/test_thermal_vent_default.py \
+            openhab/scripts/test_thermal_legacy_origin.py \
             openhab/scripts/test_thermal_artifacts.py \
             tests/completion/test_thermal_replay_bundle.py
