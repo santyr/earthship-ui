@@ -318,3 +318,20 @@ atomic receipt publication, including time spent writing the private file.
 Original source locators remain unchanged and must stay available. Old seal
 readers refuse v3. Registration provides no release permission; matching
 qualification and production publisher integration remain required.
+
+
+Qualification-report/v5 explicitly requires all three raw evidence phases:
+registration/v3 development sources, candidate/v3 with replayed calibration/v2,
+and later score-sources/v3 release pairs around actual publication captures/v5.
+Its raw development and calibration gates cannot be supplied by weaker schema
+metadata. Development bindings cover every declared baseline row. Original
+candidate/runtime/phase matching and statistical/support gates stay unchanged;
+older qualification validators refuse v5. JSON and human reports retain the
+original phase bindings and remain diagnostic caches.
+
+Use the guarded `scripts/qualify-installed-shade.py --contract-version 5` profile
+with the same existing `--shared-lock` and resource scope as v4, supplying the
+v3 registration and candidate paths and a private index of v3 raw release
+references. Without those sources it emits an honest unavailable report. Exit
+zero means report creation, not graduation. V5 adds no fitting or activation;
+the production publisher, UI, and scoring queue still need matching integration.
