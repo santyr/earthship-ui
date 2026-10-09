@@ -1196,3 +1196,45 @@ fixture initially carried the later aggregate runtime instead of the original
 base runtime; only its synthetic execution port was corrected. No runtime or
 source validator was weakened. Full exact-commit hosted CI is required for this
 collector change before integration.
+
+
+## Exact temperature correction origins
+
+The auxiliary temperature-learning ledger records raw-provider error, but its
+legacy rows do not identify the correction originally displayed. Current bias
+state must never be substituted into those old issues. The optional
+`forecast_temperature_origin.py` observer now preserves a separate version1
+origin before and after the existing `Forecast_10Day_JSON` publication. Public
+detail2, hourly/daily payloads and prediction equations remain unchanged.
+
+The observer retains the exact raw Open-Meteo snapshot, actual corrected detail
+bytes, safe original per-hour bias/count/variance and daily correction state,
+explicit native2 outdoor policy, actual source/interpreter identity, original
+source files, and actual preparation/publication clocks. It uses immutable
+owned private files; changed code/policy and inconsistent clocks refuse the
+origin. Optional collection failure cannot prevent normal publication or change
+learning state. A failed detail PUT creates no completed origin.
+
+Collection is disabled by default. An operator-prepared environment must supply
+both `FORECAST_TEMPERATURE_ORIGIN_DIR` (existing owned0700 absolute directory)
+and `FORECAST_TEMPERATURE_ORIGIN_POLICY` (absolute private native2 policy). All
+six declared runtime sources must be protected against group/other writes.
+These settings are intended for the bounded forecast-intel/forecast-json
+consumers after exact-head verification; this source change does not install
+or enable them. Do not enable training to collect these origins.
+
+`delivery_verified:false` is deliberate: HTTP completion proves neither actual
+JDBC persistence nor a later outcome. The next scoring layer must pair the
+exact original detail bytes with an actual matching persisted receipt and a
+mature qualified native outdoor outcome in the original hardware phase. Until
+that collector/evaluator is installed and real outcomes mature, these origins
+are prospective input evidence, not correction-skill or release proof. No old
+ledger entries are upgraded, and no more complex correction model is released.
+
+The October9 native source cutover is separate from thermal graduation. Its
+actual four-stream source2 epoch readback and fresh JDBC selection passed after
+OpenHAB completed its operator-reported upgrade restart. The restart gap stays
+unqualified. Existing forecast input timers resumed under a shared20%CPU,
+256MiB memory, zero swap and24task limit with a nonblocking serial lock; the
+legacy trainer remains stopped. The existing displayed thermal output remains
+low-confidence shadow output, and no production ML gate has passed.

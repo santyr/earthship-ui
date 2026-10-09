@@ -1224,7 +1224,7 @@ def publish_forecast_payloads(payloads, put_state=oh_put_state):
     put_state("Forecast_Hourly_JSON", json.dumps(legacy_hourly))
     put_state("Forecast_Daily_JSON", json.dumps(legacy_daily))
     try:
-        put_state("Forecast_10Day_JSON", serialize_detail(detail))
+        return put_state("Forecast_10Day_JSON", serialize_detail(detail))
     except Exception as error:
         print(f"Forecast_10Day_JSON publish failed after legacy updates: {error}", file=sys.stderr)
         raise
@@ -1269,7 +1269,7 @@ def pv_display_days(radiation_sums, learned_gain, issued_today):
 
 
 def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
-                     temperature_adjustment=None, hourly_model=None):
+                     temperature_adjustment=None, hourly_model=None, origin_observer=None):
     """Materialize legacy JSON items plus additive ten-day detail from one fetch."""
     now_local = now or datetime.now(MOUNTAIN)
     if now_local.tzinfo is None:
@@ -1297,7 +1297,29 @@ def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
         temperature_adjustment=temperature_adjustment,
         hourly_model=hourly_model,
     )
-    publish_forecast_payloads(payloads, put_state=put_state or oh_put_state)
+    # Optional observational evidence never changes payloads or learned state.
+    prepared_origin = None
+    try:
+        if origin_observer is None and (os.environ.get("FORECAST_TEMPERATURE_ORIGIN_DIR")
+                is not None or os.environ.get("FORECAST_TEMPERATURE_ORIGIN_POLICY") is not None):
+            from forecast_temperature_origin import observer_from_environment
+            origin_observer = observer_from_environment()
+        if origin_observer is not None:
+            from copy import deepcopy
+            prepared_origin = origin_observer.prepare(snapshot=deepcopy(snapshot),
+                payloads=deepcopy(payloads), hourly_model=deepcopy(hourly_model),
+                temperature_adjustment=deepcopy(temperature_adjustment))
+    except Exception:
+        print("temperature correction origin preparation unavailable", file=sys.stderr)
+    publication_started_at = datetime.now(timezone.utc)
+    detail_result = publish_forecast_payloads(payloads, put_state=put_state or oh_put_state)
+    if prepared_origin is not None and detail_result is not False:
+        try:
+            origin_observer.complete(prepared_origin,
+                publication_started_at=publication_started_at,
+                publication_completed_at=datetime.now(timezone.utc))
+        except Exception:
+            print("temperature correction origin retention unavailable", file=sys.stderr)
     return payloads
 
 
