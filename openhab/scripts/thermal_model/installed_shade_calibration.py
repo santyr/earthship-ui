@@ -212,7 +212,7 @@ def _validate_calibration(record, *, bundle, inputs, expected_runtime_revision,
     return deepcopy(record)
 
 
-def _persist(root, value, digest, suffix):
+def _persist(root, value, digest, suffix, *, before_publish=None):
     from .runtime_bundle import _owned_bytes, _write_private, _sync_directory
     from .rollback import _rename_new
     from uuid import uuid4
@@ -225,7 +225,9 @@ def _persist(root, value, digest, suffix):
         return target
     temporary = root/('.calibration-'+uuid4().hex)
     try:
-        _write_private(temporary,raw); _rename_new(temporary,target); _sync_directory(root)
+        _write_private(temporary,raw)
+        if before_publish is not None:before_publish()
+        _rename_new(temporary,target); _sync_directory(root)
     finally:
         if temporary.exists(): temporary.unlink()
     return target

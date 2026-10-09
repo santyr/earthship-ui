@@ -5,6 +5,7 @@ weather qualification, action causality or production permission. Raw captures
 and receipts remain necessary for every replay. The operator-owned archive is
 not a cryptographic timestamp service or an authority against its owner.
 """
+from copy import deepcopy
 from datetime import datetime,timezone
 from hashlib import sha256
 import json
@@ -25,6 +26,9 @@ INSTALLED_SCHEMA='earthship-installed-shade-policy-registration/v1'
 INSTALLED_CANDIDATE_SCHEMA='earthship-installed-shade-candidate/v1'
 CALIBRATED_SCHEMA='earthship-installed-shade-policy-registration/v2'
 CALIBRATED_CANDIDATE_SCHEMA='earthship-installed-shade-candidate/v2'
+RAW_CALIBRATED_SCHEMA='earthship-installed-shade-policy-registration/v3'
+RAW_CALIBRATED_CANDIDATE_SCHEMA='earthship-installed-shade-candidate/v3'
+RAW_DEVELOPMENT_CONTRACT='earthship-installed-shade-score-sources/v2'
 SENSOR_SEMANTICS='declared_hardware_phase'
 SOURCE_FIELDS={'origin_path','publication','horizon_hours','outcome','recent_cycle_grid'}
 FIELDS={'schema','registered_at','policy','development_sources','development_origins',
@@ -268,3 +272,99 @@ def _register_policy(directory,policy,development_sources,*,version):
         finally:os.close(fd)
     finally:temporary.unlink(missing_ok=True)
     return target
+
+
+
+RAW_REGISTRATION_FIELDS=FIELDS|{'sensor_epoch_semantics','candidate_schema','source_contract','development_source_bindings'}
+RAW_REGISTRATION_SUFFIX='.installed-shade-registration-v3.json'
+
+
+def _score_raw_development_sources(sources,policy,registered):
+    """Reproduce development baselines from original query archives.
+
+    Baselines may precede the final candidate freeze. Only same-phase original
+    persistence/recent-cycle errors are used to derive thresholds, never release
+    scores from another revision. Raw query replay is mandatory.
+    """
+    from .installed_shade_qualification import _score_packets
+    if len(_canonical(sources))>MAX_BYTES:
+        raise ValueError('bounded original raw development index required')
+    scored=_score_packets(sources,assessed_at=registered,version=4)
+    if scored.get('raw_native_score_sources') is not True:
+        raise ValueError('original raw development query sources required')
+    actual=[]
+    for row in scored['rows']:
+        if row['sensor_epochs']!=policy['candidate']['sensor_epochs']:
+            raise ValueError('raw development hardware phase differs from frozen candidate')
+        actual.append({key:row[key] for key in RECORD_FIELDS})
+    order=lambda row:(row['issue_at'],row['horizon_hours'])
+    if _canonical(sorted(actual,key=order))!=_canonical(sorted(policy['development'],key=order)):
+        raise ValueError('policy development differs from original raw source-derived baselines')
+    bindings=scored['bindings']
+    if len({binding['original_capture_sha256'] for binding in bindings})>128:
+        raise ValueError('development origin count exceeds bound')
+    manifest={Path(reference['raw_score_sources_path']).name:binding['raw_score_sources_sha256']
+        for reference,binding in zip(sources,bindings)}
+    if len(manifest)!=len(sources):raise ValueError('duplicate original raw development source address')
+    return dict(development_origins=manifest,development_source_bindings=bindings)
+
+
+def _raw_registration_path(path):
+    path=Path(path)
+    if not path.is_absolute() or path.resolve()!=path:
+        raise ValueError('resolved private raw preregistration path required')
+    return path
+
+
+def read_raw_calibrated_installed_shade_registered_policy(path):
+    """Replay the sealed original development queries, never a support cache."""
+    path=_raw_registration_path(path);record=_read_private(path)
+    if (not isinstance(record,dict) or set(record)!=RAW_REGISTRATION_FIELDS or
+            record['schema']!=RAW_CALIBRATED_SCHEMA or record['candidate_schema']!=RAW_CALIBRATED_CANDIDATE_SCHEMA or
+            record['source_contract']!=RAW_DEVELOPMENT_CONTRACT or record['sensor_epoch_semantics']!=SENSOR_SEMANTICS or
+            record['release_authorized'] is not False or
+            _digest({k:v for k,v in record.items() if k!='registration_sha256'})!=record['registration_sha256']):
+        raise ValueError('closed original raw preregistration receipt required')
+    policy=validate_policy(record['policy']);_installed_contract(policy)
+    if path.name!=policy['policy_sha256']+RAW_REGISTRATION_SUFFIX:
+        raise ValueError('raw preregistration address differs')
+    registered=_utc(record['registered_at']);_chronology(policy,registered)
+    if registered>_utc(_clock()):raise ValueError('raw registration is in the future')
+    proof=_score_raw_development_sources(record['development_sources'],policy,registered)
+    if any(_canonical(proof[key])!=_canonical(record[key]) for key in
+            ('development_origins','development_source_bindings')):
+        raise ValueError('sealed raw development bindings differ from original replay')
+    return record
+
+
+def register_raw_calibrated_installed_shade_policy(directory,policy,development_sources):
+    """Seal raw-derived thresholds before release using the actual clock.
+
+    Original archive locators remain absolute and unchanged. They grant no
+    authority themselves: readback must replay the original retained bytes.
+    """
+    from .installed_shade_calibration import _persist
+    root=_private_directory(Path(directory));policy,sources=deepcopy((policy,development_sources))
+    validate_policy(policy);_installed_contract(policy)
+    registered=_utc(_clock());_chronology(policy,registered)
+    proof=_score_raw_development_sources(sources,policy,registered)
+    body=dict(schema=RAW_CALIBRATED_SCHEMA,sensor_epoch_semantics=SENSOR_SEMANTICS,
+        candidate_schema=RAW_CALIBRATED_CANDIDATE_SCHEMA,source_contract=RAW_DEVELOPMENT_CONTRACT,
+        registered_at=registered.isoformat(),policy=policy,development_sources=sources,
+        **proof,release_authorized=False)
+    body['registration_sha256']=_digest(body)
+    if len(_canonical(body))>MAX_BYTES:raise ValueError('raw preregistration receipt exceeds bound')
+    target=root/(policy['policy_sha256']+RAW_REGISTRATION_SUFFIX)
+    _chronology(policy,_utc(_clock()))
+    if target.exists():
+        previous=read_raw_calibrated_installed_shade_registered_policy(target)
+        def content(record):return {key:value for key,value in record.items() if key not in ('registered_at','registration_sha256')}
+        if _canonical(content(previous))!=_canonical(content(body)):
+            raise ValueError('existing raw preregistration has different original content')
+        _chronology(policy,_utc(_clock()))
+        return target
+    # This uses the existing immutable owned-private writer. No source files are
+    # relocated/rewritten, and no release/active state is produced.
+    _chronology(policy,_utc(_clock()))
+    return _persist(root,body,policy['policy_sha256'],RAW_REGISTRATION_SUFFIX,
+        before_publish=lambda:_chronology(policy,_utc(_clock())))

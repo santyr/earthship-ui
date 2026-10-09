@@ -302,3 +302,19 @@ cached temperature changes and missing query files. Older score-sources/v2
 readers refuse v3. Derived scalar results still confer no release authority.
 These APIs do not yet provide the stronger qualification/publisher/queue/UI
 integration or authorize any production cutover.
+
+
+`register_raw_calibrated_installed_shade_policy` creates the distinct
+policy-registration/v3 seal for candidate/v3. Its development references point
+to original score-sources/v2 query archives from before the final freeze.
+Persistence/recent-cycle baselines are replayed exactly in the same hardware
+phase; the seal retains raw source bindings and the unchanged numerical policy.
+Readback replays the original archives. Development baseline evidence is separate
+from later release scoring of the final candidate.
+
+The actual registration clock must precede both untouched and prospective
+release intervals. Chronology is checked after replay and immediately before
+atomic receipt publication, including time spent writing the private file.
+Original source locators remain unchanged and must stay available. Old seal
+readers refuse v3. Registration provides no release permission; matching
+qualification and production publisher integration remain required.
