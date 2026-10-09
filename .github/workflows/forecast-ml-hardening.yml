@@ -40,6 +40,7 @@ on:
       - 'openhab/scripts/test_installed_shade_origin.py'
       - 'openhab/scripts/test_installed_shade_qualification.py'
       - 'openhab/scripts/test_installed_shade_calibration.py'
+      - 'openhab/scripts/test_installed_shade_raw_calibration.py'
       - 'openhab/scripts/test_installed_shade_calibrated.py'
       - 'openhab/scripts/test_installed_shade_calibrated_qualification.py'
       - 'openhab/scripts/test_installed_shade_publication.py'
@@ -115,6 +116,7 @@ jobs:
             openhab/scripts/test_installed_shade_origin.py \
             openhab/scripts/test_installed_shade_qualification.py \
             openhab/scripts/test_installed_shade_calibration.py \
+            openhab/scripts/test_installed_shade_raw_calibration.py \
             openhab/scripts/test_installed_shade_calibrated.py \
             openhab/scripts/test_installed_shade_calibrated_qualification.py \
             openhab/scripts/test_installed_shade_publication.py \

@@ -1,0 +1,179 @@
+"""Production calibration needs original raw queries, not receipt-only diagnostics."""
+from copy import deepcopy
+import pytest
+from test_installed_shade_origin import candidate,prepared,original
+from test_installed_shade_qualification import source_case
+from test_installed_shade_calibration import create
+
+
+def test_legacy_calibration_accepts_changed_receipt_without_raw_query_authority(candidate,source_case):
+    packet=deepcopy(source_case[0])
+    snapshot=packet['outcome']['receipt']['snapshotSha256']
+    before=create(candidate,source_case)
+    packet['outcome']['receipt']['temperatureF']+=2
+    after=create(candidate,source_case,original_pairs=[packet])
+    assert packet['outcome']['receipt']['snapshotSha256']==snapshot
+    assert before['source_pair_bindings']!=after['source_pair_bindings']
+    assert after['schema']=='earthship-installed-shade-calibration/v1'
+    assert after['release_authorized'] is False
+
+
+def test_production_raw_calibration_refuses_receipt_only_pairs(candidate,source_case):
+    from thermal_model import installed_shade_calibration as calibration
+    packet,_,assessed=source_case
+    from test_installed_shade_origin import ISSUE
+    from datetime import timedelta
+    from thermal_model.installed_shade_artifact import _digest
+    with pytest.raises(ValueError,match='raw'):
+        calibration.build_raw_calibration(bundle=candidate[0],inputs=candidate[1],
+            expected_runtime_revision=_digest(candidate[2]),original_pairs=[packet],
+            calibration_start=ISSUE,calibration_end=ISSUE+timedelta(hours=1),
+            regimes=['warm'],created_at=assessed)
+
+
+@pytest.fixture
+def raw_routing_case(candidate,source_case,tmp_path,monkeypatch):
+    # Isolated routing/storage fixture. It does not establish raw-query authority.
+    from thermal_model import installed_shade_calibration as calibration
+    from thermal_model import installed_shade_qualification as qualification
+    from thermal_model.installed_shade_artifact import _digest
+    from test_installed_shade_origin import ISSUE
+    from datetime import timedelta
+    packet,_,assessed=source_case
+    scored=qualification._score_packets([packet],assessed_at=assessed)
+    scored['raw_native_score_sources']=True
+    for binding in scored['bindings']:
+        binding.update(native_binding_sha256='a'*64,raw_score_sources_sha256='b'*64)
+    def raw_only(pairs,*,assessed_at,candidate=None,version=1):
+        if version!=4:raise ValueError('raw source profile not selected')
+        return deepcopy(scored)
+    monkeypatch.setattr(qualification,'_score_packets',raw_only)
+    values=dict(bundle=candidate[0],inputs=candidate[1],expected_runtime_revision=_digest(candidate[2]),
+        original_pairs=[{'raw_score_sources_path':str(tmp_path/'original.installed-shade-score-sources-v2.json')}],
+        calibration_start=ISSUE,calibration_end=ISSUE+timedelta(hours=1),regimes=['warm'],created_at=assessed)
+    return calibration,values
+
+
+def test_raw_calibration_uses_distinct_contract_and_legacy_reader_refuses_it(raw_routing_case):
+    calibration,values=raw_routing_case
+    record=calibration.build_raw_calibration(**values)
+    assert record['schema']=='earthship-installed-shade-calibration/v2'
+    assert record['source_contract']=='earthship-installed-shade-score-sources/v2'
+    assert record['summary']['complete'] is False and record['release_authorized'] is False
+    calibration.validate_raw_calibration(record,**{key:values[key] for key in
+        ('bundle','inputs','expected_runtime_revision','original_pairs')},assessed_at=values['created_at'])
+    with pytest.raises(ValueError):
+        calibration.validate_calibration(record,**{key:values[key] for key in
+            ('bundle','inputs','expected_runtime_revision','original_pairs')},assessed_at=values['created_at'])
+
+
+def test_raw_calibration_storage_has_distinct_typed_index_and_readback(raw_routing_case,tmp_path):
+    calibration,values=raw_routing_case
+    root=tmp_path/'raw-calibration';root.mkdir(mode=0o700)
+    record=calibration.build_raw_calibration(**values)
+    parameters={key:values[key] for key in ('bundle','inputs','expected_runtime_revision','original_pairs')}
+    path=calibration.write_raw_calibration(root,record,**parameters,assessed_at=values['created_at'])
+    assert path.name==record['calibration_sha256']+'.installed-shade-calibration-v2.json'
+    assert path.stat().st_mode&0o777==0o600
+    assert calibration.read_raw_calibration(path,expected_runtime_revision=values['expected_runtime_revision'],
+        assessed_at=values['created_at'])==record
+    assert list(root.glob('*.installed-shade-calibration-sources-v2.json'))
+    with pytest.raises(ValueError):calibration.read_calibration(path,
+        expected_runtime_revision=values['expected_runtime_revision'],assessed_at=values['created_at'])
+
+
+from test_installed_shade_score_collection import collection,issued,release_case,RawBackend
+
+
+@pytest.fixture
+def retained_raw_case(collection,candidate,monkeypatch):
+    """Actual raw query replay; only acquisition and runtime ports are synthetic."""
+    from datetime import timedelta
+    from pathlib import Path
+    import json
+    from thermal_model import installed_shade_calibrated_origin as calibrated
+    from thermal_model import installed_shade_origin as base
+    from thermal_model import installed_shade_publication as publisher
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_qualification as qualification
+    from thermal_model import installed_shade_calibration as calibration
+    from thermal_model.forcing_capture import _canonical
+    from thermal_model.installed_shade_artifact import _digest
+    collector,root,_,record,issue=collection
+    numeric=calibrated._core_view(record['numeric_capture'])
+    assert numeric['candidate']==candidate[0]['artifact']
+    path=base.write_issued_capture(root,numeric)
+    report=qualification.qualify_installed_shade_candidate(registration_path=None,candidate_path=None,
+        runtime_bundle_path=None,original_pairs=[],now=issue)
+    ready=publisher.PreparedInstalledQualification(_canonical(report),_canonical(numeric['candidate']),True,True,
+        ('thermal_intel.py','thermal_model/installed_shade_publication.py'))
+    monkeypatch.setattr(publisher,'_clock',lambda:issue+timedelta(seconds=3))
+    monkeypatch.setattr(publisher,'ERRORS',())
+    monkeypatch.setattr(publisher,'build_runtime_binding',lambda *args:numeric['runtime'])
+    output=publisher.build_installed_publication(path,ready)
+    assert output['status']=='shadow'
+    actual=dict(item='Thermal_Model_JSON',time=int((issue+timedelta(seconds=3)).timestamp()*1000),state=_canonical(output).decode())
+    original_receipt=dict(item='Thermal_OriginalForecast_JSON',time=int((issue+timedelta(seconds=2)).timestamp()*1000),state=_canonical(numeric['output']).decode())
+    monkeypatch.setattr(published,'_clock',lambda:issue+timedelta(seconds=4))
+    capture=published.build_publication_capture(path,numeric_publication=original_receipt,publication=actual)
+    published_path=published.write_publication_capture(root,capture)
+    backend=RawBackend(capture,root)
+    monkeypatch.setattr(collector,'ERRORS',())
+    result=collector.collect_published_score(origin_path=published_path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored' and len(backend.native_source_paths)==8
+    values=dict(bundle=candidate[0],inputs=candidate[1],expected_runtime_revision=_digest(candidate[2]),
+        original_pairs=[dict(raw_score_sources_path=result['raw_packet_path'])],
+        calibration_start=issue,calibration_end=issue+timedelta(hours=1),regimes=['warm'],
+        created_at=issue+timedelta(hours=24,minutes=10))
+    return calibration,values,backend,root,json.loads(Path(result['raw_packet_path']).read_text())
+
+
+def test_raw_calibration_replays_original_queries_and_binds_their_identity(retained_raw_case):
+    calibration,values,_,_,header=retained_raw_case
+    from thermal_model.installed_shade_artifact import _digest
+    record=calibration.build_raw_calibration(**values)
+    assert record['summary']['bands']['1']['overall']['raw_pairs']==1
+    assert record['summary']['bands']['1']['overall']['independent_days']==1
+    assert record['summary']['complete'] is False and record['release_authorized'] is False
+    binding=record['source_pair_bindings'][0]
+    assert binding['native_binding_sha256']==_digest(header['native_binding'])
+    assert binding['raw_score_sources_sha256']==_digest(header)
+
+
+@pytest.mark.parametrize('damage',['changed_receipt','deleted_query'])
+def test_raw_calibration_refuses_rehashed_receipt_changes_and_lost_queries(retained_raw_case,damage):
+    calibration,values,backend,root,header=retained_raw_case
+    from pathlib import Path
+    from thermal_model.installed_shade_artifact import _digest
+    from thermal_model.forcing_capture import _canonical
+    if damage=='changed_receipt':
+        receipt=header['score_sources']['outcome']['receipt']
+        original_snapshot=receipt['snapshotSha256'];receipt['temperatureF']+=2
+        assert receipt['snapshotSha256']==original_snapshot
+        # Rehash both containers so rejection must reach raw selection equality.
+        header['native_binding']['score_sources_sha256']=_digest(header['score_sources'])
+        path=root/(_digest(header)+'.installed-shade-score-sources-v2.json')
+        path.write_bytes(_canonical(header));path.chmod(0o600)
+        values['original_pairs']=[dict(raw_score_sources_path=str(path))]
+        with pytest.raises(ValueError,match='cached receipts differ from retained raw selection'):
+            calibration.build_raw_calibration(**values)
+    else:
+        Path(backend.native_source_paths[0]).unlink()
+        with pytest.raises((ValueError,OSError)):
+            calibration.build_raw_calibration(**values)
+
+
+
+def test_raw_calibration_readback_requires_original_query_files(retained_raw_case):
+    from pathlib import Path
+    calibration,values,backend,root,_=retained_raw_case
+    record=calibration.build_raw_calibration(**values)
+    archive=root/'calibration';archive.mkdir(mode=0o700)
+    parameters={key:values[key] for key in ('bundle','inputs','expected_runtime_revision','original_pairs')}
+    path=calibration.write_raw_calibration(archive,record,**parameters,assessed_at=values['created_at'])
+    assert calibration.read_raw_calibration(path,expected_runtime_revision=values['expected_runtime_revision'],
+        assessed_at=values['created_at'])==record
+    Path(backend.native_source_paths[-1]).unlink()
+    with pytest.raises((ValueError,OSError)):
+        calibration.read_raw_calibration(path,expected_runtime_revision=values['expected_runtime_revision'],
+            assessed_at=values['created_at'])

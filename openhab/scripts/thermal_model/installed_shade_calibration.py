@@ -22,12 +22,15 @@ from .installed_shade_fit import HORIZONS
 from .installed_shade_dynamics import PARAMETER_NAMES
 
 SCHEMA = 'earthship-installed-shade-calibration/v1'
+RAW_SCHEMA = 'earthship-installed-shade-calibration/v2'
+RAW_SOURCE_CONTRACT = 'earthship-installed-shade-score-sources/v2'
 MAX_INDEX_BYTES = 4000000
 MAX_RECORD_BYTES = 4000000
 FIELDS = {'schema', 'base_candidate_sha256', 'runtime_sha256', 'sensor_epochs',
     'calibration_start', 'calibration_end', 'created_at', 'regimes', 'method',
     'summary', 'source_packets_sha256', 'source_pair_bindings',
     'coverage_guaranteed', 'release_authorized', 'calibration_sha256'}
+RAW_FIELDS = FIELDS | {'source_contract'}
 
 
 def _minimum():
@@ -114,18 +117,51 @@ def _packet_digest(packets):
     return _digest(addressed)
 
 
-def build_calibration(*, bundle, inputs, expected_runtime_revision, original_pairs,
-                      calibration_start, calibration_end, regimes, created_at):
+def _raw_packet_digest(packets):
+    if not isinstance(packets,list) or not 1<=len(packets)<=10000 or len(_canonical(packets))>MAX_INDEX_BYTES:
+        raise ValueError('bounded original raw calibration index required')
+    addressed=[]
+    for reference in packets:
+        if (not isinstance(reference,dict) or set(reference)!={'raw_score_sources_path'} or
+                not isinstance(reference['raw_score_sources_path'],str) or not 1<=len(reference['raw_score_sources_path'])<=1024):
+            raise ValueError('original raw calibration source references required')
+        path=Path(reference['raw_score_sources_path'])
+        if not path.is_absolute():raise ValueError('absolute original raw calibration path required')
+        addressed.append(dict(raw_score_sources_path=path.name))
+    return _digest(addressed)
+
+
+def build_calibration(**values):
+    """Legacy receipt-only diagnostic profile; no raw-source authority."""
+    return _build_calibration(**values,_version=1)
+
+
+def build_raw_calibration(**values):
+    """Learn development bands only after replaying original raw query archives."""
+    return _build_calibration(**values,_version=2)
+
+
+def validate_calibration(record,**values):
+    return _validate_calibration(record,**values,_version=1)
+
+
+def validate_raw_calibration(record,**values):
+    return _validate_calibration(record,**values,_version=2)
+
+
+def _build_calibration(*, bundle, inputs, expected_runtime_revision, original_pairs,
+                      calibration_start, calibration_end, regimes, created_at, _version=1):
     """Replay original native training and issued pairs before learning bands.
 
     The calibration interval follows coefficient training AND core-candidate
     creation. Its end becomes part of the eventual aggregate learning cutoff;
     a future calibrated candidate must be frozen before release evaluation.
     """
+    if type(_version) is not int or _version not in (1,2):raise ValueError('explicit calibration source version required')
     regimes = _regimes(regimes)
     start,end,created = map(_utc,(calibration_start,calibration_end,created_at))
     expected_runtime_revision = _sha(expected_runtime_revision)
-    packet_sha = _packet_digest(original_pairs)
+    packet_sha = (_raw_packet_digest if _version==2 else _packet_digest)(original_pairs)
     validate_candidate_bundle(bundle,inputs,expected_runtime_revision=expected_runtime_revision,assessed_at=created)
     artifact = bundle['artifact']
     if not _utc(artifact['trained_through']) <= _utc(artifact['created_at']) <= start < end <= created:
@@ -135,35 +171,42 @@ def build_calibration(*, bundle, inputs, expected_runtime_revision, original_pai
     from .installed_shade_qualification import _score_packets
     scored = _score_packets(original_pairs,assessed_at=created,candidate=dict(
         artifact_sha256=artifact['artifact_sha256'],runtime_sha256=expected_runtime_revision,
-        sensor_epochs=artifact['sensor_epochs']))
+        sensor_epochs=artifact['sensor_epochs']),version=4 if _version==2 else 1)
+    if _version==2 and scored.get('raw_native_score_sources') is not True:
+        raise ValueError('original raw native calibration sources required')
     for row in scored['rows']:
         if not start <= _utc(row['issue_at']) < _utc(row['target_at']) <= end:
             raise ValueError('original window outside separate development calibration interval')
-    body = dict(schema=SCHEMA,base_candidate_sha256=artifact['artifact_sha256'],
+    body = dict(schema=RAW_SCHEMA if _version==2 else SCHEMA,base_candidate_sha256=artifact['artifact_sha256'],
         runtime_sha256=expected_runtime_revision,sensor_epochs=deepcopy(artifact['sensor_epochs']),
         calibration_start=start.isoformat(),calibration_end=end.isoformat(),created_at=created.isoformat(),
         regimes=regimes,method=_method(),summary=_summarize(scored['rows'],regimes=regimes),
         source_packets_sha256=packet_sha,source_pair_bindings=scored['bindings'],
         coverage_guaranteed=False,release_authorized=False)
+    if _version==2:body['source_contract']=RAW_SOURCE_CONTRACT
     if len(_canonical(body)) > MAX_RECORD_BYTES:
         raise ValueError('bounded calibration record required')
     body['calibration_sha256'] = _digest(body)
     return body
 
 
-def validate_calibration(record, *, bundle, inputs, expected_runtime_revision,
-                         original_pairs, assessed_at):
-    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA or
+def _validate_calibration(record, *, bundle, inputs, expected_runtime_revision,
+                         original_pairs, assessed_at, _version=1):
+    if type(_version) is not int or _version not in (1,2):raise ValueError('explicit calibration source version required')
+    fields=RAW_FIELDS if _version==2 else FIELDS
+    schema=RAW_SCHEMA if _version==2 else SCHEMA
+    if (not isinstance(record,dict) or set(record)!=fields or record['schema']!=schema or
+            (_version==2 and record['source_contract']!=RAW_SOURCE_CONTRACT) or
             len(_canonical(record)) > MAX_RECORD_BYTES or
             record['coverage_guaranteed'] is not False or record['release_authorized'] is not False or
             _digest({k:v for k,v in record.items() if k!='calibration_sha256'}) != _sha(record['calibration_sha256'])):
         raise ValueError('closed bounded development calibration required')
     if _utc(record['created_at']) > _utc(assessed_at):
         raise ValueError('calibration unavailable at assessment')
-    expected = build_calibration(bundle=bundle,inputs=inputs,
+    expected = _build_calibration(bundle=bundle,inputs=inputs,
         expected_runtime_revision=expected_runtime_revision,original_pairs=original_pairs,
         calibration_start=record['calibration_start'],calibration_end=record['calibration_end'],
-        regimes=record['regimes'],created_at=record['created_at'])
+        regimes=record['regimes'],created_at=record['created_at'],_version=_version)
     if _canonical(expected) != _canonical(record):
         raise ValueError('calibration differs from original source replay')
     return deepcopy(record)
@@ -254,3 +297,46 @@ def read_calibration(path, *, expected_runtime_revision, assessed_at):
     inputs = read_training_inputs_v2(root/(input_sha+'.training-inputs-v2.json'))
     return validate_calibration(record,bundle=bundle,inputs=inputs,
         expected_runtime_revision=expected_runtime_revision,original_pairs=resolved,assessed_at=assessed_at)
+
+
+def write_raw_calibration(directory,record,*,bundle,inputs,expected_runtime_revision,
+                          original_pairs,assessed_at):
+    """Retain the base evidence and raw archive locators; calibration is last.
+
+    Query/capture archives remain the original addressed sources. Their absolute
+    locators confer no authority: typed readback replays their original bytes.
+    The index digest addresses source filenames independently of archive roots.
+    """
+    from .forcing_capture import _private_directory
+    from .installed_shade_artifact import write_candidate_bundle
+    record,bundle,inputs,original_pairs=deepcopy((record,bundle,inputs,original_pairs))
+    validate_raw_calibration(record,bundle=bundle,inputs=inputs,
+        expected_runtime_revision=expected_runtime_revision,original_pairs=original_pairs,assessed_at=assessed_at)
+    root=_private_directory(Path(directory))
+    write_candidate_bundle(root,bundle,inputs,expected_runtime_revision=expected_runtime_revision,assessed_at=assessed_at)
+    _persist(root,original_pairs,record['source_packets_sha256'],'.installed-shade-calibration-sources-v2.json')
+    return _persist(root,record,record['calibration_sha256'],'.installed-shade-calibration-v2.json')
+
+
+def read_raw_calibration(path,*,expected_runtime_revision,assessed_at):
+    from .forcing_capture import _private_directory
+    from .installed_shade_artifact import _read
+    from .training_inputs import read_training_inputs_v2
+    path=Path(path);root=_private_directory(path.parent);record=_read_json(path)
+    if (not isinstance(record,dict) or set(record)!=RAW_FIELDS or record['schema']!=RAW_SCHEMA or
+            record['source_contract']!=RAW_SOURCE_CONTRACT):raise ValueError('closed raw calibration file required')
+    digest=_sha(record['calibration_sha256'])
+    if (path.name!=digest+'.installed-shade-calibration-v2.json' or
+            _digest({key:value for key,value in record.items() if key!='calibration_sha256'})!=digest or
+            _utc(record['created_at'])>_utc(assessed_at)):
+        raise ValueError('original raw calibration address or chronology differs')
+    packet_sha=_sha(record['source_packets_sha256'])
+    packets=_read_json(root/(packet_sha+'.installed-shade-calibration-sources-v2.json'))
+    if _raw_packet_digest(packets)!=packet_sha:raise ValueError('original raw calibration index differs')
+    base_sha=_sha(record['base_candidate_sha256']);artifact=_read(root/(base_sha+'.installed-shade-candidate-v1.json'))
+    if not isinstance(artifact,dict) or artifact.get('artifact_sha256')!=base_sha:raise ValueError('original base candidate address differs')
+    fit_sha=_sha(artifact.get('fit_evidence_sha256'));input_sha=_sha(artifact.get('source_snapshot_sha256'))
+    bundle=dict(artifact=artifact,fit_evidence=_read(root/(fit_sha+'.installed-shade-fit-v1.json')))
+    inputs=read_training_inputs_v2(root/(input_sha+'.training-inputs-v2.json'))
+    return validate_raw_calibration(record,bundle=bundle,inputs=inputs,
+        expected_runtime_revision=expected_runtime_revision,original_pairs=packets,assessed_at=assessed_at)

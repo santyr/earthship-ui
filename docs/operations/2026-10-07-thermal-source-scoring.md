@@ -246,3 +246,22 @@ every gate, exact candidate/runtime/policy identities, and current expiry. An
 unavailable report with absent evidence is honest refusal, not qualification.
 The command writes private machine/human reports and cannot enable a publisher,
 change telemetry Items, fit a model or activate forecasts.
+
+
+## Raw development calibration
+
+`installed_shade_calibration.build_raw_calibration` produces the distinct
+`earthship-installed-shade-calibration/v2` contract. Its inputs are explicit
+`raw_score_sources_path` references to original score-sources/v2 archives.
+It replays the retained native query files before computing development residual
+bands. Changing a cached receipt, even with rehashed containers, or removing a
+query file prevents calibration. `write_raw_calibration` and
+`read_raw_calibration` retain and replay these original source references; the
+source archives must remain available at their recorded private paths.
+
+The older calibration/v1 APIs remain receipt-only diagnostics. Their readers
+refuse v2 records. Both profiles retain the independent support requirements and
+provide no release authority. The new calibration API alone does not upgrade
+the current calibrated candidate, issuance, or production qualification path;
+those consumers still need an explicit stronger versioned integration before
+this provenance gap can be considered closed.
