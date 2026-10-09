@@ -77,7 +77,9 @@ class Backend:
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,required=True)
-    parser.add_argument('--collect',action='store_true')
+    intent=parser.add_mutually_exclusive_group()
+    intent.add_argument('--collect',action='store_true')
+    intent.add_argument('--batch',action='store_true')
     parser.add_argument('--origin-sha256');parser.add_argument('--target')
     args=parser.parse_args(argv)
     if args.collect and (args.origin_sha256 is None or args.target is None):parser.error('explicit original digest and target required')
@@ -85,7 +87,7 @@ def main(argv=None):
     base={'collection_executed':False,'release_authority':False}
     try:
         settings=load_settings(args.config)
-        if not args.collect:print(json.dumps(dict(base,status='configuration_verified')));return 0
+        if not (args.collect or args.batch):print(json.dumps(dict(base,status='configuration_verified')));return 0
         _resource_preflight()
         os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
         fd=os.open(settings['shared_lock'],os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
@@ -95,11 +97,17 @@ def main(argv=None):
                 raise ValueError('original private shared lock required')
             try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
             except BlockingIOError:print(json.dumps(dict(base,status='busy')));return 0
-            from forecast_temperature_collection import collect_target
-            result=collect_target(origin_directory=settings['origin_directory'],origin_sha256=args.origin_sha256,
-                target=args.target,assessed_at=_clock().isoformat(),output_directory=settings['output_directory'],backend=Backend(settings,lock_identity=(info.st_dev,info.st_ino)))
+            backend=Backend(settings,lock_identity=(info.st_dev,info.st_ino))
+            if args.batch:
+                from forecast_temperature_batch import collect_batch
+                result=collect_batch(origin_directory=settings['origin_directory'],output_directory=settings['output_directory'],
+                    assessed_at=_clock().isoformat(),backend=backend)
+            else:
+                from forecast_temperature_collection import collect_target
+                result=collect_target(origin_directory=settings['origin_directory'],origin_sha256=args.origin_sha256,
+                    target=args.target,assessed_at=_clock().isoformat(),output_directory=settings['output_directory'],backend=backend)
         finally:os.close(fd)
-        result['collection_executed']=result['status'] in ('qualified','withheld')
+        result['collection_executed']=(result['attempted']>0 if args.batch else result['status'] in ('qualified','withheld'))
         print(json.dumps(result,sort_keys=True));return 0
     except Exception:
         print(json.dumps(dict(base,status='withheld_failure')));return 1

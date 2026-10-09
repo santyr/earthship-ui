@@ -2,6 +2,8 @@
 import importlib,importlib.util,json,os
 from pathlib import Path
 import pytest
+from test_forecast_temperature_origin import setup
+from test_forecast_temperature_score import case
 
 
 def module():
@@ -110,3 +112,15 @@ def test_replaced_empty_shared_lock_is_refused(config):
         replacement=path.parent/'replacement.lock';replacement.write_text('');replacement.chmod(0o600)
         os.replace(replacement,v['shared_lock'])
         with pytest.raises(ValueError):backend.verify_unchanged()
+
+
+def test_batch_uses_guarded_shared_lock_and_original_sources(config,case,monkeypatch,capsys):
+    from datetime import datetime
+    from test_forecast_temperature_collection import Sources
+    m=module();path,v=config;root,p=case;v['origin_directory']=str(root);path.write_text(json.dumps(v))
+    monkeypatch.setattr(m,'_resource_preflight',lambda:None)
+    monkeypatch.setattr(m,'_clock',lambda:datetime.fromisoformat(p['assessed_at']))
+    monkeypatch.setattr(m,'Backend',lambda settings,**kwargs:Sources(p))
+    assert m.main(['--config',str(path),'--batch'])==0
+    r=json.loads(capsys.readouterr().out)
+    assert r['qualified']==1 and r['attempted']==1 and r['collection_executed'] is True and r['release_authority'] is False

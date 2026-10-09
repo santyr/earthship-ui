@@ -1335,3 +1335,34 @@ This command is an engineering entrypoint. It does not install or schedule
 itself, and its existence is not evidence of chronological accuracy or
 production thermal qualification. Verify exact-head hosted checks before
 installation, then verify a natural raw packet and offline source replay.
+
+
+`--batch` adds bounded diagnostic collection under the same resource preflight
+and shared lock. It samples the earliest archive completion per Denver calendar
+day using file metadata as a scheduling hint. Original publication clocks,
+model revisions, hardware phases and outcomes remain authoritative in source
+replay. Sampling does not assert exhaustive issue or revision coverage.
+
+Each batch attempts at most four mature targets and checks a sixty-second
+selection budget; an outer90s timeout bounds the process. At most100000archive
+entries and366capture dates are accepted. Pending hours do not issue backend
+requests. Invalid selected originals are counted as source errors, while other
+valid originals may proceed. A transport failure pauses further attempts for that origin in the current
+batch and records a thirty-minute scheduling cooldown. Fresh sampled origins
+are visited before retries, with recent capture dates first; expired retries
+are ordered by their retry deadline so old failures cannot monopolize the
+batch. The failed origin remains retryable. These mutable hints contain no
+outcome or qualification claim. Once a raw
+qualified or withheld packet is retained, a private attempt hint suppresses
+repeated scheduled reads; explicit one-target collection can retry withheld
+outcomes. Hints provide no score, support or release authority. Reports must
+select original per-target source packets and replay them, avoiding duplicate
+attempts for one issue/target.
+
+`openhab/systemd/user/forecast-temperature-score.service` is an uninstalled
+template. Render its source placeholder to a reviewed protected exact-head
+generation. The matching timer requests a small batch every ten minutes after
+the hour's five-minute maturity delay, without missed-run catch-up. The service
+uses the existing shared input slice and acquires the shared lock internally.
+Verify exact-head hosted checks and actual cgroup limits before enabling it.
+This schedule neither fits a model nor publishes or activates a thermal output.
