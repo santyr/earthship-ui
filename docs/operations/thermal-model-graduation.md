@@ -1120,3 +1120,79 @@ issues. The executable local import closure has 55 source files, all within the
 57-file declared runtime manifest (the legacy entrypoint and package identity
 are additionally retained). Systemd calendar/service/timer syntax checks passed.
 These checks make no claim about actual household qualification or publication.
+
+
+## Collect mature installed-domain outcome packets
+
+`openhab/scripts/thermal_installed_score.py` fills the read-only collection step
+between an actual publication/v3 capture and qualification replay. Its default
+invocation, `--config PRIVATE_SCORE_CONFIG`, checks owned private configuration
+and performs no household query or evidence write. Explicit `--collect` requires
+one resolved original `--origin` path and one `--horizon` from 1/6/12/24 hours.
+There is no assessment-clock, phase, baseline, model-selection or active override.
+
+The closed private schema is `earthship-installed-shade-score-config/v1`, with
+exact fields `schema`, `openhab_base`, `output_directory`, `token_file`,
+`native_db_config` and `native_policy`. Keep all three source files owned mode
+0600 in owned mode 0700 directories, and the output directory owned mode 0700.
+Reuse the approved Hex token file. No forecast-provider credential or journal
+DSN is needed by the score reader. Its native configuration must use the fixed
+local read-only temperature reader and declared v2 hardware-phase policy.
+
+Run one collection at a time with the same CPU20%, memory256MiB, zero cgroup
+swap, tasks24, nice15, idle-I/O, one-thread and hard90-second bounds as the small
+live publisher. The strict resource/headroom preflight is shared. For example,
+using an already installed compatible interpreter and private configuration:
+
+```sh
+systemd-run --user --scope --quiet \
+  -p CPUQuota=20% -p MemoryMax=256M -p MemorySwapMax=0 -p TasksMax=24 \
+  -p IOWeight=10 \
+  nice -n 15 ionice -c 3 env \
+  OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0 \
+  timeout --signal=TERM --kill-after=5s 90s \
+  python3 openhab/scripts/thermal_installed_score.py \
+  --config /absolute/private/score-config.json --collect \
+  --origin /absolute/private/original.installed-shade-origin-v3.json --horizon 24
+```
+
+The collector shares the publisher's owned nonblocking lock in the original
+source archive. `busy` defers without querying or competing with issuance.
+`pending` means the target has not matured by the existing five-minute margin.
+It rereads both exact original numeric/main JDBC receipts in their original
+millisecond windows, never substituting today's Item value. It selects seven
+qualified historical same-local-clock cycles with the original issue as the
+assessment cutoff before acquiring the outcome. Outcome and comparator receipts
+must have the original air hardware phase; v1 sources, late receipts, missing
+cycles, changed configuration or mismatching publication are withheld.
+
+A successful `scored` receipt identifies three owned immutable files. The main
+source-packet list is suitable for explicit qualification/v3. The separate
+numeric source-packet list retains the unchanged numeric origin and actual
+numeric receipt for the existing explicit calibration API. Keep those paths
+separate: the duplicate-window guard refuses counting a numeric/main pair twice.
+Uncalibrated observations retain absent intervals and remain diagnostics until
+a separately frozen calibrated candidate passes the release gates. The scalar
+score file is a reproducible cache; it grants no release or action authority.
+Qualification must still replay the original packet sources.
+
+The command handles one original horizon, with at most 24 paced source requests
+within an 85-second reader budget inside the 90-second process deadline. Source
+failures return `withheld`; accepted source files are never fabricated. Partial
+private retention on a disk error does not authorize release. This command is not
+an enabled scoring schedule: live scheduling, compatible private paths and actual
+natural receipt verification remain part of the deployment handoff after genuine
+native-v2 adoption. No real household scoring or production qualification is
+claimed by the synthetic collector tests.
+
+
+Collector validation: 15 mature-source/replay/maturity/immutability/serialization
+checks and 8 real-reader/CLI boundary checks passed in separate serial capped
+runs. The actual kernel resource preflight also passed without querying any
+household source. Follow-up read-only review found no material remaining issues.
+The shared-lock regression failed before serialization was added. An uncalibrated
+fixture initially carried the later aggregate runtime instead of the original
+base runtime; only its synthetic execution port was corrected. No runtime or
+source validator was weakened. Full exact-commit hosted CI is required for this
+collector change before integration.
