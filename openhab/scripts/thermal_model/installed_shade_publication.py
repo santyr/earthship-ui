@@ -86,6 +86,8 @@ RUNTIME_PATHS=frozenset({
 
 SCHEMA='earthship-installed-shade-publication/v1'
 RELEASE_SCHEMA='earthship-installed-shade-release/v1'
+CALIBRATED_RAW_SCHEMA='earthship-installed-shade-publication/v2'
+CALIBRATED_RAW_RELEASE_SCHEMA='earthship-installed-shade-release/v2'
 RAW_RUNTIME_PATHS=RUNTIME_PATHS|frozenset({
     'weather_temperature_sources.py','forecast_input_capture.py','forecast_temperature_origin.py',
     'thermal_model/installed_shade_raw_score_sources.py',
@@ -240,14 +242,16 @@ def build_installed_publication(original_path,prepared):
     except ERRORS:return unavailable_installed_publication(now)
 
 
-def validate_installed_publication(value):
-    if (not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=SCHEMA or type(value['version']) is not int or value['version']!=4 or
+def _validate_installed_publication(value, *, _version=1):
+    if type(_version) is not int or _version not in (1,2):
+        raise ValueError('explicit installed publication version required')
+    if (not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=(CALIBRATED_RAW_SCHEMA if _version==2 else SCHEMA) or type(value['version']) is not int or value['version']!=(5 if _version==2 else 4) or
             value['status'] not in ('unavailable','shadow','forecast_active') or len(_canonical(value))>=MAX_BYTES):
         raise ValueError('closed bounded installed publication required')
     issue,valid=map(_utc,(value['generatedAt'],value['validUntil']))
     if not issue<valid<=issue+MAX_PUBLICATION_AGE:raise ValueError('bounded publication freshness required')
     release=value['release'];confidence=value['confidence'];mode=value['status']
-    if (not isinstance(release,dict) or set(release)!=RELEASE_FIELDS or release['schema']!=RELEASE_SCHEMA or
+    if (not isinstance(release,dict) or set(release)!=RELEASE_FIELDS or release['schema']!=(CALIBRATED_RAW_RELEASE_SCHEMA if _version==2 else RELEASE_SCHEMA) or
             release['sensorEpochSemantics']!='declared_hardware_phase' or release['advisoryQualified'] is not False or release['automaticActuation'] is not False or
             type(release['forecastQualified']) is not bool or not isinstance(confidence,dict) or set(confidence)!={'grade','actionLabels'} or
             confidence['actionLabels']!='withheld' or confidence['grade']!={'unavailable':'unavailable','shadow':'low','forecast_active':'high'}[mode] or
@@ -276,7 +280,8 @@ def validate_installed_publication(value):
     _sha(model['codeRevision'])
     forecast=value['forecast']
     if (not isinstance(forecast,dict) or set(forecast)!=NUMERIC_FIELDS or forecast['schema'] not in
-            ('earthship-installed-shade-forecast/v1','earthship-installed-shade-forecast/v2') or forecast['status']!='shadow' or
+            (('earthship-installed-shade-forecast/v3',) if _version==2 else
+             ('earthship-installed-shade-forecast/v1','earthship-installed-shade-forecast/v2')) or forecast['status']!='shadow' or
             forecast['confidence']!='unqualified' or forecast['advice']!=[] or forecast['release_authorized'] is not False or forecast['automatic_actuation'] is not False or
             _utc(forecast['generated_at'])!=issue or forecast['artifact_sha256']!=release['artifactSha256'] or forecast['runtime_sha256']!=release['runtimeSha256']):
         raise ValueError('unaltered original numerical forecast required')
@@ -305,3 +310,13 @@ def validate_installed_publication(value):
                 raise ValueError('exact original calibrated interval required')
             _finite(band['upper_air_f']-band['lower_air_f'])
     return value
+
+
+
+def validate_installed_publication(value):
+    return _validate_installed_publication(value,_version=1)
+
+
+def validate_raw_installed_publication(value):
+    """Validate the raw-calibrated output shape; this grants no release authority."""
+    return _validate_installed_publication(value,_version=2)

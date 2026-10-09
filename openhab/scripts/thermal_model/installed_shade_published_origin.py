@@ -13,7 +13,7 @@ from pathlib import Path
 from .forcing_capture import _canonical,_private_directory
 from .graduation_policy import _utc,_sha
 from .installed_shade_artifact import _digest
-from .installed_shade_publication import validate_installed_publication,_read_origin
+from .installed_shade_publication import validate_installed_publication,validate_raw_installed_publication,_read_origin
 from .installed_shade_calibration import _persist,_read_json
 from .origin_capture import _object
 from . import installed_shade_origin as base
@@ -21,6 +21,8 @@ from . import installed_shade_calibrated_origin as calibrated
 
 SCHEMA='earthship-installed-shade-origin/v3'
 PAIR_SCHEMA='earthship-installed-shade-source-scored-pair/v3'
+RAW_SCHEMA='earthship-installed-shade-origin/v5'
+RAW_PAIR_SCHEMA='earthship-installed-shade-source-scored-pair/v5'
 NUMERIC_ITEM='Thermal_OriginalForecast_JSON'
 PUBLICATION_ITEM='Thermal_Model_JSON'
 FIELDS={'schema','recorded_at','numeric_capture','numeric_publication','publication','capture_sha256'}
@@ -41,28 +43,41 @@ def _receipt(value,item):
     return output,EPOCH+timedelta(milliseconds=value['time'])
 
 
-def _ports(numeric):
+def _check_version(version):
+    if type(version) is not int or version not in (3,5):
+        raise ValueError('explicit actual publication capture version required')
+
+
+def _ports(numeric, *, _version=3):
+    _check_version(_version)
+    if _version==5:
+        if numeric.get('schema')!=calibrated.RAW_SCHEMA:
+            raise ValueError('typed raw-calibrated numeric capture required')
+        return (calibrated.validate_raw_calibrated_capture,
+            lambda record:calibrated._prediction(record,_version=4),calibrated.score_raw_calibrated_capture)
     if numeric.get('schema')==base.SCHEMA:return base.validate_issued_capture,base._prediction,base.score_issued_capture
     if numeric.get('schema')==calibrated.SCHEMA:return calibrated.validate_calibrated_capture,calibrated._prediction,calibrated.score_calibrated_capture
     raise ValueError('typed unchanged original numeric capture required')
 
 
-def build_publication_capture(original_path,*,numeric_publication,publication):
-    original,_=_read_origin(original_path)
-    record=json.loads(_canonical(dict(schema=SCHEMA,recorded_at=_utc(_clock()).isoformat(),
+def _build_publication_capture(original_path,*,numeric_publication,publication,_version=3):
+    _check_version(_version)
+    original=calibrated.read_raw_calibrated_capture(original_path) if _version==5 else _read_origin(original_path)[0]
+    record=json.loads(_canonical(dict(schema=RAW_SCHEMA if _version==5 else SCHEMA,recorded_at=_utc(_clock()).isoformat(),
         numeric_capture=original,numeric_publication=numeric_publication,publication=publication)))
     record['capture_sha256']=_digest(record)
-    return validate_publication_capture(record)
+    return _validate_publication_capture(record,_version=_version)
 
 
-def validate_publication_capture(record):
-    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA or
+def _validate_publication_capture(record, *, _version=3):
+    _check_version(_version)
+    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=(RAW_SCHEMA if _version==5 else SCHEMA) or
             len(_canonical(record))>MAX_CAPTURE_BYTES or
             _digest({k:v for k,v in record.items() if k!='capture_sha256'})!=_sha(record['capture_sha256'])):
         raise ValueError('closed bounded actual publication capture required')
-    numeric=record['numeric_capture'];validate,predict,_=_ports(numeric);validate(numeric)
+    numeric=record['numeric_capture'];validate,predict,_=_ports(numeric,_version=_version);validate(numeric)
     original,numeric_at=_receipt(record['numeric_publication'],NUMERIC_ITEM)
-    output,published_at=_receipt(record['publication'],PUBLICATION_ITEM);validate_installed_publication(output)
+    output,published_at=_receipt(record['publication'],PUBLICATION_ITEM);(validate_raw_installed_publication if _version==5 else validate_installed_publication)(output)
     issue=_utc(numeric['issued_at']);recorded=_utc(record['recorded_at'])
     if (not issue<=numeric_at<=_utc(numeric['published_at'])<=published_at<=recorded or
             not published_at<_utc(output['validUntil']) or output['status']=='unavailable' or
@@ -86,33 +101,74 @@ def validate_publication_capture(record):
     return record
 
 
-def write_publication_capture(directory,record):
-    record=deepcopy(record);validate_publication_capture(record);root=_private_directory(Path(directory))
-    numeric=record['numeric_capture'];writer=calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture
+def _write_publication_capture(directory,record, *, _version=3):
+    record=deepcopy(record);_validate_publication_capture(record,_version=_version);root=_private_directory(Path(directory))
+    numeric=record['numeric_capture'];writer=calibrated.write_raw_calibrated_capture if _version==5 else (calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture)
     writer(root,numeric)
-    return _persist(root,record,record['capture_sha256'],'.installed-shade-origin-v3.json')
+    return _persist(root,record,record['capture_sha256'],'.installed-shade-origin-v5.json' if _version==5 else '.installed-shade-origin-v3.json')
 
 
-def read_publication_capture(path):
-    path=Path(path);_private_directory(path.parent);record=_read_json(path);validate_publication_capture(record)
-    if path.name!=record['capture_sha256']+'.installed-shade-origin-v3.json':raise ValueError('actual publication capture address differs')
+def _read_publication_capture(path, *, _version=3):
+    path=Path(path);_private_directory(path.parent);record=_read_json(path);_validate_publication_capture(record,_version=_version)
+    if path.name!=record['capture_sha256']+('.installed-shade-origin-v5.json' if _version==5 else '.installed-shade-origin-v3.json'):raise ValueError('actual publication capture address differs')
     return record
 
 
-def score_publication_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at):
-    validate_publication_capture(record)
+def _score_publication_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at,_version=3):
+    _validate_publication_capture(record,_version=_version)
     if _canonical(publication)!=_canonical(record['publication']):raise ValueError('actual main receipt differs from original capture')
-    output,published=_receipt(publication,PUBLICATION_ITEM);numeric=record['numeric_capture'];_,_,score=_ports(numeric)
+    output,published=_receipt(publication,PUBLICATION_ITEM);numeric=record['numeric_capture'];_,_,score=_ports(numeric,_version=_version)
     issue=_utc(numeric['issued_at']);now=_utc(assessed_at)
     if type(horizon_hours) is not int or horizon_hours not in (1,6,12,24,48):raise ValueError('actual supported publication scoring horizon required')
     if not published<issue+timedelta(hours=horizon_hours)<=now-timedelta(minutes=5) or _utc(record['recorded_at'])>now:
         raise ValueError('actual main publication/later outcome is not mature')
     receipt=record['numeric_publication']
-    # Project the actual numeric receipt onto the unchanged v1/v2 API. Neither
+    # Project the actual numeric receipt onto its explicit numeric API. Neither
     # its timestamp nor payload is reconstructed from the main publication.
     result=score(numeric,publication={key:receipt[key] for key in ('time','state')},horizon_hours=horizon_hours,
         outcome=outcome,recent_cycle_grid=recent_cycle_grid,assessed_at=now)
-    result.update(schema=PAIR_SCHEMA,original_capture_sha256=record['capture_sha256'],
+    result.update(schema=RAW_PAIR_SCHEMA if _version==5 else PAIR_SCHEMA,original_capture_sha256=record['capture_sha256'],
         numeric_capture_sha256=numeric['capture_sha256'],publication_sha256=_digest(publication),
         numeric_publication_sha256=_digest(receipt),publication_mode=output['status'])
     return result
+
+
+
+def build_publication_capture(original_path,**values):
+    return _build_publication_capture(original_path,**values,_version=3)
+
+
+def build_raw_publication_capture(original_path,**values):
+    return _build_publication_capture(original_path,**values,_version=5)
+
+
+def validate_publication_capture(record):
+    return _validate_publication_capture(record,_version=3)
+
+
+def validate_raw_publication_capture(record):
+    return _validate_publication_capture(record,_version=5)
+
+
+def write_publication_capture(directory,record):
+    return _write_publication_capture(directory,record,_version=3)
+
+
+def write_raw_publication_capture(directory,record):
+    return _write_publication_capture(directory,record,_version=5)
+
+
+def read_publication_capture(path):
+    return _read_publication_capture(path,_version=3)
+
+
+def read_raw_publication_capture(path):
+    return _read_publication_capture(path,_version=5)
+
+
+def score_publication_capture(record,**values):
+    return _score_publication_capture(record,**values,_version=3)
+
+
+def score_raw_publication_capture(record,**values):
+    return _score_publication_capture(record,**values,_version=5)

@@ -286,3 +286,19 @@ insufficient calibrated bands. Storage and scoring use explicit raw-calibrated
 APIs; older issuance readers refuse these schemas. Numerical captures remain
 shadow observations with no release or actuation authority. Production
 publication and release qualification still need the matching stronger profile.
+
+
+Raw-calibrated receipt capture uses origin/v5 around the unchanged numeric
+origin/v4 and both persisted Item receipts. Its main output shape is
+publication/v2 (version 5), release/v2, and forecast/v3. The explicit raw
+publication-capture APIs validate original numeric equality, native expiry at
+main delivery, chronology, and immutable typed storage. Their scored pairs use
+v5. The older publication and capture readers refuse these versions.
+
+`collect_raw_published_score` requires whole native query archives and emits
+score-sources/v3. `read_calibrated_raw_score_sources` replays those original
+queries before accepting outcome or recent-cycle receipts; it refuses rehashed
+cached temperature changes and missing query files. Older score-sources/v2
+readers refuse v3. Derived scalar results still confer no release authority.
+These APIs do not yet provide the stronger qualification/publisher/queue/UI
+integration or authorize any production cutover.

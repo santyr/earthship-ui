@@ -14,7 +14,8 @@ from pathlib import Path
 from .forcing_capture import _canonical,_private_directory
 from .graduation_policy import _utc
 from .installed_shade_artifact import _digest
-from .installed_shade_published_origin import read_publication_capture,score_publication_capture
+from .installed_shade_published_origin import (read_publication_capture,score_publication_capture,
+    read_raw_publication_capture,score_raw_publication_capture)
 from .installed_shade_calibration import _persist
 from .recent_cycles import compare_v2
 from . import installed_shade_origin as base
@@ -27,10 +28,11 @@ HORIZONS=(1,6,12,24)
 def _clock():return datetime.now(timezone.utc)
 
 
-def collect_published_score(*,origin_path,horizon_hours,output_directory,backend):
+def _locked_published_score(*,origin_path,horizon_hours,output_directory,backend,_version=3):
     """Serialize a mature score with the existing publisher in its source archive."""
     fd=None
     try:
+        if type(_version) is not int or _version not in (3,5):raise ValueError('explicit collection profile required')
         path=Path(origin_path)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original publication path required')
         archive=_private_directory(path.parent)
@@ -40,19 +42,20 @@ def collect_published_score(*,origin_path,horizon_hours,output_directory,backend
             raise ValueError('owned private serial publication lock required')
         try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:return dict(status='busy',release_authorized=False)
-        return _collect_published_score(origin_path=path,horizon_hours=horizon_hours,output_directory=output_directory,backend=backend)
+        return _collect_published_score(origin_path=path,horizon_hours=horizon_hours,output_directory=output_directory,backend=backend,_version=_version)
     except ERRORS:return dict(status='withheld',release_authorized=False)
     finally:
         if fd is not None:os.close(fd)
 
 
-def _collect_published_score(*,origin_path,horizon_hours,output_directory,backend):
+def _collect_published_score(*,origin_path,horizon_hours,output_directory,backend,_version=3):
     """Collect one mature horizon within the caller's bounded serial scope."""
     try:
+        if type(_version) is not int or _version not in (3,5):raise ValueError('explicit collection profile required')
         root=_private_directory(Path(output_directory));path=Path(origin_path)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original publication path required')
         if type(horizon_hours) is not int or horizon_hours not in HORIZONS:raise ValueError('supported mature collection horizon required')
-        record=read_publication_capture(path);numeric=record['numeric_capture']
+        record=(read_raw_publication_capture if _version==5 else read_publication_capture)(path);numeric=record['numeric_capture']
         issue=_utc(numeric['issued_at']);target=issue+timedelta(hours=horizon_hours);now=_utc(_clock())
         if target>now-timedelta(minutes=5):return dict(status='pending',release_authorized=False)
         if _utc(record['recorded_at'])>now:raise ValueError('future publication capture refused')
@@ -86,27 +89,39 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
             outcome=dict(target_at=target,receipt=rows[0][1]),recent_cycle_grid=[[at,value] for at,value in sorted(grid.items())])))
         backend.verify_unchanged()
         assessed_at=_utc(_clock())
-        score=score_publication_capture(record,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
+        score=(score_raw_publication_capture if _version==5 else score_publication_capture)(record,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
         raw_sources=None
+        if _version==5 and not hasattr(backend,'native_source_paths'):
+            raise ValueError('original raw query archive acquisition required')
         if hasattr(backend,'native_source_paths'):
             from .installed_shade_raw_score_sources import build_native_score_binding
             binding=build_native_score_binding(packet,source_paths=list(backend.native_source_paths),issue_at=issue,
                 sensor_epoch=phase,assessed_at=assessed_at)
-            raw_sources=dict(schema='earthship-installed-shade-score-sources/v2',score_sources=packet,
+            raw_sources=dict(schema='earthship-installed-shade-score-sources/v3' if _version==5 else 'earthship-installed-shade-score-sources/v2',score_sources=packet,
                 native_binding=binding,release_authority=False)
         # A self-contained capture3 can outlive a separate numeric file. Retain
         # the unchanged numeric source first for the explicit calibration API.
-        writer=calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture
+        writer=calibrated.write_raw_calibrated_capture if _version==5 else (calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture)
         numeric_path=writer(root,numeric)
         raw=deepcopy(packet);raw['origin_path']=str(numeric_path)
         raw['publication']={k:v for k,v in record['numeric_publication'].items() if k!='item'}
         packet_path=_persist(root,[packet],_digest([packet]),'.installed-shade-score-sources-v1.json')
         numeric_packet_path=_persist(root,[raw],_digest([raw]),'.installed-shade-numeric-score-sources-v1.json')
-        score_path=_persist(root,score,_digest(score),'.installed-shade-score-result-v1.json')
+        score_path=_persist(root,score,_digest(score),'.installed-shade-score-result-v2.json' if _version==5 else '.installed-shade-score-result-v1.json')
         result=dict(status='scored',packet_path=str(packet_path),numeric_packet_path=str(numeric_packet_path),
             score_path=str(score_path),release_authorized=False)
         if raw_sources is not None:
-            raw_path=_persist(root,raw_sources,_digest(raw_sources),'.installed-shade-score-sources-v2.json')
+            raw_path=_persist(root,raw_sources,_digest(raw_sources),'.installed-shade-score-sources-v3.json' if _version==5 else '.installed-shade-score-sources-v2.json')
             result['raw_packet_path']=str(raw_path)
         return result
     except ERRORS:return dict(status='withheld',release_authorized=False)
+
+
+
+def collect_published_score(**values):
+    return _locked_published_score(**values,_version=3)
+
+
+def collect_raw_published_score(**values):
+    """Collect the explicit candidate-v3 profile with original raw query archives."""
+    return _locked_published_score(**values,_version=5)

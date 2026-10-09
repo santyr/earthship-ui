@@ -72,25 +72,38 @@ def replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,ass
     return expected
 
 
-def read_raw_score_sources(path,*,assessed_at,check_budget=None):
+def _read_raw_score_sources(path,*,assessed_at,check_budget=None,_version=2):
     """Recompute a collected score only while its original raw sources exist."""
+    if type(_version) is not int or _version not in (2,3):
+        raise ValueError('explicit raw score archive version required')
     from .forcing_capture import _private_directory
     from .installed_shade_calibration import _read_json
-    from .installed_shade_published_origin import read_publication_capture,score_publication_capture
+    from .installed_shade_published_origin import (read_publication_capture,score_publication_capture,
+        read_raw_publication_capture,score_raw_publication_capture)
     path=Path(path)
     if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original raw score packet required')
     _private_directory(path.parent);record=_read_json(path)
     if (not isinstance(record,dict) or set(record)!={'schema','score_sources','native_binding','release_authority'} or
-            record['schema']!='earthship-installed-shade-score-sources/v2' or record['release_authority'] is not False or
-            path.name!=_digest(record)+'.installed-shade-score-sources-v2.json'):
+            record['schema']!=('earthship-installed-shade-score-sources/v3' if _version==3 else 'earthship-installed-shade-score-sources/v2') or record['release_authority'] is not False or
+            path.name!=_digest(record)+('.installed-shade-score-sources-v3.json' if _version==3 else '.installed-shade-score-sources-v2.json')):
         raise ValueError('closed digest-bound raw score sources required')
     packet=record['score_sources']
     if not isinstance(packet,dict) or set(packet)!=SCORE_FIELDS:raise ValueError('closed original score inputs required')
     if check_budget is not None:check_budget()
-    original=read_publication_capture(Path(packet['origin_path']));numeric=original['numeric_capture']
+    original=(read_raw_publication_capture if _version==3 else read_publication_capture)(Path(packet['origin_path']));numeric=original['numeric_capture']
     binding=replay_native_score_binding(record['native_binding'],packet,issue_at=numeric['issued_at'],
         sensor_epoch=numeric['source_epochs']['air'],assessed_at=assessed_at,check_budget=check_budget)
     if check_budget is not None:check_budget()
-    score=score_publication_capture(original,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
+    score=(score_raw_publication_capture if _version==3 else score_publication_capture)(original,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
     if check_budget is not None:check_budget()
     return dict(score_packet=packet,score=score,native_binding_sha256=_digest(binding),raw_score_sources_sha256=_digest(record))
+
+
+
+def read_raw_score_sources(path,*,assessed_at,check_budget=None):
+    return _read_raw_score_sources(path,assessed_at=assessed_at,check_budget=check_budget,_version=2)
+
+
+def read_calibrated_raw_score_sources(path,*,assessed_at,check_budget=None):
+    """Replay raw queries bound to candidate-v3 numeric and actual main receipts."""
+    return _read_raw_score_sources(path,assessed_at=assessed_at,check_budget=check_budget,_version=3)
