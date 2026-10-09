@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 import importlib
 import importlib.util
 import json
+import shutil
+import sys
 from pathlib import Path
 import pytest
 import forecast_intel as fi
@@ -38,6 +40,13 @@ def setup(tmp_path,monkeypatch):
         source=Path(fi.__file__).parent/name
         (runtime/name).write_bytes(source.read_bytes());(runtime/name).chmod(0o600)
     monkeypatch.setattr(m,'RUNTIME_ROOT',runtime)
+    # Match the established origin-binding fixture: hosted toolcache Python
+    # may be writable. Tests use its exact bytes in an owned protected file;
+    # production continues hashing and checking the actual executing binary.
+    interpreter=tmp_path/'qualified-python'
+    shutil.copyfile(Path(sys.executable).resolve(),interpreter)
+    interpreter.chmod(0o700)
+    monkeypatch.setattr(sys,'executable',str(interpreter))
     policy={'version':2,'streams':{'outdoor':{'model':'Fineoffset-WH65B','sensor_id':206,
         'minimum_f':-40.,'maximum_f':140.,'validity_seconds':300,
         'sensor_epoch':'11111111-1111-4111-8111-111111111111'}}}
@@ -187,4 +196,14 @@ def test_main_safe_put_false_does_not_complete_a_failed_detail_origin(setup,monk
         origin_observer=m.TemperatureOriginObserver(root,policy))
     assert failures==['Forecast_10Day_JSON']
     assert result[2]['days'][1]['hours'][0]['tempF']==64.
+    assert not list(root.glob('*.temperature-origin-v1.json'))
+
+
+def test_writable_interpreter_refuses_capture_without_weakening_publication(setup):
+    m,root,_,policy=setup;snapshot,model,adjustment,_=inputs();sent=[]
+    Path(sys.executable).chmod(0o775)
+    fi.build_json_items(snapshot=snapshot,pv_per_day=[],now=datetime(2026,10,9,6,40,tzinfo=fi.MOUNTAIN),
+        put_state=lambda item,state:sent.append((item,state)),temperature_adjustment=adjustment,
+        hourly_model=model,origin_observer=m.TemperatureOriginObserver(root,policy))
+    assert len(sent)==3
     assert not list(root.glob('*.temperature-origin-v1.json'))
