@@ -31,3 +31,27 @@ remotely in CI. No production writer, service or model was changed.
 Immutable policy registration and the combined source/fit/statistical release
 assessment remain subsequent work. Legacy v2 captures are not upgraded by this
 scorer; only the explicit new original-input contract is accepted.
+
+## Retained raw native query packets
+
+`weather_temperature_sources` provides `fetch_temperature_source`,
+`write_temperature_source`, `read_temperature_source` and
+`replay_temperature_source`. A versioned
+`earthship-native-temperature-query-sources/v1` packet retains the explicit
+stream/policy/hardware phase, original target and assessment clocks, bounded
+query window and unchanged timestamped raw JDBC snapshots, including NULL
+barriers and the original carry row. Receipt selection is recomputed by the
+existing native-v2 reader. Selected receipt summaries are not accepted as packet
+inputs. No credential, error scalar or release authorization is stored.
+
+The fetch validates the request before connecting, then uses one bounded
+read-only repeatable-read transaction. Archive files are immutable, canonical,
+digest-addressed, owned private files in a private directory. Packet bounds are
+289 targets over at most one elapsed day, 10000 original rows and 8 MiB.
+
+This primitive is not yet connected to the scheduled candidate score collector.
+Its next integration must retain and reference packets for every origin/outcome
+and comparator query, replay the packet selections before scoring, and keep
+incomplete attempts explicit. Existing selected-receipt score archives cannot
+be retroactively described as retaining raw snapshots. Legacy v4 diagnostic
+origins remain outside the candidate graduation contract.
