@@ -20,6 +20,8 @@ from .policy_registration import read_calibrated_installed_shade_registered_poli
 
 SCHEMA='earthship-installed-shade-qualification-report/v1'
 CALIBRATED_SCHEMA='earthship-installed-shade-qualification-report/v2'
+PUBLISHED_SCHEMA='earthship-installed-shade-qualification-report/v3'
+REPORT_SCHEMAS={1:SCHEMA,2:CALIBRATED_SCHEMA,3:PUBLISHED_SCHEMA}
 FORECAST_GATES=BASE_GATES|{'calibrated_intervals'}
 FIELDS={'schema','assessed_at','candidate_schema','candidate','candidate_bundle','policy',
     'registration_sha256','runtime','gates','scored_pairs','support','original_pair_bindings',
@@ -48,7 +50,7 @@ def _score_packets(packets,*,assessed_at,candidate=None,version=1):
     if not isinstance(packets,list) or not 1<=len(packets)<=10000:
         raise ValueError('bounded complete original score packets required')
     reader,scorer=read_issued_capture,score_issued_capture
-    if version==2:
+    if version in (2,3):
         from .installed_shade_calibrated_origin import read_calibrated_capture,score_calibrated_capture
         reader,scorer=read_calibrated_capture,score_calibrated_capture
     elif version!=1:raise ValueError('explicit installed-domain pair contract required')
@@ -57,6 +59,14 @@ def _score_packets(packets,*,assessed_at,candidate=None,version=1):
         if not isinstance(packet,dict) or set(packet)!=SOURCE_FIELDS or not isinstance(packet['origin_path'],str):
             raise ValueError('closed original source packet required')
         path=packet['origin_path']
+        if version==3:
+            name=Path(path).name
+            if name.endswith('.installed-shade-origin-v3.json'):
+                from .installed_shade_published_origin import read_publication_capture,score_publication_capture
+                reader,scorer=read_publication_capture,score_publication_capture
+            elif name.endswith('.installed-shade-origin-v2.json'):
+                reader,scorer=read_calibrated_capture,score_calibrated_capture
+            else:raise ValueError('explicit original numeric2 or published3 source packet required')
         if path not in records:
             if len(records)>=256:raise ValueError('original capture count exceeds bound')
             records[path]=reader(Path(path));bytes_used+=len(_canonical(records[path]))
@@ -81,11 +91,15 @@ def qualify_calibrated_installed_shade_candidate(**values):
     return _qualify_installed_shade_candidate(**values,version=2)
 
 
+def qualify_published_installed_shade_candidate(**values):
+    return _qualify_installed_shade_candidate(**values,version=3)
+
+
 def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtime_bundle_path,original_pairs,now,version):
     now=_utc(now);gates={name:False for name in sorted(FORECAST_GATES)};errors={}
     registration=None;policy=None;bundle=None;runtime=None;pairs=None;statistics=None;deadline=None
-    registration_reader=read_calibrated_installed_shade_registered_policy if version==2 else read_installed_shade_registered_policy
-    candidate_reader=read_calibrated_candidate if version==2 else read_candidate_bundle
+    registration_reader=read_calibrated_installed_shade_registered_policy if version in (2,3) else read_installed_shade_registered_policy
+    candidate_reader=read_calibrated_candidate if version in (2,3) else read_candidate_bundle
     def attempt(name,operation):
         try:return operation()
         except (OSError,ValueError,TypeError,KeyError,AttributeError,OverflowError):
@@ -101,7 +115,7 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
                 _utc(artifact['trained_through'])!=_utc(expected['trained_through']) or
                 _utc(artifact['created_at'])!=_utc(expected['created_at']) or
                 artifact['sensor_epochs']!=expected['sensor_epochs'] or
-                len((artifact['base_candidate'] if version==2 else artifact)['dynamics']['coefficients'])!=expected['active_parameter_count']):
+                len((artifact['base_candidate'] if version in (2,3) else artifact)['dynamics']['coefficients'])!=expected['active_parameter_count']):
                 raise ValueError('frozen supported-domain candidate differs')
             return loaded
         bundle=attempt('frozen_candidate',candidate)
@@ -129,7 +143,7 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
                 statistics=attempt('predictive_skill',lambda:assess_predictive_skill(policy,pairs['rows'],now=now))
                 gates['predictive_skill']=bool(statistics and statistics['statistical_forecast_gates_passed'] and deadline is not None and now<deadline)
     forecast,stage=_stage(gates)
-    body=dict(schema=CALIBRATED_SCHEMA if version==2 else SCHEMA,candidate_schema=CALIBRATED_CANDIDATE_SCHEMA if version==2 else CANDIDATE_SCHEMA,assessed_at=now.isoformat(),
+    body=dict(schema=REPORT_SCHEMAS[version],candidate_schema=CALIBRATED_CANDIDATE_SCHEMA if version in (2,3) else CANDIDATE_SCHEMA,assessed_at=now.isoformat(),
         candidate=deepcopy(policy['candidate']) if policy else None,candidate_bundle=bundle,policy=deepcopy(policy),
         registration_sha256=registration['registration_sha256'] if registration else None,runtime=runtime,
         gates=gates,scored_pairs=pairs['rows'] if pairs else [],support=pairs['support'] if pairs else {},
@@ -148,9 +162,13 @@ def validate_calibrated_installed_shade_qualification_report(record):
     return _validate_installed_shade_qualification_report(record,version=2)
 
 
+def validate_published_installed_shade_qualification_report(record):
+    return _validate_installed_shade_qualification_report(record,version=3)
+
+
 def _validate_installed_shade_qualification_report(record,*,version):
-    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=(CALIBRATED_SCHEMA if version==2 else SCHEMA) or
-            record['candidate_schema']!=(CALIBRATED_CANDIDATE_SCHEMA if version==2 else CANDIDATE_SCHEMA) or
+    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=REPORT_SCHEMAS[version] or
+            record['candidate_schema']!=(CALIBRATED_CANDIDATE_SCHEMA if version in (2,3) else CANDIDATE_SCHEMA) or
             _digest({k:v for k,v in record.items() if k!='report_sha256'})!=record['report_sha256']):
         raise ValueError('closed supported-domain qualification report required')
     gates=record['gates']
@@ -194,6 +212,10 @@ def render_calibrated_installed_shade_qualification_report(record):
     return _render_installed_shade_qualification_report(record,version=2)
 
 
+def render_published_installed_shade_qualification_report(record):
+    return _render_installed_shade_qualification_report(record,version=3)
+
+
 def _render_installed_shade_qualification_report(record,*,version):
     _validate_installed_shade_qualification_report(record,version=version)
     lines=['# Installed-shade thermal qualification', '',
@@ -212,7 +234,7 @@ def _render_installed_shade_qualification_report(record,*,version):
     if record['source_errors']:
         lines.extend(['', 'Missing or incompatible evidence:'])
         lines.extend('- '+name+': '+reason for name,reason in sorted(record['source_errors'].items()))
-    if version==2:
+    if version in (2,3):
         import json
         policy=record['policy'] or {};bundle=record['candidate_bundle'] or {}
         artifact=bundle.get('artifact') or {};fit=bundle.get('fit_evidence') or {}
@@ -239,6 +261,10 @@ def write_installed_shade_qualification_report(directory,record):
 
 def write_calibrated_installed_shade_qualification_report(directory,record):
     return _write_installed_shade_qualification_report(directory,record,version=2)
+
+
+def write_published_installed_shade_qualification_report(directory,record):
+    return _write_installed_shade_qualification_report(directory,record,version=3)
 
 
 def _write_installed_shade_qualification_report(directory,record,*,version):

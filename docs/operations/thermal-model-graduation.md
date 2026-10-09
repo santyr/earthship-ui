@@ -957,10 +957,9 @@ operator change; the November no-vent rule remains unchanged.
 
 This milestone implements publication construction, validation, and display.
 It does not install a new Item, publish a household forecast, or activate a model.
-The next implementation must retain a separate actual persisted receipt for the
-unchanged numeric forecast and bind the main publication's actual persisted
-receipt in a new capture/scoring contract. HTTP acceptance alone is insufficient.
-That live entry point, native-input adoption, a genuinely qualified frozen
+The separate actual persisted numeric and main-publication receipt contract is
+implemented below. HTTP acceptance alone is insufficient. The live entry point,
+native-input adoption, a genuinely qualified frozen
 candidate, and sufficient untouched/prospective independent outcomes remain
 required before cutover. Backup/recovery work and PR3 remain deferred.
 
@@ -972,3 +971,69 @@ Vitest/DOM and repository suites run in hosted CI; the local Vitest startup hit
 the 90-second guard without reporting test results, so it supplies no pass claim.
 All local workloads remain serial with CPU 20 percent, memory at most 256 MiB,
 zero swap allowance, and bounded execution time.
+
+
+## Score the actual installed-domain main publication
+
+`thermal_model/installed_shade_published_origin.py` defines
+`earthship-installed-shade-origin/v3` and
+`earthship-installed-shade-source-scored-pair/v3`. The observation retains the
+unchanged original numeric capture/v1 or v2 plus two actual persisted receipts.
+Each receipt contains exactly `item`, `time` (integer Unix milliseconds), and
+`state` (the actual persisted JSON string). The numeric Item is
+`Thermal_OriginalForecast_JSON`; the main/UI Item is `Thermal_Model_JSON`.
+Swapping those identities, replacing a receipt, changing the bound numeric
+forecast, or rehashing a changed interval does not create valid source evidence.
+
+The main receipt must follow the original numeric receipt/capture, precede its
+publication deadline, and precede the scoring target. The observation records
+its actual local collection clock. Original native-input expiry is replayed at
+the actual main receipt time. Scoring then verifies the exact stored main receipt
+and a later mature native outcome. Persistence and the seven qualified recent
+cycles still use the original issue-time information. Numeric and main receipt
+hashes remain separate; historical publication mode is recorded without granting
+current release authority or action-response qualification.
+
+Private immutable writes retain the original numeric file at its original
+address before the v3 observation. The v3 observation also contains the original
+numeric capture, so later scoring does not substitute an unrelated file if a
+separate copy is missing. Both old capture readers reject v3. Uncalibrated v1
+numeric forecasts remain shadow observations with no invented uncertainty.
+
+Qualification report/v3 adds explicit numeric2-or-publication3 source dispatch.
+A single frozen candidate/runtime/hardware phase remains required. Duplicate
+issue/target/horizon windows are refused even when one comes from the numeric
+Item and one from the main Item. Independent-day/window selection, 35-day support,
+regime requirements, untouched/prospective intervals, baseline wins, measured
+fit, conditioning, block stability, calibration and current monitoring are
+unchanged. Existing qualification report/v1 and v2 APIs keep their semantics.
+
+To recompute the new contract, use the existing bounded qualification command
+with `--contract-version 3`, the original registration/candidate/runtime/pair
+paths, and an owned private output directory. It uses the actual assessment
+clock and emits matching private immutable v3 JSON and Markdown reports. Missing
+sources produce unavailable output. Current publication preparation selects this
+fresh replay for calibrated candidates; a cached report or past active mode is
+never an activation input.
+
+This is capture/scoring infrastructure, not proof that a household model has
+qualified. The live collector/publication entry point and actual Item installation
+remain to be implemented and qualified. Genuine native-input adoption and enough
+independent calibration, untouched and prospective outcomes still precede
+production cutover. Advice and automatic actuation remain disabled.
+
+Hosted verification of preceding publication commit `b0e1bee`: full UI tests,
+UI build and completion checks passed; CI and ML failed only the two helper-drift
+tests because the runner's tool-cache interpreter did not satisfy the production
+ownership/permissions policy. The tests now use an owned copy of actual executable
+bytes that they never execute. Production interpreter/source trust checks are
+unchanged; these test fixtures do not establish trust in a hosted interpreter.
+
+
+Final local verification of this milestone: 21 new capture/scoring/CLI cases,
+27 publication/routing cases, and 20 existing qualification compatibility cases
+passed in separate serial workloads within the unchanged 90-second deadline and
+256-MiB memory cap. Scoped read-only reviews found no material defects. Fixture
+clocks, runtime ports and positive qualification math are explicitly synthetic;
+none establish household release eligibility. New-commit full hosted CI remains
+required before integration.

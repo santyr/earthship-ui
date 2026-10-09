@@ -15,8 +15,8 @@ from .graduation_policy import _utc,_sha,_finite
 from .installed_shade_artifact import _digest,read_candidate_bundle
 from .installed_shade_calibrated_artifact import read_calibrated_candidate
 from .installed_shade_qualification import (qualify_installed_shade_candidate,
-    qualify_calibrated_installed_shade_candidate,validate_installed_shade_qualification_report,
-    validate_calibrated_installed_shade_qualification_report)
+    qualify_published_installed_shade_candidate,validate_installed_shade_qualification_report,
+    validate_calibrated_installed_shade_qualification_report,validate_published_installed_shade_qualification_report)
 from .origin_capture import build_runtime_binding
 from .policy_registration import _read_private
 from .runtime_bundle import read_runtime_bundle
@@ -24,6 +24,7 @@ from .temperature_history import _sensor_bindings
 
 # Pin the publication and its local Python dependency closure, including gates.
 RUNTIME_PATHS=frozenset({
+    'thermal_model/installed_shade_published_origin.py',
     'weather_temperature_evidence.py',
     'weather_temperature_reader.py',
     'thermal_model/__init__.py',
@@ -97,6 +98,8 @@ class PreparedInstalledQualification:
 
 
 def _validator(report):
+    if report.get('schema')=='earthship-installed-shade-qualification-report/v3':
+        return validate_published_installed_shade_qualification_report(report)
     if report.get('schema')=='earthship-installed-shade-qualification-report/v2':
         return validate_calibrated_installed_shade_qualification_report(report)
     return validate_installed_shade_qualification_report(report)
@@ -124,7 +127,7 @@ def prepare_installed_qualification(reference_path):
         reader=read_calibrated_candidate if calibrated else read_candidate_bundle
         loaded=reader(values['candidate_path'],expected_runtime_revision=revision,assessed_at=at)
         pairs=[] if values['original_pairs_path'] is None else _read_private(values['original_pairs_path'])
-        qualify=qualify_calibrated_installed_shade_candidate if calibrated else qualify_installed_shade_candidate
+        qualify=qualify_published_installed_shade_candidate if calibrated else qualify_installed_shade_candidate
         report=qualify(registration_path=values['registration_path'],candidate_path=values['candidate_path'],
             runtime_bundle_path=values['runtime_bundle_path'],original_pairs=pairs,now=at)
         _validator(report)

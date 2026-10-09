@@ -127,7 +127,7 @@ def test_publication_factory_reads_original_references_and_does_not_accept_cache
     monkeypatch.setattr(m,'read_runtime_bundle',lambda _:dict(runtime=artifact['runtime'],revision_paths=['thermal_intel.py','thermal_model/installed_shade_publication.py']))
     monkeypatch.setattr(m,'build_runtime_binding',lambda *args:artifact['runtime'])
     monkeypatch.setattr(m,'read_calibrated_candidate',lambda *args,**kwargs:dict(artifact=artifact,calibration=dict(summary=dict(complete=True)),fit_evidence=dict(fit_gates_passed=True)))
-    monkeypatch.setattr(m,'qualify_calibrated_installed_shade_candidate',lambda **kwargs:report)
+    monkeypatch.setattr(m,'qualify_published_installed_shade_candidate',lambda **kwargs:report)
     result=m.prepare_installed_qualification(path)
     assert isinstance(result,m.PreparedInstalledQualification) and result.source_ready is True
     path.write_text(json.dumps(report))
@@ -142,7 +142,7 @@ def test_source_factory_refuses_current_code_that_differs_from_archived_runtime(
     monkeypatch.setattr(m,'read_runtime_bundle',lambda _:dict(runtime=artifact['runtime'],revision_paths=['thermal_intel.py','thermal_model/installed_shade_publication.py']))
     monkeypatch.setattr(m,'build_runtime_binding',lambda *args:{**artifact['runtime'],'code_revision':'8'*64},raising=False)
     monkeypatch.setattr(m,'read_calibrated_candidate',lambda *args,**kwargs:dict(artifact=artifact,calibration=dict(summary=dict(complete=True)),fit_evidence=dict(fit_gates_passed=True)))
-    monkeypatch.setattr(m,'qualify_calibrated_installed_shade_candidate',lambda **kwargs:report)
+    monkeypatch.setattr(m,'qualify_published_installed_shade_candidate',lambda **kwargs:report)
     assert m.prepare_installed_qualification(path).source_ready is False
 
 
@@ -156,7 +156,7 @@ def test_invalid_configured_registration_is_not_absent_policy_bootstrap(tmp_path
     monkeypatch.setattr(m,'read_runtime_bundle',lambda _:dict(runtime=artifact['runtime'],revision_paths=['thermal_intel.py','thermal_model/installed_shade_publication.py']))
     monkeypatch.setattr(m,'build_runtime_binding',lambda *args:artifact['runtime'],raising=False)
     monkeypatch.setattr(m,'read_calibrated_candidate',lambda *args,**kwargs:dict(artifact=artifact,calibration=dict(summary=dict(complete=True)),fit_evidence=dict(fit_gates_passed=True)))
-    monkeypatch.setattr(m,'qualify_calibrated_installed_shade_candidate',lambda **kwargs:report)
+    monkeypatch.setattr(m,'qualify_published_installed_shade_candidate',lambda **kwargs:report)
     assert m.prepare_installed_qualification(path).source_ready is False
 
 
@@ -187,7 +187,7 @@ def test_literal_absent_registration_allows_prepared_bootstrap(tmp_path,release_
     monkeypatch.setattr(m,'_clock',lambda:now)
     monkeypatch.setattr(m,'read_runtime_bundle',lambda _:dict(runtime=artifact['runtime'],revision_paths=['thermal_intel.py','thermal_model/installed_shade_publication.py']))
     monkeypatch.setattr(m,'read_calibrated_candidate',lambda *args,**kwargs:dict(artifact=artifact,calibration=dict(summary=dict(complete=True)),fit_evidence=dict(fit_gates_passed=True)))
-    monkeypatch.setattr(m,'qualify_calibrated_installed_shade_candidate',lambda **kwargs:report)
+    monkeypatch.setattr(m,'qualify_published_installed_shade_candidate',lambda **kwargs:report)
     result=m.prepare_installed_qualification(path)
     assert result.source_ready is True and result.registration_absent is True
     changed=deepcopy(artifact['runtime']);del changed['source_manifest']['thermal_model/graduation_statistics.py']
@@ -219,12 +219,12 @@ def test_runtime_closure_requires_native_proof_helpers(tmp_path,release_case,mon
     monkeypatch.setattr(m,'read_runtime_bundle',lambda _:dict(runtime=changed,revision_paths=['thermal_intel.py','thermal_model/installed_shade_publication.py']))
     monkeypatch.setattr(m,'build_runtime_binding',lambda *args:changed)
     monkeypatch.setattr(m,'read_calibrated_candidate',lambda *args,**kwargs:dict(artifact=artifact,calibration=dict(summary=dict(complete=True)),fit_evidence=dict(fit_gates_passed=True)))
-    monkeypatch.setattr(m,'qualify_calibrated_installed_shade_candidate',lambda **kwargs:report)
+    monkeypatch.setattr(m,'qualify_published_installed_shade_candidate',lambda **kwargs:report)
     assert m.prepare_installed_qualification(path).source_ready is False
 
 
 @pytest.mark.parametrize('helper',['weather_temperature_evidence.py','weather_temperature_reader.py'])
-def test_actual_runtime_binding_detects_native_helper_byte_drift(tmp_path,helper):
+def test_actual_runtime_binding_detects_native_helper_byte_drift(tmp_path,helper,monkeypatch):
     from pathlib import Path
     from thermal_model.origin_capture import build_runtime_binding
     # Hash copied code only; never import/execute that tree or access live data.
@@ -232,6 +232,13 @@ def test_actual_runtime_binding_detects_native_helper_byte_drift(tmp_path,helper
     for name in paths:
         target=tmp_path/name;target.parent.mkdir(parents=True,exist_ok=True)
         target.write_bytes((root/name).read_bytes());target.chmod(0o600)
+    # Hosted Python tool-cache ownership/modes need not satisfy the production
+    # trust policy. Retain actual bytes in an owned non-writable test fixture;
+    # never execute it or relax _source_bytes. This proves helper byte binding,
+    # not trust in the host/runner's executing interpreter.
+    import sys
+    interpreter=tmp_path/'python-copy';interpreter.write_bytes(Path(sys.executable).resolve().read_bytes());interpreter.chmod(0o600)
+    monkeypatch.setattr(sys,'executable',str(interpreter))
     before=build_runtime_binding(tmp_path,paths)
     changed=tmp_path/helper;changed.write_bytes(changed.read_bytes()+b'\n# synthetic drift, never executed\n')
     after=build_runtime_binding(tmp_path,paths)

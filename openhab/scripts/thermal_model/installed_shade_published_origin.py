@@ -1,0 +1,118 @@
+"""Actual main-publication observations, separate from original numeric captures.
+
+Both persisted receipts are retained unchanged with their Item identities. A
+historical publication's mode/report digest describes what was issued; it never
+authorizes a current release. Numeric/source replay supplies the score, and the
+new binding refers to the actual main publication, not a fabricated old output.
+"""
+from copy import deepcopy
+from datetime import datetime,timedelta,timezone
+import json
+from pathlib import Path
+
+from .forcing_capture import _canonical,_private_directory
+from .graduation_policy import _utc,_sha
+from .installed_shade_artifact import _digest
+from .installed_shade_publication import validate_installed_publication,_read_origin
+from .installed_shade_calibration import _persist,_read_json
+from .origin_capture import _object
+from . import installed_shade_origin as base
+from . import installed_shade_calibrated_origin as calibrated
+
+SCHEMA='earthship-installed-shade-origin/v3'
+PAIR_SCHEMA='earthship-installed-shade-source-scored-pair/v3'
+NUMERIC_ITEM='Thermal_OriginalForecast_JSON'
+PUBLICATION_ITEM='Thermal_Model_JSON'
+FIELDS={'schema','recorded_at','numeric_capture','numeric_publication','publication','capture_sha256'}
+MAX_CAPTURE_BYTES=2000000
+EPOCH=datetime(1970,1,1,tzinfo=timezone.utc)
+
+
+def _clock():return datetime.now(timezone.utc)
+
+
+def _receipt(value,item):
+    if (not isinstance(value,dict) or set(value)!={'item','time','state'} or value['item']!=item or
+            type(value['time']) is not int or not isinstance(value['state'],str) or
+            len(value['state'].encode())>=16384):raise ValueError('bounded actual persisted Item receipt required')
+    def reject(_):raise ValueError('nonfinite persisted publication')
+    try:output=json.loads(value['state'],object_pairs_hook=_object,parse_constant=reject)
+    except (UnicodeDecodeError,json.JSONDecodeError):raise ValueError('actual persisted publication JSON invalid') from None
+    return output,EPOCH+timedelta(milliseconds=value['time'])
+
+
+def _ports(numeric):
+    if numeric.get('schema')==base.SCHEMA:return base.validate_issued_capture,base._prediction,base.score_issued_capture
+    if numeric.get('schema')==calibrated.SCHEMA:return calibrated.validate_calibrated_capture,calibrated._prediction,calibrated.score_calibrated_capture
+    raise ValueError('typed unchanged original numeric capture required')
+
+
+def build_publication_capture(original_path,*,numeric_publication,publication):
+    original,_=_read_origin(original_path)
+    record=json.loads(_canonical(dict(schema=SCHEMA,recorded_at=_utc(_clock()).isoformat(),
+        numeric_capture=original,numeric_publication=numeric_publication,publication=publication)))
+    record['capture_sha256']=_digest(record)
+    return validate_publication_capture(record)
+
+
+def validate_publication_capture(record):
+    if (not isinstance(record,dict) or set(record)!=FIELDS or record['schema']!=SCHEMA or
+            len(_canonical(record))>MAX_CAPTURE_BYTES or
+            _digest({k:v for k,v in record.items() if k!='capture_sha256'})!=_sha(record['capture_sha256'])):
+        raise ValueError('closed bounded actual publication capture required')
+    numeric=record['numeric_capture'];validate,predict,_=_ports(numeric);validate(numeric)
+    original,numeric_at=_receipt(record['numeric_publication'],NUMERIC_ITEM)
+    output,published_at=_receipt(record['publication'],PUBLICATION_ITEM);validate_installed_publication(output)
+    issue=_utc(numeric['issued_at']);recorded=_utc(record['recorded_at'])
+    if (not issue<=numeric_at<=_utc(numeric['published_at'])<=published_at<=recorded or
+            not published_at<_utc(output['validUntil']) or output['status']=='unavailable' or
+            not _utc(output['release']['qualifiedAt'])<=published_at):
+        raise ValueError('actual publication chronology/freshness unavailable')
+    if (_canonical(original)!=_canonical(numeric['output']) or _canonical(output['forecast'])!=_canonical(original) or
+            _utc(output['generatedAt'])!=issue or output['release']['originCaptureSha256']!=numeric['capture_sha256'] or
+            output['release']['artifactSha256']!=numeric['candidate']['artifact_sha256'] or
+            output['release']['runtimeSha256']!=_digest(numeric['runtime']) or
+            output['release']['sensorEpochs']!=numeric['source_epochs'] or
+            _utc(output['model']['createdAt'])!=_utc(numeric['candidate']['created_at']) or
+            _utc(output['model']['trainedThrough'])!=_utc(numeric['candidate']['trained_through']) or
+            output['model']['codeRevision']!=numeric['candidate']['code_revision']):
+        raise ValueError('actual publication changed the bound numeric origin')
+    # Replay the same original evidence at the main receipt's real clock. This
+    # view is not a new original forecast/capture or substituted persisted state.
+    current=deepcopy(numeric);current['published_at']=published_at.isoformat()
+    replay,phases=predict(current)
+    if _canonical(replay)!=_canonical(original) or phases!=numeric['source_epochs']:
+        raise ValueError('main delivery failed original native expiry/source replay')
+    return record
+
+
+def write_publication_capture(directory,record):
+    record=deepcopy(record);validate_publication_capture(record);root=_private_directory(Path(directory))
+    numeric=record['numeric_capture'];writer=calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture
+    writer(root,numeric)
+    return _persist(root,record,record['capture_sha256'],'.installed-shade-origin-v3.json')
+
+
+def read_publication_capture(path):
+    path=Path(path);_private_directory(path.parent);record=_read_json(path);validate_publication_capture(record)
+    if path.name!=record['capture_sha256']+'.installed-shade-origin-v3.json':raise ValueError('actual publication capture address differs')
+    return record
+
+
+def score_publication_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at):
+    validate_publication_capture(record)
+    if _canonical(publication)!=_canonical(record['publication']):raise ValueError('actual main receipt differs from original capture')
+    output,published=_receipt(publication,PUBLICATION_ITEM);numeric=record['numeric_capture'];_,_,score=_ports(numeric)
+    issue=_utc(numeric['issued_at']);now=_utc(assessed_at)
+    if type(horizon_hours) is not int or horizon_hours not in (1,6,12,24,48):raise ValueError('actual supported publication scoring horizon required')
+    if not published<issue+timedelta(hours=horizon_hours)<=now-timedelta(minutes=5) or _utc(record['recorded_at'])>now:
+        raise ValueError('actual main publication/later outcome is not mature')
+    receipt=record['numeric_publication']
+    # Project the actual numeric receipt onto the unchanged v1/v2 API. Neither
+    # its timestamp nor payload is reconstructed from the main publication.
+    result=score(numeric,publication={key:receipt[key] for key in ('time','state')},horizon_hours=horizon_hours,
+        outcome=outcome,recent_cycle_grid=recent_cycle_grid,assessed_at=now)
+    result.update(schema=PAIR_SCHEMA,original_capture_sha256=record['capture_sha256'],
+        numeric_capture_sha256=numeric['capture_sha256'],publication_sha256=_digest(publication),
+        numeric_publication_sha256=_digest(receipt),publication_mode=output['status'])
+    return result
