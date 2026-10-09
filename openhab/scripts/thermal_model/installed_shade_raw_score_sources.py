@@ -17,7 +17,7 @@ FIELDS={'schema','score_sources_sha256','issue_at','sensor_epoch','assessed_at',
 SCORE_FIELDS={'origin_path','publication','horizon_hours','outcome','recent_cycle_grid'}
 
 
-def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch,assessed_at):
+def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch,assessed_at,check_budget=None):
     if not isinstance(score_packet,dict) or set(score_packet)!=SCORE_FIELDS:raise ValueError('closed original score inputs required')
     if (not isinstance(source_paths,list) or not 1<=len(source_paths)<=24 or
             any(not isinstance(p,str) or not 1<=len(p)<=1024 for p in source_paths) or len(set(source_paths))!=len(source_paths)):
@@ -37,6 +37,7 @@ def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch
     expected[target]=outcome['receipt'];selected={};bytes_used=0
     stream,model,sensor=STREAMS['air'];approved=dict(model=model,sensor_id=sensor,**POLICY)
     for name in source_paths:
+        if check_budget is not None:check_budget()
         path=Path(name)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original query source required')
         packet=read_temperature_source(path.parent,path);bytes_used+=len(_canonical(packet))
@@ -61,17 +62,17 @@ def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch
         sensor_epoch=sensor_epoch,assessed_at=now.isoformat(),query_sources=list(source_paths),release_authority=False)
 
 
-def replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,assessed_at):
+def replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,assessed_at,check_budget=None):
     if (not isinstance(binding,dict) or set(binding)!=FIELDS or binding['schema']!=SCHEMA or
             binding['release_authority'] is not False or _utc(binding['assessed_at'])>_utc(assessed_at)):
         raise ValueError('closed elapsed raw native score binding required')
     expected=build_native_score_binding(score_packet,source_paths=binding['query_sources'],issue_at=issue_at,
-        sensor_epoch=sensor_epoch,assessed_at=binding['assessed_at'])
+        sensor_epoch=sensor_epoch,assessed_at=binding['assessed_at'],check_budget=check_budget)
     if _canonical(expected)!=_canonical(binding):raise ValueError('original raw native binding differs')
     return expected
 
 
-def read_raw_score_sources(path,*,assessed_at):
+def read_raw_score_sources(path,*,assessed_at,check_budget=None):
     """Recompute a collected score only while its original raw sources exist."""
     from .forcing_capture import _private_directory
     from .installed_shade_calibration import _read_json
@@ -85,8 +86,11 @@ def read_raw_score_sources(path,*,assessed_at):
         raise ValueError('closed digest-bound raw score sources required')
     packet=record['score_sources']
     if not isinstance(packet,dict) or set(packet)!=SCORE_FIELDS:raise ValueError('closed original score inputs required')
+    if check_budget is not None:check_budget()
     original=read_publication_capture(Path(packet['origin_path']));numeric=original['numeric_capture']
     binding=replay_native_score_binding(record['native_binding'],packet,issue_at=numeric['issued_at'],
-        sensor_epoch=numeric['source_epochs']['air'],assessed_at=assessed_at)
+        sensor_epoch=numeric['source_epochs']['air'],assessed_at=assessed_at,check_budget=check_budget)
+    if check_budget is not None:check_budget()
     score=score_publication_capture(original,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
+    if check_budget is not None:check_budget()
     return dict(score_packet=packet,score=score,native_binding_sha256=_digest(binding),raw_score_sources_sha256=_digest(record))

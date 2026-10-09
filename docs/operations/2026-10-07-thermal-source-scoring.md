@@ -69,10 +69,32 @@ score cache remains. At most 24 query paths and 64 MB of cumulative raw packet
 bytes may be consumed per binding. The source binding grants no release
 permission. Existing v1 diagnostic source packets remain distinct.
 
-The next release integration must use an explicitly versioned qualification
-contract that requires these raw-source packets for release-quality score
-pairs. Current qualification-report contracts do not yet require this binding.
-No active-model gate may be described as fully raw-source qualified yet.
+The new `earthship-installed-shade-qualification-report/v4` contract requires
+these raw-source packets. `qualify_raw_published_installed_shade_candidate`
+accepts original pairs only as `{"raw_score_sources_path": "/absolute/private/path"}`
+references. It independently reads and replays the v2 archives, compares frozen
+candidate/runtime/phase identity, rejects duplicate windows, and includes both
+native binding and outer source-packet digests in the report. Its mandatory
+`raw_native_score_sources` gate stays closed without those original pairs.
+Numerical thresholds, independent support and uncertainty gates are unchanged.
+Before numerical replay, v4 checks the complete reference inventory: at most
+256 distinct original captures / 64 MB of capture bytes, 64 MB of score-header
+bytes, and 8192 distinct raw query files / 128 MiB of raw packet bytes. Raw
+packets are streamed rather than retained together in memory. A shared
+60-second monotonic budget covers preflight, raw-query replay and scoring;
+exceeding a limit refuses qualification. The enclosing process must still run
+under the approved CPU, memory, swap, process and wall-time limits. Large
+corpora need bounded query acquisition/reuse within these limits; supplied
+cached scores cannot replace the raw replay to make a release pass.
+Earlier report readers reject v4 instead of interpreting its new semantics.
+
+Use `validate_raw_published_installed_shade_qualification_report`,
+`render_raw_published_installed_shade_qualification_report` and
+`write_raw_published_installed_shade_qualification_report` for this version.
+Reports remain derived caches and cannot substitute for fresh source replay.
+The publisher/reference/current-monitor integration still consumes earlier
+contracts and must be migrated explicitly before this qualification path can
+authorize production. No active-model gate is fully integrated yet.
 Existing selected-receipt score archives cannot
 be retroactively described as retaining raw snapshots. Legacy v4 diagnostic
 origins remain outside the candidate graduation contract.
