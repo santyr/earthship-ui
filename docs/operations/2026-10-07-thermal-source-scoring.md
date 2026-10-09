@@ -335,3 +335,23 @@ v3 registration and candidate paths and a private index of v3 raw release
 references. Without those sources it emits an honest unavailable report. Exit
 zero means report creation, not graduation. V5 adds no fitting or activation;
 the production publisher, UI, and scoring queue still need matching integration.
+
+
+`prepare_raw_installed_qualification` accepts only release-inputs/v3 and freshly
+loads candidate/v3 and qualification/v5 under the complete executing runtime
+closure. It requires the source-verified fit and complete calibrated bands.
+Its separate prepared type is consumed by `build_raw_installed_publication`,
+which produces publication/v2 (version 5) and release/v2 around the unchanged
+forecast/v3. Active output requires every v5 gate, current qualification expiry,
+the same candidate/runtime/hardware phase, fresh native inputs, and qualified
+interval widths. Invalid source preparation yields a versioned unavailable
+output. Cached reports, older references/prepared types, and manual active flags
+cannot replace these checks.
+
+Explicitly absent registration permits shadow collection only. Seal the
+threshold policy independently before its untouched/prospective intervals, and
+retain that immutable seal while collecting the frozen candidate's as-issued
+shadow receipts. Reference the seal and original release sources for the later
+qualification/cutover. A configured invalid registration never falls back to
+bootstrap. Action advice and actuation remain withheld. The live worker, UI,
+and scoring queue still require matching integration before deployment.

@@ -13,11 +13,12 @@ from pathlib import Path
 from .forcing_capture import _canonical
 from .graduation_policy import _utc,_sha,_finite
 from .installed_shade_artifact import _digest,read_candidate_bundle
-from .installed_shade_calibrated_artifact import read_calibrated_candidate
+from .installed_shade_calibrated_artifact import read_calibrated_candidate,read_raw_calibrated_candidate
 from .installed_shade_qualification import (qualify_installed_shade_candidate,
     qualify_published_installed_shade_candidate,validate_installed_shade_qualification_report,
     validate_calibrated_installed_shade_qualification_report,validate_published_installed_shade_qualification_report,
-    qualify_raw_published_installed_shade_candidate,validate_raw_published_installed_shade_qualification_report)
+    qualify_raw_published_installed_shade_candidate,validate_raw_published_installed_shade_qualification_report,
+    qualify_complete_raw_installed_shade_candidate,validate_complete_raw_installed_shade_qualification_report)
 from .origin_capture import build_runtime_binding
 from .policy_registration import _read_private
 from .runtime_bundle import read_runtime_bundle
@@ -94,6 +95,7 @@ RAW_RUNTIME_PATHS=RUNTIME_PATHS|frozenset({
     'thermal_model/installed_shade_score_inputs.py','thermal_model/installed_shade_score_collection.py',
 })
 RAW_REFERENCE_SCHEMA='earthship-installed-shade-release-inputs/v2'
+COMPLETE_RAW_REFERENCE_SCHEMA='earthship-installed-shade-release-inputs/v3'
 REFERENCE_SCHEMA='earthship-installed-shade-release-inputs/v1'
 REFERENCE_FIELDS={'schema','registration_path','candidate_path','runtime_bundle_path','original_pairs_path'}
 FIELDS={'schema','version','status','generatedAt','validUntil','model','forecast','confidence','release','reasons'}
@@ -120,7 +122,24 @@ class PreparedInstalledQualification:
     require_raw_sources:bool=False
 
 
-def _validator(report):
+@dataclass(frozen=True)
+class PreparedRawInstalledQualification:
+    report_json:bytes|None
+    candidate_json:bytes|None
+    source_ready:bool
+    registration_absent:bool=False
+    runtime_paths:tuple[str,...]=()
+    require_raw_sources:bool=True
+
+
+def _check_profile(version):
+    if type(version) is not int or version not in (1,2):
+        raise ValueError('explicit installed publication profile required')
+
+
+def _validator(report, *, _version=1):
+    _check_profile(_version)
+    if _version==2:return validate_complete_raw_installed_shade_qualification_report(report)
     if report.get('schema')=='earthship-installed-shade-qualification-report/v4':
         return validate_raw_published_installed_shade_qualification_report(report)
     if report.get('schema')=='earthship-installed-shade-qualification-report/v3':
@@ -130,13 +149,15 @@ def _validator(report):
     return validate_installed_shade_qualification_report(report)
 
 
-def prepare_installed_qualification(reference_path):
+def _prepare_installed_qualification(reference_path, *, _version=1):
     """Recompute gates before acquiring short-lived current origin inputs."""
+    _check_profile(_version)
+    prepared_type=PreparedRawInstalledQualification if _version==2 else PreparedInstalledQualification
     try:
         at=_utc(_clock());path=Path(reference_path);refs=_read_private(path)
-        if not isinstance(refs,dict) or set(refs)!=REFERENCE_FIELDS or refs['schema'] not in (REFERENCE_SCHEMA,RAW_REFERENCE_SCHEMA):
+        if not isinstance(refs,dict) or set(refs)!=REFERENCE_FIELDS or refs['schema'] not in ((COMPLETE_RAW_REFERENCE_SCHEMA,) if _version==2 else (REFERENCE_SCHEMA,RAW_REFERENCE_SCHEMA)):
             raise ValueError('closed original installed release references required')
-        raw_required=refs['schema']==RAW_REFERENCE_SCHEMA
+        raw_required=_version==2 or refs['schema']==RAW_REFERENCE_SCHEMA
         values={}
         for key in REFERENCE_FIELDS-{'schema'}:
             value=refs[key]
@@ -150,54 +171,65 @@ def prepare_installed_qualification(reference_path):
         paths=tuple(archived['revision_paths'])
         if _canonical(build_runtime_binding(Path(__file__).resolve().parents[1],paths))!=_canonical(archived['runtime']):
             raise ValueError('executing runtime differs from archived release runtime')
-        calibrated=values['candidate_path'].name.endswith('.installed-shade-candidate-v2.json')
-        reader=read_calibrated_candidate if calibrated else read_candidate_bundle
+        if _version==2 and not values['candidate_path'].name.endswith('.installed-shade-candidate-v3.json'):
+            raise ValueError('original raw calibrated candidate v3 required')
+        calibrated=_version==2 or values['candidate_path'].name.endswith('.installed-shade-candidate-v2.json')
+        reader=read_raw_calibrated_candidate if _version==2 else (read_calibrated_candidate if calibrated else read_candidate_bundle)
         loaded=reader(values['candidate_path'],expected_runtime_revision=revision,assessed_at=at)
         pairs=[] if values['original_pairs_path'] is None else _read_private(values['original_pairs_path'])
-        qualify=qualify_raw_published_installed_shade_candidate if raw_required else (qualify_published_installed_shade_candidate if calibrated else qualify_installed_shade_candidate)
+        qualify=qualify_complete_raw_installed_shade_candidate if _version==2 else (qualify_raw_published_installed_shade_candidate if raw_required else (qualify_published_installed_shade_candidate if calibrated else qualify_installed_shade_candidate))
         report=qualify(registration_path=values['registration_path'],candidate_path=values['candidate_path'],
             runtime_bundle_path=values['runtime_bundle_path'],original_pairs=pairs,now=at)
-        _validator(report)
-        if raw_required and report['schema']!='earthship-installed-shade-qualification-report/v4':
+        _validator(report,_version=_version)
+        if raw_required and report['schema']!=('earthship-installed-shade-qualification-report/v5' if _version==2 else 'earthship-installed-shade-qualification-report/v4'):
             raise ValueError('raw source qualification contract required')
         absent=values['registration_path'] is None
         if not absent and report['policy'] is None:
             raise ValueError('configured registration failed; bootstrap refused')
         ready=loaded['fit_evidence']['fit_gates_passed'] is True and (not calibrated or loaded['calibration']['summary']['complete'] is True)
-        return PreparedInstalledQualification(_canonical(report),_canonical(loaded['artifact']),ready,absent,paths,raw_required)
-    except ERRORS:return PreparedInstalledQualification(None,None,False)
+        return prepared_type(_canonical(report),_canonical(loaded['artifact']),ready,absent,paths,raw_required)
+    except ERRORS:return prepared_type(None,None,False)
 
 
-def unavailable_installed_publication(now):
+def _unavailable_installed_publication(now, *, _version=1):
+    _check_profile(_version)
     now=_utc(now)
-    value=dict(schema=SCHEMA,version=4,status='unavailable',generatedAt=now.isoformat(),
+    value=dict(schema=CALIBRATED_RAW_SCHEMA if _version==2 else SCHEMA,version=5 if _version==2 else 4,status='unavailable',generatedAt=now.isoformat(),
         validUntil=(now+MAX_PUBLICATION_AGE).isoformat(),model={},forecast=None,
         confidence=dict(grade='unavailable',actionLabels='withheld'),reasons=['Thermal forecast evidence unavailable'],
-        release=dict(schema=RELEASE_SCHEMA,qualifiedAt=None,expiresAt=None,artifactSha256=None,runtimeSha256=None,
+        release=dict(schema=CALIBRATED_RAW_RELEASE_SCHEMA if _version==2 else RELEASE_SCHEMA,qualifiedAt=None,expiresAt=None,artifactSha256=None,runtimeSha256=None,
             policySha256=None,reportSha256=None,originCaptureSha256=None,calibrationSha256=None,sensorEpochs={},
             sensorEpochSemantics='declared_hardware_phase',forecastQualified=False,advisoryQualified=False,automaticActuation=False))
-    return validate_installed_publication(value)
+    return _validate_installed_publication(value,_version=_version)
 
 
-def _read_origin(path):
+def _read_origin(path, *, _version=1):
+    _check_profile(_version)
     from .installed_shade_origin import read_issued_capture,_prediction
     from .installed_shade_calibrated_origin import read_calibrated_capture,_prediction as calibrated_prediction
     path=Path(path)
+    if _version==2:
+        from .installed_shade_calibrated_origin import read_raw_calibrated_capture
+        if not path.name.endswith('.installed-shade-origin-v4.json'):
+            raise ValueError('original raw-calibrated numeric capture v4 required')
+        return read_raw_calibrated_capture(path),lambda record:calibrated_prediction(record,_version=4)
     if path.name.endswith('.installed-shade-origin-v2.json'):return read_calibrated_capture(path),calibrated_prediction
     if path.name.endswith('.installed-shade-origin-v1.json'):return read_issued_capture(path),_prediction
     raise ValueError('typed original installed forecast required')
 
 
-def build_installed_publication(original_path,prepared):
+def _build_installed_publication(original_path,prepared, *, _version=1):
     """Bind fresh original inputs to an invocation's source-replayed decision."""
+    _check_profile(_version)
     now=_utc(_clock())
     try:
-        if not isinstance(prepared,PreparedInstalledQualification) or prepared.source_ready is not True:
+        if not isinstance(prepared,PreparedRawInstalledQualification if _version==2 else PreparedInstalledQualification) or prepared.source_ready is not True:
             raise ValueError('source-prepared qualification required')
-        report=json.loads(prepared.report_json);artifact=json.loads(prepared.candidate_json);_validator(report)
-        if type(prepared.require_raw_sources) is not bool or (prepared.require_raw_sources and report['schema']!='earthship-installed-shade-qualification-report/v4'):
+        report=json.loads(prepared.report_json);artifact=json.loads(prepared.candidate_json);_validator(report,_version=_version)
+        if (type(prepared.require_raw_sources) is not bool or (_version==2 and prepared.require_raw_sources is not True) or
+                (prepared.require_raw_sources and report['schema']!=('earthship-installed-shade-qualification-report/v5' if _version==2 else 'earthship-installed-shade-qualification-report/v4'))):
             raise ValueError('prepared raw-source profile lacks v4 qualification')
-        original,predict=_read_origin(original_path)
+        original,predict=_read_origin(original_path,_version=_version)
         if not prepared.runtime_paths or _canonical(build_runtime_binding(Path(__file__).resolve().parents[1],prepared.runtime_paths))!=_canonical(original['runtime']):
             raise ValueError('executing runtime changed before delivery')
         if _canonical(artifact)!=_canonical(original['candidate']):raise ValueError('current original candidate differs')
@@ -220,7 +252,7 @@ def build_installed_publication(original_path,prepared):
             forecast=all(report['gates'].values())
             if report['forecast_qualified'] is not forecast:raise ValueError('release pass differs from actual gates')
             if forecast:
-                if output['schema']!='earthship-installed-shade-forecast/v2':raise ValueError('uncalibrated forecast cannot activate')
+                if output['schema']!=('earthship-installed-shade-forecast/v3' if _version==2 else 'earthship-installed-shade-forecast/v2'):raise ValueError('uncalibrated forecast cannot activate')
                 expires=_utc(report['qualification_expires_at'])
                 if not assessed<=now<expires:raise ValueError('current qualification expired')
                 for band in output['prediction_intervals']:
@@ -229,17 +261,17 @@ def build_installed_publication(original_path,prepared):
                             policy['thresholds_by_regime'][hours][regime]['max_mean_interval_width_f'])):
                         raise ValueError('current calibrated regime/width is unqualified')
         valid=min(issue+MAX_PUBLICATION_AGE,expires) if expires is not None else issue+MAX_PUBLICATION_AGE
-        value=dict(schema=SCHEMA,version=4,status='forecast_active' if forecast else 'shadow',generatedAt=issue.isoformat(),
+        value=dict(schema=CALIBRATED_RAW_SCHEMA if _version==2 else SCHEMA,version=5 if _version==2 else 4,status='forecast_active' if forecast else 'shadow',generatedAt=issue.isoformat(),
             validUntil=valid.isoformat(),model=dict(createdAt=artifact['created_at'],trainedThrough=artifact['trained_through'],codeRevision=artifact['code_revision']),
             forecast=deepcopy(output),confidence=dict(grade='high' if forecast else 'low',actionLabels='withheld'),
             reasons=['Forecast qualified; action advice withheld'] if forecast else ['Predictive qualification incomplete; action advice withheld'],
-            release=dict(schema=RELEASE_SCHEMA,qualifiedAt=assessed.isoformat(),expiresAt=expires.isoformat() if expires else None,
+            release=dict(schema=CALIBRATED_RAW_RELEASE_SCHEMA if _version==2 else RELEASE_SCHEMA,qualifiedAt=assessed.isoformat(),expiresAt=expires.isoformat() if expires else None,
                 artifactSha256=artifact['artifact_sha256'],runtimeSha256=_digest(original['runtime']),
                 policySha256=policy['policy_sha256'] if policy else None,reportSha256=report['report_sha256'],originCaptureSha256=original['capture_sha256'],
                 calibrationSha256=artifact['calibration']['calibration_sha256'] if 'calibration' in artifact else None,
                 sensorEpochs=phases,sensorEpochSemantics='declared_hardware_phase',forecastQualified=forecast,advisoryQualified=False,automaticActuation=False))
-        return validate_installed_publication(value)
-    except ERRORS:return unavailable_installed_publication(now)
+        return _validate_installed_publication(value,_version=_version)
+    except ERRORS:return _unavailable_installed_publication(now,_version=_version)
 
 
 def _validate_installed_publication(value, *, _version=1):
@@ -320,3 +352,30 @@ def validate_installed_publication(value):
 def validate_raw_installed_publication(value):
     """Validate the raw-calibrated output shape; this grants no release authority."""
     return _validate_installed_publication(value,_version=2)
+
+
+
+def prepare_installed_qualification(reference_path):
+    return _prepare_installed_qualification(reference_path,_version=1)
+
+
+def prepare_raw_installed_qualification(reference_path):
+    """Freshly replay all raw evidence phases from closed release-inputs/v3."""
+    return _prepare_installed_qualification(reference_path,_version=2)
+
+
+def unavailable_installed_publication(now):
+    return _unavailable_installed_publication(now,_version=1)
+
+
+def unavailable_raw_installed_publication(now):
+    return _unavailable_installed_publication(now,_version=2)
+
+
+def build_installed_publication(original_path,prepared):
+    return _build_installed_publication(original_path,prepared,_version=1)
+
+
+def build_raw_installed_publication(original_path,prepared):
+    """Publish only the decision from the complete raw qualification profile."""
+    return _build_installed_publication(original_path,prepared,_version=2)
