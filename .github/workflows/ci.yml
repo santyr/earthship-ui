@@ -45,7 +45,9 @@ jobs:
         timeout-minutes: 3
         run: |
           docker version
-          timeout 120s docker pull postgres:16
+          # Google's public Docker Hub cache avoids shared-runner Hub limits.
+          timeout 120s docker pull mirror.gcr.io/library/postgres:16
+          docker tag mirror.gcr.io/library/postgres:16 postgres:16
       - name: Completion regression tests
         env:
           PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
