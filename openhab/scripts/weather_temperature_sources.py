@@ -71,9 +71,10 @@ def fetch_temperature_source(connection_factory,**request):
         stream=packet['stream'],policy=TemperaturePolicy(**packet['policy']),sensor_epoch=packet['sensor_epoch'])
 
 
-def write_temperature_source(directory,packet):
+def write_temperature_source(directory,packet,*,before_publish=None):
     replay_temperature_source(packet);raw=_canonical(packet)
-    return _write(_directory(Path(directory)),sha256(raw).hexdigest()+'.native-temperature-sources-v1.json',raw)
+    return _write(_directory(Path(directory)),sha256(raw).hexdigest()+'.native-temperature-sources-v1.json',raw,
+        **({} if before_publish is None else dict(before_publish=before_publish)))
 
 
 def read_temperature_source(directory,path):

@@ -263,3 +263,93 @@ def test_source_origin_refuses_source_loss_during_temporary_write(source_origin_
     with pytest.raises((ValueError,OSError)):origin.write_source_calibrated_capture(tmp_path,record)
     assert not list(tmp_path.glob('*.installed-shade-origin-v6.json'))
     assert not list(tmp_path.glob('.calibration-*'))
+
+
+def source_base_args(source_origin_case):
+    from thermal_model import installed_shade_origin as base
+    prepared,args=source_origin_case;artifact=deepcopy(json.loads(prepared.artifact_json)['base_candidate'])
+    artifact['runtime_revision']=_digest(args['runtime'])
+    artifact['artifact_sha256']=_digest({k:v for k,v in artifact.items() if k!='artifact_sha256'})
+    return base.PreparedCandidate(_canonical(artifact),args['issued_at']),args
+
+
+def test_source_base_has_explicit_query_bound_shadow_contract(source_origin_case,tmp_path):
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(base,'build_source_issued_capture'),'missing query-bound base issuance'
+    prepared,args=source_base_args(source_origin_case);record=base.build_source_issued_capture(prepared,**args)
+    assert record['schema']=='earthship-installed-shade-origin/v8'
+    assert record['output']['schema']=='earthship-installed-shade-forecast/v5'
+    assert record['output']['native_origin_binding_sha256']==_digest(record['native_origin_binding'])
+    assert record['output']['status']=='shadow' and record['output']['prediction_intervals'] is None
+    assert record['output']['release_authorized'] is False and record['output']['automatic_actuation'] is False
+    path=base.write_source_issued_capture(tmp_path,record)
+    assert path.name==record['capture_sha256']+'.installed-shade-origin-v8.json'
+    assert base.read_source_issued_capture(path)==record
+    with pytest.raises(ValueError):base.validate_issued_capture(record)
+    with pytest.raises(ValueError):base.read_issued_capture(path)
+
+
+@pytest.mark.parametrize('hours',[1,6,12,24])
+def test_source_base_scores_actual_query_bound_numeric_receipt(source_origin_case,hours):
+    from pathlib import Path
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(base,'build_source_issued_capture'),'missing query-bound base issuance'
+    prepared,args=source_base_args(source_origin_case);record=base.build_source_issued_capture(prepared,**args)
+    issue=args['issued_at'];target=issue+timedelta(hours=hours)
+    values=dict(publication=dict(time=int(args['published_at'].timestamp()*1000),state=_canonical(record['output']).decode()),horizon_hours=hours,
+        outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),recent_cycle_grid=synthetic_cycle_grid(issue,hours),assessed_at=target+timedelta(minutes=10))
+    score=base.score_source_issued_capture(record,**values)
+    assert score['schema']=='earthship-installed-shade-source-scored-pair/v8'
+    assert score['original_capture_sha256']==record['capture_sha256'] and score['publication_sha256']==_digest(values['publication'])
+    assert score['native_origin_binding_sha256']==_digest(record['native_origin_binding'])
+    assert score['scored_pair']['interval_width_f'] is None and score['release_authorized'] is False
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):base.score_source_issued_capture(record,**values)
+
+
+@pytest.mark.parametrize('damage',['initial','grid','binding','closure'])
+def test_source_base_refuses_rehashed_source_or_observer_changes(source_origin_case,damage):
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(base,'build_source_issued_capture'),'missing query-bound base issuance'
+    prepared,args=source_base_args(source_origin_case);record=base.build_source_issued_capture(prepared,**args)
+    if damage=='initial':record['current']['mass']['value']+=1
+    elif damage=='grid':record['origin_temperatures']['roles']['air']['grid'][-1][1]['temperatureF']+=1
+    elif damage=='binding':record['native_origin_binding']['release_authority']=True
+    else:
+        record['runtime']['source_manifest'].pop('weather_temperature_sources.py')
+        record['candidate']['runtime_revision']=_digest(record['runtime'])
+        record['candidate']['artifact_sha256']=_digest({k:v for k,v in record['candidate'].items() if k!='artifact_sha256'})
+    record['capture_sha256']=_digest({k:v for k,v in record.items() if k!='capture_sha256'})
+    with pytest.raises(ValueError):base.validate_source_issued_capture(record)
+
+
+@pytest.mark.parametrize('operation',['validation','scoring'])
+def test_source_base_rechecks_retained_queries_after_numerical_work(source_origin_case,monkeypatch,operation):
+    from pathlib import Path
+    from thermal_model import installed_shade_origin as base
+    prepared,args=source_base_args(source_origin_case);record=base.build_source_issued_capture(prepared,**args)
+    original=base._source_core;calls=0
+    def changed(value):
+        nonlocal calls
+        result=original(value);calls+=1
+        if calls==(1 if operation=='validation' else 2):Path(args['native_source_paths']['mass']).unlink()
+        return result
+    monkeypatch.setattr(base,'_source_core',changed)
+    with pytest.raises((ValueError,OSError)):
+        if operation=='validation':base.validate_source_issued_capture(record)
+        else:
+            issue=args['issued_at'];target=issue+timedelta(hours=1)
+            base.score_source_issued_capture(record,publication=dict(time=int(args['published_at'].timestamp()*1000),state=_canonical(record['output']).decode()),horizon_hours=1,
+                outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),recent_cycle_grid=synthetic_cycle_grid(issue,1),assessed_at=target+timedelta(minutes=10))
+
+
+def test_source_base_refuses_source_loss_during_temporary_write(source_origin_case,tmp_path,monkeypatch):
+    from pathlib import Path
+    from thermal_model import installed_shade_origin as base,runtime_bundle
+    prepared,args=source_base_args(source_origin_case);record=base.build_source_issued_capture(prepared,**args)
+    original=runtime_bundle._write_private
+    def changed(path,raw):
+        original(path,raw);Path(args['native_source_paths']['outdoor']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    with pytest.raises((ValueError,OSError)):base.write_source_issued_capture(tmp_path,record)
+    assert not list(tmp_path.glob('*.installed-shade-origin-v8.json')) and not list(tmp_path.glob('.calibration-*'))

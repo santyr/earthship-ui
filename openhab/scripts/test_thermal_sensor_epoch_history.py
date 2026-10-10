@@ -129,3 +129,30 @@ def test_v2_manifest_rejects_legacy_or_rehashed_wrong_binding(tmp_path,monkeypat
         elif damage=='version':proof['version']=True
         else:proof['roles']['air']['extra']=1
         with pytest.raises(ValueError):history.validate_sensor_evidence_manifest(proof,start=AT,end=AT+timedelta(minutes=5))
+
+
+def test_native_source_collector_preserves_original_rows_and_invalid_barriers(tmp_path,monkeypatch):
+    from weather_temperature_sources import replay_temperature_source
+    assert hasattr(runtime,'collect_source_v2'),'missing original native query collector'
+    path,rows=sources(tmp_path,monkeypatch);rows.insert(1,(AT+timedelta(seconds=30),None))
+    connection=Connection(rows=rows)
+    request=dict(stream='indoor',targets=[(AT+timedelta(minutes=1)).isoformat(),(AT+timedelta(minutes=6)).isoformat()],
+        assessed_at=(AT+timedelta(minutes=6)).isoformat(),receipt_version=2,sensor_epoch=EPOCHS['air'])
+    packet=runtime.collect_source_v2(request,config_path='/fixture/db',policy_path=str(path),connection_factory=lambda _:connection)
+    assert connection.closed and connection.session['readonly'] is True
+    assert packet['native_rows'][0][1]==rows[0][1] and packet['native_rows'][1][1] is None
+    grid=replay_temperature_source(packet)
+    assert [receipt['temperatureF'] if receipt else None for _,receipt in grid]==[None,71.]
+    assert packet['release_authority'] is False
+
+
+@pytest.mark.parametrize('damage',['phase','version','future_target'])
+def test_native_source_collector_refuses_bad_request_before_connecting(tmp_path,monkeypatch,damage):
+    assert hasattr(runtime,'collect_source_v2'),'missing original native query collector'
+    path,_=sources(tmp_path,monkeypatch)
+    request=dict(stream='indoor',targets=[AT.isoformat()],assessed_at=AT.isoformat(),receipt_version=2,sensor_epoch=EPOCHS['air'])
+    if damage=='phase':request['sensor_epoch']=EPOCHS['mass']
+    elif damage=='version':request['receipt_version']=True
+    else:request['targets']=[(AT+timedelta(seconds=1)).isoformat()]
+    def forbidden(_):pytest.fail('invalid raw source request reached database')
+    with pytest.raises(ValueError):runtime.collect_source_v2(request,config_path='/fixture/db',policy_path=str(path),connection_factory=forbidden)

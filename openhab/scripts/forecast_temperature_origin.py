@@ -72,7 +72,8 @@ def _runtime_binding():
     return record
 
 
-def _write(root, name, raw):
+def _write(root, name, raw, *, before_publish=None):
+    if before_publish is not None and not callable(before_publish):raise ValueError('callable original retention guard required')
     root = _directory(root)
     target = root / name
     fd, temporary = tempfile.mkstemp(prefix='.temperature-origin-', dir=root)
@@ -80,6 +81,7 @@ def _write(root, name, raw):
         with os.fdopen(fd, 'wb') as handle:
             handle.write(raw); handle.flush(); os.fsync(handle.fileno())
         os.chmod(temporary, 0o600)
+        if before_publish is not None:before_publish()
         try:
             os.link(temporary, target, follow_symlinks=False)
         except FileExistsError:

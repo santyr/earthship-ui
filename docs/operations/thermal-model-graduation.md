@@ -1707,8 +1707,8 @@ The source binding is now connected to the explicit numeric origin/v6 described
 below. Main publication receipts, live acquisition and qualification reports
 still need the new source-bound profile. Existing origin/publication versions
 retain their prior meanings. The base shadow bootstrap and original calibration
-issue captures also need explicit query-bound versions before the full chain can
-claim raw source authority. Rebuild pinned runtimes after integration; passing
+still need routing to the explicit query-bound base capture described below
+before the full chain can claim raw source authority. Rebuild pinned runtimes after integration; passing
 these tests does not authorize deployment.
 
 
@@ -1725,3 +1725,32 @@ refuse acceptance, even when a capture is rehashed. Version2/version4 readers
 refuse origin/v6. This numeric contract remains shadow-only and grants no
 release or actuation authority. The live producer and main publication profile
 do not yet select it.
+
+
+`collect_source_v2` acquires the original bounded native query packet through the
+same strict policy/epoch checks and stable read-only transaction as the existing
+receipt reader. `SourceLiveBackend` retains a private content-addressed packet
+for each modeled role, independently verifies the original issue grid, and
+returns `native_source_paths` alongside the established weather/state/action
+context. It guards the consumer lock, budget and configuration around reads and
+immediately before atomic query-file retention. Defaults still use the existing
+receipt-only backend; no CLI or installed service selects this new backend yet.
+
+Base numeric origin/v8, forecast/v5 and scored-pair/v8 expose the query-bound
+shadow bootstrap APIs: `build_source_issued_capture`,
+`write_source_issued_capture`, `read_source_issued_capture` and
+`score_source_issued_capture`. They require the complete declared raw runtime
+closure, original query files, unchanged prepared base candidate and unchanged
+physical/weather/action/baseline checks. Internal version1 numerical views are
+not persisted or presented as original publications; returned identities bind
+the actual version8 capture and actual version5 numeric receipt. No calibrated
+interval, advice, activation or actuation authority is introduced. Validation
+and scoring recheck retained queries after numerical work; immutable capture
+retention rechecks them before rename. Original version1 readers refuse the new
+capture.
+
+Bootstrap main-publication receipts, queued original scoring, raw calibration,
+candidate/registration qualification and the operator/UI profile still need
+explicit source-bound routing. Neither the new backend nor these numeric APIs
+close that integration gap or prove sufficient independent release evidence.
+Rebuild pinned runtime archives after these source changes.

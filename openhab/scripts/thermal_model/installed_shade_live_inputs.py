@@ -135,6 +135,17 @@ class LiveBackend:
         except psycopg2.Error:raise ValueError('bounded original database source unavailable') from None
         try:self.budget.remaining();return connection
         except BaseException:connection.close();raise
+    def _read_temperature(self,stream,targets,assessed,*,source=False):
+        from thermal_temperature_runtime import collect_v2,collect_source_v2
+        from .temperature_history import STREAMS
+        from psycopg2.extensions import make_dsn
+        role=next(role for role,values in STREAMS.items() if values[0]==stream)
+        request=dict(stream=stream,targets=[at.isoformat() for at in targets],assessed_at=assessed.isoformat(),receipt_version=2,sensor_epoch=self.epochs[role])
+        collector=collect_source_v2 if source else collect_v2
+        return collector(request,config_path=self.settings['native_db_config'],policy_path=self.settings['native_policy'],
+            connection_factory=lambda config:self._connect(bounded_journal_dsn(make_dsn(**config))))
+    def _temperature_grid(self,stream,targets,assessed):
+        return self._read_temperature(stream,targets,assessed)
     def collect(self,*,issue,known_at):
         import psycopg2
         try:return self._collect(issue=issue,known_at=known_at)
@@ -142,24 +153,17 @@ class LiveBackend:
     def _collect(self,*,issue,known_at):
         from .forecast_history import fetch_pending_origin_forecast_with_receipts
         from .action_history import fetch_origin_actions
-        from thermal_temperature_runtime import collect_v2,shadow_temperatures_v2
-        from .temperature_history import STREAMS
+        from thermal_temperature_runtime import shadow_temperatures_v2
         from .dataset import latent_mass_from_series
-        from psycopg2.extensions import make_dsn
         known_at,issue=map(_utc,(known_at,issue))
         if not timedelta(0)<issue-known_at<=timedelta(seconds=60) or known_at>_clock():raise ValueError('bounded actual pre-issue collection clock required')
         forecast=fetch_pending_origin_forecast_with_receipts(lambda:self._connect(self.forecast_dsn),origin=issue,horizon_hours=24,available_by=known_at)
         if forecast is None:raise ValueError('original archived weather unavailable')
         saved=[]
-        def grid(stream,targets,assessed):
-            role=next(role for role,values in STREAMS.items() if values[0]==stream)
-            request=dict(stream=stream,targets=[at.isoformat() for at in targets],assessed_at=assessed.isoformat(),receipt_version=2,sensor_epoch=self.epochs[role])
-            return collect_v2(request,config_path=self.settings['native_db_config'],policy_path=self.settings['native_policy'],
-                connection_factory=lambda config:self._connect(bounded_journal_dsn(make_dsn(**config))))
-        selected=shadow_temperatures_v2(known_at,grid,sensor_epochs=self.epochs,origin_observer=saved.append)
+        selected=shadow_temperatures_v2(known_at,self._temperature_grid,sensor_epochs=self.epochs,origin_observer=saved.append)
         current={role:deepcopy(value['current']) for role,value in selected.items()}
         # Match the established causal initial-state observer. Retain the
-        # original raw grid and receipt clocks; only the derived mass value
+        # selected receipt grid and clocks; only the derived mass value
         # changes, and origin replay independently recomputes it.
         history=list(selected['mass']['history']);reading=current['mass']
         if not history or reading['at']>history[-1][0]:history.append((reading['at'],reading['value']))
@@ -174,6 +178,30 @@ class LiveBackend:
             origin_temperatures=saved[0],action_snapshot=snapshot)
     def put(self,item,state,*,preflight=None):return self.transport.put(item,state,preflight=preflight)
     def persisted(self,item,state,*,since):return self.transport.persisted(item,state,since=since,until=_clock())
+
+
+class SourceLiveBackend(LiveBackend):
+    """Explicit original-query acquisition; existing live profiles do not select it."""
+    def _temperature_grid(self,stream,targets,assessed):
+        from weather_temperature_sources import write_temperature_source,replay_temperature_source
+        from .temperature_history import STREAMS
+        self.verify_unchanged()
+        packet=self._read_temperature(stream,targets,assessed,source=True)
+        self.verify_unchanged()
+        path=write_temperature_source(Path(self.settings['evidence_directory']),packet,before_publish=self.verify_unchanged)
+        self.budget.remaining()
+        role=next(role for role,values in STREAMS.items() if values[0]==stream)
+        self._native_source_paths[role]=str(path)
+        return replay_temperature_source(packet)
+    def _collect(self,*,issue,known_at):
+        from .installed_shade_raw_score_sources import build_native_origin_binding
+        self._native_source_paths={}
+        result=super()._collect(issue=issue,known_at=known_at)
+        paths=deepcopy(self._native_source_paths)
+        build_native_origin_binding(result['origin_temperatures'],source_paths=paths,
+            issue_at=issue,check_budget=self.budget.remaining)
+        self.verify_unchanged()
+        return dict(result,native_source_paths=paths)
 
 
 WITHDRAW_SCHEMA='earthship-installed-shade-withdraw-config/v1'

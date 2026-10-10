@@ -188,3 +188,82 @@ def test_live_source_collection_keeps_preissue_knowledge_native_epoch_and_actual
     assert result['current']['mass']['validUntil']==datetime.fromisoformat(receipt['validUntil'])
     epochs,initial=_temperatures(proof,result['current'],issued_at=issue,published_at=issue,version=2)
     assert epochs==EPOCHS and initial['mass']==result['current']['mass']['value']
+
+
+def source_backend_case(tmp_path,monkeypatch,*,source=True,guard=lambda:None):
+    from test_thermal_sensor_epoch_history import sources,EPOCHS
+    from test_weather_temperature_history import Connection
+    from test_weather_temperature_reader import AT
+    from thermal_model import forecast_history,action_history
+    import hourly_temperature_runtime
+    m=module();policy,rows=sources(tmp_path,monkeypatch);tmp_path.chmod(0o700)
+    archive=tmp_path/'queries';archive.mkdir(mode=0o700)
+    rows.insert(1,(AT+timedelta(seconds=30),None));known=AT+timedelta(minutes=6)
+    backend=object.__new__(m.SourceLiveBackend if source else m.LiveBackend)
+    backend.settings=dict(native_db_config='/fixture/db',native_policy=str(policy),evidence_directory=str(archive))
+    backend.epochs=dict(EPOCHS);backend.budget=ReadBudget(30,guard=guard);backend.hashes={}
+    backend.journal_dsn=backend.forecast_dsn='fixture'
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _:dict(host='127.0.0.1',dbname='openhab',user='reader_fixture',password='fixture'))
+    connections=[]
+    def connect(_):
+        connection=Connection(rows=rows);connections.append(connection);return connection
+    backend._connect=connect
+    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',lambda *a,**kw:dict(fixture='weather_acquisition'))
+    monkeypatch.setattr(action_history,'fetch_origin_actions',lambda *a,**kw:dict(origin=known,fixture='action_acquisition'))
+    return backend,known,archive,connections
+
+
+def test_source_live_backend_archives_and_replays_original_issue_queries(tmp_path,monkeypatch):
+    from weather_temperature_sources import read_temperature_source,replay_temperature_source
+    from thermal_model.installed_shade_raw_score_sources import build_native_origin_binding
+    m=module();assert hasattr(m,'SourceLiveBackend'),'missing raw issue-source backend'
+    backend,known,archive,connections=source_backend_case(tmp_path,monkeypatch)
+    issue=known+timedelta(seconds=30);inputs=backend.collect(issue=issue,known_at=known)
+    binding=build_native_origin_binding(inputs['origin_temperatures'],source_paths=inputs['native_source_paths'],issue_at=issue)
+    assert binding['release_authority'] is False
+    assert set(inputs)=={'forecast','current','origin_temperatures','action_snapshot','native_source_paths'}
+    assert len(list(archive.iterdir()))==3 and len(connections)==3
+    assert all(c.closed and c.session['readonly'] is True for c in connections)
+    assert inputs['action_snapshot']['origin']==issue
+    for role,name in inputs['native_source_paths'].items():
+        path=Path(name);assert path.stat().st_mode&0o777==0o600
+        packet=read_temperature_source(archive,path)
+        assert packet['native_rows'][1][1] is None
+        assert json.loads(module()._canonical(replay_temperature_source(packet)))==json.loads(module()._canonical(inputs['origin_temperatures']['roles'][role]['grid']))
+
+
+def test_old_live_backend_retains_its_receipt_only_contract(tmp_path,monkeypatch):
+    backend,known,archive,_=source_backend_case(tmp_path,monkeypatch,source=False)
+    inputs=backend.collect(issue=known+timedelta(seconds=30),known_at=known)
+    assert set(inputs)=={'forecast','current','origin_temperatures','action_snapshot'}
+    assert list(archive.iterdir())==[]
+
+
+def test_source_live_backend_refuses_lock_loss_before_archiving_query(tmp_path,monkeypatch):
+    from test_weather_temperature_history import Connection
+    held=[True]
+    def guard():
+        if not held[0]:raise ValueError('held fixture guard lost')
+    backend,known,archive,connections=source_backend_case(tmp_path,monkeypatch,guard=guard)
+    original=Connection.close
+    def lost(connection):
+        original(connection);held[0]=False
+    monkeypatch.setattr(Connection,'close',lost)
+    with pytest.raises(ValueError):backend.collect(issue=known+timedelta(seconds=30),known_at=known)
+    assert len(connections)==1 and connections[0].closed
+    assert list(archive.iterdir())==[]
+
+
+def test_source_live_backend_refuses_lock_loss_during_temporary_query_write(tmp_path,monkeypatch):
+    import os
+    held=[True]
+    def guard():
+        if not held[0]:raise ValueError('held fixture guard lost')
+    backend,known,archive,_=source_backend_case(tmp_path,monkeypatch,guard=guard)
+    original=os.chmod
+    def lost(path,mode,*args,**kwargs):
+        original(path,mode,*args,**kwargs)
+        if Path(path).name.startswith('.temperature-origin-'):held[0]=False
+    monkeypatch.setattr(os,'chmod',lost)
+    with pytest.raises(ValueError):backend.collect(issue=known+timedelta(seconds=30),known_at=known)
+    assert list(archive.iterdir())==[]
