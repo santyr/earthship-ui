@@ -131,3 +131,21 @@ def test_collection_worker_forces_no_fit_environment(monkeypatch):
     monkeypatch.setenv('EARTHSHIP_QUALIFICATION_FIT','1')
     code="import os; assert os.getenv('EARTHSHIP_GUARDED_CAPTURE_WORKER')=='1'; assert os.getenv('EARTHSHIP_QUALIFICATION_FIT')=='0'; assert os.getenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT')=='0'"
     assert source().run_collection_worker([sys.executable,'-c',code],seconds=3)==0
+
+
+def test_provisional_guard_allows_bounded_idle_host_swap_reads(tmp_path,monkeypatch):
+    mem,vm,psi=state(tmp_path);clock=[0.]
+    monkeypatch.setattr(source(),'monotonic',lambda:clock[0])
+    guard=source().TrainingHeadroom(meminfo=mem,vmstat=vm,pressure=psi,max_swapin_bytes_per_second=1048576)
+    guard.check();clock[0]=1.;state(tmp_path,swapin=1);guard.check()
+
+
+@pytest.mark.parametrize('counter,value',[('pswpin',1000),('pswpout',1),('oom_kill',1)])
+def test_provisional_guard_still_refuses_churn_writes_and_oom(tmp_path,monkeypatch,counter,value):
+    mem,vm,psi=state(tmp_path);clock=[0.]
+    monkeypatch.setattr(source(),'monotonic',lambda:clock[0])
+    guard=source().TrainingHeadroom(meminfo=mem,vmstat=vm,pressure=psi,max_swapin_bytes_per_second=1048576)
+    guard.check();clock[0]=1.
+    values={'pswpin':0,'pswpout':0,'oom_kill':0};values[counter]=value
+    vm.write_text(''.join(f'{key} {x}\n' for key,x in values.items()))
+    with pytest.raises(ValueError):guard.check()

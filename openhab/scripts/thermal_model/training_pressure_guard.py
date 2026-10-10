@@ -32,8 +32,13 @@ class TrainingHeadroom:
 
     Occupied swap is historical residency, not an admission threshold. This
     guard is only used with the independently verified 256 MiB training cap.
+    Provisional fitting may explicitly allow at most 1 MiB/s of host swap-in;
+    swap-out/OOM changes and all reserve/PSI checks remain strict.
     """
-    def __init__(self,*,meminfo=Path('/proc/meminfo'),vmstat=Path('/proc/vmstat'),pressure=Path('/proc/pressure/memory')):
+    def __init__(self,*,meminfo=Path('/proc/meminfo'),vmstat=Path('/proc/vmstat'),pressure=Path('/proc/pressure/memory'),max_swapin_bytes_per_second=0):
+        if type(max_swapin_bytes_per_second) is not int or not 0<=max_swapin_bytes_per_second<=1048576:
+            raise ValueError('bounded host swap-read allowance required')
+        self.max_swapin_bytes_per_second=max_swapin_bytes_per_second
         self.meminfo=meminfo;self.vmstat=vmstat;self.pressure=pressure;self.previous=None
 
     def check(self):
@@ -58,7 +63,11 @@ class TrainingHeadroom:
             now=monotonic()
             if self.previous is not None:
                 at,old,old_pressure=self.previous
-                if now<=at or any(counters[k]!=old[k] for k in counters):raise ValueError('swap activity or OOM counter changed')
+                if now<=at or any(counters[k]!=old[k] for k in ('pswpout','oom_kill')):
+                    raise ValueError('swap-out activity or OOM counter changed')
+                swapped_in=counters['pswpin']-old['pswpin']
+                if swapped_in<0 or swapped_in*os.sysconf('SC_PAGE_SIZE')>(now-at)*self.max_swapin_bytes_per_second:
+                    raise ValueError('host swap-read activity exceeded bounded allowance')
                 for key,limit in (('some',.5),('full',.1)):
                     delta=pressure[key]-old_pressure[key]
                     if delta<0 or delta>(now-at)*1000000*limit/100:raise ValueError('interval memory pressure exceeded')

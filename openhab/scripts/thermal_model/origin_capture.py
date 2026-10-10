@@ -66,7 +66,7 @@ def _runtime(value):
         if not isinstance(version,str) or re.fullmatch(r'[0-9][0-9A-Za-z.+_-]{0,79}',version) is None:
             raise ValueError('runtime dependency version invalid')
     manifest=value['source_manifest']
-    if not isinstance(manifest,dict) or not 2<=len(manifest)<=64:
+    if not isinstance(manifest,dict) or not 2<=len(manifest)<=72:
         raise ValueError('bounded runtime source manifest required')
     for name,digest in manifest.items():
         if not isinstance(name,str):raise ValueError('runtime source path invalid')
@@ -421,10 +421,10 @@ def build_runtime_binding(runtime_root,revision_paths):
     import scipy
     import psycopg2
     root=Path(runtime_root).resolve(strict=True)
-    if (not isinstance(revision_paths,(tuple,list)) or not 1<=len(revision_paths)<=64 or
+    if (not isinstance(revision_paths,(tuple,list)) or not 1<=len(revision_paths)<=72 or
             any(not isinstance(name,str) for name in revision_paths) or
             len(set(revision_paths))!=len(revision_paths) or 'thermal_intel.py' not in revision_paths or
-            (len(revision_paths)==64 and 'thermal_model/origin_capture.py' not in revision_paths)):
+            (len(revision_paths)>=64 and 'thermal_model/origin_capture.py' not in revision_paths)):
         raise ValueError('unique declared prediction closure required')
     manifest={};digest=sha256()
     for name in revision_paths:

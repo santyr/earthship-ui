@@ -26,6 +26,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Provisional thermal UI contract
+        run: node scripts/test-provisional-thermal-ui.mjs
       - run: npx vitest run
       - run: npm run build
       - uses: actions/setup-python@v5
