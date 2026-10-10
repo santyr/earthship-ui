@@ -2031,3 +2031,23 @@ unchanged capped scopes against the same retained originals; that does not prove
 qualifying household-cohort capacity or readiness. Calibrated numeric/main
 capture, development registration, complete qualification and installed operator
 routing remain unfinished; no service selects candidate/v5 yet.
+
+Compressed calibrated issuance has an explicit numeric observation profile:
+origin/v12, forecast/v7 and source-scored-pair/v12, bound to candidate/v5 and
+native-origin-binding/v2. Public preparation uses a distinct immutable prepared
+type, bounds the original reference index before copying, and replays the actual
+original candidate/calibration/fit/query evidence under the inherited budget.
+Missing originals refuse preparation. Preparation grants no release authority.
+
+The numeric port preserves existing thermal dynamics, initial-state reconstruction,
+exact as-issued forcing, original intervals and same-origin baseline scoring.
+Incomplete uncertainty bands refuse issuance. Original issue queries are replayed
+before and after numerical work and after actual temporary capture writes; typed
+readback and scoring withhold on original-source loss. Legacy prepared types and
+readers refuse the new profile. Numerical fixtures are explicitly mathematical
+examples and cannot establish source-ready preparation or household graduation.
+
+The producer/actual main receipt profile, compressed calibrated score archives,
+complete release qualification and installed operator/UI routing remain unfinished.
+No installed service selects this numeric profile; model/evidence/resource gates
+remain required before any production cutover.

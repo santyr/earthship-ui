@@ -12,7 +12,8 @@ from pathlib import Path
 from .forcing_capture import _canonical, _private_directory
 from .graduation_policy import _utc, _finite
 from .installed_shade_artifact import _digest
-from .installed_shade_calibrated_artifact import _shape, validate_calibrated_candidate, validate_raw_calibrated_candidate
+from .installed_shade_calibrated_artifact import (_shape,validate_calibrated_candidate,validate_raw_calibrated_candidate,
+    validate_compressed_source_calibrated_candidate)
 from .installed_shade_calibration import _persist, _read_json
 from .installed_shade_fit import HORIZONS
 from . import installed_shade_origin as base
@@ -30,9 +31,9 @@ SOURCE_OUTPUT_SCHEMA = 'earthship-installed-shade-forecast/v4'
 SOURCE_PAIR_SCHEMA = 'earthship-installed-shade-source-scored-pair/v6'
 FIELDS = base.FIELDS
 SOURCE_FIELDS = FIELDS | {'native_origin_binding'}
-CAPTURE_SCHEMAS = {2:SCHEMA,4:RAW_SCHEMA,6:SOURCE_SCHEMA}
-OUTPUT_SCHEMAS = {2:OUTPUT_SCHEMA,4:RAW_OUTPUT_SCHEMA,6:SOURCE_OUTPUT_SCHEMA}
-PAIR_SCHEMAS = {2:PAIR_SCHEMA,4:RAW_PAIR_SCHEMA,6:SOURCE_PAIR_SCHEMA}
+CAPTURE_SCHEMAS = {2:SCHEMA,4:RAW_SCHEMA,6:SOURCE_SCHEMA,12:'earthship-installed-shade-origin/v12'}
+OUTPUT_SCHEMAS = {2:OUTPUT_SCHEMA,4:RAW_OUTPUT_SCHEMA,6:SOURCE_OUTPUT_SCHEMA,12:'earthship-installed-shade-forecast/v7'}
+PAIR_SCHEMAS = {2:PAIR_SCHEMA,4:RAW_PAIR_SCHEMA,6:SOURCE_PAIR_SCHEMA,12:'earthship-installed-shade-source-scored-pair/v12'}
 MAX_CAPTURE_BYTES = base.MAX_CAPTURE_BYTES
 MAX_OUTPUT_BYTES = base.MAX_OUTPUT_BYTES
 
@@ -49,8 +50,14 @@ class PreparedRawCalibratedCandidate:
     validated_at: datetime
 
 
+@dataclass(frozen=True)
+class PreparedCompressedCalibratedCandidate:
+    artifact_json: bytes
+    validated_at: datetime
+
+
 def _check_version(version):
-    if type(version) is not int or version not in (2,4,6):
+    if type(version) is not int or version not in (2,4,6,12):
         raise ValueError('explicit calibrated issuance version required')
 
 
@@ -59,9 +66,11 @@ def _prepare_calibrated_candidate(artifact, *, base_bundle, inputs, calibration,
     _check_version(_version)
     artifact,base_bundle,inputs,calibration,original_pairs = deepcopy(
         (artifact,base_bundle,inputs,calibration,original_pairs))
-    (validate_raw_calibrated_candidate if _version in (4,6) else validate_calibrated_candidate)(artifact,base_bundle=base_bundle,inputs=inputs,calibration=calibration,
+    validator=validate_compressed_source_calibrated_candidate if _version==12 else validate_raw_calibrated_candidate if _version in (4,6) else validate_calibrated_candidate
+    validator(artifact,base_bundle=base_bundle,inputs=inputs,calibration=calibration,
         original_pairs=original_pairs,expected_runtime_revision=expected_runtime_revision,assessed_at=assessed_at)
-    return (PreparedRawCalibratedCandidate if _version in (4,6) else PreparedCalibratedCandidate)(_canonical(artifact),_utc(assessed_at))
+    prepared=PreparedCompressedCalibratedCandidate if _version==12 else PreparedRawCalibratedCandidate if _version in (4,6) else PreparedCalibratedCandidate
+    return prepared(_canonical(artifact),_utc(assessed_at))
 
 
 def _core_view(record):
@@ -75,9 +84,9 @@ def _core_view(record):
 
 def _prediction(record, *, _version=2):
     _check_version(_version)
-    if _version==6:_replay_origin_sources(record)
+    if _version in (6,12):_replay_origin_sources(record,_version=_version)
     issue=_utc(record['issued_at']);artifact=record['candidate'];revision=_digest(record['runtime'])
-    _shape(artifact,expected_runtime_revision=revision,assessed_at=issue,_version=3 if _version in (4,6) else 2)
+    _shape(artifact,expected_runtime_revision=revision,assessed_at=issue,_version=5 if _version==12 else 3 if _version in (4,6) else 2)
     if _canonical(record['runtime'])!=_canonical(artifact['runtime']):
         raise ValueError('original calibrated runtime differs from frozen aggregate')
     calibration=artifact['calibration'];bands=calibration['bands']
@@ -98,35 +107,37 @@ def _prediction(record, *, _version=2):
             calibration_sha256=calibration['calibration_sha256']))
     output.update(schema=OUTPUT_SCHEMAS[_version],artifact_sha256=artifact['artifact_sha256'],runtime_sha256=revision,
         prediction_intervals=intervals)
-    if _version==6:output['native_origin_binding_sha256']=_digest(record['native_origin_binding'])
+    if _version in (6,12):output['native_origin_binding_sha256']=_digest(record['native_origin_binding'])
     if len(_canonical(output))>MAX_OUTPUT_BYTES:raise ValueError('calibrated issued payload byte budget exceeded')
-    if _version==6:_replay_origin_sources(record)
+    if _version in (6,12):_replay_origin_sources(record,_version=_version)
     return output,core['source_epochs']
 
 
 def _build_calibrated_capture(candidate, *, issued_at, inputs_available_at, published_at,
                              runtime, forecast, current, origin_temperatures, action_snapshot, native_source_paths=None, _version=2):
     _check_version(_version)
-    if not isinstance(candidate,PreparedRawCalibratedCandidate if _version in (4,6) else PreparedCalibratedCandidate) or candidate.validated_at>_utc(issued_at):
+    prepared=PreparedCompressedCalibratedCandidate if _version==12 else PreparedRawCalibratedCandidate if _version in (4,6) else PreparedCalibratedCandidate
+    if not isinstance(candidate,prepared) or candidate.validated_at>_utc(issued_at):
         raise ValueError('source-verified calibrated candidate unavailable at issue')
-    if _version!=6 and native_source_paths is not None:raise ValueError('original query paths require explicit source capture')
+    if _version not in (6,12) and native_source_paths is not None:raise ValueError('original query paths require explicit source capture')
     binding=None
-    if _version==6:
-        from .installed_shade_raw_score_sources import build_native_origin_binding
+    if _version in (6,12):
+        from .installed_shade_raw_score_sources import build_native_origin_binding,build_compressed_native_origin_binding
+        builder=build_compressed_native_origin_binding if _version==12 else build_native_origin_binding
         from .replay_budget import check_shared_budget
-        binding=build_native_origin_binding(origin_temperatures,source_paths=native_source_paths,issue_at=issued_at,check_budget=check_shared_budget)
+        binding=builder(origin_temperatures,source_paths=native_source_paths,issue_at=issued_at,check_budget=check_shared_budget)
     record=json.loads(_canonical(dict(schema=CAPTURE_SCHEMAS[_version],issued_at=_utc(issued_at).isoformat(),
         inputs_available_at=_utc(inputs_available_at).isoformat(),published_at=_utc(published_at).isoformat(),
         candidate=json.loads(candidate.artifact_json),runtime=runtime,forecast=forecast,current=current,
         origin_temperatures=origin_temperatures,action_snapshot=action_snapshot)))
-    if _version==6:record['native_origin_binding']=binding
+    if _version in (6,12):record['native_origin_binding']=binding
     record['output'],record['source_epochs']=_prediction(record,_version=_version);record['capture_sha256']=_digest(record)
     return _validate_calibrated_capture(record,_version=_version)
 
 
 def _validate_calibrated_capture(record, *, _version=2):
     _check_version(_version)
-    if (not isinstance(record,dict) or set(record)!=(SOURCE_FIELDS if _version==6 else FIELDS) or record['schema']!=CAPTURE_SCHEMAS[_version] or
+    if (not isinstance(record,dict) or set(record)!=(SOURCE_FIELDS if _version in (6,12) else FIELDS) or record['schema']!=CAPTURE_SCHEMAS[_version] or
             len(_canonical(record))>MAX_CAPTURE_BYTES or
             _digest({k:v for k,v in record.items() if k!='capture_sha256'})!=record['capture_sha256']):
         raise ValueError('closed bounded calibrated original capture required')
@@ -139,7 +150,7 @@ def _validate_calibrated_capture(record, *, _version=2):
 def _write_calibrated_capture(directory,record, *, _version=2):
     record=deepcopy(record);_validate_calibrated_capture(record,_version=_version);root=_private_directory(Path(directory))
     return _persist(root,record,record['capture_sha256'],f'.installed-shade-origin-v{_version}.json',
-        before_publish=(lambda:_replay_origin_sources(record)) if _version==6 else None)
+        before_publish=(lambda:_replay_origin_sources(record,_version=_version)) if _version in (6,12) else None)
 
 
 def _read_calibrated_capture(path, *, _version=2):
@@ -174,16 +185,18 @@ def _score_calibrated_capture(record, *, publication, horizon_hours, outcome, re
         interval_covered=band['lower_air_f']<=observed<=band['upper_air_f'])
     result.update(schema=PAIR_SCHEMAS[_version],original_capture_sha256=record['capture_sha256'],publication_sha256=_digest(publication),
         calibration_sha256=record['candidate']['calibration']['calibration_sha256'])
-    if _version==6:
-        _replay_origin_sources(record)
+    if _version in (6,12):
+        _replay_origin_sources(record,_version=_version)
         result['native_origin_binding_sha256']=_digest(record['native_origin_binding'])
     return result
 
 
-def _replay_origin_sources(record):
-    from .installed_shade_raw_score_sources import replay_native_origin_binding
+def _replay_origin_sources(record,*,_version=6):
+    from .installed_shade_raw_score_sources import replay_native_origin_binding,replay_compressed_native_origin_binding
+    if type(_version) is not int or _version not in (6,12):raise ValueError('explicit original query issuance profile required')
+    reader=replay_compressed_native_origin_binding if _version==12 else replay_native_origin_binding
     from .replay_budget import check_shared_budget
-    return replay_native_origin_binding(record['native_origin_binding'],record['origin_temperatures'],
+    return reader(record['native_origin_binding'],record['origin_temperatures'],
         issue_at=record['issued_at'],check_budget=check_shared_budget)
 
 
@@ -254,3 +267,29 @@ def read_source_calibrated_capture(path):
 
 def score_source_calibrated_capture(record,**values):
     return _score_calibrated_capture(record,**values,_version=6)
+
+
+def prepare_compressed_source_calibrated_candidate(artifact,**values):
+    from .installed_shade_calibration import _raw_packet_digest,_source_operation
+    _raw_packet_digest(values['original_pairs'])
+    return _source_operation(_prepare_calibrated_candidate,artifact,**values,_version=12)
+
+
+def build_compressed_source_calibrated_capture(candidate,**values):
+    return _build_calibrated_capture(candidate,**values,_version=12)
+
+
+def validate_compressed_source_calibrated_capture(record):
+    return _validate_calibrated_capture(record,_version=12)
+
+
+def write_compressed_source_calibrated_capture(directory,record):
+    return _write_calibrated_capture(directory,record,_version=12)
+
+
+def read_compressed_source_calibrated_capture(path):
+    return _read_calibrated_capture(path,_version=12)
+
+
+def score_compressed_source_calibrated_capture(record,**values):
+    return _score_calibrated_capture(record,**values,_version=12)

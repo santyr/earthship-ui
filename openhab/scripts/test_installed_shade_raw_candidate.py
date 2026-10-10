@@ -319,3 +319,28 @@ def test_compressed_candidate_immutable_write_read_and_actual_temp_guard(compres
             with pytest.raises(ValueError):reader(path,expected_runtime_revision=params['expected_runtime_revision'],assessed_at=params['assessed_at'])
         Path(args['native_source_paths']['outdoor']).unlink()
         with pytest.raises((ValueError,OSError)):artifact.read_compressed_source_calibrated_candidate(path,expected_runtime_revision=params['expected_runtime_revision'],assessed_at=params['assessed_at'])
+
+
+def test_compressed_issuance_preparation_replays_original_candidate_and_preserves_incomplete_support(compressed_candidate_values):
+    from thermal_model import installed_shade_calibrated_artifact as artifact,installed_shade_calibrated_origin as origin
+    values,_,args,_=compressed_candidate_values;record=artifact.build_compressed_source_calibrated_candidate(**values)
+    params={key:values[key] for key in ('base_bundle','inputs','calibration','original_pairs')}
+    params.update(expected_runtime_revision=_digest(values['runtime']),assessed_at=values['created_at'])
+    prepared=origin.prepare_compressed_source_calibrated_candidate(record,**params)
+    assert isinstance(prepared,origin.PreparedCompressedCalibratedCandidate)
+    from thermal_model.forcing_capture import _canonical
+    assert prepared.artifact_json==_canonical(record)
+    later={**args,'runtime':values['runtime'],'issued_at':values['created_at']}
+    with pytest.raises(ValueError,match='support incomplete'):origin.build_compressed_source_calibrated_capture(prepared,**later)
+    # Preparation is source proof only; missing calibration bands still cannot issue.
+    assert record['calibration']['bands']['24']['overall'] is None and record['release_authorized'] is False
+
+
+def test_compressed_issuance_preparation_refuses_missing_original_calibration_queries(compressed_candidate_values):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_artifact as artifact,installed_shade_calibrated_origin as origin
+    values,_,args,_=compressed_candidate_values;record=artifact.build_compressed_source_calibrated_candidate(**values)
+    params={key:values[key] for key in ('base_bundle','inputs','calibration','original_pairs')}
+    params.update(expected_runtime_revision=_digest(values['runtime']),assessed_at=values['created_at'])
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):origin.prepare_compressed_source_calibrated_candidate(record,**params)
