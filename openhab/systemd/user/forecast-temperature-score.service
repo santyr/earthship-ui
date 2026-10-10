@@ -1,0 +1,25 @@
+# Template only. Replace @VERIFIED_COLLECTOR_SOURCES@ with the protected,
+# exact-head source generation after hosted checks and deployment review.
+[Unit]
+Description=Original temperature correction outcome collection
+
+[Service]
+Type=oneshot
+Slice=earthship-inputs.slice
+Environment=EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0
+Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/timeout 90s /usr/bin/python3 @VERIFIED_COLLECTOR_SOURCES@/forecast_temperature_collect.py --config %h/.config/hex/temperature-correction-score.json --batch
+TimeoutStartSec=95
+CPUAccounting=yes
+CPUQuota=20%
+MemoryAccounting=yes
+MemoryMax=256M
+MemorySwapMax=0
+TasksAccounting=yes
+TasksMax=24
+Nice=15
+IOSchedulingClass=idle
+IOAccounting=yes
+IOWeight=10
+OOMPolicy=kill

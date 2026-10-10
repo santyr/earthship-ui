@@ -49,6 +49,7 @@ from .schema import (
 
 # v5 binds metrics to raw physical trajectories, without evaluation-only blending.
 MODEL_SCHEMA = "earthship-thermal-model/v5"
+SENSOR_MODEL_SCHEMA = "earthship-thermal-model/v6"
 MULTIHORIZON_CONTRACT = {
     "horizons_minutes": [5, 60, 360, 720, 1440],
     "daily_origin_selector": "longest_valid_future_then_earliest_utc",
@@ -568,10 +569,13 @@ def _validate_manifest(artifact):
         raise ArtifactValidationError(
             "data manifest fields do not match the artifact contract"
         )
+    if artifact.schema == SENSOR_MODEL_SCHEMA and 'temperature_evidence' not in manifest:
+        raise ArtifactValidationError('native sensor phase evidence required for model v6')
     if 'temperature_evidence' in manifest:
-        from .temperature_history import validate_evidence_manifest
+        from .temperature_history import validate_evidence_manifest, validate_sensor_evidence_manifest
+        validate_temperature = validate_sensor_evidence_manifest if artifact.schema == SENSOR_MODEL_SCHEMA else validate_evidence_manifest
         try:
-            validate_evidence_manifest(manifest['temperature_evidence'],
+            validate_temperature(manifest['temperature_evidence'],
                                       start=manifest['start'], end=manifest['end'])
         except (ValueError, TypeError, KeyError, OverflowError, AttributeError) as exc:
             raise ArtifactValidationError('invalid temperature source evidence') from exc
@@ -1233,8 +1237,8 @@ def validate_artifact(artifact, *, require_eligible=False):
     """Validate complete type, semantic, provenance, and physical invariants."""
     if not isinstance(artifact, ThermalArtifact):
         raise ArtifactValidationError("artifact must be a ThermalArtifact")
-    if artifact.schema != MODEL_SCHEMA:
-        raise ArtifactValidationError(f"artifact schema must be {MODEL_SCHEMA}")
+    if artifact.schema not in (MODEL_SCHEMA, SENSOR_MODEL_SCHEMA):
+        raise ArtifactValidationError(f'artifact schema must be {MODEL_SCHEMA} or {SENSOR_MODEL_SCHEMA}')
     created_at = _iso_utc(artifact.created_at, "artifact created_at")
     trained_from = _iso_utc(artifact.trained_from, "artifact trained_from")
     trained_through = _iso_utc(

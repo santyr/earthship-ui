@@ -1,5 +1,8 @@
 """Forecast adapter for observational completed-night assessment only."""
 import os
+from copy import deepcopy
+from hashlib import sha256
+import json
 from datetime import datetime, timezone
 
 
@@ -14,8 +17,10 @@ def _publish(report, *, token, now):
 
 
 def update_completed_trough_score(*, diagnostics, token_provider, put_unknown,
-                                 environ=None, assessor=None, publisher=None, clock=None):
+                                 environ=None, assessor=None, publisher=None, clock=None, evidence_sink=None):
     """Never replay forecast actions; keep legacy arrays and learned state untouched."""
+    if evidence_sink is not None and (type(evidence_sink) is not dict or evidence_sink):
+        raise ValueError('empty prospective diagnostic evidence sink required')
     env = os.environ if environ is None else environ
     if env.get("ADVISORY_ASSESS_ENABLED") != "1":
         put_unknown()
@@ -25,6 +30,18 @@ def update_completed_trough_score(*, diagnostics, token_provider, put_unknown,
         report = (assessor or _assess)(env)
         if not isinstance(report, dict) or report.get("status") != "complete":
             raise ValueError()
+        assessed_now = None
+        if evidence_sink is not None:
+            from earthship_energy.trough_publish import diagnostic_state
+            assessed_now = (clock or (lambda: datetime.now(timezone.utc)))()
+            diagnostic_state(report, now=assessed_now)
+            retained = dict(schema='earthship-soc-prospective-error-evidence/v1',
+                status='available' if report['projection']['sample_count'] else 'unavailable',
+                generated_at=report['generated_at'],
+                source_report_sha256=sha256(json.dumps(report,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest(),
+                projection=deepcopy(report['projection']), causal_reward_proven=False,
+                release_authority=False)
+            evidence_sink.update(retained)
     except Exception:
         put_unknown()
         diagnostics.append("completed trough: assessment unavailable")

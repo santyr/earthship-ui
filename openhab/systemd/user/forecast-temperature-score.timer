@@ -1,0 +1,12 @@
+[Unit]
+Description=Collect a small original temperature outcome batch
+
+[Timer]
+OnCalendar=*-*-* *:07/10:30 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+Unit=forecast-temperature-score.service
+
+[Install]
+WantedBy=timers.target

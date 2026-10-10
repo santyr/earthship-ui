@@ -36,6 +36,30 @@ _SPEC.loader.exec_module(fi)
 UTC = timezone.utc
 
 
+_REAL_DATE = date
+_REAL_DATETIME = datetime
+
+
+@pytest.fixture(autouse=True)
+def coherent_forecast_test_clock(monkeypatch):
+    """One deterministic site day for fixtures and UTC source assessments."""
+    import sys
+    class Day(_REAL_DATE):
+        @classmethod
+        def today(cls): return cls(2026, 10, 7)
+    class ClockMeta(type):
+        def __instancecheck__(cls, value): return isinstance(value, _REAL_DATETIME)
+    class Clock(_REAL_DATETIME, metaclass=ClockMeta):
+        @classmethod
+        def now(cls, tz=None):
+            value = cls(2026, 10, 7, 18, tzinfo=UTC)
+            return value.astimezone(tz) if tz is not None else value.replace(tzinfo=None)
+    monkeypatch.setattr(sys.modules[__name__], 'date', Day)
+    monkeypatch.setattr(sys.modules[__name__], 'datetime', Clock)
+    monkeypatch.setattr(fi, 'date', Day)
+    monkeypatch.setattr(fi, 'datetime', Clock)
+
+
 # ---------------------------------------------------------------- scoring markers
 
 def test_should_score_fresh_state():
@@ -465,8 +489,14 @@ def test_qualified_soc_inputs_preserve_the_single_used_original_receipt(monkeypa
         assert path == '/items/BMS_SOC_Evidence_JSON'
         return {'state': raw}
     monkeypatch.setattr(fi, 'oh_get', get)
-    monkeypatch.setattr(q, 'completed_night_troughs', lambda *_args, **_kwargs: {})
-    soc, nights, origin = fi.qualified_soc_inputs(now.date(), now)
+    retained = {}
+    def completed(*_args, **kwargs):
+        assert kwargs['evidence_sink'] is retained
+        retained['2026-09-29'] = {'bank_epoch': 'bank', 'assessment': {'status': 'measured'}}
+        return {}
+    monkeypatch.setattr(q, 'completed_night_troughs', completed)
+    soc, nights, origin = fi.qualified_soc_inputs(now.date(), now, learning_evidence=retained)
+    assert retained['2026-09-29']['bank_epoch'] == 'bank'
     assert (soc, nights) == (expected_soc, {})
     assert reads == ['/items/BMS_SOC_Evidence_JSON']
     assert origin == {'version': 1, 'assessedAtMs': at, 'recordedAtMs': at - 1000,
@@ -995,7 +1025,7 @@ def _run_main(monkeypatch, tmp_path, st, series_data, *, legacy_rain=True,
 
     monkeypatch.setattr(fi, "series", stub_series)
     monkeypatch.setattr(fi, "oh_get", stub_get)
-    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (*soc_inputs, None))
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now, **_kwargs: (*soc_inputs, None))
     monkeypatch.setattr(fi, "oh_put_state", lambda item, value: puts.append(item))
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
     if legacy_rain:
@@ -1342,7 +1372,7 @@ def test_put_failures_collected_not_fatal(monkeypatch, tmp_path):
 
     monkeypatch.setattr(fi, "oh_put_state", flaky_put)
     monkeypatch.setattr(fi, "fetch_forecast", lambda *a, **k: _snapshot())
-    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (85, {}, None))
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now, **_kwargs: (85, {}, None))
     fi.main()   # must not raise
     assert len(saved["pv_errors"]) == 1, "scoring must complete despite PUT failures"
     assert set(saved["scored"][ykey]) == set(fi.SCORE_QUANTITIES) - {"trough"}

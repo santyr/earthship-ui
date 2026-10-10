@@ -35,6 +35,14 @@ def _window(origin, horizon_hours):
 
 
 def select_origin_forecast(records, *, origin, horizon_hours):
+    return _select_origin_forecast(records, origin=origin, horizon_hours=horizon_hours, retain_receipts=False)
+
+
+def select_origin_forecast_with_receipts(records, *, origin, horizon_hours):
+    return _select_origin_forecast(records, origin=origin, horizon_hours=horizon_hours, retain_receipts=True)
+
+
+def _select_origin_forecast(records, *, origin, horizon_hours, retain_receipts):
     """Select one complete issuance; late captures and partial issues cannot leak."""
     origin, targets = _window(origin, horizon_hours)
     target_set = set(targets)
@@ -75,15 +83,38 @@ def select_origin_forecast(records, *, origin, horizon_hours):
                 for metric in METRICS)])
         digest = hashlib.sha256(json.dumps(digest_rows, separators=(',', ':'),
             allow_nan=False).encode()).hexdigest()
-        return {'source': SOURCE, 'issued_at': issued_at, 'captured_at': captured_at,
-                'origin': origin, 'horizon_hours': horizon_hours,
-                'rows_sha256': digest, 'rows': rows}
+        selected = {'source': SOURCE, 'issued_at': issued_at, 'captured_at': captured_at,
+                    'origin': origin, 'horizon_hours': horizon_hours,
+                    'rows_sha256': digest, 'rows': rows}
+        if retain_receipts:
+            selected.update(schema='earthship-thermal-archived-forecast/v2',
+                metric_receipts=[[issued_at, by_target[at][metric][1], at,
+                    metric, by_target[at][metric][0]] for at in targets for metric in METRICS])
+        return selected
     return None
 
 
 def fetch_origin_forecast(connection_factory, *, origin, horizon_hours):
+    return _fetch_origin_forecast(connection_factory, origin=origin,
+                                 horizon_hours=horizon_hours, retain_receipts=False)
+
+
+def fetch_origin_forecast_with_receipts(connection_factory, *, origin, horizon_hours):
+    return _fetch_origin_forecast(connection_factory, origin=origin,
+                                 horizon_hours=horizon_hours, retain_receipts=True)
+
+
+def fetch_pending_origin_forecast_with_receipts(connection_factory, *, origin, horizon_hours, available_by):
+    """Read a pending issue from weather already captured before collection."""
+    return _fetch_origin_forecast(connection_factory,origin=origin,horizon_hours=horizon_hours,
+        retain_receipts=True,available_by=available_by)
+
+
+def _fetch_origin_forecast(connection_factory, *, origin, horizon_hours, retain_receipts, available_by=None):
     """Use one bounded read-only snapshot of the archived Solar-PV forecast table."""
     origin, targets = _window(origin, horizon_hours)
+    known=origin if available_by is None else _utc(available_by)
+    if known>origin:raise ValueError('weather knowledge cannot follow pending issue')
     connection = connection_factory()
     try:
         if connection.get_transaction_status() != 0:
@@ -101,11 +132,42 @@ def fetch_origin_forecast(connection_factory, *, origin, horizon_hours):
                   AND captured_at <= %s AND valid_for >= %s AND valid_for <= %s
                   AND metric = ANY(%s)
                 ORDER BY issued_at DESC, valid_for, metric LIMIT %s''',
-                (SOURCE, origin, origin - MAX_ISSUE_AGE, origin,
+                (SOURCE, known, origin - MAX_ISSUE_AGE, known,
                  targets[0], targets[-1], list(METRICS), MAX_ROWS + 1))
             records = cursor.fetchall()
         if len(records) > MAX_ROWS:
             raise ValueError('archived forecast row bound exceeded')
-        return select_origin_forecast(records, origin=origin, horizon_hours=horizon_hours)
+        if available_by is not None:
+            records=[row for row in records if _utc(row[0])<=known and _utc(row[1])<=known]
+        return _select_origin_forecast(records, origin=origin, horizon_hours=horizon_hours, retain_receipts=retain_receipts)
     finally:
         connection.close()
+
+
+
+def verify_origin_forecast_receipts(forecast):
+    """Reconstruct the original metric/capture-clock archive digest, no SQL."""
+    from .forcing_capture import _canonical
+    from .graduation_policy import _utc as clock
+    fields={'schema','source','issued_at','captured_at','origin','horizon_hours',
+            'rows_sha256','rows','metric_receipts'}
+    if (not isinstance(forecast,dict) or set(forecast)!=fields or
+            forecast['schema']!='earthship-thermal-archived-forecast/v2' or
+            not isinstance(forecast['metric_receipts'],list)):
+        raise ValueError('closed original archived forecast receipts required')
+    origin,targets=_window(clock(forecast['origin']),forecast['horizon_hours'])
+    rows=forecast['metric_receipts']
+    if len(rows)!=len(targets)*len(METRICS) or len(rows)>MAX_ROWS:
+        raise ValueError('complete bounded original forecast receipts required')
+    records=[];issued=clock(forecast['issued_at'])
+    for row in rows:
+        if not isinstance(row,list) or len(row)!=5:
+            raise ValueError('original archived metric receipt required')
+        issue,captured,target=map(clock,row[:3])
+        if issue!=issued or not issue<=captured<=origin:
+            raise ValueError('mixed or unavailable original archive receipt')
+        records.append((issue,captured,target,row[3],row[4]))
+    expected=select_origin_forecast_with_receipts(records,origin=origin,horizon_hours=forecast['horizon_hours'])
+    if expected is None or _canonical(expected)!=_canonical(forecast):
+        raise ValueError('selected weather or archive digest differs from original receipts')
+    return forecast

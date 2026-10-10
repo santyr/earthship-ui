@@ -448,7 +448,7 @@ DEFAULT_STATE = {"k_res": 1.0, "d_direct": 4.0, "predictions": {},
 
 def prediction_learning_support(state, overnight_drop_sample_days):
     """Summarize independent learning support without changing any forecast."""
-    from forecast_ml_evidence import summarize_day_evidence
+    from forecast_ml_evidence import summarize_day_evidence, summarize_soc_night_sources
 
     pv_evidence = state.get("pv_score_evidence", {})
     qualified_pv_days = []
@@ -506,6 +506,10 @@ def prediction_learning_support(state, overnight_drop_sample_days):
         active_parameter_count=0,
         minimum_unique_days=3,
     )
+    soc.update(summarize_soc_night_sources(
+        overnight_drop_sample_days, state.get('soc_night_evidence', {}),
+        state.get('soc_evidence_assessed_at'),
+    ))
     pv = safe_summary(
         qualified_pv_days,
         active_parameter_count=2,
@@ -676,12 +680,14 @@ def kalman_update(filt, key, err):
     return state["b"]
 
 
-def qualified_soc_inputs(today, now):
+def qualified_soc_inputs(today, now, *, learning_evidence=None):
     """Current atomic SoC plus prior completed, coverage-qualified nights.
 
     Failures return no numerical evidence; callers must not fall back to
     change-only BMS_SOC persistence or an unqualified live numeric state.
     """
+    if learning_evidence is not None and (type(learning_evidence) is not dict or learning_evidence):
+        raise ValueError('empty diagnostic learning evidence required')
     from qualified_soc_forecast import current_valid_soc, completed_night_troughs
     from earthship_energy.bms_evidence import parse_evidence
     try:
@@ -706,10 +712,11 @@ def qualified_soc_inputs(today, now):
     try:
         nights = completed_night_troughs(
             [today - timedelta(days=back) for back in range(1, 5)],
-            now=now, site_timezone=SITE_TZ_NAME,
+            now=now, site_timezone=SITE_TZ_NAME, evidence_sink=learning_evidence,
         )
     except Exception:
         nights = {}
+        if learning_evidence is not None:learning_evidence.clear()
     return current, nights, origin
 
 
@@ -733,7 +740,8 @@ def measured_day_weather(day):
 
 def measured_day_weather_with_evidence(day):
     """Migrate both daily and day-3 temperature actuals at one boundary."""
-    if os.environ.get('DAILY_TEMP_QUALIFIED_ENABLE') is None:
+    if (os.environ.get('DAILY_TEMP_QUALIFIED_ENABLE') is None
+            and os.environ.get('DAILY_TEMP_RECEIPT_VERSION', '1') == '1'):
         return (*measured_day_weather(day), None)
     from daily_temperature_runtime import read_daily_actuals
     window = local_day_window_utc(day)
@@ -870,7 +878,8 @@ def capture_next_day_hourly(snapshot, now):
     return targets
 
 
-def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=None):
+def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=None,
+                         evidence_policy=None, sensor_epoch=None):
     """Score once; optional receipt reader never falls back to numeric history.
 
     qualified_reader(target=..., assessed_at=...) must be the strict evidence
@@ -939,6 +948,7 @@ def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=
         if not math.isfinite(raw):
             continue
         evidence = None
+        phase_metadata={}
         if qualified:
             captured = _target_instant(record.get('captured_at'))
             if captured is None or not cutover <= captured < target or target < cutover:
@@ -958,6 +968,10 @@ def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=
                 digest = evidence['snapshotSha256']
                 if not isinstance(digest, str) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
                     continue
+                if 'receiptVersion' in evidence:
+                    from weather_temperature_reader import validate_temperature_metadata_v2
+                    validate_temperature_metadata_v2(evidence,target,policy=evidence_policy,sensor_epoch=sensor_epoch)
+                    phase_metadata={key:evidence[key] for key in ('receiptVersion','sensorEpoch','streamEpoch')}
             except Exception:
                 continue  # unavailable evidence never invokes the old matcher
         else:
@@ -993,7 +1007,8 @@ def score_hourly_targets(state, now, *, qualified_reader=None, evidence_cutover=
                 'cutover': cutover.isoformat(), 'assessed_at': now_utc.isoformat(),
                 'raw': raw, 'measured': measured, 'snapshotSha256': digest,
                 'receivedAt': received.isoformat(), 'storedAt': stored.isoformat(),
-                'validUntil': expires.isoformat(),
+                'validUntil':expires.isoformat(),
+                **phase_metadata,
             }])[-HOURLY_TARGET_LIMIT:]
         targets.pop(key, None)
         scored += 1
@@ -1216,7 +1231,7 @@ def publish_forecast_payloads(payloads, put_state=oh_put_state):
     put_state("Forecast_Hourly_JSON", json.dumps(legacy_hourly))
     put_state("Forecast_Daily_JSON", json.dumps(legacy_daily))
     try:
-        put_state("Forecast_10Day_JSON", serialize_detail(detail))
+        return put_state("Forecast_10Day_JSON", serialize_detail(detail))
     except Exception as error:
         print(f"Forecast_10Day_JSON publish failed after legacy updates: {error}", file=sys.stderr)
         raise
@@ -1261,7 +1276,7 @@ def pv_display_days(radiation_sums, learned_gain, issued_today):
 
 
 def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
-                     temperature_adjustment=None, hourly_model=None):
+                     temperature_adjustment=None, hourly_model=None, origin_observer=None):
     """Materialize legacy JSON items plus additive ten-day detail from one fetch."""
     now_local = now or datetime.now(MOUNTAIN)
     if now_local.tzinfo is None:
@@ -1289,14 +1304,36 @@ def build_json_items(snapshot=None, pv_per_day=None, now=None, put_state=None,
         temperature_adjustment=temperature_adjustment,
         hourly_model=hourly_model,
     )
-    publish_forecast_payloads(payloads, put_state=put_state or oh_put_state)
+    # Optional observational evidence never changes payloads or learned state.
+    prepared_origin = None
+    try:
+        if origin_observer is None and (os.environ.get("FORECAST_TEMPERATURE_ORIGIN_DIR")
+                is not None or os.environ.get("FORECAST_TEMPERATURE_ORIGIN_POLICY") is not None):
+            from forecast_temperature_origin import observer_from_environment
+            origin_observer = observer_from_environment()
+        if origin_observer is not None:
+            from copy import deepcopy
+            prepared_origin = origin_observer.prepare(snapshot=deepcopy(snapshot),
+                payloads=deepcopy(payloads), hourly_model=deepcopy(hourly_model),
+                temperature_adjustment=deepcopy(temperature_adjustment))
+    except Exception:
+        print("temperature correction origin preparation unavailable", file=sys.stderr)
+    publication_started_at = datetime.now(timezone.utc)
+    detail_result = publish_forecast_payloads(payloads, put_state=put_state or oh_put_state)
+    if prepared_origin is not None and detail_result is not False:
+        try:
+            origin_observer.complete(prepared_origin,
+                publication_started_at=publication_started_at,
+                publication_completed_at=datetime.now(timezone.utc))
+        except Exception:
+            print("temperature correction origin retention unavailable", file=sys.stderr)
     return payloads
 
 
 def main():
     st = load_state()
-    now = datetime.now()
-    today = date.today()
+    now = datetime.now(MOUNTAIN)
+    today = now.date()
     log = []
     put_failed = []
     capture = None
@@ -1468,7 +1505,12 @@ def main():
     # Change-only BMS_SOC history cannot establish acquisition freshness or
     # overnight coverage. Never revive that legacy path if a systemd drop-in
     # is lost during restore; unavailable atomic evidence withholds energy.
-    trough_ref, measured_nights, soc_origin = qualified_soc_inputs(today, datetime.now(timezone.utc))
+    soc_assessed_at = datetime.now(timezone.utc)
+    soc_night_evidence = {}
+    trough_ref, measured_nights, soc_origin = qualified_soc_inputs(
+        today, soc_assessed_at, learning_evidence=soc_night_evidence)
+    st['soc_night_evidence'] = soc_night_evidence
+    st['soc_evidence_assessed_at'] = soc_assessed_at.isoformat()
 
     deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT if trough_ref is not None else None
     demand = st["d_direct"] + deficit_kwh if deficit_kwh is not None else None
@@ -1648,12 +1690,20 @@ def main():
 
     save_state(st)
     # Run after normal forecast/advisory/DM work, never as a prerequisite to it.
+    prospective_soc_evidence = {}
     try:
         from completed_trough_score import update_completed_trough_score
         update_completed_trough_score(diagnostics=log, token_provider=auth_token,
-            put_unknown=lambda: put("Forecast_Trough_Error_7d", "UNDEF"))
+            put_unknown=lambda: put("Forecast_Trough_Error_7d", "UNDEF"),
+            evidence_sink=prospective_soc_evidence)
     except Exception:
         log.append("completed trough: adapter unavailable")
+    st['learning_evidence']['soc_trough']['prospective_errors'] = (
+        prospective_soc_evidence or {'status': 'unavailable', 'release_authority': False})
+    try:
+        save_state(st)  # Retain outcome diagnostics without reissuing forecasts or alerts.
+    except Exception:
+        log.append('completed trough: diagnostic retention unavailable')
     if put_failed:
         log.append("PUT FAILED: " + ",".join(put_failed))
     line = (f"{now.isoformat(timespec='seconds')} pv={pv_pred} curtail={curtail} trough={trough_pred} "

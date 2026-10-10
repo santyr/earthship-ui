@@ -83,9 +83,9 @@ def test_elapsed_days_include_dst_lengths_and_parse_each_row_once(hours, monkeyp
     import weather_temperature_reader as reader
     original = reader._snapshot
     calls = []
-    def counted(*args):
+    def counted(*args, **kwargs):
         calls.append(1)
-        return original(*args)
+        return original(*args, **kwargs)
     monkeypatch.setattr(reader, '_snapshot', counted)
     rows = [(s, raw(s)) for s in range(0, hours * 3600, 30)]
     result = window(rows, seconds=hours * 3600)

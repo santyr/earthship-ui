@@ -9,7 +9,7 @@ import hashlib
 import json
 
 from weather_temperature_evidence import TemperaturePolicy
-from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_window
+from weather_temperature_reader import _utc, select_temperature_grid, select_temperature_grid_v2, select_temperature_window,select_temperature_window_v2
 
 EVIDENCE_ITEM = 'Weather_Temperature_Evidence_JSON'
 
@@ -23,6 +23,11 @@ def fetch_temperature_target(connection_factory, *, target, assessed_at, stream,
                                   stream=stream, policy=policy)[0][1]
 
 
+def fetch_temperature_target_v2(connection_factory,*,target,assessed_at,stream,policy,sensor_epoch):
+    return fetch_temperature_grid_v2(connection_factory,targets=[target],assessed_at=assessed_at,
+        stream=stream,policy=policy,sensor_epoch=sensor_epoch)[0][1]
+
+
 def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, policy):
     """Fetch one bounded elapsed-day grid using one dedicated stable snapshot.
 
@@ -30,6 +35,18 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
     reader only: callers must explicitly decide how unqualified targets affect
     training; never interpolate them into apparently healthy measurements.
     """
+    return _fetch_grid(connection_factory, targets=targets, assessed_at=assessed_at,
+                       stream=stream, policy=policy, selector=select_temperature_grid)
+
+
+def fetch_temperature_grid_v2(connection_factory, *, targets, assessed_at, stream, policy, sensor_epoch):
+    def select(rows, **kwargs):
+        return select_temperature_grid_v2(rows, sensor_epoch=sensor_epoch, **kwargs)
+    return _fetch_grid(connection_factory, targets=targets, assessed_at=assessed_at,
+                       stream=stream, policy=policy, selector=select)
+
+
+def _fetch_grid(connection_factory, *, targets, assessed_at, stream, policy, selector):
     try:
         if not isinstance(policy, TemperaturePolicy): raise ValueError('explicit policy required')
         if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= 289:
@@ -38,17 +55,28 @@ def fetch_temperature_grid(connection_factory, *, targets, assessed_at, stream, 
         assessed_at = _utc(assessed_at)
         start = targets[0] - timedelta(seconds=policy.validity_seconds)
         target = targets[-1]
-        select_temperature_grid([], targets=targets, assessed_at=assessed_at,
-                                history_start=start, stream=stream, policy=policy)
+        selector([], targets=targets, assessed_at=assessed_at,
+                 history_start=start, stream=stream, policy=policy)
         observations = _fetch_rows(connection_factory, start, target)
-        return select_temperature_grid(observations, targets=targets, assessed_at=assessed_at,
-                                       history_start=start, stream=stream, policy=policy)
+        return selector(observations, targets=targets, assessed_at=assessed_at,
+                        history_start=start, stream=stream, policy=policy)
     except Exception:
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
 
 
-def fetch_temperature_window(connection_factory, *, start, end, assessed_at, stream, policy,
-                             include_provenance=False):
+def fetch_temperature_window(connection_factory,*,start,end,assessed_at,stream,policy,include_provenance=False):
+    return _fetch_window(connection_factory,start=start,end=end,assessed_at=assessed_at,
+        stream=stream,policy=policy,include_provenance=include_provenance,selector=select_temperature_window)
+
+
+def fetch_temperature_window_v2(connection_factory,*,start,end,assessed_at,stream,policy,sensor_epoch,include_provenance=False):
+    def select(rows,**kwargs):
+        return select_temperature_window_v2(rows,sensor_epoch=sensor_epoch,**kwargs)
+    return _fetch_window(connection_factory,start=start,end=end,assessed_at=assessed_at,
+        stream=stream,policy=policy,include_provenance=include_provenance,selector=select)
+
+
+def _fetch_window(connection_factory,*,start,end,assessed_at,stream,policy,include_provenance,selector):
     """Read all receipt changes for an elapsed window, including 25-hour days.
 
     Same restricted transport, row limits and no-fallback contract as grids.
@@ -60,9 +88,9 @@ def fetch_temperature_window(connection_factory, *, start, end, assessed_at, str
         history_start = start - timedelta(seconds=policy.validity_seconds)
         kwargs = dict(start=start, end=end, assessed_at=assessed_at,
                       history_start=history_start, stream=stream, policy=policy)
-        select_temperature_window([], **kwargs)  # Validate before connecting.
+        selector([], **kwargs)  # Validate before connecting.
         observations = _fetch_rows(connection_factory, history_start, end)
-        result = select_temperature_window(observations, **kwargs)
+        result = selector(observations, **kwargs)
         if include_provenance:
             # Hash the complete bounded input, including original carry and
             # invalid barriers. Never expose raw envelopes to the parent.
@@ -74,33 +102,52 @@ def fetch_temperature_window(connection_factory, *, start, end, assessed_at, str
         raise TemperatureHistoryUnavailable('temperature evidence history unavailable') from None
 
 
-def _fetch_rows(connection_factory, start, target):
+def _fetch_rows(connection_factory, start, target, *, remaining_timeout=None):
     """One private bounded read-only transaction; no interpretation or filtering."""
+    if remaining_timeout is not None and not callable(remaining_timeout):
+        raise ValueError('callable native query deadline required')
+    def remaining():
+        import math
+        value=remaining_timeout()
+        if type(value) not in (int,float) or not math.isfinite(value) or value<0.001:
+            raise ValueError('native query deadline elapsed or too short')
+        return value
     connection = None
     try:
+        if remaining_timeout is not None:remaining()
         connection = connection_factory()
+        if remaining_timeout is not None:remaining()
         if connection.get_transaction_status() != 0:
             raise ValueError('dedicated idle connection required')
         connection.set_session(readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
         with connection.cursor() as cursor:
-            cursor.execute("SET LOCAL statement_timeout = '2000ms'")
-            cursor.execute("SET LOCAL lock_timeout = '1000ms'")
-            cursor.execute("SET LOCAL idle_in_transaction_session_timeout = '5000ms'")
-            cursor.execute('SHOW transaction_read_only')
+            def execute(query,params=None):
+                if remaining_timeout is not None:
+                    milliseconds=min(2000,int(remaining()*1000))
+                    cursor.execute('SET LOCAL statement_timeout = %s',(f'{milliseconds}ms',))
+                    remaining()
+                cursor.execute(query,params)
+                if remaining_timeout is not None:remaining()
+
+            if remaining_timeout is None:execute("SET LOCAL statement_timeout = '2000ms'")
+            execute("SET LOCAL lock_timeout = '1000ms'")
+            execute("SET LOCAL idle_in_transaction_session_timeout = '5000ms'")
+            execute('SHOW transaction_read_only')
             if cursor.fetchone() != ('on',): raise ValueError('read-only transaction required')
-            cursor.execute('SHOW transaction_isolation')
+            execute('SHOW transaction_isolation')
             if cursor.fetchone() != ('repeatable read',): raise ValueError('stable snapshot required')
-            cursor.execute('SELECT itemid FROM public.items WHERE itemname=%s LIMIT 2', (EVIDENCE_ITEM,))
+            execute('SELECT itemid FROM public.items WHERE itemname=%s LIMIT 2', (EVIDENCE_ITEM,))
             matches = cursor.fetchall()
             if len(matches) != 1 or type(matches[0][0]) is not int or not 0 <= matches[0][0] <= 2147483647:
                 raise ValueError('unique evidence Item mapping required')
             # The only interpolated identifier is derived from a validated int.
             table = f'public.item{matches[0][0]:04d}'
             value = 'CASE WHEN octet_length(value::text) <= 8192 THEN value::text ELSE NULL END'
-            cursor.execute(f'SELECT time, {value} FROM {table} WHERE time < %s ORDER BY time DESC LIMIT 1', (start,))
+            execute(f'SELECT time, {value} FROM {table} WHERE time < %s ORDER BY time DESC LIMIT 1', (start,))
             carry = cursor.fetchone()
-            cursor.execute(f'SELECT time, {value} FROM {table} WHERE time >= %s AND time <= %s ORDER BY time LIMIT 10001', (start, target))
+            execute(f'SELECT time, {value} FROM {table} WHERE time >= %s AND time <= %s ORDER BY time LIMIT 10001', (start, target))
             rows = cursor.fetchall()
+        if remaining_timeout is not None:remaining()
         observations = ([] if carry is None else [carry]) + rows
         if len(observations) > 10000: raise ValueError('history row bound exceeded')
         if carry is not None and _utc(carry[0]) >= start: raise ValueError('invalid carry boundary')

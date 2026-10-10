@@ -5,16 +5,92 @@ on:
     paths:
       - 'openhab/scripts/forecast_intel.py'
       - 'openhab/scripts/forecast_ml_evidence.py'
+      - 'openhab/scripts/forecast_temperature_origin.py'
+      - 'openhab/scripts/forecast_temperature_score.py'
+      - 'openhab/scripts/forecast_temperature_collection.py'
+      - 'openhab/scripts/forecast_temperature_reads.py'
+      - 'openhab/scripts/forecast_temperature_collect.py'
+      - 'openhab/scripts/forecast_temperature_batch.py'
+      - 'openhab/scripts/test_forecast_temperature_batch.py'
+      - 'openhab/systemd/user/forecast-temperature-score.*'
+      - 'openhab/systemd/user/thermal-model-shadow.service.d/zzzz-legacy-origin-observer.conf'
+      - 'openhab/scripts/test_forecast_temperature_collect.py'
+      - 'openhab/scripts/test_forecast_temperature_reads.py'
+      - 'openhab/scripts/test_forecast_temperature_collection.py'
+      - 'openhab/scripts/test_forecast_temperature_score.py'
+      - 'openhab/scripts/test_forecast_temperature_report.py'
+      - 'openhab/scripts/test_forecast_temperature_origin.py'
       - 'openhab/scripts/forecast_pre_dusk.py'
       - 'openhab/scripts/qualified_soc_forecast.py'
       - 'openhab/scripts/thermal_intel.py'
+      - 'openhab/scripts/thermal_temperature_runtime.py'
+      - 'openhab/scripts/weather_temperature_sources.py'
+      - 'openhab/scripts/test_weather_temperature_sources.py'
+      - 'openhab/scripts/thermal_legacy_origin.py'
+      - 'openhab/scripts/thermal_legacy_observe.py'
       - 'openhab/scripts/thermal_model/**'
       - 'openhab/scripts/test_forecast_ml_*.py'
       - 'openhab/scripts/test_forecast_pre_dusk.py'
       - 'openhab/scripts/test_forecast_intel.py'
       - 'openhab/scripts/test_qualified_soc_forecast.py'
       - 'openhab/scripts/test_thermal_*.py'
+      - 'openhab/scripts/test_installed_shade_dynamics.py'
+      - 'openhab/scripts/test_installed_shade_inputs.py'
+      - 'openhab/scripts/test_installed_shade_fit.py'
+      - 'openhab/scripts/test_installed_shade_artifact.py'
+      - 'openhab/scripts/test_installed_shade_origin.py'
+      - 'openhab/scripts/test_installed_shade_qualification.py'
+      - 'openhab/scripts/test_installed_shade_calibration.py'
+      - 'openhab/scripts/test_installed_shade_raw_calibration.py'
+      - 'openhab/scripts/test_installed_shade_raw_candidate.py'
+      - 'openhab/scripts/test_installed_shade_raw_origin.py'
+      - 'openhab/scripts/test_installed_shade_raw_publication_capture.py'
+      - 'openhab/scripts/test_installed_shade_raw_registration.py'
+      - 'openhab/scripts/test_installed_shade_complete_raw_qualification.py'
+      - 'openhab/scripts/test_installed_shade_compressed_qualification.py'
+      - 'openhab/scripts/test_installed_shade_release_index.py'
+      - 'openhab/scripts/test_installed_publication_registration.py'
+      - 'openhab/scripts/test_installed_registered_score_cli.py'
+      - 'openhab/scripts/test_installed_registered_closure.py'
+      - 'openhab/scripts/test_qualification_source_inventory.py'
+      - 'openhab/scripts/test_installed_registered_schedule.py'
+      - 'openhab/scripts/test_installed_shade_complete_raw_publication.py'
+      - 'openhab/scripts/test_installed_shade_compressed_publication.py'
+      - 'openhab/scripts/test_installed_shade_calibrated.py'
+      - 'openhab/scripts/test_installed_shade_calibrated_qualification.py'
+      - 'openhab/scripts/test_installed_shade_publication.py'
+      - 'openhab/scripts/test_installed_shade_published_origin.py'
+      - 'openhab/scripts/test_installed_shade_live.py'
+      - 'openhab/scripts/test_installed_shade_complete_raw_live.py'
+      - 'openhab/scripts/test_installed_shade_compressed_live.py'
+      - 'openhab/scripts/test_installed_shade_compressed_live_cli.py'
+      - 'openhab/scripts/test_installed_shade_raw_live_cli.py'
+      - 'openhab/scripts/test_installed_shade_bootstrap_live.py'
+      - 'openhab/scripts/test_installed_shade_compressed_bootstrap.py'
+      - 'openhab/scripts/test_installed_shade_live_inputs.py'
+      - 'openhab/scripts/test_installed_shade_withdrawal.py'
+      - 'openhab/scripts/thermal_installed_intel.py'
+      - 'openhab/scripts/thermal_installed_score.py'
+      - 'openhab/scripts/thermal_installed_train.py'
+      - 'openhab/scripts/thermal_installed_calibrate.py'
+      - 'openhab/scripts/thermal_installed_register.py'
+      - 'openhab/scripts/test_installed_registration_cli.py'
+      - 'openhab/scripts/test_installed_calibration_cli.py'
+      - 'openhab/scripts/test_installed_replay_budget.py'
+      - 'openhab/scripts/test_installed_candidate_build.py'
+      - 'openhab/scripts/test_installed_shade_score_collection.py'
+      - 'openhab/scripts/test_installed_shade_score_inputs.py'
+      - 'openhab/scripts/test_installed_raw_score_jobs.py'
+      - 'openhab/scripts/test_installed_compressed_score_jobs.py'
+      - 'openhab/scripts/test_installed_raw_score_cli.py'
+      - 'openhab/scripts/test_installed_score_global_lock.py'
+      - 'openhab/scripts/test_installed_score_jobs.py'
+      - 'openhab/scripts/test_installed_shade_raw_score_sources.py'
+      - 'openhab/scripts/test_installed_shade_raw_qualification.py'
+      - 'openhab/scripts/test_installed_shade_raw_publication.py'
       - 'scripts/thermal-replay-bundle.py'
+      - 'scripts/qualify-installed-shade.py'
+      - 'scripts/test_qualify_installed_shade_cli.py'
       - 'tests/completion/test_thermal_replay_bundle.py'
       - '.github/workflows/forecast-ml-hardening.yml'
 
@@ -27,6 +103,7 @@ jobs:
       OMP_NUM_THREADS: 1
       MKL_NUM_THREADS: 1
       NUMEXPR_NUM_THREADS: 1
+      EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -51,9 +128,76 @@ jobs:
             openhab/scripts/test_forecast_ml_support.py \
             openhab/scripts/test_forecast_pre_dusk.py \
             openhab/scripts/test_forecast_intel.py \
+            openhab/scripts/test_forecast_temperature_origin.py \
+            openhab/scripts/test_forecast_temperature_score.py \
+            openhab/scripts/test_forecast_temperature_report.py \
+            openhab/scripts/test_forecast_temperature_collection.py \
+            openhab/scripts/test_forecast_temperature_reads.py \
+            openhab/scripts/test_forecast_temperature_collect.py \
+            openhab/scripts/test_forecast_temperature_batch.py \
             openhab/scripts/test_qualified_soc_forecast.py \
             openhab/scripts/test_thermal_identifiability.py \
+            openhab/scripts/test_installed_shade_dynamics.py \
+            openhab/scripts/test_installed_shade_inputs.py \
+            openhab/scripts/test_installed_shade_fit.py \
+            openhab/scripts/test_installed_candidate_build.py \
+            openhab/scripts/test_installed_shade_artifact.py \
+            openhab/scripts/test_installed_shade_origin.py \
+            openhab/scripts/test_installed_shade_qualification.py \
+            openhab/scripts/test_installed_shade_calibration.py \
+            openhab/scripts/test_installed_shade_raw_calibration.py \
+            openhab/scripts/test_installed_calibration_cli.py \
+            openhab/scripts/test_installed_registration_cli.py \
+            openhab/scripts/test_installed_replay_budget.py \
+            openhab/scripts/test_installed_shade_raw_candidate.py \
+            openhab/scripts/test_installed_shade_raw_origin.py \
+            openhab/scripts/test_installed_shade_raw_publication_capture.py \
+            openhab/scripts/test_installed_shade_raw_registration.py \
+            openhab/scripts/test_installed_shade_complete_raw_qualification.py \
+            openhab/scripts/test_installed_shade_compressed_qualification.py \
+            openhab/scripts/test_installed_shade_release_index.py \
+            openhab/scripts/test_installed_publication_registration.py \
+            openhab/scripts/test_installed_registered_score_cli.py \
+            openhab/scripts/test_installed_registered_closure.py \
+            openhab/scripts/test_qualification_source_inventory.py \
+            openhab/scripts/test_installed_registered_schedule.py \
+            openhab/scripts/test_installed_shade_complete_raw_publication.py \
+            openhab/scripts/test_installed_shade_compressed_publication.py \
+            openhab/scripts/test_installed_shade_calibrated.py \
+            openhab/scripts/test_installed_shade_calibrated_qualification.py \
+            openhab/scripts/test_installed_shade_publication.py \
+            openhab/scripts/test_installed_shade_published_origin.py \
+            openhab/scripts/test_installed_shade_live.py \
+            openhab/scripts/test_installed_shade_complete_raw_live.py \
+            openhab/scripts/test_installed_shade_compressed_live.py \
+            openhab/scripts/test_installed_shade_compressed_live_cli.py \
+            openhab/scripts/test_installed_shade_raw_live_cli.py \
+            openhab/scripts/test_installed_shade_bootstrap_live.py \
+            openhab/scripts/test_installed_shade_compressed_bootstrap.py \
+            openhab/scripts/test_installed_shade_live_inputs.py \
+            openhab/scripts/test_installed_shade_withdrawal.py \
+            openhab/scripts/test_installed_shade_score_collection.py \
+            openhab/scripts/test_installed_shade_score_inputs.py \
+            openhab/scripts/test_installed_raw_score_jobs.py \
+            openhab/scripts/test_installed_compressed_score_jobs.py \
+            openhab/scripts/test_installed_raw_score_cli.py \
+            openhab/scripts/test_installed_score_global_lock.py \
+            openhab/scripts/test_installed_score_jobs.py \
+            openhab/scripts/test_installed_shade_raw_score_sources.py \
+            openhab/scripts/test_installed_shade_raw_qualification.py \
+            openhab/scripts/test_installed_shade_raw_publication.py \
+            openhab/scripts/test_thermal_forecast_history.py \
+            openhab/scripts/test_thermal_forecast_receipts.py \
             openhab/scripts/test_thermal_dynamics.py \
+            openhab/scripts/test_thermal_fit_measurements.py \
+            openhab/scripts/test_thermal_fit_evidence.py \
+            openhab/scripts/test_thermal_fit_pipeline.py \
             openhab/scripts/test_thermal_pipeline.py \
+            openhab/scripts/test_thermal_vent_default.py \
+            openhab/scripts/test_weather_temperature_sources.py \
+            openhab/scripts/test_thermal_sensor_epoch_history.py \
+            openhab/scripts/test_thermal_legacy_origin.py \
+            openhab/scripts/test_thermal_legacy_observe.py \
             openhab/scripts/test_thermal_artifacts.py \
+            scripts/test_qualify_installed_shade_cli.py \
             tests/completion/test_thermal_replay_bundle.py

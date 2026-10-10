@@ -8,11 +8,11 @@ from threading import RLock
 import time
 from uuid import uuid4
 
-from weather_temperature_evidence import TemperaturePolicy, temperature_receipt
+from weather_temperature_evidence import TemperaturePolicy, temperature_receipt, sensor_epoch_id
 
 
 class TemperatureCollector:
-    def __init__(self, policies, *, clock=None, monotonic=None, process_id=None):
+    def __init__(self, policies, *, clock=None, monotonic=None, process_id=None, sensor_epochs=None):
         if not isinstance(policies, dict) or not 1 <= len(policies) <= 4:
             raise ValueError('one to four explicit stream policies required')
         if any(not isinstance(k, str) or not re.fullmatch(r'[a-z][a-z0-9_]{0,31}', k)
@@ -21,6 +21,11 @@ class TemperatureCollector:
         identities = {(p.model, p.sensor_id) for p in policies.values()}
         if len(identities) != len(policies):
             raise ValueError('duplicate stream identity')
+        if sensor_epochs is not None:
+            if not isinstance(sensor_epochs, dict) or set(sensor_epochs) != set(policies):
+                raise ValueError('complete explicit sensor epoch bindings required')
+            sensor_epochs = {name: sensor_epoch_id(epoch) for name, epoch in sensor_epochs.items()}
+        self.sensor_epochs = sensor_epochs
         self.policies = dict(policies)
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.monotonic = monotonic or time.monotonic
@@ -57,6 +62,8 @@ class TemperatureCollector:
             for name, policy in self.policies.items():
                 record = temperature_receipt(packet, policy=policy, stream_epoch=self.epoch, received_at=at)
                 if record is not None:
+                    if self.sensor_epochs is not None:
+                        record.update(version=2, sensorEpoch=self.sensor_epochs[name])
                     self.records[name] = record
                     self.received_ticks[name] = tick
 
@@ -70,10 +77,10 @@ class TemperatureCollector:
                 if at >= deadline or tick - self.received_ticks[name] >= self.policies[name].validity_seconds:
                     record.update(status='invalid', reason='expired', recordedAt=at.isoformat(),
                                   receivedAt=None, validUntil=None, temperatureF=None)
-            return {'version': 1, 'streamEpoch': self.epoch, 'records': deepcopy(self.records)}
+            return {'version': 1 if self.sensor_epochs is None else 2, 'streamEpoch': self.epoch, 'records': deepcopy(self.records)}
 
 
-def install_temperature_evidence(app, *, enabled=False, policies=None, clock=None, monotonic=None, process_id=None):
+def install_temperature_evidence(app, *, enabled=False, policies=None, clock=None, monotonic=None, process_id=None, sensor_epochs=None):
     """Install only with literal True and explicit policy; disabled means no hooks.
 
     Call during application setup, before serving any request. Existing receiver
@@ -84,7 +91,7 @@ def install_temperature_evidence(app, *, enabled=False, policies=None, clock=Non
     from flask import jsonify, request
     if 'temperature_receipt_evidence' in app.view_functions or any(rule.rule == '/temperature_evidence' for rule in app.url_map.iter_rules()):
         raise ValueError('temperature evidence already installed')
-    collector = TemperatureCollector(policies, clock=clock, monotonic=monotonic, process_id=process_id)
+    collector = TemperatureCollector(policies, clock=clock, monotonic=monotonic, process_id=process_id, sensor_epochs=sensor_epochs)
 
     @app.before_request
     def capture_temperature_receipt():

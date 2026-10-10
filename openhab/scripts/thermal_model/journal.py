@@ -950,10 +950,37 @@ def _payload_bytes(payload, actions, modes):
 
 
 class ActionJournal:
-    def __init__(self, dsn):
+    def __init__(self, dsn, *, read_limit=None, read_connection_factory=None):
         if not dsn:
             raise ValueError("PostgreSQL DSN is required")
+        if read_limit is not None and (type(read_limit) is not int or not 1 <= read_limit <= 10000):
+            raise ValueError("bounded journal read limit required")
+        if read_connection_factory is not None and not callable(read_connection_factory):
+            raise ValueError("journal read connection factory must be callable")
         self._dsn = dsn
+        self._read_limit = read_limit
+        self._read_connection_factory = read_connection_factory
+
+    def _read_rows(self, cursor, query, params, columns):
+        if self._read_limit is not None:
+            # Evaluate byte sizes on the server. Oversized originals become a
+            # refusal marker, never truncated or accepted as null source values.
+            size = " + ".join(f"COALESCE(octet_length(original.{name}::text), 0)::bigint" for name in columns)
+            projection = ", ".join(f"CASE WHEN sized.capture_oversize THEN NULL ELSE sized.{name} END AS {name}" for name in columns)
+            query = (f"SELECT {projection}, sized.capture_oversize FROM ("
+                     f"SELECT original.*, ({size} > 2048) AS capture_oversize FROM ("
+                     + query + "\n LIMIT %s) AS original) AS sized "
+                     "ORDER BY sized.effective_at, sized.received_at, sized.event_id")
+            params += (self._read_limit + 1,)
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        if self._read_limit is not None:
+            if len(rows) > self._read_limit:
+                raise JournalUnavailable("journal read row bound exceeded")
+            if any(len(row) != len(columns) + 1 or row[-1] is not False for row in rows):
+                raise JournalUnavailable("journal original row byte bound exceeded")
+            rows = [row[:-1] for row in rows]
+        return rows
 
     def append(self, event):
         if isinstance(event, ActionEvent):
@@ -1077,9 +1104,9 @@ class ActionJournal:
         _aware(end, "end")
         if end <= start:
             raise ValueError("end must be after start")
-        with psycopg2.connect(self._dsn) as connection:
+        with (self._read_connection_factory or psycopg2.connect)(self._dsn) as connection:
             with connection.cursor() as cursor:
-                cursor.execute(
+                rows = self._read_rows(cursor,
                     """WITH effective AS (
                            SELECT e.*
                            FROM thermal_intel.action_events e
@@ -1126,8 +1153,9 @@ class ActionJournal:
                           OR e.event_id IN (SELECT event_id FROM kiva_context)
                        ORDER BY e.effective_at, e.received_at, e.event_id""",
                     (start, start, start, start, start, end),
+                    ACTION_COLUMNS,
                 )
-                return tuple(ActionEvent(*row) for row in cursor.fetchall())
+                return tuple(ActionEvent(*row) for row in rows)
 
     def effective_modes(self, start, end):
         _aware(start, "start")
@@ -1135,9 +1163,9 @@ class ActionJournal:
         if end <= start:
             raise ValueError("end must be after start")
         try:
-            with psycopg2.connect(self._dsn) as connection:
+            with (self._read_connection_factory or psycopg2.connect)(self._dsn) as connection:
                 with connection.cursor() as cursor:
-                    cursor.execute(
+                    rows = self._read_rows(cursor,
                         """WITH effective AS (
                                SELECT m.*
                                FROM thermal_intel.mode_events m
@@ -1159,8 +1187,9 @@ class ActionJournal:
                               OR m.event_id IN (SELECT event_id FROM prior)
                            ORDER BY m.effective_at, m.received_at, m.event_id""",
                         (start, start, end),
+                        MODE_COLUMNS,
                     )
-                    return tuple(ModeEvent(*row) for row in cursor.fetchall())
+                    return tuple(ModeEvent(*row) for row in rows)
         except psycopg2.Error as exc:
             raise JournalUnavailable("action journal unavailable") from exc
 

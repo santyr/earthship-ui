@@ -1,0 +1,25 @@
+# Example only; requires exact installed sources, private configuration, both
+# String telemetry Items with JDBC persistence, and the compatible UI reader.
+# Disable the legacy shadow publisher before enabling this independent timer.
+[Unit]
+Description=Source-qualified installed-domain thermal forecast
+
+[Service]
+Type=oneshot
+Slice=earthship-inputs.slice
+Environment=EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0
+Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+ExecStart=/usr/bin/python3 %h/hex/openhab/scripts/thermal_installed_intel.py --contract-version 2 --config %h/.config/hex/thermal-installed-live.json --publish --shared-lock @VERIFIED_SHARED_LOCK@
+TimeoutStartSec=90
+CPUAccounting=yes
+CPUQuota=20%
+MemoryAccounting=yes
+MemoryMax=256M
+MemorySwapMax=0
+TasksAccounting=yes
+TasksMax=24
+Nice=15
+IOSchedulingClass=idle
+IOAccounting=yes
+IOWeight=10
+OOMPolicy=kill

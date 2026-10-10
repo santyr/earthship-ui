@@ -24,6 +24,7 @@ from .artifacts import (
     MASS_BOUNDS,
     MAX_VENT_FORCING,
     MODEL_SCHEMA,
+    SENSOR_MODEL_SCHEMA,
     MULTIHORIZON_CONTRACT,
     OUTPUT_RANGE_F,
     STABILITY_TOLERANCE,
@@ -34,6 +35,7 @@ from .artifacts import (
     validate_artifact,
 )
 from .behavior import (
+    constrain_vent_default,
     AIRFLOW_LEVELS,
     MINIMUM_IMPROVEMENT,
     _forcing_rows as _behavior_forcing_rows,
@@ -346,8 +348,14 @@ def run_training(
     behavior_fitter=fit_behavior,
     evaluator=walk_forward_evaluate,
     artifact_validator=validate_artifact,
+    fit_evidence_writer=None,
+    training_sources_writer=None,
 ):
-    """Fit, backtest, persist, validate, and promote an offline candidate."""
+    """Fit, backtest, persist, validate, and promote an offline shadow candidate."""
+    if fit_evidence_writer is not None and not callable(fit_evidence_writer):
+        raise ValueError("qualification fit evidence writer must be callable")
+    if training_sources_writer is not None and not callable(training_sources_writer):
+        raise ValueError("raw training sources writer must be callable")
     del forecast_reader
     series_by_role, events, modes = _read_authorities(
         start=start,
@@ -357,7 +365,10 @@ def run_training(
         site_settings_loader=site_settings_loader,
     )
     samples = sample_builder(series_by_role, events, modes, start, end)
-    fitted_dynamics = dynamics_fitter(samples)
+    if fit_evidence_writer is None:
+        fitted_dynamics = dynamics_fitter(samples)
+    else:
+        fitted_dynamics = dynamics_fitter(samples, collect_graduation_evidence=True)
     if not isinstance(fitted_dynamics, MultihorizonDynamicsFit):
         raise ValueError(
             "training dynamics fitter must return multihorizon evidence"
@@ -380,7 +391,7 @@ def run_training(
         manifest['temperature_evidence'] = series_reader.evidence_manifest()
     created_at = _aware(clock(), "clock")
     artifact = ThermalArtifact(
-        schema=MODEL_SCHEMA,
+        schema=SENSOR_MODEL_SCHEMA if manifest.get('temperature_evidence', {}).get('version') == 2 else MODEL_SCHEMA,
         created_at=_iso_utc(created_at),
         trained_from=manifest["start"],
         trained_through=manifest["end"],
@@ -392,6 +403,20 @@ def run_training(
     )
     try:
         artifact_validator(artifact)
+        if training_sources_writer is not None:
+            from .training_sources import build_training_sources
+            snapshot = build_training_sources(samples, series_reader)
+            try:
+                training_sources_writer(artifact, snapshot)
+            except OSError:
+                raise ValueError("candidate training source persistence failed") from None
+        if fit_evidence_writer is not None:
+            from .fit_evidence import build_fit_evidence
+            proof = build_fit_evidence(artifact, fitted_dynamics)
+            try:
+                fit_evidence_writer(artifact, proof)
+            except OSError:
+                raise ValueError("candidate fit evidence persistence failed") from None
         registry.save_candidate(artifact)
         promoted = registry.promote_candidate()
     except (ArtifactPromotionRefused, ArtifactValidationError, ValueError) as exc:
@@ -436,6 +461,13 @@ def _normalize_hourly_rows(rows):
             for candidate in raw_timelines[1:]
         ):
             raise ValueError("forecast mode timelines disagree")
+    policies = [raw.get("_ventClosedFrom") for raw in rows if isinstance(raw, dict)]
+    cutoff = None
+    if any(value is not None for value in policies):
+        parsed = tuple(_parse_time(value, "forecast vent default timestamp") for value in policies)
+        cutoff = parsed[0]
+        if any(value != cutoff for value in parsed[1:]):
+            raise ValueError("forecast vent defaults disagree")
     normalized = []
     for raw in rows:
         if not isinstance(raw, dict):
@@ -478,6 +510,7 @@ def _normalize_hourly_rows(rows):
                 "wind_mph": wind,
                 "mode": mode,
                 "_modeTimeline": timeline,
+                **({"_ventClosedFrom": cutoff} if cutoff is not None else {}),
             }
         )
     normalized.sort(key=lambda row: row["at"].astimezone(timezone.utc))
@@ -551,6 +584,7 @@ def interpolate_hourly_forecast(rows, *, start, end):
                     else left["mode"] if fraction < 1.0 else right["mode"]
                 ),
                 "_modeTimeline": left["_modeTimeline"],
+                **({"_ventClosedFrom": left["_ventClosedFrom"]} if "_ventClosedFrom" in left else {}),
             }
         )
         cursor_utc += STEP
@@ -691,7 +725,7 @@ def _expand_nightly_venting(schedule, rows, timezone_value):
     )
     expanded = dict(schedule)
     expanded["airflowSegments"] = tuple(clipped)
-    return expanded
+    return constrain_vent_default(expanded, rows)
 
 
 def _validate_internal_schedule(schedule, *, horizon_start, horizon_end):
@@ -1040,7 +1074,7 @@ def _unavailable(
 
 
 def _build_available_shadow(
-    *, artifact, current, forecast, now, site_timezone, registry_reason=None
+    *, artifact, current, forecast, now, site_timezone, registry_reason=None, optimize_schedule=True
 ):
     model, model_age, data_age = _artifact_context(artifact, now)
     values, current_ages = _current_values(current, now)
@@ -1079,49 +1113,53 @@ def _build_available_shadow(
         baseline, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
     )
     baseline_predictions = _simulate_schedule(artifact.dynamics, rows, baseline, initial)
-    decorated = [dict(rows[0])]
-    for row, predicted in zip(rows[1:], baseline_predictions):
-        decorated.append(
-            {
-                **row,
-                "air_f": predicted["air_f"],
-                "mass_f": predicted["mass_f"],
-                "air_baseline_f": predicted["air_f"],
-                "mass_baseline_f": predicted["mass_f"],
-            }
-        )
-    search = search_candidate_schedule(
-        behavior=artifact.behavior,
-        dynamics=artifact.dynamics,
-        forecast=decorated,
-    )
-    selection_reason = search.modeled_difference.get("selectionReason")
-    improvement = _finite(
-        search.modeled_difference.get("scoreImprovement", 0.0),
-        "candidate score improvement",
-    )
-    candidate = (
-        _expand_nightly_venting(search.candidate, rows, site_timezone)
-        if search.candidate is not None
-        else None
-    )
-    if (
-        selection_reason != "bounded_candidate_improved"
-        or improvement < MINIMUM_IMPROVEMENT
-        or candidate == baseline
-    ):
-        candidate = None
-    elif candidate is not None:
-        try:
-            _validate_internal_schedule(
-                candidate, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+    if optimize_schedule:
+        decorated = [dict(rows[0])]
+        for row, predicted in zip(rows[1:], baseline_predictions):
+            decorated.append(
+                {
+                    **row,
+                    "air_f": predicted["air_f"],
+                    "mass_f": predicted["mass_f"],
+                    "air_baseline_f": predicted["air_f"],
+                    "mass_baseline_f": predicted["mass_f"],
+                }
             )
-        except ValueError:
+        search = search_candidate_schedule(
+            behavior=artifact.behavior,
+            dynamics=artifact.dynamics,
+            forecast=decorated,
+        )
+        selection_reason = search.modeled_difference.get("selectionReason")
+        improvement = _finite(
+            search.modeled_difference.get("scoreImprovement", 0.0),
+            "candidate score improvement",
+        )
+        candidate = (
+            _expand_nightly_venting(search.candidate, rows, site_timezone)
+            if search.candidate is not None
+            else None
+        )
+        if (
+            selection_reason != "bounded_candidate_improved"
+            or improvement < MINIMUM_IMPROVEMENT
+            or candidate == baseline
+        ):
+            candidate = None
+        elif candidate is not None:
+            try:
+                _validate_internal_schedule(
+                    candidate, horizon_start=rows[0]["at"], horizon_end=rows[-1]["at"]
+                )
+            except ValueError:
+                candidate = None
+                selection_reason = "no_valid_candidate"
+        if candidate is not None and not _vent_schedule_is_valid(decorated, candidate):
             candidate = None
             selection_reason = "no_valid_candidate"
-    if candidate is not None and not _vent_schedule_is_valid(decorated, candidate):
+    else:
         candidate = None
-        selection_reason = "no_valid_candidate"
+        selection_reason = "forecast_only_baseline"
     selected = candidate or baseline
     predictions = (
         _simulate_schedule(artifact.dynamics, rows, selected, initial)
@@ -1142,6 +1180,9 @@ def _build_available_shadow(
     selected_morning = _morning_mass(rows, predictions, site_timezone)
     action_label, action_source = _action_label(artifact)
     reasons = []
+    cutoff = rows[0].get("_ventClosedFrom")
+    if cutoff is not None and cutoff <= rows[-1]["at"]:
+        reasons.append(f"operator closed-vent default from {_iso(cutoff)}; assumption, not observed action")
     if registry_reason is not None:
         reasons.append(registry_reason)
     if timedelta(hours=model_age) > DAILY_TRAINING_CADENCE:
@@ -1149,6 +1190,8 @@ def _build_available_shadow(
     if candidate is None:
         reasons.append(
             {
+                "forecast_only_baseline": "forecast uses baseline schedule assumptions; action advice withheld",
+                "operator_vent_default": "operator closed-vent default retained baseline; no vent candidate emitted",
                 "minimum_improvement_not_met": "minimum modeled improvement not met; no candidate emitted",
                 "protocol_constraint": "protocol constraint retained baseline; no candidate emitted",
                 "explicit_mode_transition": "explicit journal mode transition retained evidence-backed baseline; no candidate emitted",
@@ -1222,12 +1265,14 @@ def build_unavailable_shadow(
 
 
 def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE,
-               artifact_observer=None):
+               artifact_observer=None, optimize_schedule=True):
     """Return a bounded shadow result; invalid dependencies fail soft."""
     now = _aware(now, "now")
     artifact = None
     failed_input = "accepted artifact input"
     try:
+        if type(optimize_schedule) is not bool:
+            raise ValueError("explicit boolean schedule optimization selection required")
         artifact = registry.load_accepted()
         if artifact_observer is not None:
             artifact_observer(artifact)
@@ -1244,6 +1289,7 @@ def run_shadow(*, registry, current, forecast, now, site_timezone=SITE_TIMEZONE,
             now=now,
             site_timezone=site_timezone,
             registry_reason=registry_reason,
+            optimize_schedule=optimize_schedule,
         )
     except (
         AttributeError,
@@ -1268,6 +1314,11 @@ def build_shadow_output(**kwargs):
 def write_shadow_output(path, payload):
     """Atomically write one validated, compact local shadow JSON document."""
     validate_shadow_output(payload)
+    return _write_validated_output(path, payload)
+
+
+def _write_validated_output(path, payload):
+    """Shared atomic persistence, after the caller's version-specific validator."""
     encoded = (
         json.dumps(payload, allow_nan=False, separators=(",", ":"), sort_keys=True)
         + "\n"

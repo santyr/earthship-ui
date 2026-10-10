@@ -85,6 +85,27 @@ describe('ThermalModelPlot bounded SVG', () => {
     expect(container.querySelectorAll('[data-series="observed-mass"]')).toHaveLength(2);
   });
 
+  it('shows isolated calibrated target intervals without filling the hours between them', () => {
+    const trajectory = Array.from({ length: 24 }, (_, index) => ({
+      atMs: START + (index + 1) * HOUR, hallwayF: 74, massF: 76,
+      lowF: [1,6,12,24].includes(index + 1) ? 73 : null,
+      highF: [1,6,12,24].includes(index + 1) ? 75 : null, actions: [],
+    }));
+    const { container } = render(ThermalModelPlot, { trajectory, uncertaintyMode: 'calibrated_targets' });
+    expect(container.querySelectorAll('[data-series="forecast-target-interval"]')).toHaveLength(4);
+    expect(container.querySelector('polygon')).toBeNull();
+    expect(container.innerHTML).not.toMatch(/NaN|Infinity/);
+    expect(container.querySelectorAll('.axis-label')[3].textContent).toBe('72°');
+  });
+
+  it('shows no uncertainty for an uncalibrated original forecast', () => {
+    const trajectory = [{ atMs: START, hallwayF: 74, massF: 76, lowF: null, highF: null, actions: [] }];
+    const { container } = render(ThermalModelPlot, { trajectory, uncertaintyMode: 'none' });
+    expect(container.querySelector('[data-series="forecast-interval"]')).toBeNull();
+    expect(container.querySelector('[data-series="forecast-target-interval"]')).toBeNull();
+    expect(container.querySelectorAll('.axis-label')[3].textContent).toBe('73°');
+  });
+
   it('renders an accessible empty state without an SVG when no series exists', () => {
     const { container, getByText } = render(ThermalModelPlot, {
       trajectory: [],

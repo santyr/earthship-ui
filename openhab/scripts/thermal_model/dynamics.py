@@ -2,6 +2,7 @@
 
 from collections import deque
 from collections.abc import Mapping
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -12,6 +13,9 @@ from scipy.optimize import Bounds, LinearConstraint, lsq_linear, minimize
 
 from .schema import DynamicsModel
 from .solar import clear_sky_fraction
+
+
+_condition_capture = ContextVar("thermal_fit_condition_capture", default=None)
 
 
 STEP = timedelta(minutes=5)
@@ -262,6 +266,26 @@ class BlockRefitStabilityEvidence:
 
 
 @dataclass(frozen=True)
+class BlockRefitCoefficientEvidence:
+    """The actual optimized coefficients from one deterministic omitted block."""
+
+    group: int
+    omitted_days: tuple[str, ...]
+    coefficients: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class ConditioningEvidence:
+    """One actual normalized design/sensitivity check from a qualification fit."""
+
+    stage: str
+    label: str
+    row_count: int
+    column_count: int
+    condition_number: float
+
+
+@dataclass(frozen=True)
 class MultihorizonEvidence:
     """Exact bounded evidence for one multihorizon refinement."""
 
@@ -269,6 +293,9 @@ class MultihorizonEvidence:
     initial_objective: float
     final_objective: float
     block_refit_stability: BlockRefitStabilityEvidence | None = None
+    conditioning: tuple[ConditioningEvidence, ...] | None = None
+    graduation_block_refit_stability: BlockRefitStabilityEvidence | None = None
+    graduation_block_refits: tuple[BlockRefitCoefficientEvidence, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -399,7 +426,21 @@ def _require_well_conditioned(matrix, label):
             f"{label} is ill-conditioned after column normalization "
             f"(condition={condition:.6g})"
         )
+    capture = _condition_capture.get()
+    if capture is not None:
+        stage, measurements, _ = capture
+        values = np.asarray(matrix)
+        measurements.append(ConditioningEvidence(
+            stage=stage, label=label, row_count=values.shape[0],
+            column_count=values.shape[1], condition_number=condition,
+        ))
     return condition
+
+
+def _set_condition_stage(stage):
+    capture = _condition_capture.get()
+    if capture is not None:
+        _condition_capture.set((stage, capture[1], capture[2]))
 
 
 def _selection_with_glazing(samples):
@@ -822,6 +863,12 @@ def _validate_block_refit_stability(samples, baseline, *, fitter=None):
             raise ValueError(
                 f"block-refit stability fit failed for group {group}: {exc}"
             ) from exc
+        capture = _condition_capture.get()
+        if capture is not None and capture[0] == "graduation_block_refit":
+            capture[2].append(BlockRefitCoefficientEvidence(
+                group=group, omitted_days=tuple(day.isoformat() for day in sorted(withheld)),
+                coefficients=tuple(map(float, candidate)),
+            ))
         fractions = np.abs(candidate - base) / spans
         if not np.isfinite(fractions).all():
             raise ValueError("block-refit stability produced non-finite movement")
@@ -1021,7 +1068,8 @@ def _multihorizon_objective_and_gradient(
     return float(loss), gradient
 
 
-def _validate_multihorizon_rank(sensitivity_rows, active_indices):
+def _validate_multihorizon_rank(sensitivity_rows, active_indices, *,
+                                label="multihorizon sensitivity matrix"):
     matrix = np.asarray(sensitivity_rows, dtype=float)[:, list(active_indices)]
     if not np.isfinite(matrix).all():
         raise ValueError("multihorizon sensitivity matrix is non-finite")
@@ -1035,7 +1083,7 @@ def _validate_multihorizon_rank(sensitivity_rows, active_indices):
     if np.linalg.matrix_rank(normalized) < len(active_indices):
         raise ValueError("multihorizon objective inputs are rank deficient")
     _require_well_conditioned(
-        normalized, "multihorizon sensitivity matrix"
+        normalized, label
     )
 
 
@@ -1169,6 +1217,16 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
     )
     if final_objective > initial_objective + tolerance:
         raise ValueError("multihorizon objective increased")
+    if _condition_capture.get() is not None:
+        final_sensitivity_rows = []
+        _multihorizon_objective_and_gradient(
+            final_vector, endpoints, sensitivity_rows=final_sensitivity_rows,
+            prepared_forcings=prepared_forcings, prepared_batches=prepared_batches,
+        )
+        _validate_multihorizon_rank(
+            final_sensitivity_rows, active_indices,
+            label="multihorizon final sensitivity matrix",
+        )
     evidence = MultihorizonEvidence(
         origin_counts=tuple(counts.items()),
         initial_objective=float(initial_objective),
@@ -1182,16 +1240,43 @@ def _refine_multihorizon(initial, endpoints, inactive_features):
 
 
 def fit_dynamics_with_evidence(
-    samples, *, allow_inactive_action_forcing=False
+    samples, *, allow_inactive_action_forcing=False,
+    collect_graduation_evidence=False,
 ):
-    """Fit and refine dynamics while returning exact optimizer evidence."""
+    """Preserve default fitting; explicitly collect strict final-fit evidence.
+
+    Qualification adds final sensitivity checks and full optimized independent-
+    day block refits. It does not turn a shadow artifact into production.
+    """
+    if type(collect_graduation_evidence) is not bool:
+        raise ValueError("graduation evidence request must be boolean")
+    if collect_graduation_evidence and allow_inactive_action_forcing:
+        raise ValueError("graduation measurements require strict full-evidence fitting")
+    measurements = []
+    blocks = []
+    token = _condition_capture.set(
+        ("initializer", measurements, blocks) if collect_graduation_evidence else None
+    )
+    try:
+        return _fit_dynamics_with_evidence(
+            tuple(samples) if collect_graduation_evidence else samples,
+            allow_inactive_action_forcing=allow_inactive_action_forcing,
+        )
+    finally:
+        _condition_capture.reset(token)
+
+
+def _fit_dynamics_with_evidence(samples, *, allow_inactive_action_forcing):
+    """Shared fitting body, with qualification measurements isolated by context."""
     initial, inactive = _fit_five_minute_dynamics(
         samples,
         allow_inactive_action_forcing=allow_inactive_action_forcing,
     )
     endpoints = _select_multihorizon_endpoints(samples, inactive)
+    _set_condition_stage("refinement")
     refined = _refine_multihorizon(initial, endpoints, inactive)
     if not allow_inactive_action_forcing:
+        _set_condition_stage("initializer_block_refit")
         assessment = BlockRefitStabilityEvidence(
             **_validate_block_refit_stability(samples, initial)
         )
@@ -1199,6 +1284,29 @@ def fit_dynamics_with_evidence(
             refined,
             evidence=replace(refined.evidence, block_refit_stability=assessment),
         )
+    capture = _condition_capture.get()
+    if capture is not None:
+        _set_condition_stage("graduation_block_refit")
+        def final_refit(rows):
+            block_initial, block_inactive = _fit_five_minute_dynamics(
+                rows, allow_inactive_action_forcing=False
+            )
+            if block_inactive:
+                raise ValueError("graduation block refit contains inactive forcing")
+            block_endpoints = _select_multihorizon_endpoints(rows, block_inactive)
+            return _refine_multihorizon(
+                block_initial, block_endpoints, block_inactive
+            ).dynamics
+        final_assessment = BlockRefitStabilityEvidence(
+            **_validate_block_refit_stability(
+                samples, refined.dynamics, fitter=final_refit
+            )
+        )
+        refined = replace(refined, evidence=replace(
+            refined.evidence, conditioning=tuple(capture[1]),
+            graduation_block_refit_stability=final_assessment,
+            graduation_block_refits=tuple(capture[2]),
+        ))
     return refined
 
 

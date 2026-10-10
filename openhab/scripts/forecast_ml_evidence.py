@@ -104,3 +104,51 @@ def summarize_nonoverlapping_origins(origins, horizon):
         "first_origin": selected[0].isoformat() if selected else None,
         "last_origin": selected[-1].isoformat() if selected else None,
     }
+
+
+def summarize_soc_night_sources(sample_days, records, issue_origin):
+    """Expose same-read measurement metadata; never claim model/release authority.
+
+    Metadata digests identify the assessor inputs; this diagnostic does not
+    replace original observations or perform prospective forecast scoring.
+    """
+    import math
+    import re
+    from advisory_windows import trough_window
+    result = dict(model_kind='rolling_completed_night_heuristic', trained_model=False,
+                  issue_origin=None, sample_dates=[], bank_epochs=[], source_coverage={},
+                  source_evidence_digests={}, source_qualified_night_count=0,
+                  provenance_basis='same_read_assessment_metadata', release_authority=False)
+    try:
+        origin = datetime.fromisoformat(issue_origin)
+        if origin.utcoffset() is None or not isinstance(records, dict) or len(records)>4:
+            return result
+        dates = sorted(set(date.fromisoformat(day) for day in sample_days))
+        if len(dates)>4:return result
+    except (TypeError, ValueError):
+        return result
+    result['issue_origin'] = origin.isoformat()
+    banks=set()
+    for ending_day in dates:
+        day=ending_day.isoformat();record=records.get(day)
+        if not isinstance(record, dict) or set(record)!={'bank_epoch','assessment'}:continue
+        bank=record['bank_epoch'];assessment=record['assessment']
+        if not isinstance(bank,str) or not 1<=len(bank)<=128 or not isinstance(assessment,dict):continue
+        if (assessment.get('assessment_version')!='atomic-soc-trough-v1' or
+                assessment.get('status')!='measured' or assessment.get('source')!='BMS_SOC_Evidence_JSON' or
+                assessment.get('prediction_day')!=(ending_day-timedelta(days=1)).isoformat()):continue
+        coverage=assessment.get('coverage');minimum=assessment.get('min_soc_pct');digest=assessment.get('evidence_digest')
+        if (type(coverage) not in (int,float) or not math.isfinite(coverage) or not .9<=coverage<=1 or
+                type(minimum) not in (int,float) or not math.isfinite(minimum) or not 0<=minimum<=100 or
+                not isinstance(digest,str) or re.fullmatch('[0-9a-f]{64}',digest) is None):continue
+        try:
+            assessed=datetime.fromisoformat(assessment['assessed_at'])
+            window=trough_window(ending_day-timedelta(days=1),assessment['site_timezone'])
+            if (assessed.utcoffset() is None or not window.end<=assessed<=origin or
+                    assessment['window_start']!=window.start.isoformat() or assessment['window_end']!=window.end.isoformat()):continue
+        except (KeyError,TypeError,ValueError):continue
+        banks.add(bank);result['sample_dates'].append(day)
+        result['source_coverage'][day]=coverage;result['source_evidence_digests'][day]=digest
+    result['bank_epochs']=sorted(banks)
+    result['source_qualified_night_count']=len(result['sample_dates'])
+    return result

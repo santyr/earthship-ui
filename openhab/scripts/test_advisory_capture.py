@@ -166,7 +166,7 @@ def run_main(monkeypatch, tmp_path, *, active, highs, low_resource=False,
     # Model both test scenarios with source-qualified atomic SoC. A low
     # resource forecast must not depend on held numeric BMS_SOC fallback.
     soc_inputs = (20, {}) if low_resource else (85, {day - timedelta(days=1): 85})
-    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now: (*soc_inputs, None))
+    monkeypatch.setattr(fi, "qualified_soc_inputs", lambda today, now, **_kwargs: (*soc_inputs, None))
     monkeypatch.setattr(fi, "oh_get", lambda path: {"state": "82"})
     monkeypatch.setattr(fi, "oh_put_state", lambda item, value: puts.append((item, value)))
     monkeypatch.setattr(fi, "fetch_forecast", lambda: snapshot)

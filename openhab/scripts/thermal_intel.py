@@ -96,16 +96,39 @@ def _build_parser():
         command.add_argument(
             "--state-dir", type=Path, default=DEFAULT_STATE_DIRECTORY
         )
+        if name == "train":
+            command.add_argument(
+                "--fit-evidence-dir", type=Path,
+                help="record strict final-fit evidence in an existing private directory (off-host qualification)",
+            )
 
     shadow = subparsers.add_parser(
         "shadow", help="write one bounded shadow prediction"
     )
+    shadow.add_argument("--receipt-version", type=int, choices=(1, 2), default=1)
     shadow.add_argument("--output", type=Path, default=DEFAULT_SHADOW_PATH)
+    shadow.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY,
+        help="explicit model registry for a compatible staged recovery runtime")
     shadow.add_argument(
         "--publish",
         action="store_true",
         help="publish the validated shadow JSON to Thermal_Model_JSON",
     )
+    observe = subparsers.add_parser("observe-candidate", help="preview or explicitly publish one frozen-candidate shadow observation")
+    observe.add_argument("--model-directory", required=True, type=Path)
+    observe.add_argument("--origin-capture-dir", required=True, type=Path)
+    observe.add_argument("--output", required=True, type=Path)
+    observe.add_argument("--candidate-sha256", required=True)
+    observe.add_argument("--runtime-sha256", required=True)
+    observe.add_argument("--receipt-version",type=int,choices=(1,2),default=1)
+    observe.add_argument("--publish", action="store_true", help="publish low-confidence v1 shadow and retain its accepted original")
+    release = subparsers.add_parser("release", help="recompute thermal release qualification and write explicit v2 output")
+    release.add_argument("--evidence-inputs", required=True, type=Path)
+    release.add_argument("--model-directory", type=Path, default=DEFAULT_STATE_DIRECTORY)
+    release.add_argument("--output", type=Path, default=DEFAULT_STATE_DIRECTORY.parent / "release.json")
+    release.add_argument("--receipt-version",type=int,choices=(1,2),default=1)
+    release.add_argument("--publish", action="store_true", help="publish one qualified or unavailable v2 state")
+    release.add_argument("--origin-capture-dir", type=Path, help="private immutable v2 origin archive for accepted publications")
     return parser
 
 
@@ -245,12 +268,15 @@ def _offline_journal(parser):
 def _training_kwargs(args, parser, now):
     from thermal_temperature_runtime import configured_history
     start, end = _date_range(args, now)
+    retain_raw = getattr(args, "fit_evidence_dir", None) is not None
+    history = (configured_history(_jdbc_series, now, retain_raw=True)
+        if retain_raw else configured_history(_jdbc_series, now))
     return {
         "start": start,
         "end": end,
         "registry": ArtifactRegistry(args.state_dir),
         "journal": _offline_journal(parser),
-        "series_reader": configured_history(_jdbc_series, now),
+        "series_reader": history,
         "forecast_reader": forecast_intel.fetch_forecast,
         "clock": lambda: now,
         "revision_reader": _code_revision,
@@ -259,8 +285,22 @@ def _training_kwargs(args, parser, now):
 
 
 def _train(args, parser, now):
+    proof_directory = getattr(args, "fit_evidence_dir", None)
+    proof_writer = None
+    source_writer = None
+    if proof_directory is not None:
+        from thermal_model.forcing_capture import _private_directory
+        from thermal_model.fit_evidence import write_fit_evidence
+        from thermal_model.training_sources import write_training_sources
+        root = _private_directory(Path(proof_directory).expanduser().absolute())
+        proof_writer = lambda artifact, proof: write_fit_evidence(root, proof, artifact)
+        source_writer = lambda artifact, snapshot: write_training_sources(root, snapshot, artifact)
+    kwargs = _training_kwargs(args, parser, now)
+    if proof_writer is not None:
+        kwargs["fit_evidence_writer"] = proof_writer
+        kwargs["training_sources_writer"] = source_writer
     try:
-        result = run_training(**_training_kwargs(args, parser, now))
+        result = run_training(**kwargs)
     except TrainingRefused as exc:
         print(
             json.dumps(
@@ -299,6 +339,22 @@ def _backtest(args, parser, now):
         )
     )
     return 0
+
+
+# Operator forecast assumption, effective at local midnight (still MDT).
+# Captured rows freeze it; replay never consults a later operator default.
+_VENT_CLOSED_FROM = datetime(2026, 11, 1, tzinfo=forecast_intel.MOUNTAIN)
+
+
+def _apply_vent_default(rows):
+    if not rows:
+        return rows
+    def at(row):
+        value = row["at"]
+        return datetime.fromisoformat(value) if isinstance(value, str) else value
+    if max(at(row) for row in rows) < _VENT_CLOSED_FROM:
+        return rows
+    return [{**row, "_ventClosedFrom": _VENT_CLOSED_FROM.isoformat()} for row in rows]
 
 
 _MODE_TIMELINE_FIELD = "_modeTimeline"
@@ -417,10 +473,13 @@ def _aligned_observed_history(histories):
     ]
 
 
-def _current_states(now, series_reader=None, state_reader=None):
-    from thermal_temperature_runtime import configured_shadow_temperatures
+def _current_states(now, series_reader=None, state_reader=None, *, origin_observer=None,receipt_version=1):
+    from thermal_temperature_runtime import configured_shadow_temperatures,configured_shadow_temperatures_v2
     from thermal_radiation_runtime import configured_shadow_radiation
-    qualified = dict(configured_shadow_temperatures(now) or {})
+    if type(receipt_version) is not int or receipt_version not in (1,2):raise ValueError("explicit supported temperature receipt version required")
+    select=configured_shadow_temperatures_v2 if receipt_version==2 else configured_shadow_temperatures
+    selected = (select(now) if origin_observer is None else select(now,origin_observer=origin_observer))
+    qualified = dict(selected or {})
     radiation = configured_shadow_radiation(now)
     if radiation is not None:
         qualified['radiation'] = radiation
@@ -483,18 +542,142 @@ def publish_shadow_output(payload, put_state=None):
     return encoded
 
 
+
+def publish_release_output(*, shadow, qualification_loader, now,
+        artifact_sha256, runtime_sha256, sensor_epochs, forecast_rows=None, put_state=None):
+    """Recompute qualification and publish one v2 state, including withdrawal.
+
+    The caller supplies the current observed artifact/runtime/epochs and a
+    trusted source-backed evaluator. Cached reports and active overrides cannot
+    select the operating mode. Transport failure propagates to the caller.
+    """
+    from thermal_model.release import build_release_output
+    output = build_release_output(shadow=shadow,
+        qualification_loader=qualification_loader, now=now,
+        artifact_sha256=artifact_sha256, runtime_sha256=runtime_sha256,
+        sensor_epochs=sensor_epochs, forecast_rows=forecast_rows)
+    _publish_validated_release(output, put_state=put_state)
+    return output
+
+
+def _publish_validated_release(output, put_state=None):
+    from thermal_model.release import validate_release_output,validate_sensor_release_output
+    (validate_sensor_release_output if output.get("version")==3 else validate_release_output)(output)
+    encoded = json.dumps(output, separators=(",", ":"), allow_nan=False)
+    if len(encoded.encode("utf-8")) >= MAX_SHADOW_BYTES:
+        raise ValueError("thermal release exceeds the 16 KiB publication bound")
+    transport = forecast_intel.oh_put_state if put_state is None else put_state
+    # Unlike the legacy shadow publisher, unavailable v2 data must be sent:
+    # otherwise the last active publication would survive a failed gate.
+    transport(THERMAL_MODEL_ITEM, encoded)
+    return output
+
+
+def _origin_runtime_paths():
+    paths = list(RUNTIME_REVISION_PATHS)
+    if "thermal_model/runtime_bundle.py" not in paths:
+        paths.append("thermal_model/runtime_bundle.py")
+    return paths
+
+
+def _origin_runtime_binding():
+    from thermal_model.origin_capture import build_runtime_binding
+    return build_runtime_binding(Path(__file__).resolve().parent, _origin_runtime_paths())
+
+
+
+def _release_runtime_paths():
+    return list(dict.fromkeys((*_origin_runtime_paths(),
+        "thermal_model/origin_capture.py", "thermal_model/forcing_capture.py",
+        "thermal_model/release.py", "thermal_model/graduation_policy.py",
+        "thermal_model/graduation_statistics.py", "thermal_model/graduation_decision.py",
+        "thermal_model/policy_registration.py", "thermal_model/graduation_evidence.py",
+        "thermal_model/recent_cycles.py", "thermal_model/fit_evidence.py",
+        "thermal_model/training_sources.py")))
+
+
+def _release_runtime_binding():
+    from thermal_model.origin_capture import build_runtime_binding
+    return build_runtime_binding(Path(__file__).resolve().parent, _release_runtime_paths())
+
+
+def _archive_original_publication(directory, *, output, artifact, snapshot, rows,
+        current, origin_temperatures, runtime, inputs_available_at, published_at, revision_paths=None):
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.origin_capture import build_origin_capture,write_origin_capture,build_sensor_origin_capture,write_sensor_origin_capture
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    root = _private_directory(Path(directory))
+    bundles = root / "runtime-bundles"
+    try:
+        bundles.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
+        _origin_runtime_paths() if revision_paths is None else revision_paths, expected_binding=runtime)
+    native=origin_temperatures.get("schema")=="earthship-thermal-origin-temperatures/v2"
+    builder=build_sensor_origin_capture if native else build_origin_capture
+    writer=write_sensor_origin_capture if native else write_origin_capture
+    record = builder(output=output, artifact=artifact, snapshot=snapshot,
+        rows=rows, current=current, origin_temperatures=origin_temperatures,
+        runtime=runtime, inputs_available_at=inputs_available_at,
+        published_at=published_at, known_actions=None)
+    return writer(root, record)
+
+
+
+def _archive_release_publication(directory, *, output, artifact, snapshot, rows,
+        current, origin_temperatures, runtime, inputs_available_at, published_at):
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.origin_capture import build_release_origin_capture,write_release_origin_capture,build_sensor_release_origin_capture,write_sensor_release_origin_capture
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    root = _private_directory(Path(directory))
+    bundles = root / "runtime-bundles"
+    try:
+        bundles.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    capture_runtime_bundle(bundles, Path(__file__).resolve().parent,
+        _release_runtime_paths(), expected_binding=runtime)
+    native=output.get("version")==3
+    builder=build_sensor_release_origin_capture if native else build_release_origin_capture
+    writer=write_sensor_release_origin_capture if native else write_release_origin_capture
+    record = builder(output=output, artifact=artifact, snapshot=snapshot,
+        rows=rows, current=current, origin_temperatures=origin_temperatures,
+        runtime=runtime, inputs_available_at=inputs_available_at,
+        published_at=published_at, known_actions=None)
+    return writer(root, record)
+
+
 def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
-            published_clock=None):
+            published_clock=None, output_handler=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     from thermal_radiation_runtime import validate_shadow_radiation_expiry
     started = time.monotonic()
     started_at = now
     current = None
+    origin_directory = (os.environ.get("THERMAL_ORIGIN_CAPTURE_DIR")
+        if getattr(args, "publish", False) else None)
+    origin_proofs = []
+    artifact_used = []
+    snapshot = None
+    rows = []
+    original_runtime = None
+    collect_origin = bool(origin_directory or output_handler is not None)
+    if collect_origin:
+        try:
+            original_runtime = (_release_runtime_binding() if output_handler is not None
+                else _origin_runtime_binding())
+        except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+            # Missing observational proof never changes the default forecast.
+            pass
     failed_input = "site settings input"
     try:
         forecast_intel.load_site_settings()
         failed_input = "current state input"
-        current = _current_states(now)
+        receipt_version=getattr(args,"receipt_version",1)
+        extra={} if receipt_version==1 else dict(receipt_version=receipt_version)
+        current = (_current_states(now,origin_observer=origin_proofs.append,**extra)
+            if collect_origin else _current_states(now,**extra))
         failed_input = "forecast input"
         snapshot = forecast_intel.fetch_forecast()
         rows = _forecast_rows(
@@ -523,6 +706,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
                 now, horizon_end + timedelta(microseconds=1)
             )
             rows = _apply_mode_timeline(rows, modes, now)
+        rows = _apply_vent_default(rows)
         # The forecast fetch (and optional mode read) occurs after the command
         # starts. Stamp the decision only after those inputs are available; a
         # start-time stamp would falsely place them in the past for replay.
@@ -532,14 +716,14 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             raise ValueError('shadow decision clock is invalid or moved backward')
         now = decision_at.astimezone(timezone.utc)
         failed_input = "accepted artifact input"
-        artifact_used = []
         output = run_shadow(
-            registry=ArtifactRegistry(DEFAULT_STATE_DIRECTORY),
+            registry=ArtifactRegistry(getattr(args, "model_directory", DEFAULT_STATE_DIRECTORY)),
             current=current,
             forecast=rows,
             now=now,
             site_timezone=forecast_intel.MOUNTAIN,
             artifact_observer=artifact_used.append,
+            **({"optimize_schedule": False} if output_handler is not None else {}),
         )
         # The model serializes to whole seconds. Preserve the post-input
         # decision clock's full precision for capture-safe provenance.
@@ -566,12 +750,29 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
             now=now, reasons=(str(exc),), current=current,
             fallback_reason=f"{failed_input} unavailable",
         )
+    if output_handler is not None:
+        return output_handler(output, current=current, artifact_used=artifact_used,
+            origin_proofs=origin_proofs, runtime=original_runtime,
+            now=now, started_at=started_at, started=started,
+            snapshot=snapshot, rows=rows)
     write_shadow_output(args.output, output)
     encoded = json.dumps(output, sort_keys=True, separators=(",", ":"))
     unavailable = output["confidence"]["grade"] == "unavailable"
     if getattr(args, "publish", False) and not unavailable:
         publish_shadow_output(output, put_state=put_state)
-        capture_dir = os.environ.get('THERMAL_SHADOW_CAPTURE_DIR')
+        capture_dir = os.environ.get("THERMAL_SHADOW_CAPTURE_DIR")
+        published_at = ((published_clock() if published_clock else datetime.now(timezone.utc))
+            if origin_directory or capture_dir else None)
+        if origin_directory:
+            try:
+                if len(origin_proofs) != 1 or len(artifact_used) != 1 or original_runtime is None:
+                    raise ValueError("complete original native/runtime proof unavailable")
+                _archive_original_publication(origin_directory, output=output,
+                    artifact=artifact_used[0], snapshot=snapshot, rows=rows, current=current,
+                    origin_temperatures=origin_proofs[0], runtime=original_runtime,
+                    inputs_available_at=now, published_at=published_at)
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+                print("thermal origin capture gap: original proof unavailable", file=sys.stderr)
         if capture_dir:
             try:
                 if len(artifact_used) != 1:
@@ -579,8 +780,7 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
                 capture_shadow_inputs(
                     capture_dir, output=output, snapshot=snapshot, rows=rows,
                     current=current, inputs_available_at=now,
-                    published_at=(published_clock() if published_clock else
-                                  datetime.now(timezone.utc)),
+                    published_at=published_at,
                     artifact=artifact_used[0],
                 )
             except (OSError, RuntimeError, TypeError, ValueError):
@@ -590,6 +790,199 @@ def _shadow(args, now, put_state=None, journal=None, decision_clock=None,
                       file=sys.stderr)
     print(encoded, file=sys.stderr if unavailable else sys.stdout)
     return int(unavailable)
+
+
+
+def _observe_candidate(args, now, put_state=None, journal=None, decision_clock=None,
+                       published_clock=None):
+    """Acquire original shadow evidence under the frozen release runtime.
+
+    Pins constrain observational identity, never authorize production. No
+    qualification loader is used, so the first pair can be acquired naturally.
+    """
+    from dataclasses import asdict
+    from types import SimpleNamespace
+    from thermal_model.forcing_capture import _canonical, _private_directory
+    from thermal_model.graduation_policy import _sha
+    from thermal_model.origin_capture import _temperatures
+    from thermal_temperature_runtime import validate_shadow_receipt_expiry
+    from thermal_radiation_runtime import validate_shadow_radiation_expiry
+    receipt_version=getattr(args,"receipt_version",1)
+    clock_reader = decision_clock or (lambda: datetime.now(timezone.utc))
+    try:
+        candidate_pin = _sha(args.candidate_sha256)
+        runtime_pin = _sha(args.runtime_sha256)
+        models = _private_directory(Path(args.model_directory))
+        origins = _private_directory(Path(args.origin_capture_dir))
+        output_path = Path(args.output)
+        _private_directory(output_path.parent)
+        if (not output_path.is_absolute() or output_path.resolve() != output_path or
+                output_path.is_relative_to(models) or output_path.is_relative_to(origins) or
+                output_path.is_relative_to(Path(__file__).resolve().parent) or
+                output_path == Path(sys.executable).resolve()):
+            raise ValueError("separate resolved private observation output required")
+        frozen_runtime = _release_runtime_binding()
+        if sha256(_canonical(frozen_runtime)).hexdigest() != runtime_pin:
+            raise ValueError("frozen observation runtime differs")
+    except (ImportError, OSError, RuntimeError, TypeError, ValueError):
+        print("thermal candidate observation refused; check private paths and frozen identities", file=sys.stderr)
+        return 1
+
+    def finish(shadow, **context):
+        try:
+            validate_shadow_output(shadow)
+            if (shadow['confidence']['grade'] != 'low' or shadow['schedule']['candidate'] is not None or
+                    len(context['artifact_used']) != 1 or len(context['origin_proofs']) != 1 or
+                    context['runtime'] != frozen_runtime or
+                    sha256(_canonical(asdict(context['artifact_used'][0]))).hexdigest() != candidate_pin):
+                raise ValueError("complete frozen candidate observation required")
+            if _release_runtime_binding() != frozen_runtime:
+                raise ValueError("runtime changed during observation")
+            at = clock_reader()
+            if not isinstance(at, datetime) or at.utcoffset() is None or at < context['now']:
+                raise ValueError("observation clock moved backward")
+            at = max(at, context['started_at'] + timedelta(seconds=max(0, time.monotonic()-context['started'])))
+            validate_shadow_receipt_expiry(context['current'], at)
+            validate_shadow_radiation_expiry(context['current'], at)
+            epochs,_=_temperatures(json.loads(_canonical(context['origin_proofs'][0])),context['current'],issued_at=context['now'],published_at=at,version=receipt_version)
+            if receipt_version==2:
+                from thermal_model.artifacts import validate_artifact
+                artifact=validate_artifact(context['artifact_used'][0])
+                if artifact.schema!='earthship-thermal-model/v6' or epochs!={role:info['sensor_epoch'] for role,info in artifact.data_manifest['temperature_evidence']['roles'].items()}:
+                    raise ValueError('frozen observation model/hardware phase differs')
+        except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+            unavailable = build_unavailable_shadow(now=context['now'], reasons=("frozen candidate observation unavailable",))
+            write_shadow_output(output_path, unavailable)
+            print(json.dumps(unavailable, sort_keys=True, separators=(",", ":")), file=sys.stderr)
+            return 1
+        write_shadow_output(output_path, shadow)
+        if args.publish:
+            # Transport failure propagates; never archive an unaccepted write.
+            publish_shadow_output(shadow, put_state=put_state)
+            try:
+                published = published_clock() if published_clock else datetime.now(timezone.utc)
+                if not isinstance(published, datetime) or published.utcoffset() is None or published < at:
+                    raise ValueError("observation acknowledgement clock moved backward")
+                _archive_original_publication(origins, output=shadow, artifact=context['artifact_used'][0],
+                    snapshot=context['snapshot'], rows=context['rows'], current=context['current'],
+                    origin_temperatures=context['origin_proofs'][0], runtime=context['runtime'],
+                    inputs_available_at=context['now'], published_at=published,
+                    revision_paths=_release_runtime_paths())
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+                print("candidate shadow accepted but original observation proof unavailable; do not retry delivery", file=sys.stderr)
+                return 2
+        print(json.dumps(shadow, sort_keys=True, separators=(",", ":")))
+        return 0
+
+    return _shadow(SimpleNamespace(publish=False,model_directory=models,receipt_version=receipt_version), now, journal=journal,
+        decision_clock=clock_reader, output_handler=finish)
+
+
+def _release(args, now, put_state=None, journal=None, decision_clock=None,
+             qualification_clock=None, published_clock=None):
+    """Generate from original inputs, qualify afresh and deliver explicit v2."""
+    from dataclasses import asdict
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from thermal_model.forcing_capture import _canonical
+    from thermal_model.graduation_decision import load_qualification_inputs,load_sensor_qualification_inputs
+    from thermal_model.origin_capture import _temperatures
+    from thermal_model.release import (build_release_output,unavailable_release,write_release_output,
+        build_sensor_release_output,unavailable_sensor_release,write_sensor_release_output)
+    receipt_version=getattr(args,"receipt_version",1)
+    if type(receipt_version) is not int or receipt_version not in (1,2):raise ValueError("supported native receipt version required")
+    if receipt_version==2:
+        load_qualification_inputs=load_sensor_qualification_inputs
+        build_release_output=build_sensor_release_output
+        unavailable_release=unavailable_sensor_release
+        write_release_output=write_sensor_release_output
+    from thermal_temperature_runtime import validate_shadow_receipt_expiry
+    from thermal_radiation_runtime import validate_shadow_radiation_expiry
+    clock_reader = decision_clock or (lambda: datetime.now(timezone.utc))
+    try:
+        # Recompute original evidence once for this invocation before collecting
+        # short-lived current receipts. This is not a persistent report cache.
+        report = deepcopy(load_qualification_inputs(args.evidence_inputs)(now))
+        input_at = clock_reader()
+        if (not isinstance(input_at, datetime) or input_at.utcoffset() is None or input_at < now):
+            raise ValueError("release input clock invalid or moved backward")
+        now = input_at.astimezone(timezone.utc)
+    except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+        output = unavailable_release(now)
+        write_release_output(args.output, output)
+        if args.publish:
+            _publish_validated_release(output, put_state=put_state)
+        print(json.dumps(output, sort_keys=True, separators=(",", ":")), file=sys.stderr)
+        return 1
+
+    def loader(_):
+        # Preserve the actual earlier assessment clock and derived digest.
+        # Current artifact/runtime/epochs/regimes are checked by the builder.
+        return deepcopy(report)
+
+    def finish(shadow, **context):
+        def assessment_clock():
+            at = qualification_clock() if qualification_clock else datetime.now(timezone.utc)
+            if (not isinstance(at, datetime) or at.utcoffset() is None or at < context['now']):
+                raise ValueError("release clock invalid or moved backward")
+            return max(at.astimezone(timezone.utc), context['started_at'] + timedelta(
+                seconds=max(0, time.monotonic()-context['started'])))
+        output = unavailable_release(context['now'])
+        try:
+            at = assessment_clock()
+            if (len(context['artifact_used']) != 1 or len(context['origin_proofs']) != 1
+                    or context['runtime'] is None):
+                raise ValueError("complete actual artifact/runtime/native origin required")
+            epochs, _ = _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'],
+                issued_at=context['now'],published_at=at,version=receipt_version)
+            artifact_digest = sha256(_canonical(asdict(context['artifact_used'][0]))).hexdigest()
+            runtime_digest = sha256(_canonical(context['runtime'])).hexdigest()
+            output = build_release_output(shadow=shadow, qualification_loader=loader, now=at,
+                artifact_sha256=artifact_digest, runtime_sha256=runtime_digest, sensor_epochs=epochs,
+                forecast_rows=context['rows'])
+            # Input assembly/output validation can take time. Recheck native expiry and
+            # executing source identity immediately before persistence/delivery.
+            completed = assessment_clock()
+            _temperatures(json.loads(_canonical(context['origin_proofs'][0])), context['current'],
+                issued_at=context['now'],published_at=completed,version=receipt_version)
+            validate_shadow_receipt_expiry(context['current'], completed)
+            validate_shadow_radiation_expiry(context['current'], completed)
+            if _release_runtime_binding() != context['runtime']:
+                raise ValueError("executing release runtime changed during qualification")
+            elapsed = (completed-context['now']).total_seconds()/60
+            if elapsed > 20 or any(shadow['provenance']['currentAgeMinutes'][role]+elapsed > 20
+                    for role in ('air','mass','outdoor','radiation')):
+                raise ValueError("forecast or sensors expired during qualification")
+            expires = output['release']['expiresAt']
+            if expires is not None and completed >= datetime.fromisoformat(expires):
+                raise ValueError("release qualification expired before delivery")
+        except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError, OverflowError):
+            output = unavailable_release(context['now'])
+        write_release_output(args.output, output)
+        if args.publish:
+            _publish_validated_release(output, put_state=put_state)
+            if output['status'] != 'unavailable':
+                directory = getattr(args, 'origin_capture_dir', None) or os.environ.get('THERMAL_ORIGIN_CAPTURE_DIR')
+                try:
+                    if not directory:
+                        raise ValueError("release origin archive not configured")
+                    published = published_clock() if published_clock else datetime.now(timezone.utc)
+                    _archive_release_publication(directory, output=output,
+                        artifact=context['artifact_used'][0], snapshot=context['snapshot'],
+                        rows=context['rows'], current=context['current'],
+                        origin_temperatures=context['origin_proofs'][0], runtime=context['runtime'],
+                        inputs_available_at=context['now'], published_at=published)
+                except (ImportError, OSError, RuntimeError, TypeError, ValueError, IndexError):
+                    # Do not invent proof or retry an already accepted state write.
+                    print("thermal release capture gap: original proof unavailable", file=sys.stderr)
+        unavailable = output['status'] == 'unavailable'
+        print(json.dumps(output, sort_keys=True, separators=(",", ":")),
+            file=sys.stderr if unavailable else sys.stdout)
+        return int(unavailable)
+
+    return _shadow(SimpleNamespace(publish=False,
+        model_directory=getattr(args,"model_directory",DEFAULT_STATE_DIRECTORY),receipt_version=receipt_version), now, journal=journal,
+        decision_clock=clock_reader, output_handler=finish)
 
 
 def main(argv=None):
@@ -607,6 +1000,10 @@ def main(argv=None):
             return _train(args, parser, now)
         if args.subcommand == "backtest":
             return _backtest(args, parser, now)
+        if args.subcommand == "observe-candidate":
+            return _observe_candidate(args, now, decision_clock=lambda: datetime.now(timezone.utc))
+        if args.subcommand == "release":
+            return _release(args, now, decision_clock=lambda: datetime.now(timezone.utc))
         if args.subcommand == "shadow":
             return _shadow(args, now, decision_clock=lambda: datetime.now(timezone.utc))
     except (OSError, RuntimeError, TypeError, ValueError) as exc:

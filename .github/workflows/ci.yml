@@ -18,6 +18,7 @@ jobs:
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
       NUMEXPR_NUM_THREADS: "1"
+      EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,6 +41,13 @@ jobs:
           ref: d24771b77de540f32e592a7c44a0bff6385e8cd4
           path: .ci/solar-pv
           persist-credentials: false
+      - name: Verify disposable PostgreSQL image availability
+        timeout-minutes: 3
+        run: |
+          docker version
+          # Google's public Docker Hub cache avoids shared-runner Hub limits.
+          timeout 120s docker pull mirror.gcr.io/library/postgres:16
+          docker tag mirror.gcr.io/library/postgres:16 postgres:16
       - name: Completion regression tests
         env:
           PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src

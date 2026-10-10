@@ -10,7 +10,7 @@ import math
 import re
 from uuid import UUID
 
-from weather_temperature_evidence import MODELS, TemperaturePolicy
+from weather_temperature_evidence import MODELS, TemperaturePolicy, sensor_epoch_id
 
 FIELDS = {'version', 'streamEpoch', 'recordedAt', 'model', 'sensorId', 'field',
           'status', 'reason', 'receivedAt', 'validUntil', 'temperatureF'}
@@ -35,13 +35,13 @@ def _reject_constant(_value):
     raise ValueError('nonfinite JSON')
 
 
-def _snapshot(raw, stored_at, stream, policy):
+def _snapshot(raw, stored_at, stream, policy, *, version=1, sensor_epoch=None):
     if not isinstance(raw, str) or len(raw.encode('utf-8')) > 8192:
         raise ValueError('bounded raw snapshot required')
     envelope = json.loads(raw, object_pairs_hook=_object, parse_constant=_reject_constant)
     if not isinstance(envelope, dict) or set(envelope) != {'version', 'streamEpoch', 'records'}:
         raise ValueError('closed envelope required')
-    if type(envelope['version']) is not int or envelope['version'] != 1:
+    if type(envelope['version']) is not int or envelope['version'] != version:
         raise ValueError('unsupported envelope')
     epoch = envelope['streamEpoch']
     if not isinstance(epoch, str) or str(UUID(epoch)) != epoch:
@@ -52,12 +52,14 @@ def _snapshot(raw, stored_at, stream, policy):
         raise ValueError('invalid stream registry')
     record = records.get(stream)
     if record is None: return epoch, None
-    if not isinstance(record, dict) or set(record) != FIELDS:
+    if not isinstance(record, dict) or set(record) != FIELDS | ({'sensorEpoch'} if version == 2 else set()):
         raise ValueError('closed temperature record required')
-    if type(record['version']) is not int or record['version'] != 1 or record['streamEpoch'] != epoch:
+    if type(record['version']) is not int or record['version'] != version or record['streamEpoch'] != epoch:
         raise ValueError('record version/epoch mismatch')
     if record['model'] != policy.model or type(record['sensorId']) is not int or record['sensorId'] != policy.sensor_id or record['field'] != MODELS[policy.model][1]:
         raise ValueError('record identity mismatch')
+    if version == 2 and sensor_epoch_id(record['sensorEpoch']) != sensor_epoch:
+        raise ValueError('record hardware phase differs')
     recorded = _utc(record['recordedAt'])
     if recorded > stored_at: raise ValueError('future source record')
     if record['status'] != 'valid': return epoch, None
@@ -67,9 +69,40 @@ def _snapshot(raw, stored_at, stream, policy):
         raise ValueError('invalid accepted receipt')
     if not policy.minimum_f <= value <= policy.maximum_f or not 0 < (expires - received).total_seconds() <= policy.validity_seconds:
         raise ValueError('receipt outside selected policy')
-    return epoch, {'temperatureF': value, 'receivedAt': received, 'validUntil': expires,
-                   'storedAt': stored_at, 'streamEpoch': epoch,
-                   'snapshotSha256': hashlib.sha256(raw.encode('utf-8')).hexdigest()}
+    result = {'temperatureF': value, 'receivedAt': received, 'validUntil': expires,
+              'storedAt': stored_at, 'streamEpoch': epoch,
+              'snapshotSha256': hashlib.sha256(raw.encode('utf-8')).hexdigest()}
+    if version == 2:
+        result.update(sensorEpoch=sensor_epoch, receiptVersion=2)
+    return epoch, result
+
+
+
+def validate_temperature_metadata_v2(value, target, *, policy, sensor_epoch):
+    """Validate retained native point metadata against its selected policy."""
+    fields = {'temperatureF', 'receivedAt', 'storedAt', 'validUntil',
+              'streamEpoch', 'snapshotSha256', 'receiptVersion', 'sensorEpoch'}
+    if not isinstance(policy, TemperaturePolicy):
+        raise ValueError('explicit temperature policy required')
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value['receiptVersion']) is not int or value['receiptVersion'] != 2
+            or sensor_epoch_id(value['sensorEpoch']) != sensor_epoch_id(sensor_epoch)):
+        raise ValueError('explicit native sensor phase receipt required')
+    session = value['streamEpoch']
+    if not isinstance(session, str) or str(UUID(session)) != session:
+        raise ValueError('canonical collector session required')
+    temperature = value['temperatureF']
+    if (type(temperature) not in (int, float) or not math.isfinite(temperature)
+            or not policy.minimum_f <= temperature <= policy.maximum_f):
+        raise ValueError('temperature outside selected policy')
+    received, stored, expires = (_utc(value[key]) for key in
+                                ('receivedAt', 'storedAt', 'validUntil'))
+    if (not received <= stored <= _utc(target) < expires
+            or not 0 < (expires - received).total_seconds() <= policy.validity_seconds):
+        raise ValueError('receipt outside selected lifetime')
+    digest = value['snapshotSha256']
+    if not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest):
+        raise ValueError('original snapshot digest required')
 
 
 def select_temperature_at(rows, *, target, assessed_at, history_start, stream, policy):
@@ -88,6 +121,15 @@ def select_temperature_at(rows, *, target, assessed_at, history_start, stream, p
         return None
 
 
+def select_temperature_at_v2(rows,*,target,assessed_at,history_start,stream,policy,sensor_epoch):
+    """Select a native hardware-bound point; invalid context/evidence is absent."""
+    try:
+        return select_temperature_grid_v2(rows,targets=[target],assessed_at=assessed_at,
+            history_start=history_start,stream=stream,policy=policy,sensor_epoch=sensor_epoch)[0][1]
+    except (ValueError,TypeError,KeyError,OverflowError,RecursionError):
+        return None
+
+
 def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream, policy):
     """Select at most 289 increasing targets over one elapsed day in one pass.
 
@@ -97,6 +139,23 @@ def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream
     The complete history and original carry must be supplied from at least one
     validity interval before the first target. No numeric-history fallback.
     """
+    targets = _grid_context(targets, assessed_at, history_start, stream, policy)
+    return _select_normalized(_normalize_rows(rows), targets, stream, policy)
+
+
+def select_temperature_grid_v2(rows, *, targets, assessed_at, history_start, stream, policy, sensor_epoch):
+    """Select fresh receipts with an explicit persistent hardware phase binding.
+
+    Collector session changes retain the same no-copy/no-stale barriers as v1.
+    A missing/mismatched hardware phase is a barrier, never an inferred identity.
+    """
+    epoch = sensor_epoch_id(sensor_epoch)
+    targets = _grid_context(targets, assessed_at, history_start, stream, policy)
+    return _select_normalized(_normalize_rows(rows), targets, stream, policy,
+                              version=2, sensor_epoch=epoch)
+
+
+def _grid_context(targets, assessed_at, history_start, stream, policy):
     if not isinstance(policy, TemperaturePolicy) or not isinstance(stream, str):
         raise ValueError('explicit stream and policy required')
     if not isinstance(targets, (list, tuple)) or not 1 <= len(targets) <= 289:
@@ -107,7 +166,7 @@ def select_temperature_grid(rows, *, targets, assessed_at, history_start, stream
             or start > targets[0] - timedelta(seconds=policy.validity_seconds)
             or any(left >= right for left, right in zip(targets, targets[1:]))):
         raise ValueError('invalid target window')
-    return _select_normalized(_normalize_rows(rows), targets, stream, policy)
+    return targets
 
 
 def _normalize_rows(rows):
@@ -125,7 +184,7 @@ def _normalize_rows(rows):
     return normalized
 
 
-def _select_normalized(normalized, targets, stream, policy):
+def _select_normalized(normalized, targets, stream, policy, *, version=1, sensor_epoch=None):
     """One-pass barrier engine shared by point, grid and interval readers."""
     selected = None; barrier_at = None; epoch = None; index = 0; results = []
     for target in targets:
@@ -133,7 +192,7 @@ def _select_normalized(normalized, targets, stream, policy):
             stored, raw = normalized[index]
             index += 1
             try:
-                next_epoch, candidate = _snapshot(raw, stored, stream, policy)
+                next_epoch, candidate = _snapshot(raw, stored, stream, policy, version=version, sensor_epoch=sensor_epoch)
             except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
                 candidate = None; next_epoch = None
             if candidate is not None and selected is not None and next_epoch == epoch:
@@ -158,8 +217,19 @@ def _select_normalized(normalized, targets, stream, policy):
     return results
 
 
-def select_temperature_window(rows, *, start, end, assessed_at, history_start,
-                              stream, policy):
+def select_temperature_window(rows,*,start,end,assessed_at,history_start,stream,policy):
+    return _select_window(rows,start=start,end=end,assessed_at=assessed_at,
+        history_start=history_start,stream=stream,policy=policy,version=1,sensor_epoch=None)
+
+
+def select_temperature_window_v2(rows,*,start,end,assessed_at,history_start,stream,policy,sensor_epoch):
+    phase=sensor_epoch_id(sensor_epoch)
+    result=_select_window(rows,start=start,end=end,assessed_at=assessed_at,
+        history_start=history_start,stream=stream,policy=policy,version=2,sensor_epoch=phase)
+    return {**result,'receiptVersion':2,'sensorEpoch':phase}
+
+
+def _select_window(rows,*,start,end,assessed_at,history_start,stream,policy,version,sensor_epoch):
     """Exact qualified coverage and observed extrema over elapsed [start, end).
 
     Supports a 25-hour DST day. Uses every persisted change point, not a sampled
@@ -181,7 +251,7 @@ def select_temperature_window(rows, *, start, end, assessed_at, history_start,
         raise ValueError('invalid elapsed window')
     normalized = _normalize_rows(rows)
     targets = [start] + sorted({at for at, _ in normalized if start < at < end})
-    selected = _select_normalized(normalized, targets, stream, policy)
+    selected = _select_normalized(normalized,targets,stream,policy,version=version,sensor_epoch=sensor_epoch)
     covered = timedelta(0)
     gap = timedelta(0)
     maximum_gap = timedelta(0)

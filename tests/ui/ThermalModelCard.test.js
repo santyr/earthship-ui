@@ -8,6 +8,8 @@ vi.mock('svelte', async () => import(
   `../../node_modules/svelte/src/index-client.js`
 ));
 
+import { installedPublication, rawInstalledPublication } from '../fixtures/installed-publication.js';
+import { parseThermalModelResult } from '../../src/lib/thermal/modelResult.js';
 import ThermalModelCard from '../../src/lib/ui/ThermalModelCard.svelte';
 
 const NOW = Date.parse('2026-08-13T12:30:00Z');
@@ -164,4 +166,30 @@ describe('ThermalModelCard shadow-only presentation', () => {
     const plotSource = readFileSync('src/lib/ui/ThermalModelPlot.svelte', 'utf8');
     expect(plotSource).not.toMatch(/\bon(?:click|change|input|submit|keydown|keyup|pointerdown|pointerup)\s*=/i);
   });
+});
+
+describe('ThermalModelCard production modes', () => {
+  it('shows forecast mode, immutable revision and withheld action advice', () => {
+    const { getByText, queryByText } = render(ThermalModelCard, {
+      result: readyResult({ mode: 'forecast_active', badge: 'FORECAST', confidence: 'high',
+        artifactRevision: 'a'.repeat(64), actionConfidence: 'withheld', ventWindow: null,
+        effect: { morningMassDeltaF: 0, hallwayPeakDeltaF: 0 } }), nowMs: NOW,
+    });
+    expect(getByText('FORECAST')).toBeTruthy();
+    expect(getByText(/Action advice withheld/i)).toBeTruthy();
+    expect(getByText(/Revision · aaaaaaaaaaaa/i)).toBeTruthy();
+    expect(queryByText('Candidate vent window')).toBeNull();
+  });
+});
+
+it.each([['historical', installedPublication], ['raw', rawInstalledPublication]])('renders a %s qualified installed forecast with target uncertainty and advice withheld', (_profile, fixture) => {
+  const value = fixture();const nowMs = Date.parse(value.generatedAt);
+  const result = parseThermalModelResult(JSON.stringify(value), nowMs);
+  const { container, getByText } = render(ThermalModelCard, { result, nowMs });
+  expect(getByText('FORECAST')).toBeTruthy();expect(getByText('High confidence')).toBeTruthy();
+  expect(getByText('Action advice withheld')).toBeTruthy();
+  expect(getByText('90% nominal hallway intervals at 1, 6, 12, and 24 hours.')).toBeTruthy();
+  expect(container.querySelectorAll('[data-series="forecast-target-interval"]')).toHaveLength(4);
+  expect(container.querySelector('polygon')).toBeNull();
+  expect(container.textContent).not.toContain('Candidate vent window');
 });

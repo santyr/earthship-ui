@@ -1,0 +1,12 @@
+# Template only. Enable after genuine original queue and reviewed worker staging.
+[Unit]
+Description=Bounded installed-domain thermal prospective score tick
+
+[Timer]
+OnCalendar=*-*-* *:07/10:00 UTC
+AccuracySec=1s
+Persistent=false
+Unit=thermal-installed-score-queue.service
+
+[Install]
+WantedBy=timers.target
