@@ -2135,3 +2135,38 @@ This completes the explicit qualification producer interface, not household
 qualification or production activation. Publication preparation and installed
 operator/UI routing, genuine qualifying-cohort replay capacity, predeclared
 threshold sealing and sufficient untouched/prospective evidence remain required.
+
+
+### Compressed production publication preparation
+
+The explicit `prepare_compressed_installed_qualification` port accepts closed
+release-inputs/v4 references to original registration/v4, candidate/v5, runtime
+and release source archives. It freshly derives qualification/report/v7 and
+checks the executing runtime closure before and after replay. Registered
+preparation uses the candidate bundle just replayed by qualification rather than
+fitting it redundantly. Missing originals, configured invalid registration,
+incomplete calibration support, incompatible runtime and an expired inherited
+deadline prevent readiness. Cached reports and older reference profiles refuse.
+
+`build_compressed_installed_publication` requires its distinct invocation-local
+prepared type and requalifies the original reference before selecting a stage.
+It binds actual calibrated numeric origin/v12 and forecast/v7, retains the exact
+issued intervals and baseline semantics, and rechecks current original query
+bytes after numerical forecast replay. At final return it rechecks publication
+freshness, original sensor expiry and the executing runtime. Publication/v4
+(version7) and release/v4
+include the actual original issue-binding digest and qualification/report/v7
+identity. Forecast activation requires every release gate and current freshness,
+regime and interval-width checks; action advice remains withheld. Explicitly
+unregistered, otherwise ready preparation may bootstrap shadow; invalid
+configured registration cannot bootstrap. Older prepared types/readers refuse.
+
+Mathematical active-selection fixtures and mocked loader-routing seams verify
+software selection only. Separate retained-query fixtures verify current issue
+source binding and refusal after original query loss. Neither establishes
+qualifying household calibration, untouched/prospective skill or activation
+permission. These ports are not selected by an installed consumer yet. Complete
+operator, configuration and UI routing, verify genuine cohort capacity and
+source-qualified model readiness, and rebuild pinned runtime archives before
+cutover. Existing operational withdrawal remains required; disaster recovery
+work remains deferred.
