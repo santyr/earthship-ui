@@ -190,3 +190,16 @@ def test_compressed_delivery_retains_the_report_from_its_final_source_requalific
     output=p.build_compressed_installed_publication('synthetic-origin',prepared,report_sink=lambda report:reports.append(report))
     assert output['status']=='forecast_active' and len(reports)==1
     assert reports[0]['report_sha256']==output['release']['reportSha256']
+
+
+
+def test_python_compressed_active_publication_matches_browser_contract(compressed_active_routing):
+    import subprocess,json
+    p,_,prepared,_,_,_,_=compressed_active_routing
+    output=p.build_compressed_installed_publication('synthetic-origin',prepared)
+    assert output['status']=='forecast_active'
+    root=Path(__file__).resolve().parents[2]
+    result=subprocess.run(['node','--max-old-space-size=128',str(root/'scripts/verify-compressed-installed-ui.mjs'),'--publication'],
+        input=json.dumps(dict(publication=output,now=int(datetime.fromisoformat(output['generatedAt']).timestamp()*1000))),text=True,capture_output=True,timeout=10)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)==dict(state='ready',mode='forecast_active',badge='FORECAST',uncertaintyMode='calibrated_targets')

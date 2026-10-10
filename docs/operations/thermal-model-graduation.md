@@ -2262,3 +2262,26 @@ Genuine cohort replay capacity, qualifying evidence/model gates, pinned runtime
 rebuild, monitoring/withdrawal integration and UI validation remain before
 conditional deployment. Compression and completion markers establish no release
 pass; full qualification/report/v7 must freshly replay original sources.
+
+
+### Compressed publication display
+
+The existing UI parser explicitly accepts publication/v4 (version7), release/v4
+and exact source-bound numeric forecast/v6 or v7. Active display requires the
+calibrated v7 forecast, matching original issue-binding digests, qualification
+report/v7 identity and all existing mode, policy, calibration, epoch, uncertainty
+and expiry checks. Base v6 remains uncalibrated shadow. Withdrawn/unavailable
+output carries no fabricated source proof. Older installed profiles keep their
+closed field sets and refuse new source fields; source markers alone do not
+create a production badge.
+
+Validated mode, confidence, model revision, freshness, calibrated targets and
+withheld action confidence flow through the existing display and chart model.
+No tablet/laptop layout is changed. Shared browser-contract cases also run in a
+small capped Node process via `node scripts/verify-compressed-installed-ui.mjs`;
+normal hosted Vitest/build validation remains required. Python emitted-fixture
+checks verify agreement for calibrated production and native base shadow. These
+are software contracts, not household release evidence. Source-qualified backend
+evaluation remains the production authority, and actual deployment/publication
+verification, capacity/resource gates, monitoring and remaining evidence work
+are still required before cutover.

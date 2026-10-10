@@ -5,18 +5,23 @@ const fields = (...values) => new Set(values);
 export function validateInstalledPublication(payload, { exactObject, finiteNumber, timestamp }) {
   exactObject(payload, fields('schema','version','status','generatedAt','validUntil','model','forecast','confidence','release','reasons'));
   const raw = payload.version === 5;
-  const publicationSchema = raw ? 'earthship-installed-shade-publication/v2' : 'earthship-installed-shade-publication/v1';
-  const releaseSchema = raw ? 'earthship-installed-shade-release/v2' : 'earthship-installed-shade-release/v1';
-  if (![4,5].includes(payload.version) || payload.schema !== publicationSchema
+  const compressed = payload.version === 7;
+  const publicationSchema = compressed ? 'earthship-installed-shade-publication/v4' : raw ? 'earthship-installed-shade-publication/v2' : 'earthship-installed-shade-publication/v1';
+  const releaseSchema = compressed ? 'earthship-installed-shade-release/v4' : raw ? 'earthship-installed-shade-release/v2' : 'earthship-installed-shade-release/v1';
+  if (![4,5,7].includes(payload.version) || payload.schema !== publicationSchema
     || !['unavailable','shadow','forecast_active'].includes(payload.status)) throw new TypeError('unsupported installed publication');
   const issue = timestamp(payload.generatedAt); const valid = timestamp(payload.validUntil);
   if (!(issue.epochMicros < valid.epochMicros && valid.epochMicros <= issue.epochMicros + 600_000_000n)) throw new TypeError('invalid publication deadline');
-  const release = exactObject(payload.release, fields('schema','qualifiedAt','expiresAt','artifactSha256','runtimeSha256','policySha256',
-    'reportSha256','originCaptureSha256','calibrationSha256','sensorEpochs','sensorEpochSemantics','forecastQualified','advisoryQualified','automaticActuation'));
+  const releaseFields = fields('schema','qualifiedAt','expiresAt','artifactSha256','runtimeSha256','policySha256',
+    'reportSha256','originCaptureSha256','calibrationSha256','sensorEpochs','sensorEpochSemantics','forecastQualified','advisoryQualified','automaticActuation');
+  if (compressed) { releaseFields.add('nativeOriginBindingSha256'); releaseFields.add('sourceQualificationSchema'); }
+  const release = exactObject(payload.release, releaseFields);
   const confidence = exactObject(payload.confidence, fields('grade','actionLabels')); const active = payload.status === 'forecast_active';
   if (release.schema !== releaseSchema || release.sensorEpochSemantics !== 'declared_hardware_phase'
     || release.forecastQualified !== active || release.advisoryQualified !== false || release.automaticActuation !== false
     || confidence.actionLabels !== 'withheld' || confidence.grade !== ({ unavailable:'unavailable', shadow:'low', forecast_active:'high' })[payload.status]) throw new TypeError('invalid mode authority');
+  if (compressed && (![null,'earthship-installed-shade-qualification-report/v7'].includes(release.sourceQualificationSchema)
+    || active && release.sourceQualificationSchema !== 'earthship-installed-shade-qualification-report/v7')) throw new TypeError('unsupported source qualification profile');
   if (!Array.isArray(payload.reasons) || payload.reasons.length < 1 || payload.reasons.length > 8
     || payload.reasons.some((r) => typeof r !== 'string' || !r.length || new TextEncoder().encode(r).length > 256)) throw new TypeError('invalid status reasons');
   const parsed = { generatedAtMs: issue.epochMs, generatedAtMicros: issue.epochMicros, validUntilMicros: valid.epochMicros,
@@ -41,9 +46,12 @@ export function validateInstalledPublication(payload, { exactObject, finiteNumbe
   exactObject(payload.model, fields('createdAt','trainedThrough','codeRevision'));sha(payload.model.codeRevision);
   const created = timestamp(payload.model.createdAt);const trained = timestamp(payload.model.trainedThrough);
   if (!(trained.epochMicros <= created.epochMicros && created.epochMicros <= issue.epochMicros)) throw new TypeError('invalid frozen chronology');
-  const numeric = exactObject(payload.forecast, fields('schema','status','generated_at','artifact_sha256','runtime_sha256','horizon_hours',
-    'initial','origin_actions','trajectory','confidence','prediction_intervals','advice','release_authorized','automatic_actuation'));
-  if (!(raw ? ['earthship-installed-shade-forecast/v3'] : ['earthship-installed-shade-forecast/v1','earthship-installed-shade-forecast/v2']).includes(numeric.schema) || numeric.status !== 'shadow'
+  const numericFields = fields('schema','status','generated_at','artifact_sha256','runtime_sha256','horizon_hours',
+    'initial','origin_actions','trajectory','confidence','prediction_intervals','advice','release_authorized','automatic_actuation');
+  if (compressed) numericFields.add('native_origin_binding_sha256');
+  const numeric = exactObject(payload.forecast, numericFields);
+  if (compressed && sha(release.nativeOriginBindingSha256) !== sha(numeric.native_origin_binding_sha256)) throw new TypeError('original issue binding differs');
+  if (!(compressed ? ['earthship-installed-shade-forecast/v6','earthship-installed-shade-forecast/v7'] : raw ? ['earthship-installed-shade-forecast/v3'] : ['earthship-installed-shade-forecast/v1','earthship-installed-shade-forecast/v2']).includes(numeric.schema) || numeric.status !== 'shadow'
     || numeric.confidence !== 'unqualified' || numeric.release_authorized !== false || numeric.automatic_actuation !== false
     || !Array.isArray(numeric.advice) || numeric.advice.length || timestamp(numeric.generated_at).epochMicros !== issue.epochMicros
     || numeric.artifact_sha256 !== release.artifactSha256 || numeric.runtime_sha256 !== release.runtimeSha256) throw new TypeError('numeric source changed');
@@ -62,7 +70,7 @@ export function validateInstalledPublication(payload, { exactObject, finiteNumbe
     return { atMs:at.epochMs, hallwayF:physical(point.air_f), massF:physical(point.mass_f), lowF:null, highF:null, actions:[] };
   });
   let uncertaintyMode = 'none';
-  if (numeric.schema.endsWith('/v1')) {
+  if (numeric.schema.endsWith('/v1') || compressed && numeric.schema.endsWith('/v6')) {
     if (active || numeric.prediction_intervals !== null || release.calibrationSha256 !== null) throw new TypeError('uncalibrated release');
   } else {
     if (!Array.isArray(numeric.prediction_intervals) || numeric.prediction_intervals.length !== 4 || release.calibrationSha256 === null) throw new TypeError('original uncertainty missing');

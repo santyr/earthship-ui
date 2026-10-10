@@ -140,3 +140,17 @@ def test_compressed_bootstrap_received_origin_can_feed_source6_baseline_calibrat
     assert values['raw_native_issue_sources'] is True and values['raw_native_score_sources'] is True
     assert values['calibrated_intervals'] is False and len(values['rows'])==1
     assert values['rows'][0]['artifact_sha256']==record['numeric_capture']['candidate']['artifact_sha256']
+
+
+
+def test_python_compressed_base_publication_matches_browser_shadow_contract(base_cycle):
+    import subprocess
+    live,_,root,_,_,backend,_,_=base_cycle
+    result=live.run_compressed_bootstrap_live_cycle(reference_path=root/'refs',archive=root,backend=backend)
+    assert result['status']=='published'
+    output=backend.puts[-1][1]
+    repo=Path(__file__).resolve().parents[2]
+    readback=subprocess.run(['node','--max-old-space-size=128',str(repo/'scripts/verify-compressed-installed-ui.mjs'),'--publication'],
+        input=json.dumps(dict(publication=output,now=int(datetime.fromisoformat(output['generatedAt']).timestamp()*1000))),text=True,capture_output=True,timeout=10)
+    assert readback.returncode==0,readback.stderr
+    assert json.loads(readback.stdout)==dict(state='ready',mode='shadow',badge='SHADOW',uncertaintyMode='none')
