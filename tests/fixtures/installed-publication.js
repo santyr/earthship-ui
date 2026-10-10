@@ -32,3 +32,20 @@ export function installedPublication(mode = 'forecast_active') {
     reasons: [mode === 'shadow' ? 'Predictive qualification incomplete; action advice withheld' : 'Forecast qualified; action advice withheld'],
   };
 }
+
+// Raw-calibrated publication shape only; this fixture proves no source cohort.
+export function rawInstalledPublication(mode = 'forecast_active') {
+  const value = installedPublication(mode === 'unavailable' ? 'shadow' : mode);
+  value.schema = 'earthship-installed-shade-publication/v2';
+  value.version = 5;
+  value.release.schema = 'earthship-installed-shade-release/v2';
+  value.forecast.schema = 'earthship-installed-shade-forecast/v3';
+  if (mode === 'unavailable') {
+    value.status = mode; value.model = {}; value.forecast = null;
+    value.confidence = { grade: 'unavailable', actionLabels: 'withheld' };
+    for (const key of ['qualifiedAt','expiresAt','artifactSha256','runtimeSha256','policySha256','reportSha256','originCaptureSha256','calibrationSha256']) value.release[key] = null;
+    value.release.sensorEpochs = {}; value.release.forecastQualified = false;
+    value.reasons = ['Thermal forecast evidence unavailable'];
+  }
+  return value;
+}

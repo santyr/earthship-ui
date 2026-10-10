@@ -8,7 +8,7 @@ vi.mock('svelte', async () => import(
   `../../node_modules/svelte/src/index-client.js`
 ));
 
-import { installedPublication } from '../fixtures/installed-publication.js';
+import { installedPublication, rawInstalledPublication } from '../fixtures/installed-publication.js';
 import { parseThermalModelResult } from '../../src/lib/thermal/modelResult.js';
 import ThermalModelCard from '../../src/lib/ui/ThermalModelCard.svelte';
 
@@ -182,8 +182,8 @@ describe('ThermalModelCard production modes', () => {
   });
 });
 
-it('renders a qualified installed forecast with target uncertainty and advice withheld', () => {
-  const value = installedPublication();const nowMs = Date.parse(value.generatedAt);
+it.each([['historical', installedPublication], ['raw', rawInstalledPublication]])('renders a %s qualified installed forecast with target uncertainty and advice withheld', (_profile, fixture) => {
+  const value = fixture();const nowMs = Date.parse(value.generatedAt);
   const result = parseThermalModelResult(JSON.stringify(value), nowMs);
   const { container, getByText } = render(ThermalModelCard, { result, nowMs });
   expect(getByText('FORECAST')).toBeTruthy();expect(getByText('High confidence')).toBeTruthy();

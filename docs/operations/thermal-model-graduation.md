@@ -1558,3 +1558,18 @@ The scorer unit files remain inert templates. Their explicit contract 2 must
 match their configuration, queue, original capture and source/runtime closure.
 Render a separate reviewed contract-1 invocation when collecting the base
 calibration cohort; do not silently change a production service's semantics.
+
+
+### Raw publication display compatibility
+
+The UI accepts the closed publication/v2 version-5 envelope only with release/v2
+and original numeric forecast/v3. Historical publication/v1 version 4 retains
+its separate forecast/v1 or forecast/v2 reader. Mixed profiles, altered source
+identities, missing uncertainty, future assessments and expired publications
+suppress forecast display. Version 5 uses the existing forecast, shadow and
+unavailable presentation, including model revision, freshness, confidence and
+the four original 90% nominal target intervals. It adds no interpolated
+uncertainty, venting schedule, action recommendation or automatic actuation.
+The backend must independently qualify original sources; structural UI
+validation is never release evidence. Approved tablet and laptop layouts are
+unchanged.
