@@ -1,0 +1,23 @@
+# Render @VERIFIED_RUNTIME@ and @VERIFIED_CONFIG@ before installation.
+[Unit]
+Description=Provisional Earthship thermal forecasts with production monitoring
+
+[Service]
+Type=oneshot
+Environment=EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0
+Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 @VERIFIED_RUNTIME@/provisional_thermal.py --config @VERIFIED_CONFIG@ --publish
+TimeoutStartSec=90
+CPUAccounting=yes
+CPUQuota=20%
+MemoryAccounting=yes
+MemoryMax=256M
+MemorySwapMax=0
+TasksAccounting=yes
+TasksMax=24
+Nice=15
+IOSchedulingClass=idle
+IOAccounting=yes
+IOWeight=10
+OOMPolicy=kill
+UMask=0077

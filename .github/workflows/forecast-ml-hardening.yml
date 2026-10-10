@@ -69,6 +69,8 @@ on:
       - 'openhab/scripts/test_installed_shade_compressed_bootstrap.py'
       - 'openhab/scripts/test_installed_shade_live_inputs.py'
       - 'openhab/scripts/test_installed_shade_withdrawal.py'
+      - 'openhab/scripts/provisional_thermal.py'
+      - 'openhab/scripts/test_provisional_thermal_*.py'
       - 'openhab/scripts/thermal_installed_intel.py'
       - 'openhab/scripts/thermal_installed_score.py'
       - 'openhab/scripts/thermal_installed_train.py'
@@ -142,6 +144,13 @@ jobs:
             openhab/scripts/test_installed_shade_inputs.py \
             openhab/scripts/test_installed_shade_fit.py \
             openhab/scripts/test_training_pressure_guard.py \
+            openhab/scripts/test_provisional_thermal_fit.py \
+            openhab/scripts/test_provisional_thermal_artifact.py \
+            openhab/scripts/test_provisional_thermal_forecast.py \
+            openhab/scripts/test_provisional_thermal_scoring.py \
+            openhab/scripts/test_provisional_thermal_live.py \
+            openhab/scripts/test_provisional_thermal_monitor.py \
+            openhab/scripts/test_provisional_thermal_cli.py \
             openhab/scripts/test_installed_candidate_build.py \
             openhab/scripts/test_installed_shade_artifact.py \
             openhab/scripts/test_installed_shade_origin.py \
