@@ -2204,3 +2204,32 @@ base calibration bootstrap, queued score/operator routing and UI validation
 remain required before cutover. Rebuild pinned runtime archives after code
 freeze; do not mistake routing fixtures or configuration verification for a
 household release pass.
+
+
+### Compressed native base calibration bootstrap
+
+The explicit `--contract-version 3 --bootstrap-shadow` operator mode uses the
+same live-config/v3 and release-inputs/v4 envelope, with a native base
+candidate/v1 and absent registration and release-pair references. Its distinct
+`PreparedCompressedBaseBootstrap` type is refused by production preparation.
+The public bootstrap factory replays original native training-inputs/v2 and
+measured fit evidence under the existing inherited deadline, checks the complete
+runtime closure before and after that replay, and requires passing fit gates.
+It does not require calibrated candidate/v5 before collecting the source/v6
+evidence needed to build calibration/v4.
+
+Bootstrap rechecks original references during publication and forces shadow.
+It retains numeric origin/v10, actual paired main origin/v11 and original
+query-container/v2 issue sources. Prediction intervals and calibration identity
+remain absent. Registration, qualified release gates, a calibrated prepared type
+or invalid original sources cannot be used to turn bootstrap into production.
+The exact received origin can feed existing source/v6 comparator/outcome
+collection and original-query baseline replay; sufficient independent calibration
+support and later genuine untouched/prospective qualification remain required.
+
+Use the existing shared consumer lock and strict serial resource scope. The
+operator's resource preflight and fitting/capture guards remain unchanged.
+Neither configuration verification nor bootstrap enables automatic actuation.
+These routes are not installed or live-qualified; score queue/operator and UI
+integration, actual capacity, resource headroom and genuine model/evidence gates
+remain before deployment. Rebuild pinned runtime archives after code freeze.

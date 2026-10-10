@@ -30,6 +30,8 @@ from .installed_shade_publication import (prepare_compressed_installed_qualifica
     unavailable_compressed_source_installed_publication,validate_compressed_source_installed_publication,PreparedCompressedInstalledQualification)
 from .installed_shade_published_origin import build_compressed_calibrated_publication_capture,write_compressed_calibrated_publication_capture
 from .installed_shade_qualification import write_compressed_installed_shade_qualification_report
+from .installed_shade_publication import prepare_compressed_base_bootstrap,build_compressed_base_bootstrap_publication,PreparedCompressedBaseBootstrap
+from .installed_shade_published_origin import build_compressed_source_publication_capture,write_compressed_source_publication_capture
 from . import installed_shade_origin as base
 from . import installed_shade_calibrated_origin as calibrated
 
@@ -64,7 +66,10 @@ def _numeric(prepared,inputs,*,issue,available,published,runtime,_version=1):
     validated=_utc(report['assessed_at'])
     fields={'forecast','current','origin_temperatures','action_snapshot'}|({'native_source_paths'} if _version==3 else set())
     if set(inputs)!=fields:raise ValueError('closed original input context required')
-    if _version==3:
+    if _version==3 and isinstance(prepared,PreparedCompressedBaseBootstrap):
+        if artifact['schema']!='earthship-installed-shade-candidate/v1':raise ValueError('native base bootstrap candidate required')
+        candidate=base.PreparedCandidate(prepared.candidate_json,validated);builder=base.build_compressed_source_issued_capture
+    elif _version==3:
         if artifact['schema']!='earthship-installed-shade-candidate/v5':raise ValueError('compressed calibrated candidate5 required')
         candidate=calibrated.PreparedCompressedCalibratedCandidate(prepared.candidate_json,validated);builder=calibrated.build_compressed_source_calibrated_capture
     elif _version==2:
@@ -90,7 +95,7 @@ def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None,_version=1)
         raise ValueError('source qualification expired before send')
     if output is not None and not now<_utc(output['validUntil']):raise ValueError('publication expired before send')
     if _version==3:
-        _numeric(prepared,inputs,issue=issue,available=issue,published=now,runtime=artifact['runtime'],_version=3)
+        _numeric(prepared,inputs,issue=issue,available=issue,published=now,runtime=_runtime(prepared,artifact),_version=3)
         backend.verify_unchanged();_runtime(prepared,artifact)
         finished=_utc(_clock());validate_shadow_receipt_expiry(inputs['current'],finished)
         if not issue<=finished<issue+timedelta(minutes=10):raise ValueError('original issue expired during send replay')
@@ -100,7 +105,7 @@ def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None,_version=1)
 
 
 def _write_numeric(root,record,*,_version=1):
-    if _version==3:return calibrated.write_compressed_source_calibrated_capture(root,record)
+    if _version==3:return (base.write_compressed_source_issued_capture if record['schema']=='earthship-installed-shade-origin/v10' else calibrated.write_compressed_source_calibrated_capture)(root,record)
     if _version==2:return calibrated.write_raw_calibrated_capture(root,record)
     writer=calibrated.write_calibrated_capture if record['schema']==calibrated.SCHEMA else base.write_issued_capture
     return writer(root,record)
@@ -145,6 +150,10 @@ def run_compressed_live_cycle(*,reference_path,archive,backend):
     return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_version=3)
 
 
+def run_compressed_bootstrap_live_cycle(*,reference_path,archive,backend):
+    return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_version=3,_bootstrap_only=True)
+
+
 def run_bootstrap_live_cycle(*,reference_path,archive,backend):
     """Collect native base-candidate calibration origins in shadow only."""
     return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_bootstrap_only=True)
@@ -157,6 +166,9 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
     validate={1:validate_installed_publication,2:validate_raw_installed_publication,3:validate_compressed_source_installed_publication}[_version]
     capture_builder={1:build_publication_capture,2:build_raw_publication_capture,3:build_compressed_calibrated_publication_capture}[_version]
     capture_writer={1:write_publication_capture,2:write_raw_publication_capture,3:write_compressed_calibrated_publication_capture}[_version]
+    if _version==3 and _bootstrap_only:
+        prepare=prepare_compressed_base_bootstrap;publish=build_compressed_base_bootstrap_publication
+        capture_builder=build_compressed_source_publication_capture;capture_writer=write_compressed_source_publication_capture
     root=_private_directory(Path(archive));fd=os.open(root/'.installed-shade-live.lock',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
     try:
         info=os.fstat(fd)
@@ -167,7 +179,8 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
         try:
             backend.verify_unchanged();issue=_next_issue(_clock())
             prepared=prepare(reference_path)
-            if _version in (2,3) and not isinstance(prepared,PreparedCompressedInstalledQualification if _version==3 else PreparedRawInstalledQualification):
+            prepared_type=PreparedCompressedBaseBootstrap if _version==3 and _bootstrap_only else PreparedCompressedInstalledQualification if _version==3 else PreparedRawInstalledQualification
+            if _version in (2,3) and not isinstance(prepared,prepared_type):
                 raise ValueError('complete raw source preparation required')
             if prepared.source_ready is not True:raise ValueError('original source preparation failed')
             artifact=json.loads(prepared.candidate_json)
@@ -175,7 +188,7 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
                 report=json.loads(prepared.report_json)
                 if (artifact['schema']!='earthship-installed-shade-candidate/v1' or
                         prepared.registration_absent is not True or prepared.require_raw_sources is not True or
-                        report['schema']!='earthship-installed-shade-qualification-report/v4' or
+                        report['schema']!=('earthship-installed-shade-qualification-report/v7' if _version==3 else 'earthship-installed-shade-qualification-report/v4') or
                         report['policy'] is not None or report['forecast_qualified'] is not False):
                     raise ValueError('only native unregistered base shadow bootstrap permitted')
             runtime=_runtime(prepared,artifact)

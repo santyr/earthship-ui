@@ -36,8 +36,8 @@ def _live(args,*,guard=lambda:None):
     settings=loader(args.config);guard()
     if not (args.publish or args.bootstrap_shadow):
         print(json.dumps(dict(status='configuration_verified',publication_executed=False,automatic_actuation=False)));return 0
-    from thermal_model.installed_shade_live import run_raw_live_cycle,run_bootstrap_live_cycle,run_compressed_live_cycle
-    run=run_bootstrap_live_cycle if args.bootstrap_shadow else run_compressed_live_cycle if args.contract_version==3 else run_raw_live_cycle
+    from thermal_model.installed_shade_live import run_raw_live_cycle,run_bootstrap_live_cycle,run_compressed_live_cycle,run_compressed_bootstrap_live_cycle
+    run=(run_compressed_bootstrap_live_cycle if args.contract_version==3 else run_bootstrap_live_cycle) if args.bootstrap_shadow else run_compressed_live_cycle if args.contract_version==3 else run_raw_live_cycle
     backend=(CompressedSourceLiveBackend if args.contract_version==3 else LiveBackend)(settings,shared_lock_guard=guard);guard()
     receipt=run(reference_path=settings['release_inputs_path'],archive=settings['evidence_directory'],backend=backend)
     guard();print(json.dumps(receipt,sort_keys=True))
@@ -51,14 +51,14 @@ def main(argv=None):
         help='2 preserves raw production; 3 explicitly selects compressed source qualification; 1 permits native base shadow bootstrap')
     intent=parser.add_mutually_exclusive_group()
     intent.add_argument('--publish',action='store_true')
-    intent.add_argument('--bootstrap-shadow',action='store_true',help='contract 1 native base candidate calibration collection only')
+    intent.add_argument('--bootstrap-shadow',action='store_true',help='contract 1 legacy or contract 3 compressed native base calibration collection only')
     intent.add_argument('--check-only',action='store_true')
     intent.add_argument('--withdraw',action='store_true')
     parser.add_argument('--shared-lock',type=Path,help='existing private consumer lock, required for publication/bootstrap')
     parser.add_argument('--reason',help='private withdrawal reason, required with --withdraw')
     args=parser.parse_args(argv)
     if args.publish and args.contract_version not in (2,3):parser.error('publication requires contract version 2 or 3')
-    if args.bootstrap_shadow and args.contract_version!=1:parser.error('base shadow bootstrap requires explicit contract version 1')
+    if args.bootstrap_shadow and args.contract_version not in (1,3):parser.error('base shadow bootstrap requires explicit contract version 1 or 3')
     if (args.publish or args.bootstrap_shadow) and args.shared_lock is None:parser.error('publication/bootstrap requires --shared-lock')
     if args.shared_lock is not None and not (args.publish or args.bootstrap_shadow):parser.error('--shared-lock requires publication/bootstrap')
     if args.withdraw and not args.reason:parser.error('--withdraw requires --reason')

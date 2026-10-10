@@ -144,6 +144,17 @@ class PreparedCompressedInstalledQualification:
     reference_path:str|None=None
 
 
+@dataclass(frozen=True)
+class PreparedCompressedBaseBootstrap:
+    report_json:bytes|None
+    candidate_json:bytes|None
+    source_ready:bool
+    registration_absent:bool=False
+    runtime_paths:tuple[str,...]=()
+    require_raw_sources:bool=True
+    reference_path:str|None=None
+
+
 def _prepared_type(version):
     return {1:PreparedInstalledQualification,2:PreparedRawInstalledQualification,3:PreparedCompressedInstalledQualification}[version]
 
@@ -244,16 +255,18 @@ def _read_origin(path, *, _version=1):
     raise ValueError('typed original installed forecast required')
 
 
-def _build_installed_publication(original_path,prepared, *, _version=1,_report_sink=None):
+def _build_installed_publication(original_path,prepared, *, _version=1,_report_sink=None,_bootstrap_only=False):
     """Bind fresh original inputs to an invocation's source-replayed decision."""
     _check_profile(_version)
     now=_utc(_clock())
     try:
-        if not isinstance(prepared,_prepared_type(_version)) or prepared.source_ready is not True:
+        expected_type=PreparedCompressedBaseBootstrap if _version==3 and _bootstrap_only else _prepared_type(_version)
+        if not isinstance(prepared,expected_type) or prepared.source_ready is not True:
             raise ValueError('source-prepared qualification required')
         if _version==3:
             if not isinstance(prepared.reference_path,str):raise ValueError('fresh original reference required')
-            fresh=prepare_compressed_installed_qualification(prepared.reference_path)
+            prepare=prepare_compressed_base_bootstrap if _bootstrap_only else prepare_compressed_installed_qualification
+            fresh=prepare(prepared.reference_path)
             if (fresh.source_ready is not True or fresh.candidate_json!=prepared.candidate_json or
                     fresh.runtime_paths!=prepared.runtime_paths or fresh.registration_absent is not prepared.registration_absent):
                 raise ValueError('original qualification changed before publication')
@@ -262,7 +275,8 @@ def _build_installed_publication(original_path,prepared, *, _version=1,_report_s
         if (type(prepared.require_raw_sources) is not bool or (_version in (2,3) and prepared.require_raw_sources is not True) or
                 (prepared.require_raw_sources and report['schema']!=('earthship-installed-shade-qualification-report/v7' if _version==3 else 'earthship-installed-shade-qualification-report/v5' if _version==2 else 'earthship-installed-shade-qualification-report/v4'))):
             raise ValueError('prepared raw-source profile lacks v4 qualification')
-        original,predict=_read_origin(original_path,_version=_version)
+        read_origin=_read_compressed_base_origin if _version==3 and _bootstrap_only else lambda path:_read_origin(path,_version=_version)
+        original,predict=read_origin(original_path)
         if not prepared.runtime_paths or _canonical(build_runtime_binding(Path(__file__).resolve().parents[1],prepared.runtime_paths))!=_canonical(original['runtime']):
             raise ValueError('executing runtime changed before delivery')
         if _canonical(artifact)!=_canonical(original['candidate']):raise ValueError('current original candidate differs')
@@ -275,6 +289,8 @@ def _build_installed_publication(original_path,prepared, *, _version=1,_report_s
         output,phases=predict(current)
         if _canonical(output)!=_canonical(original['output']):raise ValueError('original numeric forecast changed')
         policy=report['policy'];forecast=False;expires=None
+        if _bootstrap_only and (artifact['schema']!='earthship-installed-shade-candidate/v1' or policy is not None or report['forecast_qualified'] is not False or any(report['gates'].values()) or prepared.registration_absent is not True):
+            raise ValueError('only unregistered unqualified base shadow bootstrap permitted')
         if policy is None and prepared.registration_absent is not True:
             raise ValueError('only explicit absence permits shadow bootstrap')
         if policy is not None:
@@ -313,7 +329,7 @@ def _build_installed_publication(original_path,prepared, *, _version=1,_report_s
                 if not callable(_report_sink):raise ValueError('private report retention callback required')
                 _report_sink(deepcopy(report))
             # Recheck actual current query bytes after numerical forecast replay.
-            current_original,_=_read_origin(original_path,_version=3)
+            current_original,_=read_origin(original_path)
             if _canonical(current_original)!=_canonical(original):raise ValueError('original capture changed during publication')
             finished=_utc(_clock())
             if not issue<=finished<valid:raise ValueError('publication expired during original replay')
@@ -578,4 +594,53 @@ def build_compressed_installed_publication(original_path,prepared,*,report_sink=
     """Requalify original references in this invocation before publishing."""
     from .installed_shade_calibration import _source_operation
     try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink)
+    except ERRORS:return unavailable_compressed_source_installed_publication(_clock())
+
+
+
+def _read_compressed_base_origin(path):
+    from .installed_shade_origin import read_compressed_source_issued_capture,_source_prediction
+    path=Path(path)
+    if not path.name.endswith('.installed-shade-origin-v10.json'):raise ValueError('original compressed base origin10 required')
+    return read_compressed_source_issued_capture(path),lambda record:_source_prediction(record,_version=10)
+
+
+def _prepare_compressed_base_bootstrap(reference_path):
+    from .installed_shade_qualification import qualify_compressed_installed_shade_candidate
+    from .replay_budget import check_shared_budget
+    path=Path(reference_path).resolve();refs=_read_private(path);at=_utc(_clock())
+    if (not isinstance(refs,dict) or set(refs)!=REFERENCE_FIELDS or refs['schema']!=COMPRESSED_REFERENCE_SCHEMA or
+            refs['registration_path'] is not None or refs['original_pairs_path'] is not None):
+        raise ValueError('explicit unregistered base-only bootstrap references required')
+    values={}
+    for key in ('candidate_path','runtime_bundle_path'):
+        value=refs[key]
+        if not isinstance(value,str) or not 1<=len(value)<=1024:raise ValueError('bounded original bootstrap source path required')
+        target=Path(value);values[key]=target if target.is_absolute() else path.parent/target
+    if not values['candidate_path'].name.endswith('.installed-shade-candidate-v1.json'):raise ValueError('original native base candidate required')
+    archived=read_runtime_bundle(values['runtime_bundle_path']);runtime=archived['runtime'];revision=_digest(runtime)
+    if not RAW_RUNTIME_PATHS<=set(runtime['source_manifest']):raise ValueError('complete bootstrap source runtime closure required')
+    paths=tuple(archived['revision_paths'])
+    def guard():
+        check_shared_budget()
+        if _canonical(build_runtime_binding(Path(__file__).resolve().parents[1],paths))!=_canonical(runtime):raise ValueError('bootstrap executing runtime changed')
+    guard()
+    # This typed reader replays original native training-inputs/v2 and measured
+    # conditioning/stability. Calibration is precisely what bootstrap gathers.
+    loaded=read_candidate_bundle(values['candidate_path'],expected_runtime_revision=revision,assessed_at=at)
+    if loaded['artifact']['schema']!='earthship-installed-shade-candidate/v1':raise ValueError('native base-only bootstrap required')
+    report=qualify_compressed_installed_shade_candidate(registration_path=None,candidate_path=None,runtime_bundle_path=None,original_pairs=[],now=at)
+    guard()
+    return PreparedCompressedBaseBootstrap(_canonical(report),_canonical(loaded['artifact']),loaded['fit_evidence']['fit_gates_passed'] is True,True,paths,True,str(path))
+
+
+def prepare_compressed_base_bootstrap(reference_path):
+    from .installed_shade_calibration import _source_operation
+    try:return _source_operation(_prepare_compressed_base_bootstrap,reference_path)
+    except ERRORS:return PreparedCompressedBaseBootstrap(None,None,False)
+
+
+def build_compressed_base_bootstrap_publication(original_path,prepared,*,report_sink=None):
+    from .installed_shade_calibration import _source_operation
+    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink,_bootstrap_only=True)
     except ERRORS:return unavailable_compressed_source_installed_publication(_clock())
