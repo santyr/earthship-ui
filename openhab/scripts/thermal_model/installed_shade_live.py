@@ -18,12 +18,14 @@ from .graduation_policy import _utc
 from .installed_shade_artifact import _digest
 from .origin_capture import build_runtime_binding
 from .installed_shade_publication import (prepare_installed_qualification,build_installed_publication,
-    unavailable_installed_publication,validate_installed_publication)
+    unavailable_installed_publication,validate_installed_publication,
+    prepare_raw_installed_qualification,build_raw_installed_publication,
+    unavailable_raw_installed_publication,validate_raw_installed_publication,PreparedRawInstalledQualification)
 from .installed_shade_published_origin import (NUMERIC_ITEM,PUBLICATION_ITEM,build_publication_capture,
-    write_publication_capture,_receipt)
+    write_publication_capture,_receipt,build_raw_publication_capture,write_raw_publication_capture)
 from .installed_shade_qualification import (write_installed_shade_qualification_report,
     write_calibrated_installed_shade_qualification_report,write_published_installed_shade_qualification_report,
-    write_raw_published_installed_shade_qualification_report)
+    write_raw_published_installed_shade_qualification_report,write_complete_raw_installed_shade_qualification_report)
 from . import installed_shade_origin as base
 from . import installed_shade_calibrated_origin as calibrated
 
@@ -53,11 +55,14 @@ def _runtime(prepared,artifact):
     return value
 
 
-def _numeric(prepared,inputs,*,issue,available,published,runtime):
+def _numeric(prepared,inputs,*,issue,available,published,runtime,_version=1):
     artifact=json.loads(prepared.candidate_json);report=json.loads(prepared.report_json)
     validated=_utc(report['assessed_at'])
     if set(inputs)!={'forecast','current','origin_temperatures','action_snapshot'}:raise ValueError('closed original input context required')
-    if artifact['schema']=='earthship-installed-shade-candidate/v2':
+    if _version==2:
+        if artifact['schema']!='earthship-installed-shade-candidate/v3':raise ValueError('raw calibrated candidate required')
+        candidate=calibrated.PreparedRawCalibratedCandidate(prepared.candidate_json,validated);builder=calibrated.build_raw_calibrated_capture
+    elif artifact['schema']=='earthship-installed-shade-candidate/v2':
         candidate=calibrated.PreparedCalibratedCandidate(prepared.candidate_json,validated);builder=calibrated.build_calibrated_capture
     else:candidate=base.PreparedCandidate(prepared.candidate_json,validated);builder=base.build_issued_capture
     return builder(candidate,issued_at=issue,inputs_available_at=available,published_at=published,runtime=runtime,**inputs)
@@ -78,7 +83,8 @@ def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None):
     if output is not None and not now<_utc(output['validUntil']):raise ValueError('publication expired before send')
 
 
-def _write_numeric(root,record):
+def _write_numeric(root,record,*,_version=1):
+    if _version==2:return calibrated.write_raw_calibrated_capture(root,record)
     writer=calibrated.write_calibrated_capture if record['schema']==calibrated.SCHEMA else base.write_issued_capture
     return writer(root,record)
 
@@ -87,7 +93,8 @@ def _report_cache(root,report):
     writers={'earthship-installed-shade-qualification-report/v1':write_installed_shade_qualification_report,
         'earthship-installed-shade-qualification-report/v2':write_calibrated_installed_shade_qualification_report,
         'earthship-installed-shade-qualification-report/v3':write_published_installed_shade_qualification_report,
-        'earthship-installed-shade-qualification-report/v4':write_raw_published_installed_shade_qualification_report}
+        'earthship-installed-shade-qualification-report/v4':write_raw_published_installed_shade_qualification_report,
+        'earthship-installed-shade-qualification-report/v5':write_complete_raw_installed_shade_qualification_report}
     return writers[report['schema']](root,report)
 
 
@@ -100,8 +107,9 @@ def _confirmed_receipt(backend,item,state,*,since):
     return receipt
 
 
-def _withdraw(backend):
-    output=unavailable_installed_publication(_clock())
+def _withdraw(backend,*,_version=1):
+    unavailable=unavailable_raw_installed_publication if _version==2 else unavailable_installed_publication
+    output=unavailable(_clock())
     try:
         state=_canonical(output).decode();since=_utc(_clock())
         backend.put(PUBLICATION_ITEM,state)
@@ -110,7 +118,17 @@ def _withdraw(backend):
     except ERRORS:return dict(status='unverified_failure',mode='unavailable',delivery_verified=False,automatic_actuation=False)
 
 
-def run_live_cycle(*,reference_path,archive,backend):
+def run_raw_live_cycle(*,reference_path,archive,backend):
+    """Deliver only the complete raw-evidence publication contract."""
+    return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_version=2)
+
+
+def run_live_cycle(*,reference_path,archive,backend,_version=1):
+    prepare=prepare_raw_installed_qualification if _version==2 else prepare_installed_qualification
+    publish=build_raw_installed_publication if _version==2 else build_installed_publication
+    validate=validate_raw_installed_publication if _version==2 else validate_installed_publication
+    capture_builder=build_raw_publication_capture if _version==2 else build_publication_capture
+    capture_writer=write_raw_publication_capture if _version==2 else write_publication_capture
     root=_private_directory(Path(archive));fd=os.open(root/'.installed-shade-live.lock',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
     try:
         info=os.fstat(fd)
@@ -120,7 +138,9 @@ def run_live_cycle(*,reference_path,archive,backend):
         except BlockingIOError:return dict(status='busy',delivery_verified=False,automatic_actuation=False)
         try:
             backend.verify_unchanged();issue=_next_issue(_clock())
-            prepared=prepare_installed_qualification(reference_path)
+            prepared=prepare(reference_path)
+            if _version==2 and not isinstance(prepared,PreparedRawInstalledQualification):
+                raise ValueError('complete raw source preparation required')
             if prepared.source_ready is not True:raise ValueError('original source preparation failed')
             artifact=json.loads(prepared.candidate_json);runtime=_runtime(prepared,artifact)
             known=_utc(_clock())
@@ -129,10 +149,10 @@ def run_live_cycle(*,reference_path,archive,backend):
             inputs=deepcopy(backend.collect(issue=issue,known_at=known));available=_utc(_clock())
             if not known<=available<=issue:raise ValueError('inputs unavailable at original issue')
             backend.verify_unchanged();_runtime(prepared,artifact);_wait_until(issue)
-            before=_utc(_clock());view=_numeric(prepared,inputs,issue=issue,available=available,published=before,runtime=runtime)
+            before=_utc(_clock());view=_numeric(prepared,inputs,issue=issue,available=available,published=before,runtime=runtime,_version=_version)
             # One attempt per scheduled issue. A crash or partial acceptance is
             # not permission to repost the same forecast as new source evidence.
-            attempt=dict(schema='earthship-installed-shade-delivery-attempt/v1',issued_at=issue.isoformat(),started_at=before.isoformat())
+            attempt=dict(schema=f'earthship-installed-shade-delivery-attempt/v{_version}',issued_at=issue.isoformat(),started_at=before.isoformat())
             attempt_path=root/(issue.strftime('%Y%m%dT%H%M%SZ')+'.attempt.json')
             if attempt_path.exists():return dict(status='duplicate_attempt',delivery_verified=False,automatic_actuation=False)
             from .runtime_bundle import _write_private
@@ -141,32 +161,37 @@ def run_live_cycle(*,reference_path,archive,backend):
             backend.verify_unchanged();_runtime(prepared,artifact)
             # Rebuild after retention; the transport callback performs the
             # final expiry check after metadata/pacing before the sole PUT.
-            view=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime)
+            view=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime,_version=_version)
             sent=_canonical(view['output']).decode();numeric_since=_utc(_clock())
             backend.put(NUMERIC_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend))
             numeric=_confirmed_receipt(backend,NUMERIC_ITEM,sent,since=numeric_since)
             persisted,_=_receipt(numeric,NUMERIC_ITEM)
             if _canonical(persisted)!=_canonical(view['output']):raise ValueError('actual numeric receipt differs')
-            original=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime)
-            original_path=_write_numeric(root,original)
-            output=build_installed_publication(original_path,prepared);validate_installed_publication(output)
+            original=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime,_version=_version)
+            original_path=_write_numeric(root,original,_version=_version)
+            output=publish(original_path,prepared);validate(output)
             if output['status']=='unavailable':raise ValueError('current publication gates failed')
             backend.verify_unchanged();_runtime(prepared,artifact)
             # The publication builder replays current expiry/runtime again here.
-            output=build_installed_publication(original_path,prepared)
+            output=publish(original_path,prepared)
             if output['status']=='unavailable':raise ValueError('publication expired before delivery')
             main_since=_utc(_clock());sent=_canonical(output).decode()
             backend.put(PUBLICATION_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend,output=output))
             main=_confirmed_receipt(backend,PUBLICATION_ITEM,sent,since=main_since)
-            capture=build_publication_capture(original_path,numeric_publication=numeric,publication=main)
-            path=write_publication_capture(root,capture)
+            capture=capture_builder(original_path,numeric_publication=numeric,publication=main)
+            path=capture_writer(root,capture)
             return dict(status='published',mode=output['status'],delivery_verified=True,capture_path=str(path),
                 capture_sha256=capture['capture_sha256'],automatic_actuation=False)
-        except ERRORS:return _withdraw(backend)
+        except ERRORS:return _withdraw(backend,_version=2) if _version==2 else _withdraw(backend)
     finally:os.close(fd)
 
 
-def withdraw_live_publication(*,archive,backend,reason):
+def withdraw_raw_live_publication(*,archive,backend,reason):
+    """Withdraw raw publication independently of model or source availability."""
+    return withdraw_live_publication(archive=archive,backend=backend,reason=reason,_version=2)
+
+
+def withdraw_live_publication(*,archive,backend,reason,_version=1):
     """One explicit unavailable publication with private reason and actual proof."""
     fd=None
     try:
@@ -180,7 +205,8 @@ def withdraw_live_publication(*,archive,backend,reason):
         except BlockingIOError:return dict(status='busy',delivery_verified=False,automatic_actuation=False)
         current=lock.lstat()
         if (current.st_dev,current.st_ino)!=(info.st_dev,info.st_ino):raise ValueError('withdrawal lock replaced')
-        backend.verify_unchanged();output=unavailable_installed_publication(_clock());state=_canonical(output).decode();since=_utc(_clock())
+        unavailable=unavailable_raw_installed_publication if _version==2 else unavailable_installed_publication
+        backend.verify_unchanged();output=unavailable(_clock());state=_canonical(output).decode();since=_utc(_clock())
         def preflight():
             backend.verify_unchanged()
             current=lock.lstat()
@@ -189,9 +215,9 @@ def withdraw_live_publication(*,archive,backend,reason):
         backend.put(PUBLICATION_ITEM,state,preflight=preflight);receipt=_confirmed_receipt(backend,PUBLICATION_ITEM,state,since=since)
         backend.verify_unchanged()
         from .installed_shade_calibration import _persist
-        record=dict(schema='earthship-installed-shade-withdrawal/v1',reason=reason,requested_at=since.isoformat(),
+        record=dict(schema=f'earthship-installed-shade-withdrawal/v{_version}',reason=reason,requested_at=since.isoformat(),
             publication=receipt,mode='unavailable',delivery_verified=True,automatic_actuation=False)
-        path=_persist(root,record,_digest(record),'.installed-shade-withdrawal-v1.json')
+        path=_persist(root,record,_digest(record),f'.installed-shade-withdrawal-v{_version}.json')
         return dict(status='withdrawn',mode='unavailable',delivery_verified=True,receipt_path=str(path),automatic_actuation=False)
     except ERRORS:return dict(status='unverified_failure',mode='unavailable',delivery_verified=False,automatic_actuation=False)
     finally:
