@@ -148,3 +148,158 @@ class ScoreReader:
 def load_compressed_source_score_settings(path):
     """Explicit storage profile; old settings loaders continue refusing it."""
     return load_score_settings(path,_version=4)
+
+
+# Registered-origin scheduling is part of the retained numerical runtime.
+from datetime import timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
+from uuid import uuid4
+import os
+from .forcing_capture import _canonical,_private_directory
+from .graduation_policy import _utc,_sha
+from .installed_shade_artifact import _digest
+from .installed_shade_calibration import _persist,_source_operation
+import json
+from .origin_capture import _object
+REGISTRATION_QUEUE_SCHEMA='earthship-installed-score-jobs/v4'
+REGISTRATION_JOB_FIELDS={'origin_path','horizon_hours'}
+
+def _registered_path(value):
+    if not isinstance(value,str) or not 1<=len(value)<=1024:raise ValueError('bounded explicit score path required')
+    path=Path(value)
+    if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original score path required')
+    return path
+
+def _registered_decode(raw):
+    def reject(_):raise ValueError('nonfinite queued job data')
+    return json.loads(raw,object_pairs_hook=_object,parse_constant=reject)
+from .runtime_bundle import _owned_bytes,_write_private,_sync_directory
+from .replay_budget import check_shared_budget
+
+REGISTRATION_SCHEMA='earthship-installed-score-registration/v1'
+REGISTRATION_HORIZONS=('1','6','12','24')
+REGISTRATION_SITE=ZoneInfo('America/Denver')
+
+
+def _registered_identity(record):
+    numeric=record['numeric_capture']
+    return dict(artifact_sha256=_sha(numeric['candidate']['artifact_sha256']),
+        runtime_sha256=_digest(numeric['runtime']),sensor_epochs=numeric['source_epochs'])
+
+
+def register_compressed_publication_jobs(*,registration_path,origin_path,guard):
+    """Caller holds shared consumer lock; only actual calibrated main13 originals."""
+    return _source_operation(_register_publication,registration_path=registration_path,origin_path=origin_path,guard=guard)
+
+
+def _register_publication(*,registration_path,origin_path,guard):
+    from .installed_shade_published_origin import read_compressed_calibrated_publication_capture
+    snapshots={}
+    def check():
+        check_shared_budget();guard()
+        for path,(raw,maximum) in snapshots.items():
+            if _owned_bytes(path,maximum)!=raw:raise ValueError('original score registration inputs changed')
+        check_shared_budget();guard()
+    def read(path,maximum):
+        path=_registered_path(str(path));_private_directory(path.parent);check();raw=_owned_bytes(path,maximum);snapshots[path]=(raw,maximum);return _registered_decode(raw)
+    check();pointer=_registered_path(str(registration_path));root=_private_directory(pointer.parent)
+    registration=read(pointer,16384)
+    if (not isinstance(registration,dict) or set(registration)!={'schema','candidate','queues'} or registration['schema']!=REGISTRATION_SCHEMA or
+            not isinstance(registration['queues'],dict) or set(registration['queues'])!=set(REGISTRATION_HORIZONS)):
+        raise ValueError('closed four-horizon registration required')
+    queue_records={};origins=None
+    for hours,path in registration['queues'].items():
+        queue=read(path,65536)
+        if (not isinstance(queue,dict) or set(queue)!={'schema','jobs'} or queue['schema']!=REGISTRATION_QUEUE_SCHEMA or
+                not isinstance(queue['jobs'],list) or len(queue['jobs'])>256):raise ValueError('bounded original queue4 required')
+        sequence=[]
+        for job in queue['jobs']:
+            if (not isinstance(job,dict) or set(job)!=REGISTRATION_JOB_FIELDS or type(job['horizon_hours']) is not int or
+                    job['horizon_hours']!=int(hours) or not _registered_path(job['origin_path']).name.endswith('.installed-shade-origin-v13.json')):
+                raise ValueError('closed calibrated horizon queue required')
+            sequence.append(job['origin_path'])
+        if len(set(sequence))!=len(sequence):raise ValueError('duplicate original registered publication')
+        if origins is None:origins=sequence
+        elif origins!=sequence:raise ValueError('horizon registrations differ')
+        queue_records[hours]=queue
+    origin=_registered_path(str(origin_path))
+    if not origin.name.endswith('.installed-shade-origin-v13.json'):raise ValueError('calibrated actual main13 original required')
+    read(origin,2000000);record=read_compressed_calibrated_publication_capture(origin);check()
+    identity=_registered_identity(record);issue=_utc(record['numeric_capture']['issued_at'])
+    pin=registration['candidate']
+    if pin is None:
+        if origins:raise ValueError('existing origins require frozen registration identity')
+    elif _canonical(pin)!=_canonical(identity):raise ValueError('registered frozen candidate/runtime/epochs differ')
+    if str(origin) in origins:return dict(status='jobs_unchanged',release_authorized=False)
+    if origins:
+        last=_registered_path(origins[-1]);read(last,2000000);last_record=read_compressed_calibrated_publication_capture(last);check()
+        if _canonical(_registered_identity(last_record))!=_canonical(identity):raise ValueError('last original frozen identity differs')
+        previous=_utc(last_record['numeric_capture']['issued_at'])
+        if issue<previous:raise ValueError('backdated original cannot register new jobs')
+        if issue<previous+timedelta(hours=24) or issue.astimezone(REGISTRATION_SITE).date()==previous.astimezone(REGISTRATION_SITE).date():
+            return dict(status='origin_not_selected',release_authorized=False)
+    if len(origins)>=256:raise ValueError('registered horizon queue capacity reached')
+    selected={}
+    for hours,queue in queue_records.items():
+        updated=dict(schema=REGISTRATION_QUEUE_SCHEMA,jobs=queue['jobs']+[dict(origin_path=str(origin),horizon_hours=int(hours))])
+        selected[hours]=str(_persist(root,updated,_digest(updated),'.registered-score-jobs-v4.json',before_publish=check))
+    updated=dict(schema=REGISTRATION_SCHEMA,candidate=identity,queues=selected)
+    temporary=root/('.score-registration-pointer-'+uuid4().hex)
+    try:
+        _write_private(temporary,_canonical(updated));check()
+        # Re-read the actual current original after the pointer temporary write;
+        # a registered job is never a replacement for its retained source bytes.
+        current=read_compressed_calibrated_publication_capture(origin)
+        if _canonical(current)!=_canonical(record):raise ValueError('actual publication source changed during registration')
+        for hours,path in selected.items():
+            expected=dict(schema=REGISTRATION_QUEUE_SCHEMA,jobs=queue_records[hours]['jobs']+[dict(origin_path=str(origin),horizon_hours=int(hours))])
+            if _owned_bytes(Path(path),65536)!=_canonical(expected):raise ValueError('retained horizon queue changed')
+        check();os.replace(temporary,pointer);_sync_directory(root)
+    finally:
+        if temporary.exists():temporary.unlink()
+    return dict(status='jobs_registered',release_authorized=False)
+
+
+def resolve_registered_score_queue(*,registration_path,horizon_hours,guard):
+    """Return selected queue and a guard retaining the exact registry generation."""
+    if type(horizon_hours) is not int or str(horizon_hours) not in REGISTRATION_HORIZONS:
+        raise ValueError('explicit registered horizon required')
+    snapshots={}
+    def verify():
+        # Queue remaining-budget callbacks invoke backend guards. Keep this
+        # ownership/generation guard pure to avoid recursive budget callbacks.
+        guard()
+        for path,(raw,maximum) in snapshots.items():
+            _private_directory(path.parent)
+            if _owned_bytes(path,maximum)!=raw:raise ValueError('registered queue generation changed')
+        guard()
+    def read(path,maximum):
+        path=_registered_path(str(path));_private_directory(path.parent);check_shared_budget();verify()
+        raw=_owned_bytes(path,maximum);snapshots[path]=(raw,maximum);return _registered_decode(raw)
+    pointer=_registered_path(str(registration_path));record=read(pointer,16384)
+    if (not isinstance(record,dict) or set(record)!={'schema','candidate','queues'} or record['schema']!=REGISTRATION_SCHEMA or
+            not isinstance(record['queues'],dict) or set(record['queues'])!=set(REGISTRATION_HORIZONS)):
+        raise ValueError('closed four-horizon registration required')
+    pin=record['candidate']
+    if pin is not None:
+        if (not isinstance(pin,dict) or set(pin)!={'artifact_sha256','runtime_sha256','sensor_epochs'} or
+                not isinstance(pin['sensor_epochs'],dict) or set(pin['sensor_epochs'])!={'air','mass','outdoor'} or
+                any(not isinstance(value,str) or not 1<=len(value)<=128 for value in pin['sensor_epochs'].values())):
+            raise ValueError('closed frozen registration identity required')
+        _sha(pin['artifact_sha256']);_sha(pin['runtime_sha256'])
+    origins=None
+    for hours,path in record['queues'].items():
+        queue=read(path,65536)
+        if (not isinstance(queue,dict) or set(queue)!={'schema','jobs'} or queue['schema']!=REGISTRATION_QUEUE_SCHEMA or
+                not isinstance(queue['jobs'],list) or len(queue['jobs'])>256):raise ValueError('bounded original queue4 required')
+        sequence=[]
+        for job in queue['jobs']:
+            if (not isinstance(job,dict) or set(job)!=REGISTRATION_JOB_FIELDS or type(job['horizon_hours']) is not int or
+                    job['horizon_hours']!=int(hours) or not _registered_path(job['origin_path']).name.endswith('.installed-shade-origin-v13.json')):
+                raise ValueError('closed calibrated registered horizon required')
+            sequence.append(job['origin_path'])
+        if len(set(sequence))!=len(sequence) or (pin is None and sequence):raise ValueError('frozen unique registered origins required')
+        if origins is None:origins=sequence
+        elif origins!=sequence:raise ValueError('registered horizon origin sequences differ')
+    verify();check_shared_budget();return _registered_path(record['queues'][str(horizon_hours)]),verify

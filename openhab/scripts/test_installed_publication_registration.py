@@ -53,7 +53,7 @@ def test_different_frozen_candidate_refuses_without_dropping_jobs(registration_c
 
 
 def test_shared_guard_loss_after_actual_pointer_write_leaves_all_old_queues_selected(registration_case,monkeypatch):
-    from thermal_model import installed_shade_score_registration as m
+    from thermal_model import installed_shade_score_inputs as m
     reg,origin,_,_,_=registration_case;before=reg.read_bytes();write=m._write_private;state={'lost':False}
     def retain(path,raw):
         write(path,raw)
@@ -67,7 +67,7 @@ def test_shared_guard_loss_after_actual_pointer_write_leaves_all_old_queues_sele
 @pytest.mark.parametrize('delivered',[True,False])
 def test_compressed_operator_registers_only_verified_publication_receipts(monkeypatch,tmp_path,capsys,delivered):
     import thermal_installed_intel as cli
-    from thermal_model import installed_shade_live_inputs as inputs,installed_shade_live as live,installed_shade_score_registration as registration
+    from thermal_model import installed_shade_live_inputs as inputs,installed_shade_live as live,installed_shade_score_inputs as registration
     tmp_path.chmod(0o700);lock=tmp_path/'lock';lock.touch(mode=0o600);calls=[]
     settings=dict(release_inputs_path=tmp_path/'refs',evidence_directory=tmp_path)
     monkeypatch.setattr(cli,'_resource_preflight',lambda:None)
@@ -89,7 +89,7 @@ def test_compressed_operator_registers_only_verified_publication_receipts(monkey
 
 def test_registration_failure_preserves_publication_receipt_but_returns_failure(monkeypatch,tmp_path,capsys):
     import thermal_installed_intel as cli
-    from thermal_model import installed_shade_live_inputs as inputs,installed_shade_live as live,installed_shade_score_registration as registration
+    from thermal_model import installed_shade_live_inputs as inputs,installed_shade_live as live,installed_shade_score_inputs as registration
     tmp_path.chmod(0o700);lock=tmp_path/'lock';lock.touch(mode=0o600)
     monkeypatch.setattr(cli,'_resource_preflight',lambda:None)
     monkeypatch.setattr(inputs,'load_compressed_live_settings',lambda _:dict(release_inputs_path=tmp_path/'refs',evidence_directory=tmp_path))
@@ -106,7 +106,7 @@ from test_installed_shade_raw_origin import source_origin_case,raw_math_capture,
 
 @pytest.mark.parametrize('lose_original',[False,True])
 def test_registration_replays_actual_main13_original_queries_after_pointer_temp_write(registration_case,source_origin_case,tmp_path,monkeypatch,lose_original):
-    from thermal_model import installed_shade_published_origin as captures,installed_shade_score_registration as m
+    from thermal_model import installed_shade_published_origin as captures,installed_shade_score_inputs as m
     from test_installed_shade_raw_publication_capture import compressed_calibrated_delivery
     root,record,_,_,_,args=compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch)
     origin=captures.write_compressed_calibrated_publication_capture(root,record)

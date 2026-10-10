@@ -63,7 +63,7 @@ from test_installed_shade_raw_origin import source_origin_case,raw_math_capture,
 
 
 def test_registered_actual_source_collection_and_completion_discovery_retain_originals(registration_case,source_origin_case,tmp_path,monkeypatch):
-    from thermal_model import installed_shade_published_origin as captures,installed_shade_score_registration as registration
+    from thermal_model import installed_shade_published_origin as captures,installed_shade_score_inputs as registration
     from thermal_model import installed_shade_score_jobs as jobs,installed_shade_qualification as q,installed_shade_release_index as release
     from test_installed_shade_raw_publication_capture import compressed_calibrated_archive_case,CompressedRawBackend
     monkeypatch.setattr(captures,'read_compressed_calibrated_publication_capture',lambda path:captures._read_publication_capture(path,_version=13))
@@ -86,7 +86,14 @@ def test_registered_actual_source_collection_and_completion_discovery_retain_ori
     monkeypatch.setattr(q,'score_compressed_source_calibrated_packets',lambda packets,**kw:q._score_source_packets(packets,assessed_at=now,candidate=kw['candidate'],source_version=7))
     def save(name,value):
         p=reg.parent/name;p.write_text(json.dumps(value));p.chmod(0o600);return p
-    refs={key:str(save(key+'.json',{})) for key in ('candidate_path','registration_path','runtime_bundle_path')}
+    refs={key:str(save(key+'.json',{})) for key in ('candidate_path','registration_path')}
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    runtime_sources=reg.parent/'runtime-sources';runtime_sources.mkdir(mode=0o700)
+    (runtime_sources/'thermal_model').mkdir(mode=0o700)
+    for name in ('thermal_intel.py','thermal_model/origin_capture.py'):
+        path=runtime_sources/name;path.write_text('# routing fixture only\n');path.chmod(0o600)
+    archives=reg.parent/'runtime-archives';archives.mkdir(mode=0o700)
+    refs['runtime_bundle_path']=str(capture_runtime_bundle(archives,runtime_sources,['thermal_intel.py']))
     pointer=save('release-inputs.json',dict(schema='earthship-installed-shade-release-inputs/v4',original_pairs_path=None,**refs))
     assert release.append_compressed_completed_queue(reference_path=pointer,queue_path=queue,output_directory=root,guard=verify)['status']=='index_updated'
     admitted=json.loads(Path(json.loads(pointer.read_text())['original_pairs_path']).read_text())

@@ -44,7 +44,7 @@ def _live(args,*,guard=lambda:None):
     if getattr(args,'score_registration',None) is not None and receipt['status']=='published':
         try:
             if receipt.get('delivery_verified') is not True:raise ValueError('verified publication receipt required')
-            from thermal_model.installed_shade_score_registration import register_compressed_publication_jobs
+            from thermal_model.installed_shade_score_inputs import register_compressed_publication_jobs
             def registration_guard():
                 guard()
                 if loader(args.config)!=settings:raise ValueError('original publication settings changed')

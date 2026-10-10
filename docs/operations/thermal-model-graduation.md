@@ -2515,3 +2515,13 @@ runtime directory, using the typed bundle reader. Its manifest, interpreter and
 source bytes are revalidated through the actual release-pointer replacement.
 A missing or changed bundle member refuses incorporation and preserves the
 previous release pointer. A JSON-file placeholder cannot represent this operand.
+
+Registered publication uses the registration implementation retained in
+`thermal_model.installed_shade_score_inputs`, which is already part of the
+64-file numerical runtime closure. The earlier registration module remains a
+compatibility export. The publisher needs neither that shim nor the unretained
+queued-scorer module to register its actual verified publication. An isolated
+interpreter test stages exactly the declared source files and verifies all four
+queue updates through the publisher path; qualification/delivery seams in that
+test are synthetic and confer no household release authority. Freeze a new exact
+runtime after source changes rather than silently supplementing an old bundle.
