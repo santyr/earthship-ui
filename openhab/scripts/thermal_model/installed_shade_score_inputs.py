@@ -18,6 +18,7 @@ from .installed_shade_published_origin import _receipt,NUMERIC_ITEM,PUBLICATION_
 
 SCHEMA='earthship-installed-shade-score-config/v1'
 RAW_SCHEMA='earthship-installed-shade-score-config/v2'
+SOURCE_SCHEMA='earthship-installed-shade-score-config/v3'
 SOURCE_PATHS={'token_file','native_db_config','native_policy'}
 FIELDS=SOURCE_PATHS|{'schema','openhab_base','output_directory'}
 
@@ -30,8 +31,10 @@ def load_raw_score_settings(path):
 
 
 def load_score_settings(path,*,_version=1):
+    if type(_version) is not int or _version not in (1,2,3):raise ValueError('explicit score configuration profile required')
+    schema={1:SCHEMA,2:RAW_SCHEMA,3:SOURCE_SCHEMA}[_version]
     path=Path(path);_private_directory(path.parent);value=_read_private(path)
-    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=(RAW_SCHEMA if _version==2 else SCHEMA) or value['openhab_base'] not in BASES:
+    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=schema or value['openhab_base'] not in BASES:
         raise ValueError('closed private score configuration required')
     for key in SOURCE_PATHS|{'output_directory'}:
         name=value[key]
@@ -43,11 +46,17 @@ def load_score_settings(path,*,_version=1):
     return deepcopy(value)
 
 
+def load_source_score_settings(path):
+    return load_score_settings(path,_version=3)
+
+
 class ScoreReader:
     def __init__(self,settings,*,shared_lock_guard=None):
+        if settings.get('schema')==SOURCE_SCHEMA and not callable(shared_lock_guard):
+            raise ValueError('source scoring requires a held shared lock guard')
         self.shared_lock_guard=shared_lock_guard
         if shared_lock_guard is not None:shared_lock_guard()
-        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24);self.native_source_paths=[];self._native_sources={}
+        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24,guard=shared_lock_guard);self.native_source_paths=[];self._native_sources={}
         self.hashes={key:sha256(_owned_bytes(Path(settings[key]),16384)).hexdigest() for key in SOURCE_PATHS}
         token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:token,budget=self.budget)
@@ -103,7 +112,7 @@ class ScoreReader:
                     stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch)
                 except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
                 self.verify_unchanged()
-                path=write_temperature_source(self.settings['output_directory'],packet)
+                path=write_temperature_source(self.settings['output_directory'],packet,before_publish=self.verify_unchanged)
             retained=read_temperature_source(path.parent,path)
             selected=replay_temperature_source(retained)
             if (retained['targets']!=[target.isoformat()] or _utc(retained['assessed_at'])!=assessed_at or

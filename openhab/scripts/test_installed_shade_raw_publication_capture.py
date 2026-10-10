@@ -355,3 +355,86 @@ def test_source_score_reader_refuses_outcome_source_lost_during_numerical_replay
     monkeypatch.setattr(published,'score_source_publication_capture',score_then_lose)
     with pytest.raises((ValueError,OSError)):
         sources.read_source_score_sources(Path(result['raw_packet_path']),assessed_at=now)
+
+
+@pytest.mark.parametrize('lost',[None,'issue','outcome'])
+def test_source_queue_replays_typed_completion_and_never_recollects_lost_sources(source_delivery_case,monkeypatch,lost):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_score_jobs as jobs
+    assert hasattr(jobs,'collect_source_queued_score'),'missing original-query score queue'
+    root,record,_,issue,_,args=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now);monkeypatch.setattr(jobs,'_clock',lambda:now)
+    job=dict(origin_path=str(path),horizon_hours=1)
+    queue=root/'jobs.json';queue.write_bytes(_canonical(dict(schema='earthship-installed-score-jobs/v3',jobs=[job])));queue.chmod(0o600)
+    backend=RawBackend(record,root)
+    before=set(root.iterdir())
+    for old in (jobs.collect_queued_score,jobs.collect_raw_queued_score):
+        assert old(queue_path=queue,output_directory=root,backend=backend)['status']=='withheld'
+    assert set(root.iterdir())==before and backend.native_source_paths==[]
+    result=jobs.collect_source_queued_score(queue_path=queue,output_directory=root,backend=backend)
+    assert result['status']=='scored' and result['release_authorized'] is False
+    marker=root/(_digest(job)+'.score-job-v3.json');saved=json.loads(marker.read_text())
+    assert saved['schema']=='earthship-installed-score-job-completion/v3'
+    assert saved['job']==job and saved['release_authority'] is False
+    assert saved['raw_score_sources_sha256']==_digest(json.loads(Path(result['raw_packet_path']).read_text()))
+    retained=list(backend.native_source_paths)
+    if lost=='issue':Path(args['native_source_paths']['mass']).unlink()
+    elif lost=='outcome':Path(retained[-1]).unlink()
+    replay=jobs.collect_source_queued_score(queue_path=queue,output_directory=root,backend=backend)
+    assert replay['status']==('completion_verified' if lost is None else 'withheld')
+    assert replay['release_authorized'] is False and backend.native_source_paths==retained
+
+
+def test_source_queue_deadline_reaches_original_query_replay_before_numerical_work(source_delivery_case,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_score_jobs as jobs
+    from thermal_model import installed_shade_raw_score_sources as sources
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(jobs,'collect_source_queued_score'),'missing original-query score queue'
+    root,record,_,issue,_,_=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);clock={'seconds':0.}
+    monkeypatch.setattr(collector,'_clock',lambda:now);monkeypatch.setattr(jobs,'_clock',lambda:now)
+    monkeypatch.setattr(jobs,'monotonic',lambda:clock['seconds'])
+    queue=root/'jobs.json';queue.write_bytes(_canonical(dict(schema='earthship-installed-score-jobs/v3',jobs=[dict(origin_path=str(path),horizon_hours=1)])));queue.chmod(0o600)
+    replay=sources.replay_temperature_source
+    def replay_then_expire(*args,**kwargs):
+        grid=replay(*args,**kwargs);clock['seconds']=56.;return grid
+    monkeypatch.setattr(sources,'replay_temperature_source',replay_then_expire)
+    prediction=base._prediction
+    def guarded_prediction(*args,**kwargs):
+        if clock['seconds']>=55:pytest.fail('numerical work continued after the shared queue deadline')
+        return prediction(*args,**kwargs)
+    monkeypatch.setattr(base,'_prediction',guarded_prediction)
+    backend=RawBackend(record,root)
+    result=jobs.collect_source_queued_score(queue_path=queue,output_directory=root,backend=backend)
+    assert result['status']=='withheld' and result['release_authorized'] is False
+    assert not backend.native_source_paths and not list(root.glob('*.score-job-v3.json'))
+
+
+@pytest.mark.parametrize('lost',['source','queue'])
+def test_source_queue_cannot_publish_completion_after_temporary_write_loses_sources(source_delivery_case,monkeypatch,lost):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_score_jobs as jobs
+    from thermal_model import runtime_bundle
+    root,record,_,issue,_,args=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now);monkeypatch.setattr(jobs,'_clock',lambda:now)
+    queue=root/'jobs.json';queue.write_bytes(_canonical(dict(schema='earthship-installed-score-jobs/v3',jobs=[dict(origin_path=str(path),horizon_hours=1)])));queue.chmod(0o600)
+    original=runtime_bundle._write_private
+    def write_then_lose(target,raw):
+        original(target,raw);value=json.loads(raw)
+        if isinstance(value,dict) and value.get('schema')=='earthship-installed-score-job-completion/v3':
+            if lost=='source':Path(args['native_source_paths']['air']).unlink()
+            else:queue.write_bytes(_canonical(dict(schema='earthship-installed-score-jobs/v3',jobs=[])))
+    monkeypatch.setattr(runtime_bundle,'_write_private',write_then_lose)
+    backend=RawBackend(record,root)
+    result=jobs.collect_source_queued_score(queue_path=queue,output_directory=root,backend=backend)
+    assert result['status']=='withheld' and result['release_authorized'] is False
+    assert not list(root.glob('*.score-job-v3.json')) and not list(root.glob('.calibration-*'))

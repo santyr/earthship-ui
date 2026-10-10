@@ -203,3 +203,71 @@ def test_far_endpoint_queries_keep_small_raw_windows_and_invalid_barriers(settin
     packets=[read_temperature_source(Path(p).parent,Path(p)) for p in reader.native_source_paths]
     assert sum(len(p['native_rows']) for p in packets)<=4
     assert len(connections)==2 and all(c.closed for c in connections)
+
+
+@pytest.mark.parametrize('version',[1,3])
+@pytest.mark.parametrize('lost',['configuration','lock'])
+def test_score_reader_cannot_publish_raw_query_when_guard_is_lost_during_temporary_write(settings,monkeypatch,lost,version):
+    import hourly_temperature_runtime
+    import os
+    m=module();state={'held':True}
+    def guard():
+        if not state['held']:raise ValueError('synthetic lock lost')
+    reader=m.ScoreReader({**settings[1],'schema':f'earthship-installed-shade-score-config/v{version}'},shared_lock_guard=guard)
+    now=datetime(2026,10,8,12,tzinfo=timezone.utc)
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    monkeypatch.setattr(reader,'_connect',lambda _:WindowConnection(rows=[]))
+    original=os.chmod
+    def write_then_lose(path,mode,*args,**kwargs):
+        original(path,mode,*args,**kwargs)
+        if Path(path).name.startswith('.temperature-origin-'):
+            if lost=='configuration':Path(settings[1]['token_file']).write_text('synthetic changed credential')
+            else:state['held']=False
+    monkeypatch.setattr(os,'chmod',write_then_lose)
+    with pytest.raises(ValueError):reader.native([now],assessed_at=now,sensor_epoch=EPOCHS['air'])
+    assert list(Path(settings[1]['output_directory']).iterdir())==[]
+    assert reader.native_source_paths==[]
+
+
+@pytest.mark.parametrize('when',['before','after'])
+def test_score_reader_read_budget_refuses_operations_outside_shared_lock(settings,when):
+    state={'held':True};effects=[]
+    def guard():
+        if not state['held']:raise ValueError('synthetic lock lost')
+    reader=module().ScoreReader(settings[1],shared_lock_guard=guard)
+    def operation():
+        effects.append('response');state['held']=False;return 'synthetic response'
+    if when=='before':state['held']=False
+    with pytest.raises(ValueError):reader.budget.call(operation)
+    assert effects==([] if when=='before' else ['response'])
+
+
+
+def test_explicit_source_score_configuration_refuses_legacy_and_override_paths(settings):
+    m=module();assert hasattr(m,'load_source_score_settings'),'missing explicit source score settings'
+    path,value=settings;value={**value,'schema':'earthship-installed-shade-score-config/v3'}
+    path.write_text(json.dumps(value))
+    assert m.load_source_score_settings(path)==value
+    for reader in (m.load_score_settings,m.load_raw_score_settings):
+        with pytest.raises(ValueError):reader(path)
+    path.write_text(json.dumps({**value,'active':True}))
+    with pytest.raises(ValueError):m.load_source_score_settings(path)
+    path.write_text(json.dumps({**value,'schema':'earthship-installed-shade-score-config/v2'}))
+    with pytest.raises(ValueError):m.load_source_score_settings(path)
+
+
+def test_cli_explicit_source_profile_checks_config_without_source_access(settings):
+    path,value=settings;value={**value,'schema':'earthship-installed-shade-score-config/v3'}
+    path.write_text(json.dumps(value))
+    script=Path(__file__).resolve().parent/'thermal_installed_score.py'
+    result=subprocess.run([sys.executable,str(script),'--contract-version','3','--config',str(path)],capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)==dict(status='configuration_verified',collection_executed=False,release_authorized=False)
+    assert list(Path(value['output_directory']).iterdir())==[]
+
+
+@pytest.mark.parametrize('guard',[None,'not callable'])
+def test_source_score_reader_requires_held_guard_before_private_reads(settings,monkeypatch,guard):
+    m=module();value={**settings[1],'schema':'earthship-installed-shade-score-config/v3'}
+    monkeypatch.setattr(m,'_owned_bytes',lambda *a,**kw:pytest.fail('source scorer read private files before a held guard'))
+    with pytest.raises(ValueError):m.ScoreReader(value,shared_lock_guard=guard)

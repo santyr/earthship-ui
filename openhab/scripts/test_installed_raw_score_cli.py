@@ -71,3 +71,33 @@ def test_raw_score_resource_refusal_precedes_config_and_native_reads(settings,mo
     monkeypatch.setattr(inputs,'load_raw_score_settings',lambda *_:pytest.fail('source read after resource refusal'),raising=False)
     assert cli.main(['--config',str(path),'--shared-lock',str(lock),'--collect','--origin','/missing','--horizon','1'])==1
     assert json.loads(capsys.readouterr().out)['status']=='withheld'
+
+
+@pytest.mark.parametrize('batch',[False,True])
+def test_explicit_source_score_cli_routes_to_query_bound_collectors_under_shared_lock(settings,monkeypatch,capsys,batch):
+    import thermal_installed_score as cli,thermal_installed_intel as publication
+    from thermal_model import installed_shade_score_inputs as inputs,installed_shade_score_collection as collection,installed_shade_score_jobs as queueing
+    path,value,lock=settings;value={**value,'schema':'earthship-installed-shade-score-config/v3'}
+    path.write_text(json.dumps(value));guarded=[]
+    monkeypatch.setattr(publication,'_resource_preflight',lambda:guarded.append('preflight'))
+    class Reader:
+        def __init__(self,settings,*,shared_lock_guard):
+            assert guarded==['preflight'] and settings['schema']=='earthship-installed-shade-score-config/v3'
+            self.guard=shared_lock_guard;self.guard()
+        def verify_unchanged(self):self.guard()
+    monkeypatch.setattr(inputs,'ScoreReader',Reader)
+    def wrong(*args,**kwargs):pytest.fail('legacy score profile selected for original-query CLI')
+    monkeypatch.setattr(collection,'collect_published_score',wrong);monkeypatch.setattr(collection,'collect_raw_published_score',wrong)
+    monkeypatch.setattr(queueing,'collect_queued_score',wrong);monkeypatch.setattr(queueing,'collect_raw_queued_score',wrong)
+    def source(**kw):
+        kw['backend'].verify_unchanged()
+        assert kw['output_directory']==value['output_directory']
+        if batch:assert kw['queue_path']==path.parent/'queue'
+        else:assert kw['origin_path']==path.parent/'origin' and kw['horizon_hours']==1
+        return dict(status='pending',release_authorized=False)
+    monkeypatch.setattr(collection,'collect_source_published_score',source)
+    monkeypatch.setattr(queueing,'collect_source_queued_score',source)
+    args=['--batch','--queue',str(path.parent/'queue')] if batch else ['--collect','--origin',str(path.parent/'origin'),'--horizon','1']
+    assert cli.main(['--contract-version','3','--config',str(path),'--shared-lock',str(lock),*args])==0
+    assert json.loads(capsys.readouterr().out)==dict(status='pending',release_authorized=False)
+    assert list(Path(value['output_directory']).iterdir())==[]

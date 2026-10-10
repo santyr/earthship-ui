@@ -1778,9 +1778,10 @@ revalidates immediately before rename. Older main readers refuse these records.
 `unavailable_source_installed_publication` carries neither query proof nor a
 qualification claim.
 
-No installed service, current operator CLI, prepared factory or UI selects this
-new profile. Queued raw scoring, calibration/candidate/registration and complete
-qualification still need the explicit source-bound chain. Passing these
+No installed producer service, publication operator CLI, prepared factory or UI
+selects this new main-publication profile. The explicit scoring CLI profile
+described below can consume these original receipts. Calibration/candidate/
+registration and complete qualification still need the source-bound chain. Passing these
 component tests does not authorize activation or establish natural delivery.
 
 
@@ -1797,7 +1798,42 @@ Immutable scoring writes recheck source files and the caller's configuration
 and lock guard after temporary-file retention and before rename. Old archive
 readers refuse these versions. These records carry no release authority.
 
-The queue, raw calibration, candidate, development registration and complete
-qualification still need explicit routing through these new scoring profiles.
-No installed scorer or producer selects them yet. Qualified independent support
+Raw calibration, candidate, development registration and complete qualification
+still need explicit routing through these new scoring profiles. No installed
+scorer or producer selects them yet. Qualified independent support
 and natural prospective outcomes remain required before production activation.
+
+
+The explicit scoring configuration and queue profile are now version3:
+`earthship-installed-shade-score-config/v3`,
+`earthship-installed-score-jobs/v3`,
+`earthship-installed-score-job-completion/v3` and
+`earthship-installed-score-cursor/v3`. Configuration retains the same closed
+source-path fields; no activation or authority override is accepted. Queue jobs
+retain exact original main paths and supported horizons. Old configuration and
+queue readers refuse this version. Defaults remain profile2.
+
+`thermal_installed_score.py --contract-version 3` selects source collection7/9
+and queue3 explicitly. Configuration checking performs no source acquisition.
+Collection or batch requires the existing resource preflight and held shared
+consumer lock; config3 backend construction refuses missing/noncallable guards
+before private backend reads. Native query writes check the guard and unchanged
+configuration after temporary retention, immediately before linking. The read
+budget checks the held guard before requests, after pacing and after responses.
+
+`collect_source_queued_score` accepts only main7/9 and raw scoring archives4/5.
+Original capture validation, collection and completion replay share the queue's
+unchanged 55-second deadline, original queue bytes and backend guard; nested
+replay cannot renew that deadline. Completion references remain nonauthoritative
+and are retained immutably only after replaying original sources again after
+the actual temporary write. A missing completed source withholds the job instead
+of querying a replacement. Cursor scheduling remains bounded and separate from
+release qualification.
+
+The installed units still select the existing profile. This explicit read-only
+scoring entrypoint does not install or activate a source-aware producer, create
+qualified calibration support, seal thresholds or authorize production. Raw
+calibration/candidate/registration/q6, publication preparation and UI/operator
+release routing remain required. Rebuild pinned runtime archives before selecting
+changed source bytes; measure and bound raw issue-query archive storage before
+installing the producer.
