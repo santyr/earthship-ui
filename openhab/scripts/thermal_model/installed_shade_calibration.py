@@ -228,8 +228,9 @@ def _persist(root, value, digest, suffix, *, before_publish=None):
     temporary = root/('.calibration-'+uuid4().hex)
     try:
         _write_private(temporary,raw)
-        if before_publish is not None:before_publish()
         check_shared_budget()
+        # Source guards may consume time: chronology is the final check.
+        if before_publish is not None:before_publish()
         _rename_new(temporary,target); _sync_directory(root)
     finally:
         if temporary.exists(): temporary.unlink()

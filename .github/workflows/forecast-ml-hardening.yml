@@ -61,6 +61,8 @@ on:
       - 'openhab/scripts/thermal_installed_score.py'
       - 'openhab/scripts/thermal_installed_train.py'
       - 'openhab/scripts/thermal_installed_calibrate.py'
+      - 'openhab/scripts/thermal_installed_register.py'
+      - 'openhab/scripts/test_installed_registration_cli.py'
       - 'openhab/scripts/test_installed_calibration_cli.py'
       - 'openhab/scripts/test_installed_replay_budget.py'
       - 'openhab/scripts/test_installed_candidate_build.py'
@@ -132,6 +134,7 @@ jobs:
             openhab/scripts/test_installed_shade_calibration.py \
             openhab/scripts/test_installed_shade_raw_calibration.py \
             openhab/scripts/test_installed_calibration_cli.py \
+            openhab/scripts/test_installed_registration_cli.py \
             openhab/scripts/test_installed_replay_budget.py \
             openhab/scripts/test_installed_shade_raw_candidate.py \
             openhab/scripts/test_installed_shade_raw_origin.py \

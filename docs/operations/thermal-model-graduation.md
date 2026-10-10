@@ -1623,3 +1623,49 @@ This command neither preregisters policy nor activates a forecast. Thresholds
 must still be derived and sealed from original development sources before
 untouched evaluation. Only subsequent qualification-report/v5 can support a
 release decision; calibration completion alone cannot.
+
+### Guarded raw development policy sealing
+
+After retaining a source-qualified candidate/v3, use
+`thermal_installed_register.py --config PRIVATE_CONFIG` for a standard-library,
+check-only configuration check. It does not replay evidence or seal thresholds.
+Explicit `--register` derives thresholds from original development queries and
+seals registration/v3 before the untouched holdout and prospective intervals.
+
+The closed schema is `earthship-installed-shade-registration-config/v1`, with
+exact fields `schema`, `candidate_path`, `candidate_sha256`,
+`runtime_bundle_path`, `runtime_sha256`, `raw_sources_path`,
+`raw_sources_sha256`, `intervals`, `regimes`, `output_directory` and
+`shared_lock`. Paths must be absolute, resolved and owned private; files are
+0600 and directories 0700. Pin the frozen candidate identity, executing runtime
+identity and SHA256 of the original index file bytes. The index contains only
+original `raw_score_sources_path` references to score-sources/v2 development
+archives. It cannot contain scalar scores or thresholds.
+
+`intervals` contains exactly `development_start`, `development_end`,
+`holdout_start`, `holdout_end`, `prospective_start` and `prospective_end`;
+only the last may be null. Use aware timestamps. Development must have elapsed;
+both release intervals must begin after the actual declaration and seal.
+The command accepts no declaration-clock override. Regimes are distinct values
+from `warm`, `shoulder`, `winter` matching genuine supported development data.
+
+Within the reviewed serial publication resource scope, run:
+
+```sh
+timeout --kill-after=5s 90s python3 openhab/scripts/thermal_installed_register.py --config PRIVATE_CONFIG --register
+```
+
+Preflight precedes configuration reads. One shared lock and 85-second budget
+cover numerical imports, typed candidate/calibration readback, original-query
+replay, derivation, immutable sealing and readback. Runtime, source-index,
+candidate and command bytes are rechecked, including through the shared guard
+immediately before final atomic writes. Existing statistical support and
+baseline-derived thresholds remain unchanged. Actual-clock chronology is
+checked again after the private temporary write, so a late seal is refused.
+
+The private execution receipt retains command and configuration-helper source
+bytes and original identities. A successful `policy_registered` result has
+`release_authorized=false` and `production_installed=false`. Registration
+predeclares the criteria; it does not demonstrate candidate skill. Subsequently
+collect and replay untouched and prospective evidence through qualification/v5.
+No service is enabled and no active publication is made by this command.
