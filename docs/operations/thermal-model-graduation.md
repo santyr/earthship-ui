@@ -1996,3 +1996,21 @@ proof separately from interval calibration. A base cohort with no intervals
 remains uncalibrated. This scoring API makes no release decision and provides no
 qualifying-cohort capacity claim. Full calibration, complete qualification and
 installed operator integration remain required before production use.
+
+Compressed cohort calibration has an explicit development profile,
+`earthship-installed-shade-calibration/v4`, bound to original score-sources/v6.
+Typed build/validation bounds all original source inventories before replaying
+the numerical fit, scores the frozen base identity from actual original queries,
+and replays those queries after learning the summary. Index and record retention
+use distinct v4 addresses with final source guards after actual temporary writes.
+Typed readback reloads original training/fit evidence and original query archives;
+loss of any original withholds calibration. Legacy calibration readers refuse v4.
+
+The calibration method and minimum 35 independent days/windows for each horizon
+and declared regime are unchanged. One day's evidence retains missing radii and
+an incomplete summary, with no coverage guarantee or release authority. Source
+calibration/v3 and v4 now check the inherited shared budget immediately after
+numerical fit replay, before entering scoring; nested operations keep the same
+bounded deadline. No installed producer selects calibration/v4. Compressed
+calibrated candidate preparation, full qualification and operator/UI integration,
+plus actual qualifying-cohort capacity and natural evidence, remain unfinished.

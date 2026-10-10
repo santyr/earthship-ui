@@ -167,6 +167,7 @@ def deliver_source(case,*,base_candidate=None,compressed=False):
         from test_installed_shade_raw_origin import compressed_base_args
         assert kind=='base'
         prepared,args=compressed_base_args(source_origin_case)
+        if base_candidate is not None:prepared=base.PreparedCandidate(_canonical(base_candidate),args['issued_at'])
     record=(base.build_compressed_source_issued_capture if compressed else base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
     root=tmp_path/'receipts';root.mkdir(mode=0o700)
     path=(base.write_compressed_source_issued_capture if compressed else base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
