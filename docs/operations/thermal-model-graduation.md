@@ -1044,7 +1044,7 @@ change below requires its own exact-commit hosted verification before integratio
 
 `openhab/scripts/thermal_installed_intel.py --config PRIVATE_CONFIG` checks only
 owned private configuration. It does not collect sources, create captures or
-publish. Only explicit `--publish` runs one scheduled cycle. There is no active
+publish. Only explicit `--publish --shared-lock EXISTING_PRIVATE_SHARED_LOCK` runs one scheduled cycle. There is no active
 switch, assessment-date override, fitting path, provider fallback or household
 command endpoint.
 
@@ -1477,7 +1477,7 @@ complete raw runtime closure. Set `registration_path` and `original_pairs_path`
 to null. In the same capped execution environment, explicitly select:
 
 ```sh
-python3 openhab/scripts/thermal_installed_intel.py --contract-version 1 --config PRIVATE_BASE_CONFIG --bootstrap-shadow
+python3 openhab/scripts/thermal_installed_intel.py --contract-version 1 --config PRIVATE_BASE_CONFIG --bootstrap-shadow --shared-lock EXISTING_PRIVATE_SHARED_LOCK
 ```
 
 This route requires native raw source preparation, no registered policy, an
@@ -1678,3 +1678,18 @@ runtime without adding a 65th manifest entry or requiring the scorer CLI merely
 to acquire the qualification lock. Recreate the executing runtime archive after
 this source change. An isolated diagnostic-stage lock is not a production
 consumer lock and cannot establish deployment readiness.
+
+Publication and native base bootstrap require the existing private consumer lock
+through `--shared-lock EXISTING_PRIVATE_SHARED_LOCK`. They acquire it before
+protected module imports, configuration checks, backend construction or source
+qualification. A busy lock returns75 without source reads or withdrawal. The
+held inode is checked through request pacing, database/HTTP acquisition and
+publication callbacks. The forecast service must join `earthship-inputs.slice`;
+its archive-local lock additionally protects publication attempts and receipts.
+Default configuration checks require no consumer lock. Independent unavailable
+withdrawal keeps its minimal token/evidence configuration and archive lock.
+
+Recreate runtime archives after this guard change. These resource checks do not
+authorize activation. Original issue-state query retention and replay remain
+necessary before claiming complete raw source authority; selected source2
+receipt grids alone do not prove original query/barrier selection.

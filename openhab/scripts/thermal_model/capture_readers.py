@@ -21,14 +21,17 @@ BASES={'http://127.0.0.1:8080/rest','http://localhost:8080/rest','http://127.0.0
 
 
 class ReadBudget:
-    def __init__(self,seconds,*,clock=monotonic,max_requests=512,min_request_interval=1,sleeper=sleep):
+    def __init__(self,seconds,*,clock=monotonic,max_requests=512,min_request_interval=1,sleeper=sleep,guard=None):
         if type(seconds) is not int or not 1<=seconds<=90 or type(max_requests) is not int or not 1<=max_requests<=512:
             raise ValueError('bounded read deadline and request count required')
         if type(min_request_interval) is not int or not 1<=min_request_interval<=5:
             raise ValueError('capture requests must be spaced by one to five seconds')
+        if guard is not None and not callable(guard):raise ValueError('callable source guard required')
+        self.guard=guard
         self.clock=clock;self.deadline=clock()+seconds;self.max_requests=max_requests;self.requests=0
         self.interval=min_request_interval;self.sleeper=sleeper;self.next_request=None
     def remaining(self):
+        if self.guard is not None:self.guard()
         value=self.deadline-self.clock()
         if value<=0:raise ValueError('capture read deadline exceeded')
         return value

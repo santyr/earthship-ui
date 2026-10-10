@@ -111,8 +111,10 @@ class TelemetryTransport:
 
 
 class LiveBackend:
-    def __init__(self,settings):
-        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24)
+    def __init__(self,settings,*,shared_lock_guard=None):
+        if not callable(shared_lock_guard):raise ValueError('held shared publication guard required')
+        shared_lock_guard()
+        self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24,guard=shared_lock_guard)
         self.hashes={name:sha256(_owned_bytes(Path(settings[name]),16384)).hexdigest() for name in SOURCE_PATHS}
         self.token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:self.token,budget=self.budget)
@@ -121,6 +123,7 @@ class LiveBackend:
         from thermal_temperature_runtime import _configured_sensor_epochs
         self.env=dict(THERMAL_TEMP_POLICY=settings['native_policy'],THERMAL_TEMP_DB_CONFIG=settings['native_db_config'])
         self.epochs=_configured_sensor_epochs(self.env)
+        self.budget.remaining()
     def verify_unchanged(self):
         self.budget.remaining()
         if any(sha256(_owned_bytes(Path(self.settings[name]),16384)).hexdigest()!=digest for name,digest in self.hashes.items()):

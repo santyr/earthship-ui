@@ -130,3 +130,31 @@ with SharedScoreLock(sys.argv[2]) as held:
 """
     result=subprocess.run([sys.executable,'-c',code,str(root),str(lock)],capture_output=True,text=True,timeout=10)
     assert result.returncode==0,result.stderr
+
+
+@pytest.mark.parametrize('source',['http','database','publication'])
+def test_shared_budget_guard_refuses_publication_source_after_pacing(tmp_path,monkeypatch,source):
+    from thermal_model.capture_readers import ReadBudget
+    from thermal_model.installed_shade_live_inputs import TelemetryTransport,LiveBackend
+    import psycopg2
+    tmp_path.chmod(0o700);path=tmp_path/'lock';path.touch(mode=0o600);clock=[0.];calls=[]
+    def sleep(seconds):clock[0]+=seconds;path.unlink();path.touch(mode=0o600)
+    def forbidden(*a,**kw):calls.append(True);pytest.fail('source opened after shared lock replacement')
+    with guard(path) as held:
+        budget=ReadBudget(30,clock=lambda:clock[0],sleeper=sleep,guard=held.verify);budget.next_request=1.
+        if source in ('http','publication'):
+            backend=TelemetryTransport(base='http://127.0.0.1:8080/rest',token_reader=lambda:'fixture',budget=budget,opener=forbidden)
+            if source=='publication':
+                backend.checked.add('Thermal_Model_JSON');operation=lambda:backend.put('Thermal_Model_JSON','{}')
+            else:operation=lambda:backend.require_string('Thermal_Model_JSON')
+        else:
+            monkeypatch.setattr(psycopg2,'connect',forbidden)
+            backend=object.__new__(LiveBackend);backend.budget=budget;operation=lambda:backend._connect('fixture')
+        with pytest.raises(ValueError,match='shared lock'):operation()
+    assert calls==[]
+
+
+def test_real_live_backend_requires_shared_guard_before_private_settings():
+    from thermal_model.installed_shade_live_inputs import LiveBackend
+    with pytest.raises(ValueError,match='shared'):
+        LiveBackend({})
