@@ -2498,3 +2498,14 @@ model release. Prospective SoC error assessment remains the separate original
 issue/outcome path through `completed_trough_score`, not a retrospective error
 computed from the rolling heuristic's current samples. PV calibration and thermal
 qualification gates remain unchanged.
+
+`learning_evidence.soc_trough.prospective_errors` retains the separately validated
+completed-night assessor projection. It includes the physical bank epoch, original
+decision IDs, sample dates, coverage, signed residuals and recomputed mean absolute
+error. The projection is copied from the existing assessment, not calculated from
+current rolling samples; it grants neither causal reward nor release authority.
+Missing, invalid, future or stale assessments produce unavailable diagnostics and
+clear the prior summary. Valid assessment evidence can remain available when its
+separate Item publication has an unknown transport result. Publication rechecks
+its own current clock after token acquisition and never retries an ambiguous PUT.
+The existing forecasts and notifications are not reissued to retain diagnostics.

@@ -1690,12 +1690,20 @@ def main():
 
     save_state(st)
     # Run after normal forecast/advisory/DM work, never as a prerequisite to it.
+    prospective_soc_evidence = {}
     try:
         from completed_trough_score import update_completed_trough_score
         update_completed_trough_score(diagnostics=log, token_provider=auth_token,
-            put_unknown=lambda: put("Forecast_Trough_Error_7d", "UNDEF"))
+            put_unknown=lambda: put("Forecast_Trough_Error_7d", "UNDEF"),
+            evidence_sink=prospective_soc_evidence)
     except Exception:
         log.append("completed trough: adapter unavailable")
+    st['learning_evidence']['soc_trough']['prospective_errors'] = (
+        prospective_soc_evidence or {'status': 'unavailable', 'release_authority': False})
+    try:
+        save_state(st)  # Retain outcome diagnostics without reissuing forecasts or alerts.
+    except Exception:
+        log.append('completed trough: diagnostic retention unavailable')
     if put_failed:
         log.append("PUT FAILED: " + ",".join(put_failed))
     line = (f"{now.isoformat(timespec='seconds')} pv={pv_pred} curtail={curtail} trough={trough_pred} "
