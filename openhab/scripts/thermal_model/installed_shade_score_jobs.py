@@ -12,12 +12,14 @@ from .origin_capture import _object
 from .graduation_policy import _utc
 from .installed_shade_artifact import _digest
 from .runtime_bundle import _owned_bytes,_write_private
-from .installed_shade_published_origin import read_publication_capture
-from .installed_shade_score_collection import collect_published_score
-from .installed_shade_raw_score_sources import read_raw_score_sources
+from .installed_shade_published_origin import read_publication_capture,read_raw_publication_capture
+from .installed_shade_score_collection import collect_published_score,collect_raw_published_score
+from .installed_shade_raw_score_sources import read_raw_score_sources,read_calibrated_raw_score_sources
 
 SCHEMA='earthship-installed-score-jobs/v1'
+RAW_SCHEMA='earthship-installed-score-jobs/v2'
 COMPLETION_SCHEMA='earthship-installed-score-job-completion/v1'
+RAW_COMPLETION_SCHEMA='earthship-installed-score-job-completion/v2'
 JOB_FIELDS={'origin_path','horizon_hours'}
 COMPLETION_FIELDS={'schema','job','raw_packet_path','raw_score_sources_sha256','release_authority'}
 
@@ -40,10 +42,21 @@ def _path(value):
     return path
 
 
-def collect_queued_score(*,queue_path,output_directory,backend):
+def collect_raw_queued_score(*,queue_path,output_directory,backend):
+    """Queue only candidate-v3 originals and source-v3 completion replay."""
+    return collect_queued_score(queue_path=queue_path,output_directory=output_directory,backend=backend,_version=2)
+
+
+def collect_queued_score(*,queue_path,output_directory,backend,_version=1):
     """Replay completion references or attempt exactly one declared mature job."""
     base=dict(release_authorized=False)
     try:
+        if type(_version) is not int or _version not in (1,2):raise ValueError('explicit score queue profile required')
+        schema=RAW_SCHEMA if _version==2 else SCHEMA
+        completion_schema=RAW_COMPLETION_SCHEMA if _version==2 else COMPLETION_SCHEMA
+        capture_reader=read_raw_publication_capture if _version==2 else read_publication_capture
+        collect=collect_raw_published_score if _version==2 else collect_published_score
+        source_reader=read_calibrated_raw_score_sources if _version==2 else read_raw_score_sources
         queue=_path(str(queue_path));_private_directory(queue.parent)
         out=_private_directory(Path(output_directory));raw=_owned_bytes(queue,65536)
         value=_decode(raw);deadline=monotonic()+55;now=_utc(_clock())
@@ -51,7 +64,7 @@ def collect_queued_score(*,queue_path,output_directory,backend):
             if monotonic()>=deadline:raise ValueError('queued score budget elapsed')
             backend.verify_unchanged()
             if _owned_bytes(queue,65536)!=raw:raise ValueError('original queued jobs changed')
-        if (not isinstance(value,dict) or set(value)!={'schema','jobs'} or value['schema']!=SCHEMA or
+        if (not isinstance(value,dict) or set(value)!={'schema','jobs'} or value['schema']!=schema or
                 not isinstance(value['jobs'],list) or len(value['jobs'])>256):raise ValueError('closed bounded queued jobs required')
         seen=set()
         for job in value['jobs']:
@@ -60,17 +73,17 @@ def collect_queued_score(*,queue_path,output_directory,backend):
             _path(job['origin_path']);key=_digest(job)
             if key in seen:raise ValueError('duplicate queued score job')
             seen.add(key)
-        queue_sha=sha256(raw).hexdigest();cursor=out/(queue_sha+'.score-cursor-v1.json')
+        queue_sha=sha256(raw).hexdigest();cursor=out/(queue_sha+f'.score-cursor-v{_version}.json')
         jobs=value['jobs'];keys=[_digest(job) for job in jobs]
         if cursor.exists():
             saved=_read(cursor,8192)
             if (not isinstance(saved,dict) or set(saved)!={'schema','queue_sha256','last_job_sha256','release_authority'} or
-                    saved['schema']!='earthship-installed-score-cursor/v1' or saved['queue_sha256']!=queue_sha or
+                    saved['schema']!=f'earthship-installed-score-cursor/v{_version}' or saved['queue_sha256']!=queue_sha or
                     saved['last_job_sha256'] not in seen or saved['release_authority'] is not False):
                 raise ValueError('closed non-authoritative scheduling cursor required')
             start=keys.index(saved['last_job_sha256'])+1;jobs=jobs[start:]+jobs[:start]
         def advance(job):
-            check();body=dict(schema='earthship-installed-score-cursor/v1',queue_sha256=queue_sha,
+            check();body=dict(schema=f'earthship-installed-score-cursor/v{_version}',queue_sha256=queue_sha,
                 last_job_sha256=_digest(job),release_authority=False)
             temporary=out/('.score-cursor-'+uuid4().hex)
             try:
@@ -81,7 +94,7 @@ def collect_queued_score(*,queue_path,output_directory,backend):
         def verify_raw(path,job):
             path=_path(path)
             if path.parent!=out:raise ValueError('raw completion outside original score archive')
-            replay=read_raw_score_sources(path,assessed_at=_utc(_clock()),check_budget=check)
+            replay=source_reader(path,assessed_at=_utc(_clock()),check_budget=check)
             packet=replay['score_packet']
             if packet['origin_path']!=job['origin_path'] or packet['horizon_hours']!=job['horizon_hours']:
                 raise ValueError('raw completion refers to a different job')
@@ -89,11 +102,11 @@ def collect_queued_score(*,queue_path,output_directory,backend):
             if not isinstance(digest,str) or not re.fullmatch('[0-9a-f]{64}',digest):raise ValueError('original raw packet digest required')
             return digest
         for job in jobs:
-            check();marker=out/(_digest(job)+'.score-job-v1.json')
+            check();marker=out/(_digest(job)+f'.score-job-v{_version}.json')
             if marker.exists():
                 try:
                     saved=_read(marker,8192)
-                    if (not isinstance(saved,dict) or set(saved)!=COMPLETION_FIELDS or saved['schema']!=COMPLETION_SCHEMA or
+                    if (not isinstance(saved,dict) or set(saved)!=COMPLETION_FIELDS or saved['schema']!=completion_schema or
                             saved['job']!=job or saved['release_authority'] is not False):raise ValueError('closed original completion reference required')
                 except (OSError,ValueError,TypeError,KeyError):
                     advance(job);raise
@@ -104,14 +117,14 @@ def collect_queued_score(*,queue_path,output_directory,backend):
             scanned+=1;advance(job)
             origin=_path(job['origin_path']);source_bytes+=len(_owned_bytes(origin,2000000))
             if source_bytes>64000000:raise ValueError('queued original source inventory exceeds byte bound')
-            capture=read_publication_capture(origin);check()
+            capture=capture_reader(origin);check()
             if _utc(capture['numeric_capture']['issued_at'])+timedelta(hours=job['horizon_hours'],minutes=5)>now:
                 pending=True;continue
-            result=collect_published_score(origin_path=origin,horizon_hours=job['horizon_hours'],output_directory=out,backend=backend)
+            result=collect(origin_path=origin,horizon_hours=job['horizon_hours'],output_directory=out,backend=backend)
             check()
             if result['status']=='scored':
                 digest=verify_raw(result['raw_packet_path'],job);check()
-                saved=dict(schema=COMPLETION_SCHEMA,job=job,raw_packet_path=result['raw_packet_path'],raw_score_sources_sha256=digest,release_authority=False)
+                saved=dict(schema=completion_schema,job=job,raw_packet_path=result['raw_packet_path'],raw_score_sources_sha256=digest,release_authority=False)
                 _write_private(marker,_canonical(saved))
             return result
         if audits:

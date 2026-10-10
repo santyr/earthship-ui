@@ -108,7 +108,7 @@ def test_queue_cli_routes_one_guarded_invocation_without_explicit_origin(tmp_pat
         def __init__(self,settings,*,shared_lock_guard):self.guard=shared_lock_guard;self.guard()
         def verify_unchanged(self):self.guard()
     monkeypatch.setattr(inputs,'ScoreReader',Reader)
-    assert cli.main(['--config',str(tmp_path/'config'),'--batch','--queue',str(queue),'--shared-lock',str(lock)])==0
+    assert cli.main(['--contract-version','1','--config',str(tmp_path/'config'),'--batch','--queue',str(queue),'--shared-lock',str(lock)])==0
     assert json.loads(capsys.readouterr().out)['status']=='scored'
 
 

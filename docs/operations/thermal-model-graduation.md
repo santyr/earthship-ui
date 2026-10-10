@@ -1511,3 +1511,50 @@ shadow path; retain its previous accepted artifact/runtime and publication
 contract. Restore shadow only after verifying that retained runtime and its
 publication receipt. A withdrawal receipt alone does not prove that shadow
 publication resumed. Backup and disaster recovery remain separate deferred work.
+
+
+### Raw prospective scoring and the base calibration cohort
+
+The scorer defaults to contract 2. Use an owned private
+`earthship-installed-shade-score-config/v2` with exactly `schema`, `openhab_base`,
+`output_directory`, `token_file`, `native_db_config` and `native_policy`. It keeps
+the existing private file permissions, read-only database connections, bounded
+native acquisition and fixed JDBC GET endpoints. The scorer never publishes,
+fits, activates or sends household commands.
+
+Within the reviewed capped execution environment, collect one declared mature
+horizon from the original published origin/v5:
+
+```sh
+python3 openhab/scripts/thermal_installed_score.py --contract-version 2 --config PRIVATE_SCORE_CONFIG --collect --shared-lock EXISTING_PRIVATE_SHARED_LOCK --origin ORIGINAL_PUBLISHED_ORIGIN_V5 --horizon 24
+```
+
+Or use an explicit owned private `earthship-installed-score-jobs/v2` queue with
+exactly `schema` and `jobs`. Every job contains only an absolute resolved
+`origin_path` and integer `horizon_hours` from 1, 6, 12 or 24. At most 256 jobs are
+allowed. Batch collection uses:
+
+```sh
+python3 openhab/scripts/thermal_installed_score.py --contract-version 2 --config PRIVATE_SCORE_CONFIG --batch --shared-lock EXISTING_PRIVATE_SHARED_LOCK --queue PRIVATE_RAW_SCORE_QUEUE
+```
+
+Both paths retain and replay original native queries as score-sources/v3. The
+queue uses separate completion/v2 and cursor/v2 files. Those files guide
+scheduling and carry no release authority. Each invocation attempts at most one
+mature score; invalid jobs rotate before the next invocation. Completed entries
+never force replay of the entire prefix before new work. Idle invocations audit
+one completion against its original files; missing proof is withheld rather
+than reacquired or replaced. A score is not an independent evidence count or a
+qualification pass by itself.
+
+For the preceding uncalibrated base shadow stage, explicitly select
+`--contract-version 1` with score-config/v1, an original published origin/v3 and,
+for batch work, jobs/v1. That compatibility path retains raw score-sources/v2
+for the separate raw calibration/v2 cohort. Do not mix these base observations
+with candidate/v3 release scores. The old readers refuse the new schemas and
+the raw queue refuses the old queue profile.
+
+The scorer unit files remain inert templates. Their explicit contract 2 must
+match their configuration, queue, original capture and source/runtime closure.
+Render a separate reviewed contract-1 invocation when collecting the base
+calibration cohort; do not silently change a production service's semantics.

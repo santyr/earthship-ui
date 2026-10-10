@@ -17,6 +17,7 @@ from .installed_shade_live_inputs import TelemetryTransport
 from .installed_shade_published_origin import _receipt,NUMERIC_ITEM,PUBLICATION_ITEM
 
 SCHEMA='earthship-installed-shade-score-config/v1'
+RAW_SCHEMA='earthship-installed-shade-score-config/v2'
 SOURCE_PATHS={'token_file','native_db_config','native_policy'}
 FIELDS=SOURCE_PATHS|{'schema','openhab_base','output_directory'}
 
@@ -24,9 +25,13 @@ FIELDS=SOURCE_PATHS|{'schema','openhab_base','output_directory'}
 def _clock():return datetime.now(timezone.utc)
 
 
-def load_score_settings(path):
+def load_raw_score_settings(path):
+    return load_score_settings(path,_version=2)
+
+
+def load_score_settings(path,*,_version=1):
     path=Path(path);_private_directory(path.parent);value=_read_private(path)
-    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=SCHEMA or value['openhab_base'] not in BASES:
+    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=(RAW_SCHEMA if _version==2 else SCHEMA) or value['openhab_base'] not in BASES:
         raise ValueError('closed private score configuration required')
     for key in SOURCE_PATHS|{'output_directory'}:
         name=value[key]

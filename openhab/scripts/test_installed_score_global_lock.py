@@ -81,7 +81,7 @@ def test_cli_busy_global_lock_constructs_no_source_reader(tmp_path,monkeypatch,c
     monkeypatch.setattr(inputs,'load_score_settings',lambda _:dict(output_directory=str(tmp_path)))
     monkeypatch.setattr(inputs,'ScoreReader',lambda *args,**kwargs:pytest.fail('busy lock constructed source reader'))
     with guard(path):
-        result=cli.main(['--config',str(tmp_path/'config'),'--collect','--origin',str(tmp_path/'origin'),
+        result=cli.main(['--contract-version','1','--config',str(tmp_path/'config'),'--collect','--origin',str(tmp_path/'origin'),
             '--horizon','24','--shared-lock',str(path)])
     assert result==75
     import json

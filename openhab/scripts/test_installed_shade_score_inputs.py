@@ -91,9 +91,9 @@ def test_database_error_is_a_withheld_source_and_connection_is_read_only(setting
     assert int(observed[0]['connect_timeout'])<=3
 
 
-def test_cli_default_checks_only_config_with_no_sources_or_retention(settings):
+def test_cli_explicit_base_profile_checks_only_config_with_no_sources_or_retention(settings):
     path,config=settings;module();script=Path(__file__).resolve().parent/'thermal_installed_score.py'
-    result=subprocess.run([sys.executable,str(script),'--config',str(path)],check=True,capture_output=True,text=True)
+    result=subprocess.run([sys.executable,str(script),'--contract-version','1','--config',str(path)],check=True,capture_output=True,text=True)
     assert json.loads(result.stdout)==dict(status='configuration_verified',collection_executed=False,release_authorized=False)
     assert list(Path(config['output_directory']).iterdir())==[]
 
@@ -115,7 +115,7 @@ def test_real_jdbc_transport_is_get_only_and_preserves_exact_original_time(setti
 def test_cli_missing_original_cannot_query_household_or_retain_data(settings):
     path,config=settings;script=Path(__file__).resolve().parent/'thermal_installed_score.py'
     lock=path.parent/'global-lock';lock.touch(mode=0o600)
-    result=subprocess.run([sys.executable,str(script),'--config',str(path),'--collect',
+    result=subprocess.run([sys.executable,str(script),'--contract-version','1','--config',str(path),'--collect',
         '--origin',str(path.parent/'missing.installed-shade-origin-v3.json'),'--horizon','1',
         '--shared-lock',str(lock)],capture_output=True,text=True)
     assert result.returncode==1 and json.loads(result.stdout)['status']=='withheld'
