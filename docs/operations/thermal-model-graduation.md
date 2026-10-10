@@ -2509,3 +2509,9 @@ clear the prior summary. Valid assessment evidence can remain available when its
 separate Item publication has an unknown transport result. Publication rechecks
 its own current clock after token acquisition and never retries an ambiguous PUT.
 The existing forecasts and notifications are not reissued to retain diagnostics.
+
+Release-index incorporation validates `runtime_bundle_path` as an immutable
+runtime directory, using the typed bundle reader. Its manifest, interpreter and
+source bytes are revalidated through the actual release-pointer replacement.
+A missing or changed bundle member refuses incorporation and preserves the
+previous release pointer. A JSON-file placeholder cannot represent this operand.

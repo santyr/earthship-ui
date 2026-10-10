@@ -8,7 +8,7 @@ from .forcing_capture import _canonical,_private_directory
 from .installed_shade_artifact import _digest
 from .installed_shade_calibration import _raw_packet_digest,_persist,_source_operation
 from .policy_registration import _read_private
-from .runtime_bundle import _owned_bytes,_write_private,_sync_directory
+from .runtime_bundle import _owned_bytes,_write_private,_sync_directory,read_runtime_bundle
 from .replay_budget import check_shared_budget
 
 SOURCE_GATES=frozenset(('preregistered_policy','frozen_candidate','frozen_runtime',
@@ -24,11 +24,15 @@ def append_compressed_release_sources(*,reference_path,additional_pairs_path,gua
 def _append(*,reference_path,additional_pairs_path,guard):
     from .installed_shade_publication import REFERENCE_FIELDS,COMPRESSED_REFERENCE_SCHEMA
     from . import installed_shade_qualification as q
-    snapshots={}
+    snapshots={};runtime_snapshots={}
     def check():
         check_shared_budget();guard()
         for path,raw in snapshots.items():
             if _owned_bytes(path,4000000)!=raw:raise ValueError('original release inputs changed')
+        for path,expected in runtime_snapshots.items():
+            if _canonical(read_runtime_bundle(path))!=expected:
+                raise ValueError('original runtime bundle changed')
+            check_shared_budget();guard()
         check_shared_budget();guard()
     def read(path):
         path=Path(path).absolute()
@@ -46,7 +50,9 @@ def _append(*,reference_path,additional_pairs_path,guard):
         if value is None and key=='original_pairs_path':paths[key]=None;continue
         if not isinstance(value,str) or not 1<=len(value)<=1024:raise ValueError('complete original release paths required')
         target=Path(value);paths[key]=target if target.is_absolute() else root/target
-    for key in ('registration_path','candidate_path','runtime_bundle_path'):read(paths[key])
+    for key in ('registration_path','candidate_path'):read(paths[key])
+    runtime_snapshots[paths['runtime_bundle_path']]=_canonical(read_runtime_bundle(paths['runtime_bundle_path']))
+    check()
     previous=[] if paths['original_pairs_path'] is None else read(paths['original_pairs_path'])
     additional=read(additional_pairs_path)
     if previous:_raw_packet_digest(previous)

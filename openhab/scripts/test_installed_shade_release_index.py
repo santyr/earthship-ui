@@ -14,7 +14,15 @@ def index_case(tmp_path,monkeypatch):
     old=dict(raw_score_sources_path=str(root/'old.json'))
     new=dict(raw_score_sources_path=str(root/'new.json'))
     index=save('old-index.json',[old]);extra=save('new-index.json',[new])
-    paths={k:save(k+'.json',{}) for k in ('registration_path','candidate_path','runtime_bundle_path')}
+    paths={k:save(k+'.json',{}) for k in ('registration_path','candidate_path')}
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    runtime_sources=root/'runtime-sources';runtime_sources.mkdir(mode=0o700)
+    (runtime_sources/'thermal_model').mkdir(mode=0o700)
+    (runtime_sources/'thermal_intel.py').write_text('# routing fixture only\n')
+    (runtime_sources/'thermal_model/origin_capture.py').write_text('# routing observer fixture only\n')
+    for source in (runtime_sources/'thermal_intel.py',runtime_sources/'thermal_model/origin_capture.py'):source.chmod(0o600)
+    archives=root/'runtime-archives';archives.mkdir(mode=0o700)
+    paths['runtime_bundle_path']=capture_runtime_bundle(archives,runtime_sources,['thermal_intel.py'])
     ref=save('release.json',dict(schema='earthship-installed-shade-release-inputs/v4',original_pairs_path=str(index),**{k:str(v) for k,v in paths.items()}))
     state={'gates':dict.fromkeys(('preregistered_policy','frozen_candidate','frozen_runtime','qualified_training_sources','measured_fit','raw_development_sources','raw_calibration_sources','original_source_pairs','raw_native_issue_sources','raw_native_score_sources','calibrated_intervals'),True),'calls':[],'changed':False}
     def qualify(**kw):
@@ -233,3 +241,18 @@ def test_scheduled_index_template_is_bounded_and_has_no_acquisition_or_actuation
         assert line in collection.splitlines()
     collection_timer=(root/'thermal-installed-compressed-score-queue.timer').read_text()
     assert 'Persistent=false' in collection_timer and 'Unit=thermal-installed-compressed-score-queue.service' in collection_timer
+
+
+@pytest.mark.parametrize('member',['manifest.json','interpreter.bin','sources/thermal_intel.py'])
+def test_original_runtime_member_loss_at_pointer_write_prevents_incorporation(index_case,monkeypatch,member):
+    from thermal_model import installed_shade_release_index as m
+    ref,extra,_,_,_,_=index_case;before=ref.read_bytes()
+    bundle=Path(json.loads(before)['runtime_bundle_path']);original=m._write_private;fired=[]
+    def write(path,raw):
+        original(path,raw)
+        if path.name.startswith('.release-index-pointer-'):
+            fired.append(True);(bundle/member).unlink()
+    monkeypatch.setattr(m,'_write_private',write)
+    with pytest.raises(ValueError):m.append_compressed_release_sources(reference_path=ref,additional_pairs_path=extra,guard=lambda:None)
+    assert ref.read_bytes()==before
+    assert fired, 'runtime loss must occur after the actual pointer temporary write'
