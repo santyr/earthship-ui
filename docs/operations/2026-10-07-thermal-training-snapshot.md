@@ -769,3 +769,22 @@ threshold is relaxed. A small synthetic numerical pilot establishes only that
 that workload fits within the caps; it is not household training, stability,
 calibration or release evidence. A full development fit needs its original
 training snapshot, runtime archive, sensor epochs and development-only seed.
+
+### Capped native acquisition and assembly
+
+`capture-thermal-inputs.py` and `assemble-thermal-inputs.py` accept an explicit
+`--pressure-aware` profile. It applies the same strict limits and pressure
+supervision described above to small read-only acquisition and assembly jobs.
+Both parent and worker verify the 256 MiB/20 percent CPU profile before private
+context reads. Worker fitting flags are forced off; the existing explicit
+capture-intent requirement, source checks, request budgets, immutable destinations
+and native receipt-version selection remain mandatory. Default commands retain
+the existing conservative admission gate.
+
+The capture revision includes the pressure-supervisor and strict-limit source;
+assembly inherits those pins. Stage sources as owned files without group or
+world write permissions. A rejected checkout source must be corrected through
+verified private staging, not by weakening the source reader. Coordinate actual
+capture through the existing shared native-consumer lock. Private captured inputs
+are development material until real fit, stability and independent release gates
+pass; collection is not a forecast deployment or authorization to actuate.

@@ -140,3 +140,13 @@ def test_parent_worker_failure_emits_no_success_receipt(tmp_path,monkeypatch,cap
     assert command.main(['--config',str(config),'--destination',str(destination)])==2
     assert calls[0][1]=={'seconds':90} and '--worker' in calls[0][0] and '--expected-config-digest' in calls[0][0]
     assert capsys.readouterr().out=='' and list(destination.iterdir())==[]
+
+
+def test_pressure_aware_capture_checks_strict_caps_before_source_reads(tmp_path,monkeypatch):
+    command=cli();calls=[]
+    monkeypatch.setenv('EARTHSHIP_THERMAL_INPUT_CAPTURE','1')
+    monkeypatch.setattr(command,'verify_resource_limits',lambda:None)
+    def refuse():calls.append('strict');raise ValueError('caps unavailable')
+    monkeypatch.setattr(command,'_pressure_preflight',refuse,raising=False)
+    assert command.main(['--config',str(tmp_path/'missing'),'--destination',str(tmp_path/'out'),'--pressure-aware'])==2
+    assert calls==['strict']

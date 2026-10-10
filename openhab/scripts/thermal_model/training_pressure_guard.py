@@ -109,3 +109,15 @@ def run_training_worker(argv,*,check,seconds=90,env=None):
         except ProcessLookupError:pass
         worker.wait(timeout=2)
         worker.stdout.close()
+
+
+
+def run_collection_worker(argv,*,seconds=90):
+    """Explicit small acquisition/assembly profile; never authorize fitting."""
+    from thermal_installed_intel import _resource_preflight
+    _resource_preflight()
+    monitor=TrainingHeadroom();monitor.preflight()
+    env=dict(os.environ,EARTHSHIP_GUARDED_CAPTURE_WORKER='1',EARTHSHIP_QUALIFICATION_FIT='0',
+             EARTHSHIP_REMOTE_QUALIFICATION_FIT='0',OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1')
+    status,_=run_training_worker(argv,check=monitor.check,seconds=seconds,env=env)
+    return status

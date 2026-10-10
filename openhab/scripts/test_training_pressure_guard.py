@@ -113,3 +113,21 @@ def test_supervisor_drains_bounded_result_with_small_pipe(monkeypatch):
 def test_supervisor_refuses_oversized_result():
     with pytest.raises(ValueError,match='bounded training result'):
         source().run_training_worker([sys.executable,'-c',"import sys; sys.stdout.write('x'*20000)"],check=lambda:None,seconds=3)
+
+
+def test_collection_worker_requires_strict_caps_before_launch(monkeypatch):
+    import thermal_installed_intel as limits
+    def refuse():raise ValueError('strict caps absent')
+    monkeypatch.setattr(limits,'_resource_preflight',refuse)
+    monkeypatch.setattr(source().subprocess,'Popen',lambda *a,**k:pytest.fail('uncapped collection launched'))
+    with pytest.raises(ValueError,match='strict caps'):source().run_collection_worker([sys.executable,'-c','pass'],seconds=1)
+
+
+def test_collection_worker_forces_no_fit_environment(monkeypatch):
+    import thermal_installed_intel as limits
+    monkeypatch.setattr(limits,'_resource_preflight',lambda:None)
+    monkeypatch.setattr(source().TrainingHeadroom,'preflight',lambda self:None)
+    monkeypatch.setattr(source().TrainingHeadroom,'check',lambda self:None)
+    monkeypatch.setenv('EARTHSHIP_QUALIFICATION_FIT','1')
+    code="import os; assert os.getenv('EARTHSHIP_GUARDED_CAPTURE_WORKER')=='1'; assert os.getenv('EARTHSHIP_QUALIFICATION_FIT')=='0'; assert os.getenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT')=='0'"
+    assert source().run_collection_worker([sys.executable,'-c',code],seconds=3)==0
