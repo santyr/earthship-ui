@@ -357,3 +357,73 @@ def test_source_base_refuses_source_loss_during_temporary_write(source_origin_ca
     monkeypatch.setattr(runtime_bundle,'_write_private',changed)
     with pytest.raises((ValueError,OSError)):base.write_source_issued_capture(tmp_path,record)
     assert not list(tmp_path.glob('*.installed-shade-origin-v8.json')) and not list(tmp_path.glob('.calibration-*'))
+
+
+def compressed_base_args(source_origin_case):
+    from pathlib import Path
+    from weather_temperature_sources import read_temperature_source,write_compressed_temperature_source
+    prepared,args=source_base_args(source_origin_case);args=deepcopy(args)
+    args['native_source_paths']={role:str(write_compressed_temperature_source(Path(name).parent,
+        read_temperature_source(Path(name).parent,Path(name)))) for role,name in args['native_source_paths'].items()}
+    return prepared,args
+
+
+def test_compressed_base_capture_is_distinct_and_roundtrips_original_queries(source_origin_case,tmp_path):
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(base,'build_compressed_source_issued_capture'),'missing compressed numeric capture'
+    prepared,args=compressed_base_args(source_origin_case);record=base.build_compressed_source_issued_capture(prepared,**args)
+    assert record['schema']=='earthship-installed-shade-origin/v10'
+    assert record['output']['schema']=='earthship-installed-shade-forecast/v6'
+    assert record['native_origin_binding']['schema']=='earthship-installed-shade-native-origin-binding/v2'
+    assert record['output']['status']=='shadow' and record['output']['release_authorized'] is False
+    path=base.write_compressed_source_issued_capture(tmp_path,record)
+    assert path.name==record['capture_sha256']+'.installed-shade-origin-v10.json'
+    assert base.read_compressed_source_issued_capture(path)==record
+    with pytest.raises(ValueError):base.validate_source_issued_capture(record)
+    with pytest.raises(ValueError):base.read_source_issued_capture(path)
+    with pytest.raises(ValueError):base.validate_issued_capture(record)
+
+
+def test_compressed_base_scoring_binds_actual_numeric_receipt_and_original_queries(source_origin_case):
+    from pathlib import Path
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(base,'build_compressed_source_issued_capture'),'missing compressed numeric capture'
+    prepared,args=compressed_base_args(source_origin_case);record=base.build_compressed_source_issued_capture(prepared,**args)
+    issue=args['issued_at'];target=issue+timedelta(hours=1)
+    values=dict(publication=dict(time=int(args['published_at'].timestamp()*1000),state=_canonical(record['output']).decode()),
+        horizon_hours=1,outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),
+        recent_cycle_grid=synthetic_cycle_grid(issue,1),assessed_at=target+timedelta(minutes=10))
+    score=base.score_compressed_source_issued_capture(record,**values)
+    assert score['schema']=='earthship-installed-shade-source-scored-pair/v10'
+    assert score['original_capture_sha256']==record['capture_sha256']
+    assert score['native_origin_binding_sha256']==_digest(record['native_origin_binding'])
+    assert score['publication_sha256']==_digest(values['publication'])
+    assert score['scored_pair']['interval_width_f'] is None and score['release_authorized'] is False
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):base.score_compressed_source_issued_capture(record,**values)
+
+
+def test_compressed_base_capture_rechecks_original_after_actual_temporary_write(source_origin_case,tmp_path,monkeypatch):
+    from pathlib import Path
+    from thermal_model import installed_shade_origin as base,runtime_bundle
+    assert hasattr(base,'build_compressed_source_issued_capture'),'missing compressed numeric capture'
+    prepared,args=compressed_base_args(source_origin_case);record=base.build_compressed_source_issued_capture(prepared,**args)
+    original=runtime_bundle._write_private
+    def changed(path,raw):
+        original(path,raw);Path(args['native_source_paths']['outdoor']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    with pytest.raises((ValueError,OSError)):base.write_compressed_source_issued_capture(tmp_path,record)
+    assert not list(tmp_path.glob('*.installed-shade-origin-v10.json'))
+    assert not list(tmp_path.glob('.calibration-*'))
+
+
+def test_compressed_base_capture_rechecks_original_after_numerical_work(source_origin_case,monkeypatch):
+    from pathlib import Path
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(base,'build_compressed_source_issued_capture'),'missing compressed numeric capture'
+    prepared,args=compressed_base_args(source_origin_case);record=base.build_compressed_source_issued_capture(prepared,**args)
+    original=base._source_core
+    def changed(value):
+        result=original(value);Path(args['native_source_paths']['mass']).unlink();return result
+    monkeypatch.setattr(base,'_source_core',changed)
+    with pytest.raises((ValueError,OSError)):base.validate_compressed_source_issued_capture(record)

@@ -1939,3 +1939,17 @@ actual temporary write. Legacy configuration loaders refuse score-config/v4.
 No installed producer or CLI selects these ports yet. Enclosing numeric/main
 captures, score archives, qualification admission and full-cohort capacity remain
 required before deployment; the acquisition API alone provides no release authority.
+
+Compressed base numeric capture has an explicit profile: origin/v10,
+forecast/v6 and source-scored-pair/v10, bound to native-origin-binding/v2.
+Typed build, validation, immutable storage, readback and scoring replay the
+complete original query/v1 inside query-container/v2. Numerical behavior,
+initial-state reconstruction, hardware epochs, runtime closure and original
+as-issued receipt checks remain unchanged. Replay runs again after numerical
+work and after actual temporary writes before immutable publication. Existing
+origin/v1 and source origin/v8 readers refuse the new profile.
+
+This is a shadow observation/scoring port, with no release authority or automatic
+actuation. Compressed main publication, calibrated capture, score archive,
+qualification inventory and operator routing still require integration before
+an installed producer can select this evidence representation.

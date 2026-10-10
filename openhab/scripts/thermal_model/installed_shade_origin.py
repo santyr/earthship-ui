@@ -266,10 +266,10 @@ SOURCE_PAIR_SCHEMA='earthship-installed-shade-source-scored-pair/v8'
 SOURCE_FIELDS=FIELDS|{'native_origin_binding'}
 
 
-def _replay_source_origin(record):
-    from .installed_shade_raw_score_sources import replay_native_origin_binding
+def _replay_source_origin(record,*,_version=8):
+    _,_,_,_,reader=_source_capture_profile(_version)
     from .replay_budget import check_shared_budget
-    return replay_native_origin_binding(record['native_origin_binding'],record['origin_temperatures'],
+    return reader(record['native_origin_binding'],record['origin_temperatures'],
         issue_at=record['issued_at'],check_budget=check_shared_budget)
 
 
@@ -282,65 +282,70 @@ def _source_core(record):
     return core
 
 
-def _source_prediction(record):
+def _source_prediction(record,*,_version=8):
+    _,output_schema,_,_,_=_source_capture_profile(_version)
     from .installed_shade_publication import RAW_RUNTIME_PATHS
-    _replay_source_origin(record)
+    _replay_source_origin(record,_version=_version)
     if not RAW_RUNTIME_PATHS<=set(record['runtime']['source_manifest']):
         raise ValueError('complete original-query runtime closure required')
     core=_source_core(record);output=deepcopy(core['output'])
-    output.update(schema=SOURCE_OUTPUT_SCHEMA,native_origin_binding_sha256=_digest(record['native_origin_binding']))
+    output.update(schema=output_schema,native_origin_binding_sha256=_digest(record['native_origin_binding']))
     if len(_canonical(output))>MAX_OUTPUT_BYTES:raise ValueError('query-bound base forecast byte budget exceeded')
-    _replay_source_origin(record)
+    _replay_source_origin(record,_version=_version)
     return output,core['source_epochs']
 
 
-def build_source_issued_capture(candidate,*,issued_at,inputs_available_at,published_at,
-                               runtime,forecast,current,origin_temperatures,action_snapshot,native_source_paths):
-    from .installed_shade_raw_score_sources import build_native_origin_binding
+def _build_source_issued_capture(candidate,*,issued_at,inputs_available_at,published_at,
+                               runtime,forecast,current,origin_temperatures,action_snapshot,native_source_paths,_version=8):
+    capture_schema,_,_,builder,_=_source_capture_profile(_version)
     from .replay_budget import check_shared_budget
     if not isinstance(candidate,PreparedCandidate) or candidate.validated_at>_utc(issued_at):
         raise ValueError('candidate source verification unavailable at issue')
-    binding=build_native_origin_binding(origin_temperatures,source_paths=native_source_paths,
+    binding=builder(origin_temperatures,source_paths=native_source_paths,
         issue_at=issued_at,check_budget=check_shared_budget)
-    record=json.loads(_canonical(dict(schema=SOURCE_SCHEMA,issued_at=_utc(issued_at).isoformat(),
+    record=json.loads(_canonical(dict(schema=capture_schema,issued_at=_utc(issued_at).isoformat(),
         inputs_available_at=_utc(inputs_available_at).isoformat(),published_at=_utc(published_at).isoformat(),
         candidate=json.loads(candidate.artifact_json),runtime=runtime,forecast=forecast,current=current,
         origin_temperatures=origin_temperatures,action_snapshot=action_snapshot,native_origin_binding=binding)))
-    record['output'],record['source_epochs']=_source_prediction(record);record['capture_sha256']=_digest(record)
-    return validate_source_issued_capture(record)
+    record['output'],record['source_epochs']=_source_prediction(record,_version=_version);record['capture_sha256']=_digest(record)
+    return _validate_source_issued_capture(record,_version=_version)
 
 
-def validate_source_issued_capture(record):
-    if (not isinstance(record,dict) or set(record)!=SOURCE_FIELDS or record['schema']!=SOURCE_SCHEMA or
+def _validate_source_issued_capture(record,*,_version=8):
+    capture_schema,_,_,_,_=_source_capture_profile(_version)
+    if (not isinstance(record,dict) or set(record)!=SOURCE_FIELDS or record['schema']!=capture_schema or
             len(_canonical(record))>MAX_CAPTURE_BYTES or
             _digest({k:v for k,v in record.items() if k!='capture_sha256'})!=_sha(record['capture_sha256'])):
         raise ValueError('closed bounded query-bound base capture required')
-    output,phases=_source_prediction(record)
+    output,phases=_source_prediction(record,_version=_version)
     if _canonical(output)!=_canonical(record['output']) or phases!=record['source_epochs']:
         raise ValueError('query-bound base forecast differs from original replay')
     return record
 
 
-def write_source_issued_capture(directory,record):
+def _write_source_issued_capture(directory,record,*,_version=8):
+    _source_capture_profile(_version)
     from .installed_shade_calibration import _persist
-    record=deepcopy(record);validate_source_issued_capture(record);root=_private_directory(Path(directory))
-    return _persist(root,record,record['capture_sha256'],'.installed-shade-origin-v8.json',
-        before_publish=lambda:_replay_source_origin(record))
+    record=deepcopy(record);_validate_source_issued_capture(record,_version=_version);root=_private_directory(Path(directory))
+    return _persist(root,record,record['capture_sha256'],f'.installed-shade-origin-v{_version}.json',
+        before_publish=lambda:_replay_source_origin(record,_version=_version))
 
 
-def read_source_issued_capture(path):
+def _read_source_issued_capture(path,*,_version=8):
+    _source_capture_profile(_version)
     from .runtime_bundle import _owned_bytes
     path=Path(path);_private_directory(path.parent)
     def reject(_):raise ValueError('nonfinite original query-bound capture JSON')
     try:record=json.loads(_owned_bytes(path,MAX_CAPTURE_BYTES),object_pairs_hook=_object,parse_constant=reject)
     except (UnicodeDecodeError,json.JSONDecodeError):raise ValueError('original query-bound capture JSON invalid') from None
-    validate_source_issued_capture(record)
-    if path.name!=record['capture_sha256']+'.installed-shade-origin-v8.json':raise ValueError('query-bound base capture address differs')
+    _validate_source_issued_capture(record,_version=_version)
+    if path.name!=record['capture_sha256']+f'.installed-shade-origin-v{_version}.json':raise ValueError('query-bound base capture address differs')
     return record
 
 
-def score_source_issued_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at):
-    validate_source_issued_capture(record)
+def _score_source_issued_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at,_version=8):
+    _,_,pair_schema,_,_=_source_capture_profile(_version)
+    _validate_source_issued_capture(record,_version=_version)
     if (not isinstance(publication,dict) or set(publication)!={'time','state'} or
             type(publication['time']) is not int or not isinstance(publication['state'],str) or
             len(publication['state'].encode())>MAX_OUTPUT_BYTES):
@@ -351,7 +356,64 @@ def score_source_issued_capture(record,*,publication,horizon_hours,outcome,recen
     core=_source_core(record)
     result=score_issued_capture(core,publication=dict(time=publication['time'],state=_canonical(core['output']).decode()),
         horizon_hours=horizon_hours,outcome=outcome,recent_cycle_grid=recent_cycle_grid,assessed_at=assessed_at)
-    _replay_source_origin(record)
-    result.update(schema=SOURCE_PAIR_SCHEMA,original_capture_sha256=record['capture_sha256'],
+    _replay_source_origin(record,_version=_version)
+    result.update(schema=pair_schema,original_capture_sha256=record['capture_sha256'],
         publication_sha256=_digest(publication),native_origin_binding_sha256=_digest(record['native_origin_binding']))
     return result
+
+
+def _source_capture_profile(version):
+    from .installed_shade_raw_score_sources import (build_native_origin_binding,replay_native_origin_binding,
+        build_compressed_native_origin_binding,replay_compressed_native_origin_binding)
+    if type(version) is not int or version not in (8,10):raise ValueError('explicit query-bound numeric capture profile required')
+    if version==8:return SOURCE_SCHEMA,SOURCE_OUTPUT_SCHEMA,SOURCE_PAIR_SCHEMA,build_native_origin_binding,replay_native_origin_binding
+    return ('earthship-installed-shade-origin/v10','earthship-installed-shade-forecast/v6',
+        'earthship-installed-shade-source-scored-pair/v10',build_compressed_native_origin_binding,replay_compressed_native_origin_binding)
+
+
+def build_source_issued_capture(candidate,*,issued_at,inputs_available_at,published_at,
+                               runtime,forecast,current,origin_temperatures,action_snapshot,native_source_paths):
+    return _build_source_issued_capture(candidate,issued_at=issued_at,inputs_available_at=inputs_available_at,
+        published_at=published_at,runtime=runtime,forecast=forecast,current=current,origin_temperatures=origin_temperatures,
+        action_snapshot=action_snapshot,native_source_paths=native_source_paths,_version=8)
+
+
+def validate_source_issued_capture(record):
+    return _validate_source_issued_capture(record,_version=8)
+
+
+def write_source_issued_capture(directory,record):
+    return _write_source_issued_capture(directory,record,_version=8)
+
+
+def read_source_issued_capture(path):
+    return _read_source_issued_capture(path,_version=8)
+
+
+def score_source_issued_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at):
+    return _score_source_issued_capture(record,publication=publication,horizon_hours=horizon_hours,outcome=outcome,
+        recent_cycle_grid=recent_cycle_grid,assessed_at=assessed_at,_version=8)
+
+
+def build_compressed_source_issued_capture(candidate,*,issued_at,inputs_available_at,published_at,
+                               runtime,forecast,current,origin_temperatures,action_snapshot,native_source_paths):
+    return _build_source_issued_capture(candidate,issued_at=issued_at,inputs_available_at=inputs_available_at,
+        published_at=published_at,runtime=runtime,forecast=forecast,current=current,origin_temperatures=origin_temperatures,
+        action_snapshot=action_snapshot,native_source_paths=native_source_paths,_version=10)
+
+
+def validate_compressed_source_issued_capture(record):
+    return _validate_source_issued_capture(record,_version=10)
+
+
+def write_compressed_source_issued_capture(directory,record):
+    return _write_source_issued_capture(directory,record,_version=10)
+
+
+def read_compressed_source_issued_capture(path):
+    return _read_source_issued_capture(path,_version=10)
+
+
+def score_compressed_source_issued_capture(record,*,publication,horizon_hours,outcome,recent_cycle_grid,assessed_at):
+    return _score_source_issued_capture(record,publication=publication,horizon_hours=horizon_hours,outcome=outcome,
+        recent_cycle_grid=recent_cycle_grid,assessed_at=assessed_at,_version=10)
