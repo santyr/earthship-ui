@@ -1900,3 +1900,18 @@ policy registration, qualification or operator/UI routes. Positive lifecycle
 replay time and qualifying-cohort storage capacity still require verification
 before source producer deployment; software fixtures cannot establish those
 household evidence claims.
+
+Original native queries also have an explicit lossless storage container:
+`earthship-native-temperature-query-container/v2`, retained as a private,
+content-addressed `.native-temperature-sources-v2.json.gz` file. It contains the
+complete original query/v1 packet and its canonical digest. Typed readback checks
+the compressed address, bounds decompression, verifies canonical original bytes,
+and replays the existing native selector. Original raw-query byte, row and
+snapshot limits remain unchanged; compression cannot admit oversized evidence.
+Atomic retention preserves the final source guard after the actual temporary
+write. The v1 reader refuses this container.
+
+This codec is not selected by current acquisition or qualification consumers.
+Integrate it explicitly with source replay and inventory admission before using
+it for producer storage. Lossless size reduction is not qualifying evidence and
+does not prove full-cohort replay time, numerical support or production readiness.

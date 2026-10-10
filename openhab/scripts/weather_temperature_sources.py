@@ -88,3 +88,43 @@ def read_temperature_source(directory,path):
     replay_temperature_source(packet)
     if _canonical(packet)!=raw:raise ValueError('canonical original source packet required')
     return packet
+
+
+COMPRESSED_SCHEMA='earthship-native-temperature-query-container/v2'
+COMPRESSED_FIELDS={'schema','raw_query_sha256','raw_query'}
+MAX_CONTAINER_BYTES=MAX_BYTES+4096
+
+
+def write_compressed_temperature_source(directory,packet,*,before_publish=None):
+    """Losslessly retain the original v1 query in a distinct bounded container."""
+    import gzip
+    replay_temperature_source(packet)
+    original=_canonical(packet)
+    container=_canonical(dict(schema=COMPRESSED_SCHEMA,raw_query_sha256=sha256(original).hexdigest(),raw_query=packet))
+    if len(container)>MAX_CONTAINER_BYTES:raise ValueError('bounded original query container required')
+    raw=gzip.compress(container,compresslevel=1,mtime=0)
+    if len(raw)>MAX_CONTAINER_BYTES:raise ValueError('bounded compressed query required')
+    return _write(_directory(Path(directory)),sha256(raw).hexdigest()+'.native-temperature-sources-v2.json.gz',raw,
+        **({} if before_publish is None else dict(before_publish=before_publish)))
+
+
+def read_compressed_temperature_source(directory,path):
+    """Verify compressed bytes and replay the exact underlying raw query."""
+    import gzip,io,zlib
+    root=_directory(Path(directory));path=Path(path)
+    if path.parent!=root or re.fullmatch('[0-9a-f]{64}\\.native-temperature-sources-v2\\.json\\.gz',path.name) is None:
+        raise ValueError('explicit original compressed source address required')
+    compressed=_read(path,MAX_CONTAINER_BYTES)
+    if sha256(compressed).hexdigest()!=path.name.split('.')[0]:raise ValueError('compressed source digest differs')
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as stream:raw=stream.read(MAX_CONTAINER_BYTES+1)
+    except (OSError,EOFError,zlib.error):raise ValueError('invalid bounded compressed source') from None
+    if len(raw)>MAX_CONTAINER_BYTES:raise ValueError('decompressed query container exceeds bound')
+    container=json.loads(raw,object_pairs_hook=_object,parse_constant=_nonfinite)
+    if (not isinstance(container,dict) or set(container)!=COMPRESSED_FIELDS or container['schema']!=COMPRESSED_SCHEMA or
+            _canonical(container)!=raw):raise ValueError('closed canonical compressed source required')
+    packet=container['raw_query'];original=_canonical(packet)
+    if len(original)>MAX_BYTES or sha256(original).hexdigest()!=container['raw_query_sha256']:
+        raise ValueError('original raw query digest or byte bound differs')
+    replay_temperature_source(packet)
+    return packet
