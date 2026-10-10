@@ -72,3 +72,26 @@ def test_monitoring_report_expires_after_fifteen_minutes():
     report=summarize([],artifact_sha256='a'*64)
     report['assessed_at']=(ISSUE-timedelta(minutes=15,seconds=1)).isoformat()
     with pytest.raises(ValueError):module()._validate_report(report,'a'*64,ISSUE)
+
+
+def test_phased_issue_preserves_preissue_input_clock_and_exact_hourly_trajectory(tmp_path,monkeypatch):
+    from test_installed_shade_origin import weather
+    monkeypatch.setattr(module(),'replay_binding',lambda *a,**k:None)
+    candidate,inputs=context(tmp_path,monkeypatch);issue=ISSUE+timedelta(seconds=15)
+    inputs['forecast']=weather(issue);inputs['action_snapshot']['origin']=issue
+    capture=module().build_capture(candidate,inputs,issue=issue,available=ISSUE,published=issue+timedelta(seconds=2))
+    assert capture['issued_at']==issue.isoformat()
+    assert capture['output']['trajectory'][0]['at']==(issue+timedelta(hours=1)).isoformat()
+    assert module().validate_capture(capture)==capture
+    with pytest.raises(ValueError):module().build_capture(candidate,inputs,issue=issue,available=issue+timedelta(seconds=1),published=issue+timedelta(seconds=2))
+
+
+def test_phased_origin_replays_original_compressed_query_packets(tmp_path,monkeypatch):
+    from test_installed_shade_raw_score_sources import origin_inputs,compressed_inputs
+    from thermal_model.installed_shade_raw_score_sources import build_compressed_native_origin_binding,replay_compressed_native_origin_binding
+    args=compressed_inputs(origin_inputs(tmp_path,monkeypatch))
+    observed=module()._utc(args['origin_temperatures']['assessed_at'])
+    args['issue_at']=observed.replace(minute=observed.minute//5*5,second=0,microsecond=0)+timedelta(minutes=5,seconds=15)
+    binding=build_compressed_native_origin_binding(**args)
+    assert replay_compressed_native_origin_binding(binding,args['origin_temperatures'],issue_at=args['issue_at'])==binding
+    with pytest.raises(ValueError):replay_compressed_native_origin_binding(binding,args['origin_temperatures'],issue_at=args['issue_at']+timedelta(seconds=1))

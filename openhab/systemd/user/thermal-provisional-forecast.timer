@@ -2,7 +2,7 @@
 Description=Prepare provisional thermal forecast before each five-minute issue
 
 [Timer]
-OnCalendar=*-*-* *:09/10:15 UTC
+OnCalendar=*-*-* *:04/5:45 UTC
 AccuracySec=1s
 RandomizedDelaySec=0
 Persistent=false

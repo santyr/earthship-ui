@@ -75,12 +75,24 @@ def _persisted_after_write(backend,item,state,*,since,guard):
             sleep(1);guard()
 
 
+def _next_issue(now):
+    now=_utc(now)
+    issue=now.replace(minute=now.minute//5*5,second=15,microsecond=0)
+    return issue if now<issue else issue+timedelta(minutes=5)
+
+
 def publish_cycle(settings,*,guard,backend=None):
     guard();_resource_preflight();runtime=current_runtime();now=_clock()
     candidate=read_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime)
-    issue=now.replace(minute=now.minute//5*5,second=0,microsecond=0)+timedelta(minutes=5)
+    issue=_next_issue(now)
     if issue-now>timedelta(seconds=60):return dict(status='deferred',next_issue=issue.isoformat(),delivery_verified=False,automatic_actuation=False)
     deadline=monotonic()+85
+    # Warm the runtime first, then collect after the native minute batch is
+    # stored. The declared issue remains later than actual input availability.
+    while _clock()<issue-timedelta(seconds=20):
+        guard()
+        if monotonic()>=deadline:raise ValueError('provisional preparation deadline exceeded')
+        sleep(min(.1,max(0,(issue-timedelta(seconds=20)-_clock()).total_seconds())))
     known=_clock()
     if not timedelta(0)<issue-known<=timedelta(seconds=60):raise ValueError('actual bounded pre-issue clock required')
     archive=delivery_directory(settings,issue)

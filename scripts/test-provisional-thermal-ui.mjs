@@ -13,4 +13,9 @@ for (const damage of [p=>{p.automaticActuation=true},p=>{p.graduation.forecastQu
  const changed=structuredClone(payload);damage(changed);assert.equal(parseThermalModelResult(JSON.stringify(changed),now).state,'unavailable');checked++;
 }
 assert.equal(parseThermalModelResult(JSON.stringify(payload),Date.parse(payload.validUntil)).state,'unavailable');checked++;
+const phased=structuredClone(payload);
+for (const key of ['generatedAt','validUntil']) phased[key]=new Date(Date.parse(phased[key])+15000).toISOString();
+phased.forecast.generated_at=phased.generatedAt;
+phased.forecast.trajectory[0].at=new Date(Date.parse(phased.forecast.trajectory[0].at)+15000).toISOString();
+assert.equal(parseThermalModelResult(JSON.stringify(phased),now+15000).state,'ready');checked++;
 console.log(`${checked} provisional UI contract checks passed`);

@@ -66,9 +66,11 @@ at most 15 minutes and displays their verification time. Each cycle scores one
 job so seven complete recent cycles fit the existing 24-request source budget.
 A bounded incomplete-history search may leave that comparator unavailable.
 
-The publisher issues every ten minutes, with preparation at UTC minutes 09,
-19, 29, 39, 49 and 59. The native indoor-air receiver has a two-minute cadence;
-this phase avoids receipts expiring just after alternating five-minute issues.
-Forecast display validity remains 15 minutes. Source availability before issue,
-actual receipt expiry at every delivery guard, and persisted-delivery checks
-remain mandatory. Scoring keeps its existing serial schedule.
+The publisher prepares at UTC minutes 04, 09, 14 and so on, at second 45.
+The runtime warms first and waits to collect original inputs 20 seconds before
+its declared issue, at second 15 of the following five-minute boundary. This
+allows the receiver's late-minute batch to become available before collection.
+The actual input-availability clock must still precede issue; late collection
+is refused. Every delivery guard still checks original receipt expiry.
+Forecast display validity remains 15 minutes, and scoring follows the exact
+phased as-issued timestamps. Historical second-zero captures remain readable.

@@ -26,7 +26,7 @@ def digest(value,field):return sha256(_canonical({k:v for k,v in value.items() i
 
 def _numeric(candidate,inputs,*,issue,available,published):
     candidate=validate_candidate(candidate,assessed_at=issue)
-    if not available<=issue<=published<issue+timedelta(seconds=90) or issue.second or issue.microsecond or issue.minute%5:
+    if not available<=issue<=published<issue+timedelta(seconds=90) or issue.second not in (0,15) or issue.microsecond or issue.minute%5:
         raise ValueError('aligned causal provisional issue required')
     if set(inputs)!=INPUT_FIELDS:raise ValueError('complete original provisional sources required')
     if _utc(inputs['origin_temperatures']['assessed_at'])>available:raise ValueError('temperature inputs unavailable at issue')
