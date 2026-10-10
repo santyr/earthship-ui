@@ -150,7 +150,7 @@ def source_delivery_case(source_origin_case,tmp_path,monkeypatch,request):
     return source_origin_case,tmp_path,monkeypatch,request.param
 
 
-def deliver_source(case):
+def deliver_source(case,*,base_candidate=None):
     """Actual source archives with mathematical candidate and receipt fixtures."""
     source_origin_case,tmp_path,monkeypatch,kind=case
     from thermal_model import installed_shade_origin as base
@@ -160,7 +160,9 @@ def deliver_source(case):
     assert hasattr(publisher,'validate_source_installed_publication'),'missing source-bound main publication profile'
     assert hasattr(published,'build_source_publication_capture'),'missing source-bound actual main receipt capture'
     prepared,args=source_origin_case
-    if kind=='base':prepared,args=source_base_args(source_origin_case)
+    if kind=='base':
+        prepared,args=source_base_args(source_origin_case)
+        if base_candidate is not None:prepared=base.PreparedCandidate(_canonical(base_candidate),args['issued_at'])
     record=(base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
     root=tmp_path/'receipts';root.mkdir(mode=0o700)
     path=(base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
@@ -438,3 +440,110 @@ def test_source_queue_cannot_publish_completion_after_temporary_write_loses_sour
     result=jobs.collect_source_queued_score(queue_path=queue,output_directory=root,backend=backend)
     assert result['status']=='withheld' and result['release_authorized'] is False
     assert not list(root.glob('*.score-job-v3.json')) and not list(root.glob('.calibration-*'))
+
+
+@pytest.mark.parametrize('damage',[None,'missing_issue','oversized_issue'])
+def test_source_pair_replay_binds_issue_queries_and_bounds_them_before_math(source_delivery_case,monkeypatch,damage):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_qualification as qualification
+    from thermal_model import installed_shade_raw_score_sources as sources
+    assert hasattr(qualification,'score_source_base_packets'),'missing source-pair replay for calibration'
+    assert hasattr(qualification,'score_source_calibrated_packets'),'missing source-pair replay for release'
+    root,record,_,issue,kind,args=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);monkeypatch.setattr(collector,'_clock',lambda:now)
+    result=collector.collect_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=RawBackend(record,root))
+    assert result['status']=='scored'
+    pairs=[dict(raw_score_sources_path=result['raw_packet_path'])]
+    replay=qualification.score_source_base_packets if kind=='base' else qualification.score_source_calibrated_packets
+    for old in (4,5):
+        with pytest.raises(ValueError):qualification._score_packets(pairs,assessed_at=now,version=old)
+    if damage is not None:
+        query=Path(args['native_source_paths']['mass'])
+        if damage=='missing_issue':query.unlink()
+        else:
+            with query.open('r+b') as file:file.truncate(8*1024*1024+1)
+        def forbidden(*a,**kw):pytest.fail('unbounded or missing issue query reached numerical replay')
+        monkeypatch.setattr(sources,'read_source_base_score_sources',forbidden)
+        monkeypatch.setattr(sources,'read_source_calibrated_score_sources',forbidden)
+        with pytest.raises((ValueError,OSError)):replay(pairs,assessed_at=now)
+    else:
+        scored=replay(pairs,assessed_at=now)
+        assert scored['raw_native_issue_sources'] is True and scored['raw_native_score_sources'] is True
+        assert scored['rows'][0]['persistence_error_f']==pytest.approx(-2.)
+        # Seven flat historical cycles add zero change to issue air71;
+        # both baselines therefore predict71 against the later outcome73.
+        assert scored['rows'][0]['recent_cycle_error_f']==pytest.approx(-2.)
+        assert scored['calibrated_intervals'] is (kind=='calibrated')
+        assert scored['bindings'][0]['native_origin_binding_sha256']==_digest(record['numeric_capture']['native_origin_binding'])
+
+
+def test_source_pair_replay_owns_nested_deadline_before_numerical_work(source_delivery_case,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_qualification as qualification
+    from thermal_model import installed_shade_raw_score_sources as sources
+    from thermal_model import installed_shade_origin as base
+    assert hasattr(qualification,'score_source_base_packets'),'missing source-pair replay for calibration'
+    root,record,_,issue,kind,_=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);monkeypatch.setattr(collector,'_clock',lambda:now)
+    result=collector.collect_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=RawBackend(record,root))
+    assert result['status']=='scored'
+    clock={'seconds':0.};monkeypatch.setattr(qualification,'_replay_time',lambda:clock['seconds'])
+    original=sources.replay_temperature_source
+    def replay_then_expire(*args,**kwargs):
+        value=original(*args,**kwargs);clock['seconds']=61.;return value
+    monkeypatch.setattr(sources,'replay_temperature_source',replay_then_expire)
+    prediction=base._prediction
+    def guarded_prediction(*args,**kwargs):
+        if clock['seconds']>=60:pytest.fail('source numerical work continued after qualification replay deadline')
+        return prediction(*args,**kwargs)
+    monkeypatch.setattr(base,'_prediction',guarded_prediction)
+    replay=qualification.score_source_base_packets if kind=='base' else qualification.score_source_calibrated_packets
+    with pytest.raises(ValueError):replay([dict(raw_score_sources_path=result['raw_packet_path'])],assessed_at=now)
+
+
+
+def test_source_pair_replay_counts_aggregate_issue_query_bytes_before_math(source_delivery_case,monkeypatch):
+    """Sparse inventory fixtures prove admission bounds, never source validity."""
+    import os
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_qualification as qualification
+    from thermal_model import installed_shade_raw_score_sources as sources
+    root,record,_,issue,kind,_=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);monkeypatch.setattr(collector,'_clock',lambda:now)
+    result=collector.collect_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=RawBackend(record,root))
+    assert result['status']=='scored'
+    header=json.loads(Path(result['raw_packet_path']).read_text());references=[]
+    for index in range(6):
+        capture=deepcopy(record);numeric=capture['numeric_capture'];binding=numeric['native_origin_binding']
+        for role in ('air','mass','outdoor'):
+            query=root/(_digest([index,role])+'.native-temperature-sources-v1.json')
+            fd=os.open(query,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            try:os.ftruncate(fd,8*1024*1024)
+            finally:os.close(fd)
+            binding['query_sources'][role]=str(query)
+        digest=_digest(binding);numeric['output']['native_origin_binding_sha256']=digest
+        numeric['capture_sha256']=_digest({k:v for k,v in numeric.items() if k!='capture_sha256'})
+        capture['numeric_publication']['state']=_canonical(numeric['output']).decode()
+        main=json.loads(capture['publication']['state']);main['forecast']=deepcopy(numeric['output'])
+        main['release'].update(nativeOriginBindingSha256=digest,originCaptureSha256=numeric['capture_sha256'])
+        capture['publication']['state']=_canonical(main).decode()
+        capture['capture_sha256']=_digest({k:v for k,v in capture.items() if k!='capture_sha256'})
+        origin=root/(capture['capture_sha256']+('.installed-shade-origin-v9.json' if kind=='base' else '.installed-shade-origin-v7.json'))
+        origin.write_bytes(_canonical(capture));origin.chmod(0o600)
+        packet=deepcopy(header);packet['native_origin_binding_sha256']=digest
+        packet['score_sources'].update(origin_path=str(origin),publication=capture['publication'])
+        packet['native_binding']['score_sources_sha256']=_digest(packet['score_sources'])
+        source=root/(_digest(packet)+('.installed-shade-score-sources-v4.json' if kind=='base' else '.installed-shade-score-sources-v5.json'))
+        source.write_bytes(_canonical(packet));source.chmod(0o600)
+        references.append(dict(raw_score_sources_path=str(source)))
+    def forbidden(*a,**kw):pytest.fail('aggregate issue-query inventory reached numerical replay')
+    monkeypatch.setattr(sources,'read_source_base_score_sources',forbidden)
+    monkeypatch.setattr(sources,'read_source_calibrated_score_sources',forbidden)
+    replay=qualification.score_source_base_packets if kind=='base' else qualification.score_source_calibrated_packets
+    with pytest.raises(ValueError,match='aggregate raw queries'):replay(references,assessed_at=now)

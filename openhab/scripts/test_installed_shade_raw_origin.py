@@ -133,6 +133,10 @@ def test_raw_issue_refuses_wrong_preparation_type_or_future_proof(raw_math_captu
 
 @pytest.fixture
 def source_origin_case(raw_math_capture,tmp_path):
+    return build_source_origin_case(raw_math_capture,tmp_path)
+
+
+def build_source_origin_case(raw_math_capture,tmp_path):
     """Real raw native issue queries; candidate is only a math fixture."""
     from datetime import datetime
     from weather_temperature_evidence import TemperaturePolicy,MODELS

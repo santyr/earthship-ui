@@ -140,9 +140,9 @@ def _bound_source_size(path,maximum):
 
 
 def _raw_replay_preflight(packets,check_budget,*,source_version=2):
-    if type(source_version) is not int or source_version not in (2,3):raise ValueError('explicit raw replay source version required')
+    if type(source_version) is not int or source_version not in (2,3,4,5):raise ValueError('explicit raw replay source version required')
     from .installed_shade_calibration import _read_json
-    headers=set();captures=set();queries=set();header_bytes=capture_bytes=query_bytes=0
+    headers=set();captures=set();queries=set();issue_bindings={};header_bytes=capture_bytes=query_bytes=0
     for reference in packets:
         check_budget()
         if (not isinstance(reference,dict) or set(reference)!={'raw_score_sources_path'} or
@@ -153,7 +153,9 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
         headers.add(path);header_bytes+=_bound_source_size(path,4000000)
         if header_bytes>64000000:raise ValueError('aggregate raw score headers exceed bound')
         record=_read_json(path)
-        if (not isinstance(record,dict) or set(record)!={'schema','score_sources','native_binding','release_authority'} or
+        fields={'schema','score_sources','native_binding','release_authority'}
+        if source_version in (4,5):fields.add('native_origin_binding_sha256')
+        if (not isinstance(record,dict) or set(record)!=fields or
                 record['schema']!='earthship-installed-shade-score-sources/v'+str(source_version) or record['release_authority'] is not False or
                 path.name!=_digest(record)+'.installed-shade-score-sources-v'+str(source_version)+'.json'):
             raise ValueError('original raw score header required')
@@ -165,7 +167,25 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
         if capture not in captures:
             captures.add(capture);capture_bytes+=_bound_source_size(capture,2000000)
             if len(captures)>256 or capture_bytes>64000000:raise ValueError('aggregate original captures exceed bound')
-        for name in binding['query_sources']:
+        names=list(binding['query_sources'])
+        if source_version in (4,5):
+            from .installed_shade_raw_score_sources import ORIGIN_FIELDS,ORIGIN_SCHEMA
+            from .temperature_history import STREAMS
+            if capture not in issue_bindings:
+                check_budget();original=_read_json(capture)
+                numeric=original.get('numeric_capture') if isinstance(original,dict) else None
+                origin=numeric.get('native_origin_binding') if isinstance(numeric,dict) else None
+                expected='earthship-installed-shade-origin/v9' if source_version==4 else 'earthship-installed-shade-origin/v7'
+                if (not isinstance(original,dict) or original.get('schema')!=expected or not isinstance(origin,dict) or set(origin)!=ORIGIN_FIELDS or
+                        origin['schema']!=ORIGIN_SCHEMA or origin['release_authority'] is not False or
+                        not isinstance(origin['query_sources'],dict) or set(origin['query_sources'])!=set(STREAMS)):
+                    raise ValueError('bounded original issue-query references required')
+                issue_bindings[capture]=origin
+            origin=issue_bindings[capture]
+            if _digest(origin)!=record['native_origin_binding_sha256']:
+                raise ValueError('original issue-query digest differs from score archive')
+            names.extend(origin['query_sources'].values())
+        for name in names:
             check_budget()
             if not isinstance(name,str) or not 1<=len(name)<=1024:raise ValueError('bounded raw query reference required')
             query=Path(name)
@@ -176,13 +196,21 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
 
 
 def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
-    from .installed_shade_raw_score_sources import read_raw_score_sources,read_calibrated_raw_score_sources
-    reader=read_calibrated_raw_score_sources if source_version==3 else read_raw_score_sources
-    from .replay_budget import remaining_budget,check_shared_budget
+    from .installed_shade_raw_score_sources import (read_raw_score_sources,read_calibrated_raw_score_sources,
+        read_source_base_score_sources,read_source_calibrated_score_sources)
+    if type(source_version) is not int or source_version not in (2,3,4,5):raise ValueError('explicit raw replay source version required')
+    reader={2:read_raw_score_sources,3:read_calibrated_raw_score_sources,
+        4:read_source_base_score_sources,5:read_source_calibrated_score_sources}[source_version]
+    from .replay_budget import remaining_budget,check_shared_budget,shared_replay_budget
     deadline=_replay_time()+remaining_budget(60)
+    def remaining():
+        value=deadline-_replay_time()
+        if value<=0:raise ValueError('raw qualification replay time budget exceeded')
+        return value
     def check_budget():
         check_shared_budget()
-        if _replay_time()>deadline:raise ValueError('raw qualification replay time budget exceeded')
+        if source_version in (4,5):remaining()
+        elif _replay_time()>deadline:raise ValueError('raw qualification replay time budget exceeded')
     check_budget();_raw_replay_preflight(packets,check_budget,source_version=source_version)
     rows=[];bindings=[];seen=set();paths=set()
     for reference in packets:
@@ -192,7 +220,10 @@ def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
             raise ValueError('explicit original raw score archive required')
         name=reference['raw_score_sources_path']
         if name in paths:raise ValueError('duplicate original raw score archive')
-        paths.add(name);replayed=reader(Path(name),assessed_at=assessed_at,check_budget=check_budget)
+        paths.add(name)
+        if source_version in (4,5):
+            with shared_replay_budget(remaining):replayed=reader(Path(name),assessed_at=assessed_at,check_budget=check_budget)
+        else:replayed=reader(Path(name),assessed_at=assessed_at,check_budget=check_budget)
         result=replayed['score'];row=result['scored_pair'];identity=(row['issue_at'],row['target_at'],row['horizon_hours'])
         if identity in seen:raise ValueError('duplicate original raw scored window')
         seen.add(identity)
@@ -204,7 +235,9 @@ def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
     check_budget()
     calibrated=bool(rows) and all(type(row['interval_covered']) is bool and
         type(row['interval_width_f']) in (int,float) and row['interval_width_f']>=0 for row in rows)
-    return dict(rows=rows,bindings=bindings,calibrated_intervals=calibrated,support=_support(rows),raw_native_score_sources=True)
+    result=dict(rows=rows,bindings=bindings,calibrated_intervals=calibrated,support=_support(rows),raw_native_score_sources=True)
+    if source_version in (4,5):result['raw_native_issue_sources']=True
+    return result
 
 
 def qualify_raw_published_installed_shade_candidate(**values):
@@ -480,3 +513,34 @@ def render_complete_raw_installed_shade_qualification_report(record):
 
 def write_complete_raw_installed_shade_qualification_report(directory,record):
     return _write_installed_shade_qualification_report(directory,record,version=5)
+
+
+def _score_source_packets(packets,*,assessed_at,candidate=None,source_version):
+    if not isinstance(packets,list) or not 1<=len(packets)<=10000:
+        raise ValueError('bounded complete original query-bound score references required')
+    for reference in packets:
+        if (not isinstance(reference,dict) or set(reference)!={'raw_score_sources_path'} or
+                not isinstance(reference['raw_score_sources_path'],str) or not 1<=len(reference['raw_score_sources_path'])<=1024):
+            raise ValueError('bounded explicit original query-bound score references required')
+    if len(_canonical(packets))>4000000:raise ValueError('query-bound score reference index exceeds byte bound')
+    if candidate is not None:
+        from .graduation_policy import _sha
+        from weather_temperature_evidence import sensor_epoch_id
+        from .temperature_history import STREAMS
+        if (not isinstance(candidate,dict) or set(candidate)!={'artifact_sha256','runtime_sha256','sensor_epochs'} or
+                not isinstance(candidate['sensor_epochs'],dict) or set(candidate['sensor_epochs'])!=set(STREAMS)):
+            raise ValueError('closed frozen source candidate identity required')
+        _sha(candidate['artifact_sha256']);_sha(candidate['runtime_sha256'])
+        for phase in candidate['sensor_epochs'].values():sensor_epoch_id(phase)
+    packets,candidate=deepcopy((packets,candidate))
+    return _score_raw_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=source_version)
+
+
+def score_source_base_packets(packets,*,assessed_at,candidate=None):
+    """Replay issue/outcome originals for base development calibration only."""
+    return _score_source_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=4)
+
+
+def score_source_calibrated_packets(packets,*,assessed_at,candidate=None):
+    """Replay calibrated issue/outcome originals; no release decision is made."""
+    return _score_source_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=5)

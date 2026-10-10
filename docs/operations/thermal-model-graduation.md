@@ -1798,8 +1798,8 @@ Immutable scoring writes recheck source files and the caller's configuration
 and lock guard after temporary-file retention and before rename. Old archive
 readers refuse these versions. These records carry no release authority.
 
-Raw calibration, candidate, development registration and complete qualification
-still need explicit routing through these new scoring profiles. No installed
+Candidate, development registration and complete qualification still need
+explicit routing through the source scoring/calibration profiles below. No installed
 scorer or producer selects them yet. Qualified independent support
 and natural prospective outcomes remain required before production activation.
 
@@ -1832,8 +1832,46 @@ release qualification.
 
 The installed units still select the existing profile. This explicit read-only
 scoring entrypoint does not install or activate a source-aware producer, create
-qualified calibration support, seal thresholds or authorize production. Raw
-calibration/candidate/registration/q6, publication preparation and UI/operator
-release routing remain required. Rebuild pinned runtime archives before selecting
+qualified calibration support, seal thresholds or authorize production. Source candidate/registration/q6, publication preparation and
+UI/operator release routing remain required. Rebuild pinned runtime archives before selecting
 changed source bytes; measure and bound raw issue-query archive storage before
 installing the producer.
+
+
+Development calibration now has a separate source-qualified replay profile:
+`earthship-installed-shade-calibration/v3` declares
+`earthship-installed-shade-score-sources/v4` as its source contract.
+`build_source_calibration`, `validate_source_calibration`,
+`write_source_calibration` and `read_source_calibration` require base main9
+originals with numeric8, the candidate's unchanged numerical training evidence,
+and original issue/comparator/outcome query files. Calibration binds the native
+issue-query digest alongside actual numeric/main receipt and native-score
+bindings. Old calibration1/2 readers refuse this contract; original records
+retain their meanings.
+
+`score_source_base_packets` and `score_source_calibrated_packets` replay only
+source archives4 and5 respectively. Before numerical work, admission bounds
+include every original modeled issue-query file as well as outcome/comparator
+queries, with the existing private ownership, per-file, count and aggregate
+limits. Reference paths are bounded before encoding and copying. Nested source
+replay inherits the local/shared deadline instead of starting an independent
+unbounded operation. These scoring ports make no release decision.
+
+The calibration method is unchanged: symmetric absolute-residual order
+statistics, at least 35 independent local days/nonoverlapping windows for each
+horizon and declared regime, and no coverage guarantee. A dense or sparse
+single-day record remains incomplete. Learning and validation replay originals
+again after summary computation. Index/record retention checks originals after
+the actual temporary write and before immutable rename; typed readback replays
+the original numerical fit and original source files. A missing source withholds
+calibration rather than fabricating support. Source calibration operations share
+one 60-second budget across nested fitting, scoring and retention, clipped by any
+outer caller budget.
+
+These component tests establish no operational capacity for a complete qualifying
+cohort. Measure and bound original-query storage and full-cohort replay on this
+host before installing a producer. Source calibrated
+candidate4, development registration, complete q6 qualification, prepared
+publication and release operator/UI routing remain unfinished. No live service
+selects calibration3 yet, and neither a partial calibration nor a schema/hash
+marker grants production authority.
