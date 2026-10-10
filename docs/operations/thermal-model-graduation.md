@@ -2321,7 +2321,9 @@ It is not a completion-marker list or a statistics cache. Collection, batch and
 index-update intents are mutually exclusive. Older profiles reject this intent.
 
 The command uses the existing resource preflight and shared consumer lock and
-performs no source acquisition. It merges unique original references while
+performs no source acquisition. Full-cohort qualification additionally requires
+the unchanged 3 GiB available-RAM and at-most-128 MiB used-swap gate before
+reading settings or fitting; the smaller publication preflight cannot waive it. It merges unique original references while
 preserving every old entry, freshly runs qualification/report7, and requires the
 frozen candidate/runtime and all training/development/calibration/issue/outcome
 source gates. Predictive skill is deliberately not an append prerequisite:

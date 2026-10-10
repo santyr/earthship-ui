@@ -33,6 +33,9 @@ def main(argv=None):
         if args.collect or args.batch or args.update_release_index:
             from thermal_installed_intel import _resource_preflight
             _resource_preflight()
+            if args.update_release_index:
+                from thermal_model.capture_guard import verify_host_headroom
+                verify_host_headroom()
             os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
         from thermal_model.installed_shade_score_inputs import load_score_settings,load_raw_score_settings,load_source_score_settings,load_compressed_source_score_settings,ScoreReader
         loader={1:load_score_settings,2:load_raw_score_settings,3:load_source_score_settings,4:load_compressed_source_score_settings}[args.contract_version]

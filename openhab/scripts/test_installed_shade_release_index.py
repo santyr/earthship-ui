@@ -78,10 +78,12 @@ def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(mon
     import thermal_installed_score as cli
     import thermal_installed_intel as intel
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_release_index as index
+    from thermal_model import capture_guard
     from thermal_model.capture_guard import SharedScoreLock
     tmp_path.chmod(0o700);(tmp_path/'lock').touch(mode=0o600)
     calls=[]
     monkeypatch.setattr(intel,'_resource_preflight',lambda:calls.append('preflight'))
+    monkeypatch.setattr(capture_guard,'verify_host_headroom',lambda:calls.append('headroom'))
     monkeypatch.setattr(inputs,'load_compressed_source_score_settings',lambda _:dict(output_directory=tmp_path))
     monkeypatch.setattr(inputs,'ScoreReader',lambda *a,**k:pytest.fail('index update constructs acquisition backend'))
     def append(**kw):
@@ -91,7 +93,7 @@ def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(mon
     args=['--config',str(tmp_path/'config'),'--contract-version','4','--update-release-index',
         '--release-reference',str(tmp_path/'reference'),'--additional-pairs',str(tmp_path/'new'),'--shared-lock',str(tmp_path/'lock')]
     assert cli.main(args)==0
-    assert calls==['preflight',(tmp_path/'reference',tmp_path/'new')]
+    assert calls==['preflight','headroom',(tmp_path/'reference',tmp_path/'new')]
     assert json.loads(capsys.readouterr().out)==dict(status='index_updated',release_authorized=False)
 
 @pytest.mark.parametrize('lose_source',[False,True])
@@ -121,3 +123,16 @@ def test_index_retention_replays_actual_compressed_issue_and_outcome_originals(i
     else:
         assert m.append_compressed_release_sources(reference_path=ref,additional_pairs_path=extra,guard=lambda:None)['status']=='index_updated'
         assert json.loads(Path(json.loads(ref.read_text())['original_pairs_path']).read_text())==refs
+
+
+def test_index_update_headroom_refusal_precedes_settings_and_qualification(monkeypatch,tmp_path,capsys):
+    import thermal_installed_score as cli
+    import thermal_installed_intel as intel
+    from thermal_model import capture_guard,installed_shade_score_inputs as inputs
+    monkeypatch.setattr(intel,'_resource_preflight',lambda:None)
+    def refuse():raise ValueError('insufficient household headroom')
+    monkeypatch.setattr(capture_guard,'verify_host_headroom',refuse)
+    monkeypatch.setattr(inputs,'load_compressed_source_score_settings',lambda _:pytest.fail('headroom refusal reached settings'))
+    assert cli.main(['--config',str(tmp_path/'config'),'--contract-version','4','--update-release-index',
+        '--release-reference',str(tmp_path/'reference'),'--additional-pairs',str(tmp_path/'new'),'--shared-lock',str(tmp_path/'lock')])==1
+    assert json.loads(capsys.readouterr().out)['status']=='withheld'
