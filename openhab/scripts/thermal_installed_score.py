@@ -26,7 +26,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     if args.collect and (args.origin is None or args.horizon is None or args.shared_lock is None or args.queue is not None):parser.error('explicit original publication, mature horizon and shared lock required')
     if args.batch and (args.queue is None or args.shared_lock is None or args.origin is not None or args.horizon is not None):parser.error('explicit queue and shared lock required for batch')
-    if args.update_release_index and (args.contract_version!=4 or args.release_reference is None or args.additional_pairs is None or args.shared_lock is None or any(value is not None for value in (args.origin,args.horizon,args.queue))):parser.error('index update requires profile4, release reference, additional original pairs and shared lock')
+    if args.update_release_index and (args.contract_version!=4 or args.release_reference is None or (args.additional_pairs is None)==(args.queue is None) or args.shared_lock is None or any(value is not None for value in (args.origin,args.horizon))):parser.error('index update requires profile4, release reference, exactly one original-pairs index or declared queue, and shared lock')
     if not args.update_release_index and (args.release_reference is not None or args.additional_pairs is not None):parser.error('release index paths require explicit index-update intent')
     if not (args.collect or args.batch or args.update_release_index) and any(value is not None for value in (args.origin,args.horizon,args.shared_lock,args.queue)):parser.error('source reads require explicit collection intent')
     try:
@@ -47,8 +47,15 @@ def main(argv=None):
         collect={1:collect_published_score,2:collect_raw_published_score,3:collect_source_published_score,4:collect_compressed_original_score}[args.contract_version]
         with SharedScoreLock(args.shared_lock) as held:
             if args.update_release_index:
-                from thermal_model.installed_shade_release_index import append_compressed_release_sources
-                result=append_compressed_release_sources(reference_path=args.release_reference,additional_pairs_path=args.additional_pairs,guard=held.verify)
+                from thermal_model.installed_shade_release_index import append_compressed_release_sources,append_compressed_completed_queue
+                def index_guard():
+                    held.verify()
+                    if loader(args.config)!=settings:raise ValueError('original scorer settings changed')
+                    held.verify()
+                if args.queue is not None:
+                    result=append_compressed_completed_queue(reference_path=args.release_reference,queue_path=args.queue,output_directory=settings['output_directory'],guard=index_guard)
+                else:
+                    result=append_compressed_release_sources(reference_path=args.release_reference,additional_pairs_path=args.additional_pairs,guard=index_guard)
             else:
                 backend=ScoreReader(settings,shared_lock_guard=held.verify)
             if args.batch:
@@ -59,7 +66,7 @@ def main(argv=None):
                 result=collect(origin_path=args.origin,horizon_hours=args.horizon,
                     output_directory=settings['output_directory'],backend=backend)
             held.verify()
-        print(json.dumps(result,sort_keys=True));return 0 if result['status'] in ('scored','pending','busy','queue_complete','completion_verified','index_updated','index_unchanged') else 1
+        print(json.dumps(result,sort_keys=True));return 0 if result['status'] in ('scored','pending','busy','queue_complete','completion_verified','index_updated','index_unchanged','index_pending') else 1
     except BlockingIOError:
         print(json.dumps(dict(status='busy',collection_executed=False,release_authorized=False)));return 75
     except Exception:

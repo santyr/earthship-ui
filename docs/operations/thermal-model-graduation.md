@@ -2339,7 +2339,44 @@ original sources. The inherited 60-second replay deadline and existing inventory
 bounds apply without overrides.
 
 This implements an explicit incorporation command, not an installed scheduling
-loop. Automated selection of newly completed original references, operator unit
-wiring, real cohort capacity and natural end-to-end verification remain before
-claiming continuous production monitoring. A failed incorporation must not be
+loop. Declared-queue discovery and bounded unit templates are implemented below;
+installation, ongoing registration of new natural publication jobs, real cohort
+capacity and natural end-to-end verification remain before claiming continuous
+production monitoring. A failed incorporation must not be
 silently treated as a successful monitoring cycle.
+
+
+### Declared-queue discovery and staged scheduling
+
+Use scorer profile4 `--update-release-index --release-reference <private-reference>
+--queue <private-calibrated-queue> --shared-lock <existing-lock> --config
+<private-score-config>` to discover completed jobs without manually constructing
+an additional-pairs file. `--queue` and `--additional-pairs` are alternatives.
+Discovery accepts only the explicit queue4's bounded calibrated main13 jobs and
+matching completion4 locators in the configured output directory. It does not
+scan unrelated archives. A completion cannot grant release authority, substitute
+a different original origin/horizon, refer outside the archive, or bypass full
+source7 qualification. Missing completions remain pending; existing index entries
+are preserved. Invalid completed originals fail rather than being silently skipped.
+
+Queue, completion and original archive changes, including after actual temporary
+writes, prevent pointer replacement. Raw archive digest snapshots avoid retaining
+all archive bytes in memory; the original inventory and inherited deadline bounds
+remain in force. Actual source readers still validate issue, forcing, comparator
+and outcome originals, frozen candidate identity and declared sensor epochs.
+
+The compressed collection and release-index service/timer templates are separate
+from existing profile2 units. Both require reviewed private operand rendering,
+the existing global lock, CPU20%, memory256MiB, zero scope swap, tasks24, nice15,
+idle I/O and weight10. Both use a 60-second process timeout, and their timers are
+nonpersistent. Collection ticks at minute 07 modulo 10; incorporation ticks at
+minute 09 modulo 10. The lock remains authoritative if executions overlap or another
+consumer is busy. Index incorporation additionally enforces the household 3 GiB /
+128 MiB headroom gate. Neither template is installed or enabled by this change.
+
+Before claiming continuous natural scoring, wire new as-issued main13 captures
+into the declared queue, install and qualify the rendered units, verify actual
+cohort replay capacity, and observe natural completion-to-index-to-publication
+behavior. A successful template test or synthetic query replay proves none of
+those household outcomes. Failed incorporation must remain visible as failed;
+it must never be reported as a qualified monitoring cycle.

@@ -74,7 +74,8 @@ def test_changed_or_incompatible_inputs_refuse_before_pointer_update(index_case,
     assert ref.read_bytes()==before
 
 
-def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(monkeypatch,tmp_path,capsys):
+@pytest.mark.parametrize('queued',[False,True])
+def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(monkeypatch,tmp_path,capsys,queued):
     import thermal_installed_score as cli
     import thermal_installed_intel as intel
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_release_index as index
@@ -87,11 +88,12 @@ def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(mon
     monkeypatch.setattr(inputs,'load_compressed_source_score_settings',lambda _:dict(output_directory=tmp_path))
     monkeypatch.setattr(inputs,'ScoreReader',lambda *a,**k:pytest.fail('index update constructs acquisition backend'))
     def append(**kw):
-        kw['guard']();calls.append((kw['reference_path'],kw['additional_pairs_path']))
+        kw['guard']();calls.append((kw['reference_path'],kw.get('additional_pairs_path',kw.get('queue_path'))))
         return dict(status='index_updated',release_authorized=False)
     monkeypatch.setattr(index,'append_compressed_release_sources',append)
+    monkeypatch.setattr(index,'append_compressed_completed_queue',append)
     args=['--config',str(tmp_path/'config'),'--contract-version','4','--update-release-index',
-        '--release-reference',str(tmp_path/'reference'),'--additional-pairs',str(tmp_path/'new'),'--shared-lock',str(tmp_path/'lock')]
+        '--release-reference',str(tmp_path/'reference'),'--queue' if queued else '--additional-pairs',str(tmp_path/'new'),'--shared-lock',str(tmp_path/'lock')]
     assert cli.main(args)==0
     assert calls==['preflight','headroom',(tmp_path/'reference',tmp_path/'new')]
     assert json.loads(capsys.readouterr().out)==dict(status='index_updated',release_authorized=False)
@@ -100,10 +102,17 @@ def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(mon
 def test_index_retention_replays_actual_compressed_issue_and_outcome_originals(index_case,source_origin_case,tmp_path,monkeypatch,lose_source):
     from thermal_model import installed_shade_qualification as q,installed_shade_release_index as m
     from test_installed_shade_raw_publication_capture import compressed_calibrated_archive_case
-    _,_,args,now,_,result=compressed_calibrated_archive_case(source_origin_case,tmp_path,monkeypatch)
+    archive_root,_,args,now,_,result=compressed_calibrated_archive_case(source_origin_case,tmp_path,monkeypatch)
     ref,extra,index,_,_,_=index_case
     refs=[dict(raw_score_sources_path=result['raw_packet_path'])]
     extra.write_text(json.dumps(refs));index.write_text('[]')
+    from thermal_model.installed_shade_artifact import _digest
+    header=json.loads(Path(result['raw_packet_path']).read_text())
+    job={key:header['score_sources'][key] for key in ('origin_path','horizon_hours')}
+    queue=archive_root/'release-jobs.json';queue.write_text(json.dumps(dict(schema='earthship-installed-score-jobs/v4',jobs=[job])));queue.chmod(0o600)
+    marker=archive_root/(_digest(job)+'.score-job-v4.json')
+    marker.write_text(json.dumps(dict(schema='earthship-installed-score-job-completion/v4',job=job,raw_packet_path=result['raw_packet_path'],raw_score_sources_sha256=_digest(header),release_authority=False)));marker.chmod(0o600)
+    def append():return m.append_compressed_completed_queue(reference_path=ref,queue_path=queue,output_directory=archive_root,guard=lambda:None)
     # Mathematical registration/candidate loader seam remains explicit; actual
     # score7 query/capture/archive replay is restored for every source guard.
     def qualify(**kw):
@@ -118,10 +127,10 @@ def test_index_retention_replays_actual_compressed_issue_and_outcome_originals(i
         if lose_source and path.name.startswith('.release-index-pointer-'):Path(args['native_source_paths']['air']).unlink()
     monkeypatch.setattr(m,'_write_private',retain)
     if lose_source:
-        with pytest.raises((ValueError,OSError)):m.append_compressed_release_sources(reference_path=ref,additional_pairs_path=extra,guard=lambda:None)
+        with pytest.raises((ValueError,OSError)):append()
         assert ref.read_bytes()==before
     else:
-        assert m.append_compressed_release_sources(reference_path=ref,additional_pairs_path=extra,guard=lambda:None)['status']=='index_updated'
+        assert append()['status']=='index_updated'
         assert json.loads(Path(json.loads(ref.read_text())['original_pairs_path']).read_text())==refs
 
 
@@ -136,3 +145,91 @@ def test_index_update_headroom_refusal_precedes_settings_and_qualification(monke
     assert cli.main(['--config',str(tmp_path/'config'),'--contract-version','4','--update-release-index',
         '--release-reference',str(tmp_path/'reference'),'--additional-pairs',str(tmp_path/'new'),'--shared-lock',str(tmp_path/'lock')])==1
     assert json.loads(capsys.readouterr().out)['status']=='withheld'
+
+@pytest.fixture
+def completed_queue(index_case):
+    from thermal_model.installed_shade_artifact import _digest
+    ref,extra,_,_,_,_=index_case;root=ref.parent
+    job=dict(origin_path=str(root/('1'*64+'.installed-shade-origin-v13.json')),horizon_hours=24)
+    queue=root/'jobs.json';queue.write_text(json.dumps(dict(schema='earthship-installed-score-jobs/v4',jobs=[job])));queue.chmod(0o600)
+    marker=root/(_digest(job)+'.score-job-v4.json')
+    header=dict(schema='earthship-installed-shade-score-sources/v7',score_sources=job)
+    source_digest=_digest(header);packet=root/(source_digest+'.installed-shade-score-sources-v7.json')
+    packet.write_text(json.dumps(header));packet.chmod(0o600)
+    marker.write_text(json.dumps(dict(schema='earthship-installed-score-job-completion/v4',job=job,
+        raw_packet_path=str(packet),raw_score_sources_sha256=source_digest,release_authority=False)));marker.chmod(0o600)
+    return ref,queue,root,marker,packet
+
+
+def test_queue_discovery_passes_original_references_to_full_qualification(index_case,completed_queue):
+    from thermal_model.installed_shade_release_index import append_compressed_completed_queue
+    ref,queue,root,_,packet=completed_queue
+    result=append_compressed_completed_queue(reference_path=ref,queue_path=queue,output_directory=root,guard=lambda:None)
+    assert result==dict(status='index_updated',release_authorized=False)
+    assert index_case[-1]['calls'][0]==[index_case[3],dict(raw_score_sources_path=str(packet))]
+
+@pytest.mark.parametrize('damage',['authority','digest','foreign_archive','wrong_job','legacy_queue','base_origin'])
+def test_discovery_invalid_completion_or_queue_never_changes_pointer(completed_queue,damage):
+    from thermal_model.installed_shade_release_index import append_compressed_completed_queue
+    ref,queue,root,marker,_=completed_queue;before=ref.read_bytes();saved=json.loads(marker.read_text())
+    if damage=='authority':saved['release_authority']=True
+    elif damage=='digest':saved['raw_score_sources_sha256']='b'*64
+    elif damage=='foreign_archive':saved['raw_packet_path']=str(root.parent/Path(saved['raw_packet_path']).name)
+    elif damage=='wrong_job':saved['job']['horizon_hours']=6
+    else:
+        value=json.loads(queue.read_text())
+        if damage=='legacy_queue':value['schema']='earthship-installed-score-jobs/v3'
+        else:value['jobs'][0]['origin_path']=value['jobs'][0]['origin_path'].replace('v13','v11')
+        queue.write_text(json.dumps(value))
+    marker.write_text(json.dumps(saved))
+    with pytest.raises(ValueError):append_compressed_completed_queue(reference_path=ref,queue_path=queue,output_directory=root,guard=lambda:None)
+    assert ref.read_bytes()==before
+
+
+def test_discovery_missing_completion_is_pending_without_qualification(index_case,completed_queue):
+    from thermal_model.installed_shade_release_index import append_compressed_completed_queue
+    ref,queue,root,marker,_=completed_queue;before=ref.read_bytes();marker.unlink()
+    assert append_compressed_completed_queue(reference_path=ref,queue_path=queue,output_directory=root,guard=lambda:None)==dict(status='index_pending',release_authorized=False)
+    assert index_case[-1]['calls']==[] and ref.read_bytes()==before
+
+@pytest.mark.parametrize('target',['queue','completion'])
+def test_discovery_original_change_after_pointer_temporary_write_refuses(completed_queue,monkeypatch,target):
+    from thermal_model import installed_shade_release_index as m
+    ref,queue,root,marker,_=completed_queue;before=ref.read_bytes();write=m._write_private
+    def changed(path,raw):
+        write(path,raw)
+        if path.name.startswith('.release-index-pointer-'):(queue if target=='queue' else marker).write_text('{}')
+    monkeypatch.setattr(m,'_write_private',changed)
+    with pytest.raises(ValueError):m.append_compressed_completed_queue(reference_path=ref,queue_path=queue,output_directory=root,guard=lambda:None)
+    assert ref.read_bytes()==before
+
+
+def test_discovery_different_original_job_cannot_be_selected_by_completion_hint(index_case,completed_queue):
+    from thermal_model.installed_shade_release_index import append_compressed_completed_queue
+    from thermal_model.installed_shade_artifact import _digest
+    ref,queue,root,marker,packet=completed_queue;before=ref.read_bytes()
+    header=json.loads(packet.read_text());header['score_sources']['horizon_hours']=6
+    digest=_digest(header);other=root/(digest+'.installed-shade-score-sources-v7.json');other.write_text(json.dumps(header));other.chmod(0o600)
+    saved=json.loads(marker.read_text());saved.update(raw_packet_path=str(other),raw_score_sources_sha256=digest);marker.write_text(json.dumps(saved))
+    with pytest.raises(ValueError):append_compressed_completed_queue(reference_path=ref,queue_path=queue,output_directory=root,guard=lambda:None)
+    assert index_case[-1]['calls']==[] and ref.read_bytes()==before
+
+
+def test_scheduled_index_template_is_bounded_and_has_no_acquisition_or_actuation():
+    root=Path(__file__).resolve().parents[2]/'openhab/systemd/user'
+    unit=(root/'thermal-installed-release-index.service').read_text()
+    timer=(root/'thermal-installed-release-index.timer').read_text()
+    for line in ('Type=oneshot','CPUQuota=20%','MemoryMax=256M','MemorySwapMax=0','TasksMax=24','Nice=15','IOWeight=10','UMask=0077'):
+        assert line in unit.splitlines()
+    command=next(line for line in unit.splitlines() if line.startswith('ExecStart='))
+    assert '--contract-version 4' in command and '--update-release-index' in command and '--queue @VERIFIED_SCORE_QUEUE@' in command
+    assert '--shared-lock @VERIFIED_SHARED_LOCK@' in command and '--release-reference @VERIFIED_RELEASE_REFERENCE@' in command
+    assert 'timeout 60s' in command and '--collect' not in command and '--batch' not in command
+    assert 'Persistent=false' in timer and 'Unit=thermal-installed-release-index.service' in timer
+
+    collection=(root/'thermal-installed-compressed-score-queue.service').read_text()
+    assert '--contract-version 4' in collection and '--batch' in collection and '--shared-lock @VERIFIED_SHARED_LOCK@' in collection
+    for line in ('CPUQuota=20%','MemoryMax=256M','MemorySwapMax=0','TasksMax=24','Nice=15','IOWeight=10','UMask=0077'):
+        assert line in collection.splitlines()
+    collection_timer=(root/'thermal-installed-compressed-score-queue.timer').read_text()
+    assert 'Persistent=false' in collection_timer and 'Unit=thermal-installed-compressed-score-queue.service' in collection_timer
