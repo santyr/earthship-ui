@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 import pytest
 from test_provisional_thermal_forecast import context,ISSUE,module as forecasts
-from test_installed_shade_origin import native
+from test_installed_shade_origin import native,weather,actions
 
 
 def module():
@@ -30,7 +30,11 @@ def fixture(tmp_path,monkeypatch):
     class Backend:
         def __init__(self):self.states={};self.puts=[]
         def verify_unchanged(self):pass
-        def collect(self,**kwargs):return deepcopy(inputs)
+        def collect(self,**kwargs):
+            data=deepcopy(inputs);issue=kwargs['issue'];known=kwargs['known_at']
+            data['current'],data['origin_temperatures']=native(known)
+            data['forecast']=weather(issue);data['action_snapshot']=actions(known);data['action_snapshot']['origin']=issue
+            return data
         def put(self,item,state,*,preflight):preflight();self.states[item]=state;self.puts.append(item)
         def persisted(self,item,state,*,since):
             clock[0]+=timedelta(milliseconds=10)
@@ -101,3 +105,24 @@ def test_withdrawal_refuses_unpersisted_state_after_bounded_retry(tmp_path,monke
     backend.persisted=absent
     with pytest.raises(ValueError):module().withdraw(settings,backend=backend,guard=lambda:None)
     assert len(attempts)==2 and len(backend.puts)==1
+
+
+def test_collection_uses_latest_batch_before_truthful_phased_issue(tmp_path,monkeypatch):
+    settings,backend,clock,_=fixture(tmp_path,monkeypatch)
+    original=backend.collect;calls=[]
+    def collected(**kwargs):
+        calls.append(dict(kwargs));return original(**kwargs)
+    backend.collect=collected
+    result=module().publish_cycle(settings,backend=backend,guard=lambda:None)
+    assert result['delivery_verified'] is True
+    assert calls[0]['issue']==ISSUE+timedelta(seconds=15)
+    assert calls[0]['known_at']==ISSUE-timedelta(seconds=5)
+    record=json.loads(Path(result['origin_path']).read_text())
+    assert record['issued_at']==(ISSUE+timedelta(seconds=15)).isoformat()
+    assert module()._utc(record['inputs_available_at'])<=module()._utc(record['issued_at'])
+
+
+def test_next_issue_keeps_future_phase_across_boundary_and_hour():
+    assert module()._next_issue(ISSUE+timedelta(seconds=2))==ISSUE+timedelta(seconds=15)
+    assert module()._next_issue(ISSUE+timedelta(seconds=16))==ISSUE+timedelta(minutes=5,seconds=15)
+    assert module()._next_issue(ISSUE+timedelta(minutes=59,seconds=50))==ISSUE+timedelta(hours=1,seconds=15)
