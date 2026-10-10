@@ -62,3 +62,15 @@ def test_withdrawal_does_not_read_candidate_or_fit(tmp_path,monkeypatch):
     assert result['status']=='withdrawn'
     from thermal_model.installed_shade_published_origin import PUBLICATION_ITEM
     assert json.loads(backend.states[PUBLICATION_ITEM])['status']=='unavailable'
+
+
+def test_real_provisional_runtime_binds_every_deployed_source(tmp_path,monkeypatch):
+    root=tmp_path/'runtime';root.mkdir(mode=0o700)
+    original=Path(__file__).resolve().parent
+    for name in module().RUNTIME_PATHS:
+        target=root/name;target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+        target.write_bytes((original/name).read_bytes());target.chmod(0o600)
+    monkeypatch.setattr(module(),'RUNTIME_ROOT',root)
+    runtime=module().current_runtime()
+    assert set(runtime['source_manifest'])==set(module().RUNTIME_PATHS)
+    assert len(runtime['source_manifest'])==72
