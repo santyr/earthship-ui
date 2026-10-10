@@ -183,26 +183,35 @@ class LiveBackend:
 
 class SourceLiveBackend(LiveBackend):
     """Explicit original-query acquisition; existing live profiles do not select it."""
+    _compressed_sources=False
+
     def _temperature_grid(self,stream,targets,assessed):
-        from weather_temperature_sources import write_temperature_source,replay_temperature_source
+        from weather_temperature_sources import write_temperature_source,write_compressed_temperature_source,replay_temperature_source
         from .temperature_history import STREAMS
         self.verify_unchanged()
         packet=self._read_temperature(stream,targets,assessed,source=True)
         self.verify_unchanged()
-        path=write_temperature_source(Path(self.settings['evidence_directory']),packet,before_publish=self.verify_unchanged)
+        writer=write_compressed_temperature_source if self._compressed_sources else write_temperature_source
+        path=writer(Path(self.settings['evidence_directory']),packet,before_publish=self.verify_unchanged)
         self.budget.remaining()
         role=next(role for role,values in STREAMS.items() if values[0]==stream)
         self._native_source_paths[role]=str(path)
         return replay_temperature_source(packet)
     def _collect(self,*,issue,known_at):
-        from .installed_shade_raw_score_sources import build_native_origin_binding
+        from .installed_shade_raw_score_sources import build_native_origin_binding,build_compressed_native_origin_binding
+        builder=build_compressed_native_origin_binding if self._compressed_sources else build_native_origin_binding
         self._native_source_paths={}
         result=super()._collect(issue=issue,known_at=known_at)
         paths=deepcopy(self._native_source_paths)
-        build_native_origin_binding(result['origin_temperatures'],source_paths=paths,
+        builder(result['origin_temperatures'],source_paths=paths,
             issue_at=issue,check_budget=self.budget.remaining)
         self.verify_unchanged()
         return dict(result,native_source_paths=paths)
+
+
+class CompressedSourceLiveBackend(SourceLiveBackend):
+    """Explicit container2 acquisition; no installed caller selects this port."""
+    _compressed_sources=True
 
 
 WITHDRAW_SCHEMA='earthship-installed-shade-withdraw-config/v1'

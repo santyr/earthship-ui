@@ -190,7 +190,7 @@ def test_live_source_collection_keeps_preissue_knowledge_native_epoch_and_actual
     assert epochs==EPOCHS and initial['mass']==result['current']['mass']['value']
 
 
-def source_backend_case(tmp_path,monkeypatch,*,source=True,guard=lambda:None):
+def source_backend_case(tmp_path,monkeypatch,*,source=True,guard=lambda:None,backend_type=None):
     from test_thermal_sensor_epoch_history import sources,EPOCHS
     from test_weather_temperature_history import Connection
     from test_weather_temperature_reader import AT
@@ -199,7 +199,7 @@ def source_backend_case(tmp_path,monkeypatch,*,source=True,guard=lambda:None):
     m=module();policy,rows=sources(tmp_path,monkeypatch);tmp_path.chmod(0o700)
     archive=tmp_path/'queries';archive.mkdir(mode=0o700)
     rows.insert(1,(AT+timedelta(seconds=30),None));known=AT+timedelta(minutes=6)
-    backend=object.__new__(m.SourceLiveBackend if source else m.LiveBackend)
+    backend=object.__new__(backend_type or (m.SourceLiveBackend if source else m.LiveBackend))
     backend.settings=dict(native_db_config='/fixture/db',native_policy=str(policy),evidence_directory=str(archive))
     backend.epochs=dict(EPOCHS);backend.budget=ReadBudget(30,guard=guard);backend.hashes={}
     backend.journal_dsn=backend.forecast_dsn='fixture'
@@ -239,12 +239,13 @@ def test_old_live_backend_retains_its_receipt_only_contract(tmp_path,monkeypatch
     assert list(archive.iterdir())==[]
 
 
-def test_source_live_backend_refuses_lock_loss_before_archiving_query(tmp_path,monkeypatch):
+@pytest.mark.parametrize('compressed',[False,True])
+def test_source_live_backend_refuses_lock_loss_before_archiving_query(tmp_path,monkeypatch,compressed):
     from test_weather_temperature_history import Connection
     held=[True]
     def guard():
         if not held[0]:raise ValueError('held fixture guard lost')
-    backend,known,archive,connections=source_backend_case(tmp_path,monkeypatch,guard=guard)
+    backend,known,archive,connections=source_backend_case(tmp_path,monkeypatch,guard=guard,backend_type=module().CompressedSourceLiveBackend if compressed else None)
     original=Connection.close
     def lost(connection):
         original(connection);held[0]=False
@@ -254,12 +255,13 @@ def test_source_live_backend_refuses_lock_loss_before_archiving_query(tmp_path,m
     assert list(archive.iterdir())==[]
 
 
-def test_source_live_backend_refuses_lock_loss_during_temporary_query_write(tmp_path,monkeypatch):
+@pytest.mark.parametrize('compressed',[False,True])
+def test_source_live_backend_refuses_lock_loss_during_temporary_query_write(tmp_path,monkeypatch,compressed):
     import os
     held=[True]
     def guard():
         if not held[0]:raise ValueError('held fixture guard lost')
-    backend,known,archive,_=source_backend_case(tmp_path,monkeypatch,guard=guard)
+    backend,known,archive,_=source_backend_case(tmp_path,monkeypatch,guard=guard,backend_type=module().CompressedSourceLiveBackend if compressed else None)
     original=os.chmod
     def lost(path,mode,*args,**kwargs):
         original(path,mode,*args,**kwargs)
@@ -267,3 +269,19 @@ def test_source_live_backend_refuses_lock_loss_during_temporary_query_write(tmp_
     monkeypatch.setattr(os,'chmod',lost)
     with pytest.raises(ValueError):backend.collect(issue=known+timedelta(seconds=30),known_at=known)
     assert list(archive.iterdir())==[]
+
+
+def test_compressed_issue_backend_replays_original_roles_and_barriers(tmp_path,monkeypatch):
+    from weather_temperature_sources import read_compressed_temperature_source,read_temperature_source
+    from thermal_model.installed_shade_raw_score_sources import build_compressed_native_origin_binding
+    m=module();kind=getattr(m,'CompressedSourceLiveBackend',None)
+    assert kind is not None,'missing explicitly compressed issue acquisition'
+    backend,known,archive,connections=source_backend_case(tmp_path,monkeypatch,backend_type=kind)
+    issue=known+timedelta(seconds=30);inputs=backend.collect(issue=issue,known_at=known)
+    binding=build_compressed_native_origin_binding(inputs['origin_temperatures'],source_paths=inputs['native_source_paths'],issue_at=issue)
+    assert binding['schema']=='earthship-installed-shade-native-origin-binding/v2'
+    assert len(connections)==3 and all(c.closed and c.session['readonly'] for c in connections)
+    for name in inputs['native_source_paths'].values():
+        path=Path(name);packet=read_compressed_temperature_source(archive,path)
+        assert packet['native_rows'][1][1] is None
+        with pytest.raises(ValueError):read_temperature_source(archive,path)

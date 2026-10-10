@@ -19,6 +19,7 @@ from .installed_shade_published_origin import _receipt,NUMERIC_ITEM,PUBLICATION_
 SCHEMA='earthship-installed-shade-score-config/v1'
 RAW_SCHEMA='earthship-installed-shade-score-config/v2'
 SOURCE_SCHEMA='earthship-installed-shade-score-config/v3'
+COMPRESSED_SOURCE_SCHEMA='earthship-installed-shade-score-config/v4'
 SOURCE_PATHS={'token_file','native_db_config','native_policy'}
 FIELDS=SOURCE_PATHS|{'schema','openhab_base','output_directory'}
 
@@ -31,8 +32,8 @@ def load_raw_score_settings(path):
 
 
 def load_score_settings(path,*,_version=1):
-    if type(_version) is not int or _version not in (1,2,3):raise ValueError('explicit score configuration profile required')
-    schema={1:SCHEMA,2:RAW_SCHEMA,3:SOURCE_SCHEMA}[_version]
+    if type(_version) is not int or _version not in (1,2,3,4):raise ValueError('explicit score configuration profile required')
+    schema={1:SCHEMA,2:RAW_SCHEMA,3:SOURCE_SCHEMA,4:COMPRESSED_SOURCE_SCHEMA}[_version]
     path=Path(path);_private_directory(path.parent);value=_read_private(path)
     if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=schema or value['openhab_base'] not in BASES:
         raise ValueError('closed private score configuration required')
@@ -52,7 +53,7 @@ def load_source_score_settings(path):
 
 class ScoreReader:
     def __init__(self,settings,*,shared_lock_guard=None):
-        if settings.get('schema')==SOURCE_SCHEMA and not callable(shared_lock_guard):
+        if settings.get('schema') in (SOURCE_SCHEMA,COMPRESSED_SOURCE_SCHEMA) and not callable(shared_lock_guard):
             raise ValueError('source scoring requires a held shared lock guard')
         self.shared_lock_guard=shared_lock_guard
         if shared_lock_guard is not None:shared_lock_guard()
@@ -100,7 +101,11 @@ class ScoreReader:
         import psycopg2
         from hourly_temperature_runtime import read_db_config
         from weather_temperature_config import load_temperature_receiver_configuration
-        from weather_temperature_sources import fetch_temperature_source,write_temperature_source,read_temperature_source,replay_temperature_source
+        from weather_temperature_sources import (fetch_temperature_source,write_temperature_source,read_temperature_source,
+            write_compressed_temperature_source,read_compressed_temperature_source,replay_temperature_source)
+        compressed=self.settings.get('schema')==COMPRESSED_SOURCE_SCHEMA
+        writer=write_compressed_temperature_source if compressed else write_temperature_source
+        source_reader=read_compressed_temperature_source if compressed else read_temperature_source
         assessed_at=_utc(assessed_at)
         if (not isinstance(targets,list) or not 1<=len(targets)<=2 or sensor_epoch!=self.epochs['air']):raise ValueError('bounded same-phase native target request required')
         targets=list(map(_utc,targets))
@@ -112,7 +117,7 @@ class ScoreReader:
         if epochs is None or epochs.get('indoor')!=sensor_epoch:raise ValueError('original native phase changed')
         config=read_db_config(self.settings['native_db_config'])
         options={}
-        if self.settings.get('schema')==SOURCE_SCHEMA:
+        if self.settings.get('schema') in (SOURCE_SCHEMA,COMPRESSED_SOURCE_SCHEMA):
             def remaining():
                 from .replay_budget import remaining_budget
                 self._acquisition_check();return remaining_budget(self.budget.remaining())
@@ -127,8 +132,8 @@ class ScoreReader:
                     stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch,**options)
                 except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
                 self._acquisition_check()
-                path=write_temperature_source(self.settings['output_directory'],packet,before_publish=self._acquisition_check)
-            retained=read_temperature_source(path.parent,path)
+                path=writer(self.settings['output_directory'],packet,before_publish=self._acquisition_check)
+            retained=source_reader(path.parent,path)
             selected=replay_temperature_source(retained)
             if (retained['targets']!=[target.isoformat()] or _utc(retained['assessed_at'])!=assessed_at or
                     retained['sensor_epoch']!=sensor_epoch or retained['stream']!='indoor'):
@@ -138,3 +143,8 @@ class ScoreReader:
             if str(path) not in self.native_source_paths:self.native_source_paths.append(str(path))
             rows.extend(selected)
         return rows
+
+
+def load_compressed_source_score_settings(path):
+    """Explicit storage profile; old settings loaders continue refusing it."""
+    return load_score_settings(path,_version=4)

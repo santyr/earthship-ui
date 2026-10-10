@@ -1926,3 +1926,16 @@ refuse binding/v2. Missing original queries or caches differing from original
 selection withhold replay. Acquisition configurations, numeric/main captures,
 score archives and qualification inventory still require explicit integration
 before any installed producer selects compressed storage.
+
+
+Compressed original-query acquisition is now explicit through
+`CompressedSourceLiveBackend` and score-config/v4 with its typed loader. The
+issue backend retains each role's complete original query and replays native
+origin binding/v2; score-config/v4 retains bounded endpoint query containers and
+replays them before returning receipts or reusing cached addresses. Missing
+retained queries refuse reuse. Both ports preserve read-only source transactions,
+original policy/epoch checks, shared guard/deadline checks and the guard after the
+actual temporary write. Legacy configuration loaders refuse score-config/v4.
+No installed producer or CLI selects these ports yet. Enclosing numeric/main
+captures, score archives, qualification admission and full-cohort capacity remain
+required before deployment; the acquisition API alone provides no release authority.

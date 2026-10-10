@@ -205,7 +205,7 @@ def test_far_endpoint_queries_keep_small_raw_windows_and_invalid_barriers(settin
     assert len(connections)==2 and all(c.closed for c in connections)
 
 
-@pytest.mark.parametrize('version',[1,3])
+@pytest.mark.parametrize('version',[1,3,4])
 @pytest.mark.parametrize('lost',['configuration','lock'])
 def test_score_reader_cannot_publish_raw_query_when_guard_is_lost_during_temporary_write(settings,monkeypatch,lost,version):
     import hourly_temperature_runtime
@@ -381,3 +381,39 @@ def test_source_connect_rechecks_timeout_after_final_configuration_guard(setting
     with shared_replay_budget(lambda:state['remaining']):
         with pytest.raises(ValueError):reader._connect(dict(dbname='openhab',user='weather_temperature_reader',host='127.0.0.1',password=Path(settings[1]['token_file']).read_text()))
     assert opened==[]
+
+
+def test_compressed_score_profile_is_explicit_and_requires_lock(settings):
+    path,config=settings;m=module();config={**config,'schema':'earthship-installed-shade-score-config/v4'}
+    path.write_text(json.dumps(config));loader=getattr(m,'load_compressed_source_score_settings',None)
+    assert callable(loader),'missing explicit compressed score configuration'
+    assert loader(path)==config
+    for old in (m.load_score_settings,m.load_raw_score_settings,m.load_source_score_settings):
+        with pytest.raises(ValueError):old(path)
+    with pytest.raises(ValueError):m.ScoreReader(config)
+
+
+def test_compressed_score_acquisition_retains_exact_sources_and_reuses_queries(settings,tmp_path,monkeypatch):
+    import hourly_temperature_runtime
+    from test_thermal_sensor_epoch_history import sources
+    from test_weather_temperature_reader import AT
+    from weather_temperature_sources import read_compressed_temperature_source,read_temperature_source,replay_temperature_source
+    _,raw=sources(tmp_path,monkeypatch);m=module()
+    assert hasattr(m,'COMPRESSED_SOURCE_SCHEMA'),'missing compressed score acquisition profile'
+    reader=m.ScoreReader({**settings[1],'schema':m.COMPRESSED_SOURCE_SCHEMA},shared_lock_guard=lambda:None)
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    connections=[]
+    def connect(_):
+        c=WindowConnection(rows=raw);connections.append(c);return c
+    monkeypatch.setattr(reader,'_connect',connect)
+    target=AT+timedelta(seconds=60);assessed=AT+timedelta(minutes=10)
+    first=reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])
+    assert first[0][1]['temperatureF']==70.
+    path=Path(reader.native_source_paths[0]);packet=read_compressed_temperature_source(path.parent,path)
+    assert replay_temperature_source(packet)==first
+    with pytest.raises(ValueError):read_temperature_source(path.parent,path)
+    assert reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])==first
+    assert len(connections)==1 and connections[0].closed
+    path.unlink()
+    with pytest.raises((ValueError,OSError)):reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])
+    assert len(connections)==1
