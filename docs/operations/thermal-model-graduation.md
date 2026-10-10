@@ -1703,9 +1703,25 @@ original rows, including carry and invalid barriers, before comparing selected
 receipts. Replay requires the original private content-addressed files to remain
 available. The binding grants no release authority.
 
-This foundation is not yet connected to persisted numeric origins, main
-publication receipts or qualification reports. Existing origin/publication
-versions retain their prior meanings. A new explicit version must bind and
-replay the issue queries through scoring and qualification before this remaining
-source-authority gap can be closed. Rebuild pinned runtimes after integration;
-passing the foundation tests does not authorize deployment.
+The source binding is now connected to the explicit numeric origin/v6 described
+below. Main publication receipts, live acquisition and qualification reports
+still need the new source-bound profile. Existing origin/publication versions
+retain their prior meanings. The base shadow bootstrap and original calibration
+issue captures also need explicit query-bound versions before the full chain can
+claim raw source authority. Rebuild pinned runtimes after integration; passing
+these tests does not authorize deployment.
+
+
+Numeric origin/v6, forecast/v4 and source-scored-pair/v6 bind the original issue
+query files through `native_origin_binding`. The output and scored pair expose
+its digest. `build_source_calibrated_capture` requires the existing prepared raw
+calibrated candidate plus `native_source_paths`, one original private archive
+per modeled sensor role. It preserves all current initial-state, weather, action,
+runtime, physical and calibrated-interval checks. Prediction and scoring replay
+the issue sources before and after numerical work; readback repeats validation.
+Immutable storage rechecks the original files immediately before the final
+rename, within the shared replay budget. Missing or changed original sources
+refuse acceptance, even when a capture is rehashed. Version2/version4 readers
+refuse origin/v6. This numeric contract remains shadow-only and grants no
+release or actuation authority. The live producer and main publication profile
+do not yet select it.

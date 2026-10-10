@@ -129,3 +129,137 @@ def test_raw_issue_refuses_wrong_preparation_type_or_future_proof(raw_math_captu
         origin.build_raw_calibrated_capture(prepared,issued_at=issue,inputs_available_at=issue,
             published_at=record['published_at'],runtime=record['runtime'],forecast=record['forecast'],
             current=record['current'],origin_temperatures=record['origin_temperatures'],action_snapshot=record['action_snapshot'])
+
+
+@pytest.fixture
+def source_origin_case(raw_math_capture,tmp_path):
+    """Real raw native issue queries; candidate is only a math fixture."""
+    from datetime import datetime
+    from weather_temperature_evidence import TemperaturePolicy,MODELS
+    from weather_temperature_receiver import TemperatureCollector
+    from weather_temperature_sources import build_temperature_source,write_temperature_source,replay_temperature_source
+    from thermal_model.temperature_history import STREAMS,POLICY
+    from thermal_model.dataset import latent_mass_from_series
+    from thermal_temperature_runtime import shadow_temperatures_v2
+    from thermal_model import installed_shade_calibrated_origin as origin
+    tmp_path.chmod(0o700);issue=datetime.fromisoformat(raw_math_capture['issued_at'])
+    policies={s:TemperaturePolicy(m,i,**POLICY) for s,m,i in STREAMS.values()}
+    phases={values[0]:raw_math_capture['source_epochs'][r] for r,values in STREAMS.items()}
+    clock={'at':issue-timedelta(minutes=5),'tick':1000}
+    collector=TemperatureCollector(policies,sensor_epochs=phases,clock=lambda:clock['at'],monotonic=lambda:clock['tick'],process_id=lambda:1)
+    rows=[]
+    for at,value in [(issue-timedelta(minutes=5),70),(issue-timedelta(seconds=30),71)]:
+        clock.update(at=at,tick=clock['tick']+300)
+        for policy in policies.values():collector.observe({'model':policy.model,'id':str(policy.sensor_id),MODELS[policy.model][1]:str(value)})
+        rows.append((at,json.dumps(collector.snapshot())))
+    rows.insert(1,(issue-timedelta(minutes=2),None));paths={};saved=[]
+    def grid(stream,targets,assessed):
+        role=next(r for r,v in STREAMS.items() if v[0]==stream)
+        packet=build_temperature_source(rows=rows,targets=targets,assessed_at=assessed,stream=stream,policy=policies[stream],sensor_epoch=phases[stream])
+        paths[role]=str(write_temperature_source(tmp_path,packet))
+        return replay_temperature_source(packet)
+    selected=shadow_temperatures_v2(issue,grid,sensor_epochs=raw_math_capture['source_epochs'],origin_observer=saved.append)
+    current={role:v['current'] for role,v in selected.items()}
+    history=list(selected['mass']['history']);reading=current['mass']
+    if not history or reading['at']>history[-1][0]:history.append((reading['at'],reading['value']))
+    latent=latent_mass_from_series(history)
+    if latent is not None:current['mass']['value']=latent[1]
+    prepared=origin.PreparedRawCalibratedCandidate(_canonical(raw_math_capture['candidate']),issue)
+    return prepared,dict(issued_at=issue,inputs_available_at=issue,published_at=issue+timedelta(seconds=2),
+        runtime=raw_math_capture['runtime'],forecast=weather(issue),current=current,
+        origin_temperatures=saved[0],action_snapshot=actions(issue),native_source_paths=paths)
+
+
+def test_source_origin_binds_raw_queries_and_old_readers_refuse(source_origin_case,tmp_path):
+    from thermal_model import installed_shade_calibrated_origin as origin
+    assert hasattr(origin,'build_source_calibrated_capture'),'missing query-bound numeric capture'
+    prepared,args=source_origin_case;record=origin.build_source_calibrated_capture(prepared,**args)
+    assert record['schema']=='earthship-installed-shade-origin/v6'
+    assert record['output']['schema']=='earthship-installed-shade-forecast/v4'
+    assert record['output']['native_origin_binding_sha256']==_digest(record['native_origin_binding'])
+    assert record['output']['status']=='shadow' and record['output']['release_authorized'] is False
+    assert record['output']['automatic_actuation'] is False
+    path=origin.write_source_calibrated_capture(tmp_path,record)
+    assert path.name==record['capture_sha256']+'.installed-shade-origin-v6.json'
+    assert path.stat().st_mode&0o777==0o600
+    assert origin.read_source_calibrated_capture(path)==record
+    with pytest.raises(ValueError):origin.validate_raw_calibrated_capture(record)
+    with pytest.raises(ValueError):origin.read_raw_calibrated_capture(path)
+
+
+@pytest.mark.parametrize('damage',['missing_query','changed_grid','binding','deleted_after_write','initial'])
+def test_source_origin_refuses_rehashed_or_missing_issue_sources(source_origin_case,tmp_path,damage):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_origin as origin
+    assert hasattr(origin,'build_source_calibrated_capture'),'missing query-bound numeric capture'
+    prepared,args=source_origin_case
+    if damage=='missing_query':
+        args['native_source_paths'].pop('air')
+        with pytest.raises(ValueError):origin.build_source_calibrated_capture(prepared,**args)
+        return
+    record=origin.build_source_calibrated_capture(prepared,**args)
+    if damage=='deleted_after_write':
+        path=origin.write_source_calibrated_capture(tmp_path,record);Path(args['native_source_paths']['air']).unlink()
+        with pytest.raises((ValueError,OSError)):origin.read_source_calibrated_capture(path)
+        return
+    if damage=='changed_grid':record['origin_temperatures']['roles']['air']['grid'][-1][1]['temperatureF']+=1
+    elif damage=='initial':record['current']['mass']['value']+=1
+    else:record['native_origin_binding']['release_authority']=True
+    record['capture_sha256']=_digest({k:v for k,v in record.items() if k!='capture_sha256'})
+    with pytest.raises(ValueError):origin.validate_source_calibrated_capture(record)
+
+
+@pytest.mark.parametrize('hours',[1,6,12,24])
+def test_source_origin_scoring_replays_queries_and_actual_issued_bands(source_origin_case,hours):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_origin as origin
+    assert hasattr(origin,'build_source_calibrated_capture'),'missing query-bound numeric capture'
+    prepared,args=source_origin_case;record=origin.build_source_calibrated_capture(prepared,**args)
+    issue=args['issued_at'];target=issue+timedelta(hours=hours)
+    values=dict(publication=dict(time=int(args['published_at'].timestamp()*1000),state=_canonical(record['output']).decode()),
+        horizon_hours=hours,outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),
+        recent_cycle_grid=synthetic_cycle_grid(issue,hours),assessed_at=target+timedelta(minutes=10))
+    result=origin.score_source_calibrated_capture(record,**values)
+    assert result['schema']=='earthship-installed-shade-source-scored-pair/v6'
+    assert result['native_origin_binding_sha256']==_digest(record['native_origin_binding'])
+    assert result['original_capture_sha256']==record['capture_sha256']
+    assert result['publication_sha256']==_digest(values['publication'])
+    assert result['scored_pair']['interval_width_f']==pytest.approx(64.)
+    Path(args['native_source_paths']['mass']).unlink()
+    with pytest.raises((ValueError,OSError)):origin.score_source_calibrated_capture(record,**values)
+
+
+@pytest.mark.parametrize('operation',['validation','scoring'])
+def test_source_origin_rechecks_queries_after_numerical_work(source_origin_case,monkeypatch,operation):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_origin as origin
+    prepared,args=source_origin_case;record=origin.build_source_calibrated_capture(prepared,**args)
+    original=origin._core_view;calls=0
+    def changed_source(value):
+        nonlocal calls
+        result=original(value);calls+=1
+        if calls==(1 if operation=='validation' else 2):Path(args['native_source_paths']['air']).unlink()
+        return result
+    monkeypatch.setattr(origin,'_core_view',changed_source)
+    with pytest.raises((ValueError,OSError)):
+        if operation=='validation':origin.validate_source_calibrated_capture(record)
+        else:
+            issue=args['issued_at'];target=issue+timedelta(hours=1)
+            origin.score_source_calibrated_capture(record,publication=dict(time=int(args['published_at'].timestamp()*1000),state=_canonical(record['output']).decode()),
+                horizon_hours=1,outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),
+                recent_cycle_grid=synthetic_cycle_grid(issue,1),assessed_at=target+timedelta(minutes=10))
+
+
+def test_source_origin_refuses_source_loss_during_temporary_write(source_origin_case,tmp_path,monkeypatch):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_origin as origin
+    from thermal_model import runtime_bundle
+    prepared,args=source_origin_case;record=origin.build_source_calibrated_capture(prepared,**args)
+    original=runtime_bundle._write_private
+    def changed_source(path,raw):
+        original(path,raw)
+        Path(args['native_source_paths']['outdoor']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed_source)
+    with pytest.raises((ValueError,OSError)):origin.write_source_calibrated_capture(tmp_path,record)
+    assert not list(tmp_path.glob('*.installed-shade-origin-v6.json'))
+    assert not list(tmp_path.glob('.calibration-*'))
