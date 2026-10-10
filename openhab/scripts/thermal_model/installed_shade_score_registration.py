@@ -94,3 +94,47 @@ def _register(*,registration_path,origin_path,guard):
     finally:
         if temporary.exists():temporary.unlink()
     return dict(status='jobs_registered',release_authorized=False)
+
+
+def resolve_registered_score_queue(*,registration_path,horizon_hours,guard):
+    """Return selected queue and a guard retaining the exact registry generation."""
+    if type(horizon_hours) is not int or str(horizon_hours) not in HORIZONS:
+        raise ValueError('explicit registered horizon required')
+    snapshots={}
+    def verify():
+        # Queue remaining-budget callbacks invoke backend guards. Keep this
+        # ownership/generation guard pure to avoid recursive budget callbacks.
+        guard()
+        for path,(raw,maximum) in snapshots.items():
+            _private_directory(path.parent)
+            if _owned_bytes(path,maximum)!=raw:raise ValueError('registered queue generation changed')
+        guard()
+    def read(path,maximum):
+        path=_path(str(path));_private_directory(path.parent);check_shared_budget();verify()
+        raw=_owned_bytes(path,maximum);snapshots[path]=(raw,maximum);return _decode(raw)
+    pointer=_path(str(registration_path));record=read(pointer,16384)
+    if (not isinstance(record,dict) or set(record)!={'schema','candidate','queues'} or record['schema']!=SCHEMA or
+            not isinstance(record['queues'],dict) or set(record['queues'])!=set(HORIZONS)):
+        raise ValueError('closed four-horizon registration required')
+    pin=record['candidate']
+    if pin is not None:
+        if (not isinstance(pin,dict) or set(pin)!={'artifact_sha256','runtime_sha256','sensor_epochs'} or
+                not isinstance(pin['sensor_epochs'],dict) or set(pin['sensor_epochs'])!={'air','mass','outdoor'} or
+                any(not isinstance(value,str) or not 1<=len(value)<=128 for value in pin['sensor_epochs'].values())):
+            raise ValueError('closed frozen registration identity required')
+        _sha(pin['artifact_sha256']);_sha(pin['runtime_sha256'])
+    origins=None
+    for hours,path in record['queues'].items():
+        queue=read(path,65536)
+        if (not isinstance(queue,dict) or set(queue)!={'schema','jobs'} or queue['schema']!=COMPRESSED_SCHEMA or
+                not isinstance(queue['jobs'],list) or len(queue['jobs'])>256):raise ValueError('bounded original queue4 required')
+        sequence=[]
+        for job in queue['jobs']:
+            if (not isinstance(job,dict) or set(job)!=JOB_FIELDS or type(job['horizon_hours']) is not int or
+                    job['horizon_hours']!=int(hours) or not _path(job['origin_path']).name.endswith('.installed-shade-origin-v13.json')):
+                raise ValueError('closed calibrated registered horizon required')
+            sequence.append(job['origin_path'])
+        if len(set(sequence))!=len(sequence) or (pin is None and sequence):raise ValueError('frozen unique registered origins required')
+        if origins is None:origins=sequence
+        elif origins!=sequence:raise ValueError('registered horizon origin sequences differ')
+    verify();check_shared_budget();return _path(record['queues'][str(horizon_hours)]),verify

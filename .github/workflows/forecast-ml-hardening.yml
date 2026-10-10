@@ -50,6 +50,7 @@ on:
       - 'openhab/scripts/test_installed_shade_compressed_qualification.py'
       - 'openhab/scripts/test_installed_shade_release_index.py'
       - 'openhab/scripts/test_installed_publication_registration.py'
+      - 'openhab/scripts/test_installed_registered_score_cli.py'
       - 'openhab/scripts/test_installed_shade_complete_raw_publication.py'
       - 'openhab/scripts/test_installed_shade_compressed_publication.py'
       - 'openhab/scripts/test_installed_shade_calibrated.py'
@@ -153,6 +154,7 @@ jobs:
             openhab/scripts/test_installed_shade_compressed_qualification.py \
             openhab/scripts/test_installed_shade_release_index.py \
             openhab/scripts/test_installed_publication_registration.py \
+            openhab/scripts/test_installed_registered_score_cli.py \
             openhab/scripts/test_installed_shade_complete_raw_publication.py \
             openhab/scripts/test_installed_shade_compressed_publication.py \
             openhab/scripts/test_installed_shade_calibrated.py \

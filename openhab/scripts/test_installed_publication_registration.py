@@ -7,6 +7,8 @@ import pytest
 @pytest.fixture
 def registration_case(tmp_path,monkeypatch):
     from thermal_model import installed_shade_published_origin as captures
+    # Load static collector ports before this fixture mocks the capture reader.
+    from thermal_model import installed_shade_score_collection as _collector
     tmp_path.chmod(0o700)
     now=datetime(2026,11,1,18,tzinfo=timezone.utc)
     def save(name,value):

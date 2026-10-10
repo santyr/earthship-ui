@@ -2417,9 +2417,33 @@ input mutation, source loss, lost shared lock or an expired inherited deadline
 prevents replacement. Registration grants no release authority and cannot replace
 qualification of later original outcomes.
 
-Registered-queue resolution in the scorer and rendered scheduling operands are
-still to be integrated; existing direct-queue templates do not follow this new
-registry automatically. Actual installation, real cohort capacity/qualification,
+Registered-queue resolution in the scorer is implemented below; reviewed rendered
+scheduling operands remain to be integrated. Existing direct-queue templates do
+not follow this new registry automatically. Actual installation, real cohort capacity/qualification,
 and natural publication-to-registration-to-score-to-index verification remain
 required. Mathematical loader/receipt tests and retained synthetic queries do
 not prove household qualification or deployment readiness.
+
+
+### Scoring registered horizons
+
+Scorer profile4 supports `--score-registration <private-registry> --horizon
+<1|6|12|24>` with either `--batch` or `--update-release-index`. This replaces the
+explicit `--queue` operand for that invocation; direct queues and additional-pairs
+indexes keep their existing meanings. Registered sources require explicit
+collection/index intent, the existing shared lock and resource preflight. Index
+incorporation retains its additional household headroom gate.
+
+The resolver reads only bounded owned private registry and queue metadata. It
+checks the closed four-horizon shape, matching unique origin sequences, frozen
+identity shape, per-horizon jobs and unchanged queue limits. It retains the exact
+registry/queue bytes and supplies a guard through backend acquisition, queued
+collection and release-index writes. A changed pointer or queue generation
+withholds work; the worker never switches to newly selected queues midway through
+an invocation. Neither the registry nor its candidate pin grants release authority.
+Full original source7 qualification remains required for incorporation/publication.
+
+The operator can register verified originals and the scorer can consume their
+selected queues. Reviewed rendered unit operands, per-horizon scheduling, real
+capacity/qualification and natural end-to-end verification remain before
+installation or a continuous production-monitoring claim.
