@@ -2070,6 +2070,24 @@ recalibration. Mathematical fixtures establish this contract only; they do not
 establish qualifying calibration support or production authority.
 
 No installed producer selects these ports. Complete qualification-report/v7,
-source policy registration, production publication preparation and operator/UI
-routing, plus genuine independent evidence and qualifying-cohort capacity,
+production publication preparation and operator/UI routing, plus genuine
+independent evidence and qualifying-cohort capacity,
 remain required before deployment.
+
+
+Compressed-source preregistration has an explicit policy-registration/v4 port,
+binding frozen candidate/v5 and original development score-sources/v6. Development
+thresholds use same-phase original persistence and recent-cycle baseline errors;
+they may precede the final candidate freeze. They do not use earlier model scores
+as release evidence. Final calibrated release evaluation requires the distinct
+score-sources/v7 profile and the complete qualification-report/v7 path.
+
+Registration replays original issue, comparator and outcome queries and compares
+exact source-derived development rows with the validated numerical policy. It
+bounds the source index before copying and inherits the shared replay deadline.
+The actual clock must precede untouched holdout and prospective intervals through
+replay and the actual immutable temporary write. Original-source changes during
+sealing refuse retention; readback replays originals rather than trusting digest
+metadata. Legacy registration readers refuse this profile. Registration grants
+no release authority; genuine preregistration and complete release qualification
+remain necessary before production selection.

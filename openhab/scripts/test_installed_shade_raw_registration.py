@@ -109,3 +109,113 @@ def test_raw_seal_refuses_rehashed_source_metadata(registration_routing,damage):
     record['registration_sha256']=_digest({key:value for key,value in record.items() if key!='registration_sha256'})
     path.write_bytes(_canonical(record));path.chmod(0o600)
     with pytest.raises(ValueError):registration.read_raw_calibrated_installed_shade_registered_policy(path)
+
+
+@pytest.fixture
+def compressed_registration_routing(tmp_path,monkeypatch):
+    from thermal_model import policy_registration as registration
+    policy=numerical_policy();root=tmp_path/'seal';root.mkdir(mode=0o700)
+    at=datetime.fromisoformat(policy['declared_at'])+timedelta(minutes=1)
+    monkeypatch.setattr(registration,'_clock',lambda:at)
+    sources=[dict(raw_score_sources_path=str(tmp_path/('b'*64+'.installed-shade-score-sources-v6.json')))]
+    proof=dict(development_origins={'b'*64+'.installed-shade-score-sources-v6.json':'b'*64},
+        development_source_bindings=[dict(native_binding_sha256='a'*64,raw_score_sources_sha256='b'*64,native_origin_binding_sha256='c'*64)])
+    state={'valid':True}
+    def replay(*args):
+        if not state['valid']:raise ValueError('synthetic original lost')
+        return deepcopy(proof)
+    monkeypatch.setattr(registration,'_score_compressed_development_sources',replay,raising=False)
+    return registration,root,policy,sources,proof,at,state
+
+
+def test_compressed_registration_has_distinct_source_contract_and_old_readers_refuse(compressed_registration_routing):
+    registration,root,policy,sources,proof,_,_=compressed_registration_routing
+    api=getattr(registration,'register_compressed_installed_shade_policy',None)
+    assert callable(api),'missing compressed original-source preregistration'
+    path=api(root,policy,sources)
+    record=registration.read_compressed_installed_shade_registered_policy(path)
+    assert path.name==policy['policy_sha256']+'.installed-shade-registration-v4.json'
+    assert record['schema']=='earthship-installed-shade-policy-registration/v4'
+    assert record['candidate_schema']=='earthship-installed-shade-candidate/v5'
+    assert record['source_contract']=='earthship-installed-shade-score-sources/v6'
+    assert record['development_source_bindings']==proof['development_source_bindings']
+    assert record['release_authorized'] is False and path.stat().st_mode&0o777==0o600
+    with pytest.raises(ValueError):registration.read_raw_calibrated_installed_shade_registered_policy(path)
+    assert api(root,policy,sources)==path
+
+
+@pytest.mark.parametrize('when',['before','during_replay','during_write'])
+def test_compressed_registration_cannot_seal_after_holdout_starts(compressed_registration_routing,monkeypatch,when):
+    registration,root,policy,sources,proof,at,_=compressed_registration_routing
+    api=getattr(registration,'register_compressed_installed_shade_policy',None)
+    assert callable(api),'missing compressed original-source preregistration'
+    holdout=datetime.fromisoformat(policy['intervals']['holdout_start']);clock={'at':at}
+    monkeypatch.setattr(registration,'_clock',lambda:clock['at'])
+    if when=='before':clock['at']=holdout
+    elif when=='during_replay':
+        def elapsed(*args):clock['at']=holdout;return deepcopy(proof)
+        monkeypatch.setattr(registration,'_score_compressed_development_sources',elapsed)
+    else:
+        from thermal_model import runtime_bundle
+        original=runtime_bundle._write_private
+        def elapsed(path,raw):original(path,raw);clock['at']=holdout
+        monkeypatch.setattr(runtime_bundle,'_write_private',elapsed)
+    with pytest.raises(ValueError):api(root,policy,sources)
+    assert not list(root.glob('*.installed-shade-registration-v4.json'))
+    assert not list(root.glob('.calibration-*'))
+
+
+def test_compressed_registration_rechecks_originals_after_actual_temp_write(compressed_registration_routing,monkeypatch):
+    registration,root,policy,sources,_,_,state=compressed_registration_routing
+    api=getattr(registration,'register_compressed_installed_shade_policy',None)
+    assert callable(api),'missing compressed original-source preregistration'
+    from thermal_model import runtime_bundle
+    original=runtime_bundle._write_private;written=[]
+    def changed(path,raw):
+        original(path,raw);written.append(path);state['valid']=False
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    with pytest.raises(ValueError):api(root,policy,sources)
+    assert written and not list(root.glob('*.installed-shade-registration-v4.json'))
+    assert not list(root.glob('.calibration-*'))
+
+
+def test_compressed_registration_rejects_rehashed_original_binding_metadata(compressed_registration_routing):
+    registration,root,policy,sources,_,_,_=compressed_registration_routing
+    api=getattr(registration,'register_compressed_installed_shade_policy',None)
+    assert callable(api),'missing compressed original-source preregistration'
+    path=api(root,policy,sources);record=registration._read_private(path)
+    record['development_source_bindings'][0]['native_origin_binding_sha256']='d'*64
+    record['registration_sha256']=_digest({key:value for key,value in record.items() if key!='registration_sha256'})
+    path.write_bytes(_canonical(record));path.chmod(0o600)
+    with pytest.raises(ValueError):registration.read_compressed_installed_shade_registered_policy(path)
+
+
+def test_compressed_registration_bounds_source_index_before_copying(tmp_path,monkeypatch):
+    from thermal_model import policy_registration as registration
+    api=getattr(registration,'register_compressed_installed_shade_policy',None)
+    assert callable(api),'missing compressed original-source preregistration'
+    monkeypatch.setattr(registration,'deepcopy',lambda *a,**kw:pytest.fail('unbounded original index reached copying'))
+    with pytest.raises(ValueError):api(tmp_path,{},[dict(raw_score_sources_path='/'+'x'*1024)])
+
+
+from test_installed_shade_raw_origin import source_origin_case,raw_math_capture
+
+
+def test_compressed_development_replays_actual_original_query_baselines(source_origin_case,tmp_path,monkeypatch):
+    from test_installed_shade_raw_publication_capture import compressed_cohort_case
+    from thermal_model import policy_registration as registration
+    api=getattr(registration,'_score_compressed_development_sources',None)
+    assert callable(api),'missing actual compressed development replay'
+    from thermal_model.graduation_policy import RECORD_FIELDS
+    _,record,args,now,result,_=compressed_cohort_case(source_origin_case,tmp_path,monkeypatch)
+    import json
+    row=json.loads(open(result['score_path']).read())['scored_pair']
+    policy=dict(candidate=dict(sensor_epochs=record['numeric_capture']['source_epochs']),development=[{key:row[key] for key in RECORD_FIELDS}])
+    sources=[dict(raw_score_sources_path=result['raw_packet_path'])]
+    proof=api(sources,policy,now)
+    assert proof['development_source_bindings'][0]['native_origin_binding_sha256']==_digest(record['numeric_capture']['native_origin_binding'])
+    policy['development'][0]['recent_cycle_error_f']+=1
+    with pytest.raises(ValueError,match='development differs'):api(sources,policy,now)
+    from pathlib import Path
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):api(sources,policy,now)
