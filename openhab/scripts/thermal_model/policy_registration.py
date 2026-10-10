@@ -156,6 +156,8 @@ def _read_private(path):
     finally:os.close(fd)
     if len(raw)!=info.st_size or (before.st_size,before.st_mtime_ns,before.st_ctime_ns)!=(
             after.st_size,after.st_mtime_ns,after.st_ctime_ns):raise ValueError('policy receipt changed during read')
+    from .replay_budget import observe_source_bytes
+    observe_source_bytes(path,raw)
     def object_pairs(pairs):
         result={}
         for key,value in pairs:

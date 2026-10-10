@@ -93,7 +93,8 @@ def test_registered_actual_source_collection_and_completion_discovery_retain_ori
     for name in ('thermal_intel.py','thermal_model/origin_capture.py'):
         path=runtime_sources/name;path.write_text('# routing fixture only\n');path.chmod(0o600)
     archives=reg.parent/'runtime-archives';archives.mkdir(mode=0o700)
-    refs['runtime_bundle_path']=str(capture_runtime_bundle(archives,runtime_sources,['thermal_intel.py']))
+    from test_installed_shade_release_index import capture_routing_runtime
+    refs['runtime_bundle_path']=str(capture_routing_runtime(archives,runtime_sources,monkeypatch))
     pointer=save('release-inputs.json',dict(schema='earthship-installed-shade-release-inputs/v4',original_pairs_path=None,**refs))
     assert release.append_compressed_completed_queue(reference_path=pointer,queue_path=queue,output_directory=root,guard=verify)['status']=='index_updated'
     admitted=json.loads(Path(json.loads(pointer.read_text())['original_pairs_path']).read_text())

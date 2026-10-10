@@ -5,7 +5,7 @@ references and never accepts a cached report/active switch. The original numeric
 forecast stays intact for its separate persisted evidence receipt.
 """
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass,replace
 from datetime import datetime,timedelta,timezone
 import json
 from pathlib import Path
@@ -142,6 +142,7 @@ class PreparedCompressedInstalledQualification:
     runtime_paths:tuple[str,...]=()
     require_raw_sources:bool=True
     reference_path:str|None=None
+    source_guard:object=None
 
 
 @dataclass(frozen=True)
@@ -153,6 +154,7 @@ class PreparedCompressedBaseBootstrap:
     runtime_paths:tuple[str,...]=()
     require_raw_sources:bool=True
     reference_path:str|None=None
+    source_guard:object=None
 
 
 def _prepared_type(version):
@@ -255,7 +257,7 @@ def _read_origin(path, *, _version=1):
     raise ValueError('typed original installed forecast required')
 
 
-def _build_installed_publication(original_path,prepared, *, _version=1,_report_sink=None,_bootstrap_only=False):
+def _build_installed_publication(original_path,prepared, *, _version=1,_report_sink=None,_source_guard_sink=None,_bootstrap_only=False):
     """Bind fresh original inputs to an invocation's source-replayed decision."""
     _check_profile(_version)
     now=_utc(_clock())
@@ -328,6 +330,9 @@ def _build_installed_publication(original_path,prepared, *, _version=1,_report_s
             if _report_sink is not None:
                 if not callable(_report_sink):raise ValueError('private report retention callback required')
                 _report_sink(deepcopy(report))
+            if _source_guard_sink is not None:
+                if not callable(_source_guard_sink):raise ValueError('private source authority callback required')
+                _source_guard_sink(report['report_sha256'],prepared.source_guard)
             # Recheck actual current query bytes after numerical forecast replay.
             current_original,_=read_origin(original_path)
             if _canonical(current_original)!=_canonical(original):raise ValueError('original capture changed during publication')
@@ -586,14 +591,18 @@ def _prepare_compressed_installed_qualification(reference_path):
 def prepare_compressed_installed_qualification(reference_path):
     """Replay original candidate/calibration/development/release; no saved report."""
     from .installed_shade_calibration import _source_operation
-    try:return _source_operation(_prepare_compressed_installed_qualification,reference_path)
+    from .replay_budget import capture_source_reads
+    try:
+        with capture_source_reads() as sources:
+            result=_source_operation(_prepare_compressed_installed_qualification,reference_path)
+        return replace(result,source_guard=sources.verify)
     except ERRORS:return PreparedCompressedInstalledQualification(None,None,False)
 
 
-def build_compressed_installed_publication(original_path,prepared,*,report_sink=None):
+def build_compressed_installed_publication(original_path,prepared,*,report_sink=None,source_guard_sink=None):
     """Requalify original references in this invocation before publishing."""
     from .installed_shade_calibration import _source_operation
-    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink)
+    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink,_source_guard_sink=source_guard_sink)
     except ERRORS:return unavailable_compressed_source_installed_publication(_clock())
 
 
@@ -636,11 +645,15 @@ def _prepare_compressed_base_bootstrap(reference_path):
 
 def prepare_compressed_base_bootstrap(reference_path):
     from .installed_shade_calibration import _source_operation
-    try:return _source_operation(_prepare_compressed_base_bootstrap,reference_path)
+    from .replay_budget import capture_source_reads
+    try:
+        with capture_source_reads() as sources:
+            result=_source_operation(_prepare_compressed_base_bootstrap,reference_path)
+        return replace(result,source_guard=sources.verify)
     except ERRORS:return PreparedCompressedBaseBootstrap(None,None,False)
 
 
-def build_compressed_base_bootstrap_publication(original_path,prepared,*,report_sink=None):
+def build_compressed_base_bootstrap_publication(original_path,prepared,*,report_sink=None,source_guard_sink=None):
     from .installed_shade_calibration import _source_operation
-    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink,_bootstrap_only=True)
+    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink,_source_guard_sink=source_guard_sink,_bootstrap_only=True)
     except ERRORS:return unavailable_compressed_source_installed_publication(_clock())

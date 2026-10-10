@@ -5,6 +5,20 @@ from datetime import datetime,timezone
 import pytest
 from test_installed_shade_raw_origin import source_origin_case,raw_math_capture,candidate
 
+def capture_routing_runtime(archives,runtime_sources,monkeypatch):
+    """Host toolcache permissions are not the fixture's archived environment."""
+    import os,sys
+    from thermal_model.runtime_bundle import capture_runtime_bundle
+    interpreter=Path(sys.executable).resolve();info=interpreter.stat()
+    if info.st_mode&0o022 or info.st_uid not in (0,os.getuid()):
+        if info.st_size>64000000:raise ValueError('bounded fixture interpreter required')
+        copied=archives.parent/'fixture-interpreter.bin';copied.write_bytes(interpreter.read_bytes());copied.chmod(0o600)
+        with monkeypatch.context() as scoped:
+            scoped.setattr(sys,'executable',str(copied))
+            return capture_runtime_bundle(archives,runtime_sources,['thermal_intel.py'])
+    return capture_runtime_bundle(archives,runtime_sources,['thermal_intel.py'])
+
+
 @pytest.fixture
 def index_case(tmp_path,monkeypatch):
     from thermal_model import installed_shade_qualification as q
@@ -22,7 +36,7 @@ def index_case(tmp_path,monkeypatch):
     (runtime_sources/'thermal_model/origin_capture.py').write_text('# routing observer fixture only\n')
     for source in (runtime_sources/'thermal_intel.py',runtime_sources/'thermal_model/origin_capture.py'):source.chmod(0o600)
     archives=root/'runtime-archives';archives.mkdir(mode=0o700)
-    paths['runtime_bundle_path']=capture_runtime_bundle(archives,runtime_sources,['thermal_intel.py'])
+    paths['runtime_bundle_path']=capture_routing_runtime(archives,runtime_sources,monkeypatch)
     ref=save('release.json',dict(schema='earthship-installed-shade-release-inputs/v4',original_pairs_path=str(index),**{k:str(v) for k,v in paths.items()}))
     state={'gates':dict.fromkeys(('preregistered_policy','frozen_candidate','frozen_runtime','qualified_training_sources','measured_fit','raw_development_sources','raw_calibration_sources','original_source_pairs','raw_native_issue_sources','raw_native_score_sources','calibrated_intervals'),True),'calls':[],'changed':False}
     def qualify(**kw):
@@ -256,3 +270,12 @@ def test_original_runtime_member_loss_at_pointer_write_prevents_incorporation(in
     with pytest.raises(ValueError):m.append_compressed_release_sources(reference_path=ref,additional_pairs_path=extra,guard=lambda:None)
     assert ref.read_bytes()==before
     assert fired, 'runtime loss must occur after the actual pointer temporary write'
+
+
+def test_runtime_fixture_handles_group_writable_hosted_interpreter(tmp_path,monkeypatch,request):
+    import sys
+    interpreter=tmp_path/'hosted-python';interpreter.write_bytes(Path(sys.executable).resolve().read_bytes());interpreter.chmod(0o775)
+    monkeypatch.setattr(sys,'executable',str(interpreter))
+    ref,extra,_,_,_,_=request.getfixturevalue('index_case')
+    from thermal_model.installed_shade_release_index import append_compressed_release_sources
+    assert append_compressed_release_sources(reference_path=ref,additional_pairs_path=extra,guard=lambda:None)['status']=='index_updated'

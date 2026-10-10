@@ -94,3 +94,41 @@ def test_compressed_send_refuses_native_expiry_during_last_query_replay(compress
     result=live.run_compressed_live_cycle(reference_path=root/'refs',archive=root,backend=backend)
     assert result['status']=='withdrawn'
     assert all(item!='Thermal_OriginalForecast_JSON' for item,_ in backend.puts)
+
+
+@pytest.mark.parametrize('kind',['calibration','development','release'])
+def test_final_main_metadata_loss_of_qualification_original_prevents_send(compressed_cycle,monkeypatch,kind):
+    from dataclasses import replace
+    from thermal_model import installed_shade_publication as p
+    from thermal_model.replay_budget import capture_source_reads
+    from thermal_model.runtime_bundle import _owned_bytes
+    live,root,_,backend,_=compressed_cycle
+    original=root/(kind+'-original.json');original.write_bytes(b'{}');original.chmod(0o600)
+    with capture_source_reads() as inventory:_owned_bytes(original,32)
+    # The mathematical qualification seam now supplies the actual invocation guard.
+    prepared=replace(p.prepare_compressed_installed_qualification(root/'refs'),source_guard=inventory.verify)
+    monkeypatch.setattr(live,'prepare_compressed_installed_qualification',lambda _:prepared)
+    monkeypatch.setattr(p,'prepare_compressed_installed_qualification',lambda _:prepared)
+    put=backend.put;removed=[]
+    def delayed(item,state,*,preflight=None):
+        if item=='Thermal_Model_JSON' and json.loads(state)['status']!='unavailable':
+            original.unlink();removed.append(True)
+        return put(item,state,preflight=preflight)
+    backend.put=delayed
+    result=live.run_compressed_live_cycle(reference_path=root/'refs',archive=root,backend=backend)
+    assert removed and result['status']=='withdrawn'
+    assert not list(root.glob('*.installed-shade-origin-v13.json'))
+    assert all(value['status']=='unavailable' for item,value in backend.puts if item=='Thermal_Model_JSON')
+
+
+def test_final_guard_uses_fresh_report_preparation_and_rechecks_clock(compressed_cycle,monkeypatch):
+    from dataclasses import replace
+    from thermal_model import installed_shade_publication as p
+    live,root,issue,backend,_=compressed_cycle;prepared=p.prepare_compressed_installed_qualification(root/'refs');calls=[]
+    def obsolete():pytest.fail('initial preparation guard used instead of fresh publication authority')
+    def fresh():calls.append(True);live._test_time=issue+timedelta(minutes=3)
+    monkeypatch.setattr(live,'prepare_compressed_installed_qualification',lambda _:replace(prepared,source_guard=obsolete))
+    monkeypatch.setattr(p,'prepare_compressed_installed_qualification',lambda _:replace(prepared,source_guard=fresh))
+    result=live.run_compressed_live_cycle(reference_path=root/'refs',archive=root,backend=backend)
+    assert calls and result['status']=='withdrawn'
+    assert all(value['status']=='unavailable' for item,value in backend.puts if item=='Thermal_Model_JSON')

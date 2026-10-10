@@ -2525,3 +2525,26 @@ interpreter test stages exactly the declared source files and verifies all four
 queue updates through the publisher path; qualification/delivery seams in that
 test are synthetic and confer no household release authority. Freeze a new exact
 runtime after source changes rather than silently supplementing an old bundle.
+
+### Final original-source authority check
+
+Compressed preparation retains an invocation-local inventory of every original
+file read by the fresh qualifier: runtime/code, candidate and training evidence,
+calibration and preregistered development sources, release captures and native
+query archives. Common original-byte readers observe digests only during that
+scope. Existing per-reader and per-phase bounds stay unchanged; observation has
+additional metadata limits of32768files and1GiB of unique physical bytes.
+The guard retains digests and metadata, and streams at most64KiB per read while
+checking the inherited deadline. It detects missing files, byte changes,
+permission/ownership changes, symlinks and changes to earlier files while later
+originals are checked. It adds no numerical qualification or fitting pass.
+
+The publication builder returns the source guard through a private callback
+bound to the same freshly emitted qualification-report digest. The live main
+PUT callback rechecks that inventory after Item metadata lookup and pacing,
+then performs current native-query replay and obtains fresh clocks for receipt,
+qualification and output expiry. An active main payload cannot be sent without
+its invocation's original-source guard. Failed checks withdraw via the existing
+model-independent unavailable path. Derived report temporary files are outside
+observation; cached reports and the inventory alone confer no release authority.
+Freeze the exact changed runtime before building a genuine candidate.

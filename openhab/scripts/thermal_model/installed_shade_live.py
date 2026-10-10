@@ -81,12 +81,13 @@ def _numeric(prepared,inputs,*,issue,available,published,runtime,_version=1):
     return builder(candidate,issued_at=issue,inputs_available_at=available,published_at=published,runtime=runtime,**inputs)
 
 
-def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None,_version=1):
+def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None,_version=1,qualification_report=None):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     # Expiry uses the actual clock after potentially slower configuration and
     # runtime reads. This callback runs after HTTP metadata lookup and pacing.
     backend.verify_unchanged();_runtime(prepared,artifact)
-    report=json.loads(prepared.report_json);now=_utc(_clock())
+    report=json.loads(prepared.report_json) if qualification_report is None else qualification_report
+    now=_utc(_clock())
     validate_shadow_receipt_expiry(inputs['current'],now)
     if not issue<=now<issue+timedelta(minutes=10):raise ValueError('original issue expired before send')
     assessed=_utc(report['assessed_at'])
@@ -218,7 +219,13 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
             if _canonical(persisted)!=_canonical(view['output']):raise ValueError('actual numeric receipt differs')
             original=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime,_version=_version)
             original_path=_write_numeric(root,original,_version=_version)
-            output=publish(original_path,prepared,report_sink=lambda report:_report_cache(root,report)) if _version==3 else publish(original_path,prepared)
+            authority={}
+            def retain_report(report):
+                _report_cache(root,report);authority['report']=deepcopy(report)
+            def retain_sources(report_sha,guard):
+                if authority['report']['report_sha256']!=report_sha:raise ValueError('qualification source/report binding differs')
+                authority['guard']=guard
+            output=publish(original_path,prepared,report_sink=retain_report,source_guard_sink=retain_sources) if _version==3 else publish(original_path,prepared)
             validate(output)
             if output['status']=='unavailable' or (_bootstrap_only and output['status']!='shadow'):
                 raise ValueError('current publication gates failed')
@@ -228,7 +235,19 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
             if output['status']=='unavailable' or (_bootstrap_only and output['status']!='shadow'):
                 raise ValueError('publication expired or bootstrap mode changed before delivery')
             main_since=_utc(_clock());sent=_canonical(output).decode()
-            backend.put(PUBLICATION_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend,output=output,_version=_version))
+            def final_main_guard():
+                report=None
+                if _version==3:
+                    report=authority.get('report')
+                    if report is None or report['report_sha256']!=output['release']['reportSha256']:
+                        raise ValueError('fresh qualification report authority missing')
+                    guard=authority.get('guard')
+                    if guard is None and output['status']=='forecast_active':raise ValueError('original qualification source guard missing')
+                    if guard is not None:
+                        if not callable(guard):raise ValueError('original qualification source guard invalid')
+                        guard()
+                _send_guard(prepared,artifact,inputs,issue,backend,output=output,_version=_version,qualification_report=report)
+            backend.put(PUBLICATION_ITEM,sent,preflight=final_main_guard)
             main=_confirmed_receipt(backend,PUBLICATION_ITEM,sent,since=main_since)
             capture=capture_builder(original_path,numeric_publication=numeric,publication=main)
             path=capture_writer(root,capture)

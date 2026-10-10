@@ -284,6 +284,8 @@ def _private_file(path):
         with os.fdopen(fd,'rb',closefd=False) as stream:raw=stream.read(256001)
     finally:os.close(fd)
     if len(raw)!=info.st_size:raise ValueError('origin archive size changed')
+    from .replay_budget import observe_source_bytes
+    observe_source_bytes(path,raw)
     return raw
 
 
@@ -403,6 +405,8 @@ def _source_bytes(path,*,maximum):
             (before.st_size,before.st_mtime_ns,before.st_ctime_ns)!=(
                 after.st_size,after.st_mtime_ns,after.st_ctime_ns)):
         raise ValueError('runtime source changed while reading')
+    from .replay_budget import observe_source_bytes
+    observe_source_bytes(path,raw)
     return raw
 
 

@@ -58,6 +58,8 @@ def _read(path):
         compressed = stream.read(MAX_COMPRESSED_BYTES + 1)
     if len(compressed) > MAX_COMPRESSED_BYTES:
         raise ValueError('compressed capture exceeds bound')
+    from thermal_model.replay_budget import observe_source_bytes
+    observe_source_bytes(path,compressed)
     return compressed
 
 
