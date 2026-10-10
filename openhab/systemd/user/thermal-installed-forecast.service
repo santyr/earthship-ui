@@ -8,7 +8,7 @@ Description=Source-qualified installed-domain thermal forecast
 Type=oneshot
 Environment=EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0
 Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
-ExecStart=/usr/bin/python3 %h/hex/openhab/scripts/thermal_installed_intel.py --config %h/.config/hex/thermal-installed-live.json --publish
+ExecStart=/usr/bin/python3 %h/hex/openhab/scripts/thermal_installed_intel.py --contract-version 2 --config %h/.config/hex/thermal-installed-live.json --publish
 TimeoutStartSec=90
 CPUAccounting=yes
 CPUQuota=20%

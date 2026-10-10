@@ -123,7 +123,12 @@ def run_raw_live_cycle(*,reference_path,archive,backend):
     return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_version=2)
 
 
-def run_live_cycle(*,reference_path,archive,backend,_version=1):
+def run_bootstrap_live_cycle(*,reference_path,archive,backend):
+    """Collect native base-candidate calibration origins in shadow only."""
+    return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_bootstrap_only=True)
+
+
+def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=False):
     prepare=prepare_raw_installed_qualification if _version==2 else prepare_installed_qualification
     publish=build_raw_installed_publication if _version==2 else build_installed_publication
     validate=validate_raw_installed_publication if _version==2 else validate_installed_publication
@@ -142,7 +147,15 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1):
             if _version==2 and not isinstance(prepared,PreparedRawInstalledQualification):
                 raise ValueError('complete raw source preparation required')
             if prepared.source_ready is not True:raise ValueError('original source preparation failed')
-            artifact=json.loads(prepared.candidate_json);runtime=_runtime(prepared,artifact)
+            artifact=json.loads(prepared.candidate_json)
+            if _bootstrap_only:
+                report=json.loads(prepared.report_json)
+                if (artifact['schema']!='earthship-installed-shade-candidate/v1' or
+                        prepared.registration_absent is not True or prepared.require_raw_sources is not True or
+                        report['schema']!='earthship-installed-shade-qualification-report/v4' or
+                        report['policy'] is not None or report['forecast_qualified'] is not False):
+                    raise ValueError('only native unregistered base shadow bootstrap permitted')
+            runtime=_runtime(prepared,artifact)
             known=_utc(_clock())
             if _utc(json.loads(prepared.report_json)['assessed_at'])>known:raise ValueError('future source qualification refused')
             if known>=issue:raise ValueError('qualification missed original issue')
@@ -170,11 +183,13 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1):
             original=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime,_version=_version)
             original_path=_write_numeric(root,original,_version=_version)
             output=publish(original_path,prepared);validate(output)
-            if output['status']=='unavailable':raise ValueError('current publication gates failed')
+            if output['status']=='unavailable' or (_bootstrap_only and output['status']!='shadow'):
+                raise ValueError('current publication gates failed')
             backend.verify_unchanged();_runtime(prepared,artifact)
             # The publication builder replays current expiry/runtime again here.
             output=publish(original_path,prepared)
-            if output['status']=='unavailable':raise ValueError('publication expired before delivery')
+            if output['status']=='unavailable' or (_bootstrap_only and output['status']!='shadow'):
+                raise ValueError('publication expired or bootstrap mode changed before delivery')
             main_since=_utc(_clock());sent=_canonical(output).decode()
             backend.put(PUBLICATION_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend,output=output))
             main=_confirmed_receipt(backend,PUBLICATION_ITEM,sent,since=main_since)

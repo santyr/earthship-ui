@@ -1048,7 +1048,16 @@ publish. Only explicit `--publish` runs one scheduled cycle. There is no active
 switch, assessment-date override, fitting path, provider fallback or household
 command endpoint.
 
-The closed configuration schema is `earthship-installed-shade-live-config/v1`.
+The production configuration schema is `earthship-installed-shade-live-config/v2`.
+The default command-line contract is version 2. Its release reference file must
+use the closed `earthship-installed-shade-release-inputs/v3` contract. Candidate/v3,
+raw calibration/v2, qualification-report/v5, raw development registration/v3
+and original release score-sources/v3 are verified by the publication preparation
+path. A configuration check validates configuration structure and permissions;
+it does not establish model qualification. Explicit `--contract-version 1`
+permits historical configuration checks, legacy withdrawal and the explicit
+native base shadow bootstrap described below. General publication
+with that profile is refused before resource checks or transport.
 It contains exactly `schema`, `openhab_base`, `evidence_directory`,
 `release_inputs_path`, `token_file`, `journal_dsn_file`, `forecast_dsn_file`,
 `native_db_config` and `native_policy`. File paths must be absolute and resolved;
@@ -1073,9 +1082,9 @@ An owned private nonblocking lock serializes cycles. One immutable attempt
 marker per issue prevents reposting a partly accepted forecast as fresh evidence.
 The cycle sends the unchanged original numeric forecast to the fixed String
 Item `Thermal_OriginalForecast_JSON`, verifies the exact JDBC receipt, retains
-its immutable numeric capture, constructs the main version-4 envelope, sends
+its immutable numeric capture, constructs the main publication/v2 version-5 envelope, sends
 it to `Thermal_Model_JSON`, verifies its exact JDBC receipt, and retains the
-immutable publication/v3 observation. A successful HTTP acknowledgement alone
+immutable published origin/v5 observation around numeric origin/v4. A successful HTTP acknowledgement alone
 proves neither persistence nor delivery. Configuration/runtime/native expiry
 and publication deadlines are checked after Item lookup and request pacing,
 immediately before each send. Actual main-receipt expiry is replayed again.
@@ -1097,7 +1106,8 @@ change the larger training/capture preflight or authorize concurrent work.
 
 Before installation, verify the exact candidate/runtime/interpreter binding,
 private source configuration, genuine native-v2 collection, both String Items
-and JDBC persistence, and the version-4 UI reader. The separate numeric Item
+and JDBC persistence, and a compatible version-5 UI reader. The UI and scorer
+integration must be verified before enabling this example service. The separate numeric Item
 example is `openhab/file-config/items/thermal-model-original.items`. Disable the
 competing legacy shadow publisher before enabling this timer. Honor the actual
 systemctl password requirement; do not bypass it. Run the private configuration
@@ -1457,3 +1467,47 @@ entrypoint does not install units or enable timers. The original forcing archive
 and native-v2 environment must remain configured on the shadow service for the
 optional wrappers to receive original proof. Configuration verification alone
 is not live collection, verified delivery or a thermal qualification result.
+
+
+### Native base shadow calibration bootstrap
+
+Before a calibrated candidate exists, use an owned private live-config/v1 with
+release-inputs/v2 pointing to the source-qualified base candidate/v1 and its
+complete raw runtime closure. Set `registration_path` and `original_pairs_path`
+to null. In the same capped execution environment, explicitly select:
+
+```sh
+python3 openhab/scripts/thermal_installed_intel.py --contract-version 1 --config PRIVATE_BASE_CONFIG --bootstrap-shadow
+```
+
+This route requires native raw source preparation, no registered policy, an
+uncalibrated base candidate and a shadow main publication. It refuses a
+calibrated candidate, receipt-only profile or registered release before
+collecting current inputs. Both actual publication receipts remain required.
+Its published origin/v3 and subsequent raw score-sources/v2 can supply the
+separate raw calibration/v2 cohort; they cannot activate a forecast. Use the
+prospective scorer profile compatible with those base observations. Configure
+production live-config/v2 only after the frozen calibrated candidate and its
+qualification sources exist. Do not point the production example service at the
+base bootstrap configuration.
+
+### Independent explicit withdrawal
+
+Use a separate private `earthship-installed-shade-withdraw-config/v2` file with
+exactly `schema`, `openhab_base`, `token_file` and `evidence_directory`. It needs
+no candidate, model, weather archive or database configuration, so unavailable
+model sources cannot prevent an explicit withdrawal. Within the same capped
+publication execution environment, run:
+
+```sh
+python3 openhab/scripts/thermal_installed_intel.py --contract-version 2 --config PRIVATE_WITHDRAW_CONFIG --withdraw --reason "operator withdrawal"
+```
+
+This sends only unavailable publication/v2 version 5 to `Thermal_Model_JSON`,
+requires its exact JDBC receipt and retains an owned private withdrawal/v2
+record with the reason. It never sends numeric forecasts or control commands.
+Stop the publisher timer before returning to the retained compatible legacy
+shadow path; retain its previous accepted artifact/runtime and publication
+contract. Restore shadow only after verifying that retained runtime and its
+publication receipt. A withdrawal receipt alone does not prove that shadow
+publication resumed. Backup and disaster recovery remain separate deferred work.
