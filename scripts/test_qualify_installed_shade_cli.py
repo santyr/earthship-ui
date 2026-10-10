@@ -11,7 +11,7 @@ def module():
     return result
 
 
-@pytest.mark.parametrize('version',[4,5])
+@pytest.mark.parametrize('version',[4,5,7])
 def test_cli_v4_writes_real_unavailable_report_and_human_gates(tmp_path,monkeypatch,capsys,version):
     tmp_path.chmod(0o700)
     lock=tmp_path/'global.lock';lock.touch(mode=0o600)
@@ -24,13 +24,13 @@ def test_cli_v4_writes_real_unavailable_report_and_human_gates(tmp_path,monkeypa
     record=json.loads(next(path for path in paths if path.suffix=='.json').read_text())
     assert record['schema']=='earthship-installed-shade-qualification-report/v'+str(version)
     assert record['gates']['raw_native_score_sources'] is False
-    if version==5:
+    if version in (5,7):
         assert record['gates']['raw_calibration_sources'] is False
         assert record['gates']['raw_development_sources'] is False
     assert 'raw_native_score_sources' in next(path for path in paths if path.suffix=='.md').read_text()
 
 
-@pytest.mark.parametrize('version',[4,5])
+@pytest.mark.parametrize('version',[4,5,7])
 def test_v4_preflight_refusal_is_sanitized_and_writes_nothing(tmp_path,monkeypatch,capsys,version):
     source=module()
     def refuse():raise ValueError('private resource diagnostic')
@@ -48,7 +48,7 @@ def test_earlier_cli_profiles_preserve_unavailable_reports(tmp_path,capsys,versi
     assert json.loads(capsys.readouterr().out)['forecast_qualified'] is False
 
 
-@pytest.mark.parametrize('version',[4,5])
+@pytest.mark.parametrize('version',[4,5,7])
 def test_v4_lock_contention_never_writes_a_report(tmp_path,monkeypatch,capsys,version):
     from thermal_installed_score import SharedScoreLock
     tmp_path.chmod(0o700);lock=tmp_path/'global.lock';lock.touch(mode=0o600)
@@ -59,7 +59,7 @@ def test_v4_lock_contention_never_writes_a_report(tmp_path,monkeypatch,capsys,ve
     assert list(tmp_path.iterdir())==[lock]
 
 
-@pytest.mark.parametrize('version',[4,5])
+@pytest.mark.parametrize('version',[4,5,7])
 def test_v4_restores_fitting_environment_after_report(tmp_path,monkeypatch,capsys,version):
     import os
     tmp_path.chmod(0o700);lock=tmp_path/'global.lock';lock.touch(mode=0o600)

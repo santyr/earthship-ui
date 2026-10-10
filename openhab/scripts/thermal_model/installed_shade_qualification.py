@@ -29,7 +29,9 @@ CALIBRATED_SCHEMA='earthship-installed-shade-qualification-report/v2'
 PUBLISHED_SCHEMA='earthship-installed-shade-qualification-report/v3'
 RAW_PUBLISHED_SCHEMA='earthship-installed-shade-qualification-report/v4'
 COMPLETE_RAW_SCHEMA='earthship-installed-shade-qualification-report/v5'
-REPORT_SCHEMAS={1:SCHEMA,2:CALIBRATED_SCHEMA,3:PUBLISHED_SCHEMA,4:RAW_PUBLISHED_SCHEMA,5:COMPLETE_RAW_SCHEMA}
+COMPRESSED_SCHEMA='earthship-installed-shade-qualification-report/v7'
+COMPRESSED_CANDIDATE_SCHEMA='earthship-installed-shade-candidate/v5'
+REPORT_SCHEMAS={7:COMPRESSED_SCHEMA,1:SCHEMA,2:CALIBRATED_SCHEMA,3:PUBLISHED_SCHEMA,4:RAW_PUBLISHED_SCHEMA,5:COMPLETE_RAW_SCHEMA}
 RAW_FORECAST_GATES=BASE_GATES|{'calibrated_intervals','raw_native_score_sources'}
 COMPLETE_RAW_FORECAST_GATES=RAW_FORECAST_GATES|{'raw_development_sources','raw_calibration_sources'}
 FORECAST_GATES=BASE_GATES|{'calibrated_intervals'}
@@ -42,36 +44,40 @@ COMPLETE_RAW_FIELDS=FIELDS|{'registration_source_bindings'}
 
 
 def _report_gates(version):
-    return COMPLETE_RAW_FORECAST_GATES if version==5 else RAW_FORECAST_GATES if version==4 else FORECAST_GATES
+    return COMPLETE_RAW_FORECAST_GATES|{'raw_native_issue_sources'} if version==7 else COMPLETE_RAW_FORECAST_GATES if version==5 else RAW_FORECAST_GATES if version==4 else FORECAST_GATES
 
 
 def _report_candidate_schema(version):
-    return RAW_CALIBRATED_CANDIDATE_SCHEMA if version==5 else CALIBRATED_CANDIDATE_SCHEMA if version in (2,3,4) else CANDIDATE_SCHEMA
+    return COMPRESSED_CANDIDATE_SCHEMA if version==7 else RAW_CALIBRATED_CANDIDATE_SCHEMA if version==5 else CALIBRATED_CANDIDATE_SCHEMA if version in (2,3,4) else CANDIDATE_SCHEMA
 
 
-def _raw_digest_bindings(values):
+def _raw_digest_bindings(values,*,issue=False):
     from .graduation_policy import _sha
     if not isinstance(values,list) or not 1<=len(values)<=10000:
         raise ValueError('original raw digest bindings required')
     for binding in values:
         if not isinstance(binding,dict):raise ValueError('original raw digest binding required')
-        for key in ('native_binding_sha256','raw_score_sources_sha256'):_sha(binding.get(key))
+        for key in ('native_binding_sha256','raw_score_sources_sha256')+ (('native_origin_binding_sha256',) if issue else ()):_sha(binding.get(key))
 
 
-def _raw_calibration_binding(bundle):
+def _raw_calibration_binding(bundle,*,version=5):
     from .installed_shade_calibration import RAW_FIELDS,RAW_SCHEMA,RAW_SOURCE_CONTRACT
     from .installed_shade_calibrated_artifact import _metadata
     artifact=bundle['artifact'];calibration=bundle['calibration']
-    if (artifact['schema']!=RAW_CALIBRATED_CANDIDATE_SCHEMA or not isinstance(calibration,dict) or
-            set(calibration)!=RAW_FIELDS or calibration['schema']!=RAW_SCHEMA or
-            calibration['source_contract']!=RAW_SOURCE_CONTRACT or calibration['release_authorized'] is not False or
+    schema,candidate_schema,contract,metadata_version=RAW_SCHEMA,RAW_CALIBRATED_CANDIDATE_SCHEMA,RAW_SOURCE_CONTRACT,3
+    if version==7:
+        from .installed_shade_calibration import COMPRESSED_SOURCE_SCHEMA,COMPRESSED_SOURCE_CONTRACT
+        schema,candidate_schema,contract,metadata_version=COMPRESSED_SOURCE_SCHEMA,COMPRESSED_CANDIDATE_SCHEMA,COMPRESSED_SOURCE_CONTRACT,5
+    if (artifact['schema']!=candidate_schema or not isinstance(calibration,dict) or
+            set(calibration)!=RAW_FIELDS or calibration['schema']!=schema or
+            calibration['source_contract']!=contract or calibration['release_authorized'] is not False or
             calibration['coverage_guaranteed'] is not False or
             _digest({k:v for k,v in calibration.items() if k!='calibration_sha256'})!=calibration['calibration_sha256'] or
             calibration['base_candidate_sha256']!=artifact['base_candidate']['artifact_sha256'] or
             calibration['runtime_sha256']!=_digest(artifact['base_runtime']) or calibration['sensor_epochs']!=artifact['sensor_epochs'] or
-            _canonical(_metadata(calibration,_version=3))!=_canonical(artifact['calibration'])):
+            _canonical(_metadata(calibration,_version=metadata_version))!=_canonical(artifact['calibration'])):
         raise ValueError('original raw calibration differs from frozen candidate')
-    _raw_digest_bindings(calibration['source_pair_bindings'])
+    _raw_digest_bindings(calibration['source_pair_bindings'],issue=version==7)
 
 
 def _stage(gates):
@@ -94,6 +100,9 @@ def _support(rows):
 def _score_packets(packets,*,assessed_at,candidate=None,version=1):
     if not isinstance(packets,list) or not 1<=len(packets)<=10000:
         raise ValueError('bounded complete original score packets required')
+    if version==7:
+        identity={key:candidate[key] for key in ('artifact_sha256','runtime_sha256','sensor_epochs')} if candidate is not None else None
+        return score_compressed_source_calibrated_packets(packets,assessed_at=assessed_at,candidate=identity)
     if version in (4,5):return _score_raw_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=3 if version==5 else 2)
     reader,scorer=read_issued_capture,score_issued_capture
     if version in (2,3,4):
@@ -268,25 +277,36 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
     registration=None;policy=None;bundle=None;runtime=None;pairs=None;statistics=None;deadline=None
     registration_reader=read_raw_calibrated_installed_shade_registered_policy if version==5 else (read_calibrated_installed_shade_registered_policy if version in (2,3,4) else read_installed_shade_registered_policy)
     candidate_reader=read_raw_calibrated_candidate if version==5 else (read_calibrated_candidate if version in (2,3,4) else read_candidate_bundle)
+    if version==7:
+        from .policy_registration import read_compressed_installed_shade_registered_policy
+        from .installed_shade_calibrated_artifact import read_compressed_source_calibrated_candidate
+        registration_reader=read_compressed_installed_shade_registered_policy
+        candidate_reader=read_compressed_source_calibrated_candidate
     def attempt(name,operation):
-        try:return operation()
+        try:
+            if version==7:
+                from .replay_budget import check_shared_budget
+                check_shared_budget()
+            value=operation()
+            if version==7:check_shared_budget()
+            return value
         except (OSError,ValueError,TypeError,KeyError,AttributeError,OverflowError):
             errors[name]='missing, invalid or incompatible original evidence';return None
     if registration_path is not None:
         def registered_source():
             value=registration_reader(registration_path)
-            if version==5:
-                if (value['schema']!='earthship-installed-shade-policy-registration/v3' or
-                        value['candidate_schema']!=RAW_CALIBRATED_CANDIDATE_SCHEMA or
-                        value['source_contract']!='earthship-installed-shade-score-sources/v2'):
+            if version in (5,7):
+                if (value['schema']!=('earthship-installed-shade-policy-registration/v4' if version==7 else 'earthship-installed-shade-policy-registration/v3') or
+                        value['candidate_schema']!=_report_candidate_schema(version) or
+                        value['source_contract']!=('earthship-installed-shade-score-sources/v6' if version==7 else 'earthship-installed-shade-score-sources/v2')):
                     raise ValueError('original raw development registration required')
-                _raw_digest_bindings(value['development_source_bindings'])
+                _raw_digest_bindings(value['development_source_bindings'],issue=version==7)
                 if len(value['development_source_bindings'])!=len(value['policy']['development']):
                     raise ValueError('complete original raw development bindings required')
             return value
         registration=attempt('preregistered_policy',registered_source)
         if registration is not None:policy=registration['policy'];gates['preregistered_policy']=True
-    if version==5:gates['raw_development_sources']=registration is not None
+    if version in (5,7):gates['raw_development_sources']=registration is not None
     if policy is not None and candidate_path is not None:
         def candidate():
             loaded=candidate_reader(candidate_path,expected_runtime_revision=policy['candidate']['runtime_sha256'],assessed_at=now)
@@ -295,13 +315,13 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
                 _utc(artifact['trained_through'])!=_utc(expected['trained_through']) or
                 _utc(artifact['created_at'])!=_utc(expected['created_at']) or
                 artifact['sensor_epochs']!=expected['sensor_epochs'] or
-                len((artifact['base_candidate'] if version in (2,3,4,5) else artifact)['dynamics']['coefficients'])!=expected['active_parameter_count']):
+                len((artifact['base_candidate'] if version in (2,3,4,5,7) else artifact)['dynamics']['coefficients'])!=expected['active_parameter_count']):
                 raise ValueError('frozen supported-domain candidate differs')
-            if version==5:_raw_calibration_binding(loaded)
+            if version in (5,7):_raw_calibration_binding(loaded,version=version)
             return loaded
         bundle=attempt('frozen_candidate',candidate)
         gates['frozen_candidate']=bundle is not None
-        if version==5:gates['raw_calibration_sources']=bundle is not None
+        if version in (5,7):gates['raw_calibration_sources']=bundle is not None
         # Loading the bundle has just replayed original native-v2 training input
         # receipts, exact cutoffs, source phases and numerical diagnostics.
         gates['qualified_training_sources']=bundle is not None
@@ -316,7 +336,7 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
     if policy is not None and gates['frozen_candidate'] and gates['frozen_runtime']:
         pairs=attempt('original_source_pairs',lambda:_score_packets(original_pairs,assessed_at=now,candidate=policy['candidate'],version=version))
         gates['original_source_pairs']=pairs is not None
-        if version in (4,5):gates['raw_native_score_sources']=bool(pairs and pairs['raw_native_score_sources'])
+        if version in (4,5,7):gates['raw_native_score_sources']=bool(pairs and pairs['raw_native_score_sources'])
         gates['calibrated_intervals']=bool(pairs and pairs['calibrated_intervals'])
         if pairs is not None:
             deadline=qualification_deadline(policy,pairs['rows'])
@@ -325,6 +345,8 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
             else:
                 statistics=attempt('predictive_skill',lambda:assess_predictive_skill(policy,pairs['rows'],now=now))
                 gates['predictive_skill']=bool(statistics and statistics['statistical_forecast_gates_passed'] and deadline is not None and now<deadline)
+    if version==7:
+        gates['raw_native_issue_sources']=bool(gates['raw_development_sources'] and gates['raw_calibration_sources'] and pairs and pairs.get('raw_native_issue_sources') is True)
     forecast,stage=_stage(gates)
     body=dict(schema=REPORT_SCHEMAS[version],candidate_schema=_report_candidate_schema(version),assessed_at=now.isoformat(),
         candidate=deepcopy(policy['candidate']) if policy else None,candidate_bundle=bundle,policy=deepcopy(policy),
@@ -333,7 +355,7 @@ def _qualify_installed_shade_candidate(*,registration_path,candidate_path,runtim
         original_pair_bindings=pairs['bindings'] if pairs else [],statistics=statistics,
         qualification_expires_at=deadline.isoformat() if deadline else None,source_errors=errors,
         forecast_qualified=forecast,advisory_qualified=False,recommended_stage=stage,automatic_actuation_authorized=False)
-    if version==5:body['registration_source_bindings']=deepcopy(registration['development_source_bindings']) if registration else []
+    if version in (5,7):body['registration_source_bindings']=deepcopy(registration['development_source_bindings']) if registration else []
     body['report_sha256']=_digest(body)
     return _validate_installed_shade_qualification_report(body,version=version)
 
@@ -351,7 +373,7 @@ def validate_published_installed_shade_qualification_report(record):
 
 
 def _validate_installed_shade_qualification_report(record,*,version):
-    if (not isinstance(record,dict) or set(record)!=(COMPLETE_RAW_FIELDS if version==5 else FIELDS) or record['schema']!=REPORT_SCHEMAS[version] or
+    if (not isinstance(record,dict) or set(record)!=(COMPLETE_RAW_FIELDS if version in (5,7) else FIELDS) or record['schema']!=REPORT_SCHEMAS[version] or
             record['candidate_schema']!=_report_candidate_schema(version) or
             _digest({k:v for k,v in record.items() if k!='report_sha256'})!=record['report_sha256']):
         raise ValueError('closed supported-domain qualification report required')
@@ -377,26 +399,37 @@ def _validate_installed_shade_qualification_report(record,*,version):
         raise ValueError('reported support differs from source-scored rows')
     if gates['original_source_pairs'] and (not rows or len(record['original_pair_bindings'])!=len(rows)):
         raise ValueError('original source bindings missing')
-    if version in (4,5):
+    if version in (4,5,7):
         from .graduation_policy import _sha
         if gates['raw_native_score_sources'] is not gates['original_source_pairs']:
             raise ValueError('raw source gate lacks original independently replayed pairs')
         if gates['raw_native_score_sources']:
             for binding in record['original_pair_bindings']:
                 if not isinstance(binding,dict):raise ValueError('raw source digest bindings required')
-                for name in ('native_binding_sha256','raw_score_sources_sha256'):_sha(binding.get(name))
-    if version==5:
+                for name in ('native_binding_sha256','raw_score_sources_sha256')+(('native_origin_binding_sha256',) if version==7 else ()):_sha(binding.get(name))
+    if version in (5,7):
         if (gates['raw_development_sources'] is not gates['preregistered_policy'] or
                 gates['raw_calibration_sources'] is not gates['frozen_candidate']):
             raise ValueError('raw phase gates differ from original source components')
         if gates['raw_development_sources']:
-            _raw_digest_bindings(record['registration_source_bindings'])
+            _raw_digest_bindings(record['registration_source_bindings'],issue=version==7)
             if len(record['registration_source_bindings'])!=len(record['policy']['development']):
                 raise ValueError('complete sealed raw development bindings required')
         elif record['registration_source_bindings']!=[]:raise ValueError('missing development cannot claim raw bindings')
-        if gates['raw_calibration_sources']:_raw_calibration_binding(record['candidate_bundle'])
+        if gates['raw_calibration_sources']:_raw_calibration_binding(record['candidate_bundle'],version=version)
+    if version==7 and gates['raw_native_issue_sources'] is not bool(gates['raw_development_sources'] and gates['raw_calibration_sources'] and gates['raw_native_score_sources']):
+        raise ValueError('complete original issue-query phase proof required')
     calibrated=bool(rows) and all(type(row['interval_covered']) is bool and type(row['interval_width_f']) in (int,float) and row['interval_width_f']>=0 for row in rows)
     if gates['calibrated_intervals'] is not calibrated:raise ValueError('interval gate differs from actually issued uncertainty')
+    if version==7:
+        if rows and record['policy'] is None:raise ValueError('source rows require frozen policy')
+        expected=assess_predictive_skill(record['policy'],rows,now=record['assessed_at']) if calibrated else None
+        deadline=qualification_deadline(record['policy'],rows) if rows else None
+        skill=bool(expected and expected['statistical_forecast_gates_passed'] and deadline is not None and _utc(record['assessed_at'])<deadline)
+        if (_canonical(expected)!=_canonical(record['statistics']) or
+                record['qualification_expires_at']!=(deadline.isoformat() if deadline else None) or
+                gates['predictive_skill'] is not skill):
+            raise ValueError('reported metrics/freshness differ from original statistical assessment')
     if gates['predictive_skill']:
         expected=assess_predictive_skill(record['policy'],rows,now=record['assessed_at'])
         deadline=qualification_deadline(record['policy'],rows)
@@ -436,7 +469,7 @@ def _render_installed_shade_qualification_report(record,*,version):
     if record['source_errors']:
         lines.extend(['', 'Missing or incompatible evidence:'])
         lines.extend('- '+name+': '+reason for name,reason in sorted(record['source_errors'].items()))
-    if version in (2,3,4,5):
+    if version in (2,3,4,5,7):
         import json
         policy=record['policy'] or {};bundle=record['candidate_bundle'] or {}
         artifact=bundle.get('artifact') or {};fit=bundle.get('fit_evidence') or {}
@@ -451,7 +484,7 @@ def _render_installed_shade_qualification_report(record,*,version):
             independent_support=record['support'],statistics=record['statistics'],
             qualification_expires_at=record['qualification_expires_at'],
             original_pair_bindings=record['original_pair_bindings'])
-        if version==5:audit.update(raw_development_bindings=record['registration_source_bindings'],
+        if version in (5,7):audit.update(raw_development_bindings=record['registration_source_bindings'],
             raw_calibration_bindings=(bundle.get('calibration') or {}).get('source_pair_bindings'))
         lines.extend(['','Frozen evidence, thresholds and measured results:','```json',
             json.dumps(audit,sort_keys=True,indent=2,allow_nan=False),'```'])
@@ -561,3 +594,30 @@ def score_compressed_source_base_packets(packets,*,assessed_at,candidate=None):
 def score_compressed_source_calibrated_packets(packets,*,assessed_at,candidate=None):
     """Replay main13/source7 actual originals; this port makes no release decision."""
     return _score_source_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=7)
+
+
+def qualify_compressed_installed_shade_candidate(**values):
+    """Derive complete release gates from original compressed-source evidence."""
+    from .installed_shade_calibration import _source_operation,_raw_packet_digest
+    from .replay_budget import check_shared_budget
+    packets=values['original_pairs']
+    if packets!=[]:_raw_packet_digest(packets)
+    def qualify():
+        # Admit release inventory before any training/calibration fit replay.
+        if packets:_raw_replay_preflight(packets,check_shared_budget,source_version=7)
+        result=_qualify_installed_shade_candidate(**values,version=7)
+        check_shared_budget()
+        return result
+    return _source_operation(qualify)
+
+
+def validate_compressed_installed_shade_qualification_report(record):
+    return _validate_installed_shade_qualification_report(record,version=7)
+
+
+def render_compressed_installed_shade_qualification_report(record):
+    return _render_installed_shade_qualification_report(record,version=7)
+
+
+def write_compressed_installed_shade_qualification_report(directory,record):
+    return _write_installed_shade_qualification_report(directory,record,version=7)

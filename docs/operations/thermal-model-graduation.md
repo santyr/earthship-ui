@@ -2091,3 +2091,47 @@ sealing refuse retention; readback replays originals rather than trusting digest
 metadata. Legacy registration readers refuse this profile. Registration grants
 no release authority; genuine preregistration and complete release qualification
 remain necessary before production selection.
+
+
+### Complete compressed-source qualification
+
+The qualification-report/v7 producer explicitly binds registration/v4,
+frozen candidate/v5, calibration/v4 and calibrated release score-sources/v7.
+Development and calibration use original base source-scores/v6. Every phase
+must retain original issue, comparator and outcome queries. The additional
+`raw_native_issue_sources` gate requires all three phases; digest metadata or a
+publication schema marker cannot substitute for typed original-source replay.
+
+Release inventory admission precedes training/calibration fit replay. All nested
+operations share the inherited replay deadline. The candidate reader replays
+original numerical fit and calibration evidence, and release scoring preserves
+exact issued weather/state/intervals and actual paired publication receipts.
+Existing conditioning, block stability, independent-window, regime, calibrated
+interval, convincing baseline skill and freshness thresholds remain unchanged.
+The report validator recomputes statistics and expiry even for failed release
+reports. Old report readers refuse v7. Advice remains withheld and automatic
+actuation remains disabled.
+
+Use the existing qualification command with `--contract-version 7`, the existing
+shared consumer lock and private source locators:
+
+```sh
+python3 scripts/qualify-installed-shade.py --contract-version 7 \
+  --shared-lock "$thermal_shared_lock" \
+  --registration "$thermal_registration" --candidate "$thermal_candidate" \
+  --runtime-bundle "$thermal_runtime" --original-pairs "$thermal_release_sources" \
+  --output-dir "$thermal_report_directory"
+```
+
+These variables must identify owned private archives and the actual shared lock.
+Run within the approved serial resource scope. The command retains the existing
+resource preflight; it does not provide a resource override. Lock contention,
+preflight refusal and invalid evidence withhold without exposing private error
+text. Machine and human reports are immutable private diagnostic caches; the
+reported recommended stage derives from the same gates as the code. Production
+preparation must freshly replay sources rather than trust a saved report.
+
+This completes the explicit qualification producer interface, not household
+qualification or production activation. Publication preparation and installed
+operator/UI routing, genuine qualifying-cohort replay capacity, predeclared
+threshold sealing and sufficient untouched/prospective evidence remain required.
