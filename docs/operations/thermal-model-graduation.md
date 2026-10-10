@@ -2298,14 +2298,46 @@ the UI displays SHADOW. Missing originals or expired source/publication evidence
 instead refuse active delivery through the existing unavailable path. Standalone
 operator-profile3 withdrawal remains independent of candidate and native files.
 
-This is not yet a continuously integrated production monitor. Scorer-profile4
+This is not yet a continuously integrated production monitor. Scorer-profile4 collection
 creates immutable original score archives and scheduling completions, but does
-not append those archives to the release reference's `original_pairs_path`
+not automatically append those archives to the release reference's `original_pairs_path`
 index. A static index cannot establish that subsequent natural outcomes were
-assessed. Before production installation, integrate guarded reference-index
-updates under the existing shared lock and resource bounds, preserving original
-entries and frozen candidate/runtime/epoch identity. New outcomes must undergo
+assessed. Before production installation, wire the explicit guarded index-update command
+into ongoing scoring under the existing shared lock and resource bounds,
+preserving original entries and frozen candidate/runtime/epoch identity. New outcomes must undergo
 full original-source qualification; completion markers and cached reports must
 never authorize activation. Do not claim ongoing monitoring from queue success
 alone. The regression fixtures verify decision and display behavior, not genuine
 household degradation or production readiness.
+
+
+### Explicit compressed release-index update
+
+Scorer profile4 now has an explicit `--update-release-index` intent. Supply
+`--config`, `--release-reference`, `--additional-pairs` and `--shared-lock`.
+The additional-pairs file is an owned private bounded JSON list of
+`{"raw_score_sources_path":"/absolute/original/score7/archive"}` references.
+It is not a completion-marker list or a statistics cache. Collection, batch and
+index-update intents are mutually exclusive. Older profiles reject this intent.
+
+The command uses the existing resource preflight and shared consumer lock and
+performs no source acquisition. It merges unique original references while
+preserving every old entry, freshly runs qualification/report7, and requires the
+frozen candidate/runtime and all training/development/calibration/issue/outcome
+source gates. Predictive skill is deliberately not an append prerequisite:
+genuine baseline or coverage failures must enter subsequent withdrawal decisions.
+Missing or incompatible originals refuse the update rather than dropping rows.
+
+The merged index is retained immutably with an address derived from its complete
+contents. Original score bindings are replayed after actual temporary writes,
+input bytes and lock ownership are rechecked, and the release reference pointer
+is replaced atomically. Previous indexes remain intact. Successful output always
+has `release_authorized=false`; every publication still freshly qualifies its
+original sources. The inherited 60-second replay deadline and existing inventory
+bounds apply without overrides.
+
+This implements an explicit incorporation command, not an installed scheduling
+loop. Automated selection of newly completed original references, operator unit
+wiring, real cohort capacity and natural end-to-end verification remain before
+claiming continuous production monitoring. A failed incorporation must not be
+silently treated as a successful monitoring cycle.
