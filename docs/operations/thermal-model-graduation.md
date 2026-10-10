@@ -2285,3 +2285,27 @@ are software contracts, not household release evidence. Source-qualified backend
 evaluation remains the production authority, and actual deployment/publication
 verification, capacity/resource gates, monitoring and remaining evidence work
 are still required before cutover.
+
+
+### Compressed prospective monitoring and withdrawal boundary
+
+Every compressed calibrated publication freshly qualifies the original release
+references. The statistical decision includes the latest independent prospective
+block, alongside the historical assessment. Loss of baseline skill or interval
+calibration removes forecast qualification and emits shadow with advice and
+actuation disabled. The retained report digest matches the publication decision;
+the UI displays SHADOW. Missing originals or expired source/publication evidence
+instead refuse active delivery through the existing unavailable path. Standalone
+operator-profile3 withdrawal remains independent of candidate and native files.
+
+This is not yet a continuously integrated production monitor. Scorer-profile4
+creates immutable original score archives and scheduling completions, but does
+not append those archives to the release reference's `original_pairs_path`
+index. A static index cannot establish that subsequent natural outcomes were
+assessed. Before production installation, integrate guarded reference-index
+updates under the existing shared lock and resource bounds, preserving original
+entries and frozen candidate/runtime/epoch identity. New outcomes must undergo
+full original-source qualification; completion markers and cached reports must
+never authorize activation. Do not claim ongoing monitoring from queue success
+alone. The regression fixtures verify decision and display behavior, not genuine
+household degradation or production readiness.

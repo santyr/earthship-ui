@@ -203,3 +203,36 @@ def test_python_compressed_active_publication_matches_browser_contract(compresse
         input=json.dumps(dict(publication=output,now=int(datetime.fromisoformat(output['generatedAt']).timestamp()*1000))),text=True,capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)==dict(state='ready',mode='forecast_active',badge='FORECAST',uncertaintyMode='calibrated_targets')
+
+
+@pytest.mark.parametrize('failure',['baseline_loss','coverage_loss'])
+def test_compressed_fresh_prospective_regression_leaves_active_mode_and_retains_matching_report(compressed_active_routing,failure):
+    from thermal_model import installed_shade_qualification as q
+    from thermal_model.graduation_decision import qualification_deadline
+    from thermal_model.graduation_statistics import assess_current_predictive_skill
+    p,_,prepared,report,_,state,_=compressed_active_routing
+    start=datetime.fromisoformat(report['policy']['intervals']['prospective_start'])
+    # Mathematical score/loader seam only, not original household outcomes.
+    for row in report['scored_pairs']:
+        if datetime.fromisoformat(row['issue_at'])>=start:
+            if failure=='baseline_loss':row['model_error_f']=10.
+            else:row['interval_covered']=False
+    report['statistics']=assess_current_predictive_skill(report['policy'],report['scored_pairs'],now=report['assessed_at'])
+    assert report['statistics']['statistical_forecast_gates_passed'] is False
+    report['support']=q._support(report['scored_pairs'])
+    report['gates']['predictive_skill']=False;report['forecast_qualified']=False;report['recommended_stage']='shadow'
+    deadline=qualification_deadline(report['policy'],report['scored_pairs']);report['qualification_expires_at']=deadline.isoformat() if deadline else None
+    report['report_sha256']=_digest({k:v for k,v in report.items() if k!='report_sha256'})
+    q.validate_compressed_installed_shade_qualification_report(report)
+    retained=[];output=p.build_compressed_installed_publication('synthetic-origin',prepared,report_sink=lambda value:retained.append(value))
+    assert state['calls']==2 and output['status']=='shadow'
+    assert output['release']['forecastQualified'] is False and output['release']['expiresAt'] is None
+    assert output['release']['advisoryQualified'] is False and output['release']['automaticActuation'] is False
+    assert retained[0]['report_sha256']==output['release']['reportSha256']
+    assert retained[0]['gates']['predictive_skill'] is False
+    import subprocess,json
+    root=Path(__file__).resolve().parents[2]
+    displayed=subprocess.run(['node','--max-old-space-size=128',str(root/'scripts/verify-compressed-installed-ui.mjs'),'--publication'],
+        input=json.dumps(dict(publication=output,now=int(datetime.fromisoformat(output['generatedAt']).timestamp()*1000))),text=True,capture_output=True,timeout=10)
+    assert displayed.returncode==0,displayed.stderr
+    assert json.loads(displayed.stdout)['badge']=='SHADOW'
