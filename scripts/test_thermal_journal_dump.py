@@ -3,6 +3,7 @@ from pathlib import Path
 from hashlib import sha256
 import os,subprocess,sys
 import pytest
+from uuid import uuid4
 
 
 def module():
@@ -11,7 +12,7 @@ def module():
 
 
 def inputs(tmp_path):
-    return dict(target=tmp_path/'journal.dump',params=dict(host='127.0.0.1',port='5432',dbname='openhab',user='fixture_reader',password='synthetic-only'),snapshot='00000003-0000001B-1')
+    return dict(target=tmp_path/'journal.dump',params=dict(host='127.0.0.1',port='5432',dbname='openhab',user='fixture_reader',password=uuid4().hex),snapshot='00000003-0000001B-1')
 
 
 def child(monkeypatch,code):
@@ -30,8 +31,8 @@ def test_dump_retains_exact_bounded_bytes_with_private_credentials(tmp_path,monk
     assert result=={'bytes':14,'sha256':sha256(b'PGDMPsynthetic').hexdigest()}
     assert data['target'].stat().st_mode&0o777==0o600
     assert calls[0][0][0]=='/usr/bin/pg_dump'
-    assert 'synthetic-only' not in ' '.join(calls[0][0])
-    assert calls[0][1]['env']['PGPASSWORD']=='synthetic-only'
+    assert data['params']['password'] not in ' '.join(calls[0][0])
+    assert calls[0][1]['env']['PGPASSWORD']==data['params']['password']
     assert calls[0][1]['start_new_session'] is True
 
 
@@ -127,7 +128,6 @@ def test_replacement_between_cleanup_inspection_and_unlink_is_preserved(tmp_path
 def test_outer_capture_deadline_terminates_nested_dump_child(tmp_path,monkeypatch):
     import signal
     from thermal_model import capture_guard
-    from uuid import uuid4
     # Lifecycle behavior is independent of the runner's cgroup and niceness.
     # Dedicated capture_guard tests validate those preflight requirements.
     monkeypatch.setattr(capture_guard,'verify_resource_limits',lambda:None)
@@ -135,10 +135,10 @@ def test_outer_capture_deadline_terminates_nested_dump_child(tmp_path,monkeypatc
     monkeypatch.setattr(capture_guard,'verify_host_headroom',lambda:None)
     pin=tmp_path/'nested.pid';marker='guard-dump-fixture-'+uuid4().hex
     payload='import os,time; from pathlib import Path; Path('+repr(str(pin))+').write_text(str(os.getpid())); time.sleep(20)'
-    code='import sys,subprocess; sys.path.insert(0,'+repr(str(Path(__file__).resolve().parent))+'); import thermal_journal_dump as dump; real=subprocess.Popen\n'
+    code='import sys,subprocess; from uuid import uuid4; sys.path.insert(0,'+repr(str(Path(__file__).resolve().parent))+'); import thermal_journal_dump as dump; real=subprocess.Popen\n'
     code+='def launch(argv,**kwargs): return real([sys.executable,"-c",'+repr(payload)+','+repr(marker)+'],**kwargs)\n'
     code+='dump.subprocess.Popen=launch\n'
-    code+='dump.dump_journal(target='+repr(str(tmp_path/'nested.dump'))+',params=dict(host="127.0.0.1",port="5432",dbname="openhab",user="fixture_reader",password="synthetic-only"),snapshot="00000003-0000001B-1")\n'
+    code+='dump.dump_journal(target='+repr(str(tmp_path/'nested.dump'))+',params=dict(host="127.0.0.1",port="5432",dbname="openhab",user="fixture_reader",password=uuid4().hex),snapshot="00000003-0000001B-1")\n'
     with pytest.raises(ValueError,match='deadline'):
         capture_guard.run_guarded_capture([sys.executable,'-c',code],seconds=3)
     pid=int(pin.read_text());process=Path('/proc')/str(pid)

@@ -3,7 +3,8 @@ from datetime import datetime,timedelta,timezone
 from io import BytesIO
 import json
 import pytest
-from psycopg2.extensions import parse_dsn
+from psycopg2.extensions import parse_dsn,make_dsn
+from uuid import uuid4
 from thermal_model.schema import THERMAL_ITEMS
 
 
@@ -51,8 +52,10 @@ def test_redirects_refuse_capture():
 
 
 def test_journal_dsn_forces_read_only_timeouts_and_local_connection():
-    source=module();value=source.bounded_journal_dsn('host=127.0.0.1 port=5432 dbname=openhab user=synthetic_reader password=synthetic options=-cbogus=1')
+    source=module();fixture_value=uuid4().hex
+    value=source.bounded_journal_dsn(make_dsn(host='127.0.0.1',port='5432',dbname='openhab',user='synthetic_reader',password=fixture_value,options='-cbogus=1'))
     parsed=parse_dsn(value)
+    assert parsed['password']==fixture_value
     assert parsed['connect_timeout']=='3'
     assert 'default_transaction_read_only=on' in parsed['options']
     assert 'statement_timeout=5000' in parsed['options'] and 'lock_timeout=1000' in parsed['options']
@@ -74,7 +77,7 @@ def test_budget_rechecks_after_blocking_query_and_counts_requests():
 
 
 def test_journal_connection_address_and_port_cannot_inherit_ambient_defaults():
-    parsed=parse_dsn(module().bounded_journal_dsn('host=127.0.0.1 dbname=openhab user=synthetic_reader password=synthetic'))
+    parsed=parse_dsn(module().bounded_journal_dsn(make_dsn(host='127.0.0.1',dbname='openhab',user='synthetic_reader',password=uuid4().hex)))
     assert parsed['hostaddr']=='127.0.0.1' and parsed['port']=='5432'
 
 
