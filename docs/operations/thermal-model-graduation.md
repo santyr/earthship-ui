@@ -2233,3 +2233,32 @@ Neither configuration verification nor bootstrap enables automatic actuation.
 These routes are not installed or live-qualified; score queue/operator and UI
 integration, actual capacity, resource headroom and genuine model/evidence gates
 remain before deployment. Rebuild pinned runtime archives after code freeze.
+
+
+### Compressed scoring operator and queue
+
+`thermal_installed_score.py --contract-version 4` explicitly selects
+score-config/v4, the guarded compressed source reader and jobs/v4. Single
+collection and queued collection accept only actual base main origin/v11 or
+calibrated main origin/v13. They retain score-sources/v6 or v7 respectively;
+older profile meanings remain unchanged and refuse incompatible schemas.
+Default scorer profile2 is preserved. Configuration checks construct no source
+reader, and collection/batch requires the existing shared lock and unchanged
+publication-resource preflight under the strict serial resource scope.
+
+Each queue invocation attempts at most one mature horizon or verifies one prior
+completion. Completion/v4 and cursor/v4 remain scheduling hints with
+`release_authority=false`. Completion readback replays original issue,
+comparator and outcome bytes; original loss withholds rather than recollecting a
+completed job. Original archive inventory is admitted before completion numerical
+replay. Immutable completion retention rechecks original sources after its actual
+temporary write; queue/source changes or an expired inherited parent deadline
+withhold. Shared replay callbacks preserve the queue's existing 55-second budget
+without recursively calling their own budget check.
+
+Queued scoring does not train, authorize production, change physical controls or
+send action recommendations. These routes are not installed or live-qualified.
+Genuine cohort replay capacity, qualifying evidence/model gates, pinned runtime
+rebuild, monitoring/withdrawal integration and UI validation remain before
+conditional deployment. Compression and completion markers establish no release
+pass; full qualification/report/v7 must freshly replay original sources.

@@ -75,6 +75,7 @@ on:
       - 'openhab/scripts/test_installed_shade_score_collection.py'
       - 'openhab/scripts/test_installed_shade_score_inputs.py'
       - 'openhab/scripts/test_installed_raw_score_jobs.py'
+      - 'openhab/scripts/test_installed_compressed_score_jobs.py'
       - 'openhab/scripts/test_installed_raw_score_cli.py'
       - 'openhab/scripts/test_installed_score_global_lock.py'
       - 'openhab/scripts/test_installed_score_jobs.py'
@@ -166,6 +167,7 @@ jobs:
             openhab/scripts/test_installed_shade_score_collection.py \
             openhab/scripts/test_installed_shade_score_inputs.py \
             openhab/scripts/test_installed_raw_score_jobs.py \
+            openhab/scripts/test_installed_compressed_score_jobs.py \
             openhab/scripts/test_installed_raw_score_cli.py \
             openhab/scripts/test_installed_score_global_lock.py \
             openhab/scripts/test_installed_score_jobs.py \

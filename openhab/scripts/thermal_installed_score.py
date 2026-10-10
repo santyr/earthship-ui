@@ -11,8 +11,8 @@ from thermal_model.capture_guard import SharedScoreLock
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,required=True)
-    parser.add_argument('--contract-version',type=int,choices=(1,2,3),default=2,
-        help='3 scores original-query base/calibrated publications; 2 scores raw calibrated publications; 1 scores legacy base origins')
+    parser.add_argument('--contract-version',type=int,choices=(1,2,3,4),default=2,
+        help='4 scores compressed original-query publications; 3 scores original-query base/calibrated publications; 2 scores raw calibrated publications; 1 scores legacy base origins')
     intent=parser.add_mutually_exclusive_group()
     intent.add_argument('--collect',action='store_true')
     intent.add_argument('--batch',action='store_true')
@@ -29,18 +29,19 @@ def main(argv=None):
             from thermal_installed_intel import _resource_preflight
             _resource_preflight()
             os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
-        from thermal_model.installed_shade_score_inputs import load_score_settings,load_raw_score_settings,load_source_score_settings,ScoreReader
-        loader={1:load_score_settings,2:load_raw_score_settings,3:load_source_score_settings}[args.contract_version]
+        from thermal_model.installed_shade_score_inputs import load_score_settings,load_raw_score_settings,load_source_score_settings,load_compressed_source_score_settings,ScoreReader
+        loader={1:load_score_settings,2:load_raw_score_settings,3:load_source_score_settings,4:load_compressed_source_score_settings}[args.contract_version]
         settings=loader(args.config)
         if not (args.collect or args.batch):
             print(json.dumps(dict(status='configuration_verified',collection_executed=False,release_authorized=False)));return 0
         from thermal_model.installed_shade_score_collection import collect_published_score,collect_raw_published_score,collect_source_published_score
-        collect={1:collect_published_score,2:collect_raw_published_score,3:collect_source_published_score}[args.contract_version]
+        from thermal_model.installed_shade_score_jobs import collect_compressed_original_score
+        collect={1:collect_published_score,2:collect_raw_published_score,3:collect_source_published_score,4:collect_compressed_original_score}[args.contract_version]
         with SharedScoreLock(args.shared_lock) as held:
             backend=ScoreReader(settings,shared_lock_guard=held.verify)
             if args.batch:
-                from thermal_model.installed_shade_score_jobs import collect_queued_score,collect_raw_queued_score,collect_source_queued_score
-                queued={1:collect_queued_score,2:collect_raw_queued_score,3:collect_source_queued_score}[args.contract_version]
+                from thermal_model.installed_shade_score_jobs import collect_queued_score,collect_raw_queued_score,collect_source_queued_score,collect_compressed_queued_score
+                queued={1:collect_queued_score,2:collect_raw_queued_score,3:collect_source_queued_score,4:collect_compressed_queued_score}[args.contract_version]
                 result=queued(queue_path=args.queue,output_directory=settings['output_directory'],backend=backend)
             else:
                 result=collect(origin_path=args.origin,horizon_hours=args.horizon,

@@ -19,9 +19,11 @@ from .installed_shade_raw_score_sources import read_raw_score_sources,read_calib
 SCHEMA='earthship-installed-score-jobs/v1'
 RAW_SCHEMA='earthship-installed-score-jobs/v2'
 SOURCE_SCHEMA='earthship-installed-score-jobs/v3'
+COMPRESSED_SCHEMA='earthship-installed-score-jobs/v4'
 COMPLETION_SCHEMA='earthship-installed-score-job-completion/v1'
 RAW_COMPLETION_SCHEMA='earthship-installed-score-job-completion/v2'
 SOURCE_COMPLETION_SCHEMA='earthship-installed-score-job-completion/v3'
+COMPRESSED_COMPLETION_SCHEMA='earthship-installed-score-job-completion/v4'
 JOB_FIELDS={'origin_path','horizon_hours'}
 COMPLETION_FIELDS={'schema','job','raw_packet_path','raw_score_sources_sha256','release_authority'}
 
@@ -53,23 +55,27 @@ def collect_queued_score(*,queue_path,output_directory,backend,_version=1):
     """Replay completion references or attempt exactly one declared mature job."""
     base=dict(release_authorized=False)
     try:
-        if type(_version) is not int or _version not in (1,2,3):raise ValueError('explicit score queue profile required')
+        if type(_version) is not int or _version not in (1,2,3,4):raise ValueError('explicit score queue profile required')
         schema,completion_schema,capture_reader,collect,source_reader={
             1:(SCHEMA,COMPLETION_SCHEMA,read_publication_capture,collect_published_score,read_raw_score_sources),
             2:(RAW_SCHEMA,RAW_COMPLETION_SCHEMA,read_raw_publication_capture,collect_raw_published_score,read_calibrated_raw_score_sources),
-            3:(SOURCE_SCHEMA,SOURCE_COMPLETION_SCHEMA,read_source_publication_capture,collect_source_published_score,read_source_score_sources)}[_version]
+            3:(SOURCE_SCHEMA,SOURCE_COMPLETION_SCHEMA,read_source_publication_capture,collect_source_published_score,read_source_score_sources),
+            4:(COMPRESSED_SCHEMA,COMPRESSED_COMPLETION_SCHEMA,_read_compressed_origin,collect_compressed_original_score,_read_compressed_sources)}[_version]
         queue=_path(str(queue_path));_private_directory(queue.parent)
         out=_private_directory(Path(output_directory));raw=_owned_bytes(queue,65536)
-        value=_decode(raw);deadline=monotonic()+55;now=_utc(_clock())
-        def check():
+        value=_decode(raw)
+        from .replay_budget import remaining_budget,check_shared_budget
+        deadline=monotonic()+(remaining_budget(55) if _version==4 else 55);now=_utc(_clock())
+        def check(*,parent=True):
+            if _version==4 and parent:check_shared_budget()
             if monotonic()>=deadline:raise ValueError('queued score budget elapsed')
             backend.verify_unchanged()
             if _owned_bytes(queue,65536)!=raw:raise ValueError('original queued jobs changed')
         def replay(operation,*args,**kwargs):
-            if _version!=3:return operation(*args,**kwargs)
+            if _version not in (3,4):return operation(*args,**kwargs)
             from .replay_budget import shared_replay_budget
             def remaining():
-                check();return deadline-monotonic()
+                check(parent=False);return deadline-monotonic()
             with shared_replay_budget(remaining):return operation(*args,**kwargs)
         if (not isinstance(value,dict) or set(value)!={'schema','jobs'} or value['schema']!=schema or
                 not isinstance(value['jobs'],list) or len(value['jobs'])>256):raise ValueError('closed bounded queued jobs required')
@@ -95,7 +101,7 @@ def collect_queued_score(*,queue_path,output_directory,backend,_version=1):
             temporary=out/('.score-cursor-'+uuid4().hex)
             try:
                 _write_private(temporary,_canonical(body))
-                if _version==3:check()
+                if _version in (3,4):check()
                 os.replace(temporary,cursor)
             finally:
                 if temporary.exists():temporary.unlink()
@@ -134,13 +140,13 @@ def collect_queued_score(*,queue_path,output_directory,backend,_version=1):
             if result['status']=='scored':
                 digest=verify_raw(result['raw_packet_path'],job);check()
                 saved=dict(schema=completion_schema,job=job,raw_packet_path=result['raw_packet_path'],raw_score_sources_sha256=digest,release_authority=False)
-                if _version==3:
+                if _version in (3,4):
                     from .installed_shade_calibration import _persist
                     def completion_guard():
                         if verify_raw(saved['raw_packet_path'],job)!=digest:
                             raise ValueError('original completed sources changed during retention')
                         check()
-                    _persist(out,saved,_digest(job),'.score-job-v3.json',before_publish=completion_guard)
+                    _persist(out,saved,_digest(job),f'.score-job-v{_version}.json',before_publish=completion_guard)
                     check()
                 else:_write_private(marker,_canonical(saved))
             return result
@@ -156,3 +162,38 @@ def collect_queued_score(*,queue_path,output_directory,backend,_version=1):
 def collect_source_queued_score(*,queue_path,output_directory,backend):
     """Queue only original-query main profiles and raw score sources4/5."""
     return collect_queued_score(queue_path=queue_path,output_directory=output_directory,backend=backend,_version=3)
+
+
+
+def _compressed_origin_version(path):
+    path=_path(str(path))
+    if path.name.endswith('.installed-shade-origin-v11.json'):return 11
+    if path.name.endswith('.installed-shade-origin-v13.json'):return 13
+    raise ValueError('explicit compressed actual main11/main13 source required')
+
+
+def _read_compressed_origin(path):
+    from .installed_shade_published_origin import read_compressed_source_publication_capture,read_compressed_calibrated_publication_capture
+    version=_compressed_origin_version(path)
+    return (read_compressed_source_publication_capture if version==11 else read_compressed_calibrated_publication_capture)(path)
+
+
+def collect_compressed_original_score(**values):
+    from .installed_shade_score_collection import collect_compressed_source_published_score,collect_compressed_calibrated_published_score
+    version=_compressed_origin_version(values['origin_path'])
+    return (collect_compressed_source_published_score if version==11 else collect_compressed_calibrated_published_score)(**values)
+
+
+def _read_compressed_sources(path,*,assessed_at,check_budget=None):
+    from .installed_shade_raw_score_sources import read_compressed_source_base_score_sources,read_compressed_source_calibrated_score_sources
+    from .installed_shade_qualification import _raw_replay_preflight
+    path=_path(str(path))
+    if path.name.endswith('.installed-shade-score-sources-v6.json'):version=6;reader=read_compressed_source_base_score_sources
+    elif path.name.endswith('.installed-shade-score-sources-v7.json'):version=7;reader=read_compressed_source_calibrated_score_sources
+    else:raise ValueError('original compressed score-sources6/7 required')
+    _raw_replay_preflight([dict(raw_score_sources_path=str(path))],check_budget or (lambda:None),source_version=version)
+    return reader(path,assessed_at=assessed_at,check_budget=check_budget)
+
+
+def collect_compressed_queued_score(**values):
+    return collect_queued_score(**values,_version=4)
