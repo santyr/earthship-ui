@@ -57,7 +57,7 @@ def test_original_jdbc_query_uses_actual_receipt_window_instead_of_today(setting
         observed.append((item,state,since,until));return receipt
     monkeypatch.setattr(reader.transport,'persisted',persisted)
     assert reader.publication(receipt)==receipt
-    assert observed==[('Thermal_Model_JSON','{}',now,now+timedelta(milliseconds=1))]
+    assert observed==[('Thermal_Model_JSON','{}',now-timedelta(seconds=1),now+timedelta(seconds=1))]
     with pytest.raises(ValueError):reader.publication({**receipt,'item':'SouthOutlet_Outlet1_Switch'})
 
 
@@ -417,3 +417,28 @@ def test_compressed_score_acquisition_retains_exact_sources_and_reuses_queries(s
     path.unlink()
     with pytest.raises((ValueError,OSError)):reader.native([target],assessed_at=assessed,sensor_epoch=EPOCHS['air'])
     assert len(connections)==1
+
+
+def test_jdbc_second_precision_query_retrieves_exact_millisecond_receipt(settings):
+    from urllib.parse import urlparse,parse_qs
+    from test_installed_shade_live_inputs import Response
+    m=module();reader=m.ScoreReader(settings[1]);at=datetime(2026,10,8,12,0,27,225000,tzinfo=timezone.utc)
+    receipt=dict(item='Thermal_Model_JSON',time=int(at.timestamp()*1000),state='{}')
+    def open(request,timeout):
+        query=parse_qs(urlparse(request.full_url).query)
+        start=datetime.fromisoformat(query['starttime'][0]).replace(microsecond=0)
+        end=datetime.fromisoformat(query['endtime'][0]).replace(microsecond=0)
+        data=[{k:v for k,v in receipt.items() if k!='item'}] if start<=at<=end else []
+        return Response(dict(data=data),request.full_url)
+    reader.transport.opener=open
+    assert reader.publication(receipt)==receipt
+
+
+def test_bounded_jdbc_window_refuses_same_payload_at_different_original_time(settings):
+    from test_installed_shade_live_inputs import Response
+    m=module();reader=m.ScoreReader(settings[1]);at=datetime(2026,10,8,12,0,27,225000,tzinfo=timezone.utc)
+    receipt=dict(item='Thermal_Model_JSON',time=int(at.timestamp()*1000),state='{}')
+    def open(request,timeout):
+        return Response(dict(data=[dict(time=receipt['time']+10,state=receipt['state'])]),request.full_url)
+    reader.transport.opener=open
+    with pytest.raises(ValueError):reader.publication(receipt)
