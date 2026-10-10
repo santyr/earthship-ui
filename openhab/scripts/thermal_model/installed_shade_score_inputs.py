@@ -79,7 +79,10 @@ class ScoreReader:
         _,at=_receipt(receipt,receipt['item'])
         if at>_utc(_clock()):raise ValueError('future original telemetry receipt refused')
         self._acquisition_check()
-        result=self.transport.persisted(receipt['item'],receipt['state'],since=at,until=at+timedelta(milliseconds=1),preflight=self._acquisition_check)
+        # OpenHAB persistence bounds may be parsed with second precision.
+        # Retrieve a bounded bracket, then require the exact original receipt.
+        result=self.transport.persisted(receipt['item'],receipt['state'],since=at-timedelta(seconds=1),until=at+timedelta(seconds=1),preflight=self._acquisition_check)
+        if _canonical(result)!=_canonical(receipt):raise ValueError('original persisted publication receipt differs')
         self._acquisition_check();return result
     def _connect(self,config):
         self._acquisition_check()
