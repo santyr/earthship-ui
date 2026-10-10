@@ -1669,3 +1669,12 @@ bytes and original identities. A successful `policy_registered` result has
 predeclares the criteria; it does not demonstrate candidate skill. Subsequently
 collect and replay untouched and prospective evidence through qualification/v5.
 No service is enabled and no active publication is made by this command.
+
+The shared operator lock implementation lives in the already-pinned
+`thermal_model/capture_guard.py` module. Qualification, training, calibration
+and registration import it directly; the scorer preserves its historical
+`SharedScoreLock` export. This keeps guard execution inside the declared
+runtime without adding a 65th manifest entry or requiring the scorer CLI merely
+to acquire the qualification lock. Recreate the executing runtime archive after
+this source change. An isolated diagnostic-stage lock is not a production
+consumer lock and cannot establish deployment readiness.

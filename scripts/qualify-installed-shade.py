@@ -52,7 +52,7 @@ def main(argv=None):
     try:
         _resource_preflight()
         os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
-        from thermal_installed_score import SharedScoreLock
+        from thermal_model.capture_guard import SharedScoreLock
         with SharedScoreLock(args.shared_lock) as held:return _run(args,guard=held.verify)
     except BlockingIOError:
         print(json.dumps(dict(status='busy',release_authorized=False)));return 75

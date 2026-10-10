@@ -25,7 +25,7 @@ def main(argv=None):
         if not args.fit:
             print(json.dumps(dict(status='configuration_verified',fit_executed=False,release_authorized=False)))
             return 0
-        from thermal_installed_score import SharedScoreLock
+        from thermal_model.capture_guard import SharedScoreLock
         with SharedScoreLock(settings['shared_lock']) as held:
             from thermal_model.installed_shade_training import run_candidate_training
             dispatched=True

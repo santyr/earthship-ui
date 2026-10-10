@@ -169,7 +169,7 @@ def main(argv=None):
         if not args.calibrate:
             print(json.dumps(dict(status='configuration_verified',calibration_executed=False,release_authorized=False)));return 0
         os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
-        from thermal_installed_score import SharedScoreLock
+        from thermal_model.capture_guard import SharedScoreLock
         with SharedScoreLock(settings['shared_lock']) as held:result=run_calibration(settings,guard=held.verify)
         print(json.dumps(result,sort_keys=True));return 0
     except BlockingIOError:

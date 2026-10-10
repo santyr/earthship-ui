@@ -4,6 +4,8 @@ This helper creates no scope, performs no source reads and confers no release
 or fitting authority. A trusted capture command must supply its fixed worker.
 """
 import os
+import fcntl
+import stat
 from pathlib import Path,PurePosixPath
 import signal
 import subprocess
@@ -89,3 +91,32 @@ def run_guarded_capture(argv,*,seconds=90):
         try:os.killpg(worker.pid,signal.SIGKILL)
         except ProcessLookupError:pass
         worker.wait(timeout=2)
+
+
+class SharedScoreLock:
+    """Hold an existing owned private inode; never create or follow a lock."""
+    def __init__(self,path):self.path=Path(path);self.fd=None
+    def __enter__(self):
+        from thermal_model.forcing_capture import _private_directory
+        if not self.path.is_absolute() or self.path.resolve()!=self.path:
+            raise ValueError('resolved absolute shared lock required')
+        _private_directory(self.path.parent)
+        self.fd=os.open(self.path,os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        try:
+            info=os.fstat(self.fd);self.identity=(info.st_dev,info.st_ino)
+            self.verify()
+            fcntl.flock(self.fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            self.verify();return self
+        except BaseException:
+            os.close(self.fd);self.fd=None;raise
+    def verify(self):
+        if self.fd is None:raise ValueError('shared lock not held')
+        info=os.fstat(self.fd);current=self.path.lstat()
+        for value in (info,current):
+            if (not stat.S_ISREG(value.st_mode) or value.st_uid!=os.getuid() or
+                    stat.S_IMODE(value.st_mode)!=0o600 or value.st_nlink!=1):
+                raise ValueError('owned private single-link shared lock required')
+        if (current.st_dev,current.st_ino)!=self.identity:
+            raise ValueError('shared lock inode replaced')
+    def __exit__(self,*args):
+        if self.fd is not None:os.close(self.fd);self.fd=None

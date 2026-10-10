@@ -95,3 +95,38 @@ def test_cli_collection_requires_global_lock_before_preflight(monkeypatch):
     with pytest.raises(SystemExit) as error:
         cli.main(['--config','/missing/config','--collect','--origin','/missing/origin','--horizon','1'])
     assert error.value.code==2
+
+
+def test_shared_lock_implementation_is_in_declared_prediction_closure():
+    import inspect
+    import thermal_installed_score as cli
+    from pathlib import Path
+    from thermal_model.installed_shade_publication import RUNTIME_PATHS,RAW_RUNTIME_PATHS
+    root=Path(cli.__file__).resolve().parent
+    name=Path(inspect.getsourcefile(cli.SharedScoreLock)).resolve().relative_to(root).as_posix()
+    assert name in RUNTIME_PATHS and name in RAW_RUNTIME_PATHS
+    assert len(RAW_RUNTIME_PATHS)==64
+
+
+def test_pinned_shared_guard_locks_without_scoring_cli_available(tmp_path):
+    import subprocess,sys
+    from pathlib import Path
+    root=tmp_path/'sources';package=root/'thermal_model';package.mkdir(parents=True,mode=0o700)
+    original=Path(__file__).resolve().parent/'thermal_model'
+    for name in ('__init__.py','capture_guard.py','forcing_capture.py'):(package/name).write_bytes((original/name).read_bytes())
+    lock=tmp_path/'lock';tmp_path.chmod(0o700);lock.touch(mode=0o600)
+    code="""import sys,importlib.abc
+sys.path.insert(0,sys.argv[1])
+class Block(importlib.abc.MetaPathFinder):
+ def find_spec(self,fullname,path=None,target=None):
+  if fullname=='thermal_installed_score' or fullname.split('.')[0] in ('numpy','scipy'):raise RuntimeError('undeclared guard dependency')
+sys.meta_path.insert(0,Block())
+from thermal_model.capture_guard import SharedScoreLock
+with SharedScoreLock(sys.argv[2]) as held:
+ held.verify()
+ try:
+  with SharedScoreLock(sys.argv[2]):raise RuntimeError('concurrent reader accepted')
+ except BlockingIOError:pass
+"""
+    result=subprocess.run([sys.executable,'-c',code,str(root),str(lock)],capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stderr
