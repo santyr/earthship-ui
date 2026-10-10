@@ -3,6 +3,7 @@
 This binding proves selection equality only. Candidate, forcing, publication,
 independent support and release qualification remain separate required checks.
 """
+from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 
@@ -107,3 +108,80 @@ def read_raw_score_sources(path,*,assessed_at,check_budget=None):
 def read_calibrated_raw_score_sources(path,*,assessed_at,check_budget=None):
     """Replay raw queries bound to candidate-v3 numeric and actual main receipts."""
     return _read_raw_score_sources(path,assessed_at=assessed_at,check_budget=check_budget,_version=3)
+
+
+ORIGIN_SCHEMA='earthship-installed-shade-native-origin-binding/v1'
+ORIGIN_FIELDS={'schema','origin_temperatures_sha256','issue_at','assessed_at','query_sources','release_authority'}
+
+
+def build_native_origin_binding(origin_temperatures,*,source_paths,issue_at,check_budget=None):
+    """Replay each original issue query; selected grids alone are insufficient.
+
+    This proof is only source selection authority. Initial-state observer,
+    forcing, candidate and release checks remain independently required.
+    """
+    proof=origin_temperatures
+    if (not isinstance(proof,dict) or set(proof)!={'schema','assessed_at','roles'} or
+            proof['schema']!='earthship-thermal-origin-temperatures/v2' or
+            not isinstance(proof['roles'],dict) or set(proof['roles'])!=set(STREAMS) or
+            not isinstance(source_paths,dict) or set(source_paths)!=set(STREAMS)):
+        raise ValueError('complete native issue-query proof required')
+    issue,observed=map(_utc,(issue_at,proof['assessed_at']))
+    if observed>issue:raise ValueError('original query was unavailable at issue')
+    floor=observed.replace(minute=observed.minute//5*5,second=0,microsecond=0)
+    targets=[floor-timedelta(minutes=5*i) for i in reversed(range(288))]
+    if targets[-1]!=observed:targets.append(observed)
+    # Bound the supplied cache before copying or canonicalizing it. Native
+    # receipt validation is separate from original query replay below.
+    from .temperature_history import _validate_sensor_receipt
+    from weather_temperature_evidence import sensor_epoch_id
+    for role,(stream,model,sensor) in STREAMS.items():
+        evidence=proof['roles'][role]
+        if (not isinstance(evidence,dict) or set(evidence)!={'identity','grid'} or
+                not isinstance(evidence['identity'],dict) or
+                set(evidence['identity'])!={'stream','model','sensor_id','sensor_epoch'} or
+                not isinstance(evidence['grid'],list) or len(evidence['grid'])!=len(targets)):
+            raise ValueError('bounded complete original issue grid required')
+        phase=sensor_epoch_id(evidence['identity']['sensor_epoch'])
+        if (evidence['identity']!=dict(stream=stream,model=model,sensor_id=sensor,sensor_epoch=phase) or
+                type(evidence['identity']['sensor_id']) is not int or
+                not isinstance(source_paths[role],str) or not 1<=len(source_paths[role])<=1024):
+            raise ValueError('bounded original role identity and query path required')
+        for target,row in zip(targets,evidence['grid']):
+            if not isinstance(row,(list,tuple)) or len(row)!=2 or _utc(row[0])!=target:
+                raise ValueError('original issue grid target differs')
+            if row[1] is not None:
+                _validate_sensor_receipt(row[1],target,sensor_epoch=evidence['identity']['sensor_epoch'])
+    proof,source_paths=deepcopy((proof,source_paths))
+    paths={};bytes_used=0
+    for role,(stream,model,sensor) in STREAMS.items():
+        if check_budget is not None:check_budget()
+        name=source_paths[role]
+        if not isinstance(name,str) or not 1<=len(name)<=1024:raise ValueError('bounded original issue-query path required')
+        path=Path(name)
+        if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original issue-query path required')
+        packet=read_temperature_source(path.parent,path);bytes_used+=len(_canonical(packet))
+        if bytes_used>24000000:raise ValueError('aggregate issue-query bytes exceed bound')
+        evidence=proof['roles'][role]
+        if (not isinstance(evidence,dict) or set(evidence)!={'identity','grid'} or
+                evidence['identity']!=dict(stream=stream,model=model,sensor_id=sensor,sensor_epoch=packet['sensor_epoch']) or
+                type(evidence['identity'].get('sensor_id')) is not int or
+                packet['stream']!=stream or packet['policy']!=dict(model=model,sensor_id=sensor,**POLICY) or
+                _utc(packet['assessed_at'])!=observed or list(map(_utc,packet['targets']))!=targets):
+            raise ValueError('original issue query role, policy, phase or clock differs')
+        grid=replay_temperature_source(packet)
+        if _canonical(grid)!=_canonical(evidence['grid']):raise ValueError('original issue grid differs from raw selection')
+        if check_budget is not None:check_budget()
+        paths[role]=name
+    return dict(schema=ORIGIN_SCHEMA,origin_temperatures_sha256=_digest(proof),
+        issue_at=issue.isoformat(),assessed_at=observed.isoformat(),query_sources=paths,release_authority=False)
+
+
+def replay_native_origin_binding(binding,origin_temperatures,*,issue_at,check_budget=None):
+    if (not isinstance(binding,dict) or set(binding)!=ORIGIN_FIELDS or
+            binding['schema']!=ORIGIN_SCHEMA or binding['release_authority'] is not False):
+        raise ValueError('closed original issue-query binding required')
+    expected=build_native_origin_binding(origin_temperatures,source_paths=binding['query_sources'],
+        issue_at=issue_at,check_budget=check_budget)
+    if _canonical(expected)!=_canonical(binding):raise ValueError('original issue-query binding differs')
+    return expected

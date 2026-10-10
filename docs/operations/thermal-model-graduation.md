@@ -1693,3 +1693,19 @@ Recreate runtime archives after this guard change. These resource checks do not
 authorize activation. Original issue-state query retention and replay remain
 necessary before claiming complete raw source authority; selected source2
 receipt grids alone do not prove original query/barrier selection.
+
+The issue-query replay foundation provides
+`build_native_origin_binding` and `replay_native_origin_binding` in
+`installed_shade_raw_score_sources`. A binding requires a retained native query
+for every modeled temperature role, the exact assessment clock and trailing
+288/289-target grid, approved policy and sensor phase. It independently replays
+original rows, including carry and invalid barriers, before comparing selected
+receipts. Replay requires the original private content-addressed files to remain
+available. The binding grants no release authority.
+
+This foundation is not yet connected to persisted numeric origins, main
+publication receipts or qualification reports. Existing origin/publication
+versions retain their prior meanings. A new explicit version must bind and
+replay the issue queries through scoring and qualification before this remaining
+source-authority gap can be closed. Rebuild pinned runtimes after integration;
+passing the foundation tests does not authorize deployment.
