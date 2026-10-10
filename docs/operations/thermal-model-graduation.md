@@ -2014,3 +2014,20 @@ numerical fit replay, before entering scoring; nested operations keep the same
 bounded deadline. No installed producer selects calibration/v4. Compressed
 calibrated candidate preparation, full qualification and operator/UI integration,
 plus actual qualifying-cohort capacity and natural evidence, remain unfinished.
+
+The compressed-source calibrated aggregate has an explicit development profile,
+`earthship-installed-shade-candidate/v5`, binding calibration/v4 and original
+score-sources/v6. It preserves core physics, source/hardware identity, the full
+raw runtime closure and the chronological learning cutoff. Missing uncertainty
+radii remain missing; this artifact cannot authorize release or claim as-issued
+operation. Old candidate readers refuse the profile.
+
+Typed build and validation replay the original calibration. Immutable candidate
+retention checks the retained calibration after the actual candidate temporary
+write; typed readback reloads original calibration/fit evidence and checks it
+again after fit readback. All nested operations inherit the shared replay budget.
+Actual synthetic write/read/lost-source lifecycle phases were verified in separate
+unchanged capped scopes against the same retained originals; that does not prove
+qualifying household-cohort capacity or readiness. Calibrated numeric/main
+capture, development registration, complete qualification and installed operator
+routing remain unfinished; no service selects candidate/v5 yet.

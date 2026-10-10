@@ -210,3 +210,112 @@ def test_source_candidate_validator_replays_original_calibration_instead_of_reha
     altered=deepcopy(record);altered['calibration']['bands']['24']['overall']=1.
     altered['artifact_sha256']=_digest({k:v for k,v in altered.items() if k!='artifact_sha256'})
     with pytest.raises(ValueError):artifact.validate_source_calibrated_candidate(altered,**params)
+
+
+from test_installed_shade_raw_calibration import retained_compressed_calibration_case
+
+
+@pytest.fixture
+def compressed_candidate_values(retained_compressed_calibration_case):
+    from thermal_model.installed_shade_calibration import build_compressed_source_calibration
+    values,root,_,args,backend=retained_compressed_calibration_case
+    new=deepcopy(args['runtime']);new['code_revision']='9'*64
+    result=dict(base_bundle=values['bundle'],inputs=values['inputs'],calibration=build_compressed_source_calibration(**values),
+        original_pairs=values['original_pairs'],base_runtime=args['runtime'],runtime=new,created_at=values['created_at'])
+    return result,root,args,backend
+
+
+def test_compressed_candidate_binds_original_calibration_and_old_readers_refuse(compressed_candidate_values):
+    from thermal_model import installed_shade_calibrated_artifact as artifact
+    api=getattr(artifact,'build_compressed_source_calibrated_candidate',None)
+    assert callable(api),'missing compressed calibrated candidate profile'
+    values,_,_,_=compressed_candidate_values;record=api(**values)
+    assert record['schema']=='earthship-installed-shade-candidate/v5'
+    assert record['calibration']['schema']=='earthship-installed-shade-calibration/v4'
+    assert record['calibration']['source_contract']=='earthship-installed-shade-score-sources/v6'
+    assert record['release_authorized'] is False and record['as_issued_evidence'] is False
+    assert record['calibration']['bands']['24']['overall'] is None
+    assert record['trained_through']==values['calibration']['calibration_end']
+    for version in (2,3,4):
+        with pytest.raises(ValueError):artifact._shape(record,expected_runtime_revision=_digest(values['runtime']),assessed_at=values['created_at'],_version=version)
+
+
+@pytest.mark.parametrize('lost',['issue','outcome'])
+def test_compressed_candidate_requires_originals_after_calibration(compressed_candidate_values,lost):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_artifact as artifact
+    assert hasattr(artifact,'build_compressed_source_calibrated_candidate'),'missing compressed calibrated candidate profile'
+    values,_,args,backend=compressed_candidate_values
+    Path(args['native_source_paths']['air'] if lost=='issue' else backend.native_source_paths[-1]).unlink()
+    with pytest.raises((ValueError,OSError)):artifact.build_compressed_source_calibrated_candidate(**values)
+
+
+@pytest.mark.parametrize('damage',['closure','old_calibration'])
+def test_compressed_candidate_refuses_old_profile_or_incompatible_runtime(compressed_candidate_values,damage):
+    from thermal_model import installed_shade_calibrated_artifact as artifact
+    assert hasattr(artifact,'build_compressed_source_calibrated_candidate'),'missing compressed calibrated candidate profile'
+    values,_,_,_=compressed_candidate_values;values=deepcopy(values)
+    if damage=='closure':values['runtime']['source_manifest'].pop('weather_temperature_sources.py')
+    else:
+        values['calibration'].update(schema='earthship-installed-shade-calibration/v3',source_contract='earthship-installed-shade-score-sources/v4')
+        values['calibration']['calibration_sha256']=_digest({k:v for k,v in values['calibration'].items() if k!='calibration_sha256'})
+    with pytest.raises(ValueError):artifact.build_compressed_source_calibrated_candidate(**values)
+
+
+@pytest.mark.parametrize('lost',['issue','outcome'])
+def test_compressed_candidate_rechecks_originals_after_final_shape(compressed_candidate_values,monkeypatch,lost):
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_artifact as artifact
+    assert hasattr(artifact,'build_compressed_source_calibrated_candidate'),'missing compressed calibrated candidate profile'
+    values,_,args,backend=compressed_candidate_values;original=artifact._shape;removed=[]
+    def changed(*args2,**kwargs):
+        result=original(*args2,**kwargs)
+        if kwargs.get('_version')==5:
+            Path(args['native_source_paths']['air'] if lost=='issue' else backend.native_source_paths[-1]).unlink();removed.append(True)
+        return result
+    monkeypatch.setattr(artifact,'_shape',changed)
+    with pytest.raises((ValueError,OSError)):artifact.build_compressed_source_calibrated_candidate(**values)
+    assert removed
+
+
+def test_compressed_candidate_validator_refuses_rehashed_band_metadata(compressed_candidate_values):
+    from thermal_model import installed_shade_calibrated_artifact as artifact
+    assert hasattr(artifact,'build_compressed_source_calibrated_candidate'),'missing compressed calibrated candidate profile'
+    values,_,_,_=compressed_candidate_values;record=artifact.build_compressed_source_calibrated_candidate(**values)
+    params={k:values[k] for k in ('base_bundle','inputs','calibration','original_pairs')}
+    params.update(expected_runtime_revision=_digest(values['runtime']),assessed_at=values['created_at'])
+    assert artifact.validate_compressed_source_calibrated_candidate(record,**params)==record
+    altered=deepcopy(record);altered['calibration']['bands']['24']['overall']=1.
+    altered['artifact_sha256']=_digest({k:v for k,v in altered.items() if k!='artifact_sha256'})
+    with pytest.raises(ValueError):artifact.validate_compressed_source_calibrated_candidate(altered,**params)
+
+
+@pytest.mark.parametrize('case',['unchanged','temporary_issue'])
+def test_compressed_candidate_immutable_write_read_and_actual_temp_guard(compressed_candidate_values,monkeypatch,case):
+    import json
+    from pathlib import Path
+    from thermal_model import installed_shade_calibrated_artifact as artifact,runtime_bundle
+    assert hasattr(artifact,'build_compressed_source_calibrated_candidate'),'missing compressed calibrated candidate profile'
+    values,root,args,_=compressed_candidate_values;record=artifact.build_compressed_source_calibrated_candidate(**values)
+    archive=root/'candidate';archive.mkdir(mode=0o700)
+    original=runtime_bundle._write_private
+    def changed(path,raw):
+        original(path,raw);value=json.loads(raw)
+        if case=='temporary_issue' and isinstance(value,dict) and value.get('schema')=='earthship-installed-shade-candidate/v5':
+            Path(args['native_source_paths']['mass']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    params={k:values[k] for k in ('base_bundle','inputs','calibration','original_pairs')}
+    params.update(expected_runtime_revision=_digest(values['runtime']),assessed_at=values['created_at'])
+    if case=='temporary_issue':
+        with pytest.raises((ValueError,OSError)):artifact.write_compressed_source_calibrated_candidate(archive,record,**params)
+        assert not Path(args['native_source_paths']['mass']).exists()
+        assert not list(archive.glob('*.installed-shade-candidate-v5.json')) and not list(archive.glob('.calibration-*'))
+    else:
+        path=artifact.write_compressed_source_calibrated_candidate(archive,record,**params)
+        assert path.name==record['artifact_sha256']+'.installed-shade-candidate-v5.json'
+        result=artifact.read_compressed_source_calibrated_candidate(path,expected_runtime_revision=params['expected_runtime_revision'],assessed_at=params['assessed_at'])
+        assert result['artifact']==record and result['calibration']==values['calibration']
+        for reader in (artifact.read_calibrated_candidate,artifact.read_raw_calibrated_candidate,artifact.read_source_calibrated_candidate):
+            with pytest.raises(ValueError):reader(path,expected_runtime_revision=params['expected_runtime_revision'],assessed_at=params['assessed_at'])
+        Path(args['native_source_paths']['outdoor']).unlink()
+        with pytest.raises((ValueError,OSError)):artifact.read_compressed_source_calibrated_candidate(path,expected_runtime_revision=params['expected_runtime_revision'],assessed_at=params['assessed_at'])
