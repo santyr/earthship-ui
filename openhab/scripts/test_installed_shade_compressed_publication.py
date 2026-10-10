@@ -182,3 +182,11 @@ def test_compressed_publication_refuses_native_expiry_during_final_original_read
         return result
     monkeypatch.setattr(p,'_read_origin',elapsed)
     assert p.build_compressed_installed_publication('synthetic-origin',prepared)['status']=='unavailable'
+
+
+def test_compressed_delivery_retains_the_report_from_its_final_source_requalification(compressed_active_routing):
+    p,_,prepared,_,_,_,_=compressed_active_routing
+    reports=[]
+    output=p.build_compressed_installed_publication('synthetic-origin',prepared,report_sink=lambda report:reports.append(report))
+    assert output['status']=='forecast_active' and len(reports)==1
+    assert reports[0]['report_sha256']==output['release']['reportSha256']

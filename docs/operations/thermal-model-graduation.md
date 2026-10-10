@@ -2170,3 +2170,37 @@ operator, configuration and UI routing, verify genuine cohort capacity and
 source-qualified model readiness, and rebuild pinned runtime archives before
 cutover. Existing operational withdrawal remains required; disaster recovery
 work remains deferred.
+
+
+### Explicit compressed operator profile
+
+`thermal_installed_intel.py --contract-version 3` selects live-config/v3,
+release-inputs/v4, `CompressedSourceLiveBackend` and the complete compressed
+publication worker. It retains original query-container/v2 issue sources,
+numeric origin/v12, actual main origin/v13 and the matching final
+qualification/report/v7. The default operator profile remains version2.
+Check-only validates private configuration and constructs no transport.
+Publication still requires the existing shared consumer lock, strict serial
+resource scope and unchanged publication resource preflight. It grants no
+training/capture resource override and accepts no manual active switch.
+
+The worker verifies actual numeric persistence before the main publication.
+The final source-requalification report is retained before send; its digest
+matches the publication. Current original queries, native expiry, runtime and
+publication/qualification deadlines are checked inside the final transport
+callback after metadata lookup and replay. Failed source/input/receipt checks
+withdraw publication/v4 (version7) rather than retain a fabricated main capture.
+Duplicate issue attempts never repost a numeric forecast. Telemetry writes remain
+limited to the same two String Items; no physical control command is introduced.
+
+Operational withdrawal uses explicit withdraw-config/v3 and contract version3.
+It needs the existing token and evidence directory, not candidate, weather or
+native source files, and verifies the actual unavailable persistence receipt.
+This is forecast withdrawal; disaster recovery work remains deferred.
+
+These routes are implemented but are not installed or live-qualified. Genuine
+calibration and release evidence, qualifying-cohort capacity, source-compatible
+base calibration bootstrap, queued score/operator routing and UI validation
+remain required before cutover. Rebuild pinned runtime archives after code
+freeze; do not mistake routing fixtures or configuration verification for a
+household release pass.

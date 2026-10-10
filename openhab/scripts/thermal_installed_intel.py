@@ -31,14 +31,14 @@ def _resource_preflight():
 
 def _live(args,*,guard=lambda:None):
     guard()
-    from thermal_model.installed_shade_live_inputs import load_live_settings,load_raw_live_settings,LiveBackend
-    loader=load_raw_live_settings if args.contract_version==2 else load_live_settings
+    from thermal_model.installed_shade_live_inputs import load_live_settings,load_raw_live_settings,load_compressed_live_settings,LiveBackend,CompressedSourceLiveBackend
+    loader={1:load_live_settings,2:load_raw_live_settings,3:load_compressed_live_settings}[args.contract_version]
     settings=loader(args.config);guard()
     if not (args.publish or args.bootstrap_shadow):
         print(json.dumps(dict(status='configuration_verified',publication_executed=False,automatic_actuation=False)));return 0
-    from thermal_model.installed_shade_live import run_raw_live_cycle,run_bootstrap_live_cycle
-    run=run_bootstrap_live_cycle if args.bootstrap_shadow else run_raw_live_cycle
-    backend=LiveBackend(settings,shared_lock_guard=guard);guard()
+    from thermal_model.installed_shade_live import run_raw_live_cycle,run_bootstrap_live_cycle,run_compressed_live_cycle
+    run=run_bootstrap_live_cycle if args.bootstrap_shadow else run_compressed_live_cycle if args.contract_version==3 else run_raw_live_cycle
+    backend=(CompressedSourceLiveBackend if args.contract_version==3 else LiveBackend)(settings,shared_lock_guard=guard);guard()
     receipt=run(reference_path=settings['release_inputs_path'],archive=settings['evidence_directory'],backend=backend)
     guard();print(json.dumps(receipt,sort_keys=True))
     return 0 if receipt['status'] in ('published','withdrawn','busy','duplicate_attempt') else 1
@@ -47,8 +47,8 @@ def _live(args,*,guard=lambda:None):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,required=True)
-    parser.add_argument('--contract-version',type=int,choices=(1,2),default=2,
-        help='production uses 2; 1 permits checks, withdrawal and native base shadow bootstrap')
+    parser.add_argument('--contract-version',type=int,choices=(1,2,3),default=2,
+        help='2 preserves raw production; 3 explicitly selects compressed source qualification; 1 permits native base shadow bootstrap')
     intent=parser.add_mutually_exclusive_group()
     intent.add_argument('--publish',action='store_true')
     intent.add_argument('--bootstrap-shadow',action='store_true',help='contract 1 native base candidate calibration collection only')
@@ -57,7 +57,7 @@ def main(argv=None):
     parser.add_argument('--shared-lock',type=Path,help='existing private consumer lock, required for publication/bootstrap')
     parser.add_argument('--reason',help='private withdrawal reason, required with --withdraw')
     args=parser.parse_args(argv)
-    if args.publish and args.contract_version!=2:parser.error('publication requires contract version 2')
+    if args.publish and args.contract_version not in (2,3):parser.error('publication requires contract version 2 or 3')
     if args.bootstrap_shadow and args.contract_version!=1:parser.error('base shadow bootstrap requires explicit contract version 1')
     if (args.publish or args.bootstrap_shadow) and args.shared_lock is None:parser.error('publication/bootstrap requires --shared-lock')
     if args.shared_lock is not None and not (args.publish or args.bootstrap_shadow):parser.error('--shared-lock requires publication/bootstrap')
@@ -68,10 +68,10 @@ def main(argv=None):
             _resource_preflight()
             os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
         if args.withdraw:
-            from thermal_model.installed_shade_live_inputs import load_withdraw_settings,load_raw_withdraw_settings,WithdrawalBackend
-            from thermal_model.installed_shade_live import withdraw_live_publication,withdraw_raw_live_publication
-            loader=load_raw_withdraw_settings if args.contract_version==2 else load_withdraw_settings
-            withdraw=withdraw_raw_live_publication if args.contract_version==2 else withdraw_live_publication
+            from thermal_model.installed_shade_live_inputs import load_withdraw_settings,load_raw_withdraw_settings,load_compressed_withdraw_settings,WithdrawalBackend
+            from thermal_model.installed_shade_live import withdraw_live_publication,withdraw_raw_live_publication,withdraw_compressed_live_publication
+            loader={1:load_withdraw_settings,2:load_raw_withdraw_settings,3:load_compressed_withdraw_settings}[args.contract_version]
+            withdraw={1:withdraw_live_publication,2:withdraw_raw_live_publication,3:withdraw_compressed_live_publication}[args.contract_version]
             settings=loader(args.config)
             result=withdraw(archive=settings['evidence_directory'],backend=WithdrawalBackend(settings),reason=args.reason)
             print(json.dumps(result,sort_keys=True));return 0 if result['status'] in ('withdrawn','busy') else 1

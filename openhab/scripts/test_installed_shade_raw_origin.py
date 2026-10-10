@@ -136,7 +136,7 @@ def source_origin_case(raw_math_capture,tmp_path):
     return build_source_origin_case(raw_math_capture,tmp_path)
 
 
-def build_source_origin_case(raw_math_capture,tmp_path):
+def build_source_origin_case(raw_math_capture,tmp_path,*,assessed_at=None):
     """Real raw native issue queries; candidate is only a math fixture."""
     from datetime import datetime
     from weather_temperature_evidence import TemperaturePolicy,MODELS
@@ -162,14 +162,15 @@ def build_source_origin_case(raw_math_capture,tmp_path):
         packet=build_temperature_source(rows=rows,targets=targets,assessed_at=assessed,stream=stream,policy=policies[stream],sensor_epoch=phases[stream])
         paths[role]=str(write_temperature_source(tmp_path,packet))
         return replay_temperature_source(packet)
-    selected=shadow_temperatures_v2(issue,grid,sensor_epochs=raw_math_capture['source_epochs'],origin_observer=saved.append)
+    assessed=issue if assessed_at is None else assessed_at
+    selected=shadow_temperatures_v2(assessed,grid,sensor_epochs=raw_math_capture['source_epochs'],origin_observer=saved.append)
     current={role:v['current'] for role,v in selected.items()}
     history=list(selected['mass']['history']);reading=current['mass']
     if not history or reading['at']>history[-1][0]:history.append((reading['at'],reading['value']))
     latent=latent_mass_from_series(history)
     if latent is not None:current['mass']['value']=latent[1]
-    prepared=origin.PreparedRawCalibratedCandidate(_canonical(raw_math_capture['candidate']),issue)
-    return prepared,dict(issued_at=issue,inputs_available_at=issue,published_at=issue+timedelta(seconds=2),
+    prepared=origin.PreparedRawCalibratedCandidate(_canonical(raw_math_capture['candidate']),assessed)
+    return prepared,dict(issued_at=issue,inputs_available_at=assessed,published_at=issue+timedelta(seconds=2),
         runtime=raw_math_capture['runtime'],forecast=weather(issue),current=current,
         origin_temperatures=saved[0],action_snapshot=actions(issue),native_source_paths=paths)
 

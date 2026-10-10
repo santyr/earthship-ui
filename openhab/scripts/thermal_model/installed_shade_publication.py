@@ -244,7 +244,7 @@ def _read_origin(path, *, _version=1):
     raise ValueError('typed original installed forecast required')
 
 
-def _build_installed_publication(original_path,prepared, *, _version=1):
+def _build_installed_publication(original_path,prepared, *, _version=1,_report_sink=None):
     """Bind fresh original inputs to an invocation's source-replayed decision."""
     _check_profile(_version)
     now=_utc(_clock())
@@ -308,6 +308,10 @@ def _build_installed_publication(original_path,prepared, *, _version=1):
             value['release'].update(schema=COMPRESSED_SOURCE_RELEASE_SCHEMA,
                 nativeOriginBindingSha256=_digest(original['native_origin_binding']),
                 sourceQualificationSchema=COMPRESSED_SOURCE_QUALIFICATION_SCHEMA if policy else None)
+            validate_compressed_source_installed_publication(value)
+            if _report_sink is not None:
+                if not callable(_report_sink):raise ValueError('private report retention callback required')
+                _report_sink(deepcopy(report))
             # Recheck actual current query bytes after numerical forecast replay.
             current_original,_=_read_origin(original_path,_version=3)
             if _canonical(current_original)!=_canonical(original):raise ValueError('original capture changed during publication')
@@ -570,8 +574,8 @@ def prepare_compressed_installed_qualification(reference_path):
     except ERRORS:return PreparedCompressedInstalledQualification(None,None,False)
 
 
-def build_compressed_installed_publication(original_path,prepared):
+def build_compressed_installed_publication(original_path,prepared,*,report_sink=None):
     """Requalify original references in this invocation before publishing."""
     from .installed_shade_calibration import _source_operation
-    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3)
+    try:return _source_operation(_build_installed_publication,original_path,prepared,_version=3,_report_sink=report_sink)
     except ERRORS:return unavailable_compressed_source_installed_publication(_clock())

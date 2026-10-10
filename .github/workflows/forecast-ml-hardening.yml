@@ -56,6 +56,8 @@ on:
       - 'openhab/scripts/test_installed_shade_published_origin.py'
       - 'openhab/scripts/test_installed_shade_live.py'
       - 'openhab/scripts/test_installed_shade_complete_raw_live.py'
+      - 'openhab/scripts/test_installed_shade_compressed_live.py'
+      - 'openhab/scripts/test_installed_shade_compressed_live_cli.py'
       - 'openhab/scripts/test_installed_shade_raw_live_cli.py'
       - 'openhab/scripts/test_installed_shade_bootstrap_live.py'
       - 'openhab/scripts/test_installed_shade_live_inputs.py'
@@ -153,6 +155,8 @@ jobs:
             openhab/scripts/test_installed_shade_published_origin.py \
             openhab/scripts/test_installed_shade_live.py \
             openhab/scripts/test_installed_shade_complete_raw_live.py \
+            openhab/scripts/test_installed_shade_compressed_live.py \
+            openhab/scripts/test_installed_shade_compressed_live_cli.py \
             openhab/scripts/test_installed_shade_raw_live_cli.py \
             openhab/scripts/test_installed_shade_bootstrap_live.py \
             openhab/scripts/test_installed_shade_live_inputs.py \

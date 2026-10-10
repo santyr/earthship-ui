@@ -2,7 +2,7 @@
 
 Preparation replays original sources before short-lived input acquisition. The
 entrypoint supplies a closed private configuration and real bounded backends.
-This module never fits, changes physical controls or accepts an active override.
+This module never trains a new model, changes physical controls or accepts an active override.
 """
 from copy import deepcopy
 from datetime import datetime,timedelta,timezone
@@ -26,6 +26,10 @@ from .installed_shade_published_origin import (NUMERIC_ITEM,PUBLICATION_ITEM,bui
 from .installed_shade_qualification import (write_installed_shade_qualification_report,
     write_calibrated_installed_shade_qualification_report,write_published_installed_shade_qualification_report,
     write_raw_published_installed_shade_qualification_report,write_complete_raw_installed_shade_qualification_report)
+from .installed_shade_publication import (prepare_compressed_installed_qualification,build_compressed_installed_publication,
+    unavailable_compressed_source_installed_publication,validate_compressed_source_installed_publication,PreparedCompressedInstalledQualification)
+from .installed_shade_published_origin import build_compressed_calibrated_publication_capture,write_compressed_calibrated_publication_capture
+from .installed_shade_qualification import write_compressed_installed_shade_qualification_report
 from . import installed_shade_origin as base
 from . import installed_shade_calibrated_origin as calibrated
 
@@ -58,8 +62,12 @@ def _runtime(prepared,artifact):
 def _numeric(prepared,inputs,*,issue,available,published,runtime,_version=1):
     artifact=json.loads(prepared.candidate_json);report=json.loads(prepared.report_json)
     validated=_utc(report['assessed_at'])
-    if set(inputs)!={'forecast','current','origin_temperatures','action_snapshot'}:raise ValueError('closed original input context required')
-    if _version==2:
+    fields={'forecast','current','origin_temperatures','action_snapshot'}|({'native_source_paths'} if _version==3 else set())
+    if set(inputs)!=fields:raise ValueError('closed original input context required')
+    if _version==3:
+        if artifact['schema']!='earthship-installed-shade-candidate/v5':raise ValueError('compressed calibrated candidate5 required')
+        candidate=calibrated.PreparedCompressedCalibratedCandidate(prepared.candidate_json,validated);builder=calibrated.build_compressed_source_calibrated_capture
+    elif _version==2:
         if artifact['schema']!='earthship-installed-shade-candidate/v3':raise ValueError('raw calibrated candidate required')
         candidate=calibrated.PreparedRawCalibratedCandidate(prepared.candidate_json,validated);builder=calibrated.build_raw_calibrated_capture
     elif artifact['schema']=='earthship-installed-shade-candidate/v2':
@@ -68,7 +76,7 @@ def _numeric(prepared,inputs,*,issue,available,published,runtime,_version=1):
     return builder(candidate,issued_at=issue,inputs_available_at=available,published_at=published,runtime=runtime,**inputs)
 
 
-def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None):
+def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None,_version=1):
     from thermal_temperature_runtime import validate_shadow_receipt_expiry
     # Expiry uses the actual clock after potentially slower configuration and
     # runtime reads. This callback runs after HTTP metadata lookup and pacing.
@@ -81,9 +89,18 @@ def _send_guard(prepared,artifact,inputs,issue,backend,*,output=None):
     if report['forecast_qualified'] and not now<_utc(report['qualification_expires_at']):
         raise ValueError('source qualification expired before send')
     if output is not None and not now<_utc(output['validUntil']):raise ValueError('publication expired before send')
+    if _version==3:
+        _numeric(prepared,inputs,issue=issue,available=issue,published=now,runtime=artifact['runtime'],_version=3)
+        backend.verify_unchanged();_runtime(prepared,artifact)
+        finished=_utc(_clock());validate_shadow_receipt_expiry(inputs['current'],finished)
+        if not issue<=finished<issue+timedelta(minutes=10):raise ValueError('original issue expired during send replay')
+        if not assessed<=finished<assessed+timedelta(minutes=20):raise ValueError('source assessment expired during send replay')
+        if report['forecast_qualified'] and not finished<_utc(report['qualification_expires_at']):raise ValueError('qualification expired during send replay')
+        if output is not None and not finished<_utc(output['validUntil']):raise ValueError('publication expired during send replay')
 
 
 def _write_numeric(root,record,*,_version=1):
+    if _version==3:return calibrated.write_compressed_source_calibrated_capture(root,record)
     if _version==2:return calibrated.write_raw_calibrated_capture(root,record)
     writer=calibrated.write_calibrated_capture if record['schema']==calibrated.SCHEMA else base.write_issued_capture
     return writer(root,record)
@@ -94,7 +111,8 @@ def _report_cache(root,report):
         'earthship-installed-shade-qualification-report/v2':write_calibrated_installed_shade_qualification_report,
         'earthship-installed-shade-qualification-report/v3':write_published_installed_shade_qualification_report,
         'earthship-installed-shade-qualification-report/v4':write_raw_published_installed_shade_qualification_report,
-        'earthship-installed-shade-qualification-report/v5':write_complete_raw_installed_shade_qualification_report}
+        'earthship-installed-shade-qualification-report/v5':write_complete_raw_installed_shade_qualification_report,
+        'earthship-installed-shade-qualification-report/v7':write_compressed_installed_shade_qualification_report}
     return writers[report['schema']](root,report)
 
 
@@ -108,7 +126,7 @@ def _confirmed_receipt(backend,item,state,*,since):
 
 
 def _withdraw(backend,*,_version=1):
-    unavailable=unavailable_raw_installed_publication if _version==2 else unavailable_installed_publication
+    unavailable={1:unavailable_installed_publication,2:unavailable_raw_installed_publication,3:unavailable_compressed_source_installed_publication}[_version]
     output=unavailable(_clock())
     try:
         state=_canonical(output).decode();since=_utc(_clock())
@@ -123,17 +141,22 @@ def run_raw_live_cycle(*,reference_path,archive,backend):
     return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_version=2)
 
 
+def run_compressed_live_cycle(*,reference_path,archive,backend):
+    return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_version=3)
+
+
 def run_bootstrap_live_cycle(*,reference_path,archive,backend):
     """Collect native base-candidate calibration origins in shadow only."""
     return run_live_cycle(reference_path=reference_path,archive=archive,backend=backend,_bootstrap_only=True)
 
 
 def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=False):
-    prepare=prepare_raw_installed_qualification if _version==2 else prepare_installed_qualification
-    publish=build_raw_installed_publication if _version==2 else build_installed_publication
-    validate=validate_raw_installed_publication if _version==2 else validate_installed_publication
-    capture_builder=build_raw_publication_capture if _version==2 else build_publication_capture
-    capture_writer=write_raw_publication_capture if _version==2 else write_publication_capture
+    if type(_version) is not int or _version not in (1,2,3):raise ValueError('explicit live publication profile required')
+    prepare={1:prepare_installed_qualification,2:prepare_raw_installed_qualification,3:prepare_compressed_installed_qualification}[_version]
+    publish={1:build_installed_publication,2:build_raw_installed_publication,3:build_compressed_installed_publication}[_version]
+    validate={1:validate_installed_publication,2:validate_raw_installed_publication,3:validate_compressed_source_installed_publication}[_version]
+    capture_builder={1:build_publication_capture,2:build_raw_publication_capture,3:build_compressed_calibrated_publication_capture}[_version]
+    capture_writer={1:write_publication_capture,2:write_raw_publication_capture,3:write_compressed_calibrated_publication_capture}[_version]
     root=_private_directory(Path(archive));fd=os.open(root/'.installed-shade-live.lock',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
     try:
         info=os.fstat(fd)
@@ -144,7 +167,7 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
         try:
             backend.verify_unchanged();issue=_next_issue(_clock())
             prepared=prepare(reference_path)
-            if _version==2 and not isinstance(prepared,PreparedRawInstalledQualification):
+            if _version in (2,3) and not isinstance(prepared,PreparedCompressedInstalledQualification if _version==3 else PreparedRawInstalledQualification):
                 raise ValueError('complete raw source preparation required')
             if prepared.source_ready is not True:raise ValueError('original source preparation failed')
             artifact=json.loads(prepared.candidate_json)
@@ -170,40 +193,45 @@ def run_live_cycle(*,reference_path,archive,backend,_version=1,_bootstrap_only=F
             if attempt_path.exists():return dict(status='duplicate_attempt',delivery_verified=False,automatic_actuation=False)
             from .runtime_bundle import _write_private
             _write_private(attempt_path,_canonical(attempt))
-            _report_cache(root,json.loads(prepared.report_json))
+            if _version!=3:_report_cache(root,json.loads(prepared.report_json))
             backend.verify_unchanged();_runtime(prepared,artifact)
             # Rebuild after retention; the transport callback performs the
             # final expiry check after metadata/pacing before the sole PUT.
             view=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime,_version=_version)
             sent=_canonical(view['output']).decode();numeric_since=_utc(_clock())
-            backend.put(NUMERIC_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend))
+            backend.put(NUMERIC_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend,_version=_version))
             numeric=_confirmed_receipt(backend,NUMERIC_ITEM,sent,since=numeric_since)
             persisted,_=_receipt(numeric,NUMERIC_ITEM)
             if _canonical(persisted)!=_canonical(view['output']):raise ValueError('actual numeric receipt differs')
             original=_numeric(prepared,inputs,issue=issue,available=available,published=_utc(_clock()),runtime=runtime,_version=_version)
             original_path=_write_numeric(root,original,_version=_version)
-            output=publish(original_path,prepared);validate(output)
+            output=publish(original_path,prepared,report_sink=lambda report:_report_cache(root,report)) if _version==3 else publish(original_path,prepared)
+            validate(output)
             if output['status']=='unavailable' or (_bootstrap_only and output['status']!='shadow'):
                 raise ValueError('current publication gates failed')
             backend.verify_unchanged();_runtime(prepared,artifact)
             # The publication builder replays current expiry/runtime again here.
-            output=publish(original_path,prepared)
+            if _version!=3:output=publish(original_path,prepared)
             if output['status']=='unavailable' or (_bootstrap_only and output['status']!='shadow'):
                 raise ValueError('publication expired or bootstrap mode changed before delivery')
             main_since=_utc(_clock());sent=_canonical(output).decode()
-            backend.put(PUBLICATION_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend,output=output))
+            backend.put(PUBLICATION_ITEM,sent,preflight=lambda:_send_guard(prepared,artifact,inputs,issue,backend,output=output,_version=_version))
             main=_confirmed_receipt(backend,PUBLICATION_ITEM,sent,since=main_since)
             capture=capture_builder(original_path,numeric_publication=numeric,publication=main)
             path=capture_writer(root,capture)
             return dict(status='published',mode=output['status'],delivery_verified=True,capture_path=str(path),
                 capture_sha256=capture['capture_sha256'],automatic_actuation=False)
-        except ERRORS:return _withdraw(backend,_version=2) if _version==2 else _withdraw(backend)
+        except ERRORS:return _withdraw(backend,_version=_version) if _version in (2,3) else _withdraw(backend)
     finally:os.close(fd)
 
 
 def withdraw_raw_live_publication(*,archive,backend,reason):
     """Withdraw raw publication independently of model or source availability."""
     return withdraw_live_publication(archive=archive,backend=backend,reason=reason,_version=2)
+
+
+def withdraw_compressed_live_publication(*,archive,backend,reason):
+    return withdraw_live_publication(archive=archive,backend=backend,reason=reason,_version=3)
 
 
 def withdraw_live_publication(*,archive,backend,reason,_version=1):
@@ -220,7 +248,7 @@ def withdraw_live_publication(*,archive,backend,reason,_version=1):
         except BlockingIOError:return dict(status='busy',delivery_verified=False,automatic_actuation=False)
         current=lock.lstat()
         if (current.st_dev,current.st_ino)!=(info.st_dev,info.st_ino):raise ValueError('withdrawal lock replaced')
-        unavailable=unavailable_raw_installed_publication if _version==2 else unavailable_installed_publication
+        unavailable={1:unavailable_installed_publication,2:unavailable_raw_installed_publication,3:unavailable_compressed_source_installed_publication}[_version]
         backend.verify_unchanged();output=unavailable(_clock());state=_canonical(output).decode();since=_utc(_clock())
         def preflight():
             backend.verify_unchanged()
