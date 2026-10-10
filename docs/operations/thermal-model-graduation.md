@@ -1704,8 +1704,8 @@ receipts. Replay requires the original private content-addressed files to remain
 available. The binding grants no release authority.
 
 The source binding is now connected to the explicit numeric origin/v6 described
-below. Main publication receipts, live acquisition and qualification reports
-still need the new source-bound profile. Existing origin/publication versions
+below. Main receipt profiles and acquisition APIs exist, but live routing and
+complete source-chain qualification remain unfinished. Existing origin/publication versions
 retain their prior meanings. The base shadow bootstrap and original calibration
 still need routing to the explicit query-bound base capture described below
 before the full chain can claim raw source authority. Rebuild pinned runtimes after integration; passing
@@ -1754,3 +1754,31 @@ candidate/registration qualification and the operator/UI profile still need
 explicit source-bound routing. Neither the new backend nor these numeric APIs
 close that integration gap or prove sufficient independent release evidence.
 Rebuild pinned runtime archives after these source changes.
+
+
+Publication/v3 version6 and release/v3 structurally bind
+`nativeOriginBindingSha256` to the unchanged numeric output's query-binding
+digest. The validator preserves the existing freshness, physical, action,
+interval and authority-field checks. Its private validation projection is never
+published or substituted for an original receipt. Base forecast/v5 remains
+uncalibrated and cannot activate, even with a qualification marker. Calibrated
+forecast/v4 can structurally claim active mode only with the explicit
+qualification-report/v6 marker; this marker and a report digest alone confer no
+release authority. Complete q6 assessment and the source-aware preparation and
+publication factory are still required and not implemented by these shape APIs.
+
+Main origin/v7 records numeric origin/v6; main origin/v9 records base numeric
+origin/v8. `build_source_publication_capture`, `write_source_publication_capture`,
+`read_source_publication_capture` and `score_source_publication_capture` bind both
+actual persisted String Item receipts, exact issue/runtime/candidate identity,
+the original query proof and native expiry at the real main-receipt timestamp.
+Scored-pair/v7 or v9 returns both actual receipt hashes. Original query loss or
+changed/rehashed receipts refuse replay; immutable main capture storage
+revalidates immediately before rename. Older main readers refuse these records.
+`unavailable_source_installed_publication` carries neither query proof nor a
+qualification claim.
+
+No installed service, current operator CLI, prepared factory or UI selects this
+new profile. Queued raw scoring, calibration/candidate/registration and complete
+qualification still need the explicit source-bound chain. Passing these
+component tests does not authorize activation or establish natural delivery.

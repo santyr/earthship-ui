@@ -380,3 +380,57 @@ def build_installed_publication(original_path,prepared):
 def build_raw_installed_publication(original_path,prepared):
     """Publish only the decision from the complete raw qualification profile."""
     return _build_installed_publication(original_path,prepared,_version=2)
+
+
+SOURCE_SCHEMA='earthship-installed-shade-publication/v3'
+SOURCE_RELEASE_SCHEMA='earthship-installed-shade-release/v3'
+SOURCE_RELEASE_FIELDS=RELEASE_FIELDS|{'nativeOriginBindingSha256','sourceQualificationSchema'}
+SOURCE_NUMERIC_FIELDS=NUMERIC_FIELDS|{'native_origin_binding_sha256'}
+SOURCE_QUALIFICATION_SCHEMA='earthship-installed-shade-qualification-report/v6'
+
+
+def validate_source_installed_publication(value):
+    """Validate a query-bound shape; no factory or release authority is granted.
+
+    Reuse unchanged physical/freshness/interval checks through a private shape
+    projection. The original source payload and its schema remain unchanged.
+    """
+    if (not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=SOURCE_SCHEMA or
+            type(value['version']) is not int or value['version']!=6 or len(_canonical(value))>=MAX_BYTES):
+        raise ValueError('closed bounded source publication required')
+    release=value['release'];forecast=value['forecast']
+    if (not isinstance(release,dict) or set(release)!=SOURCE_RELEASE_FIELDS or
+            release['schema']!=SOURCE_RELEASE_SCHEMA or
+            release['sourceQualificationSchema'] not in (None,SOURCE_QUALIFICATION_SCHEMA)):
+        raise ValueError('explicit source publication qualification profile required')
+    unavailable=value['status']=='unavailable'
+    if unavailable:
+        if release['nativeOriginBindingSha256'] is not None or release['sourceQualificationSchema'] is not None:
+            raise ValueError('unavailable source output cannot fabricate proof')
+        profile=2
+    else:
+        if (not isinstance(forecast,dict) or set(forecast)!=SOURCE_NUMERIC_FIELDS or
+                forecast['schema'] not in ('earthship-installed-shade-forecast/v4','earthship-installed-shade-forecast/v5')):
+            raise ValueError('original query-bound numeric output required')
+        _sha(release['nativeOriginBindingSha256']);_sha(forecast['native_origin_binding_sha256'])
+        if release['nativeOriginBindingSha256']!=forecast['native_origin_binding_sha256']:
+            raise ValueError('main output changed the original query binding')
+        if value['status']=='forecast_active' and release['sourceQualificationSchema']!=SOURCE_QUALIFICATION_SCHEMA:
+            raise ValueError('activation requires full source-chain qualification')
+        profile=1 if forecast['schema'].endswith('/v5') else 2
+    projected=deepcopy(value)
+    projected.update(schema=CALIBRATED_RAW_SCHEMA if profile==2 else SCHEMA,version=5 if profile==2 else 4)
+    projected['release']['schema']=CALIBRATED_RAW_RELEASE_SCHEMA if profile==2 else RELEASE_SCHEMA
+    for field in ('nativeOriginBindingSha256','sourceQualificationSchema'):projected['release'].pop(field)
+    if not unavailable:
+        projected['forecast'].pop('native_origin_binding_sha256')
+        projected['forecast']['schema']='earthship-installed-shade-forecast/v3' if profile==2 else 'earthship-installed-shade-forecast/v1'
+    _validate_installed_publication(projected,_version=profile)
+    return value
+
+
+def unavailable_source_installed_publication(now):
+    value=unavailable_raw_installed_publication(now)
+    value.update(schema=SOURCE_SCHEMA,version=6)
+    value['release'].update(schema=SOURCE_RELEASE_SCHEMA,nativeOriginBindingSha256=None,sourceQualificationSchema=None)
+    return validate_source_installed_publication(value)

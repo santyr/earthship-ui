@@ -140,3 +140,133 @@ def test_raw_v3_sources_refuse_rehashed_temperature_receipt_changes(raw_delivere
     changed.write_bytes(_canonical(header));changed.chmod(0o600)
     with pytest.raises(ValueError,match='cached receipts differ from retained raw selection'):
         sources.read_calibrated_raw_score_sources(changed,assessed_at=issue+timedelta(hours=24,minutes=10))
+
+
+from test_installed_shade_raw_origin import source_origin_case,source_base_args
+
+
+@pytest.fixture(params=['base','calibrated'])
+def source_delivery_case(source_origin_case,tmp_path,monkeypatch,request):
+    return source_origin_case,tmp_path,monkeypatch,request.param
+
+
+def deliver_source(case):
+    """Actual source archives with mathematical candidate and receipt fixtures."""
+    source_origin_case,tmp_path,monkeypatch,kind=case
+    from thermal_model import installed_shade_origin as base
+    from thermal_model import installed_shade_publication as publisher
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_calibrated_origin as calibrated
+    assert hasattr(publisher,'validate_source_installed_publication'),'missing source-bound main publication profile'
+    assert hasattr(published,'build_source_publication_capture'),'missing source-bound actual main receipt capture'
+    prepared,args=source_origin_case
+    if kind=='base':prepared,args=source_base_args(source_origin_case)
+    record=(base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
+    root=tmp_path/'receipts';root.mkdir(mode=0o700)
+    path=(base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
+    artifact=record['candidate'];issue=args['issued_at'];binding=_digest(record['native_origin_binding'])
+    output=dict(schema='earthship-installed-shade-publication/v3',version=6,status='shadow',
+        generatedAt=issue.isoformat(),validUntil=(issue+timedelta(minutes=10)).isoformat(),
+        model=dict(createdAt=artifact['created_at'],trainedThrough=artifact['trained_through'],codeRevision=artifact['code_revision']),
+        forecast=deepcopy(record['output']),confidence=dict(grade='low',actionLabels='withheld'),reasons=['Qualification incomplete'],
+        release=dict(schema='earthship-installed-shade-release/v3',qualifiedAt=(issue+timedelta(seconds=3)).isoformat(),expiresAt=None,
+            artifactSha256=artifact['artifact_sha256'],runtimeSha256=_digest(record['runtime']),policySha256=None,reportSha256='1'*64,
+            originCaptureSha256=record['capture_sha256'],calibrationSha256=None if kind=='base' else artifact['calibration']['calibration_sha256'],
+            sensorEpochs=record['source_epochs'],sensorEpochSemantics='declared_hardware_phase',forecastQualified=False,
+            advisoryQualified=False,automaticActuation=False,nativeOriginBindingSha256=binding,sourceQualificationSchema=None))
+    publisher.validate_source_installed_publication(output)
+    numeric=dict(item='Thermal_OriginalForecast_JSON',time=int((issue+timedelta(seconds=2)).timestamp()*1000),state=_canonical(record['output']).decode())
+    actual=dict(item='Thermal_Model_JSON',time=int((issue+timedelta(seconds=3)).timestamp()*1000),state=_canonical(output).decode())
+    monkeypatch.setattr(published,'_clock',lambda:issue+timedelta(seconds=4))
+    capture=published.build_source_publication_capture(path,numeric_publication=numeric,publication=actual)
+    return root,capture,output,issue,kind,args
+
+
+def test_source_main_capture_binds_query_proof_and_refuses_legacy_readers(source_delivery_case):
+    from thermal_model import installed_shade_publication as publisher
+    from thermal_model import installed_shade_published_origin as published
+    root,record,output,_,kind,_=deliver_source(source_delivery_case)
+    version=9 if kind=='base' else 7
+    assert record['schema']==f'earthship-installed-shade-origin/v{version}'
+    assert output['release']['nativeOriginBindingSha256']==_digest(record['numeric_capture']['native_origin_binding'])
+    path=published.write_source_publication_capture(root,record)
+    assert path.name==record['capture_sha256']+f'.installed-shade-origin-v{version}.json'
+    assert published.read_source_publication_capture(path)==record
+    with pytest.raises(ValueError):published.validate_raw_publication_capture(record)
+    with pytest.raises(ValueError):publisher.validate_raw_installed_publication(output)
+    with pytest.raises(ValueError):published.read_raw_publication_capture(path)
+
+
+@pytest.mark.parametrize('hours',[1,6,12,24])
+def test_source_main_scoring_replays_queries_and_binds_both_actual_receipts(source_delivery_case,hours):
+    from thermal_model import installed_shade_published_origin as published
+    _,record,_,issue,kind,args=deliver_source(source_delivery_case);target=issue+timedelta(hours=hours)
+    values=dict(publication=record['publication'],horizon_hours=hours,outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),
+        recent_cycle_grid=synthetic_cycle_grid(issue,hours),assessed_at=target+timedelta(minutes=10))
+    score=published.score_source_publication_capture(record,**values)
+    assert score['schema']==f"earthship-installed-shade-source-scored-pair/v{9 if kind=='base' else 7}"
+    assert score['original_capture_sha256']==record['capture_sha256']
+    assert score['numeric_capture_sha256']==record['numeric_capture']['capture_sha256']
+    assert score['publication_sha256']==_digest(record['publication'])
+    assert score['numeric_publication_sha256']==_digest(record['numeric_publication'])
+    assert score['native_origin_binding_sha256']==_digest(record['numeric_capture']['native_origin_binding'])
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):published.score_source_publication_capture(record,**values)
+
+
+@pytest.mark.parametrize('damage',['query_digest','numeric_receipt','late_main','deleted_source','old_numeric'])
+def test_source_main_rehashed_receipt_or_query_changes_are_refused(source_delivery_case,damage):
+    from thermal_model import installed_shade_published_origin as published
+    _,original,output,_,_,args=deliver_source(source_delivery_case);record=deepcopy(original)
+    if damage=='query_digest':
+        output=deepcopy(output);output['release']['nativeOriginBindingSha256']='a'*64
+        record['publication']['state']=_canonical(output).decode()
+    elif damage=='numeric_receipt':record['numeric_publication']['state']='{}'
+    elif damage=='late_main':record['publication']['time']+=180000
+    elif damage=='deleted_source':Path(args['native_source_paths']['mass']).unlink()
+    else:record['numeric_capture']['schema']='earthship-installed-shade-origin/v4'
+    record['capture_sha256']=_digest({k:v for k,v in record.items() if k!='capture_sha256'})
+    with pytest.raises((ValueError,OSError)):published.validate_source_publication_capture(record)
+
+
+def test_source_main_cannot_claim_activation_from_old_qualification(source_delivery_case):
+    from thermal_model import installed_shade_publication as publisher
+    _,_,output,issue,_,_=deliver_source(source_delivery_case);value=deepcopy(output)
+    value['status']='forecast_active';value['confidence']['grade']='high';value['release']['forecastQualified']=True
+    value['release']['policySha256']='2'*64;value['release']['expiresAt']=(issue+timedelta(hours=1)).isoformat()
+    value['release']['sourceQualificationSchema']='earthship-installed-shade-qualification-report/v5'
+    with pytest.raises(ValueError):publisher.validate_source_installed_publication(value)
+
+
+def test_source_main_unavailable_carries_no_original_query_or_qualification_claim():
+    from datetime import timezone
+    from thermal_model import installed_shade_publication as publisher
+    value=publisher.unavailable_source_installed_publication(datetime(2026,10,8,12,tzinfo=timezone.utc))
+    assert value['schema']=='earthship-installed-shade-publication/v3' and value['version']==6
+    assert value['status']=='unavailable' and value['forecast'] is None
+    assert value['release']['nativeOriginBindingSha256'] is None
+    assert value['release']['sourceQualificationSchema'] is None
+    for field in ('nativeOriginBindingSha256','sourceQualificationSchema'):
+        changed=deepcopy(value);changed['release'][field]='a'*64 if field=='nativeOriginBindingSha256' else publisher.SOURCE_QUALIFICATION_SCHEMA
+        with pytest.raises(ValueError):publisher.validate_source_installed_publication(changed)
+
+
+@pytest.mark.parametrize('source_delivery_case',['base'],indirect=True)
+def test_source_main_base_cannot_activate_even_with_q6_marker(source_delivery_case):
+    from thermal_model import installed_shade_publication as publisher
+    _,_,output,issue,_,_=deliver_source(source_delivery_case);value=deepcopy(output)
+    value['status']='forecast_active';value['confidence']['grade']='high'
+    value['release'].update(forecastQualified=True,policySha256='2'*64,calibrationSha256='3'*64,
+        expiresAt=(issue+timedelta(hours=1)).isoformat(),sourceQualificationSchema=publisher.SOURCE_QUALIFICATION_SCHEMA)
+    with pytest.raises(ValueError):publisher.validate_source_installed_publication(value)
+
+
+def test_source_main_refuses_query_loss_during_temporary_main_capture_write(source_delivery_case,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,runtime_bundle
+    root,record,_,_,kind,args=deliver_source(source_delivery_case);original=runtime_bundle._write_private
+    def lost(path,raw):
+        original(path,raw);Path(args['native_source_paths']['outdoor']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',lost)
+    with pytest.raises((ValueError,OSError)):published.write_source_publication_capture(root,record)
+    assert not list(root.glob(f"*.installed-shade-origin-v{9 if kind=='base' else 7}.json"))
+    assert not list(root.glob('.calibration-*'))
