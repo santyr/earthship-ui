@@ -417,9 +417,10 @@ def build_runtime_binding(runtime_root,revision_paths):
     import scipy
     import psycopg2
     root=Path(runtime_root).resolve(strict=True)
-    if (not isinstance(revision_paths,(tuple,list)) or not 1<=len(revision_paths)<=63 or
+    if (not isinstance(revision_paths,(tuple,list)) or not 1<=len(revision_paths)<=64 or
             any(not isinstance(name,str) for name in revision_paths) or
-            len(set(revision_paths))!=len(revision_paths) or 'thermal_intel.py' not in revision_paths):
+            len(set(revision_paths))!=len(revision_paths) or 'thermal_intel.py' not in revision_paths or
+            (len(revision_paths)==64 and 'thermal_model/origin_capture.py' not in revision_paths)):
         raise ValueError('unique declared prediction closure required')
     manifest={};digest=sha256()
     for name in revision_paths:

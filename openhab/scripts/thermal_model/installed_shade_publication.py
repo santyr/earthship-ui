@@ -26,6 +26,7 @@ from .temperature_history import _sensor_bindings
 
 # Pin the publication and its local Python dependency closure, including gates.
 RUNTIME_PATHS=frozenset({
+    'thermal_model/replay_budget.py',
     'thermal_model/airflow_migration.py',
     'thermal_model/journal.py',
     'weather_temperature_receiver.py',

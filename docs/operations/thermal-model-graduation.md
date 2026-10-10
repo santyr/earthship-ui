@@ -1573,3 +1573,53 @@ uncertainty, venting schedule, action recommendation or automatic actuation.
 The backend must independently qualify original sources; structural UI
 validation is never release evidence. Approved tablet and laptop layouts are
 unchanged.
+
+
+### Guarded raw calibration and candidate freeze command
+
+`openhab/scripts/thermal_installed_calibrate.py --config PRIVATE_CONFIG` checks
+only closed private configuration and source-index structure. The default check
+uses standard-library code and never imports numerical libraries, replays a
+cohort, fits coefficients or publishes a model. It establishes no support or
+release eligibility.
+
+The configuration schema is `earthship-installed-shade-calibration-config/v1`.
+Its exact fields are `schema`, `base_candidate_path`, `base_runtime_bundle_path`,
+`runtime_bundle_path`, `base_runtime_sha256`, `runtime_sha256`, `raw_sources_path`,
+`raw_sources_sha256`, `calibration_start`, `calibration_end`, `regimes`,
+`output_directory` and `shared_lock`. Use absolute resolved paths, owned private
+0600 files and 0700 directories. Pin the SHA256 of the original raw index bytes
+and both original runtime identities. The source index contains only
+`raw_score_sources_path` references to original score-sources/v2 archives; scalar
+residuals and support summaries are not calibration inputs. Calibration must
+follow base training/freeze and precede the final frozen candidate and release
+intervals. Creation clocks come from the command, with no date override.
+
+In the same reviewed publication resource scope, explicitly run:
+
+```sh
+timeout --kill-after=5s 90s python3 openhab/scripts/thermal_installed_calibrate.py --config PRIVATE_CONFIG --calibrate
+```
+
+The preflight precedes source reads. The command holds the existing shared
+consumer lock, disables coefficient fitting, verifies original base fit gates,
+replays raw calibration sources and retains calibration/v2 with typed readback.
+Incomplete independent calibration support returns `calibration_incomplete`
+and freezes no candidate. Complete support permits candidate/v3 construction
+and immutable typed readback; that candidate remains a development candidate
+with no release authority or production installation. A private execution
+receipt retains the command source bytes, source/runtime identities and result.
+
+One 85-second budget starts before numerical imports and bounds nested fit
+measurement and raw replay. Nested stages cannot renew it. Final calibration,
+candidate and receipt publication checks the remaining budget and held lock
+immediately before atomic publication, including after temporary-file writes.
+The executed budget helper belongs to both historical and raw runtime closures.
+A 64-file declared closure must already include its observer, preserving the
+existing 64-file manifest bound. Recreate and verify the actual runtime archive
+before using this command; an older archive missing the helper is incompatible.
+
+This command neither preregisters policy nor activates a forecast. Thresholds
+must still be derived and sealed from original development sources before
+untouched evaluation. Only subsequent qualification-report/v5 can support a
+release decision; calibration completion alone cannot.

@@ -60,6 +60,9 @@ on:
       - 'openhab/scripts/thermal_installed_intel.py'
       - 'openhab/scripts/thermal_installed_score.py'
       - 'openhab/scripts/thermal_installed_train.py'
+      - 'openhab/scripts/thermal_installed_calibrate.py'
+      - 'openhab/scripts/test_installed_calibration_cli.py'
+      - 'openhab/scripts/test_installed_replay_budget.py'
       - 'openhab/scripts/test_installed_candidate_build.py'
       - 'openhab/scripts/test_installed_shade_score_collection.py'
       - 'openhab/scripts/test_installed_shade_score_inputs.py'
@@ -128,6 +131,8 @@ jobs:
             openhab/scripts/test_installed_shade_qualification.py \
             openhab/scripts/test_installed_shade_calibration.py \
             openhab/scripts/test_installed_shade_raw_calibration.py \
+            openhab/scripts/test_installed_calibration_cli.py \
+            openhab/scripts/test_installed_replay_budget.py \
             openhab/scripts/test_installed_shade_raw_candidate.py \
             openhab/scripts/test_installed_shade_raw_origin.py \
             openhab/scripts/test_installed_shade_raw_publication_capture.py \

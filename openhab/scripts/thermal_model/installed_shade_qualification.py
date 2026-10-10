@@ -178,8 +178,10 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
 def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
     from .installed_shade_raw_score_sources import read_raw_score_sources,read_calibrated_raw_score_sources
     reader=read_calibrated_raw_score_sources if source_version==3 else read_raw_score_sources
-    deadline=_replay_time()+60
+    from .replay_budget import remaining_budget,check_shared_budget
+    deadline=_replay_time()+remaining_budget(60)
     def check_budget():
+        check_shared_budget()
         if _replay_time()>deadline:raise ValueError('raw qualification replay time budget exceeded')
     check_budget();_raw_replay_preflight(packets,check_budget,source_version=source_version)
     rows=[];bindings=[];seen=set();paths=set()

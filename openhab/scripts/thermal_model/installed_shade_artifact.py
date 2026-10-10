@@ -56,7 +56,8 @@ def _limits():
 def _deadline(seconds):
     if type(seconds) not in (int, float) or not 0 < seconds <= 90:
         raise ValueError('bounded candidate replay timeout required')
-    return time.monotonic()+seconds
+    from .replay_budget import remaining_budget
+    return time.monotonic()+remaining_budget(seconds)
 
 
 def _shape(artifact, *, expected_runtime_revision, assessed_at):
@@ -193,13 +194,15 @@ def validate_candidate_bundle(bundle, inputs, *, expected_runtime_revision, asse
 
 
 def _persist(root, value, digest, suffix):
+    from .replay_budget import check_shared_budget
+    check_shared_budget()
     target = root/(digest+suffix); raw = _canonical(value)
     if target.exists():
         if _owned_bytes(target, MAX_BYTES) != raw: raise ValueError('original immutable candidate member differs')
         return target
     temporary = root/('.candidate-'+uuid4().hex)
     try:
-        _write_private(temporary, raw); _rename_new(temporary, target); _sync_directory(root)
+        _write_private(temporary, raw); check_shared_budget(); _rename_new(temporary, target); _sync_directory(root)
     finally:
         if temporary.exists(): temporary.unlink()
     return target
