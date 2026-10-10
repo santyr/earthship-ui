@@ -229,3 +229,21 @@ def test_v2_lineage_failure_prevents_fitting(tmp_path,monkeypatch):
     monkeypatch.setenv('EARTHSHIP_QUALIFICATION_FIT','1')
     monkeypatch.setattr(offline,'run_training',lambda **kwargs:pytest.fail('invalid lineage fitted'))
     with pytest.raises(ValueError):offline.run_snapshot_training(record,registry=None,fit_evidence_directory=tmp_path,clock=lambda:data['end'],revision_reader=lambda:'c'*64,assembly_binding=binding,assembly_inputs=parents)
+
+
+def test_pressure_aware_assembly_routes_strict_native_v2_worker(tmp_path,monkeypatch):
+    from test_assemble_thermal_inputs import cli,context
+    command=cli();_,_,_,dsn,out,_=context(tmp_path);data,parents=parts_v2()
+    paths=[inputs.write_training_inputs_v2(tmp_path,row) for row in parents]
+    args=['--journal-dsn-file',str(dsn),'--destination',str(out),'--receipt-version','2','--pressure-aware']
+    for path in paths:args+=['--part',str(path)]
+    calls=[];monkeypatch.setenv('EARTHSHIP_THERMAL_INPUT_CAPTURE','1')
+    monkeypatch.setattr(command,'verify_resource_limits',lambda:None)
+    monkeypatch.setattr(command,'_pressure_preflight',lambda:None)
+    monkeypatch.setattr(command,'run_guarded_capture',lambda *a,**k:pytest.fail('used legacy admission'))
+    def stopped(argv,**kwargs):calls.append((argv,kwargs));return 2
+    monkeypatch.setattr(command,'_run_pressure_worker',stopped)
+    assert command.main(args)==2
+    argv,limits=calls[0]
+    assert '--pressure-aware' in argv and argv[argv.index('--receipt-version')+1]=='2'
+    assert limits=={'seconds':90}

@@ -69,12 +69,23 @@ def _worker(parts,dsn_file,root,expected,*,receipt_version=1):
     _write_private(root/'assembly-receipt.json',_canonical(receipt));_sync_directory(root)
 
 
+def _pressure_preflight():
+    from thermal_installed_intel import _resource_preflight
+    _resource_preflight()
+
+
+def _run_pressure_worker(argv,*,seconds):
+    from thermal_model.training_pressure_guard import run_collection_worker
+    return run_collection_worker(argv,seconds=seconds)
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--part',required=True,action='append',type=Path)
     parser.add_argument('--journal-dsn-file',required=True,type=Path)
     parser.add_argument('--destination',required=True,type=Path)
     parser.add_argument('--check-only',action='store_true')
+    parser.add_argument('--pressure-aware',action='store_true',help='explicit 256 MiB pressure-supervised acquisition profile')
     parser.add_argument('--receipt-version',type=int,choices=(1,2),default=1)
     parser.add_argument('--worker',action='store_true',help=argparse.SUPPRESS)
     parser.add_argument('--expected-context-digest',help=argparse.SUPPRESS)
@@ -82,6 +93,7 @@ def main(argv=None):
     try:
         if not args.check_only and os.environ.get('EARTHSHIP_THERMAL_INPUT_CAPTURE')!='1':raise ValueError('explicit assembly intent required')
         verify_resource_limits()
+        if args.pressure_aware:_pressure_preflight()
         if args.worker and (args.check_only or os.environ.get('EARTHSHIP_GUARDED_CAPTURE_WORKER')!='1' or os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT')!='0' or os.environ.get('EARTHSHIP_QUALIFICATION_FIT','0')!='0' or os.getpriority(os.PRIO_PROCESS,0)<15):
             raise ValueError('guarded assembly worker required')
         metadata,root,digest=_context(args.part,args.journal_dsn_file,args.destination)
@@ -92,7 +104,9 @@ def main(argv=None):
         else:
             worker=[sys.executable,str(Path(__file__).resolve()),'--journal-dsn-file',str(args.journal_dsn_file),'--destination',str(root),'--receipt-version',str(args.receipt_version),'--worker','--expected-context-digest',digest]
             for path in args.part:worker+=['--part',str(path)]
-            if run_guarded_capture(worker,seconds=90)!=0:raise ValueError('assembly worker refused')
+            if args.pressure_aware:worker+=['--pressure-aware']
+            run=_run_pressure_worker if args.pressure_aware else run_guarded_capture
+            if run(worker,seconds=90)!=0:raise ValueError('assembly worker refused')
             from thermal_model.runtime_bundle import _owned_bytes
             from thermal_model.origin_capture import _object
             from thermal_model.graduation_policy import _sha

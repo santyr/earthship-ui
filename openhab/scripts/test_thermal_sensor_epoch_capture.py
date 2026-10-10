@@ -152,3 +152,17 @@ def test_capture_worker_refuses_any_enabled_fit_opt_in(tmp_path,monkeypatch,flag
     monkeypatch.setattr(command.os,'getpriority',lambda *args:15)
     monkeypatch.setattr(command,'_context',lambda *args,**kwargs:pytest.fail('fit-enabled worker reached sources'))
     assert command.main(['--config',str(config),'--destination',str(destination),'--receipt-version','2','--worker'])==2
+
+
+def test_pressure_aware_parent_routes_native_v2_and_strict_worker_flag(tmp_path,monkeypatch):
+    command,config,destination=cli_context(tmp_path);calls=[]
+    monkeypatch.setenv('EARTHSHIP_THERMAL_INPUT_CAPTURE','1')
+    monkeypatch.setattr(command,'verify_resource_limits',lambda:None)
+    monkeypatch.setattr(command,'_pressure_preflight',lambda:None)
+    monkeypatch.setattr(command,'run_guarded_capture',lambda *a,**k:pytest.fail('used legacy admission'))
+    def stopped(argv,**kwargs):calls.append((argv,kwargs));return 2
+    monkeypatch.setattr(command,'_run_pressure_worker',stopped)
+    assert command.main(['--config',str(config),'--destination',str(destination),'--receipt-version','2','--pressure-aware'])==2
+    argv,limits=calls[0]
+    assert '--pressure-aware' in argv and argv[argv.index('--receipt-version')+1]=='2'
+    assert limits=={'seconds':90}
