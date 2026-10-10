@@ -1,6 +1,6 @@
 """Raw numeric/main receipt contracts; synthetic delivery is not release proof."""
 from copy import deepcopy
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,timezone
 import json
 from pathlib import Path
 import pytest
@@ -150,7 +150,7 @@ def source_delivery_case(source_origin_case,tmp_path,monkeypatch,request):
     return source_origin_case,tmp_path,monkeypatch,request.param
 
 
-def deliver_source(case,*,base_candidate=None):
+def deliver_source(case,*,base_candidate=None,compressed=False):
     """Actual source archives with mathematical candidate and receipt fixtures."""
     source_origin_case,tmp_path,monkeypatch,kind=case
     from thermal_model import installed_shade_origin as base
@@ -163,9 +163,13 @@ def deliver_source(case,*,base_candidate=None):
     if kind=='base':
         prepared,args=source_base_args(source_origin_case)
         if base_candidate is not None:prepared=base.PreparedCandidate(_canonical(base_candidate),args['issued_at'])
-    record=(base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
+    if compressed:
+        from test_installed_shade_raw_origin import compressed_base_args
+        assert kind=='base'
+        prepared,args=compressed_base_args(source_origin_case)
+    record=(base.build_compressed_source_issued_capture if compressed else base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
     root=tmp_path/'receipts';root.mkdir(mode=0o700)
-    path=(base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
+    path=(base.write_compressed_source_issued_capture if compressed else base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
     artifact=record['candidate'];issue=args['issued_at'];binding=_digest(record['native_origin_binding'])
     output=dict(schema='earthship-installed-shade-publication/v3',version=6,status='shadow',
         generatedAt=issue.isoformat(),validUntil=(issue+timedelta(minutes=10)).isoformat(),
@@ -176,11 +180,14 @@ def deliver_source(case,*,base_candidate=None):
             originCaptureSha256=record['capture_sha256'],calibrationSha256=None if kind=='base' else artifact['calibration']['calibration_sha256'],
             sensorEpochs=record['source_epochs'],sensorEpochSemantics='declared_hardware_phase',forecastQualified=False,
             advisoryQualified=False,automaticActuation=False,nativeOriginBindingSha256=binding,sourceQualificationSchema=None))
-    publisher.validate_source_installed_publication(output)
+    if compressed:
+        output.update(schema='earthship-installed-shade-publication/v4',version=7)
+        output['release']['schema']='earthship-installed-shade-release/v4'
+    (publisher.validate_compressed_source_installed_publication if compressed else publisher.validate_source_installed_publication)(output)
     numeric=dict(item='Thermal_OriginalForecast_JSON',time=int((issue+timedelta(seconds=2)).timestamp()*1000),state=_canonical(record['output']).decode())
     actual=dict(item='Thermal_Model_JSON',time=int((issue+timedelta(seconds=3)).timestamp()*1000),state=_canonical(output).decode())
     monkeypatch.setattr(published,'_clock',lambda:issue+timedelta(seconds=4))
-    capture=published.build_source_publication_capture(path,numeric_publication=numeric,publication=actual)
+    capture=(published.build_compressed_source_publication_capture if compressed else published.build_source_publication_capture)(path,numeric_publication=numeric,publication=actual)
     return root,capture,output,issue,kind,args
 
 
@@ -547,3 +554,138 @@ def test_source_pair_replay_counts_aggregate_issue_query_bytes_before_math(sourc
     monkeypatch.setattr(sources,'read_source_calibrated_score_sources',forbidden)
     replay=qualification.score_source_base_packets if kind=='base' else qualification.score_source_calibrated_packets
     with pytest.raises(ValueError,match='aggregate raw queries'):replay(references,assessed_at=now)
+
+
+class CompressedRawBackend(RawBackend):
+    def native(self,*args,**kwargs):
+        from weather_temperature_sources import read_temperature_source,write_compressed_temperature_source
+        rows=super().native(*args,**kwargs)
+        path=Path(self.native_source_paths[-1])
+        self.native_source_paths[-1]=str(write_compressed_temperature_source(path.parent,read_temperature_source(path.parent,path)))
+        return rows
+
+
+def compressed_delivery(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    assert hasattr(published,'build_compressed_source_publication_capture'),'missing compressed main receipt capture'
+    return deliver_source((source_origin_case,tmp_path,monkeypatch,'base'),compressed=True)
+
+
+def test_compressed_main_capture_binds_actual_receipts_and_refuses_old_readers(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_publication as publisher
+    root,record,output,_,_,_=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    assert record['schema']=='earthship-installed-shade-origin/v11'
+    assert record['numeric_capture']['schema']=='earthship-installed-shade-origin/v10'
+    path=published.write_compressed_source_publication_capture(root,record)
+    assert published.read_compressed_source_publication_capture(path)==record
+    with pytest.raises(ValueError):published.read_source_publication_capture(path)
+    with pytest.raises(ValueError):published.validate_source_publication_capture(record)
+    with pytest.raises(ValueError):publisher.validate_source_installed_publication(output)
+
+
+def test_compressed_main_scoring_replays_original_and_binds_both_receipts(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    _,record,_,issue,_,args=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    target=issue+timedelta(hours=1)
+    values=dict(publication=record['publication'],horizon_hours=1,outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),
+        recent_cycle_grid=synthetic_cycle_grid(issue,1),assessed_at=target+timedelta(minutes=10))
+    score=published.score_compressed_source_publication_capture(record,**values)
+    assert score['schema']=='earthship-installed-shade-source-scored-pair/v11'
+    assert score['numeric_publication_sha256']==_digest(record['numeric_publication'])
+    assert score['publication_sha256']==_digest(record['publication'])
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):published.score_compressed_source_publication_capture(record,**values)
+
+
+def test_compressed_score_archive_replays_issue_comparator_outcome_sources(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_score_collection as collector
+    from thermal_model import installed_shade_raw_score_sources as sources
+    root,record,_,issue,_,args=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    path=published.write_compressed_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);monkeypatch.setattr(collector,'_clock',lambda:now);monkeypatch.setattr(collector,'ERRORS',())
+    result=collector.collect_compressed_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=CompressedRawBackend(record,root))
+    assert result['status']=='scored' and result['release_authorized'] is False
+    raw=Path(result['raw_packet_path']);header=json.loads(raw.read_text())
+    assert header['schema']=='earthship-installed-shade-score-sources/v6'
+    assert header['native_binding']['schema']=='earthship-installed-shade-native-score-binding/v2'
+    replay=sources.read_compressed_source_base_score_sources(raw,assessed_at=now)
+    assert replay['score']==json.loads(Path(result['score_path']).read_text())
+    with pytest.raises(ValueError):sources.read_source_score_sources(raw,assessed_at=now)
+    Path(args['native_source_paths']['mass']).unlink()
+    with pytest.raises((ValueError,OSError)):sources.read_compressed_source_base_score_sources(raw,assessed_at=now)
+
+
+def test_compressed_main_capture_refuses_source_lost_during_actual_temp_write(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,runtime_bundle
+    root,record,_,_,_,args=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    original=runtime_bundle._write_private
+    def changed(path,raw):
+        original(path,raw)
+        if b'"schema":"earthship-installed-shade-origin/v11"' in raw:Path(args['native_source_paths']['outdoor']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    with pytest.raises((ValueError,OSError)):published.write_compressed_source_publication_capture(root,record)
+    assert not list(root.glob('*.installed-shade-origin-v11.json'))
+    assert not list(root.glob('.calibration-*'))
+
+
+def test_compressed_main_cannot_activate_from_legacy_qualification_marker(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_publication as publisher
+    _,_,output,_,_,_=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    output['release']['sourceQualificationSchema']='earthship-installed-shade-qualification-report/v6'
+    with pytest.raises(ValueError):publisher.validate_compressed_source_installed_publication(output)
+
+
+def test_compressed_main_unavailable_has_no_proof_claim():
+    from thermal_model import installed_shade_publication as publisher
+    assert hasattr(publisher,'unavailable_compressed_source_installed_publication'),'missing compressed unavailable contract'
+    output=publisher.unavailable_compressed_source_installed_publication(datetime(2026,10,8,tzinfo=timezone.utc))
+    assert output['schema']=='earthship-installed-shade-publication/v4' and output['version']==7
+    assert output['status']=='unavailable' and output['forecast'] is None
+    assert output['release']['nativeOriginBindingSha256'] is None and output['release']['sourceQualificationSchema'] is None
+
+
+@pytest.mark.parametrize('lost',['issue','outcome'])
+def test_compressed_score_archive_refuses_original_lost_after_actual_temp_write(source_origin_case,tmp_path,monkeypatch,lost):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_score_collection as collector,runtime_bundle
+    root,record,_,issue,_,args=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    path=published.write_compressed_source_publication_capture(root,record)
+    backend=CompressedRawBackend(record,root);now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now)
+    original=runtime_bundle._write_private;written=[]
+    def changed(path,raw):
+        original(path,raw)
+        if b'"schema":"earthship-installed-shade-score-sources/v6"' in raw:
+            written.append(path)
+            target=args['native_source_paths']['air'] if lost=='issue' else backend.native_source_paths[-1]
+            Path(target).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    result=collector.collect_compressed_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert written and result==dict(status='withheld',release_authorized=False)
+    assert not list(root.glob('*.installed-shade-score-sources-v6.json'))
+    assert not list(root.glob('.calibration-*'))
+
+
+def test_compressed_score_readback_refuses_outcome_lost_after_numerical_replay(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_score_collection as collector
+    from thermal_model import installed_shade_raw_score_sources as sources
+    root,record,_,issue,_,_=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    path=published.write_compressed_source_publication_capture(root,record)
+    backend=CompressedRawBackend(record,root);now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now)
+    result=collector.collect_compressed_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored'
+    original=published.score_compressed_source_publication_capture;replayed=[]
+    def changed(*args,**kwargs):
+        score=original(*args,**kwargs);replayed.append(score)
+        Path(backend.native_source_paths[-1]).unlink();return score
+    monkeypatch.setattr(published,'score_compressed_source_publication_capture',changed)
+    with pytest.raises((ValueError,OSError)):sources.read_compressed_source_base_score_sources(Path(result['raw_packet_path']),assessed_at=now)
+    assert replayed
+
+
+def test_compressed_base_cannot_activate_even_with_new_qualification_marker(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_publication as publisher
+    _,_,output,_,_,_=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    output['status']='forecast_active';output['release']['sourceQualificationSchema']='earthship-installed-shade-qualification-report/v7'
+    with pytest.raises(ValueError,match='uncalibrated'):publisher.validate_compressed_source_installed_publication(output)

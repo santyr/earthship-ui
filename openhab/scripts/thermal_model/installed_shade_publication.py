@@ -434,3 +434,40 @@ def unavailable_source_installed_publication(now):
     value.update(schema=SOURCE_SCHEMA,version=6)
     value['release'].update(schema=SOURCE_RELEASE_SCHEMA,nativeOriginBindingSha256=None,sourceQualificationSchema=None)
     return validate_source_installed_publication(value)
+
+
+COMPRESSED_SOURCE_SCHEMA='earthship-installed-shade-publication/v4'
+COMPRESSED_SOURCE_RELEASE_SCHEMA='earthship-installed-shade-release/v4'
+COMPRESSED_SOURCE_QUALIFICATION_SCHEMA='earthship-installed-shade-qualification-report/v7'
+
+
+def validate_compressed_source_installed_publication(value):
+    """Shape only; actual full source qualification remains a separate gate."""
+    if (not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=COMPRESSED_SOURCE_SCHEMA or
+            type(value['version']) is not int or value['version']!=7 or len(_canonical(value))>=MAX_BYTES):
+        raise ValueError('closed bounded compressed source publication required')
+    release=value['release'];forecast=value['forecast']
+    if (not isinstance(release,dict) or set(release)!=SOURCE_RELEASE_FIELDS or
+            release['schema']!=COMPRESSED_SOURCE_RELEASE_SCHEMA or
+            release['sourceQualificationSchema'] not in (None,COMPRESSED_SOURCE_QUALIFICATION_SCHEMA)):
+        raise ValueError('explicit compressed source qualification profile required')
+    projected=deepcopy(value)
+    projected.update(schema=SOURCE_SCHEMA,version=6)
+    projected['release']['schema']=SOURCE_RELEASE_SCHEMA
+    projected['release']['sourceQualificationSchema']=SOURCE_QUALIFICATION_SCHEMA if release['sourceQualificationSchema'] is not None else None
+    if value['status']!='unavailable':
+        if (not isinstance(forecast,dict) or set(forecast)!=SOURCE_NUMERIC_FIELDS or
+                forecast['schema'] not in ('earthship-installed-shade-forecast/v6','earthship-installed-shade-forecast/v7')):
+            raise ValueError('explicit compressed numeric forecast required')
+        if forecast['schema'].endswith('/v6') and value['status']=='forecast_active':
+            raise ValueError('uncalibrated compressed forecast cannot activate')
+        projected['forecast']['schema']='earthship-installed-shade-forecast/v5' if forecast['schema'].endswith('/v6') else 'earthship-installed-shade-forecast/v4'
+    validate_source_installed_publication(projected)
+    return value
+
+
+def unavailable_compressed_source_installed_publication(now):
+    value=unavailable_source_installed_publication(now)
+    value.update(schema=COMPRESSED_SOURCE_SCHEMA,version=7)
+    value['release']['schema']=COMPRESSED_SOURCE_RELEASE_SCHEMA
+    return validate_compressed_source_installed_publication(value)

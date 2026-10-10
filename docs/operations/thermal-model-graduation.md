@@ -1953,3 +1953,28 @@ This is a shadow observation/scoring port, with no release authority or automati
 actuation. Compressed main publication, calibrated capture, score archive,
 qualification inventory and operator routing still require integration before
 an installed producer can select this evidence representation.
+
+Compressed original-query evidence now has explicit main observation ports:
+publication/v4 (payload version7), release/v4, actual main capture/v11 and
+source-scored-pair/v11. Main capture binds numeric capture/v10 and both actual
+persisted receipts, replays initial-state expiry at the main receipt clock, and
+rechecks original queries after the actual main temporary write. Legacy
+publication/v3 and main capture/v7 or v9 readers refuse the new profiles.
+
+The publication validator is structural; it cannot authorize release. It names
+qualification-report/v7 as the distinct compressed-source qualification profile.
+That complete qualification producer is not implemented yet. An old q6 marker
+is refused, and uncalibrated numeric forecast/v6 cannot activate even with a q7
+marker. Unavailable output carries no query/qualification proof. Calibrated
+numeric forecast/v7 is reserved in the explicit shape contract for the remaining
+calibrated integration; no existing producer selects it.
+
+`collect_compressed_source_published_score` retains score-sources/v6 for actual
+main capture/v11 with native score binding/v2 and the original issue-binding
+digest. Its typed reader replays original issue, comparator and outcome queries
+before scoring and again after numerical work. Immutable collector writes keep
+the final guard after actual temporary writes; loss of any original withholds
+collection/readback. Original physical/canonical byte limits and shared budgets
+remain unchanged. Compressed qualification inventory, calibrated capture and
+candidate preparation, development registration and operator/UI routing remain
+unfinished; no installed service selects these observation ports.
