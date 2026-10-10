@@ -65,3 +65,10 @@ A failed scoring cycle removes cached metrics; the publisher accepts reports for
 at most 15 minutes and displays their verification time. Each cycle scores one
 job so seven complete recent cycles fit the existing 24-request source budget.
 A bounded incomplete-history search may leave that comparator unavailable.
+
+The publisher issues every ten minutes, with preparation at UTC minutes 09,
+19, 29, 39, 49 and 59. The native indoor-air receiver has a two-minute cadence;
+this phase avoids receipts expiring just after alternating five-minute issues.
+Forecast display validity remains 15 minutes. Source availability before issue,
+actual receipt expiry at every delivery guard, and persisted-delivery checks
+remain mandatory. Scoring keeps its existing serial schedule.
