@@ -52,7 +52,7 @@ def test_raw_source_replay_uses_shared_budget_before_opening_any_source(monkeypa
         with pytest.raises(ValueError):qualification._score_packets([{'raw_score_sources_path':'/missing'}],assessed_at='2026-01-01T00:00:00Z',version=4)
 
 
-def test_real_full_raw_runtime_binding_and_archive_include_budget_helper(tmp_path):
+def test_real_full_raw_runtime_binding_and_archive_include_budget_helper(tmp_path,monkeypatch):
     from thermal_model.installed_shade_publication import RAW_RUNTIME_PATHS
     from thermal_model.origin_capture import build_runtime_binding
     from thermal_model.runtime_bundle import capture_runtime_bundle,read_runtime_bundle
@@ -60,7 +60,14 @@ def test_real_full_raw_runtime_binding_and_archive_include_budget_helper(tmp_pat
     for name in RAW_RUNTIME_PATHS:
         target=root/name;target.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
         target.write_bytes((original/name).read_bytes());target.chmod(0o600)
+    # Retain actual interpreter bytes independently of hosted tool-cache permissions.
+    import sys
+    executable=tmp_path/'python';executable.write_bytes(Path(sys.executable).resolve().read_bytes())
+    executable.chmod(0o777);monkeypatch.setattr(sys,'executable',str(executable))
     paths=sorted(RAW_RUNTIME_PATHS)
+    with pytest.raises(ValueError,match='non-writable runtime source'):
+        build_runtime_binding(root,paths)
+    executable.chmod(0o700)
     actual=build_runtime_binding(root,paths)
     archive=tmp_path/'archive';archive.mkdir(mode=0o700)
     saved=capture_runtime_bundle(archive,root,paths,expected_binding=actual)
