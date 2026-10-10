@@ -271,3 +271,113 @@ def test_source_score_reader_requires_held_guard_before_private_reads(settings,m
     m=module();value={**settings[1],'schema':'earthship-installed-shade-score-config/v3'}
     monkeypatch.setattr(m,'_owned_bytes',lambda *a,**kw:pytest.fail('source scorer read private files before a held guard'))
     with pytest.raises(ValueError):m.ScoreReader(value,shared_lock_guard=guard)
+
+
+@pytest.mark.parametrize('when',['pacing','response'])
+def test_source_acquisition_refuses_shared_deadline_expiry_at_http_boundaries(settings,when):
+    from thermal_model.capture_readers import ReadBudget
+    from thermal_model.replay_budget import shared_replay_budget
+    from test_installed_shade_live_inputs import Response
+    reader=module().ScoreReader({**settings[1],'schema':'earthship-installed-shade-score-config/v3'},shared_lock_guard=lambda:None)
+    clock={'tick':0.};requests=[]
+    def remaining():
+        reader.verify_unchanged()  # Real queue callback: must not recurse.
+        return 0.5-clock['tick']
+    def sleep(delay):clock['tick']+=delay
+    reader.budget=ReadBudget(85,clock=lambda:clock['tick'],sleeper=sleep)
+    reader.transport.budget=reader.budget
+    if when=='pacing':reader.budget.begin()
+    at=datetime(2026,10,8,12,tzinfo=timezone.utc)
+    receipt=dict(item='Thermal_Model_JSON',time=int(at.timestamp()*1000),state='{}')
+    def open(request,timeout):
+        requests.append(timeout)
+        response=Response(dict(data=[{k:v for k,v in receipt.items() if k!='item'}]),request.full_url)
+        if when=='response':clock['tick']=1.
+        return response
+    reader.transport.opener=open
+    with shared_replay_budget(remaining):
+        with pytest.raises(ValueError):reader.publication(receipt)
+    assert requests==([] if when=='pacing' else [0.5])
+
+
+def test_source_acquisition_expiry_during_native_temporary_write_leaves_no_query(settings,monkeypatch):
+    import hourly_temperature_runtime,os
+    from thermal_model.replay_budget import shared_replay_budget
+    reader=module().ScoreReader({**settings[1],'schema':'earthship-installed-shade-score-config/v3'},shared_lock_guard=lambda:None)
+    state={'remaining':55.}
+    def remaining():reader.verify_unchanged();return state['remaining']
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    monkeypatch.setattr(reader,'_connect',lambda _:WindowConnection(rows=[]))
+    original=os.chmod
+    def expired(path,mode,*args,**kwargs):
+        original(path,mode,*args,**kwargs)
+        if Path(path).name.startswith('.temperature-origin-'):state['remaining']=0.
+    monkeypatch.setattr(os,'chmod',expired)
+    now=datetime(2026,10,8,12,tzinfo=timezone.utc)
+    with shared_replay_budget(remaining):
+        with pytest.raises(ValueError):reader.native([now],assessed_at=now,sensor_epoch=EPOCHS['air'])
+    assert list(Path(settings[1]['output_directory']).iterdir())==[]
+    assert reader.native_source_paths==[]
+
+
+def test_source_connection_closes_if_shared_deadline_expires_during_connect(settings,monkeypatch):
+    import psycopg2
+    from thermal_model.replay_budget import shared_replay_budget
+    reader=module().ScoreReader({**settings[1],'schema':'earthship-installed-shade-score-config/v3'},shared_lock_guard=lambda:None)
+    state={'remaining':55.};connection=WindowConnection(rows=[])
+    def remaining():reader.verify_unchanged();return state['remaining']
+    def connect(_):state['remaining']=0.;return connection
+    monkeypatch.setattr(psycopg2,'connect',connect)
+    with shared_replay_budget(remaining):
+        with pytest.raises(ValueError):reader._connect(dict(dbname='openhab',user='weather_temperature_reader',host='127.0.0.1',password=Path(settings[1]['token_file']).read_text()))
+    assert connection.closed
+
+
+def test_source_native_deadline_stops_subsequent_transaction_statements(settings,monkeypatch):
+    import hourly_temperature_runtime
+    from thermal_model.replay_budget import shared_replay_budget
+    reader=module().ScoreReader({**settings[1],'schema':'earthship-installed-shade-score-config/v3'},shared_lock_guard=lambda:None)
+    state={'remaining':55.}
+    def remaining():reader.verify_unchanged();return state['remaining']
+    class ExpiringConnection(WindowConnection):
+        def execute(self,query,params=None):
+            super().execute(query,params)
+            if query=='SHOW transaction_read_only':state['remaining']=0.
+    connection=ExpiringConnection(rows=[])
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    monkeypatch.setattr(reader,'_connect',lambda _:connection)
+    now=datetime(2026,10,8,12,tzinfo=timezone.utc)
+    with shared_replay_budget(remaining):
+        with pytest.raises(ValueError):reader.native([now],assessed_at=now,sensor_epoch=EPOCHS['air'])
+    assert connection.closed
+    assert not any(query=='SHOW transaction_isolation' or query.startswith('SELECT') for query,_ in connection.calls)
+    assert list(Path(settings[1]['output_directory']).iterdir())==[]
+
+
+def test_source_native_statement_timeout_is_clipped_to_shared_remaining(settings,monkeypatch):
+    import hourly_temperature_runtime
+    from thermal_model.replay_budget import shared_replay_budget
+    reader=module().ScoreReader({**settings[1],'schema':'earthship-installed-shade-score-config/v3'},shared_lock_guard=lambda:None)
+    connection=WindowConnection(rows=[])
+    monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _: {})
+    monkeypatch.setattr(reader,'_connect',lambda _:connection)
+    now=datetime(2026,10,8,12,tzinfo=timezone.utc)
+    with shared_replay_budget(lambda:0.75):
+        assert reader.native([now],assessed_at=now,sensor_epoch=EPOCHS['air'])==[(now,None)]
+    timeouts=[params for query,params in connection.calls if query=='SET LOCAL statement_timeout = %s']
+    assert timeouts and all(params==('750ms',) for params in timeouts)
+    assert connection.closed
+
+
+def test_source_connect_rechecks_timeout_after_final_configuration_guard(settings,monkeypatch):
+    import psycopg2
+    from thermal_model.replay_budget import shared_replay_budget
+    reader=module().ScoreReader({**settings[1],'schema':'earthship-installed-shade-score-config/v3'},shared_lock_guard=lambda:None)
+    state={'remaining':3.};opened=[];original=reader._acquisition_check
+    def guard():original();state['remaining']-=0.75
+    monkeypatch.setattr(reader,'_acquisition_check',guard)
+    def connect(_):opened.append(True);return WindowConnection(rows=[])
+    monkeypatch.setattr(psycopg2,'connect',connect)
+    with shared_replay_budget(lambda:state['remaining']):
+        with pytest.raises(ValueError):reader._connect(dict(dbname='openhab',user='weather_temperature_reader',host='127.0.0.1',password=Path(settings[1]['token_file']).read_text()))
+    assert opened==[]

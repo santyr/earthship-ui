@@ -68,24 +68,33 @@ class ScoreReader:
         self.budget.remaining()
         if any(sha256(_owned_bytes(Path(self.settings[key]),16384)).hexdigest()!=value for key,value in self.hashes.items()):
             raise ValueError('original score source configuration changed')
+    def _acquisition_check(self):
+        # Queue callbacks verify configuration; keep that callback free of
+        # shared-budget checks to avoid recursive deadline evaluation.
+        from .replay_budget import check_shared_budget
+        check_shared_budget();self.verify_unchanged()
     def publication(self,receipt):
         if not isinstance(receipt,dict) or receipt.get('item') not in (NUMERIC_ITEM,PUBLICATION_ITEM):raise ValueError('fixed original telemetry receipt required')
         _,at=_receipt(receipt,receipt['item'])
         if at>_utc(_clock()):raise ValueError('future original telemetry receipt refused')
-        self.verify_unchanged()
-        result=self.transport.persisted(receipt['item'],receipt['state'],since=at,until=at+timedelta(milliseconds=1),preflight=self.verify_unchanged)
-        self.verify_unchanged();return result
+        self._acquisition_check()
+        result=self.transport.persisted(receipt['item'],receipt['state'],since=at,until=at+timedelta(milliseconds=1),preflight=self._acquisition_check)
+        self._acquisition_check();return result
     def _connect(self,config):
-        self.verify_unchanged()
+        self._acquisition_check()
         import psycopg2
         from psycopg2.extensions import make_dsn,parse_dsn
-        params=parse_dsn(bounded_journal_dsn(make_dsn(**config)));timeout=self.budget.begin()
+        params=parse_dsn(bounded_journal_dsn(make_dsn(**config)))
+        from .replay_budget import remaining_budget
+        timeout=remaining_budget(self.budget.begin())
+        if timeout<2:raise ValueError('bounded native connection deadline unavailable')
+        self._acquisition_check()
+        timeout=remaining_budget(min(timeout,self.budget.remaining()))
         if timeout<2:raise ValueError('bounded native connection deadline unavailable')
         params['connect_timeout']=str(min(3,int(timeout)))
-        self.verify_unchanged()
         try:connection=psycopg2.connect(make_dsn(**params))
         except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
-        try:self.budget.remaining();return connection
+        try:self._acquisition_check();return connection
         except BaseException:connection.close();raise
     def native(self,targets,*,assessed_at,sensor_epoch):
         import psycopg2
@@ -98,27 +107,33 @@ class ScoreReader:
         if (len(set(targets))!=len(targets) or targets!=sorted(targets) or targets[-1]>assessed_at or
                 targets[-1]-targets[0]>timedelta(days=1) or assessed_at>_utc(_clock())):
             raise ValueError('original elapsed native assessment required')
-        self.verify_unchanged()
+        self._acquisition_check()
         policies,epochs=load_temperature_receiver_configuration(self.settings['native_policy'])
         if epochs is None or epochs.get('indoor')!=sensor_epoch:raise ValueError('original native phase changed')
         config=read_db_config(self.settings['native_db_config'])
+        options={}
+        if self.settings.get('schema')==SOURCE_SCHEMA:
+            def remaining():
+                from .replay_budget import remaining_budget
+                self._acquisition_check();return remaining_budget(self.budget.remaining())
+            options['remaining_timeout']=remaining
         rows=[]
         for target in targets:
-            self.verify_unchanged()
+            self._acquisition_check()
             key=(target,assessed_at,sensor_epoch)
             path=self._native_sources.get(key)
             if path is None:
                 try:packet=fetch_temperature_source(lambda:self._connect(config),targets=[target],assessed_at=assessed_at,
-                    stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch)
+                    stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch,**options)
                 except psycopg2.Error:raise ValueError('bounded original native source unavailable') from None
-                self.verify_unchanged()
-                path=write_temperature_source(self.settings['output_directory'],packet,before_publish=self.verify_unchanged)
+                self._acquisition_check()
+                path=write_temperature_source(self.settings['output_directory'],packet,before_publish=self._acquisition_check)
             retained=read_temperature_source(path.parent,path)
             selected=replay_temperature_source(retained)
             if (retained['targets']!=[target.isoformat()] or _utc(retained['assessed_at'])!=assessed_at or
                     retained['sensor_epoch']!=sensor_epoch or retained['stream']!='indoor'):
                 raise ValueError('original endpoint query context differs')
-            self.verify_unchanged()
+            self._acquisition_check()
             self._native_sources[key]=path
             if str(path) not in self.native_source_paths:self.native_source_paths.append(str(path))
             rows.extend(selected)

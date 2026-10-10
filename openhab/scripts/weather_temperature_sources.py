@@ -63,10 +63,11 @@ def build_temperature_source(*,rows,targets,assessed_at,stream,policy,sensor_epo
     return packet
 
 
-def fetch_temperature_source(connection_factory,**request):
+def fetch_temperature_source(connection_factory,*,remaining_timeout=None,**request):
     """One bounded read-only stable snapshot; validate before opening the DB."""
     packet=build_temperature_source(rows=[],**request)
-    rows=_fetch_rows(connection_factory,_instant(packet['history_start']),_instant(packet['targets'][-1]))
+    rows=_fetch_rows(connection_factory,_instant(packet['history_start']),_instant(packet['targets'][-1]),
+        **({} if remaining_timeout is None else dict(remaining_timeout=remaining_timeout)))
     return build_temperature_source(rows=rows,targets=packet['targets'],assessed_at=packet['assessed_at'],
         stream=packet['stream'],policy=TemperaturePolicy(**packet['policy']),sensor_epoch=packet['sensor_epoch'])
 

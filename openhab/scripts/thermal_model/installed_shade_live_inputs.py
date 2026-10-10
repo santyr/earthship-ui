@@ -71,12 +71,13 @@ class TelemetryTransport:
         # Item lookup and pacing may outlive native receipts. The sender runs
         # the final source/runtime/expiry guard after those delays.
         if preflight is not None:preflight()
-        timeout=min(timeout,self.budget.remaining())
+        from .replay_budget import remaining_budget,check_shared_budget
+        timeout=remaining_budget(min(timeout,self.budget.remaining()))
         with self.opener(request,timeout=timeout) as response:
             if hasattr(response,'geturl') and response.geturl()!=url:raise ValueError('telemetry redirect refused')
             raw=response.read(MAX_RESPONSE_BYTES+1);self.total+=len(raw)
             if len(raw)>MAX_RESPONSE_BYTES or self.total>MAX_TOTAL_BYTES:raise ValueError('bounded telemetry response required')
-        self.budget.remaining()
+        check_shared_budget();self.budget.remaining()
         if method=='PUT':return None
         def reject(_):raise ValueError('nonfinite telemetry response')
         return json.loads(raw,object_pairs_hook=_object,parse_constant=reject)

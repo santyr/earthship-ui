@@ -1824,7 +1824,15 @@ budget checks the held guard before requests, after pacing and after responses.
 `collect_source_queued_score` accepts only main7/9 and raw scoring archives4/5.
 Original capture validation, collection and completion replay share the queue's
 unchanged 55-second deadline, original queue bytes and backend guard; nested
-replay cannot renew that deadline. Completion references remain nonauthoritative
+replay cannot renew that deadline. Acquisition also checks the shared deadline
+before HTTP dispatch after pacing, after responses, during native query retention,
+and between native SQL statements. HTTP, connection and native statement timeouts
+are clipped to the remaining budget; a connection that expires during acquisition
+is closed. The source transaction uses optional guards, preserving legacy query
+behavior. These bounded in-flight operations still require the outer process cap;
+this is not a real-time scheduling guarantee. Configuration verification remains
+separate from acquisition checks to avoid recursion through the queue callback.
+Completion references remain nonauthoritative
 and are retained immutably only after replaying original sources again after
 the actual temporary write. A missing completed source withholds the job instead
 of querying a replacement. Cursor scheduling remains bounded and separate from
