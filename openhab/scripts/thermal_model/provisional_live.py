@@ -61,6 +61,20 @@ def _phase_directory(root,kind,at):
 def delivery_directory(settings,at):return _phase_directory(settings['evidence_directory'],'origins',at)
 
 
+def _persisted_after_write(backend,item,state,*,since,guard):
+    # JDBC writes are asynchronous. Recheck once with an actual later clock;
+    # never substitute an accepted PUT or current state for a persisted receipt.
+    for attempt in range(2):
+        guard()
+        try:
+            if isinstance(backend,TelemetryTransport):
+                return backend.persisted(item,state,since=since,until=_clock(),preflight=guard)
+            return backend.persisted(item,state,since=since)
+        except ValueError as error:
+            if str(error)!='one exact actual persisted publication required' or attempt:raise
+            sleep(1);guard()
+
+
 def publish_cycle(settings,*,guard,backend=None):
     guard();_resource_preflight();runtime=current_runtime();now=_clock()
     candidate=read_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime)
@@ -102,7 +116,7 @@ def publish_cycle(settings,*,guard,backend=None):
         payload=forecasts.publication(capture);receipts={}
         for item,value in ((NUMERIC_ITEM,capture['output']),(PUBLICATION_ITEM,payload)):
             state=_canonical(value).decode();send_guard();backend.put(item,state,preflight=send_guard)
-            receipt=backend.persisted(item,state,since=issue)
+            receipt=_persisted_after_write(backend,item,state,since=issue,guard=send_guard)
             if receipt is None:raise ValueError('provisional delivery not persisted')
             served,_=_receipt(receipt,item)
             if _canonical(served)!=_canonical(value):raise ValueError('served provisional state differs')
@@ -125,8 +139,6 @@ def withdraw(settings,*,guard,backend=None):
     numeric=dict(schema=forecasts.NUMERIC_SCHEMA,status='unavailable',generated_at=at.isoformat(),graduated=False,automatic_actuation=False)
     for item,value in ((NUMERIC_ITEM,numeric),(PUBLICATION_ITEM,main)):
         state=_canonical(value).decode();backend.put(item,state,preflight=guard)
-        # TelemetryTransport accepts an explicit until; LiveBackend supplies it.
-        if isinstance(backend,TelemetryTransport):receipt=backend.persisted(item,state,since=at,until=_clock())
-        else:receipt=backend.persisted(item,state,since=at)
+        receipt=_persisted_after_write(backend,item,state,since=at,guard=guard)
         if receipt is None or _canonical(_receipt(receipt,item)[0])!=_canonical(value):raise ValueError('withdrawal delivery unverified')
     return dict(status='withdrawn',mode='unavailable',delivery_verified=True,automatic_actuation=False)

@@ -70,7 +70,34 @@ def test_real_provisional_runtime_binds_every_deployed_source(tmp_path,monkeypat
     for name in module().RUNTIME_PATHS:
         target=root/name;target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
         target.write_bytes((original/name).read_bytes());target.chmod(0o600)
+    from test_thermal_origin_capture import private_interpreter
+    private_interpreter(tmp_path,monkeypatch)
     monkeypatch.setattr(module(),'RUNTIME_ROOT',root)
     runtime=module().current_runtime()
     assert set(runtime['source_manifest'])==set(module().RUNTIME_PATHS)
     assert len(runtime['source_manifest'])==72
+
+
+def test_withdrawal_waits_for_asynchronous_exact_persistence(tmp_path,monkeypatch):
+    settings,backend,_,_=fixture(tmp_path,monkeypatch)
+    original=backend.persisted;attempts={}
+    def delayed(item,state,**kwargs):
+        attempts[item]=attempts.get(item,0)+1
+        if attempts[item]==1:raise ValueError('one exact actual persisted publication required')
+        return original(item,state,**kwargs)
+    backend.persisted=delayed
+    result=module().withdraw(settings,backend=backend,guard=lambda:None)
+    assert result['delivery_verified'] is True
+    assert list(attempts.values())==[2,2]
+    assert len(backend.puts)==2
+
+
+def test_withdrawal_refuses_unpersisted_state_after_bounded_retry(tmp_path,monkeypatch):
+    settings,backend,_,_=fixture(tmp_path,monkeypatch)
+    attempts=[]
+    def absent(*args,**kwargs):
+        attempts.append(1)
+        raise ValueError('one exact actual persisted publication required')
+    backend.persisted=absent
+    with pytest.raises(ValueError):module().withdraw(settings,backend=backend,guard=lambda:None)
+    assert len(attempts)==2 and len(backend.puts)==1
