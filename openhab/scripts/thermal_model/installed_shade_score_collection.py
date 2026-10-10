@@ -17,7 +17,8 @@ from .installed_shade_artifact import _digest
 from .installed_shade_published_origin import (read_publication_capture,score_publication_capture,
     read_raw_publication_capture,score_raw_publication_capture,
     read_source_publication_capture,score_source_publication_capture,
-    read_compressed_source_publication_capture,score_compressed_source_publication_capture)
+    read_compressed_source_publication_capture,score_compressed_source_publication_capture,
+    read_compressed_calibrated_publication_capture,score_compressed_calibrated_publication_capture)
 from .installed_shade_calibration import _persist
 from .recent_cycles import compare_v2
 from . import installed_shade_origin as base
@@ -34,7 +35,7 @@ def _locked_published_score(*,origin_path,horizon_hours,output_directory,backend
     """Serialize a mature score with the existing publisher in its source archive."""
     fd=None
     try:
-        if type(_version) is not int or _version not in (3,5,7,9,11):raise ValueError('explicit collection profile required')
+        if type(_version) is not int or _version not in (3,5,7,9,11,13):raise ValueError('explicit collection profile required')
         path=Path(origin_path)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original publication path required')
         archive=_private_directory(path.parent)
@@ -53,7 +54,7 @@ def _locked_published_score(*,origin_path,horizon_hours,output_directory,backend
 def _collect_published_score(*,origin_path,horizon_hours,output_directory,backend,_version=3):
     """Collect one mature horizon within the caller's bounded serial scope."""
     try:
-        if type(_version) is not int or _version not in (3,5,7,9,11):raise ValueError('explicit collection profile required')
+        if type(_version) is not int or _version not in (3,5,7,9,11,13):raise ValueError('explicit collection profile required')
         root=_private_directory(Path(output_directory));path=Path(origin_path)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original publication path required')
         if type(horizon_hours) is not int or horizon_hours not in HORIZONS:raise ValueError('supported mature collection horizon required')
@@ -61,9 +62,10 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
             5:(read_raw_publication_capture,score_raw_publication_capture),
             7:(read_source_publication_capture,score_source_publication_capture),
             9:(read_source_publication_capture,score_source_publication_capture),
-            11:(read_compressed_source_publication_capture,score_compressed_source_publication_capture)}[_version]
+            11:(read_compressed_source_publication_capture,score_compressed_source_publication_capture),
+            13:(read_compressed_calibrated_publication_capture,score_compressed_calibrated_publication_capture)}[_version]
         record=reader(path);numeric=record['numeric_capture']
-        if _version in (7,9,11) and record['schema']!=f'earthship-installed-shade-origin/v{_version}':
+        if _version in (7,9,11,13) and record['schema']!=f'earthship-installed-shade-origin/v{_version}':
             raise ValueError('original main query profile differs')
         issue=_utc(numeric['issued_at']);target=issue+timedelta(hours=horizon_hours);now=_utc(_clock())
         if target>now-timedelta(minutes=5):return dict(status='pending',release_authorized=False)
@@ -99,27 +101,27 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
         backend.verify_unchanged()
         assessed_at=_utc(_clock())
         score=scorer(record,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
-        source_version={3:2,5:3,7:5,9:4,11:6}[_version]
+        source_version={3:2,5:3,7:5,9:4,11:6,13:7}[_version]
         raw_sources=None
-        if _version in (5,7,9,11) and not hasattr(backend,'native_source_paths'):
+        if _version in (5,7,9,11,13) and not hasattr(backend,'native_source_paths'):
             raise ValueError('original raw query archive acquisition required')
         if hasattr(backend,'native_source_paths'):
             from .installed_shade_raw_score_sources import build_native_score_binding,build_compressed_native_score_binding
             from .replay_budget import check_shared_budget
-            builder=build_compressed_native_score_binding if _version==11 else build_native_score_binding
+            builder=build_compressed_native_score_binding if _version in (11,13) else build_native_score_binding
             def acquisition_guard():
                 check_shared_budget();backend.verify_unchanged()
             binding=builder(packet,source_paths=list(backend.native_source_paths),issue_at=issue,
-                sensor_epoch=phase,assessed_at=assessed_at,**({'check_budget':acquisition_guard} if _version==11 else {}))
+                sensor_epoch=phase,assessed_at=assessed_at,**({'check_budget':acquisition_guard} if _version in (11,13) else {}))
             raw_sources=dict(schema=f'earthship-installed-shade-score-sources/v{source_version}',score_sources=packet,
                 native_binding=binding,release_authority=False)
         guard=None
-        if _version in (7,9,11):
+        if _version in (7,9,11,13):
             from .installed_shade_raw_score_sources import (replay_native_origin_binding,replay_native_score_binding,
                 replay_compressed_native_origin_binding,replay_compressed_native_score_binding)
             from .replay_budget import check_shared_budget
-            origin_replay=replay_compressed_native_origin_binding if _version==11 else replay_native_origin_binding
-            score_replay=replay_compressed_native_score_binding if _version==11 else replay_native_score_binding
+            origin_replay=replay_compressed_native_origin_binding if _version in (11,13) else replay_native_origin_binding
+            score_replay=replay_compressed_native_score_binding if _version in (11,13) else replay_native_score_binding
             raw_sources['native_origin_binding_sha256']=_digest(numeric['native_origin_binding'])
             def guard():
                 backend.verify_unchanged()
@@ -129,7 +131,7 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
                     assessed_at=assessed_at,check_budget=check_shared_budget)
                 backend.verify_unchanged()
             guard()
-            writer=base.write_compressed_source_issued_capture if _version==11 else calibrated.write_source_calibrated_capture if _version==7 else base.write_source_issued_capture
+            writer=calibrated.write_compressed_source_calibrated_capture if _version==13 else base.write_compressed_source_issued_capture if _version==11 else calibrated.write_source_calibrated_capture if _version==7 else base.write_source_issued_capture
         else:
             writer=calibrated.write_raw_calibrated_capture if _version==5 else (calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture)
         numeric_path=writer(root,numeric)
@@ -139,7 +141,7 @@ def _collect_published_score(*,origin_path,horizon_hours,output_directory,backen
         raw['publication']={k:v for k,v in record['numeric_publication'].items() if k!='item'}
         packet_path=_persist(root,[packet],_digest([packet]),'.installed-shade-score-sources-v1.json',**persist_options)
         numeric_packet_path=_persist(root,[raw],_digest([raw]),'.installed-shade-numeric-score-sources-v1.json',**persist_options)
-        score_path=_persist(root,score,_digest(score),f'.installed-shade-score-result-v{source_version}.json' if _version in (7,9,11) else ('.installed-shade-score-result-v2.json' if _version==5 else '.installed-shade-score-result-v1.json'),**persist_options)
+        score_path=_persist(root,score,_digest(score),f'.installed-shade-score-result-v{source_version}.json' if _version in (7,9,11,13) else ('.installed-shade-score-result-v2.json' if _version==5 else '.installed-shade-score-result-v1.json'),**persist_options)
         result=dict(status='scored',packet_path=str(packet_path),numeric_packet_path=str(numeric_packet_path),
             score_path=str(score_path),release_authorized=False)
         if raw_sources is not None:
@@ -172,3 +174,8 @@ def collect_source_published_score(**values):
 def collect_compressed_source_published_score(**values):
     """Explicit main11/source6 collection with complete compressed originals."""
     return _locked_published_score(**values,_version=11)
+
+
+def collect_compressed_calibrated_published_score(**values):
+    """Retain main13/source7 originals; never activate or publish controls."""
+    return _locked_published_score(**values,_version=13)

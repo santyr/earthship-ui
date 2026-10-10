@@ -165,12 +165,15 @@ def deliver_source(case,*,base_candidate=None,compressed=False):
         if base_candidate is not None:prepared=base.PreparedCandidate(_canonical(base_candidate),args['issued_at'])
     if compressed:
         from test_installed_shade_raw_origin import compressed_base_args
-        assert kind=='base'
-        prepared,args=compressed_base_args(source_origin_case)
-        if base_candidate is not None:prepared=base.PreparedCandidate(_canonical(base_candidate),args['issued_at'])
-    record=(base.build_compressed_source_issued_capture if compressed else base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
+        if kind=='base':
+            prepared,args=compressed_base_args(source_origin_case)
+            if base_candidate is not None:prepared=base.PreparedCandidate(_canonical(base_candidate),args['issued_at'])
+        else:
+            from test_installed_shade_raw_origin import compressed_calibrated_origin_case
+            prepared,args=compressed_calibrated_origin_case.__wrapped__(source_origin_case)
+    record=(base.build_compressed_source_issued_capture if compressed and kind=='base' else calibrated.build_compressed_source_calibrated_capture if compressed else base.build_source_issued_capture if kind=='base' else calibrated.build_source_calibrated_capture)(prepared,**args)
     root=tmp_path/'receipts';root.mkdir(mode=0o700)
-    path=(base.write_compressed_source_issued_capture if compressed else base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
+    path=(base.write_compressed_source_issued_capture if compressed and kind=='base' else calibrated.write_compressed_source_calibrated_capture if compressed else base.write_source_issued_capture if kind=='base' else calibrated.write_source_calibrated_capture)(root,record)
     artifact=record['candidate'];issue=args['issued_at'];binding=_digest(record['native_origin_binding'])
     output=dict(schema='earthship-installed-shade-publication/v3',version=6,status='shadow',
         generatedAt=issue.isoformat(),validUntil=(issue+timedelta(minutes=10)).isoformat(),
@@ -188,7 +191,7 @@ def deliver_source(case,*,base_candidate=None,compressed=False):
     numeric=dict(item='Thermal_OriginalForecast_JSON',time=int((issue+timedelta(seconds=2)).timestamp()*1000),state=_canonical(record['output']).decode())
     actual=dict(item='Thermal_Model_JSON',time=int((issue+timedelta(seconds=3)).timestamp()*1000),state=_canonical(output).decode())
     monkeypatch.setattr(published,'_clock',lambda:issue+timedelta(seconds=4))
-    capture=(published.build_compressed_source_publication_capture if compressed else published.build_source_publication_capture)(path,numeric_publication=numeric,publication=actual)
+    capture=(published.build_compressed_source_publication_capture if compressed and kind=='base' else published.build_compressed_calibrated_publication_capture if compressed else published.build_source_publication_capture)(path,numeric_publication=numeric,publication=actual)
     return root,capture,output,issue,kind,args
 
 
@@ -783,3 +786,114 @@ def test_compressed_cohort_bounds_aggregate_physical_query_storage_before_math(s
     def forbidden(*a,**kw):pytest.fail('oversized compressed physical inventory reached numerical replay')
     monkeypatch.setattr(sources,'read_compressed_source_base_score_sources',forbidden)
     with pytest.raises(ValueError,match='aggregate raw queries'):replay(references,assessed_at=now)
+
+
+def compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    assert hasattr(published,'build_compressed_calibrated_publication_capture'),'missing compressed calibrated main capture'
+    return deliver_source((source_origin_case,tmp_path,monkeypatch,'calibrated'),compressed=True)
+
+
+def test_compressed_calibrated_main_has_distinct_actual_receipt_contract(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    root,record,_,_,_,_=compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch)
+    assert record['schema']=='earthship-installed-shade-origin/v13'
+    assert record['numeric_capture']['schema']=='earthship-installed-shade-origin/v12'
+    path=published.write_compressed_calibrated_publication_capture(root,record)
+    assert published.read_compressed_calibrated_publication_capture(path)==record
+    for old in (published.read_publication_capture,published.read_raw_publication_capture,published.read_source_publication_capture,published.read_compressed_source_publication_capture):
+        with pytest.raises(ValueError):old(path)
+
+
+def test_compressed_calibrated_main_scoring_keeps_both_receipts_and_intervals(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    _,record,_,issue,_,args=compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch)
+    target=issue+timedelta(hours=24)
+    values=dict(publication=record['publication'],horizon_hours=24,outcome=dict(target_at=target.isoformat(),receipt=outcome(target,73.)),
+        recent_cycle_grid=synthetic_cycle_grid(issue,24),assessed_at=target+timedelta(minutes=10))
+    scored=published.score_compressed_calibrated_publication_capture(record,**values)
+    assert scored['schema']=='earthship-installed-shade-source-scored-pair/v13'
+    assert scored['scored_pair']['interval_width_f']==pytest.approx(64.)
+    assert scored['numeric_publication_sha256']==_digest(record['numeric_publication'])
+    assert scored['publication_sha256']==_digest(record['publication'])
+    Path(args['native_source_paths']['mass']).unlink()
+    with pytest.raises((ValueError,OSError)):published.score_compressed_calibrated_publication_capture(record,**values)
+
+
+def compressed_calibrated_archive_case(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_score_collection as collector
+    root,record,_,issue,_,args=compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch)
+    path=published.write_compressed_calibrated_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);monkeypatch.setattr(collector,'_clock',lambda:now)
+    backend=CompressedRawBackend(record,root)
+    result=collector.collect_compressed_calibrated_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored'
+    return root,record,args,now,backend,result
+
+
+def test_compressed_calibrated_archive_and_cohort_replay_originals(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_raw_score_sources as sources,installed_shade_qualification as qualification
+    _,record,args,now,_,result=compressed_calibrated_archive_case(source_origin_case,tmp_path,monkeypatch)
+    raw=Path(result['raw_packet_path']);header=json.loads(raw.read_text())
+    assert header['schema']=='earthship-installed-shade-score-sources/v7'
+    replay=sources.read_compressed_source_calibrated_score_sources(raw,assessed_at=now)
+    assert replay['score']==json.loads(Path(result['score_path']).read_text())
+    references=[dict(raw_score_sources_path=str(raw))]
+    cohort=qualification.score_compressed_source_calibrated_packets(references,assessed_at=now)
+    assert cohort['raw_native_issue_sources'] is True and cohort['raw_native_score_sources'] is True
+    assert cohort['calibrated_intervals'] is True and cohort['rows'][0]['interval_width_f']==pytest.approx(64.)
+    assert cohort['bindings'][0]['native_origin_binding_sha256']==_digest(record['numeric_capture']['native_origin_binding'])
+    with pytest.raises(ValueError):qualification.score_compressed_source_base_packets(references,assessed_at=now)
+    Path(args['native_source_paths']['air']).unlink()
+    with pytest.raises((ValueError,OSError)):sources.read_compressed_source_calibrated_score_sources(raw,assessed_at=now)
+
+
+@pytest.mark.parametrize('lost',['issue','outcome'])
+def test_compressed_calibrated_cohort_missing_original_refuses_before_math(source_origin_case,tmp_path,monkeypatch,lost):
+    from thermal_model import installed_shade_raw_score_sources as sources,installed_shade_qualification as qualification
+    _,_,args,now,backend,result=compressed_calibrated_archive_case(source_origin_case,tmp_path,monkeypatch)
+    Path(args['native_source_paths']['air'] if lost=='issue' else backend.native_source_paths[-1]).unlink()
+    monkeypatch.setattr(sources,'read_compressed_source_calibrated_score_sources',lambda *a,**kw:pytest.fail('missing calibrated original reached numerical replay'))
+    with pytest.raises((ValueError,OSError)):qualification.score_compressed_source_calibrated_packets([dict(raw_score_sources_path=result['raw_packet_path'])],assessed_at=now)
+
+
+def test_compressed_calibrated_main_original_loss_after_actual_temp_write_refuses(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,runtime_bundle
+    root,record,_,_,_,args=compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch)
+    original=runtime_bundle._write_private;written=[]
+    def changed(path,raw):
+        original(path,raw)
+        if b'"schema":"earthship-installed-shade-origin/v13"' in raw:
+            written.append(path);Path(args['native_source_paths']['outdoor']).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    with pytest.raises((ValueError,OSError)):published.write_compressed_calibrated_publication_capture(root,record)
+    assert written and not list(root.glob('*.installed-shade-origin-v13.json')) and not list(root.glob('.calibration-*'))
+
+
+def test_compressed_calibrated_archive_refuses_outcome_lost_after_numerical_replay(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_raw_score_sources as sources
+    _,_,_,now,backend,result=compressed_calibrated_archive_case(source_origin_case,tmp_path,monkeypatch)
+    original=published.score_compressed_calibrated_publication_capture;replayed=[]
+    def changed(*args,**kwargs):
+        value=original(*args,**kwargs);replayed.append(value);Path(backend.native_source_paths[-1]).unlink();return value
+    monkeypatch.setattr(published,'score_compressed_calibrated_publication_capture',changed)
+    with pytest.raises((ValueError,OSError)):sources.read_compressed_source_calibrated_score_sources(Path(result['raw_packet_path']),assessed_at=now)
+    assert replayed
+
+
+@pytest.mark.parametrize('lost',['issue','outcome'])
+def test_compressed_calibrated_archive_original_loss_after_actual_temp_write_refuses(source_origin_case,tmp_path,monkeypatch,lost):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_score_collection as collector,runtime_bundle
+    root,record,_,issue,_,args=compressed_calibrated_delivery(source_origin_case,tmp_path,monkeypatch)
+    path=published.write_compressed_calibrated_publication_capture(root,record)
+    backend=CompressedRawBackend(record,root);now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now)
+    original=runtime_bundle._write_private;written=[]
+    def changed(path,raw):
+        original(path,raw)
+        if b'"schema":"earthship-installed-shade-score-sources/v7"' in raw:
+            written.append(path);Path(args['native_source_paths']['air'] if lost=='issue' else backend.native_source_paths[-1]).unlink()
+    monkeypatch.setattr(runtime_bundle,'_write_private',changed)
+    result=collector.collect_compressed_calibrated_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert written and result==dict(status='withheld',release_authorized=False)
+    assert not list(root.glob('*.installed-shade-score-sources-v7.json')) and not list(root.glob('.calibration-*'))

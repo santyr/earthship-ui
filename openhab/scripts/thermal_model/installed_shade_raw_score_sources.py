@@ -77,19 +77,20 @@ def _replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,as
 
 def _read_raw_score_sources(path,*,assessed_at,check_budget=None,_version=2):
     """Recompute a collected score only while its original raw sources exist."""
-    if type(_version) is not int or _version not in (2,3,4,5,6):
+    if type(_version) is not int or _version not in (2,3,4,5,6,7):
         raise ValueError('explicit raw score archive version required')
     from .forcing_capture import _private_directory
     from .installed_shade_calibration import _read_json
     from .installed_shade_published_origin import (read_publication_capture,score_publication_capture,
         read_raw_publication_capture,score_raw_publication_capture,
         read_source_publication_capture,score_source_publication_capture,
-        read_compressed_source_publication_capture,score_compressed_source_publication_capture)
+        read_compressed_source_publication_capture,score_compressed_source_publication_capture,
+        read_compressed_calibrated_publication_capture,score_compressed_calibrated_publication_capture)
     path=Path(path)
     if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original raw score packet required')
     _private_directory(path.parent);record=_read_json(path)
     fields={'schema','score_sources','native_binding','release_authority'}
-    if _version in (4,5,6):fields.add('native_origin_binding_sha256')
+    if _version in (4,5,6,7):fields.add('native_origin_binding_sha256')
     if (not isinstance(record,dict) or set(record)!=fields or
             record['schema']!=f'earthship-installed-shade-score-sources/v{_version}' or record['release_authority'] is not False or
             path.name!=_digest(record)+f'.installed-shade-score-sources-v{_version}.json'):
@@ -101,19 +102,20 @@ def _read_raw_score_sources(path,*,assessed_at,check_budget=None,_version=2):
         3:(read_raw_publication_capture,score_raw_publication_capture),
         4:(read_source_publication_capture,score_source_publication_capture),
         5:(read_source_publication_capture,score_source_publication_capture),
-        6:(read_compressed_source_publication_capture,score_compressed_source_publication_capture)}[_version]
+        6:(read_compressed_source_publication_capture,score_compressed_source_publication_capture),
+        7:(read_compressed_calibrated_publication_capture,score_compressed_calibrated_publication_capture)}[_version]
     original=reader(Path(packet['origin_path']));numeric=original['numeric_capture']
-    if _version in (4,5,6):
-        expected={4:'earthship-installed-shade-origin/v9',5:'earthship-installed-shade-origin/v7',6:'earthship-installed-shade-origin/v11'}[_version]
+    if _version in (4,5,6,7):
+        expected={4:'earthship-installed-shade-origin/v9',5:'earthship-installed-shade-origin/v7',6:'earthship-installed-shade-origin/v11',7:'earthship-installed-shade-origin/v13'}[_version]
         if original['schema']!=expected or record['native_origin_binding_sha256']!=_digest(numeric['native_origin_binding']):
             raise ValueError('original issue-query profile or binding differs')
-    score_replay=replay_compressed_native_score_binding if _version==6 else replay_native_score_binding
-    origin_replay=replay_compressed_native_origin_binding if _version==6 else replay_native_origin_binding
+    score_replay=replay_compressed_native_score_binding if _version in (6,7) else replay_native_score_binding
+    origin_replay=replay_compressed_native_origin_binding if _version in (6,7) else replay_native_origin_binding
     binding=score_replay(record['native_binding'],packet,issue_at=numeric['issued_at'],
         sensor_epoch=numeric['source_epochs']['air'],assessed_at=assessed_at,check_budget=check_budget)
     if check_budget is not None:check_budget()
     score=scorer(original,**{k:v for k,v in packet.items() if k!='origin_path'},assessed_at=assessed_at)
-    if _version in (4,5,6):
+    if _version in (4,5,6,7):
         origin_replay(numeric['native_origin_binding'],numeric['origin_temperatures'],
             issue_at=numeric['issued_at'],check_budget=check_budget)
         score_replay(record['native_binding'],packet,issue_at=numeric['issued_at'],
@@ -266,3 +268,7 @@ def replay_compressed_native_origin_binding(binding,origin_temperatures,*,issue_
 
 def read_compressed_source_base_score_sources(path,*,assessed_at,check_budget=None):
     return _read_raw_score_sources(path,assessed_at=assessed_at,check_budget=check_budget,_version=6)
+
+
+def read_compressed_source_calibrated_score_sources(path,*,assessed_at,check_budget=None):
+    return _read_raw_score_sources(path,assessed_at=assessed_at,check_budget=check_budget,_version=7)

@@ -25,8 +25,8 @@ RAW_SCHEMA='earthship-installed-shade-origin/v5'
 RAW_PAIR_SCHEMA='earthship-installed-shade-source-scored-pair/v5'
 SOURCE_CALIBRATED_SCHEMA='earthship-installed-shade-origin/v7'
 SOURCE_BASE_SCHEMA='earthship-installed-shade-origin/v9'
-SCHEMAS={3:SCHEMA,5:RAW_SCHEMA,7:SOURCE_CALIBRATED_SCHEMA,9:SOURCE_BASE_SCHEMA,11:'earthship-installed-shade-origin/v11'}
-PAIR_SCHEMAS={3:PAIR_SCHEMA,5:RAW_PAIR_SCHEMA,7:'earthship-installed-shade-source-scored-pair/v7',9:'earthship-installed-shade-source-scored-pair/v9',11:'earthship-installed-shade-source-scored-pair/v11'}
+SCHEMAS={3:SCHEMA,5:RAW_SCHEMA,7:SOURCE_CALIBRATED_SCHEMA,9:SOURCE_BASE_SCHEMA,11:'earthship-installed-shade-origin/v11',13:'earthship-installed-shade-origin/v13'}
+PAIR_SCHEMAS={3:PAIR_SCHEMA,5:RAW_PAIR_SCHEMA,7:'earthship-installed-shade-source-scored-pair/v7',9:'earthship-installed-shade-source-scored-pair/v9',11:'earthship-installed-shade-source-scored-pair/v11',13:'earthship-installed-shade-source-scored-pair/v13'}
 NUMERIC_ITEM='Thermal_OriginalForecast_JSON'
 PUBLICATION_ITEM='Thermal_Model_JSON'
 FIELDS={'schema','recorded_at','numeric_capture','numeric_publication','publication','capture_sha256'}
@@ -48,12 +48,15 @@ def _receipt(value,item):
 
 
 def _check_version(version):
-    if type(version) is not int or version not in (3,5,7,9,11):
+    if type(version) is not int or version not in (3,5,7,9,11,13):
         raise ValueError('explicit actual publication capture version required')
 
 
 def _ports(numeric, *, _version=3):
     _check_version(_version)
+    if _version==13:
+        if numeric.get('schema')!='earthship-installed-shade-origin/v12':raise ValueError('compressed calibrated numeric capture required')
+        return calibrated.validate_compressed_source_calibrated_capture,lambda record:calibrated._prediction(record,_version=12),calibrated.score_compressed_source_calibrated_capture
     if _version==11:
         if numeric.get('schema')!='earthship-installed-shade-origin/v10':raise ValueError('compressed base numeric capture required')
         return base.validate_compressed_source_issued_capture,lambda record:base._source_prediction(record,_version=10),base.score_compressed_source_issued_capture
@@ -75,7 +78,8 @@ def _ports(numeric, *, _version=3):
 
 def _build_publication_capture(original_path,*,numeric_publication,publication,_version=3):
     _check_version(_version)
-    if _version==11:original=base.read_compressed_source_issued_capture(original_path)
+    if _version==13:original=calibrated.read_compressed_source_calibrated_capture(original_path)
+    elif _version==11:original=base.read_compressed_source_issued_capture(original_path)
     elif _version==7:original=calibrated.read_source_calibrated_capture(original_path)
     elif _version==9:original=base.read_source_issued_capture(original_path)
     else:original=calibrated.read_raw_calibrated_capture(original_path) if _version==5 else _read_origin(original_path)[0]
@@ -93,7 +97,7 @@ def _validate_publication_capture(record, *, _version=3):
         raise ValueError('closed bounded actual publication capture required')
     numeric=record['numeric_capture'];validate,predict,_=_ports(numeric,_version=_version);validate(numeric)
     original,numeric_at=_receipt(record['numeric_publication'],NUMERIC_ITEM)
-    output,published_at=_receipt(record['publication'],PUBLICATION_ITEM);(validate_compressed_source_installed_publication if _version==11 else validate_source_installed_publication if _version in (7,9) else validate_raw_installed_publication if _version==5 else validate_installed_publication)(output)
+    output,published_at=_receipt(record['publication'],PUBLICATION_ITEM);(validate_compressed_source_installed_publication if _version in (11,13) else validate_source_installed_publication if _version in (7,9) else validate_raw_installed_publication if _version==5 else validate_installed_publication)(output)
     issue=_utc(numeric['issued_at']);recorded=_utc(record['recorded_at'])
     if (not issue<=numeric_at<=_utc(numeric['published_at'])<=published_at<=recorded or
             not published_at<_utc(output['validUntil']) or output['status']=='unavailable' or
@@ -108,7 +112,7 @@ def _validate_publication_capture(record, *, _version=3):
             _utc(output['model']['trainedThrough'])!=_utc(numeric['candidate']['trained_through']) or
             output['model']['codeRevision']!=numeric['candidate']['code_revision']):
         raise ValueError('actual publication changed the bound numeric origin')
-    if _version in (7,9,11) and output['release']['nativeOriginBindingSha256']!=_digest(numeric['native_origin_binding']):
+    if _version in (7,9,11,13) and output['release']['nativeOriginBindingSha256']!=_digest(numeric['native_origin_binding']):
         raise ValueError('actual main receipt changed the original query proof')
     # Replay the same original evidence at the main receipt's real clock. This
     # view is not a new original forecast/capture or substituted persisted state.
@@ -122,13 +126,14 @@ def _validate_publication_capture(record, *, _version=3):
 def _write_publication_capture(directory,record, *, _version=3):
     record=deepcopy(record);_validate_publication_capture(record,_version=_version);root=_private_directory(Path(directory))
     numeric=record['numeric_capture']
-    if _version==11:writer=base.write_compressed_source_issued_capture
+    if _version==13:writer=calibrated.write_compressed_source_calibrated_capture
+    elif _version==11:writer=base.write_compressed_source_issued_capture
     elif _version==7:writer=calibrated.write_source_calibrated_capture
     elif _version==9:writer=base.write_source_issued_capture
     else:writer=calibrated.write_raw_calibrated_capture if _version==5 else (calibrated.write_calibrated_capture if numeric['schema']==calibrated.SCHEMA else base.write_issued_capture)
     writer(root,numeric)
     return _persist(root,record,record['capture_sha256'],f'.installed-shade-origin-v{_version}.json',
-        before_publish=(lambda:_validate_publication_capture(record,_version=_version)) if _version in (7,9,11) else None)
+        before_publish=(lambda:_validate_publication_capture(record,_version=_version)) if _version in (7,9,11,13) else None)
 
 
 def _read_publication_capture(path, *, _version=3):
@@ -252,3 +257,23 @@ def read_compressed_source_publication_capture(path):
 
 def score_compressed_source_publication_capture(record,**values):
     return _score_publication_capture(record,**values,_version=11)
+
+
+def build_compressed_calibrated_publication_capture(original_path,**values):
+    return _build_publication_capture(original_path,**values,_version=13)
+
+
+def validate_compressed_calibrated_publication_capture(record):
+    return _validate_publication_capture(record,_version=13)
+
+
+def write_compressed_calibrated_publication_capture(directory,record):
+    return _write_publication_capture(directory,record,_version=13)
+
+
+def read_compressed_calibrated_publication_capture(path):
+    return _read_publication_capture(path,_version=13)
+
+
+def score_compressed_calibrated_publication_capture(record,**values):
+    return _score_publication_capture(record,**values,_version=13)

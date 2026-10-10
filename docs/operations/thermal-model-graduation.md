@@ -2051,3 +2051,25 @@ The producer/actual main receipt profile, compressed calibrated score archives,
 complete release qualification and installed operator/UI routing remain unfinished.
 No installed service selects this numeric profile; model/evidence/resource gates
 remain required before any production cutover.
+
+Compressed calibrated main observation has explicit origin/v13 and
+source-scored-pair/v13 ports, binding numeric origin/v12 and publication/v4.
+They retain both actual persisted receipts, original artifact/runtime/epoch
+identity, exact intervals and initial-state expiry at the main receipt clock.
+Legacy and compressed-base main readers refuse this distinct calibrated profile.
+Original query loss after actual main temporary writes withholds retention.
+
+The calibrated collector retains score-sources/v7 with native-score-binding/v2
+and the original issue-binding digest. Typed archive and cohort replay verify
+original issue/comparator/outcome queries before numerical scoring and again
+after it. Inventory bounds run before numerical work and retain the same unique
+physical-file/count limits, original raw query bounds and inherited deadline.
+Original loss after actual archive temporary writes prevents immutable publication.
+Calibrated intervals are derived from the exact issued forecast, never a later
+recalibration. Mathematical fixtures establish this contract only; they do not
+establish qualifying calibration support or production authority.
+
+No installed producer selects these ports. Complete qualification-report/v7,
+source policy registration, production publication preparation and operator/UI
+routing, plus genuine independent evidence and qualifying-cohort capacity,
+remain required before deployment.
