@@ -2477,3 +2477,24 @@ compatible interpreter/dependencies and genuine qualification/capacity. Review
 conflicts with existing publishers and timers. Rendering only prepares files for
 that review; it cannot substitute for genuine baseline wins, a passed resource
 preflight, natural publication receipts or an evidence-based cutover decision.
+
+### SoC rolling-heuristic evidence metadata
+
+The existing SoC forecast equation remains a rolling completed-night heuristic,
+not a trained model. `qualified_soc_forecast.completed_night_troughs` can retain
+its same-read measured assessments in an optional empty `evidence_sink`. It
+adds no query, retains the configured physical bank epoch and original assessment
+coverage/window/input digest, and publishes the sink only after the read finishes.
+The default numeric return contract is unchanged.
+
+The forecast saves this bounded metadata as `soc_night_evidence` and its actual
+assessment clock as `soc_evidence_assessed_at`. `learning_evidence.soc_trough`
+identifies the heuristic and reports the used sample dates, bank epochs, coverage,
+original evidence digests and source-qualified night count. Missing, malformed,
+insufficient or future assessment metadata cannot supply those diagnostic fields.
+These digests identify original assessor inputs; the summary does not retain
+those inputs, replace source replay, score a prospective prediction or authorize
+model release. Prospective SoC error assessment remains the separate original
+issue/outcome path through `completed_trough_score`, not a retrospective error
+computed from the rolling heuristic's current samples. PV calibration and thermal
+qualification gates remain unchanged.

@@ -70,7 +70,7 @@ def qualified_night_start_drop(prediction_day, *, now, site_timezone,
     }
 
 
-def completed_night_troughs(ending_days, *, now, site_timezone, environ=None):
+def completed_night_troughs(ending_days, *, now, site_timezone, environ=None, evidence_sink=None):
     """Return only fully qualified measured minima keyed by local ending day.
 
     A single bounded read-only DB session covers at most four nights. An absent
@@ -92,6 +92,8 @@ def completed_night_troughs(ending_days, *, now, site_timezone, environ=None):
             or any(not isinstance(day, date) or isinstance(day, datetime) for day in ending_days)
             or len(set(ending_days)) != len(ending_days)):
         raise ValueError("at most four distinct ending dates are allowed")
+    if evidence_sink is not None and (type(evidence_sink) is not dict or evidence_sink):
+        raise ValueError('empty diagnostic evidence sink required')
     env = os.environ if environ is None else environ
     if (env.get("ADVISORY_ASSESS_ENABLED") != "1"
             or env.get("ADVISORY_ASSESS_TIMEZONE") != site_timezone
@@ -127,7 +129,7 @@ def completed_night_troughs(ending_days, *, now, site_timezone, environ=None):
         if len(matches) != 1 or type(matches[0][0]) is not int or matches[0][0] < 0:
             return {}
         table = f"item{matches[0][0]:04d}"
-        result = {}
+        result = {}; retained = {}
         for day, window in complete:
             rows = fetch_freshness_observations(
                 connection, table, window.start - timedelta(seconds=120), window.end,
@@ -140,6 +142,9 @@ def completed_night_troughs(ending_days, *, now, site_timezone, environ=None):
             )
             if measurement["status"] == "measured":
                 result[day] = measurement["min_soc_pct"]
+                retained[day.isoformat()] = {'bank_epoch': bank.epoch_id, 'assessment': measurement}
+        if evidence_sink is not None:
+            evidence_sink.update(retained)
         return result
     finally:
         connection.close()

@@ -166,13 +166,22 @@ def test_completed_night_uses_full_atomic_coverage_and_skips_incomplete(monkeypa
         "ADVISORY_ASSESS_ENABLED": "1", "ADVISORY_ASSESS_TIMEZONE": "America/Denver",
         "ADVISORY_ASSESS_DSN": "synthetic", "ADVISORY_ASSESS_BANK_EPOCH": "bank",
     }
+    retained = {}
     result = completed_night_troughs(
         [date(2026, 9, 21), date(2026, 9, 22)], now=BASE,
-        site_timezone="America/Denver", environ=env,
+        site_timezone="America/Denver", environ=env, evidence_sink=retained,
     )
     assert result == {date(2026, 9, 21): 80}
     assert len(queries) == 1
     assert connection.closed
+    assert set(retained) == {'2026-09-21'}
+    assert retained['2026-09-21']['bank_epoch'] == 'bank'
+    assessment = retained['2026-09-21']['assessment']
+    assert assessment['min_soc_pct'] == result[date(2026, 9, 21)]
+    assert assessment['coverage'] > .99
+    assert assessment['window_end'] == window.end.isoformat()
+    assert assessment['assessed_at'] == BASE.isoformat()
+    assert len(assessment['evidence_digest']) == 64
 
     # A change-only minimum at minute 300 cannot qualify the entire night
     # when three hours of acquisition evidence are absent.

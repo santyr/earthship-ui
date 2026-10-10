@@ -448,7 +448,7 @@ DEFAULT_STATE = {"k_res": 1.0, "d_direct": 4.0, "predictions": {},
 
 def prediction_learning_support(state, overnight_drop_sample_days):
     """Summarize independent learning support without changing any forecast."""
-    from forecast_ml_evidence import summarize_day_evidence
+    from forecast_ml_evidence import summarize_day_evidence, summarize_soc_night_sources
 
     pv_evidence = state.get("pv_score_evidence", {})
     qualified_pv_days = []
@@ -506,6 +506,10 @@ def prediction_learning_support(state, overnight_drop_sample_days):
         active_parameter_count=0,
         minimum_unique_days=3,
     )
+    soc.update(summarize_soc_night_sources(
+        overnight_drop_sample_days, state.get('soc_night_evidence', {}),
+        state.get('soc_evidence_assessed_at'),
+    ))
     pv = safe_summary(
         qualified_pv_days,
         active_parameter_count=2,
@@ -676,12 +680,14 @@ def kalman_update(filt, key, err):
     return state["b"]
 
 
-def qualified_soc_inputs(today, now):
+def qualified_soc_inputs(today, now, *, learning_evidence=None):
     """Current atomic SoC plus prior completed, coverage-qualified nights.
 
     Failures return no numerical evidence; callers must not fall back to
     change-only BMS_SOC persistence or an unqualified live numeric state.
     """
+    if learning_evidence is not None and (type(learning_evidence) is not dict or learning_evidence):
+        raise ValueError('empty diagnostic learning evidence required')
     from qualified_soc_forecast import current_valid_soc, completed_night_troughs
     from earthship_energy.bms_evidence import parse_evidence
     try:
@@ -706,10 +712,11 @@ def qualified_soc_inputs(today, now):
     try:
         nights = completed_night_troughs(
             [today - timedelta(days=back) for back in range(1, 5)],
-            now=now, site_timezone=SITE_TZ_NAME,
+            now=now, site_timezone=SITE_TZ_NAME, evidence_sink=learning_evidence,
         )
     except Exception:
         nights = {}
+        if learning_evidence is not None:learning_evidence.clear()
     return current, nights, origin
 
 
@@ -1498,7 +1505,12 @@ def main():
     # Change-only BMS_SOC history cannot establish acquisition freshness or
     # overnight coverage. Never revive that legacy path if a systemd drop-in
     # is lost during restore; unavailable atomic evidence withholds energy.
-    trough_ref, measured_nights, soc_origin = qualified_soc_inputs(today, datetime.now(timezone.utc))
+    soc_assessed_at = datetime.now(timezone.utc)
+    soc_night_evidence = {}
+    trough_ref, measured_nights, soc_origin = qualified_soc_inputs(
+        today, soc_assessed_at, learning_evidence=soc_night_evidence)
+    st['soc_night_evidence'] = soc_night_evidence
+    st['soc_evidence_assessed_at'] = soc_assessed_at.isoformat()
 
     deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT if trough_ref is not None else None
     demand = st["d_direct"] + deficit_kwh if deficit_kwh is not None else None
