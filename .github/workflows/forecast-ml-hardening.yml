@@ -77,6 +77,7 @@ on:
       - 'openhab/scripts/test_installed_registration_cli.py'
       - 'openhab/scripts/test_installed_calibration_cli.py'
       - 'openhab/scripts/test_installed_replay_budget.py'
+      - 'openhab/scripts/test_training_pressure_guard.py'
       - 'openhab/scripts/test_installed_candidate_build.py'
       - 'openhab/scripts/test_installed_shade_score_collection.py'
       - 'openhab/scripts/test_installed_shade_score_inputs.py'
@@ -140,6 +141,7 @@ jobs:
             openhab/scripts/test_installed_shade_dynamics.py \
             openhab/scripts/test_installed_shade_inputs.py \
             openhab/scripts/test_installed_shade_fit.py \
+            openhab/scripts/test_training_pressure_guard.py \
             openhab/scripts/test_installed_candidate_build.py \
             openhab/scripts/test_installed_shade_artifact.py \
             openhab/scripts/test_installed_shade_origin.py \

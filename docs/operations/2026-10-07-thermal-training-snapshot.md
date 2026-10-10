@@ -570,7 +570,8 @@ before spawning its worker. It refuses less than 3 GiB available RAM, more than
 manual launch thresholds mandatory in the command. CPU, memory, swap, task and
 I/O caps still apply independently. The preflight is a launch-time snapshot;
 it does not reserve host memory or establish the cause of the earlier lockup.
-Model fitting and disposable restores remain off-host.
+Explicit installed-shade fitting uses the local training guard described below.
+Disposable restore work remains deferred.
 
 
 ### Bounded journal proof preparation
@@ -735,3 +736,36 @@ temperatures as native evidence. Existing v1 manifest validators deliberately
 refuse this format. Artifact, training-source and origin/qualification migration
 is still required before enabling the live source policy or fitting a releasable
 v2-native candidate. Local SQL tests replace transport; full hosted checks follow.
+
+
+### Explicit installed-shade training pressure guard
+
+`thermal_installed_train.py --fit` uses a separate training-only admission check.
+It requires at least 1.5 GiB available host RAM and five quiet seconds before
+launching the numerical worker. Occupied swap alone does not refuse this bounded
+worker. Any observed swap-in, swap-out, new OOM event or counter reset refuses
+admission or stops the running worker. Missing or malformed resource metadata
+also refuses execution.
+
+Both preflight and running supervision check memory PSI averages over 10, 60
+and 300 seconds: `some` must not exceed 0.5 percent and `full` must not exceed
+0.1 percent. Supervision checks at 250 ms intervals and also checks pressure
+counter deltas over each interval. The same 1.5 GiB available-RAM floor applies
+throughout the run; it is a check, not a reservation or safety guarantee.
+
+The parent and worker share independently verified limits: 20 percent CPU,
+256 MiB memory, no worker swap, 24 tasks, lowered scheduling priority, idle I/O
+(or I/O weight at most 10), and one numerical thread. The supervisor enforces
+90 seconds for the worker; the candidate builder retains its shared 85-second
+budget. On refusal or timeout, cleanup kills only the new worker process group.
+The child rechecks the hard limits and holds the existing shared consumer lock.
+Its bounded result is forwarded only after supervisor checks complete. The
+builder receipt retains the pressure-guard source alongside its existing sources.
+
+This change applies to explicit installed-shade training. The larger acquisition
+launcher and legacy scheduled trainer retain their existing headroom gates.
+No service is restarted or enabled, no swap is cleared, and no model qualification
+threshold is relaxed. A small synthetic numerical pilot establishes only that
+that workload fits within the caps; it is not household training, stability,
+calibration or release evidence. A full development fit needs its original
+training snapshot, runtime archive, sensor epochs and development-only seed.
