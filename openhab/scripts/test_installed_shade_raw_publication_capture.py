@@ -270,3 +270,88 @@ def test_source_main_refuses_query_loss_during_temporary_main_capture_write(sour
     with pytest.raises((ValueError,OSError)):published.write_source_publication_capture(root,record)
     assert not list(root.glob(f"*.installed-shade-origin-v{9 if kind=='base' else 7}.json"))
     assert not list(root.glob('.calibration-*'))
+
+
+@pytest.mark.parametrize('damage',[None,'issue_query','outcome_query','origin_digest'])
+def test_source_score_archive_replays_issue_and_outcome_queries(source_delivery_case,monkeypatch,damage):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_raw_score_sources as sources
+    assert hasattr(collector,'collect_source_published_score'),'missing query-bound scoring collector'
+    assert hasattr(sources,'read_source_score_sources'),'missing query-bound scoring reader'
+    root,record,_,issue,kind,args=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now)
+    monkeypatch.setattr(collector,'ERRORS',())
+    backend=RawBackend(record,root)
+    result=collector.collect_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored' and result['release_authorized'] is False
+    raw_path=Path(result['raw_packet_path']);header=json.loads(raw_path.read_text())
+    assert header['schema']==('earthship-installed-shade-score-sources/v4' if kind=='base' else 'earthship-installed-shade-score-sources/v5')
+    assert header['release_authority'] is False
+    assert header['native_origin_binding_sha256']==_digest(record['numeric_capture']['native_origin_binding'])
+    for reader in (sources.read_raw_score_sources,sources.read_calibrated_raw_score_sources):
+        with pytest.raises(ValueError):reader(raw_path,assessed_at=now)
+    if damage=='issue_query':Path(args['native_source_paths']['air']).unlink()
+    elif damage=='outcome_query':Path(backend.native_source_paths[-1]).unlink()
+    elif damage=='origin_digest':
+        header['native_origin_binding_sha256']='0'*64
+        raw_path=root/(_digest(header)+('.installed-shade-score-sources-v4.json' if kind=='base' else '.installed-shade-score-sources-v5.json'))
+        raw_path.write_bytes(_canonical(header));raw_path.chmod(0o600)
+    if damage is not None:
+        with pytest.raises((ValueError,OSError)):sources.read_source_score_sources(raw_path,assessed_at=now)
+    else:
+        replay=sources.read_source_score_sources(raw_path,assessed_at=now)
+        assert replay['score']['publication_sha256']==_digest(record['publication'])
+        assert replay['score']['numeric_publication_sha256']==_digest(record['numeric_publication'])
+        assert replay['score']['native_origin_binding_sha256']==header['native_origin_binding_sha256']
+        assert replay['score']==json.loads(Path(result['score_path']).read_text())
+
+
+@pytest.mark.parametrize('lost',['source','guard'])
+def test_source_score_archive_rechecks_after_actual_temporary_write(source_delivery_case,monkeypatch,lost):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import runtime_bundle
+    root,record,_,issue,kind,args=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now)
+    backend=RawBackend(record,root)
+    original=runtime_bundle._write_private
+    def write_then_lose(target,raw):
+        original(target,raw)
+        value=json.loads(raw)
+        if isinstance(value,dict) and value.get('schema') in (
+                'earthship-installed-shade-score-sources/v4','earthship-installed-shade-score-sources/v5'):
+            if lost=='source':Path(args['native_source_paths']['mass']).unlink()
+            else:backend.damage='configuration'
+    monkeypatch.setattr(runtime_bundle,'_write_private',write_then_lose)
+    result=collector.collect_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='withheld' and result['release_authorized'] is False
+    assert not list(root.glob('*.installed-shade-score-sources-v4.json'))
+    assert not list(root.glob('*.installed-shade-score-sources-v5.json'))
+    assert not list(root.glob('.calibration-*'))
+
+
+
+def test_source_score_reader_refuses_outcome_source_lost_during_numerical_replay(source_delivery_case,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published
+    from thermal_model import installed_shade_score_collection as collector
+    from thermal_model import installed_shade_raw_score_sources as sources
+    root,record,_,issue,_,_=deliver_source(source_delivery_case)
+    path=published.write_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10)
+    monkeypatch.setattr(collector,'_clock',lambda:now)
+    backend=RawBackend(record,root)
+    result=collector.collect_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored'
+    original=published.score_source_publication_capture
+    def score_then_lose(*args,**kwargs):
+        score=original(*args,**kwargs)
+        Path(backend.native_source_paths[-1]).unlink()
+        return score
+    monkeypatch.setattr(published,'score_source_publication_capture',score_then_lose)
+    with pytest.raises((ValueError,OSError)):
+        sources.read_source_score_sources(Path(result['raw_packet_path']),assessed_at=now)

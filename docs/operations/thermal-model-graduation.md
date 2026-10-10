@@ -1782,3 +1782,22 @@ No installed service, current operator CLI, prepared factory or UI selects this
 new profile. Queued raw scoring, calibration/candidate/registration and complete
 qualification still need the explicit source-bound chain. Passing these
 component tests does not authorize activation or establish natural delivery.
+
+
+Original-query scoring archives now have explicit profiles:
+score-sources/v4 binds base main origin/v9 to numeric origin/v8, and
+score-sources/v5 binds calibrated main origin/v7 to numeric origin/v6.
+`collect_source_published_score` retains the original issue binding digest,
+actual main receipt, seven historical comparator cycles and mature outcome
+queries. `read_source_base_score_sources`,
+`read_source_calibrated_score_sources` and typed `read_source_score_sources`
+independently replay the original issue, comparator and outcome sources before
+accepting a score, including a final source recheck after numerical replay.
+Immutable scoring writes recheck source files and the caller's configuration
+and lock guard after temporary-file retention and before rename. Old archive
+readers refuse these versions. These records carry no release authority.
+
+The queue, raw calibration, candidate, development registration and complete
+qualification still need explicit routing through these new scoring profiles.
+No installed scorer or producer selects them yet. Qualified independent support
+and natural prospective outcomes remain required before production activation.
