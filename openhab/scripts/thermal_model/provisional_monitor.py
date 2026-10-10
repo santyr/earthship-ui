@@ -60,20 +60,28 @@ def _write_report(root,report):
 
 
 def refresh_report(settings,*,artifact_sha256,now,guard):
-    paths=[]
-    for folder in _folders(settings['evidence_directory'],'scores',now):paths.extend(folder.glob('*.provisional-pair-v1.json'))
-    if len(paths)>4096:raise ValueError('bounded recent performance inventory required')
-    paths=sorted(paths,key=lambda p:p.stat().st_mtime_ns,reverse=True)[:256]
+    markers=[]
+    for folder in _folders(settings['evidence_directory'],'scores',now):markers.extend(folder.glob('*.provisional-completion-v1.json'))
+    if len(markers)>4096:raise ValueError('bounded recent performance inventory required')
+    markers=sorted(markers,key=lambda p:p.stat().st_mtime_ns,reverse=True)[:256]
     pairs=[]
-    for path in paths:
-        guard();pairs.append(validate_pair(_load(path,131072)))
+    for marker in markers:
+        guard();completion=_load(marker)
+        if completion.get('completion_sha256')!=digest(completion,'completion_sha256'):raise ValueError('original completion identity differs')
+        path=Path(completion['pair_path'])
+        if not path.is_absolute() or path.resolve()!=path or not path.is_relative_to(Path(settings['evidence_directory'])):raise ValueError('score outside original archive')
+        pair=validate_pair(_load(path,131072))
+        if pair['pair_sha256']!=completion['pair_sha256']:raise ValueError('completed score identity differs')
+        for source,identity in completion['original_fingerprints'].items():
+            if _fingerprint(source)!=identity:raise ValueError('completed original source changed')
+        pairs.append(pair)
     report=summarize(pairs,artifact_sha256=artifact_sha256);report['assessed_at']=_utc(now).isoformat()
     _write_report(settings['evidence_directory'],report);return report
 
 
-def score_jobs(settings,*,guard,reader=None,max_jobs=2):
+def score_jobs(settings,*,guard,reader=None,max_jobs=1):
     guard();_resource_preflight()
-    if type(max_jobs) is not int or not 1<=max_jobs<=2:raise ValueError('at most two serial score jobs required')
+    if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial score job required')
     now=_clock();deadline=monotonic()+50
     def remaining():
         guard();value=deadline-monotonic()
@@ -91,6 +99,8 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=2):
     deliveries=[(path,_delivery(path,root)) for path in paths]
     deliveries.sort(key=lambda entry:_utc(entry[1]['issued_at']))
     scored=0
+    report_path=root/'latest-provisional-performance.json'
+    if report_path.exists():report_path.unlink();_sync_directory(root)
     with shared_replay_budget(remaining):
         for path,delivery in deliveries:
             remaining();issue=_utc(delivery['issued_at'])
@@ -114,7 +124,10 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=2):
                         if original['pair_sha256']!=completion['pair_sha256'] or original['capture_sha256']!=delivery['capture_sha256'] or original['horizon_hours']!=horizon:raise ValueError('completed score identity differs')
                         for source,identity in completion['original_fingerprints'].items():
                             if _fingerprint(source)!=identity:raise ValueError('completed original source changed')
-                    except (OSError,ValueError):return dict(status='withheld',scored=scored,reason='completed_original_unavailable',automatic_actuation=False)
+                    except (OSError,ValueError):
+                        report_path=root/'latest-provisional-performance.json'
+                        if report_path.exists():report_path.unlink();_sync_directory(root)
+                        return dict(status='withheld',scored=scored,reason='completed_original_unavailable',automatic_actuation=False)
                     continue
                 with capture_source_reads() as sources:
                     capture=read_capture(delivery['capture_path'],check_budget=remaining)
@@ -132,7 +145,7 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=2):
                         if any(at<cutoff for at in targets):return [(at,None) for at in targets]
                         return reader.native(targets,assessed_at=assessed,sensor_epoch=phase)
                     try:recent=compare_v2(issue=issue,target=target,current_f=capture['output']['initial']['air_f'],grid_reader=grid,sensor_epoch=phase)
-                    except (ValueError,RuntimeError):recent=dict(status='unavailable',prediction_f=None)
+                    except (ValueError,RuntimeError) as error:recent=dict(status='unavailable',prediction_f=None,reason=str(error))
                     pair=score(capture,delivery['receipts'],rows[0][1],horizon_hours=horizon,assessed_at=now,recent=recent,check_budget=remaining)
                     packet_paths=list(reader.native_source_paths)
                     pair['native_source_paths']=packet_paths;pair['pair_sha256']=digest(pair,'pair_sha256')

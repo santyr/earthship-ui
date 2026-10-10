@@ -31,7 +31,7 @@ Both exact persisted receipts must be verified before a delivery record is creat
 Version 8 renders as PROVISIONAL with low confidence and uncalibrated uncertainty.
 The display includes current-revision MAE/bias and baseline counts when available.
 
-`--score` discovers delivered originals, scores at most two mature jobs under one
+`--score` discovers delivered originals, scores at most one mature job under one
 50-second budget and checks the original model, delivery, native outcome and source
 identity. Horizons are 1, 6, 12 and 24 hours. Reports retain model, persistence and
 recent-cycle errors; insufficient recent-cycle history is explicit and never zero
@@ -59,3 +59,9 @@ Training loss is development evidence only. Assess actual model quality from lat
 served-prediction outcomes, bias and error against both baselines. Automatic actuation
 and causal action advice remain disabled. PR3 household-planner work and backup or
 recovery work remain deferred.
+
+Monitoring reports include only completed jobs whose original sources still match.
+A failed scoring cycle removes cached metrics; the publisher accepts reports for
+at most 15 minutes and displays their verification time. Each cycle scores one
+job so seven complete recent cycles fit the existing 24-request source budget.
+A bounded incomplete-history search may leave that comparator unavailable.

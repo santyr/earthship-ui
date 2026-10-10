@@ -71,7 +71,7 @@ def _validate_report(report,artifact,available):
     if report is None:return
     if (not isinstance(report,dict) or set(report)!={'schema','artifact_sha256','graduated','by_horizon','assessed_at'} or
             report['schema']!='earthship-provisional-thermal-performance/v1' or report['artifact_sha256']!=artifact or
-            report['graduated'] is not False or _utc(report['assessed_at'])>available or
+            report['graduated'] is not False or not timedelta(0)<=available-_utc(report['assessed_at'])<=timedelta(minutes=15) or
             not isinstance(report['by_horizon'],dict) or set(report['by_horizon'])!={'1','6','12','24'}):raise ValueError('original current revision monitoring report required')
     for group in report['by_horizon'].values():
         if not isinstance(group,dict) or set(group)!={'model','persistence','recent_cycle'}:raise ValueError('closed monitoring baselines required')
@@ -93,7 +93,10 @@ def publication(capture):
         graduation=dict(forecastQualified=False,stabilityAssessed=False,calibrationAssessed=False),automaticActuation=False,
         reasons=['Provisional model; stability and calibrated uncertainty are not established.','Production errors are monitored against persistence and recent-cycle baselines.'])
     report=capture['monitoring_report']
-    if report is not None:
+    if report is None:
+        value['reasons'].append('Monitoring measurements are pending or unavailable.')
+    else:
+        value['reasons'].append('Monitoring verified at '+report['assessed_at']+'.')
         for horizon in ('1','6','12','24'):
             stats=report['by_horizon'][horizon]
             bits=[]

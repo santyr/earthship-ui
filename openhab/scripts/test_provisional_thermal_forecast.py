@@ -65,3 +65,10 @@ def test_monitoring_report_is_visible_without_promoting_confidence(tmp_path,monk
     assert any('MAE' in reason for reason in payload['reasons'])
     report['artifact_sha256']='f'*64
     with pytest.raises(ValueError):module().build_capture(candidate,inputs,issue=ISSUE,available=ISSUE,published=ISSUE+timedelta(seconds=2),monitoring_report=report)
+
+
+def test_monitoring_report_expires_after_fifteen_minutes():
+    from thermal_model.provisional_score import summarize
+    report=summarize([],artifact_sha256='a'*64)
+    report['assessed_at']=(ISSUE-timedelta(minutes=15,seconds=1)).isoformat()
+    with pytest.raises(ValueError):module()._validate_report(report,'a'*64,ISSUE)

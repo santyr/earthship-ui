@@ -56,3 +56,51 @@ def test_lost_completed_capture_is_withheld_without_recollecting(tmp_path,monkey
     reader.native=lambda *a,**k:pytest.fail('lost origin was recollected')
     result=module().score_jobs(settings,guard=lambda:None,reader=reader,max_jobs=1)
     assert result['status']=='withheld'
+
+
+def test_interrupted_pair_write_is_not_reported_twice(tmp_path,monkeypatch):
+    settings,_,reader=setup(tmp_path,monkeypatch)
+    original=module()._write_private
+    def interrupted(path,data):
+        if str(path).endswith('.provisional-completion-v1.json'):raise OSError('interrupted before commit')
+        return original(path,data)
+    monkeypatch.setattr(module(),'_write_private',interrupted)
+    with pytest.raises(OSError):module().score_jobs(settings,guard=lambda:None,reader=reader)
+    monkeypatch.setattr(module(),'_write_private',original)
+    assessment=module()._clock()+timedelta(seconds=1)
+    monkeypatch.setattr(module(),'_clock',lambda:assessment)
+    # Advance assessment without changing the original model or source receipts.
+    result=module().score_jobs(settings,guard=lambda:None,reader=reader)
+    assert result['scored']==1
+    report=json.loads((tmp_path/'archive'/'latest-provisional-performance.json').read_text())
+    assert report['by_horizon']['1']['model']['count']==1
+
+
+def test_failed_source_verification_removes_cached_metrics(tmp_path,monkeypatch):
+    settings,_,reader=setup(tmp_path,monkeypatch)
+    module().score_jobs(settings,guard=lambda:None,reader=reader)
+    next((tmp_path/'archive').glob('scores-*/*.provisional-pair-v1.json')).unlink()
+    assert module().score_jobs(settings,guard=lambda:None,reader=reader)['status']=='withheld'
+    assert not (tmp_path/'archive'/'latest-provisional-performance.json').exists()
+
+
+def test_one_job_seven_cycles_fit_real_request_budget(tmp_path,monkeypatch):
+    settings,_,reader=setup(tmp_path,monkeypatch)
+    from thermal_model.capture_readers import ReadBudget
+    budget_clock=[0.]
+    budget=ReadBudget(50,max_requests=24,clock=lambda:budget_clock[0],sleeper=lambda seconds:budget_clock.__setitem__(0,budget_clock[0]+seconds))
+    original_native=reader.native
+    def native(targets,**kwargs):
+        for _ in targets:budget.begin()
+        rows=original_native(targets,**kwargs)
+        for _,receipt in rows:
+            for key in ('receivedAt','storedAt','validUntil'):receipt[key]=module()._utc(receipt[key])
+        return rows
+    reader.native=native
+    reader.publication=lambda receipt:(budget.begin(),receipt)[1]
+    settings['native_cutover']='2020-01-01T00:00:00+00:00'
+    result=module().score_jobs(settings,guard=lambda:None,reader=reader)
+    assert result['scored']==1 and budget.requests==17
+    report=json.loads((tmp_path/'archive'/'latest-provisional-performance.json').read_text())
+    assert report['by_horizon']['1']['recent_cycle']['count']==1
+    with pytest.raises(ValueError,match='one serial'):module().score_jobs(settings,guard=lambda:None,reader=reader,max_jobs=2)
