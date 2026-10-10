@@ -165,7 +165,7 @@ def test_cli_failure_after_fit_dispatch_does_not_claim_fit_never_ran(tmp_path,ca
     monkeypatch.setattr(source,'_resource_preflight',lambda:None)
     def failed(*args,**kwargs):raise ValueError('failure after partial numerical work')
     monkeypatch.setattr(installed_shade_training,'run_candidate_training',failed)
-    assert source.main(['--config',str(path),'--fit'])==1
+    assert source._fit(path)==1
     result=__import__('json').loads(capsys.readouterr().out)
     assert result['fit_executed'] is None
 
@@ -180,7 +180,7 @@ def test_completed_builder_retains_private_execution_receipt(tmp_path,monkeypatc
     assert record['release_authorized'] is False and record['production_installed'] is False
     assert record['snapshot_sha256']==values['snapshot_sha256']
     assert record['artifact_sha256']==result['artifact_sha256']
-    assert set(record['builder_sources'])=={'thermal_installed_train.py','thermal_model/installed_shade_training.py'}
+    assert set(record['builder_sources'])=={'thermal_installed_train.py','thermal_model/installed_shade_training.py','thermal_model/training_pressure_guard.py'}
     assert receipt.stat().st_mode&0o777==0o600
 
 

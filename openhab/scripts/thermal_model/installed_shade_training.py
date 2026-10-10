@@ -111,7 +111,7 @@ def run_candidate_training(settings,*,guard):
     def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
     root=Path(__file__).resolve().parents[1]
     builder_sources={name:_source_bytes(root/name,maximum=65536).decode('utf-8') for name in
-        ('thermal_installed_train.py','thermal_model/installed_shade_training.py')}
+        ('thermal_installed_train.py','thermal_model/installed_shade_training.py','thermal_model/training_pressure_guard.py')}
     remaining();archive=read_runtime_bundle(Path(settings['runtime_bundle_path']))
     if set(archive['revision_paths'])!=set(RAW_RUNTIME_PATHS):raise ValueError('complete raw publication runtime required')
     expected=archive['runtime']
