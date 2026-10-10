@@ -2447,3 +2447,33 @@ The operator can register verified originals and the scorer can consume their
 selected queues. Reviewed rendered unit operands, per-horizon scheduling, real
 capacity/qualification and natural end-to-end verification remain before
 installation or a continuous production-monitoring claim.
+
+
+### Review-only registered monitoring stage
+
+`scripts/stage-installed-monitoring.py` accepts explicit absolute `--sources`,
+`--live-config`, `--score-config`, `--registration`, `--release-reference`,
+`--shared-lock` and an existing empty owned mode0700 `--output-dir`. It writes
+18 mode0600 unit/timer files and a versioned private manifest with content hashes.
+Literal canonical operands reject whitespace, parent traversal and systemd or
+shell expansion syntax. Existing staged files are never overwritten. The command
+prints only a review status/count; private operands stay in the private files.
+It installs/enables nothing and grants no release authority. The manifest is a
+staging record, not proof of current live service state or source qualification.
+
+The publisher explicitly selects operator3 and post-receipt registration. Each
+horizon has separate scorer4 collection and index incorporation units consuming
+the current registry under the shared lock. Monitoring runs in twenty-minute
+cycles: horizon1 at minutes01/02, horizon6 at06/07, horizon12 at11/12, and horizon24
+at16/17 modulo20. These slots leave the existing five-minute publication windows
+at minute04 modulo5 plus15seconds available, including its existing90-second
+service allowance. Collection/index commands retain60-second process timeouts.
+All workers retain CPU20%, memory256MiB, zero scope swap, tasks24, nice15 and idle
+I/O weight10; generated units add private UMask0077. Timers are nonpersistent with
+zero random delay. The shared lock handles runtime overlap/busy consumers.
+
+Before installation, verify the actual private operands, frozen runtime,
+compatible interpreter/dependencies and genuine qualification/capacity. Review
+conflicts with existing publishers and timers. Rendering only prepares files for
+that review; it cannot substitute for genuine baseline wins, a passed resource
+preflight, natural publication receipts or an evidence-based cutover decision.
