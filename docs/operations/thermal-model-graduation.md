@@ -1883,3 +1883,20 @@ candidate4, development registration, complete q6 qualification, prepared
 publication and release operator/UI routing remain unfinished. No live service
 selects calibration3 yet, and neither a partial calibration nor a schema/hash
 marker grants production authority.
+
+The source-aware calibrated aggregate now has an explicit development profile,
+`earthship-installed-shade-candidate/v4`, binding calibration/v3 and its original
+issue/comparator/outcome query contract. It preserves the complete raw runtime
+closure, base physics, sensor epochs and chronological learning cutoff. Missing
+calibration support remains missing; the aggregate cannot authorize release.
+Legacy candidate readers refuse this profile.
+
+Typed build/validation replay the original source calibration. Candidate storage
+uses a distinct v4 address and replays the retained original calibration after
+actual temporary writes before publication; readback rechecks the calibration
+and original fit evidence. All source operations inherit the bounded shared
+replay deadline. This profile is not yet selected by the publication preparation,
+policy registration, qualification or operator/UI routes. Positive lifecycle
+replay time and qualifying-cohort storage capacity still require verification
+before source producer deployment; software fixtures cannot establish those
+household evidence claims.
