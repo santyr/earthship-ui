@@ -140,7 +140,7 @@ def _bound_source_size(path,maximum):
 
 
 def _raw_replay_preflight(packets,check_budget,*,source_version=2):
-    if type(source_version) is not int or source_version not in (2,3,4,5):raise ValueError('explicit raw replay source version required')
+    if type(source_version) is not int or source_version not in (2,3,4,5,6):raise ValueError('explicit raw replay source version required')
     from .installed_shade_calibration import _read_json
     headers=set();captures=set();queries=set();issue_bindings={};header_bytes=capture_bytes=query_bytes=0
     for reference in packets:
@@ -154,7 +154,7 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
         if header_bytes>64000000:raise ValueError('aggregate raw score headers exceed bound')
         record=_read_json(path)
         fields={'schema','score_sources','native_binding','release_authority'}
-        if source_version in (4,5):fields.add('native_origin_binding_sha256')
+        if source_version in (4,5,6):fields.add('native_origin_binding_sha256')
         if (not isinstance(record,dict) or set(record)!=fields or
                 record['schema']!='earthship-installed-shade-score-sources/v'+str(source_version) or record['release_authority'] is not False or
                 path.name!=_digest(record)+'.installed-shade-score-sources-v'+str(source_version)+'.json'):
@@ -168,16 +168,17 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
             captures.add(capture);capture_bytes+=_bound_source_size(capture,2000000)
             if len(captures)>256 or capture_bytes>64000000:raise ValueError('aggregate original captures exceed bound')
         names=list(binding['query_sources'])
-        if source_version in (4,5):
+        if source_version in (4,5,6):
             from .installed_shade_raw_score_sources import ORIGIN_FIELDS,ORIGIN_SCHEMA
             from .temperature_history import STREAMS
             if capture not in issue_bindings:
                 check_budget();original=_read_json(capture)
                 numeric=original.get('numeric_capture') if isinstance(original,dict) else None
                 origin=numeric.get('native_origin_binding') if isinstance(numeric,dict) else None
-                expected='earthship-installed-shade-origin/v9' if source_version==4 else 'earthship-installed-shade-origin/v7'
+                expected={4:'earthship-installed-shade-origin/v9',5:'earthship-installed-shade-origin/v7',6:'earthship-installed-shade-origin/v11'}[source_version]
+                origin_schema=ORIGIN_SCHEMA.removesuffix('/v1')+'/v2' if source_version==6 else ORIGIN_SCHEMA
                 if (not isinstance(original,dict) or original.get('schema')!=expected or not isinstance(origin,dict) or set(origin)!=ORIGIN_FIELDS or
-                        origin['schema']!=ORIGIN_SCHEMA or origin['release_authority'] is not False or
+                        origin['schema']!=origin_schema or origin['release_authority'] is not False or
                         not isinstance(origin['query_sources'],dict) or set(origin['query_sources'])!=set(STREAMS)):
                     raise ValueError('bounded original issue-query references required')
                 issue_bindings[capture]=origin
@@ -190,17 +191,23 @@ def _raw_replay_preflight(packets,check_budget,*,source_version=2):
             if not isinstance(name,str) or not 1<=len(name)<=1024:raise ValueError('bounded raw query reference required')
             query=Path(name)
             if query not in queries:
-                queries.add(query);query_bytes+=_bound_source_size(query,8*1024*1024)
+                if source_version==6:
+                    from weather_temperature_sources import MAX_CONTAINER_BYTES
+                    if not query.name.endswith('.native-temperature-sources-v2.json.gz'):
+                        raise ValueError('explicit compressed original query address required')
+                    maximum=MAX_CONTAINER_BYTES
+                else:maximum=8*1024*1024
+                queries.add(query);query_bytes+=_bound_source_size(query,maximum)
                 if len(queries)>8192 or query_bytes>128*1024*1024:raise ValueError('aggregate raw queries exceed bound')
     check_budget()
 
 
 def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
     from .installed_shade_raw_score_sources import (read_raw_score_sources,read_calibrated_raw_score_sources,
-        read_source_base_score_sources,read_source_calibrated_score_sources)
-    if type(source_version) is not int or source_version not in (2,3,4,5):raise ValueError('explicit raw replay source version required')
+        read_source_base_score_sources,read_source_calibrated_score_sources,read_compressed_source_base_score_sources)
+    if type(source_version) is not int or source_version not in (2,3,4,5,6):raise ValueError('explicit raw replay source version required')
     reader={2:read_raw_score_sources,3:read_calibrated_raw_score_sources,
-        4:read_source_base_score_sources,5:read_source_calibrated_score_sources}[source_version]
+        4:read_source_base_score_sources,5:read_source_calibrated_score_sources,6:read_compressed_source_base_score_sources}[source_version]
     from .replay_budget import remaining_budget,check_shared_budget,shared_replay_budget
     deadline=_replay_time()+remaining_budget(60)
     def remaining():
@@ -209,7 +216,7 @@ def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
         return value
     def check_budget():
         check_shared_budget()
-        if source_version in (4,5):remaining()
+        if source_version in (4,5,6):remaining()
         elif _replay_time()>deadline:raise ValueError('raw qualification replay time budget exceeded')
     check_budget();_raw_replay_preflight(packets,check_budget,source_version=source_version)
     rows=[];bindings=[];seen=set();paths=set()
@@ -221,7 +228,7 @@ def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
         name=reference['raw_score_sources_path']
         if name in paths:raise ValueError('duplicate original raw score archive')
         paths.add(name)
-        if source_version in (4,5):
+        if source_version in (4,5,6):
             with shared_replay_budget(remaining):replayed=reader(Path(name),assessed_at=assessed_at,check_budget=check_budget)
         else:replayed=reader(Path(name),assessed_at=assessed_at,check_budget=check_budget)
         result=replayed['score'];row=result['scored_pair'];identity=(row['issue_at'],row['target_at'],row['horizon_hours'])
@@ -236,7 +243,7 @@ def _score_raw_packets(packets,*,assessed_at,candidate=None,source_version=2):
     calibrated=bool(rows) and all(type(row['interval_covered']) is bool and
         type(row['interval_width_f']) in (int,float) and row['interval_width_f']>=0 for row in rows)
     result=dict(rows=rows,bindings=bindings,calibrated_intervals=calibrated,support=_support(rows),raw_native_score_sources=True)
-    if source_version in (4,5):result['raw_native_issue_sources']=True
+    if source_version in (4,5,6):result['raw_native_issue_sources']=True
     return result
 
 
@@ -544,3 +551,8 @@ def score_source_base_packets(packets,*,assessed_at,candidate=None):
 def score_source_calibrated_packets(packets,*,assessed_at,candidate=None):
     """Replay calibrated issue/outcome originals; no release decision is made."""
     return _score_source_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=5)
+
+
+def score_compressed_source_base_packets(packets,*,assessed_at,candidate=None):
+    """Replay bounded main11/source6 originals; this port grants no release."""
+    return _score_source_packets(packets,assessed_at=assessed_at,candidate=candidate,source_version=6)

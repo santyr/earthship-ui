@@ -1978,3 +1978,21 @@ collection/readback. Original physical/canonical byte limits and shared budgets
 remain unchanged. Compressed qualification inventory, calibrated capture and
 candidate preparation, development registration and operator/UI routing remain
 unfinished; no installed service selects these observation ports.
+
+Compressed base cohort scoring has an explicit typed port,
+`score_compressed_source_base_packets`, for source archives/v6 and actual main
+captures/v11. Before numerical replay, admission bounds original score headers,
+main captures and every unique original issue/comparator/outcome query file.
+The compressed file uses the declared query-container byte limit, including
+container overhead; its original query remains subject to the unchanged raw
+packet, row and snapshot limits during typed decode. The physical cohort limit
+and unique-file count remain unchanged. Legacy source4/source5 scorers refuse
+source6 archives.
+
+Replay shares one inherited deadline across admission and nested source/math
+operations. It rejects duplicate archives and mixed frozen identities, derives
+support from the actual scored windows, and reports original issue/outcome query
+proof separately from interval calibration. A base cohort with no intervals
+remains uncalibrated. This scoring API makes no release decision and provides no
+qualifying-cohort capacity claim. Full calibration, complete qualification and
+installed operator integration remain required before production use.

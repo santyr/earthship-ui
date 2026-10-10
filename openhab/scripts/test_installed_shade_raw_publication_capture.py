@@ -689,3 +689,96 @@ def test_compressed_base_cannot_activate_even_with_new_qualification_marker(sour
     _,_,output,_,_,_=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
     output['status']='forecast_active';output['release']['sourceQualificationSchema']='earthship-installed-shade-qualification-report/v7'
     with pytest.raises(ValueError,match='uncalibrated'):publisher.validate_compressed_source_installed_publication(output)
+
+
+def compressed_cohort_case(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_published_origin as published,installed_shade_score_collection as collector
+    root,record,_,issue,_,args=compressed_delivery(source_origin_case,tmp_path,monkeypatch)
+    path=published.write_compressed_source_publication_capture(root,record)
+    now=issue+timedelta(hours=24,minutes=10);monkeypatch.setattr(collector,'_clock',lambda:now)
+    backend=CompressedRawBackend(record,root)
+    result=collector.collect_compressed_source_published_score(origin_path=path,horizon_hours=1,output_directory=root,backend=backend)
+    assert result['status']=='scored'
+    return root,record,args,now,result,backend
+
+
+@pytest.mark.parametrize('damage',[None,'missing_issue','oversized_issue','duplicate_archive'])
+def test_compressed_cohort_admits_originals_before_math_and_replays_exact_scores(source_origin_case,tmp_path,monkeypatch,damage):
+    from thermal_model import installed_shade_qualification as qualification,installed_shade_raw_score_sources as sources
+    replay=getattr(qualification,'score_compressed_source_base_packets',None)
+    assert callable(replay),'missing compressed cohort scoring admission'
+    _,record,args,now,result,_=compressed_cohort_case(source_origin_case,tmp_path,monkeypatch)
+    references=[dict(raw_score_sources_path=result['raw_packet_path'])]
+    for old in (qualification.score_source_base_packets,qualification.score_source_calibrated_packets):
+        with pytest.raises(ValueError):old(references,assessed_at=now)
+    if damage is not None:
+        if damage=='missing_issue':Path(args['native_source_paths']['mass']).unlink()
+        elif damage=='oversized_issue':
+            from weather_temperature_sources import MAX_CONTAINER_BYTES
+            with Path(args['native_source_paths']['mass']).open('r+b') as file:file.truncate(MAX_CONTAINER_BYTES+1)
+        else:references*=2
+        def forbidden(*a,**kw):pytest.fail('invalid compressed inventory reached numerical replay')
+        monkeypatch.setattr(sources,'read_compressed_source_base_score_sources',forbidden)
+        with pytest.raises((ValueError,OSError)):replay(references,assessed_at=now)
+    else:
+        identity=dict(artifact_sha256=record['numeric_capture']['candidate']['artifact_sha256'],
+            runtime_sha256=_digest(record['numeric_capture']['runtime']),sensor_epochs=record['numeric_capture']['source_epochs'])
+        scored=replay(references,assessed_at=now,candidate=identity)
+        assert scored['raw_native_issue_sources'] is True and scored['raw_native_score_sources'] is True
+        assert scored['rows'][0]['persistence_error_f']==pytest.approx(-2.)
+        assert scored['rows'][0]['recent_cycle_error_f']==pytest.approx(-2.)
+        assert scored['calibrated_intervals'] is False
+        assert scored['bindings'][0]['native_origin_binding_sha256']==_digest(record['numeric_capture']['native_origin_binding'])
+
+
+def test_compressed_cohort_inherits_deadline_before_numerical_work(source_origin_case,tmp_path,monkeypatch):
+    from thermal_model import installed_shade_qualification as qualification,installed_shade_raw_score_sources as sources,installed_shade_origin as base
+    replay=getattr(qualification,'score_compressed_source_base_packets',None)
+    assert callable(replay),'missing compressed cohort scoring admission'
+    _,_,_,now,result,_=compressed_cohort_case(source_origin_case,tmp_path,monkeypatch)
+    clock={'seconds':0.};monkeypatch.setattr(qualification,'_replay_time',lambda:clock['seconds'])
+    original=sources.replay_temperature_source
+    def expire(*args,**kwargs):
+        value=original(*args,**kwargs);clock['seconds']=61.;return value
+    monkeypatch.setattr(sources,'replay_temperature_source',expire)
+    prediction=base._prediction
+    def guarded(*args,**kwargs):
+        if clock['seconds']>=60:pytest.fail('compressed source math continued after cohort deadline')
+        return prediction(*args,**kwargs)
+    monkeypatch.setattr(base,'_prediction',guarded)
+    with pytest.raises(ValueError):replay([dict(raw_score_sources_path=result['raw_packet_path'])],assessed_at=now)
+
+
+def test_compressed_cohort_bounds_aggregate_physical_query_storage_before_math(source_origin_case,tmp_path,monkeypatch):
+    import os
+    from weather_temperature_sources import MAX_CONTAINER_BYTES
+    from thermal_model import installed_shade_qualification as qualification,installed_shade_raw_score_sources as sources
+    replay=getattr(qualification,'score_compressed_source_base_packets',None)
+    assert callable(replay),'missing compressed cohort scoring admission'
+    root,record,_,now,result,_=compressed_cohort_case(source_origin_case,tmp_path,monkeypatch)
+    header=json.loads(Path(result['raw_packet_path']).read_text());references=[]
+    # Sparse metadata fixtures exercise physical admission, not source validity.
+    for index in range(6):
+        capture=deepcopy(record);numeric=capture['numeric_capture'];binding=numeric['native_origin_binding']
+        for role in ('air','mass','outdoor'):
+            query=root/(_digest([index,role])+'.native-temperature-sources-v2.json.gz')
+            fd=os.open(query,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            try:os.ftruncate(fd,MAX_CONTAINER_BYTES)
+            finally:os.close(fd)
+            binding['query_sources'][role]=str(query)
+        digest=_digest(binding);numeric['output']['native_origin_binding_sha256']=digest
+        numeric['capture_sha256']=_digest({k:v for k,v in numeric.items() if k!='capture_sha256'})
+        capture['numeric_publication']['state']=_canonical(numeric['output']).decode()
+        main=json.loads(capture['publication']['state']);main['forecast']=deepcopy(numeric['output'])
+        main['release'].update(nativeOriginBindingSha256=digest,originCaptureSha256=numeric['capture_sha256'])
+        capture['publication']['state']=_canonical(main).decode()
+        capture['capture_sha256']=_digest({k:v for k,v in capture.items() if k!='capture_sha256'})
+        origin=root/(capture['capture_sha256']+'.installed-shade-origin-v11.json');origin.write_bytes(_canonical(capture));origin.chmod(0o600)
+        packet=deepcopy(header);packet['native_origin_binding_sha256']=digest
+        packet['score_sources'].update(origin_path=str(origin),publication=capture['publication'])
+        packet['native_binding']['score_sources_sha256']=_digest(packet['score_sources'])
+        source=root/(_digest(packet)+'.installed-shade-score-sources-v6.json');source.write_bytes(_canonical(packet));source.chmod(0o600)
+        references.append(dict(raw_score_sources_path=str(source)))
+    def forbidden(*a,**kw):pytest.fail('oversized compressed physical inventory reached numerical replay')
+    monkeypatch.setattr(sources,'read_compressed_source_base_score_sources',forbidden)
+    with pytest.raises(ValueError,match='aggregate raw queries'):replay(references,assessed_at=now)
