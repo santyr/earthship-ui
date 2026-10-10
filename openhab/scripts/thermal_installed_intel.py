@@ -40,7 +40,22 @@ def _live(args,*,guard=lambda:None):
     run=(run_compressed_bootstrap_live_cycle if args.contract_version==3 else run_bootstrap_live_cycle) if args.bootstrap_shadow else run_compressed_live_cycle if args.contract_version==3 else run_raw_live_cycle
     backend=(CompressedSourceLiveBackend if args.contract_version==3 else LiveBackend)(settings,shared_lock_guard=guard);guard()
     receipt=run(reference_path=settings['release_inputs_path'],archive=settings['evidence_directory'],backend=backend)
+    guard()
+    if getattr(args,'score_registration',None) is not None and receipt['status']=='published':
+        try:
+            if receipt.get('delivery_verified') is not True:raise ValueError('verified publication receipt required')
+            from thermal_model.installed_shade_score_registration import register_compressed_publication_jobs
+            def registration_guard():
+                guard()
+                if loader(args.config)!=settings:raise ValueError('original publication settings changed')
+                guard()
+            registered=register_compressed_publication_jobs(registration_path=args.score_registration,origin_path=Path(receipt['capture_path']),guard=registration_guard)
+            receipt['scoring_registration']=registered['status']
+        except Exception:
+            # Publication and scoring-registration outcomes are separate facts.
+            receipt['scoring_registration']='withheld'
     guard();print(json.dumps(receipt,sort_keys=True))
+    if receipt.get('scoring_registration')=='withheld':return 1
     return 0 if receipt['status'] in ('published','withdrawn','busy','duplicate_attempt') else 1
 
 
@@ -55,8 +70,10 @@ def main(argv=None):
     intent.add_argument('--check-only',action='store_true')
     intent.add_argument('--withdraw',action='store_true')
     parser.add_argument('--shared-lock',type=Path,help='existing private consumer lock, required for publication/bootstrap')
+    parser.add_argument('--score-registration',type=Path,help='private four-horizon registry; optional only for compressed calibrated publication')
     parser.add_argument('--reason',help='private withdrawal reason, required with --withdraw')
     args=parser.parse_args(argv)
+    if args.score_registration is not None and (not args.publish or args.contract_version!=3):parser.error('--score-registration requires compressed calibrated publication')
     if args.publish and args.contract_version not in (2,3):parser.error('publication requires contract version 2 or 3')
     if args.bootstrap_shadow and args.contract_version not in (1,3):parser.error('base shadow bootstrap requires explicit contract version 1 or 3')
     if (args.publish or args.bootstrap_shadow) and args.shared_lock is None:parser.error('publication/bootstrap requires --shared-lock')

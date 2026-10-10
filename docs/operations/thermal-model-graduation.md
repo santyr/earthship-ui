@@ -2380,3 +2380,46 @@ cohort replay capacity, and observe natural completion-to-index-to-publication
 behavior. A successful template test or synthetic query replay proves none of
 those household outcomes. Failed incorporation must remain visible as failed;
 it must never be reported as a qualified monitoring cycle.
+
+
+### Registration of independent published origins
+
+Compressed calibrated operator3 publication accepts optional
+`--score-registration <private-registry>`. Registration runs under the existing
+shared consumer lock only after both publication receipts are verified and the
+actual main13 capture has been retained. Withdrawn, busy and failed deliveries
+register no new jobs. If publication succeeds but registration fails, the operator
+preserves the truthful delivery receipt, reports `scoring_registration=withheld`,
+and returns failure. It does not conceal the scoring failure or claim the already
+verified publication was never delivered. Base bootstrap and older profiles
+reject this option.
+
+The explicit registration/v1 record has exactly `schema`, `candidate` and
+`queues`. `queues` maps string horizons 1,6,12,24 to owned private queue4 paths.
+Initial queues must all be empty when candidate is null. The first original main13
+pins artifact/runtime/sensor identity. Subsequent originals must match that pin;
+no manual activation field is supported. All four queues retain the same selected
+origin sequence, with each job's own declared horizon.
+
+Select the first eligible original after a 24-hour non-overlapping window on a
+new Denver local day. Dense intermediate issues remain retained source captures
+but add no independent-window jobs. Selection reads original issue times and
+frozen identity, not outcomes or errors. Repeated registration of an existing
+origin is idempotent; backdated new origins and changed candidate/runtime/epochs
+refuse. Each horizon retains the unchanged 256-job cap. Separate horizon queues
+accommodate release cohorts without raising the single-queue bound. Capacity
+exhaustion fails visibly and never removes earlier jobs.
+
+New queue contents are retained immutably, then one atomic registry replacement
+selects all four queues together. Old queues remain intact. Original current
+publication sources are replayed after the actual pointer temporary write;
+input mutation, source loss, lost shared lock or an expired inherited deadline
+prevents replacement. Registration grants no release authority and cannot replace
+qualification of later original outcomes.
+
+Registered-queue resolution in the scorer and rendered scheduling operands are
+still to be integrated; existing direct-queue templates do not follow this new
+registry automatically. Actual installation, real cohort capacity/qualification,
+and natural publication-to-registration-to-score-to-index verification remain
+required. Mathematical loader/receipt tests and retained synthetic queries do
+not prove household qualification or deployment readiness.
