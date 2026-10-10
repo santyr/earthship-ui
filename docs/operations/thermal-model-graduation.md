@@ -1915,3 +1915,14 @@ This codec is not selected by current acquisition or qualification consumers.
 Integrate it explicitly with source replay and inventory admission before using
 it for producer storage. Lossless size reduction is not qualifying evidence and
 does not prove full-cohort replay time, numerical support or production readiness.
+
+
+Native origin and native score bindings now have explicit compressed-storage/v2
+ports. Each port requires the query container/v2 reader, derives the same original
+query/v1 grid, and applies the unchanged per-binding canonical raw byte limits.
+The binding records remain closed, content-bound and non-authorizing. Legacy
+binding/v1 ports continue requiring original uncompressed query/v1 files and
+refuse binding/v2. Missing original queries or caches differing from original
+selection withhold replay. Acquisition configurations, numeric/main captures,
+score archives and qualification inventory still require explicit integration
+before any installed producer selects compressed storage.

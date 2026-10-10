@@ -11,14 +11,15 @@ from .forcing_capture import _canonical
 from .graduation_policy import _utc
 from .installed_shade_artifact import _digest
 from .temperature_history import STREAMS,POLICY
-from weather_temperature_sources import read_temperature_source,replay_temperature_source
+from weather_temperature_sources import read_temperature_source,read_compressed_temperature_source,replay_temperature_source
 
 SCHEMA='earthship-installed-shade-native-score-binding/v1'
 FIELDS={'schema','score_sources_sha256','issue_at','sensor_epoch','assessed_at','query_sources','release_authority'}
 SCORE_FIELDS={'origin_path','publication','horizon_hours','outcome','recent_cycle_grid'}
 
 
-def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch,assessed_at,check_budget=None):
+def _build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch,assessed_at,check_budget=None,_storage_version=1):
+    reader,schema=_storage_profile(_storage_version,SCHEMA)
     if not isinstance(score_packet,dict) or set(score_packet)!=SCORE_FIELDS:raise ValueError('closed original score inputs required')
     if (not isinstance(source_paths,list) or not 1<=len(source_paths)<=24 or
             any(not isinstance(p,str) or not 1<=len(p)<=1024 for p in source_paths) or len(set(source_paths))!=len(source_paths)):
@@ -41,7 +42,7 @@ def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch
         if check_budget is not None:check_budget()
         path=Path(name)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original query source required')
-        packet=read_temperature_source(path.parent,path);bytes_used+=len(_canonical(packet))
+        packet=reader(path.parent,path);bytes_used+=len(_canonical(packet))
         if bytes_used>64000000:raise ValueError('aggregate raw query bytes exceed bound')
         if packet['stream']!=stream or packet['policy']!=approved or packet['sensor_epoch']!=sensor_epoch:
             raise ValueError('raw query role/policy/hardware phase differs')
@@ -59,16 +60,17 @@ def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch
             selected[instant]=value
     if set(selected)!=set(expected) or any(_canonical(selected[at])!=_canonical(expected[at]) for at in expected):
         raise ValueError('cached receipts differ from retained raw selection')
-    return dict(schema=SCHEMA,score_sources_sha256=_digest(score_packet),issue_at=issue.isoformat(),
+    return dict(schema=schema,score_sources_sha256=_digest(score_packet),issue_at=issue.isoformat(),
         sensor_epoch=sensor_epoch,assessed_at=now.isoformat(),query_sources=list(source_paths),release_authority=False)
 
 
-def replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,assessed_at,check_budget=None):
-    if (not isinstance(binding,dict) or set(binding)!=FIELDS or binding['schema']!=SCHEMA or
+def _replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,assessed_at,check_budget=None,_storage_version=1):
+    _,schema=_storage_profile(_storage_version,SCHEMA)
+    if (not isinstance(binding,dict) or set(binding)!=FIELDS or binding['schema']!=schema or
             binding['release_authority'] is not False or _utc(binding['assessed_at'])>_utc(assessed_at)):
         raise ValueError('closed elapsed raw native score binding required')
-    expected=build_native_score_binding(score_packet,source_paths=binding['query_sources'],issue_at=issue_at,
-        sensor_epoch=sensor_epoch,assessed_at=binding['assessed_at'],check_budget=check_budget)
+    expected=_build_native_score_binding(score_packet,source_paths=binding['query_sources'],issue_at=issue_at,
+        sensor_epoch=sensor_epoch,assessed_at=binding['assessed_at'],check_budget=check_budget,_storage_version=_storage_version)
     if _canonical(expected)!=_canonical(binding):raise ValueError('original raw native binding differs')
     return expected
 
@@ -130,12 +132,13 @@ ORIGIN_SCHEMA='earthship-installed-shade-native-origin-binding/v1'
 ORIGIN_FIELDS={'schema','origin_temperatures_sha256','issue_at','assessed_at','query_sources','release_authority'}
 
 
-def build_native_origin_binding(origin_temperatures,*,source_paths,issue_at,check_budget=None):
+def _build_native_origin_binding(origin_temperatures,*,source_paths,issue_at,check_budget=None,_storage_version=1):
     """Replay each original issue query; selected grids alone are insufficient.
 
     This proof is only source selection authority. Initial-state observer,
     forcing, candidate and release checks remain independently required.
     """
+    reader,schema=_storage_profile(_storage_version,ORIGIN_SCHEMA)
     proof=origin_temperatures
     if (not isinstance(proof,dict) or set(proof)!={'schema','assessed_at','roles'} or
             proof['schema']!='earthship-thermal-origin-temperatures/v2' or
@@ -176,7 +179,7 @@ def build_native_origin_binding(origin_temperatures,*,source_paths,issue_at,chec
         if not isinstance(name,str) or not 1<=len(name)<=1024:raise ValueError('bounded original issue-query path required')
         path=Path(name)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved original issue-query path required')
-        packet=read_temperature_source(path.parent,path);bytes_used+=len(_canonical(packet))
+        packet=reader(path.parent,path);bytes_used+=len(_canonical(packet))
         if bytes_used>24000000:raise ValueError('aggregate issue-query bytes exceed bound')
         evidence=proof['roles'][role]
         if (not isinstance(evidence,dict) or set(evidence)!={'identity','grid'} or
@@ -189,16 +192,17 @@ def build_native_origin_binding(origin_temperatures,*,source_paths,issue_at,chec
         if _canonical(grid)!=_canonical(evidence['grid']):raise ValueError('original issue grid differs from raw selection')
         if check_budget is not None:check_budget()
         paths[role]=name
-    return dict(schema=ORIGIN_SCHEMA,origin_temperatures_sha256=_digest(proof),
+    return dict(schema=schema,origin_temperatures_sha256=_digest(proof),
         issue_at=issue.isoformat(),assessed_at=observed.isoformat(),query_sources=paths,release_authority=False)
 
 
-def replay_native_origin_binding(binding,origin_temperatures,*,issue_at,check_budget=None):
+def _replay_native_origin_binding(binding,origin_temperatures,*,issue_at,check_budget=None,_storage_version=1):
+    _,schema=_storage_profile(_storage_version,ORIGIN_SCHEMA)
     if (not isinstance(binding,dict) or set(binding)!=ORIGIN_FIELDS or
-            binding['schema']!=ORIGIN_SCHEMA or binding['release_authority'] is not False):
+            binding['schema']!=schema or binding['release_authority'] is not False):
         raise ValueError('closed original issue-query binding required')
-    expected=build_native_origin_binding(origin_temperatures,source_paths=binding['query_sources'],
-        issue_at=issue_at,check_budget=check_budget)
+    expected=_build_native_origin_binding(origin_temperatures,source_paths=binding['query_sources'],
+        issue_at=issue_at,check_budget=check_budget,_storage_version=_storage_version)
     if _canonical(expected)!=_canonical(binding):raise ValueError('original issue-query binding differs')
     return expected
 
@@ -217,3 +221,40 @@ def read_source_score_sources(path,*,assessed_at,check_budget=None):
     elif name.endswith('.installed-shade-score-sources-v5.json'):reader=read_source_calibrated_score_sources
     else:raise ValueError('explicit query-bound score archive required')
     return reader(path,assessed_at=assessed_at,check_budget=check_budget)
+
+
+def _storage_profile(version,schema):
+    if type(version) is not int or version not in (1,2):raise ValueError('explicit native query storage profile required')
+    return (read_temperature_source,schema) if version==1 else (read_compressed_temperature_source,schema.removesuffix('/v1')+'/v2')
+
+
+def build_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch,assessed_at,check_budget=None):
+    return _build_native_score_binding(score_packet,source_paths=source_paths,issue_at=issue_at,sensor_epoch=sensor_epoch,assessed_at=assessed_at,check_budget=check_budget,_storage_version=1)
+
+
+def replay_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,assessed_at,check_budget=None):
+    return _replay_native_score_binding(binding,score_packet,issue_at=issue_at,sensor_epoch=sensor_epoch,assessed_at=assessed_at,check_budget=check_budget,_storage_version=1)
+
+
+def build_native_origin_binding(origin_temperatures,*,source_paths,issue_at,check_budget=None):
+    return _build_native_origin_binding(origin_temperatures,source_paths=source_paths,issue_at=issue_at,check_budget=check_budget,_storage_version=1)
+
+
+def replay_native_origin_binding(binding,origin_temperatures,*,issue_at,check_budget=None):
+    return _replay_native_origin_binding(binding,origin_temperatures,issue_at=issue_at,check_budget=check_budget,_storage_version=1)
+
+
+def build_compressed_native_score_binding(score_packet,*,source_paths,issue_at,sensor_epoch,assessed_at,check_budget=None):
+    return _build_native_score_binding(score_packet,source_paths=source_paths,issue_at=issue_at,sensor_epoch=sensor_epoch,assessed_at=assessed_at,check_budget=check_budget,_storage_version=2)
+
+
+def replay_compressed_native_score_binding(binding,score_packet,*,issue_at,sensor_epoch,assessed_at,check_budget=None):
+    return _replay_native_score_binding(binding,score_packet,issue_at=issue_at,sensor_epoch=sensor_epoch,assessed_at=assessed_at,check_budget=check_budget,_storage_version=2)
+
+
+def build_compressed_native_origin_binding(origin_temperatures,*,source_paths,issue_at,check_budget=None):
+    return _build_native_origin_binding(origin_temperatures,source_paths=source_paths,issue_at=issue_at,check_budget=check_budget,_storage_version=2)
+
+
+def replay_compressed_native_origin_binding(binding,origin_temperatures,*,issue_at,check_budget=None):
+    return _replay_native_origin_binding(binding,origin_temperatures,issue_at=issue_at,check_budget=check_budget,_storage_version=2)

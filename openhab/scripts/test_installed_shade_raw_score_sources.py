@@ -154,3 +154,55 @@ def test_origin_binding_bounds_paths_and_identity_before_copy(tmp_path,monkeypat
     if field=='path':args['source_paths']['air']=Malformed([None]*1000)
     else:args['origin_temperatures']['roles']['air']['identity']['model']=Malformed([None]*1000)
     with pytest.raises(ValueError):m.build_native_origin_binding(**args)
+
+
+def compressed_inputs(args):
+    from pathlib import Path
+    from weather_temperature_sources import read_temperature_source,write_compressed_temperature_source
+    sources=args['source_paths']
+    def convert(name):
+        path=Path(name)
+        return str(write_compressed_temperature_source(path.parent,read_temperature_source(path.parent,path)))
+    args['source_paths']={role:convert(path) for role,path in sources.items()} if isinstance(sources,dict) else [convert(path) for path in sources]
+    return args
+
+
+@pytest.mark.parametrize('role',['origin','score'])
+def test_compressed_binding_replays_exact_original_and_legacy_refuses(tmp_path,monkeypatch,role):
+    m=module();args=compressed_inputs((origin_inputs if role=='origin' else inputs)(tmp_path,monkeypatch))
+    builder=getattr(m,'build_compressed_native_'+role+'_binding',None)
+    replay=getattr(m,'replay_compressed_native_'+role+'_binding',None)
+    assert callable(builder) and callable(replay),'missing explicitly compressed binding profile'
+    binding=builder(**args)
+    assert binding['schema']==f'earthship-installed-shade-native-{role}-binding/v2'
+    assert binding['release_authority'] is False
+    replay_args={k:v for k,v in args.items() if k!='source_paths'}
+    packet=replay_args.pop('origin_temperatures' if role=='origin' else 'score_packet')
+    assert replay(binding,packet,**replay_args)==binding
+    with pytest.raises(ValueError):getattr(m,'replay_native_'+role+'_binding')(binding,packet,**replay_args)
+    with pytest.raises(ValueError):getattr(m,'build_native_'+role+'_binding')(**args)
+
+
+@pytest.mark.parametrize('role',['origin','score'])
+def test_compressed_binding_requires_retained_original_queries(tmp_path,monkeypatch,role):
+    from pathlib import Path
+    m=module();args=compressed_inputs((origin_inputs if role=='origin' else inputs)(tmp_path,monkeypatch))
+    builder=getattr(m,'build_compressed_native_'+role+'_binding',None)
+    replay=getattr(m,'replay_compressed_native_'+role+'_binding',None)
+    assert callable(builder) and callable(replay),'missing explicitly compressed binding profile'
+    binding=builder(**args)
+    sources=args['source_paths'];path=next(iter(sources.values())) if role=='origin' else sources[0]
+    Path(path).unlink()
+    replay_args={k:v for k,v in args.items() if k!='source_paths'}
+    packet=replay_args.pop('origin_temperatures' if role=='origin' else 'score_packet')
+    with pytest.raises((ValueError,OSError)):replay(binding,packet,**replay_args)
+
+
+@pytest.mark.parametrize('role',['origin','score'])
+def test_compressed_binding_rejects_changed_cache(tmp_path,monkeypatch,role):
+    m=module();args=compressed_inputs((origin_inputs if role=='origin' else inputs)(tmp_path,monkeypatch))
+    builder=getattr(m,'build_compressed_native_'+role+'_binding',None)
+    assert callable(builder),'missing explicitly compressed binding profile'
+    if role=='origin':args['origin_temperatures']['roles']['air']['grid'][-1][1]['temperatureF']=99.
+    else:args['score_packet']['outcome']['receipt']['temperatureF']=99.
+    with pytest.raises(ValueError):builder(**args)
