@@ -19,10 +19,13 @@ CONFIDENCE=frozenset(('unavailable','low','medium','high'))
 def _validate(value,snapshot,now):
     if not isinstance(snapshot,HouseholdSnapshot):raise ContractRefused('intent_invalid')
     snap=snapshot.to_dict()
-    if snap.get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4'):
+    if snap.get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4','earthship-household-snapshot/v5'):
         from .model_snapshot import ModelSnapshot
         if not isinstance(snapshot,ModelSnapshot):raise ContractRefused('intent_invalid')
-        if snap['schema'].endswith('/v4'):
+        if snap['schema'].endswith('/v5'):
+            from .energy_source_snapshot import EnergySourceSnapshot
+            if not isinstance(snapshot,EnergySourceSnapshot):raise ContractRefused('intent_invalid')
+        if snap['schema'].endswith(('/v4','/v5')):
             from .weather_snapshot import WeatherSnapshot
             if not isinstance(snapshot,WeatherSnapshot):raise ContractRefused('intent_invalid')
     elif snap.get('schema')!='earthship-household-snapshot/v1':raise ContractRefused('intent_invalid')

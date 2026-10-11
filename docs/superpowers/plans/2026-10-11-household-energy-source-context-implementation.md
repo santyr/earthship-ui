@@ -52,9 +52,9 @@ Rebuild the unchanged weather root first. Add physical-bank identity and nominal
 
 Prepared energy/v2 binds the unchanged daily `bank_kwh` argument to the retained nominal configuration when available; mismatch is refused. Missing bank configuration remains explicit and does not silently claim a binding. Overall energy input qualification remains not_assessed because resource/demand/calibration sources remain incomplete. Pipeline/plan/v4 restoration deduplicates originals and distinct candidate contexts with complete source closure, and enclosing outcome replay uses actual version dispatch. Earlier versions remain unchanged.
 
-- [ ] RED then GREEN exact source/model clocks, nominal-versus-usable distinction, valid/expired/future AC, ended/unknown topology, mismatched numerical capacity, forged/resealed snapshots and contexts, candidates, outcomes and disabled translator.
-- [ ] Verify pure/no-read replay, full operational CLI closure, partial runtime refusal and unchanged historical versions; run the complete affected suite under serial caps.
-- [ ] Commit measured integration and update the canonical full-scope progress record.
+- [x] RED then GREEN exact source/model clocks, nominal-versus-usable distinction, valid/expired/future AC, ended/unknown topology, mismatched numerical capacity, forged/resealed snapshots and contexts, candidates, outcomes and disabled translator.
+- [x] Verify pure/no-read replay, full operational CLI closure, partial runtime refusal and unchanged historical versions; run the complete affected suite under serial caps.
+- [x] Commit measured integration and update the canonical full-scope progress record.
 
 ### Task 3: Bounded configuration acquisition and actual proof
 

@@ -17,7 +17,7 @@ PLAN_MODULES=('__init__','adapters','capabilities','capture','codec','control_co
 
 
 def outcome_runtime_manifest():
-    result=pipeline_runtime_manifest(expanded=True);path=Path(__file__).resolve()
+    result=pipeline_runtime_manifest(expanded=True,configured=True);path=Path(__file__).resolve()
     result['openhab/scripts/household_outcomes.py']=sha256(_read(path,262144)).hexdigest()
     return result
 
@@ -31,10 +31,13 @@ def original_plan_runtime(plan,*,actual):
         'household_plan.py','household_pipeline.py','forecast_intel.py','hourly_temperature_runtime.py'))
     required.update(('companion/earthship_energy/db.py','companion/earthship_energy/bms_evidence.py',
         'openhab/managed-resources.json','openhab/file-config/ownership.json'))
-    if plan.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-shadow-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-shadow-plan-receipt/v3'):
+    if plan.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-shadow-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-shadow-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-shadow-plan-receipt/v4'):
         required.update('openhab/scripts/household/'+name+'.py' for name in ('model_snapshot','power_snapshot','power_capture'))
         required.update(POWER_COMPANIONS)
-        if plan['schema'].endswith('/v3'):required.update('openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot'))
+        if plan['schema'].endswith(('/v3','/v4')):required.update('openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot'))
+        if plan['schema'].endswith('/v4'):
+            required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_source_snapshot','energy_outcome_sources'))
+            required.add('openhab/scripts/advisory_windows.py')
         verify_source_closure(plan,actual)
     expected=plan['runtime_manifest']
     if (not isinstance(expected,dict) or not required<=set(expected) or not set(expected)<=set(actual) or
