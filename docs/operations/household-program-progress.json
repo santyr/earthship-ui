@@ -62,7 +62,7 @@
     {
       "phase": "8",
       "requirement": "Resource-effect vectors and drift metrics",
-      "current_evidence": "notimplemented",
+      "current_evidence": "Pure sealed normalized resource vectors, cumulative prefix drift and bounded explicit order experiments implemented. Original plan decisions and unknown dimensions are preserved. Actual thermal-only original plan with zero optional candidates replayed identically through pure and private CLI paths. Qualified physical action effects, trajectories and production scheduling benefit remain incomplete.",
       "complete": false
     },
     {
@@ -290,6 +290,29 @@
       "readback_receipt_sha256": "5c8d7b111e37c7fd6a5d54720a4f0af80bf5b1714b82d1f41bdd5024009b6eb9",
       "review": "Two Important findings fixed with RED-to-GREEN regressions: exact effective source-consumer commands and optimized execution refusal. One Minor partial-install diagnostics limitation deferred.",
       "deferred_minor": "A failure after a published file requires manual generation reconciliation; refusal output does not enumerate completed files; no automatic retry or rollback."
+    },
+    "resource_drift": {
+      "focused_tests": 28,
+      "affected_household_forecast_and_atomic_soc_tests": 595,
+      "affected_suite_seconds": 151.61,
+      "pure_replay_without_reads": true,
+      "original_plan_unchanged": true,
+      "normalized_dimensions": 7,
+      "max_explicit_order_experiments": 16,
+      "actual_original_pipeline_raw_sha256": "a3c916a2a862493dfe18797f08c8c3398d38d81201f778db8bf5f8012130fcf0",
+      "actual_resource_receipt_raw_sha256": "31a2d519f920645a511ec1a8e347e55503f954e984dbefdd4f72ef5d02c02512",
+      "actual_candidate_vectors": 0,
+      "actual_selected_optional_actions": 0,
+      "actual_pure_and_cli_identical": true,
+      "action_effects_qualified": false,
+      "household_baseline_qualified": false,
+      "automatic_actuation": false,
+      "full_resource_requirement_complete": false,
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
+      "review_head": "66d16b7ff743d3fc6f8647bd621544194f29cd73",
+      "review": "No Critical or Important findings; one Minor direct coverage gap deferred. Independent review static only.",
+      "deferred_minor": "Direct rejected/unknown candidate experiment and CLI-level resealed-output tests absent; underlying replay checks covered.",
+      "hosted_ci": "pending"
     }
   }
 }
