@@ -29,6 +29,13 @@ def thermal_api():
 
 
 def prepared_thermal(tmp_path,monkeypatch):
+    # Mathematical fixtures use an owned, non-group-writable copy of the same
+    # interpreter bytes. Hosted tool-cache permissions are not release evidence.
+    import sys,shutil
+    interpreter=tmp_path/'runtime-interpreter'
+    shutil.copyfile(Path(sys.executable).resolve(),interpreter)
+    interpreter.chmod(0o700)
+    monkeypatch.setattr(sys,'executable',str(interpreter))
     from test_provisional_thermal_forecast import context,module,ISSUE
     from datetime import timedelta
     candidate,inputs=context(tmp_path,monkeypatch)
@@ -89,3 +96,13 @@ def test_household_execution_runtime_is_distinct_from_original_artifact_runtime(
     assert 'thermal_model/installed_shade_dynamics.py' in actual['thermal_runtime']['source_manifest']
     from household.codec import identity
     assert output['executing_runtime_sha256']==identity(actual)
+
+
+def test_shared_writable_interpreter_is_isolated_for_mathematical_fixture(tmp_path,monkeypatch):
+    import sys,shutil
+    shared=tmp_path/'shared-python';shutil.copyfile(Path(sys.executable).resolve(),shared);shared.chmod(0o775)
+    monkeypatch.setattr(sys,'executable',str(shared))
+    prepared,_=prepared_thermal(tmp_path,monkeypatch)
+    actual=prepared.to_dict()['executing_runtime']['thermal_runtime']
+    from hashlib import sha256
+    assert actual['interpreter_sha256']==sha256(shared.read_bytes()).hexdigest()
