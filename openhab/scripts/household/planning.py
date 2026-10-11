@@ -191,12 +191,16 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
         candidates=[dict(intent=item.to_dict(),validation_snapshot=item.snapshot.to_dict(),validated_at=item.validated_at.isoformat())
                     for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)],
         coordination=arguments['coordination'],utilities=arguments['utilities'],now=now.isoformat(),reserve_soc=arguments['reserve_soc'],horizon_hours=arguments['horizon_hours'])
-    from .model_snapshot import ModelSnapshot,verify_source_runtime
+    from .model_snapshot import ModelSnapshot,verify_source_runtime,snapshot_context
     for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])):
         if isinstance(item,ModelSnapshot):verify_source_runtime(item,runtime)
-        elif item.to_dict().get('schema')=='earthship-household-snapshot/v3':raise ValueError('verified model snapshot required')
-    contexts={item.snapshot_id:item.source_receipt for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])) if isinstance(item,ModelSnapshot)}
-    version=2 if contexts else 1
+        elif item.to_dict().get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4'):raise ValueError('verified model snapshot required')
+    contexts={item.snapshot_id:snapshot_context(item) for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])) if isinstance(item,ModelSnapshot)}
+    weather_bound=any(item.to_dict().get('schema')=='earthship-household-snapshot/v4' for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])))
+    version=3 if weather_bound else 2 if contexts else 1
+    if weather_bound:
+        inputs['validation_snapshots']={item.snapshot.snapshot_id:item.snapshot.to_dict() for item in arguments['candidates'] if item.snapshot.snapshot_id!=arguments['snapshot'].snapshot_id}
+        inputs['candidates']=[dict(intent=item.to_dict(),validation_snapshot_id=item.snapshot.snapshot_id,validated_at=item.validated_at.isoformat()) for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)]
     if contexts:inputs['source_contexts']=contexts
     receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v'+str(version),inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
@@ -206,14 +210,15 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2') or len(canonical(receipt))>512*1024:
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3') or len(canonical(receipt))>512*1024:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing planner runtime differs')
     value=receipt['inputs']
-    expanded=receipt['schema'].endswith('/v2')
-    if not isinstance(value,dict) or set(value)!=(INPUT_FIELDS|{'source_contexts'} if expanded else INPUT_FIELDS):raise ValueError('closed original plan inputs required')
+    expanded=receipt['schema'].endswith(('/v2','/v3'));weather_bound=receipt['schema'].endswith('/v3')
+    fields=INPUT_FIELDS|({'source_contexts'} if expanded else set())|({'validation_snapshots'} if weather_bound else set())
+    if not isinstance(value,dict) or set(value)!=fields:raise ValueError('closed original plan inputs required')
     from .model_snapshot import restore_snapshot
     contexts=value.get('source_contexts')
     if expanded and (not isinstance(contexts,dict) or not 1<=len(contexts)<=MAX_CANDIDATES+1):raise ValueError('bounded original source contexts required')
@@ -224,10 +229,13 @@ def replay_plan(receipt,*,runtime_manifest):
     now=instant(value['now'])
     if not isinstance(value['candidates'],list) or len(value['candidates'])>MAX_CANDIDATES:raise ValueError('bounded original candidate set required')
     candidates=[]
+    documents=value.get('validation_snapshots',{})
+    if weather_bound and (not isinstance(documents,dict) or len(documents)>MAX_CANDIDATES):raise ValueError('bounded original validation snapshots required')
     for item in value['candidates']:
-        if not isinstance(item,dict) or set(item)!={'intent','validation_snapshot','validated_at'}:
+        candidate_fields={'intent','validated_at','validation_snapshot_id' if weather_bound else 'validation_snapshot'}
+        if not isinstance(item,dict) or set(item)!=candidate_fields:
             raise ValueError('closed original candidate validation context required')
-        original=item['validation_snapshot']
+        original=(value['snapshot'] if item['validation_snapshot_id']==snapshot.snapshot_id else documents.get(item['validation_snapshot_id'])) if weather_bound else item['validation_snapshot']
         if not isinstance(original,dict) or 'snapshot_id' not in original:
             raise ValueError('original candidate snapshot required')
         validation_snapshot=restore_snapshot(original,contexts)

@@ -1,0 +1,13 @@
+# Original weather forcing and origin context
+
+The weather boundary freezes a complete verified original provisional capture together with its separately prepared thermal context. It reconstructs the original metric receipts, weather issue/availability, operator snapshot, exact five-minute outdoor/radiation forcing and original thermal output. Forecast wind and weather codes retain their original hourly brackets. No interpolation, forecast equation or ventilation calculation changes.
+
+A digested canonical zlib/base64 envelope retains the complete original capture under the existing 256 KiB weather-context budget. Decoding permits at most the original producer's 2 MiB, checks exact declared size and raw digest, requires complete EOF and refuses trailing streams/data. No original data or candidates are discarded to fit. Snapshot, plan and pipeline limits stay 256 KiB, 512 KiB and 1 MiB respectively.
+
+Snapshot/v4 enriches the unchanged model-bound v3 derivation at its original clock. It retains forecast issue and outdoor/radiation/wind/weather-code trajectories plus original shade, legacy coarse ventilation and known operator mode. Unknown mode stays unknown. Forecast and operator rows use nonphysical context quality, so they cannot authorize action references. Measured solar radiation, humidity, precipitation, wind and daylight geometry remain unavailable without their own sources. Outdoor shade presence is not actuator position; coarse ventilation does not identify separate window/skylight states.
+
+Pipeline and plan receipts/v3 retain versioned original source contexts. Candidate validation snapshots reuse the root or retain a distinct complete document by identity, preserving every candidate's actual validation lineage without repetitive copies. Original v1/v2 receipt branches keep their structure and numerical behavior. Operational pipeline, plan and enclosing outcome replay validate the original producer closure and original weather/thermal executing dependencies.
+
+The translator remains disabled and causal/action effects remain unqualified. Full bank/usable energy, household load, observed weather/daylight, authority/owner sources, outcomes, resource trajectories, operator UI and release qualification remain part of the full PR #3 objective. Local affected tests, actual natural-source replay, independent review and hosted exact-head checks are the stage gates; no live deployment is claimed here.
+
+Validation: 12 pure weather boundary tests and 13 snapshot/pipeline/operational cases are included in the complete affected run: 682 passed in307.50s under serial CPU20%, memory256MiB, swap0, tasks24, nice15, idle-I/O and single-thread limits. Strong actual-source proof, independent review and hosted checks remain pending.

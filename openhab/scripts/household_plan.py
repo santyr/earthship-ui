@@ -14,7 +14,7 @@ def main(argv=None):
     parser.add_argument('--receipt',required=True,type=Path);args=parser.parse_args(argv)
     try:
         raw=_read(args.receipt,512*1024,private=True);record=loads(raw)
-        expanded=record.get('schema')=='earthship-household-shadow-plan-receipt/v2'
+        expanded=record.get('schema') in ('earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3')
         if expanded:
             from household_pipeline import pipeline_runtime_manifest,verify_source_closure
             executing=pipeline_runtime_manifest(expanded=True)
