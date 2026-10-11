@@ -74,3 +74,39 @@ def project_energy(inputs):
         soc_basis='existing_qualified_soc_inputs_caller_contract',action_effects_qualified=False,automatic_actuation=False)
     result['projection_sha256']=identity(result)
     return result
+
+
+from .snapshot import HouseholdSnapshot
+from .evidence import digest
+from .control_contracts import instant
+
+PREPARED_ENERGY_FIELDS={'schema','numerical_inputs','snapshot_id','as_of','available_at','battery_evidence_sha256'}
+
+
+@dataclass(frozen=True)
+class PreparedEnergyInputs:
+    """Collection binding; source/calibration qualification is still caller-owned."""
+    content:bytes
+
+    def __post_init__(self):
+        if not isinstance(self.content,bytes) or len(self.content)>8192:raise ValueError('bounded prepared energy context required')
+        value=loads(self.content)
+        if not isinstance(value,dict) or set(value)!=PREPARED_ENERGY_FIELDS or value['schema']!='earthship-household-prepared-energy/v1':
+            raise ValueError('closed prepared energy context required')
+        digest(value['snapshot_id'])
+        if value['battery_evidence_sha256'] is not None:digest(value['battery_evidence_sha256'])
+        if instant(value['available_at'])<instant(value['as_of']):raise ValueError('energy availability precedes collection')
+        FrozenEnergyInputs(canonical(value['numerical_inputs']))
+
+    def to_dict(self):return loads(self.content)
+
+    @property
+    def numerical(self):return FrozenEnergyInputs(canonical(self.to_dict()['numerical_inputs']))
+
+
+def bind_energy_inputs(inputs,*,snapshot):
+    if not isinstance(inputs,FrozenEnergyInputs) or not isinstance(snapshot,HouseholdSnapshot):raise ValueError('frozen energy and original snapshot required')
+    snap=snapshot.to_dict();row=snap['domains']['energy']['battery_soc'];ref=row['evidence']
+    return PreparedEnergyInputs(canonical(dict(schema='earthship-household-prepared-energy/v1',
+        numerical_inputs=inputs.to_dict(),snapshot_id=snapshot.snapshot_id,as_of=snap['as_of'],
+        available_at=snap['created_at'],battery_evidence_sha256=None if ref is None else ref['digest'])))

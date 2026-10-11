@@ -60,8 +60,10 @@ def config():
 
 
 def energy_inputs(soc=100.,resource=20.):
-    return energy_api().freeze_energy_inputs(**{**FIXTURE['cases'][0]['inputs'],
+    frozen=energy_api().freeze_energy_inputs(**{**FIXTURE['cases'][0]['inputs'],
         'soc_pct':soc,'resource_kwh':resource,'overnight_drops_pct':[15.]})
+    snap,_=setup()
+    return energy_api().bind_energy_inputs(frozen,snapshot=snap)
 
 
 def pipeline(**changes):
@@ -177,3 +179,10 @@ def test_pipeline_cli_rederives_private_models_and_refuses_changed_runtime(tmp_p
     source.write_bytes(canonical(receipt))
     refused=subprocess.run([sys.executable,str(script),'--receipt',str(source)],capture_output=True,text=True,timeout=10)
     assert refused.returncode==1 and not refused.stdout
+
+
+def test_same_soc_cannot_reuse_energy_context_from_different_snapshot():
+    first,_=setup();document=first.to_dict();document['config_revision']='c'*64
+    other=HouseholdSnapshot(canonical({k:v for k,v in document.items() if k!='snapshot_id'}))
+    assert other.to_dict()['domains']['energy']['battery_soc']['value']==first.to_dict()['domains']['energy']['battery_soc']['value']
+    with pytest.raises(ValueError):pipeline(snapshot=other,coordination=context(other),energy_inputs=energy_inputs())

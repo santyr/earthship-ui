@@ -167,8 +167,8 @@
       "combined_household_tests": 240
     },
     "model_plan_integration": {
-      "focused_tests": 97,
-      "household_and_forecast_tests": 454,
+      "focused_tests": 98,
+      "household_and_forecast_tests": 455,
       "exact_original_24h_thermal_rederivation": true,
       "original_capture_reverified": true,
       "original_capture_sha256": "ffbe059998d1ccd4b62bd7d7028d9611be70c58e71a12c273f359afb0fa2c42c",
@@ -178,7 +178,9 @@
       "action_effects_qualified": false,
       "automatic_actuation": false,
       "full_original_source_milestone_complete": false,
-      "review": "pending"
+      "review": "one Important cross-snapshot finding fixed with RED-to-GREEN regression; no additional review findings",
+      "review_head": "e66309bca715119aa598ad84eba5bcd539cc7507",
+      "energy_original_snapshot_binding": true
     }
   }
 }

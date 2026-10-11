@@ -5,7 +5,7 @@ from .codec import canonical,loads,identity
 from .evidence import utc
 from .snapshot import HouseholdSnapshot
 from .capabilities import CapabilityRegistry
-from .energy_model import FrozenEnergyInputs,project_energy
+from .energy_model import PreparedEnergyInputs,project_energy
 from .thermal_model import PreparedProjection,project as project_thermal
 from .intents import build_intent,EFFECT_UNITS
 from .control_contracts import instant,ContractRefused
@@ -39,11 +39,19 @@ def _restore(document,kind,key):
 def _projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,horizon):
     snap=snapshot.to_dict();energy=None;thermal=None
     if energy_inputs is not None:
-        if not isinstance(energy_inputs,FrozenEnergyInputs):raise ValueError('frozen energy context required')
-        reference=energy_inputs.to_dict()['inputs']['soc_pct']
+        if not isinstance(energy_inputs,PreparedEnergyInputs):raise ValueError('snapshot-bound prepared energy context required')
+        origin=energy_inputs.to_dict();row=snap['domains']['energy']['battery_soc'];ref=row['evidence']
+        if (origin['snapshot_id']!=snapshot.snapshot_id or instant(origin['as_of'])!=instant(snap['as_of']) or
+            instant(origin['available_at'])!=instant(snap['created_at']) or instant(origin['available_at'])>now or
+            origin['battery_evidence_sha256']!=(None if ref is None else ref['digest'])):
+            raise ValueError('energy origin differs from shared snapshot')
+        reference=energy_inputs.numerical.to_dict()['inputs']['soc_pct']
         if reference is not None and reference!=snap['domains']['energy']['battery_soc']['value']:
             raise ValueError('energy SoC reference differs from shared snapshot')
-        energy=project_energy(energy_inputs)
+        energy=project_energy(energy_inputs.numerical)
+        energy.pop('projection_sha256')
+        energy['collection_binding']={key:origin[key] for key in ('snapshot_id','as_of','available_at','battery_evidence_sha256')}
+        energy['projection_sha256']=identity(energy)
     if thermal_inputs is not None:
         if not isinstance(thermal_inputs,PreparedProjection):raise ValueError('prepared original thermal context required')
         value=thermal_inputs.to_dict();original=value['snapshot']
@@ -141,7 +149,7 @@ def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
     if not isinstance(value,dict) or set(value)!=INPUT_FIELDS:raise ValueError('closed original model/plan inputs required')
     snapshot=_restore(value['snapshot'],HouseholdSnapshot,'snapshot_id')
     registry=_restore(value['registry'],CapabilityRegistry,'registry_id')
-    energy=None if value['energy_inputs'] is None else FrozenEnergyInputs(canonical(value['energy_inputs']))
+    energy=None if value['energy_inputs'] is None else PreparedEnergyInputs(canonical(value['energy_inputs']))
     thermal=None if value['thermal_inputs'] is None else PreparedProjection(canonical(value['thermal_inputs']))
     replayed=seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=energy,thermal_inputs=thermal,
         thermal_runtime=thermal_runtime,coordination=value['coordination'],config=value['config'],now=instant(value['now']),runtime_manifest=runtime)
