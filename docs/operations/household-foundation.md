@@ -1,7 +1,8 @@
 # Household snapshot foundation
 
-This is the first implementation stage of PR #3. It has no live reader,
-OpenHAB transport, timer, request sender, planner or physical authority.
+This is the first implementation stage of PR #3. Its offline assembly has
+no transport, timer, request sender, planner or physical authority. A separate
+read-only collector is described in `household-source-capture.md`.
 Existing forecast workers, UI layouts and owner rules are unchanged.
 
 The pure adapters consume exact original BMS SoC, native MPPT60 daily Wh
@@ -93,6 +94,7 @@ errors do not echo source strings, credential-bearing fields or private paths.
 Replay fixtures must retain original inputs separately; the compact receipt
 contains references and derived values, not a replacement authoritative history.
 
-Production collection, accepted model-artifact references, additional water
-sources, typed intents, arbitration and the planner remain later stages.
+Automatic production collection, accepted model-artifact references, additional
+water sources, arbitration and the planner remain later stages. Pure typed shadow
+intents and permanently disabled translation are defined in the contract stage.
 This foundation does not graduate the provisional thermal model.
