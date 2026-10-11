@@ -121,3 +121,9 @@ def test_reported_start_cannot_follow_request_expiry_but_completion_can():
     with pytest.raises(m.ContractRefused) as refused:
         m.parse_result(json.dumps(result(req,'running','running',at=(NOW+timedelta(seconds=60)).isoformat())),request=req,now=NOW+timedelta(seconds=60),expected_owner_version='greywater-owner-v2')
     assert refused.value.reason_code=='request_expired'
+
+
+def test_calendar_limit_uses_duration_without_timestamp_overflow():
+    m=api();near_limit=datetime(9999,12,31,23,59,tzinfo=timezone.utc)
+    value=request(requestedAt=near_limit.isoformat(),expiresAt=(near_limit+timedelta(seconds=59)).isoformat())
+    assert m.parse_request(json.dumps(value),now=near_limit).to_dict()==value

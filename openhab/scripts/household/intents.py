@@ -26,7 +26,7 @@ def _validate(value,snapshot,now):
     if value['shadowOnly'] is not True:raise ContractRefused('planner_authority_disabled')
     if value['snapshotId']!=snapshot.snapshot_id:raise ContractRefused('snapshot_mismatch')
     created,expires=map(instant,(value['createdAt'],value['expiresAt']))
-    if created>now or created<instant(snap['as_of']) or not created<expires<=created+timedelta(seconds=300):
+    if created>now or created<instant(snap['as_of']) or not created<expires or expires-created>timedelta(seconds=300):
         raise ContractRefused('intent_invalid')
     if now>=expires:raise ContractRefused('intent_expired')
     kind=value['type']

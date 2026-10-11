@@ -65,3 +65,10 @@ def test_changed_effect_cannot_reuse_sealed_intent_identity():
     m=api();snap=snapshot();original=m.build_intent(document(snap),snapshot=snap,now=NOW).to_dict()
     original['expiresAt']=(NOW+timedelta(seconds=60)).isoformat()
     with pytest.raises(m.ContractRefused):m.parse_intent(json.dumps(original),snapshot=snap,now=NOW)
+
+
+def test_shadow_lifetime_is_checked_without_calendar_overflow():
+    from datetime import datetime,timezone
+    m=api();snap=snapshot();near_limit=datetime(9999,12,31,23,59,tzinfo=timezone.utc)
+    value=document(snap,createdAt=near_limit.isoformat(),expiresAt=(near_limit+timedelta(seconds=59)).isoformat())
+    assert m.build_intent(value,snapshot=snap,now=near_limit).to_dict()['shadowOnly'] is True

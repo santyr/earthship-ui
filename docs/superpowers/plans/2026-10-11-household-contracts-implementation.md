@@ -33,19 +33,19 @@
 **Files:** `openhab/scripts/household/control_contracts.py`, `openhab/scripts/test_household_control_contracts.py`.
 **Interfaces:** `parse_request(raw, *, now, owner_max_age_seconds=120)` validates supported explicit capability parameters and closed provenance; `parse_result(raw, *, request, now)` binds request/intent/snapshot identities and status/reason vocabulary. Immutable canonical returnpayloads. Pure legacy-result status decoder accepts complete/completed for compatibility; no existing caller migrated.
 
-- [ ] RED tests: exact closed schema, allsources, age/expiry/future, owner cap, planner provenance, unsupportedparameters, invalidstatuses/reasons, wrongcorrelation, mutation.
-- [ ] Implement no transport; GREEN focused tests and commit.
+- [x] RED tests: exact closed schema, allsources, age/expiry/future, owner cap, planner provenance, unsupportedparameters, invalidstatuses/reasons, wrongcorrelation, mutation.
+- [x] Implement no transport; GREEN focused tests and commit.
 
 ### Task2: Typed shadow intents and disabled translation
 
 **Files:** `openhab/scripts/household/intents.py`, `openhab/scripts/test_household_intents.py`.
 **Interfaces:** sealed typed intent with snapshotId, exact refs, versioned resource-effect components, expiresAt, confidence and catalogreasons. Only realowned families or NO_ACTION admitted. `intent_to_request` always refuses with planner_authority_disabled; no callback/endpoint admitted.
 
-- [ ] RED malformed/shadowfalse/expired/effect/tamperedidentity/unsupportedfamily and disabledtranslation tests.
-- [ ] Implement strict immutable shadowintent contracts; GREEN, commit and wholebranch review.
+- [x] RED malformed/shadowfalse/expired/effect/tamperedidentity/unsupportedfamily and disabledtranslation tests.
+- [x] Implement strict immutable shadowintent contracts; GREEN, commit and wholebranch review.
 
 ### Task3: Documentation and full objective tracking
 
-- [ ] Keep canonical program audit with all PR3phasesandmilestone1; do not mark fullgoal complete from this purecontractstage.
-- [ ] Record schema usage, source-derivedowner-age and later migration boundaries.
-- [ ] HostedCI, merge stages only with exactheadchecksuccess and review; liveauthoritystilldisabled.
+- [x] Keep canonical program audit with all PR3phasesandmilestone1; do not mark fullgoal complete from this purecontractstage.
+- [x] Record schema usage, source-derivedowner-age and later migration boundaries.
+- [ ] Hosted CI and merge after exact-head check success; live authority remains disabled.

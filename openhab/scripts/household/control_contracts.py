@@ -82,7 +82,7 @@ def _request_document(value,now,owner_age):
     if requested>now:raise ContractRefused('request_future')
     if now-requested>timedelta(seconds=owner_age):raise ContractRefused('request_stale')
     if expires<=now:raise ContractRefused('request_expired')
-    if not requested<expires<=requested+timedelta(seconds=owner_age):raise ContractRefused('request_invalid')
+    if not requested<expires or expires-requested>timedelta(seconds=owner_age):raise ContractRefused('request_invalid')
     validate_parameters(value['intentType'],value['parameters'])
 
 
