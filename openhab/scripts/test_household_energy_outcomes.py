@@ -214,3 +214,44 @@ def test_energy_scoring_missing_evidence_never_becomes_zero_error(missing):
             expected_bank_epoch=packet['expected_bank_epoch'],expected_stream_epoch=packet['expected_stream_epoch'])
     result=mod.seal_energy_outcomes(**args)['output']
     assert result['status']!='scored' and result['error_soc_pct'] is None
+
+
+def test_energy_outcome_cli_refuses_public_special_and_changed_source(tmp_path):
+    import os,subprocess,sys
+    from pathlib import Path
+    script=Path(__file__).with_name('household_energy_outcomes.py')
+    assert script.exists(),'private energy outcome CLI missing'
+    fifo=tmp_path/'fifo';os.mkfifo(fifo,0o600)
+    public=tmp_path/'public.json';public.write_text('{"private":"must-stay-private"}');public.chmod(0o644)
+    for path in (fifo,public):
+        result=subprocess.run([sys.executable,str(script),'--receipt',str(path)],capture_output=True,text=True,timeout=5)
+        assert result.returncode==1 and not result.stdout and 'must-stay-private' not in result.stderr and 'Traceback' not in result.stderr
+
+
+def test_energy_outcome_cli_replays_actual_source_closure(tmp_path):
+    import subprocess,sys
+    from pathlib import Path
+    script=Path(__file__).with_name('household_energy_outcomes.py')
+    assert script.exists(),'private energy outcome CLI missing'
+    from household_energy_outcomes import energy_outcome_runtime_manifest
+    from household_pipeline import pipeline_runtime_manifest
+    from household.pipeline import seal_pipeline
+    from household.snapshot import HouseholdSnapshot
+    from household.capabilities import CapabilityRegistry
+    from household.energy_model import PreparedEnergyInputs
+    from household.codec import canonical
+    from household.control_contracts import instant
+    args=scoring_inputs();old=args['plan_receipt'];source=old['inputs'];args['plan_runtime_manifest']=pipeline_runtime_manifest()
+    args['plan_receipt']=seal_pipeline(snapshot=HouseholdSnapshot(canonical({k:v for k,v in source['snapshot'].items() if k!='snapshot_id'})),
+        registry=CapabilityRegistry(canonical({k:v for k,v in source['registry'].items() if k!='registry_id'})),
+        energy_inputs=PreparedEnergyInputs(canonical(source['energy_inputs'])),thermal_inputs=None,thermal_runtime=None,
+        coordination=source['coordination'],config=source['config'],now=instant(source['now']),runtime_manifest=args['plan_runtime_manifest'])
+    args['outcome_runtime_manifest']=energy_outcome_runtime_manifest();receipt=scoring_api().seal_energy_outcomes(**args)
+    path=tmp_path/'score.json';path.write_bytes(canonical(receipt));path.chmod(0o600)
+    result=subprocess.run([sys.executable,str(script),'--receipt',str(path)],capture_output=True,text=True,timeout=15)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)==receipt
+    receipt['outcome_runtime_manifest']['companion/earthship_energy/trough_assessment.py']='f'*64
+    receipt['receipt_sha256']=identity({k:v for k,v in receipt.items() if k!='receipt_sha256'});path.write_bytes(canonical(receipt))
+    result=subprocess.run([sys.executable,str(script),'--receipt',str(path)],capture_output=True,text=True,timeout=15)
+    assert result.returncode==1 and not result.stdout
