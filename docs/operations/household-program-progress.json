@@ -38,7 +38,7 @@
     {
       "phase": "4",
       "requirement": "Typed household intents and disabled intent-to-request adapter",
-      "current_evidence": "Pure shadow intent definitions and permanently disabled translator have 15 passing tests and review approval. Generated model-backed intents and qualified translation remain incomplete. Model-triggered existing-owner proposals now generate with unknown effects and unavailable action confidence; qualified causal bounds remain missing.",
+      "current_evidence": "Pure typed intents and permanently disabled translator merged. Existing-owner model-triggered shadow proposals generate with unknown causal effects and unavailable action confidence; qualified effects and any separately graduated translation remain incomplete.",
       "complete": false
     },
     {
@@ -50,13 +50,13 @@
     {
       "phase": "6",
       "requirement": "Shadow household planner",
-      "current_evidence": "Bounded exhaustive shadow decision engine implemented; known/unknown gates precede declared utility. Model-backed candidate generation, rolling operational inputs and actual/current-owner baselines remain incomplete.",
+      "current_evidence": "Bounded exhaustive coordination and model-triggered shadow generation merged. Rolling operational inputs, qualified effects and actual/current-owner policy baselines remain incomplete.",
       "complete": false
     },
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Sealed complete decision inputs/outputs replay identically through a bounded private CLI; actual-native missing-input probe selected no action. Independent trajectory rederivation, chronological outcomes and real full-pipeline replay remain incomplete. Integrated receipts rederive models, candidates and plans; one actual original thermal archive reverified with identical 24h projection and pure/CLI replay. Full original-energy/common-source qualification and outcomes remain incomplete.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete.",
       "complete": false
     },
     {
@@ -188,7 +188,35 @@
       "energy_original_snapshot_binding": true,
       "fix_head": "a785c36",
       "proof_source_head": "c0048b33ca50d681713e5ed7ad87dd9cd17e301b",
-      "actual_final_receipt_sha256": "d3f55a410298e9b660aea3b65cb58219c9e3f5dee79a7f57b2e13198eaac1659"
+      "actual_final_receipt_sha256": "d3f55a410298e9b660aea3b65cb58219c9e3f5dee79a7f57b2e13198eaac1659",
+      "pr": 16,
+      "head": "47cee891c12566362b775c372d2e8bd7eb6ee22e",
+      "merge": "a1aea48674a8df555de8e3771d778c3b13f1460e",
+      "hosted_ci": "all five passed"
+    },
+    "chronological_outcomes": {
+      "focused_tests": 23,
+      "household_and_forecast_tests": 478,
+      "actual_original_delivery_reverified": true,
+      "original_capture_sha256": "ffbe059998d1ccd4b62bd7d7028d9611be70c58e71a12c273f359afb0fa2c42c",
+      "mature_qualified_horizons_hours": [
+        1,
+        6,
+        12
+      ],
+      "immature_horizons_hours": [
+        24
+      ],
+      "unique_daily_units": 1,
+      "independence_assessed": false,
+      "pure_and_cli_replay_identical": true,
+      "actual_score_receipt_sha256": "2f3d2087d2d442e6877bc40d1776b60826faa893189c999d04c1bfc58e4ef82d",
+      "proof_source_head": "bdbbdd2db34e37184453372cd8aff9a9a8cac490",
+      "causal_benefit_qualified": false,
+      "automatic_actuation": false,
+      "full_outcome_requirement_complete": false,
+      "review": "one Important sensor-binding finding fixed with three RED-to-GREEN regressions; no additional review findings",
+      "fixed_scorer_retained_evidence_replay": true
     }
   }
 }
