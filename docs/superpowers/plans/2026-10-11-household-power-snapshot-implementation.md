@@ -16,7 +16,7 @@ Local work serial CPU20%, memory256MiB, swap0, tasks24, nice15, idle I/O and thr
 
 Create household/power_snapshot.py and test_household_power_snapshot.py. Compile original base inputs through the existing compiler. Source entries have fixed kind/Item identity, exact raw digest, original persistence clock and independently supplied software epoch. Preserve per-field observed/recorded/available/expiry clocks and units; field-specific unavailable/stale values remain unavailable. Expanded roles include energy, thermal, water, weather and authority/status requirements; unknown metadata/state/trajectories remain unknown. Completeness is capability-specific under explicit combined age/skew policies. Source bundle and complete snapshot seal/rederive deterministically with no I/O inside compiler/replay.
 
-- [ ] RED then GREEN tests: qualified four-role power, partial fields, wrong epoch/digest/identity, NULL barrier, stale/expired/future clocks, capability skew, unavailable bank/load/authority, immutable originals, bounded inputs and resealed replay tampering.
+- [x] RED then GREEN tests: qualified four-role power, partial fields, wrong epoch/digest/identity, NULL barrier, stale/expired/future clocks, capability skew, unavailable bank/load/authority, immutable originals, bounded inputs and resealed replay tampering.
 
 ## Task 2: Bounded source collector and actual qualification
 
@@ -29,3 +29,5 @@ Create household/power_capture.py. Read only fixed Power_Evidence_JSON and Inver
 ## Review focus
 
 Per-field age/expiry cannot be renewed by receipt persistence; software epochs cannot become physical bank epochs; inverter output cannot become household load; latest malformed/NULL rows cannot fall back to older values; nested collection cannot renew the common total deadline; old v1 receipts and original source manifests must not change; v2 is not silently treated as planner-authorized or fully source-complete.
+
+Task 1 evidence:18 tests RED (missing module) then GREEN18/18 in1.29s under strict caps. Existing v1 files remain unchanged. Task2 capture/integration and final review are still outstanding. Hosted companion pin d24771b lacks the AC parser; published24d2e898 contains it and preserves pinned ancestry. Verify the changed dependency closure before updating both CI pins.

@@ -277,7 +277,7 @@
       "staged_files": 9,
       "staged_exact_math_cases": 72,
       "staged_manifest_sha256": "417ac3e7c85e94e3a33e7087413792e787d7442c04e18f539045387069aa115e",
-      "live_original_argument_retention": false,
+      "live_original_argument_retention": true,
       "production_installed": true,
       "worker_started": false,
       "independent_readback_verified": true,
@@ -289,7 +289,24 @@
       "next_natural_issue": "2026-10-12T06:40:00-06:00",
       "readback_receipt_sha256": "5c8d7b111e37c7fd6a5d54720a4f0af80bf5b1714b82d1f41bdd5024009b6eb9",
       "review": "Two Important findings fixed with RED-to-GREEN regressions: exact effective source-consumer commands and optimized execution refusal. One Minor partial-install diagnostics limitation deferred.",
-      "deferred_minor": "A failure after a published file requires manual generation reconciliation; refusal output does not enumerate completed files; no automatic retry or rollback."
+      "deferred_minor": "A failure after a published file requires manual generation reconciliation; refusal output does not enumerate completed files; no automatic retry or rollback.",
+      "pr": 20,
+      "head": "0daddd72a864eb8e1248dc722ed477f05b967df3",
+      "merge": "93c4e2ddf90efb807c5cc5c83a7f6c79007fbb8d",
+      "hosted_ci": "all four passed",
+      "ci_run": 38166200244,
+      "supervised_current_time_issue": {
+        "issued_at": "2026-10-11T19:31:19.762949+00:00",
+        "worker_exit_status": 0,
+        "current_trough_pct": 84,
+        "exact_energy_arguments_present": true,
+        "protected_at_original_issue": false,
+        "post_issue_observation_raw_sha256": "f1455aed403bd5db09d37091e614f969e5231d93880d8ce049b67c2028ff220e",
+        "pre_dusk_display_latest_prediction_day": "2026-10-09",
+        "next_eligible_pre_dusk_attempt": "2026-10-11T17:02:45-06:00",
+        "household_model_score_qualified": false,
+        "natural_issue_qualified": false
+      }
     },
     "resource_drift": {
       "focused_tests": 28,
@@ -312,7 +329,11 @@
       "review_head": "66d16b7ff743d3fc6f8647bd621544194f29cd73",
       "review": "No Critical or Important findings; one Minor direct coverage gap deferred. Independent review static only.",
       "deferred_minor": "Direct rejected/unknown candidate experiment and CLI-level resealed-output tests absent; underlying replay checks covered.",
-      "hosted_ci": "pending"
+      "hosted_ci": "all four passed",
+      "pr": 21,
+      "head": "ca79a34752dd074eb5ab91fee1791d3ba3ec5245",
+      "merge": "de5deab59bd1d6b388083c1a692a9e74af299369",
+      "ci_run": 38167143017
     }
   }
 }
