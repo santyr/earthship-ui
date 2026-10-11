@@ -4,7 +4,11 @@ from hashlib import sha256
 import base64,binascii,zlib
 from .codec import canonical,loads,identity
 from .control_contracts import instant
-from .thermal_model import PreparedProjection,project as project_thermal
+from .thermal_model import PreparedProjection,project as project_thermal,ROLES
+from .evidence import EvidenceRef,Observation
+from .snapshot import build_snapshot
+from thermal_model.provisional_artifact import candidate_digest
+from thermal_model.temperature_history import STREAMS,_validate_sensor_receipt
 from thermal_model.provisional_forecast import CAPTURE_FIELDS,CAPTURE_SCHEMA,digest as capture_digest
 from thermal_model.installed_shade_origin import _forecast_forcing,_origin_actions
 
@@ -54,6 +58,29 @@ def _original(value):
         instant(model['snapshot']['as_of'])!=issue or instant(model['snapshot']['created_at'])!=published or
         capture['candidate']['artifact_sha256']!=model['artifact_sha256'] or capture['candidate']['runtime_sha256']!=model['runtime_sha256']):
         raise ValueError('original weather/model origin differs')
+    candidate=capture['candidate']
+    if (candidate_digest(candidate)!=candidate['artifact_sha256'] or
+        canonical(candidate['fit']['coefficients'])!=canonical(model['coefficients'])):
+        raise ValueError('original candidate identity or prepared coefficients differ')
+    observations=[]
+    for role,name in ROLES.items():
+        row=capture['inputs']['origin_temperatures']['roles'][role]
+        phase=candidate['fit']['sensor_epochs'][role]
+        stream,sensor_model,sensor_id=STREAMS[role]
+        if row['identity']!=dict(stream=stream,model=sensor_model,sensor_id=sensor_id,sensor_epoch=phase):
+            raise ValueError('original sensor identity differs')
+        target,receipt=row['grid'][-1]
+        _validate_sensor_receipt(receipt,instant(target),sensor_epoch=phase)
+        ref=EvidenceRef(name,'Weather_Temperature_Evidence_JSON:'+stream,receipt['snapshotSha256'],
+            receipt['streamEpoch'],receipt['sensorEpoch'],None,instant(receipt['receivedAt']),instant(receipt['storedAt']),
+            instant(receipt['validUntil']),issue,'qualified',None,(capture['capture_sha256'],))
+        observations.append(Observation(ref,receipt['temperatureF'],'degF'))
+    policy=dict(requirements={'thermal_current':list(ROLES.values())},
+        max_age_seconds={role:120 for role in ROLES.values()},max_skew_seconds=120)
+    snapshot=build_snapshot(observations,as_of=issue,created_at=published,
+        code_revision=model['snapshot']['code_revision'],config_revision=identity(policy),**policy)
+    if canonical(snapshot.to_dict())!=canonical(model['snapshot']):
+        raise ValueError('prepared snapshot differs from original sensor evidence')
     actions=_origin_actions(capture['inputs']['action_snapshot'],issue)
     if canonical(actions)!=canonical(model['actions']):raise ValueError('original operator context differs')
     forcings=_forecast_forcing(capture['inputs']['forecast'],issue,available,actions)

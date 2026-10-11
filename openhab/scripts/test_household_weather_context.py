@@ -72,3 +72,45 @@ def test_compressed_original_has_strict_complete_bounded_decode(damage,tmp_path,
         packed=zlib.compress(b'X'*(2*1024*1024+1),9);original['uncompressed_bytes']=2*1024*1024
     original['data']=base64.b64encode(packed).decode();body['weather_sha256']=identity({k:v for k,v in body.items() if k!='weather_sha256'})
     with pytest.raises(ValueError,match='bounded compressed original'):api().PreparedWeatherContext(canonical(body))
+
+
+def reseal_weather(body,original):
+    from thermal_model.provisional_forecast import digest as capture_digest
+    original['capture_sha256']=capture_digest(original,'capture_sha256')
+    model=body['prepared_thermal'];model['original_capture_sha256']=original['capture_sha256']
+    snapshot=model['snapshot']
+    for rows in snapshot['domains'].values():
+        for row in rows.values():
+            if row['evidence'] is not None:
+                row['evidence']['parent_digests']=[original['capture_sha256']]
+    snapshot['snapshot_id']=identity({k:v for k,v in snapshot.items() if k!='snapshot_id'})
+    model['prepared_sha256']=identity({k:v for k,v in model.items() if k!='prepared_sha256'})
+    raw=canonical(original)
+    body['original_capture']=dict(encoding='zlib-base64-v1',uncompressed_bytes=len(raw),
+        uncompressed_sha256=sha256(raw).hexdigest(),data=base64.b64encode(zlib.compress(raw,9)).decode())
+    body['weather_sha256']=identity({k:v for k,v in body.items() if k!='weather_sha256'})
+    return canonical(body)
+
+
+@pytest.mark.parametrize('damage',['measurement','source_clock','policy'])
+def test_fully_resealed_snapshot_must_match_original_sensor_receipts(damage,tmp_path,monkeypatch):
+    frozen,_,_=make(tmp_path,monkeypatch);body=frozen.to_dict();original=frozen.original_capture
+    snapshot=body['prepared_thermal']['snapshot'];row=snapshot['domains']['thermal']['mass_temperature']
+    if damage=='measurement':row['value']+=1
+    elif damage=='source_clock':row['evidence']['received_at']=row['evidence']['available_at']
+    else:snapshot['temporal_policy']['max_age_seconds']['mass_temperature']=121
+    with pytest.raises(ValueError,match='original sensor evidence'):
+        api().PreparedWeatherContext(reseal_weather(body,original))
+
+
+@pytest.mark.parametrize('reseal_candidate',[False,True])
+def test_fully_resealed_candidate_must_match_artifact_and_prepared_coefficients(reseal_candidate,tmp_path,monkeypatch):
+    from thermal_model.provisional_artifact import candidate_digest
+    frozen,_,_=make(tmp_path,monkeypatch);body=frozen.to_dict();original=frozen.original_capture
+    candidate=original['candidate'];candidate['fit']['coefficients'][0]+=0.01
+    if reseal_candidate:
+        candidate['artifact_sha256']=candidate_digest(candidate)
+        body['prepared_thermal']['artifact_sha256']=candidate['artifact_sha256']
+        original['output']['artifact_sha256']=candidate['artifact_sha256']
+    with pytest.raises(ValueError,match='original candidate'):
+        api().PreparedWeatherContext(reseal_weather(body,original))
