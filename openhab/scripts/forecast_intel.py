@@ -1533,10 +1533,11 @@ def main():
         if len(drops) == 3:
             break
     from household.energy_model import daily_energy_projection
-    energy_projection = daily_energy_projection(
+    energy_projection_inputs = dict(
         resource_kwh=resource, direct_demand_kwh=st["d_direct"], soc_pct=trough_ref,
         bank_kwh=BANK_KWH, eta_rt=ETA_RT, overnight_drops_pct=drops,
         tomorrow_cloud_pct=cloud_mean[1])
+    energy_projection = daily_energy_projection(**energy_projection_inputs)
     deficit_kwh = energy_projection['deficit_kwh']
     demand = energy_projection['demand']
     pv_pred = energy_projection['pv_pred']
@@ -1626,6 +1627,7 @@ def main():
         "k_res": round(st["k_res"], 3), "d_direct": round(st["d_direct"], 2),
         # Diagnostic-only as-issued components. These never alter the forecast,
         # notification threshold or the separately captured advisory decision.
+        "household_energy_inputs": energy_projection_inputs,  # exact math inputs, not qualification
         "soc_reference_pct": trough_ref,
         "soc_origin": soc_origin,
         "solar_context": solar_context,  # diagnostic-only, frozen at this issue
