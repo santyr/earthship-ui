@@ -37,10 +37,10 @@ The closed schema `earthship-household-energy-configuration/v1` contains `bank_s
 
 Pure projection reuses the existing complete physical-bank validator for all epoch intervals, selects the explicit current physical epoch only inside its boundary and retains declared nominal Ah/kWh. The exact existing topology schema, basis, cutover and effective interval are parsed from retained raw bytes; no I/O loader is called. Absent/invalid sources yield independent explicit unavailability. Projection names the declared configuration basis and keeps physical calibration, action effects and automatic actuation false. A later projection as-of cannot precede original configuration availability or turn an ended bank/topology interval into current state.
 
-- [ ] Write RED tests for independent bank/topology selection, exact raw bytes/digests, boundary dates and open-ended attestation, nullable missing sources, invalid/overlapping/ambiguous bank intervals, invalid topology/cutover, future availability, resealed invalid sources, output immutability, bounds and no reads.
-- [ ] Run the new file under strict caps; expected FAIL because module is missing.
-- [ ] Implement the three interfaces and closed bounded validation, with original-source semantics above.
-- [ ] Run the new file and the affected household suite; expected zero failures. Commit the boundary with measured RED/GREEN evidence.
+- [x] Write RED tests for independent bank/topology selection, exact raw bytes/digests, boundary dates and open-ended attestation, nullable missing sources, invalid/overlapping/ambiguous bank intervals, invalid topology/cutover, future availability, resealed invalid sources, output immutability, bounds and no reads.
+- [x] Run the new file under strict caps; expected FAIL because module is missing.
+- [x] Implement the three interfaces and closed bounded validation, with original-source semantics above.
+- [x] Run the new file and the affected household suite; expected zero failures. Commit the boundary with measured RED/GREEN evidence.
 
 ### Task 2: Source-bound snapshot and energy replay
 

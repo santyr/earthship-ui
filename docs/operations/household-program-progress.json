@@ -480,6 +480,21 @@
       "merge": "ec4f9c2c68b4d39338fb6958937564a5ea651fae",
       "ci_run": 38180181944,
       "final_documentation_head_cli_replay_identical": true
+    },
+    "original_energy_configuration": {
+      "status": "pure_boundary_verified",
+      "configuration_tests": 28,
+      "affected_tests": 715,
+      "affected_suite_seconds": 312.69,
+      "declared_nominal_bank_kwh": 20.48,
+      "physical_capacity_calibration_qualified": false,
+      "user_topology_attestation_reused": true,
+      "topology_effective_until": null,
+      "snapshot_integration_complete": false,
+      "actual_configuration_capture_complete": false,
+      "automatic_actuation": false,
+      "full_program_complete": false,
+      "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial"
     }
   }
 }
