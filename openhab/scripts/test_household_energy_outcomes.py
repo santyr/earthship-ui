@@ -1,6 +1,7 @@
 """Whole-night outcomes retain original atomic evidence and independent bindings."""
 from datetime import date,timedelta
-import copy,importlib,json
+import importlib,json
+from zoneinfo import ZoneInfo
 import pytest
 from advisory_windows import trough_window
 from household.codec import identity
@@ -119,3 +120,97 @@ def test_immature_night_does_not_open_database():
     args=inputs();args.pop('rows');args['assessed_at']=WINDOW.end-timedelta(seconds=1)
     packet=mod.fetch_night_source(lambda:pytest.fail('partial night acquired'),remaining=lambda:15.,**args)
     assert packet['assessment']['status']=='pending' and packet['rows']==[]
+
+
+def scoring_api():
+    assert importlib.util.find_spec('household.energy_outcomes') is not None,'original energy scoring missing'
+    return importlib.import_module('household.energy_outcomes')
+
+
+def scoring_inputs():
+    from test_household_pipeline import pipeline
+    from household.control_contracts import instant
+    from hashlib import sha256
+    from test_household_pipeline import setup,context,config,energy_inputs,NOW
+    from household.snapshot import HouseholdSnapshot
+    from household.codec import canonical
+    from household.energy_model import bind_energy_inputs
+    original,registry=setup();document=original.to_dict()
+    document['domains']['energy']['battery_soc']['evidence']['source_identity']='BMS_SOC_Evidence_JSON'
+    snapshot=HouseholdSnapshot(canonical({k:v for k,v in document.items() if k!='snapshot_id'}))
+    plan=pipeline(snapshot=snapshot,registry=registry,coordination=context(snapshot),
+        energy_inputs=bind_energy_inputs(energy_inputs().numerical,snapshot=snapshot))
+    snap=plan['inputs']['snapshot'];ref=snap['domains']['energy']['battery_soc']['evidence']
+    day=instant(snap['as_of']).astimezone(ZoneInfo('America/Denver')).date()
+    window=trough_window(day,'America/Denver');at=instant(snap['as_of'])
+    source=inputs();source.update(prediction_day=day,assessed_at=window.end+timedelta(minutes=1),
+        rows=[(window.start+timedelta(minutes=m),evidence(window.start+timedelta(minutes=m),soc=80 if m==300 else 90)) for m in range(900)])
+    origin=dict(version=1,assessedAtMs=int(at.timestamp()*1000),recordedAtMs=int(instant(ref['received_at']).timestamp()*1000),
+        validUntilMs=int(instant(ref['valid_until']).timestamp()*1000),streamEpoch=ref['source_epoch'],evidenceSha256=ref['digest'],socPct=100.)
+    raw=json.dumps(dict(version=1,predictionDay=day.isoformat(),issuedAt=at.isoformat(),pvTodayKwh=1.,curtailmentHoursToday=0.,
+        overnightTroughSocPct=plan['output']['projections']['energy']['output']['trough_pred'],thermalAdvisory='none',energySocOrigin=origin))
+    forecast=dict(source_identity='Forecast_Prediction_Receipt_JSON',persisted_at=(at+timedelta(seconds=1)).isoformat(),raw=raw,sha256=sha256(raw.encode()).hexdigest())
+    return dict(plan_receipt=plan,forecast_source=forecast,night_source=api().build_night_source(**source),
+        plan_runtime_manifest=plan['runtime_manifest'],outcome_runtime_manifest={'household/energy_outcomes.py':'b'*64},thermal_runtime=None)
+
+
+def test_original_energy_plan_and_delivery_score_whole_night_without_reads(monkeypatch):
+    mod=scoring_api();args=scoring_inputs();receipt=mod.seal_energy_outcomes(**args)
+    assert receipt['output']['status']=='scored' and receipt['output']['actual_min_soc_pct']==80
+    assert receipt['output']['error_soc_pct']==receipt['output']['predicted_min_soc_pct']-80
+    assert receipt['output']['causal_benefit_qualified'] is False and receipt['output']['automatic_actuation'] is False
+    assert receipt['output']['evaluation_scope']=='retrospective_planner_from_original_delivered_forecast'
+    import builtins
+    monkeypatch.setattr(builtins,'open',lambda *a,**k:pytest.fail('energy score replay read'))
+    assert mod.replay_energy_outcomes(receipt,plan_runtime_manifest=args['plan_runtime_manifest'],outcome_runtime_manifest=args['outcome_runtime_manifest'],thermal_runtime=None)==receipt
+
+
+@pytest.mark.parametrize('damage',['value','phase','digest','future_delivery','day','origin_clock','bank_capacity','assessment','derived_error'])
+def test_energy_score_refuses_wrong_original_binding_even_when_resealed(damage):
+    mod=scoring_api();args=scoring_inputs();source=args['forecast_source'];raw=json.loads(source['raw'])
+    if damage=='value':raw['overnightTroughSocPct']+=1
+    elif damage=='phase':raw['energySocOrigin']['streamEpoch']='00000000-0000-0000-0000-000000000002'
+    elif damage=='digest':raw['energySocOrigin']['evidenceSha256']='e'*64
+    elif damage=='future_delivery':source['persisted_at']=args['night_source']['assessment']['window_start']
+    elif damage=='day':raw['predictionDay']='2026-09-28'
+    elif damage=='origin_clock':raw['energySocOrigin']['assessedAtMs']+=1000
+    elif damage=='bank_capacity':
+        packet=args['night_source'];bank=json.loads(packet['bank_config_raw']);bank['epochs'][0]['nominal_usable_kwh']=40.
+        packet['bank_config_raw']=json.dumps(bank)
+        from hashlib import sha256
+        packet['bank_config_sha256']=sha256(packet['bank_config_raw'].encode()).hexdigest();packet['source_sha256']=identity({k:v for k,v in packet.items() if k!='source_sha256'})
+    elif damage=='assessment':args['night_source']['assessment']['min_soc_pct']=0
+    else:
+        receipt=mod.seal_energy_outcomes(**args);receipt['output']['error_soc_pct']=0;receipt['receipt_sha256']=identity({k:v for k,v in receipt.items() if k!='receipt_sha256'})
+        with pytest.raises(ValueError):mod.replay_energy_outcomes(receipt,plan_runtime_manifest=args['plan_runtime_manifest'],outcome_runtime_manifest=args['outcome_runtime_manifest'],thermal_runtime=None)
+        return
+    from hashlib import sha256
+    source['raw']=json.dumps(raw);source['sha256']=sha256(source['raw'].encode()).hexdigest()
+    with pytest.raises(ValueError):mod.seal_energy_outcomes(**args)
+
+
+@pytest.mark.parametrize('missing',['model','delivery','outcome','incomplete'])
+def test_energy_scoring_missing_evidence_never_becomes_zero_error(missing):
+    mod=scoring_api();args=scoring_inputs()
+    if missing=='model':
+        from test_household_pipeline import pipeline
+        from household.pipeline import seal_pipeline
+        from household.snapshot import HouseholdSnapshot
+        from household.capabilities import CapabilityRegistry
+        from household.codec import canonical
+        from household.control_contracts import instant
+        original=args['plan_receipt'];source=original['inputs']
+        args['plan_receipt']=seal_pipeline(snapshot=HouseholdSnapshot(canonical({k:v for k,v in source['snapshot'].items() if k!='snapshot_id'})),
+            registry=CapabilityRegistry(canonical({k:v for k,v in source['registry'].items() if k!='registry_id'})),energy_inputs=None,
+            thermal_inputs=None,thermal_runtime=None,coordination=source['coordination'],config=source['config'],now=instant(source['now']),
+            runtime_manifest=args['plan_runtime_manifest'])
+    elif missing=='delivery':args['forecast_source']=None
+    elif missing=='outcome':args['night_source']=None
+    else:
+        packet=args['night_source']
+        from household.control_contracts import instant
+        args['night_source']=api().build_night_source(rows=[],prediction_day=date.fromisoformat(packet['prediction_day']),
+            assessed_at=instant(packet['assessment']['window_end'])-timedelta(seconds=1),bank_config_raw=packet['bank_config_raw'],
+            expected_bank_epoch=packet['expected_bank_epoch'],expected_stream_epoch=packet['expected_stream_epoch'])
+    result=mod.seal_energy_outcomes(**args)['output']
+    assert result['status']!='scored' and result['error_soc_pct'] is None
