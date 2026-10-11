@@ -32,13 +32,13 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy extraction matches 72 frozen production cases. Frozen thermal adapter matches a retained original 24h trajectory and performs no reads inside projection. Executing runtime is separately bound. Expanded common model inputs and full cross-domain projections remain incomplete.",
+      "current_evidence": "Pure energy extraction matches 72 frozen production cases. Frozen thermal adapter matches a retained original 24h trajectory and performs no reads inside projection. Executing runtime is separately bound. Expanded common model inputs and full cross-domain projections remain incomplete. Exact energy arguments are now retained, and integrated mathematical projections share one frozen snapshot.",
       "complete": false
     },
     {
       "phase": "4",
       "requirement": "Typed household intents and disabled intent-to-request adapter",
-      "current_evidence": "Pure shadow intent definitions and permanently disabled translator have 15 passing tests and review approval. Generated model-backed intents and qualified translation remain incomplete.",
+      "current_evidence": "Pure shadow intent definitions and permanently disabled translator have 15 passing tests and review approval. Generated model-backed intents and qualified translation remain incomplete. Model-triggered existing-owner proposals now generate with unknown effects and unavailable action confidence; qualified causal bounds remain missing.",
       "complete": false
     },
     {
@@ -56,7 +56,7 @@
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Sealed complete decision inputs/outputs replay identically through a bounded private CLI; actual-native missing-input probe selected no action. Independent trajectory rederivation, chronological outcomes and real full-pipeline replay remain incomplete.",
+      "current_evidence": "Sealed complete decision inputs/outputs replay identically through a bounded private CLI; actual-native missing-input probe selected no action. Independent trajectory rederivation, chronological outcomes and real full-pipeline replay remain incomplete. Integrated receipts rederive models, candidates and plans; one actual original thermal archive reverified with identical 24h projection and pure/CLI replay. Full original-energy/common-source qualification and outcomes remain incomplete.",
       "complete": false
     },
     {
@@ -164,7 +164,31 @@
       "automatic_actuation": false,
       "review": "approved after original validation-context replay fix",
       "review_head": "03756e4bc79e235fe231532e941df6a46941192f",
-      "combined_household_tests": 240
+      "combined_household_tests": 240,
+      "pr": 15,
+      "head": "de52ee30d2b08fee18b207af1c50463eba106c67",
+      "merge": "4ed5f310dbc6bf6b61e129829a6e8564b74086da",
+      "hosted_ci": "all four passed",
+      "ci_run": 38152960902
+    },
+    "model_plan_integration": {
+      "focused_tests": 98,
+      "household_and_forecast_tests": 455,
+      "exact_original_24h_thermal_rederivation": true,
+      "original_capture_reverified": true,
+      "original_capture_sha256": "ffbe059998d1ccd4b62bd7d7028d9611be70c58e71a12c273f359afb0fa2c42c",
+      "pure_and_cli_replay_identical": true,
+      "exact_production_energy_argument_retention": true,
+      "model_generated_candidates": true,
+      "action_effects_qualified": false,
+      "automatic_actuation": false,
+      "full_original_source_milestone_complete": false,
+      "review": "one Important cross-snapshot finding fixed with RED-to-GREEN regression; no additional review findings",
+      "review_head": "e66309bca715119aa598ad84eba5bcd539cc7507",
+      "energy_original_snapshot_binding": true,
+      "fix_head": "a785c36",
+      "proof_source_head": "c0048b33ca50d681713e5ed7ad87dd9cd17e301b",
+      "actual_final_receipt_sha256": "d3f55a410298e9b660aea3b65cb58219c9e3f5dee79a7f57b2e13198eaac1659"
     }
   }
 }
