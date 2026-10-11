@@ -243,7 +243,12 @@
       "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
       "review_head": "16cca97a3828b8c81112ba0b8a216b94e9bfb19c",
       "deferred_minor": "Missing-model original_delivery_verified can overstate source binding; score remains unavailable",
-      "normal_0640_daily_target_regressions": 3
+      "normal_0640_daily_target_regressions": 3,
+      "pr": 18,
+      "head": "f281f4ae7f7d5c16de4dc8e36177675a17ff1562",
+      "merge": "7e2ad34f74b395370417f9c40d56534c255189c4",
+      "hosted_ci": "all four passed",
+      "ci_run": 38161479799
     },
     "daily_forecast_lock_wait": {
       "focused_tests": 6,
@@ -253,10 +258,38 @@
       "total_service_timeout_seconds": 180,
       "resource_caps_preserved": true,
       "review": "one Important other-running-consumer install guard fixed with three RED-to-GREEN regressions; one Minor fixture exclusivity coverage gap deferred",
-      "live_definition_installed": false,
+      "live_definition_installed": true,
       "natural_issue_qualified": false,
       "automatic_actuation_authority_added": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "pr": 19,
+      "head": "7daa1fe34c4cd3fe0c52711efeda5cc3aa3faf94",
+      "merge": "6b63207613e76aef2f933d5fe855be4527626a95",
+      "hosted_ci": "all four passed",
+      "ci_run": 38162801945,
+      "independent_readback_verified": true,
+      "no_new_daily_invocation": true,
+      "next_natural_issue": "2026-10-12T06:40:00-06:00",
+      "source_sha256": "fdeaf6d4acfd897fba08c6a620b24c9f14401db0ad6ce12317c7c6d67b436886"
+    },
+    "prospective_energy_input_capture": {
+      "reviewed_source_head": "f281f4ae7f7d5c16de4dc8e36177675a17ff1562",
+      "staged_files": 9,
+      "staged_exact_math_cases": 72,
+      "staged_manifest_sha256": "417ac3e7c85e94e3a33e7087413792e787d7442c04e18f539045387069aa115e",
+      "live_original_argument_retention": false,
+      "production_installed": true,
+      "worker_started": false,
+      "independent_readback_verified": true,
+      "installed_exact_math_cases": 72,
+      "focused_deployment_tests": 11,
+      "no_new_daily_invocation": true,
+      "resource_caps_preserved": true,
+      "natural_issue_qualified": false,
+      "next_natural_issue": "2026-10-12T06:40:00-06:00",
+      "readback_receipt_sha256": "5c8d7b111e37c7fd6a5d54720a4f0af80bf5b1714b82d1f41bdd5024009b6eb9",
+      "review": "Two Important findings fixed with RED-to-GREEN regressions: exact effective source-consumer commands and optimized execution refusal. One Minor partial-install diagnostics limitation deferred.",
+      "deferred_minor": "A failure after a published file requires manual generation reconciliation; refusal output does not enumerate completed files; no automatic retry or rollback."
     }
   }
 }
