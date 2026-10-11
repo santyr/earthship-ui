@@ -24,8 +24,8 @@ Update version dispatch in pipeline/intents/planning and original CLI closure va
 
 - [x] RED then GREEN: expanded energy proposals/replay, unavailable model path, original thermal parity and same-snapshot rederivation, stale source rejection, identity/runtime/resealed output tampering, unchanged v1 receipt outputs and disabled translator.
 - [x] Run full affected suite under serial caps:656PASS192.09s.
-- [ ] Actual current original source/model capture/replay using normal publisher evidence and retained packets, without starting any publisher. Record incomplete source/owner facts honestly.
-- [ ] Commit, one independent review and one Important/Critical TDD fix pass. Hosted checks gate merge; full PR #3 remains active.
+- [x] Actual current original source/model capture/replay using normal publisher evidence and retained packets, without starting any publisher. Record incomplete source/owner facts honestly.
+- [x] Commit, one independent review and one Important/Critical TDD fix pass. Hosted checks gate merge; full PR #3 remains active.
 
 ## Review focus
 
