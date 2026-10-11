@@ -1,0 +1,8 @@
+[Unit]
+Description=Earthship pre-dusk SoC trough estimate (display only)
+
+[Service]
+Type=oneshot
+Environment=PYTHONPATH=/home/sat/openhab/scripts:/home/sat/Solar_PV/analytics/src
+ExecStart=/usr/bin/python3 /home/sat/openhab/scripts/forecast_pre_dusk.py
+TimeoutStartSec=45
