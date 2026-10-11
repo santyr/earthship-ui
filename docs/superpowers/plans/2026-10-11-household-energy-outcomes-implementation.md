@@ -12,7 +12,7 @@
 - Serial CPU20%, memory256MiB, swap0, tasks24, numerical threads1; broad hosted CI.
 - Fixed BMS_SOC_Evidence_JSON only. Raw malformed/unavailable/null rows remain barriers, never removed or replaced by numeric BMS_SOC.
 - Physical bank interval and source stream epoch are independent; never infer either from measured percentages.
-- Target night is recorded prediction-day20:00 through following-day11:00 America/Denver; at least90% validated coverage, existing assessor semantics unchanged.
+- Daily-model target is independent of the optional6/12/24h planner horizon; report their relationship without extending planner authority. Target night is recorded prediction-day20:00 through following-day11:00 America/Denver; at least90% validated coverage, existing assessor semantics unchanged.
 - No causal benefit, statistical graduation, automatic actuation, owner migration, recovery work or new service installation.
 
 ## Review focus

@@ -74,14 +74,15 @@ def seal_energy_outcomes(*,plan_receipt,forecast_source,night_source,plan_runtim
                 raise ValueError('changed producer stream lacks independent later owner binding')
             if (night_source['prediction_day']!=day.isoformat() or
                 instant(night_source['assessed_at'])<persisted):raise ValueError('night outcome differs from original energy target or phase')
-            window=trough_window(day,'America/Denver')
-            if window.end>instant(snapshot['as_of'])+timedelta(hours=plan['inputs']['config']['horizon_hours']):
-                raise ValueError('night target exceeds original planning horizon')
             bank=next(row for row in loads(night_source['bank_config_raw'])['epochs'] if row['id']==night_source['expected_bank_epoch'])
             capacity=plan['inputs']['energy_inputs']['numerical_inputs']['inputs']['bank_kwh']
             if bank.get('nominal_usable_kwh')!=capacity:raise ValueError('original numerical capacity differs from physical bank')
             if assessment['status']!='measured':reason=assessment['reason']
-    output=dict(evaluation_scope='retrospective_planner_from_original_delivered_forecast',status='unavailable' if reason else 'scored',reason=reason,
+    target=None if forecast is None else trough_window(forecast[1],'America/Denver')
+    within_horizon=None if target is None else target.end<=instant(snapshot['as_of'])+timedelta(hours=plan['inputs']['config']['horizon_hours'])
+    output=dict(daily_model_target=None if target is None else dict(basis='legacy_daily_next_night_minimum',window_start=target.start.isoformat(),window_end=target.end.isoformat()),
+        planner_horizon_hours=plan['inputs']['config']['horizon_hours'],outcome_within_planner_horizon=within_horizon,
+        evaluation_scope='retrospective_planner_from_original_delivered_forecast',status='unavailable' if reason else 'scored',reason=reason,
         original_delivery_verified=forecast is not None,predicted_min_soc_pct=None if energy is None else energy['output']['trough_pred'],
         actual_min_soc_pct=None,error_soc_pct=None,absolute_error_soc_pct=None,reserve_violation=None,
         assessment=assessment,physical_bank_epoch=None if night_source is None else night_source['expected_bank_epoch'],

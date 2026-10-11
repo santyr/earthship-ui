@@ -1,5 +1,5 @@
 """Whole-night outcomes retain original atomic evidence and independent bindings."""
-from datetime import date,timedelta
+from datetime import date,timedelta,timezone
 import importlib,json
 from zoneinfo import ZoneInfo
 import pytest
@@ -288,3 +288,36 @@ def test_unbound_producer_restart_cannot_score(damage):
     with pytest.raises(ValueError):
         args['night_source']=restarted_night(args,damage)
         scoring_api().seal_energy_outcomes(**args)
+
+
+@pytest.mark.parametrize('horizon',[6,12,24])
+def test_normal_0640_daily_energy_target_is_independent_of_optional_planner_horizon(horizon):
+    from datetime import datetime
+    from hashlib import sha256
+    from household.adapters import battery_soc
+    from household.snapshot import build_snapshot
+    from household.energy_model import PreparedEnergyInputs,bind_energy_inputs
+    from household.pipeline import seal_pipeline
+    from household.capabilities import CapabilityRegistry
+    from household.codec import canonical
+    from household.control_contracts import instant
+    args=scoring_inputs();source=args['plan_receipt']['inputs'];old=source['snapshot'];day=date.fromisoformat(args['night_source']['prediction_day'])
+    issued=datetime.combine(day,datetime.min.time().replace(hour=6,minute=40),ZoneInfo('America/Denver')).astimezone(timezone.utc)
+    raw=evidence(issued,soc=100);observation=battery_soc(raw=raw,expected_sha256=sha256(raw.encode()).hexdigest(),source_identity='BMS_SOC_Evidence_JSON',
+        expected_epoch=PHASE,persisted_at=issued,as_of=issued)
+    policy=old['temporal_policy'];snapshot=build_snapshot([observation],as_of=issued,created_at=issued,
+        code_revision=old['code_revision'],config_revision=old['config_revision'],**policy)
+    registry=CapabilityRegistry(canonical({k:v for k,v in source['registry'].items() if k!='registry_id'}))
+    numerical=PreparedEnergyInputs(canonical(source['energy_inputs'])).numerical
+    args['plan_receipt']=seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=bind_energy_inputs(numerical,snapshot=snapshot),
+        thermal_inputs=None,thermal_runtime=None,coordination=dict(schema='earthship-shadow-coordination/v1',snapshotId=snapshot.snapshot_id,horizonHours=horizon,baseline_soc_floor=None,facts={}),
+        config={**source['config'],'horizon_hours':horizon},now=issued,runtime_manifest=args['plan_runtime_manifest'])
+    ref=snapshot.to_dict()['domains']['energy']['battery_soc']['evidence'];forecast=json.loads(args['forecast_source']['raw']);forecast['issuedAt']=issued.isoformat()
+    forecast['energySocOrigin']=dict(version=1,assessedAtMs=int(issued.timestamp()*1000),recordedAtMs=int(instant(ref['received_at']).timestamp()*1000),
+        validUntilMs=int(instant(ref['valid_until']).timestamp()*1000),streamEpoch=ref['source_epoch'],evidenceSha256=ref['digest'],socPct=100.)
+    source=args['forecast_source'];source['raw']=json.dumps(forecast);source['sha256']=sha256(source['raw'].encode()).hexdigest();source['persisted_at']=(issued+timedelta(seconds=1)).isoformat()
+    result=scoring_api().seal_energy_outcomes(**args)['output']
+    assert result['status']=='scored' and result['actual_min_soc_pct']==80
+    assert result['daily_model_target']['window_end']==args['night_source']['assessment']['window_end']
+    assert result['outcome_within_planner_horizon'] is False
+    assert result['planner_horizon_hours']==horizon and result['automatic_actuation'] is False

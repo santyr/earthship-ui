@@ -224,7 +224,7 @@
       "ci_run": 38158769083
     },
     "energy_outcomes": {
-      "focused_tests": 48,
+      "focused_tests": 51,
       "producer_restart_regressions": 5,
       "actual_prediction_day": "2026-10-10",
       "actual_original_rows": 888,
@@ -237,10 +237,13 @@
       "original_bank_provenance_qualified": false,
       "causal_benefit_qualified": false,
       "automatic_actuation": false,
-      "review": "pending",
+      "review": "one Important normal-morning target finding fixed with three RED-to-GREEN regressions and full537passing suite; one Minor metadata label deferred",
       "full_outcome_requirement_complete": false,
-      "household_forecast_and_atomic_soc_tests": 534,
-      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial"
+      "household_forecast_and_atomic_soc_tests": 537,
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
+      "review_head": "16cca97a3828b8c81112ba0b8a216b94e9bfb19c",
+      "deferred_minor": "Missing-model original_delivery_verified can overstate source binding; score remains unavailable",
+      "normal_0640_daily_target_regressions": 3
     }
   }
 }
