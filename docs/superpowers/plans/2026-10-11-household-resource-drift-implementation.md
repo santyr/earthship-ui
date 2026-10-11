@@ -24,17 +24,17 @@ CPU 20%, memory 256 MiB, swap 0, tasks 24, nice 15, idle I/O, numerical threads 
 
 Produces household/resources.py and test_household_resources.py. Consume original shadow-plan receipts through replay_plan; scales cover batteryKwh, socPct, thermalF, water, wearCost, comfortDegreeHours and curtailmentKwh with explicit units and positive finite bounds. Last two effects are unavailable under the existing intent contract. Preserve per-candidate raw and normalized values, known contribution totals, unknown candidate IDs, net drift, min/max prefixes and gross movement. Compare default selected order and up to 16 explicit candidate orders; unknown/rejected intent decisions are retained. Effects remain declared, causal qualification false. Seal and rederive all results with a separate analysis manifest.
 
-- [ ] Write meaningful tests for normalization, opposing-prefix excursions, unknown propagation, empty schedules, order-dependent excursions, bounded input refusal, deterministic replay and resealed tampering.
-- [ ] Run RED under strict caps, implement the pure boundary, then GREEN.
-- [ ] Verify no live/file reads inside replay and no changes to original plan bytes.
+- [x] Write meaningful tests for normalization, opposing-prefix excursions, unknown propagation, empty schedules, order-dependent excursions, bounded input refusal, deterministic replay and resealed tampering.
+- [x] Run RED under strict caps, implement the pure boundary, then GREEN.
+- [x] Verify no live/file reads inside replay and no changes to original plan bytes.
 
 ## Task 2: Private replay CLI and actual original receipt proof
 
 Produces household_resources.py, CLI contract tests, operations docs and canonical progress. Consume existing complete original planner-runtime verifier; add exact new CLI and module hashes to analysis manifest. Recheck both file and manifest before stdout. Reject future assessments and nonprivate/special files. Pure analysis accepts declared effects without claiming source qualification.
 
-- [ ] Write CLI tests for missing runtime closure, bad private input and tampered/resealed output; RED then GREEN.
-- [ ] Replay one actual retained original plan in private staging through pure and CLI paths; exact equality and original byte recheck required. Unavailable effects remain unavailable.
-- [ ] Run affected household/forecast suites under serial caps; broad verification hosted.
+- [x] Write CLI tests for missing runtime closure, bad private input and tampered/resealed output; RED then GREEN.
+- [x] Replay one actual retained original plan in private staging through pure and CLI paths; exact equality and original byte recheck required. Unavailable effects remain unavailable.
+- [x] Run affected household/forecast suites under serial caps; broad verification hosted.
 - [ ] Commit, one independent review, one Important/Critical TDD fix pass; defer Minor findings with explicit ledger.
 
 Full PR #3 stays active. These contracts do not qualify physical effects, original bank provenance, current-policy baselines or per-intent release.
