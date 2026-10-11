@@ -90,3 +90,27 @@ def test_bms_source_specific_unavailable_reason_is_retained():
     raw=bms_raw(status='unavailable');kwargs=args(raw,epoch='00000000-0000-0000-0000-000000000001')
     value=api().battery_soc(**kwargs)
     assert value.value is None and value.ref.reason=='input_stale'
+
+
+def test_native_packet_cannot_choose_another_sensor_for_household_air_role():
+    from test_thermal_sensor_epoch_history import EPOCHS
+    from test_weather_temperature_reader import AT
+    from weather_temperature_receiver import TemperatureCollector
+    from weather_temperature_evidence import TemperaturePolicy
+    from thermal_model.temperature_history import STREAMS,POLICY
+    policy=TemperaturePolicy(STREAMS['mass'][1],STREAMS['mass'][2],**POLICY)
+    collector=TemperatureCollector({'indoor':policy},sensor_epochs={'indoor':EPOCHS['air']},clock=lambda:AT,process_id=lambda:1,monotonic=lambda:0)
+    collector.observe({'model':policy.model,'id':str(policy.sensor_id),'tempinf':'70'})
+    target=AT+timedelta(seconds=60)
+    packet=build_temperature_source(rows=[(AT,json.dumps(collector.snapshot()))],targets=[target],assessed_at=target,stream='indoor',policy=policy,sensor_epoch=EPOCHS['air'])
+    raw=json.dumps(packet);kwargs=args(raw,now=target,epoch=EPOCHS['air']);kwargs.pop('persisted_at')
+    with pytest.raises(ValueError):api().native_temperature(role='air_temperature',**kwargs)
+
+
+@pytest.mark.parametrize('field,value',[('minimum_f',-100),('maximum_f',200),('validity_seconds',300)])
+def test_native_source_policy_cannot_widen_household_acceptance(tmp_path,monkeypatch,field,value):
+    source=case(tmp_path,monkeypatch);source.update(rows=source['rows'][:1],targets=source['targets'][:1])
+    at=source['targets'][0];source['assessed_at']=at
+    packet=build_temperature_source(**source);packet['policy'][field]=value
+    raw=json.dumps(packet);kwargs=args(raw,now=at,epoch=source['sensor_epoch']);kwargs.pop('persisted_at')
+    with pytest.raises(ValueError):api().native_temperature(role='air_temperature',**kwargs)

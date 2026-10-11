@@ -40,3 +40,17 @@ def test_manifest_conflicts_cannot_create_authority(damage):
     elif damage=='wrong_safety':contract['safetyInputs'].append('untracked_input')
     else:ownership['resources'].append({**ownership['resources'][0],'state_writer':'conflicting-owner'})
     with pytest.raises(ValueError):api().build_registry(managed,ownership)
+
+
+@pytest.mark.parametrize('kind,identity',[('rule','hex_southoutlet_cycle'),('item','SouthOutlet_ManualResult')])
+def test_registry_refuses_cross_manifest_provider_owner_conflict(kind,identity):
+    managed,ownership=originals()
+    ownership['resources'].append(dict(kind=kind,id=identity,provider='file',migration='verified',source='conflicting-source',state_writer='conflicting-owner'))
+    with pytest.raises(ValueError):api().build_registry(managed,ownership)
+
+
+def test_different_owner_cannot_redeclare_the_same_correlated_result():
+    managed,ownership=originals();grey=managed['subsets']['greywater']
+    grey['items'].append(dict(name='GoatFeeder_ManualResult',type='String'))
+    grey['householdContract']['requestBindings'][0]['resultItem']='GoatFeeder_ManualResult'
+    with pytest.raises(ValueError):api().build_registry(managed,ownership)

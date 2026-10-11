@@ -74,7 +74,8 @@ This illustrates fields, not a valid synthetic credential or source receipt.
 `pv_day_wh` uses the same context. `native_temperature` uses an explicit
 `air_temperature`, `mass_temperature` or `outdoor_temperature` role, null
 `persisted_at`, and its original native query packet. Native packet policy,
-stream and hardware epoch remain bound to original receiver evidence.
+stream and hardware epoch remain bound to original receiver evidence and the
+reviewed household role’s declared model, sensor ID, range and receipt lifetime.
 Missing raw evidence is null with a null digest, never a fabricated value.
 
 For replay, use the original source checkout and companion validator bytes:

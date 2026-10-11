@@ -37,6 +37,7 @@ def build_registry(managed, ownership):
         if key in resources: raise ValueError('conflicting resource ownership refused')
         resources.add(key)
     capabilities, owners, ingress, actuators = {}, set(), set(), set()
+    managed_items = set()
     for subset in managed['subsets'].values():
         contract = subset.get('householdContract')
         if not isinstance(contract, dict) or set(contract) != CONTRACT_FIELDS or contract['plannerAuthority'] != 'none' or contract['manualAuthority'] != 'request' or contract['contractVersion'] != 'legacy-correlated-v1' or contract['safetyInputsComplete'] is not False:
@@ -45,7 +46,11 @@ def build_registry(managed, ownership):
         if not isinstance(owner,str) or not 1 <= len(owner) <= 128 or not isinstance(capability,str) or not 1 <= len(capability) <= 128 or owner in owners or capability in capabilities:
             raise ValueError('unique declared capability owner required')
         items = {item['name']:item['type'] for item in subset['items']}
-        if len(items) != len(subset['items']): raise ValueError('duplicate owned Item refused')
+        if len(items) != len(subset['items']) or set(items) & managed_items:
+            raise ValueError('duplicate cross-owner Item declaration refused')
+        if ('rule', owner) in resources or any(('item',name) in resources for name in items):
+            raise ValueError('file and managed ownership overlap requires explicit migration')
+        managed_items.update(items)
         dependencies = _names(subset['protectedDependencies'])
         protected, safety, legacy = [_names(contract[key]) for key in ('protectedActuators','safetyInputs','legacyIngresses')]
         if not protected or not protected <= dependencies or not safety <= dependencies or not legacy <= dependencies or protected & safety or protected & actuators:
@@ -61,7 +66,7 @@ def build_registry(managed, ownership):
             if items.get(request)!='String' or items.get(result)!='String' or request in requests or result in results or request in ingress or request in protected or result in protected:
                 raise ValueError('existing separate correlated String ingress/result required')
             requests.add(request); results.add(result)
-        if requests & results or requests | legacy != commands or requests & legacy:
+        if requests & results or requests | legacy != commands or requests & legacy or requests & actuators or results & actuators or protected & ingress:
             raise ValueError('declared ingress differs from original owner triggers')
         owners.add(owner); ingress.update(requests); actuators.update(protected)
         capabilities[capability] = dict(ownerRule=owner, ownerSource=rule['source'],

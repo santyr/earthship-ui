@@ -66,3 +66,10 @@ def test_cli_reads_local_files_and_compares_original_without_writes(tmp_path):
     document=bundle();document['authorization']='private-credential-must-not-be-echoed';source.write_text(json.dumps(document))
     refused=subprocess.run([sys.executable,str(script),'--input',str(source)],capture_output=True,text=True,timeout=20)
     assert refused.returncode!=0 and 'private-credential' not in refused.stdout+refused.stderr and 'Traceback' not in refused.stderr
+
+
+def test_cli_refuses_special_file_before_a_blocking_read(tmp_path):
+    import os
+    api();fifo=tmp_path/'inputs.fifo';os.mkfifo(fifo,0o600)
+    result=subprocess.run([sys.executable,str(Path(__file__).with_name('household_snapshot.py')),'--input',str(fifo)],capture_output=True,text=True,timeout=3)
+    assert result.returncode!=0 and not result.stdout and 'Traceback' not in result.stderr

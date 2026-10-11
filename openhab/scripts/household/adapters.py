@@ -64,15 +64,19 @@ def pv_day_counter(*, raw, expected_sha256, source_identity, expected_epoch, per
 
 def native_temperature(*, role, raw, expected_sha256, source_identity, expected_epoch, as_of):
     from weather_temperature_sources import replay_temperature_source
-    from thermal_model.temperature_history import STREAMS
+    from thermal_model.temperature_history import STREAMS, POLICY
     from .codec import loads
-    streams = {'air_temperature': STREAMS['air'][0], 'mass_temperature': STREAMS['mass'][0], 'outdoor_temperature': STREAMS['outdoor'][0]}
+    bindings = {'air_temperature': STREAMS['air'], 'mass_temperature': STREAMS['mass'], 'outdoor_temperature': STREAMS['outdoor']}
+    streams = {name:binding[0] for name,binding in bindings.items()}
     if role not in streams: raise ValueError('explicit native temperature role required')
     epoch(expected_epoch); as_of=utc(as_of)
     sha = _original(raw, expected_sha256, maximum=1024*1024)
     if raw is None: return _unavailable(role, source_identity, sha, as_of, 'missing_source')
     packet=loads(raw)
     if packet.get('stream') != streams[role]: raise ValueError('original native source stream differs')
+    _, model, sensor_id = bindings[role]
+    if packet.get('policy') != dict(model=model, sensor_id=sensor_id, **POLICY):
+        raise ValueError('native source policy differs from declared household role')
     assessed = utc(datetime.fromisoformat(packet['assessed_at']))
     grid = replay_temperature_source(packet)
     if assessed > as_of: return _unavailable(role, source_identity, sha, as_of, 'future_source')

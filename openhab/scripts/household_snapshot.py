@@ -20,7 +20,7 @@ VALIDATORS = ('pv_day_evidence.py','weather_temperature_sources.py','weather_tem
 
 
 def _read(path,maximum,*,private=False):
-    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
     try:
         info=os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_size>maximum or (private and (info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o600)):
