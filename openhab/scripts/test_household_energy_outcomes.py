@@ -255,3 +255,36 @@ def test_energy_outcome_cli_replays_actual_source_closure(tmp_path):
     receipt['receipt_sha256']=identity({k:v for k,v in receipt.items() if k!='receipt_sha256'});path.write_bytes(canonical(receipt))
     result=subprocess.run([sys.executable,str(script),'--receipt',str(path)],capture_output=True,text=True,timeout=15)
     assert result.returncode==1 and not result.stdout
+
+
+def restarted_night(args,damage=None):
+    from hashlib import sha256
+    from household.control_contracts import instant
+    packet=args['night_source'];phase='00000000-0000-0000-0000-000000000002';assessed=instant(packet['assessed_at'])
+    rows=[]
+    for at,raw in packet['rows']:
+        value=json.loads(raw);value['streamEpoch']=phase;rows.append((instant(at),json.dumps(value)))
+    now=assessed-timedelta(seconds=1);raw=json.loads(evidence(now,soc=85));raw['streamEpoch']=phase
+    if damage=='expired':raw=json.loads(evidence(assessed-timedelta(seconds=120),soc=85));raw['streamEpoch']=phase
+    elif damage=='wrong_phase':raw['streamEpoch']='00000000-0000-0000-0000-000000000003'
+    binding=dict(source_identity='BMS_SOC_Evidence_JSON',raw=json.dumps(raw),available_at=assessed.isoformat(),sha256=sha256(json.dumps(raw).encode()).hexdigest())
+    if damage=='future':binding['available_at']=(assessed+timedelta(seconds=1)).isoformat()
+    return api().build_night_source(rows=rows,prediction_day=date.fromisoformat(packet['prediction_day']),assessed_at=assessed,
+        bank_config_raw=packet['bank_config_raw'],expected_bank_epoch=packet['expected_bank_epoch'],expected_stream_epoch=phase,
+        owner_binding=None if damage=='missing' else binding)
+
+
+def test_producer_restart_can_score_with_independent_later_owner_binding():
+    args=scoring_inputs();args['night_source']=restarted_night(args)
+    result=scoring_api().seal_energy_outcomes(**args)['output']
+    assert result['status']=='scored' and result['actual_min_soc_pct']==80
+    assert result['producer_stream_changed'] is True and result['original_bank_provenance_qualified'] is False
+    assert result['causal_benefit_qualified'] is False
+
+
+@pytest.mark.parametrize('damage',['expired','wrong_phase','future','missing'])
+def test_unbound_producer_restart_cannot_score(damage):
+    args=scoring_inputs()
+    with pytest.raises(ValueError):
+        args['night_source']=restarted_night(args,damage)
+        scoring_api().seal_energy_outcomes(**args)

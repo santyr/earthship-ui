@@ -60,7 +60,7 @@ def seal_energy_outcomes(*,plan_receipt,forecast_source,night_source,plan_runtim
     snapshot=plan['inputs']['snapshot'];energy=plan['output']['projections']['energy']
     assessment=None if night_source is None else replay_night_source(night_source)
     forecast=None if forecast_source is None else _forecast(forecast_source,snapshot)
-    reason=None
+    reason=None;stream_changed=None
     if energy is None or energy['output']['trough_pred'] is None:reason='original_energy_model_unavailable'
     elif forecast is None:reason='original_prediction_receipt_required'
     else:
@@ -69,7 +69,10 @@ def seal_energy_outcomes(*,plan_receipt,forecast_source,night_source,plan_runtim
             raise ValueError('delivered energy prediction differs from original model')
         if night_source is None:reason='original_whole_night_evidence_required'
         else:
-            if (night_source['prediction_day']!=day.isoformat() or night_source['expected_stream_epoch']!=origin['streamEpoch'] or
+            stream_changed=night_source['expected_stream_epoch']!=origin['streamEpoch']
+            if stream_changed and night_source['owner_binding'] is None:
+                raise ValueError('changed producer stream lacks independent later owner binding')
+            if (night_source['prediction_day']!=day.isoformat() or
                 instant(night_source['assessed_at'])<persisted):raise ValueError('night outcome differs from original energy target or phase')
             window=trough_window(day,'America/Denver')
             if window.end>instant(snapshot['as_of'])+timedelta(hours=plan['inputs']['config']['horizon_hours']):
@@ -83,6 +86,7 @@ def seal_energy_outcomes(*,plan_receipt,forecast_source,night_source,plan_runtim
         actual_min_soc_pct=None,error_soc_pct=None,absolute_error_soc_pct=None,reserve_violation=None,
         assessment=assessment,physical_bank_epoch=None if night_source is None else night_source['expected_bank_epoch'],
         bank_binding_scope='measurement_interval_and_original_numerical_capacity',original_bank_provenance_qualified=False,
+        producer_stream_changed=stream_changed,
         causal_benefit_qualified=False,graduated=False,automatic_actuation=False)
     if reason is None:
         actual=assessment['min_soc_pct'];error=energy['output']['trough_pred']-actual

@@ -37,7 +37,7 @@ Interfaces: build_night_source(rows, prediction_day, assessed_at, bank_config_ra
 Files: household/energy_outcomes.py, test_household_energy_outcomes.py.
 Interface: seal_energy_outcomes(plan_receipt, forecast_source, night_source, plan_runtime_manifest, outcome_runtime_manifest, thermal_runtime); replay_energy_outcomes(...).
 - [ ] Failing tests for rederived plan/trough binding, exact persisted original forecast and issuance chronology, wrong date/phase/bank/value, missing original model and immature/insufficient measurement, score tamper.
-- [ ] Preserve original forecast raw bytes/persisted clock, require earlier same-day issue before target night, cross-check original BMS origin/digest against plan snapshot. Compare original energy projection and delivered trough; later source qualification uses independent original stream phase. Explicit model/outcome unavailable statuses, reserve diagnostics only, no causal or release claims.
+- [ ] Preserve original forecast raw bytes/persisted clock, require earlier same-day issue before target night, cross-check original BMS origin/digest against plan snapshot. Compare original energy projection and delivered trough; later source qualification uses an independently bound outcome stream; a producer restart requires a fresh later fixed-owner receipt. Physical bank identity remains separate. Explicit model/outcome unavailable statuses, reserve diagnostics only, no causal or release claims.
 - [ ] Whole focused task suite under caps, commit.
 
 ## Task3: Actual evidence and offline CLI

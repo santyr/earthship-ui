@@ -11,7 +11,7 @@ from earthship_energy.trough_assessment import assess_trough_measurement,MAX_OBS
 
 MAX_BYTES=4*1024*1024
 FIELDS={'schema','source_identity','prediction_day','site_timezone','assessed_at','bank_config_raw',
-        'bank_config_sha256','expected_bank_epoch','expected_stream_epoch','rows','assessment','source_sha256'}
+        'bank_config_sha256','expected_bank_epoch','expected_stream_epoch','owner_binding','rows','assessment','source_sha256'}
 
 
 def _bank(raw,expected):
@@ -52,9 +52,21 @@ def _bank(raw,expected):
             None if selected[2] is None else local_day_window(selected[2],'America/Denver').start)
 
 
-def build_night_source(*,rows,prediction_day,assessed_at,bank_config_raw,expected_bank_epoch,expected_stream_epoch):
+def _owner_binding(value,phase,assessed):
+    if value is None:return
+    if (not isinstance(value,dict) or set(value)!={'source_identity','raw','sha256','available_at'} or
+        value['source_identity']!='BMS_SOC_Evidence_JSON' or not isinstance(value['raw'],str) or len(value['raw'].encode())>4096 or
+        sha256(value['raw'].encode()).hexdigest()!=value['sha256']):raise ValueError('exact independent owner receipt required')
+    available=instant(value['available_at']);record=parse_evidence(value['raw'],available)
+    if (record is None or record.status!='valid' or record.stream_epoch!=phase or
+        not record.recorded_at<=available<=assessed<record.valid_until):
+        raise ValueError('fresh independently bound owner stream required')
+
+
+def build_night_source(*,rows,prediction_day,assessed_at,bank_config_raw,expected_bank_epoch,expected_stream_epoch,owner_binding=None):
     if not isinstance(prediction_day,date) or isinstance(prediction_day,datetime):raise ValueError('explicit prediction day required')
     assessed=utc(assessed_at);phase=epoch(expected_stream_epoch)
+    _owner_binding(owner_binding,phase,assessed)
     start,end=_bank(bank_config_raw,expected_bank_epoch);window=trough_window(prediction_day,'America/Denver')
     if not isinstance(rows,(list,tuple)) or len(rows)>MAX_OBSERVATIONS:raise ValueError('bounded whole-night original rows required')
     originals=[];previous=None;total=len(bank_config_raw.encode())
@@ -76,7 +88,7 @@ def build_night_source(*,rows,prediction_day,assessed_at,bank_config_raw,expecte
     value=dict(schema='earthship-household-energy-night-source/v1',source_identity='BMS_SOC_Evidence_JSON',
         prediction_day=prediction_day.isoformat(),site_timezone='America/Denver',assessed_at=assessed.isoformat(),
         bank_config_raw=bank_config_raw,bank_config_sha256=sha256(bank_config_raw.encode()).hexdigest(),
-        expected_bank_epoch=expected_bank_epoch,expected_stream_epoch=phase,rows=[(at.isoformat(),raw) for at,raw in originals],assessment=assessment)
+        expected_bank_epoch=expected_bank_epoch,expected_stream_epoch=phase,owner_binding=owner_binding,rows=[(at.isoformat(),raw) for at,raw in originals],assessment=assessment)
     value['source_sha256']=identity(value)
     if len(canonical(value))>MAX_BYTES:raise ValueError('bounded original night packet required')
     return loads(canonical(value))
@@ -91,15 +103,15 @@ def replay_night_source(packet):
         if not isinstance(row,list) or len(row)!=2:raise ValueError('exact retained night row required')
     rebuilt=build_night_source(rows=[(instant(at),raw) for at,raw in packet['rows']],prediction_day=date.fromisoformat(packet['prediction_day']),
         assessed_at=instant(packet['assessed_at']),bank_config_raw=packet['bank_config_raw'],
-        expected_bank_epoch=packet['expected_bank_epoch'],expected_stream_epoch=packet['expected_stream_epoch'])
+        expected_bank_epoch=packet['expected_bank_epoch'],expected_stream_epoch=packet['expected_stream_epoch'],owner_binding=packet['owner_binding'])
     if canonical(rebuilt)!=canonical(packet):raise ValueError('rederived whole-night evidence differs')
     return rebuilt['assessment']
 
 
-def fetch_night_source(connection_factory,*,prediction_day,assessed_at,bank_config_raw,expected_bank_epoch,expected_stream_epoch,remaining):
+def fetch_night_source(connection_factory,*,prediction_day,assessed_at,bank_config_raw,expected_bank_epoch,expected_stream_epoch,remaining,owner_binding=None):
     """One fixed bounded read-only query; incomplete nights do not acquire rows."""
     args=dict(prediction_day=prediction_day,assessed_at=assessed_at,bank_config_raw=bank_config_raw,
-        expected_bank_epoch=expected_bank_epoch,expected_stream_epoch=expected_stream_epoch)
+        expected_bank_epoch=expected_bank_epoch,expected_stream_epoch=expected_stream_epoch,owner_binding=owner_binding)
     empty=build_night_source(rows=[],**args);window=trough_window(prediction_day,'America/Denver')
     if not window.is_complete(assessed_at):return empty
     connection=None
