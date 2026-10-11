@@ -210,12 +210,13 @@
       "unique_daily_units": 1,
       "independence_assessed": false,
       "pure_and_cli_replay_identical": true,
-      "actual_score_receipt_sha256": "0ccfb9da3a12f205b8778634fca3e04fee765b4636f1ee1ae74edb455a229860",
-      "proof_source_head": "314b26ca023543810d211af918573d4d4a1be4af",
+      "actual_score_receipt_sha256": "2f3d2087d2d442e6877bc40d1776b60826faa893189c999d04c1bfc58e4ef82d",
+      "proof_source_head": "bdbbdd2db34e37184453372cd8aff9a9a8cac490",
       "causal_benefit_qualified": false,
       "automatic_actuation": false,
       "full_outcome_requirement_complete": false,
-      "review": "one Important sensor-binding finding fixed with three RED-to-GREEN regressions; no additional review findings"
+      "review": "one Important sensor-binding finding fixed with three RED-to-GREEN regressions; no additional review findings",
+      "fixed_scorer_retained_evidence_replay": true
     }
   }
 }
