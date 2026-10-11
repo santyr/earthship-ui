@@ -56,7 +56,7 @@
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score.",
       "complete": false
     },
     {
@@ -216,7 +216,34 @@
       "automatic_actuation": false,
       "full_outcome_requirement_complete": false,
       "review": "one Important sensor-binding finding fixed with three RED-to-GREEN regressions; no additional review findings",
-      "fixed_scorer_retained_evidence_replay": true
+      "fixed_scorer_retained_evidence_replay": true,
+      "pr": 17,
+      "head": "06c061805828d96e4dc77ab72404cedb8fef3d57",
+      "merge": "1a53d583c42bba41d4ffe8ee36fc0241928e6454",
+      "hosted_ci": "all four original checks passed; duplicate validation runs cancelled",
+      "ci_run": 38158769083
+    },
+    "energy_outcomes": {
+      "focused_tests": 51,
+      "producer_restart_regressions": 5,
+      "actual_prediction_day": "2026-10-10",
+      "actual_original_rows": 888,
+      "actual_measured_min_soc_pct": 85.0,
+      "actual_coverage": 0.9998900472592593,
+      "actual_source_sha256": "f5a77ce5efb2bb918cd0cb6baa3f985ce9c9e4e6d30b29d0200d731d05deba6b",
+      "actual_original_energy_arguments_retained": false,
+      "actual_household_model_score_qualified": false,
+      "independent_later_owner_binding": true,
+      "original_bank_provenance_qualified": false,
+      "causal_benefit_qualified": false,
+      "automatic_actuation": false,
+      "review": "one Important normal-morning target finding fixed with three RED-to-GREEN regressions and full537passing suite; one Minor metadata label deferred",
+      "full_outcome_requirement_complete": false,
+      "household_forecast_and_atomic_soc_tests": 537,
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
+      "review_head": "16cca97a3828b8c81112ba0b8a216b94e9bfb19c",
+      "deferred_minor": "Missing-model original_delivery_verified can overstate source binding; score remains unavailable",
+      "normal_0640_daily_target_regressions": 3
     }
   }
 }
