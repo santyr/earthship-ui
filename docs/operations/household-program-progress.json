@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; hosted weather-branch checks pending.",
+      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2.",
       "complete": false
     },
     {
@@ -470,11 +470,16 @@
       "weather_boundary_tests": 17,
       "weather_integration_tests": 13,
       "review": "Two Important original-binding gaps reproduced by five fully resealed regressions, fixed in one pass; no Critical or Minor. Static reviewer did not run tests or read live state.",
-      "hosted_ci": "pending",
+      "hosted_ci": "all four passed",
       "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
       "full_common_snapshot_requirement_complete": false,
       "full_program_complete": false,
-      "intermittent_delivery_failure_resolved": false
+      "intermittent_delivery_failure_resolved": false,
+      "pr": 24,
+      "head": "eb4b492b841393189336574184a0453fc7a815a5",
+      "merge": "ec4f9c2c68b4d39338fb6958937564a5ea651fae",
+      "ci_run": 38180181944,
+      "final_documentation_head_cli_replay_identical": true
     }
   }
 }
