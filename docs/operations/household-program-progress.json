@@ -164,7 +164,12 @@
       "automatic_actuation": false,
       "review": "approved after original validation-context replay fix",
       "review_head": "03756e4bc79e235fe231532e941df6a46941192f",
-      "combined_household_tests": 240
+      "combined_household_tests": 240,
+      "pr": 15,
+      "head": "de52ee30d2b08fee18b207af1c50463eba106c67",
+      "merge": "4ed5f310dbc6bf6b61e129829a6e8564b74086da",
+      "hosted_ci": "all four passed",
+      "ci_run": 38152960902
     },
     "model_plan_integration": {
       "focused_tests": 98,
@@ -180,7 +185,10 @@
       "full_original_source_milestone_complete": false,
       "review": "one Important cross-snapshot finding fixed with RED-to-GREEN regression; no additional review findings",
       "review_head": "e66309bca715119aa598ad84eba5bcd539cc7507",
-      "energy_original_snapshot_binding": true
+      "energy_original_snapshot_binding": true,
+      "fix_head": "a785c36",
+      "proof_source_head": "c0048b33ca50d681713e5ed7ad87dd9cd17e301b",
+      "actual_final_receipt_sha256": "d3f55a410298e9b660aea3b65cb58219c9e3f5dee79a7f57b2e13198eaac1659"
     }
   }
 }
