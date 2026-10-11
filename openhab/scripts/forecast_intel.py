@@ -1512,12 +1512,6 @@ def main():
     st['soc_night_evidence'] = soc_night_evidence
     st['soc_evidence_assessed_at'] = soc_assessed_at.isoformat()
 
-    deficit_kwh = (100 - trough_ref) / 100 * BANK_KWH / ETA_RT if trough_ref is not None else None
-    demand = st["d_direct"] + deficit_kwh if deficit_kwh is not None else None
-    pv_pred = round(min(resource, demand), 2) if demand is not None else None
-    curtail = (round(clamp((resource - demand) / 1.0, 0, 8) * 2) / 2
-               if resource > demand else 0.0) if demand is not None else None
-
     # Tonight's trough: estimated dusk SoC minus a trailing-night drop proxy.
     # A sample is currently 99 minus a coverage-qualified 20:00-to-11:00
     # minimum; 99 is not a measured start or dusk value. The actual discharge
@@ -1538,12 +1532,20 @@ def main():
             drop_sample_days.append(night.isoformat())
         if len(drops) == 3:
             break
-    drop_base_pct = (sum(drops) / len(drops)) if drops else 12.0
-    dusk_soc = (99 if resource >= demand - 0.3 else
-                clamp(trough_ref + (pv_pred - st["d_direct"]) / BANK_KWH * 100 * ETA_RT, 12, 99)) if demand is not None else None
-    cloud_drop_penalty_pct = 2 if cloud_mean[1] is not None and cloud_mean[1] > 70 else 0
-    drop_pct = drop_base_pct + cloud_drop_penalty_pct  # cloudy morning -> later charge crossover
-    trough_pred = round(clamp(dusk_soc - drop_pct, 12, 99)) if dusk_soc is not None else None
+    from household.energy_model import daily_energy_projection
+    energy_projection = daily_energy_projection(
+        resource_kwh=resource, direct_demand_kwh=st["d_direct"], soc_pct=trough_ref,
+        bank_kwh=BANK_KWH, eta_rt=ETA_RT, overnight_drops_pct=drops,
+        tomorrow_cloud_pct=cloud_mean[1])
+    deficit_kwh = energy_projection['deficit_kwh']
+    demand = energy_projection['demand']
+    pv_pred = energy_projection['pv_pred']
+    curtail = energy_projection['curtail']
+    drop_base_pct = energy_projection['drop_base_pct']
+    dusk_soc = energy_projection['dusk_soc']
+    cloud_drop_penalty_pct = energy_projection['cloud_drop_penalty_pct']
+    drop_pct = energy_projection['drop_pct']
+    trough_pred = energy_projection['trough_pred']
     if trough_ref is None:
         log.append("qualified atomic SoC unavailable; energy predictions withheld")
     elif not drops:

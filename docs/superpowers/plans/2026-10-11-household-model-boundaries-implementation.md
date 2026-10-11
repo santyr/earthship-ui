@@ -1,0 +1,11 @@
+# Household pure model boundaries
+
+Approved basis: PR #3 phase3, incremental extraction with numerical parity, and the snapshot-model initial milestone. Inline TDD, one final stage review. No live installation or authority migration.
+
+1. Freeze numerical golden fixtures from the exact pre-extraction production energy statements, with source hash and case inputs. Cover missing SoC, charge-resource boundaries, bounds/rounding, cloud penalty and overnight-drop fallback.
+2. Extract the production daily energy arithmetic into a pure module; production caller delegates with the same inputs and qualification path. Test golden parity and existing forecast regressions.
+3. Add a pure prepared thermal projection boundary reusing existing numerical dynamics, current-source/forecast/action normalization and provisional candidate semantics. Preserve low confidence, unsupported effects and no actuation. Any original-file verification happens before the frozen decision boundary; no lazy live readers within it.
+4. Bind the prepared thermal projection to a source-linked frozen snapshot; retain measured and latent mass separately. Shared energy/weather/action input expansion remains the next model stage. Do not invent missing bank/power evidence or treat numerical output as qualified action response.
+5. Focused tests under CPU20%, memory256MiB, swap0, tasks24; independent stage review and hosted broad validation. Full architecture remains open until every required domain, constraint, planning/outcome and qualification requirement has evidence.
+
+Verification:72 original-production energy cases;79 focused model tests;345 combined household/forecast/provisional tests passed in35.30seconds under strict local caps. Real retained24h production trajectory parity and deterministic frozen replay succeeded at original issue2026-10-11T00:50:15UTC. Execution closure uses existing72-file thermal limit plus five separately bounded household sources; no reads inside project. Hosted CI timeout raised20to30minutes because preceding reviewed runs took19m49s and19m58s before the added model regression coverage. Independent final stage review approved at88eb2b7 with no Critical or Important findings; full goal not complete.
