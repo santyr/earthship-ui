@@ -31,7 +31,7 @@ def original_plan_runtime(plan,*,actual):
         'household_plan.py','household_pipeline.py','forecast_intel.py','hourly_temperature_runtime.py'))
     required.update(('companion/earthship_energy/db.py','companion/earthship_energy/bms_evidence.py',
         'openhab/managed-resources.json','openhab/file-config/ownership.json'))
-    if plan.get('schema')=='earthship-household-shadow-plan-receipt/v2':
+    if plan.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-shadow-plan-receipt/v2'):
         required.update('openhab/scripts/household/'+name+'.py' for name in ('model_snapshot','power_snapshot','power_capture'))
         required.update(POWER_COMPANIONS)
         verify_source_closure(plan,actual)

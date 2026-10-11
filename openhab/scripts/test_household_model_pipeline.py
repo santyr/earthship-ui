@@ -160,3 +160,24 @@ def test_expanded_plan_cli_restores_nested_original_sources(tmp_path):
     result=subprocess.run([sys.executable,str(Path(__file__).with_name('household_plan.py')),'--receipt',str(path)],capture_output=True,text=True,timeout=10)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)==receipt
+
+
+def test_expanded_outcome_entrypoint_checks_enclosing_pipeline_source_closure(tmp_path,monkeypatch):
+    from test_household_outcomes import inputs
+    from household.outcomes import seal_outcomes
+    from household.power_snapshot import compile_power_inputs
+    from household_pipeline import pipeline_runtime_manifest
+    from household_outcomes import original_plan_runtime,outcome_runtime_manifest
+    args=inputs(tmp_path,monkeypatch);thermal=args['origin'].prepared;at=instant(thermal.to_dict()['issue'])
+    original=source_at(at)['inputs'];runtime=pipeline_runtime_manifest(expanded=True);actual=outcome_runtime_manifest()
+    def outcome(producer):
+        source=compile_power_inputs(original['bundle'],managed=original['managed'],ownership=original['ownership'],code_revision=original['code_revision'],runtime_manifest=producer)
+        snap=bind_model_snapshot(source_receipt=source,source_runtime_manifest=producer,thermal_inputs=thermal,code_revision='e'*40)
+        plan=run(snap,thermal,runtime_manifest=runtime)
+        return seal_outcomes(**{**args,'plan_receipt':plan,'plan_runtime_manifest':runtime,'outcome_runtime_manifest':actual})
+    valid=outcome(runtime)
+    assert valid['inputs']['plan_receipt']['schema']=='earthship-household-model-plan-receipt/v2'
+    assert original_plan_runtime(valid['inputs']['plan_receipt'],actual=actual)==runtime
+    partial={'openhab/scripts/household/power_snapshot.py':runtime['openhab/scripts/household/power_snapshot.py']}
+    incomplete=outcome(partial)
+    with pytest.raises(ValueError):original_plan_runtime(incomplete['inputs']['plan_receipt'],actual=actual)
