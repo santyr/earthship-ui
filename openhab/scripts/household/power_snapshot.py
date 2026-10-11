@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from hashlib import sha256
 from .codec import canonical,loads,identity
-from .evidence import epoch,digest,ROLES
+from .evidence import epoch,digest,ROLES,utc
 from .snapshot import HouseholdSnapshot
 from .replay import compile_inputs,_instant,MAX_BYTES
 from earthship_energy.power_evidence import parse_power_evidence
@@ -112,7 +112,10 @@ def compile_power_inputs(bundle,*,managed,ownership,code_revision,runtime_manife
         valid=all(rows[role]['value'] is not None and rows[role]['reason'] is None for role in roles)
         reason=None if valid else 'required_source_unavailable'
         if valid:
-            clocks=[_instant(rows[role]['evidence']['observed_at'] or rows[role]['evidence']['received_at']) if isinstance(rows[role]['evidence']['observed_at'] or rows[role]['evidence']['received_at'],str) else rows[role]['evidence']['observed_at'] or rows[role]['evidence']['received_at'] for role in roles]
+            clocks=[]
+            for role in roles:
+                clock=rows[role]['evidence']['observed_at'] or rows[role]['evidence']['received_at']
+                clocks.append(_instant(clock) if isinstance(clock,str) else utc(clock))
             if (max(clocks)-min(clocks)).total_seconds()>policy['max_skew_seconds']:valid=False;reason='source_skew'
         complete[name]=valid;reasons[name]=reason
     snap.update(schema='earthship-household-snapshot/v2',base_snapshot_id=base_id,source_inputs_sha256=identity(bundle),

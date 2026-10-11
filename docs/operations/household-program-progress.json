@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Immutable offline snapshot merged in PR #11. Bounded read-only collector implemented; first actual native capture qualified three roles and replayed identically. Expanded fields, energy bindings and full production capture remain incomplete.",
+      "current_evidence": "Immutable v1 foundation and bounded original collector merged. Explicit v2 expanded snapshot now preserves four mature atomic power roles alongside SoC, PV day and native temperatures; preliminary actual nine-role capture replayed identically. 635 affected regressions pass. Final committed-runtime capture and review remain finish gates. Physical bank/usable energy, load/forecast/weather/authority adapters and v2 model/planner adoption remain incomplete.",
       "complete": false
     },
     {
@@ -334,6 +334,25 @@
       "head": "ca79a34752dd074eb5ab91fee1791d3ba3ec5245",
       "merge": "de5deab59bd1d6b388083c1a692a9e74af299369",
       "ci_run": 38167143017
+    },
+    "expanded_power_snapshot": {
+      "focused_tests": 40,
+      "affected_household_forecast_soc_tests": 635,
+      "affected_suite_seconds": 146.91,
+      "fixed_read_only_items": 2,
+      "new_numeric_power_roles": 4,
+      "total_collection_deadline_seconds": 15,
+      "v1_source_files_unchanged": true,
+      "preliminary_actual_qualified_roles": 9,
+      "preliminary_actual_as_of": "2026-10-11T19:43:19.415369+00:00",
+      "preliminary_actual_receipt_raw_sha256": "3aa9b0fe49f6af70b35220367c438df1b367a5b788010a12768bb8cea46b0a58",
+      "committed_runtime_actual_capture_verified": false,
+      "original_bank_provenance_qualified": false,
+      "whole_household_load_qualified": false,
+      "v2_model_planner_integration_complete": false,
+      "automatic_actuation": false,
+      "full_common_snapshot_requirement_complete": false,
+      "companion_pin": "24d2e8984810cb596fe9792768510a356786f709"
     }
   }
 }
