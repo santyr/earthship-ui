@@ -1,0 +1,115 @@
+{
+  "schema": "earthship-household-program-progress/v1",
+  "objective": "complete PR#3",
+  "spec": "docs/superpowers/plans/2026-10-07-household-intelligence-architecture.md",
+  "goal_complete": false,
+  "scope_reduced_to_foundation": false,
+  "requirements": [
+    {
+      "phase": "0",
+      "requirement": "ML foundations and explicit graduation contracts",
+      "current_evidence": "merged foundations; strict skill/calibration remains separate qualification",
+      "complete": false
+    },
+    {
+      "phase": "1",
+      "requirement": "Shared original evidence references",
+      "current_evidence": "Original-evidence foundation merged in PR #11; all four hosted checks passed; 44 focused tests and independent review passed.",
+      "complete": false
+    },
+    {
+      "phase": "2",
+      "requirement": "Immutable HouseholdSnapshot and live evidence capture",
+      "current_evidence": "Immutable snapshot and offline replay merged in PR #11. Live capture and remaining domain fields are still incomplete.",
+      "complete": false
+    },
+    {
+      "phase": "2B",
+      "requirement": "Capability registry, Item roles, correlated v2 contracts and owner migrations",
+      "current_evidence": "Descriptive registry merged. Pure correlated v2 request/result/reason definitions have 32 passing tests and review approval; legacy v1 owners are unchanged. Owner migrations are incomplete.",
+      "complete": false
+    },
+    {
+      "phase": "3",
+      "requirement": "Pure domain models with numerical parity",
+      "current_evidence": "notimplemented",
+      "complete": false
+    },
+    {
+      "phase": "4",
+      "requirement": "Typed household intents and disabled intent-to-request adapter",
+      "current_evidence": "Pure shadow intent definitions and permanently disabled translator have 15 passing tests and review approval. Generated model-backed intents and qualified translation remain incomplete.",
+      "complete": false
+    },
+    {
+      "phase": "5",
+      "requirement": "Hard constraint registry and deterministic arbiter",
+      "current_evidence": "notimplemented",
+      "complete": false
+    },
+    {
+      "phase": "6",
+      "requirement": "Shadow household planner",
+      "current_evidence": "notimplemented",
+      "complete": false
+    },
+    {
+      "phase": "7",
+      "requirement": "Deterministic sealed household plan replay and outcome scoring",
+      "current_evidence": "Snapshot replay merged in PR #11. Sealed plan replay and chronological planner outcome scoring are not implemented.",
+      "complete": false
+    },
+    {
+      "phase": "8",
+      "requirement": "Resource-effect vectors and drift metrics",
+      "current_evidence": "notimplemented",
+      "complete": false
+    },
+    {
+      "phase": "9",
+      "requirement": "Read-only operator observability",
+      "current_evidence": "notimplemented",
+      "complete": false
+    },
+    {
+      "phase": "10",
+      "requirement": "Per-intent release qualification",
+      "current_evidence": "notqualified",
+      "complete": false
+    },
+    {
+      "phase": "11",
+      "requirement": "Staged integration through existing owner rules",
+      "current_evidence": "notenabled;StageConwardrequires separateapproval/qualification",
+      "complete": false
+    }
+  ],
+  "milestone_1": {
+    "requirement": "Capture qualified originals; freeze snapshot; load registry; run energy/thermal projections; typedshadowintents; hardconstraints; deterministicplan; sealedlocalreceipt; identicalofflinereplay",
+    "complete": false
+  },
+  "preserved_boundaries": [
+    "No direct provider/actuator requests",
+    "No live owner migration without separate qualification",
+    "No fabricated water state",
+    "No new recovery work",
+    "SerialcappedlocalCPU20percent/memory256MiB/swap0/tasks24"
+  ],
+  "proofs": {
+    "foundation": {
+      "pr": 11,
+      "head": "6a54da302d5b06838e4bfe2b82707d5f2f5b3292",
+      "merge": "ccb748166e79b4437c5945b9090a9bb8b9246b45",
+      "ci_run": 38143666215,
+      "ci": "all four passed",
+      "focused_tests": 44
+    },
+    "pure_contracts": {
+      "review": "approved; both minor follow-ups resolved",
+      "focused_tests_before_followups": 45,
+      "hosted_ci": "not yet published",
+      "focused_tests": 47,
+      "combined_household_tests": 91
+    }
+  }
+}
