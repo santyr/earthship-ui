@@ -162,7 +162,9 @@
       "decision_replay_identical": true,
       "model_backed_planning_qualified": false,
       "automatic_actuation": false,
-      "review": "Important replay-context finding fixed; narrow follow-up pending"
+      "review": "approved after original validation-context replay fix",
+      "review_head": "03756e4bc79e235fe231532e941df6a46941192f",
+      "combined_household_tests": 240
     }
   }
 }
