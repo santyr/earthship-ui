@@ -1,6 +1,6 @@
 """Adapt exact originals through mature validators, without live reads."""
+from datetime import datetime
 from hashlib import sha256
-import json
 from .evidence import EvidenceRef, Observation, ROLES, utc, epoch, digest
 
 
@@ -40,8 +40,10 @@ def battery_soc(*, raw, expected_sha256, source_identity, expected_epoch, persis
     sha = _original(raw, expected_sha256)
     if raw is None: return _unavailable('battery_soc', source_identity, sha, as_of, 'missing_source')
     record = parse_evidence(raw, persisted_at)
-    if record is None or record.status != 'valid':
+    if record is None:
         return _unavailable('battery_soc', source_identity, sha, as_of, 'source_unqualified')
+    if record.status != 'valid':
+        return _unavailable('battery_soc', source_identity, sha, as_of, record.reason)
     return _adapt('battery_soc', source_identity, sha, expected_epoch, as_of,
                   record.stream_epoch, record.observed_at, record.recorded_at,
                   persisted_at, record.valid_until, record.soc)
@@ -71,7 +73,9 @@ def native_temperature(*, role, raw, expected_sha256, source_identity, expected_
     if raw is None: return _unavailable(role, source_identity, sha, as_of, 'missing_source')
     packet=loads(raw)
     if packet.get('stream') != streams[role]: raise ValueError('original native source stream differs')
+    assessed = utc(datetime.fromisoformat(packet['assessed_at']))
     grid = replay_temperature_source(packet)
+    if assessed > as_of: return _unavailable(role, source_identity, sha, as_of, 'future_source')
     if len(grid) != 1: raise ValueError('one original native target required')
     target, record = grid[0]
     if target > as_of: return _unavailable(role, source_identity, sha, as_of, 'future_source')

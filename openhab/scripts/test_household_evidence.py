@@ -76,3 +76,17 @@ def test_missing_is_explicit_and_independent_dates_are_not_inferred():
     m=api();result=m.battery_soc(raw=None,expected_sha256=None,source_identity='missing-source',expected_epoch=EPOCH,persisted_at=NOW,as_of=NOW)
     assert result.value is None and result.ref.reason=='missing_source' and result.ref.digest is None
     assert not hasattr(result.ref,'independent_samples')
+
+
+def test_native_query_assessed_after_snapshot_cannot_supply_past_currentness(tmp_path,monkeypatch):
+    source=case(tmp_path,monkeypatch);source.update(rows=source['rows'][:1],targets=source['targets'][:1])
+    at=source['targets'][0];source['assessed_at']=at+timedelta(seconds=30)
+    raw=json.dumps(build_temperature_source(**source));kwargs=args(raw,now=at,epoch=source['sensor_epoch']);kwargs.pop('persisted_at')
+    value=api().native_temperature(role='air_temperature',**kwargs)
+    assert value.value is None and value.ref.reason=='future_source'
+
+
+def test_bms_source_specific_unavailable_reason_is_retained():
+    raw=bms_raw(status='unavailable');kwargs=args(raw,epoch='00000000-0000-0000-0000-000000000001')
+    value=api().battery_soc(**kwargs)
+    assert value.value is None and value.ref.reason=='input_stale'
