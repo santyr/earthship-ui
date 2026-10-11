@@ -177,3 +177,18 @@ def test_native_reader_cannot_substitute_a_different_query_context(tmp_path,monk
             policy={'requirements':{'air_display':['air_temperature']},'max_age_seconds':{'air_temperature':120},'max_skew_seconds':60},
             receipt_reader=lambda *args:pytest.fail('unexpected energy read'),native_reader=lambda **request:packet,
             clock=lambda:NOW,monotonic=lambda:0.0)
+
+
+def test_native_connection_timeout_obeys_remaining_total_budget(tmp_path,monkeypatch):
+    import household_capture,psycopg2,json
+    from uuid import uuid4
+    private=tmp_path/'db.json'
+    private.write_text(json.dumps(dict(host='127.0.0.1',port=5432,dbname='openhab',user='weather_temperature_reader',password=str(uuid4()))))
+    private.chmod(0o600);calls=[]
+    monkeypatch.setattr(psycopg2,'connect',lambda **kwargs:calls.append(kwargs['connect_timeout']) or object())
+    factory=household_capture._connection(str(private),'weather_temperature_reader')
+    with pytest.raises(ValueError):factory(remaining=lambda:0.9)
+    assert calls==[]
+    factory(remaining=lambda:1.9)
+    factory(remaining=lambda:15.0)
+    assert calls==[1,2]

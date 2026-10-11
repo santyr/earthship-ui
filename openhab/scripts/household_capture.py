@@ -24,9 +24,11 @@ def _connection(path,allowed_user):
             raise ValueError('existing restricted local database reader required')
         kwargs=settings.connect_kwargs
     if _read(path,8192,private=True)!=original:raise ValueError('database configuration changed')
-    def connect():
+    def connect(*,remaining):
         if _read(path,8192,private=True)!=original:raise ValueError('database configuration changed')
-        return psycopg2.connect(**kwargs,connect_timeout=2)
+        budget=remaining()
+        if type(budget) not in (int,float) or not 1<=budget<=15:raise ValueError('insufficient connection budget')
+        return psycopg2.connect(**kwargs,connect_timeout=min(2,int(budget)))
     return connect
 
 
@@ -56,8 +58,8 @@ def main(argv=None):
             if policies.get(stream)!=TemperaturePolicy(model,sensor_id,**POLICY):raise ValueError('native source policy differs')
             epochs[role]=phases[stream]
         result=collect_inputs(epochs=epochs,policy=config['policy'],
-            receipt_reader=lambda role,start,end,remaining:fetch_receipt(energy,role=role,start=start,end=end,remaining=remaining),
-            native_reader=lambda **request:fetch_temperature_source(native,**request))
+            receipt_reader=lambda role,start,end,remaining:fetch_receipt(lambda:energy(remaining=remaining),role=role,start=start,end=end,remaining=remaining),
+            native_reader=lambda **request:fetch_temperature_source(lambda:native(remaining=request['remaining_timeout']),**request))
         if _read(args.config,8192,private=True)!=original or _read(policy_path,8192,private=True)!=native_original:
             raise ValueError('capture configuration changed')
         sys.stdout.buffer.write(canonical(result)+b'\n');return 0
