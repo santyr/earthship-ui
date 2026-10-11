@@ -63,6 +63,6 @@
 - [x] Write failing round-trip, input/policy/runtime/registry drift, oversized and forbidden-field tests using synthetic source data.
 - [x] Implement read-only offline CLI with bounded input, source count and output. No capture of live Items in this stage.
 - [x] Run focused suite and CLI round-trip under caps; commit.
-- [ ] Complete whole-branch review and resolve material findings.
+- [x] Complete whole-branch review and resolve material findings.
 
 Live deployment, domain forecast changes, typed optimizer intents, owner v2 migrations and planner authority remain later separately scoped work. This first stage provides offline assembly from already-captured originals rather than installing a collector.
