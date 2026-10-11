@@ -6,7 +6,7 @@
 
 **Spec:** docs/superpowers/plans/2026-10-07-household-intelligence-architecture.md, Phases 1, 2 and 7.
 
-**Architecture:** Add an immutable v2 snapshot and sealed source-bundle compiler without changing existing v1 source, snapshot or planner contracts. Recompile original v1 inputs at the final shared collection clock, reuse mature companion power/AC parsers for four new numeric roles, and carry every remaining required domain role as explicitly unavailable. Physical bank identity, whole-household load, forecast trajectories and owner availability are never inferred from power values. Model/planner adoption of v2 remains a subsequent required integration step; full PR #3 stays active.
+**Architecture:** Add an immutable v2 snapshot and sealed source-bundle compiler without changing existing v1 source, snapshot or planner contracts. Recompile original v1 inputs at the final shared collection clock, reuse mature companion power/AC parsers for four new numeric roles, and carry the represented remaining domain roles as explicitly unavailable; accepted thermal artifact identity/confidence remain a recorded schema omission. Physical bank identity, whole-household load, forecast trajectories and owner availability are never inferred from power values. Model/planner adoption of v2 remains a subsequent required integration step; full PR #3 stays active.
 
 ## Constraints
 
@@ -24,7 +24,7 @@ Create household/power_capture.py. Read only fixed Power_Evidence_JSON and Inver
 
 - [x] RED then GREEN fixed-query/deadline/invalid-row/closure tests and whole affected suite.
 - [x] Private actual capture using existing restricted credentials, independent current owner epoch receipts and existing native policies; exact original digest/readback and pure sealed replay. If actual roles withhold, retain that result without inferring qualification or granting new permissions.
-- [ ] Update canonical progress, document v2 integration still required, commit and one final review. One Important/Critical TDD fix pass; Minor findings recorded.
+- [x] Update canonical progress, document v2 integration still required, commit and one final review. One Important/Critical TDD fix pass; Minor findings recorded.
 
 ## Review focus
 
@@ -33,3 +33,5 @@ Per-field age/expiry cannot be renewed by receipt persistence; software epochs c
 Task 1 evidence:18 tests RED (missing module) then GREEN18/18 in1.29s under strict caps. Existing v1 files remain unchanged. Task2 capture/integration and final review are still outstanding. Hosted companion pin d24771b lacks the AC parser; published24d2e898 contains it and preserves pinned ancestry. Verify the changed dependency closure before updating both CI pins.
 
 Task2 evidence:22 capture tests RED then combined40/40 GREEN; full635/635 PASS146.91s under strict caps. Final actual committed0512be3 capture9qualifiedroles at19:49:42UTC, rawreceiptSHA7938816df4e1e8787c88977b3bcaeb608cc6e3630586e8a5f23bfc168ab57bc8; exactconfig/runtime/source readback and pure identicalreplay. Fullenergy false, v2integration incomplete.
+
+Final independent static review at7b859d5 found no Critical/Important issue. One Minor missing thermal artifact identity/confidence representation is deferred and added to full-scope follow-up, not treated as completed schema inventory. Hosted verification remains required before merge.
