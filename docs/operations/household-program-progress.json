@@ -278,8 +278,18 @@
       "staged_exact_math_cases": 72,
       "staged_manifest_sha256": "417ac3e7c85e94e3a33e7087413792e787d7442c04e18f539045387069aa115e",
       "live_original_argument_retention": false,
-      "production_installed": false,
-      "worker_started": false
+      "production_installed": true,
+      "worker_started": false,
+      "independent_readback_verified": true,
+      "installed_exact_math_cases": 72,
+      "focused_deployment_tests": 11,
+      "no_new_daily_invocation": true,
+      "resource_caps_preserved": true,
+      "natural_issue_qualified": false,
+      "next_natural_issue": "2026-10-12T06:40:00-06:00",
+      "readback_receipt_sha256": "5c8d7b111e37c7fd6a5d54720a4f0af80bf5b1714b82d1f41bdd5024009b6eb9",
+      "review": "Two Important findings fixed with RED-to-GREEN regressions: exact effective source-consumer commands and optimized execution refusal. One Minor partial-install diagnostics limitation deferred.",
+      "deferred_minor": "A failure after a published file requires manual generation reconciliation; refusal output does not enumerate completed files; no automatic retry or rollback."
     }
   }
 }
