@@ -49,3 +49,26 @@ def test_uncontended_wait_executes_only_one_worker(tmp_path):
     _,argv=command(tmp_path)
     result=subprocess.run(argv,capture_output=True,text=True,timeout=3)
     assert result.returncode==0 and (tmp_path/'runs').read_text()=='run\n'
+
+
+@pytest.mark.parametrize('active_unit',['thermal-provisional-forecast.service','thermal-provisional-score.service','forecast-json.service'])
+def test_install_refuses_another_running_consumer_before_any_write(tmp_path,monkeypatch,active_unit):
+    import importlib.util,json
+    from hashlib import sha256
+    script=Path(__file__).with_name('daily_forecast_lock_wait.py')
+    spec=importlib.util.spec_from_file_location('definition_install_fixture',script);mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+    source=DROP.read_bytes();template=tmp_path/'template.conf';template.write_bytes(source)
+    profile=tmp_path/'profile.conf';profile.write_text('original bounded profile')
+    target=tmp_path/'additive.conf';expected=tmp_path/'expected.json'
+    original=['/usr/bin/flock','--nonblock','--conflict-exit-code=75','fixture.lock','fixture-worker']
+    expected.write_text(json.dumps({'source_sha256':sha256(source).hexdigest(),'profile_sha256':sha256(profile.read_bytes()).hexdigest(),
+        'invocation_id':'unchanged-fixture','original_command':original}));expected.chmod(0o600)
+    for name,value in (('BASE',tmp_path),('TEMPLATE',template),('PROFILE',profile),('TARGET',target),('EXPECTED',expected)):monkeypatch.setattr(mod,name,value)
+    def properties(unit,keys):
+        if unit!='forecast-intel.service':return {'MainPID':'123' if unit==active_unit else '0','ActiveState':'active' if unit==active_unit else 'inactive'}
+        return {**mod.CAPS,'MainPID':'0','ActiveState':'inactive','SubState':'dead','InvocationID':'unchanged-fixture',
+            'ExecStart':'{ argv[]='+shlex.join(original)+' ; }','Environment':'OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1','SuccessExitStatus':'75'}
+    calls=[];monkeypatch.setattr(mod,'properties',properties);monkeypatch.setattr(mod,'run',lambda *args:calls.append(args) or '')
+    with pytest.raises(ValueError):mod.execute(True)
+    assert not target.exists(),'running consumer must refuse before a definition is installed'
+    assert calls==[],'running consumer must refuse before manager reload'

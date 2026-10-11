@@ -244,6 +244,19 @@
       "review_head": "16cca97a3828b8c81112ba0b8a216b94e9bfb19c",
       "deferred_minor": "Missing-model original_delivery_verified can overstate source binding; score remains unavailable",
       "normal_0640_daily_target_regressions": 3
+    },
+    "daily_forecast_lock_wait": {
+      "focused_tests": 6,
+      "production_missing_issue_verified": "2026-10-11",
+      "observed_shared_lock_collision": true,
+      "wait_seconds": 90,
+      "total_service_timeout_seconds": 180,
+      "resource_caps_preserved": true,
+      "review": "one Important other-running-consumer install guard fixed with three RED-to-GREEN regressions; one Minor fixture exclusivity coverage gap deferred",
+      "live_definition_installed": false,
+      "natural_issue_qualified": false,
+      "automatic_actuation_authority_added": false,
+      "full_program_complete": false
     }
   }
 }

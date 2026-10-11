@@ -12,7 +12,7 @@
 - No new task family, owner request, forecast calculation, notification policy, timer schedule, credential, database grant or recovery work.
 - Local numerical/test scopes: serialCPU20%,memory256MiB,swap0,tasks24,IOWeight10,nice15,idleIO,threads1. Broad checks hosted.
 - The existing thermal service timeout is90seconds; the daily service remains180seconds total. Lock waiting holds no shared lock and consumes the same bounded invocation budget.
-- Install only when the actual daily unit is terminal/inactive and the existing bounded native profile matches the retained expected bytes. Never stop/interrupt/restart a consumer or force a lock.
+- Install only when the named other forecast consumers and actual daily unit are terminal/inactive and the existing bounded native profile matches the retained expected bytes. Never stop/interrupt/restart a consumer or force a lock.
 - Default source template is inert. Live install requires exact reviewed source/profile fingerprints and confirms effective caps, command, timeout and no automatic restart.
 
 ## Review focus
@@ -25,7 +25,7 @@
 
 ## Task1: Bounded wait source and behavioral qualification
 
-Files:openhab/systemd/user/forecast-intel.service.d/zzzz-daily-lock-wait.conf,scripts/test_daily_forecast_lock_wait.py.
+Files:openhab/systemd/user/forecast-intel.service.d/zzzz-daily-lock-wait.conf,scripts/test_daily_forecast_lock_wait.py,scripts/daily_forecast_lock_wait.py.
 - [ ] Write failing tests from actual template flags for contention release, prolonged contention and exclusive single execution; use only temporary fixture locks and counter workers, no network/OpenHAB/credentials.
 - [ ] Watch missing-template tests fail, implement additive ExecStart reset/replacement and SuccessExitStatus reset, then run all focused qualification tests under strict caps.
 - [ ] Commit source and ledger. Record wait budget and unchanged total timeout/caps.
