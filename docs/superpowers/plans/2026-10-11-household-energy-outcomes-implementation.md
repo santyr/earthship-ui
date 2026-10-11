@@ -27,22 +27,22 @@
 
 Files: household/energy_outcome_sources.py, test_household_energy_outcomes.py.
 Interfaces: build_night_source(rows, prediction_day, assessed_at, bank_config_raw, expected_bank_epoch, expected_stream_epoch); replay_night_source(packet); fetch_night_source(connection_factory,...,remaining).
-- [ ] Write failing tests for full-night measured minimum, sparse/incomplete coverage, wrong independent phase, physical cutover, missing bank, future rows, NULL barriers and resealed derived assessment.
-- [ ] Bound packet4MiB, rows10000, each raw4096bytes; closed original bank configuration64KiB and complete physical epoch validation. Preserve exact row strings and persistence clocks. Replay existing assessor; no IO in pure path.
-- [ ] Write/read failing DB transaction tests. Fixed unique Item mapping, repeatable-read/read-only transaction, total15s callback, statement2s/lock1s, bounded original window with120s lookback, ordered rows10001overflow detection, NULL barrier preservation, close on all paths.
-- [ ] Run focused caps, commit with ledger.
+- [x] Write failing tests for full-night measured minimum, sparse/incomplete coverage, wrong independent phase, physical cutover, missing bank, future rows, NULL barriers and resealed derived assessment.
+- [x] Bound packet4MiB, rows10000, each raw4096bytes; closed original bank configuration64KiB and complete physical epoch validation. Preserve exact row strings and persistence clocks. Replay existing assessor; no IO in pure path.
+- [x] Write/read failing DB transaction tests. Fixed unique Item mapping, repeatable-read/read-only transaction, total15s callback, statement2s/lock1s, bounded original window with120s lookback, ordered rows10001overflow detection, NULL barrier preservation, close on all paths.
+- [x] Run focused caps, commit with ledger.
 
 ## Task2: Original plan/forecast energy scoring
 
 Files: household/energy_outcomes.py, test_household_energy_outcomes.py.
 Interface: seal_energy_outcomes(plan_receipt, forecast_source, night_source, plan_runtime_manifest, outcome_runtime_manifest, thermal_runtime); replay_energy_outcomes(...).
-- [ ] Failing tests for rederived plan/trough binding, exact persisted original forecast and issuance chronology, wrong date/phase/bank/value, missing original model and immature/insufficient measurement, score tamper.
-- [ ] Preserve original forecast raw bytes/persisted clock, require earlier same-day issue before target night, cross-check original BMS origin/digest against plan snapshot. Compare original energy projection and delivered trough; later source qualification uses an independently bound outcome stream; a producer restart requires a fresh later fixed-owner receipt. Physical bank identity remains separate. Explicit model/outcome unavailable statuses, reserve diagnostics only, no causal or release claims.
-- [ ] Whole focused task suite under caps, commit.
+- [x] Failing tests for rederived plan/trough binding, exact persisted original forecast and issuance chronology, wrong date/phase/bank/value, missing original model and immature/insufficient measurement, score tamper.
+- [x] Preserve original forecast raw bytes/persisted clock, require earlier same-day issue before target night, cross-check original BMS origin/digest against plan snapshot. Compare original energy projection and delivered trough; later source qualification uses an independently bound outcome stream; a producer restart requires a fresh later fixed-owner receipt. Physical bank identity remains separate. Explicit model/outcome unavailable statuses, reserve diagnostics only, no causal or release claims.
+- [x] Whole focused task suite under caps, commit.
 
 ## Task3: Actual evidence and offline CLI
 
 Files: household_energy_outcomes.py, tests and operations docs/canonical tracker.
-- [ ] Owned0600 bounded receipt, actual complete source manifests and separate thermal closure, pure replay/recheck before stdout, sanitized refusal.
-- [ ] Acquire one actual completed-night packet through existing private restricted reader and bank configuration. Verify actual retained forecast/model context; if exact as-issued inputs are absent, record the missing evidence and withhold scoring rather than reconstruct guessed inputs.
-- [ ] Full appropriate capped regressions, one independent whole-stage review/fix pass; publish hosted CI and keep the full objective active for every remaining requirement.
+- [x] Owned0600 bounded receipt, actual complete source manifests and separate thermal closure, pure replay/recheck before stdout, sanitized refusal.
+- [x] Acquire one actual completed-night packet through existing private restricted reader and bank configuration. Verify actual retained forecast/model context; if exact as-issued inputs are absent, record the missing evidence and withhold scoring rather than reconstruct guessed inputs.
+- [ ] Full appropriate capped regressions (534 passed), one independent whole-stage review/fix pass; publish hosted CI and keep the full objective active for every remaining requirement.

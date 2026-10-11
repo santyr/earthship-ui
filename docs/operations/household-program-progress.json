@@ -238,7 +238,9 @@
       "causal_benefit_qualified": false,
       "automatic_actuation": false,
       "review": "pending",
-      "full_outcome_requirement_complete": false
+      "full_outcome_requirement_complete": false,
+      "household_forecast_and_atomic_soc_tests": 534,
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial"
     }
   }
 }

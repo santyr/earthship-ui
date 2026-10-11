@@ -14,4 +14,6 @@ The evaluation scope is retrospective planner evaluation from an originally deli
 
 Actual October10 evidence: 888 original atomic rows produced a coverage-qualified minimum of85% at99.989% coverage, replayed from retained bytes with an independently fresh fixed-owner receipt. Its producer stream differs from the earlier forecast. The exact as-issued energy calculation arguments are absent from the retained production state, so an actual household-model score remains unqualified. No service, grant, Item or actuator changed. Originals remain private and outside Git.
 
+Validation:48 focused energy contracts and534 combined household/forecast/atomic-SoC tests passed under CPU20%, memory256MiB, swap0 and tasks24 caps. Independent final review and hosted validation are pending.
+
 Full PR3 remains incomplete for expanded common snapshots, original energy/model input qualification, policy/action outcomes, rolling resource models, drift, operator observability, per-intent release and separately approved owner integration.
