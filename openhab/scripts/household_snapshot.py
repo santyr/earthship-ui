@@ -36,6 +36,10 @@ def runtime_manifest():
     paths={('openhab/scripts/'+name):SCRIPTS/name for name in VALIDATORS}
     paths.update({str(path.relative_to(ROOT)):path for path in (SCRIPTS/'household').glob('*.py')})
     paths['openhab/scripts/household_snapshot.py']=Path(__file__).resolve()
+    paths['openhab/scripts/household_capture.py']=SCRIPTS/'household_capture.py'
+    paths['openhab/scripts/hourly_temperature_runtime.py']=SCRIPTS/'hourly_temperature_runtime.py'
+    import earthship_energy.db as db
+    paths['companion/earthship_energy/db.py']=Path(db.__file__)
     paths['companion/earthship_energy/bms_evidence.py']=Path(bms.__file__)
     paths.update({name:ROOT/name for name in ('openhab/managed-resources.json','openhab/file-config/ownership.json')})
     return {name:sha256(_read(path,262144)).hexdigest() for name,path in paths.items()}

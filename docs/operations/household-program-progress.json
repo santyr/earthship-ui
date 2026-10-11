@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Immutable snapshot and offline replay merged in PR #11. Live capture and remaining domain fields are still incomplete.",
+      "current_evidence": "Immutable offline snapshot merged in PR #11. Bounded read-only collector implemented; first actual native capture qualified three roles and replayed identically. Expanded fields, energy bindings and full production capture remain incomplete.",
       "complete": false
     },
     {
@@ -107,9 +107,22 @@
     "pure_contracts": {
       "review": "approved; both minor follow-ups resolved",
       "focused_tests_before_followups": 45,
-      "hosted_ci": "not yet published",
+      "hosted_ci": "three checks passed; broad tests pending",
       "focused_tests": 47,
-      "combined_household_tests": 91
+      "combined_household_tests": 91,
+      "pr": 12
+    },
+    "native_capture": {
+      "original_bytes": 36489,
+      "roles": 3,
+      "all_three_current_inputs_qualified": true,
+      "identical_offline_replay": true,
+      "live_writes": false,
+      "full_milestone_complete": false,
+      "focused_tests": 30,
+      "combined_household_tests": 121,
+      "review": "approved after shared connection-budget fix",
+      "head": "517a91b2a5119697cea5200d7aaa6bade64a5cee"
     }
   }
 }
