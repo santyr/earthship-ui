@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Original v1 and expanded v2 collectors merged; PR22 exact head passed all five hosted checks and merged54863f. Actual nine-role committed-source capture replayed identically. Model-bound v3 implementation has657 passing affected regressions and an independently reviewed/fixed outcome closure path, retaining original provisional artifact identity/low confidence and exact thermal source rows. Full bank/usable energy, household load, forecast/weather/authority and owner qualification remain incomplete.",
+      "current_evidence": "Original collectors and common model binding merged through PR23. Snapshot/v4 now retains original forecast/operator context without physical authority. Independent review found two Important sensor/candidate binding gaps; five resealed regressions reproduced them, one fix pass and687 affected tests pass. Actual current committed-source capture binds to the naturally delivered22:20:15UTC issue with exact pure/privateCLI replay. Eight physical roles remain qualified at that common clock; expired inverter AC remains unavailable. Full bank/usable energy, household load, observed weather, authority and owner qualification remain incomplete.",
       "complete": false
     },
     {
@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy extraction preserves72 production golden cases; prepared original thermal output preserves its original24h trajectory. New v3 integration shares an original source/model clock and restores source context through pure plan/pipeline replay. 657 affected tests pass under serial caps after the single independently reviewed Important outcome-closure fix. A current source capture binds to the naturally delivered21:00:15UTC thermal issue; original24h trajectory, pure and privateCLI model/candidate/plan replay are identical. Eight roles remain qualified at the common clock; inverter AC expiry is preserved. Energy numerical parameters are a new shadow context with input qualification not_assessed, not qualified bank/load/weather data. Hosted checks and full cross-domain sources remain pending. Full cross-domain inputs and trajectories are incomplete.",
+      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; hosted weather-branch checks pending.",
       "complete": false
     },
     {
@@ -424,6 +424,57 @@
       "deployed_ui_parser_state": "ready",
       "deployed_ui_parser_mode": "provisional",
       "deployed_ui_parser_confidence": "low"
+    },
+    "original_weather_context": {
+      "action_effects_qualified": false,
+      "automatic_actuation": false,
+      "common_model_issue": "2026-10-11T22:20:15+00:00",
+      "confidence": "low",
+      "current_energy_complete": false,
+      "decision_at": "2026-10-11T22:21:00.574318+00:00",
+      "delivery_sha256": "062ad81a8020f4a52874c6595b8824ab355f2b659b952604df06a88abe79db5f",
+      "earlier_parameter_packet_raw_sha256": "f1455aed403bd5db09d37091e614f969e5231d93880d8ce049b67c2028ff220e",
+      "energy_context": "new_shadow_projection_earlier_retained_parameters_plus_current_original_soc",
+      "energy_input_qualification": "not_assessed",
+      "exact_original_24h_thermal_trajectory": true,
+      "exact_original_weather_forcing": true,
+      "full_energy_complete": false,
+      "inverter_output_reason": "expired_source",
+      "original_capture_sha256": "d79ece790bcb9eff05084bb49a846fe25519a37d816294917d03f177174fc972",
+      "original_delivery_verified": true,
+      "physical_bank_qualified": false,
+      "private_cli_replay_identical": true,
+      "pure_replay_identical": true,
+      "qualified_roles": [
+        "battery_power_w",
+        "battery_soc",
+        "pv_day_wh",
+        "pv_input_power_w",
+        "pv_output_power_w",
+        "air_temperature",
+        "mass_temperature",
+        "outdoor_temperature"
+      ],
+      "receipt_sha256": "acffa88afbcea0682ea8acffd0388e8b600ece03071af0562d09bb718e1d1b18",
+      "selected_count": 0,
+      "snapshot_id": "98871f9e712eb0b76db23e53bac915606a2a78780c13abffb05d29e6f4980e51",
+      "source_as_of": "2026-10-11T22:19:37.754232+00:00",
+      "source_receipt_raw_sha256": "16b2a258ae8065171c90266a7444f12822170b4f0749757023b4a513386573cd",
+      "source_revision": "b58de1b8ea03f5cbe02a36fe5e50f5c832f39c74",
+      "status": "actual_shared_weather_source_models_replayed",
+      "weather_rows_sha256": "85ed96230622b302feb86ae70d0290fc8d3c9ff9900800bf9999c5c003da9906",
+      "reviewed_head": "a4ef96259ff8c86c7bef259b7801b39256047b2a",
+      "review_fix_head": "b58de1b8ea03f5cbe02a36fe5e50f5c832f39c74",
+      "affected_tests": 687,
+      "affected_suite_seconds": 315.41,
+      "weather_boundary_tests": 17,
+      "weather_integration_tests": 13,
+      "review": "Two Important original-binding gaps reproduced by five fully resealed regressions, fixed in one pass; no Critical or Minor. Static reviewer did not run tests or read live state.",
+      "hosted_ci": "pending",
+      "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
+      "full_common_snapshot_requirement_complete": false,
+      "full_program_complete": false,
+      "intermittent_delivery_failure_resolved": false
     }
   }
 }

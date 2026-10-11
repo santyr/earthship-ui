@@ -40,11 +40,11 @@ Interfaces: `WeatherSnapshot(ModelSnapshot)` with immutable original source and 
 
 Source-context map values are explicitly versioned for v4 and retain both original power receipt and weather context. Pipeline/plan receipt/v3 dispatch restores root and candidate snapshot types. V1 and v2 shapes stay unchanged. Energy and thermal share the new identity; weather projection binds the exact same prepared model. Operational replay validates the complete original producer closure and original weather/thermal executing dependencies, including the actual enclosing outcome receipt.
 
-- [ ] RED then GREEN: snapshot/clock/source lineage, exact original weather/thermal parity, shared energy binding, typed proposal generation and disabled translator.
-- [ ] Metadata cannot become physical action evidence. Later source/context, stale sources, forged generic snapshots, changed/resealed originals or derived outputs and incomplete executing closure are refused.
-- [ ] Original v1/v2 receipt shapes and replays remain equal; root/candidate contexts deduplicate without discarding candidates.
-- [ ] Full affected suite under serial caps.
-- [ ] Actual original source/context from a normal naturally delivered publisher issue; pure and private CLI replay match. Report current/full source incompleteness honestly; no forced issue.
+- [x] RED then GREEN: snapshot/clock/source lineage, exact original weather/thermal parity, shared energy binding, typed proposal generation and disabled translator.
+- [x] Metadata cannot become physical action evidence. Later source/context, stale sources, forged generic snapshots, changed/resealed originals or derived outputs and incomplete executing closure are refused.
+- [x] Original v1/v2 receipt shapes and replays remain equal; root/candidate contexts deduplicate without discarding candidates.
+- [x] Full affected suite under serial caps.
+- [x] Actual original source/context from a normal naturally delivered publisher issue; pure and private CLI replay match. Report current/full source incompleteness honestly; no forced issue.
 - [ ] Commit, one independent final review and one Important/Critical TDD fix pass. Publish; exact-head hosted checks gate merge.
 
 ## Review focus
