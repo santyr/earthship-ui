@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "notimplemented",
+      "current_evidence": "Pure energy extraction matches 72 frozen production cases. Frozen thermal adapter matches a retained original 24h trajectory and performs no reads inside projection. Executing runtime is separately bound. Expanded common model inputs and full cross-domain projections remain incomplete.",
       "complete": false
     },
     {
@@ -107,10 +107,11 @@
     "pure_contracts": {
       "review": "approved; both minor follow-ups resolved",
       "focused_tests_before_followups": 45,
-      "hosted_ci": "three checks passed; broad tests pending",
+      "hosted_ci": "all four passed",
       "focused_tests": 47,
       "combined_household_tests": 91,
-      "pr": 12
+      "pr": 12,
+      "merge": "c8d0b0d55ca8a0c87ce21ab62f9817f63735e316"
     },
     "native_capture": {
       "original_bytes": 36489,
@@ -122,7 +123,24 @@
       "focused_tests": 30,
       "combined_household_tests": 121,
       "review": "approved after shared connection-budget fix",
-      "head": "517a91b2a5119697cea5200d7aaa6bade64a5cee"
+      "head": "517a91b2a5119697cea5200d7aaa6bade64a5cee",
+      "pr": 13,
+      "hosted_ci": "all four passed",
+      "merge": "ca9d691a38c847f2226422beea6b410d69c77d48"
+    },
+    "model_boundaries": {
+      "energy_parity_cases": 72,
+      "focused_model_tests": 79,
+      "actual_production_original_issue": "2026-10-11T00:50:15+00:00",
+      "actual_original_capture_sha256": "ffbe059998d1ccd4b62bd7d7028d9611be70c58e71a12c273f359afb0fa2c42c",
+      "exact_24h_thermal_parity": true,
+      "identical_frozen_replay": true,
+      "confidence": "low",
+      "action_effects_qualified": false,
+      "full_phase_3_complete": false,
+      "review": "pending independent stage review",
+      "combined_focused_regressions": 345,
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial"
     }
   }
 }

@@ -1,0 +1,1735 @@
+{
+  "schema": "earthship-production-energy-parity/v1",
+  "source_sha256": "eceb8934b3648d86dc8a66170807e9ba2e391a8ca0f14fed6978fbbc2ccc9244",
+  "source_revision": "d0aafa39b31671a7850227d3e9d5f50493158e86",
+  "cases": [
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 12.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 4.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 1.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 12.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 4.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 1.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 12.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 4.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 1.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 12.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 4.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": null,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": null,
+        "demand": null,
+        "pv_pred": null,
+        "curtail": null,
+        "drop_base_pct": 1.0,
+        "dusk_soc": null,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": null
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 29.111328124999993,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 17
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 29.111328124999993,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 25
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 29.111328124999993,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 26
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 20.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 84.21875,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 72
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 20.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 84.21875,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 80
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 10,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 19.4021052631579,
+        "demand": 23.4021052631579,
+        "pv_pred": 20.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 84.21875,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 81
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 12,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 31.111328124999993,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 19
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 31.111328124999993,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 27
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 31.111328124999993,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 28
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 20.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 86.21875,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 74
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 20.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 86.21875,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 82
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 12,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 18.970947368421054,
+        "demand": 22.970947368421054,
+        "pv_pred": 20.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 86.21875,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 83
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 21.4453125,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 12
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 21.4453125,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 17
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 21.4453125,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 18
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 40.0,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 28
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 40.0,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 36
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 40.0,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 37
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 59.11132812499999,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 47
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 59.11132812499999,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 55
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 8.12,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 59.11132812499999,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 56
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 16.93,
+        "curtail": 3.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 16.93,
+        "curtail": 3.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 40,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 12.934736842105265,
+        "demand": 16.934736842105266,
+        "pv_pred": 16.93,
+        "curtail": 3.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 80.4453125,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 68
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 80.4453125,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 76
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 80.4453125,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 77
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.22,
+        "curtail": 4.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.22,
+        "curtail": 4.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.22,
+        "curtail": 4.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.22,
+        "curtail": 8.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.22,
+        "curtail": 8.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 99,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.21557894736842106,
+        "demand": 4.215578947368421,
+        "pv_pred": 4.22,
+        "curtail": 8.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 81.4453125,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 69
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 81.4453125,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 77
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 0.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 0.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 81.4453125,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 78
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 4.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 0.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 4.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 4.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 8.1234,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 4.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [],
+        "tomorrow_cloud_pct": null
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 8.0,
+        "drop_base_pct": 12.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 12.0,
+        "trough_pred": 87
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0,
+          4.0,
+          7.0
+        ],
+        "tomorrow_cloud_pct": 70
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 8.0,
+        "drop_base_pct": 4.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 0,
+        "drop_pct": 4.0,
+        "trough_pred": 95
+      }
+    },
+    {
+      "inputs": {
+        "resource_kwh": 20.0,
+        "direct_demand_kwh": 4.0,
+        "soc_pct": 100,
+        "bank_kwh": 20.48,
+        "eta_rt": 0.95,
+        "overnight_drops_pct": [
+          1.0
+        ],
+        "tomorrow_cloud_pct": 71
+      },
+      "output": {
+        "deficit_kwh": 0.0,
+        "demand": 4.0,
+        "pv_pred": 4.0,
+        "curtail": 8.0,
+        "drop_base_pct": 1.0,
+        "dusk_soc": 99,
+        "cloud_drop_penalty_pct": 2,
+        "drop_pct": 3.0,
+        "trough_pred": 96
+      }
+    }
+  ]
+}
