@@ -11,3 +11,5 @@ Implement a bounded read-only collector that produces the exact existing `earths
 5. Focused serial capped tests and original-source replay proof; update full program tracker; one independent review and hosted validation. This stage does not complete projections, constraints, planning or live qualification.
 
 All local tests: CPU20%, memory256MiB, swap0, tasks24, idle I/O, single numerical thread. No credential values in output or repository. No new grants or owner changes.
+
+Verification:30 collector tests;121 combined household tests passed under the declared caps in6.09seconds. Independent final review approved after connection-budget fix and regression; no unresolved Critical/Important findings. Real native-source capture and identical offline replay completed. Publication and broad hosted CI are next; full architecture remains incomplete.

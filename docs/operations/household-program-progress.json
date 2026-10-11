@@ -118,7 +118,11 @@
       "all_three_current_inputs_qualified": true,
       "identical_offline_replay": true,
       "live_writes": false,
-      "full_milestone_complete": false
+      "full_milestone_complete": false,
+      "focused_tests": 30,
+      "combined_household_tests": 121,
+      "review": "approved after shared connection-budget fix",
+      "head": "517a91b2a5119697cea5200d7aaa6bade64a5cee"
     }
   }
 }

@@ -6,10 +6,25 @@ The closed private configuration contains `schema` (`earthship-household-capture
 
 `energy_epochs` explicitly pins `battery_soc` and/or `pv_day_wh` stream UUIDs independently of the fetched original. An empty map collects only native temperatures. Stream restarts require a new independently assessed binding; the collector never takes a claimed epoch from the same source as its expected epoch. Stream epochs do not establish a physical battery-bank epoch. The three temperature hardware phases and exact model/sensor/range/120-second policies come from the existing v2 receiver policy.
 
-Each collection has a 15-second cooperative total deadline. Connection attempts require at least one second remaining and use a timeout rounded down to fit that budget. The outer 25-second command timeout is the final process bound. Energy queries resolve exactly one fixed Item, use read-only repeatable-read transactions, 2-second statement and 1-second lock limits, and read at most the latest two rows in the original 120-second window. Duplicate latest timestamps are refused. Malformed, oversized or NULL latest values cannot cause an older-good fallback. Native collection reuses the original bounded query packet reader and preserves every raw receiver row. All five roles are fixed; no arbitrary Item, URL or SQL target is accepted. Total bundle size is at most 1 MiB.
+Each collection has a 15-second cooperative total deadline. Connection attempts require at least one second remaining and use a timeout rounded down to fit that budget. Invoke the collector under an outer 25-second command timeout for the final process bound; the CLI does not enforce that wrapper itself. Energy queries resolve exactly one fixed Item, use read-only repeatable-read transactions, 2-second statement and 1-second lock limits, and read at most the latest two rows in the original 120-second window. Duplicate latest timestamps are refused. Malformed, oversized or NULL latest values cannot cause an older-good fallback. Native collection reuses the original bounded query packet reader and preserves every raw receiver row. All five roles are fixed; no arbitrary Item, URL or SQL target is accepted. Total bundle size is at most 1 MiB.
 
 The as-of clock follows collection. Original receipt persistence, received and expiry clocks stay unchanged. Missing sources remain null; a captured receipt is not automatically qualified. Run the offline snapshot command to apply existing source-specific validators and frozen age/skew requirements. A profile named `thermal_current` only asserts current input readiness; it does not graduate a model or establish complete shadow-planning evidence.
 
 Run within the same CPU20%, memory256MiB, swap0, tasks24, idle-I/O scope used for qualification. The companion analytics package must already be on `PYTHONPATH`. Redirect output to a mode0600 file in an owned private directory, then run `household_snapshot.py --input` and repeat with `--expect`. No credential values or raw private originals belong in Git.
 
 The first real-source probe on 2026-10-11 captured three original native-temperature packets (36,489 bytes). Independent offline replay qualified all three current roles and reproduced the sealed receipt exactly. Battery and PV sources were intentionally undeclared in that probe and remained unavailable. This proves native collection and replay, not full milestone completion. Expanded domains, forecast projections, constraints, full plan replay and outcome qualification remain open.
+
+Example bounded invocation (precreate the output with mode0600):
+
+```bash
+systemd-run --user --scope --quiet \
+  -p CPUQuota=20% -p MemoryMax=256M -p MemorySwapMax=0 \
+  -p TasksMax=24 -p IOWeight=10 \
+  nice -n 15 ionice -c 3 \
+  env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  PYTHONPATH=openhab/scripts:/home/sat/Solar_PV/analytics/src \
+  timeout 25s python3 openhab/scripts/household_capture.py \
+  --config /private/config.json > /private/inputs.json
+```
+
+The output file contains private original source data and must stay outside Git.
