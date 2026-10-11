@@ -191,3 +191,31 @@ def test_outcome_cli_replays_owned_mathematical_fixture_with_original_runtime(tm
     result=subprocess.run([sys.executable,str(Path(__file__).with_name('household_outcomes.py')),'--receipt',str(path)],capture_output=True,text=True,timeout=20,env=environment)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)==receipt
+
+
+@pytest.mark.parametrize('damage',['epoch','measurement','plan_snapshot'])
+def test_resealed_origin_cannot_substitute_sensor_or_source_snapshot(tmp_path,monkeypatch,damage):
+    args=inputs(tmp_path,monkeypatch);value=args['origin'].to_dict();prepared=value['prepared_thermal'];snap=prepared['snapshot']
+    if damage=='epoch':
+        phase='00000000-0000-0000-0000-000000000001'
+        snap['domains']['thermal']['air_temperature']['evidence']['hardware_epoch']=phase
+        from thermal_model.temperature_history import STREAMS,POLICY
+        from weather_temperature_evidence import TemperaturePolicy,MODELS
+        from weather_temperature_receiver import TemperatureCollector
+        from weather_temperature_sources import build_temperature_source,replay_temperature_source
+        stream,model,sensor_id=STREAMS['air'];policy=TemperaturePolicy(model,sensor_id,**POLICY)
+        target=instant(args['outcome_sources']['1']['targets'][0]);observed=target-timedelta(seconds=60)
+        collector=TemperatureCollector({stream:policy},sensor_epochs={stream:phase},clock=lambda:observed,process_id=lambda:1,monotonic=lambda:1000.)
+        collector.observe({'model':model,'id':str(sensor_id),MODELS[model][1]:'75'})
+        packet=build_temperature_source(rows=[(observed,json.dumps(collector.snapshot()))],targets=[target],assessed_at=args['assessed_at'],stream=stream,policy=policy,sensor_epoch=phase)
+        assert replay_temperature_source(packet)[0][1]['sensorEpoch']==phase
+        args['outcome_sources']={'1':packet}
+    elif damage=='measurement':snap['domains']['thermal']['air_temperature']['value']+=1
+    else:snap['code_revision']='b'*40
+    snap['snapshot_id']=identity({key:item for key,item in snap.items() if key!='snapshot_id'})
+    prepared['prepared_sha256']=identity({key:item for key,item in prepared.items() if key!='prepared_sha256'})
+    value['origin_sha256']=identity({key:item for key,item in value.items() if key!='origin_sha256'})
+    from household.outcome_origin import PreparedOutcomeOrigin
+    with pytest.raises(ValueError):
+        args['origin']=PreparedOutcomeOrigin(canonical(value))
+        api().seal_outcomes(**args)

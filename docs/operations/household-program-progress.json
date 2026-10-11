@@ -195,8 +195,8 @@
       "hosted_ci": "all five passed"
     },
     "chronological_outcomes": {
-      "focused_tests": 20,
-      "household_and_forecast_tests": 475,
+      "focused_tests": 23,
+      "household_and_forecast_tests": 478,
       "actual_original_delivery_reverified": true,
       "original_capture_sha256": "ffbe059998d1ccd4b62bd7d7028d9611be70c58e71a12c273f359afb0fa2c42c",
       "mature_qualified_horizons_hours": [
@@ -215,7 +215,7 @@
       "causal_benefit_qualified": false,
       "automatic_actuation": false,
       "full_outcome_requirement_complete": false,
-      "review": "pending"
+      "review": "one Important sensor-binding finding fixed with three RED-to-GREEN regressions; no additional review findings"
     }
   }
 }

@@ -40,7 +40,8 @@ def seal_outcomes(*,plan_receipt,origin,outcome_sources,assessed_at,plan_runtime
     projection=original_plan['output']['projections']['thermal']
     if projection is None:raise ValueError('original thermal model unavailable')
     expected=project(origin.prepared);source=origin.prepared.to_dict()
-    if (canonical(projection['output'])!=canonical(expected['output']) or
+    if (canonical(projection['snapshot'])!=canonical(expected['snapshot']) or
+        canonical(projection['output'])!=canonical(expected['output']) or
         projection['original_capture_sha256']!=expected['original_capture_sha256'] or
         canonical(source['executing_runtime'])!=canonical(thermal_runtime)):
         raise ValueError('delivered forecast differs from household projection')
