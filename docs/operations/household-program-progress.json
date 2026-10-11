@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Immutable v1 foundation and bounded original collector merged. Explicit v2 expanded snapshot now preserves four mature atomic power roles alongside SoC, PV day and native temperatures; preliminary actual nine-role capture replayed identically. 635 affected regressions pass. Final committed-runtime capture and review remain finish gates. Physical bank/usable energy, load/forecast/weather/authority adapters and v2 model/planner adoption remain incomplete.",
+      "current_evidence": "Immutable v1 foundation and bounded original collector merged. Explicit v2 snapshot and collector preserve four mature atomic power roles alongside SoC, PV day and native temperatures. Actual nine-role capture from committed0512be3 replayed identically;635 affected regressions pass. Independent review/hosted publication remain finish gates. Physical bank/usable energy, load/forecast/weather/authority adapters and v2 model/planner adoption remain incomplete.",
       "complete": false
     },
     {
@@ -346,13 +346,21 @@
       "preliminary_actual_qualified_roles": 9,
       "preliminary_actual_as_of": "2026-10-11T19:43:19.415369+00:00",
       "preliminary_actual_receipt_raw_sha256": "3aa9b0fe49f6af70b35220367c438df1b367a5b788010a12768bb8cea46b0a58",
-      "committed_runtime_actual_capture_verified": false,
+      "committed_runtime_actual_capture_verified": true,
       "original_bank_provenance_qualified": false,
       "whole_household_load_qualified": false,
       "v2_model_planner_integration_complete": false,
       "automatic_actuation": false,
       "full_common_snapshot_requirement_complete": false,
-      "companion_pin": "24d2e8984810cb596fe9792768510a356786f709"
+      "companion_pin": "24d2e8984810cb596fe9792768510a356786f709",
+      "actual_qualified_roles": 9,
+      "actual_as_of": "2026-10-11T19:49:42.099070+00:00",
+      "actual_receipt_raw_sha256": "7938816df4e1e8787c88977b3bcaeb608cc6e3630586e8a5f23bfc168ab57bc8",
+      "actual_source_revision": "0512be3dcc3c5950f7926030413c999a9e292941",
+      "actual_current_energy_complete": true,
+      "actual_full_energy_complete": false,
+      "actual_pure_replay_identical": true,
+      "configuration_and_runtime_rechecked": true
     }
   }
 }

@@ -22,8 +22,8 @@ Create household/power_snapshot.py and test_household_power_snapshot.py. Compile
 
 Create household/power_capture.py. Read only fixed Power_Evidence_JSON and Inverter_AC_Evidence_JSON in dedicated read-only REPEATABLE READ transactions, unique Item mapping and latest-two bounded originals; newest NULL is retained, ambiguous ties refused. Compose the original collector with an outer15-second common deadline and finalize all roles at one shared clock.
 
-- [ ] RED then GREEN fixed-query/deadline/invalid-row/closure tests and whole affected suite.
-- [ ] Private actual capture using existing restricted credentials, independent current owner epoch receipts and existing native policies; exact original digest/readback and pure sealed replay. If actual roles withhold, retain that result without inferring qualification or granting new permissions.
+- [x] RED then GREEN fixed-query/deadline/invalid-row/closure tests and whole affected suite.
+- [x] Private actual capture using existing restricted credentials, independent current owner epoch receipts and existing native policies; exact original digest/readback and pure sealed replay. If actual roles withhold, retain that result without inferring qualification or granting new permissions.
 - [ ] Update canonical progress, document v2 integration still required, commit and one final review. One Important/Critical TDD fix pass; Minor findings recorded.
 
 ## Review focus
@@ -31,3 +31,5 @@ Create household/power_capture.py. Read only fixed Power_Evidence_JSON and Inver
 Per-field age/expiry cannot be renewed by receipt persistence; software epochs cannot become physical bank epochs; inverter output cannot become household load; latest malformed/NULL rows cannot fall back to older values; nested collection cannot renew the common total deadline; old v1 receipts and original source manifests must not change; v2 is not silently treated as planner-authorized or fully source-complete.
 
 Task 1 evidence:18 tests RED (missing module) then GREEN18/18 in1.29s under strict caps. Existing v1 files remain unchanged. Task2 capture/integration and final review are still outstanding. Hosted companion pin d24771b lacks the AC parser; published24d2e898 contains it and preserves pinned ancestry. Verify the changed dependency closure before updating both CI pins.
+
+Task2 evidence:22 capture tests RED then combined40/40 GREEN; full635/635 PASS146.91s under strict caps. Final actual committed0512be3 capture9qualifiedroles at19:49:42UTC, rawreceiptSHA7938816df4e1e8787c88977b3bcaeb608cc6e3630586e8a5f23bfc168ab57bc8; exactconfig/runtime/source readback and pure identicalreplay. Fullenergy false, v2integration incomplete.
