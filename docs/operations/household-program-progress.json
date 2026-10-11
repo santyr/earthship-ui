@@ -130,7 +130,7 @@
     },
     "model_boundaries": {
       "energy_parity_cases": 72,
-      "focused_model_tests": 79,
+      "focused_model_tests": 80,
       "actual_production_original_issue": "2026-10-11T00:50:15+00:00",
       "actual_original_capture_sha256": "ffbe059998d1ccd4b62bd7d7028d9611be70c58e71a12c273f359afb0fa2c42c",
       "exact_24h_thermal_parity": true,
@@ -145,10 +145,11 @@
       "pr": 14,
       "fixture_portability_fix_head": "acbce77b6ca5a75e33a9a45f912338fd2b2f806e",
       "fixture_followup_review": "approved; production verifier unchanged",
-      "hosted_ci": "replacement broad test running; other four checks passed"
+      "hosted_ci": "all five passed",
+      "merge": "028c44d50e0cc85f008da4ce558361106af1762a"
     },
     "shadow_decisions": {
-      "focused_tests": 33,
+      "focused_tests": 39,
       "max_candidates": 8,
       "max_subsets": 256,
       "horizons_hours": [
@@ -161,7 +162,7 @@
       "decision_replay_identical": true,
       "model_backed_planning_qualified": false,
       "automatic_actuation": false,
-      "review": "pending"
+      "review": "Important replay-context finding fixed; narrow follow-up pending"
     }
   }
 }

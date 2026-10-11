@@ -188,7 +188,8 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
     arguments={**arguments,'candidates':tuple(arguments['candidates']),'coordination':loads(canonical(arguments['coordination'])),'utilities':dict(arguments['utilities'])}
     output=plan(**arguments)
     inputs=dict(snapshot=arguments['snapshot'].to_dict(),registry=arguments['registry'].to_dict(),
-        candidates=[item.to_dict() for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)],
+        candidates=[dict(intent=item.to_dict(),validation_snapshot=item.snapshot.to_dict(),validated_at=item.validated_at.isoformat())
+                    for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)],
         coordination=arguments['coordination'],utilities=arguments['utilities'],now=now.isoformat(),reserve_soc=arguments['reserve_soc'],horizon_hours=arguments['horizon_hours'])
     receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v1',inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
@@ -213,7 +214,17 @@ def replay_plan(receipt,*,runtime_manifest):
     if registry.registry_id!=registry_document['registry_id']:raise ValueError('original registry identity differs')
     now=instant(value['now'])
     if not isinstance(value['candidates'],list) or len(value['candidates'])>MAX_CANDIDATES:raise ValueError('bounded original candidate set required')
-    candidates=[parse_intent(canonical(item).decode(),snapshot=snapshot,now=now) for item in value['candidates']]
+    candidates=[]
+    for item in value['candidates']:
+        if not isinstance(item,dict) or set(item)!={'intent','validation_snapshot','validated_at'}:
+            raise ValueError('closed original candidate validation context required')
+        original=item['validation_snapshot']
+        if not isinstance(original,dict) or 'snapshot_id' not in original:
+            raise ValueError('original candidate snapshot required')
+        validation_snapshot=HouseholdSnapshot(canonical({key:entry for key,entry in original.items() if key!='snapshot_id'}))
+        if validation_snapshot.snapshot_id!=original['snapshot_id']:
+            raise ValueError('original candidate snapshot identity differs')
+        candidates.append(parse_intent(canonical(item['intent']).decode(),snapshot=validation_snapshot,now=instant(item['validated_at'])))
     replayed=seal_plan(snapshot=snapshot,registry=registry,candidates=candidates,coordination=value['coordination'],utilities=value['utilities'],
         now=now,reserve_soc=value['reserve_soc'],horizon_hours=value['horizon_hours'],runtime_manifest=runtime,model_refs=receipt['model_refs'],forecast_ref=receipt['forecast_ref'])
     if canonical(replayed)!=canonical(receipt):raise ValueError('rederived original plan differs')

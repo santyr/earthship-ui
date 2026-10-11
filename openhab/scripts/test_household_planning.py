@@ -148,7 +148,7 @@ def test_changed_plan_or_provenance_cannot_reuse_sealed_receipt(damage):
     if damage=='output':receipt['plan']['selected_intent_ids']=[]
     elif damage=='input':receipt['inputs']['reserve_soc']=99.
     elif damage=='runtime':runtime['household/planning.py']='b'*64
-    elif damage=='ref':receipt['inputs']['candidates'][0]['evidenceRefs']=['f'*64]
+    elif damage=='ref':receipt['inputs']['candidates'][0]['intent']['evidenceRefs']=['f'*64]
     else:receipt['authorization']=True
     with pytest.raises(ValueError):api().replay_plan(receipt,runtime_manifest=runtime)
 
@@ -218,3 +218,33 @@ def test_unknown_owner_busy_state_does_not_become_idle_permission():
         ctx=context(snap);ctx['facts']['hex_southoutlet_cycle'].pop('owner_idle',None);return ctx
     result=run(ctx=changed)
     assert result['selected_intent_ids']==[] and result['candidate_decisions'][0]['status']=='unknown'
+
+
+@pytest.mark.parametrize('failure,seconds,reason',[
+    ('expired',120,'intent_expired'),('stale',100,'source_stale'),
+    ('snapshot',0,'snapshot_mismatch')])
+def test_replay_preserves_original_validation_context_for_rejected_candidates(failure,seconds,reason):
+    snap,registry=setup();item=candidate(snap)
+    decision_snapshot=snapshot(config_revision='c'*64) if failure=='snapshot' else snap
+    receipt=api().seal_plan(snapshot=decision_snapshot,registry=registry,candidates=[item],
+        coordination=context(decision_snapshot),utilities={item.intent_id:10.},
+        now=NOW+timedelta(seconds=seconds),reserve_soc=10.,horizon_hours=24,
+        runtime_manifest={'household/planning.py':'a'*64},model_refs=[],forecast_ref=None)
+    assert receipt['plan']['selected_intent_ids']==[]
+    assert receipt['plan']['candidate_decisions'][0]['reason']==reason
+    assert api().replay_plan(receipt,runtime_manifest={'household/planning.py':'a'*64})==receipt
+
+
+@pytest.mark.parametrize('damage',['extra','snapshot','validation_clock'])
+def test_replay_refuses_changed_original_candidate_context_even_when_resealed(damage):
+    from household.codec import identity
+    snap,registry=setup();item=candidate(snap)
+    receipt=api().seal_plan(snapshot=snap,registry=registry,candidates=[item],
+        coordination=context(snap),utilities={item.intent_id:10.},now=NOW,
+        reserve_soc=10.,horizon_hours=24,runtime_manifest={'household/planning.py':'a'*64},model_refs=[],forecast_ref=None)
+    entry=receipt['inputs']['candidates'][0]
+    if damage=='extra':entry['authorized']=True
+    elif damage=='snapshot':entry['validation_snapshot']['snapshot_id']='f'*64
+    else:entry['validated_at']=(NOW+timedelta(seconds=120)).isoformat()
+    receipt['receipt_sha256']=identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})
+    with pytest.raises(ValueError):api().replay_plan(receipt,runtime_manifest={'household/planning.py':'a'*64})
