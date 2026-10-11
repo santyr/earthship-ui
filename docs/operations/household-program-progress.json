@@ -412,11 +412,18 @@
       "affected_tests": 657,
       "affected_suite_seconds": 184.5,
       "review": "One Important enclosing-outcome closure dispatch issue reproduced with a real sealed outcome, fixed in one pass, and full affected suite passed; no Critical or Minor findings. Static review only.",
-      "hosted_ci": "pending",
+      "hosted_ci": "all four passed",
       "full_common_snapshot_requirement_complete": false,
       "full_program_complete": false,
       "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
-      "intermittent_delivery_failure_resolved": false
+      "intermittent_delivery_failure_resolved": false,
+      "head": "8f912be3e248b5610e569277533f04dd2c88fd48",
+      "merge": "b297411e80cd1d546bf3df1e2797f84a4b5eb3cb",
+      "ci_run": 38174821452,
+      "final_documentation_head_cli_replay_identical": true,
+      "deployed_ui_parser_state": "ready",
+      "deployed_ui_parser_mode": "provisional",
+      "deployed_ui_parser_confidence": "low"
     }
   }
 }
