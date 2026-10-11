@@ -121,6 +121,12 @@ def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runti
     now=utc(now);config=_config(config);runtime=_runtime_manifest(runtime_manifest)
     snap=snapshot.to_dict()
     if instant(snap['as_of'])>now or instant(snap['created_at'])>now:raise ValueError('shared snapshot unavailable at decision')
+    from .model_snapshot import ModelSnapshot,verify_model_binding,verify_source_runtime
+    expanded=isinstance(snapshot,ModelSnapshot)
+    if snap.get('schema')=='earthship-household-snapshot/v3' and not expanded:raise ValueError('verified model snapshot required')
+    if expanded:
+        verify_source_runtime(snapshot,runtime)
+        verify_model_binding(snapshot,thermal_inputs)
     coordination=loads(canonical(coordination))
     projections=_projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,config['horizon_hours'])
     candidates,utilities,no_action,generation=_candidates(snapshot,projections,config,now)
@@ -132,22 +138,27 @@ def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runti
     output=dict(projections=projections,candidate_intents=[item.to_dict() for item in candidates],no_action_intent=no_action.to_dict(),
         candidate_generation=generation,thermal_comfort=_comfort(projections['thermal'],config,now),plan_receipt=plan_receipt,
         action_effects_qualified=False,automatic_actuation=False)
-    receipt=dict(schema='earthship-household-model-plan-receipt/v1',inputs=inputs,runtime_manifest=runtime,output=output)
+    if expanded:inputs['source_contexts']={snapshot.snapshot_id:snapshot.source_receipt}
+    receipt=dict(schema='earthship-household-model-plan-receipt/v'+str(2 if expanded else 1),inputs=inputs,runtime_manifest=runtime,output=output)
     receipt['receipt_sha256']=identity(receipt)
     if len(canonical(receipt))>MAX_BYTES:raise ValueError('bounded model/plan receipt required')
     return loads(canonical(receipt))
 
 
 def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
-    if not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema']!='earthship-household-model-plan-receipt/v1' or len(canonical(receipt))>MAX_BYTES:
+    if not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema'] not in ('earthship-household-model-plan-receipt/v1','earthship-household-model-plan-receipt/v2') or len(canonical(receipt))>MAX_BYTES:
         raise ValueError('closed bounded original model/plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:
         raise ValueError('sealed original model/plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing model/plan runtime differs')
     value=receipt['inputs']
-    if not isinstance(value,dict) or set(value)!=INPUT_FIELDS:raise ValueError('closed original model/plan inputs required')
-    snapshot=_restore(value['snapshot'],HouseholdSnapshot,'snapshot_id')
+    expanded=receipt['schema'].endswith('/v2')
+    if not isinstance(value,dict) or set(value)!=(INPUT_FIELDS|{'source_contexts'} if expanded else INPUT_FIELDS):raise ValueError('closed original model/plan inputs required')
+    from .model_snapshot import restore_snapshot
+    contexts=value.get('source_contexts')
+    if expanded and (not isinstance(contexts,dict) or set(contexts)!={value['snapshot']['snapshot_id']}):raise ValueError('exact original source context required')
+    snapshot=restore_snapshot(value['snapshot'],contexts)
     registry=_restore(value['registry'],CapabilityRegistry,'registry_id')
     energy=None if value['energy_inputs'] is None else PreparedEnergyInputs(canonical(value['energy_inputs']))
     thermal=None if value['thermal_inputs'] is None else PreparedProjection(canonical(value['thermal_inputs']))

@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Immutable v1 foundation and bounded original collector merged. Explicit v2 snapshot and collector preserve four mature atomic power roles alongside SoC, PV day and native temperatures. Actual nine-role capture from committed0512be3 replayed identically;635 affected regressions pass. Independent static review has no blocking issue; hosted verification/publication remain finish gates. Accepted thermal artifact identity/confidence representation remains missing. Physical bank/usable energy, load/forecast/weather/authority adapters and v2 model/planner adoption remain incomplete.",
+      "current_evidence": "Original v1 and expanded v2 collectors merged; PR22 exact head passed all five hosted checks and merged54863f. Actual nine-role committed-source capture replayed identically. Model-bound v3 implementation has657 passing affected regressions and an independently reviewed/fixed outcome closure path, retaining original provisional artifact identity/low confidence and exact thermal source rows. Full bank/usable energy, household load, forecast/weather/authority and owner qualification remain incomplete.",
       "complete": false
     },
     {
@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy extraction matches 72 frozen production cases. Frozen thermal adapter matches a retained original 24h trajectory and performs no reads inside projection. Executing runtime is separately bound. Expanded common model inputs and full cross-domain projections remain incomplete. Exact energy arguments are now retained, and integrated mathematical projections share one frozen snapshot.",
+      "current_evidence": "Pure energy extraction preserves72 production golden cases; prepared original thermal output preserves its original24h trajectory. New v3 integration shares an original source/model clock and restores source context through pure plan/pipeline replay. 657 affected tests pass under serial caps after the single independently reviewed Important outcome-closure fix. A current source capture binds to the naturally delivered21:00:15UTC thermal issue; original24h trajectory, pure and privateCLI model/candidate/plan replay are identical. Eight roles remain qualified at the common clock; inverter AC expiry is preserved. Energy numerical parameters are a new shadow context with input qualification not_assessed, not qualified bank/load/weather data. Hosted checks and full cross-domain sources remain pending. Full cross-domain inputs and trajectories are incomplete.",
       "complete": false
     },
     {
@@ -364,7 +364,59 @@
       "review_head": "7b859d503f88a4c02ee734a7d8f6b4994750aabc",
       "review": "No Critical/Important findings; one Minor missing accepted thermal artifact identity/confidence representation deferred; static review only.",
       "deferred_minor": "Thermal accepted artifact identity/confidence absent from v2 schema; explicit representation remains full-scope follow-up.",
-      "hosted_ci": "pending"
+      "hosted_ci": "all five passed",
+      "pr": 22,
+      "head": "ae8c037d14925129c39040fccb4056cb93dfddc0",
+      "merge": "54863f8841e8f16fd1c5ec36a8df871b7888475c",
+      "model_bound_wrapper_integrates_v2_sources": true
+    },
+    "source_bound_model_snapshot": {
+      "action_effects_qualified": false,
+      "automatic_actuation": false,
+      "common_model_issue": "2026-10-11T21:00:15+00:00",
+      "confidence": "low",
+      "current_energy_complete": false,
+      "decision_at": "2026-10-11T21:01:15.056719+00:00",
+      "delivery_sha256": "2ea6165ccdd74fcbcb2f984728c0bfd62d3446239abd265e15e20b008dc44bee",
+      "earlier_parameter_packet_raw_sha256": "f1455aed403bd5db09d37091e614f969e5231d93880d8ce049b67c2028ff220e",
+      "energy_context": "new_shadow_projection_earlier_retained_parameters_plus_current_original_soc",
+      "energy_input_qualification": "not_assessed",
+      "exact_original_24h_thermal_trajectory": true,
+      "full_energy_complete": false,
+      "inverter_output_reason": "expired_source",
+      "original_capture_sha256": "643db704d46883fecc79cf88dffd6bd789785ada087924b8f90d6a637cd070ae",
+      "original_delivery_verified": true,
+      "physical_bank_qualified": false,
+      "private_cli_replay_identical": true,
+      "pure_replay_identical": true,
+      "qualified_roles": [
+        "battery_power_w",
+        "battery_soc",
+        "pv_day_wh",
+        "pv_input_power_w",
+        "pv_output_power_w",
+        "air_temperature",
+        "mass_temperature",
+        "outdoor_temperature"
+      ],
+      "receipt_sha256": "242c493f188caf3a39c01314f4c81439c239f069f34d6e3d06367f4e508ca0d2",
+      "selected_count": 0,
+      "snapshot_id": "31bce2ae3bb66c0c238aef87fed32fe7220a320b5f7514398351b85ccaa04c3c",
+      "source_as_of": "2026-10-11T20:59:47.334091+00:00",
+      "source_receipt_raw_sha256": "eb10870faec711f23f2301754768f2a0785210cf33538181d2c8e7d6fcd8d270",
+      "source_revision": "42a87b8fcff0ee9548c8ca2aa2e88a4175742771",
+      "status": "actual_shared_source_models_replayed",
+      "pr": 23,
+      "reviewed_head": "4c90fbe819a4dfcc0820be01028b2e6cd7715726",
+      "review_fix_head": "42a87b8fcff0ee9548c8ca2aa2e88a4175742771",
+      "affected_tests": 657,
+      "affected_suite_seconds": 184.5,
+      "review": "One Important enclosing-outcome closure dispatch issue reproduced with a real sealed outcome, fixed in one pass, and full affected suite passed; no Critical or Minor findings. Static review only.",
+      "hosted_ci": "pending",
+      "full_common_snapshot_requirement_complete": false,
+      "full_program_complete": false,
+      "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
+      "intermittent_delivery_failure_resolved": false
     }
   }
 }
