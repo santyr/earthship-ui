@@ -44,19 +44,19 @@
     {
       "phase": "5",
       "requirement": "Hard constraint registry and deterministic arbiter",
-      "current_evidence": "notimplemented",
+      "current_evidence": "Pure hard-gate registry and deterministic owner/cumulative-reserve arbitration implemented under declared shadow bounds. Live coordination source adapters and qualified bounds remain incomplete.",
       "complete": false
     },
     {
       "phase": "6",
       "requirement": "Shadow household planner",
-      "current_evidence": "notimplemented",
+      "current_evidence": "Bounded exhaustive shadow decision engine implemented; known/unknown gates precede declared utility. Model-backed candidate generation, rolling operational inputs and actual/current-owner baselines remain incomplete.",
       "complete": false
     },
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Snapshot replay merged in PR #11. Sealed plan replay and chronological planner outcome scoring are not implemented.",
+      "current_evidence": "Sealed complete decision inputs/outputs replay identically through a bounded private CLI; actual-native missing-input probe selected no action. Independent trajectory rederivation, chronological outcomes and real full-pipeline replay remain incomplete.",
       "complete": false
     },
     {
@@ -141,7 +141,27 @@
       "review": "approved; no Critical or Important findings",
       "combined_focused_regressions": 345,
       "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
-      "review_head": "88eb2b70c6a4423d23891eedcafa3e316784e0d6"
+      "review_head": "88eb2b70c6a4423d23891eedcafa3e316784e0d6",
+      "pr": 14,
+      "fixture_portability_fix_head": "acbce77b6ca5a75e33a9a45f912338fd2b2f806e",
+      "fixture_followup_review": "approved; production verifier unchanged",
+      "hosted_ci": "replacement broad test running; other four checks passed"
+    },
+    "shadow_decisions": {
+      "focused_tests": 33,
+      "max_candidates": 8,
+      "max_subsets": 256,
+      "horizons_hours": [
+        6,
+        12,
+        24
+      ],
+      "scope": "declared_shadow_bounds",
+      "actual_native_missing_input_gate_verified": true,
+      "decision_replay_identical": true,
+      "model_backed_planning_qualified": false,
+      "automatic_actuation": false,
+      "review": "pending"
     }
   }
 }
