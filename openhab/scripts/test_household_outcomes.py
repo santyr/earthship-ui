@@ -94,3 +94,53 @@ def test_score_replay_never_reads_live_or_original_files(tmp_path,monkeypatch):
     def forbidden(*a,**k):pytest.fail('read inside pure chronological scoring')
     monkeypatch.setattr(builtins,'open',forbidden);monkeypatch.setattr(Path,'read_bytes',forbidden);monkeypatch.setattr(psycopg2,'connect',forbidden)
     assert api().replay_outcomes(result,plan_runtime_manifest=args['plan_runtime_manifest'],outcome_runtime_manifest=args['outcome_runtime_manifest'],thermal_runtime=args['thermal_runtime'])==result
+
+
+def test_daily_evidence_units_report_no_independence_or_causal_claim(tmp_path,monkeypatch):
+    args=inputs(tmp_path,monkeypatch);mod=api();assert hasattr(mod,'summarize_outcomes'),'chronological summary missing'
+    receipt=mod.seal_outcomes(**args)
+    summary=mod.summarize_outcomes([receipt],plan_runtime_manifest=args['plan_runtime_manifest'],outcome_runtime_manifest=args['outcome_runtime_manifest'],thermal_runtime=args['thermal_runtime'])
+    group=summary['by_horizon']['1']
+    assert group['raw_pair_count']==1 and group['unique_daily_units']==1 and group['unique_observations']==1
+    assert group['model']['mae_f']==receipt['output']['thermal']['1']['absolute_errors_f']['model']
+    assert summary['cohort_policy']['independence_assessed'] is False
+    assert summary['graduated'] is False and summary['causal_benefit_qualified'] is False
+    assert summary['by_horizon']['6']['model']['mae_f'] is None
+
+
+def test_reassessing_same_original_endpoint_cannot_inflate_evidence(tmp_path,monkeypatch):
+    args=inputs(tmp_path,monkeypatch);mod=api();assert hasattr(mod,'summarize_outcomes'),'chronological summary missing'
+    first=mod.seal_outcomes(**args);args['assessed_at']+=timedelta(seconds=1)
+    args['outcome_sources']['1']['assessed_at']=args['assessed_at'].isoformat();second=mod.seal_outcomes(**args)
+    assert first['receipt_sha256']!=second['receipt_sha256']
+    with pytest.raises(ValueError):mod.summarize_outcomes([first,second],plan_runtime_manifest=args['plan_runtime_manifest'],outcome_runtime_manifest=args['outcome_runtime_manifest'],thermal_runtime=args['thermal_runtime'])
+
+
+def test_summary_replays_source_scores_before_accepting_counts(tmp_path,monkeypatch):
+    args=inputs(tmp_path,monkeypatch);mod=api();assert hasattr(mod,'summarize_outcomes'),'chronological summary missing'
+    receipt=mod.seal_outcomes(**args);receipt['output']['thermal']['1']['actual_f']=0.
+    receipt['receipt_sha256']=identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})
+    with pytest.raises(ValueError):mod.summarize_outcomes([receipt],plan_runtime_manifest=args['plan_runtime_manifest'],outcome_runtime_manifest=args['outcome_runtime_manifest'],thermal_runtime=args['thermal_runtime'])
+
+
+def test_native_null_barrier_keeps_mature_outcome_unavailable(tmp_path,monkeypatch):
+    args=inputs(tmp_path,monkeypatch);args['outcome_sources']['1']['native_rows'][0][1]=None
+    result=api().seal_outcomes(**args)
+    assert result['output']['thermal']['1']['status']=='source_unavailable'
+    assert result['output']['thermal']['1']['errors_f'] is None
+
+
+def test_source_packet_before_maturity_is_refused(tmp_path,monkeypatch):
+    args=inputs(tmp_path,monkeypatch);args['assessed_at']-=timedelta(microseconds=1)
+    args['outcome_sources']['1']['assessed_at']=args['assessed_at'].isoformat()
+    with pytest.raises(ValueError):api().seal_outcomes(**args)
+
+
+def test_distinct_valid_artifacts_are_not_pooled_into_one_cohort(tmp_path,monkeypatch):
+    first_path=tmp_path/'first';second_path=tmp_path/'second';first_path.mkdir();second_path.mkdir()
+    first_args=inputs(first_path,monkeypatch);second_args=inputs(second_path,monkeypatch);mod=api()
+    assert hasattr(mod,'summarize_outcomes'),'chronological summary missing'
+    first=mod.seal_outcomes(**first_args);second=mod.seal_outcomes(**second_args)
+    assert first['output']['model_identity']!=second['output']['model_identity']
+    with pytest.raises(ValueError):mod.summarize_outcomes([first,second],plan_runtime_manifest=first_args['plan_runtime_manifest'],
+        outcome_runtime_manifest=first_args['outcome_runtime_manifest'],thermal_runtime=first_args['thermal_runtime'])

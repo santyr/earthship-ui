@@ -101,3 +101,45 @@ def replay_outcomes(receipt,*,plan_runtime_manifest,outcome_runtime_manifest,the
         plan_runtime_manifest=plan_runtime_manifest,outcome_runtime_manifest=runtime,thermal_runtime=thermal_runtime)
     if canonical(replayed)!=canonical(receipt):raise ValueError('rederived original outcome scores differ')
     return replayed
+
+
+from statistics import mean
+from zoneinfo import ZoneInfo
+SITE=ZoneInfo('America/Denver')
+
+
+def summarize_outcomes(receipts,*,plan_runtime_manifest,outcome_runtime_manifest,thermal_runtime):
+    if not isinstance(receipts,list) or len(receipts)>32:raise ValueError('bounded original chronological cohort required')
+    byte_count=0;checked=[]
+    for receipt in receipts:
+        byte_count+=len(canonical(receipt))
+        if byte_count>8*1024*1024:raise ValueError('chronological cohort byte budget exceeded')
+        checked.append(replay_outcomes(receipt,plan_runtime_manifest=plan_runtime_manifest,
+            outcome_runtime_manifest=outcome_runtime_manifest,thermal_runtime=thermal_runtime))
+    models={canonical(record['output']['model_identity']) for record in checked}
+    if len(models)>1:raise ValueError('mixed model or sensor revision cohort refused')
+    identities=set();groups={str(hours):[] for hours in HORIZONS}
+    for receipt in checked:
+        output=receipt['output'];issue=instant(output['issued_at']);day=issue.astimezone(SITE).date().isoformat()
+        for horizon,pair in output['thermal'].items():
+            if pair['status']!='scored':continue
+            key=(output['issued_at'],horizon)
+            if key in identities:raise ValueError('duplicate original issued endpoint score refused')
+            identities.add(key);groups[horizon].append((day,pair))
+    by_horizon={}
+    for horizon,group in groups.items():
+        days=sorted({day for day,_ in group});stats={}
+        for model in ('model','persistence'):
+            daily=[[pair['errors_f'][model] for date,pair in group if date==day] for day in days]
+            stats[model]=dict(mae_f=mean(mean(abs(error) for error in values) for values in daily) if daily else None,
+                bias_f=mean(mean(values) for values in daily) if daily else None)
+        observations={(pair['outcome_receipt']['snapshotSha256'],pair['outcome_receipt']['receivedAt']) for _,pair in group}
+        by_horizon[horizon]=dict(raw_pair_count=len(group),unique_daily_units=len(days),unique_observations=len(observations),
+            original_issue_dates=days,**stats)
+    result=dict(schema='earthship-household-chronological-summary/v1',model_identity=None if not checked else checked[0]['output']['model_identity'],
+        score_receipt_sha256s=sorted(record['receipt_sha256'] for record in checked),by_horizon=by_horizon,
+        cohort_policy=dict(unit='original_issue_local_date',site_timezone=SITE.key,independence_assessed=False,
+            weighting='equal daily units; equal issued endpoints within each unit'),
+        causal_benefit_qualified=False,graduated=False,automatic_actuation=False)
+    result['summary_sha256']=identity(result)
+    return result
