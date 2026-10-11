@@ -14,25 +14,25 @@
 
 - Serial CPU20%, memory256MiB, swap0, tasks24, nice15, idle I/O, single numerical thread. No fitting or recovery tests/work.
 - No publisher start, forecast/actuator write, owner migration, grants, credentials, vent calculation or physical policy change.
-- Snapshot256KiB, weather context256KiB, plan512KiB, pipeline1MiB. Reject oversize; never drop originals or candidates to fit.
+- Snapshot256KiB, weather context256KiB, plan512KiB, pipeline1MiB. Complete original captures retain their existing2MiB decoded limit in an explicit canonical, digested compressed envelope; decode enforces size, EOF and no trailing data. Reject oversize; never drop originals or candidates to fit.
 - Preparation may verify original files; projection, snapshot binding and replay perform no I/O.
 - Original weather forecasts and operator context are metadata, not measured weather, calibrated effects or actuator position. No wind/rain/daylight/physical bank facts are inferred from radiation or a software epoch.
 - Preserve exact original thermal output, measured versus latent mass, November operator-default semantics, and original shade/legacy coarse vent/mode declarations. Never invent window/skylight split states.
 - The full bank/load/authority/owner/outcome/resource/UI/release requirements remain active beyond this stage.
 
-## Task1: Frozen original weather context
+### Task 1: Frozen original weather context
 
 Create `household/weather_context.py` and `test_household_weather_context.py`.
 
-Interfaces: `PreparedWeatherContext(content:bytes)`, `prepare_weather_context(capture,prepared_thermal)`, `project_weather(context)`. The closed canonical context stores original capture, prepared thermal and its own digest. Strong preparation reuses the original capture validator. Pure construction checks capture/thermal identity and clocks, original metric receipt reconstruction, original action snapshot semantics, exact five-minute forcing equality and original thermal output.
+Interfaces: `PreparedWeatherContext(content:bytes)`, `prepare_weather_context(capture,prepared_thermal)`, `project_weather(context)`. The closed canonical context stores a complete compressed original capture, prepared thermal and its own digest. Strong preparation reuses the original capture validator. Pure construction checks capture/thermal identity and clocks, original metric receipt reconstruction, original action snapshot semantics, exact five-minute forcing equality and original thermal output.
 
-- [ ] RED: module/API unavailable.
-- [ ] GREEN: original provider issue/receipt digests, hourly wind/weather codes and exact outdoor/radiation forcing are retained; confidence/input qualification is not_assessed; origin actions remain declarations.
-- [ ] Reject changed/resealed weather, capture/prepared linkage, availability, action snapshot or forcing. Returned dictionaries and caller originals cannot mutate frozen content.
-- [ ] Prove projection and restoration have no file/SQL reads. Keep current physical solar radiation, humidity, precipitation and wind unknown when no measured source exists.
-- [ ] Commit tested boundary; record RED/GREEN evidence and any rulings.
+- [x] RED: module/API unavailable.
+- [x] GREEN: original provider issue/receipt digests, hourly wind/weather codes and exact outdoor/radiation forcing are retained; confidence/input qualification is not_assessed; origin actions remain declarations.
+- [x] Reject changed/resealed weather, capture/prepared linkage, availability, action snapshot or forcing. Returned dictionaries and caller originals cannot mutate frozen content.
+- [x] Prove projection and restoration have no file/SQL reads. Keep current physical solar radiation, humidity, precipitation and wind unknown when no measured source exists.
+- [x] Commit tested boundary; record RED/GREEN evidence and any rulings.
 
-## Task2: Snapshot and replay adoption
+### Task 2: Snapshot and replay adoption
 
 Create `household/weather_snapshot.py` and `test_household_weather_pipeline.py`. Modify `model_snapshot.py`, `intents.py`, `planning.py`, `pipeline.py` and operational plan/pipeline/outcome closure dispatch.
 
