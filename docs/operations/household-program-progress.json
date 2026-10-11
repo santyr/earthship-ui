@@ -138,9 +138,10 @@
       "confidence": "low",
       "action_effects_qualified": false,
       "full_phase_3_complete": false,
-      "review": "pending independent stage review",
+      "review": "approved; no Critical or Important findings",
       "combined_focused_regressions": 345,
-      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial"
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
+      "review_head": "88eb2b70c6a4423d23891eedcafa3e316784e0d6"
     }
   }
 }
