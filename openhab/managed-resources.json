@@ -68,7 +68,24 @@
       "protectedDependencies": [
         "Goat_Plugs_Outlet2_Switch",
         "GoatFeedings"
-      ]
+      ],
+      "householdContract": {
+        "requestBindings": [
+          {
+            "requestItem": "GoatFeeder_ManualRequest",
+            "resultItem": "GoatFeeder_ManualResult"
+          }
+        ],
+        "protectedActuators": [
+          "Goat_Plugs_Outlet2_Switch"
+        ],
+        "safetyInputs": [],
+        "legacyIngresses": [],
+        "manualAuthority": "request",
+        "plannerAuthority": "none",
+        "contractVersion": "legacy-correlated-v1",
+        "safetyInputsComplete": false
+      }
     },
     "greywater": {
       "capability": "greywater-request-v1",
@@ -169,7 +186,31 @@
         "DCData_Voltage",
         "SkyCondition",
         "Sun_Position_Elevation"
-      ]
+      ],
+      "householdContract": {
+        "requestBindings": [
+          {
+            "requestItem": "SouthOutlet_ManualRequest",
+            "resultItem": "SouthOutlet_ManualResult"
+          }
+        ],
+        "protectedActuators": [
+          "SouthOutlet_Outlet2_Switch"
+        ],
+        "safetyInputs": [
+          "BMS_SOC",
+          "BMS_Comms_Status",
+          "DCData_Voltage",
+          "SouthOutlet_LowSocCutoff",
+          "SkyCondition",
+          "Sun_Position_Elevation"
+        ],
+        "legacyIngresses": [],
+        "manualAuthority": "request",
+        "plannerAuthority": "none",
+        "contractVersion": "legacy-correlated-v1",
+        "safetyInputsComplete": false
+      }
     },
     "night-load": {
       "capability": "night-load-owner-v1",
@@ -341,7 +382,32 @@
         "ShurefloPump_Power",
         "Goat_Plugs_Outlet1_Switch",
         "FeederOverride"
-      ]
+      ],
+      "householdContract": {
+        "requestBindings": [
+          {
+            "requestItem": "NightLoadOverride_Request",
+            "resultItem": "NightLoadOverride_Result"
+          },
+          {
+            "requestItem": "NightLoadDevice_Request",
+            "resultItem": "NightLoadDevice_Result"
+          }
+        ],
+        "protectedActuators": [
+          "Dish_Washer_Power",
+          "ShurefloPump_Power",
+          "Goat_Plugs_Outlet1_Switch"
+        ],
+        "safetyInputs": [],
+        "legacyIngresses": [
+          "OverrideSwitch"
+        ],
+        "manualAuthority": "request",
+        "plannerAuthority": "none",
+        "contractVersion": "legacy-correlated-v1",
+        "safetyInputsComplete": false
+      }
     }
   }
 }
