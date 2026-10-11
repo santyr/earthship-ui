@@ -308,7 +308,11 @@
       "household_baseline_qualified": false,
       "automatic_actuation": false,
       "full_resource_requirement_complete": false,
-      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial"
+      "local_caps": "CPU20%, memory256MiB, swap0, tasks24, serial",
+      "review_head": "66d16b7ff743d3fc6f8647bd621544194f29cd73",
+      "review": "No Critical or Important findings; one Minor direct coverage gap deferred. Independent review static only.",
+      "deferred_minor": "Direct rejected/unknown candidate experiment and CLI-level resealed-output tests absent; underlying replay checks covered.",
+      "hosted_ci": "pending"
     }
   }
 }

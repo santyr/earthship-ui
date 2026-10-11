@@ -32,9 +32,11 @@ Produces household/resources.py and test_household_resources.py. Consume origina
 
 Produces household_resources.py, CLI contract tests, operations docs and canonical progress. Consume existing complete original planner-runtime verifier; add exact new CLI and module hashes to analysis manifest. Recheck both file and manifest before stdout. Reject future assessments and nonprivate/special files. Pure analysis accepts declared effects without claiming source qualification.
 
-- [x] Write CLI tests for missing runtime closure, bad private input and tampered/resealed output; RED then GREEN.
+- [x] Write CLI tests for missing runtime closure and bad private input; RED then GREEN. Resealed-output refusal is covered by pure replay; direct CLI coverage remains a deferred Minor review gap.
 - [x] Replay one actual retained original plan in private staging through pure and CLI paths; exact equality and original byte recheck required. Unavailable effects remain unavailable.
 - [x] Run affected household/forecast suites under serial caps; broad verification hosted.
-- [ ] Commit, one independent review, one Important/Critical TDD fix pass; defer Minor findings with explicit ledger.
+- [x] Commit, one independent review, one Important/Critical TDD fix pass; defer Minor findings with explicit ledger.
 
 Full PR #3 stays active. These contracts do not qualify physical effects, original bank provenance, current-policy baselines or per-intent release.
+
+Final independent static review at 66d16b7 found no Critical/Important issue. One Minor coverage gap deferred: direct tests for rejected/unknown candidate experiments and CLI-level resealed-output refusal. Actual runtime evidence remains author-verified; review did not run tests or inspect private receipts.
