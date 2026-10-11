@@ -30,7 +30,7 @@ def _validate(value):
         raw=row['raw']
         if raw is None:
             if row['sha256'] is not None:raise ValueError('absent configuration cannot have a digest')
-        elif (not isinstance(raw,str) or not 1<=len(raw.encode())<=maximum or
+        elif (not isinstance(raw,str) or not 0<=len(raw.encode())<=maximum or
               sha256(raw.encode()).hexdigest()!=digest(row['sha256'])):
             raise ValueError('bounded exact original configuration bytes required')
 

@@ -36,7 +36,7 @@ def original_plan_runtime(plan,*,actual):
         required.update(POWER_COMPANIONS)
         if plan['schema'].endswith(('/v3','/v4')):required.update('openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot'))
         if plan['schema'].endswith('/v4'):
-            required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_source_snapshot','energy_outcome_sources'))
+            required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_configuration_capture','energy_source_snapshot','energy_outcome_sources'))
             required.add('openhab/scripts/advisory_windows.py')
         verify_source_closure(plan,actual)
     expected=plan['runtime_manifest']

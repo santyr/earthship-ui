@@ -499,8 +499,8 @@
     "original_energy_configuration": {
       "status": "pure_snapshot_and_energy_binding_verified",
       "configuration_tests": 28,
-      "affected_tests": 734,
-      "affected_suite_seconds": 483.3,
+      "affected_tests": 752,
+      "affected_suite_seconds": 476.59,
       "declared_nominal_bank_kwh": 20.48,
       "physical_capacity_calibration_qualified": false,
       "user_topology_attestation_reused": true,
@@ -515,7 +515,9 @@
       "independent_review": "pending",
       "hosted_ci": "pending",
       "original_ac_digest_retained_in_parents": true,
-      "derived_ac_deadline_enforces_topology": true
+      "derived_ac_deadline_enforces_topology": true,
+      "acquisition_tests": 18,
+      "configuration_collector_implemented": true
     }
   }
 }

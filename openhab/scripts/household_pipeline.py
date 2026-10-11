@@ -50,7 +50,7 @@ def verify_source_closure(record,actual):
             if canonical(weather.prepared.to_dict()['executing_runtime'])!=canonical(_execution_runtime(Path(__file__).resolve().parent)):raise ValueError('original weather executing runtime differs')
             weather_required={'openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot')}
             if configured:
-                weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_source_snapshot','energy_outcome_sources'))
+                weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_configuration_capture','energy_source_snapshot','energy_outcome_sources'))
                 weather_required.add('openhab/scripts/advisory_windows.py')
             source=source['power_receipt']
         expected=source['runtime_manifest']
