@@ -19,9 +19,12 @@ CONFIDENCE=frozenset(('unavailable','low','medium','high'))
 def _validate(value,snapshot,now):
     if not isinstance(snapshot,HouseholdSnapshot):raise ContractRefused('intent_invalid')
     snap=snapshot.to_dict()
-    if snap.get('schema')=='earthship-household-snapshot/v3':
+    if snap.get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4'):
         from .model_snapshot import ModelSnapshot
         if not isinstance(snapshot,ModelSnapshot):raise ContractRefused('intent_invalid')
+        if snap['schema'].endswith('/v4'):
+            from .weather_snapshot import WeatherSnapshot
+            if not isinstance(snapshot,WeatherSnapshot):raise ContractRefused('intent_invalid')
     elif snap.get('schema')!='earthship-household-snapshot/v1':raise ContractRefused('intent_invalid')
     if set(value)!=FIELDS or value['schema']!='earthship-household-intent/v1':raise ContractRefused('schema_unknown')
     body={key:item for key,item in value.items() if key!='intentId'}

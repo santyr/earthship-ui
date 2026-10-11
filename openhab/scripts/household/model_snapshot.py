@@ -134,6 +134,10 @@ def restore_model_snapshot(document,*,source_receipt):
 
 
 def restore_snapshot(document,source_contexts=None):
+    if document.get('schema')=='earthship-household-snapshot/v4':
+        from .weather_snapshot import restore_weather_snapshot
+        if not isinstance(source_contexts,dict) or document.get('snapshot_id') not in source_contexts:raise ValueError('original weather source context missing')
+        return restore_weather_snapshot(document,source_contexts[document['snapshot_id']])
     if document.get('schema')=='earthship-household-snapshot/v3':
         if not isinstance(source_contexts,dict) or document.get('snapshot_id') not in source_contexts:raise ValueError('original source context missing')
         return restore_model_snapshot(document,source_receipt=source_contexts[document['snapshot_id']])
@@ -148,3 +152,12 @@ def verify_source_runtime(snapshot,runtime_manifest):
     expected=snapshot.source_receipt['runtime_manifest']
     if not isinstance(runtime_manifest,dict) or any(runtime_manifest.get(name)!=sha for name,sha in expected.items()):
         raise ValueError('original source execution runtime differs')
+
+
+def snapshot_context(snapshot):
+    if snapshot.to_dict().get('schema')=='earthship-household-snapshot/v4':
+        from .weather_snapshot import WeatherSnapshot
+        if not isinstance(snapshot,WeatherSnapshot):raise ValueError('verified weather snapshot required')
+        return snapshot.source_context
+    if isinstance(snapshot,ModelSnapshot):return snapshot.source_receipt
+    return None

@@ -35,8 +35,16 @@ def verify_source_closure(record,actual):
         'openhab/managed-resources.json','openhab/file-config/ownership.json'))
     required.update(POWER_COMPANIONS)
     for source in contexts.values():
+        weather_required=set()
+        if source.get('schema')=='earthship-household-weather-source-context/v1':
+            from household.weather_context import PreparedWeatherContext
+            if set(source)!={'schema','power_receipt','weather_inputs'}:raise ValueError('closed original weather source context required')
+            weather=PreparedWeatherContext(canonical(source['weather_inputs']))
+            if canonical(weather.prepared.to_dict()['executing_runtime'])!=canonical(_execution_runtime(Path(__file__).resolve().parent)):raise ValueError('original weather executing runtime differs')
+            weather_required={'openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot')}
+            source=source['power_receipt']
         expected=source['runtime_manifest']
-        if not isinstance(expected,dict) or not required<=set(expected) or any(actual.get(name)!=sha for name,sha in expected.items()):
+        if not isinstance(expected,dict) or not (required|weather_required)<=set(expected) or any(actual.get(name)!=sha for name,sha in expected.items()):
             raise ValueError('complete original source execution closure differs')
 
 
@@ -45,7 +53,7 @@ def main(argv=None):
     parser.add_argument('--receipt',required=True,type=Path);args=parser.parse_args(argv)
     try:
         raw=_read(args.receipt,MAX_BYTES,private=True);record=loads(raw)
-        expanded=record.get('schema')=='earthship-household-model-plan-receipt/v2'
+        expanded=record.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3')
         executing=pipeline_runtime_manifest(expanded=expanded);root=Path(__file__).resolve().parent
         thermal=_execution_runtime(root) if record['inputs']['thermal_inputs'] is not None else None
         if expanded:verify_source_closure(record,executing)
