@@ -144,3 +144,50 @@ def test_distinct_valid_artifacts_are_not_pooled_into_one_cohort(tmp_path,monkey
     assert first['output']['model_identity']!=second['output']['model_identity']
     with pytest.raises(ValueError):mod.summarize_outcomes([first,second],plan_runtime_manifest=first_args['plan_runtime_manifest'],
         outcome_runtime_manifest=first_args['outcome_runtime_manifest'],thermal_runtime=first_args['thermal_runtime'])
+
+
+def test_outcome_cli_refuses_special_or_nonprivate_files(tmp_path):
+    import os,subprocess,sys
+    from pathlib import Path
+    script=Path(__file__).with_name('household_outcomes.py');assert script.exists(),'outcome CLI missing'
+    fifo=tmp_path/'fifo';os.mkfifo(fifo,0o600);public=tmp_path/'public';public.write_text('{}');public.chmod(0o644)
+    for path in (fifo,public):
+        result=subprocess.run([sys.executable,str(script),'--receipt',str(path)],capture_output=True,text=True,timeout=5)
+        assert result.returncode==1 and not result.stdout and 'Traceback' not in result.stderr
+
+
+def test_outcome_cli_checks_complete_original_plan_dependency_closure():
+    import importlib
+    assert importlib.util.find_spec('household_outcomes') is not None,'outcome CLI missing'
+    from household_outcomes import original_plan_runtime,outcome_runtime_manifest
+    actual=outcome_runtime_manifest()
+    with pytest.raises(ValueError):original_plan_runtime({'runtime_manifest':{'openhab/scripts/household/pipeline.py':actual['openhab/scripts/household/pipeline.py']}},actual=actual)
+    from household_pipeline import pipeline_runtime_manifest
+    original={'runtime_manifest':pipeline_runtime_manifest()}
+    assert original_plan_runtime(original,actual=actual)==original['runtime_manifest']
+    original['runtime_manifest']['openhab/scripts/household/pipeline.py']='f'*64
+    with pytest.raises(ValueError):original_plan_runtime(original,actual=actual)
+
+
+def test_outcome_cli_replays_owned_mathematical_fixture_with_original_runtime(tmp_path,monkeypatch):
+    import os,sys,subprocess
+    from pathlib import Path
+    assert importlib.util.find_spec('household_outcomes') is not None,'outcome CLI missing'
+    from household_outcomes import outcome_runtime_manifest
+    from household_pipeline import pipeline_runtime_manifest
+    from household.pipeline import seal_pipeline
+    from household.capabilities import CapabilityRegistry
+    args=inputs(tmp_path,monkeypatch);plan=args['plan_receipt'];source=plan['inputs']
+    snap=HouseholdSnapshot(canonical({key:value for key,value in source['snapshot'].items() if key!='snapshot_id'}))
+    registry=CapabilityRegistry(canonical({key:value for key,value in source['registry'].items() if key!='registry_id'}))
+    from household.thermal_model import PreparedProjection
+    runtime=pipeline_runtime_manifest();args['plan_runtime_manifest']=runtime;args['outcome_runtime_manifest']=outcome_runtime_manifest()
+    args['plan_receipt']=seal_pipeline(snapshot=snap,registry=registry,energy_inputs=None,thermal_inputs=PreparedProjection(canonical(source['thermal_inputs'])),
+        thermal_runtime=args['thermal_runtime'],coordination=source['coordination'],config=source['config'],now=instant(source['now']),runtime_manifest=runtime)
+    receipt=api().seal_outcomes(**args);path=tmp_path/'score.json';path.write_bytes(canonical(receipt));path.chmod(0o600)
+    # Execute the owned same-byte fixture interpreter with the parent's package
+    # search paths; hosted group-writable interpreter metadata is not release proof.
+    environment={**os.environ,'PYTHONPATH':os.pathsep.join(value for value in sys.path if value)}
+    result=subprocess.run([sys.executable,str(Path(__file__).with_name('household_outcomes.py')),'--receipt',str(path)],capture_output=True,text=True,timeout=20,env=environment)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)==receipt
