@@ -14,11 +14,19 @@ def main(argv=None):
     parser.add_argument('--receipt',required=True,type=Path);args=parser.parse_args(argv)
     try:
         raw=_read(args.receipt,512*1024,private=True);record=loads(raw)
-        executing=runtime_manifest()
-        executing['openhab/scripts/household_plan.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()
+        expanded=record.get('schema')=='earthship-household-shadow-plan-receipt/v2'
+        if expanded:
+            from household_pipeline import pipeline_runtime_manifest,verify_source_closure
+            executing=pipeline_runtime_manifest(expanded=True)
+            verify_source_closure(record,executing)
+        else:
+            executing=runtime_manifest()
+            executing['openhab/scripts/household_plan.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()
         replayed=replay_plan(record,runtime_manifest=executing)
-        repeated=runtime_manifest()
-        repeated['openhab/scripts/household_plan.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()
+        if expanded:repeated=pipeline_runtime_manifest(expanded=True)
+        else:
+            repeated=runtime_manifest()
+            repeated['openhab/scripts/household_plan.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()
         if repeated!=executing or _read(args.receipt,512*1024,private=True)!=raw:raise ValueError('original plan or executing runtime changed')
         sys.stdout.buffer.write(canonical(replayed)+b'\n');return 0
     except Exception:

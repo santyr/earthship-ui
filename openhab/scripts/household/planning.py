@@ -191,7 +191,14 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
         candidates=[dict(intent=item.to_dict(),validation_snapshot=item.snapshot.to_dict(),validated_at=item.validated_at.isoformat())
                     for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)],
         coordination=arguments['coordination'],utilities=arguments['utilities'],now=now.isoformat(),reserve_soc=arguments['reserve_soc'],horizon_hours=arguments['horizon_hours'])
-    receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v1',inputs=inputs,runtime_manifest=runtime,
+    from .model_snapshot import ModelSnapshot,verify_source_runtime
+    for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])):
+        if isinstance(item,ModelSnapshot):verify_source_runtime(item,runtime)
+        elif item.to_dict().get('schema')=='earthship-household-snapshot/v3':raise ValueError('verified model snapshot required')
+    contexts={item.snapshot_id:item.source_receipt for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])) if isinstance(item,ModelSnapshot)}
+    version=2 if contexts else 1
+    if contexts:inputs['source_contexts']=contexts
+    receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v'+str(version),inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
     receipt['receipt_sha256']=identity(receipt)
     if len(canonical(receipt))>512*1024:raise ValueError('bounded sealed plan receipt required')
@@ -199,16 +206,18 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema']!='earthship-household-shadow-plan-receipt/v1' or len(canonical(receipt))>512*1024:
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2') or len(canonical(receipt))>512*1024:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing planner runtime differs')
     value=receipt['inputs']
-    if not isinstance(value,dict) or set(value)!=INPUT_FIELDS:raise ValueError('closed original plan inputs required')
-    snapshot_document=value['snapshot'];snapshot_id=snapshot_document['snapshot_id']
-    snapshot=HouseholdSnapshot(canonical({key:item for key,item in snapshot_document.items() if key!='snapshot_id'}))
-    if snapshot.snapshot_id!=snapshot_id:raise ValueError('original snapshot identity differs')
+    expanded=receipt['schema'].endswith('/v2')
+    if not isinstance(value,dict) or set(value)!=(INPUT_FIELDS|{'source_contexts'} if expanded else INPUT_FIELDS):raise ValueError('closed original plan inputs required')
+    from .model_snapshot import restore_snapshot
+    contexts=value.get('source_contexts')
+    if expanded and (not isinstance(contexts,dict) or not 1<=len(contexts)<=MAX_CANDIDATES+1):raise ValueError('bounded original source contexts required')
+    snapshot=restore_snapshot(value['snapshot'],contexts)
     registry_document=value['registry']
     registry=CapabilityRegistry(canonical({key:item for key,item in registry_document.items() if key!='registry_id'}))
     if registry.registry_id!=registry_document['registry_id']:raise ValueError('original registry identity differs')
@@ -221,9 +230,7 @@ def replay_plan(receipt,*,runtime_manifest):
         original=item['validation_snapshot']
         if not isinstance(original,dict) or 'snapshot_id' not in original:
             raise ValueError('original candidate snapshot required')
-        validation_snapshot=HouseholdSnapshot(canonical({key:entry for key,entry in original.items() if key!='snapshot_id'}))
-        if validation_snapshot.snapshot_id!=original['snapshot_id']:
-            raise ValueError('original candidate snapshot identity differs')
+        validation_snapshot=restore_snapshot(original,contexts)
         candidates.append(parse_intent(canonical(item['intent']).decode(),snapshot=validation_snapshot,now=instant(item['validated_at'])))
     replayed=seal_plan(snapshot=snapshot,registry=registry,candidates=candidates,coordination=value['coordination'],utilities=value['utilities'],
         now=now,reserve_soc=value['reserve_soc'],horizon_hours=value['horizon_hours'],runtime_manifest=runtime,model_refs=receipt['model_refs'],forecast_ref=receipt['forecast_ref'])

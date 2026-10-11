@@ -16,14 +16,14 @@ Serial CPU20%, memory256MiB, swap0, tasks24, nice15, idle I/O, threads1. No fitt
 
 Create household/model_snapshot.py and tests. Replay the original power receipt, retain its snapshot/receipt identities, derive exact original provisional thermal context from PreparedProjection, overlay its three original temperature evidence rows at its origin, and reassess other sources at that common clock. Snapshot creation follows all actual context availability. Expose retained artifact hash and low confidence, explicitly unavailable when no model. Source/model descriptors and derived root reconstruct deterministically. Unknown or expired sources stay unknown; no source epoch or causal confidence is inferred.
 
-- [ ] RED then GREEN: available-model metadata, missing model, future source/context refusal, original measurement provenance/clock binding, expired source handling, immutable content, forged/resealed descriptor refusal and numerical thermal parity.
+- [x] RED then GREEN: available-model metadata, missing model, future source/context refusal, original measurement provenance/clock binding, expired source handling, immutable content, forged/resealed descriptor refusal and numerical thermal parity.
 
 ## Task2: Pure model/intent/plan replay integration
 
 Update version dispatch in pipeline/intents/planning and original CLI closure validation. New model-bound snapshots are explicitly supported; original v1 behavior is unchanged. Energy SoC and thermal context must match the same identity/clock/source rows. Plan replay restores the correct snapshot type. Metadata cannot be used as a qualified physical-source action reference. Private pipeline replay verifies original complete source context and executing model code; no mutable reads inside projection/planning.
 
-- [ ] RED then GREEN: expanded energy proposals/replay, unavailable model path, original thermal parity and same-snapshot rederivation, stale source rejection, identity/runtime/resealed output tampering, unchanged v1 receipt outputs and disabled translator.
-- [ ] Run full affected suite under serial caps.
+- [x] RED then GREEN: expanded energy proposals/replay, unavailable model path, original thermal parity and same-snapshot rederivation, stale source rejection, identity/runtime/resealed output tampering, unchanged v1 receipt outputs and disabled translator.
+- [x] Run full affected suite under serial caps:656PASS192.09s.
 - [ ] Actual current original source/model capture/replay using normal publisher evidence and retained packets, without starting any publisher. Record incomplete source/owner facts honestly.
 - [ ] Commit, one independent review and one Important/Critical TDD fix pass. Hosted checks gate merge; full PR #3 remains active.
 

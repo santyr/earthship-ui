@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Immutable v1 foundation and bounded original collector merged. Explicit v2 snapshot and collector preserve four mature atomic power roles alongside SoC, PV day and native temperatures. Actual nine-role capture from committed0512be3 replayed identically;635 affected regressions pass. Independent static review has no blocking issue; hosted verification/publication remain finish gates. Accepted thermal artifact identity/confidence representation remains missing. Physical bank/usable energy, load/forecast/weather/authority adapters and v2 model/planner adoption remain incomplete.",
+      "current_evidence": "Original v1 and expanded v2 collectors merged; PR22 exact head passed all five hosted checks and merged54863f. Actual nine-role committed-source capture replayed identically. Model-bound v3 integration is in progress, retaining original provisional artifact identity/low confidence and exact thermal source rows. Full bank/usable energy, household load, forecast/weather/authority and owner qualification remain incomplete.",
       "complete": false
     },
     {
@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy extraction matches 72 frozen production cases. Frozen thermal adapter matches a retained original 24h trajectory and performs no reads inside projection. Executing runtime is separately bound. Expanded common model inputs and full cross-domain projections remain incomplete. Exact energy arguments are now retained, and integrated mathematical projections share one frozen snapshot.",
+      "current_evidence": "Pure energy extraction preserves72 production golden cases; prepared original thermal output preserves its original24h trajectory. New v3 integration shares an original source/model clock and restores source context through pure plan/pipeline replay. 656 affected tests pass under serial caps; independent review, hosted verification and actual new-runtime source/model evidence remain pending. Full cross-domain inputs and trajectories are incomplete.",
       "complete": false
     },
     {
