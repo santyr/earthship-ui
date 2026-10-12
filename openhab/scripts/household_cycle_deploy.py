@@ -69,7 +69,7 @@ def _service_contract(raw,config):
         raise ValueError('original provisional publisher contract differs')
 
 
-def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision):
+def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision,service_forecast_config=None):
     repo,stage,config,parameters,cache,service=map(_path,(repo_root,stage,forecast_config,parameters,observation_cache,service_file))
     if re.fullmatch('[a-f0-9]{40}',code_revision or '') is None or re.fullmatch('[a-f0-9]{64}',parameters_sha256 or '') is None:
         raise ValueError('original code and parameter identities required')
@@ -80,7 +80,15 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
     if sha256(parameter_raw).hexdigest()!=parameters_sha256:raise ValueError('original retained parameters differ')
-    _service_contract(service_raw,config)
+    baseline=config if service_forecast_config is None else _path(service_forecast_config)
+    baseline_raw=config_raw if baseline==config else _bytes(baseline,private=True)
+    if baseline!=config:
+        previous=json.loads(baseline_raw)
+        if (not isinstance(settings,dict) or not isinstance(previous,dict) or
+            {k:v for k,v in settings.items() if k!='candidate_path'}!={k:v for k,v in previous.items() if k!='candidate_path'} or
+            settings.get('candidate_path')==previous.get('candidate_path')):
+            raise ValueError('only the selected candidate may change from the original service configuration')
+    _service_contract(service_raw,baseline)
     # Archive the immutable commit object, not the mutable index/worktree. A
     # concurrent edit after the cleanliness check cannot acquire this identity.
     import io,tarfile
@@ -100,6 +108,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
         key='openhab/scripts/'+name
         if key not in sources or sha256(sources[key]).hexdigest()!=digest:raise ValueError('original fitted runtime source differs')
     bindings={str(path):sha256(raw).hexdigest() for path,raw in ((config,config_raw),(candidate,candidate_raw),(parameters,parameter_raw),(service,service_raw))}
+    bindings[str(baseline)]=sha256(baseline_raw).hexdigest()
     # Recheck before creating anything; malformed inputs leave no staged output.
     if any(_bytes(repo/name)!=raw for name,raw in sources.items()) or _git(repo,'rev-parse','HEAD').decode().strip()!=code_revision:
         raise ValueError('source changed during package preparation')

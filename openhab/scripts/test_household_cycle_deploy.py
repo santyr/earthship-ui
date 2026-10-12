@@ -46,6 +46,25 @@ def test_stage_preserves_core_and_registry_layout_with_private_configuration(tmp
     assert '/sources/openhab/scripts/household_cycle.py' in dropin
     assert '--code-revision '+args['code_revision'] in dropin
 
+
+def test_new_candidate_config_preserves_original_service_and_binds_both_configs(tmp_path):
+    args,_=fixture(tmp_path);baseline=args['forecast_config'];old=json.loads(baseline.read_bytes())
+    candidate=baseline.parent/'next-candidate.json';write(candidate,Path(old['candidate_path']).read_bytes())
+    config=baseline.parent/'next-forecast.json';write(config,encode({**old,'candidate_path':str(candidate)}))
+    unit=args['service_file'].read_bytes();args.update(forecast_config=config,service_forecast_config=baseline)
+    api().stage_deployment(**args);record=api().verify_stage(args['stage'])
+    assert str(config) in record['original_bindings'] and str(baseline) in record['original_bindings']
+    assert args['service_file'].read_bytes()==unit
+    assert json.loads((args['stage']/'cycle.json').read_bytes())['forecast_config']==str(config)
+
+
+def test_candidate_selection_cannot_change_existing_source_settings(tmp_path):
+    args,_=fixture(tmp_path);baseline=args['forecast_config'];old=json.loads(baseline.read_bytes())
+    config=baseline.parent/'next-forecast.json';write(config,encode({**old,'openhab_base':'different'}))
+    args.update(forecast_config=config,service_forecast_config=baseline)
+    with pytest.raises(ValueError):api().stage_deployment(**args)
+    assert not args['stage'].exists()
+
 @pytest.mark.parametrize('damage',['dirty','core','parameters','weak_limits','symlink'])
 def test_bad_sources_refuse_before_creating_package(damage,tmp_path):
     args,_=fixture(tmp_path);repo=args['repo_root']
