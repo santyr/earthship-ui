@@ -92,11 +92,8 @@ class NativeDevelopmentData:
     as_issued_forecast = False
     automatic_actuation = False
 
-    def __init__(self, value, development, geometry):
-        object.__setattr__(self, '_encoded', geometry_contract._canonical(value))
-        object.__setattr__(self, '_development', development)
-        object.__setattr__(self, '_geometry', geometry)
-        object.__setattr__(self, '_sha256', value['dataset_sha256'])
+    def __init__(self, *args, **kwargs):
+        raise TypeError('construct native data through original input validation')
 
     def __setattr__(self, key, value): raise AttributeError('native development data is immutable')
     @property
@@ -205,7 +202,14 @@ def build_native_development(record, *, expected_snapshot_sha256, sensor_epochs,
                      interpolation_counts=interpolation, hold_forward_counts=held), **FLAGS)
     value['dataset_sha256'] = geometry_contract._digest(value, 'dataset_sha256')
     if len(geometry_contract._canonical(value)) > MAX_BYTES: raise ValueError('bounded native development dataset required')
-    return NativeDevelopmentData(value, development, geometry)
+    # Construct only here, after independently rederiving the complete sealed
+    # payload and freezing every sample/weather/geometry dependency.
+    result = object.__new__(NativeDevelopmentData)
+    object.__setattr__(result, '_encoded', geometry_contract._canonical(value))
+    object.__setattr__(result, '_development', development)
+    object.__setattr__(result, '_geometry', geometry)
+    object.__setattr__(result, '_sha256', value['dataset_sha256'])
+    return result
 
 
 def select_native_endpoints(data, *, horizon_hours, start, end):

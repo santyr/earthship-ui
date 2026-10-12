@@ -173,3 +173,14 @@ def test_native_endpoint_identity_cannot_be_consumed_by_the_legacy_geometry_fitt
     with pytest.raises(ValueError):_prepare_batches(points)
     assert points[0].dataset_sha256==data.sha256
     assert points[0].series_sha256==data.geometry.sha256
+
+
+
+@pytest.mark.parametrize('damage',['samples','mutable_weather','geometry'])
+def test_public_construction_cannot_attach_valid_dataset_hashes_to_unvalidated_data(damage):
+    from dataclasses import replace
+    record=snapshot();data=build(record);development=data.development;g=data.geometry
+    if damage=='samples':development=replace(development,samples=(replace(development.samples[0],air_f=90),*development.samples[1:]))
+    if damage=='mutable_weather':development=replace(development,weather=list(development.weather))
+    if damage=='geometry':g=geometry(record,degrees=-1)
+    with pytest.raises((TypeError,ValueError)):api().NativeDevelopmentData(data.to_dict(),development,g)
