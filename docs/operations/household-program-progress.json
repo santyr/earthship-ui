@@ -1319,7 +1319,7 @@
       "deployed_source_all_hosted_checks_passed": true
     },
     "current_model_score_scheduling": {
-      "status": "affected_tests_passed_review_pending",
+      "status": "deployed_natural_monitoring_verified_current_maturity_pending",
       "diagnosis": {
         "status": "bounded_metadata_inventory",
         "assessed_at": "2026-10-12T20:51:16.465299+00:00",
@@ -1362,14 +1362,51 @@
       },
       "original_fitted_sources_changed": false,
       "prior_gap_source_sha256": "5537dd82d2565b1f307dc5dcb74d76cb84871bad669cf3e837b0c013e46ebbd0",
-      "production_installed": false,
+      "production_installed": true,
       "automatic_actuation": false,
       "full_program_complete": false,
       "affected_tests_passed": 21,
       "affected_test_seconds": 82.61,
       "first_guarded_verification": "stopped_on_host_swapout_or_oom_counter_change",
       "guard_relaxed": false,
-      "source_runtime_qualification_pending": true
+      "source_runtime_qualification_pending": false,
+      "handoff": {
+        "status": "current_model_score_priority_installed",
+        "code_revision": "228ac454b52b211cca092535c3172a443a3a2a3b",
+        "deployment_sha256": "8c0b5a1669261f4d5aa374bd78c58ed579a60a5a385b909c82316bca134f0564",
+        "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "runtime_sha256": "b1e7009cce8e467795922aff6bfee335f32aeea20ae97bf6678d150922743750",
+        "dropin_sha256": "da761d3866a7c2e84409294310110b7be2682580f0eab4fc1304ebd248379922",
+        "forecast_override_changed": false,
+        "original_config_changed": false,
+        "base_units_changed": false,
+        "timers_changed": false,
+        "service_restarted": false,
+        "fit_executed": false,
+        "automatic_actuation": false
+      },
+      "installer_sha256": "bb2478805762c33ddaa3e9d2c6115ef38a2a762eeab60c8e9f31bc5d1a000729",
+      "installer_tests_passed": 3,
+      "review": {
+        "critical": 0,
+        "important": 0,
+        "minor": 0
+      },
+      "natural_unit": {
+        "started_at": "2026-10-12T21:08:10+00:00",
+        "finished_at": "2026-10-12T21:08:26+00:00",
+        "result": "success",
+        "exit_status": 0,
+        "cpu_seconds": 2.814488,
+        "status": "monitoring_refreshed",
+        "scored": 0,
+        "current_revision_scored": 0,
+        "pending_reason": "mature_outcome_unavailable"
+      },
+      "current_candidate_first_assessable_at": "2026-10-12T21:50:15+00:00",
+      "current_candidate_priority_operationally_verified": false,
+      "hosted_checks_for_new_source": "not_run_unpublished_local_commit",
+      "production_accuracy_improvement_proven": false
     }
   },
   "astro_efficiency_audit": {
@@ -1494,5 +1531,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T20:46:52.449256+00:00"
+  "updated_at": "2026-10-12T21:10:41.760297+00:00"
 }
