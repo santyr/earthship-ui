@@ -53,7 +53,7 @@ Its original expiry is `2026-10-12T03:00:17.508000+00:00`, and it is currently
 historical/unavailable. The browser parser accepts that real curated artifact;
 current policy comparison is unavailable and automatic actuation is false.
 
-The focused frontend checks pass 55 tests across parser, real-file HTTP
+The focused frontend checks pass 56 tests across parser, real-file HTTP
 transport, bounded streaming client, Svelte rendering, polling cleanup and
 routing. Duplicate keys, including escaped or nested duplicate names, are
 rejected before accepting a view or serving original bytes. Worker counts are explicitly limited for Rolldown, Tokio, Rayon and
@@ -66,7 +66,7 @@ is not claimed passing. The separate production-build attempt also hit the
 256MiB scope limit before completing. The single final static review found two Important issues; one TDD correction
 pass addresses duplicate-key privacy and publication races. Its 22 focused
 Python cases pass, including both deterministic target/parent substitution
-regressions, and the corrected frontend passes 55 cases. Target geometry, deployment and
+regressions, and the corrected frontend passes 56 cases. Target geometry, deployment and
 hosted checks remain pending until their concrete evidence is recorded.
 
 ## Deployment boundary
@@ -99,3 +99,23 @@ The core pure pipeline regression completes separately: 98 tests pass in
 14.80s. With the 22 corrected observer/materializer tests, this gives 120
 completed affected Python checks; it does not substitute for the unfinished
 expanded six-file run or the full hosted project suite.
+
+A safe live canary identified that Vite's filesystem route could serve private
+staging despite mode-0600/0700 permissions. The configuration now preserves
+Vite's default sensitive-file exclusions and denies .superpowers, .codex and
+.aws paths. A real Vite HTTP regression uses the actual configuration and
+checks direct, filesystem-alias and encoded-dot requests. It fails without the
+configuration guard and passes with it. The complete focused frontend group
+now passes 56 tests in 32.10s.
+
+Only this private-path guard is installed in the live root configuration so
+far. Both tested live staging aliases return403; the public REST receipt remains
+available for October11. Six protected thermal UI overlay files match their
+original hashes. No actual credential was fetched by the canary test, and no
+credential rotation, OpenHAB restart or equipment request occurred.
+
+Draft PR28 contains this stage. Its pre-filesystem-guard head49073f0 passed the
+hosted frontend suite and production build; full CI was still running when
+that job was inspected. The final guarded head must pass all hosted checks
+before merge/deployment. Bounded browser attempts have not yet produced
+viewport evidence; geometry and full panel deployment remain pending.

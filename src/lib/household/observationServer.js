@@ -4,6 +4,11 @@ import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { OBSERVATION_MAX_BYTES, parseHouseholdObservation } from './observation.js';
 
+// Preserve Vite's default sensitive-file exclusions and add private agent and
+// receipt staging. Filesystem permissions alone do not constrain the web server.
+export const HOUSEHOLD_FS_DENY = ['.env', '.env.*', '*.{crt,pem,key,p12,pfx,cer,der}', '.npmrc', '.yarnrc.yml',
+  '**/.git/**', '**/.superpowers/**', '**/.codex/**', '**/.aws/**'];
+
 function ownedFile(info) {
   return info.isFile() && info.uid === process.getuid() && (info.mode & 0o777) === 0o600
     && info.nlink === 1 && info.size <= OBSERVATION_MAX_BYTES;
