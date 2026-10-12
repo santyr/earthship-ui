@@ -14,7 +14,7 @@
 
 - Read-only inspection; planner authority none, automatic actuation false, no owner request, notification, training, recovery or device-write path.
 - Preserve all existing receipt and model versions. New observer modules live outside the household producer directory so observing a receipt does not silently change its original producer closure.
-- One source receipt <=1048576 bytes; one public observation <=32768 bytes; at most8 proposals,32 hard checks per proposal and40 source-quality rows. Closed schema and bounded enum/digest/timestamp fields.
+- One source receipt <=1048576 bytes; one public observation <=32768 bytes; at most8 proposals,32 hard checks per proposal and64 source-quality rows. Closed schema and bounded enum/digest/timestamp fields.
 - Replay time does not renew original source/intent expiry. Expose original snapshot/decision clocks, verification time and explicit currently-expired status. Unavailable or malformed views cannot render a recommendation or active authority.
 - Do not claim current policy agreement from a no-action plan or declared coordination bounds. Preserve unavailable/unknown expected effects, calibrated energy, rainfall rate and causal benefit.
 - Fixed same-origin GET endpoint /api/household-observation. Browser arguments cannot choose a file. Server-configured cache path is bounded, owned, regular and non-symlink; no request-time model execution.

@@ -738,7 +738,7 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "weather_json_lock_wait": {
-      "status": "definition_installed_waiting_normal_refresh",
+      "status": "merged_waiting_natural_refresh",
       "baseline_tests": 11,
       "affected_tests": 41,
       "affected_seconds": 4.6,
@@ -749,7 +749,7 @@
       "worker_started": false,
       "definition_installed": true,
       "independent_review": "one final immutable review: two Important guard gaps; six genuine regressions and one correction pass verified",
-      "hosted_ci": "publication verified; final-head checks pending after parent merge",
+      "hosted_ci": "all four exact-head checks passed",
       "full_program_complete": false,
       "review_base": "952c3c66fe44988fc86eeb0a444541ae2374acdf",
       "review_head": "81c648953d468c9819261567efcd48debd12fadb",
@@ -774,7 +774,21 @@
         ]
       },
       "natural_refresh_qualified": false,
-      "pr": 27
+      "pr": 27,
+      "head": "e036c3a87e55731807cb1415b36f028923ce458b",
+      "merge": "d43e70cbb8cb6a4f5e48ae7fd4fcb8b101e08ded",
+      "ci_run": 38201126570
+    },
+    "operator_observability": {
+      "status": "pure_replay_view_verified_materializer_and_ui_pending",
+      "focused_tests": 11,
+      "focused_seconds": 23.48,
+      "source_backed_v6_view_verified": true,
+      "private_source_registry_data_excluded": true,
+      "original_expiry_preserved": true,
+      "policy_comparison_qualified": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   }
 }
