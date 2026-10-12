@@ -127,7 +127,7 @@ def bind_energy_inputs(inputs,*,snapshot):
     snap=snapshot.to_dict();row=snap['domains']['energy']['battery_soc'];ref=row['evidence']
     value=dict(schema='earthship-household-prepared-energy/v1',numerical_inputs=inputs.to_dict(),snapshot_id=snapshot.snapshot_id,
         as_of=snap['as_of'],available_at=snap['created_at'],battery_evidence_sha256=None if ref is None else ref['digest'])
-    if snap.get('schema')=='earthship-household-snapshot/v5':
+    if snap.get('schema') in ('earthship-household-snapshot/v5','earthship-household-snapshot/v6'):
         from .energy_source_snapshot import EnergySourceSnapshot
         if not isinstance(snapshot,EnergySourceSnapshot):raise ValueError('original energy-source snapshot required')
         context=snapshot.energy_configuration.to_dict();bank=snap['energy_configuration_context']['bank']

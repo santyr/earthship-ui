@@ -46,9 +46,9 @@
 
 **Interfaces:** MeasuredWeatherSnapshot(EnergySourceSnapshot), bind_measured_weather_snapshot(*,source_receipt,source_runtime_manifest,weather_context,energy_configuration,measured_weather,code_revision), restore_measured_weather_snapshot(document,context); snapshot/v6 and new exact source-context retaining original power, original weather/model, original bank/topology and measured weather. Use measured-source-context/v1 with exact fields schema, power_receipt, weather_inputs, energy_configuration and measured_weather. New shadow-plan/v5 and model-plan/v5 carry the full new originals and measured-weather projection; preserve every old version and its existing output shape.
 
-- [ ] RED same common issue/availability, independent source failures retaining nominal bank and unchanged original thermal/forecast output, distinct source identities and deadline enforcement, invalid/resealed new context and old-version parity.
-- [ ] Add genuinely distinct v6 candidate and an actual enclosing outcome replay, plus direct v5 candidate/outcome regression coverage from PR25's recorded Minor review follow-up; no runtime-helper-only substitute.
-- [ ] GREEN pure/no-read replay, strict producer closure, private operational CLI equality and partial-runtime refusal; run the complete affected set under caps and commit.
+- [x] RED same common issue/availability, independent source failures retaining nominal bank and unchanged original thermal/forecast output, distinct source identities and deadline enforcement, invalid/resealed new context and old-version parity.
+- [x] Add genuinely distinct v6 candidate and an actual enclosing outcome replay, plus direct v5 candidate/outcome regression coverage from PR25's recorded Minor review follow-up; no runtime-helper-only substitute.
+- [x] GREEN pure/no-read replay, strict producer closure, private operational CLI equality and partial-runtime refusal; run the complete affected set under caps and commit.
 
 ### Task3: Bounded actual acquisition and publication
 

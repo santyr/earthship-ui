@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending.",
+      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false.",
       "complete": false
     },
     {
@@ -620,11 +620,11 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "original_measured_weather": {
-      "status": "pure_original_point_context_verified",
+      "status": "snapshot_and_model_replay_verified",
       "configuration_tests": 31,
       "affected_parser_tests": 141,
       "affected_suite_seconds": 13.11,
-      "snapshot_integration_complete": false,
+      "snapshot_integration_complete": true,
       "actual_source_inputs_verified": false,
       "independent_review": "pending after integration/acquisition",
       "hosted_ci": "not published",
@@ -633,7 +633,32 @@
       "physical_action_effects_qualified": false,
       "automatic_actuation": false,
       "full_program_complete": false,
-      "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial"
+      "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
+      "integration_tests": 13,
+      "household_forecast_tests": 805,
+      "unique_affected_tests": 915,
+      "broad_serial_groups": [
+        {
+          "tests": 614,
+          "seconds": 81.89
+        },
+        {
+          "tests": 127,
+          "seconds": 124.71
+        },
+        {
+          "tests": 51,
+          "seconds": 304.7
+        }
+      ],
+      "integration_seconds": [
+        176.1,
+        73.39
+      ],
+      "distinct_v5_v6_candidate_contexts_replayed": true,
+      "enclosing_v4_v5_pipeline_outcomes_replayed": true,
+      "pure_and_private_fixture_cli_replay_identical": true,
+      "producer_closure_weather_validators": 4
     }
   }
 }

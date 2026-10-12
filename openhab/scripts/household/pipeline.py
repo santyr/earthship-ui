@@ -45,7 +45,7 @@ def _projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,horiz
             instant(origin['available_at'])!=instant(snap['created_at']) or instant(origin['available_at'])>now or
             origin['battery_evidence_sha256']!=(None if ref is None else ref['digest'])):
             raise ValueError('energy origin differs from shared snapshot')
-        configured=snap.get('schema')=='earthship-household-snapshot/v5'
+        configured=snap.get('schema') in ('earthship-household-snapshot/v5','earthship-household-snapshot/v6')
         if configured or origin['schema']=='earthship-household-prepared-energy/v2':
             if canonical(bind_energy_inputs(energy_inputs.numerical,snapshot=snapshot).to_dict())!=canonical(origin):raise ValueError('original energy configuration binding differs')
         reference=energy_inputs.numerical.to_dict()['inputs']['soc_pct']
@@ -127,14 +127,15 @@ def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runti
     if instant(snap['as_of'])>now or instant(snap['created_at'])>now:raise ValueError('shared snapshot unavailable at decision')
     from .model_snapshot import ModelSnapshot,verify_model_binding,verify_source_runtime
     expanded=isinstance(snapshot,ModelSnapshot)
-    if snap.get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4','earthship-household-snapshot/v5') and not expanded:raise ValueError('verified model snapshot required')
+    if snap.get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4','earthship-household-snapshot/v5','earthship-household-snapshot/v6') and not expanded:raise ValueError('verified model snapshot required')
     if expanded:
         verify_source_runtime(snapshot,runtime)
         verify_model_binding(snapshot,thermal_inputs)
     coordination=loads(canonical(coordination))
     projections=_projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,config['horizon_hours'])
-    energy_bound=snap.get('schema')=='earthship-household-snapshot/v5'
-    weather_bound=snap.get('schema') in ('earthship-household-snapshot/v4','earthship-household-snapshot/v5')
+    energy_bound=snap.get('schema') in ('earthship-household-snapshot/v5','earthship-household-snapshot/v6')
+    weather_bound=snap.get('schema') in ('earthship-household-snapshot/v4','earthship-household-snapshot/v5','earthship-household-snapshot/v6')
+    measured_bound=snap.get('schema')=='earthship-household-snapshot/v6'
     if weather_bound:
         from .weather_snapshot import WeatherSnapshot
         from .weather_context import project_weather
@@ -145,6 +146,11 @@ def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runti
         from .energy_configuration import project_energy_configuration
         if not isinstance(snapshot,EnergySourceSnapshot):raise ValueError('verified energy source snapshot required')
         projections['energy_configuration']=project_energy_configuration(snapshot.energy_configuration,as_of=instant(snap['as_of']))
+    if measured_bound:
+        from .measured_weather_snapshot import MeasuredWeatherSnapshot
+        from .measured_weather import project_measured_weather
+        if not isinstance(snapshot,MeasuredWeatherSnapshot):raise ValueError('verified measured weather snapshot required')
+        projections['measured_weather']=project_measured_weather(snapshot.measured_weather,as_of=instant(snap['as_of']))
     candidates,utilities,no_action,generation=_candidates(snapshot,projections,config,now)
     plan_receipt=seal_plan(snapshot=snapshot,registry=registry,candidates=candidates,coordination=coordination,
         utilities=utilities,now=now,reserve_soc=config['reserve_soc'],horizon_hours=config['horizon_hours'],
@@ -157,21 +163,21 @@ def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runti
     if expanded:
         from .model_snapshot import snapshot_context
         inputs['source_contexts']={snapshot.snapshot_id:snapshot_context(snapshot)}
-    receipt=dict(schema='earthship-household-model-plan-receipt/v'+str(4 if energy_bound else 3 if weather_bound else 2 if expanded else 1),inputs=inputs,runtime_manifest=runtime,output=output)
+    receipt=dict(schema='earthship-household-model-plan-receipt/v'+str(5 if measured_bound else 4 if energy_bound else 3 if weather_bound else 2 if expanded else 1),inputs=inputs,runtime_manifest=runtime,output=output)
     receipt['receipt_sha256']=identity(receipt)
     if len(canonical(receipt))>MAX_BYTES:raise ValueError('bounded model/plan receipt required')
     return loads(canonical(receipt))
 
 
 def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
-    if not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema'] not in ('earthship-household-model-plan-receipt/v1','earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4') or len(canonical(receipt))>MAX_BYTES:
+    if not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema'] not in ('earthship-household-model-plan-receipt/v1','earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5') or len(canonical(receipt))>MAX_BYTES:
         raise ValueError('closed bounded original model/plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:
         raise ValueError('sealed original model/plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing model/plan runtime differs')
     value=receipt['inputs']
-    expanded=receipt['schema'].endswith(('/v2','/v3','/v4'))
+    expanded=receipt['schema'].endswith(('/v2','/v3','/v4','/v5'))
     if not isinstance(value,dict) or set(value)!=(INPUT_FIELDS|{'source_contexts'} if expanded else INPUT_FIELDS):raise ValueError('closed original model/plan inputs required')
     from .model_snapshot import restore_snapshot
     contexts=value.get('source_contexts')
