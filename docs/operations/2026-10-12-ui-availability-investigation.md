@@ -29,3 +29,10 @@ this investigation.
 A repeat check at about 13:12 America/Denver again confirmed HTTP 200 and an
 active service. The bounded fresh browser rendered Home at the LAN address
 with a live OpenHAB connection, no error overlay and zero page errors.
+
+A repeat at about 14:40 America/Denver confirmed the service active/running with
+NRestarts=0, HTTP 200 from loopback, LAN and hostname, HTTP 200 for the
+compiled app module, and HTTP 200 with received data from the OpenHAB event
+stream. These were lightweight HTTP/service checks, not a new browser run.
+No later watcher-triggered worktree reload appears in the bounded service log.
+The original device-specific offline symptom remains unreplicated.

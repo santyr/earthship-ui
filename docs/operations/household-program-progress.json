@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain deployed below existing content; standalone navigation removed and legacy household route redirects. Source1e25f33 is installed under the unchanged timer/shared lock/CPU20percent/memory256MiB/swap0/tasks24 limits. Its natural15:20:15UTC publication has exact persisted delivery for both original thermal items; later natural09:35MDT run also published with verified delivery. Original72 fitted-runtime files and training policy remain unchanged. Household collection remains unavailable: capped actual profiling reproduced insufficient connection budget within six seconds. Reviewed committed679fe4d removes duplicate resource checks,56 affected tests pass, but the read-only post-fix profile still exhausts the six-second budget; this change is not yet deployed. Cache remains historical/unavailable; model fit remains October10. Qualified policy/effects, live rolling planner inputs, automatic model refresh and advisory/active-request modes remain incomplete. Source a29e214 guarded upgrade deployed with unchanged72fitted-source hashes/caps/timer.60collector cases pass; reviewed bounded10second maximum completes actual read-only collection in8.39s with pressure guard. First natural16:45:15UTC thermal publication delivered; household collector still unavailable and cache remains historical. Actual full driver guard timing/collection reason diagnosis pending; automatic fitting remains incomplete. Natural a524552 cycle now writes current receipt/cache; planner unavailable because original AC/load expiry precedes decision. Timely planning and remaining full-program requirements are incomplete.",
+      "current_evidence": "Earthship observations are deployed below the existing content; standalone navigation is removed and the household route redirects. Exact source105131c now serves forecast and score through two owned overrides under unchanged timers, shared lock, CPU20percent/memory256MiB/swap0/tasks24 limits. All72 fitted-runtime hashes and physical action authority are unchanged. Fresh provisional candidate b463d623/runtimeb1e7009 is trained throughOctober12 06UTC on10 endpoints/3originDates, rank8/low/notgraduated. Its natural14:45MDT forecast exited0 and independently validated the original capture and both persisted item receipts; current household observation was written while planner_mode remained unavailable. Earlier source59f65ae achieved timely natural13:15 cache verification/shadow mode but input_incomplete planning. The gap-aware outcome queue has advanced later measured outcomes without counting missing points, with source-native absence replay and unchanged scoring arithmetic; some prior scheduled refusals remain undiagnosed. Qualified owner policy/baseline/effects, complete live rolling planning, automatic model refresh/promotion, advisory/active-request modes and proven production accuracy improvement remain incomplete. The lightweight UI repeat14:40 confirmed active/NRestarts0 and page/app/event-stream HTTP200; reproduced worktree-triggered reloads are excluded by the live watcher.",
       "complete": false
     },
     {
@@ -1233,7 +1233,7 @@
       }
     },
     "fresh_provisional_fit": {
-      "status": "fresh_candidate_verified",
+      "status": "deployed_natural_delivery_verified",
       "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
       "runtime_sha256": "b1e7009cce8e467795922aff6bfee335f32aeea20ae97bf6678d150922743750",
       "created_at": "2026-10-12T20:22:51.561511+00:00",
@@ -1253,12 +1253,69 @@
       "iterations": 51,
       "confidence": "low",
       "graduated": false,
-      "production_installed": false,
+      "production_installed": true,
       "automatic_actuation": false,
-      "deployment_status": "prepared_not_deployed",
+      "deployment_status": "deployed_natural_delivery_verified",
       "configuration_staging_tests_passed": 21,
       "configuration_staging_seconds": 4.89,
-      "automatic_retraining_complete": false
+      "automatic_retraining_complete": false,
+      "code_revision": "105131c8b5f077927f0648fd3559abd0e398377d",
+      "deployment_sha256": "a1b81d1c13908324436a3bf02cc26dfa602c0db46c6a70f8a098b59651b8a0cf",
+      "installer_sha256": "8aaca3714d265f00427471a257d5ec69580790d855903182913ab279728c25b4",
+      "installer_tests_passed": 4,
+      "review": {
+        "critical": 0,
+        "important": 0,
+        "minor": 0
+      },
+      "handoff": {
+        "status": "fresh_provisional_candidate_installed",
+        "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "previous_artifact_sha256": "4631c878930a1412c9635f6729ac96138aeb797550e3d4bb0360650e3c4cbd81",
+        "code_revision": "105131c8b5f077927f0648fd3559abd0e398377d",
+        "trained_through": "2026-10-12T06:00:00+00:00",
+        "endpoint_count": 10,
+        "independent_origin_dates": 3,
+        "forecast_dropin_sha256": "0b7834540b1e4da08f6a20c1fdaabe3a046e61841773f78970a1f272f8847e80",
+        "score_dropin_sha256": "c7cfd8acfc0063878f695736a9cf9398b00a21466aa8de5a72780d902442b15c",
+        "original_configuration_changed": false,
+        "base_units_changed": false,
+        "timers_changed": false,
+        "service_restarted": false,
+        "graduated": false,
+        "automatic_actuation": false
+      },
+      "natural_delivery_verified": true,
+      "production_accuracy_improvement_proven": false,
+      "natural_delivery": {
+        "status": "fresh_candidate_natural_delivery_verified",
+        "issued_at": "2026-10-12T20:45:15+00:00",
+        "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "runtime_sha256": "b1e7009cce8e467795922aff6bfee335f32aeea20ae97bf6678d150922743750",
+        "capture_sha256": "c11a08029bebc9e4102d860bd8c762968e484ed4b11c5c11b1e5d48a2dd48b52",
+        "delivery_sha256": "ddad9380ab59a31f38410f49c1e2614e0c0b53816e864b6cb5f8f9b4165bd2ac",
+        "persisted_item_count": 2,
+        "trained_through": "2026-10-12T06:00:00+00:00",
+        "confidence": "low",
+        "graduated": false,
+        "automatic_actuation": false,
+        "fit_executed": false,
+        "production_accuracy_improvement_proven": false
+      },
+      "natural_unit": {
+        "result": "success",
+        "exit_status": 0,
+        "cpu_seconds": 8.431045,
+        "memory_peak_bytes": 81965056,
+        "memory_swap_peak_bytes": 0
+      },
+      "hosted_checks": {
+        "source_revision": "105131c8b5f077927f0648fd3559abd0e398377d",
+        "nak-authentication": "passed",
+        "encrypted-delivery": "passed",
+        "GitGuardian Security Checks": "passed",
+        "test": "in_progress"
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -1382,5 +1439,6 @@
       "live_browser_swap_bytes": 0,
       "native_daily_refresh_acceptance_pending": true
     }
-  }
+  },
+  "updated_at": "2026-10-12T20:46:52.449256+00:00"
 }
