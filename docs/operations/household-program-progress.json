@@ -1701,7 +1701,7 @@
       "general_thermal_dataset_adapter_complete": false
     },
     "native_installed_shade_dataset": {
-      "status": "original_dataset_verified_review_constructor_gap_corrected_replay_pending",
+      "status": "versioned_development_dataset_original_replay_and_review_correction_verified",
       "schema": "earthship-native-solar-development-data/v1",
       "solar_feature_rule": "earthship-native-clear-sky-fraction/v2",
       "original_snapshot_and_geometry_required_for_replay": true,
@@ -1777,7 +1777,7 @@
         "production_model_changed": false,
         "live_writes": false
       },
-      "corrected_source_original_replay_pending": true,
+      "corrected_source_original_replay_pending": false,
       "review": {
         "critical": 0,
         "important": 1,
@@ -1788,7 +1788,31 @@
         "regression_cases_failed_before_fix": 3,
         "regression_cases_pass_after_fix": true
       },
-      "installed_shade_development_dataset_versioned": true
+      "installed_shade_development_dataset_versioned": true,
+      "corrected_source_original_replay": {
+        "status": "original_native_dataset_constructor_correction_verified",
+        "code_revision": "120a0a2e66b3e4a4604507e8477792f915dfd945",
+        "adapter_source_sha256s": {
+          "native_thermal_inputs.py": "f44600ab649b5867df2f8fc700a8426285a42de690d5622bc996a23e274ad716",
+          "astro_geometry.py": "ed9075dd5b3e63b4c65e4ebf3ec9e6a25ad0c73d6e4afefd381b787e5c39769f",
+          "astro_geometry_series.py": "52219cc4e5a42ae63f64d33553940b0bdfb6b2c0f6d19c8d76243ba0fc115353",
+          "astro_forecast_context.py": "3a584322231cc765e88ecc76e6a36930ace8f553f318fcb282df9d9ff2e6b881"
+        },
+        "dataset_sha256": "f2b7dcc96f34ab9810ae2c69af64e47b95704867ae02b3abe3adc996efe893ee",
+        "series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
+        "source_snapshot_sha256": "2e2edd36e4b82b29b95c51968ab448c6a0b3d01655116365043ae5ab166f4b4b",
+        "original_dataset_replay_identical": true,
+        "public_constructor_refused": true,
+        "native_endpoint_count": 10,
+        "native_sample_count": 773,
+        "native_weather_count": 765,
+        "seconds": 4.387326029012911,
+        "memory_peak_bytes": 61288448,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "fit_executed": false,
+        "production_model_changed": false,
+        "live_writes": false
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -1918,5 +1942,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:49:44.817855+00:00"
+  "updated_at": "2026-10-12T22:52:08.672240+00:00"
 }
