@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 import sys
+import time
 from household.codec import loads,canonical
 from household.capture import collect_inputs,fetch_receipt,NATIVE_ROLES
 from household_snapshot import _read
@@ -34,8 +35,25 @@ def _connection(path,allowed_user):
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config',required=True,type=Path);args=parser.parse_args(argv)
+    parser.add_argument('--config',type=Path)
+    parser.add_argument('--configuration-only',action='store_true',help='read fixed bank/topology originals only; no database access')
+    args=parser.parse_args(argv)
+    if args.configuration_only and args.config is not None:parser.error('--configuration-only does not accept a capture configuration')
+    if not args.configuration_only and args.config is None:parser.error('--config is required for the original evidence capture')
     try:
+        if args.configuration_only:
+            from household.energy_configuration_capture import collect_configuration
+            from household_snapshot import runtime_manifest
+            deadline=time.monotonic()+15.
+            def remaining():
+                budget=deadline-time.monotonic()
+                if not 0.001<=budget<=15.:raise ValueError('configuration acquisition deadline elapsed')
+                return budget
+            before=runtime_manifest();remaining()
+            result=collect_configuration(remaining=remaining)
+            if runtime_manifest()!=before:raise ValueError('configuration collector runtime or registry changed')
+            remaining()
+            sys.stdout.buffer.write(canonical(result.to_dict())+b'\n');return 0
         original=_read(args.config,8192,private=True);config=loads(original)
         if not isinstance(config,dict) or set(config)!=CONFIG_FIELDS or config['schema']!='earthship-household-capture-config/v1':
             raise ValueError('closed private capture configuration required')

@@ -80,6 +80,7 @@ from .snapshot import HouseholdSnapshot
 from .evidence import digest
 from .control_contracts import instant
 
+CONFIGURATION_BINDING_FIELDS={'configuration_sha256','bank_config_sha256','bank_epoch_id','nominal_bank_kwh','basis','status','reason'}
 PREPARED_ENERGY_FIELDS={'schema','numerical_inputs','snapshot_id','as_of','available_at','battery_evidence_sha256'}
 
 
@@ -91,12 +92,29 @@ class PreparedEnergyInputs:
     def __post_init__(self):
         if not isinstance(self.content,bytes) or len(self.content)>8192:raise ValueError('bounded prepared energy context required')
         value=loads(self.content)
-        if not isinstance(value,dict) or set(value)!=PREPARED_ENERGY_FIELDS or value['schema']!='earthship-household-prepared-energy/v1':
+        version=value.get('schema');configured=version=='earthship-household-prepared-energy/v2'
+        if not isinstance(value,dict) or set(value)!=(PREPARED_ENERGY_FIELDS|{'configuration_binding'} if configured else PREPARED_ENERGY_FIELDS) or version not in ('earthship-household-prepared-energy/v1','earthship-household-prepared-energy/v2'):
             raise ValueError('closed prepared energy context required')
         digest(value['snapshot_id'])
         if value['battery_evidence_sha256'] is not None:digest(value['battery_evidence_sha256'])
         if instant(value['available_at'])<instant(value['as_of']):raise ValueError('energy availability precedes collection')
         FrozenEnergyInputs(canonical(value['numerical_inputs']))
+        if configured:
+            binding=value['configuration_binding']
+            if not isinstance(binding,dict) or set(binding)!=CONFIGURATION_BINDING_FIELDS or binding['basis']!='original_declared_nominal_bank_configuration':
+                raise ValueError('closed original nominal capacity binding required')
+            digest(binding['configuration_sha256'])
+            if binding['bank_config_sha256'] is not None:digest(binding['bank_config_sha256'])
+            if binding['status']=='bound':
+                number=binding['nominal_bank_kwh']
+                if (binding['reason'] is not None or binding['bank_config_sha256'] is None or
+                    not isinstance(binding['bank_epoch_id'],str) or not 1<=len(binding['bank_epoch_id'])<=128 or
+                    type(number) not in (int,float) or not math.isfinite(number) or not 0<number<=10000 or
+                    value['numerical_inputs']['inputs']['bank_kwh']!=number):
+                    raise ValueError('original nominal bank capacity differs')
+            elif (binding['status']!='unavailable' or binding['bank_epoch_id'] is not None or binding['nominal_bank_kwh'] is not None or
+                  not isinstance(binding['reason'],str) or not 1<=len(binding['reason'])<=80):
+                raise ValueError('explicit unavailable nominal binding required')
 
     def to_dict(self):return loads(self.content)
 
@@ -107,6 +125,16 @@ class PreparedEnergyInputs:
 def bind_energy_inputs(inputs,*,snapshot):
     if not isinstance(inputs,FrozenEnergyInputs) or not isinstance(snapshot,HouseholdSnapshot):raise ValueError('frozen energy and original snapshot required')
     snap=snapshot.to_dict();row=snap['domains']['energy']['battery_soc'];ref=row['evidence']
-    return PreparedEnergyInputs(canonical(dict(schema='earthship-household-prepared-energy/v1',
-        numerical_inputs=inputs.to_dict(),snapshot_id=snapshot.snapshot_id,as_of=snap['as_of'],
-        available_at=snap['created_at'],battery_evidence_sha256=None if ref is None else ref['digest'])))
+    value=dict(schema='earthship-household-prepared-energy/v1',numerical_inputs=inputs.to_dict(),snapshot_id=snapshot.snapshot_id,
+        as_of=snap['as_of'],available_at=snap['created_at'],battery_evidence_sha256=None if ref is None else ref['digest'])
+    if snap.get('schema')=='earthship-household-snapshot/v5':
+        from .energy_source_snapshot import EnergySourceSnapshot
+        if not isinstance(snapshot,EnergySourceSnapshot):raise ValueError('original energy-source snapshot required')
+        context=snapshot.energy_configuration.to_dict();bank=snap['energy_configuration_context']['bank']
+        capacity=bank.get('nominal_usable_kwh');bound=bank['status']=='declared' and capacity is not None
+        value.update(schema='earthship-household-prepared-energy/v2',configuration_binding=dict(
+            configuration_sha256=context['configuration_sha256'],bank_config_sha256=context['bank_source']['sha256'],
+            bank_epoch_id=bank['epoch_id'] if bound else None,nominal_bank_kwh=capacity if bound else None,
+            basis='original_declared_nominal_bank_configuration',status='bound' if bound else 'unavailable',
+            reason=None if bound else bank['reason'] or 'nominal_capacity_unavailable'))
+    return PreparedEnergyInputs(canonical(value))
