@@ -1406,7 +1406,60 @@
       "current_candidate_first_assessable_at": "2026-10-12T21:50:15+00:00",
       "current_candidate_priority_operationally_verified": false,
       "hosted_checks_for_new_source": "not_run_unpublished_local_commit",
-      "production_accuracy_improvement_proven": false
+      "production_accuracy_improvement_proven": false,
+      "natural_first_current_model_score": {
+        "started_at": "2026-10-12T21:51:10+00:00",
+        "finished_at": "2026-10-12T21:51:32+00:00",
+        "exit_status": 0,
+        "scored": 1,
+        "current_revision_scored": 1,
+        "cpu_seconds": 3.287,
+        "pair_source_verification_pending": true
+      },
+      "natural_current_revision_score_count": 2
+    },
+    "native_geometry_cache": {
+      "status": "actual_cache_verified_review_pending",
+      "affected_tests_passed": 39,
+      "affected_test_seconds": 1.2,
+      "qualification": {
+        "status": "actual_native_geometry_cache_verified",
+        "cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
+        "request_sha256": "65d7894a65c2bf5e08d7f65198cd2f68da28bf66ed02813f978fdc2ead8b81c9",
+        "source_sha256": "219f86918b2b3a6f0755cdea23bdbffd2573719ff883345b6270fa9f1fdaeecc",
+        "native_runtime": {
+          "binding_version": "5.2.3",
+          "libraries": {
+            "astro_binding": "b6bc002782072e6888f890b9d6dd923537674a67b78258d7d739b66dadedb14a",
+            "indriya": "c3734f7af3eec20b799e9681dbb8eb4db51392aaafa6be64b03e8999c0e0c109",
+            "openhab_core": "a30d81934a04868a13e1e0b802d5c52344fc2e59ef9e3841cc51e579041bb731",
+            "osgi_core": "41c24d187f67aaaf4745fab78fd1da66de7f37dd82581dbbbc9ba89645ba0166",
+            "pax_logging_api": "1e73700a991376e855ca8324f16d2e9e86462ac712a07f5ec117fdf015ace550",
+            "unit_api": "667487e1ee57298cdc767885f00b86c899b2fe7e72dc00b6560a6aa64f2bc9c4"
+          },
+          "collector_sha256": "536ba75fa05d291e2abd41c175daa2895460affa233fbc9f3cc3657545226498"
+        },
+        "point_count": 88,
+        "historical_and_future_covered": true,
+        "leap_day_and_dst_folds_covered": true,
+        "millisecond_instant_covered": true,
+        "offline_replay_identical": true,
+        "thermal_night_threshold_degrees": 0,
+        "horizon_disagreement_count": 2,
+        "max_absolute_sin_difference": 0.004724750434986338,
+        "seconds": 9.935217335994821,
+        "memory_peak_bytes": 113283072,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "fit_executed": false,
+        "production_model_changed": false,
+        "live_writes": false
+      },
+      "production_model_changed": false,
+      "versioned_dataset_complete": false,
+      "versioned_model_artifact_complete": false,
+      "native_refit_complete": false,
+      "prediction_comparison_complete": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -1465,9 +1518,11 @@
         "id": "A07",
         "requirement": "Consolidate thermal solar geometry through a replayable adapter",
         "complete": false,
-        "status": "pending",
+        "status": "native_batch_cache_verified_versioned_model_work_pending",
         "task": "extend the shared observational adapter or provide a bounded geometry cache for the exact historical/future timestamps required by models. Record site, timezone, algorithm/binding version, requested instants and source digest. Replay must work without live OpenHAB. Compare both geometries near the horizon, then version/refit/revalidate affected datasets and model artifacts. Do not make one synchronous binding call per historical row or change only the main source while leaving staged deployed publishers on the previous contract.",
-        "acceptance": "historical/future coverage, DST/leap days, exact requested instants, missing geometry, offline replay, horizon disagreements, artifact compatibility, replay parity and prediction comparisons before promotion. Consolidation reduces duplicated authority and maintenance; CPU savings are not established, and repeated binding calls could make it slower."
+        "acceptance": "historical/future coverage, DST/leap days, exact requested instants, missing geometry, offline replay, horizon disagreements, artifact compatibility, replay parity and prediction comparisons before promotion. Consolidation reduces duplicated authority and maintenance; CPU savings are not established, and repeated binding calls could make it slower.",
+        "native_cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
+        "horizon_disagreements": 2
       },
       {
         "id": "A08",
