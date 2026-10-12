@@ -1575,7 +1575,33 @@
       },
       "original_88_point_cache_replayed_after_precision_fix": true,
       "qualification_matches_original_collector_revision": true,
-      "new_collector_revision_native_acquisition_pending": true
+      "new_collector_revision_native_acquisition_pending": true,
+      "multi_batch_series": {
+        "status": "implemented_affected_tests_pass_review_pending",
+        "affected_cases_passed": 60,
+        "affected_seconds": 2.39,
+        "max_points": 8192,
+        "max_batch_points": 128,
+        "max_retained_bytes": 4194304,
+        "synthetic_three_batch_exact_coverage": true,
+        "original_native_replay": {
+          "status": "retained_actual_native_series_replayed",
+          "assessed_at": "2026-10-12T22:16:25.680451+00:00",
+          "series_sha256": "47881f17e40f979c5a6e7464c91b6e1253ca4808c1700730dd0ee578c3178965",
+          "request_sha256": "5626d54069e20635584ee99bc8af1c624680fcca3f41eb0a81dee287be42030f",
+          "original_cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
+          "point_count": 88,
+          "offline_replay_identical": true,
+          "original_collector_preserved": true,
+          "multi_batch_actual_acquisition": false,
+          "dataset_window_complete": false,
+          "fit_executed": false,
+          "live_writes": false
+        },
+        "native_dataset_window_acquired": false,
+        "dataset_or_model_artifact_versioned": false,
+        "production_model_changed": false
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -1702,5 +1728,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:11:06.213431+00:00"
+  "updated_at": "2026-10-12T22:16:28.124292+00:00"
 }
