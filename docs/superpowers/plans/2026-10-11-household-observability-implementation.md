@@ -50,7 +50,7 @@
 - [x] RED fresh/expired/malformed/no-selection views, policy comparison unknown, effect unknown, privacy/closed-shape boundaries and endpoint GET-only/path/file protections.
 - [x] Implement parser/transport and GREEN; never execute Python/replay from an HTTP request.
 - [x] RED component presentation of all eight phase9 requirements and route/navigation reachability, including no action and unavailable data.
-- [ ] Implement readable bounded layout using existing tokens; verify unit tests/build and target tablet/laptop geometry with the existing resource boundaries.
+- [x] Implement readable bounded layout using existing tokens; verify unit tests/build and target tablet/laptop geometry with the existing resource boundaries.
 - [x] Commit focused-verified public interface; full build/hosted verification remains required.
 
 ### Task3: Actual artifact, review, deployment and publication
@@ -59,8 +59,8 @@
 
 - [x] Materialize the actual PR26 source-backed receipt and verify the public artifact contains only curated data. An old receipt is historical/expired; do not claim current operational planning from it.
 - [x] One final independent immutable review, then one Important/Critical TDD correction pass.
-- [ ] Deploy only reviewed UI/endpoint files without overwriting the signed-off dirty overlay; verify actual endpoint and rendered unavailable/historical/no-action states under caps. No OpenHAB restart.
-- [ ] Publish after parent PR27 merge, require all exact-head checks, merge and record canonical evidence.
+- [x] Deploy only reviewed UI/endpoint files without overwriting the signed-off dirty overlay; verify actual endpoint and rendered unavailable/historical/no-action states under caps. No OpenHAB restart.
+- [x] Publish after parent PR27 merge, require all exact-head checks, merge and record canonical evidence.
 
 ## Remaining full-program requirements
 

@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Curated private materializer and actual43-source historical view verified. Closed browser parser, bounded owned-file endpoint and read-only Household route implemented;55 focused frontend and22 observer/materializer cases pass after one final static review correction pass for duplicate-key privacy and publication races. Full frontend and build attempts hit256MiB scoped cap. Hosted full checks, geometry and deployment remain pending. Policy comparison and effects remain unqualified.",
+      "current_evidence": "PR28 merged and deployed: replay-verified private materializer, bounded closed-schema endpoint and Household route. All four exact10e440a checks pass;56 focused frontend/120 affected Python checks and actual1280x800/1340x800 live rendering pass. Original43-source artifact remains historical/unavailable with unknown effects/policy comparison. Six protected thermal overlay files unchanged;private staging HTTP403. Advisory/active-request modes and qualified policy/effect inputs remain later full-program requirements.",
       "complete": false
     },
     {
@@ -784,7 +784,7 @@
       "natural_refresh_public_readback_verified": true
     },
     "operator_observability": {
-      "status": "review_corrections_focused_verified_hosted_deployment_pending",
+      "status": "merged_deployed_readonly_observability_verified",
       "focused_tests": 22,
       "focused_seconds": 26.6,
       "source_backed_v6_view_verified": true,
@@ -811,7 +811,7 @@
       "frontend_full_suite_result": "scoped_oom_kill",
       "browser_actual_artifact_parser_verified": true,
       "final_review_complete": true,
-      "ui_deployed": false,
+      "ui_deployed": true,
       "local_build_result": "scoped_oom_kill",
       "review_critical": 0,
       "review_important": 2,
@@ -840,7 +840,34 @@
       "ci_run_before_fs_guard": 38207506110,
       "full_frontend_before_fs_guard_passed": true,
       "build_before_fs_guard_passed": true,
-      "browser_geometry_verified": false
+      "browser_geometry_verified": true,
+      "head": "10e440ac1131d8b95c9491a580d5ec6116c75b04",
+      "merge": "3d118d6439f692efb94564203865e33bd4fb820d",
+      "merged_at": "2026-10-12T06:06:33Z",
+      "ci_run": 38208393534,
+      "ci_job": 114676873602,
+      "all_four_exact_head_checks_passed": true,
+      "full_hosted_frontend_passed": true,
+      "full_hosted_build_passed": true,
+      "full_hosted_python_passed": true,
+      "full_hosted_operational_passed": true,
+      "live_route_verified": true,
+      "live_endpoint_verified": true,
+      "live_observation_sha256": "582ebc7455c1eff5813d0822e83cd80a35af50a0add3da4b93fee3bd58b9fca3",
+      "viewports": [
+        {
+          "width": 1280,
+          "height": 800
+        },
+        {
+          "width": 1340,
+          "height": 800
+        }
+      ],
+      "page_errors": 0,
+      "attempted_mutations": 0,
+      "command_controls": 0,
+      "protected_thermal_overlay_unchanged": true
     }
   }
 }

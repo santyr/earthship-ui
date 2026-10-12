@@ -119,3 +119,30 @@ hosted frontend suite and production build; full CI was still running when
 that job was inspected. The final guarded head must pass all hosted checks
 before merge/deployment. Bounded browser attempts have not yet produced
 viewport evidence; geometry and full panel deployment remain pending.
+
+## Merged deployment qualification
+
+PR28 merged October12 at06:06:33UTC as3d118d6439f692efb94564203865e33bd4fb820d.
+Its exact source head10e440ac1131d8b95c9491a580d5ec6116c75b04 passes all four
+hosted checks. Full CI run38208393534/job114676873602 completes frontend,
+build, completion, OpenHAB/disposable PostgreSQL and operational regressions.
+
+Eight reviewed files and the private cache are deployed. Live endpoint returns
+200/no-store,10,012bytes,43sources/two models with the original e9610591 receipt
+identity and original expiry. The live cache SHA-256 is
+582ebc7455c1eff5813d0822e83cd80a35af50a0add3da4b93fee3bd58b9fca3.
+The actual route passes1280x800 and1340x800 checks with no outer overflow,
+page errors, command controls or attempted mutations. It shows the original
+expired plan, no selected action and unavailable current-policy comparison.
+Six signed-off thermal overlay files remain unchanged;OpenHAB was not restarted.
+
+Browser qualification uses CPU20%,memory256MiB,swap0 and one renderer/CPU
+affinity. Chromium needs a96-task cap;scientific tests/materialization retain24.
+An initial24/48-task browser could not start reliably;the standard bounded
+96-task browser exits successfully with all children closed. No off-host
+execution requirement is introduced.
+
+Earlier pending statements above describe the pre-qualification checkpoints.
+This read-only stage is now merged/deployed;the full PR3 architecture remains
+incomplete, including operational common-cycle capture, trajectories, effects,
+policy baselines, owner migration, outcomes and per-intent release/integration.
