@@ -1698,7 +1698,9 @@
         "production_model_changed": false
       },
       "installed_shade_development_dataset_versioned": true,
-      "general_thermal_dataset_adapter_complete": false
+      "general_thermal_dataset_adapter_complete": false,
+      "installed_shade_native_development_refit_complete": true,
+      "installed_shade_development_prediction_comparison_complete": true
     },
     "native_installed_shade_dataset": {
       "status": "versioned_development_dataset_original_replay_and_review_correction_verified",
@@ -1815,7 +1817,7 @@
       }
     },
     "native_installed_shade_model_fit": {
-      "status": "implemented_affected_tests_pass_review_and_actual_fit_pending",
+      "status": "actual_native_development_fit_and_paired_predictions_verified_review_clean",
       "model_rule": "earthship-native-installed-shade-dynamics/v2",
       "fit_schema": "earthship-native-solar-provisional-fit/v1",
       "original_equations_constraints_and_physical_guards_reused": true,
@@ -1828,12 +1830,96 @@
       "original_pressure_guards_preserved": true,
       "original_fitted_sources_changed": false,
       "protected_original_source_count": 72,
-      "actual_fit_pending": true,
+      "actual_fit_pending": false,
       "versioned_model_artifact_complete": false,
       "as_issued_prediction_comparison_complete": false,
       "production_model_changed": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "actual_fit": {
+        "status": "actual_native_development_fit_completed",
+        "fit_evidence_sha256": "0407b146746a4686f3681a9c7fa05766964ecf31d78db65ca818977eff9a00c0",
+        "code_revision": "e8659539343bf0ec57e79e2455bb6229f5d1a7c7",
+        "dataset_sha256": "f2b7dcc96f34ab9810ae2c69af64e47b95704867ae02b3abe3adc996efe893ee",
+        "geometry_series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
+        "source_snapshot_sha256": "2e2edd36e4b82b29b95c51968ab448c6a0b3d01655116365043ae5ab166f4b4b",
+        "endpoint_count": 10,
+        "horizon_support": {
+          "1": 3,
+          "6": 3,
+          "12": 2,
+          "24": 2
+        },
+        "independent_origin_dates": 3,
+        "initial_objective": 296.64912719709764,
+        "final_objective": 0.42471644969727024,
+        "conditioning_rank": 8,
+        "iterations": 53,
+        "confidence": "low",
+        "graduated": false,
+        "protected_original_sources": 72,
+        "seconds": 15.805462346994318,
+        "memory_peak_bytes": 97456128,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "fit_executed": true,
+        "production_model_changed": false,
+        "live_writes": false,
+        "model_artifact_versioned": false,
+        "as_issued_prediction_comparison_complete": false
+      },
+      "review": {
+        "critical": 0,
+        "important": 0,
+        "minor": 0,
+        "reviewed_revision": "e865953"
+      },
+      "prediction_comparison_first_attempt": "withheld_on_host_swapin_above_original_allowance",
+      "pressure_guards_relaxed": false,
+      "development_prediction_comparison": {
+        "status": "paired_native_development_predictions_verified",
+        "comparison_sha256": "4fd2321fd8d2deb1df0d97080c4efbb5da00af81faa28f27a982f9d9303a11c5",
+        "paired_endpoint_count": 10,
+        "summaries": {
+          "legacy_fit_legacy_geometry_legacy_actions": {
+            "endpoint_count": 10,
+            "air_mae_f": 0.5164353439870581,
+            "mass_mae_f": 0.16706528377131774,
+            "air_bias_f": 0.07737583928588947
+          },
+          "legacy_fit_native_geometry_legacy_actions": {
+            "endpoint_count": 10,
+            "air_mae_f": 0.5458796034610301,
+            "mass_mae_f": 0.16735368309415294,
+            "air_bias_f": 0.1345623347284473
+          },
+          "native_fit_native_geometry_legacy_actions": {
+            "endpoint_count": 10,
+            "air_mae_f": 0.5449215642114253,
+            "mass_mae_f": 0.16904277354380498,
+            "air_bias_f": 0.08962139771650897
+          },
+          "native_fit_native_geometry_native_actions": {
+            "endpoint_count": 10,
+            "air_mae_f": 0.5449215642114253,
+            "mass_mae_f": 0.16904277354380498,
+            "air_bias_f": 0.08962139771650897
+          }
+        },
+        "changed_origin_action_contexts": 4,
+        "native_prediction_replay_identical": true,
+        "protected_original_sources": 72,
+        "seconds": 13.193520895030815,
+        "memory_peak_bytes": 61538304,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "fit_executed": false,
+        "as_issued_forecast": false,
+        "holdout_evaluation": false,
+        "production_accuracy_improvement_proven": false,
+        "production_model_changed": false,
+        "live_writes": false
+      },
+      "development_prediction_comparison_complete": true,
+      "production_accuracy_improvement_proven": false
     }
   },
   "astro_efficiency_audit": {
@@ -1963,5 +2049,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:59:24.025564+00:00"
+  "updated_at": "2026-10-12T23:07:50.261158+00:00"
 }
