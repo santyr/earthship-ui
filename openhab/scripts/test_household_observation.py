@@ -96,3 +96,69 @@ def test_source_backed_v6_thermal_identity_is_public_without_original_context(tm
     assert {row['role'] for row in view['source_quality']} >= {'light_lux','rain_counter_in','solar_radiation_proxy_wm2'}
     encoded=json.dumps(view)
     assert 'policy_raw' not in encoded and 'source_contexts' not in encoded and 'ownerSource' not in encoded
+
+
+def materializer_fixture(tmp_path):
+    from household_pipeline import pipeline_runtime_manifest
+    from household.codec import canonical
+    root=tmp_path/'private';root.mkdir(mode=0o700)
+    record=pipeline(runtime_manifest=pipeline_runtime_manifest())
+    source=root/'receipt.json';source.write_bytes(canonical(record));source.chmod(0o600)
+    return source,root/'observation.json',record
+
+
+def test_private_materializer_writes_only_curated_view(tmp_path):
+    source,target,record=materializer_fixture(tmp_path)
+    result=api().materialize(source,target,clock=lambda:NOW)
+    view=json.loads(target.read_bytes())
+    assert result['status']=='observation_written' and result['receipt_sha256']==record['receipt_sha256']
+    assert view['receipt_sha256']==record['receipt_sha256'] and 'inputs' not in view
+    assert target.stat().st_mode&0o777==0o600 and json.loads(source.read_bytes())==record
+
+
+@pytest.mark.parametrize('damage',['source_symlink','source_mode','directory_mode','same_path','existing_unknown'])
+def test_unsafe_publication_target_or_source_refuses_without_overwrite(damage,tmp_path):
+    source,target,_=materializer_fixture(tmp_path)
+    if damage=='source_symlink':link=source.parent/'linked.json';link.symlink_to(source);source=link
+    elif damage=='source_mode':source.chmod(0o640)
+    elif damage=='directory_mode':target.parent.chmod(0o755)
+    elif damage=='same_path':target=source
+    else:target.write_text('operator-only existing data');target.chmod(0o600)
+    before=target.read_bytes() if target.exists() else None
+    with pytest.raises(ValueError):api().materialize(source,target,clock=lambda:NOW)
+    assert (target.read_bytes() if target.exists() else None)==before
+
+
+def test_runtime_drift_refuses_before_publication(tmp_path,monkeypatch):
+    source,target,_=materializer_fixture(tmp_path);mod=api()
+    import household_pipeline
+    real=household_pipeline.pipeline_runtime_manifest;calls=0
+    def changed(**kw):
+        nonlocal calls
+        calls+=1;value=real(**kw)
+        if calls>1:value['openhab/scripts/forecast_intel.py']='f'*64
+        return value
+    monkeypatch.setattr(household_pipeline,'pipeline_runtime_manifest',changed)
+    with pytest.raises(ValueError):mod.materialize(source,target,clock=lambda:NOW)
+    assert not target.exists()
+
+
+def test_existing_cache_updates_atomically_without_renewing_source_expiry(tmp_path):
+    source,target,_=materializer_fixture(tmp_path)
+    api().materialize(source,target,clock=lambda:NOW);first=json.loads(target.read_bytes())
+    api().materialize(source,target,clock=lambda:NOW+timedelta(minutes=10));last=json.loads(target.read_bytes())
+    assert last['receipt_sha256']==first['receipt_sha256'] and last['valid_until']==first['valid_until']
+    assert last['planner_mode']=='unavailable' and target.stat().st_nlink==1
+    assert list(target.parent.glob('.household-observation-*'))==[]
+
+
+def test_capture_qualified_reference_cannot_override_unavailable_model_row():
+    from test_household_snapshot import build
+    from test_household_planning import context
+    later=NOW+timedelta(seconds=100);snap=build(as_of=later,created_at=later)
+    record=pipeline(snapshot=snap,coordination=context(snap),energy_inputs=None,now=later)
+    view=observe(record,at=later)
+    source=next(row for row in view['source_quality'] if row['role']=='battery_soc')
+    assert source['quality_at_issue']=='unavailable' and source['current_quality']=='unavailable'
+    assert source['reason']=='expired_source'
+    assert instant(view['valid_until'])>=later

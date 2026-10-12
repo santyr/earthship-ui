@@ -784,15 +784,27 @@
       "natural_refresh_public_readback_verified": true
     },
     "operator_observability": {
-      "status": "pure_replay_view_verified_materializer_and_ui_pending",
-      "focused_tests": 11,
+      "status": "replay_verified_private_materializer_complete_endpoint_ui_pending",
+      "focused_tests": 20,
       "focused_seconds": 23.48,
       "source_backed_v6_view_verified": true,
       "private_source_registry_data_excluded": true,
       "original_expiry_preserved": true,
       "policy_comparison_qualified": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "affected_pipeline_tests": 118,
+      "affected_seconds": 38.39,
+      "private_materializer_verified": true,
+      "actual_artifact_verified": true,
+      "actual_observation_sha256": "a08fc845cc7559974fe68231ac466a67ad6e14403f4310bec2e6d0a2741cd17e",
+      "actual_observation_bytes": 10012,
+      "actual_source_roles": 43,
+      "actual_qualified_at_issue": 11,
+      "actual_planner_mode": "unavailable",
+      "private_context_excluded": true,
+      "endpoint_implemented": false,
+      "operator_panel_implemented": false
     }
   }
 }

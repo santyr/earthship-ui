@@ -36,10 +36,10 @@
 
 **Public fields:** schema, receipt_sha256, snapshot_id, snapshot_as_of, decision_at, verified_at, valid_until, planner_mode, planner_version, authority, automatic_actuation, plan_status, model_identities, candidate_generation, proposals, source_quality, confidence, effects_qualified, policy_comparison. All original clocks remain explicit. Proposals include only typed intent identity/type, selected flag, confidence, stable reasons, expected-effect values/units and hard-check decisions. Policy comparison is unavailable with its original reason; no fabricated actual-policy result.
 
-- [ ] RED no-action view, real proposal/constraint extraction, exact model identities, original expiry under later verification, privacy markers excluded, resealed original corruption, unsupported schemas and no live reads.
-- [ ] Implement pure observer and GREEN meaningful fixtures; preserve original numerical/receipt outputs.
-- [ ] RED private materializer on real source-backed receipts, unsafe files, source/runtime drift and atomic output bounds; implement and GREEN.
-- [ ] Commit verified observer and record exact coverage.
+- [x] RED no-action view, real proposal/constraint extraction, exact model identities, original expiry under later verification, privacy markers excluded, resealed original corruption, unsupported schemas and no live reads.
+- [x] Implement pure observer and GREEN meaningful fixtures; preserve original numerical/receipt outputs.
+- [x] RED private materializer on real source-backed receipts, unsafe files, source/runtime drift and atomic output bounds; implement and GREEN.
+- [x] Commit verified observer and record exact coverage.
 
 ### Task2: Bounded file endpoint and read-only operator panel
 
@@ -57,7 +57,7 @@
 
 **Files:** docs/operations/household-observability.md and canonical docs/operations/household-program-progress.json.
 
-- [ ] Materialize the actual PR26 source-backed receipt and verify the public artifact contains only curated data. An old receipt is historical/expired; do not claim current operational planning from it.
+- [x] Materialize the actual PR26 source-backed receipt and verify the public artifact contains only curated data. An old receipt is historical/expired; do not claim current operational planning from it.
 - [ ] One final independent immutable review, then one Important/Critical TDD correction pass.
 - [ ] Deploy only reviewed UI/endpoint files without overwriting the signed-off dirty overlay; verify actual endpoint and rendered unavailable/historical/no-action states under caps. No OpenHAB restart.
 - [ ] Publish after parent PR27 merge, require all exact-head checks, merge and record canonical evidence.

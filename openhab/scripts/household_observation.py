@@ -25,7 +25,9 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
     deadlines=[instant(output['no_action_intent']['expiresAt'])];sources=[]
     for domain,rows in sorted(snapshot['domains'].items()):
         for role,row in sorted(rows.items()):
-            ref=row.get('evidence');qualified=ref is not None and ref.get('quality')=='qualified'
+            ref=row.get('evidence')
+            qualified=(row.get('value') is not None and row.get('reason') is None and ref is not None and
+                ref.get('quality')=='qualified' and instant(ref['available_at'])<=instant(snapshot['as_of'])<instant(ref['valid_until']))
             until=None if ref is None else ref.get('valid_until')
             if qualified:deadlines.append(instant(until))
             sources.append(dict(domain=domain,role=role,quality_at_issue='qualified' if qualified else 'unavailable',
@@ -61,3 +63,95 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
         policy_comparison=dict(status='unavailable',reason=_reason(plan['baseline_reasons']['current_owner_policy'])))
     if len(canonical(view))>MAX_BYTES:raise ValueError('bounded public observation required')
     return view
+
+
+import argparse,json,os,stat,sys,tempfile
+from pathlib import Path
+from datetime import datetime,timezone
+from hashlib import sha256
+from household.codec import loads
+
+PUBLIC_FIELDS={'schema','receipt_sha256','snapshot_id','snapshot_as_of','decision_at','verified_at','valid_until','planner_mode',
+    'planner_version','authority','automatic_actuation','plan_status','model_identities','candidate_generation','proposals',
+    'source_quality','confidence','effects_qualified','policy_comparison'}
+
+
+def _private_file(path,maximum):
+    if path.absolute().resolve()!=path.absolute():raise ValueError('resolved original file required')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        info=os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or stat.S_IMODE(info.st_mode)!=0o600 or info.st_size>maximum:
+            raise ValueError('bounded owned private file required')
+        raw=os.read(fd,maximum+1)
+        if len(raw)>maximum:raise ValueError('private file exceeds bound')
+        after=os.fstat(fd)
+        metadata=lambda item:(item.st_dev,item.st_ino,item.st_mode,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+        if metadata(after)!=metadata(info):raise ValueError('original private file changed')
+        return raw,metadata(info)
+    finally:os.close(fd)
+
+
+def _directory(path):
+    if path.absolute().resolve()!=path.absolute():raise ValueError('resolved cache directory required')
+    info=path.stat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o700:
+        raise ValueError('owned private cache directory required')
+    return info.st_dev,info.st_ino,info.st_mode
+
+
+def _existing_view(path):
+    try:raw,metadata=_private_file(path,MAX_BYTES)
+    except FileNotFoundError:return None
+    value=loads(raw)
+    if not isinstance(value,dict) or set(value)!=PUBLIC_FIELDS or value['schema']!='earthship-household-observation/v1':
+        raise ValueError('existing target is not an observation cache')
+    return raw,metadata
+
+
+def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.utc)):
+    from household_pipeline import pipeline_runtime_manifest,verify_source_closure
+    from household.thermal_model import _execution_runtime
+    from household.pipeline import MAX_BYTES as RECEIPT_BYTES
+    source,target=Path(receipt_path).absolute(),Path(output_path).absolute()
+    if source==target:raise ValueError('original receipt cannot be a publication target')
+    directory=_directory(target.parent);previous=_existing_view(target)
+    original=_private_file(source,RECEIPT_BYTES);record=loads(original[0]);version=record.get('schema')
+    expanded=version in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
+    configured=version in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
+    measured=version=='earthship-household-model-plan-receipt/v5'
+    def runtime():return pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured)
+    executing=runtime();root=Path(__file__).resolve().parent
+    thermal=None if record['inputs']['thermal_inputs'] is None else _execution_runtime(root)
+    own=Path(__file__).read_bytes()
+    if expanded:verify_source_closure(record,executing)
+    view=observe_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal,observed_at=clock());encoded=canonical(view)
+    fd,temp=tempfile.mkstemp(prefix='.household-observation-',dir=target.parent)
+    try:
+        os.fchmod(fd,0o600)
+        with os.fdopen(fd,'wb') as stream:stream.write(encoded);stream.flush();os.fsync(stream.fileno())
+        if (_private_file(source,RECEIPT_BYTES)!=original or runtime()!=executing or Path(__file__).read_bytes()!=own or
+            (None if thermal is None else _execution_runtime(root))!=thermal or _directory(target.parent)!=directory or _existing_view(target)!=previous):
+            raise ValueError('source, runtime or publication target changed')
+        if previous is None:
+            os.link(temp,target,follow_symlinks=False)
+            os.unlink(temp)
+        else:os.replace(temp,target)
+        if _private_file(target,MAX_BYTES)[0]!=encoded:raise ValueError('publication readback differs')
+    finally:
+        if os.path.exists(temp):os.unlink(temp)
+    return dict(status='observation_written',receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],
+        observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False)
+
+
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--receipt',required=True,type=Path);parser.add_argument('--output',required=True,type=Path)
+    args=parser.parse_args(argv)
+    try:report=materialize(args.receipt,args.output)
+    except Exception:
+        print(json.dumps(dict(status='observation_refused',automatic_actuation=False)),file=sys.stderr);return 1
+    print(json.dumps(report));return 0
+
+
+if __name__=='__main__':raise SystemExit(main())
