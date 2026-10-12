@@ -158,7 +158,10 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
     if publication.get('status')!='published' or publication.get('delivery_verified') is not True:
         raise ValueError('verified original publication required')
     if collection.get('status')!='collected':
-        return dict(status='observation_unavailable',reason='source_collection_unavailable',automatic_actuation=False)
+        known={'not_collected','insufficient_preissue_budget','source_collection_timed_out','source_collection_failed'}
+        reason=collection.get('reason')
+        if not isinstance(reason,str) or reason not in known:reason='unclassified_collection_failure'
+        return dict(status='observation_unavailable',reason='source_collection_unavailable',collection_reason=reason,automatic_actuation=False)
     origin_path=Path(publication['origin_path']).absolute();delivery_path=Path(publication['delivery_path']).absolute()
     origin=_private_file(origin_path,2*1024*1024);delivery=_private_file(delivery_path,65536)
     capture=loads(origin[0]);delivered=loads(delivery[0])

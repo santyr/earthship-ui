@@ -213,3 +213,12 @@ def test_extended_collection_still_stops_at_issue_minus_three_seconds(tmp_path,m
     assert result['delivery_verified'] is True
     assert adapter.collection['status']=='unavailable'
     assert 'originals' not in adapter.collection
+
+
+@pytest.mark.parametrize('reason',['insufficient_preissue_budget','source_collection_timed_out','source_collection_failed','operator-only-private-text'])
+def test_observer_reports_only_bounded_original_collection_reason(reason):
+    result=api().complete_cycle(publication={'status':'published','delivery_verified':True},collection={'status':'unavailable','reason':reason},parameter_record=None,runtime_manifest=None,code_revision='a'*40,evidence_directory=None,observation_cache=None,guard=lambda:None)
+    expected=reason if reason!='operator-only-private-text' else 'unclassified_collection_failure'
+    assert result['collection_reason']==expected
+    assert result['reason']=='source_collection_unavailable'
+    assert 'operator-only-private-text' not in json.dumps(result)

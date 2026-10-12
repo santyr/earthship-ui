@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain deployed below existing content; standalone navigation removed and legacy household route redirects. Source1e25f33 is installed under the unchanged timer/shared lock/CPU20percent/memory256MiB/swap0/tasks24 limits. Its natural15:20:15UTC publication has exact persisted delivery for both original thermal items; later natural09:35MDT run also published with verified delivery. Original72 fitted-runtime files and training policy remain unchanged. Household collection remains unavailable: capped actual profiling reproduced insufficient connection budget within six seconds. Reviewed committed679fe4d removes duplicate resource checks,56 affected tests pass, but the read-only post-fix profile still exhausts the six-second budget; this change is not yet deployed. Cache remains historical/unavailable; model fit remains October10. Qualified policy/effects, live rolling planner inputs, automatic model refresh and advisory/active-request modes remain incomplete.",
+      "current_evidence": "Earthship observations remain deployed below existing content; standalone navigation removed and legacy household route redirects. Source1e25f33 is installed under the unchanged timer/shared lock/CPU20percent/memory256MiB/swap0/tasks24 limits. Its natural15:20:15UTC publication has exact persisted delivery for both original thermal items; later natural09:35MDT run also published with verified delivery. Original72 fitted-runtime files and training policy remain unchanged. Household collection remains unavailable: capped actual profiling reproduced insufficient connection budget within six seconds. Reviewed committed679fe4d removes duplicate resource checks,56 affected tests pass, but the read-only post-fix profile still exhausts the six-second budget; this change is not yet deployed. Cache remains historical/unavailable; model fit remains October10. Qualified policy/effects, live rolling planner inputs, automatic model refresh and advisory/active-request modes remain incomplete. Source a29e214 guarded upgrade deployed with unchanged72fitted-source hashes/caps/timer.60collector cases pass; reviewed bounded10second maximum completes actual read-only collection in8.39s with pressure guard. First natural16:45:15UTC thermal publication delivered; household collector still unavailable and cache remains historical. Actual full driver guard timing/collection reason diagnosis pending; automatic fitting remains incomplete.",
       "complete": false
     },
     {
@@ -975,14 +975,21 @@
       "native_sse_upstream_timestamp_verified": true,
       "svelte_components_compiled": 3,
       "full_hosted_suite_pending": true,
-      "deployed_ui": false,
+      "deployed_ui": true,
       "season_source": "native Sun_TimeLeft/Sun_NextSeason; existing display Item/writer preserved",
       "versions": "5.2.3 or greater stable",
       "native_model_geometry_refit_complete": false,
       "independent_review_critical": 0,
       "independent_review_important": 3,
       "review_correction_passes": 1,
-      "review_regressions_red_then_green": true
+      "review_regressions_red_then_green": true,
+      "native_publisher_recovery_recorded_at": "2026-10-12T16:37:07.188660194Z",
+      "live_home_and_weather_rendered": true,
+      "live_denver_utc_labels_identical": true,
+      "live_browser_page_errors": 0,
+      "live_browser_memory_bytes": 268435456,
+      "live_browser_swap_bytes": 0,
+      "native_daily_refresh_acceptance_pending": true
     }
   }
 }
