@@ -94,6 +94,8 @@ export default defineConfig(() => {
       env: { TZ: HOUSEHOLD_TZ },
     },
     server: {
+      // Development builds and private diagnostics must not reload household screens.
+      watch: { ignored: ['**/.worktrees/**', '**/.superpowers/**'] },
       fs: { deny: HOUSEHOLD_FS_DENY },
       // Vite's DNS-rebinding protection only admits localhost + literal IPs
       // by default; household clients (tablet, Shield) reach the console by
