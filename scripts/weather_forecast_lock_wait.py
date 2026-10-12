@@ -37,7 +37,17 @@ def run(*args):
 
 
 def properties(unit,keys):
-    return dict(line.split('=',1) for line in run('systemctl','--user','show',unit,*['--property='+key for key in keys]).splitlines() if '=' in line)
+    value=dict(line.split('=',1) for line in run('systemctl','--user','show',unit,*['--property='+key for key in keys]).splitlines() if '=' in line)
+    # This manager omits empty command arrays even with `show --all`.
+    # Only the authoritative zero-length D-Bus array can establish emptiness.
+    for key in keys:
+        if key in HOOKS and key not in value:
+            if unit!='forecast-json.service':raise ValueError('fixed weather hook owner required')
+            result=run('busctl','--user','get-property','org.freedesktop.systemd1',
+                '/org/freedesktop/systemd1/unit/forecast_2djson_2eservice','org.freedesktop.systemd1.Service',key)
+            if result!='a(sasbttttuii) 0':raise ValueError('definitive empty effective command array required')
+            value[key]=''
+    return value
 
 
 def argv(raw):

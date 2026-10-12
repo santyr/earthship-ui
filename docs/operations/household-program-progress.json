@@ -735,8 +735,8 @@
     "weather_json_lock_wait": {
       "status": "review_corrections_verified_live_definition_pending",
       "baseline_tests": 11,
-      "affected_tests": 38,
-      "affected_seconds": 4.4,
+      "affected_tests": 41,
+      "affected_seconds": 4.6,
       "real_flock_contention_verified": true,
       "wait_seconds": 90,
       "service_timeout_seconds": 210,
@@ -751,7 +751,10 @@
       "review_findings_important": 2,
       "complete_definition_inventory_verified": true,
       "all_effective_command_hooks_refused": true,
-      "exact_legacy_new_weather_profiles_verified": true
+      "exact_legacy_new_weather_profiles_verified": true,
+      "definitive_dbus_empty_hook_verified": true,
+      "original_unit_mode": "0644",
+      "original_unit_bytes_unchanged": true
     }
   }
 }

@@ -139,3 +139,15 @@ def test_inherited_definition_or_command_drift_refuses_before_write(damage,tmp_p
     monkeypatch.setattr(mod,'properties',properties)
     with pytest.raises(ValueError):mod.execute(True)
     assert not mod.TARGET.exists() and calls==[]
+
+
+@pytest.mark.parametrize('reply',['a(sasbttttuii) 0','a(sasbttttuii) 1','unsupported'])
+def test_missing_cli_hook_requires_definitive_empty_dbus_array(reply,monkeypatch):
+    mod=module()
+    def run(*args):
+        return '' if args[0]=='systemctl' else reply
+    monkeypatch.setattr(mod,'run',run)
+    if reply=='a(sasbttttuii) 0':
+        assert mod.properties('forecast-json.service',['ExecCondition','ExecStartPost'])=={'ExecCondition':'','ExecStartPost':''}
+    else:
+        with pytest.raises(ValueError):mod.properties('forecast-json.service',['ExecCondition','ExecStartPost'])
