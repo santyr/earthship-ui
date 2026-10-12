@@ -36,11 +36,17 @@ def _connection(path,allowed_user):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path)
-    parser.add_argument('--configuration-only',action='store_true',help='read fixed bank/topology originals only; no database access')
+    modes=parser.add_mutually_exclusive_group()
+    modes.add_argument('--configuration-only',action='store_true',help='read fixed bank/topology originals only; no database access')
+    modes.add_argument('--measured-weather-only',action='store_true',help='read fixed original receiver/policy snapshots only; no database access')
     args=parser.parse_args(argv)
-    if args.configuration_only and args.config is not None:parser.error('--configuration-only does not accept a capture configuration')
-    if not args.configuration_only and args.config is None:parser.error('--config is required for the original evidence capture')
+    if (args.configuration_only or args.measured_weather_only) and args.config is not None:parser.error('--configuration-only does not accept a capture configuration')
+    if not args.configuration_only and not args.measured_weather_only and args.config is None:parser.error('--config is required for the original evidence capture')
     try:
+        if args.measured_weather_only:
+            from household.measured_weather_capture import collect_measured_weather
+            result=collect_measured_weather()
+            sys.stdout.buffer.write(canonical(result.to_dict())+b'\n');return 0
         if args.configuration_only:
             from household.energy_configuration_capture import collect_configuration
             from household_snapshot import runtime_manifest

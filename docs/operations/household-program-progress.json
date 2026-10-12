@@ -620,13 +620,13 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "original_measured_weather": {
-      "status": "snapshot_and_model_replay_verified",
+      "status": "bounded_collector_and_cli_verified",
       "configuration_tests": 31,
       "affected_parser_tests": 141,
       "affected_suite_seconds": 13.11,
       "snapshot_integration_complete": true,
       "actual_source_inputs_verified": false,
-      "independent_review": "pending after integration/acquisition",
+      "independent_review": "pending after actual-source proof",
       "hosted_ci": "not published",
       "calibrated_irradiance_qualified": false,
       "rain_rate_qualified": false,
@@ -634,9 +634,9 @@
       "automatic_actuation": false,
       "full_program_complete": false,
       "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
-      "integration_tests": 13,
-      "household_forecast_tests": 805,
-      "unique_affected_tests": 915,
+      "integration_tests": 14,
+      "household_forecast_tests": 830,
+      "unique_affected_tests": 940,
       "broad_serial_groups": [
         {
           "tests": 614,
@@ -658,7 +658,14 @@
       "distinct_v5_v6_candidate_contexts_replayed": true,
       "enclosing_v4_v5_pipeline_outcomes_replayed": true,
       "pure_and_private_fixture_cli_replay_identical": true,
-      "producer_closure_weather_validators": 4
+      "producer_closure_weather_validators": 4,
+      "collector_implemented": true,
+      "acquisition_tests": 24,
+      "acquisition_cli_group_tests": 77,
+      "acquisition_cli_seconds": 75.7,
+      "original_capture_outcome_cli_tests": 33,
+      "original_capture_outcome_cli_seconds": 21.81,
+      "original_collection_module_required": true
     }
   }
 }

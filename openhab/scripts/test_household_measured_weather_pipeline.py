@@ -162,3 +162,16 @@ def test_original_measured_reference_cannot_outlive_receiver_deadline(tmp_path,m
         predictedEffects={key:None for key in EFFECT_UNITS},confidence='unavailable',reasonCodes=['unqualified_effect'],shadowOnly=True,parameters={})
     with pytest.raises(ContractRefused) as error:build_intent(body,snapshot=snap,now=at)
     assert error.value.reason_code=='source_stale'
+
+
+def test_missing_original_collector_module_refuses_full_source_closure(tmp_path,monkeypatch):
+    from household_pipeline import pipeline_runtime_manifest,verify_source_closure
+    from household.power_snapshot import compile_power_inputs
+    snap,measured,prepared,_,_=make(tmp_path,monkeypatch)
+    complete=pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
+    partial={name:sha for name,sha in complete.items() if name!='openhab/scripts/household/measured_weather_capture.py'}
+    original=snap.source_receipt['inputs'];source=compile_power_inputs(original['bundle'],managed=original['managed'],ownership=original['ownership'],code_revision=original['code_revision'],runtime_manifest=partial)
+    snap=api().bind_measured_weather_snapshot(source_receipt=source,source_runtime_manifest=partial,weather_context=snap.weather,
+        energy_configuration=snap.energy_configuration,measured_weather=measured,code_revision='e'*40)
+    result=run_pipeline(snap,prepared,runtime_manifest=partial)
+    with pytest.raises(ValueError):verify_source_closure(result,complete)

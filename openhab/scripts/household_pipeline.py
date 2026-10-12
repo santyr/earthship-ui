@@ -62,7 +62,7 @@ def verify_source_closure(record,actual):
                 weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_configuration_capture','energy_source_snapshot','energy_outcome_sources'))
                 weather_required.add('openhab/scripts/advisory_windows.py')
             if measured:
-                weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('measured_weather','measured_weather_snapshot'))
+                weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('measured_weather','measured_weather_snapshot','measured_weather_capture'))
                 weather_required.update('openhab/scripts/'+name for name in MEASURED_VALIDATORS)
             source=source['power_receipt']
         expected=source['runtime_manifest']
