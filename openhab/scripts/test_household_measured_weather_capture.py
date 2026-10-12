@@ -160,3 +160,106 @@ def test_measured_only_cli_never_opens_a_database(tmp_path,monkeypatch,capsys):
 def test_measured_only_mode_cannot_mix_capture_contracts(arguments):
     import household_capture
     with pytest.raises(SystemExit):household_capture.main(arguments)
+
+
+@pytest.mark.parametrize('status',[500,502,504])
+def test_http_endpoint_failure_preserves_independent_rain(status,tmp_path,monkeypatch):
+    import urllib.request,urllib.error
+    from io import BytesIO
+    from household.measured_weather import project_measured_weather
+    original,_,_,_=setup(tmp_path,monkeypatch)
+    class Opener:
+        def open(self,request,timeout):
+            if request.full_url==original['radiation']['source_endpoint']:
+                raise urllib.error.HTTPError(request.full_url,status,'unavailable',{},None)
+            response=BytesIO(original['rain']['raw'].encode())
+            response.status=200;response.geturl=lambda:request.full_url
+            return response
+    monkeypatch.setattr(urllib.request,'build_opener',lambda *a:Opener())
+    rows=project_measured_weather(collect(api()._http_get))['observations']
+    assert rows['light_lux']['value'] is None and rows['rain_counter_in']['value']==12.3
+
+
+@pytest.mark.parametrize('kind',['radiation','rain'])
+def test_unchanged_source_counter_cannot_change_record(kind,tmp_path,monkeypatch):
+    _,_,_,getter=setup(tmp_path,monkeypatch);seen=0
+    def read(**request):
+        nonlocal seen
+        raw=getter(**request)
+        if request['kind']==kind:
+            seen+=1
+            if seen==2:
+                body=json.loads(raw)
+                if kind=='radiation':body['record'].update(lightLux=25340,irradianceWm2=200)
+                else:body['record']['totalRainIn']=12.4
+                raw=json.dumps(body)
+        return raw
+    with pytest.raises(ValueError):collect(read)
+
+
+def test_trickled_http_body_cannot_outlive_total_budget(monkeypatch):
+    import socket,threading,time
+    server=socket.socket();server.bind(('127.0.0.1',0));server.listen(1)
+    stop=threading.Event()
+    def serve():
+        with server:
+            connection,_=server.accept()
+            with connection:
+                connection.recv(4096)
+                connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 20\r\n\r\n')
+                try:
+                    for _ in range(20):
+                        if stop.wait(.04):break
+                        connection.sendall(b'x')
+                except OSError:pass
+    worker=threading.Thread(target=serve,daemon=True);worker.start()
+    url='http://127.0.0.1:'+str(server.getsockname()[1])+'/radiation_evidence'
+    monkeypatch.setitem(api().SOURCES,'radiation',('Weather_Radiation_Evidence_JSON',url,8192))
+    started=time.monotonic()
+    def remaining():
+        budget=.25-(time.monotonic()-started)
+        if budget<=.001:raise ValueError('common acquisition elapsed')
+        return budget
+    try:
+        with pytest.raises(ValueError):api()._http_get(kind='radiation',url=url,remaining=remaining)
+        assert time.monotonic()-started<.65
+    finally:stop.set();worker.join(timeout=1.)
+
+
+@pytest.mark.parametrize('kind',['radiation','rain'])
+def test_original_expiry_transition_preserves_valid_companion(kind,tmp_path,monkeypatch):
+    from household.measured_weather import project_measured_weather
+    _,_,_,getter=setup(tmp_path,monkeypatch);seen=0
+    def read(**request):
+        nonlocal seen
+        raw=getter(**request)
+        if request['kind']==kind:
+            seen+=1
+            if seen==2:
+                body=json.loads(raw);record=body['record']
+                record.update(status='invalid',reason='expired',receivedAt=None,validUntil=None)
+                if kind=='radiation':
+                    record.update(lightLux=None,irradianceWm2=None);body['faultCount']+=1
+                else:record.update(totalRainIn=None,recordedAt=AT.isoformat())
+                raw=json.dumps(body)
+        return raw
+    rows=project_measured_weather(collect(read))['observations']
+    bad,good=('light_lux','rain_counter_in') if kind=='radiation' else ('rain_counter_in','light_lux')
+    assert rows[bad]['value'] is None and rows[good]['value'] is not None
+
+
+def test_http_timeout_restores_alarm_and_preserves_independent_rain(tmp_path,monkeypatch):
+    import signal,urllib.request
+    from io import BytesIO
+    from household.measured_weather import project_measured_weather
+    original,_,_,_=setup(tmp_path,monkeypatch);prior=signal.getsignal(signal.SIGALRM)
+    class Opener:
+        def open(self,request,timeout):
+            if request.full_url==original['radiation']['source_endpoint']:raise TimeoutError('endpoint unavailable')
+            response=BytesIO(original['rain']['raw'].encode());response.status=200
+            response.geturl=lambda:request.full_url
+            return response
+    monkeypatch.setattr(urllib.request,'build_opener',lambda *a:Opener())
+    rows=project_measured_weather(collect(api()._http_get))['observations']
+    assert rows['light_lux']['value'] is None and rows['rain_counter_in']['value']==12.3
+    assert signal.getsignal(signal.SIGALRM)==prior and signal.getitimer(signal.ITIMER_REAL)==(0.,0.)

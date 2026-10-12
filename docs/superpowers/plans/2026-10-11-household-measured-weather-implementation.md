@@ -54,8 +54,9 @@
 
 **Files:** Create household/measured_weather_capture.py, corresponding collector tests, docs/operations/household-measured-weather.md; update canonical household-program-progress.json.
 
-- [ ] RED fixed original receiver GETs and owned bounded policy reads, explicit before/after current owner epochs, common monotonic deadline, symlink/replacement/bytes/config/runtime drift, absent/invalid independence and private output bounds.
-- [ ] GREEN collector; actual read-only committed-source proof must retain original owner/policy/raw metadata and bind to a normal naturally delivered model issue without forcing a publisher or relaxing freshness. Preserve a precise refusal when appropriate.
+- [x] RED fixed original receiver GETs and owned bounded policy reads, explicit before/after current owner epochs, common monotonic deadline, symlink/replacement/bytes/config/runtime drift, absent/invalid independence and private output bounds.
+- [x] GREEN collector and complete one final independent review correction pass (128 refreshed checks).
+- [ ] Actual read-only committed-source proof must retain original owner/policy/raw metadata and bind to a normal naturally delivered model issue without forcing a publisher or relaxing freshness. Preserve a precise refusal when appropriate.
 - [ ] Verify pure/private CLI equality, qualifications and zero authority; single final review and one Important/Critical TDD pass; publish, require every exact-head hosted check, merge, and record canonical evidence.
 
 ## Scope audit

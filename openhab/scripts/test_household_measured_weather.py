@@ -168,3 +168,14 @@ def test_missing_explicit_owner_binding_cannot_qualify_a_point():
     rows=api().project_measured_weather(prepare(original))['observations']
     assert rows['rain_counter_in']['value'] is None and rows['rain_counter_in']['reason']=='missing_owner_binding'
     assert rows['light_lux']['value']==12670
+
+
+def test_future_decoder_cannot_qualify_at_common_clock():
+    original=sources();body=json.loads(original['radiation']['raw'])
+    body['record']['radioDecodedAt']=(AT+timedelta(seconds=1)).isoformat()
+    body['record']['validUntil']=(AT+timedelta(seconds=118)).isoformat()
+    set_raw(original['radiation'],json.dumps(body))
+    rows=api().project_measured_weather(prepare(original))['observations']
+    assert rows['light_lux']['value'] is None
+    assert rows['solar_radiation_proxy_wm2']['value'] is None
+    assert rows['rain_counter_in']['value']==12.3

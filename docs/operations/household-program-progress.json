@@ -620,13 +620,13 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "original_measured_weather": {
-      "status": "bounded_collector_and_cli_verified",
-      "configuration_tests": 31,
+      "status": "review_corrections_verified_live_binding_pending",
+      "configuration_tests": 32,
       "affected_parser_tests": 141,
       "affected_suite_seconds": 13.11,
       "snapshot_integration_complete": true,
       "actual_source_inputs_verified": false,
-      "independent_review": "pending after actual-source proof",
+      "independent_review": "single final immutable review of f76e2cd..932ab8d: four Important findings; seven regressions reproduced; one correction pass verified",
       "hosted_ci": "not published",
       "calibrated_irradiance_qualified": false,
       "rain_rate_qualified": false,
@@ -635,8 +635,8 @@
       "full_program_complete": false,
       "local_caps": "CPU20%,memory256MiB,swap0,tasks24,nice15,idleIO,threads1,serial",
       "integration_tests": 14,
-      "household_forecast_tests": 830,
-      "unique_affected_tests": 940,
+      "household_forecast_tests": 840,
+      "unique_affected_tests": 950,
       "broad_serial_groups": [
         {
           "tests": 614,
@@ -660,12 +660,22 @@
       "pure_and_private_fixture_cli_replay_identical": true,
       "producer_closure_weather_validators": 4,
       "collector_implemented": true,
-      "acquisition_tests": 24,
+      "acquisition_tests": 33,
       "acquisition_cli_group_tests": 77,
       "acquisition_cli_seconds": 75.7,
       "original_capture_outcome_cli_tests": 33,
       "original_capture_outcome_cli_seconds": 21.81,
-      "original_collection_module_required": true
+      "original_collection_module_required": true,
+      "review_findings_important": 4,
+      "review_reproductions": 7,
+      "actual_source_collection_revision": "932ab8d517770e3071591d5567e49e370e3acf89",
+      "actual_source_collection_as_of": "2026-10-12T01:54:39.461104+00:00",
+      "actual_model_binding_verified": false,
+      "normal_publisher_invocation": "56d57779aeac411194bf73fb24063dcd",
+      "normal_publisher_status": "withheld_and_withdrawn",
+      "review_corrections_tests": 128,
+      "review_corrections_seconds": 248.18,
+      "review_corrections_passed": true
     }
   }
 }

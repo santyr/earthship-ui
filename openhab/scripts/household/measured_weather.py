@@ -84,6 +84,7 @@ def _point(kind,row,at):
             if envelope['streamEpoch']!=row['expected_epoch']:return 'owner_epoch_mismatch',None
             if point is None:return 'source_unavailable',None
             if point['fault_visibility']!='verified':return 'unverified_fault_visibility',point
+            if point['radioDecodedAt']>at:return 'future_decoder',point
         else:
             sample=parse_rain_snapshot(row['raw'],instant(row['available_at']),policy)
             if sample.epoch!=row['expected_epoch']:return 'owner_epoch_mismatch',None
