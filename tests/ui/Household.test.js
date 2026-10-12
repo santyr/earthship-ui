@@ -2,7 +2,7 @@
 import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('svelte', async () => import('../../node_modules/svelte/src/index-client.js'));
-import Household from '../../src/screens/Household.svelte';
+import HouseholdObservation from '../../src/lib/ui/HouseholdObservation.svelte';
 import { observation, proposal, AT } from '../fixtures/household-observation.js';
 
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -11,10 +11,10 @@ function serve(row) {
   const fetcher = vi.fn(async () => new Response(JSON.stringify(row), { status: 200 }));
   vi.stubGlobal('fetch', fetcher); return fetcher;
 }
-describe('household operator inspection', () => {
+describe('Earthship household observation panels', () => {
   it('shows mode, snapshot age, models, no selection, confidence and unavailable owner comparison', async () => {
     const row = observation(); const fetcher = serve(row);
-    const { container, getByText, unmount } = render(Household);
+    const { container, getByText, unmount } = render(HouseholdObservation);
     await waitFor(() => expect(getByText('Shadow')).toBeTruthy());
     expect(getByText('20 seconds')).toBeTruthy();
     expect(getByText('No action selected')).toBeTruthy();
@@ -30,7 +30,7 @@ describe('household operator inspection', () => {
   });
   it('shows proposed effects as unknown and exposes the blocking hard constraint', async () => {
     const row = observation(); row.proposals = [proposal()]; serve(row);
-    const { container, getByText } = render(Household);
+    const { container, getByText } = render(HouseholdObservation);
     await waitFor(() => expect(getByText('RUN_FEEDER_CYCLE')).toBeTruthy());
     expect(container.textContent).toContain('battery reserve: unknown');
     expect(container.textContent).toContain('unqualified effect');
@@ -39,7 +39,7 @@ describe('household operator inspection', () => {
   });
   it('withholds current planning for an expired artifact while keeping identities inspectable', async () => {
     const row = observation(); serve(row); vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
-    const { container, getByText } = render(Household);
+    const { container, getByText } = render(HouseholdObservation);
     await waitFor(() => expect(getByText('Original plan expired')).toBeTruthy());
     expect(getByText('Unavailable')).toBeTruthy();
     expect(container.textContent).toContain(row.snapshot_id);
@@ -47,7 +47,7 @@ describe('household operator inspection', () => {
   });
   it('fails unavailable on bad transport without rendering raw private fields', async () => {
     serve({ private_path: '/operator-only-path' });
-    const { container, getByText } = render(Household);
+    const { container, getByText } = render(HouseholdObservation);
     await waitFor(() => expect(getByText('Verified observation unavailable')).toBeTruthy());
     expect(container.textContent).not.toContain('/operator-only-path');
   });
@@ -56,7 +56,7 @@ describe('household operator inspection', () => {
 it('recalculates original expiry on polling and stops all requests after navigation', async () => {
   const row = observation(); const fetcher = serve(row);
   vi.useFakeTimers();
-  const { container, unmount } = render(Household);
+  const { container, unmount } = render(HouseholdObservation);
   await vi.advanceTimersByTimeAsync(1);
   expect(container.textContent).toContain('Shadow');
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
@@ -70,7 +70,7 @@ it('recalculates original expiry on polling and stops all requests after navigat
 
 it('expires the displayed plan independently of a slow network polling interval', async () => {
   const fetcher = serve(observation()); vi.useFakeTimers();
-  const { container } = render(Household);
+  const { container } = render(HouseholdObservation);
   await vi.advanceTimersByTimeAsync(1);
   expect(container.textContent).toContain('Shadow');
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
