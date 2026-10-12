@@ -64,7 +64,7 @@ Read only the two fixed companion configuration paths, owned regular non-symlink
 
 - [x] RED then GREEN collection bounds, fixed paths, missing sources, replacement/symlink/identity change, deadline and independent original-source retention.
 - [x] Complete full affected suite; collect actual committed source/configuration under existing caps without forcing a publisher. Bind to a normal naturally delivered original model issue, or retain a precise refusal without changing origin/expiry guards.
-- [ ] Verify pure/private operational CLI equality, qualification limits and zero action authority; one final independent review, one Important/Critical TDD fix pass, publish and require all exact-head hosted checks before merge.
+- [x] Verify pure/private operational CLI equality, qualification limits and zero action authority; one final independent review, one Important/Critical TDD fix pass, publish and require all exact-head hosted checks before merge.
 
 ## Scope audit
 
