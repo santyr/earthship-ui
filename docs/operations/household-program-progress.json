@@ -731,6 +731,21 @@
         "status": "actual_measured_weather_source_models_replayed",
         "weather_rows_sha256": "07a411f4075d4ec293ffffc5ac4bf377b8a6b976b52a6d40983324f03ecc8e19"
       }
+    },
+    "weather_json_lock_wait": {
+      "status": "implementation_verified_review_pending",
+      "baseline_tests": 11,
+      "affected_tests": 31,
+      "affected_seconds": 4.5,
+      "real_flock_contention_verified": true,
+      "wait_seconds": 90,
+      "service_timeout_seconds": 210,
+      "automatic_actuation": false,
+      "worker_started": false,
+      "definition_installed": false,
+      "independent_review": "pending",
+      "hosted_ci": "not published",
+      "full_program_complete": false
     }
   }
 }
