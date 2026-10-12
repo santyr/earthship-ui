@@ -42,8 +42,8 @@ describe('navigate + currentRoute', () => {
     expect(get(currentRoute)).toBe('home');
   });
 
-  it('exposes the six expected routes', () => {
-    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls']);
+  it('exposes the household inspection route alongside existing routes', () => {
+    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'household']);
   });
 
   it('navigates to the controls route', () => {
@@ -51,3 +51,5 @@ describe('navigate + currentRoute', () => {
     expect(get(currentRoute)).toBe('controls');
   });
 });
+
+it('parses the household inspection deep link', () => { expect(parseHash('#/household')).toBe('household'); });

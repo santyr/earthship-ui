@@ -9,6 +9,7 @@ import {
 } from './src/lib/openhab/proxyPolicy.js'
 import { validateControlCatalog } from './src/lib/controls/catalog.js'
 import { shadePreviewPlugin } from './src/lib/shades/previewServer.js'
+import { householdObservationPlugin, HOUSEHOLD_FS_DENY } from './src/lib/household/observationServer.js'
 
 // https://vite.dev/config/
 // Same-origin dev proxy: the browser calls relative /rest paths (config
@@ -79,7 +80,7 @@ export default defineConfig(() => {
     throw new Error(`Control catalog invalid: ${catalogErrors.join('; ')}`)
   }
   return {
-    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), svelte()],
+    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), householdObservationPlugin(), svelte()],
     define: {
       __EARTHSHIP_RELEASE_MODE__: JSON.stringify(releaseMode),
     },
@@ -93,6 +94,7 @@ export default defineConfig(() => {
       env: { TZ: HOUSEHOLD_TZ },
     },
     server: {
+      fs: { deny: HOUSEHOLD_FS_DENY },
       // Vite's DNS-rebinding protection only admits localhost + literal IPs
       // by default; household clients (tablet, Shield) reach the console by
       // hostname, so allow this machine's real names explicitly. Keep this a

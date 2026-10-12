@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Original collectors and common model binding merged through PR23. Snapshot/v4 now retains original forecast/operator context without physical authority. Independent review found two Important sensor/candidate binding gaps; five resealed regressions reproduced them, one fix pass and687 affected tests pass. Actual current committed-source capture binds to the naturally delivered22:20:15UTC issue with exact pure/privateCLI replay. Eight physical roles remain qualified at that common clock; expired inverter AC remains unavailable. Full bank/usable energy, household load, observed weather, authority and owner qualification remain incomplete. Original declared bank/topology and source-bound household AC load now rederive on snapshot/v5 with734 affected tests; actual configuration capture and final review remain pending. Nominal capacity stays configuration, with calibrated usable energy unavailable.",
+      "current_evidence": "Source snapshot/v6 retains original bank/topology, power, forecast/operator and measured-weather contexts. PR26 merged after950 affected cases, one final review correction pass and actual naturally delivered03:00:15UTC source/model/privateCLI proof. All three weather points and eight other source roles qualified at the common clock. Nominal bank20.48kWh is configuration; calibrated usable energy, common-clock AC freshness, daylight/humidity/wind, authority and owner inputs remain incomplete.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "notimplemented",
+      "current_evidence": "Curated private materializer and actual43-source historical view verified. Closed browser parser, bounded owned-file endpoint and read-only Household route implemented;55 focused frontend and22 observer/materializer cases pass after one final static review correction pass for duplicate-key privacy and publication races. Full frontend and build attempts hit256MiB scoped cap. Hosted full checks, geometry and deployment remain pending. Policy comparison and effects remain unqualified.",
       "complete": false
     },
     {
@@ -738,7 +738,7 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "weather_json_lock_wait": {
-      "status": "definition_installed_waiting_normal_refresh",
+      "status": "merged_and_natural_refresh_verified",
       "baseline_tests": 11,
       "affected_tests": 41,
       "affected_seconds": 4.6,
@@ -749,7 +749,7 @@
       "worker_started": false,
       "definition_installed": true,
       "independent_review": "one final immutable review: two Important guard gaps; six genuine regressions and one correction pass verified",
-      "hosted_ci": "publication verified; final-head checks pending after parent merge",
+      "hosted_ci": "all four exact-head checks passed",
       "full_program_complete": false,
       "review_base": "952c3c66fe44988fc86eeb0a444541ae2374acdf",
       "review_head": "81c648953d468c9819261567efcd48debd12fadb",
@@ -773,8 +773,74 @@
           "1ee50ea8ee1941c2980e9e334cb46dc4"
         ]
       },
-      "natural_refresh_qualified": false,
-      "pr": 27
+      "natural_refresh_qualified": true,
+      "pr": 27,
+      "head": "e036c3a87e55731807cb1415b36f028923ce458b",
+      "merge": "d43e70cbb8cb6a4f5e48ae7fd4fcb8b101e08ded",
+      "ci_run": 38201126570,
+      "natural_refresh_invocation": "9d127aeb03df4e0f9def48694855e631",
+      "natural_refresh_generated_at": "2026-10-11T22:12:06-06:00",
+      "natural_refresh_completed_at": "2026-10-11T22:12:13-06:00",
+      "natural_refresh_public_readback_verified": true
+    },
+    "operator_observability": {
+      "status": "review_corrections_focused_verified_hosted_deployment_pending",
+      "focused_tests": 22,
+      "focused_seconds": 26.6,
+      "source_backed_v6_view_verified": true,
+      "private_source_registry_data_excluded": true,
+      "original_expiry_preserved": true,
+      "policy_comparison_qualified": false,
+      "automatic_actuation": false,
+      "full_program_complete": false,
+      "affected_pipeline_tests": 120,
+      "affected_seconds": 41.4,
+      "private_materializer_verified": true,
+      "actual_artifact_verified": true,
+      "actual_observation_sha256": "a08fc845cc7559974fe68231ac466a67ad6e14403f4310bec2e6d0a2741cd17e",
+      "actual_observation_bytes": 10012,
+      "actual_source_roles": 43,
+      "actual_qualified_at_issue": 11,
+      "actual_planner_mode": "unavailable",
+      "private_context_excluded": true,
+      "endpoint_implemented": true,
+      "operator_panel_implemented": true,
+      "frontend_focused_tests": 56,
+      "frontend_focused_seconds": 32.1,
+      "frontend_full_suite_passed": false,
+      "frontend_full_suite_result": "scoped_oom_kill",
+      "browser_actual_artifact_parser_verified": true,
+      "final_review_complete": true,
+      "ui_deployed": false,
+      "local_build_result": "scoped_oom_kill",
+      "review_critical": 0,
+      "review_important": 2,
+      "review_correction_passes": 1,
+      "duplicate_keys_refused": true,
+      "publication_target_parent_races_refused": true,
+      "independent_expiry_clock": true,
+      "minor_followup": "complete_nested_existing_cache_recognition",
+      "actual_post_review_materializer_verified": true,
+      "actual_post_review_observation_sha256": "6ebb27a7de2dcadff343b358fa9dcd7918cc650cf2a0fe27937a809118aaaf6f",
+      "actual_endpoint_verified": true,
+      "actual_endpoint_http_status": 200,
+      "actual_endpoint_cache_control": "no-store",
+      "broader_python_suite_passed": false,
+      "broader_python_suite_result": "75s_and_180s_deadlines_incomplete",
+      "core_pipeline_tests": 98,
+      "core_pipeline_seconds": 14.8,
+      "affected_test_groups": "22 observer/materializer +98 core pipeline; broader six-file selection remains incomplete",
+      "private_staging_http_gap_confirmed": true,
+      "private_staging_fs_guard_implemented": true,
+      "private_staging_fs_guard_live_verified": true,
+      "private_staging_http_status": 403,
+      "protected_root_thermal_overlay_unchanged": true,
+      "pr": 28,
+      "source_head_before_fs_guard": "49073f056941faa1a8a39cf0c34e5faa3ba2dc72",
+      "ci_run_before_fs_guard": 38207506110,
+      "full_frontend_before_fs_guard_passed": true,
+      "build_before_fs_guard_passed": true,
+      "browser_geometry_verified": false
     }
   }
 }
