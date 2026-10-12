@@ -8,11 +8,14 @@ from pathlib import Path
 import time
 
 
-def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc)):
+def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False):
     from thermal_model import provisional_monitor as monitor
     guard();now=clock();runtime=monitor.current_runtime()
     candidate=monitor.read_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime)
-    try:return monitor.score_jobs(settings,guard=guard)
+    score_jobs=monitor.score_jobs
+    if queue:
+        from household_score_queue import score_jobs
+    try:return score_jobs(settings,guard=guard)
     except ValueError as error:
         if str(error)!='original mature outcome unavailable':raise
     # Original refresh replays pair validation and checks every retained source
@@ -52,7 +55,7 @@ def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=ti
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=35):raise ValueError('score lifetime elapsed')
             if _private_file(config,8192)!=original or _read_private(config)!=settings or Path(__file__).read_bytes()!=own:
                 raise ValueError('score source or configuration changed')
-        result=score_with_report(settings,guard=guard,clock=clock)
+        result=score_with_report(settings,guard=guard,clock=clock,queue=True)
         guard()
         if verifier is not None and verifier(stage)!=binding:raise ValueError('staged score runtime changed')
         return result

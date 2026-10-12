@@ -1120,7 +1120,24 @@
         "assessed_at": "2026-10-12T19:16:23.265951+00:00",
         "graduated": false
       },
-      "next_forecast_monitoring_inclusion_verified": false
+      "next_forecast_monitoring_inclusion_verified": true,
+      "forecast_monitoring_issue": "2026-10-12T19:30:15+00:00",
+      "intermittent_withholding_reason_diagnosed": false
+    },
+    "outcome_gap_queue": {
+      "status": "implemented_not_deployed",
+      "affected_tests_passed": 28,
+      "affected_seconds": 63.39,
+      "max_pending_outcome_assessments_per_invocation": 1,
+      "retry_minutes": 15,
+      "immutable_gap_receipts": true,
+      "complete_gap_original_fingerprints_required": true,
+      "supported_pair_identical_to_original": true,
+      "missing_outcomes_in_error_average": false,
+      "protected_fitted_sources_unchanged": 72,
+      "automatic_actuation": false,
+      "actual_natural_queue_advancement_verified": false,
+      "automatic_training_complete": false
     }
   },
   "astro_efficiency_audit": {
