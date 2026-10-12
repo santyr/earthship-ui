@@ -1813,6 +1813,27 @@
         "production_model_changed": false,
         "live_writes": false
       }
+    },
+    "native_installed_shade_model_fit": {
+      "status": "implemented_affected_tests_pass_review_and_actual_fit_pending",
+      "model_rule": "earthship-native-installed-shade-dynamics/v2",
+      "fit_schema": "earthship-native-solar-provisional-fit/v1",
+      "original_equations_constraints_and_physical_guards_reused": true,
+      "same_geometry_legacy_rollout_and_sensitivity_parity": true,
+      "finite_difference_model_and_objective_derivatives_verified": true,
+      "missing_geometry_refused_even_at_zero_radiation": true,
+      "affected_cases_passed": 140,
+      "affected_seconds": 13.4,
+      "tests_serialized_with_actual_shared_ml_lock": true,
+      "original_pressure_guards_preserved": true,
+      "original_fitted_sources_changed": false,
+      "protected_original_source_count": 72,
+      "actual_fit_pending": true,
+      "versioned_model_artifact_complete": false,
+      "as_issued_prediction_comparison_complete": false,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -1942,5 +1963,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:52:08.672240+00:00"
+  "updated_at": "2026-10-12T22:59:24.025564+00:00"
 }
