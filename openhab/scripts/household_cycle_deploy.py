@@ -1,0 +1,240 @@
+"""Stage immutable household sources without modifying the live service.
+
+Runtime qualification and service handoff are separate guarded operations.
+Private configurations, credentials and fitted artifacts are never committed or
+printed by this tool. Source packaging uses only the standard library.
+"""
+from hashlib import sha256
+import json,os,re,stat,subprocess
+from pathlib import Path
+
+LIMITS={'TimeoutStartSec':'90','CPUQuota':'20%','MemoryMax':'256M','MemorySwapMax':'0','TasksMax':'24',
+        'Nice':'15','IOSchedulingClass':'idle','IOWeight':'10'}
+REGISTRY=('openhab/managed-resources.json','openhab/file-config/ownership.json')
+MAX_BYTES=2*1024*1024
+
+
+def _encode(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+
+def _path(value):
+    path=Path(value).absolute()
+    if path.resolve()!=path or re.fullmatch(r'/[A-Za-z0-9_./-]+',str(path)) is None:
+        raise ValueError('resolved deployment path required')
+    return path
+
+
+def _bytes(path,*,private=False):
+    path=_path(path)
+    try:fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    except OSError:raise ValueError('owned deployment original unavailable') from None
+    try:
+        info=os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_size>MAX_BYTES or
+            private and stat.S_IMODE(info.st_mode)!=0o600):raise ValueError('bounded owned deployment original required')
+        raw=os.read(fd,MAX_BYTES+1);after=os.fstat(fd)
+        metadata=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_size,row.st_mtime_ns,row.st_ctime_ns)
+        if len(raw)>MAX_BYTES or metadata(info)!=metadata(after):raise ValueError('deployment original changed while reading')
+        return raw
+    finally:os.close(fd)
+
+
+def _directory(path):
+    path=_path(path);info=path.stat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o700:
+        raise ValueError('owned private deployment directory required')
+    return path
+
+
+def _write(path,raw,mode=0o600):
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,mode)
+    with os.fdopen(fd,'wb') as stream:stream.write(raw);stream.flush();os.fsync(stream.fileno())
+
+
+def _git(repo,*args):
+    return subprocess.check_output(['git','-C',str(repo),*args],timeout=5)
+
+
+def _service_contract(raw,config):
+    # This override can replace only the existing capped provisional publisher.
+    text=raw.decode();rows={}
+    for line in text.splitlines():
+        if line.startswith('#') or '=' not in line:continue
+        key,value=line.split('=',1);rows.setdefault(key,[]).append(value)
+    if any(rows.get(key)!=[value] for key,value in LIMITS.items()):raise ValueError('original service limits differ')
+    import shlex
+    command=rows.get('ExecStart',[])
+    if len(command)!=1:raise ValueError('one original publisher required')
+    parts=shlex.split(command[0])
+    if len(parts)!=5 or parts[0]!='/usr/bin/python3' or not parts[1].endswith('/provisional_thermal.py') or parts[2:]!=['--config',str(config),'--publish']:
+        raise ValueError('original provisional publisher contract differs')
+
+
+def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision):
+    repo,stage,config,parameters,cache,service=map(_path,(repo_root,stage,forecast_config,parameters,observation_cache,service_file))
+    if re.fullmatch('[a-f0-9]{40}',code_revision or '') is None or re.fullmatch('[a-f0-9]{64}',parameters_sha256 or '') is None:
+        raise ValueError('original code and parameter identities required')
+    if _git(repo,'rev-parse','HEAD').decode().strip()!=code_revision or _git(repo,'status','--porcelain','--untracked-files=no').strip():
+        raise ValueError('clean exact committed source required')
+    _directory(cache.parent)
+    config_raw=_bytes(config,private=True);settings=json.loads(config_raw)
+    candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
+    parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
+    if sha256(parameter_raw).hexdigest()!=parameters_sha256:raise ValueError('original retained parameters differ')
+    _service_contract(service_raw,config)
+    names=_git(repo,'ls-files','-z','--','openhab/scripts/*.py').decode().split('\0')
+    names=[name for name in names if name and not Path(name).name.startswith('test_')]+list(REGISTRY)
+    if len(names)!=len(set(names)) or not 4<=len(names)<=400:raise ValueError('bounded complete source package required')
+    sources={name:_bytes(repo/name) for name in names}
+    protected=json.loads(candidate_raw)['runtime']['source_manifest']
+    if not isinstance(protected,dict) or not 2<=len(protected)<=72:raise ValueError('original fitted source manifest required')
+    for name,digest in protected.items():
+        key='openhab/scripts/'+name
+        if key not in sources or sha256(sources[key]).hexdigest()!=digest:raise ValueError('original fitted runtime source differs')
+    bindings={str(path):sha256(raw).hexdigest() for path,raw in ((config,config_raw),(candidate,candidate_raw),(parameters,parameter_raw),(service,service_raw))}
+    # Recheck before creating anything; malformed inputs leave no staged output.
+    if any(_bytes(repo/name)!=raw for name,raw in sources.items()) or _git(repo,'rev-parse','HEAD').decode().strip()!=code_revision:
+        raise ValueError('source changed during package preparation')
+    stage.mkdir(mode=0o700)
+    root=stage/'sources';root.mkdir(mode=0o700)
+    for name,raw in sources.items():
+        destination=root/name;destination.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+        _write(destination,raw,0o644)
+    (stage/'evidence').mkdir(mode=0o700)
+    cycle=dict(schema='earthship-household-cycle-config/v1',forecast_config=str(config),retained_energy_parameters=str(parameters),
+        parameters_sha256=parameters_sha256,evidence_directory=str(stage/'evidence'),observation_cache=str(cache))
+    _write(stage/'cycle.json',_encode(cycle))
+    scripts=root/'openhab/scripts'
+    dropin=('[Service]\nEnvironment="PYTHONPATH='+str(scripts)+':/home/sat/Solar_PV/analytics/src"\n'
+        'ExecStart=\nExecStart=/usr/bin/python3 '+str(scripts/'household_cycle.py')+' --config '+str(stage/'cycle.json')+' --code-revision '+code_revision+'\n')
+    _write(stage/'service.conf',dropin.encode())
+    record=dict(schema='earthship-household-cycle-deployment/v1',code_revision=code_revision,stage=str(stage),service_file=str(service),
+        original_bindings=bindings,source_manifest={name:sha256(raw).hexdigest() for name,raw in sources.items()},
+        protected_runtime_sources=protected,cycle_sha256=sha256(_bytes(stage/'cycle.json',private=True)).hexdigest(),
+        dropin_sha256=sha256(dropin.encode()).hexdigest(),automatic_actuation=False)
+    _write(stage/'deployment.json',_encode(record));verify_stage(stage)
+    return dict(status='deployment_staged',code_revision=code_revision,source_count=len(sources),automatic_actuation=False)
+
+
+def verify_stage(stage):
+    stage=_directory(stage);record=json.loads(_bytes(stage/'deployment.json',private=True))
+    fields={'schema','code_revision','stage','service_file','original_bindings','source_manifest','protected_runtime_sources','cycle_sha256','dropin_sha256','automatic_actuation'}
+    if set(record)!=fields or record['schema']!='earthship-household-cycle-deployment/v1' or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
+        raise ValueError('closed original deployment record required')
+    sources=record['source_manifest'];root=_directory(stage/'sources')
+    actual={str(path.relative_to(root)) for path in root.rglob('*') if not path.is_dir()}
+    if actual!=set(sources):raise ValueError('closed staged source set differs')
+    if any(sha256(_bytes(root/name)).hexdigest()!=digest for name,digest in sources.items()):raise ValueError('staged source changed')
+    for name,digest in record['protected_runtime_sources'].items():
+        if sources.get('openhab/scripts/'+name)!=digest:raise ValueError('original protected source binding differs')
+    for name,digest in record['original_bindings'].items():
+        if sha256(_bytes(name,private=name!=record['service_file'])).hexdigest()!=digest:raise ValueError('original deployment input changed')
+    if (sha256(_bytes(stage/'cycle.json',private=True)).hexdigest()!=record['cycle_sha256'] or
+        sha256(_bytes(stage/'service.conf',private=True)).hexdigest()!=record['dropin_sha256']):
+        raise ValueError('staged configuration changed')
+    return record
+
+
+EFFECTIVE_LIMITS={'CPUQuotaPerSecUSec':'200ms','MemoryMax':'268435456','MemorySwapMax':'0','TasksMax':'24','Nice':'15','IOSchedulingClass':'3','IOWeight':'10'}
+
+
+def _systemctl(*args):
+    return subprocess.check_output(['systemctl','--user',*args],timeout=5).decode().strip()
+
+
+def _service_state(service):
+    raw=_systemctl('show',service.name,*['--property='+key for key in ('ActiveState','MainPID','ExecStart',*EFFECTIVE_LIMITS)])
+    return dict(row.split('=',1) for row in raw.splitlines() if '=' in row)
+
+
+def _inactive_capped(state):
+    if state.get('ActiveState') not in ('inactive','failed') or state.get('MainPID')!='0':raise ValueError('original publisher still active')
+    if any(state.get(key)!=value for key,value in EFFECTIVE_LIMITS.items()):raise ValueError('effective original limits differ')
+
+
+def _qualify(stage):
+    command=['systemd-run','--user','--scope','-p','CPUQuota=20%','-p','MemoryMax=256M','-p','MemorySwapMax=0',
+        '-p','TasksMax=24','-p','IOWeight=10','nice','-n','15','ionice','-c','3','timeout','45s','env',
+        'OPENBLAS_NUM_THREADS=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','PYTHONDONTWRITEBYTECODE=1',
+        'PYTHONPATH='+str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src','/usr/bin/python3',
+        str(stage/'sources/openhab/scripts/household_cycle_deploy.py'),'--stage',str(stage),'--verify-runtime']
+    raw=subprocess.check_output(command,timeout=55)
+    result=json.loads(raw)
+    expected=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest()
+    if (set(result)!={'status','deployment_sha256','automatic_actuation'} or result['status']!='runtime_verified' or
+        result['deployment_sha256']!=expected or result['automatic_actuation'] is not False):
+        raise ValueError('exact capped runtime qualification required')
+
+
+def verify_runtime(stage):
+    from datetime import datetime,timedelta,timezone
+    from thermal_installed_intel import _resource_preflight
+    _resource_preflight()
+    record=verify_stage(stage);stage=_directory(stage)
+    scripts=stage/'sources/openhab/scripts'
+    if Path(__file__).resolve()!=scripts/'household_cycle_deploy.py':raise ValueError('staged verifier execution required')
+    from household_cycle_sources import load_cycle_settings,CycleSourceCollector
+    from thermal_model.provisional_live import load_settings,current_runtime,_next_issue
+    from thermal_model.provisional_artifact import read_candidate
+    from thermal_model.capture_guard import SharedScoreLock
+    cycle=load_cycle_settings(stage/'cycle.json');settings=load_settings(cycle['forecast_config'])
+    now=datetime.now(timezone.utc)
+    if _next_issue(now)-now<timedelta(seconds=90):raise BlockingIOError('original publisher preparation window reserved')
+    with SharedScoreLock(settings['shared_lock']) as lock:
+        runtime=current_runtime();read_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime)
+        collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=record['code_revision'])
+        collector.verify_unchanged();lock.verify()
+        if verify_stage(stage)!=record or current_runtime()!=runtime:raise ValueError('staged runtime changed during qualification')
+    return dict(status='runtime_verified',deployment_sha256=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest(),automatic_actuation=False)
+
+
+def apply_stage(stage):
+    stage=_directory(stage);record=verify_stage(stage);service=_path(record['service_file'])
+    if service.name!='thermal-provisional-forecast.service':raise ValueError('fixed original forecast service required')
+    before=_service_state(service);_inactive_capped(before)
+    cycle=json.loads(_bytes(stage/'cycle.json',private=True))
+    if '/provisional_thermal.py --config '+cycle['forecast_config']+' --publish' not in before.get('ExecStart',''):
+        raise ValueError('effective original publisher differs')
+    _qualify(stage)
+    if verify_stage(stage)!=record:raise ValueError('original stage changed after qualification')
+    _inactive_capped(_service_state(service))
+    folder=service.parent/(service.name+'.d');target=folder/'zzzz-household-cycle.conf'
+    if target.exists() or target.is_symlink():raise ValueError('existing service handoff must be reconciled separately')
+    folder.mkdir(mode=0o700,exist_ok=True);_directory(folder)
+    raw=_bytes(stage/'service.conf',private=True);_write(target,raw)
+    try:
+        _systemctl('daemon-reload')
+        effective=_service_state(service)
+        if any(effective.get(key)!=value for key,value in EFFECTIVE_LIMITS.items()):raise ValueError('installed effective limits differ')
+        if str(stage/'sources/openhab/scripts/household_cycle.py') not in effective.get('ExecStart',''):
+            raise ValueError('installed source entry point differs')
+        verify_stage(stage)
+    except Exception:
+        # Remove only our exact new override; do not overwrite a concurrent edit.
+        if _bytes(target,private=True)==raw:
+            target.unlink();_systemctl('daemon-reload')
+        raise
+    return dict(status='deployment_installed',code_revision=record['code_revision'],service_restarted=False,automatic_actuation=False)
+
+
+def main(argv=None):
+    import argparse,sys
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--stage',required=True,type=Path)
+    modes=parser.add_mutually_exclusive_group();modes.add_argument('--verify-runtime',action='store_true');modes.add_argument('--apply',action='store_true')
+    parser.add_argument('--repo-root',type=Path);parser.add_argument('--forecast-config',type=Path);parser.add_argument('--parameters',type=Path)
+    parser.add_argument('--parameters-sha256');parser.add_argument('--observation-cache',type=Path);parser.add_argument('--service-file',type=Path);parser.add_argument('--code-revision')
+    args=parser.parse_args(argv)
+    try:
+        if args.verify_runtime:result=verify_runtime(args.stage)
+        elif args.apply:result=apply_stage(args.stage)
+        else:
+            result=stage_deployment(repo_root=args.repo_root,stage=args.stage,forecast_config=args.forecast_config,parameters=args.parameters,
+                parameters_sha256=args.parameters_sha256,observation_cache=args.observation_cache,service_file=args.service_file,code_revision=args.code_revision)
+    except BlockingIOError:
+        print(json.dumps(dict(status='busy',automatic_actuation=False)));return 75
+    except Exception:
+        print(json.dumps(dict(status='deployment_refused',automatic_actuation=False)),file=sys.stderr);return 1
+    print(json.dumps(result,sort_keys=True));return 0
+
+
+if __name__=='__main__':raise SystemExit(main())
