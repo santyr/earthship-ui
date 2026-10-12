@@ -1575,7 +1575,7 @@
       },
       "original_88_point_cache_replayed_after_precision_fix": true,
       "qualification_matches_original_collector_revision": true,
-      "new_collector_revision_native_acquisition_pending": true,
+      "new_collector_revision_native_acquisition_pending": false,
       "multi_batch_series": {
         "status": "implemented_affected_tests_pass_review_clean",
         "affected_cases_passed": 60,
@@ -1598,7 +1598,7 @@
           "fit_executed": false,
           "live_writes": false
         },
-        "native_dataset_window_acquired": false,
+        "native_dataset_window_acquired": true,
         "dataset_or_model_artifact_versioned": false,
         "production_model_changed": false,
         "review": {
@@ -1606,37 +1606,93 @@
           "important": 0,
           "minor": 0,
           "reviewed_revision": "426b131"
-        }
+        },
+        "actual_multi_batch_acquisition_complete": true
       },
       "native_worker_packaging": {
-        "status": "implemented_affected_tests_pass",
+        "status": "implemented_review_clean_staged_native_execution_verified",
         "java_source_retained": true,
         "missing_or_symlink_java_refused": true,
         "affected_cases_passed": 84,
         "affected_seconds": 8.4,
         "new_stage_runtime_qualification_pending": true,
-        "production_stage_changed": false
+        "production_stage_changed": false,
+        "review": {
+          "critical": 0,
+          "important": 0,
+          "minor": 0,
+          "reviewed_revision": "e044170"
+        },
+        "actual_stage": {
+          "code_revision": "e044170e414dcb13e549c4b7fb10db7088abc95a",
+          "deployment_sha256": "172a8ec7802e17dda11c022c85ceee8c40f2b52f89a754536588622807e1da5b",
+          "source_count": 209,
+          "protected_original_source_count": 72,
+          "java_source_retained": true,
+          "live_units_changed": false,
+          "native_execution_qualification_pending": false
+        },
+        "native_execution_qualification": {
+          "status": "sealed_staged_native_worker_verified",
+          "code_revision": "e044170e414dcb13e549c4b7fb10db7088abc95a",
+          "deployment_sha256": "172a8ec7802e17dda11c022c85ceee8c40f2b52f89a754536588622807e1da5b",
+          "protected_original_sources": 72,
+          "point_count": 128,
+          "collector_sha256": "e7dd9d5ef8424c546fd6b99238c6853344296fd6174b4472527dca32236b98e5",
+          "original_native_output_identical": true,
+          "original_positions_identical": true,
+          "cache_sha256": "7c1f5efa8c70fefbfdb02e495f1912b0ad6b9df631f4fd587a0def8a35bd2790",
+          "seconds": 10.385380173975136,
+          "memory_peak_bytes": 112128000,
+          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "fit_executed": false,
+          "live_units_changed": false,
+          "production_model_changed": false,
+          "live_writes": false
+        },
+        "first_native_execution_attempt": "withheld_on_host_swapin_above_original_allowance",
+        "guard_relaxed": false
       },
       "training_window_geometry": {
-        "status": "first_actual_batch_captured",
-        "first_batch": {
-          "status": "native_training_geometry_batch_captured",
-          "batch_index": 0,
-          "completed_batches": 1,
-          "required_batches": 7,
-          "point_count": 778,
+        "status": "actual_complete_training_window_geometry_verified",
+        "qualification": {
+          "status": "original_training_window_geometry_verified",
+          "assessed_at": "2026-10-12T22:28:52.845595+00:00",
           "snapshot_sha256": "2e2edd36e4b82b29b95c51968ab448c6a0b3d01655116365043ae5ab166f4b4b",
+          "snapshot_file_sha256": "866dbba22e5ceeb3290bface5061db249ed6bdfefaa039d5310a1c986dc0655f",
+          "training_start": "2026-10-09T13:10:00+00:00",
+          "training_end": "2026-10-12T06:00:00+00:00",
+          "series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
           "request_sha256": "e0e0abb8b4cb5fb026791d8fcec10fd2c41cb1dfb19e0defbfd8d775b0f3e2d7",
-          "series_sha256": null,
-          "collector_sha256": "e7dd9d5ef8424c546fd6b99238c6853344296fd6174b4472527dca32236b98e5",
-          "seconds": 12.25173935003113,
-          "memory_peak_bytes": 125534208,
-          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "native_runtime": {
+            "binding_version": "5.2.3",
+            "collector_sha256": "e7dd9d5ef8424c546fd6b99238c6853344296fd6174b4472527dca32236b98e5",
+            "libraries": {
+              "astro_binding": "b6bc002782072e6888f890b9d6dd923537674a67b78258d7d739b66dadedb14a",
+              "indriya": "c3734f7af3eec20b799e9681dbb8eb4db51392aaafa6be64b03e8999c0e0c109",
+              "openhab_core": "a30d81934a04868a13e1e0b802d5c52344fc2e59ef9e3841cc51e579041bb731",
+              "osgi_core": "41c24d187f67aaaf4745fab78fd1da66de7f37dd82581dbbbc9ba89645ba0166",
+              "pax_logging_api": "1e73700a991376e855ca8324f16d2e9e86462ac712a07f5ec117fdf015ace550",
+              "unit_api": "667487e1ee57298cdc767885f00b86c899b2fe7e72dc00b6560a6aa64f2bc9c4"
+            }
+          },
+          "point_count": 778,
+          "batch_count": 7,
+          "offline_replay_identical": true,
+          "thermal_night_disagreements": 1,
+          "max_absolute_sin_difference": 0.004836819395648367,
+          "max_phase_seconds": 12.25173935003113,
+          "max_memory_peak_bytes": 125534208,
+          "memory_limit_or_oom_events": 0,
+          "versioned_dataset_complete": false,
+          "versioned_model_artifact_complete": false,
+          "native_refit_complete": false,
+          "prediction_comparison_complete": false,
           "fit_executed": false,
           "production_model_changed": false,
           "live_writes": false
         },
-        "complete": false,
+        "complete": true,
         "versioned_dataset_complete": false,
         "native_refit_complete": false,
         "production_model_changed": false
@@ -1699,11 +1755,14 @@
         "id": "A07",
         "requirement": "Consolidate thermal solar geometry through a replayable adapter",
         "complete": false,
-        "status": "native_batch_cache_verified_versioned_model_work_pending",
+        "status": "native_training_geometry_verified_versioned_model_work_pending",
         "task": "extend the shared observational adapter or provide a bounded geometry cache for the exact historical/future timestamps required by models. Record site, timezone, algorithm/binding version, requested instants and source digest. Replay must work without live OpenHAB. Compare both geometries near the horizon, then version/refit/revalidate affected datasets and model artifacts. Do not make one synchronous binding call per historical row or change only the main source while leaving staged deployed publishers on the previous contract.",
         "acceptance": "historical/future coverage, DST/leap days, exact requested instants, missing geometry, offline replay, horizon disagreements, artifact compatibility, replay parity and prediction comparisons before promotion. Consolidation reduces duplicated authority and maintenance; CPU savings are not established, and repeated binding calls could make it slower.",
         "native_cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
-        "horizon_disagreements": 2
+        "horizon_disagreements": 2,
+        "native_training_series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
+        "native_training_point_count": 778,
+        "native_training_horizon_disagreements": 1
       },
       {
         "id": "A08",
@@ -1767,5 +1826,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:23:06.173803+00:00"
+  "updated_at": "2026-10-12T22:33:22.104400+00:00"
 }
