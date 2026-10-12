@@ -65,7 +65,7 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
     return view
 
 
-import argparse,json,os,stat,sys,tempfile
+import argparse,json,os,stat,sys,ctypes,secrets
 from pathlib import Path
 from datetime import datetime,timezone
 from hashlib import sha256
@@ -76,9 +76,9 @@ PUBLIC_FIELDS={'schema','receipt_sha256','snapshot_id','snapshot_as_of','decisio
     'source_quality','confidence','effects_qualified','policy_comparison'}
 
 
-def _private_file(path,maximum):
-    if path.absolute().resolve()!=path.absolute():raise ValueError('resolved original file required')
-    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+def _private_file(path,maximum,*,directory_fd=None):
+    if directory_fd is None and path.absolute().resolve()!=path.absolute():raise ValueError('resolved original file required')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=directory_fd)
     try:
         info=os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or stat.S_IMODE(info.st_mode)!=0o600 or info.st_size>maximum:
@@ -109,6 +109,19 @@ def _existing_view(path):
     return raw,metadata
 
 
+
+def _move_no_replace(directory_fd,source,target):
+    # Linux renameat2 pins both names to the verified directory and never
+    # destroys a destination introduced concurrently. Refuse unsupported hosts.
+    rename=getattr(ctypes.CDLL(None,use_errno=True),'renameat2',None)
+    if rename is None:raise ValueError('no-clobber publication unavailable')
+    rename.argtypes=(ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint)
+    rename.restype=ctypes.c_int
+    if rename(directory_fd,os.fsencode(source),directory_fd,os.fsencode(target),1):
+        code=ctypes.get_errno()
+        raise OSError(code,os.strerror(code))
+
+
 def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.utc)):
     from household_pipeline import pipeline_runtime_manifest,verify_source_closure
     from household.thermal_model import _execution_runtime
@@ -126,20 +139,42 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
     own=Path(__file__).read_bytes()
     if expanded:verify_source_closure(record,executing)
     view=observe_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal,observed_at=clock());encoded=canonical(view)
-    fd,temp=tempfile.mkstemp(prefix='.household-observation-',dir=target.parent)
+    directory_fd=os.open(target.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    temp='.household-observation-'+secrets.token_hex(16);displaced=None;published=False;created=False
     try:
-        os.fchmod(fd,0o600)
+        info=os.fstat(directory_fd)
+        if (info.st_dev,info.st_ino,info.st_mode)!=directory:raise ValueError('publication directory changed')
+        fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600,dir_fd=directory_fd);created=True
         with os.fdopen(fd,'wb') as stream:stream.write(encoded);stream.flush();os.fsync(stream.fileno())
         if (_private_file(source,RECEIPT_BYTES)!=original or runtime()!=executing or Path(__file__).read_bytes()!=own or
-            (None if thermal is None else _execution_runtime(root))!=thermal or _directory(target.parent)!=directory or _existing_view(target)!=previous):
+            (None if thermal is None else _execution_runtime(root))!=thermal or _directory(target.parent)!=directory or
+            _existing_view(target)!=previous or _directory(target.parent)!=directory):
             raise ValueError('source, runtime or publication target changed')
-        if previous is None:
-            os.link(temp,target,follow_symlinks=False)
-            os.unlink(temp)
-        else:os.replace(temp,target)
-        if _private_file(target,MAX_BYTES)[0]!=encoded:raise ValueError('publication readback differs')
+        if previous is not None:
+            backup='.household-observation-displaced-'+secrets.token_hex(16)
+            _move_no_replace(directory_fd,target.name,backup);displaced=backup
+            saved=_private_file(Path(backup),MAX_BYTES,directory_fd=directory_fd)
+            # Rename may change ctime; original bytes, inode, mode, size and
+            # mtime must still match. Unknown displaced files are restored.
+            if saved[0]!=previous[0] or saved[1][:-1]!=previous[1][:-1]:
+                raise ValueError('publication target changed')
+        try:os.link(temp,target.name,src_dir_fd=directory_fd,dst_dir_fd=directory_fd,follow_symlinks=False)
+        except FileExistsError:raise ValueError('publication target changed') from None
+        os.unlink(temp,dir_fd=directory_fd);created=False
+        if _private_file(Path(target.name),MAX_BYTES,directory_fd=directory_fd)[0]!=encoded or _directory(target.parent)!=directory:
+            raise ValueError('publication readback differs')
+        os.fsync(directory_fd);published=True
     finally:
-        if os.path.exists(temp):os.unlink(temp)
+        try:
+            if displaced is not None:
+                if published:os.unlink(displaced,dir_fd=directory_fd)
+                else:
+                    # Never overwrite a concurrently introduced target to
+                    # restore a displaced file. Keep it private if occupied.
+                    try:_move_no_replace(directory_fd,displaced,target.name)
+                    except FileExistsError:pass
+            if created:os.unlink(temp,dir_fd=directory_fd)
+        finally:os.close(directory_fd)
     return dict(status='observation_written',receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],
         observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False)
 

@@ -67,3 +67,14 @@ it('recalculates original expiry on polling and stops all requests after navigat
   await vi.advanceTimersByTimeAsync(90_000);
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+it('expires the displayed plan independently of a slow network polling interval', async () => {
+  const fetcher = serve(observation()); vi.useFakeTimers();
+  const { container } = render(Household);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(container.textContent).toContain('Shadow');
+  vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(container.textContent).toContain('Original plan expired');
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

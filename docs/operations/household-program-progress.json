@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Replay-verified private materializer and actual43-source historical view verified. Closed browser parser, bounded owned-file HTTP endpoint and read-only Household route implemented;50 focused frontend tests pass. Full frontend and build attempts hit256MiB scoped memory cap. Final review, geometry, deployment and hosted full checks remain pending. Policy comparison and effects remain unqualified.",
+      "current_evidence": "Curated private materializer and actual43-source historical view verified. Closed browser parser, bounded owned-file endpoint and read-only Household route implemented;55 focused frontend and22 observer/materializer cases pass after one final static review correction pass for duplicate-key privacy and publication races. Full frontend and build attempts hit256MiB scoped cap. Hosted full checks, geometry and deployment remain pending. Policy comparison and effects remain unqualified.",
       "complete": false
     },
     {
@@ -784,17 +784,17 @@
       "natural_refresh_public_readback_verified": true
     },
     "operator_observability": {
-      "status": "endpoint_panel_focused_verified_review_deployment_pending",
-      "focused_tests": 20,
-      "focused_seconds": 23.48,
+      "status": "review_corrections_focused_verified_hosted_deployment_pending",
+      "focused_tests": 22,
+      "focused_seconds": 26.6,
       "source_backed_v6_view_verified": true,
       "private_source_registry_data_excluded": true,
       "original_expiry_preserved": true,
       "policy_comparison_qualified": false,
       "automatic_actuation": false,
       "full_program_complete": false,
-      "affected_pipeline_tests": 118,
-      "affected_seconds": 38.39,
+      "affected_pipeline_tests": 120,
+      "affected_seconds": 41.4,
       "private_materializer_verified": true,
       "actual_artifact_verified": true,
       "actual_observation_sha256": "a08fc845cc7559974fe68231ac466a67ad6e14403f4310bec2e6d0a2741cd17e",
@@ -805,14 +805,31 @@
       "private_context_excluded": true,
       "endpoint_implemented": true,
       "operator_panel_implemented": true,
-      "frontend_focused_tests": 50,
-      "frontend_focused_seconds": 21.8,
+      "frontend_focused_tests": 55,
+      "frontend_focused_seconds": 25.8,
       "frontend_full_suite_passed": false,
       "frontend_full_suite_result": "scoped_oom_kill",
       "browser_actual_artifact_parser_verified": true,
-      "final_review_complete": false,
+      "final_review_complete": true,
       "ui_deployed": false,
-      "local_build_result": "scoped_oom_kill"
+      "local_build_result": "scoped_oom_kill",
+      "review_critical": 0,
+      "review_important": 2,
+      "review_correction_passes": 1,
+      "duplicate_keys_refused": true,
+      "publication_target_parent_races_refused": true,
+      "independent_expiry_clock": true,
+      "minor_followup": "complete_nested_existing_cache_recognition",
+      "actual_post_review_materializer_verified": true,
+      "actual_post_review_observation_sha256": "6ebb27a7de2dcadff343b358fa9dcd7918cc650cf2a0fe27937a809118aaaf6f",
+      "actual_endpoint_verified": true,
+      "actual_endpoint_http_status": 200,
+      "actual_endpoint_cache_control": "no-store",
+      "broader_python_suite_passed": false,
+      "broader_python_suite_result": "75s_and_180s_deadlines_incomplete",
+      "core_pipeline_tests": 98,
+      "core_pipeline_seconds": 14.8,
+      "affected_test_groups": "22 observer/materializer +98 core pipeline; broader six-file selection remains incomplete"
     }
   }
 }

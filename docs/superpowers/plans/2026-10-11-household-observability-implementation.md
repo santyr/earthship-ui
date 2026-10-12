@@ -47,18 +47,18 @@
 
 **Interfaces:** parseHouseholdObservation(raw,{nowMs}) validates a closed observation and derives snapshot age, current expiry and effective unavailable/shadow mode. Server plugin handles only exact GET /api/household-observation, reads one bounded owned cache file, validates the public schema and returns no internal details on failure. Household screen fetches on mount and every30s while mounted; abort/cleanup prevents continuing work after navigation. It provides no command controls.
 
-- [ ] RED fresh/expired/malformed/no-selection views, policy comparison unknown, effect unknown, privacy/closed-shape boundaries and endpoint GET-only/path/file protections.
-- [ ] Implement parser/transport and GREEN; never execute Python/replay from an HTTP request.
-- [ ] RED component presentation of all eight phase9 requirements and route/navigation reachability, including no action and unavailable data.
+- [x] RED fresh/expired/malformed/no-selection views, policy comparison unknown, effect unknown, privacy/closed-shape boundaries and endpoint GET-only/path/file protections.
+- [x] Implement parser/transport and GREEN; never execute Python/replay from an HTTP request.
+- [x] RED component presentation of all eight phase9 requirements and route/navigation reachability, including no action and unavailable data.
 - [ ] Implement readable bounded layout using existing tokens; verify unit tests/build and target tablet/laptop geometry with the existing resource boundaries.
-- [ ] Commit verified public interface.
+- [x] Commit focused-verified public interface; full build/hosted verification remains required.
 
 ### Task3: Actual artifact, review, deployment and publication
 
 **Files:** docs/operations/household-observability.md and canonical docs/operations/household-program-progress.json.
 
 - [x] Materialize the actual PR26 source-backed receipt and verify the public artifact contains only curated data. An old receipt is historical/expired; do not claim current operational planning from it.
-- [ ] One final independent immutable review, then one Important/Critical TDD correction pass.
+- [x] One final independent immutable review, then one Important/Critical TDD correction pass.
 - [ ] Deploy only reviewed UI/endpoint files without overwriting the signed-off dirty overlay; verify actual endpoint and rendered unavailable/historical/no-action states under caps. No OpenHAB restart.
 - [ ] Publish after parent PR27 merge, require all exact-head checks, merge and record canonical evidence.
 

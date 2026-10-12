@@ -26,7 +26,8 @@
     }
     refresh();
     const timer = setInterval(refresh, 30_000);
-    return () => { stopped = true; clearInterval(timer); clearTimeout(deadline); controller?.abort(); };
+    const clock = setInterval(() => { nowMs = Date.now(); }, 1_000);
+    return () => { stopped = true; clearInterval(timer); clearInterval(clock); clearTimeout(deadline); controller?.abort(); };
   });
 </script>
 

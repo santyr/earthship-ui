@@ -162,3 +162,27 @@ def test_capture_qualified_reference_cannot_override_unavailable_model_row():
     assert source['quality_at_issue']=='unavailable' and source['current_quality']=='unavailable'
     assert source['reason']=='expired_source'
     assert instant(view['valid_until'])>=later
+
+@pytest.mark.parametrize('damage',['target','parent'])
+def test_publication_substitution_preserves_unrelated_files(damage,tmp_path,monkeypatch):
+    source,target,_=materializer_fixture(tmp_path);mod=api()
+    mod.materialize(source,target,clock=lambda:NOW)
+    original=mod._existing_view;calls=0;marker=b'operator-only unrelated file'
+    def substitute(path):
+        nonlocal calls
+        value=original(path)
+        if path==target:
+            calls+=1
+            if calls==2:
+                if damage=='parent':
+                    staged=[(p.name,p.read_bytes()) for p in target.parent.glob('.household-observation-*')]
+                    target.parent.rename(tmp_path/'displaced-parent')
+                    target.parent.mkdir(mode=0o700)
+                    for name,raw in staged:
+                        copy=target.parent/name;copy.write_bytes(raw);copy.chmod(0o600)
+                else:target.unlink()
+                target.write_bytes(marker);target.chmod(0o600)
+        return value
+    monkeypatch.setattr(mod,'_existing_view',substitute)
+    with pytest.raises(ValueError):mod.materialize(source,target,clock=lambda:NOW+timedelta(minutes=10))
+    assert target.read_bytes()==marker

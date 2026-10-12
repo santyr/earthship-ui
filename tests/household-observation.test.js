@@ -62,3 +62,11 @@ describe('proposal evidence boundaries', () => {
       expect(parseHouseholdObservation(JSON.stringify(row), { nowMs: AT })).toBeNull();
     });
 });
+
+it.each(['top', 'nested', 'escaped'])('refuses %s duplicate object keys before projecting a view', damage => {
+  const raw = JSON.stringify(observation());
+  const changed = damage === 'top' ? raw.replace('{', '{"source_quality":[{"raw_source":"operator-only-data"}],')
+    : damage === 'nested' ? raw.replace('"domain":"energy"', '"domain":{"private_path":"operator-only-data"},"domain":"energy"')
+    : raw.replace('"domain":"energy"', '"dom\\u0061in":{"private_path":"operator-only-data"},"domain":"energy"');
+  expect(parseHouseholdObservation(changed, { nowMs: AT })).toBeNull();
+});

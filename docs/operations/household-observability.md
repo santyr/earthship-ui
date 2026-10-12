@@ -19,7 +19,13 @@ replays the original model/plan receipt and checks executing/source closures
 before producing the curated observation. The original receipt is not changed.
 The source and target must be owned regular mode-0600 files, with a mode-0700
 cache parent. First creation refuses an existing unknown target; replacement
-checks source, runtime and target identity again before atomic publication.
+checks source, runtime and target identity again before publication. It pins
+the verified directory descriptor and stages any prior target with Linux
+`renameat2(RENAME_NOREPLACE)`. The displaced file must match the original bytes
+and identity before installing the new view with a no-clobber link. Changed
+unknown files are restored without overwrite; an occupied restoration target
+leaves the displaced file private rather than destroying either file. During
+the short missing-name transition an HTTP reader may report unavailable.
 The observer lives outside the producer module directory, preserving its closure.
 
 The Vite middleware serves only `GET /api/household-observation`. Its default
@@ -31,7 +37,8 @@ Responses are never cached. File reads reject symlinks, changed identities,
 incorrect ownership/permissions and more than 32,768 bytes. No HTTP request
 runs replay, Python, training or a model.
 
-The mounted screen polls every 30 seconds, recalculates freshness from original
+The mounted screen polls every 30 seconds, advances its local clock every second
+independently of network polling, and recalculates freshness from original
 clocks, bounds response bytes, aborts a request after 10 seconds and cancels
 requests/timers when navigating away. Source/raw configuration, owner scripts,
 private paths and original source values are excluded from the public schema.
@@ -46,16 +53,20 @@ Its original expiry is `2026-10-12T03:00:17.508000+00:00`, and it is currently
 historical/unavailable. The browser parser accepts that real curated artifact;
 current policy comparison is unavailable and automatic actuation is false.
 
-The focused frontend checks pass 50 tests across parser, real-file HTTP
+The focused frontend checks pass 55 tests across parser, real-file HTTP
 transport, bounded streaming client, Svelte rendering, polling cleanup and
-routing. Worker counts are explicitly limited for Rolldown, Tokio, Rayon and
+routing. Duplicate keys, including escaped or nested duplicate names, are
+rejected before accepting a view or serving original bytes. Worker counts are explicitly limited for Rolldown, Tokio, Rayon and
 Node. These checks ran with CPU20%, memory256MiB, swap0, tasks24, idle I/O and
 a 64MiB JavaScript heap.
 
 The full frontend suite was attempted under the same caps and stopped by the
 scope's memory guard (`run-u2324.scope`, `oom-kill`). It did not finish and
 is not claimed passing. The separate production-build attempt also hit the
-256MiB scope limit before completing. Final review, target geometry, deployment and
+256MiB scope limit before completing. The single final static review found two Important issues; one TDD correction
+pass addresses duplicate-key privacy and publication races. Its 22 focused
+Python cases pass, including both deterministic target/parent substitution
+regressions, and the corrected frontend passes 55 cases. Target geometry, deployment and
 hosted checks remain pending until their concrete evidence is recorded.
 
 ## Deployment boundary
@@ -69,3 +80,22 @@ the full PR3 objective.
 This stage does not complete PR3. Operational trajectories, qualified effects,
 actual policy baselines, correlated owner migration, causal outcomes and
 per-intent graduation/integration remain required by the approved architecture.
+
+The reviewer also noted existing-cache recognition validates only its top-level
+envelope. Complete nested recognition remains a Minor follow-up; HTTP serving
+already rejects all unsupported nested fields. No full-program completion or
+production accuracy is inferred from these stage checks.
+
+The expanded six-file Python run reached its 75s and 180s deadlines without
+finishing and is not claimed passing. After correction, the actual CLI refused
+the test virtual environment as a mismatched original runtime; the exact
+production interpreter/dependencies passed unchanged replay verification.
+The resulting original receipt identity and expiry are unchanged. A bounded
+real-file HTTP read returns 200, no-store and the 10,012-byte, 43-source,
+two-model expired view. Current observation SHA-256 is
+`6ebb27a7de2dcadff343b358fa9dcd7918cc650cf2a0fe27937a809118aaaf6f`.
+
+The core pure pipeline regression completes separately: 98 tests pass in
+14.80s. With the 22 corrected observer/materializer tests, this gives 120
+completed affected Python checks; it does not substitute for the unfinished
+expanded six-file run or the full hosted project suite.

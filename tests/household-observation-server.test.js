@@ -51,3 +51,12 @@ describe('bounded observation endpoint', () => {
       expect(await response.json()).toEqual({ status: 'unavailable' });
     });
 });
+
+it('never serves a private payload hidden behind a duplicate public key', async () => {
+  const base = await endpoint(value => value, async file => {
+    await writeFile(file, JSON.stringify(observation()).replace('{', '{"source_quality":[{"raw_source":"operator-only-data"}],'));
+  });
+  const response = await fetch(`${base}/api/household-observation`);
+  expect(response.status).toBe(503);
+  expect(await response.text()).toBe('{"status":"unavailable"}');
+});

@@ -19,11 +19,49 @@ function time(value) {
     ? parseSourceTimestamp(value, Number.MAX_SAFE_INTEGER) : null;
 }
 
+// JSON.parse alone collapses duplicate keys, leaving overridden private bytes
+// in the original transport body. Scan validated JSON with decoded key names.
+function uniqueObjectKeys(raw) {
+  let offset = 0;
+  const space = () => { while (/\s/.test(raw[offset] ?? '') && offset < raw.length) offset++; };
+  function string() {
+    const start = offset++;
+    while (offset < raw.length) {
+      if (raw[offset] === '\\') { offset += 2; continue; }
+      if (raw[offset++] === '"') return JSON.parse(raw.slice(start, offset));
+    }
+    throw new Error('Invalid string');
+  }
+  function value(depth) {
+    if (depth > 16) throw new Error('Observation nesting exceeds bound');
+    space();
+    if (raw[offset] === '"') { string(); return; }
+    if (raw[offset] === '{') {
+      offset++; space(); const keys = new Set();
+      if (raw[offset] === '}') { offset++; return; }
+      for (;;) {
+        space(); const key = string();
+        if (keys.has(key)) throw new Error('Duplicate observation key');
+        keys.add(key); space(); offset++; value(depth + 1); space();
+        if (raw[offset++] === '}') return;
+      }
+    }
+    if (raw[offset] === '[') {
+      offset++; space();
+      if (raw[offset] === ']') { offset++; return; }
+      for (;;) { value(depth + 1); space(); if (raw[offset++] === ']') return; }
+    }
+    while (offset < raw.length && !/[\s,}\]]/.test(raw[offset])) offset++;
+  }
+  value(0);
+}
+
 /** Validate only the curated observer contract; never interpret a producer receipt. */
 export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
   if (typeof raw !== 'string' || new TextEncoder().encode(raw).length > OBSERVATION_MAX_BYTES || !Number.isFinite(nowMs)) return null;
   try {
     const row = JSON.parse(raw);
+    uniqueObjectKeys(raw);
     if (!shape(row, FIELDS) || row.schema !== 'earthship-household-observation/v1'
       || !digest(row.receipt_sha256) || !digest(row.snapshot_id)
       || row.authority !== 'none' || row.automatic_actuation !== false || row.effects_qualified !== false
