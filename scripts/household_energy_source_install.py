@@ -46,8 +46,11 @@ def verify_command(checks,state):
         if unit=="forecast-json.service" and actual==["/usr/bin/flock","--wait","90","--conflict-exit-code=75",LOCK,"/usr/bin/python3",str(LIVE/"forecast_intel.py"),"json"]:
             if state.get("TimeoutStartUSec")!="3min 30s" or state.get("SuccessExitStatus")!="":
                 raise ValueError("bounded weather consumer budget or failure contract changed")
-        elif actual!=command:
-            raise ValueError("companion source consumer lock contract changed")
+        else:
+            if actual!=command:
+                raise ValueError("companion source consumer lock contract changed")
+            if unit=="forecast-json.service" and (state.get("TimeoutStartUSec")!="2min" or state.get("SuccessExitStatus")!="75"):
+                raise ValueError("legacy weather consumer budget or success contract changed")
 
 
 def prepare():

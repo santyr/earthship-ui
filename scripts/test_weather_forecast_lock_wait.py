@@ -54,15 +54,18 @@ def fixture_install(tmp_path,monkeypatch):
     mod=module();source=DROP.read_bytes();template=tmp_path/'template.conf';template.write_bytes(source)
     profile=tmp_path/'profile.conf';profile.write_text('original bounded profile')
     target=tmp_path/'additive.conf';expected=tmp_path/'expected.json'
+    fragment=tmp_path/'fragment.service';fragment.write_text('original weather unit');fragment.chmod(0o600)
     original=['/usr/bin/flock','--nonblock','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3','/home/sat/openhab/scripts/forecast_intel.py','json']
-    expected.write_text(json.dumps({'source_sha256':sha256(source).hexdigest(),'profile_sha256':sha256(profile.read_bytes()).hexdigest(),'invocation_id':'fixture-original','original_command':original}));expected.chmod(0o600)
+    expected.write_text(json.dumps({'source_sha256':sha256(source).hexdigest(),'profile_sha256':sha256(profile.read_bytes()).hexdigest(),'invocation_id':'fixture-original','original_command':original,'definition_sources':{str(fragment):sha256(fragment.read_bytes()).hexdigest(),str(profile):sha256(profile.read_bytes()).hexdigest()}}));expected.chmod(0o600)
     template.chmod(0o600);profile.chmod(0o600)
-    for name,value in (('BASE',tmp_path),('TEMPLATE',template),('PROFILE',profile),('TARGET',target),('EXPECTED',expected)):monkeypatch.setattr(mod,name,value)
+    for name,value in (('BASE',tmp_path),('FRAGMENT',fragment),('TEMPLATE',template),('PROFILE',profile),('TARGET',target),('EXPECTED',expected)):monkeypatch.setattr(mod,name,value,raising=False)
     manager={'reloaded':False};calls=[]
     def properties(unit,keys):
         if unit!='forecast-json.service':return {'MainPID':'0','ActiveState':'inactive','NextElapseUSecMonotonic':'fixture-next'}
         worker=['/usr/bin/flock','--wait','90','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3','/home/sat/openhab/scripts/forecast_intel.py','json'] if manager['reloaded'] else original
         return {**mod.CAPS,'MainPID':'0','ActiveState':'inactive','SubState':'dead','InvocationID':'fixture-original',
+            'FragmentPath':str(fragment),'DropInPaths':str(profile)+((' '+str(target)) if manager['reloaded'] else ''),
+            'ExecStartPre':'','ExecStartPost':'','ExecCondition':'','ExecStop':'','ExecStopPost':'','ExecReload':'',
             'TimeoutStartUSec':'3min 30s' if manager['reloaded'] else '2min','ExecStart':'{ argv[]='+shlex.join(worker)+' ; }',
             'Environment':'OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1','SuccessExitStatus':'' if manager['reloaded'] else '75'}
     def run(*args):calls.append(args);manager['reloaded']=True;return ''
@@ -117,5 +120,22 @@ def test_even_pinned_template_cannot_expand_weather_worker_contract(damage,tmp_p
     else:source=source.replace('SuccessExitStatus=','SuccessExitStatus=75')
     mod.TEMPLATE.write_text(source)
     expected=json.loads(mod.EXPECTED.read_text());expected['source_sha256']=sha256(mod.TEMPLATE.read_bytes()).hexdigest();mod.EXPECTED.write_text(json.dumps(expected))
+    with pytest.raises(ValueError):mod.execute(True)
+    assert not mod.TARGET.exists() and calls==[]
+
+
+@pytest.mark.parametrize('damage',['unknown_dropin','post_command','second_start','fragment_drift'])
+def test_inherited_definition_or_command_drift_refuses_before_write(damage,tmp_path,monkeypatch):
+    mod,original,calls=fixture_install(tmp_path,monkeypatch)
+    extra=tmp_path/'unknown.conf';extra.write_text('[Service]\nExecStartPost=/usr/bin/false\n');extra.chmod(0o600)
+    if damage=='fragment_drift':mod.FRAGMENT.write_text('changed original unit')
+    def properties(unit,keys):
+        state=original(unit,keys)
+        if unit=='forecast-json.service':
+            if damage=='unknown_dropin':state['DropInPaths']+=' '+str(extra)
+            elif damage=='post_command':state['ExecStartPost']='{ argv[]=/usr/bin/false ; }'
+            elif damage=='second_start':state['ExecStart']+=' { argv[]=/usr/bin/false ; }'
+        return state
+    monkeypatch.setattr(mod,'properties',properties)
     with pytest.raises(ValueError):mod.execute(True)
     assert not mod.TARGET.exists() and calls==[]
