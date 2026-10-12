@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from .codec import canonical,loads,identity
 from .snapshot import HouseholdSnapshot
-from .model_snapshot import ModelSnapshot,bind_model_snapshot,MAX_SOURCE_BYTES
+from .model_snapshot import ModelSnapshot,MAX_SOURCE_BYTES
 from .weather_context import PreparedWeatherContext,project_weather,MAX_BYTES
 from .control_contracts import instant
 
@@ -22,7 +22,11 @@ def _row(role,value,unit,context,*,operator=False):
 
 
 def _render(source,weather,revision):
-    base=bind_model_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],thermal_inputs=weather.prepared,code_revision=revision)
+    from .model_snapshot import _render as render_model,describe_thermal
+    # The original model renderer validates source replay and descriptor.
+    # Compose its bounded document rather than constructing an intermediate
+    # ModelSnapshot which would render and validate the same originals again.
+    base=HouseholdSnapshot(canonical(render_model(source,describe_thermal(weather.prepared),revision)))
     doc=base.to_dict();base_id=doc.pop('snapshot_id');projection=project_weather(weather);capture=weather.original_capture;forecast=capture['inputs']['forecast']
     domain=doc['domains']['weather'];actions=projection['origin_states']
     fields={

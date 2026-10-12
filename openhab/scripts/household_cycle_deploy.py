@@ -225,17 +225,75 @@ def apply_stage(stage):
     return dict(status='deployment_installed',code_revision=record['code_revision'],service_restarted=False,automatic_actuation=False)
 
 
+
+def _entry_matches(state,raw):
+    lines=[line[len('ExecStart='):] for line in raw.decode().splitlines() if line.startswith('ExecStart=') and line!='ExecStart=']
+    if len(lines)!=1:raise ValueError('one staged publisher required')
+    actual=state.get('ExecStart','');command=lines[0]
+    return actual==command or actual.count('argv[]=')==1 and 'argv[]='+command+' ;' in actual
+
+
+def _replace_owned(target,expected,replacement):
+    """Replace atomically after checking the exact owned override again."""
+    import tempfile
+    fd,name=tempfile.mkstemp(prefix='.household-upgrade-',dir=target.parent)
+    temporary=Path(name)
+    try:
+        with os.fdopen(fd,'wb') as stream:
+            stream.write(replacement);stream.flush();os.fsync(stream.fileno())
+        if _bytes(target,private=True)!=expected:raise ValueError('owned override changed before replacement')
+        os.replace(temporary,target)
+    finally:
+        if temporary.exists():temporary.unlink()
+
+
+def upgrade_stage(stage,*,previous_stage):
+    stage=_directory(stage);previous=_directory(previous_stage)
+    if stage==previous:raise ValueError('distinct replacement stage required')
+    record=verify_stage(stage);old=verify_stage(previous)
+    service=_path(record['service_file'])
+    if (service.name!='thermal-provisional-forecast.service' or old['service_file']!=record['service_file'] or
+        old['original_bindings']!=record['original_bindings'] or old['protected_runtime_sources']!=record['protected_runtime_sources']):
+        raise ValueError('same original forecast and fitted runtime required')
+    cycle=json.loads(_bytes(stage/'cycle.json',private=True));old_cycle=json.loads(_bytes(previous/'cycle.json',private=True))
+    if {k:v for k,v in cycle.items() if k!='evidence_directory'}!={k:v for k,v in old_cycle.items() if k!='evidence_directory'}:
+        raise ValueError('same original cycle inputs and observation cache required')
+    target=service.parent/(service.name+'.d')/'zzzz-household-cycle.conf';_directory(target.parent)
+    old_raw=_bytes(previous/'service.conf',private=True);raw=_bytes(stage/'service.conf',private=True)
+    def original_guard():
+        if verify_stage(stage)!=record or verify_stage(previous)!=old:raise ValueError('upgrade stage changed')
+        if _bytes(target,private=True)!=old_raw:raise ValueError('exact previous owned override required')
+        state=_service_state(service);_inactive_capped(state)
+        if not _entry_matches(state,old_raw):raise ValueError('effective previous publisher differs')
+    original_guard();_qualify(stage);original_guard()
+    _replace_owned(target,old_raw,raw)
+    try:
+        _systemctl('daemon-reload')
+        effective=_service_state(service)
+        if any(effective.get(key)!=value for key,value in EFFECTIVE_LIMITS.items()) or not _entry_matches(effective,raw):
+            raise ValueError('upgraded entry point or limits differ')
+        if verify_stage(stage)!=record or _bytes(target,private=True)!=raw:raise ValueError('installed upgrade changed')
+    except Exception:
+        # Preserve concurrent edits; restore only this exact replacement.
+        if _bytes(target,private=True)==raw:
+            _replace_owned(target,raw,old_raw);_systemctl('daemon-reload')
+        raise
+    return dict(status='deployment_upgraded',code_revision=record['code_revision'],previous_code_revision=old['code_revision'],
+        service_restarted=False,automatic_actuation=False)
+
+
 def main(argv=None):
     import argparse,sys
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage',required=True,type=Path)
-    modes=parser.add_mutually_exclusive_group();modes.add_argument('--verify-runtime',action='store_true');modes.add_argument('--apply',action='store_true')
+    modes=parser.add_mutually_exclusive_group();modes.add_argument('--verify-runtime',action='store_true');modes.add_argument('--apply',action='store_true');modes.add_argument('--upgrade-from',type=Path)
     parser.add_argument('--repo-root',type=Path);parser.add_argument('--forecast-config',type=Path);parser.add_argument('--parameters',type=Path)
     parser.add_argument('--parameters-sha256');parser.add_argument('--observation-cache',type=Path);parser.add_argument('--service-file',type=Path);parser.add_argument('--code-revision')
     args=parser.parse_args(argv)
     try:
         if args.verify_runtime:result=verify_runtime(args.stage)
         elif args.apply:result=apply_stage(args.stage)
+        elif args.upgrade_from:result=upgrade_stage(args.stage,previous_stage=args.upgrade_from)
         else:
             result=stage_deployment(repo_root=args.repo_root,stage=args.stage,forecast_config=args.forecast_config,parameters=args.parameters,
                 parameters_sha256=args.parameters_sha256,observation_cache=args.observation_cache,service_file=args.service_file,code_revision=args.code_revision)

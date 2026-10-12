@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "PR28 merged and deployed: replay-verified private materializer, bounded closed-schema endpoint and Household route. All four exact10e440a checks pass;56 focused frontend/120 affected Python checks and actual1280x800/1340x800 live rendering pass. Original43-source artifact remains historical/unavailable with unknown effects/policy comparison. Six protected thermal overlay files unchanged;private staging HTTP403. Advisory/active-request modes and qualified policy/effect inputs remain later full-program requirements.",
+      "current_evidence": "PR28 backend remains deployed. PR29 head910ab489f347b431572a42f8a46a2214cd8d146b passes all four hosted checks; household observations are deployed below the existing Earthship content, standalone navigation removed, legacy #/household redirects to Earthship. Actual1280x800/1340x800 browser verification and56 focused frontend tests pass. Common-cycle source9d52ca0 is deployed under CPU20percent/memory256MiB/swap0/tasks24 limits; natural cycles retain original delivered forecasts and observational receipts, but planner inputs have expired before decision and planning remains unavailable. Snapshot-composition performance correction is not yet deployed or operationally qualified. Six protected thermal overlay files remain unchanged. Qualified policy/effect inputs and advisory/active-request modes remain incomplete.",
       "complete": false
     },
     {

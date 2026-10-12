@@ -4,7 +4,7 @@ from .codec import canonical,loads,identity
 from .control_contracts import instant
 from .snapshot import HouseholdSnapshot
 from .model_snapshot import MAX_SOURCE_BYTES
-from .weather_snapshot import WeatherSnapshot,bind_weather_snapshot
+from .weather_snapshot import WeatherSnapshot
 from .weather_context import PreparedWeatherContext,MAX_BYTES as MAX_WEATHER_BYTES
 from .energy_configuration import PreparedEnergyConfiguration,project_energy_configuration,MAX_BYTES
 
@@ -21,7 +21,8 @@ def _configuration_row(role,value,unit,configuration,projection):
 
 
 def _render(source,weather,configuration,revision):
-    original=bind_weather_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],weather_context=weather,code_revision=revision)
+    from .weather_snapshot import _render as render_weather
+    original=HouseholdSnapshot(canonical(render_weather(source,weather,revision)))
     doc=original.to_dict();base_id=doc.pop('snapshot_id');at=instant(doc['as_of'])
     doc['created_at']=max(instant(doc['created_at']),instant(configuration.to_dict()['created_at'])).isoformat()
     projection=project_energy_configuration(configuration,as_of=at);bank=projection['bank'];topology=projection['load_topology']

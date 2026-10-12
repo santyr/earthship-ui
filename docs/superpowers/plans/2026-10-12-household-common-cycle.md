@@ -30,3 +30,11 @@ Task3: qualification and operational feed
 - Full PR3 stays active: trajectories, calibration/effects, authority/policy/owners, outcomes and graduation/integration remain required.
 
 Limits: scientific tests and workers CPU20%,memory256MiB,swap0,tasks24,IOWeight10,nice15,idleI/O,BLAS/OMP/MKL1. Browser-only proof may use96 tasks with identical CPU/memory/swap caps and one renderer/CPU affinity. Serialize local numerical jobs. Preserve root thermal UI overlay and all original private artifacts.
+
+Follow-up: timely snapshot composition and owned-stage upgrade
+- Remove repeated intermediate snapshot construction while retaining original source replay, prepared-context validation, exact complete-document identity checks and source expiry.
+- Verify every original layer still rejects corruption and lookalike context types; compare retained original production replay numerically and by receipt identity. Retained parity is not operational source qualification.
+- Verify weather, energy-source and measured-weather pipelines serially under the existing limits.
+- An upgrade requires explicit previous-stage identity, both stages verified against the same original forecast/candidate/parameters/base service, the same cache and exact installed previous override/entry point. Qualify the new production runtime, recheck inactivity and originals, then atomically replace only the owned override and reload units. On failure restore only the exact new override; preserve concurrent edits. Never restart services.
+- Independently review the immutable performance/upgrade patch, then observe a natural cycle before claiming current-input planning is qualified. Keep TTL and action authority unchanged.
+- The active thermal fit is fixed to October10 data; automatic capped training and candidate promotion remain separate unfinished ML work, not satisfied by an observer upgrade.
