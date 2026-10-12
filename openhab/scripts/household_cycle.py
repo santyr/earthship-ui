@@ -256,7 +256,7 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
             parameters=loads(parameter_original[0])
             _directory(Path(configuration['evidence_directory']));_directory(Path(configuration['observation_cache']).parent)
             root=Path(__file__).resolve().parent
-            own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_cycle_pressure.py','household_observation.py')}
+            own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_cycle_pressure.py','household_cycle_resources.py','household_observation.py')}
             def guard():
                 forecast_guard()
                 if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or

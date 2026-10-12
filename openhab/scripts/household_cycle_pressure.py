@@ -11,19 +11,23 @@ from thermal_model.capture_guard import _small_text
 
 
 class PublicationHeadroom:
-    def __init__(self,*,vmstat=Path('/proc/vmstat'),memory_events=None):
+    def __init__(self,*,vmstat=Path('/proc/vmstat'),memory_events=None,resource_check=None):
         self.vmstat=Path(vmstat);self.memory_events=None if memory_events is None else Path(memory_events)
+        self.resource_check=resource_check
+        if resource_check is not None and not callable(resource_check):raise ValueError('resource checker required')
         self.previous=None;self.discover_cgroup=memory_events is None;self.cgroup_binding=None
 
     def check(self):
-        from thermal_installed_intel import _resource_preflight
-        _resource_preflight()
         binding=None
         if self.discover_cgroup:
             events,binding=self._current_binding()
             if self.cgroup_binding is not None and binding!=self.cgroup_binding:
                 raise ValueError('publication cgroup binding changed')
             self.memory_events=events
+        if self.resource_check is None:
+            from household_cycle_resources import publication_resource_preflight
+            publication_resource_preflight(leaf=self.memory_events.parent if self.discover_cgroup else None)
+        else:self.resource_check()
         host=_counters(self.vmstat,{'oom_kill'})
         worker=_counters(self.memory_events,{'max','oom','oom_kill'})
         current=(host,worker)

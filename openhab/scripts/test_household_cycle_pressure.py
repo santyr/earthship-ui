@@ -10,7 +10,7 @@ def fixture(tmp_path,monkeypatch):
     vmstat=tmp_path/'vmstat';events=tmp_path/'memory.events'
     vmstat.write_text('pswpin 100\npswpout 100\noom_kill 3\n')
     events.write_text('low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\n')
-    return api.PublicationHeadroom(vmstat=vmstat,memory_events=events),vmstat,events,calls
+    return api.PublicationHeadroom(vmstat=vmstat,memory_events=events,resource_check=lambda:installed._resource_preflight()),vmstat,events,calls
 
 
 def test_cold_host_swap_does_not_cancel_bounded_publication(tmp_path,monkeypatch):
@@ -63,7 +63,7 @@ def default_fixture(tmp_path,monkeypatch):
     small_text=api._small_text
     monkeypatch.setattr(api,'_small_text',lambda path:small_text(membership if str(path)=='/proc/self/cgroup' else path))
     monkeypatch.setattr(api,'Path',lambda value:root if str(value)=='/sys/fs/cgroup' else Path(value))
-    return api.PublicationHeadroom(vmstat=vmstat),root,membership
+    return api.PublicationHeadroom(vmstat=vmstat,resource_check=lambda:installed._resource_preflight()),root,membership
 
 
 def test_default_monitor_discovers_current_worker_leaf(tmp_path,monkeypatch):
