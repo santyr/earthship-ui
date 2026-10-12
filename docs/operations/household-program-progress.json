@@ -733,7 +733,7 @@
       }
     },
     "weather_json_lock_wait": {
-      "status": "review_corrections_verified_live_definition_pending",
+      "status": "definition_installed_waiting_normal_refresh",
       "baseline_tests": 11,
       "affected_tests": 41,
       "affected_seconds": 4.6,
@@ -742,9 +742,9 @@
       "service_timeout_seconds": 210,
       "automatic_actuation": false,
       "worker_started": false,
-      "definition_installed": false,
+      "definition_installed": true,
       "independent_review": "one final immutable review: two Important guard gaps; six genuine regressions and one correction pass verified",
-      "hosted_ci": "not published",
+      "hosted_ci": "not published; parent source stage normal-hour proof pending",
       "full_program_complete": false,
       "review_base": "952c3c66fe44988fc86eeb0a444541ae2374acdf",
       "review_head": "81c648953d468c9819261567efcd48debd12fadb",
@@ -754,7 +754,21 @@
       "exact_legacy_new_weather_profiles_verified": true,
       "definitive_dbus_empty_hook_verified": true,
       "original_unit_mode": "0644",
-      "original_unit_bytes_unchanged": true
+      "original_unit_bytes_unchanged": true,
+      "live_definition_readback": {
+        "status": "additive_weather_definition_readback_verified",
+        "review_fix_head": "09462a1af84549f3e0f5399d4c49c656478fad90",
+        "source_sha256": "7d05841f05bc0c7562cc71dd393992db9184292a01ad3a3942112d56b56f7e6f",
+        "effective_caps_verified": true,
+        "timeout": "3min 30s",
+        "exhaustion_is_failure": true,
+        "worker_invocation_unchanged": true,
+        "worker_started": false,
+        "installation_invocation_ids": [
+          "1ee50ea8ee1941c2980e9e334cb46dc4"
+        ]
+      },
+      "natural_refresh_qualified": false
     }
   }
 }
