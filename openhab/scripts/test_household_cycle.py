@@ -154,3 +154,33 @@ def test_hard_observer_cutoff_prevents_overrun_crossing_original_issue(tmp_path,
     assert adapter.collection['reason']=='source_collection_timed_out'
     assert signal.getitimer(signal.ITIMER_REAL)==(0.,0.)
     assert signal.getsignal(signal.SIGALRM)==prior
+
+
+def test_source_preflight_does_not_repeat_when_reading_remaining_budget():
+    issue=ISSUE;now=issue-timedelta(seconds=20);checks=[];original={'original':'inputs'}
+    class Parent:
+        def collect(self,**kw):return original
+    def guard():checks.append(True)
+    def collect(*,remaining,guard,**kw):
+        # Each source access explicitly checks its guard and then reads the
+        # deadline. Repeated budget inspections must not duplicate expensive
+        # cgroup/pressure verification for that same access.
+        for _ in range(20):
+            guard();assert 0<remaining()<=6
+        return {'originals':'retained'}
+    adapter=api().ObservingBackend(Parent(),collector=collect,guard=guard,clock=lambda:now)
+    assert adapter.collect(issue=issue,known_at=now) is original
+    assert adapter.collection['status']=='collected'
+    assert len(checks)==23
+
+
+def test_resource_drift_at_collector_return_still_refuses_observation():
+    issue=ISSUE;now=issue-timedelta(seconds=20);changed=[False];original={'original':'inputs'}
+    class Parent:
+        def collect(self,**kw):return original
+    def guard():
+        if changed[0]:raise ValueError('resource state changed')
+    def collect(**kw):changed[0]=True;return {'originals':'must be refused'}
+    adapter=api().ObservingBackend(Parent(),collector=collect,guard=guard,clock=lambda:now)
+    assert adapter.collect(issue=issue,known_at=now) is original
+    assert adapter.collection['reason']=='source_collection_failed'

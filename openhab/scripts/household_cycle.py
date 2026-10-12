@@ -35,20 +35,21 @@ class ObservingBackend:
             return inputs
         deadline=self.monotonic()+budget
         def remaining():
-            self.guard()
+            # The collector checks its explicit guard at each source access.
+            # Budget inspection itself must not repeat that expensive check.
             value=min(deadline-self.monotonic(),(issue-ISSUE_MARGIN-utc(self.clock())).total_seconds())
             if not math.isfinite(value) or not 0<value<=MAX_COLLECTION_SECONDS:
                 raise ValueError('household pre-issue budget elapsed')
             return value
         try:
             with observation_deadline(budget):
-                remaining()
+                self.guard();remaining()
                 originals=self.collector(issue=issue,remaining=remaining,guard=self.guard)
-                remaining()
+                self.guard();remaining()
                 if not isinstance(originals,dict):raise ValueError('closed original source object required')
                 raw=canonical(originals)
                 if len(raw)>MAX_SOURCE_BYTES:raise ValueError('bounded household originals required')
-                remaining()
+                self.guard();remaining()
                 captured=utc(self.clock())
                 if captured<now:raise ValueError('household collection clock moved backward')
                 self.collection=dict(status='collected',reason=None,issue=issue.isoformat(),
