@@ -55,7 +55,7 @@ def test_transport_timeout_cannot_renew_or_disable_total_deadline(transport,monk
             if transport=='owner':
                 from household_cycle_sources import CycleSourceCollector
                 collector=CycleSourceCollector.__new__(CycleSourceCollector)
-                collector.base='http://127.0.0.1:8080/rest';collector.token='fixture-marker'
+                collector.base='http://127.0.0.1:8080/rest';collector.token='fixture-marker';collector.opener=Opener()
                 collector._owner_http('Inverter_AC_Evidence_JSON',remaining=remaining)
             else:
                 from household import measured_weather_capture

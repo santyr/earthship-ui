@@ -140,3 +140,31 @@ def test_source_collector_accepts_bounded_eight_second_transport_budget(tmp_path
     result=collector(issue=now+timedelta(seconds=12),remaining=lambda:8.,guard=lambda:None)
     assert result['issue']==(now+timedelta(seconds=12)).isoformat()
     assert owner_calls
+
+
+def test_cycle_reuses_one_bounded_transport_for_owner_and_measured_receipts(tmp_path,monkeypatch):
+    from household import measured_weather_capture
+    original_measured=measured_weather_capture._http_get
+    module=api();prepared=[];requests=[]
+    class Response:
+        status=200
+        def __init__(self,url):self.url=url
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def geturl(self):return self.url
+        def read(self,maximum):
+            assert maximum<=8193
+            return b'{"state":"direct-original-marker"}'
+    class Opener:
+        def open(self,request,*,timeout):
+            assert request.get_method()=='GET' and 0<timeout<=2
+            requests.append(request.full_url);return Response(request.full_url)
+    def build(*handlers):
+        prepared.append(handlers);return Opener()
+    monkeypatch.setattr(module.urllib.request,'build_opener',build)
+    collector,raw,calls,connections,now=collector_fixture(tmp_path,monkeypatch)
+    monkeypatch.setattr(measured_weather_capture,'_http_get',original_measured)
+    assert collector._owner_transport('BMS_SOC_Evidence_JSON',remaining=lambda:2.)=='direct-original-marker'
+    assert collector._owner_transport('Inverter_AC_Evidence_JSON',remaining=lambda:2.)=='direct-original-marker'
+    assert collector._measured_http(kind='radiation',url=measured_weather_capture.SOURCES['radiation'][1],remaining=lambda:2.)=='{"state":"direct-original-marker"}'
+    assert len(prepared)==1 and len(requests)==3

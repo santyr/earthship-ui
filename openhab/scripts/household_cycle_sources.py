@@ -66,6 +66,7 @@ class CycleSourceCollector:
         self.policies,self.phases=load_temperature_receiver_configuration(str(self.paths['native_policy']))
         if self.phases is None:raise ValueError('original hardware phases required')
         self.clock=clock;self.base=openhab_base;self.code_revision=code_revision
+        self.opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoRedirect())
         self.owner_reader=owner_reader or self._owner_http
         self.runtime_reader=lambda:pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
         self.runtime=self.runtime_reader()
@@ -97,7 +98,7 @@ class CycleSourceCollector:
     def _measured_http(self,**request):
         from household_cycle_deadline import borrow_observation_timer
         from household.measured_weather_capture import _http_get
-        with borrow_observation_timer():return _http_get(**request)
+        with borrow_observation_timer():return _http_get(**request,opener=self.opener)
 
     def _owner_transport(self,item,*,remaining):
         from household.capture import RECEIPT_ITEMS
@@ -114,8 +115,7 @@ class CycleSourceCollector:
         signal.signal(signal.SIGALRM,expired)
         try:
             signal.setitimer(signal.ITIMER_REAL,min(2.,budget))
-            opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoRedirect())
-            with opener.open(request,timeout=min(2.,budget)) as response:
+            with self.opener.open(request,timeout=min(2.,budget)) as response:
                 if response.status!=200 or response.geturl()!=url:raise ValueError('fixed owner response required')
                 raw=response.read(8193)
             remaining()

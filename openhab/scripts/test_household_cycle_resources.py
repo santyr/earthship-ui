@@ -67,3 +67,14 @@ def test_unknown_abi_or_failed_kernel_read_refuses(platform,value,monkeypatch):
     monkeypatch.setattr(api.ctypes,'CDLL',lambda *args,**kwargs:SimpleNamespace(syscall=lambda *args:value))
     monkeypatch.setattr(api.os,'uname',lambda:SimpleNamespace(sysname='Linux',machine=platform))
     with pytest.raises(ValueError):api.current_ioprio()
+
+
+@pytest.mark.parametrize('pointer,long',[ (4,4), (4,8), (8,4) ])
+def test_kernel_x86_64_requires_native_lp64_process_before_loading_syscall(pointer,long,monkeypatch):
+    import household_cycle_resources as api
+    from types import SimpleNamespace
+    monkeypatch.setattr(api.os,'uname',lambda:SimpleNamespace(sysname='Linux',machine='x86_64'))
+    monkeypatch.setattr(api.ctypes,'sizeof',lambda kind:pointer if kind is api.ctypes.c_void_p else long)
+    def forbidden(*args,**kwargs):pytest.fail('unsupported ABI loaded libc')
+    monkeypatch.setattr(api.ctypes,'CDLL',forbidden)
+    with pytest.raises(ValueError):api.current_ioprio()

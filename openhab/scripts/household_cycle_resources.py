@@ -11,7 +11,8 @@ from thermal_model.capture_guard import _small_text
 def current_ioprio():
     # Verified against the installed x86_64 Linux syscall ABI, not guessed for
     # other architectures. Unknown hosts must not weaken this check.
-    if os.uname().sysname!='Linux' or os.uname().machine!='x86_64':
+    if (os.uname().sysname!='Linux' or os.uname().machine!='x86_64' or
+            ctypes.sizeof(ctypes.c_void_p)!=8 or ctypes.sizeof(ctypes.c_long)!=8):
         raise ValueError('known publication IO-priority ABI required')
     libc=ctypes.CDLL(None,use_errno=True)
     syscall=libc.syscall;syscall.restype=ctypes.c_long
