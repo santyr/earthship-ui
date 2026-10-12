@@ -6,7 +6,7 @@
   let now = $state(Date.now());
   let refreshTimer;
   const label = $derived(nativeSeasonLabel({ states:$items, evidence:$itemUpdateEvidence,
-    now, connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE' }));
+    now:Math.max(now, Date.now()), connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE' }));
   onMount(() => { refreshTimer = setInterval(() => { now = Date.now(); }, 30_000); });
   onDestroy(() => { clearInterval(refreshTimer); });
 </script>

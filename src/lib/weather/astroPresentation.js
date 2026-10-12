@@ -42,13 +42,20 @@ export function nativeSeasonLabel(context) {
   const days = Math.floor(seconds / 86400);
   return `${days === 0 ? 'less than 1 day' : `${days} ${days === 1 ? 'day' : 'days'}`} until ${season[0]} ${season[1]}`;
 }
-export function nativeDaylightText(context) {
-  if (!context.sunOnline || !['Sun_Daylight_Duration','Sun_Rise_Start','Sun_Set_End'].every(name => current(context,name))) return '—';
+function currentSunBounds(context) {
+  if (!context.sunOnline || !['Sun_Rise_Start','Sun_Set_End'].every(name => current(context,name))) return null;
   // The timestamp parser requires a finite upper bound; future daily events are valid.
   const endOfRange = 8640000000000000;
   const r = parseSourceTimestamp(context.states.Sun_Rise_Start, endOfRange);
   const s = parseSourceTimestamp(context.states.Sun_Set_End, endOfRange);
-  if (r === null || s === null || r >= s || !sameDay(r,context.now) || !sameDay(s,context.now)) return '—';
+  if (r === null || s === null || r >= s || !sameDay(r,context.now) || !sameDay(s,context.now)) return null;
+  return { sunrise:context.states.Sun_Rise_Start, sunset:context.states.Sun_Set_End };
+}
+export function nativeCurrentSkyContext(context) {
+  return { at:context.now, ...(currentSunBounds(context) ?? {}), currentMoonIcon:nativeCurrentMoon(context) };
+}
+export function nativeDaylightText(context) {
+  if (!currentSunBounds(context) || !current(context,'Sun_Daylight_Duration')) return '—';
   const seconds = durationSeconds(context.states.Sun_Daylight_Duration);
   if (!(seconds > 0 && seconds < 86400)) return '—';
   const { hours, minutes } = splitRoundedMinutes(seconds / 60);

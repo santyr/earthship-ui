@@ -1,6 +1,6 @@
 <script>
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
-  import { nativeCurrentMoon, nativeDaylightText, siteTimeLabel } from '../lib/weather/astroPresentation.js';
+  import { nativeCurrentSkyContext, nativeDaylightText, siteTimeLabel } from '../lib/weather/astroPresentation.js';
 
   // Task 3.1 — LIVE dense Home console. Binds real openHAB items (Task 0.1-3.0
   // infra), renders real icons via OhIcon, and makes weather/battery/solar/
@@ -315,12 +315,11 @@
   const netTodayColor = $derived(netStateColor(netToday));
 
   const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
-  const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:wallClock,
+  const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:Math.max(wallClock, Date.now()),
     connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE',
     moonOnline:$thingStatuses['astro:moon:local']?.status === 'ONLINE' });
   const outdoorConditionIcon = $derived(selectOutdoorConditionIcon($items.SkyConditionIcon, {
-    at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
-    currentMoonIcon: nativeCurrentMoon(astroContext),
+    ...nativeCurrentSkyContext(astroContext),
   }));
   const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
   const currentAqi = $derived(adaptCurrentAqi($items.Current_US_AQI));

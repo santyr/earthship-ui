@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nativeSeasonLabel, nativeDaylightText, siteTimeLabel, nativeCurrentMoon } from '../src/lib/weather/astroPresentation.js';
+import { nativeSeasonLabel, nativeDaylightText, siteTimeLabel, nativeCurrentMoon, nativeCurrentSkyContext } from '../src/lib/weather/astroPresentation.js';
 
 const now = Date.parse('2026-10-12T16:00:00Z');
 const base = { Sun_TimeLeft: '6048000 s', Sun_NextSeason: 'WINTER', Sun_Daylight_Duration: '40533.905 s', Sun_Rise_Start: '2026-10-12T07:10:11.662-0600', Sun_Set_End: '2026-10-12T18:31:14.172-0600', Moon_MoonPhaseName: 'THIRD_QUARTER' };
@@ -40,6 +40,15 @@ describe('native current astronomy presentation', () => {
     expect(siteTimeLabel('2026-11-01T08:30:00Z','en-US')).toBe('1:30a');
     expect(siteTimeLabel('2026-10-13T06:00:00Z','en-US')).toBe('12:00a');
     for (const bad of ['NULL','invalid','2026-02-30T12:00:00Z','2026-10-12T07:10:11']) expect(siteTimeLabel(bad,'en-US')).toBe('—');
+  });
+  it('qualifies native sun bounds for both current consumer paths', () => {
+    const sky = nativeCurrentSkyContext(context);
+    expect(sky.sunrise).toBe(base.Sun_Rise_Start);
+    expect(sky.sunset).toBe(base.Sun_Set_End);
+    for (const patch of [{sunOnline:false},{connected:false},{evidence:{}},{now:now+86400000}]) {
+      expect(nativeCurrentSkyContext({...context,...patch}).sunrise).toBe(undefined);
+      expect(nativeCurrentSkyContext({...context,...patch}).sunset).toBe(undefined);
+    }
   });
   it('normalizes all eight native phases and refuses stale or unavailable lunar sources', () => {
     const phases = { NEW:'new',WAXING_CRESCENT:'waxing-crescent',FIRST_QUARTER:'first-quarter',WAXING_GIBBOUS:'waxing-gibbous',FULL:'full',WANING_GIBBOUS:'waning-gibbous',THIRD_QUARTER:'last-quarter',WANING_CRESCENT:'waning-crescent' };

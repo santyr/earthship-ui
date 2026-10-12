@@ -969,16 +969,20 @@
     },
     "full_program_scope_preserved": true,
     "verification": {
-      "affected_vitest_cases": 277,
+      "affected_vitest_cases": 281,
       "affected_vitest_files": 9,
-      "duration_seconds": 22.4,
+      "duration_seconds": 23.39,
       "native_sse_upstream_timestamp_verified": true,
       "svelte_components_compiled": 3,
       "full_hosted_suite_pending": true,
       "deployed_ui": false,
       "season_source": "native Sun_TimeLeft/Sun_NextSeason; existing display Item/writer preserved",
       "versions": "5.2.3 or greater stable",
-      "native_model_geometry_refit_complete": false
+      "native_model_geometry_refit_complete": false,
+      "independent_review_critical": 0,
+      "independent_review_important": 3,
+      "review_correction_passes": 1,
+      "review_regressions_red_then_green": true
     }
   }
 }

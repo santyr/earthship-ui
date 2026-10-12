@@ -1,6 +1,6 @@
 <script>
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
-  import { nativeCurrentMoon } from '../lib/weather/astroPresentation.js';
+  import { nativeCurrentSkyContext } from '../lib/weather/astroPresentation.js';
 
   import { onMount } from 'svelte';
   import {
@@ -66,12 +66,11 @@
       document.removeEventListener('visibilitychange', update);
     };
   });
-  const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:wallClock,
+  const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:Math.max(wallClock, Date.now()),
     connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE',
     moonOnline:$thingStatuses['astro:moon:local']?.status === 'ONLINE' });
   const skyIcon = $derived(outdoorConditionIcon($items.SkyConditionIcon, {
-    at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
-    currentMoonIcon: nativeCurrentMoon(astroContext),
+    ...nativeCurrentSkyContext(astroContext),
   }));
   // Task 5.1 — Weather console: current conditions, 14h hourly strip, 10-day
   // forecast, and measured wind/rain/pressure tiles. Mirrors Home's

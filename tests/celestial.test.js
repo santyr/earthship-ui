@@ -23,6 +23,12 @@ describe('shared astronomical weather icons', () => {
     expect(wmoIcon(0,night)).toBe(moonPhaseIcon(night.at));
     expect(contextualSkyIcon('mdi:weather-sunny',{ ...night,isDay:true,currentMoonIcon:'mdi:moon-full' })).toBe('mdi:weather-sunny');
   });
+  it('withholds a retained clear-night moon phase when native daily sun bounds are stale', () => {
+    const stale = {at:'2026-10-13T05:00:00-06:00',sunrise:'2026-10-12T07:10:00-06:00',sunset:'2026-10-12T18:30:00-06:00',currentMoonIcon:'mdi:weather-night'};
+    expect(contextualSkyIcon('iconify:mdi:moon-full',stale)).toBe('mdi:weather-night');
+    expect(contextualSkyIcon('mdi:weather-pouring',stale)).toBe('mdi:weather-pouring');
+    expect(contextualSkyIcon('iconify:mdi:moon-full',{...stale,currentMoonIcon:'mdi:moon-waning-gibbous'})).toBe('mdi:weather-night');
+  });
   it('covers all eight phases and equivalent instants across offsets', () => {
     const phases = new Set(Array.from({ length: 30 }, (_, i) => moonPhaseIcon(Date.UTC(2026, 8, i + 1))));
     expect(phases.size).toBe(8);
