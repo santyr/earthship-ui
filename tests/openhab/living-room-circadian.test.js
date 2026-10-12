@@ -9,7 +9,7 @@ const svc = 'smartlife.iot.smartbulb.lightingservice';
 function harness(options = {}) {
   let now = 1000000;
   const cache = new Map();
-  const states = {LivingRoomCircadian_Enable:'ON',Sun_Position_Elevation:'25 °',...options.states};
+  const states = {LivingRoomCircadian_Enable:'ON',Sun_Circadian_Temperature:'4500 K',Sun_Position_Elevation:'25 °',...options.states};
   switches.forEach(s => { states[s] ??= 'ON'; });
   let solarTime = now;
   const online = Object.fromEntries(['astro:sun:local', ...ids].map(i => [i,'ONLINE']));
@@ -46,14 +46,14 @@ function harness(options = {}) {
   return {states,online,bulbs,calls,posts,cache,setBehavior(fn){behavior=fn;},advance(ms){now+=ms;solarTime=now;},stale(){solarTime=now-120001;},run(event){ctx.event=event;vm.runInContext(`(function(){${source}\n})()`,ctx);},writes(){return calls.filter(c=>c.method==='transition_light_state'||c.method==='temperature');}};
 }
 describe('living room circadian owner', () => {
-  it('uses the existing Astro curve and confirms actual bulb state without power or brightness writes',()=>{
+  it('uses native Astro temperature and confirms actual bulb state without power or brightness writes',()=>{
     const h=harness();h.run();expect(h.states.LivingRoomCircadian_TargetK).toBe('4500');
     expect(h.writes()).toHaveLength(3);
     for(const c of h.writes()){expect(c.payload.color_temp).toBe(4500);expect(c.payload).not.toHaveProperty('on_off');expect(c.payload).not.toHaveProperty('brightness');}
     expect(h.states[actuals[0]]).toBe('4500');expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^healthy/);
   });
-  it.each([['-12 °','2500'],['0 °','2500'],['50 °','6500'],['70 °','6500']])('preserves the solar range at %s',(elev,want)=>{const h=harness({states:{Sun_Position_Elevation:elev}});h.run();expect(h.states.LivingRoomCircadian_TargetK).toBe(want);});
-  it.each(['NULL','UNDEF','NaN','25 garbage','Infinity','91 °'])('fails closed for invalid solar elevation %s',value=>{const h=harness({states:{Sun_Position_Elevation:value}});h.run();expect(h.writes()).toHaveLength(0);expect(h.states.LivingRoomCircadian_TargetK).toBe('UNDEF');expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^unavailable/);});
+  it.each([['2500 K','2500'],['4237 K','4237'],['5500 K','5500']])('uses the native target %s without recalculating from elevation',(raw,want)=>{const h=harness({states:{Sun_Circadian_Temperature:raw,Sun_Position_Elevation:'NULL'}});h.run();expect(h.states.LivingRoomCircadian_TargetK).toBe(want);});
+  it.each(['NULL','UNDEF','NaN','4500','4500 °F','Infinity K','2499 K','5501 K'])('fails closed for invalid native target %s',value=>{const h=harness({states:{Sun_Circadian_Temperature:value}});h.run();expect(h.writes()).toHaveLength(0);expect(h.states.LivingRoomCircadian_TargetK).toBe('UNDEF');expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^unavailable/);});
   it('rejects stale Astro data',()=>{const h=harness();h.stale();h.run();expect(h.writes()).toHaveLength(0);expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^unavailable/);});
   it('rejects an offline Astro provider',()=>{const h=harness();h.online['astro:sun:local']='OFFLINE';h.run();expect(h.writes()).toHaveLength(0);});
   it('does no device work while disabled',()=>{const h=harness({states:{LivingRoomCircadian_Enable:'OFF'}});h.run();expect(h.calls).toHaveLength(0);expect(h.states.LivingRoomCircadian_LastResult).toBe('disabled');});
@@ -71,11 +71,11 @@ describe('living room circadian owner', () => {
     h.setBehavior(()=>undefined);h.run({thingUID:ids[0],status:'ONLINE'});expect(h.states[actuals[0]]).toBe('4500');
   });
   it('updates immediately on bulb ON despite the global query throttle',()=>{const h=harness();h.bulbs[0].on_off=0;h.run();h.bulbs[0].on_off=1;h.calls.length=0;h.run({itemName:switches[0],itemState:'ON'});expect(h.writes().filter(c=>c.index===0)).toHaveLength(1);});
-  it('rate limits small sun changes and recovers after the interval',()=>{const h=harness();h.run({itemName:'Sun_Position_Elevation'});h.calls.length=0;h.states.Sun_Position_Elevation='25.5 °';h.run({itemName:'Sun_Position_Elevation'});expect(h.calls).toHaveLength(0);h.advance(300000);h.run({itemName:'Sun_Position_Elevation'});expect(h.calls.length).toBeGreaterThan(0);});
+  it('rate limits small native target changes and recovers after the interval',()=>{const h=harness();h.run({itemName:'Sun_Circadian_Temperature'});h.calls.length=0;h.states.Sun_Circadian_Temperature='4540 K';h.run({itemName:'Sun_Circadian_Temperature'});expect(h.calls).toHaveLength(0);h.advance(300000);h.run({itemName:'Sun_Circadian_Temperature'});expect(h.calls.length).toBeGreaterThan(0);});
   it('does not write when actual CT is within 100 K',()=>{const h=harness();h.bulbs.forEach(b=>{b.color_temp=4450;});h.run();expect(h.writes()).toHaveLength(0);expect(h.states[actuals[0]]).toBe('4450');});
   it('marks an offline bulb degraded without network work',()=>{const h=harness();h.online[ids[0]]='OFFLINE';h.run();expect(h.calls.filter(c=>c.index===0)).toHaveLength(0);expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^degraded/);});
   it('rechecks solar freshness after query before any write',()=>{const h=harness({behavior:({method})=>{if(method==='get_light_state')h.stale();}});h.run();expect(h.writes()).toHaveLength(0);expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^unavailable/);});
-  it('releases the run lock after a failure so later triggers can recover',()=>{const h=harness({states:{Sun_Position_Elevation:'NULL'}});h.run();h.states.Sun_Position_Elevation='25 °';h.run();expect(h.writes()).toHaveLength(3);});
+  it('releases the run lock after a failure so later triggers can recover',()=>{const h=harness({states:{Sun_Circadian_Temperature:'NULL'}});h.run();h.states.Sun_Circadian_Temperature='4500 K';h.run();expect(h.writes()).toHaveLength(3);});
   it('never infers a white temperature from RGB mode',()=>{const h=harness();h.bulbs[0].color_temp=0;h.run();expect(h.writes().filter(c=>c.index===0)).toHaveLength(1);expect(h.states[actuals[0]]).toBe('4500');});
 
   it('retries optimistic ON on the next actual provider update, without querying on every steady ON update',()=>{
@@ -90,12 +90,12 @@ describe('living room circadian owner', () => {
   it('retains an overlapping recovery event for the next evaluation',()=>{
     const h=harness();h.run();h.bulbs[0].color_temp=3000;
     const lock=h.cache.get('lrCircadianBindingLock');lock.set(true);h.run({thingUID:ids[0],newStatus:'ONLINE'});lock.set(false);
-    h.calls.length=0;h.run({itemName:'Sun_Position_Elevation'});expect(h.writes().filter(c=>c.index===0)).toHaveLength(1);
+    h.calls.length=0;h.run({itemName:'Sun_Circadian_Temperature'});expect(h.writes().filter(c=>c.index===0)).toHaveLength(1);
   });
 
   it('recovers immediately after invalid Astro data becomes fresh again',()=>{
-    const h=harness();h.run();h.states.Sun_Position_Elevation='NULL';h.run();expect(h.states.LivingRoomCircadian_TargetK).toBe('UNDEF');
-    h.states.Sun_Position_Elevation='25 °';h.calls.length=0;h.run();expect(h.calls.length).toBeGreaterThan(0);expect(h.states.LivingRoomCircadian_TargetK).toBe('4500');expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^healthy/);
+    const h=harness();h.run();h.states.Sun_Circadian_Temperature='NULL';h.run();expect(h.states.LivingRoomCircadian_TargetK).toBe('UNDEF');
+    h.states.Sun_Circadian_Temperature='4500 K';h.calls.length=0;h.run();expect(h.calls.length).toBeGreaterThan(0);expect(h.states.LivingRoomCircadian_TargetK).toBe('4500');expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^healthy/);
   });
 
 });

@@ -1,5 +1,5 @@
 // Managed rule hex_living_room_circadian. Canonical Git source; deploy via REST.
-// Use Astro's existing elevation and the TP-Link binding's synchronous action.
+// Read Astro's native 2500–5500 K circadian target; no local curve calculation.
 // Do NOT use colorTemperatureAbs.sendCommand for automation: it sets on_off=1.
 // A CT-only raw request preserves power/brightness on the installed KL125s,
 // including OFF between query and write (qualified on hardware 2026-10-12).
@@ -14,7 +14,7 @@ const BULBS = [
 ];
 const MIN_DELTA_K = 100;
 const MIN_QUERY_INTERVAL_MS = 240000;
-const SOLAR_MAX_AGE_MS = 120000; // existing Astro thing updates every 16 seconds
+const TARGET_MAX_AGE_MS = 120000; // existing Astro thing updates every 16 seconds
 const FAILURE_BACKOFF_MS = 15 * 60 * 1000;
 const lock = cache.private.get('lrCircadianBindingLock', () => new AtomicBoolean(false));
 function nowMs() { return Instant.now().toEpochMilli(); }
@@ -23,18 +23,19 @@ function post(name, value) {
   if (String(item.state) !== String(value)) item.postUpdate(String(value));
 }
 function enabled() { return String(items.getItem('LivingRoomCircadian_Enable').state) === 'ON'; }
-function solar() {
+function targetTemperature() {
   if (String(things.getThing('astro:sun:local').status) !== 'ONLINE') throw Error('astro-offline');
-  const item = items.getItem('Sun_Position_Elevation');
+  const item = items.getItem('Sun_Circadian_Temperature');
   const raw = String(item.state).trim();
-  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:\s*°)?$/.test(raw)) throw Error('astro-invalid');
-  const elev = parseFloat(raw);
-  if (!Number.isFinite(elev) || elev < -90 || elev > 90) throw Error('astro-invalid');
+  // The source Item declares unit=K; reject untyped or differently typed data.
+  if (!/^\d+(?:\.\d+)? K$/.test(raw)) throw Error('astro-temperature-invalid');
+  const kelvin = Number(raw.slice(0, -2));
+  if (!Number.isFinite(kelvin) || kelvin < 2500 || kelvin > 5500) throw Error('astro-temperature-invalid');
   const stamp = item.lastStateUpdateTimestamp;
   if (stamp === null || stamp === undefined) throw Error('astro-no-timestamp');
   const age = nowMs() - stamp.toInstant().toEpochMilli();
-  if (!Number.isFinite(age) || age < 0 || age > SOLAR_MAX_AGE_MS) throw Error('astro-stale');
-  return {elev, targetK:2500 + Math.round(Math.max(0, Math.min(50, elev)) * 80)};
+  if (!Number.isFinite(age) || age < 0 || age > TARGET_MAX_AGE_MS) throw Error('astro-stale');
+  return {targetK:Math.round(kelvin)};
 }
 function resetFailure(b) {
   cache.private.remove('lrFailure:' + b.uid);
@@ -87,7 +88,7 @@ if (!lock.compareAndSet(false, true)) return;
 try {
   if (!enabled()) { disabled(); return; }
   let calc;
-  try { calc = solar(); } catch (e) { unavailable(String(e.message || e)); return; }
+  try { calc = targetTemperature(); } catch (e) { unavailable(String(e.message || e)); return; }
   const policyChange = triggerItem === 'LivingRoomCircadian_Enable';
   if (policyChange) BULBS.forEach(resetFailure);
   const pending = BULBS.filter(b => cache.private.get('lrRecoveryPending:' + b.uid) === true);
@@ -143,8 +144,8 @@ try {
         results.push(b.name + '=ok-current(' + measured.k + 'K)');
         continue;
       }
-      // Recheck the existing solar source and policy after the blocking query.
-      try { solar(); } catch (e) { unavailable(String(e.message || e)); return; }
+      // Recheck the native target source and policy after the blocking query.
+      try { targetTemperature(); } catch (e) { unavailable(String(e.message || e)); return; }
       if (!enabled()) { disabled(); return; }
       // Omit on_off and brightness. Even a late manual OFF stays OFF.
       measured = null; // attempted writes can time out after changing the bulb
@@ -169,7 +170,7 @@ try {
     }
   }
   if (!enabled()) { disabled(); return; }
-  const summary = (degraded ? 'degraded' : 'healthy') + ' checkedAt=' + String(Instant.now()) + ' elev=' + calc.elev.toFixed(1) + ' target=' + calc.targetK + 'K ' + results.join(' | ');
+  const summary = (degraded ? 'degraded' : 'healthy') + ' checkedAt=' + String(Instant.now()) + ' source=astro:circadian target=' + calc.targetK + 'K ' + results.join(' | ');
   post('LivingRoomCircadian_LastResult', summary);
   console.info('LR circadian (TP-Link binding): ' + summary);
 } catch (e) {
