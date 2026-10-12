@@ -993,19 +993,22 @@
           "operational_source_qualification": false
         },
         "latest_cache_timing": {
-          "snapshot_as_of": "2026-10-12T18:40:15+00:00",
-          "decision_at": "2026-10-12T18:40:31.856231+00:00",
-          "verified_at": "2026-10-12T18:40:36.461792+00:00",
-          "valid_until": "2026-10-12T18:40:34.062000+00:00",
-          "planner_mode": "unavailable",
+          "snapshot_as_of": "2026-10-12T19:15:15+00:00",
+          "decision_at": "2026-10-12T19:15:31.260067+00:00",
+          "verified_at": "2026-10-12T19:15:36.347544+00:00",
+          "valid_until": "2026-10-12T19:15:37.256000+00:00",
+          "planner_mode": "shadow",
           "plan_status": "input_incomplete",
-          "receipt_sha256": "311a1e02e67b79a101919ffcb23a60e6c95989ce92c27ae3d8ef31427b57d377"
+          "receipt_sha256": "b78264b6017e4733602d8322f41892ee6f1e16e2b85090fc60e84d71ef9c6477",
+          "verification_before_expiry": true,
+          "full_planning_qualified": false,
+          "owner_baseline_effect_qualifications_complete": false
         },
         "exact_source_all_hosted_checks_passed": true
       }
     },
     "outcome_report_continuity": {
-      "status": "implemented_not_deployed",
+      "status": "deployed_natural_score_verified",
       "original_scorer_source_unchanged": true,
       "expected_refusal": "original_mature_outcome_unavailable",
       "original_guard_checks_before_actual_refusal": 234,
@@ -1095,7 +1098,29 @@
             "bias_f": null
           }
         }
-      }
+      },
+      "code_revision": "1f77376c9e97603acddc2225e168fa26c8575cdf",
+      "deployment_sha256": "be9de84a2f37a2a92563828de14978f3372e782a6b0b2f4769d751c5547db898",
+      "dropin_sha256": "71243f6c1375cb754d8207bb9992b7c86a66438431418437d93d4780f01d3fa2",
+      "review_critical": 0,
+      "review_important": 0,
+      "service_restarted": false,
+      "forecast_override_changed": false,
+      "timer_changed": false,
+      "first_natural_score": {
+        "started_at": "2026-10-12T19:16:10+00:00",
+        "exited_at": "2026-10-12T19:16:25+00:00",
+        "exit_code": 0,
+        "status": "monitoring_refreshed",
+        "scored": 0,
+        "current_revision_scored": 256,
+        "cpu_seconds": 2.641848,
+        "memory_peak_reported": false,
+        "report_sha256": "5eba2a51e08bb3502eb3ecbb2820a887b729fc44e4bdd6216c3dde03549f49b4",
+        "assessed_at": "2026-10-12T19:16:23.265951+00:00",
+        "graduated": false
+      },
+      "next_forecast_monitoring_inclusion_verified": false
     }
   },
   "astro_efficiency_audit": {

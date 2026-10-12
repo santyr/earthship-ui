@@ -25,3 +25,7 @@ and tests used bounded scopes. The UI service itself remains an existing
 uncapped development server; its memory was about 1.2 GiB before and 1.7 GiB
 after Vite dependency reoptimization. No service memory limit was changed in
 this investigation.
+
+A repeat check at about 13:12 America/Denver again confirmed HTTP 200 and an
+active service. The bounded fresh browser rendered Home at the LAN address
+with a live OpenHAB connection, no error overlay and zero page errors.
