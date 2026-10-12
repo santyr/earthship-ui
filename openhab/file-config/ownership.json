@@ -648,6 +648,15 @@
       "kind": "rule", "id": "hex_bedroom_temperature", "provider": "file", "migration": "verified",
       "source": "automation/js/bedroom-temperature.js", "destination": "/etc/openhab/automation/js/bedroom-temperature.js",
       "state_writer": "Bedroom_Temperature"
+    },
+    {
+      "kind": "rule",
+      "id": "hex_living_room_circadian",
+      "provider": "managed",
+      "migration": "managed_exception",
+      "source": "openhab/rules/living-room-circadian.js",
+      "definition": "openhab/living-room-circadian-resources.json",
+      "rest_path": "/rules/hex_living_room_circadian"
     }
   ]
 }

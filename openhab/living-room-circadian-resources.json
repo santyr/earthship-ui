@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "provider": "managed",
+  "rule": {
+    "triggers": [
+      {
+        "id": "1",
+        "configuration": {
+          "itemName": "Sun_Position_Elevation"
+        },
+        "type": "core.ItemStateChangeTrigger"
+      },
+      {
+        "id": "2",
+        "configuration": {
+          "itemName": "LivingRoomCircadian_Enable"
+        },
+        "type": "core.ItemStateChangeTrigger"
+      },
+      {
+        "id": "3",
+        "configuration": {
+          "cronExpression": "0 */5 * * * ?"
+        },
+        "type": "timer.GenericCronTrigger"
+      },
+      {
+        "id": "on_1",
+        "type": "core.ItemStateChangeTrigger",
+        "configuration": {
+          "itemName": "living_room_1_Switch",
+          "state": "ON"
+        }
+      },
+      {
+        "id": "online_1",
+        "type": "core.ThingStatusChangeTrigger",
+        "configuration": {
+          "thingUID": "tplinksmarthome:kl125:E7FA31",
+          "status": "ONLINE"
+        }
+      },
+      {
+        "id": "on_2",
+        "type": "core.ItemStateChangeTrigger",
+        "configuration": {
+          "itemName": "living_room_2_Switch",
+          "state": "ON"
+        }
+      },
+      {
+        "id": "online_2",
+        "type": "core.ThingStatusChangeTrigger",
+        "configuration": {
+          "thingUID": "tplinksmarthome:kl125:E62B6D",
+          "status": "ONLINE"
+        }
+      },
+      {
+        "id": "on_3",
+        "type": "core.ItemStateChangeTrigger",
+        "configuration": {
+          "itemName": "LED_living_room_1_Switch",
+          "state": "ON"
+        }
+      },
+      {
+        "id": "online_3",
+        "type": "core.ThingStatusChangeTrigger",
+        "configuration": {
+          "thingUID": "tplinksmarthome:kl125:E7CAD9",
+          "status": "ONLINE"
+        }
+      },
+      {
+        "id": "startup",
+        "type": "core.SystemStartlevelTrigger",
+        "configuration": {
+          "startlevel": 100
+        }
+      },
+      {
+        "id": "pending_on_1",
+        "type": "core.ItemStateUpdateTrigger",
+        "configuration": {
+          "itemName": "living_room_1_Switch",
+          "state": "ON"
+        }
+      },
+      {
+        "id": "pending_on_2",
+        "type": "core.ItemStateUpdateTrigger",
+        "configuration": {
+          "itemName": "living_room_2_Switch",
+          "state": "ON"
+        }
+      },
+      {
+        "id": "pending_on_3",
+        "type": "core.ItemStateUpdateTrigger",
+        "configuration": {
+          "itemName": "LED_living_room_1_Switch",
+          "state": "ON"
+        }
+      }
+    ],
+    "conditions": [],
+    "actions": [
+      {
+        "inputs": {},
+        "id": "1",
+        "configuration": {
+          "type": "application/javascript",
+          "scriptSource": "openhab/rules/living-room-circadian.js"
+        },
+        "type": "script.ScriptAction"
+      }
+    ],
+    "configuration": {},
+    "configDescriptions": [],
+    "uid": "hex_living_room_circadian",
+    "name": "Living Room Circadian",
+    "tags": [],
+    "visibility": "VISIBLE",
+    "description": "Astro elevation controls Kelvin only through TP-Link raw actions. Preserves OFF and brightness, validates fresh Astro data and verifies measured temperature. Managed provider; canonical source in Git."
+  }
+}
