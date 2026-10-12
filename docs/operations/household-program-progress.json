@@ -1920,6 +1920,35 @@
       },
       "development_prediction_comparison_complete": true,
       "production_accuracy_improvement_proven": false
+    },
+    "native_provisional_artifact": {
+      "status": "implemented_affected_tests_pass_review_and_actual_artifact_pending",
+      "schema": "earthship-provisional-thermal-candidate/v2",
+      "runtime_schema": "earthship-native-thermal-runtime-binding/v1",
+      "fit_evidence_schema": "earthship-native-development-fit-evidence/v2",
+      "base_runtime_contract_preserved": true,
+      "native_required_source_count": 9,
+      "original_dependencies": [
+        "snapshot",
+        "dataset",
+        "geometry",
+        "fit_evidence"
+      ],
+      "artifact_external_identity_required": true,
+      "fit_runtime_environment_pinned": true,
+      "originals_independently_replayed": true,
+      "fit_losses_support_conditioning_and_physical_rollouts_rederived": true,
+      "legacy_candidate_api_refuses_native": true,
+      "affected_cases_passed": 164,
+      "affected_seconds": 17.91,
+      "review_pending": true,
+      "actual_artifact_pending": true,
+      "new_numerical_budget_seconds": 85,
+      "cpu_memory_swap_limits_changed": false,
+      "publication_deadlines_changed": false,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -2049,5 +2078,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T23:07:50.261158+00:00"
+  "updated_at": "2026-10-12T23:28:39.178942+00:00"
 }
