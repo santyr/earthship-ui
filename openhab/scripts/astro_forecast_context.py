@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import math
+import re
 from zoneinfo import ZoneInfo
 
 ITEM = 'Astro_Forecast_Context_JSON'
@@ -31,6 +32,14 @@ def _instant(value):
     return at.astimezone(timezone.utc)
 
 
+def _supported_calculation_version(value):
+    if not isinstance(value, str): return False
+    match = re.fullmatch(r'openhab-astro-(0|[1-9][0-9]{0,9})\.(0|[1-9][0-9]{0,9})\.(0|[1-9][0-9]{0,9})', value)
+    if match is None: return False
+    version = tuple(int(part) for part in match.groups())
+    return all(part <= 2147483647 for part in version) and version >= (5, 2, 3)
+
+
 def validate(raw, *, origin, latitude, longitude, timezone_name):
     if (not isinstance(raw, str) or not 1 <= len(raw.encode()) <= MAX_BYTES
             or not isinstance(origin, datetime) or origin.utcoffset() is None):
@@ -43,7 +52,7 @@ def validate(raw, *, origin, latitude, longitude, timezone_name):
             or type(value['version']) is not int or value['version'] != 1
             or value['schema'] != 'astro-future-solar-context/v1'
             or value['sourceThing'] != 'astro:sun:local'
-            or value['calculationVersion'] != 'openhab-astro-5.2.1'
+            or not _supported_calculation_version(value['calculationVersion'])
             or value['timezone'] != timezone_name):
         raise ValueError('exact solar context authority required')
     if not isinstance(value['geolocation'], str) or len(value['geolocation']) > 128:

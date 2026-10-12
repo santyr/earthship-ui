@@ -11,7 +11,7 @@ function adapter() {
   const base = Date.parse('2026-09-30T06:00:00Z');
   const at = (index, hours) => new Date(base + index * 86400000 + hours * 3600000).toISOString();
   return {
-    timezone: 'America/Denver', geolocation: '38.3739919,-105.7744609',
+    bindingVersion: '5.2.3', timezone: 'America/Denver', geolocation: '38.3739919,-105.7744609',
     recordedAt: at(0, 1), validUntil: at(1, 0),
     day: index => at(index, 0).slice(0, 10),
     event: (index, phase) => at(index, phase === 'SUN_RISE' ? 6.95 : phase === 'DAYLIGHT' ? 7 : 19),
@@ -44,5 +44,17 @@ describe('Astro observational solar-context exporter', () => {
     expect(source).not.toMatch(/sendCommand|executeCommandLine|fetch\(|sendNotification|nostr/);
     expect(source).toContain("GenericCronTrigger('0 10 0 * * ?')");
     expect(source).toContain('SystemStartlevelTrigger(100)');
+  });
+});
+
+
+describe('Astro binding provenance', () => {
+  it.each(['5.2.3', '5.2.4', '5.3.0', '5.10.0', '6.0.0', '10.0.0'])('records actual supported binding %s', version => {
+    const api = adapter(); api.bindingVersion = version;
+    expect(JSON.parse(buildContext(api)).calculationVersion).toBe('openhab-astro-' + version);
+  });
+  it.each(['5.2.1', '5.2.2', '5.1.99', '4.99.99', '05.2.3', '2147483648.0.0', '5.2.3-SNAPSHOT', undefined])('refuses unsupported binding %s', version => {
+    const api = adapter(); api.bindingVersion = version;
+    expect(() => buildContext(api)).toThrow();
   });
 });
