@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Original collectors and common model binding merged through PR23. Snapshot/v4 now retains original forecast/operator context without physical authority. Independent review found two Important sensor/candidate binding gaps; five resealed regressions reproduced them, one fix pass and687 affected tests pass. Actual current committed-source capture binds to the naturally delivered22:20:15UTC issue with exact pure/privateCLI replay. Eight physical roles remain qualified at that common clock; expired inverter AC remains unavailable. Full bank/usable energy, household load, observed weather, authority and owner qualification remain incomplete. Original declared bank/topology and source-bound household AC load now rederive on snapshot/v5 with734 affected tests; actual configuration capture and final review remain pending. Nominal capacity stays configuration, with calibrated usable energy unavailable.",
+      "current_evidence": "Source snapshot/v6 retains original bank/topology, power, forecast/operator and measured-weather contexts. PR26 merged after950 affected cases, one final review correction pass and actual naturally delivered03:00:15UTC source/model/privateCLI proof. All three weather points and eight other source roles qualified at the common clock. Nominal bank20.48kWh is configuration; calibrated usable energy, common-clock AC freshness, daylight/humidity/wind, authority and owner inputs remain incomplete.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "notimplemented",
+      "current_evidence": "Pure curated observation implemented with11 passing replay/privacy/expiry cases, including real source-backed v6 input. Private materializer, bounded endpoint and read-only operator panel remain pending.",
       "complete": false
     },
     {
@@ -738,7 +738,7 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "weather_json_lock_wait": {
-      "status": "merged_waiting_natural_refresh",
+      "status": "merged_and_natural_refresh_verified",
       "baseline_tests": 11,
       "affected_tests": 41,
       "affected_seconds": 4.6,
@@ -773,11 +773,15 @@
           "1ee50ea8ee1941c2980e9e334cb46dc4"
         ]
       },
-      "natural_refresh_qualified": false,
+      "natural_refresh_qualified": true,
       "pr": 27,
       "head": "e036c3a87e55731807cb1415b36f028923ce458b",
       "merge": "d43e70cbb8cb6a4f5e48ae7fd4fcb8b101e08ded",
-      "ci_run": 38201126570
+      "ci_run": 38201126570,
+      "natural_refresh_invocation": "9d127aeb03df4e0f9def48694855e631",
+      "natural_refresh_generated_at": "2026-10-11T22:12:06-06:00",
+      "natural_refresh_completed_at": "2026-10-11T22:12:13-06:00",
+      "natural_refresh_public_readback_verified": true
     },
     "operator_observability": {
       "status": "pure_replay_view_verified_materializer_and_ui_pending",
