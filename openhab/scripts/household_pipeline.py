@@ -10,7 +10,10 @@ from household_snapshot import _read,runtime_manifest,VALIDATORS
 from household.thermal_model import _execution_runtime
 
 
-def pipeline_runtime_manifest(*,expanded=False,configured=False):
+MEASURED_VALIDATORS=('weather_radiation_reader.py','weather_radiation_evidence.py','weather_rain_day.py','weather_rain_evidence.py')
+
+
+def pipeline_runtime_manifest(*,expanded=False,configured=False,measured=False):
     result=runtime_manifest();root=Path(__file__).resolve().parent
     for name in ('household_plan.py','household_pipeline.py','forecast_intel.py'):
         result['openhab/scripts/'+name]=sha256(_read(root/name,262144)).hexdigest()
@@ -20,6 +23,8 @@ def pipeline_runtime_manifest(*,expanded=False,configured=False):
             result['companion/earthship_energy/'+Path(module.__file__).name]=sha256(_read(Path(module.__file__),262144)).hexdigest()
     if configured:
         result['openhab/scripts/advisory_windows.py']=sha256(_read(root/'advisory_windows.py',262144)).hexdigest()
+    if measured:
+        for name in MEASURED_VALIDATORS:result['openhab/scripts/'+name]=sha256(_read(root/name,262144)).hexdigest()
     return result
 
 
@@ -38,20 +43,27 @@ def verify_source_closure(record,actual):
     required.update(POWER_COMPANIONS)
     for source in contexts.values():
         weather_required=set()
-        configured=source.get('schema')=='earthship-household-energy-source-context/v1'
+        measured=source.get('schema')=='earthship-household-measured-source-context/v1'
+        configured=measured or source.get('schema')=='earthship-household-energy-source-context/v1'
         if configured or source.get('schema')=='earthship-household-weather-source-context/v1':
             from household.weather_context import PreparedWeatherContext
-            fields={'schema','power_receipt','weather_inputs'}|({'energy_configuration'} if configured else set())
+            fields={'schema','power_receipt','weather_inputs'}|({'energy_configuration'} if configured else set())|({'measured_weather'} if measured else set())
             if set(source)!=fields:raise ValueError('closed original weather/energy source context required')
             if configured:
                 from household.energy_configuration import PreparedEnergyConfiguration
                 PreparedEnergyConfiguration(canonical(source['energy_configuration']))
+            if measured:
+                from household.measured_weather import PreparedMeasuredWeather
+                PreparedMeasuredWeather(canonical(source['measured_weather']))
             weather=PreparedWeatherContext(canonical(source['weather_inputs']))
             if canonical(weather.prepared.to_dict()['executing_runtime'])!=canonical(_execution_runtime(Path(__file__).resolve().parent)):raise ValueError('original weather executing runtime differs')
             weather_required={'openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot')}
             if configured:
                 weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_configuration_capture','energy_source_snapshot','energy_outcome_sources'))
                 weather_required.add('openhab/scripts/advisory_windows.py')
+            if measured:
+                weather_required.update('openhab/scripts/household/'+name+'.py' for name in ('measured_weather','measured_weather_snapshot','measured_weather_capture'))
+                weather_required.update('openhab/scripts/'+name for name in MEASURED_VALIDATORS)
             source=source['power_receipt']
         expected=source['runtime_manifest']
         if not isinstance(expected,dict) or not (required|weather_required)<=set(expected) or any(actual.get(name)!=sha for name,sha in expected.items()):
@@ -63,14 +75,15 @@ def main(argv=None):
     parser.add_argument('--receipt',required=True,type=Path);args=parser.parse_args(argv)
     try:
         raw=_read(args.receipt,MAX_BYTES,private=True);record=loads(raw)
-        expanded=record.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4')
-        configured=record.get('schema')=='earthship-household-model-plan-receipt/v4'
-        executing=pipeline_runtime_manifest(expanded=expanded,configured=configured);root=Path(__file__).resolve().parent
+        expanded=record.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
+        configured=record.get('schema') in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
+        measured=record.get('schema')=='earthship-household-model-plan-receipt/v5'
+        executing=pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured);root=Path(__file__).resolve().parent
         thermal=_execution_runtime(root) if record['inputs']['thermal_inputs'] is not None else None
         if expanded:verify_source_closure(record,executing)
         replayed=replay_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal)
         repeated_thermal=_execution_runtime(root) if thermal is not None else None
-        if (pipeline_runtime_manifest(expanded=expanded,configured=configured)!=executing or canonical(repeated_thermal)!=canonical(thermal) or
+        if (pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured)!=executing or canonical(repeated_thermal)!=canonical(thermal) or
             _read(args.receipt,MAX_BYTES,private=True)!=raw):raise ValueError('original or executing model/plan runtime changed')
         sys.stdout.buffer.write(canonical(replayed)+b'\n');return 0
     except Exception:

@@ -134,6 +134,10 @@ def restore_model_snapshot(document,*,source_receipt):
 
 
 def restore_snapshot(document,source_contexts=None):
+    if document.get('schema')=='earthship-household-snapshot/v6':
+        from .measured_weather_snapshot import restore_measured_weather_snapshot
+        if not isinstance(source_contexts,dict) or document.get('snapshot_id') not in source_contexts:raise ValueError('original measured weather context missing')
+        return restore_measured_weather_snapshot(document,source_contexts[document['snapshot_id']])
     if document.get('schema')=='earthship-household-snapshot/v5':
         from .energy_source_snapshot import restore_energy_source_snapshot
         if not isinstance(source_contexts,dict) or document.get('snapshot_id') not in source_contexts:raise ValueError('original energy source context missing')
@@ -159,6 +163,10 @@ def verify_source_runtime(snapshot,runtime_manifest):
 
 
 def snapshot_context(snapshot):
+    if snapshot.to_dict().get('schema')=='earthship-household-snapshot/v6':
+        from .measured_weather_snapshot import MeasuredWeatherSnapshot
+        if not isinstance(snapshot,MeasuredWeatherSnapshot):raise ValueError('verified measured weather snapshot required')
+        return snapshot.source_context
     if snapshot.to_dict().get('schema')=='earthship-household-snapshot/v5':
         from .energy_source_snapshot import EnergySourceSnapshot
         if not isinstance(snapshot,EnergySourceSnapshot):raise ValueError('verified energy source snapshot required')

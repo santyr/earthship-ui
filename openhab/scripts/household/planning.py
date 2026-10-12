@@ -194,11 +194,12 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
     from .model_snapshot import ModelSnapshot,verify_source_runtime,snapshot_context
     for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])):
         if isinstance(item,ModelSnapshot):verify_source_runtime(item,runtime)
-        elif item.to_dict().get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4','earthship-household-snapshot/v5'):raise ValueError('verified model snapshot required')
+        elif item.to_dict().get('schema') in ('earthship-household-snapshot/v3','earthship-household-snapshot/v4','earthship-household-snapshot/v5','earthship-household-snapshot/v6'):raise ValueError('verified model snapshot required')
     contexts={item.snapshot_id:snapshot_context(item) for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])) if isinstance(item,ModelSnapshot)}
-    weather_bound=any(item.to_dict().get('schema') in ('earthship-household-snapshot/v4','earthship-household-snapshot/v5') for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])))
-    energy_bound=any(item.to_dict().get('schema')=='earthship-household-snapshot/v5' for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])))
-    version=4 if energy_bound else 3 if weather_bound else 2 if contexts else 1
+    weather_bound=any(item.to_dict().get('schema') in ('earthship-household-snapshot/v4','earthship-household-snapshot/v5','earthship-household-snapshot/v6') for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])))
+    energy_bound=any(item.to_dict().get('schema') in ('earthship-household-snapshot/v5','earthship-household-snapshot/v6') for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])))
+    measured_bound=any(item.to_dict().get('schema')=='earthship-household-snapshot/v6' for item in (arguments['snapshot'],*(candidate.snapshot for candidate in arguments['candidates'])))
+    version=5 if measured_bound else 4 if energy_bound else 3 if weather_bound else 2 if contexts else 1
     if weather_bound:
         inputs['validation_snapshots']={item.snapshot.snapshot_id:item.snapshot.to_dict() for item in arguments['candidates'] if item.snapshot.snapshot_id!=arguments['snapshot'].snapshot_id}
         inputs['candidates']=[dict(intent=item.to_dict(),validation_snapshot_id=item.snapshot.snapshot_id,validated_at=item.validated_at.isoformat()) for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)]
@@ -211,13 +212,13 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4') or len(canonical(receipt))>512*1024:
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>512*1024:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing planner runtime differs')
     value=receipt['inputs']
-    expanded=receipt['schema'].endswith(('/v2','/v3','/v4'));weather_bound=receipt['schema'].endswith(('/v3','/v4'))
+    expanded=receipt['schema'].endswith(('/v2','/v3','/v4','/v5'));weather_bound=receipt['schema'].endswith(('/v3','/v4','/v5'))
     fields=INPUT_FIELDS|({'source_contexts'} if expanded else set())|({'validation_snapshots'} if weather_bound else set())
     if not isinstance(value,dict) or set(value)!=fields:raise ValueError('closed original plan inputs required')
     from .model_snapshot import restore_snapshot
