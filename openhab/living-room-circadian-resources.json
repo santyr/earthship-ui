@@ -6,7 +6,7 @@
       {
         "id": "1",
         "configuration": {
-          "itemName": "Sun_Position_Elevation"
+          "itemName": "Sun_Circadian_Temperature"
         },
         "type": "core.ItemStateChangeTrigger"
       },
@@ -122,6 +122,6 @@
     "name": "Living Room Circadian",
     "tags": [],
     "visibility": "VISIBLE",
-    "description": "Astro elevation controls Kelvin only through TP-Link raw actions. Preserves OFF and brightness, validates fresh Astro data and verifies measured temperature. Managed provider; canonical source in Git."
+    "description": "Native Astro 2500\u20135500 K circadian temperature through TP-Link raw actions. Preserves OFF and brightness, validates fresh Kelvin input and verifies measured temperature. Managed provider; canonical source in Git."
   }
 }

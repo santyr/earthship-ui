@@ -1,0 +1,3 @@
+// Native calculated target only. The living-room owner decides when to apply it.
+// Keep this separate from actuator Items; explicit Kelvin prevents locale conversion.
+Number:Temperature Sun_Circadian_Temperature "Astro Circadian Temperature [%.0f K]" <sun> { channel="astro:sun:local:circadian#temperature", unit="K", autoupdate="false", stateDescription="" [readOnly=true] }

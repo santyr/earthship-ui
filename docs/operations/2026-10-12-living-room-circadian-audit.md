@@ -1,5 +1,11 @@
 # Living room lighting and circadian audit — October 12, 2026
 
+Later update on October 12: the operator selected Astro's native 2500–5500 K
+curve, and the custom elevation formula was removed. See the
+[native temperature cutover](2026-10-12-native-astro-circadian-temperature.md)
+for current behavior. The original audit and earlier verification below are
+retained as historical evidence.
+
 The living room has three KL125(US) bulbs on the native TP-Link Smart Home
 binding. OpenHAB is currently **5.2.3**, upgraded October 10; the older host
 AGENTS.md version and python-kasa lighting description are historical.
