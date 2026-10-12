@@ -230,21 +230,70 @@ def _entry_matches(state,raw):
     lines=[line[len('ExecStart='):] for line in raw.decode().splitlines() if line.startswith('ExecStart=') and line!='ExecStart=']
     if len(lines)!=1:raise ValueError('one staged publisher required')
     actual=state.get('ExecStart','');command=lines[0]
-    return actual==command or actual.count('argv[]=')==1 and 'argv[]='+command+' ;' in actual
+    if actual==command:return True
+    entries=re.findall(r'\{ path=([^ ;]+) ; argv\[\]=(.*?) ;[^{}]*\}',actual)
+    return len(entries)==1 and len(re.findall(r'\bpath=',actual))==1 and actual.count('argv[]=')==1 and entries[0]==('/usr/bin/python3',command)
+
+
+def _move_no_replace(directory_fd,source,target):
+    import ctypes
+    rename=getattr(ctypes.CDLL(None,use_errno=True),'renameat2',None)
+    if rename is None:raise ValueError('no-clobber override replacement unavailable')
+    rename.argtypes=(ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint)
+    rename.restype=ctypes.c_int
+    if rename(directory_fd,os.fsencode(source),directory_fd,os.fsencode(target),1):
+        code=ctypes.get_errno();raise OSError(code,os.strerror(code))
+
+
+def _override_file(directory_fd,name):
+    fd=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=directory_fd)
+    try:
+        info=os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or
+            stat.S_IMODE(info.st_mode)!=0o600 or info.st_size>MAX_BYTES):raise ValueError('owned private override required')
+        raw=os.read(fd,MAX_BYTES+1);after=os.fstat(fd)
+        metadata=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_size,row.st_mtime_ns)
+        if len(raw)>MAX_BYTES or metadata(after)!=metadata(info) or after.st_ctime_ns!=info.st_ctime_ns:
+            raise ValueError('override changed while reading')
+        return raw,metadata(info)
+    finally:os.close(fd)
 
 
 def _replace_owned(target,expected,replacement):
-    """Replace atomically after checking the exact owned override again."""
-    import tempfile
-    fd,name=tempfile.mkstemp(prefix='.household-upgrade-',dir=target.parent)
-    temporary=Path(name)
+    """Preserve displaced files and install/restore without clobbering names."""
+    import secrets
+    parent=_directory(target.parent);identity=lambda row:(row.st_dev,row.st_ino,row.st_mode)
+    original_directory=identity(parent.stat())
+    directory_fd=os.open(parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    temp='.household-upgrade-'+secrets.token_hex(16);backup='.household-displaced-'+secrets.token_hex(16)
+    created=False;displaced=False;published=False
+    def guard_parent():
+        if identity(os.fstat(directory_fd))!=original_directory or identity(_directory(target.parent).stat())!=original_directory:
+            raise ValueError('override parent changed')
     try:
-        with os.fdopen(fd,'wb') as stream:
-            stream.write(replacement);stream.flush();os.fsync(stream.fileno())
-        if _bytes(target,private=True)!=expected:raise ValueError('owned override changed before replacement')
-        os.replace(temporary,target)
+        guard_parent();original=_override_file(directory_fd,target.name)
+        if original[0]!=expected or _bytes(target,private=True)!=expected:raise ValueError('owned override changed')
+        fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=directory_fd);created=True
+        with os.fdopen(fd,'wb') as stream:stream.write(replacement);stream.flush();os.fsync(stream.fileno())
+        guard_parent()
+        _move_no_replace(directory_fd,target.name,backup);displaced=True
+        if _override_file(directory_fd,backup)!=original:raise ValueError('displaced override changed')
+        guard_parent()
+        try:os.link(temp,target.name,src_dir_fd=directory_fd,dst_dir_fd=directory_fd,follow_symlinks=False)
+        except FileExistsError:raise ValueError('override name changed') from None
+        os.unlink(temp,dir_fd=directory_fd);created=False
+        guard_parent()
+        if _override_file(directory_fd,target.name)[0]!=replacement:raise ValueError('override replacement readback differs')
+        os.fsync(directory_fd);published=True
     finally:
-        if temporary.exists():temporary.unlink()
+        try:
+            if displaced:
+                if published:os.unlink(backup,dir_fd=directory_fd)
+                else:
+                    try:_move_no_replace(directory_fd,backup,target.name)
+                    except FileExistsError:pass # Retain displaced contents privately when name is occupied.
+            if created:os.unlink(temp,dir_fd=directory_fd)
+        finally:os.close(directory_fd)
 
 
 def upgrade_stage(stage,*,previous_stage):

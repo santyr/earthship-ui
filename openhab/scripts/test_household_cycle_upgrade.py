@@ -73,3 +73,50 @@ def test_failed_reload_restores_only_exact_owned_replacement(concurrent,tmp_path
     with pytest.raises(ValueError):api().upgrade_stage(new,previous_stage=old)
     assert target.read_bytes()==(b'concurrent edit' if concurrent else original)
     assert len(calls)==(2 if concurrent else 3)
+
+
+@pytest.mark.parametrize('replacement',[b'new override',b'previous override'])
+def test_atomic_replacement_never_destroys_edit_after_last_byte_check(replacement,tmp_path,monkeypatch):
+    folder=tmp_path/'dropin';folder.mkdir(mode=0o700)
+    target=folder/'zzzz-household-cycle.conf';target.write_bytes(b'expected override');target.chmod(0o600)
+    original=api()._bytes;changed=False
+    def read(path,**kw):
+        nonlocal changed
+        result=original(path,**kw)
+        if Path(path)==target and not changed:
+            changed=True;target.write_bytes(b'concurrent override')
+        return result
+    from pathlib import Path
+    monkeypatch.setattr(api(),'_bytes',read)
+    with pytest.raises(ValueError):api()._replace_owned(target,b'expected override',replacement)
+    assert target.read_bytes()==b'concurrent override'
+
+
+def test_atomic_replacement_pins_original_parent_and_preserves_substituted_parent(tmp_path,monkeypatch):
+    folder=tmp_path/'dropin';folder.mkdir(mode=0o700)
+    target=folder/'zzzz-household-cycle.conf';target.write_bytes(b'expected override');target.chmod(0o600)
+    displaced=tmp_path/'displaced';original=api()._bytes;changed=False
+    def read(path,**kw):
+        nonlocal changed
+        result=original(path,**kw)
+        if Path(path)==target and not changed:
+            changed=True;folder.rename(displaced);folder.mkdir(mode=0o700)
+            target.write_bytes(b'new parent override');target.chmod(0o600)
+        return result
+    from pathlib import Path
+    monkeypatch.setattr(api(),'_bytes',read)
+    with pytest.raises(ValueError):api()._replace_owned(target,b'expected override',b'new override')
+    assert target.read_bytes()==b'new parent override'
+    assert (displaced/target.name).read_bytes()==b'expected override'
+
+
+@pytest.mark.parametrize('executable,extra,valid',[
+    ('/usr/bin/python3','',True),
+    ('/usr/bin/false','',False),
+    ('/usr/bin/python3',' ; { path=/usr/bin/false ; argv[]=/usr/bin/false ; }',False),
+])
+def test_structured_effective_entry_binds_executable_and_exactly_one_command(executable,extra,valid):
+    command='/usr/bin/python3 /private/household_cycle.py --config /private/cycle.json --forecast-config /private/forecast.json --code-revision '+'a'*40
+    raw=('[Service]\nExecStart=\nExecStart='+command+'\n').encode()
+    effective='{ path='+executable+' ; argv[]='+command+' ; ignore_errors=no ; start_time=[n/a] ; }'+extra
+    assert api()._entry_matches({'ExecStart':effective},raw) is valid
