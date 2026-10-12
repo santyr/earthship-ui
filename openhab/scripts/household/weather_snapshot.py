@@ -1,5 +1,6 @@
 """Original forecast/operator context extends one common observational identity."""
 from dataclasses import dataclass
+from functools import cached_property
 from datetime import timedelta
 from .codec import canonical,loads,identity
 from .snapshot import HouseholdSnapshot
@@ -57,7 +58,8 @@ class WeatherSnapshot(ModelSnapshot):
         weather=PreparedWeatherContext(self.original_weather)
         if canonical(_render(loads(self.original_source),weather,doc['code_revision']))!=self.content:raise ValueError('original weather snapshot differs')
 
-    @property
+    # Only immutable original context is reused; freshness is assessed by the planner.
+    @cached_property
     def weather(self):return PreparedWeatherContext(self.original_weather)
 
     @property

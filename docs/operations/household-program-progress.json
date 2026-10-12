@@ -893,7 +893,7 @@
       "next_requirement": "Reduce duplicated complete original replay before decision without changing source expiry; automatic model retraining/promotion and full architecture remain unfinished.",
       "paired_preparation": {
         "implemented": true,
-        "deployed": false,
+        "deployed": true,
         "baseline_seconds": 10.29422868299298,
         "paired_seconds": 5.493974224023987,
         "exact_context_parity": true,
@@ -904,7 +904,60 @@
         "coordinator_cycle_driver_tests": {
           "passed": 40,
           "seconds": 67.7
-        }
+        },
+        "deployed_source": "4c1daa494012b549a2edceaafc7afde21d9c9b5d",
+        "review": {
+          "critical": 0,
+          "important": 0,
+          "minor": 0
+        },
+        "service_restarted": false,
+        "original_fitted_sources_unchanged": 72,
+        "natural_cycle_verification": {
+          "issue": "2026-10-12T18:00:15+00:00",
+          "delivery_verified": true,
+          "observation_written": true,
+          "observation_sha256": "cd6f57d661b2a9fc58c0e717cfc9fac98e29597eb1832d54c860dcb1a08270e9",
+          "receipt_sha256": "a55498921bbb4739dfc03b4e81d00638b1fc4075ea70c372902b58a8783df651",
+          "snapshot_id": "ad85937eb398f4fecddd84c79e99121eb9cd36a0571f383a29b989897b63461b",
+          "decision_at": "2026-10-12T18:00:36.164967+00:00",
+          "verified_at": "2026-10-12T18:00:41.868592+00:00",
+          "valid_until": "2026-10-12T18:00:37.099000+00:00",
+          "decision_before_expiry": true,
+          "verification_before_expiry": false,
+          "planner_mode": "unavailable",
+          "plan_status": "input_incomplete",
+          "cpu_seconds": 8.714,
+          "memory_peak_mib": 77.1,
+          "swap_peak_bytes": 0,
+          "current_input_planning_qualified": false
+        },
+        "exact_source_all_hosted_checks_passed": true,
+        "ci_run": 38287457320
+      },
+      "immutable_weather_reuse": {
+        "implemented": true,
+        "deployed": false,
+        "weather_pipeline_tests": 15,
+        "weather_pipeline_seconds": 79.1,
+        "retained_full_receipt_replay_identical": true,
+        "retained_cache_replay_seconds": 1.600252635020297,
+        "context_validations_per_replay": 2,
+        "previous_context_validations_per_replay": 7,
+        "live_source_reads_cached": false,
+        "freshness_or_expiry_cached": false,
+        "operational_source_qualification": false,
+        "energy_pipeline_tests": 21,
+        "energy_pipeline_seconds": [
+          44.39,
+          70.0
+        ],
+        "measured_weather_pipeline_tests": 14,
+        "measured_weather_pipeline_seconds": [
+          57.1,
+          60.91
+        ],
+        "affected_pipeline_tests": 50
       }
     }
   },
