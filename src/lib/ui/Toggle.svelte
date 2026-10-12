@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { items, connection, getClientOnce } from '../openhab/index.js';
   import { holdAction } from '../actions/holdAction.js';
   import {
@@ -25,6 +26,13 @@
     ownerBusy = false,
   } = $props();
 
+  let healthNowMs = $state(Date.now());
+  onMount(() => {
+    if (control?.kind !== 'binary-policy') return;
+    const clock = setInterval(() => { healthNowMs = Date.now(); }, 5_000);
+    return () => clearInterval(clock);
+  });
+
   let submissionPhase = $state('confirmed');
   let submissionReason = $state('');
 
@@ -36,6 +44,7 @@
 
   const view = $derived.by(() => deriveControlState(control, {
     items: $items,
+    nowMs: Math.max(healthNowMs, Date.now()),
     connection: $connection,
     releaseMode,
     providerOnline: providerHealth,

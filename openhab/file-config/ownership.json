@@ -1303,6 +1303,15 @@
     {"kind": "item", "id": "Sun_TotalEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#total"},
     {"kind": "link", "id": "Sun_TotalEclipse -> astro:sun:local:eclipse#total", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
     {"kind": "item", "id": "Sun_Winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#winter"},
-    {"kind": "link", "id": "Sun_Winter -> astro:sun:local:season#winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"}
+    {"kind": "link", "id": "Sun_Winter -> astro:sun:local:season#winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {
+      "kind": "rule",
+      "id": "hex_living_room_circadian",
+      "provider": "managed",
+      "migration": "managed_exception",
+      "source": "openhab/rules/living-room-circadian.js",
+      "definition": "openhab/living-room-circadian-resources.json",
+      "rest_path": "/rules/hex_living_room_circadian"
+    }
   ]
 }
