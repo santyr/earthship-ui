@@ -18,6 +18,19 @@ GAP_FIELDS={'schema','job_id','delivery_sha256','capture_sha256','artifact_sha25
 def _source_digest():return sha256(Path(__file__).read_bytes()).hexdigest()
 
 
+def _validate_gap_native(packets,capture,*,target,assessed,guard):
+    from weather_temperature_sources import read_compressed_temperature_source,replay_temperature_source
+    if not isinstance(packets,list) or len(packets)!=1:
+        raise ValueError('one retained missing outcome native query required')
+    guard();path=Path(packets[0]);packet=read_compressed_temperature_source(path.parent,path)
+    if (packet['targets']!=[target.isoformat()] or pinned._utc(packet['assessed_at'])!=assessed or
+        packet['stream']!='indoor' or packet['sensor_epoch']!=capture['candidate']['fit']['sensor_epochs']['air']):
+        raise ValueError('missing outcome native query context differs')
+    selected=replay_temperature_source(packet);guard()
+    if len(selected)!=1 or pinned._utc(selected[0][0])!=target or selected[0][1] is not None:
+        raise ValueError('missing outcome native query must select no measurement')
+
+
 def _gap_index(root,now,guard):
     paths=[]
     for folder in pinned._folders(root,'scores',now):
@@ -59,11 +72,14 @@ def _gap_pending(paths,*,delivery,delivery_path,horizon,target,now,guard):
         raise ValueError('missing outcome capture identity differs')
     required=set(packets)|{delivery['capture_path'],capture['candidate']['snapshot_path'],str(delivery_path)}|set(capture['inputs']['native_source_paths'].values())
     if set(fingerprints)!=required:raise ValueError('complete missing outcome fingerprints required')
+    _validate_gap_native(packets,capture,target=target,assessed=assessed,guard=guard)
     return now<retry
 
 
 def _retain_gap(root,job,delivery,horizon,target,now,packets,source_paths,*,guard):
     guard()
+    capture=pinned._load(delivery['capture_path'],2097152)
+    _validate_gap_native(packets,capture,target=target,assessed=now,guard=guard)
     value=dict(schema=GAP_SCHEMA,job_id=job,delivery_sha256=delivery['delivery_sha256'],
         capture_sha256=delivery['capture_sha256'],artifact_sha256=delivery['artifact_sha256'],
         horizon_hours=horizon,target_at=target.isoformat(),assessed_at=now.isoformat(),

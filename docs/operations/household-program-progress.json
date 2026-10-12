@@ -1137,7 +1137,13 @@
       "protected_fitted_sources_unchanged": 72,
       "automatic_actuation": false,
       "actual_natural_queue_advancement_verified": false,
-      "automatic_training_complete": false
+      "automatic_training_complete": false,
+      "corrected_queue_tests_passed": 15,
+      "corrected_queue_seconds": 56.39,
+      "review_important_findings_corrected": 1,
+      "exact_absent_native_query_replayed": true,
+      "one_original_native_packet_required": true,
+      "source_packet_substitutions_refused": true
     }
   },
   "astro_efficiency_audit": {

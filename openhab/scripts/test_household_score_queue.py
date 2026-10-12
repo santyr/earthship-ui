@@ -11,6 +11,21 @@ from test_installed_shade_origin import outcome
 def api():return importlib.import_module('household_score_queue')
 
 
+def native_packet(directory,target,assessed,phase,*,qualified=False,stream='indoor'):
+    from thermal_model.temperature_history import POLICY
+    from weather_temperature_evidence import TemperaturePolicy,MODELS
+    from weather_temperature_receiver import TemperatureCollector
+    from weather_temperature_sources import build_temperature_source,write_compressed_temperature_source
+    policy=TemperaturePolicy('Fineoffset-WH32B',235,**POLICY);rows=[]
+    if qualified:
+        received=target-timedelta(seconds=30)
+        collector=TemperatureCollector({'indoor':policy},sensor_epochs={'indoor':phase},clock=lambda:received,process_id=lambda:1,monotonic=lambda:1000.)
+        collector.observe({'model':policy.model,'id':str(policy.sensor_id),MODELS[policy.model][1]:'70'})
+        rows=[(target-timedelta(seconds=20),json.dumps(collector.snapshot()))]
+    packet=build_temperature_source(rows=rows,targets=[target],assessed_at=assessed,stream=stream,policy=policy,sensor_epoch=phase)
+    return write_compressed_temperature_source(directory,packet)
+
+
 def setup_queue(tmp_path,monkeypatch):
     settings,backend,clock,candidate=fixture(tmp_path,monkeypatch)
     first=live().publish_cycle(settings,backend=backend,guard=lambda:None)
@@ -25,6 +40,7 @@ def setup_queue(tmp_path,monkeypatch):
     monkeypatch.setattr(monitor(),'read_candidate',lambda *a,**kw:candidate)
     settings.update(native_db_config='synthetic',native_policy='synthetic',token_file='synthetic',openhab_base='http://127.0.0.1:8080/rest')
     target=monitor()._utc(first['issued_at'])+timedelta(hours=1)
+    packets=tmp_path/'native-queries';packets.mkdir(mode=0o700)
     class Reader:
         native_source_paths=[]
         calls=[]
@@ -32,6 +48,8 @@ def setup_queue(tmp_path,monkeypatch):
         def publication(self,receipt):return receipt
         def native(self,targets,*,assessed_at,sensor_epoch):
             self.calls.extend(targets)
+            if targets==[target]:
+                self.native_source_paths=[str(native_packet(packets,target,assessed_at,sensor_epoch))]
             return [(at,None if at==target else outcome(at,75)) for at in targets]
     return settings,Reader(),clock,first,second,target
 
@@ -122,3 +140,24 @@ def test_score_coordinator_can_advance_gap_queue(tmp_path,monkeypatch):
     first=score_with_report(settings,guard=lambda:None,clock=monitor()._clock,queue=True)
     second=score_with_report(settings,guard=lambda:None,clock=monitor()._clock,queue=True)
     assert first['scored']==0 and second['scored']==1
+
+
+@pytest.mark.parametrize('damage',['removed','qualified','target','assessment','epoch','stream'])
+def test_rehashed_gap_requires_exact_absent_native_query(damage,tmp_path,monkeypatch):
+    settings,reader,clock,first,_,target=setup_queue(tmp_path,monkeypatch)
+    api().score_jobs(settings,guard=lambda:None,reader=reader)
+    path=next(Path(settings['evidence_directory']).glob('scores-*/*.provisional-gap-v1.json'))
+    value=json.loads(path.read_bytes());packet=Path(value['native_source_paths'][0])
+    value['original_fingerprints'].pop(str(packet));value['native_source_paths']=[]
+    if damage!='removed':
+        capture=json.loads(Path(first['origin_path']).read_bytes());phase=capture['candidate']['fit']['sensor_epochs']['air']
+        if damage=='epoch':phase=capture['candidate']['fit']['sensor_epochs']['mass']
+        substitute=native_packet(packet.parent,target+timedelta(seconds=1) if damage=='target' else target,
+            clock[0]+timedelta(seconds=1) if damage=='assessment' else clock[0],phase,
+            qualified=damage=='qualified',stream='outdoor' if damage=='stream' else 'indoor')
+        value['native_source_paths']=[str(substitute)];value['original_fingerprints'][str(substitute)]=monitor()._fingerprint(substitute)
+    value['gap_sha256']=monitor().digest(value,'gap_sha256')
+    replacement=path.parent/(value['job_id']+'-'+value['gap_sha256']+'.provisional-gap-v1.json')
+    path.rename(replacement);replacement.write_text(json.dumps(value));reader.calls=[]
+    with pytest.raises(ValueError):api().score_jobs(settings,guard=lambda:None,reader=reader)
+    assert reader.calls==[]
