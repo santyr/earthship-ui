@@ -41,8 +41,16 @@ def verify_command(checks,state):
         "forecast-pre-dusk.service":["/usr/bin/flock","--wait","20","--conflict-exit-code=75",LOCK,"/usr/bin/python3",str(LIVE/"forecast_pre_dusk.py")],
     }
     for unit,command in companions.items():
-        if checks.argv(checks.properties(unit,["ExecStart"])["ExecStart"])!=command:
-            raise ValueError("companion source consumer lock contract changed")
+        state=checks.properties(unit,["ExecStart","TimeoutStartUSec","SuccessExitStatus"])
+        actual=checks.argv(state["ExecStart"])
+        if unit=="forecast-json.service" and actual==["/usr/bin/flock","--wait","90","--conflict-exit-code=75",LOCK,"/usr/bin/python3",str(LIVE/"forecast_intel.py"),"json"]:
+            if state.get("TimeoutStartUSec")!="3min 30s" or state.get("SuccessExitStatus")!="":
+                raise ValueError("bounded weather consumer budget or failure contract changed")
+        else:
+            if actual!=command:
+                raise ValueError("companion source consumer lock contract changed")
+            if unit=="forecast-json.service" and (state.get("TimeoutStartUSec")!="2min" or state.get("SuccessExitStatus")!="75"):
+                raise ValueError("legacy weather consumer budget or success contract changed")
 
 
 def prepare():

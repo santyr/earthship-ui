@@ -620,14 +620,14 @@
       "final_documentation_head_cli_replay_identical": true
     },
     "original_measured_weather": {
-      "status": "actual_corrected_source_models_verified_ready_publish",
+      "status": "merged",
       "configuration_tests": 32,
       "affected_parser_tests": 141,
       "affected_suite_seconds": 13.11,
       "snapshot_integration_complete": true,
       "actual_source_inputs_verified": true,
       "independent_review": "single final immutable review of f76e2cd..932ab8d: four Important findings; seven regressions reproduced; one correction pass verified",
-      "hosted_ci": "not published",
+      "hosted_ci": "all four exact-head checks passed",
       "calibrated_irradiance_qualified": false,
       "rain_rate_qualified": false,
       "physical_action_effects_qualified": false,
@@ -730,7 +730,51 @@
         "source_revision": "952c3c66fe44988fc86eeb0a444541ae2374acdf",
         "status": "actual_measured_weather_source_models_replayed",
         "weather_rows_sha256": "07a411f4075d4ec293ffffc5ac4bf377b8a6b976b52a6d40983324f03ecc8e19"
-      }
+      },
+      "pr": 26,
+      "head": "6b1826c0d810b0c7d9c217e85dbcd19dc84bb443",
+      "merge": "5fac6e7d27d69d62083b0e4860929878123a8af6",
+      "ci_run": 38198410694,
+      "final_documentation_head_cli_replay_identical": true
+    },
+    "weather_json_lock_wait": {
+      "status": "definition_installed_waiting_normal_refresh",
+      "baseline_tests": 11,
+      "affected_tests": 41,
+      "affected_seconds": 4.6,
+      "real_flock_contention_verified": true,
+      "wait_seconds": 90,
+      "service_timeout_seconds": 210,
+      "automatic_actuation": false,
+      "worker_started": false,
+      "definition_installed": true,
+      "independent_review": "one final immutable review: two Important guard gaps; six genuine regressions and one correction pass verified",
+      "hosted_ci": "publication verified; final-head checks pending after parent merge",
+      "full_program_complete": false,
+      "review_base": "952c3c66fe44988fc86eeb0a444541ae2374acdf",
+      "review_head": "81c648953d468c9819261567efcd48debd12fadb",
+      "review_findings_important": 2,
+      "complete_definition_inventory_verified": true,
+      "all_effective_command_hooks_refused": true,
+      "exact_legacy_new_weather_profiles_verified": true,
+      "definitive_dbus_empty_hook_verified": true,
+      "original_unit_mode": "0644",
+      "original_unit_bytes_unchanged": true,
+      "live_definition_readback": {
+        "status": "additive_weather_definition_readback_verified",
+        "review_fix_head": "09462a1af84549f3e0f5399d4c49c656478fad90",
+        "source_sha256": "7d05841f05bc0c7562cc71dd393992db9184292a01ad3a3942112d56b56f7e6f",
+        "effective_caps_verified": true,
+        "timeout": "3min 30s",
+        "exhaustion_is_failure": true,
+        "worker_invocation_unchanged": true,
+        "worker_started": false,
+        "installation_invocation_ids": [
+          "1ee50ea8ee1941c2980e9e334cb46dc4"
+        ]
+      },
+      "natural_refresh_qualified": false,
+      "pr": 27
     }
   }
 }

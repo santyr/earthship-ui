@@ -17,7 +17,7 @@ def test_wrong_effective_contract_refuses_even_dry_run(monkeypatch,bad):
         wrapper=['/usr/bin/flock','--nonblock','--conflict-exit-code=75'] if unit=='forecast-json.service' else ['/usr/bin/flock','--wait','20','--conflict-exit-code=75']
         args=wrapper+[mod.LOCK,'/usr/bin/python3',str(mod.LIVE/worker)]+(['json'] if unit=='forecast-json.service' else [])
         if bad==('json_command' if unit=='forecast-json.service' else 'pre_dusk_command'):args=args[args.index('/usr/bin/python3'):]
-        return {'ExecStart':args}
+        return {'ExecStart':args,'TimeoutStartUSec':'2min','SuccessExitStatus':'75'}
     checks=types.SimpleNamespace(argv=lambda raw:raw,properties=properties)
     monkeypatch.setattr(mod,'prepare',lambda:({}, {}, checks, state,b'profile'))
     with pytest.raises(ValueError):mod.execute(False)
@@ -26,3 +26,34 @@ def test_wrong_effective_contract_refuses_even_dry_run(monkeypatch,bad):
 def test_optimized_execution_refuses_before_any_preparation():
     result=subprocess.run([sys.executable,'-O',str(SCRIPT),'--help'],capture_output=True,text=True,timeout=10)
     assert result.returncode!=0,'optimized interpreter must not run assertion-based deployment guards'
+
+
+@pytest.mark.parametrize('damage',[None,'wait','timeout','success'])
+def test_weather_bounded_wait_profile_is_exactly_qualified(damage):
+    spec=importlib.util.spec_from_file_location('source_install_weather_fixture',SCRIPT)
+    mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+    daily=['/usr/bin/flock','--wait','90','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3',str(mod.LIVE/'forecast_intel.py')]
+    weather=['/usr/bin/flock','--wait','90','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3',str(mod.LIVE/'forecast_intel.py'),'json']
+    if damage=='wait':weather[2]='75'
+    def properties(unit,keys):
+        if unit=='forecast-json.service':return {'ExecStart':weather,'TimeoutStartUSec':'2min' if damage=='timeout' else '3min 30s','SuccessExitStatus':'75' if damage=='success' else ''}
+        return {'ExecStart':['/usr/bin/flock','--wait','20','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3',str(mod.LIVE/'forecast_pre_dusk.py')]}
+    checks=types.SimpleNamespace(argv=lambda raw:raw,properties=properties)
+    if damage is None:mod.verify_command(checks,{'ExecStart':daily,'SuccessExitStatus':''})
+    else:
+        with pytest.raises(ValueError):mod.verify_command(checks,{'ExecStart':daily,'SuccessExitStatus':''})
+
+
+@pytest.mark.parametrize('damage',[None,'timeout','success'])
+def test_legacy_weather_profile_requires_original_budget_and_success(damage):
+    spec=importlib.util.spec_from_file_location('source_install_legacy_fixture',SCRIPT)
+    mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+    daily=['/usr/bin/flock','--wait','90','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3',str(mod.LIVE/'forecast_intel.py')]
+    def properties(unit,keys):
+        if unit=='forecast-json.service':return {'ExecStart':['/usr/bin/flock','--nonblock','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3',str(mod.LIVE/'forecast_intel.py'),'json'],
+            'TimeoutStartUSec':'10min' if damage=='timeout' else '2min','SuccessExitStatus':'75 1' if damage=='success' else '75'}
+        return {'ExecStart':['/usr/bin/flock','--wait','20','--conflict-exit-code=75',mod.LOCK,'/usr/bin/python3',str(mod.LIVE/'forecast_pre_dusk.py')]}
+    checks=types.SimpleNamespace(argv=lambda raw:raw,properties=properties)
+    if damage is None:mod.verify_command(checks,{'ExecStart':daily,'SuccessExitStatus':''})
+    else:
+        with pytest.raises(ValueError):mod.verify_command(checks,{'ExecStart':daily,'SuccessExitStatus':''})
