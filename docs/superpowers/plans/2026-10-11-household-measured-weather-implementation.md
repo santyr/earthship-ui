@@ -58,7 +58,7 @@
 - [x] GREEN collector and complete one final independent review correction pass (128 refreshed checks).
 - [x] Actual read-only committed-source proof must retain original owner/policy/raw metadata and bind to a normal naturally delivered model issue without forcing a publisher or relaxing freshness. Preserve a precise refusal when appropriate.
 - [x] Verify actual pure/private CLI equality, qualifications and zero authority; single final review and one Important/Critical TDD pass.
-- [ ] Publish, require every exact-head hosted check, merge, and record canonical evidence.
+- [x] Publish PR26, require every exact-head hosted check, merge, and record canonical evidence.
 
 ## Scope audit
 
