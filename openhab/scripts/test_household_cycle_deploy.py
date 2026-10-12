@@ -189,3 +189,28 @@ def test_index_edit_after_clean_check_cannot_omit_committed_entrypoint(tmp_path,
         target=args['stage']/'sources/openhab/scripts/household_cycle.py'
         assert target.is_file(), 'mutable index omitted the committed service entrypoint'
         assert target.read_bytes()==files['openhab/scripts/household_cycle.py']
+
+
+@pytest.mark.parametrize('helper', ['regular', 'missing', 'symlink'])
+def test_native_worker_stage_retains_its_exact_java_source_or_refuses(helper, tmp_path):
+    args, _ = fixture(tmp_path); repo = args['repo_root']
+    worker = repo/'openhab/scripts/astro_geometry_worker.py'
+    write(worker, b'bounded native worker\n', 0o644)
+    java = repo/'scripts/java/NativeSolarGeometry.java'; original = b'class NativeSolarGeometry {}\n'
+    if helper == 'regular': write(java, original, 0o644)
+    if helper == 'symlink':
+        java.parent.mkdir(parents=True); java.symlink_to('../../openhab/scripts/household_cycle.py')
+    subprocess.run(['git', '-C', str(repo), 'add', '.'], check=True, capture_output=True)
+    subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+                    'commit', '-qm', 'native worker'], check=True, capture_output=True)
+    args['code_revision'] = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    if helper != 'regular':
+        with pytest.raises(ValueError): api().stage_deployment(**args)
+        assert not args['stage'].exists()
+        return
+    api().stage_deployment(**args); record = api().verify_stage(args['stage'])
+    retained = args['stage']/'sources/scripts/java/NativeSolarGeometry.java'
+    assert retained.read_bytes() == original
+    assert record['source_manifest']['scripts/java/NativeSolarGeometry.java'] == sha256(original).hexdigest()
+    retained.write_bytes(b'changed native calculation\n')
+    with pytest.raises(ValueError): api().verify_stage(args['stage'])

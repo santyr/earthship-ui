@@ -11,6 +11,8 @@ from pathlib import Path
 LIMITS={'TimeoutStartSec':'90','CPUQuota':'20%','MemoryMax':'256M','MemorySwapMax':'0','TasksMax':'24',
         'Nice':'15','IOSchedulingClass':'idle','IOWeight':'10'}
 REGISTRY=('openhab/managed-resources.json','openhab/file-config/ownership.json')
+NATIVE_WORKER='openhab/scripts/astro_geometry_worker.py'
+JAVA_SOURCE='scripts/java/NativeSolarGeometry.java'
 MAX_BYTES=2*1024*1024
 
 
@@ -92,16 +94,19 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     # Archive the immutable commit object, not the mutable index/worktree. A
     # concurrent edit after the cleanliness check cannot acquire this identity.
     import io,tarfile
-    archived=_git(repo,'archive','--format=tar',code_revision,'--','openhab/scripts',*REGISTRY)
+    java_paths=[JAVA_SOURCE] if _git(repo,'ls-tree','--name-only',code_revision,'--',JAVA_SOURCE).strip() else []
+    archived=_git(repo,'archive','--format=tar',code_revision,'--','openhab/scripts',*REGISTRY,*java_paths)
     if len(archived)>32*1024*1024:raise ValueError('bounded committed source archive required')
     sources={}
     with tarfile.open(fileobj=io.BytesIO(archived),mode='r:') as archive:
         for member in archive:
-            wanted=(member.name in REGISTRY or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
+            wanted=(member.name in (*REGISTRY,JAVA_SOURCE) or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
             if not wanted:continue
             if member.name in sources or not member.isfile() or member.size>MAX_BYTES:raise ValueError('unique committed regular source required')
             sources[member.name]=archive.extractfile(member).read(MAX_BYTES+1)
     if not set(REGISTRY)<=set(sources) or not 4<=len(sources)<=400:raise ValueError('bounded complete committed source set required')
+    if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
+        raise ValueError('native geometry worker requires its original Java source')
     protected=json.loads(candidate_raw)['runtime']['source_manifest']
     if not isinstance(protected,dict) or not 2<=len(protected)<=72:raise ValueError('original fitted source manifest required')
     for name,digest in protected.items():
@@ -139,6 +144,8 @@ def verify_stage(stage):
     if set(record)!=fields or record['schema']!='earthship-household-cycle-deployment/v1' or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
         raise ValueError('closed original deployment record required')
     sources=record['source_manifest'];root=_directory(stage/'sources')
+    if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
+        raise ValueError('native geometry worker source closure is incomplete')
     actual={str(path.relative_to(root)) for path in root.rglob('*') if not path.is_dir()}
     if actual!=set(sources):raise ValueError('closed staged source set differs')
     if any(sha256(_bytes(root/name)).hexdigest()!=digest for name,digest in sources.items()):raise ValueError('staged source changed')

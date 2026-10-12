@@ -1577,7 +1577,7 @@
       "qualification_matches_original_collector_revision": true,
       "new_collector_revision_native_acquisition_pending": true,
       "multi_batch_series": {
-        "status": "implemented_affected_tests_pass_review_pending",
+        "status": "implemented_affected_tests_pass_review_clean",
         "affected_cases_passed": 60,
         "affected_seconds": 2.39,
         "max_points": 8192,
@@ -1600,6 +1600,45 @@
         },
         "native_dataset_window_acquired": false,
         "dataset_or_model_artifact_versioned": false,
+        "production_model_changed": false,
+        "review": {
+          "critical": 0,
+          "important": 0,
+          "minor": 0,
+          "reviewed_revision": "426b131"
+        }
+      },
+      "native_worker_packaging": {
+        "status": "implemented_affected_tests_pass",
+        "java_source_retained": true,
+        "missing_or_symlink_java_refused": true,
+        "affected_cases_passed": 84,
+        "affected_seconds": 8.4,
+        "new_stage_runtime_qualification_pending": true,
+        "production_stage_changed": false
+      },
+      "training_window_geometry": {
+        "status": "first_actual_batch_captured",
+        "first_batch": {
+          "status": "native_training_geometry_batch_captured",
+          "batch_index": 0,
+          "completed_batches": 1,
+          "required_batches": 7,
+          "point_count": 778,
+          "snapshot_sha256": "2e2edd36e4b82b29b95c51968ab448c6a0b3d01655116365043ae5ab166f4b4b",
+          "request_sha256": "e0e0abb8b4cb5fb026791d8fcec10fd2c41cb1dfb19e0defbfd8d775b0f3e2d7",
+          "series_sha256": null,
+          "collector_sha256": "e7dd9d5ef8424c546fd6b99238c6853344296fd6174b4472527dca32236b98e5",
+          "seconds": 12.25173935003113,
+          "memory_peak_bytes": 125534208,
+          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "fit_executed": false,
+          "production_model_changed": false,
+          "live_writes": false
+        },
+        "complete": false,
+        "versioned_dataset_complete": false,
+        "native_refit_complete": false,
         "production_model_changed": false
       }
     }
@@ -1728,5 +1767,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:16:28.124292+00:00"
+  "updated_at": "2026-10-12T22:23:06.173803+00:00"
 }
