@@ -937,7 +937,7 @@
       },
       "immutable_weather_reuse": {
         "implemented": true,
-        "deployed": false,
+        "deployed": true,
         "weather_pipeline_tests": 15,
         "weather_pipeline_seconds": 79.1,
         "retained_full_receipt_replay_identical": true,
@@ -957,8 +957,72 @@
           57.1,
           60.91
         ],
-        "affected_pipeline_tests": 50
+        "affected_pipeline_tests": 50,
+        "deployed_source": "59f65aece82751726f76bd13b958f2b8a3613f51",
+        "review": {
+          "critical": 0,
+          "important": 0,
+          "minor": 0
+        },
+        "service_restarted": false,
+        "original_fitted_sources_unchanged": 72,
+        "first_natural_cycle": {
+          "issue": "2026-10-12T18:35:15+00:00",
+          "delivery_verified": true,
+          "observation_written": true,
+          "observation_sha256": "560a16691d50927462fce8bdd030174ac3ce0fe5231e35ad2196d44726a95543",
+          "receipt_sha256": "00e82817809e4d3e89e98b66fc488efba91a81a1c7e151c72fd903240555a6a6",
+          "snapshot_id": "8863088067228303fc903ee5d5ecfc366871b399eae2532be09cb4973e57059d",
+          "decision_at": "2026-10-12T18:35:32.728045+00:00",
+          "verified_at": "2026-10-12T18:35:37.332059+00:00",
+          "valid_until": "2026-10-12T18:35:36.488000+00:00",
+          "decision_before_expiry": true,
+          "verification_before_expiry": false,
+          "planner_mode": "unavailable",
+          "plan_status": "input_incomplete",
+          "cpu_seconds": 8.164,
+          "current_input_planning_qualified": false
+        },
+        "private_materialization_profile": {
+          "seconds": 3.6933521090541035,
+          "replay_seconds": 2.184147439,
+          "thermal_runtime_binding_calls": 3,
+          "thermal_runtime_binding_seconds": 0.814055592,
+          "production_cache_modified": false,
+          "fit_executed": false,
+          "operational_source_qualification": false
+        },
+        "latest_cache_timing": {
+          "snapshot_as_of": "2026-10-12T18:40:15+00:00",
+          "decision_at": "2026-10-12T18:40:31.856231+00:00",
+          "verified_at": "2026-10-12T18:40:36.461792+00:00",
+          "valid_until": "2026-10-12T18:40:34.062000+00:00",
+          "planner_mode": "unavailable",
+          "plan_status": "input_incomplete",
+          "receipt_sha256": "311a1e02e67b79a101919ffcb23a60e6c95989ce92c27ae3d8ef31427b57d377"
+        },
+        "exact_source_all_hosted_checks_passed": true
       }
+    },
+    "outcome_report_continuity": {
+      "status": "implemented_not_deployed",
+      "original_scorer_source_unchanged": true,
+      "expected_refusal": "original_mature_outcome_unavailable",
+      "original_guard_checks_before_actual_refusal": 234,
+      "actual_refusal_seconds": 10.494580164027866,
+      "completed_score_markers": 598,
+      "performance_report_present_at_diagnosis": false,
+      "native_oldest_1h_6h_recent_1h_qualified": true,
+      "affected_tests_passed": 14,
+      "affected_seconds": 27.79,
+      "missing_outcomes_fabricated": false,
+      "unexpected_failures_refresh_report": false,
+      "runtime_limit_seconds": 50,
+      "existing_service_timeout_seconds": 60,
+      "source_expiry_changed": false,
+      "automatic_actuation": false,
+      "queue_gap_advancement_complete": false,
+      "automatic_training_complete": false
     }
   },
   "astro_efficiency_audit": {
