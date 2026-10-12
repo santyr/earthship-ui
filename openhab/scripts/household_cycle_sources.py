@@ -90,6 +90,15 @@ class CycleSourceCollector:
         check()
 
     def _owner_http(self,item,*,remaining):
+        from household_cycle_deadline import borrow_observation_timer
+        with borrow_observation_timer():return self._owner_transport(item,remaining=remaining)
+
+    def _measured_http(self,**request):
+        from household_cycle_deadline import borrow_observation_timer
+        from household.measured_weather_capture import _http_get
+        with borrow_observation_timer():return _http_get(**request)
+
+    def _owner_transport(self,item,*,remaining):
         from household.capture import RECEIPT_ITEMS
         from household.power_snapshot import SOURCES
         if item not in {*RECEIPT_ITEMS.values(),*[row[0] for row in SOURCES.values()]}:
@@ -157,7 +166,7 @@ class CycleSourceCollector:
             base_epochs[role]=self.phases[stream]
         power_epochs={kind:expected[item] for kind,(item,_) in SOURCES.items()}
         configuration=collect_configuration(clock=self.clock,remaining=check)
-        measured=collect_measured_weather(clock=self.clock,remaining=check)
+        measured=collect_measured_weather(clock=self.clock,remaining=check,source_getter=self._measured_http)
         base_policy=dict(requirements={'battery_display':['battery_soc'],'thermal_forecast':list(NATIVE_ROLES),'pv_day_display':['pv_day_wh']},
             max_age_seconds={role:120 for role in base_epochs},max_skew_seconds=60)
         power_policy=dict(requirements={'current_energy':['battery_soc',*POWER_ROLES],'full_energy':['usable_battery_kwh','physical_bank_epoch','estimated_load_w']},

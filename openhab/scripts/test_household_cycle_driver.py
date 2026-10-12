@@ -62,11 +62,14 @@ def test_driver_owns_original_lock_and_keeps_private_paths_off_report(tmp_path,m
     assert 'withdrawn' not in calls
 
 
-def test_changed_retained_parameters_refuse_before_forecast(tmp_path,monkeypatch):
+def test_changed_retained_parameters_withhold_only_observation(tmp_path,monkeypatch):
     cycle,config,params,calls=setup(tmp_path,monkeypatch)
     params.write_bytes(b'{}')
-    with pytest.raises(ValueError):cycle.run_cycle(config,code_revision='e'*40)
-    assert 'published' not in calls
+    result=cycle.run_cycle(config,code_revision='e'*40,forecast_config=tmp_path/'forecast.json')
+    assert result['status']=='published'
+    assert result['observation']['status']=='observation_unavailable'
+    assert 'published' in calls
+    assert 'withdrawn' not in calls
 
 
 def test_household_failure_does_not_withdraw_verified_forecast(tmp_path,monkeypatch):
@@ -115,4 +118,22 @@ def test_observer_parameter_drift_does_not_abort_original_publication(tmp_path,m
     result=cycle.run_cycle(config,code_revision='e'*40)
     assert result['status']=='published'
     assert result['observation']['status']=='observation_refused'
+    assert 'withdrawn' not in calls
+
+@pytest.mark.parametrize('damage',['missing_parameters','invalid_parameters','cache_parent','missing_cycle_config','invalid_cycle_config'])
+def test_household_startup_failure_keeps_independent_original_forecast(damage,tmp_path,monkeypatch):
+    import json
+    cycle,config,params,calls=setup(tmp_path,monkeypatch)
+    if damage=='missing_parameters':params.unlink()
+    if damage=='invalid_parameters':
+        params.write_bytes(b'{')
+        value=json.loads(config.read_bytes());value['parameters_sha256']=sha256(params.read_bytes()).hexdigest();config.write_bytes(canonical(value))
+    if damage=='cache_parent':
+        value=json.loads(config.read_bytes());value['observation_cache']=str(tmp_path/'missing-parent/observation.json');config.write_bytes(canonical(value))
+    if damage=='missing_cycle_config':config.unlink()
+    if damage=='invalid_cycle_config':config.write_bytes(b'{')
+    result=cycle.run_cycle(config,code_revision='e'*40,forecast_config=tmp_path/'forecast.json')
+    assert result['status']=='published'
+    assert result['delivery_verified'] is True
+    assert result['observation']['status']=='observation_unavailable'
     assert 'withdrawn' not in calls

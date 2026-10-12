@@ -8,6 +8,7 @@ from datetime import datetime,timedelta,timezone
 import math,time
 from household.codec import canonical,loads
 from household.evidence import utc
+from household_cycle_deadline import observation_deadline,ObservationDeadline
 
 MAX_SOURCE_BYTES=1048576
 MAX_COLLECTION_SECONDS=6.
@@ -40,17 +41,20 @@ class ObservingBackend:
                 raise ValueError('household pre-issue budget elapsed')
             return value
         try:
-            remaining()
-            originals=self.collector(issue=issue,remaining=remaining,guard=self.guard)
-            remaining()
-            if not isinstance(originals,dict):raise ValueError('closed original source object required')
-            raw=canonical(originals)
-            if len(raw)>MAX_SOURCE_BYTES:raise ValueError('bounded household originals required')
-            remaining()
-            captured=utc(self.clock())
-            if captured<now:raise ValueError('household collection clock moved backward')
-            self.collection=dict(status='collected',reason=None,issue=issue.isoformat(),
-                captured_at=captured.isoformat(),originals=loads(raw))
+            with observation_deadline(budget):
+                remaining()
+                originals=self.collector(issue=issue,remaining=remaining,guard=self.guard)
+                remaining()
+                if not isinstance(originals,dict):raise ValueError('closed original source object required')
+                raw=canonical(originals)
+                if len(raw)>MAX_SOURCE_BYTES:raise ValueError('bounded household originals required')
+                remaining()
+                captured=utc(self.clock())
+                if captured<now:raise ValueError('household collection clock moved backward')
+                self.collection=dict(status='collected',reason=None,issue=issue.isoformat(),
+                    captured_at=captured.isoformat(),originals=loads(raw))
+        except ObservationDeadline:
+            self.collection=dict(status='unavailable',reason='source_collection_timed_out')
         except Exception:
             self.collection=dict(status='unavailable',reason='source_collection_failed')
         return inputs
@@ -206,11 +210,12 @@ class LazyForecastBackend:
         return self.parent.collect(issue=issue,known_at=known_at)
 
 
-def run_cycle(config_path,*,code_revision):
-    """Caller-owned original lock, original publisher, then observational cache.
+def run_cycle(config_path,*,code_revision,forecast_config=None):
+    """Own the original lock; household preparation cannot suppress forecasts.
 
-    No training is dispatched. Forecast failures retain the original withdrawal
-    behavior; household failures report refusal without withdrawing delivery.
+    Production passes the original forecast configuration independently of the
+    optional household configuration. Legacy callers may discover that original
+    path from an intact household config before entering the original lock.
     """
     import os,re
     from pathlib import Path
@@ -222,57 +227,63 @@ def run_cycle(config_path,*,code_revision):
     from thermal_model.provisional_live import load_settings,publish_cycle,withdraw
     from thermal_model.capture_guard import SharedScoreLock
     from thermal_model.training_pressure_guard import TrainingHeadroom
-    if not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None:
-        raise ValueError('original source revision required')
     _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
-    config_path=Path(config_path).absolute();configuration=load_cycle_settings(config_path)
-    config_original=_private_file(config_path,8192)
-    if loads(config_original[0])!=configuration:raise ValueError('original cycle configuration changed')
-    forecast_path=Path(configuration['forecast_config']);forecast_original=_private_file(forecast_path,8192)
+    config_path=Path(config_path).absolute()
+    if forecast_config is None:forecast_config=load_cycle_settings(config_path)['forecast_config']
+    forecast_path=Path(forecast_config).absolute();forecast_original=_private_file(forecast_path,8192)
     settings=load_settings(forecast_path)
-    parameter_path=Path(configuration['retained_energy_parameters']);parameter_original=_private_file(parameter_path,262144)
-    if sha256(parameter_original[0]).hexdigest()!=configuration['parameters_sha256']:
-        raise ValueError('retained original parameter digest differs')
-    parameters=loads(parameter_original[0])
-    _directory(Path(configuration['evidence_directory']));_directory(Path(configuration['observation_cache']).parent)
-    root=Path(__file__).resolve().parent
-    own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_observation.py')}
     with SharedScoreLock(settings['shared_lock']) as lock:
         monitor=TrainingHeadroom(max_swapin_bytes_per_second=1048576);monitor.preflight()
         def forecast_guard():
             lock.verify();monitor.check()
             if _private_file(forecast_path,8192)!=forecast_original:
                 raise ValueError('original forecast configuration changed')
-        def guard():
-            forecast_guard()
-            if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or
-                any(_read(path,262144)!=raw for path,raw in own.items())):
-                raise ValueError('original cycle configuration, parameters or driver changed')
-        forecast_guard();collector=None
+        forecast_guard();collector=None;ready=False;configuration=None
         try:
+            if not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None:
+                raise ValueError('original household source revision required')
+            configuration=load_cycle_settings(config_path);config_original=_private_file(config_path,8192)
+            if loads(config_original[0])!=configuration or Path(configuration['forecast_config'])!=forecast_path:
+                raise ValueError('original household configuration differs')
+            parameter_path=Path(configuration['retained_energy_parameters']);parameter_original=_private_file(parameter_path,262144)
+            if sha256(parameter_original[0]).hexdigest()!=configuration['parameters_sha256']:
+                raise ValueError('retained original parameter digest differs')
+            parameters=loads(parameter_original[0])
+            _directory(Path(configuration['evidence_directory']));_directory(Path(configuration['observation_cache']).parent)
+            root=Path(__file__).resolve().parent
+            own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_observation.py')}
+            def guard():
+                forecast_guard()
+                if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or
+                    any(_read(path,262144)!=raw for path,raw in own.items())):
+                    raise ValueError('original household configuration, parameters or driver changed')
             guard()
             collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=code_revision)
+            ready=True
         except Exception:
-            # A missing observer configuration must not suppress the original
-            # forecast. Keep a failing collector inside the adapter boundary.
+            # The original settings/lock/resource guard are independently valid.
+            # Preserve that forecast even if the observer cannot initialize.
             pass
         def collect(**request):
-            if collector is None:raise ValueError('household source preparation unavailable')
+            if not ready:raise ValueError('household source preparation unavailable')
             return collector(**request)
-        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=guard)
+        observer_guard=guard if ready else forecast_guard
+        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard)
         try:published=publish_cycle(settings,guard=forecast_guard,backend=backend)
         except Exception:
             try:
                 result=withdraw(settings,guard=forecast_guard)
                 return dict(status='withheld_and_withdrawn',delivery_verified=result.get('delivery_verified',False),automatic_actuation=False)
-            except Exception:
-                return dict(status='withheld',delivery_verified=False,automatic_actuation=False)
+            except Exception:return dict(status='withheld',delivery_verified=False,automatic_actuation=False)
         result=dict(status=published['status'],delivery_verified=published.get('delivery_verified',False),automatic_actuation=False)
         if published['status']!='published':return result
+        if not ready:
+            result['observation']=dict(status='observation_unavailable',reason='source_preparation_unavailable',automatic_actuation=False)
+            return result
         try:
             result['observation']=complete_cycle(publication=published,collection=backend.collection,parameter_record=parameters,
-                runtime_manifest={} if collector is None else collector.runtime,code_revision=code_revision,evidence_directory=configuration['evidence_directory'],
+                runtime_manifest=collector.runtime,code_revision=code_revision,evidence_directory=configuration['evidence_directory'],
                 observation_cache=configuration['observation_cache'],guard=guard)
         except Exception:
             result['observation']=dict(status='observation_refused',reason='original_cycle_verification_failed',automatic_actuation=False)
@@ -284,8 +295,9 @@ def main(argv=None):
     from pathlib import Path
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True,type=Path);parser.add_argument('--code-revision',required=True)
+    parser.add_argument('--forecast-config',required=True,type=Path)
     args=parser.parse_args(argv)
-    try:result=run_cycle(args.config,code_revision=args.code_revision)
+    try:result=run_cycle(args.config,code_revision=args.code_revision,forecast_config=args.forecast_config)
     except BlockingIOError:
         print(json.dumps(dict(status='busy',delivery_verified=False,automatic_actuation=False)));return 75
     except Exception:

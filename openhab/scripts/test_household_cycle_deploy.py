@@ -139,3 +139,34 @@ def test_runtime_probe_is_capped_and_bound_to_exact_package(valid,tmp_path,monke
     else:
         with pytest.raises(ValueError):api()._qualify(args['stage'])
     assert len(calls)==1
+
+
+def test_source_edit_after_cleanliness_check_cannot_masquerade_as_commit(tmp_path,monkeypatch):
+    args,files=fixture(tmp_path);original=api()._git
+    changed=args['repo_root']/'openhab/scripts/household_cycle.py'
+    def git(repo,*command):
+        result=original(repo,*command)
+        if command[:2]==('status','--porcelain'):changed.write_bytes(b'unreviewed observer\n')
+        return result
+    monkeypatch.setattr(api(),'_git',git)
+    try:api().stage_deployment(**args)
+    except ValueError:assert not args['stage'].exists()
+    else:
+        assert (args['stage']/'sources/openhab/scripts/household_cycle.py').read_bytes()==files['openhab/scripts/household_cycle.py']
+        assert api().verify_stage(args['stage'])['code_revision']==args['code_revision']
+
+
+def test_index_edit_after_clean_check_cannot_omit_committed_entrypoint(tmp_path,monkeypatch):
+    args,files=fixture(tmp_path);original=api()._git
+    def git(repo,*command):
+        result=original(repo,*command)
+        if command[:2]==('status','--porcelain'):
+            subprocess.run(['git','-C',str(repo),'rm','--cached','-q','openhab/scripts/household_cycle.py'],check=True,capture_output=True)
+        return result
+    monkeypatch.setattr(api(),'_git',git)
+    try:api().stage_deployment(**args)
+    except ValueError:assert not args['stage'].exists()
+    else:
+        target=args['stage']/'sources/openhab/scripts/household_cycle.py'
+        assert target.is_file(), 'mutable index omitted the committed service entrypoint'
+        assert target.read_bytes()==files['openhab/scripts/household_cycle.py']

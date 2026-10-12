@@ -132,3 +132,25 @@ def test_mismatched_cycle_or_unverified_originals_cannot_produce_plan(damage,tmp
     if damage=='late':args['originals']['captured_at']=(args['now']+timedelta(seconds=1)).isoformat()
     if damage=='parameters':args['parameter_record']['collected_at']=(args['now']+timedelta(days=1)).isoformat()
     with pytest.raises(ValueError):api().derive_cycle(**args)
+
+
+def test_hard_observer_cutoff_prevents_overrun_crossing_original_issue(tmp_path,monkeypatch):
+    import signal,time
+    settings,parent,clock,_=fixture(tmp_path,monkeypatch)
+    original=parent.collect
+    def collect_parent(**kw):
+        value=original(**kw);clock[0]=kw['issue']-timedelta(seconds=4);return value
+    parent.collect=collect_parent;completed=[]
+    def overrun(*,issue,**kw):
+        # A cooperative post-return check would be too late: this operation
+        # would advance the original publication clock beyond its issue.
+        time.sleep(1.3);clock[0]=issue+timedelta(seconds=1);completed.append(True)
+        return {'late':'source'}
+    prior=signal.getsignal(signal.SIGALRM)
+    adapter=api().ObservingBackend(parent,collector=overrun,guard=lambda:None,clock=lambda:clock[0])
+    result=live().publish_cycle(settings,backend=adapter,guard=lambda:None)
+    assert result['status']=='published' and result['delivery_verified'] is True
+    assert completed==[]
+    assert adapter.collection['reason']=='source_collection_timed_out'
+    assert signal.getitimer(signal.ITIMER_REAL)==(0.,0.)
+    assert signal.getsignal(signal.SIGALRM)==prior

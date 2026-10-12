@@ -81,10 +81,19 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
     if sha256(parameter_raw).hexdigest()!=parameters_sha256:raise ValueError('original retained parameters differ')
     _service_contract(service_raw,config)
-    names=_git(repo,'ls-files','-z','--','openhab/scripts/*.py').decode().split('\0')
-    names=[name for name in names if name and not Path(name).name.startswith('test_')]+list(REGISTRY)
-    if len(names)!=len(set(names)) or not 4<=len(names)<=400:raise ValueError('bounded complete source package required')
-    sources={name:_bytes(repo/name) for name in names}
+    # Archive the immutable commit object, not the mutable index/worktree. A
+    # concurrent edit after the cleanliness check cannot acquire this identity.
+    import io,tarfile
+    archived=_git(repo,'archive','--format=tar',code_revision,'--','openhab/scripts',*REGISTRY)
+    if len(archived)>32*1024*1024:raise ValueError('bounded committed source archive required')
+    sources={}
+    with tarfile.open(fileobj=io.BytesIO(archived),mode='r:') as archive:
+        for member in archive:
+            wanted=(member.name in REGISTRY or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
+            if not wanted:continue
+            if member.name in sources or not member.isfile() or member.size>MAX_BYTES:raise ValueError('unique committed regular source required')
+            sources[member.name]=archive.extractfile(member).read(MAX_BYTES+1)
+    if not set(REGISTRY)<=set(sources) or not 4<=len(sources)<=400:raise ValueError('bounded complete committed source set required')
     protected=json.loads(candidate_raw)['runtime']['source_manifest']
     if not isinstance(protected,dict) or not 2<=len(protected)<=72:raise ValueError('original fitted source manifest required')
     for name,digest in protected.items():
@@ -105,7 +114,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     _write(stage/'cycle.json',_encode(cycle))
     scripts=root/'openhab/scripts'
     dropin=('[Service]\nEnvironment="PYTHONPATH='+str(scripts)+':/home/sat/Solar_PV/analytics/src"\n'
-        'ExecStart=\nExecStart=/usr/bin/python3 '+str(scripts/'household_cycle.py')+' --config '+str(stage/'cycle.json')+' --code-revision '+code_revision+'\n')
+        'ExecStart=\nExecStart=/usr/bin/python3 '+str(scripts/'household_cycle.py')+' --config '+str(stage/'cycle.json')+' --forecast-config '+str(config)+' --code-revision '+code_revision+'\n')
     _write(stage/'service.conf',dropin.encode())
     record=dict(schema='earthship-household-cycle-deployment/v1',code_revision=code_revision,stage=str(stage),service_file=str(service),
         original_bindings=bindings,source_manifest={name:sha256(raw).hexdigest() for name,raw in sources.items()},
