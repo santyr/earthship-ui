@@ -62,7 +62,7 @@ Prepared energy/v2 binds the unchanged daily `bank_kwh` argument to the retained
 
 Read only the two fixed companion configuration paths, owned regular non-symlink files, bounded exact bytes; file permissions are observed without changing them. Verify before/after metadata, bytes, source code, registry and current source clocks. Keep one15s common collection deadline and require unchanged current original owner bindings. Private actual packets use0600 files in0700 staging. Absent/invalid files are explicit source records; transport/identity changes abort rather than fabricate a qualified context.
 
-- [ ] RED then GREEN collection bounds, fixed paths, missing sources, replacement/symlink/identity change, deadline and independent original-source retention.
+- [x] RED then GREEN collection bounds, fixed paths, missing sources, replacement/symlink/identity change, deadline and independent original-source retention.
 - [ ] Complete full affected suite; collect actual committed source/configuration under existing caps without forcing a publisher. Bind to a normal naturally delivered original model issue, or retain a precise refusal without changing origin/expiry guards.
 - [ ] Verify pure/private operational CLI equality, qualification limits and zero action authority; one final independent review, one Important/Critical TDD fix pass, publish and require all exact-head hosted checks before merge.
 

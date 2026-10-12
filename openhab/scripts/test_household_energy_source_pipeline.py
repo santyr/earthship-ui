@@ -205,3 +205,33 @@ def test_absent_or_invalid_ac_does_not_discard_bank_or_invent_parent_digest(raw,
     assert load['value'] is None and load['reason'] in ('missing_source','source_unqualified')
     assert all(isinstance(value,str) and len(value)==64 for value in load['evidence']['parent_digests'])
     if raw is None:assert load['evidence']['digest'] is None
+
+
+def test_pre_topology_observation_cannot_become_household_load(tmp_path,monkeypatch):
+    from test_installed_shade_origin import ISSUE
+    from test_household_model_snapshot import source_at
+    policy=json.loads(json.dumps(TOPOLOGY));start=(ISSUE-timedelta(seconds=1)).isoformat()
+    policy['cutover']=start;policy['topology']['effective_from']=start
+    snap,_,_,_=make(tmp_path,monkeypatch,topology_raw=json.dumps(policy),source=lambda at:source_at(at-timedelta(seconds=2)))
+    doc=snap.to_dict();energy=doc['domains']['energy']
+    assert energy['inverter_output_w']['value'] is not None
+    assert energy['estimated_load_w']['value'] is None
+    assert energy['estimated_load_w']['reason']=='observation_outside_topology'
+    assert doc['completeness']['household_ac_load'] is False
+    assert energy['physical_bank_epoch']['value']=='discover_4_module_2026'
+
+
+def test_omitted_inverter_source_and_policy_age_preserve_bank(tmp_path,monkeypatch):
+    from test_household_model_snapshot import source_at
+    from household.power_snapshot import compile_power_inputs
+    def without_inverter(at):
+        receipt=source_at(at);original=receipt['inputs'];bundle=original['bundle']
+        bundle['power_sources']=[row for row in bundle['power_sources'] if row['kind']!='inverter_ac']
+        bundle['power_policy']['max_age_seconds'].pop('inverter_output_w')
+        return compile_power_inputs(bundle,managed=original['managed'],ownership=original['ownership'],
+            code_revision=original['code_revision'],runtime_manifest=receipt['runtime_manifest'])
+    snap,_,_,_=make(tmp_path,monkeypatch,source=without_inverter);doc=snap.to_dict()
+    assert doc['domains']['energy']['physical_bank_epoch']['value']=='discover_4_module_2026'
+    assert doc['domains']['energy']['estimated_load_w']['value'] is None
+    assert doc['completeness']['household_ac_load'] is False
+    assert 'estimated_load_w' not in doc['temporal_policy']['max_age_seconds']

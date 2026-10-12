@@ -42,10 +42,15 @@ def _render(source,weather,configuration,revision):
     if topology['status']!='attested':load.update(value=None,reason=topology['reason'])
     elif ac['value'] is None or ac['reason'] is not None or ref is None or ref['quality']!='qualified':
         load.update(value=None,reason=ac['reason'] or 'source_unqualified')
+    elif (ref['observed_at'] is None or instant(ref['observed_at'])<instant(topology['effective_from']) or
+          instant(ref['observed_at'])<instant(topology['cutover']) or
+          topology['effective_until'] is not None and instant(ref['observed_at'])>=instant(topology['effective_until'])):
+        load.update(value=None,reason='observation_outside_topology')
     if ref is not None and load['value'] is None:
         ref.update(quality='unavailable',reason=load['reason'])
     energy['estimated_load_w']=load
-    doc['temporal_policy']['max_age_seconds']['estimated_load_w']=doc['temporal_policy']['max_age_seconds']['inverter_output_w']
+    ages=doc['temporal_policy']['max_age_seconds']
+    if 'inverter_output_w' in ages:ages['estimated_load_w']=ages['inverter_output_w']
     doc['temporal_policy']['requirements']['household_ac_load']=['estimated_load_w']
     complete=load['value'] is not None and load['reason'] is None
     doc['completeness']['household_ac_load']=complete

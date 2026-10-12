@@ -74,7 +74,7 @@ def _declared_bank(raw,at):
         return dict(status='declared',reason=None,epoch_id=row['id'],effective_from=start.isoformat(),
             effective_until=None if end is None else end.isoformat(),nominal_usable_kwh=row.get('nominal_usable_kwh'),
             nominal_capacity_ah=row.get('nominal_capacity_ah'),basis='original_declared_configuration',physical_calibration_qualified=False)
-    except (ValueError,TypeError,KeyError):return _unavailable('invalid_configuration')
+    except (ValueError,TypeError,KeyError,OverflowError,RecursionError):return _unavailable('invalid_configuration')
 
 
 def _topology(raw,at):
@@ -93,7 +93,7 @@ def _topology(raw,at):
         if not start<=at or end is not None and at>=end:return _unavailable('topology_window_mismatch')
         return dict(status='attested',reason=None,basis=BASIS,cutover=cutover.isoformat(),effective_from=start.isoformat(),
             effective_until=None if end is None else end.isoformat(),valid_at_origin=True)
-    except (ValueError,TypeError,KeyError):return _unavailable('invalid_configuration')
+    except (ValueError,TypeError,KeyError,OverflowError,RecursionError):return _unavailable('invalid_configuration')
 
 
 def project_energy_configuration(context,*,as_of=None):

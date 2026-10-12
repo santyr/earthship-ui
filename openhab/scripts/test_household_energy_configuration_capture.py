@@ -99,3 +99,18 @@ def test_cli_configuration_only_preserves_original_v1_mode_requirements(tmp_path
 def test_external_deadline_cannot_disable_local_monotonic_limit(tmp_path,monkeypatch):
     files(tmp_path,monkeypatch);values=iter([0.,16.])
     with pytest.raises(ValueError):api().collect_configuration(clock=lambda:AT,monotonic=lambda:next(values),remaining=lambda:1.)
+
+
+@pytest.mark.parametrize('slow_manifest',[1,2])
+def test_cli_common_deadline_includes_both_runtime_reads(slow_manifest,tmp_path,monkeypatch,capsys):
+    files(tmp_path,monkeypatch)
+    import household_capture,household_snapshot,time
+    elapsed=[0.];calls=[0]
+    monkeypatch.setattr(time,'monotonic',lambda:elapsed[0])
+    def runtime():
+        calls[0]+=1
+        if calls[0]==slow_manifest:elapsed[0]=16.
+        return {'unchanged':'manifest'}
+    monkeypatch.setattr(household_snapshot,'runtime_manifest',runtime)
+    assert household_capture.main(['--configuration-only'])==1
+    assert capsys.readouterr().out==''

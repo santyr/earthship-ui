@@ -128,3 +128,41 @@ def test_later_projection_rechecks_topology_boundary_without_backdating():
     assert api().project_energy_configuration(context)['load_topology']['status']=='attested'
     assert api().project_energy_configuration(context,as_of=AT+timedelta(seconds=10))['load_topology']['status']=='unavailable'
     with pytest.raises(ValueError):api().project_energy_configuration(context,as_of=AT-timedelta(seconds=1))
+
+
+@pytest.mark.parametrize('source',['bank','topology'])
+def test_bounded_nested_json_failure_preserves_independent_source(source):
+    depth=4000 if source=='bank' else 2000
+    raw='{"nested":'+ '['*depth+'0'+']'*depth+'}'
+    context=prepare(**{('bank_config_raw' if source=='bank' else 'ac_policy_raw'):raw})
+    import sys
+    previous=sys.getrecursionlimit()
+    try:
+        sys.setrecursionlimit(1000)
+        out=api().project_energy_configuration(context)
+    finally:sys.setrecursionlimit(previous)
+    broken='bank' if source=='bank' else 'load_topology'
+    other='load_topology' if source=='bank' else 'bank'
+    assert out[broken]=={'status':'unavailable','reason':'invalid_configuration'}
+    assert out[other]['status']==('attested' if other=='load_topology' else 'declared')
+    assert context.to_dict()[('bank_source' if source=='bank' else 'load_topology_source')]['raw']==raw
+
+
+def test_bank_date_overflow_preserves_valid_topology():
+    bank=json.loads(json.dumps(BANK));bank['epochs'][1]['start_local_date']='9999-12-31'
+    out=api().project_energy_configuration(prepare(bank_config_raw=json.dumps(bank)))
+    assert out['bank']=={'status':'unavailable','reason':'invalid_configuration'}
+    assert out['load_topology']['status']=='attested'
+
+
+@pytest.mark.parametrize('source',['bank','topology'])
+def test_source_local_parser_recursion_failure_keeps_other_projection(source,monkeypatch):
+    context=prepare();raw=context.to_dict()['bank_source' if source=='bank' else 'load_topology_source']['raw']
+    original=api().loads
+    def bounded_parser(value):
+        if value==raw:raise RecursionError('parser nesting limit')
+        return original(value)
+    monkeypatch.setattr(api(),'loads',bounded_parser)
+    out=api().project_energy_configuration(context)
+    assert out['bank' if source=='bank' else 'load_topology']=={'status':'unavailable','reason':'invalid_configuration'}
+    assert out['load_topology' if source=='bank' else 'bank']['status']==('attested' if source=='bank' else 'declared')
