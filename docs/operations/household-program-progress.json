@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Pure curated observation implemented with11 passing replay/privacy/expiry cases, including real source-backed v6 input. Private materializer, bounded endpoint and read-only operator panel remain pending.",
+      "current_evidence": "Replay-verified private materializer and actual43-source historical view verified. Closed browser parser, bounded owned-file HTTP endpoint and read-only Household route implemented;50 focused frontend tests pass. Full frontend and build attempts hit256MiB scoped memory cap. Final review, geometry, deployment and hosted full checks remain pending. Policy comparison and effects remain unqualified.",
       "complete": false
     },
     {
@@ -784,7 +784,7 @@
       "natural_refresh_public_readback_verified": true
     },
     "operator_observability": {
-      "status": "replay_verified_private_materializer_complete_endpoint_ui_pending",
+      "status": "endpoint_panel_focused_verified_review_deployment_pending",
       "focused_tests": 20,
       "focused_seconds": 23.48,
       "source_backed_v6_view_verified": true,
@@ -803,8 +803,16 @@
       "actual_qualified_at_issue": 11,
       "actual_planner_mode": "unavailable",
       "private_context_excluded": true,
-      "endpoint_implemented": false,
-      "operator_panel_implemented": false
+      "endpoint_implemented": true,
+      "operator_panel_implemented": true,
+      "frontend_focused_tests": 50,
+      "frontend_focused_seconds": 21.8,
+      "frontend_full_suite_passed": false,
+      "frontend_full_suite_result": "scoped_oom_kill",
+      "browser_actual_artifact_parser_verified": true,
+      "final_review_complete": false,
+      "ui_deployed": false,
+      "local_build_result": "scoped_oom_kill"
     }
   }
 }
