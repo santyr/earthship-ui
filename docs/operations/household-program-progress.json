@@ -869,5 +869,116 @@
       "command_controls": 0,
       "protected_thermal_overlay_unchanged": true
     }
+  },
+  "astro_efficiency_audit": {
+    "source": "docs/operations/2026-10-12-astro-binding-efficiency-audit.md",
+    "inventory": "docs/operations/2026-10-12-astro-binding-item-inventory.csv",
+    "requirements": [
+      {
+        "id": "A01",
+        "requirement": "Restore the shared future solar context",
+        "complete": false,
+        "status": "version_fix_deployed_acceptance_pending",
+        "task": "qualify 5.2.3 actions, then revise producer and validator together. Keep exact site/timezone, ordered dates, units, issue-time availability and provenance. Use an explicit compatibility policy or qualified version set with an actual calculation version in the receipt; do not accept arbitrary versions or disable freshness checks. Report withheld publication with a bounded reason so future upgrades cannot silently freeze it. Reuse this publisher rather than creating a second future-solar authority. Its three `noon*` fields currently mean local civil **12:00** (`astro-forecast-context.js:68,75\u201377`), not solar transit; preserve that meaning during this repair or version a deliberate change.",
+        "acceptance": "native action/unit fixtures, supported and unsupported versions, expired/restored input, wrong site/timezone, civil-noon field semantics, missing actions, source unavailable at startup, first natural daily publication, issue-time consumer readback, and no change in the existing forecast fallback or measured-weather authority. Ten dated rows still expire at the next local midnight; they are not ten days of permission to reuse an expired receipt."
+      },
+      {
+        "id": "A02",
+        "requirement": "Replace the browser season ephemeris",
+        "complete": false,
+        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "task": "either consume the existing season display Item, or retain UI wording using native season values. Decide day-count semantics first. In 5.2.3, [Season.getTimeLeft](https://github.com/openhab/openhab-addons/blob/5.2.3/bundles/org.openhab.binding.astro/src/main/java/org/openhab/binding/astro/internal/model/Season.java) returns a whole-day-truncated duration, while the UI counts browser-local calendar dates and retains \u201ctoday\u201d for the event's calendar day. Native zero days is not proof that the event is today. Current native season timestamp Items show the current year's dates; native nextName/timeLeft cross the year boundary, but an exact next-year event timestamp needs qualification. Never derive an exact season instant by adding the truncated timeLeft to now.",
+        "acceptance": "NULL/UNDEF/stale states, seconds/days unit variants, wording and singular/zero-day cases, season-instant versus calendar-day rollover, December-to-next-year coverage, nextName/timeLeft update ordering, browser UTC versus household Denver, DST and hemisphere policy. Remove the polynomial only after the replacement covers those cases. Preserve existing Item identities and history."
+      },
+      {
+        "id": "A03",
+        "requirement": "Reuse the current native moon phase",
+        "complete": false,
+        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "task": "supply native current phase/icon to the shared current-condition presentation path. Reuse the existing store/SSE hydration and `astro.map`; do not add a separate browser ephemeris fetch. Preserve icon normalization and condition distinctions: clear night uses a moon, partly cloudy uses its night icon, and rain, snow, fog and storms keep their weather symbols.",
+        "acceptance": "all eight native phases, `THIRD_QUARTER` mapping to `moon-last-quarter`, unavailable phase, valid versus stale daily sun context, twilight/boundary policy, and both Home and Weather consumers."
+      },
+      {
+        "id": "A04",
+        "requirement": "Preserve future forecast lunar context",
+        "complete": false,
+        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "task": "after A03, retain SunCalc for forecast-hour timestamps unless a bounded, date-specific lunar context supplier is introduced or generic forecast-night icons are explicitly chosen. The installed public Astro action interface does not provide future moon illumination. Do not apply today's `MoonPhaseicon` to all ten forecast days or remove the dependency prematurely. SunCalc `2.0.2` has one current source import, in `celestial.js`.",
+        "acceptance": "differing phases across the forecast horizon, a phase boundary between current conditions and a later forecast hour on the same household day, equivalent instants across UTC offsets, cross-midnight/DST hours, unavailable context, provider `isDay` precedence, and unchanged whole-day forecast summaries."
+      },
+      {
+        "id": "A05",
+        "requirement": "Choose the daylight interval explicitly",
+        "complete": false,
+        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "task": "use `Sun_Daylight_Duration` if the product adopts native daylight semantics; otherwise retain the explicitly defined outer-edge interval as presentation. Reuse `splitRoundedMinutes` for display. `num()` strips units; it does not convert seconds, minutes and hours.",
+        "acceptance": "the two snapshot intervals, supported quantity units, invalid/zero/negative duration, rounding carry, and current-day event validation. Do not substitute `Sun_Night_Duration` for sunset-to-next-sunrise: native NIGHT runs from Astro dusk END to next Astro dawn START. Neither equals the thermal horizon threshold or the battery's calibrated overnight scoring window."
+      },
+      {
+        "id": "A06",
+        "requirement": "Share household time formatting",
+        "complete": false,
+        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "task": "reuse the household timezone policy for celestial labels and calendar selection; keep user locale separate from site timezone. Preserve offset-bearing instants and DST-aware boundaries. This is shared formatting, not new astronomy.",
+        "acceptance": "identical site labels on Denver/UTC browsers, both DST changes, local midnight, equivalent offset representations and invalid timestamps."
+      },
+      {
+        "id": "A07",
+        "requirement": "Consolidate thermal solar geometry through a replayable adapter",
+        "complete": false,
+        "status": "pending",
+        "task": "extend the shared observational adapter or provide a bounded geometry cache for the exact historical/future timestamps required by models. Record site, timezone, algorithm/binding version, requested instants and source digest. Replay must work without live OpenHAB. Compare both geometries near the horizon, then version/refit/revalidate affected datasets and model artifacts. Do not make one synchronous binding call per historical row or change only the main source while leaving staged deployed publishers on the previous contract.",
+        "acceptance": "historical/future coverage, DST/leap days, exact requested instants, missing geometry, offline replay, horizon disagreements, artifact compatibility, replay parity and prediction comparisons before promotion. Consolidation reduces duplicated authority and maintenance; CPU savings are not established, and repeated binding calls could make it slower."
+      },
+      {
+        "id": "A08",
+        "requirement": "Keep irradiance and sky inference as separate models",
+        "complete": false,
+        "status": "pending",
+        "task": "reuse Astro position first. Treat adoption of native radiation as a separate model experiment with comparison/refitting. Keep actual station radiation, forecast shortwave radiation, PV observations and evidence coverage as independent source contracts.",
+        "acceptance": "low sun, missing/stale station data, zero denominator, bounded fractions, cloud transients, model refit and measured-versus-calculated lineage."
+      },
+      {
+        "id": "A09",
+        "requirement": "Evaluate native circadian targets without removing the owner",
+        "complete": false,
+        "status": "pending",
+        "task": "if adopting native suggestions is desired, add separately owned observational target Items, explicit Kelvin metadata/conversion, and a selected policy mode. Continue routing decisions through `hex_living_room_circadian`. Native brightness can reach zero and would introduce dimming/OFF behavior; it is not an automatic efficiency cleanup.",
+        "acceptance": "explicit choice of target curve and brightness policy, typed Kelvin, missing source, midnight/sunrise/transit/sunset, winter/summer comparisons, manual OFF and enablement races, and all existing lighting regressions."
+      },
+      {
+        "id": "A10",
+        "requirement": "Simplify pre dusk scheduling while retaining retry semantics",
+        "complete": false,
+        "status": "pending",
+        "task": "consider an isolated sunset event with a negative offset to begin the issue attempt, followed by bounded retries/catch-up. Preserve the script's same-day idempotency, issue window, atomic SoC, freshness and original sunset receipt. Do not add an offset to the shared `set#start` channel: other readers need its unshifted astronomical sunset. Check exact trigger-channel configuration scope before introducing an isolated event or scheduling from a native timestamp.",
+        "acceptance": "contention, restart/catch-up, sunset changes, missed trigger, window expiration, duplicate opportunities and stable unshifted sunset inputs. Keep the canonical 20:00-to-next-day-11:00 trough (`advisory_windows.py:49\u201355`) and other calibrated load intervals unchanged."
+      },
+      {
+        "id": "A11",
+        "requirement": "Keep protected control daylight gates explicit",
+        "complete": false,
+        "status": "pending",
+        "task": "review and qualify the pump daylight freshness/bounds separately from UI consolidation. Preserve BMS/voltage gates, hydrological timings, alternation, manual-request semantics and fail-closed OFF behavior. Follow the existing protected-control restore/rollback requirements in `/etc/openhab/AGENTS.md`.",
+        "acceptance": "restored positive elevation, Astro OFFLINE, stale timestamp, wrong-day bounds, crossing the curfew while running, manual and automatic paths, plus original SoC, voltage, comms and pump-timing regressions. Use an isolated harness before any attended control change."
+      }
+    ],
+    "approved_choices": {
+      "season": "Native whole days; zero displays less than 1 day",
+      "daylight": "Native rise-end to set-start duration"
+    },
+    "full_program_scope_preserved": true,
+    "verification": {
+      "affected_vitest_cases": 277,
+      "affected_vitest_files": 9,
+      "duration_seconds": 22.4,
+      "native_sse_upstream_timestamp_verified": true,
+      "svelte_components_compiled": 3,
+      "full_hosted_suite_pending": true,
+      "deployed_ui": false,
+      "season_source": "native Sun_TimeLeft/Sun_NextSeason; existing display Item/writer preserved",
+      "versions": "5.2.3 or greater stable",
+      "native_model_geometry_refit_complete": false
+    }
   }
 }

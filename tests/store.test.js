@@ -90,6 +90,16 @@ describe('store', () => {
     expect(get(itemUpdateEvidence).TS_B).toBeUndefined();
   });
 
+  it('retains native Astro state with its upstream generation and clears missing snapshot evidence', () => {
+    const at = Date.now() - 16000;
+    applySnapshot([{ name:'Sun_TimeLeft', state:'1 d', lastStateUpdate:at }, { name:'Sun_NextSeason', state:'WINTER', lastStateUpdate:at }]);
+    expect(get(itemUpdateEvidence).Sun_TimeLeft).toEqual({ lastKnown:at, available:true, state:'1 d' });
+    applyState('Sun_TimeLeft','0 d');
+    expect(get(itemUpdateEvidence).Sun_TimeLeft.state).toBe('1 d');
+    applySnapshot([]);
+    expect(get(itemUpdateEvidence).Sun_TimeLeft.available).toBe(false);
+  });
+
   it('connection defaults to connecting', () => {
     expect(get(connection)).toBe('connecting');
   });

@@ -15,6 +15,14 @@ describe('shared astronomical weather icons', () => {
     expect(contextualSkyIcon('iconify:mdi:weather-sunny', night)).toBe(wmoIcon(0, night));
     expect(contextualSkyIcon('iconify:mdi:white-balance-sunny', night)).toBe(wmoIcon(0, night));
   });
+  it('uses supplied native current moon while preserving dated future forecast phases', () => {
+    expect(contextualSkyIcon('mdi:weather-sunny', { ...night,currentMoonIcon:'mdi:moon-last-quarter' })).toBe('mdi:moon-last-quarter');
+    expect(contextualSkyIcon('mdi:weather-sunny', { ...night,currentMoonIcon:'mdi:weather-night' })).toBe('mdi:weather-night');
+    expect(contextualSkyIcon('mdi:weather-partly-cloudy', { ...night,currentMoonIcon:'mdi:moon-full' })).toBe('mdi:weather-night-partly-cloudy');
+    expect(contextualSkyIcon('mdi:weather-pouring', { ...night,currentMoonIcon:'mdi:moon-full' })).toBe('mdi:weather-pouring');
+    expect(wmoIcon(0,night)).toBe(moonPhaseIcon(night.at));
+    expect(contextualSkyIcon('mdi:weather-sunny',{ ...night,isDay:true,currentMoonIcon:'mdi:moon-full' })).toBe('mdi:weather-sunny');
+  });
   it('covers all eight phases and equivalent instants across offsets', () => {
     const phases = new Set(Array.from({ length: 30 }, (_, i) => moonPhaseIcon(Date.UTC(2026, 8, i + 1))));
     expect(phases.size).toBe(8);

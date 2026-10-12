@@ -1457,3 +1457,8 @@ Do not ask the next goal to implement live planner authority.
 
 The planner itself should be a later bounded goal after the snapshot foundation has
 merged and accumulated enough replay fixtures.
+
+
+Astro audit supplement (2026-10-12)
+
+The complete A01–A11 requirements and acceptance of docs/operations/2026-10-12-astro-binding-efficiency-audit.md are part of this full architecture goal. The canonical program tracker records their implementation and evidence separately from program completion. User selected native whole-day season duration (zero means less than1day) and native daylight rise-end→set-start duration. Current native astronomy and date-specific future lunar forecasts remain distinct; native geometry does not qualify measured weather, bank/load telemetry, action effects or owner authority. Exact-instant geometry consolidation requires versioned replay/refit qualification; protected control daylight changes require their own qualification. Backup/recovery remains deferred.

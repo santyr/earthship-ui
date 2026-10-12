@@ -58,3 +58,55 @@ describe('Astro binding provenance', () => {
     expect(() => buildContext(api)).toThrow();
   });
 });
+
+function runPublisher({ online = true, actionsMissing = false, version = '5.2.3', missingMethod = false } = {}) {
+  const warnings = [], updates = [], geometryHours = [];
+  const base = Date.parse('2026-10-12T06:00:00Z');
+  const instant = (index, hour) => new Date(base + index*86400000 + hour*3600000).toISOString();
+  const date = index => ({ plusDays: n => date(index+n), toString: () => instant(index,0).slice(0,10),
+    atTime: (hour,minute) => ({ atZone: () => ({ index, hour, minute, toInstant: () => instant(index,hour) }) }),
+    atStartOfDay: () => ({ toInstant: () => instant(index,0) }) });
+  const actions = {
+    getEventTime: (phase, at) => ({ toInstant: () => instant(at.index, phase === 'SUN_RISE' ? 6.95 : phase === 'DAYLIGHT' ? 7 : 19) }),
+    getElevation: at => { geometryHours.push(at.hour); return '40 °'; },
+    getAzimuth: at => { geometryHours.push(at.hour); return '180 °'; },
+    getTotalRadiation: at => { geometryHours.push(at.hour); return '700 W/m²'; },
+  };
+  if (missingMethod) delete actions.getElevation;
+  const context = { console:{ warn:value => warnings.push(value) } };
+  vm.runInNewContext(source,context);
+  context.require = () => ({
+    things:{ getThing: () => ({ status:online ? 'ONLINE' : 'OFFLINE', rawThing:{ getConfiguration: () => ({ get: () => '38.3739919,-105.7744609' }) } }) },
+    items:{ getItem: () => ({ postUpdate:value => updates.push(value) }) },
+    actions:{ get: () => actionsMissing ? null : actions },
+    osgi:{ getService: () => ({ getTimeZone: () => ({ getId: () => 'America/Denver' }) }) },
+  });
+  context.Java = { type:name => {
+    if (name === 'org.osgi.framework.FrameworkUtil') return { getBundle: () => ({ getBundleContext: () => ({ getBundles: () => [{ getSymbolicName: () => 'org.openhab.binding.astro', getVersion: () => version }] }) }) };
+    if (name === 'java.time.ZonedDateTime') return { now: () => ({ toLocalDate: () => date(0), toInstant: () => instant(0,10) }) };
+    return {};
+  } };
+  context.publish();
+  return { warnings, updates, geometryHours };
+}
+
+describe('native publisher availability and civil noon', () => {
+  it.each([
+    [{ online:false },'source_offline'],
+    [{ actionsMissing:true },'actions_missing'],
+    [{ version:'5.2.2' },'binding_unsupported'],
+    [{ missingMethod:true },'actions_incomplete'],
+  ])('withholds incomplete native context with a bounded reason', (options,reason) => {
+    const result = runPublisher(options);
+    expect(result.updates).toHaveLength(0);
+    expect(result.warnings[0]).toBe('Astro forecast context withheld: '+reason);
+  });
+  it('publishes exactly ten civil-noon geometry points after native recovery', () => {
+    const result = runPublisher();
+    expect(result.warnings).toHaveLength(0);
+    expect(result.updates).toHaveLength(1);
+    expect(result.geometryHours).toHaveLength(30);
+    expect(result.geometryHours.every(hour => hour === 12)).toBe(true);
+    expect(JSON.parse(result.updates[0]).calculationVersion).toBe('openhab-astro-5.2.3');
+  });
+});

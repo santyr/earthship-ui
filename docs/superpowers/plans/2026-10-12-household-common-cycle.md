@@ -45,3 +45,14 @@ Follow-up: distinguish publication headroom from fitting headroom
 - Verify the actual read-only original collector under the new guard, then guarded source-pinned deployment and a natural publication/observation cycle; no action authority or source TTL change.
 
 Collector deadline inspection is separate from source-access preflight: keep explicit source guards and adapter entry/return/post-serialization guards, while the deadline callback only measures the unchanged hard six-second budget. Profiling found 79 source checks recursively executing 158 expensive resource checks before refusal. Verify drift refusal and original publication parity before deploying this optimization; neither source TTL nor the connection minimum budget changes.
+
+Audit integration (2026-10-12): A01–A11 are additional requirements of the full PR3 goal.
+Source: docs/operations/2026-10-12-astro-binding-efficiency-audit.md and exact adjacent inventory CSV. Every task/acceptance is in the canonical tracker with complete=false.
+- A01: finish withheld diagnostics/native/consumer/daily-refresh acceptance of deployed minimum stable5.2.3.
+- A02/A05/A06: user chose native whole-day season (zero less than1day), native rise-end→set-start daylight, shared household Denver formatting. Test typed units, invalid/stale/current-day qualification, update ordering and rollover; preserve Item identity/history. Remove browser polynomial after coverage.
+- A03/A04: current Home/Weather native moon through existing store/SSE; retain date-specific future SunCalc, provider day flags and weather-condition distinctions.
+- A07/A08: exact-instant bounded native geometry cache/offline replay; version/refit/compare before promotion. Preserve elevation<=0 thermal-night policy, measured weather/irradiance calibration; no per-row synchronous RPC or guessed altitude.
+- A09: native circadian evaluation stays observational; preserve existing curve/brightness/manual-OFF owner until explicit qualified policy choice.
+- A10: qualify isolated native pre-dusk scheduling with retries/catch-up/idempotency/windows; shared sunset stays unshifted.
+- A11: protected pump freshness/bounds review/harness separately; retain BMS/voltage/hydrology/alternation/manual/fail-closed gates. Recovery deferred; no live control migration implied.
+Interfaces: A02/A05/A06 share typed quantity/site-time/daily provenance. A03 uses original store/SSE evidence; A04 separate future instants. A07/A08 require pinned historical geometry/versioned artifacts, not ten civil-noon points. Full household ML and bounded collector work remain active.
