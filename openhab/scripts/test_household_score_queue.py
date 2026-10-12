@@ -161,3 +161,91 @@ def test_rehashed_gap_requires_exact_absent_native_query(damage,tmp_path,monkeyp
     path.rename(replacement);replacement.write_text(json.dumps(value));reader.calls=[]
     with pytest.raises(ValueError):api().score_jobs(settings,guard=lambda:None,reader=reader)
     assert reader.calls==[]
+
+
+def mixed_model_queue(tmp_path,monkeypatch):
+    from thermal_model.provisional_artifact import candidate_digest,validate_candidate
+    settings,backend,clock,candidate=fixture(tmp_path,monkeypatch)
+    old=live().publish_cycle(settings,backend=backend,guard=lambda:None)
+    old.update(json.loads(Path(old['delivery_path']).read_bytes()))
+    clock[0]=monitor()._utc(old['issued_at'])+timedelta(minutes=5,seconds=-30)
+    candidate['created_at']=clock[0].isoformat();candidate['artifact_sha256']=candidate_digest(candidate)
+    validate_candidate(candidate,assessed_at=clock[0],runtime=candidate['runtime'])
+    current=live().publish_cycle(settings,backend=backend,guard=lambda:None)
+    current.update(json.loads(Path(current['delivery_path']).read_bytes()))
+    clock[0]=monitor()._utc(current['issued_at'])+timedelta(hours=1,minutes=5)
+    monkeypatch.setattr(monitor(),'_clock',lambda:clock[0])
+    monkeypatch.setattr(monitor(),'_resource_preflight',lambda:None)
+    monkeypatch.setattr(monitor(),'current_runtime',lambda:candidate['runtime'])
+    monkeypatch.setattr(monitor(),'read_candidate',lambda *a,**kw:candidate)
+    settings.update(native_db_config='synthetic',native_policy='synthetic',token_file='synthetic',openhab_base='http://127.0.0.1:8080/rest')
+    packets=tmp_path/'native-queries';packets.mkdir(mode=0o700)
+    class Reader:
+        native_source_paths=[]
+        calls=[]
+        missing=None
+        def verify_unchanged(self):pass
+        def publication(self,receipt):return receipt
+        def native(self,targets,*,assessed_at,sensor_epoch):
+            self.calls.extend(targets)
+            if targets==[self.missing]:
+                self.native_source_paths=[str(native_packet(packets,self.missing,assessed_at,sensor_epoch))]
+            return [(at,None if at==self.missing else outcome(at,75)) for at in targets]
+    return settings,Reader(),clock,old,current
+
+
+def test_active_candidate_mature_outcome_precedes_old_model_backlog(tmp_path,monkeypatch):
+    settings,reader,_,old,current=mixed_model_queue(tmp_path,monkeypatch)
+    result=api().score_jobs(settings,guard=lambda:None,reader=reader)
+    pair=json.loads(next(Path(settings['evidence_directory']).glob('scores-*/*.provisional-pair-v1.json')).read_bytes())
+    assert pair['capture_sha256']==current['capture_sha256']
+    assert pair['artifact_sha256']==current['artifact_sha256']!=old['artifact_sha256']
+    assert result['current_revision_scored']==1
+
+
+def test_older_model_work_continues_when_active_outcome_is_immature(tmp_path,monkeypatch):
+    settings,reader,clock,old,_=mixed_model_queue(tmp_path,monkeypatch)
+    clock[0]=monitor()._utc(old['issued_at'])+timedelta(hours=1,minutes=5)
+    result=api().score_jobs(settings,guard=lambda:None,reader=reader)
+    pair=json.loads(next(Path(settings['evidence_directory']).glob('scores-*/*.provisional-pair-v1.json')).read_bytes())
+    assert result['scored']==1 and pair['capture_sha256']==old['capture_sha256']
+    assert result['current_revision_scored']==0
+
+
+def test_completed_active_job_does_not_discard_older_backlog(tmp_path,monkeypatch):
+    settings,reader,_,old,current=mixed_model_queue(tmp_path,monkeypatch)
+    api().score_jobs(settings,guard=lambda:None,reader=reader)
+    result=api().score_jobs(settings,guard=lambda:None,reader=reader)
+    pairs=[json.loads(p.read_bytes()) for p in Path(settings['evidence_directory']).glob('scores-*/*.provisional-pair-v1.json')]
+    assert result['scored']==1 and result['current_revision_scored']==1
+    assert {p['capture_sha256'] for p in pairs}=={old['capture_sha256'],current['capture_sha256']}
+
+
+def test_missing_active_outcome_retains_gap_then_allows_older_work(tmp_path,monkeypatch):
+    settings,reader,_,old,current=mixed_model_queue(tmp_path,monkeypatch)
+    reader.missing=monitor()._utc(current['issued_at'])+timedelta(hours=1)
+    result=api().score_jobs(settings,guard=lambda:None,reader=reader)
+    assert result['scored']==0 and result['pending_reason']=='mature_outcome_unavailable'
+    gap=json.loads(next(Path(settings['evidence_directory']).glob('scores-*/*.provisional-gap-v1.json')).read_bytes())
+    assert gap['artifact_sha256']==current['artifact_sha256']
+    result=api().score_jobs(settings,guard=lambda:None,reader=reader)
+    pair=json.loads(next(Path(settings['evidence_directory']).glob('scores-*/*.provisional-pair-v1.json')).read_bytes())
+    assert result['scored']==1 and pair['capture_sha256']==old['capture_sha256']
+
+
+@pytest.mark.parametrize('prior_source,accepted',[
+    ('5537dd82d2565b1f307dc5dcb74d76cb84871bad669cf3e837b0c013e46ebbd0',True),
+    ('f'*64,False),
+])
+def test_only_reviewed_prior_gap_source_can_survive_queue_upgrade(prior_source,accepted,tmp_path,monkeypatch):
+    settings,reader,_,_,_,_=setup_queue(tmp_path,monkeypatch)
+    api().score_jobs(settings,guard=lambda:None,reader=reader)
+    path=next(Path(settings['evidence_directory']).glob('scores-*/*.provisional-gap-v1.json'))
+    value=json.loads(path.read_bytes());value['queue_source_sha256']=prior_source
+    value['gap_sha256']=monitor().digest(value,'gap_sha256')
+    replacement=path.parent/(value['job_id']+'-'+value['gap_sha256']+'.provisional-gap-v1.json')
+    path.rename(replacement);replacement.write_text(json.dumps(value))
+    monkeypatch.setattr(api(),'_source_digest',lambda:'a'*64)
+    if accepted:assert api().score_jobs(settings,guard=lambda:None,reader=reader)['scored']==1
+    else:
+        with pytest.raises(ValueError):api().score_jobs(settings,guard=lambda:None,reader=reader)

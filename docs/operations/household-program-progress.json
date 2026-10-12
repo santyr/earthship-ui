@@ -1314,8 +1314,62 @@
         "nak-authentication": "passed",
         "encrypted-delivery": "passed",
         "GitGuardian Security Checks": "passed",
-        "test": "in_progress"
-      }
+        "test": "passed"
+      },
+      "deployed_source_all_hosted_checks_passed": true
+    },
+    "current_model_score_scheduling": {
+      "status": "affected_tests_passed_review_pending",
+      "diagnosis": {
+        "status": "bounded_metadata_inventory",
+        "assessed_at": "2026-10-12T20:51:16.465299+00:00",
+        "current_artifact": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "delivery_count": 413,
+        "completed_marker_count": 622,
+        "mature_pending_count": 607,
+        "current_candidate_pending_count": 0,
+        "other_candidate_pending_count": 607,
+        "pending_by_horizon": {
+          "1": 200,
+          "6": 154,
+          "12": 124,
+          "24": 129
+        },
+        "distinct_gap_count": 1,
+        "due_gap_count": 1,
+        "recent_baseline_status": {
+          "insufficient_qualified_history": 254,
+          "unavailable": 2
+        },
+        "recent_baseline_qualified_cycle_counts": {
+          "0": 69,
+          "2": 74,
+          "1": 111,
+          "-1": 2
+        },
+        "recent_baseline_exclusions": {
+          "not_strictly_historical": 68,
+          "qualified_cycle_unavailable": 7547
+        },
+        "recent_baseline_unavailable_reason_hashes": {
+          "33ac930859a3c07b176a83ca8277cd959e348052e39dfdde2b72fc296d53d78c": 2
+        },
+        "oldest_pending": "2026-10-11T02:20:15+00:00",
+        "latest_pending": "2026-10-12T19:45:15+00:00",
+        "operational_source_qualification": false,
+        "fit_executed": false,
+        "live_writes": false
+      },
+      "original_fitted_sources_changed": false,
+      "prior_gap_source_sha256": "5537dd82d2565b1f307dc5dcb74d76cb84871bad669cf3e837b0c013e46ebbd0",
+      "production_installed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false,
+      "affected_tests_passed": 21,
+      "affected_test_seconds": 82.61,
+      "first_guarded_verification": "stopped_on_host_swapout_or_oom_counter_change",
+      "guard_relaxed": false,
+      "source_runtime_qualification_pending": true
     }
   },
   "astro_efficiency_audit": {

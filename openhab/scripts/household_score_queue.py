@@ -1,8 +1,9 @@
 """Outside-fitted, single-outcome queue with explicit retryable missing evidence.
 
 The numerical scoring, original capture/delivery checks, completed pair handling
-and report schema remain delegated to the pinned provisional monitor. Queue
-selection differs only after a verified native query returns an absent point.
+and report schema remain delegated to the pinned provisional monitor. Mature
+active-candidate jobs precede older candidates; each group stays chronological.
+Absent points retain the same verified native evidence and retry contract.
 """
 from datetime import timedelta
 from pathlib import Path
@@ -13,6 +14,10 @@ GAP_SCHEMA='earthship-provisional-thermal-gap/v1'
 GAP_FIELDS={'schema','job_id','delivery_sha256','capture_sha256','artifact_sha256',
     'horizon_hours','target_at','assessed_at','retry_after','native_source_paths',
     'original_fingerprints','queue_source_sha256','automatic_actuation','gap_sha256'}
+# Reviewed b84d000 uses the identical gap schema and native absence replay.
+# Accept its retained gaps across this scheduling-only upgrade; unknown
+# implementations still refuse and every original source is revalidated.
+PRIOR_GAP_SOURCES=('5537dd82d2565b1f307dc5dcb74d76cb84871bad669cf3e837b0c013e46ebbd0',)
 
 
 def _source_digest():return sha256(Path(__file__).read_bytes()).hexdigest()
@@ -51,7 +56,7 @@ def _gap_pending(paths,*,delivery,delivery_path,horizon,target,now,guard):
         value['job_id']!=job or value['delivery_sha256']!=delivery['delivery_sha256'] or
         value['capture_sha256']!=delivery['capture_sha256'] or value['artifact_sha256']!=delivery['artifact_sha256'] or
         value['horizon_hours']!=horizon or value['target_at']!=target.isoformat() or
-        value['automatic_actuation'] is not False or value['queue_source_sha256']!=_source_digest() or
+        value['automatic_actuation'] is not False or value['queue_source_sha256'] not in (_source_digest(),*PRIOR_GAP_SOURCES) or
         value['gap_sha256']!=pinned.digest(value,'gap_sha256') or
         path.name!=job+'-'+value['gap_sha256']+'.provisional-gap-v1.json'):
         raise ValueError('original missing outcome identity differs')
@@ -120,7 +125,8 @@ def score_jobs(settings, *, guard, reader=None, max_jobs=1):
     if len(paths) > 1024:
         raise ValueError('bounded delivered forecast inventory required')
     deliveries = [(path, pinned._delivery(path, root)) for path in paths]
-    deliveries.sort(key=lambda entry: pinned._utc(entry[1]['issued_at']))
+    deliveries.sort(key=lambda entry: (entry[1]['artifact_sha256']!=candidate['artifact_sha256'],
+                                      pinned._utc(entry[1]['issued_at'])))
     scored = 0
     gaps = _gap_index(root, now, guard)
     missing = False
