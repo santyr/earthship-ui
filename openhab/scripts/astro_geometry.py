@@ -45,6 +45,11 @@ def _instant(value, *, exact=False):
     if isinstance(value, str):
         if not 1 <= len(value) <= 64:
             raise ValueError('bounded geometry timestamp required')
+        # fromisoformat silently drops digits beyond microseconds, including
+        # offset fractions. Only parse a grammar whose precision it preserves.
+        if re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}'
+                        r'(?:\.[0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})', value) is None:
+            raise ValueError('explicit lossless geometry timestamp required')
         try:
             value = datetime.fromisoformat(value.replace('Z', '+00:00'))
         except ValueError:

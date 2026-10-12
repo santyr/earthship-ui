@@ -117,3 +117,28 @@ def test_source_configuration_and_availability_must_match_original_request(damag
 def test_native_batch_collector_code_identity_is_required():
     request,source,output,cache=fixture();weak=deepcopy(RUNTIME);weak.pop('collector_sha256',None)
     with pytest.raises(ValueError):api().build_source(request,observed_at=NOW+timedelta(seconds=1),native_runtime=weak,source_status='ONLINE',latitude=38.3739919,longitude=-105.7744609,timezone_name='America/Denver',altitude_m=None)
+
+
+@pytest.mark.parametrize('bad', [
+    '2026-10-12T21:20:00.000000001+00:00',
+    '2026-10-12T21:20:00.123000001+00:00',
+    '2026-10-12T21:20:00+00:00:00.000000001',
+])
+def test_string_instants_cannot_discard_fractional_seconds_or_offset_precision(bad):
+    with pytest.raises(ValueError):
+        api().build_request([bad], requested_at=NOW, latitude=38.3739919,
+                            longitude=-105.7744609, timezone_name='America/Denver')
+
+
+@pytest.mark.parametrize('fraction', ['000000001', '123000001'])
+def test_native_stdout_cannot_discard_fractional_timestamp_precision(fraction):
+    instant = NOW + timedelta(milliseconds=123 if fraction.startswith('123') else 0)
+    request = api().build_request([instant], requested_at=NOW, latitude=38.3739919,
+                                 longitude=-105.7744609, timezone_name='America/Denver')
+    source = api().build_source(request, observed_at=NOW + timedelta(seconds=1),
+        native_runtime=RUNTIME, source_status='ONLINE', latitude=38.3739919,
+        longitude=-105.7744609, timezone_name='America/Denver', altitude_m=None)
+    output = ('2026-10-12T21:20:00.' + fraction + '+00:00\t0\t180\n').encode()
+    with pytest.raises(ValueError):
+        api().build_cache(request, source, native_output=output,
+                          computed_at=NOW + timedelta(seconds=2))

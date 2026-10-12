@@ -1319,7 +1319,7 @@
       "deployed_source_all_hosted_checks_passed": true
     },
     "current_model_score_scheduling": {
-      "status": "deployed_natural_monitoring_verified_current_maturity_pending",
+      "status": "deployed_current_model_original_scores_verified",
       "diagnosis": {
         "status": "bounded_metadata_inventory",
         "assessed_at": "2026-10-12T20:51:16.465299+00:00",
@@ -1404,7 +1404,7 @@
         "pending_reason": "mature_outcome_unavailable"
       },
       "current_candidate_first_assessable_at": "2026-10-12T21:50:15+00:00",
-      "current_candidate_priority_operationally_verified": false,
+      "current_candidate_priority_operationally_verified": true,
       "hosted_checks_for_new_source": "not_run_unpublished_local_commit",
       "production_accuracy_improvement_proven": false,
       "natural_first_current_model_score": {
@@ -1416,12 +1416,115 @@
         "cpu_seconds": 3.287,
         "pair_source_verification_pending": true
       },
-      "natural_current_revision_score_count": 2
+      "natural_current_revision_score_count": 2,
+      "original_score_verification": {
+        "status": "current_model_original_scores_verified",
+        "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "pair_count": 2,
+        "pairs": [
+          {
+            "issued_at": "2026-10-12T20:55:15+00:00",
+            "target_at": "2026-10-12T21:55:15+00:00",
+            "pair_sha256": "b2d2e96fc9a779c3553e4d8bcc58d15ddcbf65e0e1cb8e9159512a495200d8a7",
+            "model_error_f": 1.5646714329462412,
+            "persistence_error_f": -0.35999999999999943,
+            "recent_cycle_status": "insufficient_qualified_history"
+          },
+          {
+            "issued_at": "2026-10-12T20:50:15+00:00",
+            "target_at": "2026-10-12T21:50:15+00:00",
+            "pair_sha256": "f3190b31102549fad9a5555307d4ef487432c2fdfce7552a1acebc29a8108fbc",
+            "model_error_f": 1.5438268539734707,
+            "persistence_error_f": -0.35999999999999943,
+            "recent_cycle_status": "insufficient_qualified_history"
+          }
+        ],
+        "report": {
+          "schema": "earthship-provisional-thermal-performance/v1",
+          "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+          "graduated": false,
+          "by_horizon": {
+            "1": {
+              "model": {
+                "count": 2,
+                "mae_f": 1.554249143459856,
+                "bias_f": 1.554249143459856
+              },
+              "persistence": {
+                "count": 2,
+                "mae_f": 0.35999999999999943,
+                "bias_f": -0.35999999999999943
+              },
+              "recent_cycle": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              }
+            },
+            "6": {
+              "model": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              },
+              "persistence": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              },
+              "recent_cycle": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              }
+            },
+            "12": {
+              "model": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              },
+              "persistence": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              },
+              "recent_cycle": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              }
+            },
+            "24": {
+              "model": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              },
+              "persistence": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              },
+              "recent_cycle": {
+                "count": 0,
+                "mae_f": null,
+                "bias_f": null
+              }
+            }
+          }
+        },
+        "independent_origin_dates": 1,
+        "fit_executed": false,
+        "live_writes": false,
+        "graduated": false,
+        "production_accuracy_improvement_proven": false
+      }
     },
     "native_geometry_cache": {
-      "status": "actual_cache_verified_review_pending",
-      "affected_tests_passed": 39,
-      "affected_test_seconds": 1.2,
+      "status": "actual_cache_verified_review_precision_gap_corrected",
+      "affected_tests_passed": 44,
+      "affected_test_seconds": 1.31,
       "qualification": {
         "status": "actual_native_geometry_cache_verified",
         "cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
@@ -1459,7 +1562,20 @@
       "versioned_model_artifact_complete": false,
       "native_refit_complete": false,
       "prediction_comparison_complete": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "review": {
+        "critical": 0,
+        "important": 1,
+        "minor": 0,
+        "correction_passes": 1,
+        "unresolved_important": 0,
+        "finding": "string timestamps could silently discard submillisecond digits or offset precision",
+        "regressions_failed_before_fix": 5,
+        "regressions_pass_after_fix": true
+      },
+      "original_88_point_cache_replayed_after_precision_fix": true,
+      "qualification_matches_original_collector_revision": true,
+      "new_collector_revision_native_acquisition_pending": true
     }
   },
   "astro_efficiency_audit": {
@@ -1586,5 +1702,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T21:10:41.760297+00:00"
+  "updated_at": "2026-10-12T22:11:06.213431+00:00"
 }
