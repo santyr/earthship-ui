@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain deployed below existing content; standalone navigation removed and legacy household route redirects. Source1e25f33 is installed under the unchanged timer/shared lock/CPU20percent/memory256MiB/swap0/tasks24 limits. Its natural15:20:15UTC publication has exact persisted delivery for both original thermal items; later natural09:35MDT run also published with verified delivery. Original72 fitted-runtime files and training policy remain unchanged. Household collection remains unavailable: capped actual profiling reproduced insufficient connection budget within six seconds. Reviewed committed679fe4d removes duplicate resource checks,56 affected tests pass, but the read-only post-fix profile still exhausts the six-second budget; this change is not yet deployed. Cache remains historical/unavailable; model fit remains October10. Qualified policy/effects, live rolling planner inputs, automatic model refresh and advisory/active-request modes remain incomplete. Source a29e214 guarded upgrade deployed with unchanged72fitted-source hashes/caps/timer.60collector cases pass; reviewed bounded10second maximum completes actual read-only collection in8.39s with pressure guard. First natural16:45:15UTC thermal publication delivered; household collector still unavailable and cache remains historical. Actual full driver guard timing/collection reason diagnosis pending; automatic fitting remains incomplete.",
+      "current_evidence": "Earthship observations remain deployed below existing content; standalone navigation removed and legacy household route redirects. Source1e25f33 is installed under the unchanged timer/shared lock/CPU20percent/memory256MiB/swap0/tasks24 limits. Its natural15:20:15UTC publication has exact persisted delivery for both original thermal items; later natural09:35MDT run also published with verified delivery. Original72 fitted-runtime files and training policy remain unchanged. Household collection remains unavailable: capped actual profiling reproduced insufficient connection budget within six seconds. Reviewed committed679fe4d removes duplicate resource checks,56 affected tests pass, but the read-only post-fix profile still exhausts the six-second budget; this change is not yet deployed. Cache remains historical/unavailable; model fit remains October10. Qualified policy/effects, live rolling planner inputs, automatic model refresh and advisory/active-request modes remain incomplete. Source a29e214 guarded upgrade deployed with unchanged72fitted-source hashes/caps/timer.60collector cases pass; reviewed bounded10second maximum completes actual read-only collection in8.39s with pressure guard. First natural16:45:15UTC thermal publication delivered; household collector still unavailable and cache remains historical. Actual full driver guard timing/collection reason diagnosis pending; automatic fitting remains incomplete. Natural a524552 cycle now writes current receipt/cache; planner unavailable because original AC/load expiry precedes decision. Timely planning and remaining full-program requirements are incomplete.",
       "complete": false
     },
     {
@@ -868,6 +868,44 @@
       "attempted_mutations": 0,
       "command_controls": 0,
       "protected_thermal_overlay_unchanged": true
+    },
+    "common_cycle": {
+      "deployed_source": "a52455231e43f025b66ea1876cfb030c49c2661a",
+      "natural_issue": "2026-10-12T17:35:15+00:00",
+      "thermal_delivery_verified": true,
+      "observation_written": true,
+      "observation_sha256": "2347155388fdb30dc857b661df8a55694f3b8ff2e849031e2dd71cbcd1c46e50",
+      "receipt_sha256": "178ad85b5293a9b914782e226a9f988df978980a1e8751205bc6adba49025cde",
+      "snapshot_id": "1b3594719be65dcc51e48c772b030dcf34d69ffdafbbed3b0352d821df11abab",
+      "decision_at": "2026-10-12T17:35:39.470246+00:00",
+      "verified_at": "2026-10-12T17:35:45.964616+00:00",
+      "valid_until": "2026-10-12T17:35:37.665000+00:00",
+      "planner_mode": "unavailable",
+      "plan_status": "input_incomplete",
+      "cpu_seconds": 9.616,
+      "memory_peak_mib": 78.8,
+      "swap_peak_bytes": 0,
+      "coupled_household_collection_seconds": 3.786,
+      "coupled_available_budget_seconds": 4.501,
+      "protected_fitted_sources_unchanged": 72,
+      "automatic_actuation": false,
+      "current_input_planning_qualified": false,
+      "next_requirement": "Reduce duplicated complete original replay before decision without changing source expiry; automatic model retraining/promotion and full architecture remain unfinished.",
+      "paired_preparation": {
+        "implemented": true,
+        "deployed": false,
+        "baseline_seconds": 10.29422868299298,
+        "paired_seconds": 5.493974224023987,
+        "exact_context_parity": true,
+        "original_numerical_output_preserved": true,
+        "operational_source_qualification": false,
+        "model_weather_tests_passed": 100,
+        "model_weather_seconds": 53.9,
+        "coordinator_cycle_driver_tests": {
+          "passed": 40,
+          "seconds": 67.7
+        }
+      }
     }
   },
   "astro_efficiency_audit": {

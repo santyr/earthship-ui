@@ -147,8 +147,7 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
     """
     from pathlib import Path
     from household_observation import _private_file,materialize
-    from household.thermal_model import prepare_projection
-    from household.weather_context import prepare_weather_context
+    from household.weather_context import prepare_cycle_contexts
     from household_pipeline import verify_source_closure
     from household.pipeline import MAX_BYTES as PIPELINE_BYTES
     from thermal_model.provisional_forecast import digest
@@ -178,8 +177,7 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
         delivery_path.name!=delivered['delivery_sha256']+'.provisional-delivery-v1.json'):
         raise ValueError('original delivery binding differs')
     validate_delivery(capture,delivered['receipts']);guard()
-    thermal=prepare_projection(capture,code_revision=code_revision)
-    weather=prepare_weather_context(capture,prepared_thermal=thermal)
+    thermal,weather=prepare_cycle_contexts(capture,code_revision=code_revision)
     record=derive_cycle(originals=collection['originals'],capture=capture,receipts=delivered['receipts'],
         thermal=thermal,weather=weather,parameter_record=parameter_record,runtime_manifest=runtime_manifest,
         code_revision=code_revision,now=clock())

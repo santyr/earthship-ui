@@ -23,6 +23,7 @@ def setup(tmp_path,monkeypatch):
     calls=[]
     monkeypatch.setattr(thermal,'prepare_projection',lambda body,**kw: ('prepared',body['capture_sha256']))
     monkeypatch.setattr(weather,'prepare_weather_context',lambda body,**kw: ('weather',body['capture_sha256']))
+    monkeypatch.setattr(weather,'prepare_cycle_contexts',lambda body,**kw: (('prepared',body['capture_sha256']),('weather',body['capture_sha256'])))
     def derive(**kw):
         calls.append(('derive',kw))
         return {'receipt_sha256':'a'*64,'inputs':{'thermal_inputs':None},'automatic_actuation':False}

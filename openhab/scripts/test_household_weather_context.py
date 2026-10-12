@@ -114,3 +114,36 @@ def test_fully_resealed_candidate_must_match_artifact_and_prepared_coefficients(
         original['output']['artifact_sha256']=candidate['artifact_sha256']
     with pytest.raises(ValueError,match='original candidate'):
         api().PreparedWeatherContext(reseal_weather(body,original))
+
+
+def test_shared_cycle_preparation_preserves_both_contexts_with_one_original_replay(tmp_path,monkeypatch):
+    expected_weather,expected_thermal,capture=make(tmp_path,monkeypatch)
+    from thermal_model import provisional_forecast
+    original=provisional_forecast.validate_capture;calls=[]
+    def validate(value,**kwargs):
+        calls.append(value['capture_sha256'])
+        return original(value,**kwargs)
+    monkeypatch.setattr(provisional_forecast,'validate_capture',validate)
+    thermal,weather=api().prepare_cycle_contexts(capture,code_revision='a'*40)
+    assert thermal.content==expected_thermal.content
+    assert weather.content==expected_weather.content
+    assert calls==[capture['capture_sha256']]
+    capture['inputs']['forecast']['rows'][0]['windMph']+=1
+    assert weather.content==expected_weather.content
+
+
+def test_shared_cycle_preparation_still_replays_original_native_binding(tmp_path,monkeypatch):
+    _,_,capture=make(tmp_path,monkeypatch)
+    from thermal_model import provisional_forecast
+    def reject(*args,**kwargs):raise ValueError('changed original native archive')
+    monkeypatch.setattr(provisional_forecast,'replay_binding',reject)
+    with pytest.raises(ValueError,match='changed original native archive'):
+        api().prepare_cycle_contexts(capture,code_revision='a'*40)
+
+
+def test_shared_cycle_preparation_refuses_resealed_numerical_output(tmp_path,monkeypatch):
+    _,_,capture=make(tmp_path,monkeypatch)
+    from thermal_model.provisional_forecast import digest
+    capture['output']['trajectory'][0]['air_f']+=1
+    capture['capture_sha256']=digest(capture,'capture_sha256')
+    with pytest.raises(ValueError):api().prepare_cycle_contexts(capture,code_revision='a'*40)

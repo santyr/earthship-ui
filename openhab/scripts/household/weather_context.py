@@ -116,6 +116,23 @@ def prepare_weather_context(capture,*,prepared_thermal):
     return PreparedWeatherContext(canonical(value))
 
 
+def prepare_cycle_contexts(capture,*,code_revision):
+    """Validate one frozen original capture before preparing both model contexts.
+
+    Callers cannot supply a trusted flag or a previously prepared lookalike.
+    The complete native archive replay remains inside prepare_projection.
+    Standalone weather preparation retains its separate validation boundary.
+    """
+    from .thermal_model import prepare_projection
+    raw=canonical(capture)
+    if not 1<=len(raw)<=MAX_ORIGINAL_BYTES:raise ValueError('bounded complete original capture required')
+    original=loads(raw)
+    thermal=prepare_projection(original,code_revision=code_revision)
+    value=dict(schema='earthship-household-prepared-weather/v1',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value['weather_sha256']=identity(value)
+    return thermal,PreparedWeatherContext(canonical(value))
+
+
 def project_weather(context):
     if not isinstance(context,PreparedWeatherContext):raise ValueError('frozen original weather context required')
     value=context.to_dict();capture=_decode_original(value['original_capture']);model=value['prepared_thermal'];forecast=capture['inputs']['forecast']
