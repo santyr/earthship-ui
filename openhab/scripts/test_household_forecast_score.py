@@ -8,6 +8,15 @@ from test_provisional_thermal_monitor import setup,module
 def api():return importlib.import_module('household_forecast_score')
 
 
+@pytest.mark.parametrize('status,expected',[
+    ('scored',0),('waiting',0),('monitoring_refreshed',0),('withheld',1),('unknown',1)])
+def test_cli_preserves_original_integrity_refusal(status,expected,tmp_path,monkeypatch,capsys):
+    result={'status':status,'reason':'completed_original_unavailable'}
+    monkeypatch.setattr(api(),'run',lambda *a,**kw:result)
+    assert api().main(['--config',str(tmp_path/'score.json')])==expected
+    assert json.loads(capsys.readouterr().out)==result
+
+
 def test_missing_new_outcome_rebuilds_report_from_verified_completed_pairs(tmp_path,monkeypatch):
     settings,_,reader=setup(tmp_path,monkeypatch)
     module().score_jobs(settings,guard=lambda:None,reader=reader)

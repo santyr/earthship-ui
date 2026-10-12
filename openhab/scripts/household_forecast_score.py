@@ -66,7 +66,7 @@ def main(argv=None):
     try:result=run(args.config,stage=args.stage)
     except BlockingIOError:print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
     except Exception:print(json.dumps(dict(status='score_withheld',fit_executed=False,automatic_actuation=False)));return 1
-    print(json.dumps(result));return 0
+    print(json.dumps(result));return 0 if result.get('status') in ('scored','waiting','monitoring_refreshed') else 1
 
 
 if __name__=='__main__':raise SystemExit(main())

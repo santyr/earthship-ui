@@ -1013,8 +1013,8 @@
       "completed_score_markers": 598,
       "performance_report_present_at_diagnosis": false,
       "native_oldest_1h_6h_recent_1h_qualified": true,
-      "affected_tests_passed": 14,
-      "affected_seconds": 27.79,
+      "affected_tests_passed": 19,
+      "affected_seconds": 29.6,
       "missing_outcomes_fabricated": false,
       "unexpected_failures_refresh_report": false,
       "runtime_limit_seconds": 50,
@@ -1022,7 +1022,80 @@
       "source_expiry_changed": false,
       "automatic_actuation": false,
       "queue_gap_advancement_complete": false,
-      "automatic_training_complete": false
+      "automatic_training_complete": false,
+      "integrity_refusal_cli_exit": 1,
+      "review_important_findings_corrected": 1,
+      "completed_pairs_independently_verified": 256,
+      "verified_completed_metrics": {
+        "1": {
+          "model": {
+            "count": 37,
+            "mae_f": 1.0054700977647095,
+            "bias_f": -0.01711948067223699
+          },
+          "persistence": {
+            "count": 37,
+            "mae_f": 1.7172972972972966,
+            "bias_f": -1.6491891891891883
+          },
+          "recent_cycle": {
+            "count": 0,
+            "mae_f": null,
+            "bias_f": null
+          }
+        },
+        "6": {
+          "model": {
+            "count": 72,
+            "mae_f": 1.9534176704815132,
+            "bias_f": 1.6609947033238592
+          },
+          "persistence": {
+            "count": 72,
+            "mae_f": 5.940000000000001,
+            "bias_f": -4.7650000000000015
+          },
+          "recent_cycle": {
+            "count": 0,
+            "mae_f": null,
+            "bias_f": null
+          }
+        },
+        "12": {
+          "model": {
+            "count": 103,
+            "mae_f": 2.1952886467329846,
+            "bias_f": 1.4682729619477497
+          },
+          "persistence": {
+            "count": 103,
+            "mae_f": 6.242330097087379,
+            "bias_f": -6.043106796116505
+          },
+          "recent_cycle": {
+            "count": 0,
+            "mae_f": null,
+            "bias_f": null
+          }
+        },
+        "24": {
+          "model": {
+            "count": 44,
+            "mae_f": 3.636889310438225,
+            "bias_f": 3.3736102459890858
+          },
+          "persistence": {
+            "count": 44,
+            "mae_f": 0.4172727272727279,
+            "bias_f": 0.11454545454545469
+          },
+          "recent_cycle": {
+            "count": 0,
+            "mae_f": null,
+            "bias_f": null
+          }
+        }
+      }
     }
   },
   "astro_efficiency_audit": {
