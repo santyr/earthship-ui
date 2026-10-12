@@ -8,13 +8,16 @@ from contextlib import contextmanager
 import math,signal,threading,time
 
 
+MAX_OBSERVATION_SECONDS=10.
+
+
 class ObservationDeadline(BaseException):
     pass
 
 
 @contextmanager
 def observation_deadline(seconds):
-    if (type(seconds) not in (int,float) or not math.isfinite(seconds) or not 0<seconds<=6 or
+    if (type(seconds) not in (int,float) or not math.isfinite(seconds) or not 0<seconds<=MAX_OBSERVATION_SECONDS or
         threading.current_thread() is not threading.main_thread() or signal.getitimer(signal.ITIMER_REAL)!=(0.,0.)):
         raise ValueError('exclusive bounded observation alarm required')
     previous=signal.getsignal(signal.SIGALRM)

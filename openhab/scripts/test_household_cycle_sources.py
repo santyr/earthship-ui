@@ -76,7 +76,7 @@ def collector_fixture(tmp_path,monkeypatch):
     monkeypatch.setattr(measured_weather_capture,'_http_get',lambda **kw:measured[kw['kind']]['raw'])
     owner_calls=[]
     def owner(item,*,remaining):
-        assert 0<remaining()<=6;owner_calls.append(item);return raw[item]
+        assert 0<remaining()<=10;owner_calls.append(item);return raw[item]
     collector=module.CycleSourceCollector(token_file=token,openhab_base='http://127.0.0.1:8080/rest',code_revision='c'*40,clock=lambda:NOW,owner_reader=owner)
     return collector,raw,owner_calls,connections,NOW
 
@@ -132,3 +132,11 @@ def test_configuration_and_runtime_stay_bound_through_final_frame(kind,tmp_path,
         collector.owner_reader=changed
     with pytest.raises(ValueError):
         collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
+
+
+def test_source_collector_accepts_bounded_eight_second_transport_budget(tmp_path,monkeypatch):
+    from datetime import timedelta
+    collector,raw,owner_calls,connections,now=collector_fixture(tmp_path,monkeypatch)
+    result=collector(issue=now+timedelta(seconds=12),remaining=lambda:8.,guard=lambda:None)
+    assert result['issue']==(now+timedelta(seconds=12)).isoformat()
+    assert owner_calls

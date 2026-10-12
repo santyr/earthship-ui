@@ -32,6 +32,7 @@ import math,signal,threading,urllib.request
 from household.codec import canonical
 from household.evidence import utc
 from household_capture import _connection
+from household_cycle_deadline import MAX_OBSERVATION_SECONDS
 
 PRIVATE_PATHS={
     'energy_db':Path('/home/sat/.config/hex/energy-power-reader.jdbc'),
@@ -141,7 +142,7 @@ class CycleSourceCollector:
         started=utc(self.clock());issue=utc(issue)
         def check():
             guard();value=remaining()
-            if type(value) not in (int,float) or not math.isfinite(value) or not 0<value<=6:
+            if type(value) not in (int,float) or not math.isfinite(value) or not 0<value<=MAX_OBSERVATION_SECONDS:
                 raise ValueError('external issue budget unavailable')
             if utc(self.clock())>=issue:raise ValueError('original sources arrived after issue')
             return value

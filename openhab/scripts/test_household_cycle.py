@@ -21,7 +21,7 @@ def test_collection_follows_parent_inputs_and_keeps_original_numeric_output(tmp_
     parent.collect=collect_parent
     def collect_household(*,issue,remaining,guard):
         calls.append('household');assert issue==issued
-        assert 0 < remaining() <= 6
+        assert 0 < remaining() <= 10
         guard();clock[0]+=timedelta(seconds=1)
         return {'original_collection_finished':clock[0].isoformat()}
     adapter=api().ObservingBackend(parent,collector=collect_household,guard=lambda:None,clock=lambda:clock[0])
@@ -66,7 +66,7 @@ def test_parent_collection_failure_is_not_hidden(tmp_path,monkeypatch):
 def test_collection_cannot_renew_the_total_preissue_budget(tmp_path,monkeypatch):
     settings,parent,clock,_=fixture(tmp_path,monkeypatch);ticks=[0.]
     def overrun(**kwargs):
-        ticks[0]+=7;clock[0]+=timedelta(seconds=7)
+        ticks[0]+=11;clock[0]+=timedelta(seconds=11)
         return {'originals':'not accepted after budget'}
     adapter=api().ObservingBackend(parent,collector=overrun,guard=lambda:None,clock=lambda:clock[0],monotonic=lambda:ticks[0])
     result=live().publish_cycle(settings,backend=adapter,guard=lambda:None)
@@ -166,7 +166,7 @@ def test_source_preflight_does_not_repeat_when_reading_remaining_budget():
         # deadline. Repeated budget inspections must not duplicate expensive
         # cgroup/pressure verification for that same access.
         for _ in range(20):
-            guard();assert 0<remaining()<=6
+            guard();assert 0<remaining()<=10
         return {'originals':'retained'}
     adapter=api().ObservingBackend(Parent(),collector=collect,guard=guard,clock=lambda:now)
     assert adapter.collect(issue=issue,known_at=now) is original
@@ -184,3 +184,32 @@ def test_resource_drift_at_collector_return_still_refuses_observation():
     adapter=api().ObservingBackend(Parent(),collector=collect,guard=guard,clock=lambda:now)
     assert adapter.collect(issue=issue,known_at=now) is original
     assert adapter.collection['reason']=='source_collection_failed'
+
+
+def test_healthy_eight_second_collection_fits_existing_preissue_window(tmp_path,monkeypatch):
+    settings,parent,clock,_=fixture(tmp_path,monkeypatch);ticks=[0.]
+    def collect(**kw):
+        assert kw['remaining']()>8
+        ticks[0]+=8;clock[0]+=timedelta(seconds=8)
+        return {'original_collection_finished':clock[0].isoformat()}
+    adapter=api().ObservingBackend(parent,collector=collect,guard=lambda:None,clock=lambda:clock[0],monotonic=lambda:ticks[0])
+    result=live().publish_cycle(settings,backend=adapter,guard=lambda:None)
+    assert result['delivery_verified'] is True
+    assert adapter.collection['status']=='collected'
+
+
+def test_extended_collection_still_stops_at_issue_minus_three_seconds(tmp_path,monkeypatch):
+    settings,parent,clock,_=fixture(tmp_path,monkeypatch);ticks=[0.]
+    original=parent.collect
+    def collect_parent(**kw):
+        value=original(**kw);clock[0]=kw['issue']-timedelta(seconds=5);return value
+    parent.collect=collect_parent
+    def overrun(**kw):
+        assert kw['remaining']()==2
+        ticks[0]+=2.1;clock[0]+=timedelta(seconds=2.1)
+        return {'after_margin':'refused'}
+    adapter=api().ObservingBackend(parent,collector=overrun,guard=lambda:None,clock=lambda:clock[0],monotonic=lambda:ticks[0])
+    result=live().publish_cycle(settings,backend=adapter,guard=lambda:None)
+    assert result['delivery_verified'] is True
+    assert adapter.collection['status']=='unavailable'
+    assert 'originals' not in adapter.collection

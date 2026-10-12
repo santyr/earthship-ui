@@ -8,10 +8,10 @@ from datetime import datetime,timedelta,timezone
 import math,time
 from household.codec import canonical,loads
 from household.evidence import utc
-from household_cycle_deadline import observation_deadline,ObservationDeadline
+from household_cycle_deadline import observation_deadline,ObservationDeadline,MAX_OBSERVATION_SECONDS
 
 MAX_SOURCE_BYTES=1048576
-MAX_COLLECTION_SECONDS=6.
+MAX_COLLECTION_SECONDS=MAX_OBSERVATION_SECONDS
 ISSUE_MARGIN=timedelta(seconds=3)
 
 
