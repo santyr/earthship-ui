@@ -226,7 +226,7 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
     from thermal_installed_intel import _resource_preflight
     from thermal_model.provisional_live import load_settings,publish_cycle,withdraw
     from thermal_model.capture_guard import SharedScoreLock
-    from thermal_model.training_pressure_guard import TrainingHeadroom
+    from household_cycle_pressure import PublicationHeadroom
     _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
     config_path=Path(config_path).absolute()
@@ -234,7 +234,7 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
     forecast_path=Path(forecast_config).absolute();forecast_original=_private_file(forecast_path,8192)
     settings=load_settings(forecast_path)
     with SharedScoreLock(settings['shared_lock']) as lock:
-        monitor=TrainingHeadroom(max_swapin_bytes_per_second=1048576);monitor.preflight()
+        monitor=PublicationHeadroom();monitor.preflight()
         def forecast_guard():
             lock.verify();monitor.check()
             if _private_file(forecast_path,8192)!=forecast_original:
@@ -252,7 +252,7 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
             parameters=loads(parameter_original[0])
             _directory(Path(configuration['evidence_directory']));_directory(Path(configuration['observation_cache']).parent)
             root=Path(__file__).resolve().parent
-            own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_observation.py')}
+            own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_cycle_pressure.py','household_observation.py')}
             def guard():
                 forecast_guard()
                 if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or

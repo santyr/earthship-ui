@@ -10,7 +10,7 @@ def setup(tmp_path,monkeypatch):
     import household_cycle_sources as sources
     import thermal_model.provisional_live as forecast
     import thermal_model.capture_guard as locks
-    import thermal_model.training_pressure_guard as pressure
+    import household_cycle_pressure as pressure
     import thermal_installed_intel as installed
     calls=[]
     params=tmp_path/'params.json';params.write_bytes(canonical({'collected_at':'2026-10-11T00:00:00+00:00','record':{'household_energy_inputs':{}}}));params.chmod(0o600)
@@ -33,7 +33,7 @@ def setup(tmp_path,monkeypatch):
         def __init__(self,**kw):pass
         def preflight(self):calls.append('headroom')
         def check(self):calls.append('checked')
-    monkeypatch.setattr(pressure,'TrainingHeadroom',Monitor)
+    monkeypatch.setattr(pressure,'PublicationHeadroom',Monitor)
     class Collector:
         def __init__(self,**kw):self.runtime={'source':'a'*64};calls.append('collector_ready')
         def __call__(self,**kw):raise AssertionError('publisher boundary is mocked in orchestration tests')

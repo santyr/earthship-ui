@@ -38,3 +38,8 @@ Follow-up: timely snapshot composition and owned-stage upgrade
 - An upgrade requires explicit previous-stage identity, both stages verified against the same original forecast/candidate/parameters/base service, the same cache and exact installed previous override/entry point. Qualify the new production runtime, recheck inactivity and originals, then atomically replace only the owned override and reload units. On failure restore only the exact new override; preserve concurrent edits. Never restart services.
 - Independently review the immutable performance/upgrade patch, then observe a natural cycle before claiming current-input planning is qualified. Keep TTL and action authority unchanged.
 - The active thermal fit is fixed to October10 data; automatic capped training and candidate promotion remain separate unfinished ML work, not satisfied by an observer upgrade.
+
+Follow-up: distinguish publication headroom from fitting headroom
+- The read-only original input probe reproduced refusal at the training monitor when global swap-out/OOM counters changed. Preserve current publication resource/RAM/PSI/single-thread preflight and refuse new host OOM or worker memory-limit events. Ordinary host swap counters do not by themselves disqualify a capped inference worker.
+- Keep all fitted-runtime files and training policy unchanged. Add an outside-driver PublicationHeadroom monitor and pin it in the driver source guard. Verify unknown/regressed counters, new OOM/worker-limit events, original resource refusals and bounded quiet preflight.
+- Verify the actual read-only original collector under the new guard, then guarded source-pinned deployment and a natural publication/observation cycle; no action authority or source TTL change.
