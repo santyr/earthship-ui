@@ -12,7 +12,6 @@
     { name: 'earthship', label: 'Earthship', icon: '◆' },
     { name: 'shades', label: 'Shades', icon: '▤' },
     { name: 'controls', label: 'Controls', icon: '⏻' },
-    { name: 'household', label: 'Household', icon: '◇' },
   ];
 </script>
 

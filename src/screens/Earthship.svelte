@@ -9,6 +9,7 @@
   import Tile from '../lib/ui/Tile.svelte';
   import ThermalLoop from '../lib/ui/ThermalLoop.svelte';
   import ThermalModelCard from '../lib/ui/ThermalModelCard.svelte';
+  import HouseholdObservation from '../lib/ui/HouseholdObservation.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
@@ -195,6 +196,7 @@
   ]);
 </script>
 
+<div class="earthship-page">
 <div class="earthship-grid">
   <div class="cell advisory-cell">
     <Tile label="Thermal Advisory" accent={advisoryActive ? colors.advisory : colors.label}>
@@ -297,8 +299,14 @@
     </Tile>
   </div>
 </div>
+<section class="earthship-observation" aria-label="Household intelligence">
+  <HouseholdObservation />
+</section>
+</div>
 
 <style>
+  .earthship-page { block-size: 100%; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; }
+  .earthship-observation { margin-top: 0.75rem; }
   .earthship-grid {
     block-size: 100%;
     min-width: 0;

@@ -42,8 +42,8 @@ describe('navigate + currentRoute', () => {
     expect(get(currentRoute)).toBe('home');
   });
 
-  it('exposes the household inspection route alongside existing routes', () => {
-    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'household']);
+  it('keeps household inspection within the Earthship route', () => {
+    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls']);
   });
 
   it('navigates to the controls route', () => {
@@ -52,4 +52,4 @@ describe('navigate + currentRoute', () => {
   });
 });
 
-it('parses the household inspection deep link', () => { expect(parseHash('#/household')).toBe('household'); });
+it('parses the household inspection deep link', () => { expect(parseHash('#/household')).toBe('earthship'); });

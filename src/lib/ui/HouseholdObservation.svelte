@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import Tile from '../lib/ui/Tile.svelte';
-  import { parseHouseholdObservation } from '../lib/household/observation.js';
-  import { loadHouseholdObservation } from '../lib/household/observationClient.js';
+  import Tile from './Tile.svelte';
+  import { parseHouseholdObservation } from '../household/observation.js';
+  import { loadHouseholdObservation } from '../household/observationClient.js';
 
   let raw = $state(null), nowMs = $state(Date.now());
   const view = $derived(parseHouseholdObservation(raw, { nowMs }));
@@ -102,7 +102,7 @@
 </div>
 
 <style>
-  .household { height: 100%; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.7rem; align-content: start; }
+  .household { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.7rem; align-content: start; }
   h1 { margin: 0.3rem 0; font-size: 1.4rem; }
   h2 { font-size: 1rem; margin: 0.8rem 0 0.35rem; }
   h3 { font-size: 0.9rem; }

@@ -146,3 +146,5 @@ Earlier pending statements above describe the pre-qualification checkpoints.
 This read-only stage is now merged/deployed;the full PR3 architecture remains
 incomplete, including operational common-cycle capture, trajectories, effects,
 policy baselines, owner migration, outcomes and per-intent release/integration.
+
+On October 12 the observation panels moved below existing Earthship content at /#/earthship. The standalone Household screen and navigation entry are removed; legacy /#/household links resolve to Earthship. The observation endpoint and ML workers remain in place. Live 1280x800 and 1340x800 checks confirm the original grid above the observation panels, one scrolling container, no outer overflow and no browser errors.

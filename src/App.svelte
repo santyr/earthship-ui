@@ -7,7 +7,6 @@
   import Earthship from './screens/Earthship.svelte';
   import Shades from './screens/Shades.svelte';
   import Controls from './screens/Controls.svelte';
-  import Household from './screens/Household.svelte';
   import ChartModal from './lib/ui/ChartModal.svelte';
   import WeatherDetailModal from './lib/ui/WeatherDetailModal.svelte';
   import { currentRoute } from './routes.js';
@@ -39,8 +38,6 @@
     <Shades />
   {:else if $currentRoute === 'controls'}
     <Controls />
-  {:else if $currentRoute === 'household'}
-    <Household />
   {/if}
 </Shell>
 
