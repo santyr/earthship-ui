@@ -37,8 +37,8 @@
 
 **Output:** qualified light_lux, qualified solar_radiation_proxy_wm2 with basis lux_proxy_126_7 and calibration false, and qualified rain_counter_in with basis original_cumulative_counter. Qualified references get distinct role-bound identities with original raw/policy digests as parents. Decoder time is retained separately; observed_at remains null when sensor measurement time was not supplied. Receiver/availability/original expiry and software stream epoch remain unchanged. No calibrated radiation, rainfall rate/daily total or effect qualification.
 
-- [ ] RED exact raw/policy retention, v2 radiation/v1 rain, explicit current epoch/identity, independent absent/invalid/policy failure, source-future/expired/common-clock boundary, zero values, counter/proxy semantics, resealed malformed sources and no reads.
-- [ ] Implement and GREEN the pure boundary; verify no old renderer/role map changes. Commit measured evidence.
+- [x] RED exact raw/policy retention, v2 radiation/v1 rain, explicit current epoch/identity, independent absent/invalid/policy failure, source-future/expired/common-clock boundary, zero values, counter/proxy semantics, resealed malformed sources and no reads.
+- [x] Implement and GREEN the pure boundary; verify no old renderer/role map changes. Commit measured evidence.
 
 ### Task2: Snapshot, model, candidate and enclosing-outcome replay
 
