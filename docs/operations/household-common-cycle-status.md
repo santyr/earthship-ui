@@ -1,0 +1,15 @@
+# Household common-cycle integration status
+
+The common-cycle implementation runs beside the unchanged provisional thermal publisher. It owns the publisher's existing shared lock, retains the original resource guard, collects household originals after the original thermal input collection, and derives the observation only after both original thermal states have exact persisted delivery receipts. It does not train models or request equipment actions.
+
+The observer uses a six-second total collection budget and stops at least three seconds before the original issue. All source timestamps and expiry remain original. A repeated forecast value is still a newly issued forecast only when the original receipt proves that issue; numeric history alone does not establish freshness.
+
+The private configuration is `earthship-household-cycle-config/v1` with exactly these fields: `schema`, `forecast_config`, `retained_energy_parameters`, `parameters_sha256`, `evidence_directory`, and `observation_cache`. Configuration and retained originals must be owned private files; evidence and cache parents must be owned private directories. The retained energy parameter packet is fixed by SHA256 and its earlier availability is checked during derivation. Battery SoC comes from the new original source snapshot, including an unavailable value when appropriate.
+
+The CLI interface is `python3 openhab/scripts/household_cycle.py --config ABSOLUTE_PRIVATE_CONFIG --code-revision COMMIT_SHA`. It publishes the original thermal forecast and then attempts the household observation. It must be installed with the approved CPU20%, memory256MiB, no-swap, tasks24, idle-I/O and single-thread numerical limits; it is not an additional concurrent publisher. Deployment must replace the existing publisher entry point under the same timer and lock after source verification and qualification.
+
+An original forecast publication failure retains the original withdrawal behavior. A household collection, configuration, derivation or cache failure is reported separately and leaves the original delivered thermal forecast intact. The old observation cache can then expire naturally; its timestamps are never renewed to hide the failure. Private originals are retained with immutable no-clobber writes. CLI reports omit original archive paths and source payloads.
+
+Status: implementation under qualification. No common-cycle service has been deployed. Passing fixture tests establish component behavior; they do not establish current live source latency, fresh model/cache publication, or production outcomes. Required next evidence is the actual bounded source/model/cache proof, guarded installation, one immutable branch review with any required corrections, a natural forecast-cycle/UI observation, and exact-head repository checks.
+
+The full PR3 architecture remains incomplete. Common-cycle integration does not complete trajectory models, calibration/effects, authority and owner integration, policy comparisons, outcome qualification, or graduation.

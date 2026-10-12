@@ -83,3 +83,52 @@ def test_backward_collection_clock_refuses_household_originals(tmp_path,monkeypa
     result=live().publish_cycle(settings,backend=adapter,guard=lambda:None)
     assert result['delivery_verified'] is True
     assert adapter.collection['status']=='unavailable'
+
+def derived_fixture(tmp_path,monkeypatch):
+    from household.codec import canonical
+    from household.control_contracts import instant
+    from household.weather_context import prepare_weather_context
+    from household.energy_configuration import prepare_energy_configuration
+    from household.measured_weather import prepare_measured_weather
+    from test_household_measured_weather import sources
+    from test_household_energy_source_pipeline import make
+    from test_household_model_snapshot import source_at
+    from test_household_model_pipeline import RUNTIME
+    from test_household_models import FIXTURE
+    from thermal_model.provisional_forecast import publication
+    from thermal_model.installed_shade_published_origin import NUMERIC_ITEM,PUBLICATION_ITEM
+    base,configuration,prepared,capture=make(tmp_path,monkeypatch)
+    issue=instant(capture['issued_at']);collected=issue-timedelta(seconds=1)
+    body=configuration.to_dict()
+    configuration=prepare_energy_configuration(bank_config_raw=body['bank_source']['raw'],ac_policy_raw=body['load_topology_source']['raw'],
+        bank_available_at=collected,topology_available_at=collected,as_of=collected,created_at=collected)
+    measured=prepare_measured_weather(sources=sources(collected),as_of=collected,created_at=collected)
+    originals=dict(schema='earthship-household-cycle-sources/v1',issue=issue.isoformat(),captured_at=collected.isoformat(),
+        power_receipt=source_at(collected),energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),
+        owner_bindings={'before':{},'after':{}},automatic_actuation=False)
+    published=instant(capture['published_at'])
+    receipts={item:{'item':item,'time':int(published.timestamp()*1000),'state':canonical(value).decode()}
+        for item,value in ((NUMERIC_ITEM,capture['output']),(PUBLICATION_ITEM,publication(capture)))}
+    params=dict(collected_at=(issue-timedelta(days=1)).isoformat(),record={'household_energy_inputs':FIXTURE['cases'][0]['inputs']})
+    return dict(originals=originals,capture=capture,receipts=receipts,thermal=prepared,weather=prepare_weather_context(capture,prepared_thermal=prepared),
+        parameter_record=params,runtime_manifest=RUNTIME,code_revision='e'*40,now=published),capture
+
+def test_complete_cycle_derivation_preserves_original_thermal_and_current_source_soc(tmp_path,monkeypatch):
+    from household.pipeline import replay_pipeline
+    args,capture=derived_fixture(tmp_path,monkeypatch)
+    record=api().derive_cycle(**args)
+    assert record['schema']=='earthship-household-model-plan-receipt/v5'
+    assert record['output']['projections']['thermal']['output']==capture['output']
+    assert record['inputs']['snapshot']['as_of']==capture['issued_at']
+    assert record['inputs']['snapshot']['domains']['energy']['inverter_output_w']['reason'] is None
+    assert record['output']['automatic_actuation'] is False
+    assert replay_pipeline(record,runtime_manifest=args['runtime_manifest'],thermal_runtime=args['thermal'].to_dict()['executing_runtime'])==record
+
+@pytest.mark.parametrize('damage',['delivery','issue','late','parameters'])
+def test_mismatched_cycle_or_unverified_originals_cannot_produce_plan(damage,tmp_path,monkeypatch):
+    args,_=derived_fixture(tmp_path,monkeypatch)
+    if damage=='delivery':args['receipts']={}
+    if damage=='issue':args['originals']['issue']=(args['now']+timedelta(minutes=5)).isoformat()
+    if damage=='late':args['originals']['captured_at']=(args['now']+timedelta(seconds=1)).isoformat()
+    if damage=='parameters':args['parameter_record']['collected_at']=(args['now']+timedelta(days=1)).isoformat()
+    with pytest.raises(ValueError):api().derive_cycle(**args)
