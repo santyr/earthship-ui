@@ -3657,6 +3657,25 @@
       "protected_sources_unchanged": 72,
       "native_runtime_sources_unchanged": 12,
       "automatic_actuation": false
+    },
+    "native_activation_transaction": {
+      "status": "internal_activation_tests_pass_source_admission_pending",
+      "source": "openhab/scripts/household_native_install.py",
+      "tests": {
+        "activation_RED_handle": 10428,
+        "unsafe_cleanup_RED_handle": 39828,
+        "GREEN_handle": 38245,
+        "passed": 49,
+        "seconds": 56.29
+      },
+      "behavior": "Integrate preparer enablement after effective family verification and before restoring original schedules. Undo owned preparer lease before file rollback on later refusal. Preserve installed definitions and stopped old schedules if preparer cleanup is unproven.",
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "pending": [
+        "Source-backed readiness and shared-lock admission",
+        "Fresh source-pinned stage and actual native cycle qualification"
+      ]
     }
   },
   "astro_efficiency_audit": {

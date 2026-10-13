@@ -770,3 +770,16 @@ loaded fragment remain unchanged; preserve concurrent replacements and report
 cleanup refusal. No service is started or restarted by this layer. Test against
 a temporary user root and mocked manager. Live admission/activation composition
 remain unfinished until source-backed readiness is available and verified.
+
+Native activation composition (2026-10-13)
+-----------------------------------------
+Integrate the verified preparer enablement inside the existing quiescent file /
+reload / effective-definition transaction, behind its trusted readiness caller.
+Start the preparer only after all definitions verify, restore original schedules
+last, and return an explicit activation result. If a later guard fails, undo the
+exact preparer lease before undoing files. If preparer cleanup cannot prove its
+schedule inactive or preserve ownership, retain the installed definitions and
+keep the original schedules quiescent for reconciliation. A clean enablement
+failure restores old files / reload / schedules. No public CLI or live activation
+until source-backed readiness and shared-lock admission are integrated. Tests
+exercise real temporary file transactions with mocked timer manager boundaries.

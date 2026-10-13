@@ -107,3 +107,16 @@ def test_failed_stop_preserves_enablement_for_reconciliation(tmp_path,monkeypatc
     monkeypatch.setattr(deploy,'_systemctl',no_stop)
     with pytest.raises(ValueError,match='inactive'):api._undo_preparer_enable(lease)
     assert (root/'timers.target.wants'/TIMER).is_symlink()
+
+
+def test_incomplete_cleanup_is_distinguishable_from_clean_enablement_failure(tmp_path,monkeypatch):
+    root,state,calls=fixture(tmp_path,monkeypatch);original=deploy._systemctl
+    def fail(*args):
+        if args==('start',TIMER):
+            link=root/'timers.target.wants'/TIMER;link.unlink();link.symlink_to('/operator.timer')
+            raise ValueError('start failed')
+        return original(*args)
+    monkeypatch.setattr(deploy,'_systemctl',fail)
+    with pytest.raises(ValueError) as caught:api._enable_preparer(root,guard=lambda:None)
+    assert type(caught.value).__name__=='PreparerReconciliationRequired'
+    assert (root/'timers.target.wants'/TIMER).readlink().as_posix()=='/operator.timer'

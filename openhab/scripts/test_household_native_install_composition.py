@@ -70,3 +70,54 @@ def test_failed_restored_reload_keeps_timers_quiescent(tmp_path,monkeypatch):
     monkeypatch.setattr(deploy,'_systemctl',fail)
     with pytest.raises(ValueError,match='manager unavailable'):module._reload_handoff(out,guard=lambda:None)
     assert all(value=='inactive' for value in current.values())
+
+
+def test_activation_enables_preparer_after_verification_before_schedule_restore(tmp_path,monkeypatch):
+    module,out,base,family,previous,calls,current=fixture(tmp_path,monkeypatch);events=[]
+    def verify(family,guard):
+        guard();events.append('verify');return {'status':'native_effective_family_verified'}
+    def enable(root,guard):
+        assert all(value=='inactive' for value in current.values())
+        assert root==base and events==['verify']
+        events.append('enable');guard();return {'lease':'owned'}
+    monkeypatch.setattr(module,'_verify_effective_family',verify)
+    monkeypatch.setattr(module,'_enable_preparer',enable)
+    result=module._activate_handoff(out,guard=lambda:None)
+    assert result['status']=='native_family_activated' and result['new_preparer_timer_enabled'] is True
+    assert events==['verify','enable'] and all(value=='active' for value in current.values())
+
+
+def test_clean_activation_failure_restores_original_definitions_and_schedules(tmp_path,monkeypatch):
+    module,out,base,family,previous,calls,current=fixture(tmp_path,monkeypatch)
+    target=base/'thermal-provisional-score.service.d'/'zzzz-household-score.conf';old=target.read_bytes()
+    def refuse(*a,**kw):raise ValueError('activation failed cleanly')
+    monkeypatch.setattr(module,'_enable_preparer',refuse)
+    with pytest.raises(ValueError,match='activation failed cleanly'):module._activate_handoff(out,guard=lambda:None)
+    assert target.read_bytes()==old and not (base/'thermal-native-geometry-prepare.timer').exists()
+    assert all(value=='active' for value in current.values())
+
+
+def test_uncertain_preparer_cleanup_preserves_installed_definitions_and_stopped_schedules(tmp_path,monkeypatch):
+    module,out,base,family,previous,calls,current=fixture(tmp_path,monkeypatch)
+    def refuse(*a,**kw):raise module.PreparerReconciliationRequired('cleanup unproven')
+    monkeypatch.setattr(module,'_enable_preparer',refuse)
+    with pytest.raises(ValueError,match='cleanup unproven'):module._activate_handoff(out,guard=lambda:None)
+    assert (base/'thermal-native-geometry-prepare.timer').read_bytes()==(family/'thermal-native-geometry-prepare.timer').read_bytes()
+    assert all(value=='inactive' for value in current.values())
+
+
+def test_guard_failure_after_enable_undoes_preparer_before_unit_files(tmp_path,monkeypatch):
+    module,out,base,family,previous,calls,current=fixture(tmp_path,monkeypatch);enabled=False;undone=[]
+    def enable(root,guard):
+        nonlocal enabled
+        enabled=True;return {'lease':'owned'}
+    def guard():
+        if enabled:raise ValueError('epoch expired after enable')
+    def undo(lease):
+        assert lease=={'lease':'owned'}
+        assert (base/'thermal-native-geometry-prepare.timer').exists()
+        undone.append(lease)
+    monkeypatch.setattr(module,'_enable_preparer',enable);monkeypatch.setattr(module,'_undo_preparer_enable',undo)
+    with pytest.raises(ValueError,match='epoch expired after enable'):module._activate_handoff(out,guard=guard)
+    assert len(undone)==1 and not (base/'thermal-native-geometry-prepare.timer').exists()
+    assert all(value=='active' for value in current.values())

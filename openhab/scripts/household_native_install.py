@@ -3,7 +3,7 @@
 The caller must qualify readiness, hold the existing shared lock and supply an
 inactivity/source/deadline guard. Helpers mutate exact reconciled files, quiesce
 owned schedules, reload and verify definitions. There is no live CLI or complete
-activation entry point; preparer enablement and admission remain unfinished.
+public activation entry point; source-backed admission remains unfinished.
 """
 import os,stat,secrets
 from pathlib import Path
@@ -191,8 +191,8 @@ def _verify_effective_family(family,*,guard):
         services_inactive=True,timers_inactive=True,automatic_actuation=False)
 
 
-def _reload_handoff(output,*,guard):
-    """Compose internal admitted installation; preparer activation stays pending.
+def _reload_handoff(output,*,guard,_activate_preparer=False):
+    """Compose internal admitted installation with optional preparer activation.
 
     A source-backed admission caller must already hold the shared lock. Its
     guard must preserve readiness/source/deadline epochs through intentional
@@ -202,7 +202,7 @@ def _reload_handoff(output,*,guard):
     record=handoff_api.verify(output,guard=guard)
     root=deploy._path(record['originals']['forecast_service']['path']).parent
     family=deploy._directory(record['family']);own=deploy._bytes(Path(__file__))
-    changes=[];installed=False
+    changes=[];installed=False;preparer_lease=None
     def checked():
         guard()
         if deploy._bytes(Path(__file__))!=own:raise ValueError('installer source changed')
@@ -212,8 +212,20 @@ def _reload_handoff(output,*,guard):
             checked();deploy._systemctl('daemon-reload');checked()
             effective=_verify_effective_family(family,guard=checked)
             checked()
+            if _activate_preparer:
+                preparer_lease=_enable_preparer(root,guard=checked)
+                checked()
         except Exception as error:
-            if installed:
+            uncertain=isinstance(error,PreparerReconciliationRequired)
+            if preparer_lease is not None:
+                try:_undo_preparer_enable(preparer_lease)
+                except Exception as cleanup_error:
+                    uncertain=True
+                    error.add_note('Preparer cleanup unproven; installed definitions retained: '+type(cleanup_error).__name__)
+            if uncertain:
+                restoration['safe']=False
+                error.add_note('Native definitions retained and original schedules remain quiescent for preparer reconciliation')
+            if installed and not uncertain:
                 pending=_undo(changes)
                 if pending:
                     restoration['safe']=False
@@ -223,9 +235,19 @@ def _reload_handoff(output,*,guard):
                     restoration['safe']=False
                     error.add_note('Restored definition reload failed; schedules remain quiescent: '+type(reload_error).__name__)
             raise
-    return dict(status='native_definitions_verified',handoff_sha256=result['handoff_sha256'],
+    return dict(status='native_family_activated' if _activate_preparer else 'native_definitions_verified',handoff_sha256=result['handoff_sha256'],
         effective_definition_status=effective['status'],unit_manager_reloaded=True,
-        new_preparer_timer_enabled=False,service_restarted=False,automatic_actuation=False)
+        new_preparer_timer_enabled=_activate_preparer,service_restarted=False,automatic_actuation=False)
+
+
+def _activate_handoff(output,*,guard):
+    """Internal activation only; caller must hold shared lock and qualify sources."""
+    return _reload_handoff(output,guard=guard,_activate_preparer=True)
+
+
+class PreparerReconciliationRequired(ValueError):
+    """Preparer ownership/inactivity is unproven; keep its definitions intact."""
+
 
 PREPARER_TIMER='thermal-native-geometry-prepare.timer'
 
@@ -271,7 +293,7 @@ def _publish_enable_link(root):
                 if fd_identity()!=created_identity:raise ValueError('concurrent timer enablement preserved')
                 os.unlink(PREPARER_TIMER,dir_fd=fd)
             except Exception as cleanup_error:
-                error.add_note('Enablement link publication cleanup requires reconciliation: '+type(cleanup_error).__name__)
+                raise PreparerReconciliationRequired('Enablement link publication cleanup requires reconciliation: '+type(cleanup_error).__name__) from error
         raise
     finally:os.close(fd)
 
@@ -319,5 +341,6 @@ def _enable_preparer(root,*,guard):
     except Exception as error:
         if lease is not None:
             try:_undo_preparer_enable(lease)
-            except Exception as cleanup_error:error.add_note('Preparer enablement cleanup requires reconciliation: '+type(cleanup_error).__name__)
+            except Exception as cleanup_error:
+                raise PreparerReconciliationRequired('Preparer enablement cleanup requires reconciliation: '+type(cleanup_error).__name__) from error
         raise
