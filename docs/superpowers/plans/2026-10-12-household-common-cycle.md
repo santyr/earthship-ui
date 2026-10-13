@@ -654,3 +654,15 @@ allowance:58pages/232KiB over0.10488s, about2.16MiB/s. Original guard unchanged;
 no OOM/memorymax events and103456768B peak. Numerical runtime remains unqualified.
 Actual library/draft files/unit syntax, current input/capture/full pipeline,
 scoring latency and coherent live selection/all13/A01-A11 proofs remain required.
+
+Actual native family private draft qualification
+------------------------------------------------
+21859/run-u6898 exited0. All six installed5.2.3 library identities match the
+retained fitted geometry; one217-source native stage/config/model selection is
+shared across six private draft files in native-family-draft-f17c503/family.
+Family root2d774bb1d69b7675ef408f19c4917a5f399a0f3780c15f323b3aed9726854950.
+The actual prep service/timer passed systemd-analyze --user verify, and all four
+UTC calendar expressions parsed successfully. Actual draft preparation1.4127s,
+58281984B peak, all memorymax/OOM events0. This verifies installed libraries and
+private files only; no unit/clock/model changes, numerical runtime/current
+capture/full pipeline/scoring qualification or actuator authority was claimed.

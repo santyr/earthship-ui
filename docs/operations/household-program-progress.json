@@ -3135,7 +3135,7 @@
       }
     },
     "native_service_family_draft": {
-      "status": "implemented_private_family_draft_tests_passed_actual_library_draft_pending",
+      "status": "actual_installed_library_and_private_unit_draft_verified_live_qualification_pending",
       "base_commit": "464ef56",
       "sources": [
         "openhab/scripts/household_native_family.py"
@@ -3157,12 +3157,40 @@
         "Owned private file hashes/readback and source/config drift checks; no installation, fitting, publication or physical commands."
       ],
       "qualification_limits": [
-        "Actual installed library identity and draft unit syntax still require verification.",
+        "Six actual installed5.2.3 library identities, private family readback, prep unit syntax and all four UTC calendar expressions verified; live installation/clock behavior is unqualified.",
         "Native numerical runtime/current-input/pipeline/scoring qualification and coherent owned live handoff remain incomplete."
       ],
       "live_units_changed": false,
       "production_model_changed": false,
-      "automatic_actuation": false
+      "automatic_actuation": false,
+      "actual_draft_qualification": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "calendar_expressions_verified": [
+          "*-*-* *:01/5:00 UTC",
+          "*-*-* *:02/5:00 UTC",
+          "*-*-* *:03/5:05 UTC",
+          "*-*-* *:04/5:45 UTC"
+        ],
+        "current_native_capture_projected": false,
+        "family_directory": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-family-draft-f17c503/family",
+        "family_sha256": "2d774bb1d69b7675ef408f19c4917a5f399a0f3780c15f323b3aed9726854950",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 58281984,
+        "native_binding_version": "5.2.3",
+        "native_library_count": 6,
+        "numerical_runtime_qualified": false,
+        "prep_service_and_timer_syntax_verified": true,
+        "private_file_count": 6,
+        "production_model_changed": false,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 1.412697160965763,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-c9f54d2-native",
+        "status": "actual_installed_library_native_family_draft_verified",
+        "handle": 21859
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -3292,5 +3320,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T16:26:42.234367+00:00"
+  "updated_at": "2026-10-13T16:34:11.868846+00:00"
 }
