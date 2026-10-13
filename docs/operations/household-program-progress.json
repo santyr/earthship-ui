@@ -3027,7 +3027,7 @@
       "automatic_actuation": false
     },
     "native_stage_packaging": {
-      "status": "implemented_native_and_legacy_package_tests_passed_actual_native_stage_pending",
+      "status": "actual_native217_package_verified_runtime_pressure_preflight_refused",
       "base_commit": "e8ffe81",
       "sources": [
         "openhab/scripts/household_cycle_deploy.py"
@@ -3050,7 +3050,7 @@
         "Native probe keeps reserved issue window, forty-second guarded phase and original outer capped qualification lifetime; legacy paths retained."
       ],
       "qualification_limits": [
-        "Actual native217-source deployment record/readback/runtime qualification still required.",
+        "Actual native217-source deployment/v2 package readback verified; numerical runtime qualification refused original pressure preflight.",
         "Actual native preparer/current-input capture/full household pipeline and full scoring/report latency still required.",
         "Coherent preparer/issuer/observer/scorer/UI selection and whole-program review are incomplete."
       ],
@@ -3058,7 +3058,55 @@
       "live_units_changed": false,
       "live_writes": false,
       "production_model_changed": false,
-      "automatic_actuation": false
+      "automatic_actuation": false,
+      "actual_package_qualification": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "code_revision": "c9f54d2a004bc1e4502660b3389a1ef05cf7a6bc",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "ee2f79b2b7ffaefe791dfef1c822a29ad1800651083e84097823f3b99fbe6ba3",
+        "identical_readback": true,
+        "live_units_changed": false,
+        "live_writes": false,
+        "native_source_count": 12,
+        "numerical_runtime_qualified": false,
+        "production_model_changed": false,
+        "protected_source_count": 72,
+        "retained_original_count": 4,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 1.3493961640051566,
+        "source_count": 217,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-c9f54d2-native",
+        "status": "actual_private_native_package_verified",
+        "handle": 83215
+      },
+      "actual_runtime_attempt": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "code_revision": "c9f54d2a004bc1e4502660b3389a1ef05cf7a6bc",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "ee2f79b2b7ffaefe791dfef1c822a29ad1800651083e84097823f3b99fbe6ba3",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 108589056,
+        "numerical_runtime_qualified": false,
+        "production_interpreter": true,
+        "production_model_changed": false,
+        "runtime_seconds": 3.485659757978283,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "source_count": 217,
+        "status": "actual_native_runtime_refused",
+        "worker_result": {
+          "exception_type": "ValueError",
+          "private_diagnostic_state_retained": true,
+          "status": "native_runtime_qualification_refused"
+        },
+        "worker_status": 1,
+        "handle": 83215,
+        "reason": "unchanged TrainingHeadroom PSI average preflight refused before numerical replay",
+        "private_diagnosis": "native-package-c9f54d2/private-runtime-diagnosis.json"
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -3188,5 +3236,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T16:01:28.893825+00:00"
+  "updated_at": "2026-10-13T16:09:51.272758+00:00"
 }
