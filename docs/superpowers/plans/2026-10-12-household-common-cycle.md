@@ -166,3 +166,28 @@ reads identical candidate/runtime in10.42s/118874112B, zeroOOM. No optimizer,
 live units/model selection or action changes. Actual future/native issued capture,
 native scoring and coherent observer/UI/producer handoff remain pending; adding
 observer source requires explicit wider runtime/artifact/stage qualification.
+
+Native outcome scoring task (inline, existing approved migration)
+- Create native_thermal_score.py and test_native_thermal_score.py outside the72
+  fitted files. score(capture, receipts, outcome, *, runtime,
+  expected_artifact_sha256, expected_capture_sha256, horizon_hours, assessed_at,
+  recent, check_budget) snapshots caller-owned inputs before callbacks, replays
+  native capture under external pins, requires native score source in runtime,
+  and verifies both exact persisted numeric/main receipts and their causal order.
+- Preserve supported1/6/12/24h horizons, original maturity threshold5min, same
+  sensor-epoch/qualified receipt rules, physical predictions and explicit missing
+  recent-cycle baseline. Reject unsupported clock precision with native parser.
+- Version the closed scored pair/v2 with native model rule and geometry lineage.
+  validate_pair(pair, *, expected_pair_sha256) preserves explicit root identity,
+  clock/alignment and native fields; reuse legacy pure error-arithmetic validation
+  through an explicitly restricted statistical view, never v1 forecast replay.
+  summarize(pairs, *, artifact_sha256) keeps original bounded256-point MAE/bias,
+  missing-baseline and duplicate/mixed-revision behavior; no graduation/actions.
+- TDD first: four horizons, delivery corruption/missing/reordered receipts,
+  immature/phase-invalid/precision-invalid outcomes, missing/available baseline,
+  resealed arithmetic corruption, external identity, duplicate score and frozen
+  caller outcome. Verify original/native source/forecast/statistical regressions
+  serially under unchanged lock/caps/pressure checks; commit and immutable review.
+- Source-bound mature outcome acquisition/completion reconciliation/reporting,
+  UI/household/native producer handoff and actual as-issued scoring remain live
+  integration requirements. This pure score task selects no model or live units.
