@@ -61,3 +61,11 @@ The bounded quiet retry passed original candidate numerical replay and runtime
 verification in40.37s, with113811456-byte peak and all memory-limit/OOM counters
 zero. No fitting, live-unit change, publication or model selection occurred.
 Current-input capture and full pipeline qualification remain pending.
+
+A subsequent read-only current-input attempt at source04fb1d0 stopped during
+candidate replay before Java geometry. It recorded zero swap-read pages in
+the refusal interval. PSI some increased1201 microseconds over0.08199373s
+(1.465percent), exceeding the preserved0.5percent interval limit;
+all three pressure averages were zero. This is a separate preserved pressure
+condition. No further safeguard adjustment or production readiness is claimed.
+The current-input attempt retained private diagnostics and made no live writes.

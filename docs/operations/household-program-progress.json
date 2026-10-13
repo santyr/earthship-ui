@@ -3209,7 +3209,7 @@
       }
     },
     "native_inference_one_second_window": {
-      "status": "approved_implemented_tests_and_actual_native_runtime_pass_current_capture_pending",
+      "status": "approved_swap_window_verified_runtime_pass_current_capture_preserved_PSI_refusal",
       "approval": "User explicitly approved the one-second inference window on October 13.",
       "policy": "Maximum 1048576 bytes host swap reads over trailing one second; retain sampled baseline at or before boundary; refusal latches.",
       "fitting_guard_unchanged": true,
@@ -3300,7 +3300,30 @@
         "worker_status": 0,
         "handle": 68900
       },
-      "current_native_capture_qualification_pending": true
+      "current_native_capture_qualification_pending": true,
+      "actual_current_capture_attempt": {
+        "handle": 15938,
+        "scope": "run-u7198.scope",
+        "status": "refused_preserved_interval_PSI_before_Java_geometry",
+        "base_commit": "04fb1d0",
+        "phase": "geometry",
+        "reason": "native inference host pressure or memory reserve unavailable: interval memory pressure exceeded",
+        "elapsed_seconds": 145.49337860802189,
+        "interval_seconds": 0.08199373300885782,
+        "some_stall_microseconds": 1201,
+        "some_interval_percent": 1.4647460920827395,
+        "some_limit_percent": 0.5,
+        "swap_read_pages_in_interval": 0,
+        "pressure_averages": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "private_diagnosis": "native-current-capture-04fb1d0/private-diagnosis.json",
+        "live_writes": false,
+        "production_model_changed": false,
+        "current_native_capture_projected": false
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -3430,5 +3453,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T17:03:05.521865+00:00"
+  "updated_at": "2026-10-13T17:08:08.603481+00:00"
 }
