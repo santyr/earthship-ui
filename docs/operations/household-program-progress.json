@@ -2466,6 +2466,39 @@
           "status": "sealed_staged_native_artifact_verified"
         }
       }
+    },
+    "native_provisional_ui_compatibility": {
+      "status": "decoder_implemented_verified_live_install_pending",
+      "native_publication_schema": "earthship-provisional-thermal-publication/v2",
+      "native_publication_version": 9,
+      "native_forecast_schema": "earthship-provisional-thermal-forecast/v2",
+      "original_version_8_preserved": true,
+      "native_model_rule_and_geometry_root_required": true,
+      "exact_source_identity_physical_hourly_target_and_expiry_checks_preserved": true,
+      "invalid_future_and_expired_native_publications_unavailable": true,
+      "low_uncalibrated_provisional_state_preserved": true,
+      "advice_graduation_calibration_stability_and_actuation_withheld": true,
+      "representative_failures_before_fix": 3,
+      "new_native_and_legacy_cases": 18,
+      "total_parser_cases_passed": 85,
+      "existing_card_plot_cases_passed": 15,
+      "total_cases_passed": 100,
+      "parser_seconds": 4.8,
+      "card_plot_seconds": 24.3,
+      "test_cpu_quota_percent": 20,
+      "test_memory_max_bytes": 268435456,
+      "test_swap_max_bytes": 0,
+      "frontend_internal_thread_limit": 64,
+      "numerical_thread_and_task_caps_unchanged": true,
+      "test_workers": 1,
+      "first_24_task_startup_timeout": true,
+      "second_24_task_startup_abort": true,
+      "host_service_active_after_diagnostic_abort": true,
+      "native_runtime_sources_unchanged": true,
+      "live_ui_install_pending": true,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -2595,5 +2628,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:17:47-06:00"
+  "updated_at": "2026-10-12T22:26:44-06:00"
 }

@@ -319,3 +319,15 @@ Native UI decoder compatibility task (approved observational migration)
   unavailable, missing/wrong geometry/rule/schema/version/source root, authority
   escalation, exact expiry and future clocks. Run focused parser/render contracts
   under one worker and256MiB/CPU20/swap0 caps. No live UI file mirror until verified.
+
+Native UI v9/pubv2/numericv2 compatibility implemented preserving v8. Native rule
+andgeometry root closedfield checks, lowprovisional/withheld authority, exact
+identity/targets/physicalbounds/expiry; invalid/future/expired v9 UNAVAILABLE.
+Node24task attempt22568 terminal124; native-loader24task20585 terminal134 startup
+abort; live UI active/NRestarts0/no corefile/PSIzero verified. Frontendonly64task
+cap with1worker/CPU20/Mem256/swap0/V8pool1/nativeconfig loader:29271 actual3 RED
+of18/2.20s; corrected71067 GREEN85parser/4.80s;54572 GREEN15renderer/24.30s.
+100currenttests pass. Numeric24task/BLAS1/pressure guards unchanged. All11native
+runtime sourcehashes match bb640b8; no new model/artifact required for UIonlychange.
+Live rootdecoder mirror and fresh HTTP/browserverification stillpending. No
+live unit/model/actuator changes or GitHubpublication. FullPR3 remainsactive.
