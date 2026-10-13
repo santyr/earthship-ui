@@ -586,3 +586,27 @@ geometry, capture, household pipeline or production delivery was qualified.
 All live units/model selection/physical action authority remain unchanged.
 Native config packaging and coherent preparer/issuer/observer/scorer/UI selection,
 actual scoring/report latency and all13/A01-A11 requirements remain active.
+
+2026-10-13 explicit native stage packaging
+-----------------------------------------
+household_cycle_deploy now creates/validates explicit deployment/v2 records for
+native candidates, binding unchanged base runtime sources, complete native
+source closure, external model/runtime roots and all four owned retained
+originals under their existing role byte bounds. A native config switch preserves
+original endpoint/credential/source paths, sharedlock/cutover and the complete
+baseline candidate base runtime; baseline candidate bytes are also bound.
+Legacy candidate-only staging remains supported. Native header/source validation
+is separate from numerical model qualification. No fitting or live selection.
+
+The staged native runtime probe dispatches native loader/current runtime/candidate
+reader with external pins, real sharedlock and unchanged TrainingHeadroom1MiB/s
+policy/quietpreflight. Preserve original issue reservation,40s guarded phase,
+issue minus35 cutoff and original outer capped qualification command.67000
+observed the legacy-only staging RED;48499 passed36package cases and observed
+native runtime probe RED atlegacy loader.63219 passed37cases(13native+24legacy)
+in12.90s. Synthetic metadata and injected numerical reader qualify packaging
+contracts only; no real fitted model or production delivery claim. An earlier
+7261 test launch refused original publication resource admission before pytest.
+Actual native217-source stage/readback/runtime qualification, preparer/current
+capture/full pipeline/scoring latency, coherent family selection andall13/A01-A11
+proofs remain required. Production units/model/action authority are unchanged.

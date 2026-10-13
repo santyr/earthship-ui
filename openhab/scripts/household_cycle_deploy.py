@@ -2,7 +2,7 @@
 
 Runtime qualification and service handoff are separate guarded operations.
 Private configurations, credentials and fitted artifacts are never committed or
-printed by this tool. Source packaging uses only the standard library.
+printed by this tool. Source archiving uses the standard library; native headers reuse schema validation.
 """
 from hashlib import sha256
 import json,os,re,stat,subprocess
@@ -25,17 +25,17 @@ def _path(value):
     return path
 
 
-def _bytes(path,*,private=False):
+def _bytes(path,*,private=False,maximum=MAX_BYTES):
     path=_path(path)
     try:fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
     except OSError:raise ValueError('owned deployment original unavailable') from None
     try:
         info=os.fstat(fd)
-        if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_size>MAX_BYTES or
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_size>maximum or
             private and stat.S_IMODE(info.st_mode)!=0o600):raise ValueError('bounded owned deployment original required')
-        raw=os.read(fd,MAX_BYTES+1);after=os.fstat(fd)
+        raw=os.read(fd,maximum+1);after=os.fstat(fd)
         metadata=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_size,row.st_mtime_ns,row.st_ctime_ns)
-        if len(raw)>MAX_BYTES or metadata(info)!=metadata(after):raise ValueError('deployment original changed while reading')
+        if len(raw)>maximum or metadata(info)!=metadata(after):raise ValueError('deployment original changed while reading')
         return raw
     finally:os.close(fd)
 
@@ -71,6 +71,45 @@ def _service_contract(raw,config):
         raise ValueError('original provisional publisher contract differs')
 
 
+
+NATIVE_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v2'
+NATIVE_DEPLOYMENT_FIELDS={'native_runtime_sources','native_originals','artifact_sha256','runtime_sha256'}
+
+
+def _native_header(candidate,settings):
+    from native_thermal_artifact import SCHEMA,FIELDS,validate_native_runtime,digest,LIMITS
+    from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS
+    if (not isinstance(candidate,dict) or set(candidate)!=FIELDS or candidate['schema']!=SCHEMA or
+        set(settings)!=CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'} or
+        settings['schema']!=NATIVE_CONFIG_SCHEMA):
+        raise ValueError('explicit closed native candidate and configuration required')
+    runtime=validate_native_runtime(candidate['runtime'])
+    if (candidate['artifact_sha256']!=settings['artifact_sha256'] or
+        candidate['runtime_sha256']!=settings['runtime_sha256'] or
+        digest(candidate,'artifact_sha256')!=candidate['artifact_sha256'] or
+        digest(runtime)!=candidate['runtime_sha256']):
+        raise ValueError('external native model or runtime identity differs')
+    _directory(_path(settings['geometry_directory']));_directory(_path(settings['evidence_directory']))
+    info=dict(native_runtime_sources=runtime['native_source_manifest'],native_originals=candidate['originals'],
+        artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'])
+    _verify_native_originals(info)
+    return runtime['base_runtime']['source_manifest'],info
+
+
+def _verify_native_originals(info):
+    from native_thermal_artifact import LIMITS
+    refs=info['native_originals']
+    if not isinstance(refs,dict) or set(refs)!=set(LIMITS):
+        raise ValueError('complete retained native dependencies required')
+    for role,ref in refs.items():
+        if (not isinstance(ref,dict) or set(ref)!={'path','sha256'} or
+            not isinstance(ref['sha256'],str) or re.fullmatch('[a-f0-9]{64}',ref['sha256']) is None):
+            raise ValueError('closed original native reference required')
+        path=_path(ref['path']);_directory(path.parent)
+        if sha256(_bytes(path,private=True,maximum=LIMITS[role])).hexdigest()!=ref['sha256']:
+            raise ValueError('retained native original differs')
+
+
 def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision,service_forecast_config=None):
     repo,stage,config,parameters,cache,service=map(_path,(repo_root,stage,forecast_config,parameters,observation_cache,service_file))
     if re.fullmatch('[a-f0-9]{40}',code_revision or '') is None or re.fullmatch('[a-f0-9]{64}',parameters_sha256 or '') is None:
@@ -80,16 +119,30 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     _directory(cache.parent)
     config_raw=_bytes(config,private=True);settings=json.loads(config_raw)
     candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
+    declared=json.loads(candidate_raw);native=settings.get('schema')==NATIVE_CONFIG_SCHEMA or declared.get('schema')=='earthship-provisional-thermal-candidate/v2'
+    protected,native_info=_native_header(declared,settings) if native else (declared['runtime']['source_manifest'],None)
+    baseline_candidate=None;baseline_candidate_raw=None
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
     if sha256(parameter_raw).hexdigest()!=parameters_sha256:raise ValueError('original retained parameters differ')
     baseline=config if service_forecast_config is None else _path(service_forecast_config)
     baseline_raw=config_raw if baseline==config else _bytes(baseline,private=True)
     if baseline!=config:
         previous=json.loads(baseline_raw)
+        allowed={'candidate_path'} if not native else {'schema','candidate_path','artifact_sha256','runtime_sha256','geometry_directory','evidence_directory'}
         if (not isinstance(settings,dict) or not isinstance(previous,dict) or
-            {k:v for k,v in settings.items() if k!='candidate_path'}!={k:v for k,v in previous.items() if k!='candidate_path'} or
+            {k:v for k,v in settings.items() if k not in allowed}!={k:v for k,v in previous.items() if k not in allowed} or
             settings.get('candidate_path')==previous.get('candidate_path')):
-            raise ValueError('only the selected candidate may change from the original service configuration')
+            raise ValueError('only explicit model selection may change from the original service configuration')
+        if native:
+            from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS,SCHEMA as LEGACY_SCHEMA
+            previous_fields=CONFIG_FIELDS if previous.get('schema')==LEGACY_SCHEMA else CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}
+            if previous.get('schema') not in (LEGACY_SCHEMA,NATIVE_CONFIG_SCHEMA) or set(previous)!=previous_fields:
+                raise ValueError('closed original baseline configuration required')
+            baseline_candidate=_path(previous['candidate_path']);baseline_candidate_raw=_bytes(baseline_candidate,private=True)
+            previous_model=json.loads(baseline_candidate_raw);base=previous_model['runtime']
+            if previous.get('schema')==NATIVE_CONFIG_SCHEMA:base=base['base_runtime']
+            if _encode(base)!=_encode(declared['runtime']['base_runtime']):
+                raise ValueError('native selection must preserve original fitted base runtime')
     _service_contract(service_raw,baseline)
     # Archive the immutable commit object, not the mutable index/worktree. A
     # concurrent edit after the cleanliness check cannot acquire this identity.
@@ -107,16 +160,21 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     if not set(REGISTRY)<=set(sources) or not 4<=len(sources)<=400:raise ValueError('bounded complete committed source set required')
     if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
         raise ValueError('native geometry worker requires its original Java source')
-    protected=json.loads(candidate_raw)['runtime']['source_manifest']
     if not isinstance(protected,dict) or not 2<=len(protected)<=72:raise ValueError('original fitted source manifest required')
     for name,digest in protected.items():
         key='openhab/scripts/'+name
         if key not in sources or sha256(sources[key]).hexdigest()!=digest:raise ValueError('original fitted runtime source differs')
+    if native_info is not None:
+        for name,digest in native_info['native_runtime_sources'].items():
+            if name not in sources or sha256(sources[name]).hexdigest()!=digest:
+                raise ValueError('native runtime source differs from committed archive')
     bindings={str(path):sha256(raw).hexdigest() for path,raw in ((config,config_raw),(candidate,candidate_raw),(parameters,parameter_raw),(service,service_raw))}
     bindings[str(baseline)]=sha256(baseline_raw).hexdigest()
+    if baseline_candidate is not None:bindings[str(baseline_candidate)]=sha256(baseline_candidate_raw).hexdigest()
     # Recheck before creating anything; malformed inputs leave no staged output.
     if any(_bytes(repo/name)!=raw for name,raw in sources.items()) or _git(repo,'rev-parse','HEAD').decode().strip()!=code_revision:
         raise ValueError('source changed during package preparation')
+    if native_info is not None:_verify_native_originals(native_info)
     stage.mkdir(mode=0o700)
     root=stage/'sources';root.mkdir(mode=0o700)
     for name,raw in sources.items():
@@ -134,6 +192,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
         original_bindings=bindings,source_manifest={name:sha256(raw).hexdigest() for name,raw in sources.items()},
         protected_runtime_sources=protected,cycle_sha256=sha256(_bytes(stage/'cycle.json',private=True)).hexdigest(),
         dropin_sha256=sha256(dropin.encode()).hexdigest(),automatic_actuation=False)
+    if native_info is not None:record.update(schema='earthship-household-cycle-deployment/v2',**native_info)
     _write(stage/'deployment.json',_encode(record));verify_stage(stage)
     return dict(status='deployment_staged',code_revision=code_revision,source_count=len(sources),automatic_actuation=False)
 
@@ -141,7 +200,9 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
 def verify_stage(stage):
     stage=_directory(stage);record=json.loads(_bytes(stage/'deployment.json',private=True))
     fields={'schema','code_revision','stage','service_file','original_bindings','source_manifest','protected_runtime_sources','cycle_sha256','dropin_sha256','automatic_actuation'}
-    if set(record)!=fields or record['schema']!='earthship-household-cycle-deployment/v1' or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
+    native=record.get('schema')=='earthship-household-cycle-deployment/v2'
+    if native:fields|=NATIVE_DEPLOYMENT_FIELDS
+    if set(record)!=fields or record['schema'] not in ('earthship-household-cycle-deployment/v1','earthship-household-cycle-deployment/v2') or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
         raise ValueError('closed original deployment record required')
     sources=record['source_manifest'];root=_directory(stage/'sources')
     if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
@@ -151,6 +212,15 @@ def verify_stage(stage):
     if any(sha256(_bytes(root/name)).hexdigest()!=digest for name,digest in sources.items()):raise ValueError('staged source changed')
     for name,digest in record['protected_runtime_sources'].items():
         if sources.get('openhab/scripts/'+name)!=digest:raise ValueError('original protected source binding differs')
+    if native:
+        if not isinstance(record['native_runtime_sources'],dict):raise ValueError('native staged source closure required')
+        for name,digest in record['native_runtime_sources'].items():
+            if sources.get(name)!=digest:raise ValueError('native staged source binding differs')
+        _verify_native_originals(record)
+        cycle=json.loads(_bytes(stage/'cycle.json',private=True));settings=json.loads(_bytes(cycle['forecast_config'],private=True))
+        protected,info=_native_header(json.loads(_bytes(settings['candidate_path'],private=True)),settings)
+        if protected!=record['protected_runtime_sources'] or any(info[key]!=record[key] for key in NATIVE_DEPLOYMENT_FIELDS):
+            raise ValueError('native staged model declaration differs')
     for name,digest in record['original_bindings'].items():
         if sha256(_bytes(name,private=name!=record['service_file'])).hexdigest()!=digest:raise ValueError('original deployment input changed')
     if (sha256(_bytes(stage/'cycle.json',private=True)).hexdigest()!=record['cycle_sha256'] or
@@ -201,14 +271,35 @@ def verify_runtime(stage):
     from thermal_model.provisional_live import load_settings,current_runtime,_next_issue
     from thermal_model.provisional_artifact import read_candidate
     from thermal_model.capture_guard import SharedScoreLock
-    cycle=load_cycle_settings(stage/'cycle.json');settings=load_settings(cycle['forecast_config'])
-    now=datetime.now(timezone.utc)
-    if _next_issue(now)-now<timedelta(seconds=90):raise BlockingIOError('original publisher preparation window reserved')
+    cycle=load_cycle_settings(stage/'cycle.json');native=record['schema']=='earthship-household-cycle-deployment/v2'
+    if native:
+        from native_thermal_live import load_settings
+    settings=load_settings(cycle['forecast_config'])
+    now=datetime.now(timezone.utc);issue=_next_issue(now)
+    if issue-now<timedelta(seconds=90):raise BlockingIOError('original publisher preparation window reserved')
     with SharedScoreLock(settings['shared_lock']) as lock:
-        runtime=current_runtime();read_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime)
+        if native:
+            import time
+            from native_thermal_artifact import current_native_runtime,read_native_candidate,digest
+            from thermal_model.training_pressure_guard import TrainingHeadroom
+            pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576);pressure.preflight();deadline=time.monotonic()+40
+            def guard():
+                lock.verify();pressure.check()
+                if time.monotonic()>=deadline or datetime.now(timezone.utc)>=issue-timedelta(seconds=35):
+                    raise ValueError('native staged qualification lifetime elapsed')
+            runtime=current_native_runtime(guard=guard)
+            if digest(runtime)!=settings['runtime_sha256'] or digest(runtime)!=record['runtime_sha256']:
+                raise ValueError('native staged executing runtime differs from external pins')
+            read_native_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime,
+                expected_artifact_sha256=settings['artifact_sha256'],guard=guard)
+        else:
+            runtime=current_runtime();read_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime)
+            guard=lock.verify
         collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=record['code_revision'])
-        collector.verify_unchanged();lock.verify()
-        if verify_stage(stage)!=record or current_runtime()!=runtime:raise ValueError('staged runtime changed during qualification')
+        collector.verify_unchanged();guard()
+        executing=current_native_runtime(guard=guard) if native else current_runtime()
+        if verify_stage(stage)!=record or executing!=runtime:raise ValueError('staged runtime changed during qualification')
+        guard()
     return dict(status='runtime_verified',deployment_sha256=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest(),automatic_actuation=False)
 
 

@@ -3025,6 +3025,40 @@
       "production_model_changed": false,
       "live_writes": false,
       "automatic_actuation": false
+    },
+    "native_stage_packaging": {
+      "status": "implemented_native_and_legacy_package_tests_passed_actual_native_stage_pending",
+      "base_commit": "e8ffe81",
+      "sources": [
+        "openhab/scripts/household_cycle_deploy.py"
+      ],
+      "tests": {
+        "native_package_RED_handle": 67000,
+        "native_runtime_probe_RED_handle": 48499,
+        "GREEN_handle": 63219,
+        "passed": 37,
+        "seconds": 12.9,
+        "native_cases": 13,
+        "legacy_cases": 24,
+        "qualification_scope": "synthetic static metadata/packages and injected numerical reader; no fitted model qualification"
+      },
+      "behavior": [
+        "Explicit deployment/v2 record seals unchanged base runtime sources, complete native source closure, model/runtime pins and four retained originals.",
+        "Native config transition preserves original endpoint, credentials, shared lock, cutover and complete baseline candidate base runtime.",
+        "Bind baseline candidate and original config; verify source/archive hashes, owned private original roles and declared limits.",
+        "Native staged runtime probe uses native config/runtime/candidate APIs with external pins, original shared lock and TrainingHeadroom1MiB/s allowance.",
+        "Native probe keeps reserved issue window, forty-second guarded phase and original outer capped qualification lifetime; legacy paths retained."
+      ],
+      "qualification_limits": [
+        "Actual native217-source deployment record/readback/runtime qualification still required.",
+        "Actual native preparer/current-input capture/full household pipeline and full scoring/report latency still required.",
+        "Coherent preparer/issuer/observer/scorer/UI selection and whole-program review are incomplete."
+      ],
+      "fit_executed": false,
+      "live_units_changed": false,
+      "live_writes": false,
+      "production_model_changed": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -3154,5 +3188,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T15:42:31.267115+00:00"
+  "updated_at": "2026-10-13T16:01:28.893825+00:00"
 }
