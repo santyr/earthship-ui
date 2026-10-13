@@ -483,3 +483,15 @@ now satisfies the original source ownership requirement. RED2 then54 GREEN
 refusal,33 existing cap checks and19 native geometry/publication cases.
 Actual updated-runtime geometry qualification remains required; old candidate
 88b0a2d/runtime6e6c5ad is evidence for8ae8cf8 only and is not selected live.
+
+2026-10-13 actual corrected native future geometry qualification passed
+---------------------------------------------------------------------
+aef24b8 qualification80578 terminal0 built/read new runtime12 candidate2d478618
+(runtimea7779c2b) using unchanged required9/base72 fit environment and original
+fit. Actual installed5.2.3 SunCalc produced/replayed all288 five-minute points
+for13:55:15UTC issue; geometry available13:52:18.161805UTC. Preparation64.107s
+within unchanged75s phase; total candidate+geometry93.068s, peak139079680B,
+memorymax/oom/oom_kill all0. Actual candidate/future geometry only: no current
+native capture/model/pipeline projection, native persisted publication, fit,
+model/units selection or live write. Private originals retained; runtime12
+sealed stage/current-source capture/monitor/coherent family handoff stillpending.

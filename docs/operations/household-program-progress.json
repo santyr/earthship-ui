@@ -2778,10 +2778,21 @@
       ],
       "production_model_changed": false,
       "live_writes": false,
-      "automatic_actuation": false
+      "automatic_actuation": false,
+      "actual_future_geometry_qualification": {
+        "code_revision": "aef24b8475b0f84a95853b89dcfeacedcb020ef4",
+        "artifact_sha256": "2d4786189e071ef17fb0028e797b5fff31e1c4c5285c1134f9d1a1586b58488c",
+        "runtime_sha256": "a7779c2b588ebc7cffdba33af182d99106f943a2d9ee4124be246feae57a57f5",
+        "geometry_series_sha256": "141aa3c31202172c42385ff2fa93a0188f88c4495c7db2939727e8adcaecc541",
+        "point_count": 288,
+        "geometry_seconds": 64.1072546770447,
+        "memory_peak_bytes": 139079680,
+        "live_writes": false,
+        "current_native_capture_projected": false
+      }
     },
     "native_resource_admission": {
-      "status": "implemented_tests_passed_actual_geometry_requalification_pending",
+      "status": "implemented_tests_and_actual_future_geometry_verified",
       "base_commit": "8ae8cf8",
       "source": "openhab/scripts/native_thermal_live.py",
       "bound_resource_helper": "openhab/scripts/household_cycle_resources.py",
@@ -2815,7 +2826,32 @@
       "deadline_relaxed": false,
       "fit_executed": false,
       "production_model_changed": false,
-      "live_writes": false
+      "live_writes": false,
+      "actual_corrected_qualification": {
+        "artifact_sha256": "2d4786189e071ef17fb0028e797b5fff31e1c4c5285c1134f9d1a1586b58488c",
+        "automatic_actuation": false,
+        "code_revision": "aef24b8475b0f84a95853b89dcfeacedcb020ef4",
+        "current_native_capture_projected": false,
+        "fit_executed": false,
+        "geometry_seconds": 64.1072546770447,
+        "geometry_series_sha256": "141aa3c31202172c42385ff2fa93a0188f88c4495c7db2939727e8adcaecc541",
+        "identical_private_readback": true,
+        "issued_at": "2026-10-13T13:55:15+00:00",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 139079680,
+        "native_library_version": "5.2.3",
+        "point_count": 288,
+        "prepared_available_at": "2026-10-13T13:52:18.161805+00:00",
+        "production_model_changed": false,
+        "runtime_sha256": "a7779c2b588ebc7cffdba33af182d99106f943a2d9ee4124be246feae57a57f5",
+        "status": "actual_native_issuer_future_geometry_verified",
+        "total_seconds": 93.0677852150402,
+        "handle": 80578,
+        "artifact_build_and_readback_seconds": 28.959725703054573,
+        "private_evidence": "native-issuer-geometry-aef24b8/geometry-qualification.json"
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -2945,5 +2981,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T07:47:00-06:00"
+  "updated_at": "2026-10-13T07:53:00-06:00"
 }
