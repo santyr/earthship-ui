@@ -3324,6 +3324,23 @@
         "production_model_changed": false,
         "current_native_capture_projected": false
       }
+    },
+    "native_handoff_reconciliation": {
+      "status": "implemented_synthetic_tests_pass_actual_owned_state_pending",
+      "source": "openhab/scripts/household_native_handoff.py",
+      "tests": {
+        "RED_handle": 98564,
+        "GREEN_handle": 88620,
+        "passed": 32,
+        "seconds": 21.69
+      },
+      "behavior": "Private independently reconstructed record binds both previous stages, exact override/effective command ownership, original unit/timer bytes, complete fitted runtime, common inputs/cache and five proposed native changes.",
+      "protected_runtime_sources_unchanged": 72,
+      "native_runtime_sources_unchanged": 12,
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "limits": "No installer or activation yet; native current capture/pipeline/scoring qualification remain incomplete."
     }
   },
   "astro_efficiency_audit": {
@@ -3453,5 +3470,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T17:08:08.603481+00:00"
+  "updated_at": "2026-10-13T17:19:40.152861+00:00"
 }

@@ -666,3 +666,23 @@ UTC calendar expressions parsed successfully. Actual draft preparation1.4127s,
 58281984B peak, all memorymax/OOM events0. This verifies installed libraries and
 private files only; no unit/clock/model changes, numerical runtime/current
 capture/full pipeline/scoring qualification or actuator authority was claimed.
+
+Native handoff reconciliation (2026-10-13)
+-----------------------------------------
+Before the coordinated installer, seal an independently replayable private
+handoff record against the actual previous forecast and score stages. Bind their
+exact effective entry points and owned override bytes, unchanged base units and
+forecast clock, scorer base clock, common configuration endpoints/credentials,
+shared lock, retained energy parameters/cache and complete fitted runtime.
+List exactly five proposed file changes: forecast override, score override,
+score timer override, native preparer service and native preparer timer. Refuse
+unowned/existing new targets, unknown drop-ins, model/config/cache drift, changed
+library identity and changed sealed drafts. Verification reconstructs the record
+from its original files rather than trusting a resealed hash. Drafting performs
+no installation, reload, timer activation, publication or model selection.
+RED/GREEN tests cover the real legacy-to-native metadata transition plus drift,
+wrong effective commands, new-target collisions and unsafe resealing. Verify the
+actual current owned stages and installed libraries under the existing caps.
+The installer follows this record; numerical/current-capture/full-pipeline and
+scoring readiness still gate its activation, and all original program requirements
+remain required.
