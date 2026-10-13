@@ -4805,6 +4805,333 @@
       "product_sources_changed": false,
       "live_writes": false,
       "full_program_complete": false
+    },
+    "production_score_20261013_natural_monitoring": {
+      "recorded_at": "2026-10-13T22:25:36.092653+00:00",
+      "status": "natural_selected_legacy_score_and_report_readback_verified",
+      "invocation_id": "ca32b64e708e4f499524592fec14db24",
+      "service_exit": 0,
+      "natural_status": [
+        {
+          "at_us": "1791930214379854",
+          "status_fields": {
+            "status": "scored",
+            "scored": 1,
+            "current_revision_scored": 256,
+            "pending_reason": null,
+            "automatic_actuation": false
+          }
+        }
+      ],
+      "selected_source": [
+        {
+          "path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-228ac45-score-priority/sources/openhab/scripts/household_forecast_score.py",
+          "sha256": "5bc511ca1f6cdc78c516d4a7969fef8494835c4895f2dd73b070ff2ec5f3ed61",
+          "busy_exit_present": true,
+          "shared_lock_present": true,
+          "guard_and_stage_checks_present": true
+        }
+      ],
+      "report": {
+        "schema": "earthship-provisional-thermal-performance/v1",
+        "artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "assessed_at": "2026-10-13T22:23:13.595194+00:00",
+        "sha256": "b0d7c57c238e0f1b728c91757e915c3142b657ad8f40c73803b710fa59a3b9f8",
+        "bytes": 1074,
+        "by_horizon": {
+          "1": {
+            "model": {
+              "bias_f": -0.24047975275032485,
+              "count": 20,
+              "mae_f": 0.24047975275032485
+            },
+            "persistence": {
+              "bias_f": 0.4229999999999997,
+              "count": 20,
+              "mae_f": 0.4229999999999997
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          },
+          "12": {
+            "model": {
+              "bias_f": 0.6746102425926851,
+              "count": 144,
+              "mae_f": 1.3241102314534268
+            },
+            "persistence": {
+              "bias_f": 2.215,
+              "count": 144,
+              "mae_f": 6.1775
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          },
+          "24": {
+            "model": {
+              "bias_f": 5.557166273795647,
+              "count": 19,
+              "mae_f": 5.557166273795647
+            },
+            "persistence": {
+              "bias_f": 3.202105263157895,
+              "count": 19,
+              "mae_f": 3.202105263157895
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          },
+          "6": {
+            "model": {
+              "bias_f": -0.27285202000028796,
+              "count": 73,
+              "mae_f": 1.0445846196921873
+            },
+            "persistence": {
+              "bias_f": 2.648219178082191,
+              "count": 73,
+              "mae_f": 2.648219178082191
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          }
+        },
+        "graduated": false
+      },
+      "interpretation": {
+        "one_six_twelve_hour_mae_below_persistence": true,
+        "twenty_four_hour_mae_above_persistence": true,
+        "counts_are_horizon_scores_not_independent_days": true,
+        "recent_cycle_baseline_unavailable": true,
+        "production_accuracy_improvement_of_native_model_proven": false
+      },
+      "earlier_failures": {
+        "162010": {
+          "invocation_id": "a660177263954fe5a1d84c6ec7127056",
+          "exit": 75,
+          "logged_status": "busy",
+          "exact_blocking_operation_not_logged": true
+        },
+        "162110": {
+          "invocation_id": "089bf3f2ecad4a74b8e8461f2ecb9129",
+          "exit": 1,
+          "logged_status": "score_withheld",
+          "exact_exception_not_logged": true
+        }
+      },
+      "live_writes_by_agent": false,
+      "natural_production_score_written": true,
+      "native_model_selected": false,
+      "automatic_actuation": false,
+      "full_program_complete": false,
+      "admission_candidate_probe": {
+        "result": {
+          "status": "admission_and_candidate_verified",
+          "queue_entered": true,
+          "queue_executed": false,
+          "live_writes": false
+        },
+        "unit": "run-u9010.scope",
+        "terminal_exit": 0,
+        "selected_production_interpreter": "/usr/bin/python3",
+        "actual_shared_lock_and_original_guards": true,
+        "full_outcome_queue_exercised": false,
+        "earlier_exception_reproduced": false
+      }
+    },
+    "goal_dependency_audit_20261013": {
+      "recorded_at": "2026-10-13T22:26:52.763959+00:00",
+      "goal_complete": false,
+      "original_goal": "complete PR#3",
+      "scope_reduced": false,
+      "github_pr": {
+        "number": 3,
+        "state": "MERGED",
+        "merged_at": "2026-10-11T13:06:40Z",
+        "url": "https://github.com/santyr/earthship-ui/pull/3",
+        "body_sha256": "19a4e3c54db34dfbfbfb0d71903f9a67bbea37b8476714ae175e433ba4412ce5",
+        "scope": "planning only; next coding goal behavior-neutral foundations; owner migrations later independently qualified"
+      },
+      "tracked_requirements": [
+        {
+          "phase": "0",
+          "requirement": "ML foundations and explicit graduation contracts",
+          "complete": false,
+          "evidence_pointer": "requirements phase 0"
+        },
+        {
+          "phase": "1",
+          "requirement": "Shared original evidence references",
+          "complete": false,
+          "evidence_pointer": "requirements phase 1"
+        },
+        {
+          "phase": "2",
+          "requirement": "Immutable HouseholdSnapshot and live evidence capture",
+          "complete": false,
+          "evidence_pointer": "requirements phase 2"
+        },
+        {
+          "phase": "2B",
+          "requirement": "Capability registry, Item roles, correlated v2 contracts and owner migrations",
+          "complete": false,
+          "evidence_pointer": "requirements phase 2B"
+        },
+        {
+          "phase": "3",
+          "requirement": "Pure domain models with numerical parity",
+          "complete": false,
+          "evidence_pointer": "requirements phase 3"
+        },
+        {
+          "phase": "4",
+          "requirement": "Typed household intents and disabled intent-to-request adapter",
+          "complete": false,
+          "evidence_pointer": "requirements phase 4"
+        },
+        {
+          "phase": "5",
+          "requirement": "Hard constraint registry and deterministic arbiter",
+          "complete": false,
+          "evidence_pointer": "requirements phase 5"
+        },
+        {
+          "phase": "6",
+          "requirement": "Shadow household planner",
+          "complete": false,
+          "evidence_pointer": "requirements phase 6"
+        },
+        {
+          "phase": "7",
+          "requirement": "Deterministic sealed household plan replay and outcome scoring",
+          "complete": false,
+          "evidence_pointer": "requirements phase 7"
+        },
+        {
+          "phase": "8",
+          "requirement": "Resource-effect vectors and drift metrics",
+          "complete": false,
+          "evidence_pointer": "requirements phase 8"
+        },
+        {
+          "phase": "9",
+          "requirement": "Read-only operator observability",
+          "complete": false,
+          "evidence_pointer": "requirements phase 9"
+        },
+        {
+          "phase": "10",
+          "requirement": "Per-intent release qualification",
+          "complete": false,
+          "evidence_pointer": "requirements phase 10"
+        },
+        {
+          "phase": "11",
+          "requirement": "Staged integration through existing owner rules",
+          "complete": false,
+          "evidence_pointer": "requirements phase 11"
+        }
+      ],
+      "astro_requirements": [
+        {
+          "id": "A01",
+          "complete": true,
+          "status": "native_5_2_3_daily_refresh_and_as_issued_consumer_verified",
+          "evidence": "proofs.astro_a01_natural_daily_acceptance"
+        },
+        {
+          "id": "A02",
+          "complete": true,
+          "status": "native_season_acceptance_verified",
+          "evidence": "proofs.astro_ui_a02_a06_acceptance"
+        },
+        {
+          "id": "A03",
+          "complete": true,
+          "status": "native_current_moon_acceptance_verified",
+          "evidence": "proofs.astro_ui_a02_a06_acceptance"
+        },
+        {
+          "id": "A04",
+          "complete": true,
+          "status": "dated_forecast_moon_acceptance_verified",
+          "evidence": "proofs.astro_ui_a02_a06_acceptance"
+        },
+        {
+          "id": "A05",
+          "complete": true,
+          "status": "native_daylight_acceptance_verified",
+          "evidence": "proofs.astro_ui_a02_a06_acceptance"
+        },
+        {
+          "id": "A06",
+          "complete": true,
+          "status": "household_timezone_acceptance_verified",
+          "evidence": "proofs.astro_ui_a02_a06_acceptance"
+        },
+        {
+          "id": "A07",
+          "complete": false,
+          "status": "native_training_geometry_verified_versioned_model_work_pending",
+          "evidence": null
+        },
+        {
+          "id": "A08",
+          "complete": false,
+          "status": "offline_source_contracts_and_edge_cases_verified_live_native_serving_pending",
+          "evidence": "proofs.astro_a08_irradiance_contract_acceptance"
+        },
+        {
+          "id": "A09",
+          "complete": false,
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "A10",
+          "complete": false,
+          "status": "existing_predusk_source_and_timing_qualified_isolated_event_design_pending",
+          "evidence": "proofs.astro_a10_predusk_baseline_acceptance"
+        },
+        {
+          "id": "A11",
+          "complete": false,
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "next_dependency": {
+        "artifact": "docs/superpowers/specs/2026-10-13-native-model-serving-receipt-design.md",
+        "state": "written spec exists; review unanswered",
+        "implementation_started": false,
+        "measured_cause": "exact current native preparer82.814coldseconds exceeded75secondbudget; path optimizations did not qualify whole command",
+        "approved_so_far": "design the verified-model-receipt approach",
+        "required_next": "written spec review, implementation plan and execution-method selection under brainstorming skill",
+        "skill_source": "/home/sat/.codex/plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/brainstorming/SKILL.md"
+      },
+      "scope_decision_unanswered": true,
+      "later_owner_authority_separately_unapproved": true,
+      "github_publication_payload_approval_unanswered": true,
+      "independent_qualified_work_since_spec": [
+        "A01-A06 native current/future presentation and actual browser acceptance",
+        "A08 offline irradiance source contracts and16newedgecases",
+        "A10 existing timing boundaries and7newcases; exact selected-source difference recorded",
+        "Current natural selectedlegacy scoring,256horizonscores and boundedread-onlyadmissionprobe"
+      ],
+      "no_scope_or_resource_requirements_relaxed": true,
+      "no_native_activation_or_hardware_requests": true
     }
   },
   "astro_efficiency_audit": {
@@ -4954,5 +5281,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-13T22:02:48.026636+00:00"
+  "updated_at": "2026-10-13T22:26:52.763959+00:00"
 }
