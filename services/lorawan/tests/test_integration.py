@@ -14,6 +14,22 @@ pytestmark=pytest.mark.skipif(os.environ.get('SENSOR_INTEGRATION')!='1',reason='
 COMPOSE=['docker','compose','-f','deploy/lorawan/compose.test.yaml']
 
 
+@pytest.fixture(scope='module',autouse=True)
+def ready_software_path():
+    # HTTP readiness precedes asynchronous file-provider/addon registration on cold boot.
+    wait_for(lambda:item('Earthship_Sensor_Service')=='online' and
+        json.loads(item('Earthship_Sensor_View_JSON'))['schema']=='earthship-sensor-view/v1',seconds=180)
+    client=publisher()
+    try:
+        at=datetime.now(timezone.utc)
+        for event in events(at):
+            delay=datetime.fromisoformat(event['received_at']).timestamp()-time.time()
+            if delay>0:time.sleep(delay)
+            client.publish(event['topic'],event['raw'],qos=1).wait_for_publish(timeout=5)
+        wait_for(lambda:all(item(f'Sensor_opening_{i:02d}_Contact') in ('OPEN','CLOSED') for i in range(1,16)),seconds=120)
+    finally:client.disconnect();client.loop_stop()
+
+
 def test_fifteen_devices_contact_diagnostics_and_history():
     client=publisher()
     try:

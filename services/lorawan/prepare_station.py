@@ -32,7 +32,7 @@ def main():
             original=Path(stage)/'corecell.json'
             subprocess.run(['docker','cp','-L',container+':/app/station.corecell.conf',str(original)],check=True)
             profile=json.loads(original.read_text())
-        finally:subprocess.run(['docker','rm',container],check=True,stdout=subprocess.DEVNULL)
+        finally:subprocess.run(['docker','rm','-v',container],check=True,stdout=subprocess.DEVNULL)
     path=output/'station.conf';path.write_text(json.dumps(render_station(profile,args.gateway_eui),indent=2)+'\n');path.chmod(0o600)
     print('Rendered private vendor profile; no forwarder started. RF/USB commissioning still required.')
 

@@ -54,7 +54,7 @@ def main():
         subprocess.run(['docker','cp',str(private/'mqtt.passwords'),container+':/tmp/passwords'],check=True)
         subprocess.run(['docker','start','-a',container],check=True,stdout=subprocess.DEVNULL)
         subprocess.run(['docker','cp',container+':/tmp/passwords',str(private/'mqtt.passwords')],check=True)
-    finally:subprocess.run(['docker','rm','-f',container],check=True,stdout=subprocess.DEVNULL)
+    finally:subprocess.run(['docker','rm','-f','-v',container],check=True,stdout=subprocess.DEVNULL)
     (private/'mqtt.passwords').chmod(0o600)
     acl='''user ingest
  topic read application/11111111-1111-4111-8111-111111111111/device/+/event/up
