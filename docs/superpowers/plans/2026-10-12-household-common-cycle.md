@@ -250,3 +250,37 @@ production duplicate-target relaxation. All72 sourcehashes reverifiedunchanged.
 Current observer source runtime/artifact/stage qualification stillrequired;
 completion/report reconciliation and producer/UI/household handoff remainpending.
 No live units/model/action changes or GitHub writes. All test scopes terminal.
+
+45021ba source replay actual qualification: candidatea1746c3/runtimeeaafda0,
+retained fit5c0c45d/core9/base72. Original artifact build/read17.9031s/115662848B,
+identical before/after runtime, zeroOOM. Sealed215-source deployment2390fc2 loads
+forecast/scorer and all4 source replay exports under production interpreter;
+identical candidate/runtime readback9.8885s/119029760B/zeroOOM. All qualifier
+handles terminal. No fit/live units/model/writes/actions changes. Source-qualified
+completion/report and coherent live native/household/UI producer remainrequired.
+
+# Native completion and report reconciliation task
+Base: 45021ba. Approved PR3 source-bound chronological monitoring migration.
+
+Add source completion build/validate/private persist/read and report reconciliation
+APIs to native_thermal_score.py. Completion records bind job, artifact, runtime,
+capture, native source-score path/root and rederived pair root. Validation takes
+external completion/source/capture/artifact roots and current runtime; read/replay
+original source score before admitting a completion. Never trust cached scalars,
+completion self-hash or an unverified original fingerprint.
+
+Report reconciliation consumes a caller-pinned list (maximum256 entries) of
+completion path/root, source-score root and capture root, with current externally
+pinned artifact/runtime and lossless assessment clock. Replays every selected
+completion, rejects future scores and duplicates, and uses native summarize.
+Budgets remain supplied by the caller and must span all replay work. Missing or
+changed originals refuse the report. Qualification remains low/not graduated,
+no actuator authority. Actual live producer/discovery/cache performance remain
+separate required integration; do not select a native live service here.
+
+TDD: private complete roundtrip, original source/capture/query deletion, external
+identity mismatch, resealed pair/root tamper, original model/persistence/recent
+statistics and explicit missing baseline, empty report, duplicate completion,
+future assessment, caller mutation, bounded list, and guarded deadline refusal.
+Run serial bounded tests, preserve72/core9, record actual results. Do not write
+product implementation before representative new tests are observed failing.
