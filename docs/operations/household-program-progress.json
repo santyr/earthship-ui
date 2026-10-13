@@ -3326,7 +3326,7 @@
       }
     },
     "native_handoff_reconciliation": {
-      "status": "implemented_synthetic_tests_pass_actual_owned_state_pending",
+      "status": "actual_owned_state_and_installed_libraries_reconciled_private_handoff_verified",
       "source": "openhab/scripts/household_native_handoff.py",
       "tests": {
         "RED_handle": 98564,
@@ -3340,7 +3340,34 @@
       "live_units_changed": false,
       "production_model_changed": false,
       "automatic_actuation": false,
-      "limits": "No installer or activation yet; native current capture/pipeline/scoring qualification remain incomplete."
+      "limits": "No installer or activation yet; native current capture/pipeline/scoring qualification remain incomplete.",
+      "actual_qualification": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "code_revision": "5b808dc73afd767d74215a8abc7ec2568fd13361",
+        "deployment_sha256": "29fc52ace88f8e24eca4f2872772b3eccc3c65f73b8a3a959c92ac867592af6e",
+        "family_sha256": "ca930bcad5883280b14cd5dd847708ccb624e49a468161811d04833717ff1e84",
+        "fit_executed": false,
+        "handoff_sha256": "2378097aa29af808f7d47cf2875b8c92f590a314bb8e0bd88fb901d775026ce9",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 50536448,
+        "original_unit_file_count": 6,
+        "previous_deployment_sha256": {
+          "forecast": "a1b81d1c13908324436a3bf02cc26dfa602c0db46c6a70f8a098b59651b8a0cf",
+          "score": "8c0b5a1669261f4d5aa374bd78c58ed579a60a5a385b909c82316bca134f0564"
+        },
+        "private_evidence_directory": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-handoff-5b808dc",
+        "production_model_changed": false,
+        "proposed_file_count": 5,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 7.793414144020062,
+        "source_count": 219,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-434f861-native",
+        "status": "actual_owned_native_handoff_reconciliation_verified",
+        "handle": 80964
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -3470,5 +3497,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T17:19:40.152861+00:00"
+  "updated_at": "2026-10-13T17:23:27.971577+00:00"
 }
