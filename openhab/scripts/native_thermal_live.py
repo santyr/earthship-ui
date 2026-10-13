@@ -82,9 +82,11 @@ def _resource_preflight():
     # The transitive admission helper is sealed by this runtime-bound source.
     # Check its bytes and loaded location before calling the established kernel
     # verifier; every numerical step keeps the same caps without forking ionice.
-    path=Path(__file__).resolve().with_name('household_cycle_resources.py')
-    if (sha256(_source_bytes(path,maximum=262144)).hexdigest()!=RESOURCE_SOURCE_SHA256 or
-        Path(_publication_resource_preflight.__code__.co_filename).resolve()!=path):
+    path=Path(__file__).with_name('household_cycle_resources.py')
+    # _source_bytes freshly resolves the complete helper path and rejects any
+    # alias. Match the loaded code to that same canonical path directly.
+    if (not path.is_absolute() or sha256(_source_bytes(path,maximum=262144)).hexdigest()!=RESOURCE_SOURCE_SHA256 or
+        Path(_publication_resource_preflight.__code__.co_filename)!=path):
         raise ValueError('native resource checker source changed')
     _publication_resource_preflight()
 

@@ -3904,7 +3904,7 @@
       "automatic_actuation": false
     },
     "native_staged_preparer_source_guard": {
-      "status": "parsed_paths_with_fresh_bytes_implemented_tests_pass_actual_staged_timing_pending",
+      "status": "tests_pass_exact_staged_command_deadline_not_met",
       "source": "openhab/scripts/household_native_geometry_prepare.py",
       "diagnostic_probe": {
         "initial_handle": 20616,
@@ -3929,6 +3929,291 @@
       "artifact_rebinding_required": false,
       "fresh_source_stage_required": true,
       "production_model_changed": false,
+      "automatic_actuation": false,
+      "actual_staged_command": {
+        "handle": 34636,
+        "scope": "run-u8132.scope",
+        "terminal_status": 1,
+        "reason": "native preparation lifetime elapsed",
+        "cold_worker_seconds": 83.09045771509409,
+        "completed_geometry_batches": 2,
+        "production_driver_ran": false,
+        "live_timers_quiesced": false,
+        "live_writes": false
+      },
+      "controlled_source_guard_comparison": {
+        "live_writes": false,
+        "model_evaluations": false,
+        "samples": [
+          {
+            "calls": 2742,
+            "cpu_seconds": 0.419079972,
+            "name": "baseline",
+            "seconds": 2.0800254460191354
+          },
+          {
+            "calls": 2101,
+            "cpu_seconds": 0.39986277300000006,
+            "name": "parsed_paths",
+            "seconds": 2.0000202379887924
+          },
+          {
+            "calls": 2114,
+            "cpu_seconds": 0.39838336900000004,
+            "name": "parsed_paths",
+            "seconds": 2.0001971969613805
+          },
+          {
+            "calls": 2613,
+            "cpu_seconds": 0.39975312399999985,
+            "name": "baseline",
+            "seconds": 2.0001843399368227
+          }
+        ],
+        "status": "measured",
+        "baseline_ms_per_check": 0.7619439376201602,
+        "parsed_paths_ms_per_check": 0.9490432823132082,
+        "handle": 89120,
+        "scope": "run-u8221.scope",
+        "terminal_status": 0,
+        "whole_model_latency_qualified": false
+      }
+    },
+    "native_source_guard_stage": {
+      "artifact_sha256": "a8b84ac71b3a0a428ee4496c04646a52f2b331174caed05cb79a388177ce4613",
+      "automatic_actuation": false,
+      "code_revision": "09d67bc8666b20107b641135ad563858d7b67af3",
+      "current_native_capture_projected": false,
+      "deployment_sha256": "c89bab4d594d8d618447235139429e5d799c2cfd158962d471f71d516ff1c1e9",
+      "identical_readback": true,
+      "live_units_changed": false,
+      "live_writes": false,
+      "native_source_count": 12,
+      "numerical_runtime_qualified": true,
+      "production_model_changed": false,
+      "protected_source_count": 72,
+      "retained_original_count": 4,
+      "runtime_sha256": "8ebad5e75257f2a91f21f1ac1c55f65c0113ba88e39ffc0ff596a388806fe45d",
+      "seconds": 1.2992989750346169,
+      "source_count": 221,
+      "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-09d67bc-native",
+      "status": "actual_private_native_package_verified",
+      "runtime_status": "actual_native_runtime_verified",
+      "runtime_seconds": 30.798949218005873,
+      "memory_peak_bytes": 121827328,
+      "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "handle": 7627,
+      "terminal_status": 0
+    },
+    "native_preparer_measured_guard_cost": {
+      "handle": 30711,
+      "scope": "run-u8224.scope",
+      "terminal_status": 1,
+      "diagnosis": {
+        "completed_geometry_batches": 2,
+        "error_type": "ValueError",
+        "frames": [
+          {
+            "file": "measure_native_preparer_phases.py",
+            "function": "<module>",
+            "line": 40
+          },
+          {
+            "file": "household_native_geometry_prepare.py",
+            "function": "run",
+            "line": 114
+          },
+          {
+            "file": "measure_native_preparer_phases.py",
+            "function": "call",
+            "line": 29
+          },
+          {
+            "file": "native_thermal_live.py",
+            "function": "prepare_geometry",
+            "line": 304
+          },
+          {
+            "file": "measure_native_preparer_phases.py",
+            "function": "call",
+            "line": 29
+          },
+          {
+            "file": "astro_geometry_worker.py",
+            "function": "capture_batch",
+            "line": 104
+          },
+          {
+            "file": "training_pressure_guard.py",
+            "function": "run_training_worker",
+            "line": 104
+          },
+          {
+            "file": "astro_geometry_worker.py",
+            "function": "unchanged",
+            "line": 94
+          },
+          {
+            "file": "astro_geometry_worker.py",
+            "function": "_read",
+            "line": 39
+          },
+          {
+            "file": "native_thermal_live.py",
+            "function": "check",
+            "line": 280
+          },
+          {
+            "file": "household_native_geometry_prepare.py",
+            "function": "guard",
+            "line": 111
+          }
+        ],
+        "measurements": {
+          "_resource_preflight": {
+            "calls": 6267,
+            "cpu_seconds": 3.1497923369999765,
+            "seconds": 7.643080354901031,
+            "successful_calls": 6267
+          },
+          "current_runtime": {
+            "calls": 1,
+            "cpu_seconds": 0.16715474100000005,
+            "seconds": 0.784203335060738,
+            "successful_calls": 1
+          },
+          "inference_guard": {
+            "calls": 6275,
+            "cpu_seconds": 3.664528725000014,
+            "seconds": 11.313944260939024,
+            "successful_calls": 6275
+          },
+          "java_batch": {
+            "calls": 3,
+            "cpu_seconds": 1.0841780520000004,
+            "seconds": 27.480990535928868,
+            "successful_calls": 2
+          },
+          "library_identity": {
+            "calls": 6,
+            "cpu_seconds": 0.3955332570000021,
+            "seconds": 2.031889594043605,
+            "successful_calls": 6
+          },
+          "prepare_geometry": {
+            "calls": 1,
+            "cpu_seconds": 10.462604344,
+            "seconds": 75.08231291198172,
+            "successful_calls": 0
+          },
+          "read_native_candidate": {
+            "calls": 1,
+            "cpu_seconds": 9.117875982,
+            "seconds": 46.40213225793559,
+            "successful_calls": 1
+          },
+          "source_guard": {
+            "calls": 6267,
+            "cpu_seconds": 2.1732271149999565,
+            "seconds": 4.8167358002392575,
+            "successful_calls": 6267
+          }
+        },
+        "nested_timings": true,
+        "reason": "native preparation lifetime elapsed",
+        "seconds": 83.20190340804402
+      },
+      "live_writes": false,
+      "live_timers_quiesced": false,
+      "production_model_changed": false
+    },
+    "native_preparer_batched_path_checks": {
+      "status": "implemented_related_tests_and_short_comparisons_pass_actual_timing_pending",
+      "tests": {
+        "RED_handle": 34118,
+        "RED_failed": 2,
+        "GREEN_handle": 81460,
+        "passed": 110,
+        "seconds": 5.1
+      },
+      "native_admission_comparison": {
+        "handle": 21343,
+        "terminal_status": 0,
+        "live_writes": false,
+        "model_evaluations": false,
+        "samples": [
+          {
+            "calls": 1360,
+            "cpu_seconds": 0.418961016,
+            "name": "baseline",
+            "seconds": 2.0766649139113724
+          },
+          {
+            "calls": 1464,
+            "cpu_seconds": 0.3997466500000001,
+            "name": "single_resolution",
+            "seconds": 2.0001083170063794
+          },
+          {
+            "calls": 1588,
+            "cpu_seconds": 0.4000816060000001,
+            "name": "single_resolution",
+            "seconds": 2.000185306998901
+          },
+          {
+            "calls": 1107,
+            "cpu_seconds": 0.40159401100000003,
+            "name": "baseline",
+            "seconds": 2.000441963900812
+          }
+        ],
+        "status": "measured"
+      },
+      "source_guard_comparison": {
+        "handle": 43612,
+        "terminal_status": 0,
+        "live_writes": false,
+        "model_evaluations": false,
+        "samples": [
+          {
+            "calls": 2474,
+            "cpu_seconds": 0.41240717699999996,
+            "name": "baseline",
+            "seconds": 2.0001248909393325
+          },
+          {
+            "calls": 2868,
+            "cpu_seconds": 0.3999009830000001,
+            "name": "parsed_paths",
+            "seconds": 2.000016383943148
+          },
+          {
+            "calls": 2675,
+            "cpu_seconds": 0.4009834780000001,
+            "name": "parsed_paths",
+            "seconds": 2.000076531083323
+          },
+          {
+            "calls": 2521,
+            "cpu_seconds": 0.3982602849999999,
+            "name": "baseline",
+            "seconds": 2.000143826007843
+          }
+        ],
+        "status": "measured"
+      },
+      "behavior": [
+        "Complete fresh private/source bytes, permissions and metadata on every callback.",
+        "Fresh shared ancestor identities before and after the complete read; anchor every parent descriptor.",
+        "Resource helper source SHA and fresh canonical path verified; loaded code must have the same path.",
+        "All cgroup/kernel/priority/thread/PSI/swap/OOM checks and deadlines retained."
+      ],
+      "protected_fitted_sources_unchanged": 72,
+      "required_native_fitting_sources_unchanged": 9,
+      "OPTIONAL_serving_source_changed": true,
+      "original_fit_rebinding_required": true,
+      "production_model_changed": false,
+      "live_writes": false,
       "automatic_actuation": false
     }
   },
@@ -4059,5 +4344,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T18:58:03.589775+00:00"
+  "updated_at": "2026-10-13T20:48:41.900107+00:00"
 }

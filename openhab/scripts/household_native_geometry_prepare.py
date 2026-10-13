@@ -36,19 +36,24 @@ class _SourceGuard:
         self.original_config=_private_file(config,8192)
         self.original_libraries=_private_file(libraries,8192)
         self.original_source=_source_bytes(source,maximum=262144)
-        self.components={path:tuple(reversed(path.parents)) for path in (config,libraries,source)}
+        # Cache syntax only. Shared ancestors need one fresh check on each
+        # side of the complete read, rather than six repeated traversals.
+        self.components=tuple(dict.fromkeys(component for path in (config,libraries,source)
+            for component in reversed(path.parents)))
 
-    def _directories(self,path):
+    def _directories(self):
         import stat
-        for component in self.components[path]:
+        result={}
+        for component in self.components:
             info=component.lstat()
             if not stat.S_ISDIR(info.st_mode):raise ValueError('native preparation source directory changed')
-        return info.st_dev,info.st_ino
+            result[component]=(info.st_dev,info.st_ino)
+        return result
 
-    def _read(self,path,*,source=False):
+    def _read(self,path,parents,*,source=False):
         import os,stat
         from household_observation import _private_file
-        before_parent=self._directories(path)
+        before_parent=parents[path.parent]
         parent_fd=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
         try:
             row=os.fstat(parent_fd)
@@ -72,14 +77,16 @@ class _SourceGuard:
                     raise ValueError('preparation source changed while reading')
                 from thermal_model.replay_budget import observe_source_bytes
                 observe_source_bytes(path,raw);result=raw
-            if self._directories(path)!=before_parent:raise ValueError('native preparation source parent changed during read')
             return result
         finally:os.close(parent_fd)
 
     def check(self):
-        if (self._read(self.config)!=self.original_config or self._read(self.libraries)!=self.original_libraries or
-                self._read(self.source,source=True)!=self.original_source):
+        parents=self._directories()
+        if (self._read(self.config,parents)!=self.original_config or self._read(self.libraries,parents)!=self.original_libraries or
+                self._read(self.source,parents,source=True)!=self.original_source):
             raise ValueError('native preparation source or configuration changed')
+        if self._directories()!=parents:
+            raise ValueError('native preparation source directories changed during read')
 
 
 def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):

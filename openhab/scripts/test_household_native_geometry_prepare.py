@@ -154,3 +154,16 @@ def test_source_guard_refuses_changed_private_file_identity_or_permissions(tmp_p
     else:
         path.rename(tmp_path/'saved.json');path.write_bytes(b'original bytes');path.chmod(0o600)
     with pytest.raises(ValueError):guard.check()
+
+
+def test_source_guard_checks_shared_ancestors_before_and_after_the_complete_read(tmp_path,monkeypatch):
+    from pathlib import Path
+    api,paths=source_guard_fixture(tmp_path);guard=api._SourceGuard(*paths)
+    ancestors=set(component for path in paths for component in path.parents)
+    calls=[];original=Path.lstat
+    def tracked(path,*args,**kwargs):
+        if path in ancestors:calls.append(path)
+        return original(path,*args,**kwargs)
+    monkeypatch.setattr(Path,'lstat',tracked)
+    guard.check()
+    assert all(calls.count(path)==2 for path in ancestors)
