@@ -2,6 +2,7 @@
 from copy import deepcopy
 from datetime import timedelta
 import math
+import json
 from astro_geometry import _instant
 from native_thermal_model import RULE
 from native_thermal_forecast import validate_capture,publication,digest
@@ -109,3 +110,147 @@ def summarize(pairs,*,artifact_sha256=None):
     chosen=[pair for pair in values if pair['artifact_sha256']==selected]
     if len({pair['runtime_sha256'] for pair in chosen})>1:raise ValueError('native model runtime changed within score cohort')
     return arithmetic.summarize([_statistical_view(pair) for pair in chosen],artifact_sha256=selected)
+
+
+SOURCE_SCORE_SCHEMA='earthship-native-thermal-score-sources/v1'
+QUERY_SCHEMA='earthship-native-thermal-score-query-binding/v1'
+SOURCE_SCORE_FIELDS={'schema','artifact_sha256','capture_sha256','runtime_sha256','assessed_at','score_sources',
+                     'query_binding','pair','release_authority','source_score_sha256'}
+SOURCE_INPUT_FIELDS={'origin_path','receipts','horizon_hours','outcome','recent_cycle_grid'}
+MAX_SOURCE_SCORE_BYTES=2*1024*1024
+SOURCE_SCORE_SUFFIX='.native-thermal-score-sources-v1.json'
+
+
+def _query_binding(packet,paths,*,issue,epoch,assessed,check_budget):
+    from pathlib import Path
+    from thermal_model.temperature_history import STREAMS,POLICY
+    from weather_temperature_sources import read_compressed_temperature_source,replay_temperature_source
+    if (not isinstance(paths,list) or not 1<=len(paths)<=64 or
+            any(not isinstance(p,str) or not 1<=len(p)<=1024 for p in paths) or len(set(paths))!=len(paths)):
+        raise ValueError('bounded unique original native score queries required')
+    hours=packet['horizon_hours']
+    if type(hours) is not int or hours not in (1,6,12,24):raise ValueError('supported native source horizon required')
+    target=issue+timedelta(hours=hours)
+    if assessed<target+timedelta(minutes=5):raise ValueError('mature original native query required')
+    grid=packet['recent_cycle_grid']
+    if not isinstance(grid,list) or len(grid)>64:raise ValueError('bounded original comparator grid required')
+    expected={target:packet['outcome']}
+    for row in grid:
+        if not isinstance(row,(list,tuple)) or len(row)!=2:raise ValueError('original comparator row required')
+        at=_instant(row[0])
+        if at>=issue or at in expected:raise ValueError('unique historical native score target required')
+        if row[1] is not None:_qualified_outcome(row[1],at,sensor_epoch=epoch)
+        expected[at]=row[1]
+    _qualified_outcome(packet['outcome'],target,sensor_epoch=epoch)
+    stream,model,sensor=STREAMS['air'];selected={};size=0
+    for name in paths:
+        check_budget();path=Path(name)
+        if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved native score query required')
+        source=read_compressed_temperature_source(path.parent,path);size+=len(_canonical(source))
+        if size>64000000:raise ValueError('bounded aggregate native score source bytes required')
+        if source['stream']!=stream or source['policy']!=dict(model=model,sensor_id=sensor,**POLICY) or source['sensor_epoch']!=epoch:
+            raise ValueError('original native score role/policy/phase differs')
+        observed=_instant(source['assessed_at']);_instant(source['history_start'])
+        for at in source['targets']:_instant(at)
+        for at,raw in source['native_rows']:
+            _instant(at)
+            # The legacy selector parses embedded clocks. Inspect original bytes
+            # first so accepted receipts cannot silently lose their precision.
+            if raw is None:continue
+            try:
+                from thermal_model.origin_capture import _object
+                envelope=json.loads(raw,object_pairs_hook=_object)
+            except (ValueError,TypeError):continue  # preserve malformed barriers
+            records=envelope.get('records') if isinstance(envelope,dict) else None
+            receipt=records.get(stream) if isinstance(records,dict) else None
+            if isinstance(receipt,dict) and receipt.get('status')=='valid':
+                for field in ('recordedAt','receivedAt','validUntil'):
+                    if receipt.get(field) is not None:_instant(receipt[field])
+        values=replay_temperature_source(source)
+        if observed>assessed:raise ValueError('native score query assessment is future')
+        if all(_instant(at)<issue for at,_ in values):
+            if observed!=issue:raise ValueError('native comparator query revised the issue clock')
+        elif len(values)!=1 or _instant(values[0][0])!=target or observed<target+timedelta(minutes=5):
+            raise ValueError('native outcome query target or maturity differs')
+        for at,receipt in values:
+            at=_instant(at)
+            if at in selected and _canonical(selected[at])!=_canonical(receipt):raise ValueError('conflicting native query selections')
+            selected[at]=receipt
+    if set(selected)!=set(expected) or any(_canonical(selected[at])!=_canonical(expected[at]) for at in expected):
+        raise ValueError('cached native score receipts differ from original queries')
+    return dict(schema=QUERY_SCHEMA,score_sources_sha256=digest(packet,None),issue_at=issue.isoformat(),sensor_epoch=epoch,
+                assessed_at=assessed.isoformat(),query_sources=list(paths),release_authority=False)
+
+
+def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_capture_sha256,assessed,check_budget):
+    from pathlib import Path
+    from native_thermal_artifact import _read
+    from native_thermal_forecast import MAX_CAPTURE_BYTES
+    from thermal_model.recent_cycles import compare_v2
+    if not isinstance(packet,dict) or set(packet)!=SOURCE_INPUT_FIELDS:raise ValueError('closed native source score inputs required')
+    raw,capture=_read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)
+    issue=_instant(capture['issued_at']);epoch=capture['candidate']['fit']['sensor_epochs']['air']
+    binding=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
+    selected={_instant(at):None if receipt is None else {key:_instant(value) if key in ('receivedAt','storedAt','validUntil') else value for key,value in receipt.items()} for at,receipt in packet['recent_cycle_grid']}
+    def reader(targets,at):
+        if at!=issue or any(t not in selected for t in targets):raise ValueError('missing original native comparator query coverage')
+        return [(t,selected[t]) for t in targets]
+    recent=compare_v2(issue=issue,target=issue+timedelta(hours=packet['horizon_hours']),current_f=capture['output']['initial']['air_f'],
+                      grid_reader=reader,sensor_epoch=epoch)
+    pair=score(capture,packet['receipts'],packet['outcome'],runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+               expected_capture_sha256=expected_capture_sha256,horizon_hours=packet['horizon_hours'],assessed_at=assessed,
+               recent=recent,check_budget=check_budget)
+    replay=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
+    if _canonical(replay)!=_canonical(binding) or _read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)[0]!=raw:
+        raise ValueError('original native score sources changed during replay')
+    return binding,pair
+
+
+def build_source_score(*,capture_path,receipts,outcome,recent_cycle_grid,source_paths,horizon_hours,assessed_at,
+                       runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    packet=deepcopy(dict(origin_path=capture_path,receipts=receipts,horizon_hours=horizon_hours,outcome=outcome,recent_cycle_grid=recent_cycle_grid))
+    runtime,paths=map(deepcopy,(runtime,source_paths));assessed=_instant(assessed_at)
+    binding,pair=_source_pair(packet,paths,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,assessed=assessed,check_budget=check_budget)
+    record=dict(schema=SOURCE_SCORE_SCHEMA,artifact_sha256=pair['artifact_sha256'],capture_sha256=pair['capture_sha256'],
+        runtime_sha256=pair['runtime_sha256'],assessed_at=assessed.isoformat(),score_sources=packet,query_binding=binding,pair=pair,release_authority=False)
+    record['source_score_sha256']=digest(record,'source_score_sha256')
+    if len(_canonical(record))>MAX_SOURCE_SCORE_BYTES:raise ValueError('bounded native source score record required')
+    return record
+
+
+def validate_source_score(record,*,runtime,expected_artifact_sha256,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
+    record,runtime=map(deepcopy,(record,runtime))
+    if (not isinstance(record,dict) or set(record)!=SOURCE_SCORE_FIELDS or record['schema']!=SOURCE_SCORE_SCHEMA or
+            record['release_authority'] is not False or record['source_score_sha256']!=_sha(expected_source_score_sha256) or
+            digest(record,'source_score_sha256')!=record['source_score_sha256'] or len(_canonical(record))>MAX_SOURCE_SCORE_BYTES):
+        raise ValueError('closed externally pinned native source score required')
+    if record['artifact_sha256']!=_sha(expected_artifact_sha256) or record['capture_sha256']!=_sha(expected_capture_sha256):
+        raise ValueError('original native source score identities differ')
+    if not isinstance(record['score_sources'],dict) or set(record['score_sources'])!=SOURCE_INPUT_FIELDS:
+        raise ValueError('closed original native score inputs required')
+    binding=record['query_binding']
+    if not isinstance(binding,dict):raise ValueError('original native query binding required')
+    rebuilt=build_source_score(capture_path=record['score_sources']['origin_path'],receipts=record['score_sources']['receipts'],
+        outcome=record['score_sources']['outcome'],recent_cycle_grid=record['score_sources']['recent_cycle_grid'],
+        source_paths=binding.get('query_sources'),horizon_hours=record['score_sources']['horizon_hours'],assessed_at=_instant(record['assessed_at']),
+        runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    if _canonical(rebuilt)!=_canonical(record):raise ValueError('original native source score differs on replay')
+    return record
+
+
+def persist_source_score(directory,record):
+    from thermal_model.provisional_forecast import persist
+    if not isinstance(record,dict) or digest(record,'source_score_sha256')!=record.get('source_score_sha256'):
+        raise ValueError('digest-bound native source score required')
+    return persist(directory,record,field='source_score_sha256',suffix=SOURCE_SCORE_SUFFIX,maximum=MAX_SOURCE_SCORE_BYTES)
+
+
+def read_source_score(path,*,runtime,expected_artifact_sha256,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
+    from pathlib import Path
+    from native_thermal_artifact import _read
+    path=Path(path)
+    if path.name!=_sha(expected_source_score_sha256)+SOURCE_SCORE_SUFFIX:raise ValueError('named original native source score required')
+    _,record=_read(path,MAX_SOURCE_SCORE_BYTES)
+    return validate_source_score(record,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget)

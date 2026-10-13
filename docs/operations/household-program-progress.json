@@ -2263,6 +2263,56 @@
           "status": "sealed_staged_native_artifact_verified"
         }
       }
+    },
+    "native_raw_score_source_replay": {
+      "status": "implemented_verified_actual_runtime_and_live_integration_pending",
+      "schema": "earthship-native-thermal-score-sources/v1",
+      "query_binding_schema": "earthship-native-thermal-score-query-binding/v1",
+      "original_compressed_queries_reselected": true,
+      "native_capture_and_both_delivery_receipts_replayed": true,
+      "external_artifact_capture_and_source_record_pins_required": true,
+      "recent_baseline_rederived_from_original_historical_queries": true,
+      "missing_query_coverage_refused": true,
+      "legitimate_null_queries_preserve_missing_history": true,
+      "maximum_query_files": 64,
+      "historical_lookback_days": 31,
+      "required_cycles": 7,
+      "supported_horizons_hours": [
+        1,
+        6,
+        12,
+        24
+      ],
+      "original_valid_receipt_clocks_lossless_before_parser": true,
+      "caller_inputs_frozen_before_callbacks": true,
+      "originals_rechecked_after_scoring": true,
+      "private_bounded_record_roundtrip_verified": true,
+      "new_cases_passed": 21,
+      "original_native_score_regression_cases_passed": 17,
+      "serial_batches": [
+        {
+          "cases": 6,
+          "seconds": 15.4
+        },
+        {
+          "cases": 9,
+          "seconds": 24.9
+        },
+        {
+          "cases": 23,
+          "seconds": 43.0
+        }
+      ],
+      "representative_api_missing_red_cases": 2,
+      "raw_clock_red_cases": 3,
+      "all_72_fitted_sources_unchanged": true,
+      "host_swap_read_refusal_respected": true,
+      "pressure_guards_relaxed": false,
+      "current_source_runtime_qualification_pending": true,
+      "completion_report_reconciliation_pending": true,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -2392,5 +2442,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T21:35:00-06:00"
+  "updated_at": "2026-10-12T21:53:02-06:00"
 }

@@ -230,3 +230,23 @@ Native raw-score replay task (inline, approved source-bound outcome migration)
   deleted originals, identity mismatch, caller mutation, precision and roundtrip.
 - Subsequent native completion/report reconciliation consumes this replay API;
   this task does not select or deploy a native producer or grant action authority.
+
+Ruling: native raw-score binding must allow up to64 original query packets.
+The original v2 helper caps24 paths, which cannot represent all31 historical
+cycles plus one outcome when history is missing; each source query itself still
+has the original24-hour/289-target bound. Implement native closed selection
+binding with identical stream/policy/phase/assessment checks, complete cached
+selection equality and64MB aggregate bound; do not edit the72 fitted sources.
+Cost if wrong: bounded additional private source reads; all guards remain active.
+
+Native source score replay implemented:21 new +17 original scoring behaviors
+passed across6/15.40s,9/24.90s,23/43.00s cappedserialbatches. All four horizons,
+31-day genuine null history, original compressed reselection, externalpins,
+private readback, frozen caller and resealed scalar/baseline/source refusal.
+2 missingAPI RED6.31s;3 rawreceiptclock RED16.10s after actual comparator contract
+correction. Full81009 terminal swapread refusal; no pressure guards relaxed.
+24h fixture corrected to share whole snapshots for overlapping endpoints; no
+production duplicate-target relaxation. All72 sourcehashes reverifiedunchanged.
+Current observer source runtime/artifact/stage qualification stillrequired;
+completion/report reconciliation and producer/UI/household handoff remainpending.
+No live units/model/action changes or GitHub writes. All test scopes terminal.
