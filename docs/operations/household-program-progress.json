@@ -2699,11 +2699,33 @@
       "protected_original_sources_changed": false,
       "prior_11_native_sources_changed": false,
       "new_optional_12_source_runtime_artifact_stage_pending": true,
-      "native_current_sql_and_latency_qualification_pending": true,
+      "native_current_sql_and_latency_qualification_pending": false,
       "native_issuer_monitor_and_delivery_integration_pending": true,
       "production_model_changed": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "source_revision": "109a214",
+      "actual_recent_pair_source_qualification": {
+        "assessed_at": "2026-10-13T06:40:49.275378+00:00",
+        "automatic_actuation": false,
+        "identical_private_readback": true,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 42766336,
+        "original_query_count": 1,
+        "production_model_changed": false,
+        "qualified_points": 2,
+        "seconds": 0.25780272600241005,
+        "source_bytes": 28641,
+        "source_sha256": "e458d51e001a1d1a2d71969091cfae1863b555e33f5330ade7fd6156e10cfd4c",
+        "sql_request_count": 1,
+        "status": "actual_read_only_native_pair_source_verified",
+        "targets": [
+          "2026-10-13T06:30:00+00:00",
+          "2026-10-13T06:35:00+00:00"
+        ]
+      },
+      "full_historical_comparator_production_latency_qualification_pending": true
     }
   },
   "astro_efficiency_audit": {
@@ -2833,5 +2855,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T00:22:07-06:00"
+  "updated_at": "2026-10-13T00:42:14-06:00"
 }
