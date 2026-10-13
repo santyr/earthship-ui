@@ -94,3 +94,95 @@ def _install_files(output,*,guard):
         raise
     return dict(status='native_unit_files_installed',handoff_sha256=record['handoff_sha256'],file_count=len(changes),
         unit_manager_reloaded=False,service_restarted=False,automatic_actuation=False)
+
+
+from contextlib import contextmanager
+import re
+
+TIMERS=('thermal-provisional-forecast.timer','thermal-provisional-score.timer')
+
+
+def _effective_state(unit):
+    keys=('LoadState','ActiveState','MainPID','ExecStart','TimeoutStartUSec','FragmentPath','DropInPaths',
+        'TimersCalendar','AccuracyUSec','RandomizedDelayUSec','Persistent','Unit',*deploy.EFFECTIVE_LIMITS)
+    raw=deploy._systemctl('show',unit,*['--property='+key for key in keys])
+    result={};calendars=[]
+    for row in raw.splitlines():
+        if '=' not in row:continue
+        key,value=row.split('=',1)
+        if key=='TimersCalendar':
+            match=re.fullmatch(r'\{ OnCalendar=(.*?) ; next_elapse=.*? \}',value)
+            if match is None:raise ValueError('explicit effective calendar required')
+            calendars.append(match.group(1))
+        else:
+            if key in result:raise ValueError('duplicate effective unit property')
+            result[key]=value
+    result['TimersCalendar']=calendars
+    return result
+
+
+def _timer_state(unit):return _effective_state(unit)
+
+
+def _services_inactive(root):
+    for name in ('thermal-provisional-forecast.service','thermal-provisional-score.service'):
+        deploy._inactive_capped(deploy._service_state(root/name))
+
+
+@contextmanager
+def _quiesce_timers(root,*,guard):
+    """Stop only active owned schedules and restore them on every exit."""
+    guard();_services_inactive(root)
+    original={unit:_timer_state(unit).get('ActiveState') for unit in TIMERS}
+    if any(state not in ('active','inactive') for state in original.values()):
+        raise ValueError('explicit stable original timer states required')
+    stopped=[]
+    try:
+        for unit in TIMERS:
+            if original[unit]=='active':
+                stopped.append(unit);deploy._systemctl('stop',unit)
+        guard();_services_inactive(root)
+        if any(_timer_state(unit).get('ActiveState')!='inactive' for unit in TIMERS):
+            raise ValueError('owned timer quiescence changed')
+        yield
+    finally:
+        failures=[]
+        for unit in stopped:
+            try:
+                state=_timer_state(unit).get('ActiveState')
+                if state=='inactive':deploy._systemctl('start',unit)
+                elif state!='active':raise ValueError('timer state changed during restoration')
+            except Exception:failures.append(unit)
+        if failures:raise ValueError('original timer schedule restoration incomplete: '+','.join(failures))
+
+
+def _verify_effective_family(family,*,guard):
+    """Read-only postconditions after the caller's coordinated manager reload."""
+    family=deploy._directory(family);selected=family_api.verify(family,guard=guard)
+    stage=deploy._directory(selected['stage']);record=deploy.verify_stage(stage)
+    root=deploy._path(record['service_file']).parent
+    services=(('thermal-provisional-forecast.service','forecast.conf','1min 30s',['zzzz-household-cycle.conf']),
+        ('thermal-provisional-score.service','score.conf','1min',['zzzz-household-score.conf']),
+        ('thermal-native-geometry-prepare.service','thermal-native-geometry-prepare.service','1min 30s',[]))
+    for name,source,timeout,dropins in services:
+        guard();state=_effective_state(name);deploy._inactive_capped(state)
+        expected_paths=[str(root/(name+'.d')/file) for file in dropins]
+        if (state.get('LoadState')!='loaded' or state.get('FragmentPath')!=str(root/name) or
+            state.get('DropInPaths','').split()!=expected_paths or state.get('TimeoutStartUSec')!=timeout or
+            not deploy._entry_matches(state,deploy._bytes(family/source,private=True))):
+            raise ValueError('effective native service definition differs')
+    timers=(('thermal-provisional-forecast.timer',[selected['original_forecast_warm_clock']],[]),
+        ('thermal-provisional-score.timer',['*-*-* *:01/5:00 UTC','*-*-* *:02/5:00 UTC'],['zzzz-household-native-timer.conf']),
+        ('thermal-native-geometry-prepare.timer',['*-*-* *:03/5:05 UTC'],[]))
+    for name,calendars,dropins in timers:
+        guard();state=_effective_state(name)
+        expected_paths=[str(root/(name+'.d')/file) for file in dropins]
+        if (state.get('LoadState')!='loaded' or state.get('ActiveState')!='inactive' or
+            state.get('FragmentPath')!=str(root/name) or state.get('DropInPaths','').split()!=expected_paths or
+            sorted(state.get('TimersCalendar',[]))!=sorted(calendars) or state.get('Unit')!=name.removesuffix('.timer')+'.service' or
+            state.get('AccuracyUSec')!='1s' or state.get('RandomizedDelayUSec')!='0' or state.get('Persistent')!='no'):
+            raise ValueError('effective native timer definition differs')
+    guard()
+    if family_api.verify(family,guard=guard)!=selected:raise ValueError('native family changed during effective verification')
+    return dict(status='native_effective_family_verified',deployment_sha256=selected['deployment_sha256'],
+        services_inactive=True,timers_inactive=True,automatic_actuation=False)

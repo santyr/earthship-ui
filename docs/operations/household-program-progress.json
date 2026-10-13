@@ -3574,6 +3574,37 @@
       "unit_manager_reloaded": false,
       "production_model_changed": false,
       "automatic_actuation": false
+    },
+    "native_install_timer_lifecycle": {
+      "status": "helpers_implemented_tests_pass_actual_manager_format_read_only_verified_composition_pending",
+      "source": "openhab/scripts/household_native_install.py",
+      "tests": {
+        "RED_handle": 25768,
+        "GREEN_handle": 71203,
+        "passed": 25,
+        "seconds": 30.31,
+        "scope": "six lifecycle, thirteen effective-definition and six file-transaction cases"
+      },
+      "behavior": "Stop only originally active forecast/score timers after worker inactivity; restore on success/failure including partial stop failures; refuse timer races. Independently verify exact three service entry points, resource limits, timeout, fragments/drop-ins and three timer calendars/policies after reload.",
+      "actual_read_only_parser": {
+        "forecast_calendars": 1,
+        "score_calendars": 4,
+        "forecast_timeout": "1min 30s",
+        "score_timeout": "1min",
+        "existing_fragments_matched": true,
+        "existing_timers_active": true
+      },
+      "pending": [
+        "Source-bound readiness admission",
+        "Composition under shared lock with file transaction/reload/postconditions",
+        "New preparer enablement",
+        "Actual natural-cycle qualification"
+      ],
+      "live_timer_or_unit_mutations": false,
+      "protected_runtime_sources_unchanged": 72,
+      "native_runtime_sources_unchanged": 12,
+      "production_model_changed": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -3703,5 +3734,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T18:29:06.974998+00:00"
+  "updated_at": "2026-10-13T18:42:53.333376+00:00"
 }

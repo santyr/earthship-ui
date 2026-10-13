@@ -721,3 +721,19 @@ RED/GREEN tests use temporary unit roots and cover all five outputs, refusal,
 concurrent changes and collisions. This is installation integrity work, not the
 deferred backup/recovery program. Preserve all numerical sources and resource
 safeguards, and the full PR3 objective.
+
+Native timer lifecycle and effective-unit postconditions (2026-10-13)
+------------------------------------------------------------------
+Add fixed forecast/score timer quiescence behind readiness and shared-lock
+admission. Refuse active workers or unknown timer states before mutation; stop
+only timers originally active and restore those schedules on every exit. Verify
+both timers stopped after source/epoch guards; a partial stop failure still
+restores prior schedules and a concurrent start remains preserved as a refusal.
+Never restart forecast/scorer services. The coordinated caller will enable the
+new preparer timer only after reload and verified effective definitions.
+Independently check three capped/inactive service definitions (exact entry point,
+fragment/drop-ins, timeout) and all three effective timer calendars, units and
+accuracy/persistence policies against the sealed family. Keep this read-only
+verifier separate from activation. Fixtures must not touch the real unit manager.
+Readiness admission, new-preparer enablement and the final install composition
+remain unfinished until these layers are connected and qualified.
