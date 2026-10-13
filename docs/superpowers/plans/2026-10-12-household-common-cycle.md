@@ -737,3 +737,23 @@ accuracy/persistence policies against the sealed family. Keep this read-only
 verifier separate from activation. Fixtures must not touch the real unit manager.
 Readiness admission, new-preparer enablement and the final install composition
 remain unfinished until these layers are connected and qualified.
+
+Native reload transaction composition (2026-10-13)
+------------------------------------------------
+Connect reconciled file mutation, fixed timer quiescence and effective-definition
+checks into an internal reload operation behind caller-held lock/readiness.
+Retain exact originals in memory before file mutation. Reload once, verify all
+three services/timers, and return definitions_verified with preparer enablement
+explicitly false. If reload or postconditions fail, restore only identical own
+writes, reload the restored definitions, and restore original timer schedules.
+Concurrent operator edits are retained and surfaced as incomplete cleanup.
+Do not expose a live CLI or invoke the real manager until source-backed admission,
+shared-lock ownership and new-preparer enablement are integrated. This necessary
+layer is not deployment completion or the deferred backup/recovery program.
+
+Ruling: keep owned timers quiescent when cleanup cannot restore exact files or
+reload the restored definitions. Ordinary success/refusal restores schedules;
+resuming against unknown effective configuration contradicts coherent handoff.
+Concurrent edits remain preserved. Cost if wrong: forecasting/monitoring stays
+stopped until explicit reconciliation, instead of risking mixed definitions.
+A dedicated RED test must prove this exception before the correction.

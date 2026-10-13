@@ -3605,6 +3605,35 @@
       "native_runtime_sources_unchanged": 12,
       "production_model_changed": false,
       "automatic_actuation": false
+    },
+    "native_reload_transaction": {
+      "status": "composition_implemented_tests_pass_live_admission_and_preparer_enablement_pending",
+      "source": "openhab/scripts/household_native_install.py",
+      "tests": {
+        "RED_handle": 11754,
+        "initial_GREEN_handle": 84337,
+        "initial_passed": 30,
+        "initial_seconds": 42.69,
+        "restoration_regression_RED_handle": 55114,
+        "final_GREEN_handle": 11080,
+        "passed": 31,
+        "seconds": 46.81
+      },
+      "behavior": "Internal caller-admitted composition quiesces owned timers, writes five reconciled files, reloads manager and verifies exact effective family; restores exact own files and reloads on failure while preserving concurrent edits.",
+      "ruling": "Keep schedules quiescent when cleanup is incomplete or restored definitions cannot reload; ordinary success/refusal restores original schedules.",
+      "ruling_cost_if_wrong": "Forecasting/monitoring remains stopped until explicit reconciliation.",
+      "scope": "Mocked manager and temporary unit roots; no real installed definitions or schedules changed.",
+      "pending": [
+        "Source-backed readiness admission and shared-lock integration",
+        "New preparer timer enablement and failure cleanup",
+        "Source-pinned deployment and actual natural-cycle qualification"
+      ],
+      "live_units_changed": false,
+      "service_restarted": false,
+      "production_model_changed": false,
+      "protected_sources_unchanged": 72,
+      "native_runtime_sources_unchanged": 12,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -3734,5 +3763,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T18:42:53.333376+00:00"
+  "updated_at": "2026-10-13T18:58:03.589775+00:00"
 }

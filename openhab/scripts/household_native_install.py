@@ -1,8 +1,9 @@
-"""Internal native unit-file transaction behind readiness admission.
+"""Internal native installation helpers behind source-backed readiness admission.
 
-The caller must qualify readiness, hold the existing shared lock, quiesce the
-relevant timers, and supply an inactivity/source/deadline guard. This internal
-layer never reloads units, activates timers, restarts services or grants actions.
+The caller must qualify readiness, hold the existing shared lock and supply an
+inactivity/source/deadline guard. Helpers mutate exact reconciled files, quiesce
+owned schedules, reload and verify definitions. There is no live CLI or complete
+activation entry point; preparer enablement and admission remain unfinished.
 """
 import os,stat,secrets
 from pathlib import Path
@@ -52,9 +53,10 @@ def _undo(changes):
     return pending
 
 
-def _install_files(output,*,guard):
+def _install_files(output,*,guard,_undo_log=None):
     """Apply five reconciled files; admission/activation belongs to the caller."""
     if not callable(guard):raise ValueError('installation epoch guard required')
+    if _undo_log is not None and (type(_undo_log) is not list or _undo_log):raise ValueError('empty private undo log required')
     record=handoff_api.verify(output,guard=guard)
     family=deploy._directory(record['family']);selected=family_api.verify(family,guard=guard)
     stage=deploy._directory(selected['stage'])
@@ -92,6 +94,7 @@ def _install_files(output,*,guard):
         pending=_undo(changes)
         if pending:error.add_note('Concurrent changes or changed parents preserved for roles: '+','.join(pending))
         raise
+    if _undo_log is not None:_undo_log.extend(changes)
     return dict(status='native_unit_files_installed',handoff_sha256=record['handoff_sha256'],file_count=len(changes),
         unit_manager_reloaded=False,service_restarted=False,automatic_actuation=False)
 
@@ -131,12 +134,12 @@ def _services_inactive(root):
 
 @contextmanager
 def _quiesce_timers(root,*,guard):
-    """Stop only active owned schedules and restore them on every exit."""
+    """Restore owned schedules on exit unless cleanup leaves definitions unsafe."""
     guard();_services_inactive(root)
     original={unit:_timer_state(unit).get('ActiveState') for unit in TIMERS}
     if any(state not in ('active','inactive') for state in original.values()):
         raise ValueError('explicit stable original timer states required')
-    stopped=[]
+    stopped=[];restoration={'safe':True}
     try:
         for unit in TIMERS:
             if original[unit]=='active':
@@ -144,10 +147,10 @@ def _quiesce_timers(root,*,guard):
         guard();_services_inactive(root)
         if any(_timer_state(unit).get('ActiveState')!='inactive' for unit in TIMERS):
             raise ValueError('owned timer quiescence changed')
-        yield
+        yield restoration
     finally:
         failures=[]
-        for unit in stopped:
+        for unit in stopped if restoration['safe'] else []:
             try:
                 state=_timer_state(unit).get('ActiveState')
                 if state=='inactive':deploy._systemctl('start',unit)
@@ -186,3 +189,40 @@ def _verify_effective_family(family,*,guard):
     if family_api.verify(family,guard=guard)!=selected:raise ValueError('native family changed during effective verification')
     return dict(status='native_effective_family_verified',deployment_sha256=selected['deployment_sha256'],
         services_inactive=True,timers_inactive=True,automatic_actuation=False)
+
+
+def _reload_handoff(output,*,guard):
+    """Compose internal admitted installation; preparer activation stays pending.
+
+    A source-backed admission caller must already hold the shared lock. Its
+    guard must preserve readiness/source/deadline epochs through intentional
+    output changes; it must not treat the replaced overrides as old originals.
+    This function is not exposed as a live command or an admission substitute.
+    """
+    record=handoff_api.verify(output,guard=guard)
+    root=deploy._path(record['originals']['forecast_service']['path']).parent
+    family=deploy._directory(record['family']);own=deploy._bytes(Path(__file__))
+    changes=[];installed=False
+    def checked():
+        guard()
+        if deploy._bytes(Path(__file__))!=own:raise ValueError('installer source changed')
+    with _quiesce_timers(root,guard=checked) as restoration:
+        try:
+            result=_install_files(output,guard=checked,_undo_log=changes);installed=True
+            checked();deploy._systemctl('daemon-reload');checked()
+            effective=_verify_effective_family(family,guard=checked)
+            checked()
+        except Exception as error:
+            if installed:
+                pending=_undo(changes)
+                if pending:
+                    restoration['safe']=False
+                    error.add_note('Concurrent unit edits preserved; schedules remain quiescent for roles: '+','.join(pending))
+                try:deploy._systemctl('daemon-reload')
+                except Exception as reload_error:
+                    restoration['safe']=False
+                    error.add_note('Restored definition reload failed; schedules remain quiescent: '+type(reload_error).__name__)
+            raise
+    return dict(status='native_definitions_verified',handoff_sha256=result['handoff_sha256'],
+        effective_definition_status=effective['status'],unit_manager_reloaded=True,
+        new_preparer_timer_enabled=False,service_restarted=False,automatic_actuation=False)
