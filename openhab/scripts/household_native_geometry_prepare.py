@@ -26,6 +26,62 @@ def _library_paths(raw):
     return result
 
 
+
+class _SourceGuard:
+    """Reuse path syntax; read original bytes and permissions on every check."""
+    def __init__(self,config,libraries,source):
+        from household_observation import _private_file
+        from thermal_model.origin_capture import _source_bytes
+        self.config=config;self.libraries=libraries;self.source=source
+        self.original_config=_private_file(config,8192)
+        self.original_libraries=_private_file(libraries,8192)
+        self.original_source=_source_bytes(source,maximum=262144)
+        self.components={path:tuple(reversed(path.parents)) for path in (config,libraries,source)}
+
+    def _directories(self,path):
+        import stat
+        for component in self.components[path]:
+            info=component.lstat()
+            if not stat.S_ISDIR(info.st_mode):raise ValueError('native preparation source directory changed')
+        return info.st_dev,info.st_ino
+
+    def _read(self,path,*,source=False):
+        import os,stat
+        from household_observation import _private_file
+        before_parent=self._directories(path)
+        parent_fd=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            row=os.fstat(parent_fd)
+            if (row.st_dev,row.st_ino)!=before_parent:raise ValueError('native preparation source parent changed')
+            if not source:
+                result=_private_file(Path(path.name),8192,directory_fd=parent_fd)
+            else:
+                info=path.lstat()
+                if (not stat.S_ISREG(info.st_mode) or info.st_uid not in (0,os.getuid()) or
+                        info.st_mode&0o022 or info.st_size>262144):
+                    raise ValueError('bounded non-writable preparation source required')
+                fd=os.open(path.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,dir_fd=parent_fd)
+                try:
+                    before=os.fstat(fd)
+                    if (before.st_dev,before.st_ino)!=(info.st_dev,info.st_ino):raise ValueError('preparation source changed')
+                    with os.fdopen(fd,'rb',closefd=False) as stream:raw=stream.read(262145)
+                    after=os.fstat(fd)
+                finally:os.close(fd)
+                if (len(raw)!=info.st_size or len(raw)>262144 or
+                    (before.st_size,before.st_mtime_ns,before.st_ctime_ns)!=(after.st_size,after.st_mtime_ns,after.st_ctime_ns)):
+                    raise ValueError('preparation source changed while reading')
+                from thermal_model.replay_budget import observe_source_bytes
+                observe_source_bytes(path,raw);result=raw
+            if self._directories(path)!=before_parent:raise ValueError('native preparation source parent changed during read')
+            return result
+        finally:os.close(parent_fd)
+
+    def check(self):
+        if (self._read(self.config)!=self.original_config or self._read(self.libraries)!=self.original_libraries or
+                self._read(self.source,source=True)!=self.original_source):
+            raise ValueError('native preparation source or configuration changed')
+
+
 def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     from native_thermal_live import load_settings,prepare_geometry,_resource_preflight
     from thermal_model.provisional_live import _next_issue
@@ -35,9 +91,8 @@ def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),mo
     from household_observation import _private_file
     _resource_preflight()
     config,libraries=map(lambda path:Path(path).absolute(),(config,libraries))
-    original=_private_file(config,8192);library_original=_private_file(libraries,8192)
-    settings=load_settings(config);paths=_library_paths(library_original[0])
-    source=Path(__file__).resolve();own=_source_bytes(source,maximum=262144)
+    source=Path(__file__).resolve();originals=_SourceGuard(config,libraries,source)
+    settings=load_settings(config);paths=_library_paths(originals.original_libraries[0])
     now=clock();issue=_next_issue(now)
     if issue-now<timedelta(seconds=120):
         raise BlockingIOError('original forecast preparation window reserved')
@@ -54,9 +109,7 @@ def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),mo
             lock.verify();pressure.check()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=35):
                 raise ValueError('native preparation lifetime elapsed')
-            if (_private_file(config,8192)!=original or _private_file(libraries,8192)!=library_original or
-                _source_bytes(source,maximum=262144)!=own):
-                raise ValueError('native preparation source or configuration changed')
+            originals.check()
         guard()
         result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard)
         guard()

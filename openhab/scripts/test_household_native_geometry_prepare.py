@@ -112,3 +112,45 @@ def test_stage_option_refuses_execution_from_an_unsealed_source_path(tmp_path,mo
     monkeypatch.setattr(native,'prepare_geometry',lambda *a,**k:pytest.fail('unsealed stage entry accepted'))
     with pytest.raises(ValueError,match='staged'):
         m.run(c,l,stage=stage,clock=lambda:now[0],monotonic=lambda:ticks[0])
+
+
+def source_guard_fixture(tmp_path):
+    import household_native_geometry_prepare as api
+    paths=[tmp_path/name for name in ('config.json','libraries.json','prepare.py')]
+    for path in paths:path.write_bytes(b'original bytes');path.chmod(0o600)
+    return api,paths
+
+
+def test_source_guard_reuses_parsed_paths_without_caching_bytes(tmp_path,monkeypatch):
+    from pathlib import Path
+    api,paths=source_guard_fixture(tmp_path);guard=api._SourceGuard(*paths)
+    calls=[];resolve=Path.resolve
+    def tracked(path,*args,**kwargs):calls.append(str(path));return resolve(path,*args,**kwargs)
+    monkeypatch.setattr(Path,'resolve',tracked);guard.check();assert calls==[]
+    paths[0].write_bytes(b'changed bytes!')
+    with pytest.raises(ValueError):guard.check()
+
+
+@pytest.mark.parametrize('index',[0,1,2])
+def test_source_guard_refuses_same_size_bytes_even_with_restored_mtime(tmp_path,index):
+    import os
+    api,paths=source_guard_fixture(tmp_path);guard=api._SourceGuard(*paths);path=paths[index];before=path.stat()
+    path.write_bytes(b'changed bytes!');os.utime(path,ns=(before.st_atime_ns,before.st_mtime_ns))
+    with pytest.raises(ValueError):guard.check()
+
+
+def test_source_guard_refuses_parent_symlink_after_initial_normal_path(tmp_path):
+    api,paths=source_guard_fixture(tmp_path);guard=api._SourceGuard(*paths)
+    saved=tmp_path.with_name(tmp_path.name+'-saved');tmp_path.rename(saved);tmp_path.symlink_to(saved,target_is_directory=True)
+    with pytest.raises(ValueError):guard.check()
+
+
+@pytest.mark.parametrize('damage',['mode','hardlink','replacement'])
+def test_source_guard_refuses_changed_private_file_identity_or_permissions(tmp_path,damage):
+    import os
+    api,paths=source_guard_fixture(tmp_path);guard=api._SourceGuard(*paths);path=paths[0]
+    if damage=='mode':path.chmod(0o640)
+    elif damage=='hardlink':os.link(path,tmp_path/'linked.json')
+    else:
+        path.rename(tmp_path/'saved.json');path.write_bytes(b'original bytes');path.chmod(0o600)
+    with pytest.raises(ValueError):guard.check()

@@ -3902,6 +3902,34 @@
       "live_units_changed": false,
       "production_model_changed": false,
       "automatic_actuation": false
+    },
+    "native_staged_preparer_source_guard": {
+      "status": "parsed_paths_with_fresh_bytes_implemented_tests_pass_actual_staged_timing_pending",
+      "source": "openhab/scripts/household_native_geometry_prepare.py",
+      "diagnostic_probe": {
+        "initial_handle": 20616,
+        "diagnostic_handle": 36154,
+        "terminal_status": 1,
+        "reason": "native preparation lifetime elapsed",
+        "cold_worker_seconds": 83.40381347003859,
+        "completed_geometry_batches": 2,
+        "production_driver_ran": false,
+        "original_timers_remained_active": true,
+        "live_writes": false
+      },
+      "tests": {
+        "RED_handle": 8188,
+        "GREEN_handle": 64855,
+        "passed": 105,
+        "seconds": 5.0
+      },
+      "behavior": "Cache parsed path objects only; freshly lstat directories and anchor parent file descriptors; re-read private/source bytes, permissions and complete file metadata on every callback. Preserve source-byte observation, original lock, pressure policy and 75-second deadline.",
+      "protected_fitted_sources_unchanged": 72,
+      "native_runtime_sources_unchanged": 12,
+      "artifact_rebinding_required": false,
+      "fresh_source_stage_required": true,
+      "production_model_changed": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
