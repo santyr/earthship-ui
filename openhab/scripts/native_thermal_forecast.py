@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 from astro_geometry_series import NativeGeometrySeries,replay_series
+from astro_geometry import _instant
 from native_thermal_artifact import validate_native_candidate,_read,LIMITS
 from native_thermal_model import NativeInstalledShadeDynamics,RULE
 from thermal_model.forcing_capture import _canonical
@@ -69,7 +70,7 @@ def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget)
 
 
 def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None):
-    issue,available,published=map(_utc,(issue,available,published));check_budget()
+    issue,available,published=map(_instant,(issue,available,published));check_budget()
     candidate=_candidate(candidate,runtime,expected_artifact_sha256,issue,check_budget)
     if type(geometry) is not NativeGeometrySeries or geometry.sha256!=_sha(expected_geometry_sha256):
         raise ValueError('external native forecast geometry identity required')
@@ -87,12 +88,14 @@ def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,e
 
 
 def validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    # Callbacks and concurrent callers must never alter the validated snapshot.
+    value=deepcopy(value);runtime=deepcopy(runtime)
     check_budget()
     if (not isinstance(value,dict) or set(value)!=CAPTURE_FIELDS or value['schema']!=CAPTURE_SCHEMA or
             value['capture_sha256']!=_sha(expected_capture_sha256) or digest(value,'capture_sha256')!=value['capture_sha256'] or
             len(_canonical(value))>MAX_CAPTURE_BYTES):
         raise ValueError('closed original native forecast identity required')
-    issue,available,published=map(_utc,(value['issued_at'],value['inputs_available_at'],value['published_at']))
+    issue,available,published=map(_instant,(value['issued_at'],value['inputs_available_at'],value['published_at']))
     candidate=_candidate(value['candidate'],runtime,expected_artifact_sha256,issue,check_budget)
     replay_binding(value['native_origin_binding'],value['inputs']['origin_temperatures'],issue_at=issue,check_budget=check_budget)
     packet=value['geometry']

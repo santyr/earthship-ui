@@ -154,3 +154,38 @@ def test_native_monitoring_report_cannot_mix_candidate_revisions(tmp_path,monkey
     assert any('awaiting observations' in reason for reason in api().publication(value)['reasons'])
     report['artifact_sha256']='f'*64
     with pytest.raises(ValueError):api().build_capture(c,i,monitoring_report=report,**k)
+
+
+@pytest.mark.parametrize('field',['issue','available','published'])
+@pytest.mark.parametrize('suffix',['.0000009+00:00','+00:00:00.5'])
+def test_build_rejects_clock_precision_that_would_change_the_requested_instant(tmp_path,monkeypatch,originals,field,suffix):
+    c,i,k=context(tmp_path,monkeypatch,originals)
+    k[field]=k[field].isoformat().split('+')[0]+suffix
+    with pytest.raises(ValueError):api().build_capture(c,i,**k)
+
+
+@pytest.mark.parametrize('field',['issued_at','inputs_available_at','published_at'])
+@pytest.mark.parametrize('suffix',['.0000009+00:00','+00:00:00.5'])
+def test_resealed_capture_rejects_lossy_clock_precision(tmp_path,monkeypatch,originals,field,suffix):
+    value,k=issued(tmp_path,monkeypatch,originals)
+    value[field]=value[field].split('+')[0]+suffix
+    value['capture_sha256']=api().digest(value,'capture_sha256')
+    with pytest.raises(ValueError):replay(value,k)
+
+
+def test_replay_returns_only_the_pinned_snapshot_when_final_guard_mutates_caller(tmp_path,monkeypatch,originals):
+    value,k=issued(tmp_path,monkeypatch,originals);original=deepcopy(value);pin=value['capture_sha256'];count=0
+    def count_check():
+        nonlocal count
+        count+=1
+    args=dict(runtime=k['runtime'],expected_artifact_sha256=k['expected_artifact_sha256'],expected_capture_sha256=pin)
+    api().validate_capture(value,check_budget=count_check,**args)
+    final_check=count;count=0
+    def mutate_at_final_check():
+        nonlocal count
+        count+=1
+        if count==final_check:value['output']['automatic_actuation']=True
+    try:result=api().validate_capture(value,check_budget=mutate_at_final_check,**args)
+    except ValueError:return
+    assert count==final_check and value['output']['automatic_actuation'] is True
+    assert result==original and api().digest(result,'capture_sha256')==pin
