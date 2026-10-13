@@ -191,3 +191,15 @@ Native outcome scoring task (inline, existing approved migration)
 - Source-bound mature outcome acquisition/completion reconciliation/reporting,
   UI/household/native producer handoff and actual as-issued scoring remain live
   integration requirements. This pure score task selects no model or live units.
+
+Native score9942a5b implemented with219 affectedcases initiallypassed. Immutable
+review C0/I1/M1; timestamp precision regraded Important because lossy parsing can
+count future observations at the target. One fix pass946058b: shared strict outcome
+clock/complete receipt validation in fresh scoring and saved pair replay. Two
+representative cases RED6.99s; new17 regressions GREEN5/12.90s+12/24.98s;
+original31 scoring/forecast cases passed42.80s afterfix. Other188 unchanged
+forecast/data/geometry cases remain verified from the prior feature runs. Original
+72 sources unchanged; host intervalpressure/swapread refusals respected. No new
+review pass. Source-bound raw outcome acquisition/completion/report reconciliation,
+11-source runtime/artifact/stage, monitor/UI/household/producer coherence and live
+selection remain required. No optimizer/live unit/model/actuator changes.

@@ -56,7 +56,7 @@
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete.",
       "complete": false
     },
     {
@@ -2081,7 +2081,7 @@
       "protected_original_sources": 72,
       "original_fitted_sources_changed": false,
       "actual_source_and_latency_qualification_pending": true,
-      "current_native_runtime_and_stage_qualification_pending": false,
+      "current_native_runtime_and_stage_qualification_pending": true,
       "native_score_ui_household_producer_integration_pending": true,
       "production_model_changed": false,
       "production_accuracy_improvement_proven": false,
@@ -2131,6 +2131,92 @@
         "status": "sealed_staged_native_artifact_verified"
       },
       "next_stage_requires_observer_runtime_rebinding": true
+    },
+    "native_outcome_scoring": {
+      "status": "pure_native_score_and_report_implemented_review_corrections_verified_operational_pending",
+      "source_revision": "946058b2d13ae6e3b59cdc86310586037e01bac7",
+      "pair_schema": "earthship-provisional-thermal-scored-pair/v2",
+      "report_schema": "earthship-provisional-thermal-performance/v1",
+      "horizons_hours": [
+        1,
+        6,
+        12,
+        24
+      ],
+      "native_capture_runtime_and_external_identity_replayed": true,
+      "both_exact_persisted_forecast_receipts_required": true,
+      "qualified_mature_sensor_phase_receipt_required": true,
+      "saved_outcome_metadata_revalidated": true,
+      "lossless_outcome_and_assessment_clocks_required": true,
+      "caller_values_frozen_before_callbacks": true,
+      "native_model_and_geometry_lineage_preserved": true,
+      "pure_original_error_arithmetic_and_report_reused": true,
+      "missing_baselines_not_counted": true,
+      "duplicate_and_mixed_runtime_model_cohorts_refused": true,
+      "initial_affected_cases_passed": 219,
+      "initial_serial_batches": [
+        {
+          "cases": 31,
+          "seconds": 41.99
+        },
+        {
+          "cases": 156,
+          "seconds": 18.51
+        },
+        {
+          "cases": 19,
+          "seconds": 29.6
+        },
+        {
+          "cases": 13,
+          "seconds": 15.7
+        }
+      ],
+      "post_correction_scoring_and_legacy_cases_passed": 48,
+      "post_correction_serial_batches": [
+        {
+          "cases": 5,
+          "seconds": 12.9
+        },
+        {
+          "cases": 12,
+          "seconds": 24.98
+        },
+        {
+          "cases": 31,
+          "seconds": 42.8
+        }
+      ],
+      "unchanged_forecast_data_geometry_cases_previously_verified": 188,
+      "review": {
+        "reviewed_revision": "9942a5b8b4a72a642da8833a8cced0e98c53e890",
+        "critical": 0,
+        "important": 1,
+        "minor": 1,
+        "timestamp_precision_regraded_important": true,
+        "final_important_disposition": 2,
+        "unresolved_important": 0,
+        "deferred_minors": 0,
+        "correction_passes": 1,
+        "representative_regressions_failed_before_fix": 2,
+        "regression_red_seconds": 6.99,
+        "new_regressions_passed_after_fix": 17,
+        "findings": [
+          "saved-pair validation did not revalidate qualified outcome metadata",
+          "outcome clocks could silently truncate unsupported precision"
+        ]
+      },
+      "pressure_and_swap_refusals_respected": true,
+      "pressure_guards_relaxed": false,
+      "protected_original_sources": 72,
+      "original_fitted_sources_changed": false,
+      "actual_raw_outcome_provenance_and_completion_reconciliation_pending": true,
+      "eleven_source_runtime_artifact_stage_qualification_pending": true,
+      "native_monitor_ui_household_producer_and_coherent_selection_pending": true,
+      "production_model_changed": false,
+      "production_accuracy_improvement_proven": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
