@@ -2852,6 +2852,59 @@
         "artifact_build_and_readback_seconds": 28.959725703054573,
         "private_evidence": "native-issuer-geometry-aef24b8/geometry-qualification.json"
       }
+    },
+    "native_operational_monitor": {
+      "status": "implemented_private_tests_passed_actual_query_and_scoring_qualification_pending",
+      "base_commit": "a7b9608",
+      "sources": [
+        "openhab/scripts/native_thermal_live.py",
+        "openhab/scripts/household_forecast_score.py"
+      ],
+      "tests": {
+        "handle": 84296,
+        "passed": 25,
+        "seconds": 52.7,
+        "native_queue": 9,
+        "native_profile_coordinator": 3,
+        "legacy_report_coordinator": 13
+      },
+      "behavior": [
+        "Active candidate first with chronological jobs, one outcome per invocation.",
+        "Verify both original persisted publications before querying a mature native outcome.",
+        "Retain and replay original historical paired query packets through native source-score/completion/reconciled-report APIs.",
+        "Missing outcomes retain a real absence packet and original fingerprints; cache15min, requery at expiry, tolerate the full three-day retry window.",
+        "Incomplete history remains an unavailable recent-cycle baseline; no fabricated errors or graduation.",
+        "Remove cached native metrics before source verification; corrupt/deleted completed originals refuse replacement.",
+        "Native v2 private config selects native loader/scorer, preserving v1 paths, sharedlock,50s deadline and nextissue\u221235 cutoff."
+      ],
+      "qualification_limits": [
+        "Source packets/model arithmetic are genuine retained fixtures; publication/database transport in queue tests is synthetic.",
+        "Actual full31-cycle acquisition latency, full scoring/report latency, final runtime12 artifact/sealedstage/current source capture, coherent family selection and wholebranch review remain required."
+      ],
+      "live_writes": false,
+      "production_model_changed": false,
+      "automatic_actuation": false
+    },
+    "operator_confirmation_20261013": {
+      "status": "recorded_live_journal_identical_readback",
+      "vent_state": "closed",
+      "effective_at": "2026-10-13T14:05:00+00:00",
+      "received_at": "2026-10-13T14:16:58.573140+00:00",
+      "source": "manual_dm",
+      "room_shade_states": {
+        "living_room": "open",
+        "kitchen": "open",
+        "bedroom": "closed",
+        "bathroom": "closed"
+      },
+      "indoor_opening_time": null,
+      "outdoor_shades": "installed",
+      "skylights": "closed",
+      "aggregate_indoor_shade_changed": false,
+      "new_hardware_installed": false,
+      "device_commands": false,
+      "external_messages": false,
+      "private_evidence": "operator-20261013-vent-closed/journal-qualification.json"
     }
   },
   "astro_efficiency_audit": {
@@ -2981,5 +3034,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T07:53:00-06:00"
+  "updated_at": "2026-10-13T08:53:00-06:00"
 }

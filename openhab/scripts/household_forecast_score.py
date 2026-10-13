@@ -9,6 +9,10 @@ import time
 
 
 def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False):
+    if settings.get('schema')=='earthship-provisional-thermal-live-config/v2':
+        from native_thermal_live import score_jobs
+        guard()
+        return score_jobs(settings,guard=guard)
     from thermal_model import provisional_monitor as monitor
     guard();now=clock();runtime=monitor.current_runtime()
     candidate=monitor.read_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime)
@@ -38,7 +42,12 @@ def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=ti
     from household_observation import _private_file
     _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
-    config=Path(config).absolute();original=_private_file(config,8192);settings=load_settings(config)
+    config=Path(config).absolute();original=_private_file(config,8192)
+    from household.codec import loads
+    declared=loads(original[0])
+    if isinstance(declared,dict) and declared.get('schema')=='earthship-provisional-thermal-live-config/v2':
+        from native_thermal_live import load_settings
+    settings=load_settings(config)
     own=Path(__file__).read_bytes();now=clock();issue=_next_issue(now)
     if issue-now<timedelta(seconds=90):raise BlockingIOError('forecast preparation window reserved')
     verifier=None;binding=None

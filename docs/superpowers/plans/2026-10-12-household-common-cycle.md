@@ -495,3 +495,46 @@ memorymax/oom/oom_kill all0. Actual candidate/future geometry only: no current
 native capture/model/pipeline projection, native persisted publication, fit,
 model/units selection or live write. Private originals retained; runtime12
 sealed stage/current-source capture/monitor/coherent family handoff stillpending.
+
+2026-10-13 operator facts and planned feedback hardware
+-----------------------------------------------------
+Operator confirmed ventilation closed at08:05 America/Denver to retain heat in
+thermal mass ahead of cooler weather. Living-room and kitchen shades are open;
+bedroom and bathroom shades remain closed. Outdoor shades remain installed;
+skylights remain closed. Indoor opening time was not explicitly supplied. The
+vent closed event was appended/read back in the live journal; all four room
+states are preserved in its note/private context without fabricating a global
+all-open/all-closed indoor shade event. Received/created clocks retain actual
+knowledge availability; this is not a backdated as-issued forecast confirmation.
+
+Motorized shades are planned within the next few weeks, with individual shade
+state feedback. Wireless window contacts are under consideration for future
+installation. Preserve per-shade/per-window identity, actual observation and
+availability times, validity and hardware phase in the existing capability
+model. Command acceptance is not observed position; contact position is not a
+measurement of airflow. Before installation/qualification these are planned
+inputs, not live evidence or new actuator authority. Current scalar indoor-shade
+feature cannot represent the mixed four-room state; keep the observation for
+future feature mapping and accuracy analysis. No hardware purchase/installation,
+external message or device command was performed from these planning notes.
+
+2026-10-13 native outcome monitor implemented
+-------------------------------------------
+Native v2 scorer verifies both original publications, obtains paired historical
+query packets, and persists raw-source score/completion before source-backed
+report reconciliation. Active candidate first, chronological within group, one
+outcome per invocation. Native absence gaps retain original query/fingerprints,
+retry15min, replay absence before cached skip, and requery on expiry. Three-day
+retention supports up to512 per-job gaps;48 repeated absent reads proved the
+previous32 bound was too narrow (RED2077/6.90s). Full31 missing cycles yield
+no fabricated comparator. Missing/corrupt completed sources clear metrics and
+refuse replacement. Native config dispatch in the existing coordinator retains
+v1 behavior and original sharedlock/50s/nextissue−35 constraints.
+
+RED94939 missing APIs, RED29209 missing-gap/stale-metrics cases, RED13814 native
+runner loader; latest25 GREEN84296/52.70s:9 queue,3 native routing/runner,13 legacy
+report coordinator. Synthetic publication transport/fixture packets do not
+prove real scoring latency or native live issuance. Next actual full31-cycle
+query workload and complete scoring/report latency, runtime12/artifact/stage and
+current source geometry/capture/pipeline qualification, coherent production
+selection, fullbranch review and remaining13 program requirements stillpending.

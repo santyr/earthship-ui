@@ -315,3 +315,217 @@ def prepare_geometry(settings,*,issue,library_paths,guard):
             if created:temporary.unlink()
         check();read_geometry(settings,issue=issue,guard=check);sources.verify()
     return dict(status='prepared',path=str(path),geometry_series_sha256=geometry.sha256,automatic_actuation=False)
+
+
+def _native_completion_index(root,now,guard):
+    from thermal_model.provisional_monitor import _folders
+    from native_thermal_artifact import _read
+    from native_thermal_score import COMPLETION_FIELDS,COMPLETION_SCHEMA,COMPLETION_SUFFIX
+    paths=[]
+    for folder in _folders(root,'scores',now):
+        guard();paths.extend(folder.glob('*'+COMPLETION_SUFFIX))
+    if len(paths)>4096:raise ValueError('bounded native completion inventory required')
+    index={}
+    for path in paths:
+        guard();_,value=_read(path,65536)
+        if (not isinstance(value,dict) or set(value)!=COMPLETION_FIELDS or value['schema']!=COMPLETION_SCHEMA or
+            value['release_authority'] is not False or runtime_digest(value,'completion_sha256')!=value['completion_sha256'] or
+            path.name!=value['completion_sha256']+COMPLETION_SUFFIX or _instant(value['completed_at'])>now):
+            raise ValueError('closed original native completion index required')
+        score_path=Path(value['source_score_path'])
+        if not score_path.is_absolute() or score_path.resolve()!=score_path or not score_path.is_relative_to(root):
+            raise ValueError('native source score outside original archive')
+        if value['job_id'] in index:raise ValueError('duplicate native completed job')
+        index[value['job_id']]=(path,value)
+    return index
+
+
+def _write_native_report(root,report,guard):
+    import os,secrets
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.runtime_bundle import _write_private,_sync_directory
+    root=_private_directory(root);path=root/'latest-native-provisional-performance.json'
+    if path.exists():_owned_bytes(path,131072)
+    temporary=root/('.native-performance-'+secrets.token_hex(16))
+    try:
+        _write_private(temporary,_canonical(report));guard();os.replace(temporary,path);_sync_directory(root)
+    finally:
+        if temporary.exists():temporary.unlink()
+
+
+def refresh_report(settings,*,runtime,artifact_sha256,now,guard):
+    """Reconcile retained raw-source completions before replacing native stats."""
+    from native_thermal_score import reconcile_source_report
+    from thermal_model.forcing_capture import _private_directory
+    root=_private_directory(Path(settings['evidence_directory']));now=_instant(now)
+    index=_native_completion_index(root,now,guard)
+    selected=sorted((entry for entry in index.values() if entry[1]['artifact_sha256']==artifact_sha256),
+        key=lambda entry:_instant(entry[1]['completed_at']),reverse=True)[:256]
+    entries=[dict(completion_path=str(path),completion_sha256=value['completion_sha256'],
+        source_score_sha256=value['source_score_sha256'],capture_sha256=value['capture_sha256']) for path,value in selected]
+    report=reconcile_source_report(entries,runtime=runtime,artifact_sha256=artifact_sha256,assessed_at=now,check_budget=guard)
+    guard();_write_native_report(root,report,guard);return report
+
+
+def score_jobs(settings,*,guard,reader=None,max_jobs=1):
+    """One native outcome with raw query replay and source-backed reporting."""
+    import json
+    import native_thermal_score as scores
+    from native_thermal_artifact import _read
+    from household_cycle import load_cycle_delivery
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.provisional_monitor import _folders
+    from thermal_model.provisional_live import _phase_directory
+    from thermal_model.recent_cycles import compare_v2
+    from thermal_model.replay_budget import shared_replay_budget,capture_source_reads
+    if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial native score job required')
+    settings=deepcopy(settings);guard();_resource_preflight();now=_clock();deadline=monotonic()+50
+    def remaining():
+        guard();seconds=deadline-monotonic()
+        if seconds<=0:raise ValueError('native scoring deadline exceeded')
+        return seconds
+    if settings.get('schema')!=LIVE_SCHEMA:raise ValueError('explicit native scoring selection required')
+    root=_private_directory(Path(settings['evidence_directory']))
+    report_path=root/'latest-native-provisional-performance.json'
+    if report_path.exists():
+        from thermal_model.runtime_bundle import _sync_directory
+        _owned_bytes(report_path,131072);remaining();report_path.unlink();_sync_directory(root)
+    with shared_replay_budget(remaining),capture_source_reads() as originals:
+        runtime=current_runtime(guard=remaining)
+        if runtime_digest(runtime)!=settings['runtime_sha256'] or SOURCE not in runtime['native_source_manifest']:
+            raise ValueError('externally pinned native scoring runtime differs')
+        candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime,
+            expected_artifact_sha256=settings['artifact_sha256'],guard=remaining)
+        folder=_phase_directory(root,'scores',now)
+        if reader is None:
+            config={key:settings[key] for key in ('token_file','native_db_config','native_policy','openhab_base')}
+            config.update(schema=COMPRESSED_SOURCE_SCHEMA,output_directory=str(folder))
+            reader=NativeScoreReader(config,shared_lock_guard=remaining)
+        paths=[]
+        for directory in _folders(root,'origins',now):paths.extend(directory.glob('*.native-provisional-delivery-v2.json'))
+        if len(paths)>1024:raise ValueError('bounded native delivered forecast inventory required')
+        deliveries=[]
+        fields={'schema','issued_at','capture_path','capture_sha256','artifact_sha256','runtime_sha256','geometry_series_sha256','receipts','delivery_sha256'}
+        for path in paths:
+            remaining();_,delivery=_read(path,65536)
+            if (not isinstance(delivery,dict) or set(delivery)!=fields or delivery['schema']!='earthship-provisional-thermal-delivery/v2' or
+                runtime_digest(delivery,'delivery_sha256')!=delivery['delivery_sha256'] or path.name!=delivery['delivery_sha256']+'.native-provisional-delivery-v2.json'):
+                raise ValueError('closed original native delivered record required')
+            origin=Path(delivery['capture_path'])
+            if not origin.is_absolute() or origin.resolve()!=origin or origin.parent!=path.parent:
+                raise ValueError('native origin outside original delivery archive')
+            deliveries.append((path,delivery))
+        deliveries.sort(key=lambda entry:(entry[1]['artifact_sha256']!=candidate['artifact_sha256'],_instant(entry[1]['issued_at'])))
+        completed=_native_completion_index(root,now,remaining);scored=0;missing=False
+        for path,delivery in deliveries:
+            remaining();issue=_instant(delivery['issued_at'])
+            for horizon in (1,6,12,24):
+                target=issue+timedelta(hours=horizon)
+                if now<target+timedelta(minutes=5):continue
+                job=runtime_digest({'capture_sha256':delivery['capture_sha256'],'horizon_hours':horizon})
+                if job in completed:
+                    marker=completed[job][1]
+                    if any(marker[key]!=delivery[key] for key in ('artifact_sha256','capture_sha256','runtime_sha256')) or marker['horizon_hours']!=horizon:
+                        raise ValueError('native completed job binding differs')
+                    continue
+                archive=load_cycle_delivery(dict(status='published',delivery_verified=True,origin_path=delivery['capture_path'],delivery_path=str(path)),
+                    issue=issue,guard=remaining,runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],expected_capture_sha256=delivery['capture_sha256'])
+                capture=archive['capture']
+                if _native_gap_pending(root,now,job,delivery,path,capture,remaining):continue
+                for receipt in archive['receipts'].values():
+                    if _canonical(reader.publication(receipt))!=_canonical(receipt):raise ValueError('actual original native publication missing')
+                phase=capture['candidate']['fit']['sensor_epochs']['air']
+                outcome=reader.native([target],assessed_at=now,sensor_epoch=phase)
+                if len(outcome)!=1 or _instant(outcome[0][0])!=target:raise ValueError('original native outcome shape differs')
+                if outcome[0][1] is None:
+                    reader.verify_unchanged();archive['verify_unchanged']();originals.verify();remaining()
+                    _retain_native_gap(folder,job,delivery,path,capture,horizon=horizon,target=target,now=now,
+                        paths=list(reader.native_source_paths),guard=remaining)
+                    missing=True;break
+                grid={}
+                def historical(targets,assessed):
+                    rows=reader.native(targets,assessed_at=assessed,sensor_epoch=phase)
+                    for at,receipt in rows:
+                        key=_instant(at).isoformat()
+                        encoded=None if receipt is None else {name:value.isoformat() if isinstance(value,datetime) else value for name,value in receipt.items()}
+                        if key in grid and grid[key]!=encoded:raise ValueError('original native comparator endpoint changed')
+                        grid[key]=encoded
+                    return rows
+                compare_v2(issue=issue,target=target,current_f=capture['output']['initial']['air_f'],grid_reader=historical,sensor_epoch=phase)
+                source=scores.build_source_score(capture_path=delivery['capture_path'],receipts=archive['receipts'],outcome=outcome[0][1],
+                    recent_cycle_grid=[[at,value] for at,value in sorted(grid.items())],source_paths=list(reader.native_source_paths),horizon_hours=horizon,assessed_at=now,
+                    runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],expected_capture_sha256=delivery['capture_sha256'],check_budget=remaining)
+                reader.verify_unchanged();archive['verify_unchanged']();originals.verify();remaining()
+                source_path=scores.persist_source_score(folder,source)
+                completion=scores.build_source_completion(source_path,runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],
+                    expected_capture_sha256=delivery['capture_sha256'],expected_source_score_sha256=source['source_score_sha256'],completed_at=_clock(),check_budget=remaining)
+                reader.verify_unchanged();archive['verify_unchanged']();originals.verify();remaining()
+                scores.persist_source_completion(folder,completion);scored=1;break
+            if scored or missing:break
+        report=refresh_report(settings,runtime=runtime,artifact_sha256=candidate['artifact_sha256'],now=_clock(),guard=remaining)
+        reader.verify_unchanged();originals.verify();remaining()
+        result=dict(status='scored' if scored else 'monitoring_refreshed' if missing else 'waiting',scored=scored,
+            current_revision_scored=sum(row['model']['count'] for row in report['by_horizon'].values()),automatic_actuation=False)
+        if missing:result['pending_reason']='mature_outcome_unavailable'
+        return result
+
+
+GAP_SCHEMA='earthship-native-thermal-gap/v1'
+GAP_FIELDS={'schema','job_id','delivery_sha256','capture_sha256','artifact_sha256','runtime_sha256','horizon_hours',
+    'target_at','assessed_at','retry_after','native_source_paths','original_fingerprints','queue_source_sha256','automatic_actuation','gap_sha256'}
+
+
+def _validate_native_absence(paths,capture,*,target,assessed,guard):
+    from weather_temperature_sources import read_compressed_temperature_source,replay_temperature_source
+    if not isinstance(paths,list) or len(paths)!=1:raise ValueError('one original native absence query required')
+    path=Path(paths[0]);guard();packet=read_compressed_temperature_source(path.parent,path)
+    if (packet['targets']!=[target.isoformat()] or _instant(packet['assessed_at'])!=assessed or packet['stream']!='indoor' or
+        packet['sensor_epoch']!=capture['candidate']['fit']['sensor_epochs']['air']):
+        raise ValueError('original native absence query context differs')
+    values=replay_temperature_source(packet);guard()
+    if len(values)!=1 or _instant(values[0][0])!=target or values[0][1] is not None:
+        raise ValueError('native absence query selected a measurement')
+
+
+def _native_gap_pending(root,now,job,delivery,delivery_path,capture,guard):
+    from thermal_model.provisional_monitor import _folders,_fingerprint
+    from native_thermal_artifact import _read
+    paths=[]
+    for folder in _folders(root,'scores',now):paths.extend(folder.glob(job+'-*.native-thermal-gap-v1.json'))
+    # Three retained UTC days contain at most 289 quarter-hour retries.
+    if len(paths)>512:raise ValueError('bounded native absence retries required')
+    latest=None
+    for path in paths:
+        guard();_,value=_read(path,131072)
+        if (not isinstance(value,dict) or set(value)!=GAP_FIELDS or value['schema']!=GAP_SCHEMA or value['automatic_actuation'] is not False or
+            runtime_digest(value,'gap_sha256')!=value['gap_sha256'] or path.name!=job+'-'+value['gap_sha256']+'.native-thermal-gap-v1.json' or
+            value['queue_source_sha256']!=sha256(_source_bytes(Path(__file__).resolve(),maximum=2000000)).hexdigest() or
+            value['job_id']!=job or any(value[key]!=delivery[key] for key in ('delivery_sha256','capture_sha256','artifact_sha256','runtime_sha256'))):
+            raise ValueError('original native retry gap binding differs')
+        assessed=_instant(value['assessed_at']);target=_instant(value['target_at'])
+        if (assessed>now or _instant(value['retry_after'])!=assessed+timedelta(minutes=15) or
+            target!=_instant(capture['issued_at'])+timedelta(hours=value['horizon_hours'])):
+            raise ValueError('original native retry clock differs')
+        for name,fingerprint in value['original_fingerprints'].items():
+            if _fingerprint(name)!=fingerprint:raise ValueError('native absence originals changed')
+        _validate_native_absence(value['native_source_paths'],capture,target=target,assessed=assessed,guard=guard)
+        if latest is None or assessed>_instant(latest['assessed_at']):latest=value
+    return latest is not None and now<_instant(latest['retry_after'])
+
+
+def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,target,now,paths,guard):
+    from thermal_model.provisional_monitor import _fingerprint
+    from thermal_model.provisional_forecast import persist
+    _validate_native_absence(paths,capture,target=target,assessed=now,guard=guard)
+    sources=set(paths)|{str(delivery_path),delivery['capture_path']}|{ref['path'] for ref in capture['candidate']['originals'].values()}|set(capture['native_origin_binding'].get('query_sources',{}).values())
+    value=dict(schema=GAP_SCHEMA,job_id=job,delivery_sha256=delivery['delivery_sha256'],capture_sha256=delivery['capture_sha256'],
+        artifact_sha256=delivery['artifact_sha256'],runtime_sha256=delivery['runtime_sha256'],horizon_hours=horizon,target_at=target.isoformat(),
+        assessed_at=now.isoformat(),retry_after=(now+timedelta(minutes=15)).isoformat(),native_source_paths=list(paths),
+        original_fingerprints={name:_fingerprint(name) for name in sorted(sources)},
+        queue_source_sha256=sha256(_source_bytes(Path(__file__).resolve(),maximum=2000000)).hexdigest(),automatic_actuation=False)
+    value['gap_sha256']=runtime_digest(value,'gap_sha256');guard()
+    persist(folder,value,field='gap_sha256',suffix='.native-thermal-gap-v1.json',maximum=131072)
+    stored=folder/(value['gap_sha256']+'.native-thermal-gap-v1.json');target_path=folder/(job+'-'+value['gap_sha256']+'.native-thermal-gap-v1.json')
+    from thermal_model.rollback import _rename_new
+    _rename_new(stored,target_path);guard()
+    return value
