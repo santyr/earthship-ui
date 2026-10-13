@@ -331,3 +331,13 @@ of18/2.20s; corrected71067 GREEN85parser/4.80s;54572 GREEN15renderer/24.30s.
 runtime sourcehashes match bb640b8; no new model/artifact required for UIonlychange.
 Live rootdecoder mirror and fresh HTTP/browserverification stillpending. No
 live unit/model/actuator changes or GitHubpublication. FullPR3 remainsactive.
+
+2c088e2 native UI decoder installed using checked2file gitpatch, preserving
+unrelated dirty root overlay. Private originalbytes/patch/pre-after SHA retained.
+Actual UI serviceactive/NRestarts0; loopback/LAN/moduleHTTP200. Fresh96task/
+CPU20/Mem256/swap0 browser7331 terminal0 renderedHome, liveconnection, nooverlay,
+0pageerrors/0failedrequests. Serveddecoder syntheticnativev9 probe ready/
+PROVISIONAL/low/withheld/1point; this is not proof of real nativeforecast issuance.
+All numerical/UIbrowserhandles terminal; selectedML v1 andunits unchanged. Actual
+native as-issued futuregeometry/producer/monitor andhousehold source/model/cycle
+compatibility remainrequired. Publicationapproval remains pending; no GitHubwrite.

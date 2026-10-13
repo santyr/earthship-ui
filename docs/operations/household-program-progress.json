@@ -2468,7 +2468,7 @@
       }
     },
     "native_provisional_ui_compatibility": {
-      "status": "decoder_implemented_verified_live_install_pending",
+      "status": "decoder_implemented_tested_installed_browser_verified_native_issuer_pending",
       "native_publication_schema": "earthship-provisional-thermal-publication/v2",
       "native_publication_version": 9,
       "native_forecast_schema": "earthship-provisional-thermal-forecast/v2",
@@ -2495,10 +2495,51 @@
       "second_24_task_startup_abort": true,
       "host_service_active_after_diagnostic_abort": true,
       "native_runtime_sources_unchanged": true,
-      "live_ui_install_pending": true,
+      "live_ui_install_pending": false,
       "production_model_changed": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "source_revision": "2c088e2a9fa8718d7b6309f33a973bc2e4660c49",
+      "live_install": {
+        "source_revision": "2c088e2a9fa8718d7b6309f33a973bc2e4660c49",
+        "files": {
+          "src/lib/thermal/modelResult.js": {
+            "before_sha256": "1a7ea9ff4d8b1f96c649a8975877a7122cac3fdb5649b3e8d1d19680f7a2f519",
+            "after_sha256": "e54fd90ebd81cd8d165b52528fb4c05790c8a3de24f9baec7758ba4025a1953a"
+          },
+          "src/lib/thermal/provisionalResult.js": {
+            "before_sha256": "67f559bb1fa4da609ee00cb4ad44a63ea39f4930f751326a6bd250a298928835",
+            "after_sha256": "7f496ca1984622f617948a686253eb17edb3d51b7a3a93f4c4491887f25813d8"
+          }
+        },
+        "production_model_changed": false,
+        "automatic_actuation": false,
+        "status": "narrow_live_ui_patch_applied"
+      },
+      "live_browser": {
+        "assessed_at": "2026-10-12T22:30:04-06:00",
+        "home_rendered": true,
+        "connection": "live",
+        "page_errors": 0,
+        "failed_requests": 0,
+        "overlay": false,
+        "synthetic_native_decoder": {
+          "state": "ready",
+          "badge": "PROVISIONAL",
+          "confidence": "low",
+          "actionConfidence": "withheld",
+          "trajectoryLength": 1
+        },
+        "real_native_production_issue_proven": false,
+        "ui_service_active": true,
+        "ui_service_restarts": 0,
+        "cpu_quota_percent": 20,
+        "memory_max_bytes": 268435456,
+        "swap_max_bytes": 0,
+        "browser_tasks_max": 96,
+        "production_model_changed": false,
+        "automatic_actuation": false
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -2628,5 +2669,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:26:44-06:00"
+  "updated_at": "2026-10-12T22:30:04-06:00"
 }
