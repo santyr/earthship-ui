@@ -62,7 +62,9 @@ class NativeScoreReader(ScoreReader):
 
 
 from time import monotonic,sleep
-from thermal_installed_intel import _resource_preflight
+from household_cycle_resources import publication_resource_preflight as _publication_resource_preflight
+from thermal_model.origin_capture import _source_bytes
+from hashlib import sha256
 from native_thermal_artifact import current_native_runtime as current_runtime,read_native_candidate,digest as runtime_digest
 from thermal_model.provisional_live import _next_issue,delivery_directory,backend_settings,_persisted_after_write
 from thermal_model.runtime_bundle import _owned_bytes
@@ -72,6 +74,20 @@ from thermal_model.origin_capture import _temperatures
 
 LIVE_SCHEMA='earthship-provisional-thermal-live-config/v2'
 SOURCE='openhab/scripts/native_thermal_live.py'
+
+RESOURCE_SOURCE_SHA256='7d400813515db43fb6debf222ccaf02d6b057131b7137f4d4fb4d4495fe10d30'
+
+
+def _resource_preflight():
+    # The transitive admission helper is sealed by this runtime-bound source.
+    # Check its bytes and loaded location before calling the established kernel
+    # verifier; every numerical step keeps the same caps without forking ionice.
+    path=Path(__file__).resolve().with_name('household_cycle_resources.py')
+    if (sha256(_source_bytes(path,maximum=262144)).hexdigest()!=RESOURCE_SOURCE_SHA256 or
+        Path(_publication_resource_preflight.__code__.co_filename).resolve()!=path):
+        raise ValueError('native resource checker source changed')
+    _publication_resource_preflight()
+
 
 
 def _clock():return datetime.now(timezone.utc)

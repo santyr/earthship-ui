@@ -2779,6 +2779,43 @@
       "production_model_changed": false,
       "live_writes": false,
       "automatic_actuation": false
+    },
+    "native_resource_admission": {
+      "status": "implemented_tests_passed_actual_geometry_requalification_pending",
+      "base_commit": "8ae8cf8",
+      "source": "openhab/scripts/native_thermal_live.py",
+      "bound_resource_helper": "openhab/scripts/household_cycle_resources.py",
+      "helper_sha256": "7d400813515db43fb6debf222ccaf02d6b057131b7137f4d4fb4d4495fe10d30",
+      "behavior": "Use the existing direct kernel publication cap check, with source SHA and loaded helper path bound by the native runtime source; every check retains CPU, RAM, zero swap, tasks, I/O priority, niceness, thread, reserve and PSI requirements.",
+      "tests": {
+        "red": {
+          "handle": 59147,
+          "failed": 2,
+          "seconds": 3.09
+        },
+        "green": {
+          "handle": 80137,
+          "passed": 54,
+          "seconds": 33.2
+        },
+        "includes_actual_capped_process_admission": true,
+        "rejects_changed_helper_bytes": true
+      },
+      "previous_actual_qualification": {
+        "code_revision": "8ae8cf8",
+        "handle": 2052,
+        "status": "candidate_verified_geometry_refused_at_unchanged_75_second_deadline",
+        "artifact_sha256": "88b0a2d2054e6d68cd0aef934c8247b65acf33007dc7c98624acf0b80ff54602",
+        "runtime_sha256": "6e6c5adc7ffc5a9be7634d4b78f2a5ce451e0ac37caad7cd7060bdfc07014d79",
+        "artifact_seconds": 29.56082760100253,
+        "geometry_qualified": false
+      },
+      "protected_original_sources_changed": false,
+      "required_native_fit_sources_changed": false,
+      "deadline_relaxed": false,
+      "fit_executed": false,
+      "production_model_changed": false,
+      "live_writes": false
     }
   },
   "astro_efficiency_audit": {
@@ -2908,5 +2945,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T07:29:00-06:00"
+  "updated_at": "2026-10-13T07:47:00-06:00"
 }

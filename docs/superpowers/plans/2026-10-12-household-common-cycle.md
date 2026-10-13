@@ -467,3 +467,19 @@ geometry/capture/latency, runtime12 artifact/stage, native monitor and coherent
 production selection remain required. No required9 or protected72 source was
 changed, no refit/live write/model selection/action/GitHub publish occurred.
 All13 full-program requirements and Astro audit still require their own evidence.
+
+2026-10-13 actual native preparation exposed admission overhead
+-------------------------------------------------------------
+8ae8cf8 actual runtime12 candidate build/readback passed29.56s without refit;
+actual future geometry then refused at the unchanged75s phase deadline during
+full numerical candidate replay. RED reproduced a legacy ionice subprocess on
+every resource check when the cgroup lacks io.weight. Native admission now uses
+the existing household kernel verifier and pins its source SHA/loaded location
+inside runtime-bound native_thermal_live.py. All caps, priority, thread, reserve,
+PSI, swap/OOM guards and deadlines remain; protected72/required9 bytes unchanged.
+The helper's worktree mode was664, so validation correctly refused it; mode644
+now satisfies the original source ownership requirement. RED2 then54 GREEN
+80137/33.20s includes real process admission without a fork, changed-byte
+refusal,33 existing cap checks and19 native geometry/publication cases.
+Actual updated-runtime geometry qualification remains required; old candidate
+88b0a2d/runtime6e6c5ad is evidence for8ae8cf8 only and is not selected live.
