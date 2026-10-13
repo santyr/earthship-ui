@@ -89,3 +89,28 @@ def test_default_monitor_refuses_replaced_leaf_with_same_name(tmp_path,monkeypat
 def test_default_monitor_refuses_unknown_or_unnormalized_membership(row,tmp_path,monkeypatch):
     monitor,_,membership=default_fixture(tmp_path,monkeypatch);membership.write_text(row)
     with pytest.raises(ValueError):monitor.check()
+
+
+def test_reuses_parsed_paths_without_repeating_resolution(tmp_path,monkeypatch):
+    monitor,root,_=default_fixture(tmp_path,monkeypatch)
+    from pathlib import Path
+    calls=[];resolve=Path.resolve
+    def tracked(path,*args,**kw):calls.append(str(path));return resolve(path,*args,**kw)
+    monkeypatch.setattr(Path,'resolve',tracked)
+    monitor.check();assert calls
+    calls.clear();monitor.check()
+    assert calls==[]
+
+
+@pytest.mark.parametrize('replace',['root','leaf'])
+def test_parsed_path_reuse_refuses_same_inode_symlink_alias(replace,tmp_path,monkeypatch):
+    monitor,root,_=default_fixture(tmp_path,monkeypatch);monitor.check()
+    path=root if replace=='root' else root/'a'
+    old=path.with_name(path.name+'-saved');path.rename(old);path.symlink_to(old,target_is_directory=True)
+    with pytest.raises(ValueError):monitor.check()
+
+
+def test_parsed_path_reuse_still_reads_fresh_worker_counters(tmp_path,monkeypatch):
+    monitor,root,_=default_fixture(tmp_path,monkeypatch);monitor.check()
+    (root/'a/memory.events').write_text('max 1\noom 0\noom_kill 0\n')
+    with pytest.raises(ValueError):monitor.check()

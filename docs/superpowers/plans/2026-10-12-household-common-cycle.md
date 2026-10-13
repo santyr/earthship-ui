@@ -686,3 +686,21 @@ actual current owned stages and installed libraries under the existing caps.
 The installer follows this record; numerical/current-capture/full-pipeline and
 scoring readiness still gate its activation, and all original program requirements
 remain required.
+
+Resource guard parsing efficiency (2026-10-13)
+---------------------------------------------
+A real resource-only profile completed208 checks in2.007s under the original
+caps, quiet preflight and NativeInferenceHeadroom. Nested PublicationHeadroom
+accounted for1.680s of1.922s guard time;416 repeated cgroup resolutions consumed
+0.797s. Reuse only parsed normalized path objects when the newly read kernel
+membership row is identical. On every before/after check, lstat every path
+component and require real directories, then read the current leaf identity.
+Continue reading all caps, host pressure/RAM/swap/OOM and worker event counters
+on every check. No metadata values or permission results are cached. Unusual
+root aliases retain fresh resolution instead of taking the optimized path.
+RED/GREEN cover repeated parsing, membership moves, inode replacement, same-inode
+symlink aliases, fresh counters and all existing resource/pressure refusals.
+Reprofile the same real two-second workload; successful guard profiling does not
+qualify geometry, full production timing or model deployment. Keep all72 fitted
+and12 native-runtime source bytes unchanged; new source-pinned stage required
+before activating this outside-runtime helper optimization.

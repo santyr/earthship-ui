@@ -5,6 +5,7 @@ numerical thread. Host swap traffic can belong to unrelated processes; actual
 new host OOM events or this worker's memory-limit events still stop inference.
 """
 from pathlib import Path,PurePosixPath
+import stat
 from time import sleep
 from thermal_model.training_pressure_guard import _counters
 from thermal_model.capture_guard import _small_text
@@ -16,6 +17,7 @@ class PublicationHeadroom:
         self.resource_check=resource_check
         if resource_check is not None and not callable(resource_check):raise ValueError('resource checker required')
         self.previous=None;self.discover_cgroup=memory_events is None;self.cgroup_binding=None
+        self._parsed_cgroup=None
 
     def check(self):
         binding=None
@@ -41,16 +43,28 @@ class PublicationHeadroom:
 
     def _current_binding(self):
         row=_small_text('/proc/self/cgroup')
-        if len(row.splitlines())!=1 or not row.startswith('0::/'):
-            raise ValueError('unified publication cgroup required')
-        path=PurePosixPath(row[3:])
-        if path.root!='/' or '..' in path.parts or str(path)!=row[3:]:
-            raise ValueError('normalized publication cgroup required')
-        root=Path('/sys/fs/cgroup').resolve();leaf=root.joinpath(*path.parts[1:])
-        if leaf.resolve()!=leaf or not leaf.is_relative_to(root):
-            raise ValueError('contained publication cgroup required')
-        info=leaf.stat()
-        return leaf/'memory.events',(str(leaf),info.st_dev,info.st_ino)
+        parsed=self._parsed_cgroup
+        if parsed is None or parsed[0]!=row:
+            if len(row.splitlines())!=1 or not row.startswith('0::/'):
+                raise ValueError('unified publication cgroup required')
+            path=PurePosixPath(row[3:])
+            if path.root!='/' or '..' in path.parts or str(path)!=row[3:]:
+                raise ValueError('normalized publication cgroup required')
+            original_root=Path('/sys/fs/cgroup');root=original_root.resolve()
+            leaf=root.joinpath(*path.parts[1:])
+            if leaf.resolve()!=leaf or not leaf.is_relative_to(root):
+                raise ValueError('contained publication cgroup required')
+            components=tuple(reversed(leaf.parents))+(leaf,)
+            parsed=(row,root,leaf,components,leaf/'memory.events')
+            # Root aliases retain fresh resolution; normal kernel paths reuse
+            # syntax only. Every metadata value below is read again each time.
+            self._parsed_cgroup=parsed if original_root==root else None
+        _,root,leaf,components,events=parsed
+        for component in components:
+            info=component.lstat()
+            if not stat.S_ISDIR(info.st_mode):
+                raise ValueError('publication cgroup path is no longer a real directory')
+        return events,(str(leaf),info.st_dev,info.st_ino)
 
     def preflight(self):
         self.check()

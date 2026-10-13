@@ -3451,6 +3451,41 @@
       "service_active": true,
       "service_restarted": false,
       "configuration_changed": false
+    },
+    "resource_guard_parsing_efficiency": {
+      "status": "implemented_tests_pass_actual_comparison_pending",
+      "baseline": {
+        "automatic_actuation": false,
+        "completed_checks": 208,
+        "elapsed_seconds": 2.0071852360269986,
+        "fit_executed": false,
+        "guard_relaxed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 42704896,
+        "ml_executed": false,
+        "phase": "resource_checks",
+        "private_evidence_directory": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-headroom-profile-20261013T175617Z",
+        "production_model_changed": false,
+        "reason": null,
+        "status": "resource_profile_completed"
+      },
+      "baseline_worker_check_cumulative_seconds": 1.6802,
+      "baseline_cgroup_resolution_cumulative_seconds": 0.797,
+      "tests": {
+        "RED_handle": 55888,
+        "GREEN_handle": 81750,
+        "passed": 69,
+        "seconds": 1.7
+      },
+      "behavior": "Reuse normalized path syntax only; read current membership, every directory component, leaf identity, all caps and host/worker counters each before/after check. Root aliases retain fresh resolution.",
+      "metadata_values_cached": false,
+      "guard_limits_changed": false,
+      "protected_sources_unchanged": 72,
+      "native_runtime_sources_unchanged": 12,
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "latency_qualified": false
     }
   },
   "astro_efficiency_audit": {
@@ -3580,5 +3615,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T17:54:58.953718+00:00"
+  "updated_at": "2026-10-13T18:04:25.327977+00:00"
 }
