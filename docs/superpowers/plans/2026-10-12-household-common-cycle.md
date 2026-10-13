@@ -118,3 +118,31 @@ swap0, tasks24, original pressure monitor and shared lock remained unchanged.
 No live unit/model/actuator changes. This qualifies the native artifact and sealed
 reader only; future as-issued native geometry/forecast/capture, coherent score
 migration/promotion, demonstrated accuracy, and full PR3 requirements remain open.
+
+Native as-issued forecast task (inline execution within approved A07 migration)
+- Create openhab/scripts/native_thermal_forecast.py and test_native_thermal_forecast.py.
+- build_capture(candidate, inputs, *, geometry, runtime, expected_artifact_sha256,
+  expected_geometry_sha256, issue, available, published, check_budget,
+  monitoring_report=None) retains the complete original compressed-temperature
+  query binding and exact future NativeGeometrySeries. Require the candidate's
+  complete native runtime plus native forecast source identity; geometry must
+  use the original training geometry's native library/collector/site/timezone
+  contract, cover every five-minute forecast forcing exactly, and be computed
+  no later than actual input availability. Preserve original weather, phase,
+  action, November vent-default, aligned issue and 90-second publication guards.
+- validate_capture(value, *, runtime, expected_artifact_sha256,
+  expected_capture_sha256, check_budget) independently replays original candidate,
+  temperature queries and geometry, then rederives native numerical output and
+  monitoring report. Closed origin/forecast/publication v2 schemas distinguish
+  geometry semantics from v1. Persist/read private originals with explicit pins.
+- TDD: independent scalar recurrence for the first hourly endpoint; exact replay;
+  missing/future geometry; native library/site drift; stale/changed temperature,
+  weather/action/phase and publication clock refusals; rehashed output tamper;
+  external identity mismatch; November operator override; private roundtrip.
+- Run original/native forecast, artifact, dynamics, geometry and source-binding
+  regressions serially under unchanged caps/actual lock/pressure monitor. Commit
+  immutable source and obtain final independent review; real current-source
+  geometry acquisition/readback and latency qualification remain required.
+- Native outcome-score migration, UI schema handling, producer scheduling,
+  household capture compatibility and coherent model selection remain subsequent
+  required integration tasks. No native producer is selected by this pure task.
