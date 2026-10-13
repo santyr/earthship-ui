@@ -3368,6 +3368,40 @@
         "status": "actual_owned_native_handoff_reconciliation_verified",
         "handle": 80964
       }
+    },
+    "operator_confirmation_20261013_1130": {
+      "device_commands": false,
+      "effective_at": "2026-10-13T17:30:00+00:00",
+      "external_messages": false,
+      "identical_journal_readback": true,
+      "inserted": true,
+      "other_opening_states_reconfirmed": false,
+      "received_at": "2026-10-13T17:36:00.336228+00:00",
+      "source": "manual_dm",
+      "state": "open",
+      "status": "operator_vent_confirmation_recorded",
+      "private_evidence": "operator-20261013-vent-open/journal-qualification.json"
+    },
+    "native_capture_clock_fidelity": {
+      "status": "probe_corrected_to_30_second_warm_geometry_deadline_refused_before_warm",
+      "code_revision": "9293875",
+      "handle": 54325,
+      "production_warm_lookahead_seconds": 30,
+      "previous_probe_lookahead_seconds": 45,
+      "production_guard": "PublicationHeadroom",
+      "qualification_guard": "NativeInferenceHeadroom",
+      "cold_start_included": false,
+      "exact_production_driver_qualified": false,
+      "refusal": {
+        "phase": "geometry",
+        "reason": "native qualification phase deadline exceeded",
+        "elapsed_seconds": 250.59627687197644,
+        "private_diagnosis": "native-current-capture-9293875/private-diagnosis.json"
+      },
+      "preparation_deadline_seconds": 75,
+      "guard_limits_changed": false,
+      "live_writes": false,
+      "next_action": "Profile guarded candidate/geometry preparation under unchanged caps and deadlines before optimizing."
     }
   },
   "astro_efficiency_audit": {
@@ -3497,5 +3531,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T17:23:27.971577+00:00"
+  "updated_at": "2026-10-13T17:43:55.807329+00:00"
 }
