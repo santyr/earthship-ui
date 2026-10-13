@@ -805,3 +805,7 @@ The fitted base and all nine REQUIRED native sources remain byte-identical:
 _fit_environment explicitly permits this OPTIONAL native_live revision to bind
 the retained original fit without fitting again. Verify this boundary and actual
 runtime before any selection. Then test real geometry latency under the same caps.
+
+Exact production-driver timing qualification (2026-10-13)
+--------------------------------------------------------
+The optimized geometry passes67.899s/288points, while strict native capture still arrives late. Qualify the actual staged household_cycle.run_cycle and native publish_cycle paths under their existing PublicationHeadroom forecast policy, preserving all caps and actual warm/issue clocks. Use private forecast/cycle/evidence/cache destinations; block every telemetry write and withdrawal before transport, never fabricate persisted delivery. Record actual process startup before imports, input known/available clocks, source collection and first publication boundary. Capture underlying refusal with minimal boundary instrumentation. If scheduler exclusion is necessary, use the verified owned timer quiescer for one cycle, refuse active workers, restore original schedules, and explicitly record temporary timer changes. Do not start/restart services, select models or touch owner rules. A timely pre-write boundary is source/timing evidence, not actual publication, complete household replay or mature outcome qualification. Source-backed activation admission and natural post-shadow evidence remain required for the full program.
