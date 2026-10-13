@@ -157,3 +157,12 @@ relaxed. Preliminary runtime15cea696 for uncorrected91 source is retained only
 as private diagnostic state and must not qualify corrected source. Real source,
 latency/current wider runtime/stage readback, native scorer/UI/household/producer
 integration and coherent selection remain required; no live model/unit changes.
+
+Corrected native forecast runtime qualification: committed5ce2d67 native10 runtime
+5699abd and candidate00d694c retain original fit evidence5c0c45d/core9/base72.
+Actual build/write/read17.50s/114987008B, zeroOOM; sealed214-source package
+2a3d1a2 loads corrected native_thermal_forecast with production interpreter and
+reads identical candidate/runtime in10.42s/118874112B, zeroOOM. No optimizer,
+live units/model selection or action changes. Actual future/native issued capture,
+native scoring and coherent observer/UI/producer handoff remain pending; adding
+observer source requires explicit wider runtime/artifact/stage qualification.
