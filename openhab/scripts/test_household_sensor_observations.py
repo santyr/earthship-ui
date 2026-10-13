@@ -95,3 +95,15 @@ def test_snapshot_reassesses_communication_age_from_real_collector():
     prepared=prepare_sensor_observations(registry_raw=registry_raw,registry_sha256=sha256(registry_raw.encode()).hexdigest(),
         sources=sources,as_of=NOW+timedelta(seconds=11),collector_raw=collector,collector_sha256=sha256(collector.encode()).hexdigest())
     assert prepared.to_dict()['observations']['opening_01:contact_state']['value'] is None
+
+
+def test_provider_cannot_relabel_battery_percent_as_humidity():
+    from household.evidence import EvidenceRef,Observation
+    from services.observations.provider import adapt_provider
+    cfg=config(radio_verified=True,transport='wired',device_id='provider-original',decoder=None,
+        capabilities=['relative_humidity'],observation_types=['relative_humidity'],units={'relative_humidity':'percent'})
+    sensor=next(iter(Registry(cfg).devices.values()));original=b'original qualified battery receipt';sha=sha256(original).hexdigest()
+    ref=EvidenceRef('battery_soc','battery-source',sha,sensor['hardware_epoch'],sensor['hardware_epoch'],
+        NOW,NOW,NOW,NOW+timedelta(seconds=120),NOW,'qualified',None)
+    with pytest.raises(ValueError):adapt_provider(sensor=sensor,observation=Observation(ref,68,'percent'),original_raw=original,
+        expected_sha256=sha,kind='relative_humidity',unit='percent',as_of=NOW)

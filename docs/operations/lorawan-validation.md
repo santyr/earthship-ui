@@ -18,7 +18,7 @@ PR #29's household delivery changes remain independent.
 
 - **Frontend:**147 files,2238 tests passed (`npm test`). Existing frontend regression
   suite is included, with the route contract updated for the additive sensor page.
-- **Python:**78 passed,11 container tests skipped in the ordinary unit command. This
+- **Python:**79 passed,11 container tests skipped in the ordinary unit command. This
   includes new sensor contracts and existing household evidence/snapshot/replay tests.
   Existing household tests need `/home/sat/Solar_PV/analytics/src` on PYTHONPATH,
   as in the repository's existing CI dependency setup.
@@ -87,3 +87,9 @@ credentials and persistent synthetic history remain in ignored local staging for
 an optional demonstration. The separate clean-initialization test database/volume
 was removed. No physical gateway service was started. The pull request is for
 review and must not be merged automatically.
+
+Hosted-runner qualification exposed asynchronous OpenHAB cold-start registration.
+The integration harness now waits for actual sensor bindings and a synthetic
+baseline instead of treating HTTP200 as Item readiness. Existing-provider adapters
+also enforce semantic source-role mapping; shared units cannot relabel battery
+percent as humidity. Both changes have regression coverage.
