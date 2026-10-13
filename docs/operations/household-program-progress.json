@@ -2883,7 +2883,81 @@
       ],
       "live_writes": false,
       "production_model_changed": false,
-      "automatic_actuation": false
+      "automatic_actuation": false,
+      "actual_artifact_qualification": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "code_revision": "0e45c5c51ee3ee8485949b067c70f6bbaacbef75",
+        "fit_executed": false,
+        "identical_readback": true,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 75198464,
+        "native_source_count": 12,
+        "production_model_changed": false,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 28.74148021900328,
+        "status": "actual_native_monitor_artifact_verified",
+        "handle": 59372
+      },
+      "actual_sealed_stage_qualification": {
+        "artifact_build_revision": "0e45c5c51ee3ee8485949b067c70f6bbaacbef75",
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "bound_kernel_resource_helper_verified": true,
+        "code_revision": "0e45c5c51ee3ee8485949b067c70f6bbaacbef75",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "77b72db86267657cfe94fe91661ccb38db374da2b174251bf65df5eae5b0f253",
+        "fit_executed": false,
+        "forecast_module_loaded": true,
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 120397824,
+        "native_household_adapter_exports_loaded": true,
+        "native_household_execution_bound_to_sealed_sources": true,
+        "native_issuer_monitor_exports_loaded": true,
+        "native_source_count": 12,
+        "native_sources": 12,
+        "original_candidate_readback_identical": true,
+        "production_interpreter": true,
+        "production_model_changed": false,
+        "protected_original_sources": 72,
+        "raw_score_replay_exports": [
+          "build_source_score",
+          "validate_source_score",
+          "persist_source_score",
+          "read_source_score",
+          "build_source_completion",
+          "validate_source_completion",
+          "persist_source_completion",
+          "read_source_completion",
+          "reconcile_source_report"
+        ],
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "score_module_loaded": true,
+        "seconds": 11.122079241031315,
+        "source_count": 216,
+        "status": "sealed_staged_native_artifact_verified",
+        "handle": 63229,
+        "private_stage": "stage-0e45c5c-nativemonitor"
+      },
+      "actual_full_history_queries": {
+        "status": "refused_original_interval_memory_pressure_guard",
+        "attempt_handles": [
+          47861,
+          52526
+        ],
+        "retained_query_count_each": 1,
+        "first_packet_qualified_points": 2,
+        "diagnostic_attempt_elapsed_seconds": 1.1492909389780834,
+        "diagnostic_phase_lag": 2,
+        "diagnostic_sql_request_count": 2,
+        "completed_full_history_workload": false,
+        "guard_relaxed": false,
+        "live_writes": false,
+        "private_diagnosis": "native-full-history-query-0e45c5c-diagnostic-1/private-diagnosis.json"
+      }
     },
     "operator_confirmation_20261013": {
       "status": "recorded_live_journal_identical_readback",
@@ -3034,5 +3108,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T08:53:00-06:00"
+  "updated_at": "2026-10-13T09:12:00-06:00"
 }

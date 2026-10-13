@@ -538,3 +538,24 @@ prove real scoring latency or native live issuance. Next actual full31-cycle
 query workload and complete scoring/report latency, runtime12/artifact/stage and
 current source geometry/capture/pipeline qualification, coherent production
 selection, fullbranch review and remaining13 program requirements stillpending.
+
+2026-10-13 native monitor runtime/package qualification
+------------------------------------------------------
+0e45c5c current runtime12 candidate512a5d91/runtimecc182b83 builds/replays
+identically under real guards:59372 terminal0,28.741s/75198464B/zero OOM.
+Sealed216source stage-0e45c5c-nativemonitor imports issuer/monitor/household/
+CLI/scorer exports under production interpreter, verifies hash-bound direct
+kernel admission and original candidate:63229 terminal0,11.122s/120397824B,
+zero memorymax/OOM;72 protected original bytes unchanged. No refit/live model
+selection or current-source native capture/pipeline projection.
+
+Actual worst-case31 history acquisition attempts47861 and52526 terminal1:
+one original packet retained each, first independently replayed2 qualified
+points. Diagnostic retry refused1.149s into secondSQL atlag2 because original
+TrainingHeadroom interval memory-pressure guard fired.50s query workload/full
+scoring remains unqualified. Host later showed zero average PSI and6.3GB
+available, which does not negate interval refusal. Do not weaken/bypass guards
+or treat this as a successful workload. Preserve diagnostic state. Next safe
+work: current native geometry/source/capture/model/pipeline/CLI, actual bounded
+scoring/report latency and coherent selected producer/preparer/observer/scorer/
+UI handoff, wholebranch review and remaining13requirements/Astro audit evidence.
