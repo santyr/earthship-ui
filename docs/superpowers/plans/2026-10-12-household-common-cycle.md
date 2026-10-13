@@ -405,3 +405,35 @@ core9 fit5c0c45d retained. 11.0092s/121016320B/zeroOOM. Artifact originallybuilt
 genuine current-source/native futuregeom andliveproducer/monitor/cycle delivery
 coherence remainrequired. All processhandles terminal, codeclean afterevidence
 commit. No live units/model/writes/actions orGitHubpublish; fullgoalactive.
+
+Native paired score reader task (approved native monitor migration)
+- Add NativeScoreReader in optional native_thermal_live.py, outside protected72
+  andrequired9. Accept original compressed source score configuration/v4 only,
+  require held shared lock guard, and preserve all3 private source fingerprints,
+  allowed loopback endpoints, phase binding, existing publication reads and
+  dedicated read-only SQL connections. Replace reader/transport budget together
+  with50sec/max40requests, preserving1sec pacing andexisting per-call timeouts.
+- native(targets, assessed_at, sensor_epoch) accepts1/2 unique ordered aware
+  lossless targets over<=24h, assessed<=actualnow andtarget<=assessment. Fetch
+  both endpoints in one original whole-snapshot packet/connection; retain/read
+  compressed private digest-bound source, replay cache on every use, verify exact
+  request/policy/phase, refuse deleted/changed originals, freeze caller targets.
+- Cap aggregate original query bytes at64MB, keep max8MB perpacket, andclose
+  connections/retain barriers with unchanged native source APIs. No PUT/action,
+  nofit, modelselection orlive units changed by this read-only adapter.
+- Tests first: paired SQLconnection1, whole snapshot receipt/invalid barrier,
+ 31 historicalcycles+outcome32queries under50s pacedvirtualclock, cacheprivate
+ original replay/deletion, wrongphase/time/span/precision, source drift refusal.
+- Adding optional producer module requires fresh12source runtime/artifact/stage
+ qualification after final producer behavior; original9/base72 cannot change.
+
+NativeScoreReader paired acquisition implemented inoptional native_thermal_live.py.
+Current12native-reader casesGREEN67795/5.99s; original71reader/querybindingcases
+GREEN90161/20.21s,83unique cases. Preserves50sec/max40request/1secpacing/read-only
+SQL/privatecompressedwhole-snapshot/sourcephase andlosslessclock/barrier checks.
+32queriesfor31missinghistoricalcycles+outcome fit31virtualseconds; actualSQL/latency
+notyetqualified. Cache reopensoriginals, missingfileandchangedprivateconfig refuse;
+64MBaggregate boundenforced before retention. Initial2REDmissingmodule34287/3.00s
+followedoriginalguardpreflightrefusal24047; no guardrelaxation. Original72/prior11
+sourcehashes unchanged. Newoptional12sourceruntime/artifact/stage pending until
+nativeproducerfinal. No live model/units/writes/actions orGitHubpublication.

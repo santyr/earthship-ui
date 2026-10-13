@@ -2668,6 +2668,42 @@
         "source_count": 215,
         "status": "sealed_staged_native_artifact_verified"
       }
+    },
+    "native_paired_score_query_reader": {
+      "status": "read_only_adapter_implemented_verified_producer_and_runtime_pending",
+      "source": "openhab/scripts/native_thermal_live.py",
+      "class": "NativeScoreReader",
+      "compressed_source_profile_required": true,
+      "held_shared_lock_guard_required": true,
+      "one_original_readonly_snapshot_per_pair": true,
+      "maximum_pair_span_hours": 24,
+      "maximum_target_count": 2,
+      "deadline_seconds": 50,
+      "maximum_requests": 40,
+      "minimum_request_interval_seconds": 1,
+      "maximum_aggregate_query_bytes": 64000000,
+      "source_identity_phase_clocks_policy_and_barriers_preserved": true,
+      "cached_original_query_replayed_not_cached_scalar_trusted": true,
+      "deleted_original_refused": true,
+      "no_put_method": true,
+      "full_31_missing_cycles_plus_outcome_test_queries": 32,
+      "paced_virtual_clock_seconds": 31,
+      "new_cases_passed": 12,
+      "new_seconds": 5.99,
+      "legacy_cases_passed": 71,
+      "legacy_seconds": 20.21,
+      "total_cases_passed": 83,
+      "representative_missing_module_red_cases": 2,
+      "red_seconds": 3.0,
+      "initial_guard_refusal_respected": true,
+      "protected_original_sources_changed": false,
+      "prior_11_native_sources_changed": false,
+      "new_optional_12_source_runtime_artifact_stage_pending": true,
+      "native_current_sql_and_latency_qualification_pending": true,
+      "native_issuer_monitor_and_delivery_integration_pending": true,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -2797,5 +2833,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T00:02:42-06:00"
+  "updated_at": "2026-10-13T00:22:07-06:00"
 }
